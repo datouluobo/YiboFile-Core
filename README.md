@@ -1,0 +1,166 @@
+# OoiMRR - 文件资源管理器
+
+一个基于 WPF 的现代化文件资源管理器，提供丰富的文件预览和管理功能。
+
+## 主要功能
+
+### 📁 文件管理
+- **三栏布局**：导航栏、文件列表、预览/备注区
+- **文件操作**：新建、复制、粘贴、剪切、删除、重命名
+- **快捷键支持**：完整的 Windows 标准快捷键（Ctrl+C/V/X、Delete、F2、F5 等）
+- **智能导航**：方向键导航、回车打开、Backspace 返回上级
+- **自动刷新**：文件系统监控，实时更新文件列表
+
+### 🎨 文件预览
+- **文本文件**：TXT、LOG、代码文件等
+- **图片文件**：PNG、JPG、GIF、BMP、SVG 等常见格式
+- **文档文件**：
+  - DOCX/DOC（HTML 转换预览 + 转换为 DOCX 功能）
+  - PDF（WebView2 渲染）
+  - XLSX（表格数据预览）
+- **视频文件**：MP4、AVI、MKV 等（带播放控制）
+- **音频文件**：MP3、WAV、FLAC 等
+- **压缩包**：ZIP、RAR、7Z（文件列表预览，支持中文编码）
+- **文件夹**：显示文件夹内容列表
+
+### 📝 新建文件
+支持创建多种类型的文件，并生成实际格式内容：
+- **Office 文档**：Word、Excel、PowerPoint（使用 COM 创建）
+- **图片文件**：PNG、JPG、GIF、BMP（500x500 空白图片）、SVG
+- **代码文件**：C#、Python、Java、JavaScript、HTML、CSS 等（带模板代码）
+- **配置文件**：JSON、XML、INI、Markdown 等
+- **脚本文件**：BAT、PowerShell
+
+### 🏷️ 标签和备注
+- 为文件和文件夹添加自定义标签
+- 添加备注信息
+- 按标签筛选文件
+- 搜索功能
+
+### 🎯 特色功能
+- **创建时间着色**：按时间长短用不同颜色显示（秒-绿色、分钟-青色、小时-蓝色、天-紫色、月-棕色、年-灰色）
+- **文件夹预览**：右侧预览区显示与左侧一致的文件列表
+- **统一对话框风格**：现代化、无边框、圆角设计
+- **自动序号命名**：新建文件/文件夹重名时自动添加序号
+
+## 技术栈
+
+- **.NET 8.0** - Windows 桌面应用框架
+- **WPF** - UI 框架
+- **WebView2** - PDF 和 DOCX 预览
+- **ExcelDataReader** - Excel 文件读取
+- **System.IO.Compression** - ZIP 文件处理
+- **FileSystemWatcher** - 文件系统监控
+
+## 系统要求
+
+- Windows 10/11
+- .NET 8.0 Runtime
+- WebView2 Runtime（用于文档预览）
+
+## 构建和运行
+
+```bash
+# 克隆仓库
+git clone <repository-url>
+
+# 进入项目目录
+cd OoiMRR
+
+# 构建项目
+dotnet build
+
+# 运行项目
+dotnet run
+# 或
+.\run.ps1
+```
+
+## 项目结构
+
+```
+OoiMRR/
+├── Previews/              # 预览功能模块
+│   ├── IPreviewProvider.cs      # 预览提供者接口
+│   ├── PreviewFactory.cs        # 预览工厂
+│   ├── PreviewHelper.cs         # 预览辅助工具
+│   ├── TextPreview.cs           # 文本预览
+│   ├── ImagePreview.cs          # 图片预览
+│   ├── VideoPreview.cs          # 视频预览
+│   ├── AudioPreview.cs          # 音频预览
+│   ├── DocumentPreview.cs       # 文档预览
+│   ├── ArchivePreview.cs        # 压缩包预览
+│   ├── FolderPreview.cs         # 文件夹预览
+│   └── DocxToHtmlConverter.cs   # DOCX 转 HTML
+├── Styles/                # 样式资源
+│   └── AppStyles.xaml
+├── MainWindow.xaml        # 主窗口界面
+├── MainWindow.xaml.cs     # 主窗口逻辑
+├── FileTypeManager.cs     # 文件类型管理
+├── ConfigManager.cs       # 配置管理
+├── DatabaseManager.cs     # 数据库管理
+├── RightPanelControl.xaml # 右侧面板控件
+├── PathInputDialog.xaml   # 路径输入对话框
+├── ConfirmDialog.xaml     # 确认对话框
+└── ...
+```
+
+## 更新日志
+
+### v1.0.0 (2025-01-02)
+
+#### 核心功能
+- ✅ 三栏式文件管理器布局
+- ✅ 完整的文件操作功能（新建、复制、粘贴、删除、重命名）
+- ✅ Windows 标准快捷键支持
+- ✅ 文件系统实时监控和自动刷新
+
+#### 预览功能
+- ✅ 文本文件预览
+- ✅ 图片文件预览
+- ✅ 视频文件预览（带播放控制）
+- ✅ 音频文件预览
+- ✅ DOCX/DOC 文档预览（HTML 转换）
+- ✅ PDF 文件预览（WebView2）
+- ✅ XLSX 文件预览（表格数据）
+- ✅ ZIP/RAR/7Z 压缩包预览（支持中文编码）
+- ✅ 文件夹内容预览
+
+#### 新建文件
+- ✅ Office 文档（Word、Excel、PowerPoint）
+- ✅ 图片文件（PNG、JPG、GIF、BMP、SVG）- 500x500 空白图片
+- ✅ 代码文件（C#、Python、Java、JS、HTML、CSS 等）- 带模板代码
+- ✅ 配置文件（JSON、XML、INI、Markdown 等）
+
+#### UI/UX 改进
+- ✅ 创建时间列（s/m/h/d/mo/y 格式）
+- ✅ 创建时间彩虹色着色（绿→青→蓝→紫→棕→灰）
+- ✅ 文件夹预览与左侧列表一致的界面
+- ✅ 统一的对话框风格（圆角、无边框、现代化）
+- ✅ 列3与列2水平对齐
+- ✅ 自动序号命名（重名时）
+
+#### 文档转换
+- ✅ DOC 转 DOCX 功能
+
+## 待开发功能
+
+- [ ] Excel 文件预览增强（多工作表支持）
+- [ ] PowerPoint 文件预览
+- [ ] CAD 文件预览（DWG/DXF）
+- [ ] 文件拖拽支持
+- [ ] 批量操作
+- [ ] 文件搜索增强
+- [ ] 主题切换（深色模式）
+
+## 许可证
+
+私有项目
+
+## 作者
+
+OoiMRR Team
+
+---
+
+**最后更新**: 2025-01-02
