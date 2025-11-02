@@ -2,9 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
 
 namespace OoiMRR
 {
@@ -13,6 +16,13 @@ namespace OoiMRR
     /// </summary>
     public class DragDropManager
     {
+        #region 拖拽动画相关
+
+        private Border _dragVisual;
+        private Window _dragWindow;
+
+        #endregion
+
         #region 拖拽目标类型
 
         /// <summary>
@@ -298,6 +308,9 @@ namespace OoiMRR
 
                 _isDragging = true;
 
+                // 创建拖拽视觉效果
+                CreateDragVisual(selectedPaths);
+
                 // 创建数据对象
                 var dataObject = new DataObject(DataFormats.FileDrop, selectedPaths.ToArray());
                 dataObject.SetData("DragDropData", _currentDragData);
@@ -305,7 +318,8 @@ namespace OoiMRR
                 // 开始拖拽操作
                 var effects = DragDrop.DoDragDrop(listView, dataObject, DragDropEffects.Copy | DragDropEffects.Move);
 
-                // 拖拽结束
+                // 拖拽结束，清理视觉效果
+                CloseDragVisual();
                 _isDragging = false;
 
                 if (effects == DragDropEffects.None)
@@ -617,6 +631,182 @@ namespace OoiMRR
             {
                 var dirName = Path.GetFileName(dir);
                 CopyDirectory(dir, Path.Combine(targetDir, dirName));
+            }
+        }
+
+        #endregion
+
+        #region 拖拽视觉效果
+
+        /// <summary>
+        /// 创建拖拽视觉效果
+        /// </summary>
+        private void CreateDragVisual(List<string> paths)
+        {
+            try
+            {
+                // 创建拖拽窗口
+                _dragWindow = new Window
+                {
+                    WindowStyle = WindowStyle.None,
+                    AllowsTransparency = true,
+                    Background = Brushes.Transparent,
+                    ShowInTaskbar = false,
+                    Topmost = true,
+                    Width = 200,
+                    Height = 60,
+                    Left = -10000, // 初始位置在屏幕外
+                    Top = -10000
+                };
+
+                // 创建拖拽视觉元素
+                _dragVisual = new Border
+                {
+                    Background = new SolidColorBrush(Color.FromArgb(220, 70, 130, 180)),
+                    BorderBrush = new SolidColorBrush(Color.FromArgb(255, 50, 100, 150)),
+                    BorderThickness = new Thickness(2),
+                    CornerRadius = new CornerRadius(8),
+                    Padding = new Thickness(12, 8, 12, 8)
+                };
+
+                // 创建内容
+                var stackPanel = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal
+                };
+
+                // 添加图标
+                var icon = new TextBlock
+                {
+                    Text = paths.Count > 1 ? "📦" : (Directory.Exists(paths[0]) ? "📁" : "📄"),
+                    FontSize = 24,
+                    Margin = new Thickness(0, 0, 10, 0),
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                stackPanel.Children.Add(icon);
+
+                // 添加文本
+                var textPanel = new StackPanel();
+                
+                var nameText = new TextBlock
+                {
+                    Text = paths.Count > 1 ? $"{paths.Count} 个项目" : Path.GetFileName(paths[0]),
+                    Foreground = Brushes.White,
+                    FontWeight = FontWeights.SemiBold,
+                    FontSize = 13,
+                    TextTrimming = TextTrimming.CharacterEllipsis,
+                    MaxWidth = 140
+                };
+                textPanel.Children.Add(nameText);
+
+                var hintText = new TextBlock
+                {
+                    Text = "拖动到目标位置",
+                    Foreground = new SolidColorBrush(Color.FromArgb(200, 255, 255, 255)),
+                    FontSize = 10,
+                    Margin = new Thickness(0, 2, 0, 0)
+                };
+                textPanel.Children.Add(hintText);
+
+                stackPanel.Children.Add(textPanel);
+                _dragVisual.Child = stackPanel;
+
+                // 添加阴影效果
+                _dragVisual.Effect = new System.Windows.Media.Effects.DropShadowEffect
+                {
+                    Color = Colors.Black,
+                    BlurRadius = 15,
+                    ShadowDepth = 3,
+                    Opacity = 0.5
+                };
+
+                _dragWindow.Content = _dragVisual;
+                _dragWindow.Show();
+
+                // 添加脉冲动画
+                var pulseAnimation = new DoubleAnimation
+                {
+                    From = 1.0,
+                    To = 0.9,
+                    Duration = TimeSpan.FromMilliseconds(500),
+                    AutoReverse = true,
+                    RepeatBehavior = RepeatBehavior.Forever
+                };
+                _dragVisual.BeginAnimation(UIElement.OpacityProperty, pulseAnimation);
+
+                // 跟随鼠标移动
+                CompositionTarget.Rendering += UpdateDragVisualPosition;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"创建拖拽视觉效果失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 更新拖拽视觉效果位置
+        /// </summary>
+        private void UpdateDragVisualPosition(object sender, EventArgs e)
+        {
+            if (_dragWindow != null && _dragWindow.IsVisible)
+            {
+                var mousePos = GetMousePosition();
+                _dragWindow.Left = mousePos.X + 10;
+                _dragWindow.Top = mousePos.Y + 10;
+            }
+        }
+
+        /// <summary>
+        /// 获取鼠标位置
+        /// </summary>
+        private Point GetMousePosition()
+        {
+            var point = new Win32Point();
+            GetCursorPos(ref point);
+            return new Point(point.X, point.Y);
+        }
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool GetCursorPos(ref Win32Point pt);
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct Win32Point
+        {
+            public int X;
+            public int Y;
+        }
+
+        /// <summary>
+        /// 关闭拖拽视觉效果
+        /// </summary>
+        private void CloseDragVisual()
+        {
+            try
+            {
+                CompositionTarget.Rendering -= UpdateDragVisualPosition;
+
+                if (_dragWindow != null)
+                {
+                    // 添加淡出动画
+                    var fadeOut = new DoubleAnimation
+                    {
+                        From = 1.0,
+                        To = 0.0,
+                        Duration = TimeSpan.FromMilliseconds(200)
+                    };
+                    fadeOut.Completed += (s, e) =>
+                    {
+                        _dragWindow.Close();
+                        _dragWindow = null;
+                        _dragVisual = null;
+                    };
+                    _dragWindow.BeginAnimation(UIElement.OpacityProperty, fadeOut);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"关闭拖拽视觉效果失败: {ex.Message}");
             }
         }
 

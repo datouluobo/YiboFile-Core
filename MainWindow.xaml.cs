@@ -32,6 +32,7 @@ namespace OoiMRR
         private System.Windows.Threading.DispatcherTimer _refreshDebounceTimer;
         private List<string> _copiedPaths = new List<string>();
         private bool _isCutOperation = false;
+        private DragDropManager _dragDropManager;
 
         public MainWindow()
         {
@@ -59,6 +60,9 @@ namespace OoiMRR
             
             // 初始化导航，默认显示路径
             SwitchNavigationMode("Path");
+
+            // 初始化拖拽管理器
+            InitializeDragDrop();
 
             // 窗口加载完成后应用配置（确保控件已完全初始化）
             this.Loaded += (s, e) => 
@@ -902,6 +906,74 @@ namespace OoiMRR
                 len = len / 1024;
             }
             return $"{len:0.##} {sizes[order]}";
+        }
+
+        #endregion
+
+        #region 拖拽功能
+
+        private void InitializeDragDrop()
+        {
+            _dragDropManager = new DragDropManager();
+            
+            // 订阅事件
+            _dragDropManager.DragDropCompleted += DragDropManager_DragDropCompleted;
+            _dragDropManager.DragDropStarted += DragDropManager_DragDropStarted;
+            _dragDropManager.DragDropCancelled += DragDropManager_DragDropCancelled;
+            
+            // 初始化文件列表拖拽
+            _dragDropManager.InitializeFileListDragDrop(FilesListView);
+        }
+
+        private void DragDropManager_DragDropStarted(object sender, DragDropManager.DragDropData e)
+        {
+            // 拖拽开始
+            System.Diagnostics.Debug.WriteLine($"开始拖拽 {e.SourcePaths.Count} 个项目");
+        }
+
+        private void DragDropManager_DragDropCompleted(object sender, DragDropManager.DragDropData e)
+        {
+            try
+            {
+                // 执行拖拽操作
+                bool success = _dragDropManager.ExecuteDragDropOperation(e);
+                
+                if (success)
+                {
+                    // 操作成功，刷新界面
+                    LoadFiles();
+                    
+                    // 显示成功消息
+                    string operationText = GetOperationText(e.Operation);
+                    MessageBox.Show($"{operationText} {e.SourcePaths.Count} 个项目到 {e.TargetPath}", 
+                        "操作成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"拖拽操作失败: {ex.Message}", "错误", 
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void DragDropManager_DragDropCancelled(object sender, EventArgs e)
+        {
+            // 拖拽取消
+            System.Diagnostics.Debug.WriteLine("拖拽已取消");
+        }
+
+        private string GetOperationText(DragDropManager.DragDropOperation operation)
+        {
+            return operation switch
+            {
+                DragDropManager.DragDropOperation.Move => "移动",
+                DragDropManager.DragDropOperation.Copy => "复制",
+                DragDropManager.DragDropOperation.CreateLink => "创建链接",
+                DragDropManager.DragDropOperation.AddToQuickAccess => "添加到快速访问",
+                DragDropManager.DragDropOperation.AddToLibrary => "添加到库",
+                DragDropManager.DragDropOperation.AddTag => "添加标签",
+                _ => "操作"
+            };
         }
 
         #endregion
