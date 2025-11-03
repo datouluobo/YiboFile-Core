@@ -14,6 +14,19 @@ namespace OoiMRR
         public ColorSelectionWindow()
         {
             InitializeComponent();
+            this.KeyDown += ColorSelectionWindow_KeyDown;
+        }
+
+        private void ColorSelectionWindow_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key == System.Windows.Input.Key.Enter)
+            {
+                OK_Click(null, null);
+            }
+            else if (e.Key == System.Windows.Input.Key.Escape)
+            {
+                Cancel_Click(null, null);
+            }
         }
 
         private void ColorButton_Click(object sender, RoutedEventArgs e)

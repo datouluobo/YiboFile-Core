@@ -16,6 +16,19 @@ namespace OoiMRR
         {
             InitializeComponent();
             LoadTags();
+            this.KeyDown += TagSelectionDialog_KeyDown;
+        }
+
+        private void TagSelectionDialog_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key == System.Windows.Input.Key.Enter)
+            {
+                OK_Click(null, null);
+            }
+            else if (e.Key == System.Windows.Input.Key.Escape)
+            {
+                Cancel_Click(null, null);
+            }
         }
 
         private void LoadTags()

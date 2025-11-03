@@ -75,16 +75,24 @@
                         <Button Content="粘贴" Click="Paste_Click" Margin="0,0,4,0"/>
                         <Button Content="删除" Click="Delete_Click" Margin="0,0,4,0"/>
                         <Separator Margin="8,0"/>
+                        <Button Content="⭐ 添加收藏" Click="AddFavorite_Click" Margin="0,0,4,0"/>
                         <Button Content="🏷️ 添加标签" Click="AddTagToFile_Click" Margin="0,0,4,0"/>
                         <Button Content="🔄 刷新" Click="Refresh_Click"/>
                     </StackPanel>
                     
                     <!-- 库模式按钮 -->
                     <StackPanel Name="LibraryActionButtons" Orientation="Horizontal" Margin="0,0" Visibility="Collapsed">
-                        <Button Content="📚 新建库" Click="AddLibrary_Click" Margin="0,0,4,0"/>
-                        <Button Content="📂 添加文件到库" Click="AddFileToLibrary_Click" Margin="0,0,4,0"/>
-                        <Button Content="📑 编辑库" Click="EditLibrary_Click" Margin="0,0,4,0"/>
+                        <Button Content="📁 新建文件夹" Click="NewFolder_Click" Margin="0,0,4,0"/>
+                        <Button Content="📄 新建文件" Click="NewFile_Click" Margin="0,0,4,0"/>
                         <Separator Margin="8,0"/>
+                        <Button Content="📚 新建库" Click="AddLibrary_Click" Margin="0,0,4,0"/>
+                        <Button Content="📂 添加到库" Click="AddFileToLibrary_Click" Margin="0,0,4,0"/>
+                        <Separator Margin="8,0"/>
+                        <Button Content="复制" Click="Copy_Click" Margin="0,0,4,0"/>
+                        <Button Content="粘贴" Click="Paste_Click" Margin="0,0,4,0"/>
+                        <Button Content="删除" Click="Delete_Click" Margin="0,0,4,0"/>
+                        <Separator Margin="8,0"/>
+                        <Button Content="⭐ 添加收藏" Click="AddFavorite_Click" Margin="0,0,4,0"/>
                         <Button Content="🏷️ 添加标签" Click="AddTagToFile_Click" Margin="0,0,4,0"/>
                         <Button Content="🔄 刷新" Click="Refresh_Click"/>
                     </StackPanel>
@@ -132,6 +140,7 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
                     
@@ -156,15 +165,97 @@
                     
                     <!-- 驱动器列表 -->
                     <GroupBox Grid.Row="2" Header="驱动器" Margin="0,0,0,8" Style="{StaticResource ModernGroupBoxStyle}">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="150">
-                            <StackPanel Name="DrivesPanel" Margin="2"/>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <ListBox Name="DrivesListBox" 
+                                     Margin="2"
+                                     BorderThickness="0"
+                                     Background="Transparent"
+                                     SelectionMode="Single">
+                                <ListBox.ItemContainerStyle>
+                                    <Style TargetType="ListBoxItem">
+                                        <Setter Property="Padding" Value="5,3"/>
+                                        <Setter Property="Margin" Value="0,2"/>
+                                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                        <Setter Property="Background" Value="#EEEEEE"/>
+                                        <Setter Property="BorderBrush" Value="#DDDDDD"/>
+                                        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="#E3F2FD"/>
+                                                <Setter Property="BorderBrush" Value="#2196F3"/>
+                                            </Trigger>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter Property="Background" Value="#BBDEFB"/>
+                                                <Setter Property="BorderBrush" Value="#1976D2"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ListBox.ItemContainerStyle>
+                            </ListBox>
                         </ScrollViewer>
                     </GroupBox>
                     
                     <!-- 快速访问 -->
-                    <GroupBox Grid.Row="3" Header="快速访问" Style="{StaticResource ModernGroupBoxStyle}">
+                    <GroupBox Grid.Row="3" Header="快速访问" Margin="0,0,0,8" Style="{StaticResource ModernGroupBoxStyle}">
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <StackPanel Name="QuickAccessPanel" Margin="2"/>
+                            <ListBox Name="QuickAccessListBox" 
+                                     Margin="2"
+                                     BorderThickness="0"
+                                     Background="Transparent"
+                                     SelectionMode="Single">
+                                <ListBox.ItemContainerStyle>
+                                    <Style TargetType="ListBoxItem">
+                                        <Setter Property="Padding" Value="5,3"/>
+                                        <Setter Property="Margin" Value="0,2"/>
+                                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                        <Setter Property="Background" Value="#EEEEEE"/>
+                                        <Setter Property="BorderBrush" Value="#DDDDDD"/>
+                                        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="#E3F2FD"/>
+                                                <Setter Property="BorderBrush" Value="#2196F3"/>
+                                            </Trigger>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter Property="Background" Value="#BBDEFB"/>
+                                                <Setter Property="BorderBrush" Value="#1976D2"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ListBox.ItemContainerStyle>
+                            </ListBox>
+                        </ScrollViewer>
+                    </GroupBox>
+                    
+                    <!-- 收藏 -->
+                    <GroupBox Grid.Row="4" Header="收藏" Style="{StaticResource ModernGroupBoxStyle}">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <ListBox Name="FavoritesListBox" 
+                                     Margin="2"
+                                     BorderThickness="0"
+                                     Background="Transparent"
+                                     SelectionMode="Single">
+                                <ListBox.ItemContainerStyle>
+                                    <Style TargetType="ListBoxItem">
+                                        <Setter Property="Padding" Value="5,3"/>
+                                        <Setter Property="Margin" Value="0,2"/>
+                                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                        <Setter Property="Background" Value="#EEEEEE"/>
+                                        <Setter Property="BorderBrush" Value="#DDDDDD"/>
+                                        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="#E3F2FD"/>
+                                                <Setter Property="BorderBrush" Value="#2196F3"/>
+                                            </Trigger>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter Property="Background" Value="#BBDEFB"/>
+                                                <Setter Property="BorderBrush" Value="#1976D2"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ListBox.ItemContainerStyle>
+                            </ListBox>
                         </ScrollViewer>
                     </GroupBox>
                 </Grid>
@@ -182,7 +273,21 @@
                     </StackPanel>
                     
                     <ListBox Grid.Row="1" Name="LibrariesListBox" 
-                             SelectionChanged="LibrariesListBox_SelectionChanged"/>
+                             SelectionChanged="LibrariesListBox_SelectionChanged"
+                             DisplayMemberPath="Name"
+                             ContextMenuOpening="LibrariesListBox_ContextMenuOpening">
+                        <ListBox.ContextMenu>
+                            <ContextMenu Name="LibraryContextMenu">
+                                <MenuItem Header="重命名" Click="LibraryRename_Click" Name="LibraryRenameMenuItem"/>
+                                <MenuItem Header="删除库" Click="LibraryDelete_Click" Name="LibraryDeleteMenuItem"/>
+                                <Separator/>
+                                <MenuItem Header="管理库位置" Click="LibraryManage_Click" Name="LibraryManageMenuItem"/>
+                                <MenuItem Header="在资源管理器中打开" Click="LibraryOpenInExplorer_Click" Name="LibraryOpenInExplorerMenuItem"/>
+                                <Separator/>
+                                <MenuItem Header="刷新库列表" Click="LibraryRefresh_Click"/>
+                            </ContextMenu>
+                        </ListBox.ContextMenu>
+                    </ListBox>
                 </Grid>
                 
                 <!-- 标签导航内容 -->
@@ -267,9 +372,11 @@
         
         <!-- 文件列表 -->
         <Border Grid.Row="1" Background="#FFFFFF" BorderBrush="#E9ECEF" BorderThickness="0,1,0,0">
-            <ListView Name="FilesListView" 
+            <Grid>
+                <ListView Name="FilesListView" 
                       SelectionChanged="FilesListView_SelectionChanged"
                       MouseDoubleClick="FilesListView_MouseDoubleClick"
+                      PreviewMouseDoubleClick="FilesListView_PreviewMouseDoubleClick"
                       PreviewKeyDown="FilesListView_PreviewKeyDown"
                       PreviewMouseLeftButtonDown="FilesListView_PreviewMouseLeftButtonDown"
                       MouseLeftButtonUp="FilesListView_MouseLeftButtonUp"
@@ -352,9 +459,24 @@
                                 <GridViewColumnHeader Content="备注" Click="GridViewColumnHeader_Click" Tag="Notes"/>
                             </GridViewColumn.Header>
                         </GridViewColumn>
-                    </GridView>
-                </ListView.View>
-            </ListView>
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+                
+                <!-- 空状态提示 -->
+                <StackPanel Name="EmptyStatePanel" 
+                           HorizontalAlignment="Center" 
+                           VerticalAlignment="Center"
+                           Visibility="Collapsed">
+                    <TextBlock Name="EmptyStateText" 
+                             FontSize="16" 
+                             Foreground="#999999"
+                             TextAlignment="Center"
+                             HorizontalAlignment="Center"
+                             TextWrapping="Wrap"
+                             Margin="20"/>
+                </StackPanel>
+            </Grid>
         </Border>
         
         <!-- 水平分割器 -->

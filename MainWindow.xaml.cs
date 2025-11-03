@@ -14,6 +14,7 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using Microsoft.Win32;
 using System.Runtime.InteropServices;
+using System.ComponentModel;
 
 namespace OoiMRR
 {
@@ -38,6 +39,7 @@ namespace OoiMRR
         private System.Windows.Point _mouseDownPoint;
         private bool _isMouseDownOnListView = false;
         private bool _isMouseDownOnColumnHeader = false;
+        private Library _currentLibrary = null;
 
         public MainWindow()
         {
@@ -62,6 +64,7 @@ namespace OoiMRR
             LoadTags();
             LoadQuickAccess();
             LoadDrives();
+            LoadFavorites();
             
             // 初始化导航，默认显示路径
             SwitchNavigationMode("Path");
@@ -94,6 +97,43 @@ namespace OoiMRR
                 if (FilesListView != null)
                 {
                     FilesListView.SizeChanged += ListView_SizeChanged;
+                    
+                    // 添加双击空白区域的事件处理
+                    FilesListView.PreviewMouseDoubleClick += FilesListView_PreviewMouseDoubleClickForBlank;
+                    
+                    // 延迟加载列宽度，确保GridView已初始化
+                    this.Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        LoadColumnWidths();
+                        // 设置定时保存列宽度（延迟保存，避免频繁写入）
+                        var saveTimer = new System.Windows.Threading.DispatcherTimer
+                        {
+                            Interval = TimeSpan.FromSeconds(1)
+                        };
+                        saveTimer.Tick += (s, e) =>
+                        {
+                            SaveColumnWidths();
+                            saveTimer.Stop();
+                        };
+                        
+                        // 监听列宽度变化
+                        if (FilesGridView != null)
+                        {
+                            foreach (var column in FilesGridView.Columns)
+                            {
+                                // 使用依赖属性监听宽度变化
+                                var dpd = System.ComponentModel.DependencyPropertyDescriptor.FromProperty(GridViewColumn.WidthProperty, typeof(GridViewColumn));
+                                if (dpd != null)
+                                {
+                                    dpd.AddValueChanged(column, (s, e) =>
+                                    {
+                                        saveTimer.Stop();
+                                        saveTimer.Start(); // 重新计时
+                                    });
+                                }
+                            }
+                        }
+                    }), System.Windows.Threading.DispatcherPriority.Loaded);
                 }
 
                 // 强制初始化列2和列3为固定宽度（不使用Star模式）
@@ -566,12 +606,23 @@ namespace OoiMRR
             TagActionButtons.Visibility = Visibility.Collapsed;
             SearchActionButtons.Visibility = Visibility.Collapsed;
             
+            // 切换到非库模式时清空当前库
+            if (mode != "Library")
+            {
+                _currentLibrary = null;
+            }
+            
             // 根据模式显示对应内容和按钮
             switch (mode)
             {
                 case "Path":
                     NavPathContent.Visibility = Visibility.Visible;
                     PathActionButtons.Visibility = Visibility.Visible;
+                    // 恢复路径模式时，如果当前路径为空，使用默认路径
+                    if (string.IsNullOrEmpty(_currentPath))
+                    {
+                        _currentPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+                    }
                     break;
                 case "Library":
                     NavLibraryContent.Visibility = Visibility.Visible;
@@ -614,9 +665,23 @@ namespace OoiMRR
         private void RefreshFileList()
         {
             // 根据当前导航模式刷新文件列表
-            // 这个方法的实现取决于当前模式
-            // 暂时保持原有逻辑
-            LoadFiles();
+            if (_currentLibrary != null)
+            {
+                // 库模式：刷新库文件
+                LoadLibraryFiles(_currentLibrary);
+            }
+            else if (!string.IsNullOrEmpty(_currentPath) && Directory.Exists(_currentPath))
+            {
+                // 路径模式：加载目录
+                LoadCurrentDirectory();
+            }
+            else
+            {
+                // 其他模式：清空列表
+                _currentFiles.Clear();
+                FilesListView.ItemsSource = null;
+                HideEmptyStateMessage();
+            }
         }
         
         #endregion
@@ -631,6 +696,9 @@ namespace OoiMRR
                 UpdateBreadcrumb();
                 LoadFiles();
                 SetupFileWatcher(_currentPath);
+                
+                // 隐藏空状态提示
+                HideEmptyStateMessage();
             }
             catch (Exception ex)
             {
@@ -758,7 +826,11 @@ namespace OoiMRR
         {
             if (Directory.Exists(path))
             {
-                AddToHistory(_currentPath);
+                // 只有在当前路径不为空时才添加到历史记录
+                if (!string.IsNullOrEmpty(_currentPath))
+                {
+                    AddToHistory(_currentPath);
+                }
                 _currentPath = path;
                 // 清除任何过滤状态
                 ClearFilter();
@@ -766,6 +838,10 @@ namespace OoiMRR
                 // 保存当前路径到配置
                 _config.LastPath = _currentPath;
                 ConfigManager.Save(_config);
+            }
+            else
+            {
+                MessageBox.Show($"路径不存在: {path}", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
 
@@ -1082,6 +1158,7 @@ namespace OoiMRR
             // 清除过滤状态，恢复正常的文件浏览
             _currentFiles.Clear();
             FilesListView.ItemsSource = null;
+            HideEmptyStateMessage();
         }
 
         private void FilesListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -1092,26 +1169,158 @@ namespace OoiMRR
                 LoadFilePreview(selectedItem);
                 LoadFileNotes(selectedItem);
             }
+            else
+            {
+                // 没有选择文件时，清除预览区和文件信息
+                ClearPreviewAndInfo();
+            }
+        }
+        
+        private void ClearPreviewAndInfo()
+        {
+            // 清除预览区
+            if (RightPanel?.PreviewGrid != null)
+            {
+                RightPanel.PreviewGrid.Children.Clear();
+                // 显示默认提示
+                RightPanel.PreviewGrid.Children.Add(new TextBlock
+                {
+                    Text = "选择一个文件进行预览",
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Foreground = System.Windows.Media.Brushes.Gray,
+                    FontSize = 14
+                });
+            }
+            
+            // 清除文件信息
+            if (FileInfoPanel != null)
+            {
+                FileInfoPanel.Children.Clear();
+            }
+            
+            // 清除备注
+            if (RightPanel?.NotesTextBox != null)
+            {
+                RightPanel.NotesTextBox.Text = "";
+            }
+        }
+        
+        private void ShowEmptyLibraryMessage(string libraryName)
+        {
+            if (EmptyStatePanel != null && EmptyStateText != null)
+            {
+                EmptyStateText.Text = $"库 \"{libraryName}\" 没有添加任何位置。\n\n请在管理库中添加位置。";
+                EmptyStatePanel.Visibility = Visibility.Visible;
+            }
+        }
+        
+        private void HideEmptyStateMessage()
+        {
+            if (EmptyStatePanel != null)
+            {
+                EmptyStatePanel.Visibility = Visibility.Collapsed;
+            }
         }
 
+        private void FilesListView_PreviewMouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            // Preview 事件优先处理
+            HandleDoubleClick(e);
+        }
+        
         private void FilesListView_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
-            if (FilesListView.SelectedItem is FileSystemItem selectedItem)
+            // 备用处理（如果 Preview 事件没有被处理）
+            HandleDoubleClick(e);
+        }
+        
+        private void HandleDoubleClick(MouseButtonEventArgs e)
+        {
+            // 获取双击位置对应的项目
+            var hitResult = VisualTreeHelper.HitTest(FilesListView, e.GetPosition(FilesListView));
+            if (hitResult == null) return;
+            
+            // 向上查找 ListViewItem
+            DependencyObject current = hitResult.VisualHit;
+            while (current != null && current != FilesListView)
             {
-                if (selectedItem.IsDirectory)
+                if (current is System.Windows.Controls.ListViewItem item)
                 {
-                    NavigateToPath(selectedItem.Path);
+                    if (item.Content is FileSystemItem selectedItem)
+                    {
+                        if (selectedItem.IsDirectory)
+                        {
+                            // 检查路径是否存在
+                            if (!Directory.Exists(selectedItem.Path))
+                            {
+                                MessageBox.Show($"文件夹路径不存在: {selectedItem.Path}", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                                return;
+                            }
+                            
+                            // 如果是库模式，切换到路径模式并导航
+                            if (_currentLibrary != null)
+                            {
+                                // 切换到路径模式
+                                _currentLibrary = null;
+                                SwitchNavigationMode("Path");
+                            }
+                            
+                            // 立即导航，不等待任何异步操作
+                            NavigateToPath(selectedItem.Path);
+                            e.Handled = true;
+                            return;
+                        }
+                        else
+                        {
+                            // 打开文件
+                            try
+                            {
+                                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                                {
+                                    FileName = selectedItem.Path,
+                                    UseShellExecute = true
+                                });
+                                e.Handled = true;
+                                return;
+                            }
+                            catch (Exception ex)
+                            {
+                                MessageBox.Show($"无法打开文件: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                            }
+                        }
+                    }
+                }
+                current = VisualTreeHelper.GetParent(current);
+            }
+            
+            // 备用：使用选中项
+            if (FilesListView.SelectedItem is FileSystemItem backupItem)
+            {
+                System.Diagnostics.Debug.WriteLine($"[双击备用] 使用选中项: {backupItem.Name}");
+                if (backupItem.IsDirectory)
+                {
+                    if (Directory.Exists(backupItem.Path))
+                    {
+                        if (_currentLibrary != null)
+                        {
+                            _currentLibrary = null;
+                            SwitchNavigationMode("Path");
+                        }
+                        NavigateToPath(backupItem.Path);
+                        e.Handled = true;
+                    }
                 }
                 else
                 {
-                    // 打开文件
                     try
                     {
                         System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
                         {
-                            FileName = selectedItem.Path,
+                            FileName = backupItem.Path,
                             UseShellExecute = true
                         });
+                        e.Handled = true;
                     }
                     catch (Exception ex)
                     {
@@ -1635,31 +1844,396 @@ namespace OoiMRR
         private void LoadLibraries()
         {
             var libraries = DatabaseManager.GetAllLibraries();
+            LibrariesListBox.ItemsSource = null; // 先清空以强制刷新
             LibrariesListBox.ItemsSource = libraries;
+            LibrariesListBox.Items.Refresh(); // 强制刷新显示
         }
 
         private void AddLibrary_Click(object sender, RoutedEventArgs e)
         {
-            // 使用简单的输入对话框
             var dialog = new LibraryDialog();
             if (dialog.ShowDialog() == true)
             {
-                DatabaseManager.AddLibrary(dialog.LibraryName, dialog.LibraryPath);
-                LoadLibraries();
+                try
+                {
+                    var libraryId = DatabaseManager.AddLibrary(dialog.LibraryName);
+                    if (libraryId > 0)
+                    {
+                        // 如果提供了初始路径，添加到库中
+                        if (!string.IsNullOrWhiteSpace(dialog.LibraryPath))
+                        {
+                            DatabaseManager.AddLibraryPath(libraryId, dialog.LibraryPath);
+                        }
+                        LoadLibraries();
+                    }
+                    else if (libraryId < 0)
+                    {
+                        // 库已存在，刷新列表以显示
+                        LoadLibraries();
+                        MessageBox.Show($"库名称已存在，已刷新库列表", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    else
+                    {
+                        MessageBox.Show("创建库失败", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"创建库失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
         }
 
         private void ManageLibraries_Click(object sender, RoutedEventArgs e)
         {
-            // TODO: 实现库管理窗口
-            MessageBox.Show("库管理功能待实现", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            var manageWindow = new LibraryManagementWindow();
+            manageWindow.ShowDialog();
+            LoadLibraries();
+            
+            // 如果当前库被删除或修改，刷新显示
+            if (_currentLibrary != null)
+            {
+                var updatedLibrary = DatabaseManager.GetLibrary(_currentLibrary.Id);
+                if (updatedLibrary != null)
+                {
+                    _currentLibrary = updatedLibrary;
+                    LoadLibraryFiles(_currentLibrary);
+                }
+                else
+                {
+                    _currentLibrary = null;
+                    _currentFiles.Clear();
+                    FilesListView.ItemsSource = null;
+                }
+            }
+        }
+
+        private void LibrariesListBox_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+        {
+            // 根据是否有选中项来启用/禁用菜单项
+            bool hasSelection = LibrariesListBox.SelectedItem != null;
+            
+            if (LibraryContextMenu != null)
+            {
+                LibraryRenameMenuItem.IsEnabled = hasSelection;
+                LibraryDeleteMenuItem.IsEnabled = hasSelection;
+                LibraryManageMenuItem.IsEnabled = hasSelection;
+                LibraryOpenInExplorerMenuItem.IsEnabled = hasSelection;
+            }
+        }
+
+        private void LibraryRename_Click(object sender, RoutedEventArgs e)
+        {
+            if (LibrariesListBox.SelectedItem is Library selectedLibrary)
+            {
+                var dialog = new PathInputDialog("请输入新的库名称:");
+                dialog.InputText = selectedLibrary.Name;
+                if (dialog.ShowDialog() == true)
+                {
+                    var newName = dialog.InputText.Trim();
+                    if (string.IsNullOrEmpty(newName))
+                    {
+                        MessageBox.Show("库名称不能为空", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+
+                    try
+                    {
+                        DatabaseManager.UpdateLibraryName(selectedLibrary.Id, newName);
+                        LoadLibraries();
+                        
+                        // 如果当前库被重命名，更新当前库引用
+                        if (_currentLibrary != null && _currentLibrary.Id == selectedLibrary.Id)
+                        {
+                            var updatedLibrary = DatabaseManager.GetLibrary(selectedLibrary.Id);
+                            if (updatedLibrary != null)
+                            {
+                                _currentLibrary = updatedLibrary;
+                                LoadLibraryFiles(updatedLibrary);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"重命名失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
+            }
+        }
+
+        private void LibraryDelete_Click(object sender, RoutedEventArgs e)
+        {
+            if (LibrariesListBox.SelectedItem is Library selectedLibrary)
+            {
+                var result = MessageBox.Show(
+                    $"确定要删除库 \"{selectedLibrary.Name}\" 吗？\n这将删除库及其所有位置，但不会删除实际文件。",
+                    "确认删除",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    try
+                    {
+                        DatabaseManager.DeleteLibrary(selectedLibrary.Id);
+                        LoadLibraries();
+                        
+                        // 如果删除的是当前库，清空显示
+                        if (_currentLibrary != null && _currentLibrary.Id == selectedLibrary.Id)
+                        {
+                            _currentLibrary = null;
+                            _currentFiles.Clear();
+                            FilesListView.ItemsSource = null;
+                            AddressTextBox.Text = "";
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"删除库失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
+            }
+        }
+
+        private void LibraryManage_Click(object sender, RoutedEventArgs e)
+        {
+            ManageLibraries_Click(sender, e);
+        }
+
+        private void LibraryOpenInExplorer_Click(object sender, RoutedEventArgs e)
+        {
+            if (LibrariesListBox.SelectedItem is Library selectedLibrary)
+            {
+                var updatedLibrary = DatabaseManager.GetLibrary(selectedLibrary.Id);
+                if (updatedLibrary != null && updatedLibrary.Paths != null && updatedLibrary.Paths.Count > 0)
+                {
+                    // 打开第一个位置
+                    var firstPath = updatedLibrary.Paths[0];
+                    if (Directory.Exists(firstPath))
+                    {
+                        try
+                        {
+                            System.Diagnostics.Process.Start("explorer.exe", firstPath);
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"无法打开文件夹: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        }
+                    }
+                    else
+                    {
+                        MessageBox.Show($"路径不存在: {firstPath}", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("该库没有添加任何位置", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+        }
+
+        private void LibraryRefresh_Click(object sender, RoutedEventArgs e)
+        {
+            LoadLibraries();
         }
 
         private void LibrariesListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            System.Diagnostics.Debug.WriteLine("[库选择] SelectionChanged 事件触发");
+            
             if (LibrariesListBox.SelectedItem is Library selectedLibrary)
             {
-                NavigateToPath(selectedLibrary.Path);
+                System.Diagnostics.Debug.WriteLine($"[库选择] 选中的库: {selectedLibrary.Name}, Id: {selectedLibrary.Id}");
+                
+                // 重新从数据库加载库信息，确保路径信息是最新的
+                var updatedLibrary = DatabaseManager.GetLibrary(selectedLibrary.Id);
+                if (updatedLibrary != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[库选择] 库路径数量: {updatedLibrary.Paths?.Count ?? 0}");
+                    if (updatedLibrary.Paths != null && updatedLibrary.Paths.Count > 0)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[库选择] 路径列表: {string.Join(", ", updatedLibrary.Paths)}");
+                    }
+                    
+                    _currentLibrary = updatedLibrary;
+                    LoadLibraryFiles(updatedLibrary);
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("[库选择] 从数据库加载库失败");
+                    _currentLibrary = null;
+                    _currentFiles.Clear();
+                    FilesListView.ItemsSource = null;
+                    AddressTextBox.Text = "";
+                }
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("[库选择] 未选中库");
+                _currentLibrary = null;
+                _currentFiles.Clear();
+                FilesListView.ItemsSource = null;
+                AddressTextBox.Text = "";
+            }
+        }
+
+        private void LoadLibraryFiles(Library library)
+        {
+            System.Diagnostics.Debug.WriteLine($"[加载库文件] 开始加载库: {library.Name}");
+            
+            _currentFiles.Clear();
+            _currentPath = null; // 标记当前在库模式下
+            
+            try
+            {
+                if (library.Paths == null || library.Paths.Count == 0)
+                {
+                    System.Diagnostics.Debug.WriteLine("[加载库文件] 库没有位置，显示提示");
+                    _currentFiles.Clear();
+                    FilesListView.ItemsSource = null;
+                    AddressTextBox.Text = $"库: {library.Name} (无位置)";
+                    
+                    // 在文件列表区域显示提示信息，而不是弹窗
+                    ShowEmptyLibraryMessage(library.Name);
+                    
+                    // 清除预览区
+                    ClearPreviewAndInfo();
+                    return;
+                }
+                
+                System.Diagnostics.Debug.WriteLine($"[加载库文件] 库有 {library.Paths.Count} 个位置");
+                var allItems = new Dictionary<string, FileSystemItem>();
+                
+                // 遍历库中的所有位置
+                foreach (var path in library.Paths)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[加载库文件] 处理路径: {path}");
+                    if (!Directory.Exists(path))
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[加载库文件] 路径不存在: {path}");
+                        continue;
+                    }
+                    
+                    try
+                    {
+                        // 加载文件夹
+                        var directories = Directory.GetDirectories(path)
+                            .Select(d =>
+                            {
+                                var dirInfo = new DirectoryInfo(d);
+                                return new FileSystemItem
+                                {
+                                    Name = Path.GetFileName(d),
+                                    Path = d,
+                                    Type = "文件夹",
+                                    Size = "计算中...",
+                                    ModifiedDate = dirInfo.LastWriteTime.ToString("yyyy-MM-dd HH:mm"),
+                                    CreatedTime = FileSystemItem.FormatTimeAgo(dirInfo.CreationTime),
+                                    IsDirectory = true,
+                                    SourcePath = path // 标记来源路径
+                                };
+                            }).ToList();
+
+                        // 加载文件
+                        var files = Directory.GetFiles(path)
+                            .Select(f =>
+                            {
+                                var fileInfo = new FileInfo(f);
+                                return new FileSystemItem
+                                {
+                                    Name = Path.GetFileName(f),
+                                    Path = f,
+                                    Type = Path.GetExtension(f),
+                                    Size = FormatFileSize(fileInfo.Length),
+                                    ModifiedDate = fileInfo.LastWriteTime.ToString("yyyy-MM-dd HH:mm"),
+                                    CreatedTime = FileSystemItem.FormatTimeAgo(fileInfo.CreationTime),
+                                    IsDirectory = false,
+                                    SourcePath = path // 标记来源路径
+                                };
+                            }).ToList();
+
+                        // 合并文件，同名文件保留第一个（或可以选择最新的）
+                        foreach (var item in directories.Concat(files))
+                        {
+                            var key = item.Name.ToLowerInvariant();
+                            if (!allItems.ContainsKey(key))
+                            {
+                                allItems[key] = item;
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"加载路径失败 {path}: {ex.Message}");
+                    }
+                }
+
+                _currentFiles.AddRange(allItems.Values);
+                
+                System.Diagnostics.Debug.WriteLine($"[加载库文件] 合并后共有 {_currentFiles.Count} 项");
+
+                // 加载标签信息和备注
+                foreach (var item in _currentFiles)
+                {
+                    var tags = DatabaseManager.GetFileTags(item.Path);
+                    item.Tags = string.Join(", ", tags.Select(t => t.Name));
+                    
+                    var notes = DatabaseManager.GetFileNotes(item.Path);
+                    if (!string.IsNullOrEmpty(notes))
+                    {
+                        var firstLine = notes.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "";
+                        item.Notes = firstLine.Length > 100 ? firstLine.Substring(0, 100) + "..." : firstLine;
+                    }
+                    else
+                    {
+                        item.Notes = "";
+                    }
+                }
+
+                // 应用排序
+                SortFiles();
+
+                System.Diagnostics.Debug.WriteLine($"[加载库文件] 设置 ItemsSource，文件数量: {_currentFiles.Count}");
+                FilesListView.ItemsSource = null; // 先清空
+                FilesListView.ItemsSource = _currentFiles; // 再设置
+                FilesListView.Items.Refresh(); // 强制刷新
+
+                // 隐藏空状态提示
+                HideEmptyStateMessage();
+
+                // 更新地址栏显示库名称
+                AddressTextBox.Text = $"库: {library.Name}";
+                
+                System.Diagnostics.Debug.WriteLine($"[加载库文件] 完成，ItemsSource 已设置");
+
+                // 异步计算文件夹大小
+                var dirsToCalculate = _currentFiles.Where(f => f.IsDirectory).ToList();
+                foreach (var dir in dirsToCalculate)
+                {
+                    var path = dir.Path;
+                    System.Threading.Tasks.Task.Run(() =>
+                    {
+                        try
+                        {
+                            var size = CalculateDirectorySize(path);
+                            Dispatcher.Invoke(() =>
+                            {
+                                var item = _currentFiles.FirstOrDefault(f => f.Path == path);
+                                if (item != null)
+                                {
+                                    item.Size = FormatFileSize(size);
+                                    var collectionView = System.Windows.Data.CollectionViewSource.GetDefaultView(FilesListView.ItemsSource);
+                                    collectionView?.Refresh();
+                                }
+                            });
+                        }
+                        catch { }
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"加载库文件失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1922,7 +2496,7 @@ namespace OoiMRR
 
         private void LoadQuickAccess()
         {
-            QuickAccessPanel.Children.Clear();
+            if (QuickAccessListBox == null) return;
             
             var quickAccessPaths = new[]
             {
@@ -1934,20 +2508,36 @@ namespace OoiMRR
                 (Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "👤 用户")
             };
 
-            foreach (var (path, displayName) in quickAccessPaths)
+            var accessItems = quickAccessPaths
+                .Where(item => Directory.Exists(item.Item1))
+                .Select(item => new { DisplayName = item.Item2, Path = item.Item1 })
+                .ToList();
+            
+            QuickAccessListBox.ItemsSource = accessItems;
+            QuickAccessListBox.DisplayMemberPath = "DisplayName";
+            
+            // 设置选择事件
+            QuickAccessListBox.SelectionChanged -= QuickAccessListBox_SelectionChanged;
+            QuickAccessListBox.SelectionChanged += QuickAccessListBox_SelectionChanged;
+        }
+        
+        private void QuickAccessListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (QuickAccessListBox.SelectedItem == null) return;
+            
+            var selectedItem = QuickAccessListBox.SelectedItem;
+            var pathProperty = selectedItem.GetType().GetProperty("Path");
+            if (pathProperty != null)
             {
-                if (Directory.Exists(path))
+                var path = pathProperty.GetValue(selectedItem) as string;
+                if (!string.IsNullOrEmpty(path))
                 {
-                    var button = new Button
-                    {
-                        Content = displayName,
-                        Style = (Style)FindResource("QuickAccessButtonStyle")
-                    };
-                    
-                    button.Click += (s, e) => NavigateToPath(path);
-                    QuickAccessPanel.Children.Add(button);
+                    NavigateToPath(path);
                 }
             }
+            
+            // 清除选择
+            QuickAccessListBox.SelectedItem = null;
         }
 
         #endregion
@@ -1956,35 +2546,48 @@ namespace OoiMRR
 
         private void LoadDrives()
         {
-            DrivesPanel.Children.Clear();
+            if (DrivesListBox == null) return;
             
             try
             {
                 var drives = DriveInfo.GetDrives().Where(d => d.IsReady).ToList();
-                
-                foreach (var drive in drives)
+                var driveItems = drives.Select(drive => new
                 {
-                    var button = new Button
-                    {
-                        Content = $"{drive.Name} ({drive.VolumeLabel})",
-                        Style = (Style)FindResource("DriveButtonStyle"),
-                        ToolTip = $"总空间: {FormatFileSize(drive.TotalSize)}\n可用空间: {FormatFileSize(drive.AvailableFreeSpace)}"
-                    };
-                    
-                    button.Click += (s, e) => NavigateToPath(drive.Name);
-                    DrivesPanel.Children.Add(button);
+                    DisplayName = $"{drive.Name} ({drive.VolumeLabel})",
+                    Path = drive.Name,
+                    ToolTip = $"总空间: {FormatFileSize(drive.TotalSize)}\n可用空间: {FormatFileSize(drive.AvailableFreeSpace)}"
+                }).ToList();
+                
+                DrivesListBox.ItemsSource = driveItems;
+                DrivesListBox.DisplayMemberPath = "DisplayName";
+                
+                // 设置选择事件
+                DrivesListBox.SelectionChanged -= DrivesListBox_SelectionChanged;
+                DrivesListBox.SelectionChanged += DrivesListBox_SelectionChanged;
+            }
+            catch
+            {
+                DrivesListBox.ItemsSource = null;
+            }
+        }
+        
+        private void DrivesListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (DrivesListBox.SelectedItem == null) return;
+            
+            var selectedItem = DrivesListBox.SelectedItem;
+            var pathProperty = selectedItem.GetType().GetProperty("Path");
+            if (pathProperty != null)
+            {
+                var path = pathProperty.GetValue(selectedItem) as string;
+                if (!string.IsNullOrEmpty(path))
+                {
+                    NavigateToPath(path);
                 }
             }
-            catch (Exception ex)
-            {
-                var errorText = new TextBlock
-                {
-                    Text = $"无法加载驱动器: {ex.Message}",
-                    Foreground = System.Windows.Media.Brushes.Red,
-                    Margin = new Thickness(5)
-                };
-                DrivesPanel.Children.Add(errorText);
-            }
+            
+            // 清除选择
+            DrivesListBox.SelectedItem = null;
         }
 
         #endregion
@@ -1995,6 +2598,52 @@ namespace OoiMRR
         {
             try
             {
+                string targetPath = null;
+                
+                // 判断当前模式：库模式还是路径模式
+                if (_currentLibrary != null)
+                {
+                    // 库模式：使用库的第一个位置
+                    if (_currentLibrary.Paths == null || _currentLibrary.Paths.Count == 0)
+                    {
+                        MessageBox.Show("当前库没有添加任何位置，请先在管理库中添加位置", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                        return;
+                    }
+                    
+                    // 如果有多个位置，让用户选择
+                    if (_currentLibrary.Paths.Count > 1)
+                    {
+                        var paths = string.Join("\n", _currentLibrary.Paths.Select((p, i) => $"{i + 1}. {p}"));
+                        var result = MessageBox.Show(
+                            $"当前库有多个位置，将在第一个位置创建文件夹：\n\n{_currentLibrary.Paths[0]}\n\n是否继续？\n\n所有位置：\n{paths}",
+                            "选择位置",
+                            MessageBoxButton.YesNo,
+                            MessageBoxImage.Question);
+                        
+                        if (result != MessageBoxResult.Yes)
+                        {
+                            return;
+                        }
+                    }
+                    
+                    targetPath = _currentLibrary.Paths[0];
+                    if (!Directory.Exists(targetPath))
+                    {
+                        MessageBox.Show($"库位置不存在: {targetPath}", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+                }
+                else if (!string.IsNullOrEmpty(_currentPath) && Directory.Exists(_currentPath))
+                {
+                    // 路径模式：使用当前路径
+                    targetPath = _currentPath;
+                }
+                else
+                {
+                    MessageBox.Show("当前没有可用的路径", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
                 // 使用简单的输入对话框
                 var dialog = new PathInputDialog
                 {
@@ -2023,7 +2672,7 @@ namespace OoiMRR
                         return;
                     }
 
-                    var folderPath = Path.Combine(_currentPath, folderName);
+                    var folderPath = Path.Combine(targetPath, folderName);
 
                     // 如果已存在，自动添加序号
                     if (Directory.Exists(folderPath))
@@ -2033,7 +2682,7 @@ namespace OoiMRR
                         do
                         {
                             newFolderName = $"{folderName} ({counter})";
-                            folderPath = Path.Combine(_currentPath, newFolderName);
+                            folderPath = Path.Combine(targetPath, newFolderName);
                             counter++;
                         }
                         while (Directory.Exists(folderPath));
@@ -2042,7 +2691,8 @@ namespace OoiMRR
                     // 创建文件夹
                     Directory.CreateDirectory(folderPath);
                     
-                    // 文件监视器会自动刷新列表
+                    // 刷新显示
+                    RefreshFileList();
                 }
             }
             catch (Exception ex)
@@ -2146,9 +2796,55 @@ namespace OoiMRR
         {
             try
             {
+                string targetPath = null;
+                
+                // 判断当前模式：库模式还是路径模式
+                if (_currentLibrary != null)
+                {
+                    // 库模式：使用库的第一个位置
+                    if (_currentLibrary.Paths == null || _currentLibrary.Paths.Count == 0)
+                    {
+                        MessageBox.Show("当前库没有添加任何位置，请先在管理库中添加位置", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                        return;
+                    }
+                    
+                    // 如果有多个位置，让用户选择
+                    if (_currentLibrary.Paths.Count > 1)
+                    {
+                        var paths = string.Join("\n", _currentLibrary.Paths.Select((p, i) => $"{i + 1}. {p}"));
+                        var result = MessageBox.Show(
+                            $"当前库有多个位置，将在第一个位置创建文件：\n\n{_currentLibrary.Paths[0]}\n\n是否继续？\n\n所有位置：\n{paths}",
+                            "选择位置",
+                            MessageBoxButton.YesNo,
+                            MessageBoxImage.Question);
+                        
+                        if (result != MessageBoxResult.Yes)
+                        {
+                            return;
+                        }
+                    }
+                    
+                    targetPath = _currentLibrary.Paths[0];
+                    if (!Directory.Exists(targetPath))
+                    {
+                        MessageBox.Show($"库位置不存在: {targetPath}", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+                }
+                else if (!string.IsNullOrEmpty(_currentPath) && Directory.Exists(_currentPath))
+                {
+                    // 路径模式：使用当前路径
+                    targetPath = _currentPath;
+                }
+                else
+                {
+                    MessageBox.Show("当前没有可用的路径", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
                 // 根据扩展名生成文件名
                 string baseFileName = $"新建文件{extension}";
-                string filePath = Path.Combine(_currentPath, baseFileName);
+                string filePath = Path.Combine(targetPath, baseFileName);
 
                 // 如果已存在，自动添加序号
                 if (File.Exists(filePath))
@@ -2159,7 +2855,7 @@ namespace OoiMRR
                     do
                     {
                         string candidateFileName = $"{fileNameWithoutExt} ({counter}){extension}";
-                        filePath = Path.Combine(_currentPath, candidateFileName);
+                        filePath = Path.Combine(targetPath, candidateFileName);
                         counter++;
                     }
                     while (File.Exists(filePath));
@@ -2168,7 +2864,8 @@ namespace OoiMRR
                 // 根据文件类型创建合适的文件内容
                 CreateFileWithProperFormat(filePath, extension.ToLower());
                 
-                // 文件监视器会自动刷新列表
+                // 刷新显示
+                RefreshFileList();
             }
             catch (Exception ex)
             {
@@ -2617,13 +3314,181 @@ Write-Host ""Hello World""
 
         private void AddFileToLibrary_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("添加文件到库功能待实现", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            // 获取选中的文件或文件夹
+            var selectedItems = FilesListView.SelectedItems.Cast<FileSystemItem>().ToList();
+            if (selectedItems.Count == 0)
+            {
+                MessageBox.Show("请先选择要添加到库的文件或文件夹", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            // 确定要添加到的库
+            Library targetLibrary = null;
+            
+            // 如果当前在库模式且选中了库，使用当前库
+            if (_currentLibrary != null)
+            {
+                targetLibrary = _currentLibrary;
+            }
+            else
+            {
+                // 让用户选择库
+                var libraries = DatabaseManager.GetAllLibraries();
+                if (libraries.Count == 0)
+                {
+                    MessageBox.Show("当前没有可用的库，请先创建一个库", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                // 创建库选择对话框
+                var dialog = new Window
+                {
+                    Title = "选择库",
+                    Width = 400,
+                    Height = 300,
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                    Owner = this
+                };
+
+                var listBox = new ListBox
+                {
+                    DisplayMemberPath = "Name",
+                    Margin = new Thickness(10),
+                    ItemsSource = libraries
+                };
+
+                var okButton = new Button
+                {
+                    Content = "确定",
+                    Width = 80,
+                    Height = 30,
+                    Margin = new Thickness(0, 0, 10, 0),
+                    IsDefault = true
+                };
+
+                var cancelButton = new Button
+                {
+                    Content = "取消",
+                    Width = 80,
+                    Height = 30,
+                    IsCancel = true
+                };
+
+                okButton.Click += (s, args) =>
+                {
+                    if (listBox.SelectedItem is Library selectedLib)
+                    {
+                        targetLibrary = selectedLib;
+                        dialog.DialogResult = true;
+                        dialog.Close();
+                    }
+                    else
+                    {
+                        MessageBox.Show("请选择一个库", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    }
+                };
+
+                cancelButton.Click += (s, args) =>
+                {
+                    dialog.DialogResult = false;
+                    dialog.Close();
+                };
+
+                var stackPanel = new StackPanel
+                {
+                    Orientation = Orientation.Vertical
+                };
+
+                var label = new Label
+                {
+                    Content = "请选择要添加到的库:",
+                    Margin = new Thickness(10, 10, 10, 5)
+                };
+
+                var buttonPanel = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    Margin = new Thickness(10)
+                };
+
+                buttonPanel.Children.Add(okButton);
+                buttonPanel.Children.Add(cancelButton);
+
+                stackPanel.Children.Add(label);
+                stackPanel.Children.Add(listBox);
+                stackPanel.Children.Add(buttonPanel);
+
+                dialog.Content = stackPanel;
+
+                if (dialog.ShowDialog() != true)
+                {
+                    return; // 用户取消
+                }
+            }
+
+            if (targetLibrary == null)
+            {
+                return;
+            }
+
+            // 添加选中的文件/文件夹路径到库
+            int successCount = 0;
+            int failCount = 0;
+            var failedItems = new List<string>();
+
+            foreach (var item in selectedItems)
+            {
+                try
+                {
+                    // 对于文件夹，添加文件夹路径
+                    // 对于文件，添加文件所在文件夹路径（或直接添加文件路径？）
+                    // 根据 Windows 库的行为，应该是添加文件夹路径
+                    string pathToAdd = item.IsDirectory ? item.Path : System.IO.Path.GetDirectoryName(item.Path);
+                    
+                    // 检查路径是否已存在
+                    var existingPaths = DatabaseManager.GetLibraryPaths(targetLibrary.Id);
+                    if (!existingPaths.Any(p => p.Path.Equals(pathToAdd, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        DatabaseManager.AddLibraryPath(targetLibrary.Id, pathToAdd);
+                        successCount++;
+                    }
+                    else
+                    {
+                        // 路径已存在，跳过但不算失败
+                        failCount++;
+                        failedItems.Add($"{item.Name} (已存在于库中)");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    failCount++;
+                    failedItems.Add($"{item.Name} ({ex.Message})");
+                }
+            }
+
+            // 显示结果
+            if (failCount == 0)
+            {
+                MessageBox.Show($"成功添加 {successCount} 项到库 \"{targetLibrary.Name}\"", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            else
+            {
+                var message = $"成功添加 {successCount} 项到库 \"{targetLibrary.Name}\"";
+                if (failCount > 0)
+                {
+                    message += $"\n\n失败或跳过 {failCount} 项:\n{string.Join("\n", failedItems)}";
+                }
+                MessageBox.Show(message, "完成", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+
+            // 如果当前在库模式且是当前库，刷新显示
+            if (_currentLibrary != null && _currentLibrary.Id == targetLibrary.Id)
+            {
+                LoadLibraryFiles(_currentLibrary);
+            }
         }
 
-        private void EditLibrary_Click(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show("编辑库功能待实现", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-        }
 
         private void WindowMinimize_Click(object sender, RoutedEventArgs e)
         {
@@ -3163,6 +4028,621 @@ Write-Host ""Hello World""
 
         #endregion
 
+        #region 收藏功能
+
+        private void LoadFavorites()
+        {
+            if (FavoritesListBox == null) return;
+            
+            try
+            {
+                var favorites = DatabaseManager.GetAllFavorites();
+                
+                if (favorites.Count == 0)
+                {
+                    FavoritesListBox.ItemsSource = null;
+                    return;
+                }
+                
+                // 检查同名文件/文件夹
+                var nameGroups = favorites.GroupBy(f => 
+                {
+                    string name = f.DisplayName ?? System.IO.Path.GetFileName(f.Path);
+                    if (string.IsNullOrEmpty(name)) name = f.Path;
+                    return name;
+                }).ToList();
+                
+                // 创建显示项列表
+                var displayItems = favorites.Select(favorite =>
+                {
+                    string icon = favorite.IsDirectory ? "📁" : "📄";
+                    string displayName = favorite.DisplayName ?? System.IO.Path.GetFileName(favorite.Path);
+                    if (string.IsNullOrEmpty(displayName))
+                    {
+                        displayName = favorite.Path;
+                    }
+                    
+                    // 如果存在同名项，添加路径标识
+                    var sameNameGroup = nameGroups.FirstOrDefault(g => 
+                    {
+                        string name = favorite.DisplayName ?? System.IO.Path.GetFileName(favorite.Path);
+                        if (string.IsNullOrEmpty(name)) name = favorite.Path;
+                        return g.Key == name;
+                    });
+                    
+                    if (sameNameGroup != null && sameNameGroup.Count() > 1)
+                    {
+                        // 添加父文件夹名称作为区分
+                        var parentDir = System.IO.Path.GetDirectoryName(favorite.Path);
+                        if (!string.IsNullOrEmpty(parentDir))
+                        {
+                            var parentName = System.IO.Path.GetFileName(parentDir);
+                            if (!string.IsNullOrEmpty(parentName))
+                            {
+                                displayName = $"{displayName} ({parentName})";
+                            }
+                        }
+                    }
+                    
+                    return new
+                    {
+                        Favorite = favorite,
+                        Icon = icon,
+                        DisplayName = displayName,
+                        Path = favorite.Path
+                    };
+                }).ToList();
+                
+                FavoritesListBox.ItemsSource = displayItems;
+                FavoritesListBox.DisplayMemberPath = null; // 使用模板显示
+                
+                // 设置数据模板
+                if (FavoritesListBox.ItemTemplate == null)
+                {
+                    var template = new DataTemplate();
+                    var stackPanelFactory = new FrameworkElementFactory(typeof(StackPanel));
+                    stackPanelFactory.SetValue(StackPanel.OrientationProperty, Orientation.Horizontal);
+                    
+                    var iconFactory = new FrameworkElementFactory(typeof(TextBlock));
+                    iconFactory.SetBinding(TextBlock.TextProperty, new Binding("Icon"));
+                    iconFactory.SetValue(TextBlock.MarginProperty, new Thickness(0, 0, 5, 0));
+                    iconFactory.SetValue(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center);
+                    
+                    var nameFactory = new FrameworkElementFactory(typeof(TextBlock));
+                    nameFactory.SetBinding(TextBlock.TextProperty, new Binding("DisplayName"));
+                    nameFactory.SetValue(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center);
+                    nameFactory.SetValue(TextBlock.TextTrimmingProperty, TextTrimming.CharacterEllipsis);
+                    
+                    stackPanelFactory.AppendChild(iconFactory);
+                    stackPanelFactory.AppendChild(nameFactory);
+                    template.VisualTree = stackPanelFactory;
+                    FavoritesListBox.ItemTemplate = template;
+                }
+                
+                // 设置选择事件和双击事件
+                FavoritesListBox.SelectionChanged -= FavoritesListBox_SelectionChanged;
+                FavoritesListBox.SelectionChanged += FavoritesListBox_SelectionChanged;
+                FavoritesListBox.MouseDoubleClick -= FavoritesListBox_MouseDoubleClick;
+                FavoritesListBox.MouseDoubleClick += FavoritesListBox_MouseDoubleClick;
+                
+                // 设置右键菜单
+                FavoritesListBox.ContextMenu = CreateFavoritesContextMenu();
+            }
+            catch
+            {
+                FavoritesListBox.ItemsSource = null;
+            }
+        }
+        
+        private void FavoritesListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            // 选择变化时不处理，只处理双击
+        }
+        
+        private void FavoritesListBox_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (FavoritesListBox.SelectedItem == null) return;
+            if (_draggedFavorite != null) return; // 如果正在拖拽，不处理双击
+            
+            // 使用反射获取Favorite对象
+            var selectedItem = FavoritesListBox.SelectedItem;
+            var favoriteProperty = selectedItem.GetType().GetProperty("Favorite");
+            if (favoriteProperty == null) return;
+            
+            var favorite = favoriteProperty.GetValue(selectedItem) as Favorite;
+            if (favorite == null) return;
+            
+            if (favorite.IsDirectory && Directory.Exists(favorite.Path))
+            {
+                NavigateToPath(favorite.Path);
+            }
+            else if (!favorite.IsDirectory && File.Exists(favorite.Path))
+            {
+                try
+                {
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = favorite.Path,
+                        UseShellExecute = true
+                    });
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"无法打开文件: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+            else
+            {
+                if (MessageBox.Show($"路径不存在: {favorite.Path}\n\n是否从收藏中移除？", "提示", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+                {
+                    DatabaseManager.RemoveFavorite(favorite.Path);
+                    LoadFavorites();
+                }
+            }
+        }
+        
+        private ContextMenu CreateFavoritesContextMenu()
+        {
+            var menu = new ContextMenu();
+            
+            var removeItem = new MenuItem { Header = "删除收藏" };
+            removeItem.Click += (s, e) =>
+            {
+                if (FavoritesListBox.SelectedItem != null)
+                {
+                    var selectedItem = FavoritesListBox.SelectedItem;
+                    var favoriteProperty = selectedItem.GetType().GetProperty("Favorite");
+                    if (favoriteProperty != null)
+                    {
+                        var favorite = favoriteProperty.GetValue(selectedItem) as Favorite;
+                        if (favorite != null)
+                        {
+                            DatabaseManager.RemoveFavorite(favorite.Path);
+                            LoadFavorites();
+                        }
+                    }
+                }
+            };
+            menu.Items.Add(removeItem);
+            
+            return menu;
+        }
+        
+        private void InitializeFavoritesDragDrop()
+        {
+            if (FavoritesListBox == null) return;
+            
+            // 启用拖拽排序
+            FavoritesListBox.PreviewMouseLeftButtonDown += FavoritesListBox_PreviewMouseLeftButtonDown;
+            FavoritesListBox.Drop += FavoritesListBox_Drop;
+            FavoritesListBox.DragOver += FavoritesListBox_DragOver;
+            FavoritesListBox.DragLeave += FavoritesListBox_DragLeave;
+            FavoritesListBox.AllowDrop = true;
+            FavoritesListBox.PreviewMouseMove += FavoritesListBox_PreviewMouseMove;
+        }
+        
+        private void FavoritesListBox_DragLeave(object sender, DragEventArgs e)
+        {
+            // 清除所有高亮
+            var listBox = sender as ListBox;
+            if (listBox != null)
+            {
+                foreach (ListBoxItem item in FindVisualChildren<ListBoxItem>(listBox))
+                {
+                    item.Background = System.Windows.Media.Brushes.Transparent;
+                }
+            }
+        }
+        
+        private void FavoritesListBox_DragOver(object sender, DragEventArgs e)
+        {
+            // 检查数据格式
+            if (!e.Data.GetDataPresent("Favorite"))
+            {
+                e.Effects = DragDropEffects.None;
+                return;
+            }
+            
+            var draggedItem = e.Data.GetData("Favorite") as Favorite;
+            if (draggedItem == null)
+            {
+                e.Effects = DragDropEffects.None;
+                return;
+            }
+            
+            e.Effects = DragDropEffects.Move;
+            e.Handled = true;
+            
+            // 提供拖拽视觉效果
+            var listBox = sender as ListBox;
+            if (listBox != null)
+            {
+                var targetItem = FindAncestor<ListBoxItem>((DependencyObject)e.OriginalSource);
+                if (targetItem != null)
+                {
+                    // 高亮目标项
+                    foreach (ListBoxItem item in FindVisualChildren<ListBoxItem>(listBox))
+                    {
+                        if (item == targetItem)
+                        {
+                            item.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(100, 33, 150, 243));
+                        }
+                        else if (item.Background is SolidColorBrush brush && brush.Color.A == 100)
+                        {
+                            item.Background = System.Windows.Media.Brushes.Transparent;
+                        }
+                    }
+                }
+            }
+        }
+        
+        private Favorite _draggedFavorite = null;
+        private System.Windows.Point _dragStartPoint;
+        
+        private void FavoritesListBox_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            _dragStartPoint = e.GetPosition(null);
+            var listBoxItem = FindAncestor<ListBoxItem>((DependencyObject)e.OriginalSource);
+            if (listBoxItem != null)
+            {
+                var item = listBoxItem.DataContext;
+                var favoriteProperty = item.GetType().GetProperty("Favorite");
+                if (favoriteProperty != null)
+                {
+                    _draggedFavorite = favoriteProperty.GetValue(item) as Favorite;
+                }
+            }
+        }
+        
+        private void FavoritesListBox_PreviewMouseMove(object sender, MouseEventArgs e)
+        {
+            if (e.LeftButton == MouseButtonState.Pressed && _draggedFavorite != null)
+            {
+                var currentPoint = e.GetPosition(null);
+                var diff = _dragStartPoint - currentPoint;
+                
+                if (Math.Abs(diff.X) > SystemParameters.MinimumHorizontalDragDistance ||
+                    Math.Abs(diff.Y) > SystemParameters.MinimumVerticalDragDistance)
+                {
+                    var listBox = sender as ListBox;
+                    if (listBox != null)
+                    {
+                        // 创建数据对象并传递Favorite对象
+                        var dataObject = new DataObject("Favorite", _draggedFavorite);
+                        DragDrop.DoDragDrop(listBox, dataObject, DragDropEffects.Move);
+                    }
+                }
+            }
+        }
+        
+        private void FavoritesListBox_Drop(object sender, DragEventArgs e)
+        {
+            // 检查数据格式
+            if (!e.Data.GetDataPresent("Favorite"))
+            {
+                return;
+            }
+            
+            var draggedFavorite = e.Data.GetData("Favorite") as Favorite;
+            if (draggedFavorite == null) return;
+            
+            var listBox = sender as ListBox;
+            if (listBox == null)
+            {
+                return;
+            }
+            
+            // 清除所有高亮
+            foreach (ListBoxItem item in FindVisualChildren<ListBoxItem>(listBox))
+            {
+                item.Background = System.Windows.Media.Brushes.Transparent;
+            }
+            
+            var targetItem = FindAncestor<ListBoxItem>((DependencyObject)e.OriginalSource);
+            if (targetItem == null || targetItem.DataContext == null)
+            {
+                return;
+            }
+            
+            var targetData = targetItem.DataContext;
+            var favoriteProperty = targetData.GetType().GetProperty("Favorite");
+            if (favoriteProperty == null)
+            {
+                return;
+            }
+            
+            var targetFavorite = favoriteProperty.GetValue(targetData) as Favorite;
+            if (targetFavorite == null || targetFavorite.Id == draggedFavorite.Id)
+            {
+                return;
+            }
+            
+            // 更新排序顺序并重新加载
+            var favorites = DatabaseManager.GetAllFavorites().ToList();
+            var draggedIndex = favorites.FindIndex(f => f.Id == draggedFavorite.Id);
+            var targetIndex = favorites.FindIndex(f => f.Id == targetFavorite.Id);
+            
+            if (draggedIndex >= 0 && targetIndex >= 0 && draggedIndex != targetIndex)
+            {
+                // 重新排序：移除拖拽项，插入到目标位置
+                var newOrder = new List<Favorite>();
+                for (int i = 0; i < favorites.Count; i++)
+                {
+                    if (i == draggedIndex) continue; // 跳过被拖拽的项
+                    if (i == targetIndex)
+                    {
+                        // 在目标位置插入
+                        if (draggedIndex < targetIndex)
+                        {
+                            // 向下拖拽：先插入目标项，再插入被拖拽项
+                            newOrder.Add(favorites[targetIndex]);
+                            newOrder.Add(draggedFavorite);
+                        }
+                        else
+                        {
+                            // 向上拖拽：先插入被拖拽项，再插入目标项
+                            newOrder.Add(draggedFavorite);
+                            newOrder.Add(favorites[targetIndex]);
+                        }
+                    }
+                    else
+                    {
+                        newOrder.Add(favorites[i]);
+                    }
+                }
+                
+                // 更新数据库中的SortOrder（在文件夹和文件分组内排序）
+                // 先按文件夹/文件分组，再更新SortOrder
+                var folderGroup = newOrder.Where(f => f.IsDirectory).ToList();
+                var fileGroup = newOrder.Where(f => !f.IsDirectory).ToList();
+                
+                int sortOrder = 0;
+                foreach (var fav in folderGroup)
+                {
+                    DatabaseManager.UpdateFavoriteSortOrder(fav.Id, sortOrder++);
+                }
+                foreach (var fav in fileGroup)
+                {
+                    DatabaseManager.UpdateFavoriteSortOrder(fav.Id, sortOrder++);
+                }
+                
+                // 重新加载显示
+                LoadFavorites();
+            }
+            
+            _draggedFavorite = null;
+            e.Handled = true;
+        }
+        
+        private T FindAncestor<T>(DependencyObject current) where T : DependencyObject
+        {
+            while (current != null)
+            {
+                if (current is T ancestor)
+                    return ancestor;
+                current = VisualTreeHelper.GetParent(current);
+            }
+            return null;
+        }
+
+        private void AddFavorite_Click(object sender, RoutedEventArgs e)
+        {
+            // 获取选中的文件或文件夹
+            var selectedItems = FilesListView.SelectedItems.Cast<FileSystemItem>().ToList();
+            if (selectedItems.Count == 0)
+            {
+                MessageBox.Show("请先选择要收藏的文件或文件夹", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            int successCount = 0;
+            int skipCount = 0;
+
+            foreach (var item in selectedItems)
+            {
+                try
+                {
+                    // 检查是否已收藏
+                    if (DatabaseManager.IsFavorite(item.Path))
+                    {
+                        skipCount++;
+                        continue;
+                    }
+
+                    string displayName = item.Name;
+                    DatabaseManager.AddFavorite(item.Path, item.IsDirectory, displayName);
+                    successCount++;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"收藏失败: {item.Name} - {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+
+            // 刷新收藏列表
+            LoadFavorites();
+
+            // 不再显示提示框，静默完成
+        }
+        
+        private void LoadColumnWidths()
+        {
+            if (FilesGridView == null || _config == null) return;
+            
+            try
+            {
+                var columns = FilesGridView.Columns;
+                if (columns.Count >= 7)
+                {
+                    // 创建列名到列的映射
+                    var columnMap = new Dictionary<string, GridViewColumn>
+                    {
+                        { "Name", columns[0] },
+                        { "Size", columns[1] },
+                        { "Type", columns[2] },
+                        { "ModifiedDate", columns[3] },
+                        { "CreatedTime", columns[4] },
+                        { "Tags", columns[5] },
+                        { "Notes", columns[6] }
+                    };
+                    
+                    // 加载保存的列顺序
+                    if (!string.IsNullOrEmpty(_config.ColumnOrder))
+                    {
+                        var savedOrder = _config.ColumnOrder.Split(',');
+                        var newColumns = new List<GridViewColumn>();
+                        
+                        foreach (var colName in savedOrder)
+                        {
+                            var trimmedName = colName.Trim();
+                            if (columnMap.ContainsKey(trimmedName))
+                            {
+                                newColumns.Add(columnMap[trimmedName]);
+                            }
+                        }
+                        
+                        // 添加未在顺序中的列（向后兼容）
+                        foreach (var kvp in columnMap)
+                        {
+                            if (!savedOrder.Any(s => s.Trim() == kvp.Key))
+                            {
+                                newColumns.Add(kvp.Value);
+                            }
+                        }
+                        
+                        // 重新排序列
+                        if (newColumns.Count == columns.Count)
+                        {
+                            FilesGridView.Columns.Clear();
+                            foreach (var col in newColumns)
+                            {
+                                FilesGridView.Columns.Add(col);
+                            }
+                        }
+                    }
+                    
+                    // 加载列宽度（按Tag加载）
+                    foreach (var column in FilesGridView.Columns)
+                    {
+                        var header = column.Header as GridViewColumnHeader;
+                        if (header?.Tag != null)
+                        {
+                            var tag = header.Tag.ToString();
+                            double width = tag switch
+                            {
+                                "Name" => _config.ColNameWidth,
+                                "Size" => _config.ColSizeWidth,
+                                "Type" => _config.ColTypeWidth,
+                                "ModifiedDate" => _config.ColModifiedDateWidth,
+                                "CreatedTime" => _config.ColCreatedTimeWidth,
+                                "Tags" => _config.ColTagsWidth,
+                                "Notes" => _config.ColNotesWidth,
+                                _ => 0
+                            };
+                            if (width > 0) column.Width = width;
+                        }
+                    }
+                }
+            }
+            catch { }
+        }
+        
+        private void SaveColumnWidths()
+        {
+            if (FilesGridView == null || _config == null) return;
+            
+            try
+            {
+                var columns = FilesGridView.Columns;
+                if (columns.Count >= 7)
+                {
+                    // 保存列顺序
+                    var columnOrder = new List<string>();
+                    foreach (var column in columns)
+                    {
+                        var header = column.Header as GridViewColumnHeader;
+                        if (header?.Tag != null)
+                        {
+                            columnOrder.Add(header.Tag.ToString());
+                        }
+                    }
+                    _config.ColumnOrder = string.Join(",", columnOrder);
+                    
+                    // 保存列宽度（按Tag保存）
+                    foreach (var column in columns)
+                    {
+                        var header = column.Header as GridViewColumnHeader;
+                        if (header?.Tag != null)
+                        {
+                            var tag = header.Tag.ToString();
+                            var width = column.ActualWidth;
+                            
+                            switch (tag)
+                            {
+                                case "Name":
+                                    _config.ColNameWidth = width;
+                                    break;
+                                case "Size":
+                                    _config.ColSizeWidth = width;
+                                    break;
+                                case "Type":
+                                    _config.ColTypeWidth = width;
+                                    break;
+                                case "ModifiedDate":
+                                    _config.ColModifiedDateWidth = width;
+                                    break;
+                                case "CreatedTime":
+                                    _config.ColCreatedTimeWidth = width;
+                                    break;
+                                case "Tags":
+                                    _config.ColTagsWidth = width;
+                                    break;
+                                case "Notes":
+                                    _config.ColNotesWidth = width;
+                                    break;
+                            }
+                        }
+                    }
+                    
+                    ConfigManager.Save(_config);
+                }
+            }
+            catch { }
+        }
+        
+        private void FilesListView_PreviewMouseDoubleClickForBlank(object sender, MouseButtonEventArgs e)
+        {
+            // 检查是否点击在列表项上
+            var originalSource = e.OriginalSource as DependencyObject;
+            if (originalSource != null)
+            {
+                // 向上查找，如果找到ListViewItem，说明点击在列表项上，不处理空白区域双击
+                var listViewItem = FindAncestor<ListViewItem>(originalSource);
+                if (listViewItem != null) return;
+                
+                // 检查是否点击在ListView的空白区域
+                var hitResult = VisualTreeHelper.HitTest(FilesListView, e.GetPosition(FilesListView));
+                if (hitResult != null)
+                {
+                    var listViewItemHit = FindAncestor<ListViewItem>(hitResult.VisualHit);
+                    if (listViewItemHit != null) return; // 点击在列表项上
+                }
+                
+                // 如果点击在空白区域，返回上一级
+                if (!string.IsNullOrEmpty(_currentPath) && Directory.Exists(_currentPath))
+                {
+                    var parentPath = Directory.GetParent(_currentPath);
+                    if (parentPath != null)
+                    {
+                        NavigateToPath(parentPath.FullName);
+                        e.Handled = true;
+                    }
+                }
+            }
+        }
+
+        #endregion
+
         #region 键盘快捷键和文件操作
 
         private void FilesListView_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -3292,6 +4772,14 @@ Write-Host ""Hello World""
                     // 如果是文件夹，进入
                     if (listView.SelectedItem is FileSystemItem selectedItem && selectedItem.IsDirectory)
                     {
+                        // 如果是库模式，切换到路径模式并导航
+                        if (_currentLibrary != null)
+                        {
+                            // 切换到路径模式
+                            _currentLibrary = null;
+                            SwitchNavigationMode("Path");
+                        }
+                        
                         NavigateToPath(selectedItem.Path);
                     }
                     e.Handled = true;
@@ -3304,6 +4792,14 @@ Write-Host ""Hello World""
                 {
                     if (selectedItem.IsDirectory)
                     {
+                        // 如果是库模式，切换到路径模式并导航
+                        if (_currentLibrary != null)
+                        {
+                            // 切换到路径模式
+                            _currentLibrary = null;
+                            SwitchNavigationMode("Path");
+                        }
+                        
                         NavigateToPath(selectedItem.Path);
                     }
                     else
@@ -3786,6 +5282,7 @@ Write-Host ""Hello World""
         public string Tags { get; set; }
         public string Notes { get; set; }
         public bool IsDirectory { get; set; }
+        public string SourcePath { get; set; } // 库模式下的来源路径
 
         /// <summary>
         /// 格式化时间为简洁显示（s/m/h/d/mo/y）
@@ -3848,3 +5345,4 @@ Write-Host ""Hello World""
         }
     }
 }
+

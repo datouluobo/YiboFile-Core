@@ -14,6 +14,19 @@ namespace OoiMRR
             InitializeComponent();
             PromptTextBlock.Text = prompt;
             PathTextBox.Focus();
+            this.KeyDown += PathInputDialog_KeyDown;
+        }
+
+        private void PathInputDialog_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key == System.Windows.Input.Key.Enter)
+            {
+                OK_Click(null, null);
+            }
+            else if (e.Key == System.Windows.Input.Key.Escape)
+            {
+                Cancel_Click(null, null);
+            }
         }
 
         public string PromptText

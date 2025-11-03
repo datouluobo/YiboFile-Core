@@ -16,6 +16,18 @@ namespace OoiMRR
         public double LeftPanelWidth { get; set; } = 300;
         public double MiddlePanelWidth { get; set; } = 600;
         public double RightPanelWidth { get; set; } = 350;
+        
+        // 列头宽度
+        public double ColNameWidth { get; set; } = 200;
+        public double ColSizeWidth { get; set; } = 100;
+        public double ColTypeWidth { get; set; } = 100;
+        public double ColModifiedDateWidth { get; set; } = 150;
+        public double ColCreatedTimeWidth { get; set; } = 50;
+        public double ColTagsWidth { get; set; } = 150;
+        public double ColNotesWidth { get; set; } = 200;
+        
+        // 列头顺序
+        public string ColumnOrder { get; set; } = "Name,Size,Type,ModifiedDate,CreatedTime,Tags,Notes";
     }
 
     public static class ConfigManager

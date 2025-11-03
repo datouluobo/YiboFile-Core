@@ -18,6 +18,19 @@ namespace OoiMRR
         {
             InitializeComponent();
             TagNameTextBox.Focus();
+            this.KeyDown += TagDialog_KeyDown;
+        }
+
+        private void TagDialog_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key == System.Windows.Input.Key.Enter && !string.IsNullOrWhiteSpace(TagNameTextBox.Text))
+            {
+                OK_Click(null, null);
+            }
+            else if (e.Key == System.Windows.Input.Key.Escape)
+            {
+                Cancel_Click(null, null);
+            }
         }
 
         private void ColorButton_Click(object sender, RoutedEventArgs e)
