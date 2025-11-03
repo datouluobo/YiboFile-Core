@@ -33,6 +33,11 @@ namespace OoiMRR
         private List<string> _copiedPaths = new List<string>();
         private bool _isCutOperation = false;
         private DragDropManager _dragDropManager;
+        private string _lastSortColumn = "Name";
+        private bool _sortAscending = true;
+        private System.Windows.Point _mouseDownPoint;
+        private bool _isMouseDownOnListView = false;
+        private bool _isMouseDownOnColumnHeader = false;
 
         public MainWindow()
         {
@@ -842,6 +847,9 @@ namespace OoiMRR
                     }
                 }
 
+                // 应用排序
+                SortFiles();
+
                 FilesListView.ItemsSource = _currentFiles;
 
                 // 异步计算文件夹大小
@@ -943,10 +951,8 @@ namespace OoiMRR
                     // 操作成功，刷新界面
                     LoadFiles();
                     
-                    // 显示成功消息
-                    string operationText = GetOperationText(e.Operation);
-                    MessageBox.Show($"{operationText} {e.SourcePaths.Count} 个项目到 {e.TargetPath}", 
-                        "操作成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                    // 不再显示成功消息，因为 ExecuteDragDropOperation 内部已经处理了
+                    System.Diagnostics.Debug.WriteLine($"拖拽操作完成: {e.SourcePaths.Count} 个项目");
                 }
             }
             catch (Exception ex)
@@ -958,8 +964,35 @@ namespace OoiMRR
 
         private void DragDropManager_DragDropCancelled(object sender, EventArgs e)
         {
-            // 拖拽取消
-            System.Diagnostics.Debug.WriteLine("拖拽已取消");
+            // 拖拽取消，确保恢复选中状态和背景
+            System.Diagnostics.Debug.WriteLine("拖拽已取消，恢复选中状态");
+            
+            // 使用 Dispatcher 延迟执行，确保在拖拽操作完全结束后再恢复
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                if (FilesListView != null && _dragDropManager != null)
+                {
+                    // 刷新文件列表，确保选中状态和背景正确
+                    var selectedPaths = new List<string>();
+                    foreach (var item in FilesListView.SelectedItems)
+                    {
+                        if (item is FileSystemItem fileItem)
+                        {
+                            selectedPaths.Add(fileItem.Path);
+                        }
+                    }
+                    
+                    // 清除选中并重新设置，触发背景更新
+                    FilesListView.SelectedItems.Clear();
+                    foreach (var item in FilesListView.Items)
+                    {
+                        if (item is FileSystemItem fileItem && selectedPaths.Contains(fileItem.Path))
+                        {
+                            FilesListView.SelectedItems.Add(item);
+                        }
+                    }
+                }
+            }), System.Windows.Threading.DispatcherPriority.Background);
         }
 
         private string GetOperationText(DragDropManager.DragDropOperation operation)
@@ -1086,6 +1119,196 @@ namespace OoiMRR
                     }
                 }
             }
+        }
+        
+        private void FilesListView_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            // 记录鼠标按下位置，用于区分点击和拖动
+            var listView = sender as ListView;
+            if (listView == null)
+            {
+                _isMouseDownOnListView = false;
+                return;
+            }
+
+            System.Windows.Point hitPoint = e.GetPosition(listView);
+            var hitResult = VisualTreeHelper.HitTest(listView, hitPoint);
+            
+            if (hitResult != null)
+            {
+                // 调试：打印点击的元素类型
+                System.Diagnostics.Debug.WriteLine($"[点击检测] 点击位置: {hitPoint.X}, {hitPoint.Y}");
+                DependencyObject current = hitResult.VisualHit;
+                int depth = 0;
+                while (current != null && current != listView && depth < 10)
+                {
+                    string typeName = current.GetType().Name;
+                    System.Diagnostics.Debug.WriteLine($"[点击检测] 深度 {depth}: {typeName}");
+                    
+                    // 检查是否是列头相关元素
+                    if (current is GridViewColumnHeader)
+                    {
+                        System.Diagnostics.Debug.WriteLine("[点击检测] 发现 GridViewColumnHeader，设置列头标志");
+                        _isMouseDownOnListView = false;
+                        _isMouseDownOnColumnHeader = true;
+                        // 不设置 e.Handled，让列头的排序和调整宽度功能正常工作
+                        return;
+                    }
+                    
+                    // 检查是否是 Thumb（调整大小的拖拽句柄）
+                    if (current.GetType().Name.Contains("Thumb") || current.GetType().Name == "Thumb")
+                    {
+                        System.Diagnostics.Debug.WriteLine("[点击检测] 发现 Thumb（调整大小句柄），设置列头标志");
+                        _isMouseDownOnListView = false;
+                        _isMouseDownOnColumnHeader = true;
+                        // 不设置 e.Handled，让列头调整宽度功能正常工作
+                        return;
+                    }
+                    
+                    // 检查父元素是否是 GridViewColumnHeader
+                    var parent = VisualTreeHelper.GetParent(current);
+                    if (parent is GridViewColumnHeader)
+                    {
+                        System.Diagnostics.Debug.WriteLine("[点击检测] 父元素是 GridViewColumnHeader，设置列头标志");
+                        _isMouseDownOnListView = false;
+                        _isMouseDownOnColumnHeader = true;
+                        // 不设置 e.Handled，让列头的排序和调整宽度功能正常工作
+                        return;
+                    }
+                    
+                    current = parent;
+                    depth++;
+                }
+                
+                // 额外检查：如果点击位置在列头行的 Y 坐标范围内，也不处理
+                if (listView.View is GridView gridView && gridView.Columns.Count > 0)
+                {
+                    // 获取列头行的高度
+                    if (hitPoint.Y < 30) // 列头通常高度约为 25-30 像素
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[点击检测] Y坐标 {hitPoint.Y} < 30，认为是列头区域，设置列头标志");
+                        _isMouseDownOnListView = false;
+                        _isMouseDownOnColumnHeader = true;
+                        // 不设置 e.Handled，让列头的排序和调整宽度功能正常工作
+                        return;
+                    }
+                }
+            }
+
+            // 不是在列头区域，记录按下位置
+            System.Diagnostics.Debug.WriteLine("[点击检测] 不是在列头区域，允许清除选中");
+            _mouseDownPoint = e.GetPosition(listView);
+            _isMouseDownOnListView = true;
+            _isMouseDownOnColumnHeader = false; // 清除列头标志
+        }
+        
+        private void FilesListView_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            // 如果按下时在列头区域，无论抬起位置在哪里，都不处理清除选中
+            if (_isMouseDownOnColumnHeader)
+            {
+                System.Diagnostics.Debug.WriteLine("[MouseUp] 按下时在列头区域，不处理清除选中");
+                _isMouseDownOnColumnHeader = false;
+                _isMouseDownOnListView = false;
+                return;
+            }
+            
+            // 只有在按下和抬起都在 ListView 上，且没有明显移动时，才处理点击空白区域
+            if (!_isMouseDownOnListView)
+                return;
+
+            var listView = sender as ListView;
+            if (listView == null)
+            {
+                _isMouseDownOnListView = false;
+                return;
+            }
+
+            // 首先检查事件的原始源，看是否是列头相关元素
+            var originalSource = e.OriginalSource as DependencyObject;
+            DependencyObject checkSource = originalSource;
+            while (checkSource != null)
+            {
+                if (checkSource is GridViewColumnHeader)
+                {
+                    System.Diagnostics.Debug.WriteLine("[MouseUp] 原始源是列头相关，不处理清除选中");
+                    _isMouseDownOnListView = false;
+                    return;
+                }
+                if (checkSource.GetType().Name.Contains("Thumb") || checkSource.GetType().Name == "Thumb")
+                {
+                    System.Diagnostics.Debug.WriteLine("[MouseUp] 原始源是调整大小句柄，不处理清除选中");
+                    _isMouseDownOnListView = false;
+                    return;
+                }
+                checkSource = VisualTreeHelper.GetParent(checkSource);
+            }
+
+            System.Windows.Point mouseUpPoint = e.GetPosition(listView);
+            
+            // 计算鼠标移动距离
+            double distance = Math.Sqrt(Math.Pow(mouseUpPoint.X - _mouseDownPoint.X, 2) + 
+                                      Math.Pow(mouseUpPoint.Y - _mouseDownPoint.Y, 2));
+            
+            // 如果移动距离超过阈值，说明是拖动而不是点击，不处理
+            if (distance > SystemParameters.MinimumHorizontalDragDistance)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MouseUp] 移动距离 {distance} 超过阈值，认为是拖动，不处理清除选中");
+                _isMouseDownOnListView = false;
+                return;
+            }
+
+            // 额外检查：如果抬起位置在列头区域，也不处理
+            if (mouseUpPoint.Y < 30)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MouseUp] 抬起位置 Y={mouseUpPoint.Y} < 30，认为是列头区域，不处理清除选中");
+                _isMouseDownOnListView = false;
+                return;
+            }
+
+            // 检测点击位置是否是空白区域
+            System.Windows.Point hitPoint = e.GetPosition(listView);
+            var hitResult = VisualTreeHelper.HitTest(listView, hitPoint);
+            
+            if (hitResult != null)
+            {
+                // 向上查找，看是否点击在 ListViewItem 上
+                DependencyObject current = hitResult.VisualHit;
+                while (current != null && current != listView)
+                {
+                    if (current is ListViewItem)
+                    {
+                        // 点击在 ListViewItem 上，不处理（让默认行为处理）
+                        _isMouseDownOnListView = false;
+                        return;
+                    }
+                    current = VisualTreeHelper.GetParent(current);
+                }
+
+                // 如果到达 ListView 都没有找到 ListViewItem，说明点击的是空白区域
+                // 再次检查是否点击在列头相关区域
+                current = hitResult.VisualHit;
+                while (current != null)
+                {
+                    if (current is GridViewColumnHeader)
+                    {
+                        System.Diagnostics.Debug.WriteLine("[MouseUp] 点击位置是列头，不处理清除选中");
+                        _isMouseDownOnListView = false;
+                        return;
+                    }
+                    current = VisualTreeHelper.GetParent(current);
+                }
+
+                // 点击的是空白区域，清除选中
+                System.Diagnostics.Debug.WriteLine("[MouseUp] 点击空白区域，清除选中");
+                if (listView.SelectedItems.Count > 0)
+                {
+                    listView.SelectedItems.Clear();
+                }
+            }
+            
+            _isMouseDownOnListView = false;
+            _isMouseDownOnColumnHeader = false; // 清除列头标志
         }
         
         private void RightPanel_PreviewMiddleClickRequested(object sender, MouseButtonEventArgs e)
@@ -3334,6 +3557,218 @@ Write-Host ""Hello World""
             catch (Exception ex)
             {
                 MessageBox.Show($"无法获取属性: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        #endregion
+
+        #region 列表排序
+
+        private void GridViewColumnHeader_Click(object sender, RoutedEventArgs e)
+        {
+            var header = sender as GridViewColumnHeader;
+            if (header == null || header.Tag == null)
+                return;
+
+            var columnName = header.Tag.ToString();
+
+            // 如果点击同一列，切换排序方向；否则默认升序
+            if (_lastSortColumn == columnName)
+            {
+                _sortAscending = !_sortAscending;
+            }
+            else
+            {
+                _lastSortColumn = columnName;
+                _sortAscending = true;
+            }
+
+            // 应用排序
+            SortFiles();
+            FilesListView.ItemsSource = null;
+            FilesListView.ItemsSource = _currentFiles;
+
+            // 更新列头显示排序指示器
+            UpdateSortIndicators(header);
+        }
+
+        private void SortFiles()
+        {
+            if (_currentFiles == null || _currentFiles.Count == 0)
+                return;
+
+            // 分离文件夹和文件
+            var directories = _currentFiles.Where(f => f.IsDirectory).ToList();
+            var files = _currentFiles.Where(f => !f.IsDirectory).ToList();
+
+            // 对文件夹和文件分别排序
+            directories = SortList(directories);
+            files = SortList(files);
+
+            // 合并：文件夹在前，文件在后
+            _currentFiles.Clear();
+            _currentFiles.AddRange(directories);
+            _currentFiles.AddRange(files);
+        }
+
+        private List<FileSystemItem> SortList(List<FileSystemItem> items)
+        {
+            IEnumerable<FileSystemItem> sorted = items;
+
+            switch (_lastSortColumn)
+            {
+                case "Name":
+                    sorted = _sortAscending 
+                        ? items.OrderBy(f => f.Name, StringComparer.OrdinalIgnoreCase)
+                        : items.OrderByDescending(f => f.Name, StringComparer.OrdinalIgnoreCase);
+                    break;
+
+                case "Size":
+                    sorted = _sortAscending
+                        ? items.OrderBy(f => ParseSize(f.Size))
+                        : items.OrderByDescending(f => ParseSize(f.Size));
+                    break;
+
+                case "Type":
+                    sorted = _sortAscending
+                        ? items.OrderBy(f => f.Type, StringComparer.OrdinalIgnoreCase)
+                        : items.OrderByDescending(f => f.Type, StringComparer.OrdinalIgnoreCase);
+                    break;
+
+                case "ModifiedDate":
+                    sorted = _sortAscending
+                        ? items.OrderBy(f => ParseDate(f.ModifiedDate))
+                        : items.OrderByDescending(f => ParseDate(f.ModifiedDate));
+                    break;
+
+                case "CreatedTime":
+                    sorted = _sortAscending
+                        ? items.OrderBy(f => ParseTimeAgo(f.CreatedTime))
+                        : items.OrderByDescending(f => ParseTimeAgo(f.CreatedTime));
+                    break;
+
+                case "Tags":
+                    sorted = _sortAscending
+                        ? items.OrderBy(f => f.Tags ?? "", StringComparer.OrdinalIgnoreCase)
+                        : items.OrderByDescending(f => f.Tags ?? "", StringComparer.OrdinalIgnoreCase);
+                    break;
+
+                case "Notes":
+                    sorted = _sortAscending
+                        ? items.OrderBy(f => f.Notes ?? "", StringComparer.OrdinalIgnoreCase)
+                        : items.OrderByDescending(f => f.Notes ?? "", StringComparer.OrdinalIgnoreCase);
+                    break;
+            }
+
+            return sorted.ToList();
+        }
+
+        private long ParseSize(string sizeStr)
+        {
+            if (string.IsNullOrEmpty(sizeStr) || sizeStr == "-" || sizeStr == "计算中...")
+                return 0;
+
+            // 移除空格
+            sizeStr = sizeStr.Replace(" ", "");
+
+            try
+            {
+                // 提取数字和单位
+                var number = new string(sizeStr.TakeWhile(c => char.IsDigit(c) || c == '.').ToArray());
+                var unit = sizeStr.Substring(number.Length).ToUpper();
+
+                if (string.IsNullOrEmpty(number))
+                    return 0;
+
+                double value = double.Parse(number);
+
+                // 转换为字节
+                switch (unit)
+                {
+                    case "B":
+                        return (long)value;
+                    case "KB":
+                        return (long)(value * 1024);
+                    case "MB":
+                        return (long)(value * 1024 * 1024);
+                    case "GB":
+                        return (long)(value * 1024 * 1024 * 1024);
+                    case "TB":
+                        return (long)(value * 1024 * 1024 * 1024 * 1024);
+                    default:
+                        return (long)value;
+                }
+            }
+            catch
+            {
+                return 0;
+            }
+        }
+
+        private DateTime ParseDate(string dateStr)
+        {
+            if (DateTime.TryParse(dateStr, out DateTime result))
+                return result;
+            return DateTime.MinValue;
+        }
+
+        private long ParseTimeAgo(string timeStr)
+        {
+            if (string.IsNullOrEmpty(timeStr))
+                return long.MaxValue;
+
+            try
+            {
+                // 提取数字
+                var number = new string(timeStr.TakeWhile(c => char.IsDigit(c)).ToArray());
+                if (string.IsNullOrEmpty(number))
+                    return long.MaxValue;
+
+                long value = long.Parse(number);
+
+                // 根据单位转换为秒
+                if (timeStr.EndsWith("s"))
+                    return value;
+                else if (timeStr.EndsWith("m"))
+                    return value * 60;
+                else if (timeStr.EndsWith("h"))
+                    return value * 3600;
+                else if (timeStr.EndsWith("d"))
+                    return value * 86400;
+                else if (timeStr.EndsWith("mo"))
+                    return value * 2592000; // 30天
+                else if (timeStr.EndsWith("y"))
+                    return value * 31536000; // 365天
+
+                return long.MaxValue;
+            }
+            catch
+            {
+                return long.MaxValue;
+            }
+        }
+
+        private void UpdateSortIndicators(GridViewColumnHeader clickedHeader)
+        {
+            // 清除所有列头的排序指示器
+            foreach (var column in FilesGridView.Columns)
+            {
+                var header = column.Header as GridViewColumnHeader;
+                if (header != null && header.Tag != null)
+                {
+                    var content = header.Content.ToString();
+                    // 移除现有的排序符号
+                    content = content.Replace(" ▲", "").Replace(" ▼", "");
+                    header.Content = content;
+                }
+            }
+
+            // 为当前列添加排序指示器
+            if (clickedHeader != null)
+            {
+                var content = clickedHeader.Content.ToString();
+                content = content.Replace(" ▲", "").Replace(" ▼", "");
+                clickedHeader.Content = content + (_sortAscending ? " ▲" : " ▼");
             }
         }
 

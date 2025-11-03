@@ -271,14 +271,35 @@
                       SelectionChanged="FilesListView_SelectionChanged"
                       MouseDoubleClick="FilesListView_MouseDoubleClick"
                       PreviewKeyDown="FilesListView_PreviewKeyDown"
+                      PreviewMouseLeftButtonDown="FilesListView_PreviewMouseLeftButtonDown"
+                      MouseLeftButtonUp="FilesListView_MouseLeftButtonUp"
                       Background="#FFFFFF">
                 <ListView.View>
-                    <GridView>
-                        <GridViewColumn Header="名称" Width="200" DisplayMemberBinding="{Binding Name}"/>
-                        <GridViewColumn x:Name="ColSize" Header="大小" Width="100" DisplayMemberBinding="{Binding Size}"/>
-                        <GridViewColumn x:Name="ColType" Header="类型" Width="100" DisplayMemberBinding="{Binding Type}"/>
-                        <GridViewColumn Header="修改日期" Width="150" DisplayMemberBinding="{Binding ModifiedDate}"/>
-                        <GridViewColumn Header="创建" Width="50">
+                    <GridView x:Name="FilesGridView">
+                        <GridViewColumn Width="200" DisplayMemberBinding="{Binding Name}">
+                            <GridViewColumn.Header>
+                                <GridViewColumnHeader Content="名称" Click="GridViewColumnHeader_Click" Tag="Name"/>
+                            </GridViewColumn.Header>
+                        </GridViewColumn>
+                        <GridViewColumn x:Name="ColSize" Width="100" DisplayMemberBinding="{Binding Size}">
+                            <GridViewColumn.Header>
+                                <GridViewColumnHeader Content="大小" Click="GridViewColumnHeader_Click" Tag="Size"/>
+                            </GridViewColumn.Header>
+                        </GridViewColumn>
+                        <GridViewColumn x:Name="ColType" Width="100" DisplayMemberBinding="{Binding Type}">
+                            <GridViewColumn.Header>
+                                <GridViewColumnHeader Content="类型" Click="GridViewColumnHeader_Click" Tag="Type"/>
+                            </GridViewColumn.Header>
+                        </GridViewColumn>
+                        <GridViewColumn Width="150" DisplayMemberBinding="{Binding ModifiedDate}">
+                            <GridViewColumn.Header>
+                                <GridViewColumnHeader Content="修改日期" Click="GridViewColumnHeader_Click" Tag="ModifiedDate"/>
+                            </GridViewColumn.Header>
+                        </GridViewColumn>
+                        <GridViewColumn Width="50">
+                            <GridViewColumn.Header>
+                                <GridViewColumnHeader Content="创建" Click="GridViewColumnHeader_Click" Tag="CreatedTime"/>
+                            </GridViewColumn.Header>
                             <GridViewColumn.CellTemplate>
                                 <DataTemplate>
                                     <TextBlock>
@@ -321,8 +342,16 @@
                                 </DataTemplate>
                             </GridViewColumn.CellTemplate>
                         </GridViewColumn>
-                        <GridViewColumn Header="标签" Width="150" DisplayMemberBinding="{Binding Tags}"/>
-                        <GridViewColumn Header="备注" Width="200" DisplayMemberBinding="{Binding Notes}"/>
+                        <GridViewColumn Width="150" DisplayMemberBinding="{Binding Tags}">
+                            <GridViewColumn.Header>
+                                <GridViewColumnHeader Content="标签" Click="GridViewColumnHeader_Click" Tag="Tags"/>
+                            </GridViewColumn.Header>
+                        </GridViewColumn>
+                        <GridViewColumn Width="200" DisplayMemberBinding="{Binding Notes}">
+                            <GridViewColumn.Header>
+                                <GridViewColumnHeader Content="备注" Click="GridViewColumnHeader_Click" Tag="Notes"/>
+                            </GridViewColumn.Header>
+                        </GridViewColumn>
                     </GridView>
                 </ListView.View>
             </ListView>

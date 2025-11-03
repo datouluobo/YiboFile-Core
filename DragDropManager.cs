@@ -175,8 +175,16 @@ namespace OoiMRR
         #region 私有字段
 
         private Point _dragStartPoint;
+        private Point _dragStartPointInListView;
         private bool _isDragging;
         private DragDropData _currentDragData;
+        private List<string> _selectedPathsBeforeDrag = new List<string>();
+        private ListView _currentListView;
+        private bool _isPreparingDrag = false;
+        private List<ListViewItem> _selectedListViewItems = new List<ListViewItem>();
+        private System.Windows.Threading.DispatcherTimer _selectionKeepAliveTimer;
+        private Dictionary<ListViewItem, bool> _originalFocusableStates = new Dictionary<ListViewItem, bool>();
+        private Dictionary<ListViewItem, Brush> _originalBackgrounds = new Dictionary<ListViewItem, Brush>();
 
         #endregion
 
@@ -189,9 +197,19 @@ namespace OoiMRR
         {
             if (listView == null) return;
 
+            _currentListView = listView;
+            
             listView.PreviewMouseLeftButtonDown += FileList_PreviewMouseLeftButtonDown;
             listView.PreviewMouseMove += FileList_PreviewMouseMove;
             listView.PreviewMouseLeftButtonUp += FileList_PreviewMouseLeftButtonUp;
+            listView.SelectionChanged += FileList_SelectionChanged;
+            
+            // 允许拖放到文件列表（拖到文件夹）
+            listView.AllowDrop = true;
+            listView.DragEnter += FileList_DragEnter;
+            listView.DragOver += FileList_DragOver;
+            listView.DragLeave += FileList_DragLeave;
+            listView.Drop += FileList_Drop;
         }
 
         /// <summary>
@@ -263,7 +281,138 @@ namespace OoiMRR
 
         private void FileList_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
+            // 首先检查是否点击在列头区域，如果是，不处理拖拽
+            var listView = sender as ListView;
+            if (listView != null)
+            {
+                System.Windows.Point hitPoint = e.GetPosition(listView);
+                
+                // 检查 Y 坐标是否在列头区域
+                if (hitPoint.Y < 30)
+                {
+                    System.Diagnostics.Debug.WriteLine("[DragDropManager] 点击在列头区域，不处理拖拽");
+                    _selectedPathsBeforeDrag.Clear(); // 清除保存的选中项，防止后续启动拖拽
+                    return; // 不在列头区域处理拖拽
+                }
+                
+                // 检查是否点击在列头相关元素上
+                var hitResult = System.Windows.Media.VisualTreeHelper.HitTest(listView, hitPoint);
+                if (hitResult != null)
+                {
+                    DependencyObject current = hitResult.VisualHit;
+                    while (current != null && current != listView)
+                    {
+                        if (current is GridViewColumnHeader)
+                        {
+                            System.Diagnostics.Debug.WriteLine("[DragDropManager] 点击在 GridViewColumnHeader，不处理拖拽");
+                            _selectedPathsBeforeDrag.Clear(); // 清除保存的选中项，防止后续启动拖拽
+                            return;
+                        }
+                        if (current.GetType().Name.Contains("Thumb") || current.GetType().Name == "Thumb")
+                        {
+                            System.Diagnostics.Debug.WriteLine("[DragDropManager] 点击在 Thumb（调整大小句柄），不处理拖拽");
+                            _selectedPathsBeforeDrag.Clear(); // 清除保存的选中项，防止后续启动拖拽
+                            return;
+                        }
+                        current = System.Windows.Media.VisualTreeHelper.GetParent(current);
+                    }
+                }
+            }
+            
             _dragStartPoint = e.GetPosition(null);
+            if (listView != null)
+            {
+                _dragStartPointInListView = e.GetPosition(listView);
+            }
+            
+            // 在鼠标按下时立即保存当前选中的项目
+            // 因为后续的选择逻辑可能会改变选中状态
+            if (listView?.SelectedItems != null && listView.SelectedItems.Count > 0)
+            {
+                _selectedPathsBeforeDrag.Clear();
+                foreach (var item in listView.SelectedItems)
+                {
+                    if (item is FileSystemItem fileItem)
+                    {
+                        _selectedPathsBeforeDrag.Add(fileItem.Path);
+                    }
+                }
+                
+                // 写入日志
+                try
+                {
+                    File.AppendAllText("dragdrop_log.txt", 
+                        $"[{DateTime.Now:HH:mm:ss}] 鼠标按下 - 当前选中 {_selectedPathsBeforeDrag.Count} 个项目\n");
+                }
+                catch { }
+                
+                // 如果点击的是已选中的项目，标记为准备拖拽
+                var clickedItem = GetListViewItemFromPoint(listView, e.GetPosition(listView));
+                if (clickedItem != null && clickedItem.IsSelected && _selectedPathsBeforeDrag.Count > 0)
+                {
+                    _isPreparingDrag = true;
+                    
+                    // 保存所有选中的 ListViewItem
+                    _selectedListViewItems.Clear();
+                    foreach (var item in listView.Items)
+                    {
+                        var container = listView.ItemContainerGenerator.ContainerFromItem(item) as ListViewItem;
+                        if (container != null && container.IsSelected)
+                        {
+                            _selectedListViewItems.Add(container);
+                        }
+                    }
+                    
+                    e.Handled = true;
+                }
+            }
+        }
+        
+        private ListViewItem GetListViewItemFromPoint(ListView listView, Point point)
+        {
+            var element = listView.InputHitTest(point) as DependencyObject;
+            while (element != null && !(element is ListViewItem))
+            {
+                element = VisualTreeHelper.GetParent(element);
+            }
+            return element as ListViewItem;
+        }
+        
+        private void FileList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            // 如果正在准备拖拽或正在拖拽，强制保持选中状态
+            if ((_isPreparingDrag || _isDragging) && _selectedPathsBeforeDrag.Count > 0)
+            {
+                var listView = sender as ListView;
+                if (listView != null)
+                {
+                    // 立即恢复选中状态，不使用 Dispatcher
+                    listView.SelectionChanged -= FileList_SelectionChanged;
+                    
+                    try
+                    {
+                        // 恢复选中状态
+                        listView.SelectedItems.Clear();
+                        foreach (var item in listView.Items)
+                        {
+                            if (item is FileSystemItem fileItem && _selectedPathsBeforeDrag.Contains(fileItem.Path))
+                            {
+                                listView.SelectedItems.Add(item);
+                            }
+                        }
+                        
+                        // 强制更新 ListViewItem 的选中视觉状态
+                        foreach (var lvItem in _selectedListViewItems)
+                        {
+                            lvItem.IsSelected = true;
+                        }
+                    }
+                    finally
+                    {
+                        listView.SelectionChanged += FileList_SelectionChanged;
+                    }
+                }
+            }
         }
 
         private void FileList_PreviewMouseMove(object sender, MouseEventArgs e)
@@ -279,18 +428,69 @@ namespace OoiMRR
                 Math.Abs(diff.Y) > SystemParameters.MinimumVerticalDragDistance)
             {
                 var listView = sender as ListView;
-                if (listView?.SelectedItems == null || listView.SelectedItems.Count == 0)
-                    return;
-
-                // 获取选中的文件路径
-                var selectedPaths = new List<string>();
-                foreach (var item in listView.SelectedItems)
+                
+                // 再次检查是否在列头区域，如果是，不启动文件拖拽
+                if (listView != null)
                 {
-                    if (item is FileSystemItem fileItem)
+                    // 首先检查原始按下位置是否在列头区域
+                    if (_dragStartPointInListView.Y < 30)
                     {
-                        selectedPaths.Add(fileItem.Path);
+                        System.Diagnostics.Debug.WriteLine("[DragDropManager MouseMove] 按下位置在列头区域，不启动文件拖拽");
+                        return;
+                    }
+                    
+                    System.Windows.Point currentHitPoint = e.GetPosition(listView);
+                    
+                    // 检查当前 Y 坐标是否在列头区域
+                    if (currentHitPoint.Y < 30)
+                    {
+                        System.Diagnostics.Debug.WriteLine("[DragDropManager MouseMove] 鼠标在列头区域，不启动文件拖拽");
+                        return;
+                    }
+                    
+                    // 检查是否在列头相关元素上
+                    var hitResult = System.Windows.Media.VisualTreeHelper.HitTest(listView, currentHitPoint);
+                    if (hitResult != null)
+                    {
+                        DependencyObject current = hitResult.VisualHit;
+                        while (current != null && current != listView)
+                        {
+                            if (current is GridViewColumnHeader)
+                            {
+                                System.Diagnostics.Debug.WriteLine("[DragDropManager MouseMove] 在 GridViewColumnHeader 上，不启动文件拖拽");
+                                return;
+                            }
+                            if (current.GetType().Name.Contains("Thumb") || current.GetType().Name == "Thumb")
+                            {
+                                System.Diagnostics.Debug.WriteLine("[DragDropManager MouseMove] 在 Thumb 上，不启动文件拖拽");
+                                return;
+                            }
+                            current = System.Windows.Media.VisualTreeHelper.GetParent(current);
+                        }
                     }
                 }
+                
+                // 使用鼠标按下时保存的选中项，而不是当前的选中项
+                // 因为在拖拽过程中选中状态可能已经改变
+                var selectedPaths = new List<string>(_selectedPathsBeforeDrag);
+
+                System.Diagnostics.Debug.WriteLine($"[拖拽开始] 选中了 {selectedPaths.Count} 个项目:");
+                foreach (var path in selectedPaths)
+                {
+                    System.Diagnostics.Debug.WriteLine($"  - {path}");
+                }
+                
+                // 写入日志文件
+                try
+                {
+                    File.AppendAllText("dragdrop_log.txt", 
+                        $"[{DateTime.Now:HH:mm:ss}] 拖拽开始 - 选中 {selectedPaths.Count} 个项目\n");
+                    foreach (var path in selectedPaths)
+                    {
+                        File.AppendAllText("dragdrop_log.txt", $"  - {Path.GetFileName(path)}\n");
+                    }
+                }
+                catch { }
 
                 if (selectedPaths.Count == 0)
                     return;
@@ -307,6 +507,9 @@ namespace OoiMRR
                 DragDropStarted?.Invoke(this, _currentDragData);
 
                 _isDragging = true;
+                
+                // 启动定时器持续保持选中状态
+                StartSelectionKeepAliveTimer(listView);
 
                 // 创建拖拽视觉效果
                 CreateDragVisual(selectedPaths);
@@ -319,6 +522,7 @@ namespace OoiMRR
                 var effects = DragDrop.DoDragDrop(listView, dataObject, DragDropEffects.Copy | DragDropEffects.Move);
 
                 // 拖拽结束，清理视觉效果
+                StopSelectionKeepAliveTimer();
                 CloseDragVisual();
                 _isDragging = false;
 
@@ -332,6 +536,139 @@ namespace OoiMRR
         private void FileList_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
             _isDragging = false;
+            _isPreparingDrag = false;
+        }
+
+        private void FileList_DragEnter(object sender, DragEventArgs e)
+        {
+            if (!e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                e.Effects = DragDropEffects.None;
+                return;
+            }
+
+            e.Effects = GetDragDropEffects(DropTargetType.Folder, e.KeyStates);
+            e.Handled = true;
+        }
+
+        private void FileList_DragOver(object sender, DragEventArgs e)
+        {
+            if (!e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                e.Effects = DragDropEffects.None;
+                return;
+            }
+
+            // 获取鼠标下的项
+            var listView = sender as ListView;
+            var point = e.GetPosition(listView);
+            var element = listView.InputHitTest(point) as DependencyObject;
+            
+            // 查找 ListViewItem
+            while (element != null && !(element is ListViewItem))
+            {
+                element = VisualTreeHelper.GetParent(element);
+            }
+
+            if (element is ListViewItem item && item.Content is FileSystemItem fileItem)
+            {
+                // 只有文件夹才能作为拖放目标
+                if (fileItem.IsDirectory)
+                {
+                    // 高亮显示目标文件夹
+                    item.Background = new SolidColorBrush(Color.FromArgb(50, 0, 120, 215));
+                    e.Effects = GetDragDropEffects(DropTargetType.Folder, e.KeyStates);
+                }
+                else
+                {
+                    e.Effects = DragDropEffects.None;
+                }
+            }
+            else
+            {
+                e.Effects = DragDropEffects.None;
+            }
+
+            e.Handled = true;
+        }
+
+        private void FileList_DragLeave(object sender, DragEventArgs e)
+        {
+            // 清除所有高亮
+            var listView = sender as ListView;
+            if (listView != null)
+            {
+                foreach (var item in listView.Items)
+                {
+                    var container = listView.ItemContainerGenerator.ContainerFromItem(item) as ListViewItem;
+                    if (container != null)
+                    {
+                        container.Background = Brushes.Transparent;
+                    }
+                }
+            }
+        }
+
+        private void FileList_Drop(object sender, DragEventArgs e)
+        {
+            // 清除高亮
+            FileList_DragLeave(sender, e);
+
+            if (!e.Data.GetDataPresent(DataFormats.FileDrop))
+                return;
+
+            var files = e.Data.GetData(DataFormats.FileDrop) as string[];
+            if (files == null || files.Length == 0)
+                return;
+
+            System.Diagnostics.Debug.WriteLine($"[拖拽放下] 接收到 {files.Length} 个文件:");
+            foreach (var file in files)
+            {
+                System.Diagnostics.Debug.WriteLine($"  - {file}");
+            }
+            
+            // 写入日志文件
+            try
+            {
+                File.AppendAllText("dragdrop_log.txt", 
+                    $"[{DateTime.Now:HH:mm:ss}] 拖拽放下 - 接收 {files.Length} 个文件\n");
+                foreach (var file in files)
+                {
+                    File.AppendAllText("dragdrop_log.txt", $"  - {Path.GetFileName(file)}\n");
+                }
+            }
+            catch { }
+
+            // 获取目标文件夹
+            var listView = sender as ListView;
+            var point = e.GetPosition(listView);
+            var element = listView.InputHitTest(point) as DependencyObject;
+            
+            while (element != null && !(element is ListViewItem))
+            {
+                element = VisualTreeHelper.GetParent(element);
+            }
+
+            if (element is ListViewItem item && item.Content is FileSystemItem fileItem)
+            {
+                if (fileItem.IsDirectory)
+                {
+                    // 创建拖拽数据
+                    var dragData = new DragDropData
+                    {
+                        SourcePaths = files.ToList(),
+                        TargetPath = fileItem.Path,
+                        TargetType = DropTargetType.Folder,
+                        Operation = GetOperationType(DropTargetType.Folder, e.KeyStates),
+                        TargetControl = sender as FrameworkElement
+                    };
+
+                    // 触发拖拽完成事件
+                    DragDropCompleted?.Invoke(this, dragData);
+                }
+            }
+
+            e.Handled = true;
         }
 
         #endregion
@@ -553,40 +890,166 @@ namespace OoiMRR
 
         private bool ExecuteMove(DragDropData data)
         {
+            int successCount = 0;
+            int failCount = 0;
+            string lastError = "";
+
+            System.Diagnostics.Debug.WriteLine($"[执行移动] 开始移动 {data.SourcePaths.Count} 个项目到 {data.TargetPath}");
+            
+            // 写入日志文件
+            try
+            {
+                File.AppendAllText("dragdrop_log.txt", 
+                    $"[{DateTime.Now:HH:mm:ss}] 执行移动 - {data.SourcePaths.Count} 个项目 -> {Path.GetFileName(data.TargetPath)}\n");
+            }
+            catch { }
+
             foreach (var sourcePath in data.SourcePaths)
             {
-                var fileName = Path.GetFileName(sourcePath);
-                var targetPath = Path.Combine(data.TargetPath, fileName);
+                try
+                {
+                    var fileName = Path.GetFileName(sourcePath);
+                    var targetPath = Path.Combine(data.TargetPath, fileName);
 
-                if (Directory.Exists(sourcePath))
-                {
-                    Directory.Move(sourcePath, targetPath);
+                    // 检查源文件是否存在
+                    if (!File.Exists(sourcePath) && !Directory.Exists(sourcePath))
+                    {
+                        lastError = $"源文件不存在: {sourcePath}";
+                        failCount++;
+                        continue;
+                    }
+
+                    // 检查目标是否已存在
+                    if (File.Exists(targetPath) || Directory.Exists(targetPath))
+                    {
+                        var result = MessageBox.Show(
+                            $"目标位置已存在同名项目:\n{fileName}\n\n是否覆盖?",
+                            "确认覆盖",
+                            MessageBoxButton.YesNo,
+                            MessageBoxImage.Question);
+
+                        if (result == MessageBoxResult.No)
+                        {
+                            failCount++;
+                            continue;
+                        }
+
+                        // 删除已存在的目标
+                        if (Directory.Exists(targetPath))
+                            Directory.Delete(targetPath, true);
+                        else
+                            File.Delete(targetPath);
+                    }
+
+                    // 执行移动
+                    if (Directory.Exists(sourcePath))
+                    {
+                        Directory.Move(sourcePath, targetPath);
+                    }
+                    else
+                    {
+                        File.Move(sourcePath, targetPath);
+                    }
+
+                    successCount++;
+                    System.Diagnostics.Debug.WriteLine($"移动成功: {sourcePath} -> {targetPath}");
                 }
-                else
+                catch (Exception ex)
                 {
-                    File.Move(sourcePath, targetPath);
+                    lastError = ex.Message;
+                    failCount++;
+                    System.Diagnostics.Debug.WriteLine($"移动失败: {sourcePath}, 错误: {ex.Message}");
                 }
             }
-            return true;
+
+            // 显示结果
+            if (failCount > 0)
+            {
+                MessageBox.Show(
+                    $"移动完成\n成功: {successCount} 个\n失败: {failCount} 个\n\n最后错误: {lastError}",
+                    "操作结果",
+                    MessageBoxButton.OK,
+                    failCount == data.SourcePaths.Count ? MessageBoxImage.Error : MessageBoxImage.Warning);
+            }
+
+            return successCount > 0;
         }
 
         private bool ExecuteCopy(DragDropData data)
         {
+            int successCount = 0;
+            int failCount = 0;
+            string lastError = "";
+
             foreach (var sourcePath in data.SourcePaths)
             {
-                var fileName = Path.GetFileName(sourcePath);
-                var targetPath = Path.Combine(data.TargetPath, fileName);
+                try
+                {
+                    var fileName = Path.GetFileName(sourcePath);
+                    var targetPath = Path.Combine(data.TargetPath, fileName);
 
-                if (Directory.Exists(sourcePath))
-                {
-                    CopyDirectory(sourcePath, targetPath);
+                    // 检查源文件是否存在
+                    if (!File.Exists(sourcePath) && !Directory.Exists(sourcePath))
+                    {
+                        lastError = $"源文件不存在: {sourcePath}";
+                        failCount++;
+                        continue;
+                    }
+
+                    // 检查目标是否已存在
+                    if (File.Exists(targetPath) || Directory.Exists(targetPath))
+                    {
+                        var result = MessageBox.Show(
+                            $"目标位置已存在同名项目:\n{fileName}\n\n是否覆盖?",
+                            "确认覆盖",
+                            MessageBoxButton.YesNo,
+                            MessageBoxImage.Question);
+
+                        if (result == MessageBoxResult.No)
+                        {
+                            failCount++;
+                            continue;
+                        }
+
+                        // 删除已存在的目标
+                        if (Directory.Exists(targetPath))
+                            Directory.Delete(targetPath, true);
+                        else
+                            File.Delete(targetPath);
+                    }
+
+                    // 执行复制
+                    if (Directory.Exists(sourcePath))
+                    {
+                        CopyDirectory(sourcePath, targetPath);
+                    }
+                    else
+                    {
+                        File.Copy(sourcePath, targetPath, true);
+                    }
+
+                    successCount++;
+                    System.Diagnostics.Debug.WriteLine($"复制成功: {sourcePath} -> {targetPath}");
                 }
-                else
+                catch (Exception ex)
                 {
-                    File.Copy(sourcePath, targetPath, true);
+                    lastError = ex.Message;
+                    failCount++;
+                    System.Diagnostics.Debug.WriteLine($"复制失败: {sourcePath}, 错误: {ex.Message}");
                 }
             }
-            return true;
+
+            // 显示结果
+            if (failCount > 0)
+            {
+                MessageBox.Show(
+                    $"复制完成\n成功: {successCount} 个\n失败: {failCount} 个\n\n最后错误: {lastError}",
+                    "操作结果",
+                    MessageBoxButton.OK,
+                    failCount == data.SourcePaths.Count ? MessageBoxImage.Error : MessageBoxImage.Warning);
+            }
+
+            return successCount > 0;
         }
 
         private bool ExecuteCreateLink(DragDropData data)
@@ -645,6 +1108,17 @@ namespace OoiMRR
         {
             try
             {
+                // 先清理旧的拖拽窗口
+                if (_dragWindow != null)
+                {
+                    try
+                    {
+                        _dragWindow.Close();
+                        _dragWindow = null;
+                    }
+                    catch { }
+                }
+
                 // 创建拖拽窗口
                 _dragWindow = new Window
                 {
@@ -653,20 +1127,26 @@ namespace OoiMRR
                     Background = Brushes.Transparent,
                     ShowInTaskbar = false,
                     Topmost = true,
-                    Width = 200,
-                    Height = 60,
+                    Width = 250,
+                    Height = 80,
                     Left = -10000, // 初始位置在屏幕外
                     Top = -10000
                 };
 
-                // 创建拖拽视觉元素
+                // 创建拖拽视觉元素 - 使用更醒目的渐变背景
+                var gradientBrush = new LinearGradientBrush();
+                gradientBrush.StartPoint = new Point(0, 0);
+                gradientBrush.EndPoint = new Point(1, 1);
+                gradientBrush.GradientStops.Add(new GradientStop(Color.FromArgb(240, 33, 150, 243), 0));
+                gradientBrush.GradientStops.Add(new GradientStop(Color.FromArgb(240, 21, 101, 192), 1));
+                
                 _dragVisual = new Border
                 {
-                    Background = new SolidColorBrush(Color.FromArgb(220, 70, 130, 180)),
-                    BorderBrush = new SolidColorBrush(Color.FromArgb(255, 50, 100, 150)),
-                    BorderThickness = new Thickness(2),
-                    CornerRadius = new CornerRadius(8),
-                    Padding = new Thickness(12, 8, 12, 8)
+                    Background = gradientBrush,
+                    BorderBrush = new SolidColorBrush(Color.FromArgb(255, 255, 255, 255)),
+                    BorderThickness = new Thickness(3),
+                    CornerRadius = new CornerRadius(12),
+                    Padding = new Thickness(15, 10, 15, 10)
                 };
 
                 // 创建内容
@@ -675,12 +1155,12 @@ namespace OoiMRR
                     Orientation = Orientation.Horizontal
                 };
 
-                // 添加图标
+                // 添加图标 - 更大更醒目
                 var icon = new TextBlock
                 {
                     Text = paths.Count > 1 ? "📦" : (Directory.Exists(paths[0]) ? "📁" : "📄"),
-                    FontSize = 24,
-                    Margin = new Thickness(0, 0, 10, 0),
+                    FontSize = 32,
+                    Margin = new Thickness(0, 0, 12, 0),
                     VerticalAlignment = VerticalAlignment.Center
                 };
                 stackPanel.Children.Add(icon);
@@ -692,47 +1172,84 @@ namespace OoiMRR
                 {
                     Text = paths.Count > 1 ? $"{paths.Count} 个项目" : Path.GetFileName(paths[0]),
                     Foreground = Brushes.White,
-                    FontWeight = FontWeights.SemiBold,
-                    FontSize = 13,
+                    FontWeight = FontWeights.Bold,
+                    FontSize = 16,
                     TextTrimming = TextTrimming.CharacterEllipsis,
-                    MaxWidth = 140
+                    MaxWidth = 160
                 };
                 textPanel.Children.Add(nameText);
 
+                // 如果是多个文件，显示第一个文件名作为示例
+                if (paths.Count > 1)
+                {
+                    var exampleText = new TextBlock
+                    {
+                        Text = $"例如: {Path.GetFileName(paths[0])}",
+                        Foreground = new SolidColorBrush(Color.FromArgb(220, 255, 255, 255)),
+                        FontSize = 11,
+                        TextTrimming = TextTrimming.CharacterEllipsis,
+                        MaxWidth = 160,
+                        Margin = new Thickness(0, 2, 0, 0)
+                    };
+                    textPanel.Children.Add(exampleText);
+                }
+
                 var hintText = new TextBlock
                 {
-                    Text = "拖动到目标位置",
-                    Foreground = new SolidColorBrush(Color.FromArgb(200, 255, 255, 255)),
-                    FontSize = 10,
-                    Margin = new Thickness(0, 2, 0, 0)
+                    Text = "正在拖拽...",
+                    Foreground = new SolidColorBrush(Color.FromArgb(230, 255, 255, 255)),
+                    FontSize = 11,
+                    FontStyle = FontStyles.Italic,
+                    Margin = new Thickness(0, 3, 0, 0)
                 };
                 textPanel.Children.Add(hintText);
 
                 stackPanel.Children.Add(textPanel);
                 _dragVisual.Child = stackPanel;
 
-                // 添加阴影效果
+                // 添加更强的阴影效果
                 _dragVisual.Effect = new System.Windows.Media.Effects.DropShadowEffect
                 {
                     Color = Colors.Black,
-                    BlurRadius = 15,
-                    ShadowDepth = 3,
-                    Opacity = 0.5
+                    BlurRadius = 25,
+                    ShadowDepth = 5,
+                    Opacity = 0.6
                 };
 
                 _dragWindow.Content = _dragVisual;
                 _dragWindow.Show();
 
-                // 添加脉冲动画
-                var pulseAnimation = new DoubleAnimation
+                // 添加缩放脉冲动画 - 更明显
+                var scaleTransform = new ScaleTransform(1.0, 1.0, 125, 40); // 中心点
+                _dragVisual.RenderTransform = scaleTransform;
+                
+                var scaleAnimation = new DoubleAnimation
                 {
                     From = 1.0,
-                    To = 0.9,
-                    Duration = TimeSpan.FromMilliseconds(500),
+                    To = 1.05,
+                    Duration = TimeSpan.FromMilliseconds(600),
                     AutoReverse = true,
                     RepeatBehavior = RepeatBehavior.Forever
                 };
-                _dragVisual.BeginAnimation(UIElement.OpacityProperty, pulseAnimation);
+                scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, scaleAnimation);
+                scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, scaleAnimation);
+                
+                // 添加轻微的旋转动画
+                var rotateTransform = new RotateTransform(0, 125, 40);
+                var transformGroup = new TransformGroup();
+                transformGroup.Children.Add(scaleTransform);
+                transformGroup.Children.Add(rotateTransform);
+                _dragVisual.RenderTransform = transformGroup;
+                
+                var rotateAnimation = new DoubleAnimation
+                {
+                    From = -2,
+                    To = 2,
+                    Duration = TimeSpan.FromMilliseconds(800),
+                    AutoReverse = true,
+                    RepeatBehavior = RepeatBehavior.Forever
+                };
+                rotateTransform.BeginAnimation(RotateTransform.AngleProperty, rotateAnimation);
 
                 // 跟随鼠标移动
                 CompositionTarget.Rendering += UpdateDragVisualPosition;
@@ -785,6 +1302,13 @@ namespace OoiMRR
             try
             {
                 CompositionTarget.Rendering -= UpdateDragVisualPosition;
+                
+                // 停止定时器
+                StopSelectionKeepAliveTimer();
+                
+                // 清除拖拽标志
+                _isPreparingDrag = false;
+                _isDragging = false;
 
                 if (_dragWindow != null)
                 {
@@ -807,6 +1331,214 @@ namespace OoiMRR
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"关闭拖拽视觉效果失败: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region 选中状态保持
+
+        /// <summary>
+        /// 启动定时器持续保持选中状态
+        /// </summary>
+        private void StartSelectionKeepAliveTimer(ListView listView)
+        {
+            StopSelectionKeepAliveTimer(); // 先停止旧的定时器
+            
+            if (listView == null || _selectedPathsBeforeDrag.Count == 0)
+                return;
+
+            _selectionKeepAliveTimer = new System.Windows.Threading.DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(33) // 每33ms检查一次（约30fps），足够快以避免闪烁
+            };
+            
+            _selectionKeepAliveTimer.Tick += (s, e) =>
+            {
+                if (_isDragging && listView != null && _selectedPathsBeforeDrag.Count > 0)
+                {
+                    ForceRestoreSelection(listView);
+                }
+            };
+            
+            _selectionKeepAliveTimer.Start();
+        }
+
+        /// <summary>
+        /// 停止选中状态保持定时器
+        /// </summary>
+        private void StopSelectionKeepAliveTimer()
+        {
+            if (_selectionKeepAliveTimer != null)
+            {
+                _selectionKeepAliveTimer.Stop();
+                _selectionKeepAliveTimer = null;
+            }
+            
+            // 拖拽结束后，确保选中状态正确恢复
+            if (_currentListView != null && _selectedPathsBeforeDrag.Count > 0)
+            {
+                // 使用 Dispatcher 延迟执行，确保在拖拽操作完全结束后再恢复
+                _currentListView.Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    if (_currentListView != null && _selectedPathsBeforeDrag.Count > 0)
+                    {
+                        try
+                        {
+                            _currentListView.SelectionChanged -= FileList_SelectionChanged;
+                            
+                            // 恢复选中状态
+                            _currentListView.SelectedItems.Clear();
+                            foreach (var item in _currentListView.Items)
+                            {
+                                if (item is FileSystemItem fileItem && _selectedPathsBeforeDrag.Contains(fileItem.Path))
+                                {
+                                    _currentListView.SelectedItems.Add(item);
+                                }
+                            }
+                            
+                            // 使用系统默认选中颜色恢复背景
+                            var selectedBrush = SystemColors.HighlightBrush;
+                            var selectedTextBrush = SystemColors.HighlightTextBrush;
+                            var defaultBrush = SystemColors.WindowBrush;
+                            var defaultTextBrush = SystemColors.WindowTextBrush;
+                            
+                            // 确保每个 ListViewItem 的状态和背景正确
+                            foreach (var item in _currentListView.Items)
+                            {
+                                var container = _currentListView.ItemContainerGenerator.ContainerFromItem(item) as ListViewItem;
+                                if (container != null)
+                                {
+                                    bool shouldBeSelected = item is FileSystemItem fileItem && _selectedPathsBeforeDrag.Contains(fileItem.Path);
+                                    container.IsSelected = shouldBeSelected;
+                                    
+                                    // 清除所有 LocalValue，让系统默认样式处理
+                                    container.ClearValue(ListViewItem.BackgroundProperty);
+                                    container.ClearValue(ListViewItem.ForegroundProperty);
+                                    
+                                    if (shouldBeSelected)
+                                    {
+                                        // 选中项：清除 LocalValue 后，ListView 的默认样式会自动应用选中背景
+                                        // 不需要手动设置，让系统样式处理
+                                    }
+                                    else
+                                    {
+                                        // 非选中项：已经清除了 LocalValue，会使用默认背景
+                                    }
+                                    
+                                    // 强制刷新视觉状态
+                                    container.InvalidateVisual();
+                                }
+                            }
+                            
+                            _currentListView.SelectionChanged += FileList_SelectionChanged;
+                        }
+                        catch { }
+                    }
+                }), System.Windows.Threading.DispatcherPriority.Background);
+            }
+            
+            // 清除保存的状态
+            _originalBackgrounds.Clear();
+            _originalFocusableStates.Clear();
+        }
+
+        /// <summary>
+        /// 强制恢复选中状态 - 使用系统默认颜色直接设置背景
+        /// </summary>
+        private void ForceRestoreSelection(ListView listView)
+        {
+            if (listView == null || _selectedPathsBeforeDrag.Count == 0)
+                return;
+
+            try
+            {
+                // 暂时移除事件处理器，避免递归
+                listView.SelectionChanged -= FileList_SelectionChanged;
+
+                // 收集要选中的项
+                var itemsToSelect = new List<object>();
+                foreach (var item in listView.Items)
+                {
+                    if (item is FileSystemItem fileItem && _selectedPathsBeforeDrag.Contains(fileItem.Path))
+                    {
+                        itemsToSelect.Add(item);
+                    }
+                }
+
+                // 恢复选中项集合
+                listView.SelectedItems.Clear();
+                foreach (var item in itemsToSelect)
+                {
+                    listView.SelectedItems.Add(item);
+                }
+
+                // 使用系统默认选中颜色和文字颜色
+                var selectedBrush = SystemColors.HighlightBrush; // 系统默认选中背景色
+                var selectedTextBrush = SystemColors.HighlightTextBrush; // 系统默认选中文字色
+                var defaultBrush = SystemColors.WindowBrush; // 系统默认背景色
+                var defaultTextBrush = SystemColors.WindowTextBrush; // 系统默认文字色
+
+                // 强制设置每个 ListViewItem 的视觉状态
+                foreach (var item in listView.Items)
+                {
+                    var container = listView.ItemContainerGenerator.ContainerFromItem(item) as ListViewItem;
+                    if (container != null)
+                    {
+                        bool isSelected = itemsToSelect.Contains(item);
+                        container.IsSelected = isSelected;
+
+                        if (isSelected)
+                        {
+                            // 保存原始背景（只在第一次保存）
+                            if (!_originalBackgrounds.ContainsKey(container))
+                            {
+                                _originalBackgrounds[container] = container.Background ?? defaultBrush;
+                            }
+
+                            // 清除可能的样式值，然后使用 LocalValue 优先级设置
+                            // 这样可以确保背景色优先级高于样式触发器（如 MouseOver）
+                            container.ClearValue(ListViewItem.BackgroundProperty);
+                            container.ClearValue(ListViewItem.ForegroundProperty);
+                            
+                            // 使用 SetValue 设置 LocalValue，优先级高于样式
+                            container.SetValue(ListViewItem.BackgroundProperty, selectedBrush);
+                            container.SetValue(ListViewItem.ForegroundProperty, selectedTextBrush);
+                        }
+                        else
+                        {
+                            // 恢复原始背景 - 如果是默认值则清除设置
+                            if (_originalBackgrounds.ContainsKey(container))
+                            {
+                                var originalBg = _originalBackgrounds[container];
+                                if (originalBg == defaultBrush || originalBg == Brushes.White)
+                                {
+                                    container.ClearValue(ListViewItem.BackgroundProperty);
+                                }
+                                else
+                                {
+                                    container.SetValue(ListViewItem.BackgroundProperty, originalBg);
+                                }
+                            }
+                            else
+                            {
+                                container.ClearValue(ListViewItem.BackgroundProperty);
+                            }
+                            container.ClearValue(ListViewItem.ForegroundProperty);
+                        }
+                    }
+                }
+
+                // 重新添加事件处理器
+                listView.SelectionChanged += FileList_SelectionChanged;
+            }
+            catch
+            {
+                // 如果出错，至少重新添加事件处理器
+                if (listView != null)
+                {
+                    listView.SelectionChanged += FileList_SelectionChanged;
+                }
             }
         }
 
