@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 
 namespace OoiMRR.Previews
@@ -28,10 +29,12 @@ namespace OoiMRR.Previews
                     items.Add(new FolderItemInfo
                     {
                         Name = dirInfo.Name,
+                        FullPath = dirInfo.FullName,
                         Type = "文件夹",
                         Size = "-",
                         ModifiedDate = dirInfo.LastWriteTime.ToString("yyyy-MM-dd HH:mm"),
-                        CreatedTime = FormatTimeAgo(dirInfo.CreationTime)
+                        CreatedTime = FormatTimeAgo(dirInfo.CreationTime),
+                        IsDirectory = true
                     });
                 }
 
@@ -43,10 +46,12 @@ namespace OoiMRR.Previews
                     items.Add(new FolderItemInfo
                     {
                         Name = fileInfo.Name,
+                        FullPath = fileInfo.FullName,
                         Type = Path.GetExtension(file),
                         Size = PreviewHelper.FormatFileSize(fileInfo.Length),
                         ModifiedDate = fileInfo.LastWriteTime.ToString("yyyy-MM-dd HH:mm"),
-                        CreatedTime = FormatTimeAgo(fileInfo.CreationTime)
+                        CreatedTime = FormatTimeAgo(fileInfo.CreationTime),
+                        IsDirectory = false
                     });
                 }
 
@@ -97,6 +102,39 @@ namespace OoiMRR.Previews
 
                 listView.View = gridView;
 
+                // 添加双击事件处理
+                listView.MouseDoubleClick += (s, e) =>
+                {
+                    if (listView.SelectedItem is FolderItemInfo selectedItem)
+                    {
+                        if (selectedItem.IsDirectory)
+                        {
+                            // 文件夹：在新标签页中打开
+                            // 通过静态回调通知主窗口打开新标签页
+                            if (PreviewFactory.OnOpenFolderInNewTab != null)
+                            {
+                                PreviewFactory.OnOpenFolderInNewTab(selectedItem.FullPath);
+                            }
+                        }
+                        else
+                        {
+                            // 文件：使用系统默认程序打开
+                            try
+                            {
+                                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                                {
+                                    FileName = selectedItem.FullPath,
+                                    UseShellExecute = true
+                                });
+                            }
+                            catch (Exception ex)
+                            {
+                                MessageBox.Show($"无法打开文件: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                            }
+                        }
+                    }
+                };
+
                 if (items.Count == 0)
                 {
                     return new TextBlock
@@ -142,10 +180,12 @@ namespace OoiMRR.Previews
         private class FolderItemInfo
         {
             public string Name { get; set; }
+            public string FullPath { get; set; }
             public string Type { get; set; }
             public string Size { get; set; }
             public string ModifiedDate { get; set; }
             public string CreatedTime { get; set; }
+            public bool IsDirectory { get; set; }
         }
     }
 }

@@ -7,6 +7,8 @@ namespace OoiMRR
     public class AppConfig
     {
         public string LastPath { get; set; } = string.Empty;
+        public string LastNavigationMode { get; set; } = "Path"; // Path, Library, Tag, Search
+        public int LastLibraryId { get; set; } = 0; // 最后选中的库ID
         public double WindowWidth { get; set; } = 1200;
         public double WindowHeight { get; set; } = 800;
         public double WindowTop { get; set; } = double.NaN;

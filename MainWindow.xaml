@@ -12,7 +12,8 @@
         AllowsTransparency="False"
         ResizeMode="CanResize"
         UseLayoutRounding="True"
-        Background="#FFFFFF">
+        Background="#FFFFFF"
+        PreviewKeyDown="MainWindow_PreviewKeyDown">
     
     <Window.Resources>
         <local:TimeUnitConverter x:Key="TimeUnitConverter"/>
@@ -49,68 +50,122 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 
-                <!-- 列1：导航按钮（左侧） -->
-                <Grid Grid.Column="0" VerticalAlignment="Center" Margin="8,0,8,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
+                <!-- 列1：导航按钮和操作按钮（左侧） -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0">
+                    <!-- 固定导航按钮（4个） -->
+                    <Button Name="NavPathBtn" Content="路径" Click="NavPathBtn_Click" Margin="2" MinWidth="60">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                                <Setter Property="Background" Value="#E3F2FD"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ElementName=NavPathContent, Path=Visibility}" Value="Visible">
+                                        <Setter Property="Background" Value="#64B5F6"/>
+                                        <Setter Property="Foreground" Value="#FFFFFF"/>
+                                        <Setter Property="BorderBrush" Value="#1565C0"/>
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    <Button Name="NavLibraryBtn" Content="库" Click="NavLibraryBtn_Click" Margin="2" MinWidth="60">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                                <Setter Property="Background" Value="#E3F2FD"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ElementName=NavLibraryContent, Path=Visibility}" Value="Visible">
+                                        <Setter Property="Background" Value="#64B5F6"/>
+                                        <Setter Property="Foreground" Value="#FFFFFF"/>
+                                        <Setter Property="BorderBrush" Value="#1565C0"/>
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    <Button Name="NavTagBtn" Content="标签" Click="NavTagBtn_Click" Margin="2" MinWidth="60">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                                <Setter Property="Background" Value="#E3F2FD"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ElementName=NavTagContent, Path=Visibility}" Value="Visible">
+                                        <Setter Property="Background" Value="#64B5F6"/>
+                                        <Setter Property="Foreground" Value="#FFFFFF"/>
+                                        <Setter Property="BorderBrush" Value="#1565C0"/>
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    <Button Name="NavSearchBtn" Content="搜索" Click="NavSearchBtn_Click" Margin="2" MinWidth="60">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                                <Setter Property="Background" Value="#E3F2FD"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ElementName=NavSearchContent, Path=Visibility}" Value="Visible">
+                                        <Setter Property="Background" Value="#64B5F6"/>
+                                        <Setter Property="Foreground" Value="#FFFFFF"/>
+                                        <Setter Property="BorderBrush" Value="#1565C0"/>
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
                     
-                    <Button Grid.Column="0" Name="NavPathBtn" Content="路径" Click="NavPathBtn_Click" Margin="2" MinWidth="60"/>
-                    <Button Grid.Column="1" Name="NavLibraryBtn" Content="库" Click="NavLibraryBtn_Click" Margin="2" MinWidth="60"/>
-                    <Button Grid.Column="2" Name="NavTagBtn" Content="标签" Click="NavTagBtn_Click" Margin="2" MinWidth="60"/>
-                    <Button Grid.Column="3" Name="NavSearchBtn" Content="搜索" Click="NavSearchBtn_Click" Margin="2" MinWidth="60"/>
-                </Grid>
+                    <!-- 分隔符 -->
+                    <Separator Name="TitleBarSeparator" Margin="12,0" VerticalAlignment="Center" Height="20"/>
+                    
+                    <!-- 动态操作按钮区域（可拖动排序） -->
+                    <StackPanel Name="ActionButtonsContainer" Orientation="Horizontal" VerticalAlignment="Center"/>
+                </StackPanel>
                 
-                <!-- 列2：操作按钮（中间，在标题栏中，视觉上对应列2区域，动态居中显示） -->
+                <!-- 列2：占位（原操作按钮区域已移除） -->
                 <Grid Grid.Column="1" Name="ActionButtonsGrid" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="8,0">
-                    <!-- 路径模式按钮 -->
-                    <StackPanel Name="PathActionButtons" Orientation="Horizontal" Margin="0,0">
+                    <!-- 隐藏的按钮定义（用于从代码中读取） -->
+                    <StackPanel Name="PathActionButtons" Orientation="Horizontal" Visibility="Collapsed">
                         <Button Content="📁 新建文件夹" Click="NewFolder_Click" Margin="0,0,4,0"/>
                         <Button Content="📄 新建文件" Click="NewFile_Click" Margin="0,0,4,0"/>
-                        <Separator Margin="8,0"/>
+                        <Separator Margin="16,0"/>
                         <Button Content="复制" Click="Copy_Click" Margin="0,0,4,0"/>
                         <Button Content="粘贴" Click="Paste_Click" Margin="0,0,4,0"/>
                         <Button Content="删除" Click="Delete_Click" Margin="0,0,4,0"/>
-                        <Separator Margin="8,0"/>
+                        <Separator Margin="16,0"/>
                         <Button Content="⭐ 添加收藏" Click="AddFavorite_Click" Margin="0,0,4,0"/>
                         <Button Content="🏷️ 添加标签" Click="AddTagToFile_Click" Margin="0,0,4,0"/>
                         <Button Content="🔄 刷新" Click="Refresh_Click"/>
                     </StackPanel>
                     
-                    <!-- 库模式按钮 -->
-                    <StackPanel Name="LibraryActionButtons" Orientation="Horizontal" Margin="0,0" Visibility="Collapsed">
+                    <StackPanel Name="LibraryActionButtons" Orientation="Horizontal" Visibility="Collapsed">
                         <Button Content="📁 新建文件夹" Click="NewFolder_Click" Margin="0,0,4,0"/>
                         <Button Content="📄 新建文件" Click="NewFile_Click" Margin="0,0,4,0"/>
-                        <Separator Margin="8,0"/>
+                        <Separator Margin="16,0"/>
                         <Button Content="📚 新建库" Click="AddLibrary_Click" Margin="0,0,4,0"/>
                         <Button Content="📂 添加到库" Click="AddFileToLibrary_Click" Margin="0,0,4,0"/>
-                        <Separator Margin="8,0"/>
+                        <Button Content="⚙️ 管理库" Click="ManageLibraries_Click" Margin="0,0,4,0"/>
+                        <Separator Margin="16,0"/>
                         <Button Content="复制" Click="Copy_Click" Margin="0,0,4,0"/>
                         <Button Content="粘贴" Click="Paste_Click" Margin="0,0,4,0"/>
                         <Button Content="删除" Click="Delete_Click" Margin="0,0,4,0"/>
-                        <Separator Margin="8,0"/>
+                        <Separator Margin="16,0"/>
                         <Button Content="⭐ 添加收藏" Click="AddFavorite_Click" Margin="0,0,4,0"/>
                         <Button Content="🏷️ 添加标签" Click="AddTagToFile_Click" Margin="0,0,4,0"/>
                         <Button Content="🔄 刷新" Click="Refresh_Click"/>
                     </StackPanel>
                     
-                    <!-- 标签模式按钮 -->
-                    <StackPanel Name="TagActionButtons" Orientation="Horizontal" Margin="0,0" Visibility="Collapsed">
+                    <StackPanel Name="TagActionButtons" Orientation="Horizontal" Visibility="Collapsed">
                         <Button Content="➕ 新建标签" Click="NewTag_Click" Margin="0,0,4,0"/>
                         <Button Content="✏️ 编辑标签" Click="ManageTags_Click" Margin="0,0,4,0"/>
-                        <Separator Margin="8,0"/>
+                        <Separator Margin="16,0"/>
                         <Button Content="📦 批量添加标签" Click="BatchAddTags_Click" Margin="0,0,4,0"/>
                         <Button Content="📊 标签统计" Click="TagStatistics_Click"/>
                     </StackPanel>
                     
-                    <!-- 搜索模式按钮 -->
-                    <StackPanel Name="SearchActionButtons" Orientation="Horizontal" Margin="0,0" Visibility="Collapsed">
+                    <StackPanel Name="SearchActionButtons" Orientation="Horizontal" Visibility="Collapsed">
                         <Button Content="🔍 高级搜索" Click="AdvancedSearch_Click" Margin="0,0,4,0"/>
                         <Button Content="💾 保存搜索" Click="SaveSearch_Click" Margin="0,0,4,0"/>
-                        <Separator Margin="8,0"/>
+                        <Separator Margin="16,0"/>
                         <Button Content="📜 搜索历史" Click="SearchHistory_Click" Margin="0,0,4,0"/>
                         <Button Content="🗑️ 清除历史" Click="ClearSearchHistory_Click"/>
                     </StackPanel>
@@ -170,7 +225,8 @@
                                      Margin="2"
                                      BorderThickness="0"
                                      Background="Transparent"
-                                     SelectionMode="Single">
+                                     SelectionMode="Single"
+                                     PreviewMouseDown="DrivesListBox_PreviewMouseDown">
                                 <ListBox.ItemContainerStyle>
                                     <Style TargetType="ListBoxItem">
                                         <Setter Property="Padding" Value="5,3"/>
@@ -180,13 +236,38 @@
                                         <Setter Property="BorderBrush" Value="#DDDDDD"/>
                                         <Setter Property="BorderThickness" Value="0,0,0,1"/>
                                         <Style.Triggers>
+                                            <!-- 匹配高亮优先级最高 -->
+                                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag}" Value="Match">
+                                                <Setter Property="Background" Value="#FFC107"/>
+                                                <Setter Property="Foreground" Value="#000000"/>
+                                                <Setter Property="BorderBrush" Value="#FF9800"/>
+                                            </DataTrigger>
+                                            <!-- 选中+匹配时的悬停效果 -->
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag}" Value="Match"/>
+                                                    <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=IsMouseOver}" Value="True"/>
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Background" Value="#FFB300"/>
+                                                <Setter Property="BorderBrush" Value="#FF9800"/>
+                                            </MultiDataTrigger>
+                                            <!-- 选中状态 -->
+                                            <MultiTrigger>
+                                                <MultiTrigger.Conditions>
+                                                    <Condition Property="IsSelected" Value="True"/>
+                                                    <Condition Property="IsMouseOver" Value="True"/>
+                                                </MultiTrigger.Conditions>
+                                                <Setter Property="Background" Value="#42A5F5"/>
+                                                <Setter Property="BorderBrush" Value="#1565C0"/>
+                                            </MultiTrigger>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter Property="Background" Value="#64B5F6"/>
+                                                <Setter Property="BorderBrush" Value="#1565C0"/>
+                                            </Trigger>
+                                            <!-- 鼠标悬停 -->
                                             <Trigger Property="IsMouseOver" Value="True">
                                                 <Setter Property="Background" Value="#E3F2FD"/>
                                                 <Setter Property="BorderBrush" Value="#2196F3"/>
-                                            </Trigger>
-                                            <Trigger Property="IsSelected" Value="True">
-                                                <Setter Property="Background" Value="#BBDEFB"/>
-                                                <Setter Property="BorderBrush" Value="#1976D2"/>
                                             </Trigger>
                                         </Style.Triggers>
                                     </Style>
@@ -202,7 +283,8 @@
                                      Margin="2"
                                      BorderThickness="0"
                                      Background="Transparent"
-                                     SelectionMode="Single">
+                                     SelectionMode="Single"
+                                     PreviewMouseDown="QuickAccessListBox_PreviewMouseDown">
                                 <ListBox.ItemContainerStyle>
                                     <Style TargetType="ListBoxItem">
                                         <Setter Property="Padding" Value="5,3"/>
@@ -212,13 +294,38 @@
                                         <Setter Property="BorderBrush" Value="#DDDDDD"/>
                                         <Setter Property="BorderThickness" Value="0,0,0,1"/>
                                         <Style.Triggers>
+                                            <!-- 匹配高亮优先级最高 -->
+                                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag}" Value="Match">
+                                                <Setter Property="Background" Value="#FFC107"/>
+                                                <Setter Property="Foreground" Value="#000000"/>
+                                                <Setter Property="BorderBrush" Value="#FF9800"/>
+                                            </DataTrigger>
+                                            <!-- 选中+匹配时的悬停效果 -->
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag}" Value="Match"/>
+                                                    <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=IsMouseOver}" Value="True"/>
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Background" Value="#FFB300"/>
+                                                <Setter Property="BorderBrush" Value="#FF9800"/>
+                                            </MultiDataTrigger>
+                                            <!-- 选中状态 -->
+                                            <MultiTrigger>
+                                                <MultiTrigger.Conditions>
+                                                    <Condition Property="IsSelected" Value="True"/>
+                                                    <Condition Property="IsMouseOver" Value="True"/>
+                                                </MultiTrigger.Conditions>
+                                                <Setter Property="Background" Value="#42A5F5"/>
+                                                <Setter Property="BorderBrush" Value="#1565C0"/>
+                                            </MultiTrigger>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter Property="Background" Value="#64B5F6"/>
+                                                <Setter Property="BorderBrush" Value="#1565C0"/>
+                                            </Trigger>
+                                            <!-- 鼠标悬停 -->
                                             <Trigger Property="IsMouseOver" Value="True">
                                                 <Setter Property="Background" Value="#E3F2FD"/>
                                                 <Setter Property="BorderBrush" Value="#2196F3"/>
-                                            </Trigger>
-                                            <Trigger Property="IsSelected" Value="True">
-                                                <Setter Property="Background" Value="#BBDEFB"/>
-                                                <Setter Property="BorderBrush" Value="#1976D2"/>
                                             </Trigger>
                                         </Style.Triggers>
                                     </Style>
@@ -234,7 +341,8 @@
                                      Margin="2"
                                      BorderThickness="0"
                                      Background="Transparent"
-                                     SelectionMode="Single">
+                                     SelectionMode="Single"
+                                     PreviewMouseDown="FavoritesListBox_PreviewMouseDown">
                                 <ListBox.ItemContainerStyle>
                                     <Style TargetType="ListBoxItem">
                                         <Setter Property="Padding" Value="5,3"/>
@@ -244,13 +352,38 @@
                                         <Setter Property="BorderBrush" Value="#DDDDDD"/>
                                         <Setter Property="BorderThickness" Value="0,0,0,1"/>
                                         <Style.Triggers>
+                                            <!-- 匹配高亮优先级最高 -->
+                                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag}" Value="Match">
+                                                <Setter Property="Background" Value="#FFC107"/>
+                                                <Setter Property="Foreground" Value="#000000"/>
+                                                <Setter Property="BorderBrush" Value="#FF9800"/>
+                                            </DataTrigger>
+                                            <!-- 选中+匹配时的悬停效果 -->
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag}" Value="Match"/>
+                                                    <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=IsMouseOver}" Value="True"/>
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Background" Value="#FFB300"/>
+                                                <Setter Property="BorderBrush" Value="#FF9800"/>
+                                            </MultiDataTrigger>
+                                            <!-- 选中状态 -->
+                                            <MultiTrigger>
+                                                <MultiTrigger.Conditions>
+                                                    <Condition Property="IsSelected" Value="True"/>
+                                                    <Condition Property="IsMouseOver" Value="True"/>
+                                                </MultiTrigger.Conditions>
+                                                <Setter Property="Background" Value="#42A5F5"/>
+                                                <Setter Property="BorderBrush" Value="#1565C0"/>
+                                            </MultiTrigger>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter Property="Background" Value="#64B5F6"/>
+                                                <Setter Property="BorderBrush" Value="#1565C0"/>
+                                            </Trigger>
+                                            <!-- 鼠标悬停 -->
                                             <Trigger Property="IsMouseOver" Value="True">
                                                 <Setter Property="Background" Value="#E3F2FD"/>
                                                 <Setter Property="BorderBrush" Value="#2196F3"/>
-                                            </Trigger>
-                                            <Trigger Property="IsSelected" Value="True">
-                                                <Setter Property="Background" Value="#BBDEFB"/>
-                                                <Setter Property="BorderBrush" Value="#1976D2"/>
                                             </Trigger>
                                         </Style.Triggers>
                                     </Style>
@@ -267,27 +400,76 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
                     
-                    <StackPanel Grid.Row="0" Margin="0,0,0,8">
-                        <Button Content="添加库" Click="AddLibrary_Click" Margin="0,0,0,4"/>
-                        <Button Content="管理库" Click="ManageLibraries_Click"/>
-                    </StackPanel>
+                    <!-- 库功能按钮已移动到标题栏，此处不再显示 -->
                     
-                    <ListBox Grid.Row="1" Name="LibrariesListBox" 
-                             SelectionChanged="LibrariesListBox_SelectionChanged"
-                             DisplayMemberPath="Name"
-                             ContextMenuOpening="LibrariesListBox_ContextMenuOpening">
-                        <ListBox.ContextMenu>
-                            <ContextMenu Name="LibraryContextMenu">
-                                <MenuItem Header="重命名" Click="LibraryRename_Click" Name="LibraryRenameMenuItem"/>
-                                <MenuItem Header="删除库" Click="LibraryDelete_Click" Name="LibraryDeleteMenuItem"/>
-                                <Separator/>
-                                <MenuItem Header="管理库位置" Click="LibraryManage_Click" Name="LibraryManageMenuItem"/>
-                                <MenuItem Header="在资源管理器中打开" Click="LibraryOpenInExplorer_Click" Name="LibraryOpenInExplorerMenuItem"/>
-                                <Separator/>
-                                <MenuItem Header="刷新库列表" Click="LibraryRefresh_Click"/>
-                            </ContextMenu>
-                        </ListBox.ContextMenu>
-                    </ListBox>
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <ListBox Name="LibrariesListBox" 
+                                 Margin="2"
+                                 BorderThickness="0"
+                                 Background="Transparent"
+                                 SelectionMode="Single"
+                                 SelectionChanged="LibrariesListBox_SelectionChanged"
+                                 DisplayMemberPath="Name"
+                                 ContextMenuOpening="LibrariesListBox_ContextMenuOpening"
+                                 AllowDrop="True">
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem">
+                                    <Setter Property="Padding" Value="5,3"/>
+                                    <Setter Property="Margin" Value="0,2"/>
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                    <Setter Property="Background" Value="#EEEEEE"/>
+                                    <Setter Property="BorderBrush" Value="#DDDDDD"/>
+                                    <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                    <Style.Triggers>
+                                        <!-- 匹配高亮优先级最高（通过 Tag 标记），无论是否选中都显示黄色 -->
+                                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag}" Value="Match">
+                                            <Setter Property="Background" Value="#FFC107"/>
+                                            <Setter Property="Foreground" Value="#000000"/>
+                                            <Setter Property="BorderBrush" Value="#FF9800"/>
+                                        </DataTrigger>
+                                        <!-- 选中+匹配时的悬停效果 -->
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag}" Value="Match"/>
+                                                <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=IsMouseOver}" Value="True"/>
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter Property="Background" Value="#FFB300"/>
+                                            <Setter Property="BorderBrush" Value="#FF9800"/>
+                                        </MultiDataTrigger>
+                                        <!-- 选中状态（仅在非匹配时） -->
+                                        <MultiTrigger>
+                                            <MultiTrigger.Conditions>
+                                                <Condition Property="IsSelected" Value="True"/>
+                                                <Condition Property="IsMouseOver" Value="True"/>
+                                            </MultiTrigger.Conditions>
+                                            <Setter Property="Background" Value="#42A5F5"/>
+                                            <Setter Property="BorderBrush" Value="#1565C0"/>
+                                        </MultiTrigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter Property="Background" Value="#64B5F6"/>
+                                            <Setter Property="BorderBrush" Value="#1565C0"/>
+                                        </Trigger>
+                                        <!-- 鼠标悬停（仅在非匹配时） -->
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#E3F2FD"/>
+                                            <Setter Property="BorderBrush" Value="#2196F3"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ListBox.ItemContainerStyle>
+                            <ListBox.ContextMenu>
+                                <ContextMenu Name="LibraryContextMenu">
+                                    <MenuItem Header="重命名" Click="LibraryRename_Click" Name="LibraryRenameMenuItem"/>
+                                    <MenuItem Header="删除库" Click="LibraryDelete_Click" Name="LibraryDeleteMenuItem"/>
+                                    <Separator/>
+                                    <MenuItem Header="管理库位置" Click="LibraryManage_Click" Name="LibraryManageMenuItem"/>
+                                    <MenuItem Header="在资源管理器中打开" Click="LibraryOpenInExplorer_Click" Name="LibraryOpenInExplorerMenuItem"/>
+                                    <Separator/>
+                                    <MenuItem Header="刷新库列表" Click="LibraryRefresh_Click"/>
+                                </ContextMenu>
+                            </ListBox.ContextMenu>
+                        </ListBox>
+                    </ScrollViewer>
                 </Grid>
                 
                 <!-- 标签导航内容 -->
@@ -353,13 +535,12 @@
         <Grid Grid.Row="1" Grid.Column="2" Grid.RowSpan="2">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="6"/>
                 <RowDefinition Height="180" MinHeight="120"/>
             </Grid.RowDefinitions>
 
-            <!-- 操作按钮已在标题栏，此处移除 -->
-            
             <!-- 地址栏（可编辑） -->
             <Border Grid.Row="0" Background="#F8F9FA" Margin="0,2,0,4">
             <Grid Margin="8">
@@ -370,8 +551,18 @@
             </Grid>
         </Border>
         
+        <!-- 标签页区域（仅在路径模式下显示） -->
+        <Border Grid.Row="1" Name="TabsBorder" Background="#F8F9FA" BorderBrush="#E9ECEF" BorderThickness="0,0,0,1" Visibility="Collapsed">
+            <Border.Effect>
+                <DropShadowEffect Color="#20000000" Direction="270" ShadowDepth="1" Opacity="0.2" BlurRadius="3"/>
+            </Border.Effect>
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                <StackPanel Name="TabsPanel" Orientation="Horizontal" Margin="6,4"/>
+            </ScrollViewer>
+        </Border>
+        
         <!-- 文件列表 -->
-        <Border Grid.Row="1" Background="#FFFFFF" BorderBrush="#E9ECEF" BorderThickness="0,1,0,0">
+        <Border Grid.Row="2" Background="#FFFFFF" BorderBrush="#E9ECEF" BorderThickness="0,1,0,0">
             <Grid>
                 <ListView Name="FilesListView" 
                       SelectionChanged="FilesListView_SelectionChanged"
@@ -380,7 +571,32 @@
                       PreviewKeyDown="FilesListView_PreviewKeyDown"
                       PreviewMouseLeftButtonDown="FilesListView_PreviewMouseLeftButtonDown"
                       MouseLeftButtonUp="FilesListView_MouseLeftButtonUp"
+                      PreviewMouseDown="FilesListView_PreviewMouseDown"
                       Background="#FFFFFF">
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem">
+                            <Setter Property="Background" Value="#FFFFFF"/>
+                            <Setter Property="BorderBrush" Value="Transparent"/>
+                            <Setter Property="BorderThickness" Value="0"/>
+                            <Style.Triggers>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter Property="Background" Value="#64B5F6"/>
+                                    <Setter Property="Foreground" Value="#FFFFFF"/>
+                                </Trigger>
+                                <MultiTrigger>
+                                    <MultiTrigger.Conditions>
+                                        <Condition Property="IsSelected" Value="True"/>
+                                        <Condition Property="IsMouseOver" Value="True"/>
+                                    </MultiTrigger.Conditions>
+                                    <Setter Property="Background" Value="#42A5F5"/>
+                                    <Setter Property="Foreground" Value="#FFFFFF"/>
+                                </MultiTrigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#E3F2FD"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ListView.ItemContainerStyle>
                 <ListView.View>
                     <GridView x:Name="FilesGridView">
                         <GridViewColumn Width="200" DisplayMemberBinding="{Binding Name}">
@@ -480,11 +696,11 @@
         </Border>
         
         <!-- 水平分割器 -->
-        <GridSplitter Grid.Row="2" Style="{StaticResource HorizontalGridSplitterStyle}"
+        <GridSplitter Grid.Row="3" Style="{StaticResource HorizontalGridSplitterStyle}"
                       HorizontalAlignment="Stretch"/>
         
         <!-- 文件详细信息 -->
-        <Border Grid.Row="3" Background="#F8F9FA" BorderBrush="#E9ECEF" BorderThickness="0,1,0,0">
+        <Border Grid.Row="4" Background="#F8F9FA" BorderBrush="#E9ECEF" BorderThickness="0,1,0,0">
             <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="8,4">
                 <StackPanel Name="FileInfoPanel" Margin="4"/>
             </ScrollViewer>

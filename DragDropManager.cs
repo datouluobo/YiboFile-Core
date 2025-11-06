@@ -432,40 +432,39 @@ namespace OoiMRR
                 // 再次检查是否在列头区域，如果是，不启动文件拖拽
                 if (listView != null)
                 {
-                    // 首先检查原始按下位置是否在列头区域
+                    // 首先检查原始按下位置是否在列头区域（只需检查一次）
                     if (_dragStartPointInListView.Y < 30)
-                    {
-                        System.Diagnostics.Debug.WriteLine("[DragDropManager MouseMove] 按下位置在列头区域，不启动文件拖拽");
                         return;
-                    }
                     
                     System.Windows.Point currentHitPoint = e.GetPosition(listView);
                     
-                    // 检查当前 Y 坐标是否在列头区域
+                    // 检查当前 Y 坐标是否在列头区域（快速检查，避免 HitTest）
                     if (currentHitPoint.Y < 30)
-                    {
-                        System.Diagnostics.Debug.WriteLine("[DragDropManager MouseMove] 鼠标在列头区域，不启动文件拖拽");
                         return;
-                    }
                     
-                    // 检查是否在列头相关元素上
-                    var hitResult = System.Windows.Media.VisualTreeHelper.HitTest(listView, currentHitPoint);
-                    if (hitResult != null)
+                    // 只在必要时进行 HitTest（减少性能开销）
+                    // 如果 Y 坐标在安全范围内，直接跳过 HitTest
+                    if (currentHitPoint.Y > 50)
                     {
-                        DependencyObject current = hitResult.VisualHit;
-                        while (current != null && current != listView)
+                        // Y 坐标足够大，不在列头区域，可以安全地开始拖拽
+                    }
+                    else
+                    {
+                        // Y 坐标在临界区域，需要 HitTest 确认
+                        var hitResult = System.Windows.Media.VisualTreeHelper.HitTest(listView, currentHitPoint);
+                        if (hitResult != null)
                         {
-                            if (current is GridViewColumnHeader)
+                            DependencyObject current = hitResult.VisualHit;
+                            int depth = 0;
+                            while (current != null && current != listView && depth < 5)
                             {
-                                System.Diagnostics.Debug.WriteLine("[DragDropManager MouseMove] 在 GridViewColumnHeader 上，不启动文件拖拽");
-                                return;
+                                if (current is GridViewColumnHeader)
+                                    return;
+                                if (current.GetType().Name.Contains("Thumb") || current.GetType().Name == "Thumb")
+                                    return;
+                                current = System.Windows.Media.VisualTreeHelper.GetParent(current);
+                                depth++;
                             }
-                            if (current.GetType().Name.Contains("Thumb") || current.GetType().Name == "Thumb")
-                            {
-                                System.Diagnostics.Debug.WriteLine("[DragDropManager MouseMove] 在 Thumb 上，不启动文件拖拽");
-                                return;
-                            }
-                            current = System.Windows.Media.VisualTreeHelper.GetParent(current);
                         }
                     }
                 }
@@ -518,8 +517,8 @@ namespace OoiMRR
                 var dataObject = new DataObject(DataFormats.FileDrop, selectedPaths.ToArray());
                 dataObject.SetData("DragDropData", _currentDragData);
 
-                // 开始拖拽操作
-                var effects = DragDrop.DoDragDrop(listView, dataObject, DragDropEffects.Copy | DragDropEffects.Move);
+                // 开始拖拽操作（允许 Copy、Move 和 Link，以便支持添加到库等操作）
+                var effects = DragDrop.DoDragDrop(listView, dataObject, DragDropEffects.Copy | DragDropEffects.Move | DragDropEffects.Link);
 
                 // 拖拽结束，清理视觉效果
                 StopSelectionKeepAliveTimer();
@@ -1299,6 +1298,14 @@ namespace OoiMRR
         /// </summary>
         private void CloseDragVisual()
         {
+            ForceCloseDragVisual();
+        }
+
+        /// <summary>
+        /// 强制关闭拖拽视觉效果（公共方法，用于外部拖拽完成时清理）
+        /// </summary>
+        public void ForceCloseDragVisual()
+        {
             try
             {
                 CompositionTarget.Rendering -= UpdateDragVisualPosition;
@@ -1312,20 +1319,38 @@ namespace OoiMRR
 
                 if (_dragWindow != null)
                 {
-                    // 添加淡出动画
-                    var fadeOut = new DoubleAnimation
-                    {
-                        From = 1.0,
-                        To = 0.0,
-                        Duration = TimeSpan.FromMilliseconds(200)
-                    };
-                    fadeOut.Completed += (s, e) =>
+                    // 立即关闭，不等待淡出动画（避免在 MessageBox 显示时还看到拖拽动画）
+                    try
                     {
                         _dragWindow.Close();
                         _dragWindow = null;
                         _dragVisual = null;
-                    };
-                    _dragWindow.BeginAnimation(UIElement.OpacityProperty, fadeOut);
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"关闭拖拽窗口失败: {ex.Message}");
+                        // 如果立即关闭失败，尝试淡出动画
+                        var fadeOut = new DoubleAnimation
+                        {
+                            From = 1.0,
+                            To = 0.0,
+                            Duration = TimeSpan.FromMilliseconds(100)
+                        };
+                        fadeOut.Completed += (s, e) =>
+                        {
+                            try
+                            {
+                                if (_dragWindow != null)
+                                {
+                                    _dragWindow.Close();
+                                    _dragWindow = null;
+                                    _dragVisual = null;
+                                }
+                            }
+                            catch { }
+                        };
+                        _dragWindow.BeginAnimation(UIElement.OpacityProperty, fadeOut);
+                    }
                 }
             }
             catch (Exception ex)

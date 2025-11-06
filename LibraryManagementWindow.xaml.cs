@@ -166,24 +166,24 @@ namespace OoiMRR
         {
             if (LibrariesListBox.SelectedItem is Library selectedLibrary)
             {
-                var result = System.Windows.MessageBox.Show(
+                if (!ConfirmDialog.Show(
                     $"确定要删除库 \"{selectedLibrary.Name}\" 吗？\n这将删除库及其所有位置，但不会删除实际文件。",
                     "确认删除",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Question);
-
-                if (result == MessageBoxResult.Yes)
+                    ConfirmDialog.DialogType.Question,
+                    this))
                 {
-                    try
-                    {
-                        DatabaseManager.DeleteLibrary(selectedLibrary.Id);
-                        LoadLibraries();
-                        PathsListBox.ItemsSource = null;
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Windows.MessageBox.Show($"删除库失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                    }
+                    return;
+                }
+
+                try
+                {
+                    DatabaseManager.DeleteLibrary(selectedLibrary.Id);
+                    LoadLibraries();
+                    PathsListBox.ItemsSource = null;
+                }
+                catch (Exception ex)
+                {
+                    System.Windows.MessageBox.Show($"删除库失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             else

@@ -200,6 +200,9 @@ namespace OoiMRR
             { ".apk", new FileTypeInfo { Category = "程序", CanPreview = false, PreviewType = PreviewType.Executable } },
             { ".deb", new FileTypeInfo { Category = "程序", CanPreview = false, PreviewType = PreviewType.Executable } },
             { ".rpm", new FileTypeInfo { Category = "程序", CanPreview = false, PreviewType = PreviewType.Executable } },
+            
+            // 快捷方式文件
+            { ".lnk", new FileTypeInfo { Category = "快捷方式", CanPreview = true, PreviewType = PreviewType.Shortcut } },
         };
 
         public static FileTypeInfo GetFileTypeInfo(string filePath)
@@ -253,6 +256,7 @@ namespace OoiMRR
         Audio,
         Document,
         Archive,
-        Executable
+        Executable,
+        Shortcut
     }
 }

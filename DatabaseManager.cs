@@ -99,6 +99,19 @@ namespace OoiMRR
             command.CommandText = createFavoritesTable;
             command.ExecuteNonQuery();
 
+            // 创建文件夹大小缓存表
+            var createFolderSizesTable = @"
+                CREATE TABLE IF NOT EXISTS FolderSizes (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    FolderPath TEXT NOT NULL UNIQUE,
+                    SizeBytes INTEGER NOT NULL,
+                    LastModified DATETIME NOT NULL,
+                    CalculatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+                )";
+            
+            command.CommandText = createFolderSizesTable;
+            command.ExecuteNonQuery();
+
             // 数据库迁移：如果旧的 Libraries 表有 Path 列，迁移到新结构
             try
             {
@@ -500,6 +513,288 @@ namespace OoiMRR
             command.Parameters.AddWithValue("@sortOrder", newSortOrder);
             command.Parameters.AddWithValue("@id", favoriteId);
             command.ExecuteNonQuery();
+        }
+
+        #endregion
+
+        #region 文件夹大小缓存
+
+        /// <summary>
+        /// 获取文件夹的缓存大小（如果存在）
+        /// </summary>
+        public static long? GetFolderSize(string folderPath)
+        {
+            if (string.IsNullOrEmpty(folderPath) || !Directory.Exists(folderPath))
+                return null;
+
+            try
+            {
+                using var connection = new SqliteConnection(_connectionString);
+                connection.Open();
+                using var command = connection.CreateCommand();
+                command.CommandText = @"
+                    SELECT SizeBytes, LastModified 
+                    FROM FolderSizes 
+                    WHERE FolderPath = @folderPath";
+                command.Parameters.AddWithValue("@folderPath", folderPath);
+                
+                using var reader = command.ExecuteReader();
+                if (reader.Read())
+                {
+                    var sizeBytes = reader.GetInt64(0);
+                    var lastModified = reader.GetDateTime(1);
+                    
+                    // 检查文件夹的最后修改时间是否与缓存一致
+                    var currentLastModified = Directory.GetLastWriteTime(folderPath);
+                    if (currentLastModified <= lastModified)
+                    {
+                        // 文件夹未修改，返回缓存的大小
+                        return sizeBytes;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"获取文件夹大小缓存失败: {ex.Message}");
+            }
+            
+            return null;
+        }
+
+        /// <summary>
+        /// 设置文件夹的大小缓存
+        /// </summary>
+        public static void SetFolderSize(string folderPath, long sizeBytes)
+        {
+            if (string.IsNullOrEmpty(folderPath))
+                return;
+
+            try
+            {
+                using var connection = new SqliteConnection(_connectionString);
+                connection.Open();
+                using var command = connection.CreateCommand();
+                
+                // 获取文件夹的最后修改时间
+                DateTime lastModified = DateTime.MinValue;
+                try
+                {
+                    if (Directory.Exists(folderPath))
+                    {
+                        lastModified = Directory.GetLastWriteTime(folderPath);
+                    }
+                }
+                catch { }
+                
+                command.CommandText = @"
+                    INSERT OR REPLACE INTO FolderSizes (FolderPath, SizeBytes, LastModified, CalculatedAt) 
+                    VALUES (@folderPath, @sizeBytes, @lastModified, CURRENT_TIMESTAMP)";
+                command.Parameters.AddWithValue("@folderPath", folderPath);
+                command.Parameters.AddWithValue("@sizeBytes", sizeBytes);
+                command.Parameters.AddWithValue("@lastModified", lastModified);
+                command.ExecuteNonQuery();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"保存文件夹大小缓存失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 批量获取多个文件夹的缓存大小
+        /// </summary>
+        public static Dictionary<string, long> GetFolderSizesBatch(List<string> folderPaths)
+        {
+            var result = new Dictionary<string, long>();
+            if (folderPaths == null || folderPaths.Count == 0)
+                return result;
+
+            try
+            {
+                using var connection = new SqliteConnection(_connectionString);
+                connection.Open();
+                
+                // 过滤出存在的文件夹路径
+                var existingPaths = folderPaths.Where(p => !string.IsNullOrEmpty(p) && Directory.Exists(p)).ToList();
+                if (existingPaths.Count == 0)
+                    return result;
+
+                // 构建查询参数
+                var placeholders = string.Join(",", existingPaths.Select((_, i) => $"@path{i}"));
+                using var command = connection.CreateCommand();
+                command.CommandText = $@"
+                    SELECT FolderPath, SizeBytes, LastModified 
+                    FROM FolderSizes 
+                    WHERE FolderPath IN ({placeholders})";
+                
+                for (int i = 0; i < existingPaths.Count; i++)
+                {
+                    command.Parameters.AddWithValue($"@path{i}", existingPaths[i]);
+                }
+                
+                using var reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    var folderPath = reader.GetString(0);
+                    var sizeBytes = reader.GetInt64(1);
+                    var lastModified = reader.GetDateTime(2);
+                    
+                    // 检查文件夹的最后修改时间是否与缓存一致
+                    try
+                    {
+                        var currentLastModified = Directory.GetLastWriteTime(folderPath);
+                        if (currentLastModified <= lastModified)
+                        {
+                            // 文件夹未修改，使用缓存的大小
+                            result[folderPath] = sizeBytes;
+                        }
+                    }
+                    catch { }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"批量获取文件夹大小缓存失败: {ex.Message}");
+            }
+            
+            return result;
+        }
+
+        /// <summary>
+        /// 删除文件夹大小缓存（当文件夹被删除时）
+        /// </summary>
+        public static void RemoveFolderSize(string folderPath)
+        {
+            if (string.IsNullOrEmpty(folderPath))
+                return;
+
+            try
+            {
+                using var connection = new SqliteConnection(_connectionString);
+                connection.Open();
+                using var command = connection.CreateCommand();
+                command.CommandText = "DELETE FROM FolderSizes WHERE FolderPath = @folderPath";
+                command.Parameters.AddWithValue("@folderPath", folderPath);
+                command.ExecuteNonQuery();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"删除文件夹大小缓存失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 清理不存在的文件夹大小缓存（防止数据库无限增长）
+        /// </summary>
+        /// <param name="batchSize">每批处理的记录数，默认100</param>
+        /// <param name="maxProcessed">最多处理的记录数，默认1000，0表示不限制</param>
+        /// <returns>清理的记录数</returns>
+        public static int CleanupNonExistentFolderSizes(int batchSize = 100, int maxProcessed = 1000)
+        {
+            int cleanedCount = 0;
+            try
+            {
+                using var connection = new SqliteConnection(_connectionString);
+                connection.Open();
+                
+                // 获取所有文件夹路径（分批处理）
+                using var selectCommand = connection.CreateCommand();
+                selectCommand.CommandText = @"
+                    SELECT FolderPath 
+                    FROM FolderSizes 
+                    ORDER BY CalculatedAt ASC
+                    LIMIT @limit";
+                
+                int processed = 0;
+                while (maxProcessed == 0 || processed < maxProcessed)
+                {
+                    selectCommand.Parameters.Clear();
+                    int currentBatchSize = Math.Min(batchSize, maxProcessed == 0 ? batchSize : maxProcessed - processed);
+                    selectCommand.Parameters.AddWithValue("@limit", currentBatchSize);
+                    
+                    var pathsToCheck = new List<string>();
+                    using (var reader = selectCommand.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            pathsToCheck.Add(reader.GetString(0));
+                        }
+                    }
+                    
+                    if (pathsToCheck.Count == 0)
+                        break; // 没有更多记录了
+                    
+                    // 检查每个路径是否存在
+                    var pathsToDelete = new List<string>();
+                    foreach (var path in pathsToCheck)
+                    {
+                        try
+                        {
+                            if (!Directory.Exists(path))
+                            {
+                                pathsToDelete.Add(path);
+                            }
+                        }
+                        catch
+                        {
+                            // 如果检查时出错，也认为不存在
+                            pathsToDelete.Add(path);
+                        }
+                    }
+                    
+                    // 批量删除不存在的路径
+                    if (pathsToDelete.Count > 0)
+                    {
+                        using var deleteCommand = connection.CreateCommand();
+                        // 构建批量删除SQL
+                        var placeholders = string.Join(",", pathsToDelete.Select((_, i) => $"@path{i}"));
+                        deleteCommand.CommandText = $"DELETE FROM FolderSizes WHERE FolderPath IN ({placeholders})";
+                        
+                        for (int i = 0; i < pathsToDelete.Count; i++)
+                        {
+                            deleteCommand.Parameters.AddWithValue($"@path{i}", pathsToDelete[i]);
+                        }
+                        
+                        int deleted = deleteCommand.ExecuteNonQuery();
+                        cleanedCount += deleted;
+                    }
+                    
+                    processed += pathsToCheck.Count;
+                    
+                    // 如果这批没有需要删除的，且已处理足够多，可以提前结束
+                    if (pathsToDelete.Count == 0 && processed >= maxProcessed / 2)
+                    {
+                        break;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"清理不存在文件夹大小缓存失败: {ex.Message}");
+            }
+            
+            return cleanedCount;
+        }
+
+        /// <summary>
+        /// 获取文件夹大小缓存的总记录数
+        /// </summary>
+        public static int GetFolderSizeCacheCount()
+        {
+            try
+            {
+                using var connection = new SqliteConnection(_connectionString);
+                connection.Open();
+                using var command = connection.CreateCommand();
+                command.CommandText = "SELECT COUNT(*) FROM FolderSizes";
+                var result = command.ExecuteScalar();
+                return result != null ? Convert.ToInt32(result) : 0;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"获取文件夹大小缓存数量失败: {ex.Message}");
+                return 0;
+            }
         }
 
         #endregion

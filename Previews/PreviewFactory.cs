@@ -13,6 +13,11 @@ namespace OoiMRR.Previews
         /// 文件列表刷新请求回调
         /// </summary>
         public static Action OnFileListRefreshRequested { get; set; }
+        
+        /// <summary>
+        /// 在新标签页中打开文件夹回调
+        /// </summary>
+        public static Action<string> OnOpenFolderInNewTab { get; set; }
 
         /// <summary>
         /// 创建文件预览
@@ -33,6 +38,13 @@ namespace OoiMRR.Previews
                 }
 
                 var extension = Path.GetExtension(filePath).ToLower();
+                
+                // 特殊处理快捷方式文件
+                if (extension == ".lnk")
+                {
+                    return new LnkPreview().CreatePreview(filePath);
+                }
+                
                 var fileTypeInfo = FileTypeManager.GetFileTypeInfo(extension);
 
                 if (fileTypeInfo == null || !fileTypeInfo.CanPreview)
