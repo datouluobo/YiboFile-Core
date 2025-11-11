@@ -155,10 +155,10 @@
                     </StackPanel>
                     
                     <StackPanel Name="TagActionButtons" Orientation="Horizontal" Visibility="Collapsed">
-                        <Button Content="➕ 新建标签" Click="NewTag_Click" Margin="0,0,4,0"/>
-                        <Button Content="✏️ 编辑标签" Click="ManageTags_Click" Margin="0,0,4,0"/>
+                        <Button Content="🏷️ 新建标签" Click="NewTag_Click" Margin="0,0,4,0"/>
+                        <Button Content="🛠️ 管理标签" Click="ManageTags_Click" Margin="0,0,4,0"/>
                         <Separator Margin="16,0"/>
-                        <Button Content="📦 批量添加标签" Click="BatchAddTags_Click" Margin="0,0,4,0"/>
+                        <Button Content="📦 批量添加" Click="BatchAddTags_Click" Margin="0,0,4,0"/>
                         <Button Content="📊 标签统计" Click="TagStatistics_Click"/>
                     </StackPanel>
                     
@@ -474,18 +474,65 @@
                 
                 <!-- 标签导航内容 -->
                 <Grid Name="NavTagContent" Margin="8" Visibility="Collapsed">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-                    
-                    <StackPanel Grid.Row="0" Margin="0,0,0,8">
-                        <Button Content="新建标签" Click="NewTag_Click" Margin="0,0,0,4"/>
-                        <Button Content="管理标签" Click="ManageTags_Click"/>
-                    </StackPanel>
-                    
-                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                        <WrapPanel Name="TagsPanel" Margin="2"/>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <ListBox Name="TagsListBox"
+                                 Margin="0"
+                                 BorderThickness="0"
+                                 Background="Transparent"
+                                 SelectionMode="Single"
+                                 SelectionChanged="TagsListBox_SelectionChanged">
+                            <ListBox.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Margin="2"/>
+                                </ItemsPanelTemplate>
+                            </ListBox.ItemsPanel>
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem">
+                                    <Setter Property="Padding" Value="0"/>
+                                    <Setter Property="Margin" Value="4"/>
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                    <Setter Property="Background" Value="Transparent"/>
+                                    <Setter Property="BorderThickness" Value="0"/>
+                                    <Setter Property="Cursor" Value="Hand"/>
+                                </Style>
+                            </ListBox.ItemContainerStyle>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Border x:Name="TagCard"
+                                            Background="#F5F7FA"
+                                            CornerRadius="6"
+                                            Padding="10,6"
+                                            BorderThickness="1"
+                                            BorderBrush="{Binding Color}">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Ellipse Width="10"
+                                                     Height="10"
+                                                     Fill="{Binding Color}"
+                                                     Stroke="#40000000"
+                                                     StrokeThickness="0.5"
+                                                     VerticalAlignment="Center"/>
+                                            <TextBlock x:Name="TagNameText"
+                                                       Text="{Binding Name}"
+                                                       Margin="6,0,0,0"
+                                                       Foreground="#333333"
+                                                       FontWeight="SemiBold"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsMouseOver}" Value="True">
+                                            <Setter TargetName="TagCard" Property="Background" Value="#E3F2FD"/>
+                                            <Setter TargetName="TagCard" Property="BorderBrush" Value="#2196F3"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsSelected}" Value="True">
+                                            <Setter TargetName="TagCard" Property="Background" Value="#64B5F6"/>
+                                            <Setter TargetName="TagCard" Property="BorderBrush" Value="#1565C0"/>
+                                            <Setter TargetName="TagNameText" Property="Foreground" Value="#FFFFFF"/>
+                                            <Setter TargetName="TagNameText" Property="FontWeight" Value="Bold"/>
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
                     </ScrollViewer>
                 </Grid>
                 
@@ -572,6 +619,7 @@
                       PreviewMouseLeftButtonDown="FilesListView_PreviewMouseLeftButtonDown"
                       MouseLeftButtonUp="FilesListView_MouseLeftButtonUp"
                       PreviewMouseDown="FilesListView_PreviewMouseDown"
+                      SelectionMode="Extended"
                       Background="#FFFFFF">
                     <ListView.ItemContainerStyle>
                         <Style TargetType="ListViewItem">

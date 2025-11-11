@@ -40,6 +40,8 @@ namespace OoiMRR
         private bool _isMouseDownOnListView = false;
         private bool _isMouseDownOnColumnHeader = false;
         private Library _currentLibrary = null;
+        private Tag _currentTagFilter = null;
+        private bool _isUpdatingTagSelection = false;
         
         // 加载锁定，防止重复加载导致卡死
         private bool _isLoadingFiles = false;
@@ -658,9 +660,7 @@ namespace OoiMRR
             }
             catch { }
         }
-        
-        #region 导航切换
-        
+        #region 导航功能
         private void UpdateActionButtons(string mode)
         {
             try
@@ -1368,7 +1368,6 @@ namespace OoiMRR
                 ShowEmptyStateMessage($"加载失败：\n{ex.Message}");
             }
         }
-        
         /// <summary>
         /// 高亮匹配当前库的列表项
         /// </summary>
@@ -2167,7 +2166,6 @@ namespace OoiMRR
                 }
             }
         }
-
         /// <summary>
         /// 在库模式下设置标签页（为库的每个路径创建标签页）
         /// </summary>
@@ -2716,7 +2714,6 @@ namespace OoiMRR
             _navigationHistory.Add(path);
             _currentHistoryIndex = _navigationHistory.Count - 1;
         }
-
         private void LoadFiles()
         {
             // 使用信号量防止重复加载
@@ -3480,7 +3477,6 @@ namespace OoiMRR
                 }
             }
         }
-        
         private void LibrariesListBox_Drop(object sender, DragEventArgs e)
         {
             try
@@ -3932,6 +3928,14 @@ namespace OoiMRR
         private void ClearFilter()
         {
             // 清除过滤状态，恢复正常的文件浏览
+            _currentTagFilter = null;
+            if (TagsListBox != null)
+            {
+                _isUpdatingTagSelection = true;
+                TagsListBox.SelectedItem = null;
+                _isUpdatingTagSelection = false;
+            }
+            
             _currentFiles.Clear();
             FilesListView.ItemsSource = null;
             HideEmptyStateMessage();
@@ -4256,7 +4260,6 @@ namespace OoiMRR
                 }
             }
         }
-
         private void DrivesListBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
             // 处理鼠标中键点击打开新标签页
@@ -5027,7 +5030,6 @@ namespace OoiMRR
                 FilesListView.Items.Refresh();
             }
         }
-
         private async void NotesAutoSaved_Handler(object sender, RoutedEventArgs e)
         {
             if (RightPanel?.NotesTextBox == null) return;
@@ -5818,7 +5820,6 @@ namespace OoiMRR
                 }, cancellationToken);
             }), System.Windows.Threading.DispatcherPriority.SystemIdle);
         }
-        
         /// <summary>
         /// 立即计算指定文件夹的大小（用户选中时触发）
         /// </summary>
@@ -5907,86 +5908,99 @@ namespace OoiMRR
         private void LoadTags()
         {
             var tags = DatabaseManager.GetAllTags();
-            TagsPanel.Children.Clear();
-            
-            foreach (var tag in tags)
+            if (TagsListBox == null)
+                return;
+
+            _isUpdatingTagSelection = true;
+            try
             {
-                var button = new Button
+                TagsListBox.ItemsSource = tags;
+                if (_currentTagFilter != null)
                 {
-                    Content = tag.Name,
-                    Margin = new Thickness(2, 2, 2, 2),
-                    Padding = new Thickness(5, 2, 5, 2),
-                    Background = new SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(tag.Color))
-                };
-                
-                button.Click += (s, e) => FilterByTag(tag);
-                TagsPanel.Children.Add(button);
+                    var match = tags.FirstOrDefault(t => t.Id == _currentTagFilter.Id);
+                    TagsListBox.SelectedItem = match;
+                }
+                else
+                {
+                    TagsListBox.SelectedItem = null;
+                }
+            }
+            finally
+            {
+                _isUpdatingTagSelection = false;
             }
         }
 
         private void FilterByTag(Tag tag)
         {
+            if (tag == null)
+                return;
+
             try
             {
-                var filteredFiles = new List<FileSystemItem>();
-                
-                // 搜索当前目录及其子目录下的所有文件
-                var allFiles = Directory.GetFiles(_currentPath, "*", SearchOption.AllDirectories)
-                    .Concat(Directory.GetDirectories(_currentPath, "*", SearchOption.AllDirectories))
-                    .Select(f =>
-                    {
-                        var item = new FileSystemItem
-                        {
-                            Name = Path.GetFileName(f),
-                            Path = f,
-                            Type = Directory.Exists(f) ? "文件夹" : Path.GetExtension(f),
-                            Size = Directory.Exists(f) ? "" : FormatFileSize(new FileInfo(f).Length),
-                            ModifiedDate = Directory.Exists(f) ? 
-                                Directory.GetLastWriteTime(f).ToString("yyyy-MM-dd HH:mm") : 
-                                File.GetLastWriteTime(f).ToString("yyyy-MM-dd HH:mm"),
-                            IsDirectory = Directory.Exists(f)
-                        };
-                        // 初始化备注为空，后续会在需要时加载
-                        item.Notes = "";
-                        return item;
-                    }).ToList();
+                _currentTagFilter = tag;
 
-                // 过滤出包含指定标签的文件，并加载标签和备注信息
-                foreach (var file in allFiles)
+                if (TagsListBox != null)
                 {
-                    var fileTags = DatabaseManager.GetFileTags(file.Path);
-                    if (fileTags.Any(t => t.Id == tag.Id))
+                    var matched = TagsListBox.Items?.OfType<Tag>().FirstOrDefault(t => t.Id == tag.Id);
+                    if (matched != null && !Equals(TagsListBox.SelectedItem, matched))
                     {
-                        file.Tags = string.Join(", ", fileTags.Select(t => t.Name));
-                        
-                        // 加载备注的第一行
-                        var notes = DatabaseManager.GetFileNotes(file.Path);
-                        if (!string.IsNullOrEmpty(notes))
-                        {
-                            var firstLine = notes.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "";
-                            file.Notes = firstLine.Length > 100 ? firstLine.Substring(0, 100) + "..." : firstLine;
-                        }
-                        else
-                        {
-                            file.Notes = "";
-                        }
-                        
-                        filteredFiles.Add(file);
+                        _isUpdatingTagSelection = true;
+                        TagsListBox.SelectedItem = matched;
+                        _isUpdatingTagSelection = false;
                     }
                 }
 
-                // 更新文件列表
+                var taggedPaths = DatabaseManager.GetFilePathsByTag(tag.Id) ?? new List<string>();
+                var filteredFiles = new List<FileSystemItem>();
+
+                foreach (var path in taggedPaths)
+                {
+                    try
+                    {
+                        bool isDirectory = Directory.Exists(path);
+                        bool isFile = File.Exists(path);
+                        if (!isDirectory && !isFile)
+                            continue;
+
+                        var item = new FileSystemItem
+                        {
+                            Name = Path.GetFileName(path),
+                            Path = path,
+                            IsDirectory = isDirectory,
+                            Type = isDirectory ? "文件夹" : Path.GetExtension(path),
+                            Size = isDirectory ? "" : FormatFileSize(new FileInfo(path).Length),
+                            ModifiedDate = isDirectory ?
+                                Directory.GetLastWriteTime(path).ToString("yyyy-MM-dd HH:mm") :
+                                File.GetLastWriteTime(path).ToString("yyyy-MM-dd HH:mm"),
+                            Notes = ""
+                        };
+
+                        var fileTags = DatabaseManager.GetFileTags(path);
+                        item.Tags = string.Join(", ", fileTags.Select(t => t.Name));
+
+                        var notes = DatabaseManager.GetFileNotes(path);
+                        if (!string.IsNullOrEmpty(notes))
+                        {
+                            var firstLine = notes.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "";
+                            item.Notes = firstLine.Length > 100 ? firstLine.Substring(0, 100) + "..." : firstLine;
+                        }
+
+                        filteredFiles.Add(item);
+                    }
+                    catch (UnauthorizedAccessException) { }
+                    catch (IOException) { }
+                }
+
                 _currentFiles = filteredFiles;
                 FilesListView.ItemsSource = _currentFiles;
-                
-                // 更新地址栏显示
+
                 AddressTextBox.Text = $"标签: {tag.Name}";
-                
-                // 清空面包屑导航
+
                 BreadcrumbPanel.Children.Clear();
-                BreadcrumbPanel.Children.Add(new TextBlock 
-                { 
-                    Text = $"当前显示标签: {tag.Name}", 
+                BreadcrumbPanel.Children.Add(new TextBlock
+                {
+                    Text = $"当前显示标签: {tag.Name}",
                     Margin = new Thickness(2, 2, 2, 2),
                     Foreground = System.Windows.Media.Brushes.Blue
                 });
@@ -6015,21 +6029,91 @@ namespace OoiMRR
 
         private void AddTagToFile_Click(object sender, RoutedEventArgs e)
         {
-            if (FilesListView.SelectedItem is FileSystemItem selectedItem)
+            OpenTagDialogForSelectedItems();
+        }
+
+        private void OpenTagDialogForSelectedItems()
+        {
+            if (FilesListView == null)
+                return;
+
+            var selectedItems = FilesListView.SelectedItems.Cast<FileSystemItem>().ToList();
+            if (selectedItems.Count == 0)
             {
-                var dialog = new TagSelectionDialog();
-                if (dialog.ShowDialog() == true)
+                MessageBox.Show("请先选择要添加标签的文件或文件夹", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var sharedTagIds = GetSharedTagIds(selectedItems);
+            var dialog = new TagSelectionDialog(sharedTagIds)
+            {
+                Owner = this
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                foreach (var item in selectedItems)
                 {
-                    foreach (var tagId in dialog.SelectedTagIds)
+                    var existingTagIds = DatabaseManager.GetFileTags(item.Path).Select(t => t.Id).ToHashSet();
+                    var desiredTagIds = new HashSet<int>(dialog.SelectedTagIds);
+
+                    foreach (var tagId in existingTagIds.Except(desiredTagIds).ToList())
                     {
-                        DatabaseManager.AddFileTag(selectedItem.Path, tagId);
+                        DatabaseManager.RemoveFileTag(item.Path, tagId);
                     }
-                    LoadFiles(); // 刷新文件列表以显示新标签
+
+                    foreach (var tagId in desiredTagIds.Except(existingTagIds))
+                    {
+                        DatabaseManager.AddFileTag(item.Path, tagId);
+                    }
+                }
+
+                if (_currentTagFilter != null)
+                {
+                    FilterByTag(_currentTagFilter);
+                }
+                else
+                {
+                    LoadFiles();
                 }
             }
-            else
+        }
+
+        private List<int> GetSharedTagIds(List<FileSystemItem> items)
+        {
+            if (items == null || items.Count == 0)
+                return new List<int>();
+
+            var initial = DatabaseManager.GetFileTags(items[0].Path).Select(t => t.Id).ToHashSet();
+            foreach (var item in items.Skip(1))
             {
-                MessageBox.Show("请先选择一个文件", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                var itemTagIds = DatabaseManager.GetFileTags(item.Path).Select(t => t.Id).ToHashSet();
+                initial.IntersectWith(itemTagIds);
+            }
+
+            return initial.ToList();
+        }
+
+        private void TagsListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isUpdatingTagSelection)
+                return;
+
+            if (TagsListBox?.SelectedItem is Tag selectedTag)
+            {
+                FilterByTag(selectedTag);
+            }
+            else if (_currentTagFilter != null)
+            {
+                _currentTagFilter = null;
+                if (_currentLibrary != null)
+                {
+                    LoadLibraryFiles(_currentLibrary);
+                }
+                else if (!string.IsNullOrEmpty(_currentPath))
+                {
+                    LoadCurrentDirectory();
+                }
             }
         }
 
@@ -6535,7 +6619,6 @@ namespace OoiMRR
                 MessageBox.Show($"创建文件失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-
         private void CreateFileWithProperFormat(string filePath, string extension)
         {
             switch (extension)
@@ -7271,7 +7354,6 @@ Write-Host ""Hello World""
             gridView.Columns[3].Width = modifiedDateColWidth;
             gridView.Columns[4].Width = tagsColWidth;
         }
-
         private void AdjustColumnWidths()
         {
             // 获取可用总宽度（去掉两个垂直分割器）
@@ -7402,7 +7484,6 @@ Write-Host ""Hello World""
                 ColRight.Width = new GridLength(1, GridUnitType.Star);
             }
         }
-
         private void ForceColumnWidthsToFixed()
         {
             // 强制将列2和列3设置为固定宽度（不使用Star模式），确保MinWidth生效
@@ -8022,7 +8103,6 @@ Write-Host ""Hello World""
                 }
             }
         }
-        
         private void FavoritesListBox_Drop(object sender, DragEventArgs e)
         {
             // 检查数据格式
@@ -8172,7 +8252,6 @@ Write-Host ""Hello World""
 
             // 不再显示提示框，静默完成
         }
-        
         private void LoadColumnWidths()
         {
             if (FilesGridView == null || _config == null) return;
@@ -8814,7 +8893,6 @@ Write-Host ""Hello World""
             _currentFiles.AddRange(directories);
             _currentFiles.AddRange(files);
         }
-
         private List<FileSystemItem> SortList(List<FileSystemItem> items)
         {
             IEnumerable<FileSystemItem> sorted = items;
@@ -9053,4 +9131,3 @@ Write-Host ""Hello World""
         }
     }
 }
-
