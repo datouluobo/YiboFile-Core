@@ -63,6 +63,7 @@
                        Orientation="Horizontal" 
                        HorizontalAlignment="Right">
                 <Button Content="取消" 
+                        Name="CancelButton"
                         Click="Cancel_Click" 
                         Width="90" 
                         Height="36"

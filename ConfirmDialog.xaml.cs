@@ -23,7 +23,7 @@ namespace OoiMRR
             this.KeyDown += ConfirmDialog_KeyDown;
         }
 
-        public static bool Show(string message, string title = "确认", DialogType type = DialogType.Warning, Window owner = null)
+        public static bool Show(string message, string title = "确认", DialogType type = DialogType.Warning, Window owner = null, bool showCancel = true)
         {
             var dialog = new ConfirmDialog
             {
@@ -52,6 +52,12 @@ namespace OoiMRR
                     dialog.IconTextBlock.Text = "❓";
                     dialog.SetConfirmButtonColor("#2196F3", "#1976D2", "#1565C0");
                     break;
+            }
+
+            // 取消按钮可选
+            if (!showCancel)
+            {
+                dialog.CancelButton.Visibility = Visibility.Collapsed;
             }
 
             dialog.ShowDialog();

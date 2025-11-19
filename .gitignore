@@ -92,3 +92,6 @@ $RECYCLE.BIN/
 *.swp
 *~
 
+# XL folder contents (keep folder structure)
+XL/**/*
+

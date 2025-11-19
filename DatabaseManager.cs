@@ -22,24 +22,6 @@ namespace OoiMRR
             using var connection = new SqliteConnection(_connectionString);
             connection.Open();
 
-            // 创建标签表
-            var createTagsTable = @"
-                CREATE TABLE IF NOT EXISTS Tags (
-                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    Name TEXT NOT NULL UNIQUE,
-                    Color TEXT NOT NULL DEFAULT '#FF0000'
-                )";
-
-            // 创建文件标签关联表
-            var createFileTagsTable = @"
-                CREATE TABLE IF NOT EXISTS FileTags (
-                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    FilePath TEXT NOT NULL,
-                    TagId INTEGER NOT NULL,
-                    FOREIGN KEY (TagId) REFERENCES Tags (Id),
-                    UNIQUE(FilePath, TagId)
-                )";
-
             // 创建文件备注表
             var createFileNotesTable = @"
                 CREATE TABLE IF NOT EXISTS FileNotes (
@@ -70,11 +52,7 @@ namespace OoiMRR
                 )";
 
             using var command = connection.CreateCommand();
-            command.CommandText = createTagsTable;
-            command.ExecuteNonQuery();
-
-            command.CommandText = createFileTagsTable;
-            command.ExecuteNonQuery();
+            // 标签相关的本地表已弃用（改为完全使用 TagTrain），不再创建
 
             command.CommandText = createFileNotesTable;
             command.ExecuteNonQuery();
@@ -159,83 +137,7 @@ namespace OoiMRR
             }
         }
 
-        public static void AddTag(string name, string color = "#FF0000")
-        {
-            using var connection = new SqliteConnection(_connectionString);
-            connection.Open();
-            using var command = connection.CreateCommand();
-            command.CommandText = "INSERT OR IGNORE INTO Tags (Name, Color) VALUES (@name, @color)";
-            command.Parameters.AddWithValue("@name", name);
-            command.Parameters.AddWithValue("@color", color);
-            command.ExecuteNonQuery();
-        }
-
-        public static List<Tag> GetAllTags()
-        {
-            var tags = new List<Tag>();
-            using var connection = new SqliteConnection(_connectionString);
-            connection.Open();
-            using var command = connection.CreateCommand();
-            command.CommandText = "SELECT Id, Name, Color FROM Tags ORDER BY Name";
-            using var reader = command.ExecuteReader();
-            while (reader.Read())
-            {
-                tags.Add(new Tag
-                {
-                    Id = reader.GetInt32(0),
-                    Name = reader.GetString(1),
-                    Color = reader.GetString(2)
-                });
-            }
-            return tags;
-        }
-
-        public static void AddFileTag(string filePath, int tagId)
-        {
-            using var connection = new SqliteConnection(_connectionString);
-            connection.Open();
-            using var command = connection.CreateCommand();
-            command.CommandText = "INSERT OR IGNORE INTO FileTags (FilePath, TagId) VALUES (@filePath, @tagId)";
-            command.Parameters.AddWithValue("@filePath", filePath);
-            command.Parameters.AddWithValue("@tagId", tagId);
-            command.ExecuteNonQuery();
-        }
-
-        public static void RemoveFileTag(string filePath, int tagId)
-        {
-            using var connection = new SqliteConnection(_connectionString);
-            connection.Open();
-            using var command = connection.CreateCommand();
-            command.CommandText = "DELETE FROM FileTags WHERE FilePath = @filePath AND TagId = @tagId";
-            command.Parameters.AddWithValue("@filePath", filePath);
-            command.Parameters.AddWithValue("@tagId", tagId);
-            command.ExecuteNonQuery();
-        }
-
-        public static List<Tag> GetFileTags(string filePath)
-        {
-            var tags = new List<Tag>();
-            using var connection = new SqliteConnection(_connectionString);
-            connection.Open();
-            using var command = connection.CreateCommand();
-            command.CommandText = @"
-                SELECT t.Id, t.Name, t.Color 
-                FROM Tags t 
-                INNER JOIN FileTags ft ON t.Id = ft.TagId 
-                WHERE ft.FilePath = @filePath";
-            command.Parameters.AddWithValue("@filePath", filePath);
-            using var reader = command.ExecuteReader();
-            while (reader.Read())
-            {
-                tags.Add(new Tag
-                {
-                    Id = reader.GetInt32(0),
-                    Name = reader.GetString(1),
-                    Color = reader.GetString(2)
-                });
-            }
-            return tags;
-        }
+        // 本地标签相关 API 已弃用（改为完全使用 TagTrain），故移除
 
         public static void SetFileNotes(string filePath, string notes)
         {

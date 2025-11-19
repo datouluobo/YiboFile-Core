@@ -65,7 +65,7 @@ namespace OoiMRR
                 var name = dialog.InputText.Trim();
                 if (string.IsNullOrEmpty(name))
                 {
-                    System.Windows.MessageBox.Show("库名称不能为空", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    DialogService.Warning("库名称不能为空", "提示", this);
                     return;
                 }
 
@@ -83,13 +83,7 @@ namespace OoiMRR
                         }
                         
                         // 使用文件夹选择对话框添加初始位置（可选）
-                        var result = System.Windows.MessageBox.Show(
-                            "是否现在添加库的位置？\n\n您可以稍后在库位置列表中添加位置。",
-                            "添加位置",
-                            MessageBoxButton.YesNo,
-                            MessageBoxImage.Question);
-                        
-                        if (result == MessageBoxResult.Yes)
+                        if (DialogService.Ask("是否现在添加库的位置？\n\n您可以稍后在库位置列表中添加位置。", "添加位置", this))
                         {
                             using (var folderDialog = new FolderBrowserDialog())
                             {
@@ -115,16 +109,16 @@ namespace OoiMRR
                         {
                             LibrariesListBox.SelectedItem = existingLibrary;
                         }
-                        System.Windows.MessageBox.Show("库名称已存在，已选中该库", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                        DialogService.Info("库名称已存在，已选中该库", "提示", this);
                     }
                     else
                     {
-                        System.Windows.MessageBox.Show("创建库失败", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        DialogService.Error("创建库失败", "错误", this);
                     }
                 }
                 catch (Exception ex)
                 {
-                    System.Windows.MessageBox.Show($"创建库失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    DialogService.Error($"创建库失败: {ex.Message}", "错误", this);
                 }
             }
         }
@@ -140,7 +134,7 @@ namespace OoiMRR
                     var newName = dialog.InputText.Trim();
                     if (string.IsNullOrEmpty(newName))
                     {
-                        System.Windows.MessageBox.Show("库名称不能为空", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        DialogService.Warning("库名称不能为空", "提示", this);
                         return;
                     }
 
@@ -152,13 +146,13 @@ namespace OoiMRR
                     }
                     catch (Exception ex)
                     {
-                        System.Windows.MessageBox.Show($"重命名失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        DialogService.Error($"重命名失败: {ex.Message}", "错误", this);
                     }
                 }
             }
             else
             {
-                System.Windows.MessageBox.Show("请先选择一个库", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                DialogService.Info("请先选择一个库", "提示", this);
             }
         }
 
@@ -183,12 +177,12 @@ namespace OoiMRR
                 }
                 catch (Exception ex)
                 {
-                    System.Windows.MessageBox.Show($"删除库失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    DialogService.Error($"删除库失败: {ex.Message}", "错误", this);
                 }
             }
             else
             {
-                System.Windows.MessageBox.Show("请先选择一个库", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                DialogService.Info("请先选择一个库", "提示", this);
             }
         }
 
@@ -224,7 +218,7 @@ namespace OoiMRR
                         var existingPaths = DatabaseManager.GetLibraryPaths(selectedLibrary.Id);
                         if (existingPaths.Any(p => p.Path.Equals(path, StringComparison.OrdinalIgnoreCase)))
                         {
-                            System.Windows.MessageBox.Show("该路径已存在于库中", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                            DialogService.Info("该路径已存在于库中", "提示", this);
                             return;
                         }
 
@@ -235,14 +229,14 @@ namespace OoiMRR
                         }
                         catch (Exception ex)
                         {
-                            System.Windows.MessageBox.Show($"添加位置失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                            DialogService.Error($"添加位置失败: {ex.Message}", "错误", this);
                         }
                     }
                 }
             }
             else
             {
-                System.Windows.MessageBox.Show("请先选择一个库", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                DialogService.Info("请先选择一个库", "提示", this);
             }
         }
 
@@ -250,13 +244,7 @@ namespace OoiMRR
         {
             if (PathsListBox.SelectedItem is LibraryPath selectedPath)
             {
-                var result = System.Windows.MessageBox.Show(
-                    $"确定要从库中移除位置 \"{selectedPath.Path}\" 吗？",
-                    "确认删除",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Question);
-
-                if (result == MessageBoxResult.Yes)
+                if (DialogService.Ask($"确定要从库中移除位置 \"{selectedPath.Path}\" 吗？", "确认删除", this))
                 {
                     try
                     {
@@ -265,13 +253,13 @@ namespace OoiMRR
                     }
                     catch (Exception ex)
                     {
-                        System.Windows.MessageBox.Show($"移除位置失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        DialogService.Error($"移除位置失败: {ex.Message}", "错误", this);
                     }
                 }
             }
             else
             {
-                System.Windows.MessageBox.Show("请先选择一个位置", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                DialogService.Info("请先选择一个位置", "提示", this);
             }
         }
 

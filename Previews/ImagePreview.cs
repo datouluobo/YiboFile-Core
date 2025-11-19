@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -15,13 +16,39 @@ namespace OoiMRR.Previews
         {
             try
             {
-                var bitmap = new BitmapImage();
-                bitmap.BeginInit();
-                // 使用绝对路径URI
-                bitmap.UriSource = new Uri(filePath, UriKind.Absolute);
-                bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                bitmap.DecodePixelWidth = 800; // 提高显示质量
-                bitmap.EndInit();
+                if (!File.Exists(filePath))
+                {
+                    return PreviewHelper.CreateErrorPreview($"图片文件不存在: {filePath}");
+                }
+                
+                // 确保使用绝对路径
+                if (!Path.IsPathRooted(filePath))
+                {
+                    filePath = Path.GetFullPath(filePath);
+                }
+                
+                BitmapImage bitmap;
+                
+                // 优先尝试使用UriSource（性能更好），如果失败则使用StreamSource
+                try
+                {
+                    bitmap = new BitmapImage();
+                    bitmap.BeginInit();
+                    bitmap.UriSource = new Uri(filePath, UriKind.Absolute);
+                    bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                    bitmap.DecodePixelWidth = 800; // 提高显示质量
+                    bitmap.EndInit();
+                }
+                catch
+                {
+                    // 如果UriSource失败（可能包含特殊字符），使用StreamSource
+                    bitmap = new BitmapImage();
+                    bitmap.BeginInit();
+                    bitmap.StreamSource = new FileStream(filePath, FileMode.Open, FileAccess.Read);
+                    bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                    bitmap.DecodePixelWidth = 800; // 提高显示质量
+                    bitmap.EndInit();
+                }
 
                 var image = new Image 
                 { 

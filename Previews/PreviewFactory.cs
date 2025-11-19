@@ -37,7 +37,12 @@ namespace OoiMRR.Previews
                     return new FolderPreview().CreatePreview(filePath);
                 }
 
-                var extension = Path.GetExtension(filePath).ToLower();
+                var extension = Path.GetExtension(filePath)?.ToLower();
+                
+                if (string.IsNullOrEmpty(extension))
+                {
+                    return PreviewHelper.CreateNoPreview(filePath);
+                }
                 
                 // 特殊处理快捷方式文件
                 if (extension == ".lnk")
@@ -45,7 +50,8 @@ namespace OoiMRR.Previews
                     return new LnkPreview().CreatePreview(filePath);
                 }
                 
-                var fileTypeInfo = FileTypeManager.GetFileTypeInfo(extension);
+                // 注意：GetFileTypeInfo需要完整的文件路径，它会内部处理扩展名
+                var fileTypeInfo = FileTypeManager.GetFileTypeInfo(filePath);
 
                 if (fileTypeInfo == null || !fileTypeInfo.CanPreview)
                 {

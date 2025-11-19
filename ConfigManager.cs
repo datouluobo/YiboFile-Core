@@ -9,6 +9,7 @@ namespace OoiMRR
         public string LastPath { get; set; } = string.Empty;
         public string LastNavigationMode { get; set; } = "Path"; // Path, Library, Tag, Search
         public int LastLibraryId { get; set; } = 0; // 最后选中的库ID
+        public string TagTrainDataDirectory { get; set; } = string.Empty; // 持久化 TT 数据目录
         public double WindowWidth { get; set; } = 1200;
         public double WindowHeight { get; set; } = 800;
         public double WindowTop { get; set; } = double.NaN;
@@ -30,6 +31,11 @@ namespace OoiMRR
         
         // 列头顺序
         public string ColumnOrder { get; set; } = "Name,Size,Type,ModifiedDate,CreatedTime,Tags,Notes";
+
+        // 按模式存储可见列（CSV）
+        public string VisibleColumns_Path { get; set; } = "Name,Size,Type,ModifiedDate,CreatedTime,Tags,Notes";
+        public string VisibleColumns_Library { get; set; } = "Name,Size,Type,ModifiedDate,CreatedTime,Tags,Notes";
+        public string VisibleColumns_Tag { get; set; } = "Name,Size,Type,ModifiedDate,CreatedTime,Tags,Notes";
     }
 
     public static class ConfigManager

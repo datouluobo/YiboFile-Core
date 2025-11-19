@@ -1,0 +1,1142 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Diagnostics;
+using System.Text;
+using System.Windows.Data;
+using System.Windows.Media.Imaging;
+using System.Windows.Interop;
+using System.Windows.Threading;
+using System.Windows;
+using System.Windows.Media;
+using System.Drawing;
+using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.ComTypes;
+using FFMpegCore;
+
+namespace OoiMRR.Controls.Converters
+{
+    public class ThumbnailConverter : IValueConverter
+    {
+        // 视频缩略图缓存
+        private static readonly Dictionary<string, BitmapSource> _videoThumbnailCache = new();
+        private static readonly object _cacheLock = new object();
+        private const int MaxCacheSize = 100;
+        
+        // 立即加载的文件路径集合（第一页文件）
+        private static readonly HashSet<string> _priorityLoadPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        private static readonly object _priorityLock = new object();
+        
+        // 占位符图片缓存（按大小）
+        private static readonly Dictionary<int, BitmapSource> _placeholderCache = new Dictionary<int, BitmapSource>();
+        [DllImport("shell32.dll", CharSet = CharSet.Auto)]
+        private static extern IntPtr SHGetFileInfo(string pszPath, uint dwFileAttributes, ref SHFILEINFO psfi, uint cbSizeFileInfo, uint uFlags);
+
+        [DllImport("user32.dll")]
+        private static extern bool DestroyIcon(IntPtr hIcon);
+
+        [DllImport("shell32.dll", CharSet = CharSet.Unicode, PreserveSig = false)]
+        [return: MarshalAs(UnmanagedType.Interface)]
+        private static extern IShellItem SHCreateItemFromParsingName(
+            [MarshalAs(UnmanagedType.LPWStr)] string pszPath,
+            IntPtr pbc,
+            [MarshalAs(UnmanagedType.LPStruct)] Guid riid);
+
+        [DllImport("shell32.dll", CharSet = CharSet.Auto)]
+        private static extern int ExtractIconEx(string lpszFile, int nIconIndex, out IntPtr phiconLarge, out IntPtr phiconSmall, int nIcons);
+
+        [DllImport("shell32.dll")]
+        private static extern int SHGetImageList(int iImageList, ref Guid riid, out IImageList ppv);
+
+        private const uint SHGFI_ICON = 0x100;
+        private const uint SHGFI_LARGEICON = 0x0;
+        private const uint SHGFI_SMALLICON = 0x1;
+        private const uint SHGFI_USEFILEATTRIBUTES = 0x10;
+        private const uint SHGFI_SYSICONINDEX = 0x4000;
+        private const int SIIGBF_THUMBNAILONLY = 0x1;
+        private const int SIIGBF_BIGGERSIZEOK = 0x2;
+        private const int SIIGBF_RESIZETOFIT = 0x4;
+        private const int ILD_TRANSPARENT = 0x1;
+        private const int SHIL_EXTRALARGE = 0x2;
+        private const int SHIL_JUMBO = 0x4;
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct SHFILEINFO
+        {
+            public IntPtr hIcon;
+            public int iIcon;
+            public uint dwAttributes;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
+            public string szDisplayName;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 80)]
+            public string szTypeName;
+        }
+
+        [ComImport]
+        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        [Guid("43826d1e-e718-42ee-bc55-a1e261c37bfe")]
+        private interface IShellItem
+        {
+            void BindToHandler(IntPtr pbc, [MarshalAs(UnmanagedType.LPStruct)] Guid bhid, [MarshalAs(UnmanagedType.LPStruct)] Guid riid, out IntPtr ppv);
+            void GetParent(out IShellItem ppsi);
+            void GetDisplayName(uint sigdnName, out IntPtr ppszName);
+            void GetAttributes(uint sfgaoMask, out uint psfgaoAttribs);
+            void Compare(IShellItem psi, uint hint, out int piOrder);
+        }
+
+        [ComImport]
+        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        [Guid("bcc18b79-ba16-442f-80c4-8a59c30c463b")]
+        private interface IShellItemImageFactory
+        {
+            void GetImage([MarshalAs(UnmanagedType.Struct)] SIZE size, int flags, out IntPtr phbm);
+        }
+
+        [ComImport]
+        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        [Guid("46EB5926-582E-4017-9FDF-E8998DAA0950")]
+        private interface IImageList
+        {
+            [PreserveSig]
+            int GetIcon(int i, int flags, out IntPtr picon);
+        }
+
+        /// <summary>
+        /// 设置需要立即加载的文件路径（第一页文件）
+        /// </summary>
+        public static void SetPriorityLoadPaths(IEnumerable<string> paths)
+        {
+            lock (_priorityLock)
+            {
+                _priorityLoadPaths.Clear();
+                if (paths != null)
+                {
+                    foreach (var path in paths)
+                    {
+                        if (!string.IsNullOrEmpty(path))
+                            _priorityLoadPaths.Add(path);
+                    }
+                }
+            }
+        }
+        
+        /// <summary>
+        /// 清除优先加载列表
+        /// </summary>
+        public static void ClearPriorityLoadPaths()
+        {
+            lock (_priorityLock)
+            {
+                _priorityLoadPaths.Clear();
+            }
+        }
+        
+        /// <summary>
+        /// 创建占位符图片
+        /// </summary>
+        private BitmapSource CreatePlaceholder(int size)
+        {
+            lock (_cacheLock)
+            {
+                if (_placeholderCache.TryGetValue(size, out var cached))
+                    return cached;
+                
+                // 创建一个简单的灰色占位符
+                var renderTarget = new RenderTargetBitmap(size, size, 96, 96, PixelFormats.Pbgra32);
+                var drawingVisual = new DrawingVisual();
+                using (var drawingContext = drawingVisual.RenderOpen())
+                {
+                    drawingContext.DrawRectangle(
+                        new SolidColorBrush(System.Windows.Media.Color.FromRgb(240, 240, 240)),
+                        null,
+                        new Rect(0, 0, size, size));
+                    drawingContext.DrawRectangle(
+                        null,
+                        new System.Windows.Media.Pen(new SolidColorBrush(System.Windows.Media.Color.FromRgb(200, 200, 200)), 1),
+                        new Rect(0, 0, size, size));
+                }
+                renderTarget.Render(drawingVisual);
+                renderTarget.Freeze();
+                
+                _placeholderCache[size] = renderTarget;
+                return renderTarget;
+            }
+        }
+        
+        /// <summary>
+        /// 异步加载缩略图并更新UI
+        /// </summary>
+        private void LoadThumbnailAsync(string path, DependencyObject target, int targetSize)
+        {
+            Task.Run(() =>
+        {
+            try
+            {
+                    BitmapSource thumbnail = LoadThumbnailSync(path, targetSize);
+                    if (thumbnail != null)
+                    {
+                        // 在UI线程更新
+                        Application.Current?.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+                        {
+                            try
+                            {
+                                // 查找Image控件并更新Source
+                                if (target is System.Windows.Controls.Image image)
+                                {
+                                    image.Source = thumbnail;
+                                }
+                                else if (target is FrameworkElement fe)
+                                {
+                                    // 尝试查找子元素中的Image
+                                    var img = FindVisualChild<System.Windows.Controls.Image>(fe);
+                                    if (img != null)
+                                        img.Source = thumbnail;
+                                }
+                            }
+                            catch { }
+                        }));
+                    }
+                }
+                catch { }
+            });
+        }
+        
+        /// <summary>
+        /// 查找视觉树中的子元素
+        /// </summary>
+        private static T FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
+        {
+            if (parent == null) return null;
+            
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+                if (child is T result)
+                    return result;
+                
+                var childOfChild = FindVisualChild<T>(child);
+                if (childOfChild != null)
+                    return childOfChild;
+            }
+                    return null;
+        }
+        
+        /// <summary>
+        /// 同步加载缩略图（内部方法，供外部调用）
+        /// </summary>
+        internal BitmapSource LoadThumbnailSync(string path, int targetSize)
+        {
+            try
+            {
+                bool isDirectory = Directory.Exists(path);
+                bool isFile = File.Exists(path);
+
+                if (!isDirectory && !isFile)
+                    return null;
+
+                // 如果是图片文件，直接加载图片
+                if (isFile)
+                {
+                    var ext = Path.GetExtension(path)?.ToLowerInvariant();
+                    
+                    // 图片格式：直接加载
+                    switch (ext)
+                    {
+                        case ".jpg":
+                        case ".jpeg":
+                        case ".png":
+                        case ".bmp":
+                        case ".gif":
+                        case ".webp":
+                        case ".tiff":
+                        case ".tif":
+                        case ".ico":
+                        case ".svg":
+                            try
+                            {
+                                // 使用文件流加载，避免URI路径解析问题（特别是包含特殊字符的路径）
+                                if (!File.Exists(path))
+                                {
+                                    return null;
+                                }
+                                
+                                var bmp = new BitmapImage();
+                                bmp.BeginInit();
+                                bmp.StreamSource = new FileStream(path, FileMode.Open, FileAccess.Read);
+                                bmp.CacheOption = BitmapCacheOption.OnLoad;
+                                bmp.DecodePixelWidth = targetSize;
+                                bmp.EndInit();
+                                bmp.Freeze();
+                                return bmp;
+                            }
+                            catch
+                            {
+                                return null;
+                            }
+                        
+                        // 视频格式：使用 FFmpeg 提取第一帧
+                        case ".mp4":
+                        case ".avi":
+                        case ".mkv":
+                        case ".mov":
+                        case ".wmv":
+                        case ".flv":
+                        case ".webm":
+                        case ".m4v":
+                        case ".3gp":
+                        case ".asf":
+                        case ".rm":
+                        case ".rmvb":
+                        case ".mpg":
+                        case ".mpeg":
+                        case ".m2v":
+                        case ".vob":
+                        case ".ogv":
+                        case ".ts":
+                        case ".mts":
+                        case ".m2ts":
+                            try
+                            {
+                                return ExtractVideoThumbnail(path, targetSize);
+                            }
+                            catch
+                            {
+                                // FFmpeg 提取失败，继续尝试其他方法
+                            }
+                            break;
+                    }
+                }
+
+                // 对于所有文件类型（除了图片和视频），优先尝试获取系统缩略图缓存
+                // 这包括Office文档、PDF等所有支持系统缩略图缓存的文件类型
+                if (isFile && !isDirectory)
+                {
+                    try
+                    {
+                        // 优先尝试获取系统缩略图缓存（适用于Office文档、PDF等）
+                        // 使用 SIIGBF_THUMBNAILONLY 标志，只获取系统缓存的缩略图预览
+                        var thumbnail = GetShellThumbnail(path, targetSize);
+                                if (thumbnail != null)
+                                {
+                                    return thumbnail;
+                                }
+                    }
+                    catch
+                    {
+                        // 获取缩略图失败，继续尝试系统图标
+                    }
+                }
+                
+                // 对于文件夹和无法获取缩略图的文件类型，使用系统图标
+                // 如果系统缩略图缓存获取失败，也会回退到这里
+                try
+                {
+                    var icon = GetHighQualitySystemIcon(path, isDirectory, targetSize);
+                    // 如果获取图标失败，返回占位符而不是null
+                    return icon ?? CreatePlaceholder(targetSize);
+                }
+                catch
+                {
+                    // 异常时也返回占位符
+                    return CreatePlaceholder(targetSize);
+                                }
+                            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+                            {
+            try
+            {
+                var path = value as string;
+                if (string.IsNullOrEmpty(path))
+                    return null;
+
+                // 检查是否为文件夹
+                bool isDirectory = Directory.Exists(path);
+                bool isFile = File.Exists(path);
+
+                if (!isDirectory && !isFile)
+                    return null;
+
+                // 根据实际显示大小生成缩略图（提高性能，避免卡顿）
+                // 从parameter获取目标尺寸，如果没有则使用默认值
+                int targetSize = 256; // 默认256像素，平衡质量和性能
+                if (parameter != null)
+                {
+                    if (parameter is int size)
+                        targetSize = size;
+                    else if (int.TryParse(parameter.ToString(), out int parsedSize))
+                        targetSize = parsedSize;
+                }
+
+                // 检查是否在优先加载列表中
+                bool isPriorityLoad = false;
+                lock (_priorityLock)
+                {
+                    isPriorityLoad = _priorityLoadPaths.Contains(path);
+                }
+                
+                // 如果是优先加载，立即同步加载
+                if (isPriorityLoad)
+                {
+                    var thumbnail = LoadThumbnailSync(path, targetSize);
+                    // 如果加载失败，返回占位符而不是null
+                    return thumbnail ?? CreatePlaceholder(targetSize);
+                }
+                
+                // 否则先返回占位符，然后异步加载
+                // 注意：这里我们需要获取目标控件来更新，但IValueConverter无法直接获取
+                // 所以我们先返回占位符，然后在FileBrowserControl中处理异步加载
+                return CreatePlaceholder(targetSize);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private string NormalizePath(string path)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(path))
+                    return null;
+
+                // 确保路径是绝对路径
+                if (!Path.IsPathRooted(path))
+                    return null;
+
+                // 转换为长路径格式（\\?\）以提高兼容性
+                if (path.Length >= 260 && !path.StartsWith(@"\\?\"))
+                {
+                    if (path.StartsWith(@"\\"))
+                        return @"\\?\UNC\" + path.Substring(2);
+                    else
+                        return @"\\?\" + path;
+                }
+
+                return path;
+            }
+            catch
+            {
+                return path; // 如果转换失败，返回原路径
+            }
+        }
+
+        /// <summary>
+        /// 获取系统缩略图缓存（用于Office文档等支持缩略图的文件）
+        /// 优先使用 SIIGBF_THUMBNAILONLY 标志获取系统缓存的缩略图预览
+        /// </summary>
+        private BitmapSource GetShellThumbnail(string path, int size)
+        {
+            IntPtr hBitmap = IntPtr.Zero;
+            try
+            {
+                // 确保路径格式正确
+                if (string.IsNullOrEmpty(path))
+                    return null;
+
+                Guid shellItemGuid = new Guid("43826d1e-e718-42ee-bc55-a1e261c37bfe"); // IShellItem
+                IShellItem shellItem = null;
+                
+                // 尝试多种路径格式（处理长路径和UNC路径）
+                string[] pathsToTry = { path };
+                if (path.StartsWith(@"\\?\"))
+                {
+                    pathsToTry = new[] { path, path.Substring(4) };
+                }
+                else if (path.Length >= 260)
+                {
+                    // 长路径，尝试添加长路径前缀
+                    if (path.StartsWith(@"\\"))
+                        pathsToTry = new[] { path, @"\\?\UNC" + path.Substring(1) };
+                    else
+                        pathsToTry = new[] { path, @"\\?\" + path };
+                }
+                
+                foreach (var tryPath in pathsToTry)
+                {
+                    try
+                        {
+                        shellItem = SHCreateItemFromParsingName(tryPath, IntPtr.Zero, shellItemGuid);
+                        if (shellItem != null)
+                            break;
+                        }
+                        catch { }
+                }
+                
+                if (shellItem != null)
+                {
+                    IShellItemImageFactory imageFactory = shellItem as IShellItemImageFactory;
+                    if (imageFactory != null)
+                    {
+                        // 尝试多种标志组合，优先获取系统缩略图缓存
+                        // 注意：SIIGBF_THUMBNAILONLY 标志要求必须存在系统缩略图缓存，否则会失败
+                        int[] flagCombinations = new[]
+                        {
+                            SIIGBF_THUMBNAILONLY | SIIGBF_BIGGERSIZEOK | SIIGBF_RESIZETOFIT,  // 优先：仅缩略图，允许更大尺寸并缩放
+                            SIIGBF_THUMBNAILONLY | SIIGBF_RESIZETOFIT,                         // 仅缩略图，缩放到目标尺寸
+                            SIIGBF_THUMBNAILONLY | SIIGBF_BIGGERSIZEOK,                       // 仅缩略图，允许更大尺寸
+                            SIIGBF_THUMBNAILONLY,                                             // 仅缩略图，无其他标志
+                            // 注意：不使用 SIIGBF_BIGGERSIZEOK | SIIGBF_RESIZETOFIT，因为这会返回图标而不是缩略图
+                            // 如果缩略图缓存不存在，应该回退到 GetHighQualitySystemIcon
+                        };
+                        
+                        foreach (var flags in flagCombinations)
+                        {
+                        try
+                        {
+                                // 对于系统缩略图缓存，直接请求目标尺寸
+                                // 系统缩略图缓存通常是256x256或512x512，直接请求目标尺寸即可
+                                // 如果请求太大，可能会失败
+                                int requestSize = size;
+                                imageFactory.GetImage(new SIZE { cx = requestSize, cy = requestSize }, flags, out hBitmap);
+                            
+                            if (hBitmap != IntPtr.Zero)
+                            {
+                                try
+                                {
+                                    var bitmapSource = Imaging.CreateBitmapSourceFromHBitmap(
+                                        hBitmap,
+                                        IntPtr.Zero,
+                                        System.Windows.Int32Rect.Empty,
+                                        BitmapSizeOptions.FromWidthAndHeight(size, size));
+                                        
+                                        // 设置高质量渲染选项
+                                        RenderOptions.SetBitmapScalingMode(bitmapSource, BitmapScalingMode.HighQuality);
+                                        RenderOptions.SetCachingHint(bitmapSource, CachingHint.Cache);
+                                        
+                                        // 如果获取的尺寸与目标尺寸不同，使用高质量缩放
+                                        if (Math.Abs(bitmapSource.PixelWidth - size) > 1 || Math.Abs(bitmapSource.PixelHeight - size) > 1)
+                                        {
+                                            var scaleTransform = new ScaleTransform(
+                                                (double)size / bitmapSource.PixelWidth,
+                                                (double)size / bitmapSource.PixelHeight,
+                                                0, 0);
+                                            
+                                            var scaledBitmap = new TransformedBitmap(bitmapSource, scaleTransform);
+                                            RenderOptions.SetBitmapScalingMode(scaledBitmap, BitmapScalingMode.HighQuality);
+                                            RenderOptions.SetCachingHint(scaledBitmap, CachingHint.Cache);
+                                            scaledBitmap.Freeze();
+                                            
+                                            // 释放原始位图
+                                            var tempBitmap1 = hBitmap;
+                                            hBitmap = IntPtr.Zero;
+                                            DeleteObject(tempBitmap1);
+                                            
+                                            return scaledBitmap;
+                                        }
+                                        
+                                        // 如果尺寸正好（误差在1px内），直接使用
+                                    bitmapSource.Freeze();
+                                        
+                                        // 释放原始位图
+                                        var tempBitmap2 = hBitmap;
+                                        hBitmap = IntPtr.Zero;
+                                        DeleteObject(tempBitmap2);
+                                        
+                                    return bitmapSource;
+                                }
+                                catch
+                                {
+                                    if (hBitmap != IntPtr.Zero)
+                                    {
+                                        DeleteObject(hBitmap);
+                                        hBitmap = IntPtr.Zero;
+                                    }
+                                }
+                            }
+                                        }
+                                        catch
+                                        {
+                                            if (hBitmap != IntPtr.Zero)
+                                            {
+                                                DeleteObject(hBitmap);
+                                                hBitmap = IntPtr.Zero;
+                                            }
+                            }
+                        }
+                    }
+                }
+            }
+            catch { }
+            finally
+            {
+                // 只有在失败时才释放位图句柄
+                if (hBitmap != IntPtr.Zero)
+                    DeleteObject(hBitmap);
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// 使用 FFmpeg 提取视频第一帧作为缩略图
+        /// </summary>
+        private BitmapSource ExtractVideoThumbnail(string videoPath, int targetSize)
+        {
+            // 生成缓存键（包含文件路径、大小和最后修改时间）
+            var fileInfo = new FileInfo(videoPath);
+            if (!fileInfo.Exists)
+            {
+                System.Diagnostics.Debug.WriteLine($"FFmpeg: 视频文件不存在: {videoPath}");
+                return null;
+            }
+                
+            string cacheKey = $"{videoPath}_{targetSize}_{fileInfo.LastWriteTime.Ticks}";
+            
+            // 检查缓存
+            lock (_cacheLock)
+            {
+                if (_videoThumbnailCache.TryGetValue(cacheKey, out var cached))
+                {
+                    System.Diagnostics.Debug.WriteLine($"FFmpeg: 使用缓存缩略图: {Path.GetFileName(videoPath)}");
+                    return cached;
+                }
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"FFmpeg: 开始提取缩略图: {Path.GetFileName(videoPath)}, 目标大小: {targetSize}x{targetSize}, 文件大小: {fileInfo.Length} 字节");
+            
+            try
+            {
+                // 创建临时输出文件
+                string tempImagePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString() + ".jpg");
+                
+                try
+                {
+                    System.Diagnostics.Debug.WriteLine($"FFmpeg: 调用 Snapshot API, 临时文件: {tempImagePath}");
+                    System.Diagnostics.Debug.WriteLine($"FFmpeg: 视频路径: {videoPath}");
+                    
+                    // 确保视频文件路径是绝对路径且存在
+                    if (!Path.IsPathRooted(videoPath))
+                    {
+                        videoPath = Path.GetFullPath(videoPath);
+                    }
+                    
+                    if (!File.Exists(videoPath))
+                    {
+                        System.Diagnostics.Debug.WriteLine($"FFmpeg: 错误 - 视频文件不存在: {videoPath}");
+                        return null;
+                    }
+                    
+                    // 尝试直接调用 FFmpeg 命令（绕过 FFMpegCore，以便捕获错误输出）
+                    string ffmpegPath = GetFFmpegPath();
+                    if (string.IsNullOrEmpty(ffmpegPath))
+                    {
+                        System.Diagnostics.Debug.WriteLine($"FFmpeg: 无法找到 FFmpeg 可执行文件路径");
+                        return null;
+                    }
+                    
+                    System.Diagnostics.Debug.WriteLine($"FFmpeg: 使用 FFmpeg 路径: {ffmpegPath}");
+                    
+                    // 构建 FFmpeg 命令参数
+                    // -ss 0.1: 从 0.1 秒处开始
+                    // -i: 输入文件（用引号包裹以处理路径中的空格和中文）
+                    // -vframes 1: 只提取一帧
+                    // -vf scale={targetSize}:-1: 保持宽高比，宽度缩放到 targetSize，高度自动计算
+                    // -q:v 2: 高质量 JPEG
+                    // -y: 覆盖输出文件
+                    string escapedVideoPath = $"\"{videoPath}\"";
+                    string escapedOutputPath = $"\"{tempImagePath}\"";
+                    // 使用 scale={targetSize}:-1 保持宽高比，避免变形
+                    string arguments = $"-ss 0.1 -i {escapedVideoPath} -vframes 1 -vf scale={targetSize}:-1 -q:v 2 -y {escapedOutputPath}";
+                    
+                    System.Diagnostics.Debug.WriteLine($"FFmpeg: 命令参数: {arguments}");
+                    
+                    var startTime = DateTime.Now;
+                    bool success = RunFFmpegCommand(ffmpegPath, arguments, out string stdout, out string stderr);
+                    var endTime = DateTime.Now;
+                    var duration = (endTime - startTime).TotalMilliseconds;
+                    
+                    System.Diagnostics.Debug.WriteLine($"FFmpeg: 命令执行完成（耗时: {duration:F0}ms, 成功: {success}）");
+                    if (!string.IsNullOrEmpty(stdout))
+                    {
+                        System.Diagnostics.Debug.WriteLine($"FFmpeg: 标准输出: {stdout}");
+                    }
+                    if (!string.IsNullOrEmpty(stderr))
+                    {
+                        System.Diagnostics.Debug.WriteLine($"FFmpeg: 错误输出: {stderr}");
+                    }
+                    
+                    if (!success)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"FFmpeg: 命令执行失败");
+                        return null;
+                    }
+                    
+                    // 等待文件生成（FFmpeg 操作可能需要一些时间）
+                    int maxWaitMs = 10000; // 最多等待10秒
+                    int waitIntervalMs = 100; // 每100ms检查一次
+                    int waitedMs = 0;
+                    bool fileExists = false;
+                    
+                    while (waitedMs < maxWaitMs)
+                    {
+                        if (File.Exists(tempImagePath))
+                        {
+                            // 文件存在，再检查一下是否有内容（大小>0）
+                            try
+                            {
+                                var checkInfo = new FileInfo(tempImagePath);
+                                if (checkInfo.Length > 0)
+                                {
+                                    fileExists = true;
+                                    System.Diagnostics.Debug.WriteLine($"FFmpeg: 临时文件生成成功（等待了 {waitedMs}ms）");
+                                    break;
+                                }
+                            }
+                            catch { }
+                        }
+                        
+                        System.Threading.Thread.Sleep(waitIntervalMs);
+                        waitedMs += waitIntervalMs;
+                    }
+                    
+                    if (!fileExists)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"FFmpeg: 错误 - 临时文件未生成或为空: {tempImagePath} (等待了 {waitedMs}ms)");
+                        // 检查临时文件目录是否有权限
+                        try
+                        {
+                            string tempDir = Path.GetDirectoryName(tempImagePath);
+                            System.Diagnostics.Debug.WriteLine($"FFmpeg: 临时目录: {tempDir}, 存在: {Directory.Exists(tempDir)}, 可写: {IsDirectoryWritable(tempDir)}");
+                        }
+                        catch { }
+                        return null;
+                    }
+                    
+                    // 检查文件大小
+                    var tempFileInfo = new FileInfo(tempImagePath);
+                    if (tempFileInfo.Length == 0)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"FFmpeg: 错误 - 临时文件为空 (0 字节): {tempImagePath}");
+                        return null;
+                    }
+                    
+                    System.Diagnostics.Debug.WriteLine($"FFmpeg: 临时文件生成成功, 大小: {tempFileInfo.Length} 字节");
+                    
+                    // 创建 BitmapImage - 使用文件流加载，避免URI路径解析问题
+                    var bitmap = new BitmapImage();
+                    bitmap.BeginInit();
+                    bitmap.StreamSource = new FileStream(tempImagePath, FileMode.Open, FileAccess.Read);
+                    bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                    // 只设置宽度，让高度自动保持宽高比，避免变形
+                    bitmap.DecodePixelWidth = targetSize;
+                    bitmap.EndInit();
+                    bitmap.Freeze();
+                    
+                    System.Diagnostics.Debug.WriteLine($"FFmpeg: BitmapImage 创建成功, 尺寸: {bitmap.PixelWidth}x{bitmap.PixelHeight} (保持宽高比)");
+                    
+                    // 添加到缓存
+                    lock (_cacheLock)
+                    {
+                        // LRU 策略：超出限制时删除最早的
+                        if (_videoThumbnailCache.Count >= MaxCacheSize)
+                        {
+                            var firstKey = _videoThumbnailCache.Keys.First();
+                            _videoThumbnailCache.Remove(firstKey);
+                        }
+                        _videoThumbnailCache[cacheKey] = bitmap;
+                    }
+                    
+                    System.Diagnostics.Debug.WriteLine($"FFmpeg: 缩略图提取成功并已缓存: {Path.GetFileName(videoPath)}");
+                    return bitmap;
+                }
+                finally
+                {
+                    // 清理临时文件
+                    try
+                    {
+                        if (File.Exists(tempImagePath))
+                        {
+                            File.Delete(tempImagePath);
+                            System.Diagnostics.Debug.WriteLine($"FFmpeg: 临时文件已清理: {Path.GetFileName(tempImagePath)}");
+                        }
+                    }
+                    catch (Exception cleanupEx)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"FFmpeg: 清理临时文件失败: {cleanupEx.Message}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // 详细记录错误信息
+                System.Diagnostics.Debug.WriteLine($"FFmpeg: ========== 缩略图提取失败 ==========");
+                System.Diagnostics.Debug.WriteLine($"FFmpeg: 视频文件: {videoPath}");
+                System.Diagnostics.Debug.WriteLine($"FFmpeg: 目标大小: {targetSize}x{targetSize}");
+                System.Diagnostics.Debug.WriteLine($"FFmpeg: 错误类型: {ex.GetType().Name}");
+                System.Diagnostics.Debug.WriteLine($"FFmpeg: 错误消息: {ex.Message}");
+                if (ex.InnerException != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"FFmpeg: 内部异常: {ex.InnerException.GetType().Name}: {ex.InnerException.Message}");
+                }
+                System.Diagnostics.Debug.WriteLine($"FFmpeg: 堆栈跟踪: {ex.StackTrace}");
+                System.Diagnostics.Debug.WriteLine($"FFmpeg: ======================================");
+                return null;
+            }
+        }
+        
+        /// <summary>
+        /// 检查目录是否可写
+        /// </summary>
+        private static bool IsDirectoryWritable(string directory)
+        {
+            try
+            {
+                if (!Directory.Exists(directory))
+                    return false;
+                    
+                string testFile = Path.Combine(directory, Guid.NewGuid().ToString() + ".tmp");
+                File.WriteAllText(testFile, "test");
+                File.Delete(testFile);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+        
+        /// <summary>
+        /// 获取 FFmpeg 可执行文件路径
+        /// </summary>
+        private static string GetFFmpegPath()
+        {
+            try
+            {
+                var options = GlobalFFOptions.Current;
+                if (options != null && !string.IsNullOrEmpty(options.BinaryFolder))
+                {
+                    string ffmpegPath = Path.Combine(options.BinaryFolder, "ffmpeg.exe");
+                    if (File.Exists(ffmpegPath))
+                    {
+                        return ffmpegPath;
+                    }
+                }
+                
+                // 回退：从系统 PATH 查找
+                return "ffmpeg";
+            }
+            catch
+            {
+                return "ffmpeg";
+            }
+        }
+        
+        /// <summary>
+        /// 直接运行 FFmpeg 命令并捕获输出
+        /// </summary>
+        private static bool RunFFmpegCommand(string ffmpegPath, string arguments, out string stdout, out string stderr)
+        {
+            stdout = string.Empty;
+            stderr = string.Empty;
+            
+            try
+            {
+                var processStartInfo = new ProcessStartInfo
+                {
+                    FileName = ffmpegPath,
+                    Arguments = arguments,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    StandardOutputEncoding = Encoding.UTF8,
+                    StandardErrorEncoding = Encoding.UTF8
+                };
+                
+                using (var process = Process.Start(processStartInfo))
+                {
+                    if (process == null)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"FFmpeg: 无法启动进程");
+                        return false;
+                    }
+                    
+                    // 异步读取输出
+                    var stdoutBuilder = new StringBuilder();
+                    var stderrBuilder = new StringBuilder();
+                    
+                    process.OutputDataReceived += (sender, e) =>
+                    {
+                        if (!string.IsNullOrEmpty(e.Data))
+                            stdoutBuilder.AppendLine(e.Data);
+                    };
+                    
+                    process.ErrorDataReceived += (sender, e) =>
+                    {
+                        if (!string.IsNullOrEmpty(e.Data))
+                            stderrBuilder.AppendLine(e.Data);
+                    };
+                    
+                    process.BeginOutputReadLine();
+                    process.BeginErrorReadLine();
+                    
+                    // 等待进程完成（最多30秒）
+                    bool finished = process.WaitForExit(30000);
+                    
+                    if (!finished)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"FFmpeg: 进程超时，尝试终止");
+                        process.Kill();
+                        process.WaitForExit(5000);
+                        return false;
+                    }
+                    
+                    stdout = stdoutBuilder.ToString().Trim();
+                    stderr = stderrBuilder.ToString().Trim();
+                    
+                    int exitCode = process.ExitCode;
+                    System.Diagnostics.Debug.WriteLine($"FFmpeg: 进程退出码: {exitCode}");
+                    
+                    return exitCode == 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"FFmpeg: 运行命令时发生异常: {ex.GetType().Name}: {ex.Message}");
+                stderr = ex.Message;
+                return false;
+            }
+        }
+
+        [DllImport("gdi32.dll")]
+        private static extern bool DeleteObject(IntPtr hObject);
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct SIZE
+        {
+            public int cx;
+            public int cy;
+        }
+
+        private BitmapSource GetHighQualitySystemIcon(string path, bool isDirectory, int targetSize = 256)
+        {
+            try
+            {
+                // 方案1：使用 IShellItemImageFactory 获取最高质量的图标（Windows Vista+）
+                // 这个方法可以获取系统提供的最佳质量图标，包括高DPI支持
+                Guid shellItemGuid = new Guid("43826d1e-e718-42ee-bc55-a1e261c37bfe"); // IShellItem
+                Guid imageFactoryGuid = new Guid("bcc18b79-ba16-442f-80c4-8a59c30c463b"); // IShellItemImageFactory
+                IShellItem shellItem = null;
+                
+                // 尝试多种路径格式
+                string[] pathsToTry = { path };
+                if (path.StartsWith(@"\\?\"))
+                {
+                    pathsToTry = new[] { path, path.Substring(4) };
+                }
+                else if (path.Length >= 260)
+                {
+                    // 长路径，尝试添加长路径前缀
+                    if (path.StartsWith(@"\\"))
+                        pathsToTry = new[] { path, @"\\?\UNC" + path.Substring(1) };
+                    else
+                        pathsToTry = new[] { path, @"\\?\" + path };
+                }
+                
+                foreach (var tryPath in pathsToTry)
+                            {
+                                try
+                                {
+                        shellItem = SHCreateItemFromParsingName(tryPath, IntPtr.Zero, shellItemGuid);
+                        if (shellItem != null)
+                            break;
+                    }
+                    catch { }
+                }
+
+                if (shellItem != null)
+                {
+                    try
+                    {
+                        // 直接转换获取 IShellItemImageFactory（C# 的 as 操作符会自动调用 QueryInterface）
+                        IShellItemImageFactory imageFactory = shellItem as IShellItemImageFactory;
+                        if (imageFactory != null)
+                        {
+                            IntPtr hBitmap = IntPtr.Zero;
+                            try
+                            {
+                                // 尝试多种标志组合，找到最合适的
+                                int[] flagCombinations = new[]
+                                {
+                                    SIIGBF_BIGGERSIZEOK | SIIGBF_RESIZETOFIT,  // 标准组合：允许更大尺寸并缩放
+                                    SIIGBF_RESIZETOFIT,                         // 仅缩放到目标尺寸
+                                    SIIGBF_BIGGERSIZEOK,                       // 仅允许更大尺寸
+                                    0                                           // 无标志，使用默认行为
+                                };
+                                
+                                foreach (var flagValue in flagCombinations)
+                            {
+                                try
+                                {
+                                        imageFactory.GetImage(new SIZE { cx = targetSize, cy = targetSize }, flagValue, out hBitmap);
+                                        
+                                        if (hBitmap != IntPtr.Zero)
+                                        {
+                                            try
+                                    {
+                                                var bitmapSource = Imaging.CreateBitmapSourceFromHBitmap(
+                                                    hBitmap,
+                                                    IntPtr.Zero,
+                                            System.Windows.Int32Rect.Empty,
+                                            BitmapSizeOptions.FromWidthAndHeight(targetSize, targetSize));
+                                                
+                                                // 设置高质量渲染选项
+                                                RenderOptions.SetBitmapScalingMode(bitmapSource, BitmapScalingMode.HighQuality);
+                                                RenderOptions.SetCachingHint(bitmapSource, CachingHint.Cache);
+                                                
+                                                // 强制缩放到目标尺寸，确保所有格式（包括Office文档）都使用相同大小
+                                                // 即使获取的尺寸与目标尺寸相同，也检查并确保一致性
+                                                if (Math.Abs(bitmapSource.PixelWidth - targetSize) > 1 || Math.Abs(bitmapSource.PixelHeight - targetSize) > 1)
+                                                {
+                                                    var scaleTransform = new ScaleTransform(
+                                                        (double)targetSize / bitmapSource.PixelWidth,
+                                                        (double)targetSize / bitmapSource.PixelHeight,
+                                                        0, 0);
+                                                    
+                                                    var scaledBitmap = new TransformedBitmap(bitmapSource, scaleTransform);
+                                                    RenderOptions.SetBitmapScalingMode(scaledBitmap, BitmapScalingMode.HighQuality);
+                                                    RenderOptions.SetCachingHint(scaledBitmap, CachingHint.Cache);
+                                                    scaledBitmap.Freeze();
+                                                    
+                                                    // 释放原始位图
+                                                    var temp = hBitmap;
+                                                    hBitmap = IntPtr.Zero;
+                                                    DeleteObject(temp);
+                                                    
+                                                    return scaledBitmap;
+                                                }
+                                                
+                                                // 如果尺寸正好（误差在1px内），直接使用
+                                        bitmapSource.Freeze();
+                                                
+                                                // 释放原始位图
+                                                var tempBitmap = hBitmap;
+                                                hBitmap = IntPtr.Zero;
+                                                DeleteObject(tempBitmap);
+                                                
+                                        return bitmapSource;
+                                    }
+                                            catch
+                                            {
+                                                if (hBitmap != IntPtr.Zero)
+                                                {
+                                                    DeleteObject(hBitmap);
+                                                    hBitmap = IntPtr.Zero;
+                                                }
+                                            }
+                                        }
+                                    }
+                                    catch
+                                    {
+                                        if (hBitmap != IntPtr.Zero)
+                            {
+                                            DeleteObject(hBitmap);
+                                            hBitmap = IntPtr.Zero;
+                                        }
+                                    }
+                                }
+                            }
+                            finally
+                            {
+                                if (hBitmap != IntPtr.Zero)
+                                    DeleteObject(hBitmap);
+                                }
+                            }
+                        }
+                        catch { }
+                    }
+                
+                // 方案2：如果方案1失败，使用SHGetImageList作为回退（确保始终有图标显示）
+                SHFILEINFO shfi = new SHFILEINFO();
+                uint flags = SHGFI_SYSICONINDEX | SHGFI_ICON;
+                
+                if (isDirectory)
+                {
+                    flags |= SHGFI_USEFILEATTRIBUTES;
+                    SHGetFileInfo(path, 0x10, ref shfi, (uint)Marshal.SizeOf(shfi), flags);
+                }
+                else
+                {
+                    SHGetFileInfo(path, 0, ref shfi, (uint)Marshal.SizeOf(shfi), flags);
+                }
+
+                if (shfi.iIcon != 0)
+                {
+                    try
+                    {
+                        Guid iidImageList = new Guid("46EB5926-582E-4017-9FDF-E8998DAA0950");
+                        IImageList imageList;
+                        
+                        // 使用JUMBO尺寸（256x256）
+                        int imageListType = SHIL_JUMBO;
+                        
+                        if (SHGetImageList(imageListType, ref iidImageList, out imageList) == 0)
+                        {
+                            IntPtr hIcon = IntPtr.Zero;
+                            if (imageList.GetIcon(shfi.iIcon, ILD_TRANSPARENT, out hIcon) == 0 && hIcon != IntPtr.Zero)
+                            {
+                                try
+                                {
+                                    using (Icon icon = Icon.FromHandle(hIcon))
+                        {
+                            var bitmapSource = Imaging.CreateBitmapSourceFromHIcon(
+                                icon.Handle,
+                                System.Windows.Int32Rect.Empty,
+                                BitmapSizeOptions.FromWidthAndHeight(targetSize, targetSize));
+                                        
+                                        // 设置高质量渲染选项
+                                        RenderOptions.SetBitmapScalingMode(bitmapSource, BitmapScalingMode.HighQuality);
+                                        RenderOptions.SetCachingHint(bitmapSource, CachingHint.Cache);
+                                        
+                                        // 强制缩放到目标尺寸，确保所有格式（包括Office文档）都使用相同大小
+                                        if (Math.Abs(bitmapSource.PixelWidth - targetSize) > 1 || Math.Abs(bitmapSource.PixelHeight - targetSize) > 1)
+                                        {
+                                            var scaleTransform = new ScaleTransform(
+                                                (double)targetSize / bitmapSource.PixelWidth,
+                                                (double)targetSize / bitmapSource.PixelHeight,
+                                                0, 0);
+                                            
+                                            var scaledBitmap = new TransformedBitmap(bitmapSource, scaleTransform);
+                                            RenderOptions.SetBitmapScalingMode(scaledBitmap, BitmapScalingMode.HighQuality);
+                                            RenderOptions.SetCachingHint(scaledBitmap, CachingHint.Cache);
+                                            scaledBitmap.Freeze();
+                                            return scaledBitmap;
+                                        }
+                                        
+                                        // 如果尺寸正好（误差在1px内），直接使用
+                            bitmapSource.Freeze();
+                            return bitmapSource;
+                        }
+                    }
+                    finally
+                    {
+                                    DestroyIcon(hIcon);
+                                }
+                    }
+                        }
+                    }
+                    catch { }
+                }
+            }
+            catch { }
+            return null;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
+}
+
+

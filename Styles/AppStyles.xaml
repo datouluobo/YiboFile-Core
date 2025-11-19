@@ -197,7 +197,8 @@
         <Setter Property="BorderBrush" Value="#E9ECEF"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="Margin" Value="2"/>
-        <Setter Property="Padding" Value="8"/>
+        <!-- 全局缩小 GroupBox 内边距，避免上下留白过大 -->
+        <Setter Property="Padding" Value="2"/>
         <Setter Property="Background" Value="#FFFFFF"/>
         <Setter Property="Template">
             <Setter.Value>
@@ -217,12 +218,12 @@
                                        Text="{TemplateBinding Header}" 
                                        FontWeight="SemiBold" 
                                        FontSize="13" 
-                                       Margin="8,8,8,8"
+                                       Margin="4,1,4,1"
                                        Foreground="#495057"/>
                             <ContentPresenter Grid.Row="1"
                                               Margin="{TemplateBinding Padding}" 
                                               HorizontalAlignment="Stretch"
-                                              VerticalAlignment="Stretch"/>
+                                              VerticalAlignment="Top"/>
                         </Grid>
                     </Border>
                 </ControlTemplate>
@@ -424,5 +425,13 @@
     <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}"/>
     <Style TargetType="TextBox" BasedOn="{StaticResource ModernTextBoxStyle}"/>
     <Style TargetType="GroupBox" BasedOn="{StaticResource ModernGroupBoxStyle}"/>
+    
+    <!-- 全局：容器默认顶对齐，避免出现大面积上下留白 -->
+    <Style TargetType="WrapPanel">
+        <Setter Property="VerticalAlignment" Value="Top"/>
+    </Style>
+    <Style TargetType="StackPanel">
+        <Setter Property="VerticalAlignment" Value="Top"/>
+    </Style>
 
 </ResourceDictionary>

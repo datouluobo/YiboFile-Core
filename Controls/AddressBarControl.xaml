@@ -1,0 +1,35 @@
+<UserControl x:Class="OoiMRR.Controls.AddressBarControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" 
+             d:DesignHeight="30" d:DesignWidth="800">
+    <Grid>
+        <!-- 地址栏（编辑模式） -->
+        <TextBox Name="AddressTextBox" 
+                 TextChanged="AddressTextBox_TextChanged"
+                 KeyDown="AddressTextBox_KeyDown"
+                 LostFocus="AddressTextBox_LostFocus"
+                 GotFocus="AddressTextBox_GotFocus"
+                 Visibility="Collapsed"
+                 VerticalContentAlignment="Center"
+                 VerticalAlignment="Stretch"
+                 Height="30"
+                 Padding="5,3"/>
+        
+        <!-- 面包屑导航（默认显示） -->
+        <Border Name="BreadcrumbContainer"
+                Background="Transparent"
+                MouseLeftButtonDown="BreadcrumbContainer_MouseLeftButtonDown"
+                Cursor="Hand"
+                Height="30"
+                VerticalAlignment="Stretch">
+            <WrapPanel Name="BreadcrumbPanel"
+                       Orientation="Horizontal"
+                       VerticalAlignment="Center"
+                       Margin="5,3"/>
+        </Border>
+    </Grid>
+</UserControl>
+

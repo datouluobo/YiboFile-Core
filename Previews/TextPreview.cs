@@ -98,7 +98,9 @@ namespace OoiMRR.Previews
                 var maxLength = 2000;
                 if (content.Length > maxLength)
                 {
-                    content = content.Substring(0, maxLength) + "\n\n... (文件内容过长，仅显示前2000个字符)";
+                    content = content.Length > maxLength 
+                        ? content.Substring(0, maxLength) + "\n\n... (文件内容过长，仅显示前2000个字符)" 
+                        : content;
                 }
 
                 var textBlock = new TextBlock
