@@ -57,12 +57,10 @@
                     <Button Name="NavPathBtn" Content="路径" Click="NavPathBtn_Click" Margin="2" MinWidth="60">
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
-                                <Setter Property="Background" Value="#E3F2FD"/>
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding ElementName=NavPathContent, Path=Visibility}" Value="Visible">
-                                        <Setter Property="Background" Value="#64B5F6"/>
-                                        <Setter Property="Foreground" Value="#FFFFFF"/>
-                                        <Setter Property="BorderBrush" Value="#1565C0"/>
+                                        <Setter Property="Background" Value="{DynamicResource HighlightBrush}"/>
+                                        <Setter Property="BorderBrush" Value="{DynamicResource HighlightBorderBrush}"/>
                                         <Setter Property="FontWeight" Value="Bold"/>
                                     </DataTrigger>
                                 </Style.Triggers>
@@ -72,12 +70,10 @@
                     <Button Name="NavLibraryBtn" Content="库" Click="NavLibraryBtn_Click" Margin="2" MinWidth="60">
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
-                                <Setter Property="Background" Value="#E3F2FD"/>
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding ElementName=NavLibraryContent, Path=Visibility}" Value="Visible">
-                                        <Setter Property="Background" Value="#64B5F6"/>
-                                        <Setter Property="Foreground" Value="#FFFFFF"/>
-                                        <Setter Property="BorderBrush" Value="#1565C0"/>
+                                        <Setter Property="Background" Value="{DynamicResource HighlightBrush}"/>
+                                        <Setter Property="BorderBrush" Value="{DynamicResource HighlightBorderBrush}"/>
                                         <Setter Property="FontWeight" Value="Bold"/>
                                     </DataTrigger>
                                 </Style.Triggers>
@@ -87,27 +83,10 @@
                     <Button Name="NavTagBtn" Content="标签" Click="NavTagBtn_Click" Margin="2" MinWidth="60">
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
-                                <Setter Property="Background" Value="#E3F2FD"/>
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding ElementName=NavTagContent, Path=Visibility}" Value="Visible">
-                                        <Setter Property="Background" Value="#64B5F6"/>
-                                        <Setter Property="Foreground" Value="#FFFFFF"/>
-                                        <Setter Property="BorderBrush" Value="#1565C0"/>
-                                        <Setter Property="FontWeight" Value="Bold"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                    </Button>
-                    <Button Name="NavSearchBtn" Content="搜索" Click="NavSearchBtn_Click" Margin="2" MinWidth="60">
-                        <Button.Style>
-                            <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
-                                <Setter Property="Background" Value="#E3F2FD"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding ElementName=NavSearchContent, Path=Visibility}" Value="Visible">
-                                        <Setter Property="Background" Value="#64B5F6"/>
-                                        <Setter Property="Foreground" Value="#FFFFFF"/>
-                                        <Setter Property="BorderBrush" Value="#1565C0"/>
+                                        <Setter Property="Background" Value="{DynamicResource HighlightBrush}"/>
+                                        <Setter Property="BorderBrush" Value="{DynamicResource HighlightBorderBrush}"/>
                                         <Setter Property="FontWeight" Value="Bold"/>
                                     </DataTrigger>
                                 </Style.Triggers>
@@ -162,14 +141,6 @@
                         <Button Content="📦 批量添加" Click="BatchAddTags_Click" Margin="0,0,4,0"/>
                         <Button Content="📊 标签统计" Click="TagStatistics_Click"/>
                     </StackPanel>
-                    
-                    <StackPanel Name="SearchActionButtons" Orientation="Horizontal" Visibility="Collapsed">
-                        <Button Content="🔍 高级搜索" Click="AdvancedSearch_Click" Margin="0,0,4,0"/>
-                        <Button Content="💾 保存搜索" Click="SaveSearch_Click" Margin="0,0,4,0"/>
-                        <Separator Margin="16,0"/>
-                        <Button Content="📜 搜索历史" Click="SearchHistory_Click" Margin="0,0,4,0"/>
-                        <Button Content="🗑️ 清除历史" Click="ClearSearchHistory_Click"/>
-                    </StackPanel>
                 </Grid>
                 
             </Grid>
@@ -177,7 +148,7 @@
         
         <!-- 垂直分割器（从Row 1开始，跨越2行：Row 1和Row 2） -->
         <GridSplitter Grid.Row="1" Grid.Column="1" Grid.RowSpan="2" 
-                      Style="{StaticResource VerticalGridSplitterStyle}"/>
+                      Style="{StaticResource VerticalGridSplitterStyle}" DragDelta="GridSplitter_DragDelta"/>
         <GridSplitter Grid.Row="1" Grid.Column="3" Grid.RowSpan="2" 
                       Style="{StaticResource VerticalGridSplitterStyle}"/>
         
@@ -214,53 +185,8 @@
                                      BorderThickness="0"
                                      Background="Transparent"
                                      SelectionMode="Single"
-                                     PreviewMouseDown="DrivesListBox_PreviewMouseDown">
-                                <ListBox.ItemContainerStyle>
-                                    <Style TargetType="ListBoxItem">
-                                        <Setter Property="Padding" Value="5,3"/>
-                                        <Setter Property="Margin" Value="0,2"/>
-                                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                                        <Setter Property="Background" Value="#EEEEEE"/>
-                                        <Setter Property="BorderBrush" Value="#DDDDDD"/>
-                                        <Setter Property="BorderThickness" Value="0,0,0,1"/>
-                                        <Style.Triggers>
-                                            <!-- 匹配高亮优先级最高 -->
-                                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag}" Value="Match">
-                                                <Setter Property="Background" Value="#FFC107"/>
-                                                <Setter Property="Foreground" Value="#000000"/>
-                                                <Setter Property="BorderBrush" Value="#FF9800"/>
-                                            </DataTrigger>
-                                            <!-- 选中+匹配时的悬停效果 -->
-                                            <MultiDataTrigger>
-                                                <MultiDataTrigger.Conditions>
-                                                    <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag}" Value="Match"/>
-                                                    <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=IsMouseOver}" Value="True"/>
-                                                </MultiDataTrigger.Conditions>
-                                                <Setter Property="Background" Value="#FFB300"/>
-                                                <Setter Property="BorderBrush" Value="#FF9800"/>
-                                            </MultiDataTrigger>
-                                            <!-- 选中状态 -->
-                                            <MultiTrigger>
-                                                <MultiTrigger.Conditions>
-                                                    <Condition Property="IsSelected" Value="True"/>
-                                                    <Condition Property="IsMouseOver" Value="True"/>
-                                                </MultiTrigger.Conditions>
-                                                <Setter Property="Background" Value="#42A5F5"/>
-                                                <Setter Property="BorderBrush" Value="#1565C0"/>
-                                            </MultiTrigger>
-                                            <Trigger Property="IsSelected" Value="True">
-                                                <Setter Property="Background" Value="#64B5F6"/>
-                                                <Setter Property="BorderBrush" Value="#1565C0"/>
-                                            </Trigger>
-                                            <!-- 鼠标悬停 -->
-                                            <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter Property="Background" Value="#E3F2FD"/>
-                                                <Setter Property="BorderBrush" Value="#2196F3"/>
-                                            </Trigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </ListBox.ItemContainerStyle>
-                            </ListBox>
+                                     PreviewMouseDown="DrivesListBox_PreviewMouseDown"
+                                     ItemContainerStyle="{StaticResource NavListBoxItemStyle}"/>
                         </ScrollViewer>
                     </GroupBox>
                     
@@ -272,53 +198,8 @@
                                      BorderThickness="0"
                                      Background="Transparent"
                                      SelectionMode="Single"
-                                     PreviewMouseDown="QuickAccessListBox_PreviewMouseDown">
-                                <ListBox.ItemContainerStyle>
-                                    <Style TargetType="ListBoxItem">
-                                        <Setter Property="Padding" Value="5,3"/>
-                                        <Setter Property="Margin" Value="0,2"/>
-                                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                                        <Setter Property="Background" Value="#EEEEEE"/>
-                                        <Setter Property="BorderBrush" Value="#DDDDDD"/>
-                                        <Setter Property="BorderThickness" Value="0,0,0,1"/>
-                                        <Style.Triggers>
-                                            <!-- 匹配高亮优先级最高 -->
-                                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag}" Value="Match">
-                                                <Setter Property="Background" Value="#FFC107"/>
-                                                <Setter Property="Foreground" Value="#000000"/>
-                                                <Setter Property="BorderBrush" Value="#FF9800"/>
-                                            </DataTrigger>
-                                            <!-- 选中+匹配时的悬停效果 -->
-                                            <MultiDataTrigger>
-                                                <MultiDataTrigger.Conditions>
-                                                    <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag}" Value="Match"/>
-                                                    <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=IsMouseOver}" Value="True"/>
-                                                </MultiDataTrigger.Conditions>
-                                                <Setter Property="Background" Value="#FFB300"/>
-                                                <Setter Property="BorderBrush" Value="#FF9800"/>
-                                            </MultiDataTrigger>
-                                            <!-- 选中状态 -->
-                                            <MultiTrigger>
-                                                <MultiTrigger.Conditions>
-                                                    <Condition Property="IsSelected" Value="True"/>
-                                                    <Condition Property="IsMouseOver" Value="True"/>
-                                                </MultiTrigger.Conditions>
-                                                <Setter Property="Background" Value="#42A5F5"/>
-                                                <Setter Property="BorderBrush" Value="#1565C0"/>
-                                            </MultiTrigger>
-                                            <Trigger Property="IsSelected" Value="True">
-                                                <Setter Property="Background" Value="#64B5F6"/>
-                                                <Setter Property="BorderBrush" Value="#1565C0"/>
-                                            </Trigger>
-                                            <!-- 鼠标悬停 -->
-                                            <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter Property="Background" Value="#E3F2FD"/>
-                                                <Setter Property="BorderBrush" Value="#2196F3"/>
-                                            </Trigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </ListBox.ItemContainerStyle>
-                            </ListBox>
+                                     PreviewMouseDown="QuickAccessListBox_PreviewMouseDown"
+                                     ItemContainerStyle="{StaticResource NavListBoxItemStyle}"/>
                         </ScrollViewer>
                     </GroupBox>
                     
@@ -330,53 +211,8 @@
                                      BorderThickness="0"
                                      Background="Transparent"
                                      SelectionMode="Single"
-                                     PreviewMouseDown="FavoritesListBox_PreviewMouseDown">
-                                <ListBox.ItemContainerStyle>
-                                    <Style TargetType="ListBoxItem">
-                                        <Setter Property="Padding" Value="5,3"/>
-                                        <Setter Property="Margin" Value="0,2"/>
-                                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                                        <Setter Property="Background" Value="#EEEEEE"/>
-                                        <Setter Property="BorderBrush" Value="#DDDDDD"/>
-                                        <Setter Property="BorderThickness" Value="0,0,0,1"/>
-                                        <Style.Triggers>
-                                            <!-- 匹配高亮优先级最高 -->
-                                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag}" Value="Match">
-                                                <Setter Property="Background" Value="#FFC107"/>
-                                                <Setter Property="Foreground" Value="#000000"/>
-                                                <Setter Property="BorderBrush" Value="#FF9800"/>
-                                            </DataTrigger>
-                                            <!-- 选中+匹配时的悬停效果 -->
-                                            <MultiDataTrigger>
-                                                <MultiDataTrigger.Conditions>
-                                                    <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag}" Value="Match"/>
-                                                    <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=IsMouseOver}" Value="True"/>
-                                                </MultiDataTrigger.Conditions>
-                                                <Setter Property="Background" Value="#FFB300"/>
-                                                <Setter Property="BorderBrush" Value="#FF9800"/>
-                                            </MultiDataTrigger>
-                                            <!-- 选中状态 -->
-                                            <MultiTrigger>
-                                                <MultiTrigger.Conditions>
-                                                    <Condition Property="IsSelected" Value="True"/>
-                                                    <Condition Property="IsMouseOver" Value="True"/>
-                                                </MultiTrigger.Conditions>
-                                                <Setter Property="Background" Value="#42A5F5"/>
-                                                <Setter Property="BorderBrush" Value="#1565C0"/>
-                                            </MultiTrigger>
-                                            <Trigger Property="IsSelected" Value="True">
-                                                <Setter Property="Background" Value="#64B5F6"/>
-                                                <Setter Property="BorderBrush" Value="#1565C0"/>
-                                            </Trigger>
-                                            <!-- 鼠标悬停 -->
-                                            <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter Property="Background" Value="#E3F2FD"/>
-                                                <Setter Property="BorderBrush" Value="#2196F3"/>
-                                            </Trigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </ListBox.ItemContainerStyle>
-                            </ListBox>
+                                     PreviewMouseDown="FavoritesListBox_PreviewMouseDown"
+                                     ItemContainerStyle="{StaticResource NavListBoxItemStyle}"/>
                         </ScrollViewer>
                     </GroupBox>
                 </Grid>
@@ -399,52 +235,8 @@
                                  SelectionChanged="LibrariesListBox_SelectionChanged"
                                  DisplayMemberPath="Name"
                                  ContextMenuOpening="LibrariesListBox_ContextMenuOpening"
-                                 AllowDrop="True">
-                            <ListBox.ItemContainerStyle>
-                                <Style TargetType="ListBoxItem">
-                                    <Setter Property="Padding" Value="5,3"/>
-                                    <Setter Property="Margin" Value="0,2"/>
-                                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                                    <Setter Property="Background" Value="#EEEEEE"/>
-                                    <Setter Property="BorderBrush" Value="#DDDDDD"/>
-                                    <Setter Property="BorderThickness" Value="0,0,0,1"/>
-                                    <Style.Triggers>
-                                        <!-- 匹配高亮优先级最高（通过 Tag 标记），无论是否选中都显示黄色 -->
-                                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag}" Value="Match">
-                                            <Setter Property="Background" Value="#FFC107"/>
-                                            <Setter Property="Foreground" Value="#000000"/>
-                                            <Setter Property="BorderBrush" Value="#FF9800"/>
-                                        </DataTrigger>
-                                        <!-- 选中+匹配时的悬停效果 -->
-                                        <MultiDataTrigger>
-                                            <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag}" Value="Match"/>
-                                                <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=IsMouseOver}" Value="True"/>
-                                            </MultiDataTrigger.Conditions>
-                                            <Setter Property="Background" Value="#FFB300"/>
-                                            <Setter Property="BorderBrush" Value="#FF9800"/>
-                                        </MultiDataTrigger>
-                                        <!-- 选中状态（仅在非匹配时） -->
-                                        <MultiTrigger>
-                                            <MultiTrigger.Conditions>
-                                                <Condition Property="IsSelected" Value="True"/>
-                                                <Condition Property="IsMouseOver" Value="True"/>
-                                            </MultiTrigger.Conditions>
-                                            <Setter Property="Background" Value="#42A5F5"/>
-                                            <Setter Property="BorderBrush" Value="#1565C0"/>
-                                        </MultiTrigger>
-                                        <Trigger Property="IsSelected" Value="True">
-                                            <Setter Property="Background" Value="#64B5F6"/>
-                                            <Setter Property="BorderBrush" Value="#1565C0"/>
-                                        </Trigger>
-                                        <!-- 鼠标悬停（仅在非匹配时） -->
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter Property="Background" Value="#E3F2FD"/>
-                                            <Setter Property="BorderBrush" Value="#2196F3"/>
-                                        </Trigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </ListBox.ItemContainerStyle>
+                                 AllowDrop="True"
+                                 ItemContainerStyle="{StaticResource NavListBoxItemStyle}">
                             <ListBox.ContextMenu>
                                 <ContextMenu Name="LibraryContextMenu">
                                     <MenuItem Header="重命名" Click="LibraryRename_Click" Name="LibraryRenameMenuItem"/>
@@ -537,11 +329,7 @@
                                 <WrapPanel Grid.Row="0" Name="TagTrainTagInputPanel" Orientation="Horizontal" Margin="0,0,0,8">
                                     <Border Name="TagTrainTagInputBorder" 
                                            MinWidth="150" Width="250" Height="30"
-                                           BorderBrush="#B0B0B0"
-                                           BorderThickness="1"
-                                           Background="White"
-                                           CornerRadius="4"
-                                           Padding="1">
+                                           Style="{StaticResource TagInputBorderStyle}">
                                         <Grid>
                                             <TextBox Name="TagTrainTagInputTextBox" 
                                                     FontSize="13"
@@ -588,10 +376,10 @@
                                                                 <Setter Property="Padding" Value="0"/>
                                                                 <Style.Triggers>
                                                                     <Trigger Property="IsMouseOver" Value="True">
-                                                                        <Setter Property="Background" Value="#E3F2FD"/>
+                                                                        <Setter Property="Background" Value="{DynamicResource HighlightHoverBrush}"/>
                                                                     </Trigger>
                                                                     <Trigger Property="IsSelected" Value="True">
-                                                                        <Setter Property="Background" Value="#BBDEFB"/>
+                                                                        <Setter Property="Background" Value="{DynamicResource HighlightBrush}"/>
                                                                     </Trigger>
                                                                 </Style.Triggers>
                                                             </Style>
@@ -665,35 +453,6 @@
                     </Grid>
                 </ScrollViewer>
                 
-                <!-- 搜索导航内容 -->
-                <Grid Name="NavSearchContent" Margin="8" Visibility="Collapsed">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-                    
-                    <Grid Grid.Row="0" Margin="0,0,0,8">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        
-                        <TextBox Grid.Column="0" Name="SearchTextBox" 
-                                 TextChanged="SearchTextBox_TextChanged"
-                                 KeyDown="SearchTextBox_KeyDown"/>
-                        <Button Grid.Column="1" Content="搜索" Click="Search_Click" Margin="4,0,0,0"/>
-                    </Grid>
-                    
-                    <StackPanel Grid.Row="1" Orientation="Vertical" Margin="0,0,0,8">
-                        <CheckBox Name="SearchInNames" Content="文件名" IsChecked="True" Margin="0,0,0,2"/>
-                        <CheckBox Name="SearchInTags" Content="标签" IsChecked="True" Margin="0,0,0,2"/>
-                        <CheckBox Name="SearchInNotes" Content="备注" IsChecked="True"/>
-                    </StackPanel>
-                    
-                    <ListBox Grid.Row="2" Name="SearchResultsListBox"
-                             SelectionChanged="SearchResultsListBox_SelectionChanged"/>
-                </Grid>
             </Grid>
             
             <!-- 系统级按钮 -->
@@ -703,6 +462,8 @@
                             Style="{StaticResource ModernButtonStyle}" ToolTip="设置" Margin="4,0"/>
                     <Button Content="ℹ️" Click="About_Click" Width="32" Height="32" 
                             Style="{StaticResource ModernButtonStyle}" ToolTip="关于" Margin="4,0"/>
+                    <Button Content="🧪" Click="RunVisualTests_Click" Width="32" Height="32" 
+                            Style="{StaticResource ModernButtonStyle}" ToolTip="视觉测试" Margin="4,0"/>
                 </StackPanel>
             </Border>
         </Grid>

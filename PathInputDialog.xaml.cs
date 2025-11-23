@@ -8,6 +8,7 @@ namespace OoiMRR
     public partial class PathInputDialog : Window
     {
         public string InputText { get; set; }
+        public bool SelectFileNameOnly { get; set; }
 
         public PathInputDialog(string prompt = "请输入路径:")
         {
@@ -43,7 +44,32 @@ namespace OoiMRR
             if (!string.IsNullOrEmpty(InputText))
             {
                 PathTextBox.Text = InputText;
-                PathTextBox.SelectAll();
+                
+                if (SelectFileNameOnly)
+                {
+                    // 只选中文件名部分（不包含扩展名）
+                    var fileName = System.IO.Path.GetFileNameWithoutExtension(InputText);
+                    if (!string.IsNullOrEmpty(fileName))
+                    {
+                        var startIndex = InputText.LastIndexOf(fileName);
+                        if (startIndex >= 0)
+                        {
+                            PathTextBox.Select(startIndex, fileName.Length);
+                        }
+                        else
+                        {
+                            PathTextBox.SelectAll();
+                        }
+                    }
+                    else
+                    {
+                        PathTextBox.SelectAll();
+                    }
+                }
+                else
+                {
+                    PathTextBox.SelectAll();
+                }
             }
             
             PathTextBox.Focus();

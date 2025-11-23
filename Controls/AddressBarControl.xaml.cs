@@ -17,6 +17,7 @@ namespace OoiMRR.Controls
 
         private string _currentPath = "";
         private bool _isEditMode = false;
+        private string _breadcrumbCustomText = null;
 
         public AddressBarControl()
         {
@@ -32,7 +33,10 @@ namespace OoiMRR.Controls
                 _currentPath = value;
                 if (!_isEditMode)
                 {
-                    UpdateBreadcrumb(value);
+                    if (!string.IsNullOrEmpty(_breadcrumbCustomText))
+                        UpdateBreadcrumbText(_breadcrumbCustomText);
+                    else
+                        UpdateBreadcrumb(value);
                 }
             }
         }
@@ -53,6 +57,32 @@ namespace OoiMRR.Controls
 
             if (string.IsNullOrEmpty(path))
                 return;
+
+            var parentWindowForPrefix = Window.GetWindow(this);
+            var bgPrefix = parentWindowForPrefix?.TryFindResource("HighlightBrush") as System.Windows.Media.SolidColorBrush;
+            var bdPrefix = parentWindowForPrefix?.TryFindResource("HighlightBorderBrush") as System.Windows.Media.SolidColorBrush;
+            var fgPrefix = parentWindowForPrefix?.TryFindResource("HighlightForegroundBrush") as System.Windows.Media.SolidColorBrush;
+
+            var prefixBadge = new Border
+            {
+                Background = bgPrefix ?? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 165, 0)),
+                BorderBrush = bdPrefix ?? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 140, 0)),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(4),
+                Padding = new Thickness(8, 2, 8, 2),
+                Margin = new Thickness(0, 0, 6, 0)
+            };
+
+            var prefixText = new TextBlock
+            {
+                Text = "path",
+                Foreground = fgPrefix ?? System.Windows.Media.Brushes.Black,
+                FontWeight = FontWeights.SemiBold,
+                FontSize = 12,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            prefixBadge.Child = prefixText;
+            BreadcrumbPanel.Children.Add(prefixBadge);
 
             // 处理Windows路径（C:\ 或 UNC路径）
             string rootPath = "";
@@ -165,7 +195,6 @@ namespace OoiMRR.Controls
             if (BreadcrumbPanel == null)
                 return;
 
-            _currentPath = text ?? "";
             BreadcrumbPanel.Children.Clear();
             BreadcrumbPanel.Children.Add(new TextBlock
             {
@@ -173,6 +202,189 @@ namespace OoiMRR.Controls
                 Margin = new Thickness(2, 2, 2, 2),
                 Foreground = System.Windows.Media.Brushes.Blue
             });
+        }
+
+        public void SetBreadcrumbCustomText(string text)
+        {
+            _breadcrumbCustomText = text;
+            UpdateBreadcrumbText(text ?? "");
+        }
+
+        public void SetTagBreadcrumb(string tagName)
+        {
+            _breadcrumbCustomText = null;
+            if (BreadcrumbPanel == null)
+                return;
+
+            BreadcrumbPanel.Children.Clear();
+
+            var container = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Margin = new Thickness(2, 2, 2, 2)
+            };
+
+            var badge = new Border
+            {
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(4),
+                Padding = new Thickness(8, 2, 8, 2),
+                Margin = new Thickness(0, 0, 6, 0)
+            };
+            try
+            {
+                var parentWindow = Window.GetWindow(this);
+                var bg = parentWindow?.FindResource("HighlightBrush") as System.Windows.Media.SolidColorBrush;
+                var bd = parentWindow?.FindResource("HighlightBorderBrush") as System.Windows.Media.SolidColorBrush;
+                badge.Background = bg ?? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 165, 0));
+                badge.BorderBrush = bd ?? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 140, 0));
+            }
+            catch
+            {
+                badge.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 165, 0));
+                badge.BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 140, 0));
+            }
+
+            var badgeText = new TextBlock
+            {
+                Text = "tag",
+                FontWeight = FontWeights.SemiBold,
+                FontSize = 12,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            try
+            {
+                var parentWindow = Window.GetWindow(this);
+                var fg = parentWindow?.FindResource("HighlightForegroundBrush") as System.Windows.Media.SolidColorBrush;
+                badgeText.Foreground = fg ?? System.Windows.Media.Brushes.Black;
+            }
+            catch
+            {
+                badgeText.Foreground = System.Windows.Media.Brushes.Black;
+            }
+            badge.Child = badgeText;
+
+            var nameText = new TextBlock
+            {
+                Text = tagName ?? "",
+                FontSize = 12,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(4, 0, 0, 0)
+            };
+
+            container.Children.Add(badge);
+            container.Children.Add(nameText);
+            BreadcrumbPanel.Children.Add(container);
+        }
+
+        public void SetSearchBreadcrumb(string keyword)
+        {
+            _breadcrumbCustomText = null;
+            if (BreadcrumbPanel == null)
+                return;
+
+            BreadcrumbPanel.Children.Clear();
+
+            var container = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Margin = new Thickness(2, 2, 2, 2)
+            };
+
+            var parentWindow = Window.GetWindow(this);
+            var bg = parentWindow?.TryFindResource("HighlightBrush") as System.Windows.Media.SolidColorBrush;
+            var bd = parentWindow?.TryFindResource("HighlightBorderBrush") as System.Windows.Media.SolidColorBrush;
+            var fg = parentWindow?.TryFindResource("HighlightForegroundBrush") as System.Windows.Media.SolidColorBrush;
+
+            var badge = new Border
+            {
+                Background = bg ?? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 165, 0)),
+                BorderBrush = bd ?? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 140, 0)),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(4),
+                Padding = new Thickness(8, 2, 8, 2),
+                Margin = new Thickness(0, 0, 6, 0)
+            };
+
+            var badgeText = new TextBlock
+            {
+                Text = "search",
+                Foreground = fg ?? System.Windows.Media.Brushes.Black,
+                FontWeight = FontWeights.SemiBold,
+                FontSize = 12,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            badge.Child = badgeText;
+
+            var nameText = new TextBlock
+            {
+                Text = keyword ?? "",
+                FontSize = 12,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(4, 0, 0, 0)
+            };
+
+            container.Children.Add(badge);
+            container.Children.Add(nameText);
+            BreadcrumbPanel.Children.Add(container);
+        }
+
+        public void SetLibraryBreadcrumb(string libraryName)
+        {
+            _breadcrumbCustomText = null;
+            if (BreadcrumbPanel == null)
+                return;
+
+            BreadcrumbPanel.Children.Clear();
+
+            var container = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Margin = new Thickness(2, 2, 2, 2)
+            };
+
+            var parentWindow = Window.GetWindow(this);
+            var bg = parentWindow?.TryFindResource("HighlightBrush") as System.Windows.Media.SolidColorBrush;
+            var bd = parentWindow?.TryFindResource("HighlightBorderBrush") as System.Windows.Media.SolidColorBrush;
+            var fg = parentWindow?.TryFindResource("HighlightForegroundBrush") as System.Windows.Media.SolidColorBrush;
+
+            var badge = new Border
+            {
+                Background = bg ?? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 165, 0)),
+                BorderBrush = bd ?? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 140, 0)),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(4),
+                Padding = new Thickness(8, 2, 8, 2),
+                Margin = new Thickness(0, 0, 6, 0)
+            };
+
+            var badgeText = new TextBlock
+            {
+                Text = "library",
+                Foreground = fg ?? System.Windows.Media.Brushes.Black,
+                FontWeight = FontWeights.SemiBold,
+                FontSize = 12,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            badge.Child = badgeText;
+
+            var nameText = new TextBlock
+            {
+                Text = libraryName ?? "",
+                FontSize = 12,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(4, 0, 0, 0)
+            };
+
+            container.Children.Add(badge);
+            container.Children.Add(nameText);
+            BreadcrumbPanel.Children.Add(container);
+        }
+
+        public void ClearBreadcrumbCustomText()
+        {
+            _breadcrumbCustomText = null;
+            UpdateBreadcrumb(_currentPath);
         }
 
         private void BreadcrumbContainer_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -213,7 +425,10 @@ namespace OoiMRR.Controls
             _isEditMode = false;
             AddressTextBox.Visibility = Visibility.Collapsed;
             BreadcrumbContainer.Visibility = Visibility.Visible;
-            UpdateBreadcrumb(_currentPath);
+            if (!string.IsNullOrEmpty(_breadcrumbCustomText))
+                UpdateBreadcrumbText(_breadcrumbCustomText);
+            else
+                UpdateBreadcrumb(_currentPath);
         }
 
         private void AddressTextBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -281,4 +496,3 @@ namespace OoiMRR.Controls
         }
     }
 }
-

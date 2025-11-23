@@ -331,6 +331,56 @@ namespace OoiMRR.Controls
             }
         }
 
+        // 公开方法：设置视图模式（详细/缩略图）
+        public void SetViewModeTiles(bool tiles)
+        {
+            try
+            {
+                if (tiles)
+                {
+                    _currentViewMode = ViewMode.Tiles;
+                    if (BtnViewDetails != null) BtnViewDetails.IsEnabled = true;
+                    if (BtnViewTiles != null) BtnViewTiles.IsEnabled = false;
+                    ApplyViewMode();
+                    _thumbnailManager?.CalculateAndSetPriorityLoad();
+                }
+                else
+                {
+                    _currentViewMode = ViewMode.Details;
+                    if (BtnViewDetails != null) BtnViewDetails.IsEnabled = false;
+                    if (BtnViewTiles != null) BtnViewTiles.IsEnabled = true;
+                    ApplyViewMode();
+                    _thumbnailManager?.ClearPriorityLoad();
+                }
+            }
+            catch { }
+        }
+
+        // 公开方法：设置缩略图大小（80-256）
+        public void SetThumbnailSize(double size)
+        {
+            try
+            {
+                var newSize = Math.Max(80, Math.Min(256, size));
+                if (Math.Abs(newSize - _thumbnailSize) > double.Epsilon)
+                {
+                    _thumbnailSize = newSize;
+                    if (ThumbnailSizeSlider != null) ThumbnailSizeSlider.Value = _thumbnailSize;
+                    // 更新缩略图管理器
+                    if (_thumbnailManager != null)
+                    {
+                        _thumbnailManager = new ThumbnailViewManager(FilesListView, _thumbnailSize);
+                    }
+                    if (_currentViewMode == ViewMode.Tiles)
+                    {
+                        ApplyViewMode();
+                        _thumbnailManager?.CalculateAndSetPriorityLoad();
+                    }
+                }
+            }
+            catch { }
+        }
+
         private void FilesListView_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
         {
             try
@@ -396,6 +446,26 @@ namespace OoiMRR.Controls
         public void UpdateBreadcrumbText(string text)
         {
             AddressBarControl?.UpdateBreadcrumbText(text);
+        }
+
+        public void SetBreadcrumbCustomText(string text)
+        {
+            AddressBarControl?.SetBreadcrumbCustomText(text);
+        }
+
+        public void SetTagBreadcrumb(string tagName)
+        {
+            AddressBarControl?.SetTagBreadcrumb(tagName);
+        }
+
+        public void SetSearchBreadcrumb(string keyword)
+        {
+            AddressBarControl?.SetSearchBreadcrumb(keyword);
+        }
+
+        public void SetLibraryBreadcrumb(string libraryName)
+        {
+            AddressBarControl?.SetLibraryBreadcrumb(libraryName);
         }
 
         // 文件列表相关方法
@@ -526,6 +596,9 @@ namespace OoiMRR.Controls
         public event RoutedEventHandler NavigationBack;
         public event RoutedEventHandler NavigationForward;
         public event RoutedEventHandler NavigationUp;
+        public event RoutedEventHandler SearchClicked;
+        public event RoutedEventHandler FilterClicked;
+        public event RoutedEventHandler LoadMoreClicked;
         
         // 文件操作事件
         public event RoutedEventHandler FileCopy;
@@ -560,6 +633,82 @@ namespace OoiMRR.Controls
         private void NavUpBtn_Click(object sender, RoutedEventArgs e)
         {
             NavigationUp?.Invoke(sender, e);
+        }
+
+        private void SearchBtn_Click(object sender, RoutedEventArgs e)
+        {
+            SearchClicked?.Invoke(sender, e);
+        }
+
+        private void FilterBtn_Click(object sender, RoutedEventArgs e)
+        {
+            FilterClicked?.Invoke(sender, e);
+        }
+
+        private void LoadMoreBtn_Click(object sender, RoutedEventArgs e)
+        {
+            LoadMoreClicked?.Invoke(sender, e);
+        }
+
+        public bool LoadMoreVisible
+        {
+            get => LoadMoreBtn?.Visibility == Visibility.Visible;
+            set
+            {
+                if (LoadMoreBtn != null)
+                    LoadMoreBtn.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
+            }
+        }
+
+        public bool NavUpEnabled
+        {
+            get => NavUpBtn?.IsEnabled ?? false;
+            set
+            {
+                if (NavUpBtn != null)
+                    NavUpBtn.IsEnabled = value;
+            }
+        }
+
+        public void EnableAutoLoadMore()
+        {
+            try
+            {
+                var sv = GetScrollViewer(FilesListView);
+                if (sv != null)
+                {
+                    sv.ScrollChanged -= Sv_ScrollChanged;
+                    sv.ScrollChanged += Sv_ScrollChanged;
+                }
+            }
+            catch { }
+        }
+
+        private void Sv_ScrollChanged(object sender, ScrollChangedEventArgs e)
+        {
+            try
+            {
+                var sv = sender as ScrollViewer;
+                if (sv == null) return;
+                if (e.VerticalOffset + e.ViewportHeight >= e.ExtentHeight - 20)
+                {
+                    LoadMoreClicked?.Invoke(this, new RoutedEventArgs());
+                }
+            }
+            catch { }
+        }
+
+        private ScrollViewer GetScrollViewer(DependencyObject root)
+        {
+            if (root == null) return null;
+            if (root is ScrollViewer sv) return sv;
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
+            {
+                var child = VisualTreeHelper.GetChild(root, i);
+                var result = GetScrollViewer(child);
+                if (result != null) return result;
+            }
+            return null;
         }
 
         private void SetupFileContextMenu()
@@ -634,4 +783,3 @@ namespace OoiMRR.Controls
         }
     }
 }
-

@@ -63,6 +63,16 @@ namespace OoiMRR
             command.CommandText = createLibraryPathsTable;
             command.ExecuteNonQuery();
 
+            var createFileNotesFts = @"
+                CREATE VIRTUAL TABLE IF NOT EXISTS FileNotesFts USING fts5(
+                    FilePath,
+                    Notes,
+                    tokenize='unicode61 remove_diacritics 0',
+                    prefix='1 2 3'
+                )";
+            command.CommandText = createFileNotesFts;
+            command.ExecuteNonQuery();
+
             // 创建收藏表
             var createFavoritesTable = @"
                 CREATE TABLE IF NOT EXISTS Favorites (
@@ -152,6 +162,19 @@ namespace OoiMRR
                 command.Parameters.AddWithValue("@filePath", filePath);
                 command.Parameters.AddWithValue("@notes", notes);
                 command.ExecuteNonQuery();
+
+                using var fts = connection.CreateCommand();
+                fts.CommandText = @"
+                    INSERT INTO FileNotesFts (FilePath, Notes) VALUES (@filePath, @notes)";
+                fts.Parameters.AddWithValue("@filePath", filePath);
+                fts.Parameters.AddWithValue("@notes", notes);
+                try { fts.ExecuteNonQuery(); } catch { 
+                    using var upd = connection.CreateCommand();
+                    upd.CommandText = "UPDATE FileNotesFts SET Notes=@notes WHERE FilePath=@filePath";
+                    upd.Parameters.AddWithValue("@filePath", filePath);
+                    upd.Parameters.AddWithValue("@notes", notes);
+                    upd.ExecuteNonQuery();
+                }
             }
             catch (Exception ex)
             {
@@ -178,6 +201,74 @@ namespace OoiMRR
             command.Parameters.AddWithValue("@filePath", filePath);
             var result = command.ExecuteScalar();
             return result?.ToString() ?? "";
+        }
+
+        /// <summary>
+        /// 搜索包含指定文本的备注的文件路径
+        /// </summary>
+        public static List<string> SearchFilesByNotes(string searchText)
+        {
+            var results = new List<string>();
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            using var command = connection.CreateCommand();
+            var query = searchText?.Trim() ?? "";
+            if (string.IsNullOrEmpty(query)) return results;
+            var ftsQuery = BuildFtsWildcardQuery(query);
+            command.CommandText = "SELECT FilePath FROM FileNotesFts WHERE FileNotesFts MATCH @q";
+            command.Parameters.AddWithValue("@q", ftsQuery);
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                var filePath = reader.GetString(0);
+                // 验证文件是否存在
+                if (File.Exists(filePath) || Directory.Exists(filePath))
+                {
+                    results.Add(filePath);
+                }
+            }
+            if (results.Count == 0)
+            {
+                using var likeCmd = connection.CreateCommand();
+                likeCmd.CommandText = "SELECT FilePath FROM FileNotes WHERE Notes LIKE @kw";
+                likeCmd.Parameters.AddWithValue("@kw", $"%{query}%");
+                using var likeReader = likeCmd.ExecuteReader();
+                while (likeReader.Read())
+                {
+                    var p = likeReader.GetString(0);
+                    if (File.Exists(p) || Directory.Exists(p)) results.Add(p);
+                }
+            }
+            return results.Distinct().ToList();
+        }
+
+        private static string BuildFtsWildcardQuery(string input)
+        {
+            // 支持空格分词；中文连续字符串按逐字符追加前缀匹配
+            var tokens = input.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+            if (tokens.Length == 0) return input;
+            var parts = new List<string>();
+            foreach (var t in tokens)
+            {
+                if (t.Contains("*") || t.Contains("?"))
+                {
+                    parts.Add(t);
+                    continue;
+                }
+                bool isAsciiWord = t.Any(ch => ch <= 0x007F && (char.IsLetterOrDigit(ch) || ch == '_' || ch == '-'));
+                if (isAsciiWord)
+                {
+                    parts.Add(t + "*");
+                }
+                else
+                {
+                    foreach (var ch in t)
+                    {
+                        if (!char.IsWhiteSpace(ch)) parts.Add(ch + "*");
+                    }
+                }
+            }
+            return string.Join(" AND ", parts);
         }
 
         public static int AddLibrary(string name)

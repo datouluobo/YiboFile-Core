@@ -95,3 +95,6 @@ $RECYCLE.BIN/
 # XL folder contents (keep folder structure)
 XL/**/*
 
+# Build output directory
+build_out/
+

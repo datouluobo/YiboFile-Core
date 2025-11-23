@@ -67,6 +67,7 @@ namespace OoiMRR.Previews
                     PreviewType.Audio => new AudioPreview(),
                     PreviewType.Archive => new ArchivePreview(),
                     PreviewType.Document => GetDocumentProvider(extension),
+                    PreviewType.Html => extension == ".xml" ? new XmlPreview() : new HtmlPreview(),
                     _ => null
                 };
 
@@ -89,10 +90,17 @@ namespace OoiMRR.Previews
             {
                 ".docx" => new DocumentPreview(),
                 ".doc" => new DocumentPreview(),
-                ".pdf" => new DocumentPreview(),
+                ".pdf" => new PdfPreview(),
+                ".rtf" => new DocumentPreview(),
+                ".chm" => new DocumentPreview(),
+                ".xlsx" => new ExcelPreview(),
+                ".xlsm" => new ExcelPreview(),
+                ".xls" => new ExcelPreview(),
+                ".pptx" => new PowerPointPreview(),
+                ".ppt" => new PowerPointPreview(),
+                ".pptm" => new PowerPointPreview(),
                 _ => null
             };
         }
     }
 }
-

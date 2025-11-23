@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Windows;
@@ -12,6 +13,15 @@ namespace OoiMRR.Previews
     /// </summary>
     public static class PreviewHelper
     {
+        /// <summary>
+        /// 编辑模式背景色（浅蓝色）
+        /// </summary>
+        public static readonly Brush EditModeBackground = new SolidColorBrush(Color.FromRgb(230, 240, 255));
+        
+        /// <summary>
+        /// 只读模式背景色（白色）
+        /// </summary>
+        public static readonly Brush ReadOnlyBackground = Brushes.White;
         /// <summary>
         /// 检测 QuickLook 是否安装
         /// </summary>
@@ -118,10 +128,11 @@ namespace OoiMRR.Previews
         }
 
         /// <summary>
-        /// 创建标题面板
+        /// 创建标题面板（统一样式，支持多个按钮）
         /// </summary>
-        public static Border CreateTitlePanel(string icon, string title, Button additionalButton = null)
+        public static Border CreateTitlePanel(string icon, string title, IEnumerable<Button> actionButtons = null)
         {
+            // 统一的标题栏样式
             var titlePanel = new Border
             {
                 Background = new SolidColorBrush(Color.FromRgb(245, 245, 245)),
@@ -130,9 +141,16 @@ namespace OoiMRR.Previews
                 BorderThickness = new Thickness(0, 0, 0, 1)
             };
 
+            // 使用Grid布局：左侧标题，右侧按钮区域
+            var titleGrid = new Grid();
+            titleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            titleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            // 左侧标题区域
             var titleStack = new StackPanel
             {
-                Orientation = Orientation.Horizontal
+                Orientation = Orientation.Horizontal,
+                VerticalAlignment = VerticalAlignment.Center
             };
 
             var titleIcon = new TextBlock
@@ -140,7 +158,8 @@ namespace OoiMRR.Previews
                 Text = icon,
                 FontSize = 18,
                 VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(0, 0, 10, 0)
+                Margin = new Thickness(0, 0, 10, 0),
+                FontFamily = new FontFamily("Segoe UI Emoji, Segoe UI Symbol")
             };
 
             var titleText = new TextBlock
@@ -148,35 +167,60 @@ namespace OoiMRR.Previews
                 Text = title,
                 FontSize = 14,
                 FontWeight = FontWeights.SemiBold,
-                VerticalAlignment = VerticalAlignment.Center
+                VerticalAlignment = VerticalAlignment.Center,
+                FontFamily = new FontFamily("Segoe UI")
             };
 
             titleStack.Children.Add(titleIcon);
             titleStack.Children.Add(titleText);
+            Grid.SetColumn(titleStack, 0);
+            titleGrid.Children.Add(titleStack);
 
-            if (additionalButton != null)
+            // 右侧按钮区域（右对齐）
+            if (actionButtons != null && actionButtons.Any())
             {
-                additionalButton.Margin = new Thickness(15, 0, 0, 0);
-                titleStack.Children.Add(additionalButton);
+                var buttonPanel = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+
+                foreach (var button in actionButtons)
+                {
+                    // 统一按钮样式
+                    if (button.Margin == new Thickness(0))
+                    {
+                        button.Margin = new Thickness(5, 0, 0, 0);
+                    }
+                    button.Padding = new Thickness(12, 6, 12, 6);
+                    button.FontSize = 13;
+                    button.Cursor = System.Windows.Input.Cursors.Hand;
+                    buttonPanel.Children.Add(button);
+                }
+
+                Grid.SetColumn(buttonPanel, 1);
+                titleGrid.Children.Add(buttonPanel);
             }
 
-            titlePanel.Child = titleStack;
+            titlePanel.Child = titleGrid;
             return titlePanel;
         }
 
         /// <summary>
-        /// 创建打开文件按钮
+        /// 创建打开文件按钮（保留用于特殊场景）
         /// </summary>
-        public static Button CreateOpenButton(string filePath, string buttonText = "📂 打开")
+        public static Button CreateOpenButton(string filePath, string buttonText = "📂 外部程序打开")
         {
             var openButton = new Button
             {
                 Content = buttonText,
-                Padding = new Thickness(12, 5, 12, 5),
+                Padding = new Thickness(12, 6, 12, 6),
                 Background = new SolidColorBrush(Color.FromRgb(33, 150, 243)),
                 Foreground = Brushes.White,
                 BorderThickness = new Thickness(0),
-                Cursor = System.Windows.Input.Cursors.Hand
+                Cursor = System.Windows.Input.Cursors.Hand,
+                FontSize = 13
             };
 
             openButton.Click += (s, e) =>
@@ -196,6 +240,147 @@ namespace OoiMRR.Previews
             };
 
             return openButton;
+        }
+
+        /// <summary>
+        /// 创建编辑按钮（用于可编辑的文件类型）
+        /// </summary>
+        public static Button CreateEditButton(Action onEditToggle, bool isEditMode = false, string editText = "✏️ 编辑", string saveText = "💾 保存")
+        {
+            var editButton = new Button
+            {
+                Content = isEditMode ? saveText : editText,
+                Padding = new Thickness(12, 6, 12, 6),
+                Background = isEditMode 
+                    ? new SolidColorBrush(Color.FromRgb(76, 175, 80))  // 保存时绿色
+                    : new SolidColorBrush(Color.FromRgb(33, 150, 243)), // 编辑时蓝色
+                Foreground = Brushes.White,
+                BorderThickness = new Thickness(0),
+                Cursor = System.Windows.Input.Cursors.Hand,
+                FontSize = 13
+            };
+
+            editButton.Click += (s, e) =>
+            {
+                try
+                {
+                    onEditToggle?.Invoke();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"操作失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            };
+
+            return editButton;
+        }
+
+        /// <summary>
+        /// 创建打开文件夹按钮
+        /// </summary>
+        public static Button CreateOpenFolderButton(string folderPath, string buttonText = "📂 打开文件夹")
+        {
+            var button = new Button
+            {
+                Content = buttonText,
+                Padding = new Thickness(12, 6, 12, 6),
+                Background = new SolidColorBrush(Color.FromRgb(33, 150, 243)),
+                Foreground = Brushes.White,
+                BorderThickness = new Thickness(0),
+                Cursor = System.Windows.Input.Cursors.Hand,
+                FontSize = 13
+            };
+
+            button.Click += (s, e) =>
+            {
+                try
+                {
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = folderPath,
+                        UseShellExecute = true
+                    });
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"无法打开文件夹: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            };
+
+            return button;
+        }
+
+        /// <summary>
+        /// 创建DOC转DOCX按钮
+        /// </summary>
+        public static Button CreateDocToDocxButton(string docPath, Action<string> onConvert = null, string buttonText = "🔄 DOC转DOCX")
+        {
+            var button = new Button
+            {
+                Content = buttonText,
+                Padding = new Thickness(12, 6, 12, 6),
+                Background = new SolidColorBrush(Color.FromRgb(76, 175, 80)),
+                Foreground = Brushes.White,
+                BorderThickness = new Thickness(0),
+                Cursor = System.Windows.Input.Cursors.Hand,
+                FontSize = 13
+            };
+
+            button.Click += (s, e) =>
+            {
+                try
+                {
+                    if (onConvert != null)
+                    {
+                        onConvert(docPath);
+                    }
+                    else
+                    {
+                        MessageBox.Show("DOC转DOCX功能需要安装Microsoft Word或兼容组件", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"转换失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            };
+
+            return button;
+        }
+
+        /// <summary>
+        /// 创建HTML渲染/源码切换按钮
+        /// </summary>
+        public static Button CreateHtmlViewToggleButton(Action onToggle, string currentText = "📄 源码", string toggleText = "🎨 渲染")
+        {
+            var button = new Button
+            {
+                Content = currentText,
+                Padding = new Thickness(12, 6, 12, 6),
+                Background = new SolidColorBrush(Color.FromRgb(156, 39, 176)),
+                Foreground = Brushes.White,
+                BorderThickness = new Thickness(0),
+                Cursor = System.Windows.Input.Cursors.Hand,
+                FontSize = 13
+            };
+
+            button.Click += (s, e) =>
+            {
+                try
+                {
+                    // 切换按钮文本
+                    var temp = button.Content;
+                    button.Content = toggleText;
+                    toggleText = temp.ToString();
+                    onToggle?.Invoke();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"切换失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            };
+
+            return button;
         }
     }
 }

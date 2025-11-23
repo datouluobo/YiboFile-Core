@@ -96,30 +96,160 @@ namespace OoiMRR.Previews
                 }
 
                 var maxLength = 2000;
+                bool isTruncated = false;
                 if (content.Length > maxLength)
                 {
-                    content = content.Length > maxLength 
-                        ? content.Substring(0, maxLength) + "\n\n... (文件内容过长，仅显示前2000个字符)" 
-                        : content;
+                    content = content.Substring(0, maxLength) + "\n\n... (文件内容过长，仅显示前2000个字符)";
+                    isTruncated = true;
                 }
 
-                var textBlock = new TextBlock
+                // 创建主容器
+                var grid = new Grid();
+                grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+
+                // 使用可编辑的 TextBox
+                var textBox = new TextBox
                 {
                     Text = content,
                     TextWrapping = TextWrapping.Wrap,
+                    IsReadOnly = true,
                     Margin = new Thickness(5),
                     FontFamily = new FontFamily("Consolas"),
-                    FontSize = 12
-                };
-
-                var scrollViewer = new ScrollViewer
-                {
-                    Content = textBlock,
+                    FontSize = 12,
+                    BorderThickness = new Thickness(0),
+                    Background = Brushes.White,
                     VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-                    HorizontalScrollBarVisibility = ScrollBarVisibility.Auto
+                    HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+                    AcceptsReturn = true,
+                    AcceptsTab = true
                 };
 
-                return scrollViewer;
+                bool isEditMode = false;
+                string originalContent = content;
+
+                // 先声明按钮变量
+                Button editButton = null;
+
+                // 编辑/保存按钮
+                editButton = PreviewHelper.CreateEditButton(
+                    () =>
+                    {
+                        if (isEditMode)
+                        {
+                            // 保存模式
+                            try
+                            {
+                                // 确定编码（优先使用UTF-8）
+                                Encoding encoding = Encoding.UTF8;
+                                try
+                                {
+                                    // 尝试检测原始编码
+                                    var originalBytes = File.ReadAllBytes(filePath);
+                                    if (originalBytes.Length > 0)
+                                    {
+                                        // 简单检测：如果前3个字节是UTF-8 BOM
+                                        if (originalBytes.Length >= 3 && originalBytes[0] == 0xEF && originalBytes[1] == 0xBB && originalBytes[2] == 0xBF)
+                                        {
+                                            encoding = new UTF8Encoding(true);
+                                        }
+                                        else
+                                        {
+                                            // 尝试用UTF-8解码，如果失败则使用默认编码
+                                            try
+                                            {
+                                                Encoding.UTF8.GetString(originalBytes);
+                                                encoding = Encoding.UTF8;
+                                            }
+                                            catch
+                                            {
+                                                encoding = Encoding.Default;
+                                            }
+                                        }
+                                    }
+                                }
+                                catch { }
+
+                                // 保存文件
+                                File.WriteAllText(filePath, textBox.Text, encoding);
+                                
+                                // 更新原始内容
+                                originalContent = textBox.Text;
+                                
+                                // 切换为只读模式
+                                textBox.IsReadOnly = true;
+                                textBox.Background = PreviewHelper.ReadOnlyBackground;
+                                isEditMode = false;
+                                
+                                // 更新按钮
+                                if (editButton != null)
+                                {
+                                    editButton.Content = "✏️ 编辑";
+                                    editButton.Background = new SolidColorBrush(Color.FromRgb(33, 150, 243));
+                                }
+                                
+                                MessageBox.Show("文件已保存", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                            }
+                            catch (Exception ex)
+                            {
+                                MessageBox.Show($"保存失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                            }
+                        }
+                        else
+                        {
+                            // 编辑模式
+                            textBox.IsReadOnly = false;
+                            textBox.Background = PreviewHelper.EditModeBackground; // 浅蓝色背景表示可编辑
+                            isEditMode = true;
+                            
+                            // 更新按钮
+                            if (editButton != null)
+                            {
+                                editButton.Content = "💾 保存";
+                                editButton.Background = new SolidColorBrush(Color.FromRgb(76, 175, 80));
+                            }
+                        }
+                    },
+                    false
+                );
+
+                // 标题栏
+                var buttons = new List<Button> { editButton };
+                var titlePanel = PreviewHelper.CreateTitlePanel("📄", $"文本文件: {Path.GetFileName(filePath)}", buttons);
+                Grid.SetRow(titlePanel, 0);
+                grid.Children.Add(titlePanel);
+
+                // 设置自定义右键菜单，只包含复制（去掉剪切和粘贴）
+                var contextMenu = new ContextMenu();
+                var copyItem = new MenuItem
+                {
+                    Header = "复制",
+                    InputGestureText = "Ctrl+C"
+                };
+                copyItem.Click += (s, e) =>
+                {
+                    if (!string.IsNullOrEmpty(textBox.SelectedText))
+                    {
+                        Clipboard.SetText(textBox.SelectedText);
+                    }
+                    else
+                    {
+                        Clipboard.SetText(textBox.Text);
+                    }
+                };
+                contextMenu.Items.Add(copyItem);
+                textBox.ContextMenu = contextMenu;
+
+                // 如果是截断的内容，确保可以滚动
+                if (isTruncated)
+                {
+                    textBox.TextWrapping = TextWrapping.Wrap;
+                }
+
+                Grid.SetRow(textBox, 1);
+                grid.Children.Add(textBox);
+
+                return grid;
             }
             catch (Exception ex)
             {

@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -50,6 +52,17 @@ namespace OoiMRR.Previews
                     bitmap.EndInit();
                 }
 
+                // 创建主容器
+                var grid = new Grid();
+                grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+
+                // 标题栏
+                var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath) };
+                var titlePanel = PreviewHelper.CreateTitlePanel("🖼️", $"图片文件: {Path.GetFileName(filePath)}", buttons);
+                Grid.SetRow(titlePanel, 0);
+                grid.Children.Add(titlePanel);
+
                 var image = new Image 
                 { 
                     Source = bitmap, 
@@ -65,8 +78,10 @@ namespace OoiMRR.Previews
                     VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
                     Content = image
                 };
+                Grid.SetRow(scrollViewer, 1);
+                grid.Children.Add(scrollViewer);
                 
-                return scrollViewer;
+                return grid;
             }
             catch (Exception ex)
             {

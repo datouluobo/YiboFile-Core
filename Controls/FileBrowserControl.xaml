@@ -21,6 +21,7 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 
                 <!-- 导航按钮（← → ↑） -->
@@ -91,6 +92,52 @@
                 </StackPanel>
                 
                 <controls:AddressBarControl Grid.Column="1" x:Name="AddressBarControl"/>
+                
+                <!-- 搜索 / 筛选按钮组 -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Name="SearchBtn" Content="🔍" Width="32" Height="28" 
+                            Click="SearchBtn_Click" Margin="8,0,0,0"
+                            Background="#E3F2FD" BorderBrush="#BBDEFB" BorderThickness="1" 
+                            Cursor="Hand" ToolTip="搜索">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Background" Value="#E3F2FD"/>
+                                <Setter Property="BorderBrush" Value="#BBDEFB"/>
+                                <Setter Property="BorderThickness" Value="1"/>
+                                <Setter Property="Cursor" Value="Hand"/>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="#BBDEFB"/>
+                                    </Trigger>
+                                    <Trigger Property="IsPressed" Value="True">
+                                        <Setter Property="Background" Value="#90CAF9"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    <Button Name="FilterBtn" Content="⚙" Width="32" Height="28" 
+                            Click="FilterBtn_Click" Margin="6,0,0,0"
+                            Background="#E3F2FD" BorderBrush="#BBDEFB" BorderThickness="1" 
+                            Cursor="Hand" ToolTip="筛选">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Background" Value="#E3F2FD"/>
+                                <Setter Property="BorderBrush" Value="#BBDEFB"/>
+                                <Setter Property="BorderThickness" Value="1"/>
+                                <Setter Property="Cursor" Value="Hand"/>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="#BBDEFB"/>
+                                    </Trigger>
+                                    <Trigger Property="IsPressed" Value="True">
+                                        <Setter Property="Background" Value="#90CAF9"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                </StackPanel>
             </Grid>
         </Border>
         
@@ -254,6 +301,10 @@
                         </GridView>
                     </ListView.View>
                 </ListView>
+                <!-- 加载更多按钮 -->
+                <Button x:Name="LoadMoreBtn" Content="加载更多" Width="88" Height="28"
+                        HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="8"
+                        Visibility="Collapsed" Click="LoadMoreBtn_Click"/>
                 
                 <!-- 空状态提示 -->
                 <TextBlock x:Name="EmptyStateText" 

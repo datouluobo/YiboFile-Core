@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -29,7 +31,8 @@ namespace OoiMRR.Previews
                 mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
                 // 标题区域
-                var titlePanel = PreviewHelper.CreateTitlePanel("🎵", "音频文件");
+                var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath) };
+                var titlePanel = PreviewHelper.CreateTitlePanel("🎵", $"音频文件: {Path.GetFileName(filePath)}", buttons);
                 Grid.SetRow(titlePanel, 0);
                 mainGrid.Children.Add(titlePanel);
 

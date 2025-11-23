@@ -195,3 +195,6 @@ A:
 3. **显示规则**：
    - `ShouldShowFileFormatIconConverter.cs` 第58-60行（文件类型判断）
 
+
+
+

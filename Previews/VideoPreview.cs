@@ -1,7 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 
 namespace OoiMRR.Previews
@@ -18,7 +21,7 @@ namespace OoiMRR.Previews
                 // 使用 Grid 布局
                 var mainGrid = new Grid
                 {
-                    Background = Brushes.Black
+                    Background = Brushes.White
                 };
 
                 // 定义行：标题行 + 视频播放器 + 进度条 + 控制按钮行
@@ -28,44 +31,8 @@ namespace OoiMRR.Previews
                 mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
                 // 标题区域
-                var titlePanel = new StackPanel
-                {
-                    Orientation = Orientation.Horizontal,
-                    Background = new SolidColorBrush(Color.FromRgb(30, 30, 30)),
-                    Margin = new Thickness(0, 0, 0, 5)
-                };
-
-                var titleIcon = new TextBlock
-                {
-                    Text = "🎬",
-                    FontSize = 16,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    Foreground = Brushes.White,
-                    Margin = new Thickness(8, 6, 4, 6)
-                };
-
-                var titleText = new TextBlock
-                {
-                    Text = "视频文件",
-                    FontSize = 12,
-                    FontWeight = FontWeights.SemiBold,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    Foreground = Brushes.White
-                };
-
-                var fileInfo = new TextBlock
-                {
-                    Text = $"· {Path.GetFileName(filePath)}",
-                    FontSize = 10,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    Foreground = new SolidColorBrush(Color.FromRgb(200, 200, 200)),
-                    Margin = new Thickness(8, 6, 8, 6)
-                };
-
-                titlePanel.Children.Add(titleIcon);
-                titlePanel.Children.Add(titleText);
-                titlePanel.Children.Add(fileInfo);
-
+                var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath) };
+                var titlePanel = PreviewHelper.CreateTitlePanel("🎬", $"视频文件: {Path.GetFileName(filePath)}", buttons);
                 Grid.SetRow(titlePanel, 0);
                 mainGrid.Children.Add(titlePanel);
 
@@ -84,10 +51,12 @@ namespace OoiMRR.Previews
                 Grid.SetRow(mediaElement, 1);
                 mainGrid.Children.Add(mediaElement);
 
+                
+
                 // 进度条和时间显示区域
                 var progressPanel = new Grid
                 {
-                    Background = new SolidColorBrush(Color.FromRgb(30, 30, 30)),
+                    Background = (Brush)Application.Current.FindResource("PreviewPanelBackgroundBrush"),
                     Margin = new Thickness(0, 5, 0, 0)
                 };
 
@@ -99,7 +68,7 @@ namespace OoiMRR.Previews
                 var currentTimeText = new TextBlock
                 {
                     Text = "00:00",
-                    Foreground = Brushes.White,
+                    Foreground = (Brush)Application.Current.FindResource("PreviewTextPrimaryBrush"),
                     FontSize = 10,
                     VerticalAlignment = VerticalAlignment.Center,
                     Margin = new Thickness(8, 4, 8, 4)
@@ -123,7 +92,7 @@ namespace OoiMRR.Previews
                 var totalTimeText = new TextBlock
                 {
                     Text = "00:00",
-                    Foreground = Brushes.White,
+                    Foreground = (Brush)Application.Current.FindResource("PreviewTextPrimaryBrush"),
                     FontSize = 10,
                     VerticalAlignment = VerticalAlignment.Center,
                     Margin = new Thickness(8, 4, 8, 4)
@@ -135,49 +104,39 @@ namespace OoiMRR.Previews
                 mainGrid.Children.Add(progressPanel);
 
                 // 控制按钮区域
-                var controlPanel = new StackPanel
+                var controlPanel = new UniformGrid
                 {
-                    Orientation = Orientation.Horizontal,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    Background = new SolidColorBrush(Color.FromRgb(30, 30, 30)),
+                    Columns = 10,
+                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                    Background = (Brush)Application.Current.FindResource("PreviewPanelBackgroundBrush"),
                     Margin = new Thickness(0, 5, 0, 5)
                 };
 
-                // 播放/暂停按钮
                 var playPauseButton = new Button
                 {
                     Content = "▶️ 播放",
                     Margin = new Thickness(5),
                     Padding = new Thickness(12, 6, 12, 6),
-                    Background = new SolidColorBrush(Color.FromRgb(33, 150, 243)),
-                    Foreground = Brushes.White,
-                    BorderThickness = new Thickness(0),
                     Cursor = System.Windows.Input.Cursors.Hand
                 };
 
-                // 停止按钮
                 var stopButton = new Button
                 {
                     Content = "⏹️ 停止",
                     Margin = new Thickness(5),
                     Padding = new Thickness(12, 6, 12, 6),
-                    Background = new SolidColorBrush(Color.FromRgb(33, 150, 243)),
-                    Foreground = Brushes.White,
-                    BorderThickness = new Thickness(0),
                     Cursor = System.Windows.Input.Cursors.Hand
                 };
 
-                // 音量图标
                 var volumeText = new TextBlock
                 {
                     Text = "🔊",
                     FontSize = 14,
                     VerticalAlignment = VerticalAlignment.Center,
-                    Foreground = Brushes.White,
+                    Foreground = (Brush)Application.Current.FindResource("PreviewTextPrimaryBrush"),
                     Margin = new Thickness(10, 0, 5, 0)
                 };
 
-                // 音量滑块
                 var volumeSlider = new Slider
                 {
                     Minimum = 0,
@@ -188,23 +147,93 @@ namespace OoiMRR.Previews
                     Margin = new Thickness(0, 0, 10, 0)
                 };
 
-                // 默认播放器打开按钮
                 var openButton = new Button
                 {
                     Content = "🔓 默认播放器",
                     Margin = new Thickness(5),
                     Padding = new Thickness(12, 6, 12, 6),
-                    Background = new SolidColorBrush(Color.FromRgb(96, 125, 139)),
-                    Foreground = Brushes.White,
-                    BorderThickness = new Thickness(0),
                     Cursor = System.Windows.Input.Cursors.Hand
                 };
 
-                // 状态变量
+                var rewind5Button = new Button
+                {
+                    Content = "⏪ 5s",
+                    Margin = new Thickness(5),
+                    Padding = new Thickness(12, 6, 12, 6),
+                    Cursor = System.Windows.Input.Cursors.Hand
+                };
+
+                var forward5Button = new Button
+                {
+                    Content = "⏩ 5s",
+                    Margin = new Thickness(5),
+                    Padding = new Thickness(12, 6, 12, 6),
+                    Cursor = System.Windows.Input.Cursors.Hand
+                };
+
+                var fullscreenButton = new Button
+                {
+                    Content = "⛶ 全屏",
+                    Margin = new Thickness(5),
+                    Padding = new Thickness(12, 6, 12, 6),
+                    Cursor = System.Windows.Input.Cursors.Hand
+                };
+
+                var speedCombo = new ComboBox
+                {
+                    Width = 70,
+                    Margin = new Thickness(5),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    IsEditable = false
+                };
+                var si05 = new ComboBoxItem { Content = "0.5×", Tag = 0.5 };
+                var si10 = new ComboBoxItem { Content = "1×", Tag = 1.0 };
+                var si15 = new ComboBoxItem { Content = "1.5×", Tag = 1.5 };
+                var si20 = new ComboBoxItem { Content = "2×", Tag = 2.0 };
+                speedCombo.Items.Add(si05);
+                speedCombo.Items.Add(si10);
+                speedCombo.Items.Add(si15);
+                speedCombo.Items.Add(si20);
+                speedCombo.SelectedItem = si10;
+
                 bool isPlaying = false;
                 bool isDraggingProgress = false;
+                bool isFullscreen = false;
+                var buttonStyleResource = Application.Current.TryFindResource("ModernButtonStyle") as Style;
+                playPauseButton.Style = buttonStyleResource;
+                stopButton.Style = buttonStyleResource;
+                openButton.Style = buttonStyleResource;
+                rewind5Button.Style = buttonStyleResource;
+                forward5Button.Style = buttonStyleResource;
+                fullscreenButton.Style = buttonStyleResource;
+                var comboStyle = Application.Current.TryFindResource("ModernComboBoxStyle") as Style;
+                if (comboStyle != null) speedCombo.Style = comboStyle;
 
-                // 媒体打开事件
+                var clickOverlay = new Border
+                {
+                    Background = Brushes.Transparent,
+                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                    VerticalAlignment = VerticalAlignment.Stretch,
+                    Cursor = System.Windows.Input.Cursors.Hand
+                };
+                clickOverlay.MouseLeftButtonDown += (s, e) =>
+                {
+                    if (isPlaying)
+                    {
+                        mediaElement.Pause();
+                        playPauseButton.Content = "▶️ 播放";
+                        isPlaying = false;
+                    }
+                    else
+                    {
+                        mediaElement.Play();
+                        playPauseButton.Content = "⏸️ 暂停";
+                        isPlaying = true;
+                    }
+                };
+                Grid.SetRow(clickOverlay, 1);
+                mainGrid.Children.Add(clickOverlay);
+
                 mediaElement.MediaOpened += (s, e) =>
                 {
                     if (mediaElement.NaturalDuration.HasTimeSpan)
@@ -215,21 +244,8 @@ namespace OoiMRR.Previews
                     }
                 };
 
-                // 按钮样式
-                var buttonStyle = new Style(typeof(Button));
-                buttonStyle.Setters.Add(new Setter(Button.BackgroundProperty, new SolidColorBrush(Color.FromRgb(33, 150, 243))));
-                buttonStyle.Setters.Add(new Setter(Button.ForegroundProperty, Brushes.White));
-                buttonStyle.Setters.Add(new Setter(Button.BorderThicknessProperty, new Thickness(0)));
-                
-                var hoverTrigger = new Trigger { Property = Button.IsMouseOverProperty, Value = true };
-                hoverTrigger.Setters.Add(new Setter(Button.BackgroundProperty, new SolidColorBrush(Color.FromRgb(0, 102, 204))));
-                buttonStyle.Triggers.Add(hoverTrigger);
-                
-                playPauseButton.Style = buttonStyle;
-                stopButton.Style = buttonStyle;
-                openButton.Style = buttonStyle;
 
-                // 播放/暂停按钮事件
+
                 playPauseButton.Click += (s, e) =>
                 {
                     if (isPlaying)
@@ -246,7 +262,6 @@ namespace OoiMRR.Previews
                     }
                 };
 
-                // 停止按钮事件
                 stopButton.Click += (s, e) =>
                 {
                     mediaElement.Stop();
@@ -256,7 +271,6 @@ namespace OoiMRR.Previews
                     currentTimeText.Text = "00:00";
                 };
 
-                // 音量控制事件
                 volumeSlider.ValueChanged += (s, e) =>
                 {
                     mediaElement.Volume = volumeSlider.Value;
@@ -266,6 +280,26 @@ namespace OoiMRR.Previews
                         volumeText.Text = "🔉";
                     else
                         volumeText.Text = "🔊";
+                };
+
+                rewind5Button.Click += (s, e) =>
+                {
+                    var pos = mediaElement.Position - TimeSpan.FromSeconds(5);
+                    if (pos < TimeSpan.Zero) pos = TimeSpan.Zero;
+                    mediaElement.Position = pos;
+                };
+                forward5Button.Click += (s, e) =>
+                {
+                    var duration = mediaElement.NaturalDuration.HasTimeSpan ? mediaElement.NaturalDuration.TimeSpan : TimeSpan.MaxValue;
+                    var pos = mediaElement.Position + TimeSpan.FromSeconds(5);
+                    if (pos > duration) pos = duration;
+                    mediaElement.Position = pos;
+                };
+
+                speedCombo.SelectionChanged += (s, e) =>
+                {
+                    if (speedCombo.SelectedItem is ComboBoxItem item && item.Tag is double rate)
+                        mediaElement.SpeedRatio = rate;
                 };
 
                 // 进度条拖动事件
@@ -280,7 +314,6 @@ namespace OoiMRR.Previews
                     }
                 };
 
-                // 定时器更新进度
                 var timer = new System.Windows.Threading.DispatcherTimer
                 {
                     Interval = TimeSpan.FromMilliseconds(100)
@@ -311,7 +344,6 @@ namespace OoiMRR.Previews
                     playPauseButton.Content = "⏸️ 暂停";
                 };
 
-                // 默认播放器打开事件
                 openButton.Click += (s, e) =>
                 {
                     try
@@ -328,10 +360,90 @@ namespace OoiMRR.Previews
                     }
                 };
 
+                fullscreenButton.Click += (s, e) =>
+                {
+                    var window = Window.GetWindow(mainGrid);
+                    if (window == null) return;
+                    isFullscreen = !isFullscreen;
+                    if (isFullscreen)
+                    {
+                        window.Tag = new { window.WindowStyle, window.WindowState, window.Topmost };
+                        titlePanel.Visibility = Visibility.Collapsed;
+                        progressPanel.Visibility = Visibility.Collapsed;
+                        controlPanel.Visibility = Visibility.Collapsed;
+                        window.WindowStyle = WindowStyle.None;
+                        window.WindowState = WindowState.Maximized;
+                        window.Topmost = true;
+                        fullscreenButton.Content = "⛶ 退出全屏";
+                    }
+                    else
+                    {
+                        var prev = window.Tag;
+                        titlePanel.Visibility = Visibility.Visible;
+                        progressPanel.Visibility = Visibility.Visible;
+                        controlPanel.Visibility = Visibility.Visible;
+                        window.WindowStyle = WindowStyle.SingleBorderWindow;
+                        window.WindowState = WindowState.Normal;
+                        window.Topmost = false;
+                        fullscreenButton.Content = "⛶ 全屏";
+                    }
+                };
+
+                mainGrid.Focusable = true;
+                mainGrid.PreviewKeyDown += (s, e) =>
+                {
+                    if (e.Key == System.Windows.Input.Key.Space)
+                    {
+                        playPauseButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                        e.Handled = true;
+                    }
+                    else if (e.Key == System.Windows.Input.Key.Left)
+                    {
+                        rewind5Button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                        e.Handled = true;
+                    }
+                    else if (e.Key == System.Windows.Input.Key.Right)
+                    {
+                        forward5Button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                        e.Handled = true;
+                    }
+                    else if (e.Key == System.Windows.Input.Key.Up)
+                    {
+                        var v = Math.Min(1.0, volumeSlider.Value + 0.05);
+                        volumeSlider.Value = v;
+                        e.Handled = true;
+                    }
+                    else if (e.Key == System.Windows.Input.Key.Down)
+                    {
+                        var v = Math.Max(0.0, volumeSlider.Value - 0.05);
+                        volumeSlider.Value = v;
+                        e.Handled = true;
+                    }
+                    else if (e.Key == System.Windows.Input.Key.F)
+                    {
+                        fullscreenButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                        e.Handled = true;
+                    }
+                    else if (e.Key == System.Windows.Input.Key.Escape && isFullscreen)
+                    {
+                        fullscreenButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                        e.Handled = true;
+                    }
+                };
+
+                mediaElement.MouseLeftButtonDown += (s, e) =>
+                {
+                    playPauseButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                };
+
                 controlPanel.Children.Add(playPauseButton);
                 controlPanel.Children.Add(stopButton);
+                controlPanel.Children.Add(rewind5Button);
+                controlPanel.Children.Add(forward5Button);
                 controlPanel.Children.Add(volumeText);
                 controlPanel.Children.Add(volumeSlider);
+                controlPanel.Children.Add(speedCombo);
+                controlPanel.Children.Add(fullscreenButton);
                 controlPanel.Children.Add(openButton);
 
                 Grid.SetRow(controlPanel, 3);
@@ -346,4 +458,3 @@ namespace OoiMRR.Previews
         }
     }
 }
-

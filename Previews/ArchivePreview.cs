@@ -49,7 +49,8 @@ namespace OoiMRR.Previews
                 };
 
                 // 标题栏
-                var titlePanel = PreviewHelper.CreateTitlePanel("📦", $"ZIP 压缩包: {Path.GetFileName(filePath)}");
+                var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath) };
+                var titlePanel = PreviewHelper.CreateTitlePanel("📦", $"ZIP 压缩包: {Path.GetFileName(filePath)}", buttons);
                 mainPanel.Children.Add(titlePanel);
 
                 // 读取ZIP文件列表
@@ -217,7 +218,8 @@ namespace OoiMRR.Previews
             };
 
             // 标题
-            var titlePanel = PreviewHelper.CreateTitlePanel("📦", $"{formatName} 压缩包: {Path.GetFileName(filePath)}");
+            var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath) };
+            var titlePanel = PreviewHelper.CreateTitlePanel("📦", $"{formatName} 压缩包: {Path.GetFileName(filePath)}", buttons);
             mainPanel.Children.Add(titlePanel);
 
             // 图标

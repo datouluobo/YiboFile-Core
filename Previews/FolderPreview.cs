@@ -149,9 +149,20 @@ namespace OoiMRR.Previews
                     }
                 };
 
+                // 创建主容器
+                var grid = new Grid();
+                grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+
+                // 标题栏
+                var buttons = new List<Button> { PreviewHelper.CreateOpenFolderButton(folderPath) };
+                var titlePanel = PreviewHelper.CreateTitlePanel("📁", $"文件夹: {Path.GetFileName(folderPath)}", buttons);
+                Grid.SetRow(titlePanel, 0);
+                grid.Children.Add(titlePanel);
+
                 if (items.Count == 0)
                 {
-                    return new TextBlock
+                    var emptyText = new TextBlock
                     {
                         Text = "文件夹为空",
                         HorizontalAlignment = HorizontalAlignment.Center,
@@ -159,9 +170,15 @@ namespace OoiMRR.Previews
                         Foreground = Brushes.Gray,
                         FontSize = 14
                     };
+                    Grid.SetRow(emptyText, 1);
+                    grid.Children.Add(emptyText);
+                    return grid;
                 }
 
-                return listView;
+                Grid.SetRow(listView, 1);
+                grid.Children.Add(listView);
+
+                return grid;
             }
             catch (Exception ex)
             {

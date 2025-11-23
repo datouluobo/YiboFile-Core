@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -30,10 +32,6 @@ namespace OoiMRR.Previews
                     Background = Brushes.White
                 };
 
-                // 标题区域
-                var titlePanel = PreviewHelper.CreateTitlePanel("🔗", $"快捷方式: {Path.GetFileName(filePath)}");
-                mainPanel.Children.Add(titlePanel);
-
                 // 目标路径信息
                 var infoPanel = new StackPanel
                 {
@@ -50,93 +48,142 @@ namespace OoiMRR.Previews
                 };
                 infoPanel.Children.Add(targetLabel);
 
-                var targetPathText = new TextBlock
+                // 使用可编辑的 TextBox
+                var targetPathText = new TextBox
                 {
                     Text = targetPath,
                     FontSize = 13,
                     TextWrapping = TextWrapping.Wrap,
-                    Margin = new Thickness(0, 0, 0, 15)
+                    IsReadOnly = true,
+                    BorderThickness = new Thickness(0),
+                    Background = Brushes.Transparent,
+                    Margin = new Thickness(0, 0, 0, 15),
+                    Padding = new Thickness(0)
                 };
-                infoPanel.Children.Add(targetPathText);
 
-                // 检查目标是否存在
-                bool targetExists = Directory.Exists(targetPath) || File.Exists(targetPath);
-                bool isDirectory = Directory.Exists(targetPath);
+                bool isEditMode = false;
+                string originalTargetPath = targetPath;
+                Button editButton = null;
 
-                if (!targetExists)
-                {
-                    var errorText = new TextBlock
+                // 编辑/保存按钮
+                editButton = PreviewHelper.CreateEditButton(
+                    () =>
                     {
-                        Text = "⚠️ 目标路径不存在",
-                        FontSize = 12,
-                        Foreground = Brushes.OrangeRed,
-                        Margin = new Thickness(0, 0, 0, 15)
-                    };
-                    infoPanel.Children.Add(errorText);
+                        if (isEditMode)
+                        {
+                            // 保存模式
+                            try
+                            {
+                                string newTargetPath = targetPathText.Text.Trim();
+                                
+                                if (string.IsNullOrEmpty(newTargetPath))
+                                {
+                                    MessageBox.Show("目标路径不能为空", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                                    return;
+                                }
+
+                                // 保存快捷方式目标路径
+                                if (SetShortcutTarget(filePath, newTargetPath))
+                                {
+                                    targetPath = newTargetPath;
+                                    originalTargetPath = newTargetPath;
+                                    
+                                    // 切换为只读模式
+                                    targetPathText.IsReadOnly = true;
+                                    targetPathText.Background = Brushes.Transparent; // LNK预览保持透明背景
+                                    isEditMode = false;
+                                    
+                                    // 更新按钮
+                                    if (editButton != null)
+                                    {
+                                        editButton.Content = "✏️ 编辑";
+                                        editButton.Background = new SolidColorBrush(Color.FromRgb(33, 150, 243));
+                                    }
+                                    
+                                    // 刷新预览内容
+                                    RefreshPreviewContent(infoPanel, targetPath);
+                                    
+                                    MessageBox.Show("快捷方式已保存", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                                }
+                                else
+                                {
+                                    MessageBox.Show("保存快捷方式失败", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                MessageBox.Show($"保存失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                            }
+                        }
+                        else
+                        {
+                            // 编辑模式
+                            targetPathText.IsReadOnly = false;
+                            targetPathText.Background = PreviewHelper.EditModeBackground; // 浅蓝色背景表示可编辑
+                            isEditMode = true;
+                            
+                            // 更新按钮
+                            if (editButton != null)
+                            {
+                                editButton.Content = "💾 保存";
+                                editButton.Background = new SolidColorBrush(Color.FromRgb(76, 175, 80));
+                            }
+                        }
+                    },
+                    false
+                );
+
+                // 标题区域 - 添加按钮
+                var buttons = new List<Button>();
+                buttons.Add(editButton);
+                
+                // 检查目标是否存在，如果存在则添加打开文件夹按钮
+                if (!string.IsNullOrEmpty(targetPath))
+                {
+                    bool targetExistsCheck = Directory.Exists(targetPath) || File.Exists(targetPath);
+                    bool isDirectoryCheck = Directory.Exists(targetPath);
+                    
+                    if (targetExistsCheck)
+                    {
+                        // 无论目标是文件夹还是文件，都显示"打开文件夹"按钮
+                        string folderPath = isDirectoryCheck ? targetPath : Path.GetDirectoryName(targetPath);
+                        if (!string.IsNullOrEmpty(folderPath) && Directory.Exists(folderPath))
+                        {
+                            buttons.Add(PreviewHelper.CreateOpenFolderButton(folderPath));
+                        }
+                    }
                 }
-                else
+                
+                var titlePanel = PreviewHelper.CreateTitlePanel("🔗", $"快捷方式: {Path.GetFileName(filePath)}", buttons);
+                mainPanel.Children.Add(titlePanel);
+
+                // 设置自定义右键菜单，只包含复制（去掉剪切和粘贴）
+                var contextMenu = new ContextMenu();
+                var copyItem = new MenuItem
                 {
-                    // 如果目标是文件夹，显示文件夹内容
-                    if (isDirectory)
+                    Header = "复制",
+                    InputGestureText = "Ctrl+C"
+                };
+                copyItem.Click += (s, e) =>
+                {
+                    if (!string.IsNullOrEmpty(targetPathText.SelectedText))
                     {
-                        var folderPreview = new FolderPreview().CreatePreview(targetPath);
-                        infoPanel.Children.Add(folderPreview);
+                        Clipboard.SetText(targetPathText.SelectedText);
                     }
                     else
                     {
-                        // 如果是文件，显示文件信息
-                        var fileInfo = new FileInfo(targetPath);
-                        var fileInfoText = new TextBlock
-                        {
-                            Text = $"文件大小: {PreviewHelper.FormatFileSize(fileInfo.Length)}\n" +
-                                   $"修改日期: {fileInfo.LastWriteTime:yyyy-MM-dd HH:mm:ss}",
-                            FontSize = 12,
-                            Foreground = Brushes.Gray,
-                            Margin = new Thickness(0, 0, 0, 15)
-                        };
-                        infoPanel.Children.Add(fileInfoText);
+                        Clipboard.SetText(targetPathText.Text);
                     }
-                }
+                };
+                contextMenu.Items.Add(copyItem);
+                targetPathText.ContextMenu = contextMenu;
+
+                infoPanel.Children.Add(targetPathText);
+
+                // 添加预览内容
+                RefreshPreviewContent(infoPanel, targetPath);
 
                 mainPanel.Children.Add(infoPanel);
-
-                // 按钮区域
-                var buttonPanel = new StackPanel
-                {
-                    Orientation = Orientation.Horizontal,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    Margin = new Thickness(15, 0, 15, 15)
-                };
-
-                if (targetExists)
-                {
-                    // 无论目标是文件夹还是文件，都显示"打开文件夹"按钮
-                    // 如果目标是文件，获取文件所在的文件夹路径
-                    string folderPath = isDirectory ? targetPath : Path.GetDirectoryName(targetPath);
-                    
-                    if (!string.IsNullOrEmpty(folderPath) && Directory.Exists(folderPath))
-                    {
-                        // 创建打开文件夹按钮（不使用PreviewHelper.CreateOpenButton，因为我们要自定义行为）
-                        var openButton = new Button
-                        {
-                            Content = "📂 打开文件夹",
-                            Padding = new Thickness(16, 8, 16, 8),
-                            FontSize = 14,
-                            MinWidth = 140,
-                            MinHeight = 36,
-                            Background = new SolidColorBrush(Color.FromRgb(33, 150, 243)),
-                            Foreground = Brushes.White,
-                            BorderThickness = new Thickness(0),
-                            Cursor = System.Windows.Input.Cursors.Hand
-                        };
-                        
-                        // 使用特殊标记来标识这是"打开文件夹"按钮，并在Tag中存储文件夹路径
-                        openButton.Tag = $"OpenFolder:{folderPath}";
-                        buttonPanel.Children.Add(openButton);
-                    }
-                }
-
-                mainPanel.Children.Add(buttonPanel);
 
                 return new ScrollViewer
                 {
@@ -179,6 +226,101 @@ namespace OoiMRR.Previews
                 catch
                 {
                     return null;
+                }
+            }
+        }
+
+        private bool SetShortcutTarget(string lnkPath, string targetPath)
+        {
+            try
+            {
+                // 使用WScript.Shell COM对象设置快捷方式目标
+                Type shellType = Type.GetTypeFromProgID("WScript.Shell");
+                object shell = Activator.CreateInstance(shellType);
+                object shortcut = shellType.InvokeMember("CreateShortcut", 
+                    System.Reflection.BindingFlags.InvokeMethod, null, shell, new object[] { lnkPath });
+                
+                // 设置目标路径
+                shortcut.GetType().InvokeMember("TargetPath",
+                    System.Reflection.BindingFlags.SetProperty, null, shortcut, new object[] { targetPath });
+                
+                // 保存快捷方式
+                shortcut.GetType().InvokeMember("Save",
+                    System.Reflection.BindingFlags.InvokeMethod, null, shortcut, null);
+                
+                return true;
+            }
+            catch
+            {
+                // 如果COM对象失败，尝试使用Shell API
+                try
+                {
+                    IShellLink link = (IShellLink)new ShellLink();
+                    IPersistFile file = (IPersistFile)link;
+                    
+                    // 加载现有快捷方式
+                    file.Load(lnkPath, 0);
+                    
+                    // 设置新的目标路径
+                    link.SetPath(targetPath);
+                    
+                    // 保存快捷方式
+                    file.Save(lnkPath, true);
+                    
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"保存快捷方式失败: {ex.Message}");
+                    return false;
+                }
+            }
+        }
+
+        private void RefreshPreviewContent(StackPanel infoPanel, string targetPath)
+        {
+            // 移除旧的预览内容（保留前两个元素：标签和文本框）
+            while (infoPanel.Children.Count > 2)
+            {
+                infoPanel.Children.RemoveAt(2);
+            }
+
+            // 检查目标是否存在
+            bool targetExists = Directory.Exists(targetPath) || File.Exists(targetPath);
+            bool isDirectory = Directory.Exists(targetPath);
+
+            if (!targetExists)
+            {
+                var errorText = new TextBlock
+                {
+                    Text = "⚠️ 目标路径不存在",
+                    FontSize = 12,
+                    Foreground = Brushes.OrangeRed,
+                    Margin = new Thickness(0, 0, 0, 15)
+                };
+                infoPanel.Children.Add(errorText);
+            }
+            else
+            {
+                // 如果目标是文件夹，显示文件夹内容
+                if (isDirectory)
+                {
+                    var folderPreview = new FolderPreview().CreatePreview(targetPath);
+                    infoPanel.Children.Add(folderPreview);
+                }
+                else
+                {
+                    // 如果是文件，显示文件信息
+                    var fileInfo = new FileInfo(targetPath);
+                    var fileInfoText = new TextBlock
+                    {
+                        Text = $"文件大小: {PreviewHelper.FormatFileSize(fileInfo.Length)}\n" +
+                               $"修改日期: {fileInfo.LastWriteTime:yyyy-MM-dd HH:mm:ss}",
+                        FontSize = 12,
+                        Foreground = Brushes.Gray,
+                        Margin = new Thickness(0, 0, 0, 15)
+                    };
+                    infoPanel.Children.Add(fileInfoText);
                 }
             }
         }
