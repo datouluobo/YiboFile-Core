@@ -24,40 +24,44 @@
                       HorizontalAlignment="Stretch"/>
         
         <!-- 行1：预览区 - 保持原有预览功能，图片时使用TagTrain样式 -->
-        <Grid Name="PreviewGrid" Grid.Row="1" MinHeight="200">
-            <!-- 原有的预览区域（用于非图片文件） -->
-            <TextBlock Text="选择一个文件进行预览" 
-                       HorizontalAlignment="Center" 
-                       VerticalAlignment="Center"
-                       Foreground="Gray" FontSize="14" Name="DefaultPreviewText"/>
-            
-            <!-- TagTrain样式的图片预览（叠加层，仅在显示图片时可见） -->
-            <Border BorderBrush="#CCCCCC" BorderThickness="2" 
-                    Background="#F5F5F5" CornerRadius="5" ClipToBounds="True" 
-                    Name="ImagePreviewBorder" Visibility="Collapsed">
-                <Grid ClipToBounds="True">
-                    <Image Name="ImagePreviewDisplay" 
-                           Stretch="Uniform" 
+        <Border Grid.Row="1" Background="#FFFFFF" BorderBrush="#E9ECEF" BorderThickness="0,1,0,1">
+            <Grid Name="PreviewGrid" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ClipToBounds="True">
+                <!-- 原有的预览区域（用于非图片文件） -->
+                <TextBlock Text="选择一个文件进行预览" 
                            HorizontalAlignment="Center" 
                            VerticalAlignment="Center"
-                           StretchDirection="Both"
-                           RenderOptions.BitmapScalingMode="HighQuality"/>
-                    <TextBlock Name="NoImagePreviewText" Text="选择一个文件进行预览" 
-                              HorizontalAlignment="Center" 
-                              VerticalAlignment="Center"
-                              FontSize="18" Foreground="Gray" Visibility="Collapsed"/>
-                </Grid>
-            </Border>
-        </Grid>
+                           Foreground="Gray" FontSize="14" Name="DefaultPreviewText"/>
+                
+                <!-- TagTrain样式的图片预览（叠加层，仅在显示图片时可见） -->
+                <Border BorderBrush="#CCCCCC" BorderThickness="2" 
+                        Background="#F5F5F5" CornerRadius="5" ClipToBounds="True" 
+                        Name="ImagePreviewBorder" Visibility="Collapsed">
+                    <Grid ClipToBounds="True">
+                        <Image Name="ImagePreviewDisplay" 
+                               Stretch="Uniform" 
+                               HorizontalAlignment="Center" 
+                               VerticalAlignment="Center"
+                               StretchDirection="Both"
+                               RenderOptions.BitmapScalingMode="HighQuality"/>
+                        <TextBlock Name="NoImagePreviewText" Text="选择一个文件进行预览" 
+                                  HorizontalAlignment="Center" 
+                                  VerticalAlignment="Center"
+                                  FontSize="18" Foreground="Gray" Visibility="Collapsed"/>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Border>
         
         <!-- 行3：备注区 -->
-        <TextBox Grid.Row="3" Name="NotesTextBox" Margin="8,8,8,8" 
-                 AcceptsReturn="True" 
-                 TextWrapping="Wrap"
-                 VerticalScrollBarVisibility="Auto"
-                 HorizontalAlignment="Stretch"
-                 VerticalAlignment="Stretch"
-                 TextChanged="NotesTextBox_TextChanged"
-                 Background="#FFFFFF" BorderBrush="#E9ECEF" BorderThickness="1"/>
+        <Border Grid.Row="3" Background="#F8F9FA" BorderBrush="#E9ECEF" BorderThickness="0,1,0,0">
+            <TextBox Name="NotesTextBox" Margin="8,4,8,4" 
+                     AcceptsReturn="True" 
+                     TextWrapping="Wrap"
+                     VerticalScrollBarVisibility="Auto"
+                     HorizontalAlignment="Stretch"
+                     VerticalAlignment="Stretch"
+                     TextChanged="NotesTextBox_TextChanged"
+                     Background="#FFFFFF" BorderBrush="Transparent" BorderThickness="0"/>
+        </Border>
     </Grid>
 </UserControl>

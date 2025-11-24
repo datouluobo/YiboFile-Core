@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -24,10 +26,15 @@ namespace OoiMRR.Previews
             {
                 return CreateZipPreview(filePath);
             }
-            // RAR和7Z需要第三方库支持，显示提示信息
-            else if (extension == ".rar" || extension == ".7z")
+            // 7Z文件使用7-Zip工具读取文件列表
+            else if (extension == ".7z")
             {
-                return CreateRar7zPreview(filePath, extension);
+                return Create7zPreview(filePath);
+            }
+            // RAR文件使用7-Zip工具读取文件列表（7-Zip支持RAR格式）
+            else if (extension == ".rar")
+            {
+                return CreateRarPreview(filePath);
             }
             // 其他压缩格式显示通用预览
             else
@@ -42,16 +49,23 @@ namespace OoiMRR.Previews
         {
             try
             {
-                var mainPanel = new StackPanel
+                // 使用Grid布局以支持填充剩余空间（与7Z预览保持一致）
+                var mainGrid = new Grid
                 {
-                    Orientation = Orientation.Vertical,
-                    Background = Brushes.White
+                    Background = Brushes.White,
+                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                    VerticalAlignment = VerticalAlignment.Stretch,
+                    ClipToBounds = true
                 };
+                mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 标题栏
+                mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 统计信息
+                mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // 文件列表（填充剩余空间）
 
                 // 标题栏
-                var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath) };
+                var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath, "🔓 打开压缩包") };
                 var titlePanel = PreviewHelper.CreateTitlePanel("📦", $"ZIP 压缩包: {Path.GetFileName(filePath)}", buttons);
-                mainPanel.Children.Add(titlePanel);
+                Grid.SetRow(titlePanel, 0);
+                mainGrid.Children.Add(titlePanel);
 
                 // 读取ZIP文件列表
                 var fileList = new List<(string name, long size)>();
@@ -98,14 +112,16 @@ namespace OoiMRR.Previews
                 }
                 catch (Exception ex)
                 {
-                    mainPanel.Children.Add(new TextBlock
+                    var errorText = new TextBlock
                     {
                         Text = $"无法读取压缩包: {ex.Message}",
                         Foreground = Brushes.Red,
                         Margin = new Thickness(10),
                         TextWrapping = TextWrapping.Wrap
-                    });
-                    return mainPanel;
+                    };
+                    Grid.SetRow(errorText, 2);
+                    mainGrid.Children.Add(errorText);
+                    return mainGrid;
                 }
 
                 // 统计信息
@@ -123,15 +139,16 @@ namespace OoiMRR.Previews
                     Foreground = new SolidColorBrush(Color.FromRgb(102, 102, 102))
                 };
 
-                mainPanel.Children.Add(infoPanel);
+                Grid.SetRow(infoPanel, 1);
+                mainGrid.Children.Add(infoPanel);
 
                 // 文件列表
                 if (fileList.Count > 0)
                 {
                     var listView = new ListView
                     {
-                        MaxHeight = 400,
-                        Margin = new Thickness(10, 0, 10, 10)
+                        HorizontalAlignment = HorizontalAlignment.Stretch,
+                        VerticalAlignment = VerticalAlignment.Stretch
                     };
 
                     var gridView = new GridView();
@@ -161,39 +178,24 @@ namespace OoiMRR.Previews
 
                     listView.ItemsSource = displayList;
 
-                    var scrollViewer = new ScrollViewer
-                    {
-                        Content = listView,
-                        VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-                        MaxHeight = 400
-                    };
-
-                    mainPanel.Children.Add(scrollViewer);
+                    Grid.SetRow(listView, 2);
+                    mainGrid.Children.Add(listView);
                 }
                 else
                 {
-                    mainPanel.Children.Add(new TextBlock
+                    var emptyText = new TextBlock
                     {
                         Text = "压缩包为空",
                         HorizontalAlignment = HorizontalAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Center,
                         Foreground = Brushes.Gray,
                         Margin = new Thickness(10, 20, 10, 10)
-                    });
+                    };
+                    Grid.SetRow(emptyText, 2);
+                    mainGrid.Children.Add(emptyText);
                 }
 
-                // 按钮区域
-                var buttonPanel = new StackPanel
-                {
-                    Orientation = Orientation.Horizontal,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    Margin = new Thickness(10)
-                };
-
-                var openButton = PreviewHelper.CreateOpenButton(filePath, "🔓 打开压缩包");
-                buttonPanel.Children.Add(openButton);
-                mainPanel.Children.Add(buttonPanel);
-
-                return mainPanel;
+                return mainGrid;
             }
             catch (Exception ex)
             {
@@ -203,60 +205,599 @@ namespace OoiMRR.Previews
 
         #endregion
 
-        #region RAR/7Z 预览
+        #region 7Z 预览
 
-        private UIElement CreateRar7zPreview(string filePath, string extension)
+        private UIElement Create7zPreview(string filePath)
         {
-            var formatName = extension == ".rar" ? "RAR" : "7Z";
-
-            var mainPanel = new StackPanel
+            try
             {
-                Orientation = Orientation.Vertical,
-                Background = Brushes.White,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center
+                // 使用Grid布局以支持填充剩余空间
+                var mainGrid = new Grid
+                {
+                    Background = Brushes.White,
+                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                    VerticalAlignment = VerticalAlignment.Stretch,
+                    ClipToBounds = true
+                };
+                mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 标题栏
+                mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 统计信息
+                mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // 文件列表（填充剩余空间）
+
+                // 标题栏
+                var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath, "🔓 打开压缩包") };
+                var titlePanel = PreviewHelper.CreateTitlePanel("📦", $"7Z 压缩包: {Path.GetFileName(filePath)}", buttons);
+                Grid.SetRow(titlePanel, 0);
+                mainGrid.Children.Add(titlePanel);
+
+                // 读取7Z文件列表
+                var fileList = new List<(string name, long size)>();
+                long totalSize = 0;
+                int fileCount = 0;
+                int folderCount = 0;
+
+                try
+                {
+                    // 查找7-Zip可执行文件
+                    var sevenZipPath = FindSevenZipPath();
+                    if (string.IsNullOrEmpty(sevenZipPath))
+                    {
+                        var errorText = new TextBlock
+                        {
+                            Text = "无法找到 7-Zip 工具。请确保已安装 7-Zip 或将其放置在 Dependencies\\7-Zip 目录中。",
+                            Foreground = Brushes.Red,
+                            Margin = new Thickness(10),
+                            TextWrapping = TextWrapping.Wrap
+                        };
+                        Grid.SetRow(errorText, 2);
+                        mainGrid.Children.Add(errorText);
+                        return mainGrid;
+                    }
+
+                    // 注册编码提供程序以支持 GBK 等编码
+                    Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
+                    // 使用7-Zip列出文件内容（使用-slt参数获取更详细的列表格式）
+                    var arguments = $"l -slt \"{filePath}\"";
+                    var processInfo = new ProcessStartInfo
+                    {
+                        FileName = sevenZipPath,
+                        Arguments = arguments,
+                        UseShellExecute = false,
+                        CreateNoWindow = true,
+                        WindowStyle = ProcessWindowStyle.Hidden,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        StandardOutputEncoding = Encoding.UTF8,
+                        StandardErrorEncoding = Encoding.UTF8,
+                        WorkingDirectory = Path.GetDirectoryName(sevenZipPath)
+                    };
+
+                    byte[] outputBytes = null;
+                    string output = "";
+                    string error = "";
+
+                    using (var process = Process.Start(processInfo))
+                    {
+                        if (process != null)
+                        {
+                            // 读取原始字节以支持多种编码
+                            using (var ms = new MemoryStream())
+                            {
+                                var buffer = new byte[4096];
+                                int bytesRead;
+                                while ((bytesRead = process.StandardOutput.BaseStream.Read(buffer, 0, buffer.Length)) > 0)
+                                {
+                                    ms.Write(buffer, 0, bytesRead);
+                                }
+                                outputBytes = ms.ToArray();
+                            }
+
+                            error = process.StandardError.ReadToEnd();
+                            process.WaitForExit();
+
+                            if (process.ExitCode != 0 && process.ExitCode != 1)
+                            {
+                                throw new Exception($"7-Zip 列出文件失败，退出代码: {process.ExitCode}\n错误信息: {error}");
+                            }
+                        }
+                    }
+
+                    // 尝试多种编码解析输出
+                    var encodings = new List<Encoding>();
+                    encodings.Add(Encoding.UTF8);
+                    try { encodings.Add(Encoding.GetEncoding("GBK")); } catch { }
+                    try { encodings.Add(Encoding.GetEncoding("GB2312")); } catch { }
+                    try { encodings.Add(Encoding.GetEncoding("GB18030")); } catch { }
+                    encodings.Add(Encoding.Default);
+
+                    bool parsed = false;
+                    int bestScore = int.MaxValue;
+                    string bestOutput = "";
+
+                    foreach (var encoding in encodings)
+                    {
+                        try
+                        {
+                            var testOutput = encoding.GetString(outputBytes);
+                            // 计算编码质量分数（无效字符越少越好）
+                            int score = CountInvalidChars(testOutput);
+                            
+                            // 检查是否包含7z输出特征（Path =, Size = 等）
+                            if (testOutput.Contains("Path = ") && testOutput.Contains("Size = "))
+                            {
+                                if (score < bestScore)
+                                {
+                                    bestScore = score;
+                                    bestOutput = testOutput;
+                                    parsed = true;
+                                }
+                            }
+                        }
+                        catch
+                        {
+                            continue;
+                        }
+                    }
+
+                    if (parsed)
+                    {
+                        output = bestOutput;
+                    }
+                    else if (outputBytes != null)
+                    {
+                        // 如果所有编码都失败，使用UTF-8作为默认
+                        output = Encoding.UTF8.GetString(outputBytes);
+                    }
+
+                    // 解析7-Zip输出（-slt格式是键值对格式，更容易解析）
+                    Parse7zOutputSlt(output, fileList, ref fileCount, ref folderCount, ref totalSize);
+
+                    // 对文件列表按路径排序，保持文件夹结构
+                    fileList.Sort((a, b) => string.Compare(a.name, b.name, StringComparison.OrdinalIgnoreCase));
+                }
+                catch (Exception ex)
+                {
+                    var errorText = new TextBlock
+                    {
+                        Text = $"无法读取压缩包: {ex.Message}",
+                        Foreground = Brushes.Red,
+                        Margin = new Thickness(10),
+                        TextWrapping = TextWrapping.Wrap
+                    };
+                    Grid.SetRow(errorText, 2);
+                    mainGrid.Children.Add(errorText);
+                    return mainGrid;
+                }
+
+                // 统计信息
+                var infoPanel = new Border
+                {
+                    Background = new SolidColorBrush(Color.FromRgb(248, 248, 248)),
+                    Padding = new Thickness(10),
+                    Margin = new Thickness(0, 5, 0, 10)
+                };
+
+                infoPanel.Child = new TextBlock
+                {
+                    Text = $"文件数: {fileCount} | 文件夹数: {folderCount} | 总大小: {PreviewHelper.FormatFileSize(totalSize)}",
+                    FontSize = 11,
+                    Foreground = new SolidColorBrush(Color.FromRgb(102, 102, 102))
+                };
+
+                Grid.SetRow(infoPanel, 1);
+                mainGrid.Children.Add(infoPanel);
+
+                // 文件列表
+                if (fileList.Count > 0)
+                {
+                    var listView = new ListView
+                    {
+                        HorizontalAlignment = HorizontalAlignment.Stretch,
+                        VerticalAlignment = VerticalAlignment.Stretch
+                    };
+
+                    var gridView = new GridView();
+                    
+                    gridView.Columns.Add(new GridViewColumn
+                    {
+                        Header = "文件名",
+                        Width = 300,
+                        DisplayMemberBinding = new System.Windows.Data.Binding("FileName")
+                    });
+
+                    gridView.Columns.Add(new GridViewColumn
+                    {
+                        Header = "大小",
+                        Width = 100,
+                        DisplayMemberBinding = new System.Windows.Data.Binding("FileSize")
+                    });
+
+                    listView.View = gridView;
+
+                    // 转换文件列表为显示格式
+                    var displayList = fileList.Select(f => new
+                    {
+                        FileName = f.name,
+                        FileSize = f.size > 0 ? PreviewHelper.FormatFileSize(f.size) : "-"
+                    }).ToList();
+
+                    listView.ItemsSource = displayList;
+
+                    Grid.SetRow(listView, 2);
+                    mainGrid.Children.Add(listView);
+                }
+                else
+                {
+                    var emptyText = new TextBlock
+                    {
+                        Text = "压缩包为空",
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Center,
+                        Foreground = Brushes.Gray,
+                        Margin = new Thickness(10, 20, 10, 10)
+                    };
+                    Grid.SetRow(emptyText, 2);
+                    mainGrid.Children.Add(emptyText);
+                }
+
+                return mainGrid;
+            }
+            catch (Exception ex)
+            {
+                return PreviewHelper.CreateErrorPreview($"无法读取7Z文件: {ex.Message}");
+            }
+        }
+
+        private void Parse7zOutputSlt(string output, List<(string name, long size)> fileList, ref int fileCount, ref int folderCount, ref long totalSize)
+        {
+            if (string.IsNullOrEmpty(output))
+                return;
+
+            var lines = output.Split(new[] { '\r', '\n' }, StringSplitOptions.None);
+            string currentPath = null;
+            long currentSize = 0;
+            bool isDirectory = false;
+
+            foreach (var line in lines)
+            {
+                var trimmedLine = line.Trim();
+                
+                if (string.IsNullOrEmpty(trimmedLine))
+                {
+                    // 空行表示一个文件条目结束
+                    if (!string.IsNullOrEmpty(currentPath))
+                    {
+                        if (isDirectory)
+                        {
+                            folderCount++;
+                        }
+                        else
+                        {
+                            fileCount++;
+                            fileList.Add((currentPath, currentSize));
+                            totalSize += currentSize;
+                        }
+                        currentPath = null;
+                        currentSize = 0;
+                        isDirectory = false;
+                    }
+                    continue;
+                }
+
+                // 解析键值对格式
+                if (trimmedLine.StartsWith("Path = "))
+                {
+                    currentPath = trimmedLine.Substring(7).Trim();
+                }
+                else if (trimmedLine.StartsWith("Size = "))
+                {
+                    var sizeStr = trimmedLine.Substring(7).Trim();
+                    if (long.TryParse(sizeStr, out long size))
+                    {
+                        currentSize = size;
+                    }
+                }
+                else if (trimmedLine.StartsWith("Attributes = "))
+                {
+                    var attrs = trimmedLine.Substring(12).Trim();
+                    isDirectory = attrs.StartsWith("D") || attrs.Contains(" directory");
+                }
+            }
+
+            // 处理最后一个条目
+            if (!string.IsNullOrEmpty(currentPath))
+            {
+                if (isDirectory)
+                {
+                    folderCount++;
+                }
+                else
+                {
+                    fileCount++;
+                    fileList.Add((currentPath, currentSize));
+                    totalSize += currentSize;
+                }
+            }
+        }
+
+        private int CountInvalidChars(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+                return int.MaxValue;
+
+            int invalidCount = 0;
+            foreach (char c in text)
+            {
+                // 检查是否为替换字符（U+FFFD）或控制字符（除了常见的换行符等）
+                if (c == '\uFFFD' || (char.IsControl(c) && c != '\r' && c != '\n' && c != '\t'))
+                {
+                    invalidCount++;
+                }
+            }
+
+            return invalidCount;
+        }
+
+        private string FindSevenZipPath()
+        {
+            var possiblePaths = new[]
+            {
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Dependencies", "7-Zip", "7z.exe"),
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Dependencies", "7-Zip", "7zG.exe"),
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "7z.exe"),
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "7zG.exe"),
+                @"C:\Program Files\7-Zip\7z.exe",
+                @"C:\Program Files\7-Zip\7zG.exe",
+                @"C:\Program Files (x86)\7-Zip\7z.exe",
+                @"C:\Program Files (x86)\7-Zip\7zG.exe"
             };
 
-            // 标题
-            var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath) };
-            var titlePanel = PreviewHelper.CreateTitlePanel("📦", $"{formatName} 压缩包: {Path.GetFileName(filePath)}", buttons);
-            mainPanel.Children.Add(titlePanel);
+            return possiblePaths.FirstOrDefault(File.Exists);
+        }
 
-            // 图标
-            var icon = new TextBlock
+        #endregion
+
+        #region RAR 预览
+
+        private UIElement CreateRarPreview(string filePath)
+        {
+            try
             {
-                Text = "ℹ️",
-                FontSize = 48,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                Margin = new Thickness(0, 20, 0, 20)
-            };
-            mainPanel.Children.Add(icon);
+                // 使用Grid布局以支持填充剩余空间（与ZIP/7Z预览保持一致）
+                var mainGrid = new Grid
+                {
+                    Background = Brushes.White,
+                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                    VerticalAlignment = VerticalAlignment.Stretch,
+                    ClipToBounds = true
+                };
+                mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 标题栏
+                mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 统计信息
+                mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // 文件列表（填充剩余空间）
 
-            // 提示信息
-            var infoText = new TextBlock
+                // 标题栏
+                var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath, "🔓 打开压缩包") };
+                var titlePanel = PreviewHelper.CreateTitlePanel("📦", $"RAR 压缩包: {Path.GetFileName(filePath)}", buttons);
+                Grid.SetRow(titlePanel, 0);
+                mainGrid.Children.Add(titlePanel);
+
+                // 读取RAR文件列表（使用7-Zip工具，因为7-Zip支持RAR格式）
+                var fileList = new List<(string name, long size)>();
+                long totalSize = 0;
+                int fileCount = 0;
+                int folderCount = 0;
+
+                try
+                {
+                    // 查找7-Zip可执行文件
+                    var sevenZipPath = FindSevenZipPath();
+                    if (string.IsNullOrEmpty(sevenZipPath))
+                    {
+                        var errorText = new TextBlock
+                        {
+                            Text = "无法找到 7-Zip 工具。请确保已安装 7-Zip 或将其放置在 Dependencies\\7-Zip 目录中。",
+                            Foreground = Brushes.Red,
+                            Margin = new Thickness(10),
+                            TextWrapping = TextWrapping.Wrap
+                        };
+                        Grid.SetRow(errorText, 2);
+                        mainGrid.Children.Add(errorText);
+                        return mainGrid;
+                    }
+
+                    // 注册编码提供程序以支持 GBK 等编码
+                    Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
+                    // 使用7-Zip列出RAR文件内容（使用-slt参数获取更详细的列表格式）
+                    var arguments = $"l -slt \"{filePath}\"";
+                    var processInfo = new ProcessStartInfo
+                    {
+                        FileName = sevenZipPath,
+                        Arguments = arguments,
+                        UseShellExecute = false,
+                        CreateNoWindow = true,
+                        WindowStyle = ProcessWindowStyle.Hidden,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        StandardOutputEncoding = Encoding.UTF8,
+                        StandardErrorEncoding = Encoding.UTF8,
+                        WorkingDirectory = Path.GetDirectoryName(sevenZipPath)
+                    };
+
+                    byte[] outputBytes = null;
+                    string output = "";
+                    string error = "";
+
+                    using (var process = Process.Start(processInfo))
+                    {
+                        if (process != null)
+                        {
+                            // 读取原始字节以支持多种编码
+                            using (var ms = new MemoryStream())
+                            {
+                                var buffer = new byte[4096];
+                                int bytesRead;
+                                while ((bytesRead = process.StandardOutput.BaseStream.Read(buffer, 0, buffer.Length)) > 0)
+                                {
+                                    ms.Write(buffer, 0, bytesRead);
+                                }
+                                outputBytes = ms.ToArray();
+                            }
+
+                            error = process.StandardError.ReadToEnd();
+                            process.WaitForExit();
+
+                            if (process.ExitCode != 0 && process.ExitCode != 1)
+                            {
+                                throw new Exception($"7-Zip 列出RAR文件失败，退出代码: {process.ExitCode}\n错误信息: {error}");
+                            }
+                        }
+                    }
+
+                    // 尝试多种编码解析输出
+                    var encodings = new List<Encoding>();
+                    encodings.Add(Encoding.UTF8);
+                    try { encodings.Add(Encoding.GetEncoding("GBK")); } catch { }
+                    try { encodings.Add(Encoding.GetEncoding("GB2312")); } catch { }
+                    try { encodings.Add(Encoding.GetEncoding("GB18030")); } catch { }
+                    encodings.Add(Encoding.Default);
+
+                    bool parsed = false;
+                    int bestScore = int.MaxValue;
+                    string bestOutput = "";
+
+                    foreach (var encoding in encodings)
+                    {
+                        try
+                        {
+                            var testOutput = encoding.GetString(outputBytes);
+                            // 计算编码质量分数（无效字符越少越好）
+                            int score = CountInvalidChars(testOutput);
+                            
+                            // 检查是否包含7z输出特征（Path =, Size = 等）
+                            if (testOutput.Contains("Path = ") && testOutput.Contains("Size = "))
+                            {
+                                if (score < bestScore)
+                                {
+                                    bestScore = score;
+                                    bestOutput = testOutput;
+                                    parsed = true;
+                                }
+                            }
+                        }
+                        catch
+                        {
+                            continue;
+                        }
+                    }
+
+                    if (parsed)
+                    {
+                        output = bestOutput;
+                    }
+                    else if (outputBytes != null)
+                    {
+                        // 如果所有编码都失败，使用UTF-8作为默认
+                        output = Encoding.UTF8.GetString(outputBytes);
+                    }
+
+                    // 解析7-Zip输出（-slt格式是键值对格式，更容易解析）
+                    Parse7zOutputSlt(output, fileList, ref fileCount, ref folderCount, ref totalSize);
+
+                    // 对文件列表按路径排序，保持文件夹结构
+                    fileList.Sort((a, b) => string.Compare(a.name, b.name, StringComparison.OrdinalIgnoreCase));
+                }
+                catch (Exception ex)
+                {
+                    var errorText = new TextBlock
+                    {
+                        Text = $"无法读取压缩包: {ex.Message}",
+                        Foreground = Brushes.Red,
+                        Margin = new Thickness(10),
+                        TextWrapping = TextWrapping.Wrap
+                    };
+                    Grid.SetRow(errorText, 2);
+                    mainGrid.Children.Add(errorText);
+                    return mainGrid;
+                }
+
+                // 统计信息
+                var infoPanel = new Border
+                {
+                    Background = new SolidColorBrush(Color.FromRgb(248, 248, 248)),
+                    Padding = new Thickness(10),
+                    Margin = new Thickness(0, 5, 0, 10)
+                };
+
+                infoPanel.Child = new TextBlock
+                {
+                    Text = $"文件数: {fileCount} | 文件夹数: {folderCount} | 总大小: {PreviewHelper.FormatFileSize(totalSize)}",
+                    FontSize = 11,
+                    Foreground = new SolidColorBrush(Color.FromRgb(102, 102, 102))
+                };
+
+                Grid.SetRow(infoPanel, 1);
+                mainGrid.Children.Add(infoPanel);
+
+                // 文件列表
+                if (fileList.Count > 0)
+                {
+                    var listView = new ListView
+                    {
+                        HorizontalAlignment = HorizontalAlignment.Stretch,
+                        VerticalAlignment = VerticalAlignment.Stretch
+                    };
+
+                    var gridView = new GridView();
+                    
+                    gridView.Columns.Add(new GridViewColumn
+                    {
+                        Header = "文件名",
+                        Width = 300,
+                        DisplayMemberBinding = new System.Windows.Data.Binding("FileName")
+                    });
+
+                    gridView.Columns.Add(new GridViewColumn
+                    {
+                        Header = "大小",
+                        Width = 100,
+                        DisplayMemberBinding = new System.Windows.Data.Binding("FileSize")
+                    });
+
+                    listView.View = gridView;
+
+                    // 转换文件列表为显示格式
+                    var displayList = fileList.Select(f => new
+                    {
+                        FileName = f.name,
+                        FileSize = f.size > 0 ? PreviewHelper.FormatFileSize(f.size) : "-"
+                    }).ToList();
+
+                    listView.ItemsSource = displayList;
+
+                    Grid.SetRow(listView, 2);
+                    mainGrid.Children.Add(listView);
+                }
+                else
+                {
+                    var emptyText = new TextBlock
+                    {
+                        Text = "压缩包为空",
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Center,
+                        Foreground = Brushes.Gray,
+                        Margin = new Thickness(10, 20, 10, 10)
+                    };
+                    Grid.SetRow(emptyText, 2);
+                    mainGrid.Children.Add(emptyText);
+                }
+
+                return mainGrid;
+            }
+            catch (Exception ex)
             {
-                Text = $"{formatName} 格式需要使用专门的解压软件才能查看文件列表。\n\n.NET 内置不支持 {formatName} 格式的解压，\n建议使用 WinRAR、7-Zip 或其他解压软件打开。",
-                FontSize = 12,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                TextWrapping = TextWrapping.Wrap,
-                TextAlignment = TextAlignment.Center,
-                Foreground = new SolidColorBrush(Color.FromRgb(102, 102, 102)),
-                Margin = new Thickness(20, 0, 20, 20)
-            };
-            mainPanel.Children.Add(infoText);
-
-            // 打开按钮
-            var buttonPanel = new StackPanel
-            {
-                Orientation = Orientation.Horizontal,
-                HorizontalAlignment = HorizontalAlignment.Center
-            };
-
-            var openButton = PreviewHelper.CreateOpenButton(filePath, "🔓 打开压缩包");
-            buttonPanel.Children.Add(openButton);
-            mainPanel.Children.Add(buttonPanel);
-
-            return mainPanel;
+                return PreviewHelper.CreateErrorPreview($"无法读取RAR文件: {ex.Message}");
+            }
         }
 
         #endregion
