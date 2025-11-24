@@ -28,8 +28,8 @@ namespace OoiMRR
             { ".webp", new FileTypeInfo { Category = "图片", CanPreview = true, PreviewType = PreviewType.Image } },
             { ".heic", new FileTypeInfo { Category = "图片", CanPreview = false, PreviewType = PreviewType.Image } },
             { ".heif", new FileTypeInfo { Category = "图片", CanPreview = false, PreviewType = PreviewType.Image } },
-            { ".svg", new FileTypeInfo { Category = "图片", CanPreview = false, PreviewType = PreviewType.None } },
-            { ".psd", new FileTypeInfo { Category = "图片", CanPreview = false, PreviewType = PreviewType.None } },
+            { ".svg", new FileTypeInfo { Category = "图片", CanPreview = true, PreviewType = PreviewType.Image } },
+            { ".psd", new FileTypeInfo { Category = "图片", CanPreview = true, PreviewType = PreviewType.Image } },
             { ".ai", new FileTypeInfo { Category = "图片", CanPreview = false, PreviewType = PreviewType.None } },
 
             // 文本文件

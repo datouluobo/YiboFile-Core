@@ -17,6 +17,7 @@ using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
 using FFMpegCore;
+using ImageMagick;
 
 namespace OoiMRR.Controls.Converters
 {
@@ -232,16 +233,21 @@ namespace OoiMRR.Controls.Converters
         {
             try
             {
+                var ext = Path.GetExtension(path)?.ToLowerInvariant();
+                System.Diagnostics.Debug.WriteLine($"[ThumbnailConverter] LoadThumbnailSync: {Path.GetFileName(path)}, 扩展名: {ext}, 目标尺寸: {targetSize}");
+                
                 bool isDirectory = Directory.Exists(path);
                 bool isFile = File.Exists(path);
 
                 if (!isDirectory && !isFile)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[ThumbnailConverter] 文件不存在: {path}");
                     return null;
+                }
 
                 // 如果是图片文件，直接加载图片
                 if (isFile)
                 {
-                    var ext = Path.GetExtension(path)?.ToLowerInvariant();
                     
                     // 图片格式：直接加载
                     switch (ext)
@@ -255,7 +261,6 @@ namespace OoiMRR.Controls.Converters
                         case ".tiff":
                         case ".tif":
                         case ".ico":
-                        case ".svg":
                             try
                             {
                                 // 使用文件流加载，避免URI路径解析问题（特别是包含特殊字符的路径）
@@ -277,6 +282,88 @@ namespace OoiMRR.Controls.Converters
                             {
                                 return null;
                             }
+                        
+                        // SVG 格式：优先使用 Magick.NET 生成缩略图
+                        case ".svg":
+                            System.Diagnostics.Debug.WriteLine($"[ThumbnailConverter] 处理 SVG 文件: {path}");
+                            
+                            // 优先使用 Magick.NET 生成缩略图（更可靠）
+                            try
+                            {
+                                System.Diagnostics.Debug.WriteLine($"[ThumbnailConverter] 开始使用 Magick.NET 生成 SVG 缩略图");
+                                var magickThumbnail = GenerateSvgThumbnailWithMagick(path, targetSize);
+                                if (magickThumbnail != null)
+                                {
+                                    System.Diagnostics.Debug.WriteLine($"[ThumbnailConverter] SVG Magick.NET 缩略图生成成功");
+                                    return magickThumbnail;
+                                }
+                                System.Diagnostics.Debug.WriteLine($"[ThumbnailConverter] SVG Magick.NET 返回 null，尝试系统缩略图");
+                            }
+                            catch (Exception ex)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"[ThumbnailConverter] Magick.NET SVG 缩略图生成异常: {ex.Message}");
+                                System.Diagnostics.Debug.WriteLine($"[ThumbnailConverter] 堆栈: {ex.StackTrace}");
+                            }
+                            
+                            // Magick.NET 失败，尝试系统缩略图
+                            try
+                            {
+                                var thumbnail = GetShellThumbnail(path, targetSize);
+                                if (thumbnail != null)
+                                {
+                                    System.Diagnostics.Debug.WriteLine($"[ThumbnailConverter] SVG 使用系统缩略图成功");
+                                    return thumbnail;
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"[ThumbnailConverter] SVG 系统缩略图异常: {ex.Message}");
+                            }
+                            
+                            // 所有方法失败，回退到系统图标（在后面的代码中处理）
+                            System.Diagnostics.Debug.WriteLine($"[ThumbnailConverter] SVG 所有方法失败，回退到系统图标");
+                            break;
+                        
+                        // PSD 格式：优先使用 Magick.NET 生成缩略图
+                        case ".psd":
+                            System.Diagnostics.Debug.WriteLine($"[ThumbnailConverter] 处理 PSD 文件: {path}");
+                            
+                            // 优先使用 Magick.NET 生成缩略图（更可靠）
+                            try
+                            {
+                                System.Diagnostics.Debug.WriteLine($"[ThumbnailConverter] 开始使用 Magick.NET 生成 PSD 缩略图");
+                                var magickThumbnail = GeneratePsdThumbnailWithMagick(path, targetSize);
+                                if (magickThumbnail != null)
+                                {
+                                    System.Diagnostics.Debug.WriteLine($"[ThumbnailConverter] PSD Magick.NET 缩略图生成成功");
+                                    return magickThumbnail;
+                                }
+                                System.Diagnostics.Debug.WriteLine($"[ThumbnailConverter] PSD Magick.NET 返回 null，尝试系统缩略图");
+                            }
+                            catch (Exception ex)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"[ThumbnailConverter] Magick.NET PSD 缩略图生成异常: {ex.Message}");
+                                System.Diagnostics.Debug.WriteLine($"[ThumbnailConverter] 堆栈: {ex.StackTrace}");
+                            }
+                            
+                            // Magick.NET 失败，尝试系统缩略图
+                            try
+                            {
+                                var thumbnail = GetShellThumbnail(path, targetSize);
+                                if (thumbnail != null)
+                                {
+                                    System.Diagnostics.Debug.WriteLine($"[ThumbnailConverter] PSD 使用系统缩略图成功");
+                                    return thumbnail;
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"[ThumbnailConverter] PSD 系统缩略图异常: {ex.Message}");
+                            }
+                            
+                            // 所有方法失败，回退到系统图标（在后面的代码中处理）
+                            System.Diagnostics.Debug.WriteLine($"[ThumbnailConverter] PSD 所有方法失败，回退到系统图标");
+                            break;
                         
                         // 视频格式：使用 FFmpeg 提取第一帧
                         case ".mp4":
@@ -1130,6 +1217,169 @@ namespace OoiMRR.Controls.Converters
             }
             catch { }
             return null;
+        }
+
+        /// <summary>
+        /// 使用 Magick.NET 生成 SVG 缩略图
+        /// </summary>
+        private BitmapSource GenerateSvgThumbnailWithMagick(string svgPath, int targetSize)
+        {
+            try
+            {
+                if (!File.Exists(svgPath))
+                {
+                    System.Diagnostics.Debug.WriteLine($"Magick.NET SVG: 文件不存在: {svgPath}");
+                    return null;
+                }
+                
+                using var image = new MagickImage(svgPath);
+                System.Diagnostics.Debug.WriteLine($"Magick.NET SVG: 加载成功, 原始尺寸: {image.Width}x{image.Height}");
+                
+                // 生成缩略图，保持宽高比
+                image.Thumbnail(new MagickGeometry((uint)targetSize, (uint)targetSize)
+                {
+                    IgnoreAspectRatio = false
+                });
+                
+                System.Diagnostics.Debug.WriteLine($"Magick.NET SVG: 缩略图尺寸: {image.Width}x{image.Height}");
+                
+                // 转换为 BitmapSource
+                var result = ConvertMagickImageToBitmapSource(image);
+                if (result != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Magick.NET SVG: 转换成功");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"Magick.NET SVG: 转换为 BitmapSource 失败");
+                }
+                return result;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Magick.NET SVG 缩略图生成失败: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"堆栈跟踪: {ex.StackTrace}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// 使用 Magick.NET 生成 PSD 缩略图
+        /// </summary>
+        private BitmapSource GeneratePsdThumbnailWithMagick(string psdPath, int targetSize)
+        {
+            try
+            {
+                if (!File.Exists(psdPath))
+                {
+                    System.Diagnostics.Debug.WriteLine($"Magick.NET PSD: 文件不存在: {psdPath}");
+                    return null;
+                }
+                
+                using var image = new MagickImage(psdPath);
+                System.Diagnostics.Debug.WriteLine($"Magick.NET PSD: 加载成功, 原始尺寸: {image.Width}x{image.Height}");
+                
+                // 生成缩略图，保持宽高比
+                image.Thumbnail(new MagickGeometry((uint)targetSize, (uint)targetSize)
+                {
+                    IgnoreAspectRatio = false
+                });
+                
+                System.Diagnostics.Debug.WriteLine($"Magick.NET PSD: 缩略图尺寸: {image.Width}x{image.Height}");
+                
+                // 转换为 BitmapSource
+                var result = ConvertMagickImageToBitmapSource(image);
+                if (result != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Magick.NET PSD: 转换成功");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"Magick.NET PSD: 转换为 BitmapSource 失败");
+                }
+                return result;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Magick.NET PSD 缩略图生成失败: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"堆栈跟踪: {ex.StackTrace}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// 将 MagickImage 转换为 BitmapSource
+        /// </summary>
+        private BitmapSource ConvertMagickImageToBitmapSource(MagickImage image)
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"[ConvertMagickImageToBitmapSource] 开始转换, 图像尺寸: {image.Width}x{image.Height}");
+                
+                // 使用 ToByteArray 获取图像数据（使用 PNG 格式，质量更好）
+                var bytes = image.ToByteArray(MagickFormat.Png);
+                System.Diagnostics.Debug.WriteLine($"[ConvertMagickImageToBitmapSource] PNG 字节数组大小: {bytes.Length}");
+                
+                if (bytes == null || bytes.Length == 0)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[ConvertMagickImageToBitmapSource] 字节数组为空");
+                    return null;
+                }
+                
+                // 使用 UriSource 方式（更可靠，不需要管理流）
+                // 先保存到临时文件，然后使用 UriSource 加载
+                string tempFile = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString() + ".png");
+                try
+                {
+                    File.WriteAllBytes(tempFile, bytes);
+                    System.Diagnostics.Debug.WriteLine($"[ConvertMagickImageToBitmapSource] 临时文件已创建: {tempFile}");
+                    
+                    var bitmap = new BitmapImage();
+                    bitmap.BeginInit();
+                    bitmap.UriSource = new Uri(tempFile, UriKind.Absolute);
+                    bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                    bitmap.EndInit();
+                    bitmap.Freeze();
+                    
+                    // 删除临时文件
+                    try
+                    {
+                        File.Delete(tempFile);
+                    }
+                    catch { }
+                    
+                    System.Diagnostics.Debug.WriteLine($"[ConvertMagickImageToBitmapSource] 转换成功, BitmapSource 尺寸: {bitmap.PixelWidth}x{bitmap.PixelHeight}");
+                    return bitmap;
+                }
+                catch (Exception fileEx)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[ConvertMagickImageToBitmapSource] 临时文件方式失败: {fileEx.Message}");
+                    // 回退到 MemoryStream 方式
+                    try
+                    {
+                        var stream = new MemoryStream(bytes);
+                        var bitmap = new BitmapImage();
+                        bitmap.BeginInit();
+                        bitmap.StreamSource = stream;
+                        bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                        bitmap.EndInit();
+                        bitmap.Freeze();
+                        System.Diagnostics.Debug.WriteLine($"[ConvertMagickImageToBitmapSource] MemoryStream 方式成功");
+                        return bitmap;
+                    }
+                    catch (Exception streamEx)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[ConvertMagickImageToBitmapSource] MemoryStream 方式也失败: {streamEx.Message}");
+                        return null;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ConvertMagickImageToBitmapSource] 转换失败: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[ConvertMagickImageToBitmapSource] 堆栈: {ex.StackTrace}");
+                return null;
+            }
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

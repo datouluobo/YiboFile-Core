@@ -5067,6 +5067,17 @@ namespace OoiMRR
             // 清除其他预览：不要清空 Children，避免移除默认预览结构（DefaultPreviewText、ImagePreviewBorder）
             if (RightPanel?.PreviewGrid != null)
             {
+                // 清除所有预览元素（保留 DefaultPreviewText 和 ImagePreviewBorder）
+                for (int i = RightPanel.PreviewGrid.Children.Count - 1; i >= 0; i--)
+                {
+                    var child = RightPanel.PreviewGrid.Children[i];
+                    // 保留 DefaultPreviewText 和 ImagePreviewBorder，清除其他元素（包括 SVG、PSD 等预览）
+                    if (child != RightPanel.DefaultPreviewText && child != RightPanel.ImagePreviewBorder)
+                    {
+                        RightPanel.PreviewGrid.Children.RemoveAt(i);
+                    }
+                }
+                
                 // 显示默认提示文本
                 var defaultText = RightPanel.PreviewGrid.Children.OfType<TextBlock>()
                     .FirstOrDefault(tb => tb.Name == "DefaultPreviewText");
@@ -5375,6 +5386,33 @@ namespace OoiMRR
             _mouseDownPoint = e.GetPosition(listView);
             _isMouseDownOnListView = true;
             _isMouseDownOnColumnHeader = false; // 清除列头标志
+            
+            // 检查是否点击在空白区域（不是 ListViewItem）
+            bool isListViewItem = false;
+            
+            if (hitResult != null)
+            {
+                DependencyObject current = hitResult.VisualHit;
+                
+                // 向上查找，检查是否点击在 ListViewItem 上
+                while (current != null && current != listView)
+                {
+                    if (current is System.Windows.Controls.ListViewItem)
+                    {
+                        isListViewItem = true;
+                        break;
+                    }
+                    current = VisualTreeHelper.GetParent(current);
+                }
+            }
+            
+            // 如果点击在空白区域（hitResult 为 null 或不是 ListViewItem），清除选择
+            if (!isListViewItem && e.ChangedButton == MouseButton.Left)
+            {
+                listView.SelectedItem = null;
+                listView.SelectedItems.Clear();
+                // SelectionChanged 事件会自动触发，调用 ClearPreviewAndInfo()
+            }
         }
         
         private void FilesListView_PreviewMouseDown(object sender, MouseButtonEventArgs e)
@@ -6022,7 +6060,7 @@ namespace OoiMRR
             else
             {
                 // 文件详细信息
-                var infoItems = new[]
+                var infoItems = new List<(string label, string value)>
                 {
                     ("名称", item.Name),
                     ("路径", item.Path),
@@ -6032,6 +6070,25 @@ namespace OoiMRR
                     ("标签", item.Tags)
                 };
 
+                // 如果是图片文件，添加尺寸信息
+                var fileExtension = System.IO.Path.GetExtension(item.Path)?.ToLowerInvariant();
+                var imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".webp", ".tiff", ".tif", ".svg", ".psd", ".ico" };
+                if (!string.IsNullOrEmpty(fileExtension) && imageExtensions.Contains(fileExtension))
+                {
+                    try
+                    {
+                        string imageSize = GetImageDimensions(item.Path);
+                        if (!string.IsNullOrEmpty(imageSize))
+                        {
+                            infoItems.Insert(4, ("尺寸", imageSize)); // 在"大小"之后插入
+                        }
+                    }
+                    catch
+                    {
+                        // 获取尺寸失败，忽略
+                    }
+                }
+
                 foreach (var (label, value) in infoItems)
                 {
                     var panel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 2) };
@@ -6040,6 +6097,48 @@ namespace OoiMRR
                     if (FileBrowser?.FileInfoPanelControl != null)
                         FileBrowser.FileInfoPanelControl.Children.Add(panel);
                 }
+            }
+        }
+
+        /// <summary>
+        /// 获取图片的尺寸信息
+        /// </summary>
+        private string GetImageDimensions(string imagePath)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(imagePath) || !File.Exists(imagePath))
+                    return null;
+
+                var extension = System.IO.Path.GetExtension(imagePath)?.ToLowerInvariant();
+                
+                // 优先使用 Magick.NET（支持更多格式，包括 SVG 和 PSD）
+                try
+                {
+                    using (var image = new ImageMagick.MagickImage(imagePath))
+                    {
+                        return $"{image.Width} × {image.Height} 像素";
+                    }
+                }
+                catch
+                {
+                    // 如果 Magick.NET 失败，尝试使用 System.Drawing.Image（仅支持常见格式）
+                    try
+                    {
+                        using (var image = System.Drawing.Image.FromFile(imagePath))
+                        {
+                            return $"{image.Width} × {image.Height} 像素";
+                        }
+                    }
+                    catch
+                    {
+                        return null;
+                    }
+                }
+            }
+            catch
+            {
+                return null;
             }
         }
 
