@@ -126,7 +126,7 @@ OoiMRR/
 
 #### 功能更新
 - ✅ **音频格式预览功能**：
-  - **多格式音频支持**：支持 MP3、WAV、FLAC、AAC、OGG、WMA、M4A、OPUS、APE、WV、AC3、DTS、AMR、AU、RA 等格式
+  - **多格式音频支持**：支持 MP3、WAV、FLAC、AAC、OGG、WMA、M4A、OPUS、APE、WV、AC3、DTS、AMR、AU、RA、MID、MIDI 等格式
   - **内置音频播放器**：
     - 播放/暂停控制
     - 停止功能
