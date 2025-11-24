@@ -132,7 +132,7 @@ namespace OoiMRR
             { ".3gp", new FileTypeInfo { Category = "视频", CanPreview = false, PreviewType = PreviewType.Video } },
             { ".3g2", new FileTypeInfo { Category = "视频", CanPreview = false, PreviewType = PreviewType.Video } },
             { ".rm", new FileTypeInfo { Category = "视频", CanPreview = false, PreviewType = PreviewType.Video } },
-            { ".rmvb", new FileTypeInfo { Category = "视频", CanPreview = false, PreviewType = PreviewType.Video } },
+            { ".rmvb", new FileTypeInfo { Category = "视频", CanPreview = true, PreviewType = PreviewType.Video } },
             { ".vob", new FileTypeInfo { Category = "视频", CanPreview = false, PreviewType = PreviewType.Video } },
             { ".asf", new FileTypeInfo { Category = "视频", CanPreview = false, PreviewType = PreviewType.Video } },
 

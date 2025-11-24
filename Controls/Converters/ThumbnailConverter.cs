@@ -26,7 +26,7 @@ namespace OoiMRR.Controls.Converters
         // 视频缩略图缓存
         private static readonly Dictionary<string, BitmapSource> _videoThumbnailCache = new();
         private static readonly object _cacheLock = new object();
-        private const int MaxCacheSize = 100;
+        private const int MaxCacheSize = 1000;
         
         // 立即加载的文件路径集合（第一页文件）
         private static readonly HashSet<string> _priorityLoadPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -724,7 +724,7 @@ namespace OoiMRR.Controls.Converters
                     System.Diagnostics.Debug.WriteLine($"FFmpeg: 使用 FFmpeg 路径: {ffmpegPath}");
                     
                     // 构建 FFmpeg 命令参数
-                    // -ss 0.1: 从 0.1 秒处开始
+                    // -ss 1: 从 1 秒处开始
                     // -i: 输入文件（用引号包裹以处理路径中的空格和中文）
                     // -vframes 1: 只提取一帧
                     // -vf scale={targetSize}:-1: 保持宽高比，宽度缩放到 targetSize，高度自动计算
@@ -733,7 +733,7 @@ namespace OoiMRR.Controls.Converters
                     string escapedVideoPath = $"\"{videoPath}\"";
                     string escapedOutputPath = $"\"{tempImagePath}\"";
                     // 使用 scale={targetSize}:-1 保持宽高比，避免变形
-                    string arguments = $"-ss 0.1 -i {escapedVideoPath} -vframes 1 -vf scale={targetSize}:-1 -q:v 2 -y {escapedOutputPath}";
+                    string arguments = $"-ss 1 -i {escapedVideoPath} -vframes 1 -vf scale={targetSize}:-1 -q:v 2 -y {escapedOutputPath}";
                     
                     System.Diagnostics.Debug.WriteLine($"FFmpeg: 命令参数: {arguments}");
                     
@@ -809,10 +809,18 @@ namespace OoiMRR.Controls.Converters
                     
                     System.Diagnostics.Debug.WriteLine($"FFmpeg: 临时文件生成成功, 大小: {tempFileInfo.Length} 字节");
                     
-                    // 创建 BitmapImage - 使用文件流加载，避免URI路径解析问题
+                    // 创建 BitmapImage - 先读取文件到内存，然后关闭文件流
+                    byte[] imageBytes;
+                    using (var fileStream = new FileStream(tempImagePath, FileMode.Open, FileAccess.Read))
+                    {
+                        imageBytes = new byte[fileStream.Length];
+                        fileStream.Read(imageBytes, 0, imageBytes.Length);
+                    }
+                    
+                    // 从内存流创建BitmapImage
                     var bitmap = new BitmapImage();
                     bitmap.BeginInit();
-                    bitmap.StreamSource = new FileStream(tempImagePath, FileMode.Open, FileAccess.Read);
+                    bitmap.StreamSource = new MemoryStream(imageBytes);
                     bitmap.CacheOption = BitmapCacheOption.OnLoad;
                     // 只设置宽度，让高度自动保持宽高比，避免变形
                     bitmap.DecodePixelWidth = targetSize;
@@ -834,11 +842,8 @@ namespace OoiMRR.Controls.Converters
                     }
                     
                     System.Diagnostics.Debug.WriteLine($"FFmpeg: 缩略图提取成功并已缓存: {Path.GetFileName(videoPath)}");
-                    return bitmap;
-                }
-                finally
-                {
-                    // 清理临时文件
+                    
+                    // 现在可以安全删除临时文件了
                     try
                     {
                         if (File.Exists(tempImagePath))
@@ -850,6 +855,25 @@ namespace OoiMRR.Controls.Converters
                     catch (Exception cleanupEx)
                     {
                         System.Diagnostics.Debug.WriteLine($"FFmpeg: 清理临时文件失败: {cleanupEx.Message}");
+                    }
+                    
+                    return bitmap;
+                }
+                finally
+                {
+                    // 备用清理：如果上面的清理失败，这里再试一次
+                    try
+                    {
+                        if (File.Exists(tempImagePath))
+                        {
+                            // 等待一小段时间，确保文件完全释放
+                            System.Threading.Thread.Sleep(100);
+                            File.Delete(tempImagePath);
+                        }
+                    }
+                    catch
+                    {
+                        // 忽略清理错误，不影响功能
                     }
                 }
             }
