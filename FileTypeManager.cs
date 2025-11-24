@@ -152,6 +152,8 @@ namespace OoiMRR
             { ".amr", new FileTypeInfo { Category = "音频", CanPreview = true, PreviewType = PreviewType.Audio } },
             { ".au", new FileTypeInfo { Category = "音频", CanPreview = true, PreviewType = PreviewType.Audio } },
             { ".ra", new FileTypeInfo { Category = "音频", CanPreview = true, PreviewType = PreviewType.Audio } },
+            { ".mid", new FileTypeInfo { Category = "音频", CanPreview = true, PreviewType = PreviewType.Audio } },
+            { ".midi", new FileTypeInfo { Category = "音频", CanPreview = true, PreviewType = PreviewType.Audio } },
 
             // 文档文件
             { ".pdf", new FileTypeInfo { Category = "文档", CanPreview = true, PreviewType = PreviewType.Document } },
