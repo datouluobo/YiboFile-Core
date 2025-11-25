@@ -47,12 +47,20 @@ namespace OoiMRR
             { ".yaml", new FileTypeInfo { Category = "配置", CanPreview = true, PreviewType = PreviewType.Text } },
             { ".yml", new FileTypeInfo { Category = "配置", CanPreview = true, PreviewType = PreviewType.Text } },
             { ".toml", new FileTypeInfo { Category = "配置", CanPreview = true, PreviewType = PreviewType.Text } },
+            { ".gitignore", new FileTypeInfo { Category = "配置", CanPreview = true, PreviewType = PreviewType.Text } },
             
             // 数据文件
             { ".xml", new FileTypeInfo { Category = "数据", CanPreview = true, PreviewType = PreviewType.Html } },
             { ".json", new FileTypeInfo { Category = "数据", CanPreview = true, PreviewType = PreviewType.Text } },
             { ".csv", new FileTypeInfo { Category = "数据", CanPreview = true, PreviewType = PreviewType.Text } },
             { ".tsv", new FileTypeInfo { Category = "数据", CanPreview = true, PreviewType = PreviewType.Text } },
+            
+            // 项目文件
+            { ".sln", new FileTypeInfo { Category = "项目", CanPreview = true, PreviewType = PreviewType.Text } },
+            { ".csproj", new FileTypeInfo { Category = "项目", CanPreview = true, PreviewType = PreviewType.Text } },
+            { ".vbproj", new FileTypeInfo { Category = "项目", CanPreview = true, PreviewType = PreviewType.Text } },
+            { ".fsproj", new FileTypeInfo { Category = "项目", CanPreview = true, PreviewType = PreviewType.Text } },
+            { ".vcxproj", new FileTypeInfo { Category = "项目", CanPreview = true, PreviewType = PreviewType.Text } },
             
             // 文档文件
             { ".md", new FileTypeInfo { Category = "文档", CanPreview = true, PreviewType = PreviewType.Text } },
@@ -63,6 +71,7 @@ namespace OoiMRR
             { ".html", new FileTypeInfo { Category = "网页", CanPreview = true, PreviewType = PreviewType.Html } },
             { ".htm", new FileTypeInfo { Category = "网页", CanPreview = true, PreviewType = PreviewType.Html } },
             { ".xhtml", new FileTypeInfo { Category = "网页", CanPreview = true, PreviewType = PreviewType.Text } },
+            { ".xaml", new FileTypeInfo { Category = "界面", CanPreview = true, PreviewType = PreviewType.Text } },
             { ".css", new FileTypeInfo { Category = "样式", CanPreview = true, PreviewType = PreviewType.Text } },
             { ".scss", new FileTypeInfo { Category = "样式", CanPreview = true, PreviewType = PreviewType.Text } },
             { ".sass", new FileTypeInfo { Category = "样式", CanPreview = true, PreviewType = PreviewType.Text } },
@@ -93,6 +102,7 @@ namespace OoiMRR
             { ".py", new FileTypeInfo { Category = "代码", CanPreview = true, PreviewType = PreviewType.Text } },
             { ".pyw", new FileTypeInfo { Category = "代码", CanPreview = true, PreviewType = PreviewType.Text } },
             { ".java", new FileTypeInfo { Category = "代码", CanPreview = true, PreviewType = PreviewType.Text } },
+            { ".class", new FileTypeInfo { Category = "代码", CanPreview = true, PreviewType = PreviewType.Text } },
             { ".kt", new FileTypeInfo { Category = "代码", CanPreview = true, PreviewType = PreviewType.Text } },
             { ".kts", new FileTypeInfo { Category = "代码", CanPreview = true, PreviewType = PreviewType.Text } },
             { ".php", new FileTypeInfo { Category = "代码", CanPreview = true, PreviewType = PreviewType.Text } },
@@ -197,6 +207,7 @@ namespace OoiMRR
             { ".exe", new FileTypeInfo { Category = "程序", CanPreview = false, PreviewType = PreviewType.Executable } },
             { ".msi", new FileTypeInfo { Category = "程序", CanPreview = false, PreviewType = PreviewType.Executable } },
             { ".dll", new FileTypeInfo { Category = "程序", CanPreview = false, PreviewType = PreviewType.Executable } },
+            { ".lib", new FileTypeInfo { Category = "程序", CanPreview = true, PreviewType = PreviewType.Text } },
             { ".sys", new FileTypeInfo { Category = "系统", CanPreview = false, PreviewType = PreviewType.Executable } },
             { ".drv", new FileTypeInfo { Category = "系统", CanPreview = false, PreviewType = PreviewType.Executable } },
             { ".app", new FileTypeInfo { Category = "程序", CanPreview = false, PreviewType = PreviewType.Executable } },
