@@ -95,7 +95,7 @@
                     </Button>
                     
                     <!-- 分隔符 -->
-                    <Separator Name="TitleBarSeparator" Margin="12,0" VerticalAlignment="Center" Height="20"/>
+                <Separator Name="TitleBarSeparator" Margin="12,0" VerticalAlignment="Center" Height="20" Width="1"/>
                     
                     <!-- 动态操作按钮区域（可拖动排序） -->
                     <StackPanel Name="ActionButtonsContainer" Orientation="Horizontal" VerticalAlignment="Center"/>
@@ -266,7 +266,7 @@
                         </Grid.RowDefinitions>
 
                         <!-- AI预测结果 -->
-                        <GroupBox Grid.Row="0" Margin="0,1,0,3" Padding="2" Style="{StaticResource ModernGroupBoxStyle}">
+                        <GroupBox Grid.Row="0" Name="TagTrainPredictionGroupBox" Margin="0,1,0,3" Padding="2" Style="{StaticResource ModernGroupBoxStyle}">
                             <GroupBox.Header>
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="🤖 AI预测结果" VerticalAlignment="Center" Margin="0,0,8,0"/>
@@ -318,7 +318,7 @@
                         </GroupBox>
 
                         <!-- 标签输入区域 -->
-                        <GroupBox Grid.Row="2" Header="🏷️ 输入标签（按Tab键分隔）" Margin="0,0,0,10" Padding="8" Style="{StaticResource ModernGroupBoxStyle}">
+                        <GroupBox Grid.Row="2" Name="TagTrainInputGroupBox" Header="🏷️ 输入标签（按Tab键分隔）" Margin="0,0,0,10" Padding="8" Style="{StaticResource ModernGroupBoxStyle}">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
@@ -328,13 +328,13 @@
                                 <!-- 标签输入区域 -->
                                 <WrapPanel Grid.Row="0" Name="TagTrainTagInputPanel" Orientation="Horizontal" Margin="0,0,0,8">
                                     <Border Name="TagTrainTagInputBorder" 
-                                           MinWidth="150" Width="250" Height="30"
+                                           MinWidth="150" Width="250" Height="36"
                                            Style="{StaticResource TagInputBorderStyle}">
                                         <Grid>
                                             <TextBox Name="TagTrainTagInputTextBox" 
                                                     FontSize="13"
                                                     VerticalContentAlignment="Center"
-                                                    Padding="7,5"
+                                                    Padding="6,0"
                                                     BorderThickness="0"
                                                     Background="Transparent"
                                                     TextChanged="TagTrainTagInputTextBox_TextChanged"
@@ -405,12 +405,7 @@
                         </GroupBox>
 
                         <!-- 操作按钮区域 -->
-                        <WrapPanel Grid.Row="3" Orientation="Horizontal" Margin="0,0,0,10">
-                            <Button Name="TagClickModeBtn"
-                                   Content="👁 浏览"
-                                   Click="TagClickModeBtn_Click"
-                                   Height="35" FontSize="13" Margin="0,0,8,8" MinWidth="90"
-                                   ToolTip="切换标签点击行为：浏览(显示文件) / 编辑(给所选文件加/移除该标签)"/>
+                        <WrapPanel Grid.Row="3" Name="TagTrainActionButtonsPanel" Orientation="Horizontal" Margin="0,0,0,10">
                             <Button Content="▶️ 开始训练" Click="TagTrainStartTraining_Click" 
                                    Name="TagTrainStartTrainingBtn" Height="35" FontSize="13" Margin="0,0,8,8" MinWidth="100"/>
                             <Button Content="⏸️ 暂停" Click="TagTrainPause_Click" Name="TagTrainPauseBtn" 
@@ -458,6 +453,14 @@
             <!-- 系统级按钮 -->
             <Border Grid.Row="1" Background="#F8F9FA" BorderBrush="#E9ECEF" BorderThickness="0,1,0,0">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="8,8">
+                    <Button Name="TagClickModeBtn"
+                           Content="👁"
+                           Click="TagClickModeBtn_Click"
+                           Width="32" Height="32"
+                           Style="{StaticResource ModernButtonStyle}"
+                           ToolTip="切换标签点击行为：浏览(显示文件) / 编辑(给所选文件加/移除该标签)"
+                           Margin="4,0"
+                           Visibility="Collapsed"/>
                     <Button Content="⚙️" Click="Settings_Click" Width="32" Height="32" 
                             Style="{StaticResource ModernButtonStyle}" ToolTip="设置" Margin="4,0"/>
                     <Button Content="ℹ️" Click="About_Click" Width="32" Height="32" 
@@ -503,9 +506,9 @@
                        HorizontalAlignment="Right" VerticalAlignment="Top"
                        Background="Transparent">
                 <Button x:Name="TitleBarMinimizeButton" Content="&#xE921;" 
-                        Width="30" Height="30" 
+                        Width="34" Height="30" 
                         Click="WindowMinimize_Click" 
-                        ToolTip="最小化" FontSize="16" FontFamily="Segoe MDL2 Assets"
+                        ToolTip="最小化" FontSize="10" FontFamily="Segoe MDL2 Assets"
                         Background="Transparent" BorderThickness="0" Cursor="Hand">
                     <Button.Style>
                         <Style TargetType="Button">
@@ -514,24 +517,24 @@
                             <Setter Property="Background" Value="Transparent"/>
                             <Setter Property="BorderBrush" Value="Transparent"/>
                             <Setter Property="BorderThickness" Value="0"/>
+                            <Setter Property="Foreground" Value="Black"/>
                             <Setter Property="HorizontalContentAlignment" Value="Center"/>
                             <Setter Property="VerticalContentAlignment" Value="Center"/>
                             <Style.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="#E0E0E0"/>
+                                    <Setter Property="Background" Value="#E5E5E5"/>
                                 </Trigger>
                                 <Trigger Property="IsPressed" Value="True">
-                                    <Setter Property="Background" Value="#C0C0C0"/>
+                                    <Setter Property="Background" Value="#CCCCCC"/>
                                 </Trigger>
                             </Style.Triggers>
                         </Style>
                     </Button.Style>
                 </Button>
                 <Button x:Name="TitleBarMaxRestoreButton" Content="&#xE922;" 
-                        Width="30" Height="30" 
+                        Width="34" Height="30" 
                         Click="WindowMaximize_Click" 
-                        ToolTip="最大化" FontSize="16" FontFamily="Segoe MDL2 Assets" 
-                        Margin="4,0,0,0"
+                        ToolTip="最大化" FontSize="10" FontFamily="Segoe MDL2 Assets"
                         Background="Transparent" BorderThickness="0" Cursor="Hand">
                     <Button.Style>
                         <Style TargetType="Button">
@@ -540,24 +543,24 @@
                             <Setter Property="Background" Value="Transparent"/>
                             <Setter Property="BorderBrush" Value="Transparent"/>
                             <Setter Property="BorderThickness" Value="0"/>
+                            <Setter Property="Foreground" Value="Black"/>
                             <Setter Property="HorizontalContentAlignment" Value="Center"/>
                             <Setter Property="VerticalContentAlignment" Value="Center"/>
                             <Style.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="#E0E0E0"/>
+                                    <Setter Property="Background" Value="#E5E5E5"/>
                                 </Trigger>
                                 <Trigger Property="IsPressed" Value="True">
-                                    <Setter Property="Background" Value="#C0C0C0"/>
+                                    <Setter Property="Background" Value="#CCCCCC"/>
                                 </Trigger>
                             </Style.Triggers>
                         </Style>
                     </Button.Style>
                 </Button>
                 <Button x:Name="TitleBarCloseButton" Content="&#xE8BB;" 
-                        Width="30" Height="30" 
+                        Width="34" Height="30" 
                         Click="WindowClose_Click" 
-                        ToolTip="关闭" FontSize="16" FontFamily="Segoe MDL2 Assets" 
-                        Margin="4,0,0,0"
+                        ToolTip="关闭" FontSize="10" FontFamily="Segoe MDL2 Assets"
                         Background="Transparent" BorderThickness="0" Cursor="Hand">
                     <Button.Style>
                         <Style TargetType="Button">
@@ -566,6 +569,7 @@
                             <Setter Property="Background" Value="Transparent"/>
                             <Setter Property="BorderBrush" Value="Transparent"/>
                             <Setter Property="BorderThickness" Value="0"/>
+                            <Setter Property="Foreground" Value="Black"/>
                             <Setter Property="HorizontalContentAlignment" Value="Center"/>
                             <Setter Property="VerticalContentAlignment" Value="Center"/>
                             <Style.Triggers>

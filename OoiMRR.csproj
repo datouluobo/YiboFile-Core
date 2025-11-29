@@ -11,6 +11,7 @@
     <AssemblyVersion>1.2.8.0</AssemblyVersion>
     <FileVersion>1.2.8.0</FileVersion>
     <Version>1.2.8</Version>
+    <NoWarn>$(NoWarn);NU1701</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

@@ -76,8 +76,7 @@ namespace OoiMRR
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"加载标签失败: {ex.Message}");
-                TagsListBox.ItemsSource = new List<Tag>();
+                                TagsListBox.ItemsSource = new List<Tag>();
             }
         }
 

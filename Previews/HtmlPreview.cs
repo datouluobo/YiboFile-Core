@@ -289,8 +289,7 @@ namespace OoiMRR.Previews
                                 }
                                 catch (Exception scriptEx)
                                 {
-                                    System.Diagnostics.Debug.WriteLine($"JavaScript注入错误: {scriptEx.Message}");
-                                }
+                                                                    }
                             };
                         }
                         
@@ -301,8 +300,7 @@ namespace OoiMRR.Previews
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"WebView2 加载错误: {ex.Message}");
-                        // 如果加载失败，回退到 NavigateToString 并显示错误信息
+                                                // 如果加载失败，回退到 NavigateToString 并显示错误信息
                         try
                         {
                             await webViewRef.EnsureCoreWebView2Async();

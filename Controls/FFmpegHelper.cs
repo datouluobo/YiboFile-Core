@@ -40,19 +40,16 @@ namespace OoiMRR.Controls
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine($"FFmpegHelper: 打包的 FFmpeg 验证失败: {bundledFFmpegDir}");
-                    }
+                                            }
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine($"FFmpegHelper: 打包的 FFmpeg 不存在: {bundledFFmpegPath}");
-                }
+                                    }
 
                 // 2. 如果打包的 FFmpeg 不可用，回退到系统 PATH
                 if (TestFFmpegInPath())
                 {
-                    System.Diagnostics.Debug.WriteLine("FFmpeg 已配置：系统 PATH");
-                    return true;
+                                        return true;
                 }
 
                 // 3. 在常见安装位置搜索（作为最后备选）
@@ -77,19 +74,16 @@ namespace OoiMRR.Controls
                                 BinaryFolder = path,
                                 TemporaryFilesFolder = Path.GetTempPath()
                             });
-                            System.Diagnostics.Debug.WriteLine($"FFmpeg 已配置：{path}");
-                            return true;
+                                                        return true;
                         }
                     }
                 }
 
-                System.Diagnostics.Debug.WriteLine("FFmpegHelper: 未找到可用的 FFmpeg（建议检查 Dependencies\\FFmpeg 文件夹）");
-                return false;
+                                return false;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"FFmpeg 初始化失败: {ex.Message}");
-                return false;
+                                return false;
             }
         }
 
@@ -106,8 +100,7 @@ namespace OoiMRR.Controls
                 // FFMpegCore 需要同时有 ffmpeg.exe 和 ffprobe.exe
                 if (!File.Exists(ffmpegPath))
                 {
-                    System.Diagnostics.Debug.WriteLine($"FFmpegHelper: ffmpeg.exe 不存在: {ffmpegPath}");
-                    return false;
+                                        return false;
                 }
                 
                 if (!File.Exists(ffprobePath))
@@ -176,14 +169,12 @@ namespace OoiMRR.Controls
                     }
                 }
                 
-                System.Diagnostics.Debug.WriteLine($"FFmpegHelper: FFmpeg 和 FFProbe 验证成功: {ffmpegDirectory}");
-                return true;
+                                return true;
             }
             catch (Exception ex)
             {
                 // 测试失败
-                System.Diagnostics.Debug.WriteLine($"FFmpegHelper: TestFFmpeg 异常: {ex.Message}");
-                return false;
+                                return false;
             }
         }
 

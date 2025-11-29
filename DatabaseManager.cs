@@ -143,8 +143,7 @@ namespace OoiMRR
             catch (Exception ex)
             {
                 // 记录错误但不中断初始化
-                System.Diagnostics.Debug.WriteLine($"数据库迁移失败: {ex.Message}");
-            }
+                            }
         }
 
         // 本地标签相关 API 已弃用（改为完全使用 TagTrain），故移除
@@ -178,8 +177,7 @@ namespace OoiMRR
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"保存备注失败: {ex.Message}");
-                throw;
+                                throw;
             }
         }
         
@@ -548,8 +546,7 @@ namespace OoiMRR
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"获取文件夹大小缓存失败: {ex.Message}");
-            }
+                            }
             
             return null;
         }
@@ -589,8 +586,7 @@ namespace OoiMRR
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"保存文件夹大小缓存失败: {ex.Message}");
-            }
+                            }
         }
 
         /// <summary>
@@ -647,8 +643,7 @@ namespace OoiMRR
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"批量获取文件夹大小缓存失败: {ex.Message}");
-            }
+                            }
             
             return result;
         }
@@ -672,8 +667,7 @@ namespace OoiMRR
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"删除文件夹大小缓存失败: {ex.Message}");
-            }
+                            }
         }
 
         /// <summary>
@@ -763,8 +757,7 @@ namespace OoiMRR
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"清理不存在文件夹大小缓存失败: {ex.Message}");
-            }
+                            }
             
             return cleanedCount;
         }
@@ -785,8 +778,7 @@ namespace OoiMRR
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"获取文件夹大小缓存数量失败: {ex.Message}");
-                return 0;
+                                return 0;
             }
         }
 

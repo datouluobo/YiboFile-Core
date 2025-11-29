@@ -443,7 +443,8 @@
                             BorderThickness="{TemplateBinding BorderThickness}"
                             CornerRadius="6,6,0,0"
                             MinHeight="32"
-                            Height="32">
+                            Height="32"
+                            Width="Auto">
                         <Border.Effect>
                             <DropShadowEffect Color="#40000000" Direction="270" ShadowDepth="1" Opacity="0.3" BlurRadius="2"/>
                         </Border.Effect>
@@ -482,7 +483,8 @@
                             BorderThickness="{TemplateBinding BorderThickness}"
                             CornerRadius="6,6,0,0"
                             MinHeight="32"
-                            Height="32">
+                            Height="32"
+                            Width="Auto">
                         <Border.Effect>
                             <DropShadowEffect Color="#60000000" Direction="270" ShadowDepth="2" Opacity="0.5" BlurRadius="4"/>
                         </Border.Effect>

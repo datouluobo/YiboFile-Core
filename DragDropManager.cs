@@ -290,8 +290,7 @@ namespace OoiMRR
                 // 检查 Y 坐标是否在列头区域
                 if (hitPoint.Y < 30)
                 {
-                    System.Diagnostics.Debug.WriteLine("[DragDropManager] 点击在列头区域，不处理拖拽");
-                    _selectedPathsBeforeDrag.Clear(); // 清除保存的选中项，防止后续启动拖拽
+                                        _selectedPathsBeforeDrag.Clear(); // 清除保存的选中项，防止后续启动拖拽
                     return; // 不在列头区域处理拖拽
                 }
                 
@@ -304,14 +303,12 @@ namespace OoiMRR
                     {
                         if (current is GridViewColumnHeader)
                         {
-                            System.Diagnostics.Debug.WriteLine("[DragDropManager] 点击在 GridViewColumnHeader，不处理拖拽");
-                            _selectedPathsBeforeDrag.Clear(); // 清除保存的选中项，防止后续启动拖拽
+                                                        _selectedPathsBeforeDrag.Clear(); // 清除保存的选中项，防止后续启动拖拽
                             return;
                         }
                         if (current.GetType().Name.Contains("Thumb") || current.GetType().Name == "Thumb")
                         {
-                            System.Diagnostics.Debug.WriteLine("[DragDropManager] 点击在 Thumb（调整大小句柄），不处理拖拽");
-                            _selectedPathsBeforeDrag.Clear(); // 清除保存的选中项，防止后续启动拖拽
+                                                        _selectedPathsBeforeDrag.Clear(); // 清除保存的选中项，防止后续启动拖拽
                             return;
                         }
                         current = System.Windows.Media.VisualTreeHelper.GetParent(current);
@@ -473,11 +470,9 @@ namespace OoiMRR
                 // 因为在拖拽过程中选中状态可能已经改变
                 var selectedPaths = new List<string>(_selectedPathsBeforeDrag);
 
-                System.Diagnostics.Debug.WriteLine($"[拖拽开始] 选中了 {selectedPaths.Count} 个项目:");
-                foreach (var path in selectedPaths)
+                                foreach (var path in selectedPaths)
                 {
-                    System.Diagnostics.Debug.WriteLine($"  - {path}");
-                }
+                                    }
                 
                 // 写入日志文件
                 try
@@ -620,11 +615,9 @@ namespace OoiMRR
             if (files == null || files.Length == 0)
                 return;
 
-            System.Diagnostics.Debug.WriteLine($"[拖拽放下] 接收到 {files.Length} 个文件:");
-            foreach (var file in files)
+                        foreach (var file in files)
             {
-                System.Diagnostics.Debug.WriteLine($"  - {file}");
-            }
+                            }
             
             // 写入日志文件
             try
@@ -893,9 +886,7 @@ namespace OoiMRR
             int failCount = 0;
             string lastError = "";
 
-            System.Diagnostics.Debug.WriteLine($"[执行移动] 开始移动 {data.SourcePaths.Count} 个项目到 {data.TargetPath}");
-            
-            // 写入日志文件
+                        // 写入日志文件
             try
             {
                 File.AppendAllText("dragdrop_log.txt", 
@@ -951,14 +942,12 @@ namespace OoiMRR
                     }
 
                     successCount++;
-                    System.Diagnostics.Debug.WriteLine($"移动成功: {sourcePath} -> {targetPath}");
-                }
+                                    }
                 catch (Exception ex)
                 {
                     lastError = ex.Message;
                     failCount++;
-                    System.Diagnostics.Debug.WriteLine($"移动失败: {sourcePath}, 错误: {ex.Message}");
-                }
+                                    }
             }
 
             // 显示结果
@@ -1028,14 +1017,12 @@ namespace OoiMRR
                     }
 
                     successCount++;
-                    System.Diagnostics.Debug.WriteLine($"复制成功: {sourcePath} -> {targetPath}");
-                }
+                                    }
                 catch (Exception ex)
                 {
                     lastError = ex.Message;
                     failCount++;
-                    System.Diagnostics.Debug.WriteLine($"复制失败: {sourcePath}, 错误: {ex.Message}");
-                }
+                                    }
             }
 
             // 显示结果
@@ -1255,8 +1242,7 @@ namespace OoiMRR
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"创建拖拽视觉效果失败: {ex.Message}");
-            }
+                            }
         }
 
         /// <summary>
@@ -1328,8 +1314,7 @@ namespace OoiMRR
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"关闭拖拽窗口失败: {ex.Message}");
-                        // 如果立即关闭失败，尝试淡出动画
+                                                // 如果立即关闭失败，尝试淡出动画
                         var fadeOut = new DoubleAnimation
                         {
                             From = 1.0,
@@ -1355,8 +1340,7 @@ namespace OoiMRR
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"关闭拖拽视觉效果失败: {ex.Message}");
-            }
+                            }
         }
 
         #endregion

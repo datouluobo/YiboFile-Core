@@ -77,8 +77,7 @@ namespace OoiMRR.Previews
                             }
                             catch (Exception ex)
                             {
-                                System.Diagnostics.Debug.WriteLine($"PPTX预览失败: {ex.Message}\n{ex.StackTrace}");
-                                return $"<html><body style='font-family:Segoe UI;color:#c00;padding:16px'>预览失败: {WebUtility.HtmlEncode(ex.Message)}</body></html>";
+                                                                return $"<html><body style='font-family:Segoe UI;color:#c00;padding:16px'>预览失败: {WebUtility.HtmlEncode(ex.Message)}</body></html>";
                             }
                         });
 
@@ -110,8 +109,7 @@ namespace OoiMRR.Previews
                             }
                             catch (Exception ex)
                             {
-                                System.Diagnostics.Debug.WriteLine($"保存临时HTML文件失败: {ex.Message}");
-                                webView.NavigateToString(html);
+                                                                webView.NavigateToString(html);
                             }
                         }
                         else
@@ -163,8 +161,7 @@ namespace OoiMRR.Previews
                     {
                         var imageMap = ExtractImagesFromSlidePart(slidePart);
                         allImageMap[slideId.RelationshipId] = imageMap;
-                        System.Diagnostics.Debug.WriteLine($"幻灯片 {slideId.RelationshipId} 提取了 {imageMap.Count} 张图片");
-                    }
+                                            }
                 }
 
                 // 处理每张幻灯片
@@ -192,8 +189,7 @@ namespace OoiMRR.Previews
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"解析幻灯片 {slideIndex} 失败: {ex.Message}");
-                        slides.Add(new SlideContent { Content = $"解析错误: {ex.Message}" });
+                                                slides.Add(new SlideContent { Content = $"解析错误: {ex.Message}" });
                     }
                 }
 
@@ -277,22 +273,19 @@ namespace OoiMRR.Previews
                         }
                         catch (Exception ex)
                         {
-                            System.Diagnostics.Debug.WriteLine($"GetIdOfPart失败: {ex.Message}");
-                            continue;
+                                                        continue;
                         }
 
                         if (string.IsNullOrEmpty(relationshipId))
                         {
-                            System.Diagnostics.Debug.WriteLine($"图片关系ID为空，跳过");
-                            continue;
+                                                        continue;
                         }
 
                         using (var stream = imagePart.GetStream())
                         {
                             if (stream == null)
                             {
-                                System.Diagnostics.Debug.WriteLine($"图片流为null，跳过");
-                                continue;
+                                                                continue;
                             }
                             
                             using (var memoryStream = new MemoryStream())
@@ -301,8 +294,7 @@ namespace OoiMRR.Previews
                                 
                                 if (memoryStream.Length == 0 || memoryStream.Length > 50 * 1024 * 1024) // 限制50MB
                                 {
-                                    System.Diagnostics.Debug.WriteLine($"图片数据为空或太大，跳过");
-                                    continue;
+                                                                        continue;
                                 }
 
                                 byte[] imageBytes = memoryStream.ToArray();
@@ -322,8 +314,7 @@ namespace OoiMRR.Previews
                                     else if (extension == ".png")
                                         mimeType = "image/png";
                                     
-                                    System.Diagnostics.Debug.WriteLine($"图片类型: {mimeType}, 扩展名: {extension}");
-                                }
+                                                                    }
                                 catch
                                 {
                                     // 使用默认PNG类型
@@ -351,22 +342,18 @@ namespace OoiMRR.Previews
                                 }
                                 
                                 imageCount++;
-                                System.Diagnostics.Debug.WriteLine($"成功提取图片 {imageCount}，关系ID: {relationshipId}, Base64长度: {base64.Length}");
-                            }
+                                                            }
                         }
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"提取单个图片失败: {ex.Message}\n{ex.StackTrace}");
-                    }
+                                            }
                 }
                 
-                System.Diagnostics.Debug.WriteLine($"总共提取了 {imageCount} 张图片，映射表包含 {imageMap.Count} 个条目");
-            }
+                            }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"提取图片列表失败: {ex.Message}\n{ex.StackTrace}");
-            }
+                            }
             
             return imageMap;
         }

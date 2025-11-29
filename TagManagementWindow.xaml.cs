@@ -56,8 +56,7 @@ namespace OoiMRR
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"加载统计信息失败: {ex.Message}");
-            }
+                            }
         }
 
         private void CheckModelStatus()

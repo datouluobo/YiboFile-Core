@@ -271,8 +271,7 @@ namespace OoiMRR.Previews
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"保存快捷方式失败: {ex.Message}");
-                    return false;
+                                        return false;
                 }
             }
         }

@@ -448,14 +448,15 @@ namespace OoiMRR.Previews
                 Grid.SetRow(progressPanel, 2);
                 mainGrid.Children.Add(progressPanel);
 
-                // 控制按钮区域
-                var controlPanel = new UniformGrid
+                // 控制按钮区域（响应式）
+                var controlPanel = new Grid
                 {
-                    Columns = 10,
                     HorizontalAlignment = HorizontalAlignment.Stretch,
                     Background = (Brush)Application.Current.FindResource("PreviewPanelBackgroundBrush"),
                     Margin = new Thickness(0, 5, 0, 5)
                 };
+                controlPanel.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                controlPanel.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
                 var playPauseButton = new Button
                 {
@@ -497,6 +498,7 @@ namespace OoiMRR.Previews
                     Content = "🔓 默认播放器",
                     Margin = new Thickness(5),
                     Padding = new Thickness(12, 6, 12, 6),
+                    MinWidth = 110,
                     Cursor = System.Windows.Input.Cursors.Hand
                 };
 
@@ -561,6 +563,22 @@ namespace OoiMRR.Previews
                 fullscreenButton.Style = buttonStyleResource;
                 var comboStyle = Application.Current.TryFindResource("ModernComboBoxStyle") as Style;
                 if (comboStyle != null) speedCombo.Style = comboStyle;
+
+                // 左侧控件（播放、停止、快退/快进、音量、倍速）使用 WrapPanel 以在窄宽度下自动换行
+                var leftControls = new WrapPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    HorizontalAlignment = HorizontalAlignment.Left
+                };
+                Grid.SetColumn(leftControls, 0);
+
+                // 右侧控件（旋转、全屏、默认播放器）始终右对齐并保留空间
+                var rightControls = new WrapPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    HorizontalAlignment = HorizontalAlignment.Right
+                };
+                Grid.SetColumn(rightControls, 1);
 
                 var clickOverlay = new Border
                 {
@@ -818,17 +836,20 @@ namespace OoiMRR.Previews
                     playPauseButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 };
 
-                controlPanel.Children.Add(playPauseButton);
-                controlPanel.Children.Add(stopButton);
-                controlPanel.Children.Add(rewind5Button);
-                controlPanel.Children.Add(forward5Button);
-                controlPanel.Children.Add(volumeText);
-                controlPanel.Children.Add(volumeSlider);
-                controlPanel.Children.Add(speedCombo);
-                controlPanel.Children.Add(rotateButton);
-                controlPanel.Children.Add(fullscreenButton);
-                controlPanel.Children.Add(openButton);
+                leftControls.Children.Add(playPauseButton);
+                leftControls.Children.Add(stopButton);
+                leftControls.Children.Add(rewind5Button);
+                leftControls.Children.Add(forward5Button);
+                leftControls.Children.Add(volumeText);
+                leftControls.Children.Add(volumeSlider);
+                leftControls.Children.Add(speedCombo);
 
+                rightControls.Children.Add(rotateButton);
+                rightControls.Children.Add(fullscreenButton);
+                rightControls.Children.Add(openButton);
+
+                controlPanel.Children.Add(leftControls);
+                controlPanel.Children.Add(rightControls);
                 Grid.SetRow(controlPanel, 3);
                 mainGrid.Children.Add(controlPanel);
 

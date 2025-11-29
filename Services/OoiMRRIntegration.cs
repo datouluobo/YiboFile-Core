@@ -43,8 +43,7 @@ namespace OoiMRR.Services
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"TagTrain初始化失败: {ex.Message}");
-                }
+                                    }
             }
         }
 
@@ -68,8 +67,7 @@ namespace OoiMRR.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"预测标签失败: {ex.Message}");
-                return new List<TagPredictionResult>();
+                                return new List<TagPredictionResult>();
             }
         }
 
@@ -98,8 +96,7 @@ namespace OoiMRR.Services
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"预测图片 {path} 失败: {ex.Message}");
-                    results[path] = new List<TagPredictionResult>();
+                                        results[path] = new List<TagPredictionResult>();
                 }
             }
             
@@ -121,8 +118,7 @@ namespace OoiMRR.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"保存训练样本失败: {ex.Message}");
-            }
+                            }
         }
 
         /// <summary>
@@ -144,8 +140,7 @@ namespace OoiMRR.Services
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"保存训练样本失败: {ex.Message}");
-                    }
+                                            }
                 }
             }
         }
@@ -341,8 +336,7 @@ namespace OoiMRR.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"获取标签列表失败: {ex.Message}");
-                return new List<TagInfo>();
+                                return new List<TagInfo>();
             }
         }
 
@@ -359,8 +353,7 @@ namespace OoiMRR.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"获取或创建标签失败: {ex.Message}");
-                return -1;
+                                return -1;
             }
         }
 
@@ -377,8 +370,7 @@ namespace OoiMRR.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"获取标签名称失败: {ex.Message}");
-                return null;
+                                return null;
             }
         }
 
@@ -395,8 +387,7 @@ namespace OoiMRR.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"更新标签名称失败: {ex.Message}");
-                return false;
+                                return false;
             }
         }
 
@@ -414,8 +405,7 @@ namespace OoiMRR.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"删除标签失败: {ex.Message}");
-                return false;
+                                return false;
             }
         }
 
@@ -438,8 +428,7 @@ namespace OoiMRR.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"清理重复标签失败: {ex.Message}");
-                return new ConsolidationResult
+                                return new ConsolidationResult
                 {
                     MergedGroups = 0,
                     UpdatedSamples = 0,
@@ -461,8 +450,7 @@ namespace OoiMRR.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"获取图片标签失败: {ex.Message}");
-                return new List<int>();
+                                return new List<int>();
             }
         }
 
@@ -479,8 +467,7 @@ namespace OoiMRR.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"删除图片标签失败: {ex.Message}");
-            }
+                            }
         }
 
         /// <summary>
@@ -519,8 +506,7 @@ namespace OoiMRR.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"获取标签文件路径失败: {ex.Message}");
-                return new List<string>();
+                                return new List<string>();
             }
         }
 
@@ -545,8 +531,7 @@ namespace OoiMRR.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"添加文件标签失败: {ex.Message}");
-            }
+                            }
         }
 
         /// <summary>
@@ -563,8 +548,7 @@ namespace OoiMRR.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"删除文件标签失败: {ex.Message}");
-            }
+                            }
         }
 
         /// <summary>
@@ -580,8 +564,7 @@ namespace OoiMRR.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"获取文件标签失败: {ex.Message}");
-                return new List<int>();
+                                return new List<int>();
             }
         }
     }

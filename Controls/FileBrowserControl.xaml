@@ -156,7 +156,7 @@
                     <StackPanel x:Name="TabsPanel" Orientation="Horizontal"/>
                 </ScrollViewer>
                 <!-- 视图切换按钮 -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="8,0,0,0">
+                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="8,0,0,0" Width="Auto" Height="Auto">
                     <StackPanel.Resources>
                         <Style x:Key="ViewToggleButtonStyle" TargetType="Button">
                             <Setter Property="Width" Value="26"/>

@@ -128,9 +128,7 @@ namespace OoiMRR.Previews
                     // 转换为file:// URI格式
                     // 处理路径中的空格和特殊字符
                     var uri = new Uri(filePath).AbsoluteUri;
-                    System.Diagnostics.Debug.WriteLine($"加载PDF: {uri}");
-
-                    // 导航到PDF文件
+                                        // 导航到PDF文件
                     webView.CoreWebView2.Navigate(uri);
 
                     // 监听导航完成事件
@@ -138,17 +136,14 @@ namespace OoiMRR.Previews
                     {
                         if (!e.IsSuccess)
                         {
-                            System.Diagnostics.Debug.WriteLine($"PDF导航失败: {e.WebErrorStatus}");
-                            ShowErrorInWebView(webView, $"PDF加载失败: {e.WebErrorStatus}");
+                                                        ShowErrorInWebView(webView, $"PDF加载失败: {e.WebErrorStatus}");
                         }
                     };
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"PDF加载异常: {ex.Message}\n{ex.StackTrace}");
-
-                // 隐藏加载状态
+                                // 隐藏加载状态
                 await webView.Dispatcher.InvokeAsync(() =>
                 {
                     if (loadingPanel != null)
@@ -273,8 +268,7 @@ namespace OoiMRR.Previews
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"显示错误页面失败: {ex.Message}");
-            }
+                            }
         }
 
         private UIElement CreateErrorPreview(string message, string filePath = null)

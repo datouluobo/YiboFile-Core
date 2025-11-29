@@ -127,13 +127,11 @@ namespace OoiMRR.Previews
                 
                 using (var magickImage = new MagickImage(filePath))
                 {
-                    // 设置最大显示尺寸（保持宽高比）
-                    if (magickImage.Width > 1600 || magickImage.Height > 1600)
+                    System.Diagnostics.Debug.WriteLine($"SVG: {Path.GetFileName(filePath)} {magickImage.Width}x{magickImage.Height}");
+                    var maxDim = 2048;
+                    if (magickImage.Width > maxDim || magickImage.Height > maxDim)
                     {
-                        magickImage.Resize(new MagickGeometry(1600, 1600)
-                        {
-                            IgnoreAspectRatio = false
-                        });
+                        magickImage.Resize(new MagickGeometry((uint)maxDim, (uint)maxDim) { IgnoreAspectRatio = false });
                     }
                     
                     // 转换为字节数组
@@ -197,13 +195,11 @@ namespace OoiMRR.Previews
                 
                 using (var magickImage = new MagickImage(filePath))
                 {
-                    // 设置最大显示尺寸（保持宽高比）
-                    if (magickImage.Width > 1600 || magickImage.Height > 1600)
+                    System.Diagnostics.Debug.WriteLine($"PSD: {Path.GetFileName(filePath)} {magickImage.Width}x{magickImage.Height}");
+                    var maxDim = 2048;
+                    if (magickImage.Width > maxDim || magickImage.Height > maxDim)
                     {
-                        magickImage.Resize(new MagickGeometry(1600, 1600)
-                        {
-                            IgnoreAspectRatio = false
-                        });
+                        magickImage.Resize(new MagickGeometry((uint)maxDim, (uint)maxDim) { IgnoreAspectRatio = false });
                     }
                     
                     // 转换为字节数组
@@ -256,6 +252,3 @@ namespace OoiMRR.Previews
         }
     }
 }
-
-
-

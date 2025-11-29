@@ -97,25 +97,19 @@ namespace OoiMRR.Services
             try
             {
                 string fullDllPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, DLL_PATH);
-                Debug.WriteLine($"EverythingHelper: 加载 DLL: {fullDllPath}");
-                
-                if (!File.Exists(fullDllPath))
+                                if (!File.Exists(fullDllPath))
                 {
-                    Debug.WriteLine($"EverythingHelper: DLL 文件不存在: {fullDllPath}");
-                    return false;
+                                        return false;
                 }
 
                 _dllHandle = LoadLibrary(fullDllPath);
                 if (_dllHandle == IntPtr.Zero)
                 {
                     int error = Marshal.GetLastWin32Error();
-                    Debug.WriteLine($"EverythingHelper: LoadLibrary 失败，错误代码: {error}");
-                    return false;
+                                        return false;
                 }
 
-                Debug.WriteLine($"EverythingHelper: DLL 句柄: {_dllHandle}");
-
-                // 获取函数地址 - Everything SDK 函数名（根据官方文档：https://www.voidtools.com/zh-cn/support/everything/sdk/）
+                                // 获取函数地址 - Everything SDK 函数名（根据官方文档：https://www.voidtools.com/zh-cn/support/everything/sdk/）
                 // 注意：字符串相关函数导出名区分 A/W，需要同时尝试
                 var functions = new[]
                 {
@@ -204,29 +198,24 @@ namespace OoiMRR.Services
                                     _SetMatchWholeWord = Marshal.GetDelegateForFunctionPointer<SetMatchWholeWordDelegate>(funcPtr);
                                     break;
                             }
-                            Debug.WriteLine($"EverythingHelper: 函数 {usedName} 委托创建成功");
-                        }
+                                                    }
                         catch (Exception ex)
                         {
-                            Debug.WriteLine($"EverythingHelper: 创建 {usedName} 委托失败: {ex.Message}");
-                        }
+                                                    }
                     }
                 }
 
                 // 检查关键函数是否加载成功
                 if (_SetSearch == null || _Query == null || _GetNumResults == null || _GetResultFullPathName == null)
                 {
-                    Debug.WriteLine("EverythingHelper: 关键函数加载失败");
-                    return false;
+                                        return false;
                 }
 
-                Debug.WriteLine("EverythingHelper: DLL 加载成功，所有关键函数地址获取成功");
-                return true;
+                                return true;
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"EverythingHelper: 加载 DLL 异常: {ex.Message}");
-                return false;
+                                return false;
             }
         }
 
@@ -239,8 +228,7 @@ namespace OoiMRR.Services
             {
                 FreeLibrary(_dllHandle);
                 _dllHandle = IntPtr.Zero;
-                Debug.WriteLine("EverythingHelper: DLL 已卸载");
-            }
+                            }
         }
 
         /// <summary>
@@ -259,8 +247,7 @@ namespace OoiMRR.Services
                 // 1. 加载 DLL
                 if (!LoadEverythingDLL())
                 {
-                    Debug.WriteLine("EverythingHelper: DLL 加载失败");
-                    return false;
+                                        return false;
                 }
 
                 // 2. 检查 Everything 是否已在运行
@@ -270,8 +257,7 @@ namespace OoiMRR.Services
                     {
                         _isInitialized = true;
                     }
-                    Debug.WriteLine("EverythingHelper: Everything 已在运行");
-                    return true;
+                                        return true;
                 }
 
                 // 3. 尝试启动打包的 Everything
@@ -280,8 +266,7 @@ namespace OoiMRR.Services
 
                 if (!File.Exists(everythingPath))
                 {
-                    Debug.WriteLine($"EverythingHelper: Everything.exe 不存在: {everythingPath}");
-                    UnloadEverythingDLL();
+                                        UnloadEverythingDLL();
                     return false;
                 }
 
@@ -295,13 +280,11 @@ namespace OoiMRR.Services
                     WindowStyle = ProcessWindowStyle.Hidden
                 };
                 
-                Debug.WriteLine($"EverythingHelper: 尝试启动 Everything: {everythingPath}");
-                _everythingProcess = Process.Start(startInfo);
+                                _everythingProcess = Process.Start(startInfo);
                 
                 if (_everythingProcess == null)
                 {
-                    Debug.WriteLine("EverythingHelper: 无法启动 Everything 进程");
-                    return false;
+                                        return false;
                 }
                 
                 Debug.WriteLine($"EverythingHelper: Everything 进程已启动 (PID: {_everythingProcess.Id})");
@@ -323,14 +306,12 @@ namespace OoiMRR.Services
                     }
                 }
 
-                Debug.WriteLine("EverythingHelper: Everything 启动超时");
-                UnloadEverythingDLL();
+                                UnloadEverythingDLL();
                 return false;
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"EverythingHelper: 初始化失败: {ex.Message}");
-                UnloadEverythingDLL();
+                                UnloadEverythingDLL();
                 return false;
             }
         }
@@ -344,11 +325,9 @@ namespace OoiMRR.Services
             {
                 if (_dllHandle == IntPtr.Zero)
                 {
-                    Debug.WriteLine("EverythingHelper: 函数未加载，尝试重新加载 DLL");
-                    if (!LoadEverythingDLL())
+                                        if (!LoadEverythingDLL())
                     {
-                        Debug.WriteLine("EverythingHelper: 重新加载 DLL 失败，Everything SDK 不可用");
-                        return false;
+                                                return false;
                     }
                 }
                 if (_IsDBLoaded == null) return false;
@@ -356,8 +335,7 @@ namespace OoiMRR.Services
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"EverythingHelper: 检查运行状态失败: {ex.Message}");
-                return false;
+                                return false;
             }
         }
 
@@ -415,18 +393,15 @@ namespace OoiMRR.Services
                         }
                     }
 
-                    Debug.WriteLine($"EverythingHelper: 搜索 '{searchText}' 找到 {results.Count} 个结果");
-                }
+                                    }
                 else
                 {
                     uint error = GetLastError();
-                    Debug.WriteLine($"EverythingHelper: 搜索失败，错误代码: {error}");
-                }
+                                    }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"EverythingHelper: 搜索异常: {ex.Message}");
-                throw;
+                                throw;
             }
 
             return results;
@@ -477,13 +452,11 @@ namespace OoiMRR.Services
                 else
                 {
                     uint error = GetLastError();
-                    Debug.WriteLine($"EverythingHelper: 分页搜索失败，错误代码: {error}");
-                }
+                                    }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"EverythingHelper: 分页搜索异常: {ex.Message}");
-                throw;
+                                throw;
             }
             return results;
         }

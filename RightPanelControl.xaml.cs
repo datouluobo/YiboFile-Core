@@ -161,8 +161,7 @@ namespace OoiMRR
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"加载图片预览失败: {ex.Message}");
-                ClearImagePreview();
+                                ClearImagePreview();
             }
         }
         

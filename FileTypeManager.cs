@@ -47,20 +47,12 @@ namespace OoiMRR
             { ".yaml", new FileTypeInfo { Category = "配置", CanPreview = true, PreviewType = PreviewType.Text } },
             { ".yml", new FileTypeInfo { Category = "配置", CanPreview = true, PreviewType = PreviewType.Text } },
             { ".toml", new FileTypeInfo { Category = "配置", CanPreview = true, PreviewType = PreviewType.Text } },
-            { ".gitignore", new FileTypeInfo { Category = "配置", CanPreview = true, PreviewType = PreviewType.Text } },
             
             // 数据文件
-            { ".xml", new FileTypeInfo { Category = "数据", CanPreview = true, PreviewType = PreviewType.Html } },
+            { ".xml", new FileTypeInfo { Category = "数据", CanPreview = true, PreviewType = PreviewType.Text } },
             { ".json", new FileTypeInfo { Category = "数据", CanPreview = true, PreviewType = PreviewType.Text } },
             { ".csv", new FileTypeInfo { Category = "数据", CanPreview = true, PreviewType = PreviewType.Text } },
             { ".tsv", new FileTypeInfo { Category = "数据", CanPreview = true, PreviewType = PreviewType.Text } },
-            
-            // 项目文件
-            { ".sln", new FileTypeInfo { Category = "项目", CanPreview = true, PreviewType = PreviewType.Text } },
-            { ".csproj", new FileTypeInfo { Category = "项目", CanPreview = true, PreviewType = PreviewType.Text } },
-            { ".vbproj", new FileTypeInfo { Category = "项目", CanPreview = true, PreviewType = PreviewType.Text } },
-            { ".fsproj", new FileTypeInfo { Category = "项目", CanPreview = true, PreviewType = PreviewType.Text } },
-            { ".vcxproj", new FileTypeInfo { Category = "项目", CanPreview = true, PreviewType = PreviewType.Text } },
             
             // 文档文件
             { ".md", new FileTypeInfo { Category = "文档", CanPreview = true, PreviewType = PreviewType.Text } },
@@ -68,10 +60,9 @@ namespace OoiMRR
             { ".rst", new FileTypeInfo { Category = "文档", CanPreview = true, PreviewType = PreviewType.Text } },
             
             // 网页文件
-            { ".html", new FileTypeInfo { Category = "网页", CanPreview = true, PreviewType = PreviewType.Html } },
-            { ".htm", new FileTypeInfo { Category = "网页", CanPreview = true, PreviewType = PreviewType.Html } },
+            { ".html", new FileTypeInfo { Category = "网页", CanPreview = true, PreviewType = PreviewType.Text } },
+            { ".htm", new FileTypeInfo { Category = "网页", CanPreview = true, PreviewType = PreviewType.Text } },
             { ".xhtml", new FileTypeInfo { Category = "网页", CanPreview = true, PreviewType = PreviewType.Text } },
-            { ".xaml", new FileTypeInfo { Category = "界面", CanPreview = true, PreviewType = PreviewType.Text } },
             { ".css", new FileTypeInfo { Category = "样式", CanPreview = true, PreviewType = PreviewType.Text } },
             { ".scss", new FileTypeInfo { Category = "样式", CanPreview = true, PreviewType = PreviewType.Text } },
             { ".sass", new FileTypeInfo { Category = "样式", CanPreview = true, PreviewType = PreviewType.Text } },
@@ -102,7 +93,6 @@ namespace OoiMRR
             { ".py", new FileTypeInfo { Category = "代码", CanPreview = true, PreviewType = PreviewType.Text } },
             { ".pyw", new FileTypeInfo { Category = "代码", CanPreview = true, PreviewType = PreviewType.Text } },
             { ".java", new FileTypeInfo { Category = "代码", CanPreview = true, PreviewType = PreviewType.Text } },
-            { ".class", new FileTypeInfo { Category = "代码", CanPreview = true, PreviewType = PreviewType.Text } },
             { ".kt", new FileTypeInfo { Category = "代码", CanPreview = true, PreviewType = PreviewType.Text } },
             { ".kts", new FileTypeInfo { Category = "代码", CanPreview = true, PreviewType = PreviewType.Text } },
             { ".php", new FileTypeInfo { Category = "代码", CanPreview = true, PreviewType = PreviewType.Text } },
@@ -141,7 +131,7 @@ namespace OoiMRR
             { ".mpeg", new FileTypeInfo { Category = "视频", CanPreview = true, PreviewType = PreviewType.Video } },
             { ".3gp", new FileTypeInfo { Category = "视频", CanPreview = false, PreviewType = PreviewType.Video } },
             { ".3g2", new FileTypeInfo { Category = "视频", CanPreview = false, PreviewType = PreviewType.Video } },
-            { ".rm", new FileTypeInfo { Category = "视频", CanPreview = false, PreviewType = PreviewType.Video } },
+            { ".rm", new FileTypeInfo { Category = "视频", CanPreview = true, PreviewType = PreviewType.Video } },
             { ".rmvb", new FileTypeInfo { Category = "视频", CanPreview = true, PreviewType = PreviewType.Video } },
             { ".vob", new FileTypeInfo { Category = "视频", CanPreview = false, PreviewType = PreviewType.Video } },
             { ".asf", new FileTypeInfo { Category = "视频", CanPreview = false, PreviewType = PreviewType.Video } },
@@ -169,16 +159,15 @@ namespace OoiMRR
             { ".pdf", new FileTypeInfo { Category = "文档", CanPreview = true, PreviewType = PreviewType.Document } },
             { ".doc", new FileTypeInfo { Category = "文档", CanPreview = true, PreviewType = PreviewType.Document } },
             { ".docx", new FileTypeInfo { Category = "文档", CanPreview = true, PreviewType = PreviewType.Document } },
-            { ".rtf", new FileTypeInfo { Category = "文档", CanPreview = true, PreviewType = PreviewType.Document } },
-            { ".chm", new FileTypeInfo { Category = "文档", CanPreview = true, PreviewType = PreviewType.Document } },
+            { ".rtf", new FileTypeInfo { Category = "文档", CanPreview = false, PreviewType = PreviewType.Document } },
             { ".odt", new FileTypeInfo { Category = "文档", CanPreview = false, PreviewType = PreviewType.Document } },
             { ".xls", new FileTypeInfo { Category = "表格", CanPreview = true, PreviewType = PreviewType.Document } },
             { ".xlsx", new FileTypeInfo { Category = "表格", CanPreview = true, PreviewType = PreviewType.Document } },
             { ".xlsm", new FileTypeInfo { Category = "表格", CanPreview = true, PreviewType = PreviewType.Document } },
             { ".ods", new FileTypeInfo { Category = "表格", CanPreview = false, PreviewType = PreviewType.Document } },
-            { ".ppt", new FileTypeInfo { Category = "演示", CanPreview = true, PreviewType = PreviewType.Document } },
-            { ".pptx", new FileTypeInfo { Category = "演示", CanPreview = true, PreviewType = PreviewType.Document } },
-            { ".pptm", new FileTypeInfo { Category = "演示", CanPreview = true, PreviewType = PreviewType.Document } },
+            { ".ppt", new FileTypeInfo { Category = "演示", CanPreview = false, PreviewType = PreviewType.Document } },
+            { ".pptx", new FileTypeInfo { Category = "演示", CanPreview = false, PreviewType = PreviewType.Document } },
+            { ".pptm", new FileTypeInfo { Category = "演示", CanPreview = false, PreviewType = PreviewType.Document } },
             { ".odp", new FileTypeInfo { Category = "演示", CanPreview = false, PreviewType = PreviewType.Document } },
             { ".pages", new FileTypeInfo { Category = "文档", CanPreview = false, PreviewType = PreviewType.Document } },
             { ".numbers", new FileTypeInfo { Category = "表格", CanPreview = false, PreviewType = PreviewType.Document } },
@@ -207,7 +196,6 @@ namespace OoiMRR
             { ".exe", new FileTypeInfo { Category = "程序", CanPreview = false, PreviewType = PreviewType.Executable } },
             { ".msi", new FileTypeInfo { Category = "程序", CanPreview = false, PreviewType = PreviewType.Executable } },
             { ".dll", new FileTypeInfo { Category = "程序", CanPreview = false, PreviewType = PreviewType.Executable } },
-            { ".lib", new FileTypeInfo { Category = "程序", CanPreview = true, PreviewType = PreviewType.Text } },
             { ".sys", new FileTypeInfo { Category = "系统", CanPreview = false, PreviewType = PreviewType.Executable } },
             { ".drv", new FileTypeInfo { Category = "系统", CanPreview = false, PreviewType = PreviewType.Executable } },
             { ".app", new FileTypeInfo { Category = "程序", CanPreview = false, PreviewType = PreviewType.Executable } },
@@ -218,6 +206,10 @@ namespace OoiMRR
             
             // 快捷方式文件
             { ".lnk", new FileTypeInfo { Category = "快捷方式", CanPreview = true, PreviewType = PreviewType.Shortcut } },
+            
+            // CAD 文件
+            { ".dwg", new FileTypeInfo { Category = "CAD", CanPreview = true, PreviewType = PreviewType.Document } },
+            { ".dxf", new FileTypeInfo { Category = "CAD", CanPreview = true, PreviewType = PreviewType.Document } },
         };
 
         public static FileTypeInfo GetFileTypeInfo(string filePath)
@@ -272,7 +264,6 @@ namespace OoiMRR
         Document,
         Archive,
         Executable,
-        Shortcut,
-        Html
+        Shortcut
     }
 }

@@ -310,8 +310,7 @@ namespace OoiMRR.Previews
                         }
                         catch (Exception ex)
                         {
-                            System.Diagnostics.Debug.WriteLine($"WebView2 加载错误: {ex.Message}");
-                            try
+                                                        try
                             {
                                 await webViewRef.EnsureCoreWebView2Async();
                                 webViewRef.NavigateToString($"<html><body style='font-family:Segoe UI;color:#c00;padding:16px'>渲染失败: {WebUtility.HtmlEncode(ex.Message)}</body></html>");

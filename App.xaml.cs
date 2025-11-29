@@ -46,17 +46,14 @@ namespace OoiMRR
                     bool ffmpegAvailable = FFmpegHelper.InitializeFFmpeg();
                     if (ffmpegAvailable)
                     {
-                        System.Diagnostics.Debug.WriteLine("FFmpeg 初始化成功，视频缩略图功能可用");
-                    }
+                                            }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine("警告：未找到可用的 FFmpeg，视频缩略图功能将不可用");
-                    }
+                                            }
                 }
                 catch (Exception ffmpegEx)
                 {
-                    System.Diagnostics.Debug.WriteLine($"FFmpeg 初始化失败: {ffmpegEx.Message}");
-                }
+                                    }
                 
                 // 初始化 Everything（用于快速文件搜索）
                 _ = Task.Run(async () =>
@@ -71,13 +68,11 @@ namespace OoiMRR
                         }
                         else
                         {
-                            System.Diagnostics.Debug.WriteLine("警告：Everything 初始化失败，将使用传统搜索方式");
-                        }
+                                                    }
                     }
                     catch (Exception everythingEx)
                     {
-                        System.Diagnostics.Debug.WriteLine($"Everything 初始化失败: {everythingEx.Message}");
-                    }
+                                            }
                 });
                 
                 // 初始化数据库
@@ -120,19 +115,28 @@ namespace OoiMRR
                     
                     // 验证初始化是否成功
                     var tagCount = OoiMRRIntegration.GetAllTags(OoiMRR.Services.OoiMRRIntegration.TagSortMode.Name)?.Count ?? 0;
-                    System.Diagnostics.Debug.WriteLine($"TagTrain 初始化成功，当前标签数: {tagCount}");
-                    System.Diagnostics.Debug.WriteLine($"TagTrain 数据目录: {tagTrainDataDir}");
-                    System.Diagnostics.Debug.WriteLine($"TagTrain 数据库路径: {TagTrain.Services.DataManager.GetDatabasePath()}");
+                                                            System.Diagnostics.Debug.WriteLine($"TagTrain 数据库路径: {TagTrain.Services.DataManager.GetDatabasePath()}");
                     IsTagTrainAvailable = true;
                 }
                 catch (Exception tagTrainEx)
                 {
-                    System.Diagnostics.Debug.WriteLine($"TagTrain 初始化失败: {tagTrainEx.Message}");
-                    System.Diagnostics.Debug.WriteLine($"堆栈跟踪: {tagTrainEx.StackTrace}");
-                    IsTagTrainAvailable = false;
+                                                            IsTagTrainAvailable = false;
                     // 不阻止程序启动，只是记录错误
                 }
                 
+                // 清理过期的 CHM 缓存
+                Task.Run(() =>
+                {
+                    try
+                    {
+                        OoiMRR.Services.ChmCacheManager.CleanupExpiredCache();
+                        OoiMRR.Services.ChmCacheManager.EnforceCacheSizeLimit();
+                    }
+                    catch (Exception ex)
+                    {
+                                            }
+                });
+
                 // 启动主窗口
                 var mainWindow = new MainWindow();
                 mainWindow.Show();
