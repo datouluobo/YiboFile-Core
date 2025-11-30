@@ -159,10 +159,8 @@ namespace OoiMRR
                     NoImagePreviewText.Visibility = Visibility.Collapsed;
                 }
             }
-            catch (Exception ex)
-            {
-                                ClearImagePreview();
-            }
+            catch (Exception)
+            {ClearImagePreview();}
         }
         
         // 清除图片预览，恢复原有预览状态

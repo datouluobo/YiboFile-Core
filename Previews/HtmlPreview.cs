@@ -73,7 +73,7 @@ namespace OoiMRR.Previews
                 };
                 Grid.SetRow(contentGrid, 1);
                 grid.Children.Add(contentGrid);
-                
+
                 // 用于跟踪当前视图（0=渲染，1=源码）
                 int currentViewIndex = 0;
 
@@ -88,11 +88,11 @@ namespace OoiMRR.Previews
                 // 标题栏 - 添加渲染/源码切换按钮和编辑按钮
                 var buttons = new List<Button>();
                 toggleButton = PreviewHelper.CreateHtmlViewToggleButton(
-                    () => 
+                    () =>
                     {
                         // 切换视图：如果当前是渲染(0)，切换到源码(1)；如果当前是源码(1)，切换到渲染(0)
                         currentViewIndex = currentViewIndex == 0 ? 1 : 0;
-                        
+
                         // 显示/隐藏对应的视图
                         if (currentViewIndex == 0)
                         {
@@ -131,7 +131,7 @@ namespace OoiMRR.Previews
                     "🎨 渲染"   // 切换到源码后，按钮显示"渲染"
                 );
                 buttons.Add(toggleButton);
-                
+
                 // 编辑/保存按钮
                 editButton = PreviewHelper.CreateEditButton(
                     () =>
@@ -162,14 +162,14 @@ namespace OoiMRR.Previews
                                 // 保存文件
                                 File.WriteAllText(filePath, htmlContent, encoding);
                                 originalHtmlContent = htmlContent;
-                                
+
                                 // 更新渲染视图
                                 if (webViewRef != null)
                                 {
                                     var uri = new Uri(filePath);
                                     webViewRef.Source = uri;
                                 }
-                                
+
                                 // 切换为只读模式
                                 if (sourceTextBoxRef != null)
                                 {
@@ -177,14 +177,14 @@ namespace OoiMRR.Previews
                                     sourceTextBoxRef.Background = PreviewHelper.ReadOnlyBackground;
                                 }
                                 isEditMode = false;
-                                
+
                                 // 更新按钮
                                 if (editButton != null)
                                 {
                                     editButton.Content = "✏️ 编辑";
                                     editButton.Background = new SolidColorBrush(Color.FromRgb(33, 150, 243));
                                 }
-                                
+
                                 MessageBox.Show("文件已保存", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
                             }
                             catch (Exception ex)
@@ -208,14 +208,14 @@ namespace OoiMRR.Previews
                             {
                                 toggleButton.Content = "🎨 渲染";
                             }
-                            
+
                             if (sourceTextBoxRef != null)
                             {
                                 sourceTextBoxRef.IsReadOnly = false;
                                 sourceTextBoxRef.Background = PreviewHelper.EditModeBackground; // 浅蓝色背景表示可编辑
                             }
                             isEditMode = true;
-                            
+
                             // 更新按钮
                             if (editButton != null)
                             {
@@ -227,7 +227,7 @@ namespace OoiMRR.Previews
                     false
                 );
                 buttons.Add(editButton);
-                
+
                 var titlePanel = PreviewHelper.CreateTitlePanel("🌐", $"HTML 文件: {Path.GetFileName(filePath)}", buttons);
                 Grid.SetRow(titlePanel, 0);
                 grid.Children.Add(titlePanel);
@@ -247,7 +247,7 @@ namespace OoiMRR.Previews
                     try
                     {
                         await webViewRef.EnsureCoreWebView2Async();
-                        
+
                         // 设置WebView2的视口宽度，确保媒体查询能正确判断
                         // 解决HTML中媒体查询在小宽度时隐藏内容的问题
                         var coreWebView2 = webViewRef.CoreWebView2;
@@ -271,14 +271,14 @@ namespace OoiMRR.Previews
                                             }
                                             // 设置视口宽度为1400px，确保媒体查询不会隐藏内容
                                             viewport.content = 'width=1400, initial-scale=1.0, minimum-scale=0.1, maximum-scale=3.0, user-scalable=yes';
-                                            
+
                                             // 强制显示可能被媒体查询隐藏的内容
                                             var banner = document.getElementById('diagram-banner');
                                             if (banner) {
                                                 banner.style.display = 'block';
                                                 banner.style.visibility = 'visible';
                                             }
-                                            
+
                                             // 添加样式来覆盖媒体查询，确保内容始终显示
                                             var style = document.createElement('style');
                                             style.textContent = '@media only screen and (max-width: 1024px) { #diagram-banner { display: block !important; } }';
@@ -287,12 +287,11 @@ namespace OoiMRR.Previews
                                     ";
                                     await coreWebView2.ExecuteScriptAsync(script);
                                 }
-                                catch (Exception scriptEx)
-                                {
+                                catch{
                                                                     }
                             };
                         }
-                        
+
                         // 使用 file:// 协议直接加载HTML文件
                         // NavigateToString 会将HTML视为 about:blank 源，导致外部资源无法加载
                         var uri = new Uri(filePath);

@@ -13,6 +13,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Drawing;
 using System.Threading.Tasks;
+using System.Runtime.InteropServices;
 
 namespace OoiMRR.Previews
 {
@@ -24,7 +25,7 @@ namespace OoiMRR.Previews
         public UIElement CreatePreview(string filePath)
         {
             var extension = System.IO.Path.GetExtension(filePath).ToLower();
-            
+
             if (extension == ".ppt")
             {
                 return CreatePptPreview(filePath);
@@ -33,7 +34,7 @@ namespace OoiMRR.Previews
             {
                 return CreatePptxPreview(filePath);
             }
-            
+
             return PreviewHelper.CreateErrorPreview("不支持的文件格式");
         }
 
@@ -67,7 +68,7 @@ namespace OoiMRR.Previews
                     try
                     {
                         await webView.EnsureCoreWebView2Async();
-                        
+
                         // 在后台线程提取内容
                         string html = await Task.Run(() =>
                         {
@@ -89,10 +90,10 @@ namespace OoiMRR.Previews
                                 var tempHtmlFile = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"pptx_preview_{Guid.NewGuid()}.html");
                                 File.WriteAllText(tempHtmlFile, html, Encoding.UTF8);
                                 var fileUri = new Uri(tempHtmlFile).ToString();
-                                
+
                                 await webView.EnsureCoreWebView2Async();
                                 webView.CoreWebView2.Navigate(fileUri);
-                                
+
                                 // 清理：在WebView关闭时删除临时文件
                                 webView.CoreWebView2.NavigationCompleted += (s, e) =>
                                 {
@@ -107,10 +108,8 @@ namespace OoiMRR.Previews
                                     catch { }
                                 };
                             }
-                            catch (Exception ex)
-                            {
-                                                                webView.NavigateToString(html);
-                            }
+                            catch (Exception)
+            {webView.NavigateToString(html);}
                         }
                         else
                         {
@@ -136,7 +135,7 @@ namespace OoiMRR.Previews
             try
             {
                 using var presentationDoc = PresentationDocument.Open(filePath, false);
-                
+
                 if (presentationDoc?.PresentationPart?.Presentation == null)
                 {
                     throw new Exception("无法读取PPTX文档结构");
@@ -144,7 +143,7 @@ namespace OoiMRR.Previews
 
                 var presentationPart = presentationDoc.PresentationPart;
                 var slideIdList = presentationPart.Presentation.SlideIdList;
-                
+
                 if (slideIdList == null)
                 {
                     throw new Exception("未找到幻灯片列表");
@@ -177,8 +176,8 @@ namespace OoiMRR.Previews
 
                         var slideContent = new SlideContent();
                         var contentBuilder = new StringBuilder();
-                        var imageMap = allImageMap.ContainsKey(slideId.RelationshipId) 
-                            ? allImageMap[slideId.RelationshipId] 
+                        var imageMap = allImageMap.ContainsKey(slideId.RelationshipId)
+                            ? allImageMap[slideId.RelationshipId]
                             : new Dictionary<string, string>();
 
                         // 处理幻灯片中的所有形状
@@ -215,7 +214,7 @@ namespace OoiMRR.Previews
                 sb.Append(".slide-image img{max-width:90%;max-height:400px;border-radius:6px;box-shadow:0 4px 8px rgba(0,0,0,0.15)}");
                 sb.Append(".empty-slide{color:#999;font-style:italic;text-align:center;padding:40px}");
                 sb.Append("</style></head><body>");
-                
+
                 sb.Append($"<div class='header'><h1 style='margin:0'>📊 PowerPoint 演示文稿</h1><p style='margin:5px 0 0 0'>共 {slideCount} 张幻灯片</p></div>");
 
                 for (int i = 0; i < slides.Count; i++)
@@ -223,7 +222,7 @@ namespace OoiMRR.Previews
                     var slide = slides[i];
                     sb.Append($"<div class='slide'>");
                     sb.Append($"<div class='slide-number'>幻灯片 {i + 1} / {slideCount}</div>");
-                    
+
                     if (string.IsNullOrWhiteSpace(slide.Content))
                     {
                         sb.Append("<div class='empty-slide'>（空白幻灯片）</div>");
@@ -232,7 +231,7 @@ namespace OoiMRR.Previews
                     {
                         sb.Append($"<div class='slide-content'>{slide.Content}</div>");
                     }
-                    
+
                     sb.Append("</div>");
                 }
 
@@ -251,7 +250,7 @@ namespace OoiMRR.Previews
         private Dictionary<string, string> ExtractImagesFromSlidePart(SlidePart slidePart)
         {
             var imageMap = new Dictionary<string, string>();
-            
+
             try
             {
                 if (slidePart == null)
@@ -271,10 +270,8 @@ namespace OoiMRR.Previews
                         {
                             relationshipId = slidePart.GetIdOfPart(imagePart);
                         }
-                        catch (Exception ex)
-                        {
-                                                        continue;
-                        }
+                        catch (Exception)
+            {continue;}
 
                         if (string.IsNullOrEmpty(relationshipId))
                         {
@@ -287,18 +284,18 @@ namespace OoiMRR.Previews
                             {
                                                                 continue;
                             }
-                            
+
                             using (var memoryStream = new MemoryStream())
                             {
                                 stream.CopyTo(memoryStream);
-                                
+
                                 if (memoryStream.Length == 0 || memoryStream.Length > 50 * 1024 * 1024) // 限制50MB
                                 {
                                                                         continue;
                                 }
 
                                 byte[] imageBytes = memoryStream.ToArray();
-                                
+
                                 // 确定MIME类型
                                 string mimeType = "image/png";
                                 try
@@ -313,19 +310,19 @@ namespace OoiMRR.Previews
                                         mimeType = "image/bmp";
                                     else if (extension == ".png")
                                         mimeType = "image/png";
-                                    
+
                                                                     }
                                 catch
                                 {
                                     // 使用默认PNG类型
                                 }
-                                
+
                                 string base64 = Convert.ToBase64String(imageBytes);
                                 string imageData = $"data:{mimeType};base64,{base64}";
-                                
+
                                 // 存储关系ID
                                 imageMap[relationshipId] = imageData;
-                                
+
                                 // 同时存储其他格式以确保匹配
                                 if (!relationshipId.StartsWith("rId", StringComparison.OrdinalIgnoreCase))
                                 {
@@ -340,21 +337,19 @@ namespace OoiMRR.Previews
                                         }
                                     }
                                 }
-                                
+
                                 imageCount++;
                                                             }
                         }
                     }
-                    catch (Exception ex)
-                    {
+                    catch{
                                             }
                 }
-                
+
                             }
-            catch (Exception ex)
-            {
+            catch{
                             }
-            
+
             return imageMap;
         }
 
@@ -399,7 +394,7 @@ namespace OoiMRR.Previews
             {
                 var paraText = new StringBuilder();
                 var runs = para.Elements<DocumentFormat.OpenXml.Drawing.Run>();
-                
+
                 foreach (var run in runs)
                 {
                     // 处理文本
@@ -409,11 +404,11 @@ namespace OoiMRR.Previews
                         if (!string.IsNullOrWhiteSpace(text.Text))
                         {
                             var textValue = WebUtility.HtmlEncode(text.Text);
-                            
+
                             // 检查格式
                             var isBold = run.RunProperties?.Bold != null;
                             var isItalic = run.RunProperties?.Italic != null;
-                            
+
                             if (isBold && isItalic)
                                 paraText.Append($"<strong><em>{textValue}</em></strong>");
                             else if (isBold)
@@ -498,7 +493,7 @@ namespace OoiMRR.Previews
             }
 
             // 尝试不区分大小写匹配
-            var matchedKey = imageMap.Keys.FirstOrDefault(k => 
+            var matchedKey = imageMap.Keys.FirstOrDefault(k =>
                 string.Equals(k, relationshipId, StringComparison.OrdinalIgnoreCase));
             if (matchedKey != null)
             {
@@ -566,13 +561,13 @@ namespace OoiMRR.Previews
                             string directory = System.IO.Path.GetDirectoryName(filePath);
                             string baseName = System.IO.Path.GetFileNameWithoutExtension(filePath);
                             string outputPath = System.IO.Path.Combine(directory, baseName + ".pptx");
-                            
+
                             // 如果文件已存在，添加序号
                             outputPath = GetUniqueFilePath(outputPath);
-                            
+
                             // 在后台线程执行转换
                             string errorMessage = null;
-                            bool success = await System.Threading.Tasks.Task.Run(() => 
+                            bool success = await System.Threading.Tasks.Task.Run(() =>
                             {
                                 bool result = ConvertPptToPptx(filePath, outputPath, out errorMessage);
                                 return result;
@@ -609,8 +604,8 @@ namespace OoiMRR.Previews
                     }
                 };
 
-                var buttons = new List<Button> 
-                { 
+                var buttons = new List<Button>
+                {
                     convertButton,
                     PreviewHelper.CreateOpenButton(filePath)
                 };
@@ -692,7 +687,7 @@ namespace OoiMRR.Previews
         private bool ConvertPptToPptx(string pptPath, string pptxPath, out string errorMessage)
         {
             errorMessage = null;
-            
+
             try
             {
                 // 尝试使用 PowerPoint COM 自动化
@@ -715,7 +710,7 @@ namespace OoiMRR.Previews
                     {
                         // 某些版本的PowerPoint不允许隐藏窗口，忽略此错误
                     }
-                    
+
                     pptApp.DisplayAlerts = 0; // ppAlertsNone
 
                     dynamic presentation = pptApp.Presentations.Open(pptPath, ReadOnly: true, Untitled: false, WithWindow: false);
@@ -733,6 +728,10 @@ namespace OoiMRR.Previews
                     {
                         pptApp.Quit();
                     }
+                    catch (COMException)
+                    {
+                        // 忽略退出时的 COM 异常
+                    }
                     catch
                     {
                         // 忽略退出时的错误
@@ -740,6 +739,10 @@ namespace OoiMRR.Previews
                     try
                     {
                         System.Runtime.InteropServices.Marshal.ReleaseComObject(pptApp);
+                    }
+                    catch (COMException)
+                    {
+                        // 忽略释放时的 COM 异常
                     }
                     catch
                     {

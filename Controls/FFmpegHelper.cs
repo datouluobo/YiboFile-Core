@@ -38,18 +38,12 @@ namespace OoiMRR.Controls
                         System.Diagnostics.Debug.WriteLine($"FFmpeg 已配置：打包文件夹 ({bundledFFmpegDir})");
                         return true;
                     }
-                    else
-                    {
-                                            }
                 }
-                else
-                {
-                                    }
 
                 // 2. 如果打包的 FFmpeg 不可用，回退到系统 PATH
                 if (TestFFmpegInPath())
                 {
-                                        return true;
+                    return true;
                 }
 
                 // 3. 在常见安装位置搜索（作为最后备选）
@@ -74,16 +68,16 @@ namespace OoiMRR.Controls
                                 BinaryFolder = path,
                                 TemporaryFilesFolder = Path.GetTempPath()
                             });
-                                                        return true;
+                            return true;
                         }
                     }
                 }
 
-                                return false;
+                return false;
             }
-            catch (Exception ex)
+            catch
             {
-                                return false;
+                return false;
             }
         }
 
@@ -100,7 +94,7 @@ namespace OoiMRR.Controls
                 // FFMpegCore 需要同时有 ffmpeg.exe 和 ffprobe.exe
                 if (!File.Exists(ffmpegPath))
                 {
-                                        return false;
+                    return false;
                 }
                 
                 if (!File.Exists(ffprobePath))
@@ -169,12 +163,12 @@ namespace OoiMRR.Controls
                     }
                 }
                 
-                                return true;
+                return true;
             }
-            catch (Exception ex)
+            catch
             {
                 // 测试失败
-                                return false;
+                return false;
             }
         }
 
@@ -250,20 +244,20 @@ namespace OoiMRR.Controls
 
             try
             {
-                    // 首先在当前目录查找（需要同时有 ffmpeg.exe 和 ffprobe.exe）
-                    string ffmpegPath = Path.Combine(directory, "ffmpeg.exe");
-                    string ffprobePath = Path.Combine(directory, "ffprobe.exe");
-                    
-                    if (File.Exists(ffmpegPath) && File.Exists(ffprobePath))
+                // 首先在当前目录查找（需要同时有 ffmpeg.exe 和 ffprobe.exe）
+                string ffmpegPath = Path.Combine(directory, "ffmpeg.exe");
+                string ffprobePath = Path.Combine(directory, "ffprobe.exe");
+                
+                if (File.Exists(ffmpegPath) && File.Exists(ffprobePath))
+                {
+                    // 检查文件大小是否合理（至少50KB，避免无效文件）
+                    var ffmpegInfo = new FileInfo(ffmpegPath);
+                    var ffprobeInfo = new FileInfo(ffprobePath);
+                    if (ffmpegInfo.Length > 50 * 1024 && ffprobeInfo.Length > 50 * 1024) // 至少50KB
                     {
-                        // 检查文件大小是否合理（至少50KB，避免无效文件）
-                        var ffmpegInfo = new FileInfo(ffmpegPath);
-                        var ffprobeInfo = new FileInfo(ffprobePath);
-                        if (ffmpegInfo.Length > 50 * 1024 && ffprobeInfo.Length > 50 * 1024) // 至少50KB
-                        {
-                            return ffmpegPath; // 返回 ffmpeg.exe 路径（目录验证会检查两个文件）
-                        }
+                        return ffmpegPath; // 返回 ffmpeg.exe 路径（目录验证会检查两个文件）
                     }
+                }
 
                 // 如果在当前目录没找到，且还有深度，则递归搜索子目录
                 if (currentDepth < maxDepth - 1)
@@ -302,4 +296,3 @@ namespace OoiMRR.Controls
         }
     }
 }
-

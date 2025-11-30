@@ -18,6 +18,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using DocumentFormat.OpenXml;
 using System.Text.RegularExpressions;
 using System.Windows.Controls.Primitives;
+using System.Runtime.InteropServices;
 using System.Xml.Linq;
 
 namespace OoiMRR.Previews
@@ -108,7 +109,7 @@ namespace OoiMRR.Previews
                     try
                     {
                         await webView.EnsureCoreWebView2Async();
-                        
+
                         // 在后台线程提取文本和图片
                         string html = await Task.Run(() =>
                         {
@@ -116,9 +117,9 @@ namespace OoiMRR.Previews
                             {
                                 return GenerateHtmlFromDocx(filePath);
                             }
-                            catch (Exception ex)
+                            catch (Exception)
                             {
-                                                                // 如果完整预览失败，尝试仅提取文本
+                                // 如果完整预览失败，尝试仅提取文本
                                 try
                                 {
                                     return GenerateSimpleTextPreview(filePath);
@@ -140,10 +141,10 @@ namespace OoiMRR.Previews
                                 File.WriteAllText(tempHtmlFile, html, Encoding.UTF8);
                                 var fileUri = new Uri(tempHtmlFile).ToString();
                                 System.Diagnostics.Debug.WriteLine($"HTML太大 ({html.Length} 字节)，保存到临时文件: {tempHtmlFile}");
-                                
+
                                 await webView.EnsureCoreWebView2Async();
                                 webView.CoreWebView2.Navigate(fileUri);
-                                
+
                                 // 清理：在WebView关闭时删除临时文件
                                 webView.CoreWebView2.NavigationCompleted += (s, e) =>
                                 {
@@ -159,11 +160,9 @@ namespace OoiMRR.Previews
                                     catch { }
                                 };
                             }
-                            catch (Exception ex)
-                            {
-                                                                // 回退到NavigateToString
-                                webView.NavigateToString(html);
-                            }
+                            catch (Exception)
+            {// 回退到NavigateToString
+                                webView.NavigateToString(html);}
                         }
                         else
                         {
@@ -191,7 +190,7 @@ namespace OoiMRR.Previews
                 var tempDocx = Path.Combine(Path.GetTempPath(), Path.GetFileNameWithoutExtension(filePath) + ".docx");
                 string errorMsg;
                 bool canPreview = ConvertDocToDocx(filePath, tempDocx, out errorMsg);
-                
+
                 // 无论能否预览，都显示转换按钮
                 var grid = new Grid();
                 grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
@@ -222,13 +221,13 @@ namespace OoiMRR.Previews
                             string directory = Path.GetDirectoryName(filePath);
                             string baseName = Path.GetFileNameWithoutExtension(filePath);
                             string outputPath = Path.Combine(directory, baseName + ".docx");
-                            
+
                             // 如果文件已存在，添加序号
                             outputPath = GetUniqueFilePath(outputPath);
-                            
+
                             // 在后台线程执行转换
                             string errorMessage = null;
-                            bool success = await Task.Run(() => 
+                            bool success = await Task.Run(() =>
                             {
                                 bool result = ConvertDocToDocx(filePath, outputPath, out errorMessage);
                                 return result;
@@ -265,8 +264,8 @@ namespace OoiMRR.Previews
                     }
                 };
 
-                var buttons = new List<Button> 
-                { 
+                var buttons = new List<Button>
+                {
                     convertButton,
                     PreviewHelper.CreateOpenButton(filePath)
                 };
@@ -293,7 +292,7 @@ namespace OoiMRR.Previews
                         try
                         {
                             await webView.EnsureCoreWebView2Async();
-                            
+
                             // 在后台线程提取文本
                             string html = await Task.Run(() =>
                             {
@@ -303,7 +302,7 @@ namespace OoiMRR.Previews
                                     {
                                         var body = wordDoc.MainDocumentPart.Document.Body;
                                         var paragraphs = new List<string>();
-                                        
+
                                         foreach (var element in body.Elements())
                                         {
                                             var text = element.InnerText ?? "";
@@ -349,7 +348,7 @@ namespace OoiMRR.Previews
                         Background = Brushes.White,
                         Margin = new Thickness(15, 10, 15, 5)
                     };
-                    
+
                     var errorText = new TextBlock
                     {
                         Text = "DOC 预览需要安装 Microsoft Word 或兼容组件，或者转换为 DOCX 格式。",
@@ -358,7 +357,7 @@ namespace OoiMRR.Previews
                         LineHeight = 24
                     };
                     errorPanel.Children.Add(errorText);
-                    
+
                     Grid.SetRow(errorPanel, 1);
                     grid.Children.Add(errorPanel);
                 }
@@ -405,13 +404,13 @@ namespace OoiMRR.Previews
                         string directory = Path.GetDirectoryName(filePath);
                         string baseName = Path.GetFileNameWithoutExtension(filePath);
                         string outputPath = Path.Combine(directory, baseName + ".docx");
-                        
+
                         // 如果文件已存在，添加序号
                         outputPath = GetUniqueFilePath(outputPath);
-                        
+
                         // 在后台线程执行转换
                         string errorMsg = null;
-                        bool success = await Task.Run(() => 
+                        bool success = await Task.Run(() =>
                         {
                             bool result = ConvertDocToDocx(filePath, outputPath, out errorMsg);
                             return result;
@@ -510,7 +509,7 @@ namespace OoiMRR.Previews
         private bool ConvertDocToDocx(string docPath, string docxPath, out string errorMessage)
         {
             errorMessage = null;
-            
+
             try
             {
                 // 尝试使用 Word COM 自动化
@@ -533,7 +532,7 @@ namespace OoiMRR.Previews
                     {
                         // 某些版本的Word不允许隐藏窗口，忽略此错误
                     }
-                    
+
                     wordApp.DisplayAlerts = 0; // wdAlertsNone
 
                     dynamic document = wordApp.Documents.Open(docPath, ReadOnly: true);
@@ -551,6 +550,10 @@ namespace OoiMRR.Previews
                     {
                         wordApp.Quit(false);
                     }
+                    catch (COMException)
+                    {
+                        // 忽略退出时的 COM 异常
+                    }
                     catch
                     {
                         // 忽略退出时的错误
@@ -558,6 +561,10 @@ namespace OoiMRR.Previews
                     try
                     {
                         System.Runtime.InteropServices.Marshal.ReleaseComObject(wordApp);
+                    }
+                    catch (COMException)
+                    {
+                        // 忽略释放时的 COM 异常
                     }
                     catch
                     {
@@ -657,10 +664,10 @@ namespace OoiMRR.Previews
 <head>
     <meta charset='utf-8'>
     <style>
-        body {{ 
-            font-family: Arial, sans-serif; 
-            padding: 40px; 
-            text-align: center; 
+        body {{
+            font-family: Arial, sans-serif;
+            padding: 40px;
+            text-align: center;
             background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
         }}
         .container {{
@@ -845,22 +852,22 @@ namespace OoiMRR.Previews
 
                     // 查找 7-Zip 可执行文件
                     var sevenZipPath = FindSevenZipPath();
-                    
+
                     // 使用缓存机制：基于文件路径和修改时间生成唯一标识
                     var fileInfo = new FileInfo(filePath);
                     var fileHash = $"{filePath.GetHashCode():X8}_{fileInfo.LastWriteTime.Ticks:X16}";
                     var cacheDir = Path.Combine(Path.GetTempPath(), "MRR_CHM_Cache", fileHash);
-                    
+
                     // 检查缓存是否存在
                     string tempDir = cacheDir;
                     bool needExtract = true;
-                    
+
                     if (Directory.Exists(cacheDir))
                     {
                         // 检查缓存是否完整（至少包含一些 HTML 文件）
                         var htmlFiles = Directory.GetFiles(cacheDir, "*.html", SearchOption.AllDirectories)
                             .Concat(Directory.GetFiles(cacheDir, "*.htm", SearchOption.AllDirectories));
-                        
+
                         if (htmlFiles.Any())
                         {
                             needExtract = false;
@@ -912,7 +919,7 @@ namespace OoiMRR.Previews
                                             var output = await process.StandardOutput.ReadToEndAsync();
                                             var error = await process.StandardError.ReadToEndAsync();
                                             await process.WaitForExitAsync();
-                                            
+
                                             // 检查是否解压了文件
                                             if (Directory.Exists(tempDir) && Directory.GetFiles(tempDir, "*", SearchOption.AllDirectories).Length > 0)
                                             {
@@ -938,7 +945,7 @@ namespace OoiMRR.Previews
                             if (!extracted)
                             {
                                                                 extracted = await TryExtractWithHhExe(filePath, tempDir);
-                                
+
                                 if (!extracted)
                                 {
                                     // 如果 hh.exe 也失败，且之前是因为没找到 7-Zip，则报告未找到 7-Zip
@@ -947,14 +954,14 @@ namespace OoiMRR.Previews
                                         webView.CoreWebView2.NavigateToString(GenerateChmErrorHtml(ChmErrorType.SevenZipNotFound, "未找到 7-Zip 工具", filePath));
                                         return;
                                     }
-                                    
+
                                     // 否则报告解压失败（可能是 LZX 问题）
                                     var errorType = lastError.Contains("LZX") ? ChmErrorType.LzxCompressionIssue : ChmErrorType.ExtractionFailed;
                                     webView.CoreWebView2.NavigateToString(GenerateChmErrorHtml(
-                                        lastError.Contains("LZX") ? ChmErrorType.LzxCompressionIssue : ChmErrorType.ExtractionFailed, 
-                                        lastError, 
+                                        lastError.Contains("LZX") ? ChmErrorType.LzxCompressionIssue : ChmErrorType.ExtractionFailed,
+                                        lastError,
                                         filePath));
-                                    
+
                                     // 清理空目录
                                     try { Directory.Delete(tempDir, true); } catch { }
                                     return;
@@ -1006,8 +1013,7 @@ namespace OoiMRR.Previews
                     }
                 }
             }
-            catch (Exception ex)
-            {
+            catch{
                             }
         }
 
@@ -1029,7 +1035,7 @@ namespace OoiMRR.Previews
             };
 
             var foundPath = possiblePaths.FirstOrDefault(File.Exists);
-            
+
             // 调试信息：记录找到的 7-Zip 路径
             if (foundPath != null)
             {
@@ -1037,7 +1043,7 @@ namespace OoiMRR.Previews
             else
             {
                             }
-            
+
             return foundPath;
         }
 
@@ -1051,13 +1057,13 @@ namespace OoiMRR.Previews
                 {
                     var bytes = File.ReadAllBytes(systemFile);
                     var content = Encoding.ASCII.GetString(bytes);
-                    
+
                     // 查找默认主题（DEFTOPIC），格式：DEFTOPIC + 字符串
                     var defTopicPattern = new System.Text.RegularExpressions.Regex(
-                        @"DEFTOPIC\s+([^\x00\r\n]+)", 
+                        @"DEFTOPIC\s+([^\x00\r\n]+)",
                         System.Text.RegularExpressions.RegexOptions.IgnoreCase);
                     var match = defTopicPattern.Match(content);
-                    
+
                     if (match.Success)
                     {
                         var defaultPage = match.Groups[1].Value.Trim('\0', ' ', '\t', '\r', '\n');
@@ -1069,9 +1075,9 @@ namespace OoiMRR.Previews
                             {
                                                                 return defaultPath;
                             }
-                            
+
                             // 尝试添加 .html 扩展名
-                            if (!defaultPage.EndsWith(".html", StringComparison.OrdinalIgnoreCase) && 
+                            if (!defaultPage.EndsWith(".html", StringComparison.OrdinalIgnoreCase) &&
                                 !defaultPage.EndsWith(".htm", StringComparison.OrdinalIgnoreCase))
                             {
                                 defaultPath = Path.Combine(directory, defaultPage + ".html");
@@ -1083,8 +1089,7 @@ namespace OoiMRR.Previews
                         }
                     }
                 }
-                catch (Exception ex)
-                {
+                catch{
                                     }
             }
 
@@ -1105,7 +1110,7 @@ namespace OoiMRR.Previews
             var rootHtmlFiles = Directory.GetFiles(directory, "*.html", SearchOption.TopDirectoryOnly)
                 .Concat(Directory.GetFiles(directory, "*.htm", SearchOption.TopDirectoryOnly))
                 .ToList();
-            
+
             if (rootHtmlFiles.Count > 0)
             {
                 // 按文件名智能排序：优先选择可能的主页面
@@ -1125,7 +1130,7 @@ namespace OoiMRR.Previews
                         return 4;
                     return 10; // 其他文件优先级最低
                 }).ThenBy(f => Path.GetFileName(f)); // 相同优先级按文件名排序
-                
+
                 var selected = sortedFiles.First();
                                 return selected;
             }
@@ -1134,7 +1139,7 @@ namespace OoiMRR.Previews
             var allHtmlFiles = Directory.GetFiles(directory, "*.html", SearchOption.AllDirectories)
                 .Concat(Directory.GetFiles(directory, "*.htm", SearchOption.AllDirectories))
                 .ToList();
-            
+
             if (allHtmlFiles.Count > 0)
             {
                 // 优先选择根目录或浅层目录的文件
@@ -1143,7 +1148,7 @@ namespace OoiMRR.Previews
                     var relativePath = Path.GetRelativePath(directory, f);
                     var depth = relativePath.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar).Length - 1;
                     var name = Path.GetFileNameWithoutExtension(f).ToLower();
-                    
+
                     // 深度优先（根目录优先），然后按文件名优先级
                     int namePriority = 10;
                     if (name == "main" || name == "index" || name == "start" || name == "home")
@@ -1152,10 +1157,10 @@ namespace OoiMRR.Previews
                         namePriority = 1;
                     else if (name.Contains("content") || name.Contains("welcome") || name.Contains("home"))
                         namePriority = 2;
-                    
+
                     return depth * 100 + namePriority; // 深度权重更大
                 }).ThenBy(f => Path.GetFileName(f));
-                
+
                 var selected = sortedFiles.First();
                                 return selected;
             }
@@ -1167,15 +1172,14 @@ namespace OoiMRR.Previews
         {
             // 存储 webView 引用到 TreeView 的 Tag 中，以便在事件处理中使用
             treeView.Tag = webView;
-            
+
             try
             {
                 treeView.Items.Clear();
                 // 直接列出所有 HTML 页面
                 BuildSimpleTreeFromHtmlFiles(treeView, tempDir, webView);
             }
-            catch (Exception ex)
-            {
+            catch{
                             }
         }
 
@@ -1209,8 +1213,7 @@ namespace OoiMRR.Previews
                     treeView.Items.Add(item);
                 }
             }
-            catch (Exception ex)
-            {
+            catch{
                             }
         }
 
@@ -1225,8 +1228,7 @@ namespace OoiMRR.Previews
                     webView.CoreWebView2?.Navigate(uri);
                 }
             }
-            catch (Exception ex)
-            {
+            catch{
                             }
         }
 
@@ -1273,9 +1275,9 @@ namespace OoiMRR.Previews
                 {
                     throw new Exception("无法读取DOCX文档结构");
                 }
-                
+
                 var body = mainPart.Document.Body;
-                
+
                 // 提取图片映射（关系ID -> 图片数据）
                 var imageMap = ExtractImages(mainPart);
                                 // 遍历文档元素
@@ -1296,7 +1298,7 @@ namespace OoiMRR.Previews
         {
             var imageMap = new Dictionary<string, string>();
             var imagePartUriMap = new Dictionary<string, string>(); // URI -> 关系ID的映射
-            
+
             try
             {
                 if (mainPart == null)
@@ -1316,14 +1318,14 @@ namespace OoiMRR.Previews
                                 if (!string.IsNullOrEmpty(uri) && !string.IsNullOrEmpty(relId))
                                 {
                                     imagePartUriMap[uri] = relId;
-                                                                    }
+                                }
                             }
                         }
                     }
                 }
-                catch (Exception ex)
+                catch
                 {
-                                    }
+                }
 
                 // 遍历所有图片部分
                 int imageCount = 0;
@@ -1336,48 +1338,48 @@ namespace OoiMRR.Previews
 
                         // 获取关系ID - 尝试多种方式
                         string relationshipId = null;
-                        
+
                         // 方法1: 通过URI映射获取
                         var uri = imagePart.Uri?.ToString() ?? "";
                         if (imagePartUriMap.ContainsKey(uri))
                         {
                             relationshipId = imagePartUriMap[uri];
-                                                    }
-                        
+                        }
+
                         // 方法2: 通过GetIdOfPart获取
                         if (string.IsNullOrEmpty(relationshipId))
                         {
                             try
                             {
                                 relationshipId = mainPart.GetIdOfPart(imagePart);
-                                                            }
-                            catch (Exception ex)
+                            }
+                            catch
                             {
-                                                            }
-                        }
-                        
-                        if (string.IsNullOrEmpty(relationshipId))
-                        {
-                                                        continue;
+                            }
                         }
 
-                                                using (var stream = imagePart.GetStream())
+                        if (string.IsNullOrEmpty(relationshipId))
+                        {
+                            continue;
+                        }
+
+                        using (var stream = imagePart.GetStream())
                         {
                             if (stream == null)
                             {
-                                                                continue;
+                                continue;
                             }
-                            
+
                             // ZIP流不支持Seek，所以使用MemoryStream来缓冲
                             using (var memoryStream = new MemoryStream())
                             {
                                 stream.CopyTo(memoryStream);
-                                
+
                                 if (memoryStream.Length == 0)
                                 {
-                                                                        continue;
+                                    continue;
                                 }
-                                
+
                                 if (memoryStream.Length > 50 * 1024 * 1024) // 限制50MB
                                 {
                                     System.Diagnostics.Debug.WriteLine($"图片太大 ({memoryStream.Length} 字节)，跳过");
@@ -1385,41 +1387,40 @@ namespace OoiMRR.Previews
                                 }
 
                                 byte[] imageBytes = memoryStream.ToArray();
-                                
+
                                 if (imageBytes.Length == 0)
                                 {
-                                                                        continue;
+                                    continue;
                                 }
-                            
-                            // 确定MIME类型
-                            string mimeType = "image/png";
-                            try
-                            {
-                                var uriStr = imagePart.Uri?.ToString() ?? "";
-                                var extension = System.IO.Path.GetExtension(uriStr).ToLower();
-                                if (extension == ".jpg" || extension == ".jpeg")
-                                    mimeType = "image/jpeg";
-                                else if (extension == ".gif")
-                                    mimeType = "image/gif";
-                                else if (extension == ".bmp")
-                                    mimeType = "image/bmp";
-                                else if (extension == ".png")
-                                    mimeType = "image/png";
-                                else if (extension == ".wmf" || extension == ".emf")
-                                    mimeType = "image/x-wmf"; // Windows图元文件
-                                
-                                                            }
-                            catch
-                            {
-                                // 使用默认PNG类型
-                            }
-                            
+
+                                // 确定MIME类型
+                                string mimeType = "image/png";
+                                try
+                                {
+                                    var uriStr = imagePart.Uri?.ToString() ?? "";
+                                    var extension = System.IO.Path.GetExtension(uriStr).ToLower();
+                                    if (extension == ".jpg" || extension == ".jpeg")
+                                        mimeType = "image/jpeg";
+                                    else if (extension == ".gif")
+                                        mimeType = "image/gif";
+                                    else if (extension == ".bmp")
+                                        mimeType = "image/bmp";
+                                    else if (extension == ".png")
+                                        mimeType = "image/png";
+                                    else if (extension == ".wmf" || extension == ".emf")
+                                        mimeType = "image/x-wmf"; // Windows图元文件
+                                }
+                                catch
+                                {
+                                    // 使用默认PNG类型
+                                }
+
                                 string base64 = Convert.ToBase64String(imageBytes);
                                 string imageData = $"data:{mimeType};base64,{base64}";
-                                
+
                                 // 存储关系ID（使用多种格式以确保匹配）
                                 imageMap[relationshipId] = imageData;
-                                
+
                                 // 如果ID不是rId格式，也尝试添加rId前缀
                                 if (!relationshipId.StartsWith("rId", StringComparison.OrdinalIgnoreCase))
                                 {
@@ -1432,32 +1433,31 @@ namespace OoiMRR.Previews
                                         if (!imageMap.ContainsKey(rIdFormat))
                                         {
                                             imageMap[rIdFormat] = imageData;
-                                                                                    }
+                                        }
                                     }
                                 }
-                                
+
                                 // 也存储URI作为键（以防万一）
                                 if (!string.IsNullOrEmpty(uri) && !imageMap.ContainsKey(uri))
                                 {
                                     imageMap[uri] = imageData;
-                                                                    }
-                                
+                                }
+
                                 imageCount++;
-                                                            }
+                            }
                         }
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
-                                                // 忽略单个图片的提取错误，继续处理其他图片
+                        // 忽略单个图片的提取错误，继续处理其他图片
                     }
                 }
-                
-                            }
-            catch (Exception ex)
-            {
-                                // 忽略图片提取错误，至少显示文本内容
             }
-            
+            catch (Exception)
+            {
+                // 忽略图片提取错误，至少显示文本内容
+            }
+
             return imageMap;
         }
 
@@ -1470,7 +1470,7 @@ namespace OoiMRR.Previews
             {
                 var hasContent = false;
                 var paraSb = new StringBuilder();
-                
+
                 foreach (var run in paragraph.Elements<DocumentFormat.OpenXml.Wordprocessing.Run>())
                 {
                     // 处理文本
@@ -1483,7 +1483,7 @@ namespace OoiMRR.Previews
                             hasContent = true;
                         }
                     }
-                    
+
                     // 处理图片
                     foreach (var drawing in run.Elements<DocumentFormat.OpenXml.Wordprocessing.Drawing>())
                     {
@@ -1500,7 +1500,7 @@ namespace OoiMRR.Previews
                                                     }
                     }
                 }
-                
+
                 if (hasContent)
                 {
                     sb.Append("<p>");
@@ -1552,7 +1552,7 @@ namespace OoiMRR.Previews
             {
                                 return null;
             }
-            
+
             if (imageMap == null || imageMap.Count == 0)
             {
                 System.Diagnostics.Debug.WriteLine($"图片映射表为空或没有图片 (Count: {imageMap?.Count ?? 0})");
@@ -1569,44 +1569,44 @@ namespace OoiMRR.Previews
                 }
 
                                 var doc = XDocument.Parse(xml);
-                
+
                 // 查找图片关系ID - 搜索所有命名空间
                 XNamespace a = "http://schemas.openxmlformats.org/drawingml/2006/main";
                 XNamespace r = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
                 XNamespace pic = "http://schemas.openxmlformats.org/drawingml/2006/picture";
-                
+
                 // 输出所有可用的关系ID
                 System.Diagnostics.Debug.WriteLine($"可用的图片关系ID: {string.Join(", ", imageMap.Keys)}");
-                
+
                 // 方法1: 查找所有embed属性（最直接的方法）
                 var allEmbedAttrs = doc.Descendants()
                     .SelectMany(e => e.Attributes())
                     .Where(attr => attr.Name.LocalName == "embed");
-                
+
                 System.Diagnostics.Debug.WriteLine($"找到 {allEmbedAttrs.Count()} 个embed属性");
-                
+
                 foreach (var embed in allEmbedAttrs)
                 {
                     var embedId = embed.Value?.Trim();
                     if (string.IsNullOrEmpty(embedId))
                         continue;
-                        
+
                     System.Diagnostics.Debug.WriteLine($"检查embed ID: '{embedId}', 命名空间: {embed.Name.NamespaceName}, 是否在映射表中: {imageMap.ContainsKey(embedId)}");
-                    
+
                     // 尝试直接匹配
                     if (imageMap.ContainsKey(embedId))
                     {
                                                 return imageMap[embedId];
                     }
-                    
+
                     // 尝试不区分大小写匹配
-                    var matchedKey = imageMap.Keys.FirstOrDefault(k => 
+                    var matchedKey = imageMap.Keys.FirstOrDefault(k =>
                         string.Equals(k, embedId, StringComparison.OrdinalIgnoreCase));
                     if (matchedKey != null)
                     {
                                                 return imageMap[matchedKey];
                     }
-                    
+
                     // 尝试匹配rId格式（如果embedId不是rId格式）
                     if (!embedId.StartsWith("rId", StringComparison.OrdinalIgnoreCase))
                     {
@@ -1626,15 +1626,15 @@ namespace OoiMRR.Previews
                 // 方法2: 查找带命名空间的blip元素
                 var blipElements = doc.Descendants()
                     .Where(e => e.Name.LocalName == "blip");
-                
+
                 System.Diagnostics.Debug.WriteLine($"找到 {blipElements.Count()} 个blip元素");
-                
+
                 foreach (var blip in blipElements)
                 {
                     // 查找embed属性（可能在不同的命名空间）
                     var embedAttrs = blip.Attributes()
                         .Where(attr => attr.Name.LocalName == "embed");
-                    
+
                     foreach (var embed in embedAttrs)
                     {
                         var embedId = embed.Value;
@@ -1644,13 +1644,12 @@ namespace OoiMRR.Previews
                         }
                     }
                 }
-                
+
                 System.Diagnostics.Debug.WriteLine($"未找到匹配的图片。可用ID列表: {string.Join(", ", imageMap.Keys)}");
             }
-            catch (Exception ex)
-            {
+            catch{
                             }
-            
+
             return null;
         }
 
@@ -1685,7 +1684,7 @@ namespace OoiMRR.Previews
             {
                 var body = wordDoc.MainDocumentPart.Document.Body;
                 var paragraphs = new List<string>();
-                
+
                 foreach (var element in body.Elements())
                 {
                     var text = element.InnerText ?? "";
@@ -1734,12 +1733,12 @@ namespace OoiMRR.Previews
             sb.Append("}");
             sb.Append("</style>");
             sb.Append("</head><body>");
-            
+
             foreach (var para in paragraphs)
             {
                 sb.Append($"<p>{para}</p>");
             }
-            
+
             sb.Append("</body></html>");
             return sb.ToString();
         }
@@ -1918,14 +1917,14 @@ namespace OoiMRR.Previews
         private string GenerateChmErrorHtml(ChmErrorType errorType, string errorMessage, string filePath)
         {
             var fileName = Path.GetFileName(filePath);
-            
+
             var (title, description, solutions) = errorType switch
             {
                 ChmErrorType.SevenZipNotFound => (
                     "未找到 7-Zip",
                     "CHM 文件预览需要 7-Zip 工具来解压文件内容。",
-                    new[] 
-                    { 
+                    new[]
+                    {
                         "安装 7-Zip 到默认位置（C:\\Program Files\\7-Zip）",
                         "或将 7-Zip 复制到程序的 Dependencies/7-Zip 目录",
                         "点击上方按钮使用系统查看器打开"
@@ -1934,8 +1933,8 @@ namespace OoiMRR.Previews
                 ChmErrorType.LzxCompressionIssue => (
                     "CHM 格式兼容性问题",
                     "此 CHM 文件使用 LZX 压缩格式，7-Zip 可能不完全支持。已尝试使用 hh.exe 解压但也失败了。",
-                    new[] 
-                    { 
+                    new[]
+                    {
                         "使用上方按钮通过系统查看器打开（推荐）",
                         "尝试使用其他 CHM 阅读器",
                         "检查文件是否完整或损坏"
@@ -1944,8 +1943,8 @@ namespace OoiMRR.Previews
                 ChmErrorType.ExtractionFailed => (
                     "CHM 解压失败",
                     $"无法解压 CHM 文件。{errorMessage}",
-                    new[] 
-                    { 
+                    new[]
+                    {
                         "检查文件是否完整且未损坏",
                         "尝试使用外部程序打开",
                         "确保有足够的磁盘空间"
@@ -1954,8 +1953,8 @@ namespace OoiMRR.Previews
                 ChmErrorType.NoHtmlFilesFound => (
                     "未找到内容",
                     "CHM 文件已解压，但未找到任何 HTML 内容文件。",
-                    new[] 
-                    { 
+                    new[]
+                    {
                         "文件可能已损坏",
                         "使用外部程序打开查看"
                     }
@@ -1974,69 +1973,69 @@ namespace OoiMRR.Previews
 <head>
     <meta charset='utf-8'>
     <style>
-        body {{ 
-            font-family: 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif; 
-            padding: 30px; 
+        body {{
+            font-family: 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif;
+            padding: 30px;
             background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
             margin: 0;
         }}
-        .container {{ 
-            background: white; 
-            border-radius: 12px; 
-            padding: 30px; 
-            max-width: 650px; 
-            margin: 0 auto; 
+        .container {{
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 650px;
+            margin: 0 auto;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }}
-        .icon {{ 
-            font-size: 56px; 
-            text-align: center; 
-            margin-bottom: 20px; 
+        .icon {{
+            font-size: 56px;
+            text-align: center;
+            margin-bottom: 20px;
         }}
-        h2 {{ 
-            color: #d32f2f; 
-            margin: 0 0 15px 0; 
+        h2 {{
+            color: #d32f2f;
+            margin: 0 0 15px 0;
             font-size: 24px;
             text-align: center;
         }}
-        .description {{ 
-            color: #555; 
-            margin: 15px 0 20px 0; 
+        .description {{
+            color: #555;
+            margin: 15px 0 20px 0;
             line-height: 1.7;
             text-align: center;
         }}
-        .solutions {{ 
-            background: #e3f2fd; 
-            border-left: 4px solid #2196f3; 
-            padding: 20px; 
-            margin: 25px 0; 
+        .solutions {{
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 20px;
+            margin: 25px 0;
             border-radius: 6px;
         }}
-        .solutions-title {{ 
-            font-weight: 600; 
-            color: #1976d2; 
-            margin-bottom: 12px; 
+        .solutions-title {{
+            font-weight: 600;
+            color: #1976d2;
+            margin-bottom: 12px;
             font-size: 16px;
         }}
-        .solution {{ 
-            margin: 10px 0; 
-            padding-left: 24px; 
+        .solution {{
+            margin: 10px 0;
+            padding-left: 24px;
             position: relative;
             line-height: 1.6;
         }}
-        .solution:before {{ 
-            content: '→'; 
-            position: absolute; 
-            left: 0; 
-            color: #2196f3; 
+        .solution:before {{
+            content: '→';
+            position: absolute;
+            left: 0;
+            color: #2196f3;
             font-weight: bold;
         }}
-        .error-detail {{ 
-            background: #fafafa; 
-            padding: 12px; 
-            border-radius: 6px; 
-            font-size: 13px; 
-            color: #666; 
+        .error-detail {{
+            background: #fafafa;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #666;
             margin-top: 20px;
             border: 1px solid #e0e0e0;
         }}

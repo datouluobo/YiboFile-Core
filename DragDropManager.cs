@@ -290,7 +290,7 @@ namespace OoiMRR
                 // 检查 Y 坐标是否在列头区域
                 if (hitPoint.Y < 30)
                 {
-                                        _selectedPathsBeforeDrag.Clear(); // 清除保存的选中项，防止后续启动拖拽
+                    _selectedPathsBeforeDrag.Clear(); // 清除保存的选中项，防止后续启动拖拽
                     return; // 不在列头区域处理拖拽
                 }
                 
@@ -303,12 +303,12 @@ namespace OoiMRR
                     {
                         if (current is GridViewColumnHeader)
                         {
-                                                        _selectedPathsBeforeDrag.Clear(); // 清除保存的选中项，防止后续启动拖拽
+                            _selectedPathsBeforeDrag.Clear(); // 清除保存的选中项，防止后续启动拖拽
                             return;
                         }
                         if (current.GetType().Name.Contains("Thumb") || current.GetType().Name == "Thumb")
                         {
-                                                        _selectedPathsBeforeDrag.Clear(); // 清除保存的选中项，防止后续启动拖拽
+                            _selectedPathsBeforeDrag.Clear(); // 清除保存的选中项，防止后续启动拖拽
                             return;
                         }
                         current = System.Windows.Media.VisualTreeHelper.GetParent(current);
@@ -441,11 +441,7 @@ namespace OoiMRR
                     
                     // 只在必要时进行 HitTest（减少性能开销）
                     // 如果 Y 坐标在安全范围内，直接跳过 HitTest
-                    if (currentHitPoint.Y > 50)
-                    {
-                        // Y 坐标足够大，不在列头区域，可以安全地开始拖拽
-                    }
-                    else
+                    if (currentHitPoint.Y <= 50)
                     {
                         // Y 坐标在临界区域，需要 HitTest 确认
                         var hitResult = System.Windows.Media.VisualTreeHelper.HitTest(listView, currentHitPoint);
@@ -469,10 +465,6 @@ namespace OoiMRR
                 // 使用鼠标按下时保存的选中项，而不是当前的选中项
                 // 因为在拖拽过程中选中状态可能已经改变
                 var selectedPaths = new List<string>(_selectedPathsBeforeDrag);
-
-                                foreach (var path in selectedPaths)
-                {
-                                    }
                 
                 // 写入日志文件
                 try
@@ -615,10 +607,6 @@ namespace OoiMRR
             if (files == null || files.Length == 0)
                 return;
 
-                        foreach (var file in files)
-            {
-                            }
-            
             // 写入日志文件
             try
             {
@@ -886,7 +874,7 @@ namespace OoiMRR
             int failCount = 0;
             string lastError = "";
 
-                        // 写入日志文件
+            // 写入日志文件
             try
             {
                 File.AppendAllText("dragdrop_log.txt", 
@@ -942,12 +930,12 @@ namespace OoiMRR
                     }
 
                     successCount++;
-                                    }
+                }
                 catch (Exception ex)
                 {
                     lastError = ex.Message;
                     failCount++;
-                                    }
+                }
             }
 
             // 显示结果
@@ -1017,12 +1005,12 @@ namespace OoiMRR
                     }
 
                     successCount++;
-                                    }
+                }
                 catch (Exception ex)
                 {
                     lastError = ex.Message;
                     failCount++;
-                                    }
+                }
             }
 
             // 显示结果
@@ -1240,9 +1228,9 @@ namespace OoiMRR
                 // 跟随鼠标移动
                 CompositionTarget.Rendering += UpdateDragVisualPosition;
             }
-            catch (Exception ex)
+            catch
             {
-                            }
+            }
         }
 
         /// <summary>
@@ -1312,9 +1300,9 @@ namespace OoiMRR
                         _dragWindow = null;
                         _dragVisual = null;
                     }
-                    catch (Exception ex)
+                    catch
                     {
-                                                // 如果立即关闭失败，尝试淡出动画
+                        // 如果立即关闭失败，尝试淡出动画
                         var fadeOut = new DoubleAnimation
                         {
                             From = 1.0,
@@ -1338,9 +1326,9 @@ namespace OoiMRR
                     }
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                            }
+            }
         }
 
         #endregion
@@ -1424,16 +1412,6 @@ namespace OoiMRR
                                     // 清除所有 LocalValue，让系统默认样式处理
                                     container.ClearValue(ListViewItem.BackgroundProperty);
                                     container.ClearValue(ListViewItem.ForegroundProperty);
-                                    
-                                    if (shouldBeSelected)
-                                    {
-                                        // 选中项：清除 LocalValue 后，ListView 的默认样式会自动应用选中背景
-                                        // 不需要手动设置，让系统样式处理
-                                    }
-                                    else
-                                    {
-                                        // 非选中项：已经清除了 LocalValue，会使用默认背景
-                                    }
                                     
                                     // 强制刷新视觉状态
                                     container.InvalidateVisual();
@@ -1554,4 +1532,3 @@ namespace OoiMRR
         #endregion
     }
 }
-

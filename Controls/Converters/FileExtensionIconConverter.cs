@@ -193,7 +193,14 @@ namespace OoiMRR.Controls.Converters
                         if (shellItem != null)
                             break;
                     }
-                    catch { }
+                    catch (COMException)
+                    {
+                        // COM 互操作异常，尝试下一个路径格式
+                    }
+                    catch
+                    {
+                        // 其他异常，尝试下一个路径格式
+                    }
                 }
                 
                 if (shellItem != null)
@@ -273,6 +280,14 @@ namespace OoiMRR.Controls.Converters
                                                 
                                                 return bitmapSource;
                                             }
+                                            catch (COMException)
+                                            {
+                                                if (hBitmap != IntPtr.Zero)
+                                                {
+                                                    DeleteObject(hBitmap);
+                                                    hBitmap = IntPtr.Zero;
+                                                }
+                                            }
                                             catch
                                             {
                                                 if (hBitmap != IntPtr.Zero)
@@ -281,6 +296,14 @@ namespace OoiMRR.Controls.Converters
                                                     hBitmap = IntPtr.Zero;
                                                 }
                                             }
+                                        }
+                                    }
+                                    catch (COMException)
+                                    {
+                                        if (hBitmap != IntPtr.Zero)
+                                        {
+                                            DeleteObject(hBitmap);
+                                            hBitmap = IntPtr.Zero;
                                         }
                                     }
                                     catch
@@ -299,6 +322,10 @@ namespace OoiMRR.Controls.Converters
                                     DeleteObject(hBitmap);
                             }
                         }
+                    }
+                    catch (COMException)
+                    {
+                        // COM 互操作异常，继续使用回退方案
                     }
                     catch { }
                 }
@@ -328,7 +355,8 @@ namespace OoiMRR.Controls.Converters
                         // 使用EXTRA_LARGE尺寸（48x48），然后高质量缩放到目标尺寸
                         int imageListType = SHIL_EXTRALARGE;
                         
-                        if (SHGetImageList(imageListType, ref iidImageList, out imageList) == 0)
+                        int result = SHGetImageList(imageListType, ref iidImageList, out imageList);
+                        if (result == 0 && imageList != null)
                         {
                             IntPtr hIcon = IntPtr.Zero;
                             if (imageList.GetIcon(shfi.iIcon, ILD_TRANSPARENT, out hIcon) == 0 && hIcon != IntPtr.Zero)
@@ -372,6 +400,10 @@ namespace OoiMRR.Controls.Converters
                             }
                         }
                     }
+                    catch (COMException)
+                    {
+                        // COM 互操作异常，继续使用回退方案
+                    }
                     catch { }
                     
                     // 如果EXTRA_LARGE失败，尝试使用SMALL或LARGE
@@ -381,7 +413,8 @@ namespace OoiMRR.Controls.Converters
                         IImageList imageList;
                         int imageListType = size <= 16 ? SHIL_SMALL : SHIL_LARGE;
                         
-                        if (SHGetImageList(imageListType, ref iidImageList, out imageList) == 0)
+                        int result = SHGetImageList(imageListType, ref iidImageList, out imageList);
+                        if (result == 0 && imageList != null)
                         {
                             IntPtr hIcon = IntPtr.Zero;
                             if (imageList.GetIcon(shfi.iIcon, ILD_TRANSPARENT, out hIcon) == 0 && hIcon != IntPtr.Zero)
@@ -409,6 +442,10 @@ namespace OoiMRR.Controls.Converters
                                 }
                             }
                         }
+                    }
+                    catch (COMException)
+                    {
+                        // COM 互操作异常，继续使用回退方案
                     }
                     catch { }
                 }
@@ -438,6 +475,10 @@ namespace OoiMRR.Controls.Converters
                         DestroyIcon(shfi.hIcon);
                     }
                 }
+            }
+            catch (COMException)
+            {
+                // COM 互操作异常，返回 null
             }
             catch { }
             return null;

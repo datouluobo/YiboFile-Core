@@ -24,11 +24,9 @@ namespace OoiMRR.Rendering
                 if (hasAny) list.Add("Model");
                 if (list.Count == 0) list.Add("Model");
             }
-            catch (Exception ex)
-            {
-                // 处理异常，防止程序卡死
-                                list.Add("Model");
-            }
+            catch (Exception)
+            {// 处理异常，防止程序卡死
+                                list.Add("Model");}
             
             return list;
         }
@@ -248,11 +246,9 @@ namespace OoiMRR.Rendering
             bi.Freeze();
             return bi;
             }
-            catch (Exception ex)
-            {
-                // 处理异常，防止程序卡死
-                                return null;
-            }
+            catch (Exception)
+            {// 处理异常，防止程序卡死
+                                return null;}
         }
     }
 }

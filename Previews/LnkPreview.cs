@@ -200,44 +200,69 @@ namespace OoiMRR.Previews
 
         private string GetShortcutTarget(string lnkPath)
         {
+            object shell = null;
             try
             {
                 // 使用WScript.Shell COM对象读取快捷方式目标
                 Type shellType = Type.GetTypeFromProgID("WScript.Shell");
-                object shell = Activator.CreateInstance(shellType);
+                shell = Activator.CreateInstance(shellType);
                 object shortcut = shellType.InvokeMember("CreateShortcut", 
                     System.Reflection.BindingFlags.InvokeMethod, null, shell, new object[] { lnkPath });
                 string target = (string)shortcut.GetType().InvokeMember("TargetPath",
                     System.Reflection.BindingFlags.GetProperty, null, shortcut, null);
                 return target;
             }
+            catch (COMException)
+            {
+                // COM 互操作异常，尝试使用 Shell API
+            }
             catch
             {
-                // 如果COM对象失败，尝试使用Shell API
-                try
+                // 其他异常，尝试使用 Shell API
+            }
+            finally
+            {
+                // 释放 COM 对象
+                if (shell != null)
                 {
-                    IShellLink link = (IShellLink)new ShellLink();
-                    IPersistFile file = (IPersistFile)link;
-                    file.Load(lnkPath, 0);
-                    StringBuilder sb = new StringBuilder(260);
-                    link.GetPath(sb, sb.Capacity, IntPtr.Zero, 0);
-                    return sb.ToString();
+                    try
+                    {
+                        Marshal.ReleaseComObject(shell);
+                    }
+                    catch { }
                 }
-                catch
-                {
-                    return null;
-                }
+            }
+
+            // 如果COM对象失败，尝试使用Shell API
+            try
+            {
+                IShellLink link = (IShellLink)new ShellLink();
+                IPersistFile file = (IPersistFile)link;
+                file.Load(lnkPath, 0);
+                StringBuilder sb = new StringBuilder(260);
+                link.GetPath(sb, sb.Capacity, IntPtr.Zero, 0);
+                return sb.ToString();
+            }
+            catch (COMException)
+            {
+                return null;
+            }
+            catch
+            {
+                return null;
             }
         }
 
         private bool SetShortcutTarget(string lnkPath, string targetPath)
         {
+            object shell = null;
+            object shortcut = null;
             try
             {
                 // 使用WScript.Shell COM对象设置快捷方式目标
                 Type shellType = Type.GetTypeFromProgID("WScript.Shell");
-                object shell = Activator.CreateInstance(shellType);
-                object shortcut = shellType.InvokeMember("CreateShortcut", 
+                shell = Activator.CreateInstance(shellType);
+                shortcut = shellType.InvokeMember("CreateShortcut", 
                     System.Reflection.BindingFlags.InvokeMethod, null, shell, new object[] { lnkPath });
                 
                 // 设置目标路径
@@ -250,29 +275,59 @@ namespace OoiMRR.Previews
                 
                 return true;
             }
+            catch (COMException)
+            {
+                // COM 互操作异常，尝试使用 Shell API
+            }
             catch
             {
-                // 如果COM对象失败，尝试使用Shell API
-                try
+                // 其他异常，尝试使用 Shell API
+            }
+            finally
+            {
+                // 释放 COM 对象
+                if (shortcut != null)
                 {
-                    IShellLink link = (IShellLink)new ShellLink();
-                    IPersistFile file = (IPersistFile)link;
-                    
-                    // 加载现有快捷方式
-                    file.Load(lnkPath, 0);
-                    
-                    // 设置新的目标路径
-                    link.SetPath(targetPath);
-                    
-                    // 保存快捷方式
-                    file.Save(lnkPath, true);
-                    
-                    return true;
+                    try
+                    {
+                        Marshal.ReleaseComObject(shortcut);
+                    }
+                    catch { }
                 }
-                catch (Exception ex)
+                if (shell != null)
                 {
-                                        return false;
+                    try
+                    {
+                        Marshal.ReleaseComObject(shell);
+                    }
+                    catch { }
                 }
+            }
+
+            // 如果COM对象失败，尝试使用Shell API
+            try
+            {
+                IShellLink link = (IShellLink)new ShellLink();
+                IPersistFile file = (IPersistFile)link;
+                
+                // 加载现有快捷方式
+                file.Load(lnkPath, 0);
+                
+                // 设置新的目标路径
+                link.SetPath(targetPath);
+                
+                // 保存快捷方式
+                file.Save(lnkPath, true);
+                
+                return true;
+            }
+            catch (COMException)
+            {
+                return false;
+            }
+            catch
+            {
+                return false;
             }
         }
 

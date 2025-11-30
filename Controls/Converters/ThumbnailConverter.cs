@@ -29,11 +29,11 @@ namespace OoiMRR.Controls.Converters
         private const int MaxCacheSize = 100;
         private static readonly Dictionary<string, BitmapSource> _imageThumbnailCache = new();
         private const int MaxImageCacheSize = 200;
-        
+
         // 立即加载的文件路径集合（第一页文件）
         private static readonly HashSet<string> _priorityLoadPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private static readonly object _priorityLock = new object();
-        
+
         // 占位符图片缓存（按大小）
         private static readonly Dictionary<int, BitmapSource> _placeholderCache = new Dictionary<int, BitmapSource>();
         [DllImport("shell32.dll", CharSet = CharSet.Auto)]
@@ -126,7 +126,7 @@ namespace OoiMRR.Controls.Converters
                 }
             }
         }
-        
+
         /// <summary>
         /// 清除优先加载列表
         /// </summary>
@@ -137,7 +137,7 @@ namespace OoiMRR.Controls.Converters
                 _priorityLoadPaths.Clear();
             }
         }
-        
+
         /// <summary>
         /// 创建占位符图片
         /// </summary>
@@ -147,7 +147,7 @@ namespace OoiMRR.Controls.Converters
             {
                 if (_placeholderCache.TryGetValue(size, out var cached))
                     return cached;
-                
+
                 // 创建一个简单的灰色占位符
                 var renderTarget = new RenderTargetBitmap(size, size, 96, 96, PixelFormats.Pbgra32);
                 var drawingVisual = new DrawingVisual();
@@ -164,12 +164,12 @@ namespace OoiMRR.Controls.Converters
                 }
                 renderTarget.Render(drawingVisual);
                 renderTarget.Freeze();
-                
+
                 _placeholderCache[size] = renderTarget;
                 return renderTarget;
             }
         }
-        
+
         /// <summary>
         /// 异步加载缩略图并更新UI
         /// </summary>
@@ -207,27 +207,27 @@ namespace OoiMRR.Controls.Converters
                 catch { }
             });
         }
-        
+
         /// <summary>
         /// 查找视觉树中的子元素
         /// </summary>
         private static T FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
         {
             if (parent == null) return null;
-            
+
             for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
             {
                 var child = VisualTreeHelper.GetChild(parent, i);
                 if (child is T result)
                     return result;
-                
+
                 var childOfChild = FindVisualChild<T>(child);
                 if (childOfChild != null)
                     return childOfChild;
             }
                     return null;
         }
-        
+
         /// <summary>
         /// 同步加载缩略图（内部方法，供外部调用）
         /// </summary>
@@ -245,7 +245,7 @@ namespace OoiMRR.Controls.Converters
                 if (isFile)
                 {
                     var ext = Path.GetExtension(path)?.ToLowerInvariant();
-                    
+
                     // 图片格式：直接加载
                     switch (ext)
                     {
@@ -265,7 +265,7 @@ namespace OoiMRR.Controls.Converters
                                 {
                                     return null;
                                 }
-                                
+
                                 var bmp = new BitmapImage();
                                 bmp.BeginInit();
                                 bmp.StreamSource = new FileStream(path, FileMode.Open, FileAccess.Read);
@@ -335,7 +335,7 @@ namespace OoiMRR.Controls.Converters
                             {
                                 return null;
                             }
-                        
+
                         // 视频格式：使用 FFmpeg 提取第一帧
                         case ".mp4":
                         case ".avi":
@@ -402,7 +402,7 @@ namespace OoiMRR.Controls.Converters
                     }
                     catch { }
                 }
-                
+
                 // 对于文件夹和无法获取缩略图的文件类型，使用系统图标
                 // 如果系统缩略图缓存获取失败，也会回退到这里
                 try
@@ -455,7 +455,7 @@ namespace OoiMRR.Controls.Converters
                 {
                     isPriorityLoad = _priorityLoadPaths.Contains(path);
                 }
-                
+
                 // 如果是优先加载，立即同步加载
                 if (isPriorityLoad)
                 {
@@ -463,7 +463,7 @@ namespace OoiMRR.Controls.Converters
                     // 如果加载失败，返回占位符而不是null
                     return thumbnail ?? CreatePlaceholder(targetSize);
                 }
-                
+
                 // 否则先返回占位符，然后异步加载
                 // 注意：这里我们需要获取目标控件来更新，但IValueConverter无法直接获取
                 // 所以我们先返回占位符，然后在FileBrowserControl中处理异步加载
@@ -518,7 +518,7 @@ namespace OoiMRR.Controls.Converters
 
                 Guid shellItemGuid = new Guid("43826d1e-e718-42ee-bc55-a1e261c37bfe"); // IShellItem
                 IShellItem shellItem = null;
-                
+
                 // 尝试多种路径格式（处理长路径和UNC路径）
                 string[] pathsToTry = { path };
                 if (path.StartsWith(@"\\?\"))
@@ -533,18 +533,25 @@ namespace OoiMRR.Controls.Converters
                     else
                         pathsToTry = new[] { path, @"\\?\" + path };
                 }
-                
+
                 foreach (var tryPath in pathsToTry)
                 {
                     try
-                        {
+                    {
                         shellItem = SHCreateItemFromParsingName(tryPath, IntPtr.Zero, shellItemGuid);
                         if (shellItem != null)
                             break;
-                        }
-                        catch { }
+                    }
+                    catch (COMException)
+                    {
+                        // COM 互操作异常，尝试下一个路径格式
+                    }
+                    catch
+                    {
+                        // 其他异常，尝试下一个路径格式
+                    }
                 }
-                
+
                 if (shellItem != null)
                 {
                     IShellItemImageFactory imageFactory = shellItem as IShellItemImageFactory;
@@ -561,31 +568,31 @@ namespace OoiMRR.Controls.Converters
                             // 注意：不使用 SIIGBF_BIGGERSIZEOK | SIIGBF_RESIZETOFIT，因为这会返回图标而不是缩略图
                             // 如果缩略图缓存不存在，应该回退到 GetHighQualitySystemIcon
                         };
-                        
+
                         foreach (var flags in flagCombinations)
                         {
-                        try
-                        {
+                            try
+                            {
                                 // 对于系统缩略图缓存，直接请求目标尺寸
                                 // 系统缩略图缓存通常是256x256或512x512，直接请求目标尺寸即可
                                 // 如果请求太大，可能会失败
                                 int requestSize = size;
                                 imageFactory.GetImage(new SIZE { cx = requestSize, cy = requestSize }, flags, out hBitmap);
-                            
-                            if (hBitmap != IntPtr.Zero)
-                            {
-                                try
+
+                                if (hBitmap != IntPtr.Zero)
                                 {
-                                    var bitmapSource = Imaging.CreateBitmapSourceFromHBitmap(
-                                        hBitmap,
-                                        IntPtr.Zero,
-                                        System.Windows.Int32Rect.Empty,
-                                        BitmapSizeOptions.FromWidthAndHeight(size, size));
-                                        
+                                    try
+                                    {
+                                        var bitmapSource = Imaging.CreateBitmapSourceFromHBitmap(
+                                            hBitmap,
+                                            IntPtr.Zero,
+                                            System.Windows.Int32Rect.Empty,
+                                            BitmapSizeOptions.FromWidthAndHeight(size, size));
+
                                         // 设置高质量渲染选项
                                         RenderOptions.SetBitmapScalingMode(bitmapSource, BitmapScalingMode.HighQuality);
                                         RenderOptions.SetCachingHint(bitmapSource, CachingHint.Cache);
-                                        
+
                                         // 如果获取的尺寸与目标尺寸不同，使用高质量缩放
                                         if (Math.Abs(bitmapSource.PixelWidth - size) > 1 || Math.Abs(bitmapSource.PixelHeight - size) > 1)
                                         {
@@ -593,51 +600,71 @@ namespace OoiMRR.Controls.Converters
                                                 (double)size / bitmapSource.PixelWidth,
                                                 (double)size / bitmapSource.PixelHeight,
                                                 0, 0);
-                                            
+
                                             var scaledBitmap = new TransformedBitmap(bitmapSource, scaleTransform);
                                             RenderOptions.SetBitmapScalingMode(scaledBitmap, BitmapScalingMode.HighQuality);
                                             RenderOptions.SetCachingHint(scaledBitmap, CachingHint.Cache);
                                             scaledBitmap.Freeze();
-                                            
+
                                             // 释放原始位图
                                             var tempBitmap1 = hBitmap;
                                             hBitmap = IntPtr.Zero;
                                             DeleteObject(tempBitmap1);
-                                            
+
                                             return scaledBitmap;
                                         }
-                                        
+
                                         // 如果尺寸正好（误差在1px内），直接使用
-                                    bitmapSource.Freeze();
-                                        
+                                        bitmapSource.Freeze();
+
                                         // 释放原始位图
                                         var tempBitmap2 = hBitmap;
                                         hBitmap = IntPtr.Zero;
                                         DeleteObject(tempBitmap2);
-                                        
-                                    return bitmapSource;
-                                }
-                                catch
-                                {
-                                    if (hBitmap != IntPtr.Zero)
+
+                                        return bitmapSource;
+                                    }
+                                    catch (COMException)
                                     {
-                                        DeleteObject(hBitmap);
-                                        hBitmap = IntPtr.Zero;
+                                        if (hBitmap != IntPtr.Zero)
+                                        {
+                                            DeleteObject(hBitmap);
+                                            hBitmap = IntPtr.Zero;
+                                        }
+                                    }
+                                    catch
+                                    {
+                                        if (hBitmap != IntPtr.Zero)
+                                        {
+                                            DeleteObject(hBitmap);
+                                            hBitmap = IntPtr.Zero;
+                                        }
                                     }
                                 }
                             }
-                                        }
-                                        catch
-                                        {
-                                            if (hBitmap != IntPtr.Zero)
-                                            {
-                                                DeleteObject(hBitmap);
-                                                hBitmap = IntPtr.Zero;
-                                            }
+                            catch (COMException)
+                            {
+                                if (hBitmap != IntPtr.Zero)
+                                {
+                                    DeleteObject(hBitmap);
+                                    hBitmap = IntPtr.Zero;
+                                }
+                            }
+                            catch
+                            {
+                                if (hBitmap != IntPtr.Zero)
+                                {
+                                    DeleteObject(hBitmap);
+                                    hBitmap = IntPtr.Zero;
+                                }
                             }
                         }
                     }
                 }
+            }
+            catch (COMException)
+            {
+                // COM 互操作异常，返回 null 让调用者使用回退方案
             }
             catch { }
             finally
@@ -660,9 +687,9 @@ namespace OoiMRR.Controls.Converters
             {
                                 return null;
             }
-                
+
             string cacheKey = $"{videoPath}_{targetSize}_{fileInfo.LastWriteTime.Ticks}";
-            
+
             // 检查缓存
             lock (_cacheLock)
             {
@@ -672,14 +699,14 @@ namespace OoiMRR.Controls.Converters
                     return cached;
                 }
             }
-            
+
             System.Diagnostics.Debug.WriteLine($"FFmpeg: 开始提取缩略图: {Path.GetFileName(videoPath)}, 目标大小: {targetSize}x{targetSize}, 文件大小: {fileInfo.Length} 字节");
-            
+
             try
             {
                 // 创建临时输出文件
                 string tempImagePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString() + ".jpg");
-                
+
                 try
                 {
                                                             // 确保视频文件路径是绝对路径且存在
@@ -687,19 +714,19 @@ namespace OoiMRR.Controls.Converters
                     {
                         videoPath = Path.GetFullPath(videoPath);
                     }
-                    
+
                     if (!File.Exists(videoPath))
                     {
                                                 return null;
                     }
-                    
+
                     // 尝试直接调用 FFmpeg 命令（绕过 FFMpegCore，以便捕获错误输出）
                     string ffmpegPath = GetFFmpegPath();
                     if (string.IsNullOrEmpty(ffmpegPath))
                     {
                                                 return null;
                     }
-                    
+
                                         // 构建 FFmpeg 命令参数
                     // -ss 0.1: 从 0.1 秒处开始
                     // -i: 输入文件（用引号包裹以处理路径中的空格和中文）
@@ -711,30 +738,30 @@ namespace OoiMRR.Controls.Converters
                     string escapedOutputPath = $"\"{tempImagePath}\"";
                     // 使用 scale={targetSize}:-1 保持宽高比，避免变形
                     string arguments = $"-ss 0.1 -i {escapedVideoPath} -vframes 1 -vf scale={targetSize}:-1 -q:v 2 -y {escapedOutputPath}";
-                    
+
                                         var startTime = DateTime.Now;
                     bool success = RunFFmpegCommand(ffmpegPath, arguments, out string stdout, out string stderr);
                     var endTime = DateTime.Now;
                     var duration = (endTime - startTime).TotalMilliseconds;
-                    
+
                                         if (!string.IsNullOrEmpty(stdout))
                     {
                                             }
                     if (!string.IsNullOrEmpty(stderr))
                     {
                                             }
-                    
+
                     if (!success)
                     {
                                                 return null;
                     }
-                    
+
                     // 等待文件生成（FFmpeg 操作可能需要一些时间）
                     int maxWaitMs = 10000; // 最多等待10秒
                     int waitIntervalMs = 100; // 每100ms检查一次
                     int waitedMs = 0;
                     bool fileExists = false;
-                    
+
                     while (waitedMs < maxWaitMs)
                     {
                         if (File.Exists(tempImagePath))
@@ -751,11 +778,11 @@ namespace OoiMRR.Controls.Converters
                             }
                             catch { }
                         }
-                        
+
                         System.Threading.Thread.Sleep(waitIntervalMs);
                         waitedMs += waitIntervalMs;
                     }
-                    
+
                     if (!fileExists)
                     {
                         System.Diagnostics.Debug.WriteLine($"FFmpeg: 错误 - 临时文件未生成或为空: {tempImagePath} (等待了 {waitedMs}ms)");
@@ -768,7 +795,7 @@ namespace OoiMRR.Controls.Converters
                         catch { }
                         return null;
                     }
-                    
+
                     // 检查文件大小
                     var tempFileInfo = new FileInfo(tempImagePath);
                     if (tempFileInfo.Length == 0)
@@ -776,7 +803,7 @@ namespace OoiMRR.Controls.Converters
                         System.Diagnostics.Debug.WriteLine($"FFmpeg: 错误 - 临时文件为空 (0 字节): {tempImagePath}");
                         return null;
                     }
-                    
+
                                         // 创建 BitmapImage - 使用文件流加载，避免URI路径解析问题
                     var bitmap = new BitmapImage();
                     bitmap.BeginInit();
@@ -786,9 +813,9 @@ namespace OoiMRR.Controls.Converters
                     bitmap.DecodePixelWidth = targetSize;
                     bitmap.EndInit();
                     bitmap.Freeze();
-                    
+
                     System.Diagnostics.Debug.WriteLine($"FFmpeg: BitmapImage 创建成功, 尺寸: {bitmap.PixelWidth}x{bitmap.PixelHeight} (保持宽高比)");
-                    
+
                     // 添加到缓存
                     lock (_cacheLock)
                     {
@@ -800,7 +827,7 @@ namespace OoiMRR.Controls.Converters
                         }
                         _videoThumbnailCache[cacheKey] = bitmap;
                     }
-                    
+
                     System.Diagnostics.Debug.WriteLine($"FFmpeg: 缩略图提取成功并已缓存: {Path.GetFileName(videoPath)}");
                     return bitmap;
                 }
@@ -816,8 +843,7 @@ namespace OoiMRR.Controls.Converters
                         }
 
                     }
-                    catch (Exception cleanupEx)
-                    {
+                    catch{
                                             }
                 }
             }
@@ -832,7 +858,7 @@ namespace OoiMRR.Controls.Converters
                                                 return null;
             }
         }
-        
+
         /// <summary>
         /// 检查目录是否可写
         /// </summary>
@@ -842,7 +868,7 @@ namespace OoiMRR.Controls.Converters
             {
                 if (!Directory.Exists(directory))
                     return false;
-                    
+
                 string testFile = Path.Combine(directory, Guid.NewGuid().ToString() + ".tmp");
                 File.WriteAllText(testFile, "test");
                 File.Delete(testFile);
@@ -853,7 +879,7 @@ namespace OoiMRR.Controls.Converters
                 return false;
             }
         }
-        
+
         /// <summary>
         /// 获取 FFmpeg 可执行文件路径
         /// </summary>
@@ -870,7 +896,7 @@ namespace OoiMRR.Controls.Converters
                         return ffmpegPath;
                     }
                 }
-                
+
                 // 回退：从系统 PATH 查找
                 return "ffmpeg";
             }
@@ -879,7 +905,7 @@ namespace OoiMRR.Controls.Converters
                 return "ffmpeg";
             }
         }
-        
+
         /// <summary>
         /// 直接运行 FFmpeg 命令并捕获输出
         /// </summary>
@@ -887,7 +913,7 @@ namespace OoiMRR.Controls.Converters
         {
             stdout = string.Empty;
             stderr = string.Empty;
-            
+
             try
             {
                 var processStartInfo = new ProcessStartInfo
@@ -901,46 +927,46 @@ namespace OoiMRR.Controls.Converters
                     StandardOutputEncoding = Encoding.UTF8,
                     StandardErrorEncoding = Encoding.UTF8
                 };
-                
+
                 using (var process = Process.Start(processStartInfo))
                 {
                     if (process == null)
                     {
                                                 return false;
                     }
-                    
+
                     // 异步读取输出
                     var stdoutBuilder = new StringBuilder();
                     var stderrBuilder = new StringBuilder();
-                    
+
                     process.OutputDataReceived += (sender, e) =>
                     {
                         if (!string.IsNullOrEmpty(e.Data))
                             stdoutBuilder.AppendLine(e.Data);
                     };
-                    
+
                     process.ErrorDataReceived += (sender, e) =>
                     {
                         if (!string.IsNullOrEmpty(e.Data))
                             stderrBuilder.AppendLine(e.Data);
                     };
-                    
+
                     process.BeginOutputReadLine();
                     process.BeginErrorReadLine();
-                    
+
                     // 等待进程完成（最多30秒）
                     bool finished = process.WaitForExit(30000);
-                    
+
                     if (!finished)
                     {
                                                 process.Kill();
                         process.WaitForExit(5000);
                         return false;
                     }
-                    
+
                     stdout = stdoutBuilder.ToString().Trim();
                     stderr = stderrBuilder.ToString().Trim();
-                    
+
                     int exitCode = process.ExitCode;
                                         return exitCode == 0;
                 }
@@ -972,7 +998,7 @@ namespace OoiMRR.Controls.Converters
                 Guid shellItemGuid = new Guid("43826d1e-e718-42ee-bc55-a1e261c37bfe"); // IShellItem
                 Guid imageFactoryGuid = new Guid("bcc18b79-ba16-442f-80c4-8a59c30c463b"); // IShellItemImageFactory
                 IShellItem shellItem = null;
-                
+
                 // 尝试多种路径格式
                 string[] pathsToTry = { path };
                 if (path.StartsWith(@"\\?\"))
@@ -987,16 +1013,23 @@ namespace OoiMRR.Controls.Converters
                     else
                         pathsToTry = new[] { path, @"\\?\" + path };
                 }
-                
+
                 foreach (var tryPath in pathsToTry)
-                            {
-                                try
-                                {
+                {
+                    try
+                    {
                         shellItem = SHCreateItemFromParsingName(tryPath, IntPtr.Zero, shellItemGuid);
                         if (shellItem != null)
                             break;
                     }
-                    catch { }
+                    catch (COMException)
+                    {
+                        // COM 互操作异常，尝试下一个路径格式
+                    }
+                    catch
+                    {
+                        // 其他异常，尝试下一个路径格式
+                    }
                 }
 
                 if (shellItem != null)
@@ -1018,27 +1051,27 @@ namespace OoiMRR.Controls.Converters
                                     SIIGBF_BIGGERSIZEOK,                       // 仅允许更大尺寸
                                     0                                           // 无标志，使用默认行为
                                 };
-                                
+
                                 foreach (var flagValue in flagCombinations)
-                            {
-                                try
                                 {
+                                    try
+                                    {
                                         imageFactory.GetImage(new SIZE { cx = targetSize, cy = targetSize }, flagValue, out hBitmap);
-                                        
+
                                         if (hBitmap != IntPtr.Zero)
                                         {
                                             try
-                                    {
+                                            {
                                                 var bitmapSource = Imaging.CreateBitmapSourceFromHBitmap(
                                                     hBitmap,
                                                     IntPtr.Zero,
-                                            System.Windows.Int32Rect.Empty,
-                                            BitmapSizeOptions.FromWidthAndHeight(targetSize, targetSize));
-                                                
+                                                    System.Windows.Int32Rect.Empty,
+                                                    BitmapSizeOptions.FromWidthAndHeight(targetSize, targetSize));
+
                                                 // 设置高质量渲染选项
                                                 RenderOptions.SetBitmapScalingMode(bitmapSource, BitmapScalingMode.HighQuality);
                                                 RenderOptions.SetCachingHint(bitmapSource, CachingHint.Cache);
-                                                
+
                                                 // 强制缩放到目标尺寸，确保所有格式（包括Office文档）都使用相同大小
                                                 // 即使获取的尺寸与目标尺寸相同，也检查并确保一致性
                                                 if (Math.Abs(bitmapSource.PixelWidth - targetSize) > 1 || Math.Abs(bitmapSource.PixelHeight - targetSize) > 1)
@@ -1047,30 +1080,38 @@ namespace OoiMRR.Controls.Converters
                                                         (double)targetSize / bitmapSource.PixelWidth,
                                                         (double)targetSize / bitmapSource.PixelHeight,
                                                         0, 0);
-                                                    
+
                                                     var scaledBitmap = new TransformedBitmap(bitmapSource, scaleTransform);
                                                     RenderOptions.SetBitmapScalingMode(scaledBitmap, BitmapScalingMode.HighQuality);
                                                     RenderOptions.SetCachingHint(scaledBitmap, CachingHint.Cache);
                                                     scaledBitmap.Freeze();
-                                                    
+
                                                     // 释放原始位图
                                                     var temp = hBitmap;
                                                     hBitmap = IntPtr.Zero;
                                                     DeleteObject(temp);
-                                                    
+
                                                     return scaledBitmap;
                                                 }
-                                                
+
                                                 // 如果尺寸正好（误差在1px内），直接使用
-                                        bitmapSource.Freeze();
-                                                
+                                                bitmapSource.Freeze();
+
                                                 // 释放原始位图
                                                 var tempBitmap = hBitmap;
                                                 hBitmap = IntPtr.Zero;
                                                 DeleteObject(tempBitmap);
-                                                
-                                        return bitmapSource;
-                                    }
+
+                                                return bitmapSource;
+                                            }
+                                            catch (COMException)
+                                            {
+                                                if (hBitmap != IntPtr.Zero)
+                                                {
+                                                    DeleteObject(hBitmap);
+                                                    hBitmap = IntPtr.Zero;
+                                                }
+                                            }
                                             catch
                                             {
                                                 if (hBitmap != IntPtr.Zero)
@@ -1081,10 +1122,18 @@ namespace OoiMRR.Controls.Converters
                                             }
                                         }
                                     }
+                                    catch (COMException)
+                                    {
+                                        if (hBitmap != IntPtr.Zero)
+                                        {
+                                            DeleteObject(hBitmap);
+                                            hBitmap = IntPtr.Zero;
+                                        }
+                                    }
                                     catch
                                     {
                                         if (hBitmap != IntPtr.Zero)
-                            {
+                                        {
                                             DeleteObject(hBitmap);
                                             hBitmap = IntPtr.Zero;
                                         }
@@ -1095,16 +1144,24 @@ namespace OoiMRR.Controls.Converters
                             {
                                 if (hBitmap != IntPtr.Zero)
                                     DeleteObject(hBitmap);
-                                }
                             }
                         }
-                        catch { }
                     }
-                
-                // 方案2：如果方案1失败，使用SHGetImageList作为回退（确保始终有图标显示）
+                    catch { }
+                }
+            }
+            catch (COMException)
+            {
+                // COM 互操作异常，继续使用回退方案
+            }
+            catch { }
+
+            // 方案2：如果方案1失败，使用SHGetImageList作为回退（确保始终有图标显示）
+            try
+            {
                 SHFILEINFO shfi = new SHFILEINFO();
                 uint flags = SHGFI_SYSICONINDEX | SHGFI_ICON;
-                
+
                 if (isDirectory)
                 {
                     flags |= SHGFI_USEFILEATTRIBUTES;
@@ -1121,11 +1178,12 @@ namespace OoiMRR.Controls.Converters
                     {
                         Guid iidImageList = new Guid("46EB5926-582E-4017-9FDF-E8998DAA0950");
                         IImageList imageList;
-                        
+
                         // 使用JUMBO尺寸（256x256）
                         int imageListType = SHIL_JUMBO;
-                        
-                        if (SHGetImageList(imageListType, ref iidImageList, out imageList) == 0)
+
+                        int result = SHGetImageList(imageListType, ref iidImageList, out imageList);
+                        if (result == 0 && imageList != null)
                         {
                             IntPtr hIcon = IntPtr.Zero;
                             if (imageList.GetIcon(shfi.iIcon, ILD_TRANSPARENT, out hIcon) == 0 && hIcon != IntPtr.Zero)
@@ -1133,16 +1191,16 @@ namespace OoiMRR.Controls.Converters
                                 try
                                 {
                                     using (Icon icon = Icon.FromHandle(hIcon))
-                        {
-                            var bitmapSource = Imaging.CreateBitmapSourceFromHIcon(
-                                icon.Handle,
-                                System.Windows.Int32Rect.Empty,
-                                BitmapSizeOptions.FromWidthAndHeight(targetSize, targetSize));
-                                        
+                                    {
+                                        var bitmapSource = Imaging.CreateBitmapSourceFromHIcon(
+                                            icon.Handle,
+                                            System.Windows.Int32Rect.Empty,
+                                            BitmapSizeOptions.FromWidthAndHeight(targetSize, targetSize));
+
                                         // 设置高质量渲染选项
                                         RenderOptions.SetBitmapScalingMode(bitmapSource, BitmapScalingMode.HighQuality);
                                         RenderOptions.SetCachingHint(bitmapSource, CachingHint.Cache);
-                                        
+
                                         // 强制缩放到目标尺寸，确保所有格式（包括Office文档）都使用相同大小
                                         if (Math.Abs(bitmapSource.PixelWidth - targetSize) > 1 || Math.Abs(bitmapSource.PixelHeight - targetSize) > 1)
                                         {
@@ -1150,28 +1208,36 @@ namespace OoiMRR.Controls.Converters
                                                 (double)targetSize / bitmapSource.PixelWidth,
                                                 (double)targetSize / bitmapSource.PixelHeight,
                                                 0, 0);
-                                            
+
                                             var scaledBitmap = new TransformedBitmap(bitmapSource, scaleTransform);
                                             RenderOptions.SetBitmapScalingMode(scaledBitmap, BitmapScalingMode.HighQuality);
                                             RenderOptions.SetCachingHint(scaledBitmap, CachingHint.Cache);
                                             scaledBitmap.Freeze();
                                             return scaledBitmap;
                                         }
-                                        
+
                                         // 如果尺寸正好（误差在1px内），直接使用
-                            bitmapSource.Freeze();
-                            return bitmapSource;
-                        }
-                    }
-                    finally
-                    {
+                                        bitmapSource.Freeze();
+                                        return bitmapSource;
+                                    }
+                                }
+                                finally
+                                {
                                     DestroyIcon(hIcon);
                                 }
-                    }
+                            }
                         }
+                    }
+                    catch (COMException)
+                    {
+                        // COM 互操作异常，继续使用回退方案
                     }
                     catch { }
                 }
+            }
+            catch (COMException)
+            {
+                // COM 互操作异常，返回 null
             }
             catch { }
             return null;

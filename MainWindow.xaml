@@ -311,7 +311,7 @@
                                           VerticalScrollBarVisibility="Auto"
                                           HorizontalScrollBarVisibility="Disabled"
                                           VerticalAlignment="Stretch">
-                                <WrapPanel Name="TagTrainExistingTagsPanel" Orientation="Horizontal"
+                                <StackPanel Name="TagTrainExistingTagsPanel" 
                                            VerticalAlignment="Top"
                                            SizeChanged="TagTrainExistingTagsPanel_SizeChanged"/>
                             </ScrollViewer>
@@ -454,9 +454,9 @@
             <Border Grid.Row="1" Background="#F8F9FA" BorderBrush="#E9ECEF" BorderThickness="0,1,0,0">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="8,8">
                     <Button Name="TagClickModeBtn"
-                           Content="👁"
+                           Content="👁 浏览"
                            Click="TagClickModeBtn_Click"
-                           Width="32" Height="32"
+                           MinWidth="80" Height="32"
                            Style="{StaticResource ModernButtonStyle}"
                            ToolTip="切换标签点击行为：浏览(显示文件) / 编辑(给所选文件加/移除该标签)"
                            Margin="4,0"

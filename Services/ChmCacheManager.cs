@@ -34,16 +34,16 @@ namespace OoiMRR.Services
                         if ((now - dirInfo.LastAccessTime).TotalDays > CacheExpirationDays)
                         {
                             Directory.Delete(dir, true);
-                                                    }
+                        }
                     }
-                    catch (Exception ex)
+                    catch
                     {
-                                            }
+                    }
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                            }
+            }
         }
 
         /// <summary>
@@ -67,7 +67,7 @@ namespace OoiMRR.Services
                     totalSize += GetDirectorySize(dir);
                 }
 
-                                // 如果超过限制，删除最旧的缓存
+                // 如果超过限制，删除最旧的缓存
                 int index = 0;
                 while (totalSize > MaxCacheSizeBytes && index < dirs.Count)
                 {
@@ -80,16 +80,16 @@ namespace OoiMRR.Services
                         totalSize -= dirSize;
                         System.Diagnostics.Debug.WriteLine($"删除旧缓存以释放空间: {dirToDelete.Name} ({dirSize / 1024 / 1024}MB)");
                     }
-                    catch (Exception ex)
+                    catch
                     {
-                                            }
+                    }
 
                     index++;
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                            }
+            }
         }
 
         /// <summary>
@@ -118,10 +118,10 @@ namespace OoiMRR.Services
                 try
                 {
                     Directory.Delete(CacheBaseDir, true);
-                                    }
-                catch (Exception ex)
+                }
+                catch
                 {
-                                    }
+                }
             }
         }
 

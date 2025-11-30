@@ -11,6 +11,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using Microsoft.Web.WebView2.Wpf;
 using System.Xml.Linq;
+using System.Runtime.InteropServices;
 
 namespace OoiMRR.Previews
 {
@@ -539,6 +540,10 @@ namespace OoiMRR.Previews
                     {
                         excelApp.Quit();
                     }
+                    catch (COMException)
+                    {
+                        // 忽略退出时的 COM 异常
+                    }
                     catch
                     {
                         // 忽略退出时的错误
@@ -546,6 +551,10 @@ namespace OoiMRR.Previews
                     try
                     {
                         System.Runtime.InteropServices.Marshal.ReleaseComObject(excelApp);
+                    }
+                    catch (COMException)
+                    {
+                        // 忽略释放时的 COM 异常
                     }
                     catch
                     {

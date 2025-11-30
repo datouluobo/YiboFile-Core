@@ -97,19 +97,18 @@ namespace OoiMRR.Services
             try
             {
                 string fullDllPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, DLL_PATH);
-                                if (!File.Exists(fullDllPath))
+                if (!File.Exists(fullDllPath))
                 {
-                                        return false;
+                    return false;
                 }
 
                 _dllHandle = LoadLibrary(fullDllPath);
                 if (_dllHandle == IntPtr.Zero)
                 {
-                    int error = Marshal.GetLastWin32Error();
-                                        return false;
+                    return false;
                 }
 
-                                // 获取函数地址 - Everything SDK 函数名（根据官方文档：https://www.voidtools.com/zh-cn/support/everything/sdk/）
+                // 获取函数地址 - Everything SDK 函数名（根据官方文档：https://www.voidtools.com/zh-cn/support/everything/sdk/）
                 // 注意：字符串相关函数导出名区分 A/W，需要同时尝试
                 var functions = new[]
                 {
@@ -198,24 +197,24 @@ namespace OoiMRR.Services
                                     _SetMatchWholeWord = Marshal.GetDelegateForFunctionPointer<SetMatchWholeWordDelegate>(funcPtr);
                                     break;
                             }
-                                                    }
-                        catch (Exception ex)
+                        }
+                        catch
                         {
-                                                    }
+                        }
                     }
                 }
 
                 // 检查关键函数是否加载成功
                 if (_SetSearch == null || _Query == null || _GetNumResults == null || _GetResultFullPathName == null)
                 {
-                                        return false;
+                    return false;
                 }
 
-                                return true;
+                return true;
             }
-            catch (Exception ex)
+            catch
             {
-                                return false;
+                return false;
             }
         }
 
@@ -228,7 +227,7 @@ namespace OoiMRR.Services
             {
                 FreeLibrary(_dllHandle);
                 _dllHandle = IntPtr.Zero;
-                            }
+            }
         }
 
         /// <summary>
@@ -247,7 +246,7 @@ namespace OoiMRR.Services
                 // 1. 加载 DLL
                 if (!LoadEverythingDLL())
                 {
-                                        return false;
+                    return false;
                 }
 
                 // 2. 检查 Everything 是否已在运行
@@ -257,7 +256,7 @@ namespace OoiMRR.Services
                     {
                         _isInitialized = true;
                     }
-                                        return true;
+                    return true;
                 }
 
                 // 3. 尝试启动打包的 Everything
@@ -266,7 +265,7 @@ namespace OoiMRR.Services
 
                 if (!File.Exists(everythingPath))
                 {
-                                        UnloadEverythingDLL();
+                    UnloadEverythingDLL();
                     return false;
                 }
 
@@ -280,11 +279,11 @@ namespace OoiMRR.Services
                     WindowStyle = ProcessWindowStyle.Hidden
                 };
                 
-                                _everythingProcess = Process.Start(startInfo);
+                _everythingProcess = Process.Start(startInfo);
                 
                 if (_everythingProcess == null)
                 {
-                                        return false;
+                    return false;
                 }
                 
                 Debug.WriteLine($"EverythingHelper: Everything 进程已启动 (PID: {_everythingProcess.Id})");
@@ -306,12 +305,12 @@ namespace OoiMRR.Services
                     }
                 }
 
-                                UnloadEverythingDLL();
+                UnloadEverythingDLL();
                 return false;
             }
-            catch (Exception ex)
+            catch
             {
-                                UnloadEverythingDLL();
+                UnloadEverythingDLL();
                 return false;
             }
         }
@@ -325,17 +324,17 @@ namespace OoiMRR.Services
             {
                 if (_dllHandle == IntPtr.Zero)
                 {
-                                        if (!LoadEverythingDLL())
+                    if (!LoadEverythingDLL())
                     {
-                                                return false;
+                        return false;
                     }
                 }
                 if (_IsDBLoaded == null) return false;
                 return _IsDBLoaded();
             }
-            catch (Exception ex)
+            catch
             {
-                                return false;
+                return false;
             }
         }
 
@@ -392,16 +391,11 @@ namespace OoiMRR.Services
                             results.Add(filePath);
                         }
                     }
-
-                                    }
-                else
-                {
-                    uint error = GetLastError();
-                                    }
+                }
             }
-            catch (Exception ex)
+            catch
             {
-                                throw;
+                throw;
             }
 
             return results;
@@ -449,14 +443,10 @@ namespace OoiMRR.Services
                         }
                     }
                 }
-                else
-                {
-                    uint error = GetLastError();
-                                    }
             }
-            catch (Exception ex)
+            catch
             {
-                                throw;
+                throw;
             }
             return results;
         }

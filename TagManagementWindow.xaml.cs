@@ -54,8 +54,7 @@ namespace OoiMRR
                 ManualSamplesText.Text = $"手动标注: {stats.ManualSamples}";
                 UniqueImagesText.Text = $"唯一图片: {stats.UniqueImages}";
             }
-            catch (Exception ex)
-            {
+            catch{
                             }
         }
 
@@ -225,7 +224,7 @@ namespace OoiMRR
                         "完成",
                         MessageBoxButton.OK,
                         MessageBoxImage.Information);
-                    
+
                     LoadTags();
                     LoadStatistics();
                 }
@@ -272,7 +271,7 @@ namespace OoiMRR
                     // 注意：OoiMRRIntegration.TriggerIncrementalTraining 需要支持进度和取消
                     // 暂时使用现有接口，后续可以扩展
                     var trainingResult = OoiMRRIntegration.TriggerIncrementalTraining(forceRetrain: true);
-                    
+
                     // 回到UI线程更新界面
                     Dispatcher.Invoke(() =>
                     {
@@ -292,7 +291,7 @@ namespace OoiMRR
                                 $"模型训练失败: {trainingResult.Message}",
                                 "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                         }
-                        
+
                         RetrainModelBtn.IsEnabled = true;
                         _trainingCancellation = null;
                     });
@@ -320,7 +319,7 @@ namespace OoiMRR
                 var stats = OoiMRRIntegration.GetStatistics();
                 var modelExists = OoiMRRIntegration.ModelExists();
                 var modelPath = OoiMRRIntegration.GetModelPath();
-                
+
                 var message = $"模型状态: {(modelExists ? "已加载" : "未训练")}\n" +
                               $"模型路径: {modelPath}\n\n" +
                               $"训练统计:\n" +
@@ -328,7 +327,7 @@ namespace OoiMRR
                               $"手动标注: {stats.ManualSamples}\n" +
                               $"唯一图片: {stats.UniqueImages}\n" +
                               $"唯一标签: {stats.UniqueTags}";
-                
+
                 MessageBox.Show(message, "训练情况", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)

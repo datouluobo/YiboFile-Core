@@ -74,10 +74,8 @@ namespace OoiMRR
                     }), System.Windows.Threading.DispatcherPriority.Loaded);
                 }
             }
-            catch (Exception ex)
-            {
-                                TagsListBox.ItemsSource = new List<Tag>();
-            }
+            catch (Exception)
+            {TagsListBox.ItemsSource = new List<Tag>();}
         }
 
         /// <summary>

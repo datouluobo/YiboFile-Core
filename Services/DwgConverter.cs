@@ -146,10 +146,8 @@ namespace OoiMRR.Services
                     catch { }
                 }
             }
-            catch (Exception ex)
-            {
-                                return false;
-            }
+            catch (Exception)
+            {return false;}
         }
         
         private static async Task<bool> TryConvertWithQcad(string dwgFilePath, string dxfPath)

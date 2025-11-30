@@ -140,10 +140,10 @@ namespace OoiMRR
                     command.ExecuteNonQuery();
                 }
             }
-            catch (Exception ex)
+            catch
             {
                 // 记录错误但不中断初始化
-                            }
+            }
         }
 
         // 本地标签相关 API 已弃用（改为完全使用 TagTrain），故移除
@@ -175,9 +175,9 @@ namespace OoiMRR
                     upd.ExecuteNonQuery();
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                                throw;
+                throw;
             }
         }
         
@@ -544,9 +544,9 @@ namespace OoiMRR
                     }
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                            }
+            }
             
             return null;
         }
@@ -584,9 +584,9 @@ namespace OoiMRR
                 command.Parameters.AddWithValue("@lastModified", lastModified);
                 command.ExecuteNonQuery();
             }
-            catch (Exception ex)
+            catch
             {
-                            }
+            }
         }
 
         /// <summary>
@@ -641,9 +641,9 @@ namespace OoiMRR
                     catch { }
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                            }
+            }
             
             return result;
         }
@@ -665,9 +665,9 @@ namespace OoiMRR
                 command.Parameters.AddWithValue("@folderPath", folderPath);
                 command.ExecuteNonQuery();
             }
-            catch (Exception ex)
+            catch
             {
-                            }
+            }
         }
 
         /// <summary>
@@ -755,9 +755,9 @@ namespace OoiMRR
                     }
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                            }
+            }
             
             return cleanedCount;
         }
@@ -776,9 +776,9 @@ namespace OoiMRR
                 var result = command.ExecuteScalar();
                 return result != null ? Convert.ToInt32(result) : 0;
             }
-            catch (Exception ex)
+            catch
             {
-                                return 0;
+                return 0;
             }
         }
 

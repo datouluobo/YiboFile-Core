@@ -43,17 +43,11 @@ namespace OoiMRR
                 // 初始化 FFmpeg（用于视频缩略图提取）
                 try
                 {
-                    bool ffmpegAvailable = FFmpegHelper.InitializeFFmpeg();
-                    if (ffmpegAvailable)
-                    {
-                                            }
-                    else
-                    {
-                                            }
+                    FFmpegHelper.InitializeFFmpeg();
                 }
-                catch (Exception ffmpegEx)
+                catch
                 {
-                                    }
+                }
                 
                 // 初始化 Everything（用于快速文件搜索）
                 _ = Task.Run(async () =>
@@ -66,13 +60,10 @@ namespace OoiMRR
                             string version = EverythingHelper.GetVersion();
                             System.Diagnostics.Debug.WriteLine($"Everything 初始化成功，快速搜索功能可用 (版本: {version})");
                         }
-                        else
-                        {
-                                                    }
                     }
-                    catch (Exception everythingEx)
+                    catch
                     {
-                                            }
+                    }
                 });
                 
                 // 初始化数据库
@@ -89,6 +80,9 @@ namespace OoiMRR
                     {
                         // 显式设置，确保 TT 使用该路径
                         SettingsManager.SetDataStorageDirectory(tagTrainDataDir);
+                        // 清除缓存，确保使用新设置的路径
+                        TagTrain.Services.SettingsManager.ClearCache();
+                        TagTrain.Services.DataManager.ClearDatabasePathCache();
                     }
                     
                     // 读取（可能是刚刚设置的）数据目录
@@ -100,6 +94,13 @@ namespace OoiMRR
                         var ooiMRRProjectDir = Path.GetFullPath(Path.Combine(ooiMRRBinDir, "..", "..", ".."));
                         var githubDir = Path.GetDirectoryName(ooiMRRProjectDir);
                         tagTrainDataDir = Path.Combine(githubDir ?? ooiMRRProjectDir, "TagTrain", "data");
+                        // 设置默认路径后也要清除缓存
+                        if (!string.IsNullOrWhiteSpace(tagTrainDataDir))
+                        {
+                            TagTrain.Services.SettingsManager.SetDataStorageDirectory(tagTrainDataDir);
+                            TagTrain.Services.SettingsManager.ClearCache();
+                            TagTrain.Services.DataManager.ClearDatabasePathCache();
+                        }
                     }
                     tagTrainDataDir = Path.GetFullPath(tagTrainDataDir);
                     System.Diagnostics.Debug.WriteLine($"TagTrain 数据目录路径(来自设置): {tagTrainDataDir}");
@@ -114,13 +115,13 @@ namespace OoiMRR
                     OoiMRRIntegration.Initialize();
                     
                     // 验证初始化是否成功
-                    var tagCount = OoiMRRIntegration.GetAllTags(OoiMRR.Services.OoiMRRIntegration.TagSortMode.Name)?.Count ?? 0;
-                                                            System.Diagnostics.Debug.WriteLine($"TagTrain 数据库路径: {TagTrain.Services.DataManager.GetDatabasePath()}");
+                    OoiMRRIntegration.GetAllTags(OoiMRR.Services.OoiMRRIntegration.TagSortMode.Name);
+                    System.Diagnostics.Debug.WriteLine($"TagTrain 数据库路径: {TagTrain.Services.DataManager.GetDatabasePath()}");
                     IsTagTrainAvailable = true;
                 }
-                catch (Exception tagTrainEx)
+                catch
                 {
-                                                            IsTagTrainAvailable = false;
+                    IsTagTrainAvailable = false;
                     // 不阻止程序启动，只是记录错误
                 }
                 
@@ -132,9 +133,9 @@ namespace OoiMRR
                         OoiMRR.Services.ChmCacheManager.CleanupExpiredCache();
                         OoiMRR.Services.ChmCacheManager.EnforceCacheSizeLimit();
                     }
-                    catch (Exception ex)
+                    catch
                     {
-                                            }
+                    }
                 });
 
                 // 启动主窗口

@@ -36,8 +36,8 @@ namespace OoiMRR.Previews
                 {
                     PreviewHelper.CreateOpenButton(filePath, "📂 外部打开")
                 };
-                var title = PreviewHelper.CreateTitlePanel("📄", 
-                    $"PDF文档: {Path.GetFileName(filePath)}", 
+                var title = PreviewHelper.CreateTitlePanel("📄",
+                    $"PDF文档: {Path.GetFileName(filePath)}",
                     buttons);
                 Grid.SetRow(title, 0);
                 mainGrid.Children.Add(title);
@@ -266,8 +266,7 @@ namespace OoiMRR.Previews
 
                 webView.CoreWebView2?.NavigateToString(errorHtml);
             }
-            catch (Exception ex)
-            {
+            catch{
                             }
         }
 
