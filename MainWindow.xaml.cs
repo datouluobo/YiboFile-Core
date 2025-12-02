@@ -1143,11 +1143,6 @@ namespace OoiMRR
                         RefreshActionButtons();
                     }), System.Windows.Threading.DispatcherPriority.Loaded);
                     if (FileBrowser != null) FileBrowser.TabsVisible = true;
-                    // 隐藏浏览/编辑切换按钮（仅在标签模式显示）
-                    if (TagClickModeBtn != null)
-                    {
-                        TagClickModeBtn.Visibility = Visibility.Collapsed;
-                    }
                     // 切换到路径模式时，清除库的高亮
                     if (LibrariesListBox != null && LibrariesListBox.Items != null)
                     {
@@ -1205,11 +1200,6 @@ namespace OoiMRR
                     }), System.Windows.Threading.DispatcherPriority.Loaded);
                     // 库模式下也显示标签页
                     if (FileBrowser != null) FileBrowser.TabsVisible = true;
-                    // 隐藏浏览/编辑切换按钮（仅在标签模式显示）
-                    if (TagClickModeBtn != null)
-                    {
-                        TagClickModeBtn.Visibility = Visibility.Collapsed;
-                    }
                     // 切换到库模式时，恢复最后选中的库
                     this.Dispatcher.BeginInvoke(new Action(() =>
                     {
@@ -1243,16 +1233,6 @@ namespace OoiMRR
                         if (NavLibraryContent != null) NavLibraryContent.Visibility = Visibility.Collapsed;
                         if (NavTagContent != null) NavTagContent.Visibility = Visibility.Visible;
                         UpdateActionButtons("Tag");
-                        // 显示浏览/编辑切换按钮
-                        if (TagClickModeBtn != null)
-                        {
-                            TagClickModeBtn.Visibility = Visibility.Visible;
-                            // 初始化按钮状态
-                            TagClickModeBtn.Content = _tagClickMode == TagClickMode.Browse ? "👁 浏览" : "✏️ 编辑";
-                            TagClickModeBtn.ToolTip = _tagClickMode == TagClickMode.Browse
-                                ? "切换为编辑模式：点击标签对所选图片加/移除该标签"
-                                : "切换为浏览模式：点击标签显示该标签的文件列表";
-                        }
                         // 延迟刷新列2按钮，确保容器已完全初始化
                         // 先确保UI元素已加载，再初始化
                         this.Dispatcher.BeginInvoke(new Action(() =>
@@ -1265,9 +1245,6 @@ namespace OoiMRR
                             {
                                 NavTagContent.Visibility = Visibility.Visible;
                             }
-                            
-                            // 应用浏览/编辑模式的可见性设置
-                            ApplyTagClickModeVisibility();
                             
                             // 延迟初始化，确保所有UI元素都已渲染
                             this.Dispatcher.BeginInvoke(new Action(() =>
@@ -2249,28 +2226,6 @@ namespace OoiMRR
         private void CreateTabInternal(PathTab tab)
         {
             if (FileBrowser == null || FileBrowser.TabsPanelControl == null) return;
-
-            // 检查是否已存在相同的标签页（防止重复创建）
-            PathTab existingTab = null;
-            if (tab.Type == TabType.Path)
-            {
-                existingTab = _pathTabs.FirstOrDefault(t => t.Type == TabType.Path && t.Path == tab.Path);
-            }
-            else if (tab.Type == TabType.Library)
-            {
-                existingTab = _pathTabs.FirstOrDefault(t => t.Type == TabType.Library && t.Library != null && t.Library.Id == tab.Library?.Id);
-            }
-            else if (tab.Type == TabType.Tag)
-            {
-                existingTab = _pathTabs.FirstOrDefault(t => t.Type == TabType.Tag && t.TagId == tab.TagId);
-            }
-            
-            if (existingTab != null)
-            {
-                // 如果已存在，切换到该标签页而不是创建新的
-                SwitchToTab(existingTab);
-                return;
-            }
 
             // 创建标签按钮容器
             var tabContainer = new StackPanel
@@ -7525,116 +7480,160 @@ namespace OoiMRR
                 // 计算单个标签项的宽度（根据设置的每行标签数自适应）
                 double itemWidth = GetDesiredTagItemWidth();
                 
-                // 按分组组织标签
-                var categories = OoiMRRIntegration.GetAllCategories().OrderBy(c => c.SortOrder).ThenBy(c => c.Name).ToList();
-                var tagsByCategory = new Dictionary<int, List<OoiMRR.Services.TagInfo>>();
-                var ungroupedTags = new List<OoiMRR.Services.TagInfo>();
-                
-                // 将标签按分组分类
+                int tagCount = 0;
                 foreach (var tagInfo in sortedTags)
                 {
-                    var tagCategories = OoiMRRIntegration.GetTagCategories(tagInfo.Id);
-                    if (tagCategories != null && tagCategories.Count > 0)
+                    var tagName = tagInfo.Name ?? $"标签{tagInfo.Id}";
+                    var count = tagUsageCount.GetValueOrDefault(tagInfo.Id, 0);
+                    
+                    System.Diagnostics.Debug.WriteLine($"LoadTagTrainExistingTags: 加载标签 - {tagName} (ID: {tagInfo.Id}, 使用次数: {count})");
+                    
+                    var border = new Border
                     {
-                        // 标签属于一个或多个分组，添加到所有相关分组
-                        foreach (var categoryId in tagCategories)
+                        BorderBrush = (SolidColorBrush)(new BrushConverter().ConvertFromString("#BBDEFB")),
+                        BorderThickness = new Thickness(1),
+                        Background = (SolidColorBrush)(new BrushConverter().ConvertFromString("#E3F2FD")),
+                        CornerRadius = new CornerRadius(4),
+                        Padding = new Thickness(6, 3, 6, 3),
+                        Margin = new Thickness(0, 0, 8, 5),
+                        Cursor = Cursors.Hand,
+                        Tag = tagInfo.Id,
+                        Width = itemWidth,
+                        Focusable = false
+                    };
+                    
+                    border.MouseEnter += (s, e) =>
+                    {
+                        if (_currentTagFilter != null && _currentTagFilter.Id == tagInfo.Id)
                         {
-                            if (!tagsByCategory.ContainsKey(categoryId))
-                            {
-                                tagsByCategory[categoryId] = new List<OoiMRR.Services.TagInfo>();
-                            }
-                            // 避免重复添加
-                            if (!tagsByCategory[categoryId].Any(t => t.Id == tagInfo.Id))
-                            {
-                                tagsByCategory[categoryId].Add(tagInfo);
-                            }
+                            border.Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 193, 7));
+                            border.BorderBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 152, 0));
                         }
-                    }
-                    else
+                        else
+                        {
+                            border.Background = (SolidColorBrush)(new BrushConverter().ConvertFromString("#BBDEFB"));
+                            border.BorderBrush = (SolidColorBrush)(new BrushConverter().ConvertFromString("#90CAF9"));
+                        }
+                    };
+                    
+                    border.MouseLeave += (s, e) =>
                     {
-                        // 未分组的标签
-                        ungroupedTags.Add(tagInfo);
-                    }
-                }
-                
-                int tagCount = 0;
-                
-                // 为每个分组创建可折叠的显示区域
-                foreach (var category in categories)
-                {
-                    if (tagsByCategory.ContainsKey(category.Id) && tagsByCategory[category.Id].Count > 0)
+                        if (_currentTagFilter != null && _currentTagFilter.Id == tagInfo.Id)
+                        {
+                            border.Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 193, 7));
+                            border.BorderBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 152, 0));
+                        }
+                        else
+                        {
+                            border.Background = (SolidColorBrush)(new BrushConverter().ConvertFromString("#E3F2FD"));
+                            border.BorderBrush = (SolidColorBrush)(new BrushConverter().ConvertFromString("#BBDEFB"));
+                        }
+                    };
+
+                    // 按下无需临时色块，活动状态保持橙色由 HighlightActiveTagChip 控制
+                    
+                    // 点击标签：根据模式浏览或编辑
+                    border.MouseLeftButtonDown += (s, e) =>
                     {
-                        // 解析分组颜色
-                        System.Windows.Media.Brush categoryBrush = System.Windows.Media.Brushes.DarkSlateGray;
-                        if (!string.IsNullOrEmpty(category.Color))
+                        System.Diagnostics.Debug.WriteLine($"LoadTagTrainExistingTags: 点击标签 {tagName}，ID: {tagInfo.Id}");
+                        var tag = new Tag { Id = tagInfo.Id, Name = tagName };
+                        if (_tagClickMode == TagClickMode.Browse)
+                        {
+                            OpenTagInTab(tag);
+                        }
+                        else
                         {
                             try
                             {
-                                var color = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(category.Color);
-                                categoryBrush = new System.Windows.Media.SolidColorBrush(color);
+                                var selectedItems = FileBrowser?.FilesSelectedItems?.Cast<FileSystemItem>().ToList() ?? new List<FileSystemItem>();
+                                var selectedPathsBefore = selectedItems.Select(i => i.Path).ToList();
+                                if (selectedItems.Count == 0)
+                                {
+                                    MessageBox.Show("请先在中间文件列表选择图片，再进行标签编辑。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                                    return;
+                                }
+                                
+                                var imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".webp", ".tiff", ".tif" };
+                                foreach (var it in selectedItems)
+                                {
+                                    if (it.IsDirectory) continue;
+                                    var ext = System.IO.Path.GetExtension(it.Path).ToLowerInvariant();
+                                    if (!imageExtensions.Contains(ext)) continue;
+                                    
+                                    var existingTagIds = OoiMRRIntegration.GetFileTagIds(it.Path) ?? new List<int>();
+                                    if (existingTagIds.Contains(tag.Id))
+                                    {
+                                        OoiMRRIntegration.RemoveTagFromFile(it.Path, tag.Id);
+                                    }
+                                    else
+                                    {
+                                        OoiMRRIntegration.AddTagToFile(it.Path, tag.Id);
+                                    }
+                                }
+                                
+                                // 编辑后刷新视图
+                                if (_currentTagFilter != null)
+                                {
+                                    FilterByTag(_currentTagFilter);
+                                    RestoreSelectionByPaths(selectedPathsBefore);
+                                }
+                                else
+                                {
+                                    LoadFiles();
+                                    RestoreSelectionByPaths(selectedPathsBefore);
+                                }
                             }
-                            catch { }
+                            catch (Exception exEdit)
+                            {
+                                MessageBox.Show($"编辑标签失败: {exEdit.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                            }
                         }
-                        
-                        // 创建 Expander 控件用于折叠/展开
-                        var expander = new Expander
-                        {
-                            Header = $"📁 {category.Name} ({tagsByCategory[category.Id].Count})",
-                            FontWeight = FontWeights.Bold,
-                            FontSize = 13,
-                            Margin = new Thickness(0, 4, 0, 4),
-                            IsExpanded = true, // 默认展开
-                            Foreground = categoryBrush
-                        };
-                        
-                        // 创建该分组的标签容器（使用WrapPanel水平排列）
-                        var categoryTagsPanel = new WrapPanel
-                        {
-                            Orientation = Orientation.Horizontal,
-                            Margin = new Thickness(0, 4, 0, 4)
-                        };
-                        
-                        // 为该分组中的每个标签创建UI
-                        foreach (var tagInfo in tagsByCategory[category.Id])
-                        {
-                            var tagBorder = CreateTagBorder(tagInfo, tagUsageCount, itemWidth);
-                            categoryTagsPanel.Children.Add(tagBorder);
-                            tagCount++;
-                        }
-                        
-                        expander.Content = categoryTagsPanel;
-                        TagTrainExistingTagsPanel.Children.Add(expander);
-                    }
-                }
-                
-                // 显示未分组的标签（也使用 Expander）
-                if (ungroupedTags.Count > 0)
-                {
-                    var ungroupedExpander = new Expander
-                    {
-                        Header = $"📋 未分组 ({ungroupedTags.Count})",
-                        FontWeight = FontWeights.Bold,
-                        FontSize = 13,
-                        Margin = new Thickness(0, 4, 0, 4),
-                        IsExpanded = true, // 默认展开
-                        Foreground = System.Windows.Media.Brushes.Gray
                     };
                     
-                    var ungroupedTagsPanel = new WrapPanel
+                    // 右键菜单：删除标签
+                    border.ContextMenu = new ContextMenu();
+                    var deleteMenuItem = new MenuItem
                     {
+                        Header = "🗑️ 删除标签",
+                        Tag = tagName
+                    };
+                    deleteMenuItem.Click += (s, e) =>
+                    {
+                        // TODO: 实现删除标签功能
+                    };
+                    border.ContextMenu.Items.Add(deleteMenuItem);
+                    
+                    var stackPanel = new StackPanel 
+                    { 
                         Orientation = Orientation.Horizontal,
-                        Margin = new Thickness(0, 4, 0, 4)
+                        IsHitTestVisible = false
                     };
                     
-                    foreach (var tagInfo in ungroupedTags)
+                    stackPanel.Children.Add(new TextBlock
                     {
-                        var tagBorder = CreateTagBorder(tagInfo, tagUsageCount, itemWidth);
-                        ungroupedTagsPanel.Children.Add(tagBorder);
-                        tagCount++;
+                        Text = tagName,
+                        FontWeight = FontWeights.Bold,
+                        FontSize = 12,
+                        Margin = new Thickness(0, 0, 4, 0),
+                        VerticalAlignment = VerticalAlignment.Center,
+                        IsHitTestVisible = false
+                    });
+                    
+                    if (count > 0)
+                    {
+                        stackPanel.Children.Add(new TextBlock
+                        {
+                            Text = $"({count})",
+                            Foreground = System.Windows.Media.Brushes.DarkGray,
+                            FontSize = 10,
+                            VerticalAlignment = VerticalAlignment.Center,
+                            IsHitTestVisible = false
+                        });
                     }
                     
-                    ungroupedExpander.Content = ungroupedTagsPanel;
-                    TagTrainExistingTagsPanel.Children.Add(ungroupedExpander);
+                    border.Child = stackPanel;
+                    TagTrainExistingTagsPanel.Children.Add(border);
+                    tagCount++;
                 }
                 
                 System.Diagnostics.Debug.WriteLine($"LoadTagTrainExistingTags: 成功加载 {tagCount} 个标签到面板");
@@ -7652,157 +7651,6 @@ namespace OoiMRR
                 System.Diagnostics.Debug.WriteLine($"LoadTagTrainExistingTags: 加载失败: {ex.Message}");
                 System.Diagnostics.Debug.WriteLine($"LoadTagTrainExistingTags: 堆栈跟踪: {ex.StackTrace}");
             }
-        }
-
-        // 创建标签Border的辅助方法
-        private Border CreateTagBorder(OoiMRR.Services.TagInfo tagInfo, Dictionary<int, int> tagUsageCount, double itemWidth)
-        {
-            var tagName = tagInfo.Name ?? $"标签{tagInfo.Id}";
-            var count = tagUsageCount.GetValueOrDefault(tagInfo.Id, 0);
-            
-            var border = new Border
-            {
-                BorderBrush = (SolidColorBrush)(new BrushConverter().ConvertFromString("#BBDEFB")),
-                BorderThickness = new Thickness(1),
-                Background = (SolidColorBrush)(new BrushConverter().ConvertFromString("#E3F2FD")),
-                CornerRadius = new CornerRadius(4),
-                Padding = new Thickness(6, 3, 6, 3),
-                Margin = new Thickness(0, 0, 8, 5),
-                Cursor = Cursors.Hand,
-                Tag = tagInfo.Id,
-                Width = itemWidth,
-                Focusable = false
-            };
-            
-            border.MouseEnter += (s, e) =>
-            {
-                if (_currentTagFilter != null && _currentTagFilter.Id == tagInfo.Id)
-                {
-                    border.Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 193, 7));
-                    border.BorderBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 152, 0));
-                }
-                else
-                {
-                    border.Background = (SolidColorBrush)(new BrushConverter().ConvertFromString("#BBDEFB"));
-                    border.BorderBrush = (SolidColorBrush)(new BrushConverter().ConvertFromString("#90CAF9"));
-                }
-            };
-            
-            border.MouseLeave += (s, e) =>
-            {
-                if (_currentTagFilter != null && _currentTagFilter.Id == tagInfo.Id)
-                {
-                    border.Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 193, 7));
-                    border.BorderBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 152, 0));
-                }
-                else
-                {
-                    border.Background = (SolidColorBrush)(new BrushConverter().ConvertFromString("#E3F2FD"));
-                    border.BorderBrush = (SolidColorBrush)(new BrushConverter().ConvertFromString("#BBDEFB"));
-                }
-            };
-
-            // 点击标签：根据模式浏览或编辑
-            border.MouseLeftButtonDown += (s, e) =>
-            {
-                System.Diagnostics.Debug.WriteLine($"LoadTagTrainExistingTags: 点击标签 {tagName}，ID: {tagInfo.Id}");
-                var tag = new Tag { Id = tagInfo.Id, Name = tagName };
-                if (_tagClickMode == TagClickMode.Browse)
-                {
-                    OpenTagInTab(tag);
-                }
-                else
-                {
-                    try
-                    {
-                        var selectedItems = FileBrowser?.FilesSelectedItems?.Cast<FileSystemItem>().ToList() ?? new List<FileSystemItem>();
-                        var selectedPathsBefore = selectedItems.Select(i => i.Path).ToList();
-                        if (selectedItems.Count == 0)
-                        {
-                            MessageBox.Show("请先在中间文件列表选择图片，再进行标签编辑。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-                            return;
-                        }
-                        
-                        var imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".webp", ".tiff", ".tif" };
-                        foreach (var it in selectedItems)
-                        {
-                            if (it.IsDirectory) continue;
-                            var ext = System.IO.Path.GetExtension(it.Path).ToLowerInvariant();
-                            if (!imageExtensions.Contains(ext)) continue;
-                            
-                            var existingTagIds = OoiMRRIntegration.GetFileTagIds(it.Path) ?? new List<int>();
-                            if (existingTagIds.Contains(tag.Id))
-                            {
-                                OoiMRRIntegration.RemoveTagFromFile(it.Path, tag.Id);
-                            }
-                            else
-                            {
-                                OoiMRRIntegration.AddTagToFile(it.Path, tag.Id);
-                            }
-                        }
-                        
-                        // 编辑后刷新视图
-                        if (_currentTagFilter != null)
-                        {
-                            FilterByTag(_currentTagFilter);
-                            RestoreSelectionByPaths(selectedPathsBefore);
-                        }
-                        else
-                        {
-                            LoadFiles();
-                            RestoreSelectionByPaths(selectedPathsBefore);
-                        }
-                    }
-                    catch (Exception exEdit)
-                    {
-                        MessageBox.Show($"编辑标签失败: {exEdit.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                    }
-                }
-            };
-            
-            // 右键菜单：删除标签
-            border.ContextMenu = new ContextMenu();
-            var deleteMenuItem = new MenuItem
-            {
-                Header = "🗑️ 删除标签",
-                Tag = tagName
-            };
-            deleteMenuItem.Click += (s, e) =>
-            {
-                // TODO: 实现删除标签功能
-            };
-            border.ContextMenu.Items.Add(deleteMenuItem);
-            
-            var stackPanel = new StackPanel 
-            { 
-                Orientation = Orientation.Horizontal,
-                IsHitTestVisible = false
-            };
-            
-            stackPanel.Children.Add(new TextBlock
-            {
-                Text = tagName,
-                FontWeight = FontWeights.Bold,
-                FontSize = 12,
-                Margin = new Thickness(0, 0, 4, 0),
-                VerticalAlignment = VerticalAlignment.Center,
-                IsHitTestVisible = false
-            });
-            
-            if (count > 0)
-            {
-                stackPanel.Children.Add(new TextBlock
-                {
-                    Text = $"({count})",
-                    Foreground = System.Windows.Media.Brushes.DarkGray,
-                    FontSize = 10,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    IsHitTestVisible = false
-                });
-            }
-            
-            border.Child = stackPanel;
-            return border;
         }
 
         // 计算希望的标签项宽度（根据设置的每行数量和容器宽度）
@@ -7857,23 +7705,10 @@ namespace OoiMRR
         {
             if (TagTrainExistingTagsPanel == null) return;
             double itemWidth = GetDesiredTagItemWidth();
-            
-            // 递归查找所有Border并更新宽度（现在标签在Expander内的WrapPanel中）
             foreach (var child in TagTrainExistingTagsPanel.Children)
             {
-                if (child is Expander expander && expander.Content is WrapPanel wrapPanel)
+                if (child is Border b)
                 {
-                    foreach (var wrapChild in wrapPanel.Children)
-                    {
-                        if (wrapChild is Border b)
-                        {
-                            b.Width = itemWidth;
-                        }
-                    }
-                }
-                else if (child is Border b)
-                {
-                    // 兼容旧代码：直接添加的Border
                     b.Width = itemWidth;
                 }
             }
@@ -8010,48 +7845,44 @@ namespace OoiMRR
 
         private void HighlightActiveTagChip(int tagId)
         {
-            if (TagTrainExistingTagsPanel == null) return;
-            
-            // 递归查找所有Border并高亮匹配的标签
-            foreach (var child in TagTrainExistingTagsPanel.Children)
+            try
             {
-                if (child is Expander expander && expander.Content is WrapPanel wrapPanel)
+                if (TagTrainExistingTagsPanel == null) return;
+                foreach (var child in TagTrainExistingTagsPanel.Children)
                 {
-                    // 新结构：Expander内的WrapPanel
-                    foreach (var wrapChild in wrapPanel.Children)
+                    if (child is Border border)
                     {
-                        if (wrapChild is Border border && border.Tag is int id)
+                        bool isMatch = border.Tag is int bid && bid == tagId;
+                        if (isMatch)
                         {
-                            bool isMatch = id == tagId;
+                            var bg = this.FindResource("HighlightBrush") as SolidColorBrush;
+                            var bd = this.FindResource("HighlightBorderBrush") as SolidColorBrush;
+                            border.Background = bg;
+                            border.BorderBrush = bd;
+                        }
+                        else
+                        {
+                            border.Background = (SolidColorBrush)(new BrushConverter().ConvertFromString("#E3F2FD"));
+                            border.BorderBrush = (SolidColorBrush)(new BrushConverter().ConvertFromString("#BBDEFB"));
+                        }
+                        if (border.Child is StackPanel sp && sp.Children.Count > 0 && sp.Children[0] is TextBlock tb)
+                        {
                             if (isMatch)
                             {
-                                border.Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 193, 7));
-                                border.BorderBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 152, 0));
+                                tb.FontWeight = FontWeights.SemiBold;
+                                var fg = this.FindResource("HighlightForegroundBrush") as SolidColorBrush;
+                                tb.Foreground = fg ?? System.Windows.Media.Brushes.Black;
                             }
                             else
                             {
-                                border.Background = (SolidColorBrush)(new BrushConverter().ConvertFromString("#E3F2FD"));
-                                border.BorderBrush = (SolidColorBrush)(new BrushConverter().ConvertFromString("#BBDEFB"));
+                                tb.FontWeight = FontWeights.Bold;
+                                tb.Foreground = System.Windows.Media.Brushes.Black;
                             }
                         }
                     }
                 }
-                else if (child is Border border && border.Tag is int id)
-                {
-                    // 兼容旧代码：直接添加的Border
-                    bool isMatch = id == tagId;
-                    if (isMatch)
-                    {
-                        border.Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 193, 7));
-                        border.BorderBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 152, 0));
-                    }
-                    else
-                    {
-                        border.Background = (SolidColorBrush)(new BrushConverter().ConvertFromString("#E3F2FD"));
-                        border.BorderBrush = (SolidColorBrush)(new BrushConverter().ConvertFromString("#BBDEFB"));
-                    }
-                }
             }
+            catch { }
         }
 
         private void FilterByTag(Tag tag)
@@ -12038,27 +11869,8 @@ Write-Host ""Hello World""
             try
             {
                 // 设计规则：
-                // - 浏览模式：隐藏预测区域、输入标签区域、确认按钮、操作按钮（只显示标签列表）
-                // - 编辑模式：显示所有功能区域
-                bool isEditMode = _tagClickMode == TagClickMode.Edit;
-                
-                // 预测区域（GroupBox）
-                var predictionGroupBox = this.FindName("TagTrainPredictionGroupBox") as GroupBox;
-                if (predictionGroupBox != null)
-                    predictionGroupBox.Visibility = isEditMode ? Visibility.Visible : Visibility.Collapsed;
-                
-                // 输入标签区域（GroupBox）
-                var inputGroupBox = this.FindName("TagTrainInputGroupBox") as GroupBox;
-                if (inputGroupBox != null)
-                    inputGroupBox.Visibility = isEditMode ? Visibility.Visible : Visibility.Collapsed;
-                
-                // 操作按钮区域
-                if (TagTrainActionButtonsPanel != null)
-                    TagTrainActionButtonsPanel.Visibility = isEditMode ? Visibility.Visible : Visibility.Collapsed;
-                
-                // 设计规则：
-                // - 浏览模式：显示"批量操作""训练情况"
-                // - 编辑模式：隐藏"批量操作""训练情况"，以免分散注意力
+                // - 浏览模式：显示“批量操作”“训练情况”
+                // - 编辑模式：隐藏“批量操作”“训练情况”，以免分散注意力
                 if (TagTrainBatchOperationBtn != null)
                     TagTrainBatchOperationBtn.Visibility = _tagClickMode == TagClickMode.Browse ? Visibility.Visible : Visibility.Collapsed;
                 if (TagTrainTrainingStatusBtn != null)

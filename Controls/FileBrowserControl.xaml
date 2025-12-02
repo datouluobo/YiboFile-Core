@@ -236,6 +236,29 @@
                             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
                             <Setter Property="VerticalContentAlignment" Value="Center"/>
                             <Style.Triggers>
+                                <!-- 文件名日期匹配 - 蓝色背景 -->
+                                <DataTrigger Binding="{Binding Notes}" Value="文件名日期匹配">
+                                    <Setter Property="Background" Value="#E3F2FD"/>
+                                    <Setter Property="BorderBrush" Value="#BBDEFB"/>
+                                    <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                </DataTrigger>
+                                <!-- 文件日期匹配 - 绿色背景 -->
+                                <DataTrigger Binding="{Binding Notes}" Value="创建日期匹配">
+                                    <Setter Property="Background" Value="#E8F5E9"/>
+                                    <Setter Property="BorderBrush" Value="#C8E6C9"/>
+                                    <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Notes}" Value="修改日期匹配">
+                                    <Setter Property="Background" Value="#E8F5E9"/>
+                                    <Setter Property="BorderBrush" Value="#C8E6C9"/>
+                                    <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Notes}" Value="创建/修改日期匹配">
+                                    <Setter Property="Background" Value="#E8F5E9"/>
+                                    <Setter Property="BorderBrush" Value="#C8E6C9"/>
+                                    <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                </DataTrigger>
+                                <!-- 选中状态 -->
                                 <Trigger Property="IsSelected" Value="True">
                                     <Setter Property="Background" Value="#64B5F6"/>
                                     <Setter Property="Foreground" Value="#FFFFFF"/>
@@ -248,6 +271,7 @@
                                     <Setter Property="Background" Value="#42A5F5"/>
                                     <Setter Property="Foreground" Value="#FFFFFF"/>
                                 </MultiTrigger>
+                                <!-- 鼠标悬停 -->
                                 <Trigger Property="IsMouseOver" Value="True">
                                     <Setter Property="Background" Value="#E3F2FD"/>
                                 </Trigger>

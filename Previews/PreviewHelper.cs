@@ -276,7 +276,7 @@ namespace OoiMRR.Previews
         }
 
         /// <summary>
-        /// 创建打开文件夹按钮
+        /// 创建打开文件夹按钮（在本程序的新标签页中打开）
         /// </summary>
         public static Button CreateOpenFolderButton(string folderPath, string buttonText = "📂 打开文件夹")
         {
@@ -295,11 +295,20 @@ namespace OoiMRR.Previews
             {
                 try
                 {
-                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                    // 使用回调在本程序的新标签页中打开文件夹
+                    if (PreviewFactory.OnOpenFolderInNewTab != null)
                     {
-                        FileName = folderPath,
-                        UseShellExecute = true
-                    });
+                        PreviewFactory.OnOpenFolderInNewTab(folderPath);
+                    }
+                    else
+                    {
+                        // 如果回调未设置，回退到使用系统默认文件管理器
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = folderPath,
+                            UseShellExecute = true
+                        });
+                    }
                 }
                 catch (Exception ex)
                 {

@@ -138,15 +138,18 @@ namespace OoiMRR.Previews
                 buttons.Add(editButton);
                 
                 // 检查目标是否存在，如果存在则添加打开文件夹按钮
+                // 即使目标文件不存在，只要目标所在的目录存在，也显示"打开文件夹"按钮
                 if (!string.IsNullOrEmpty(targetPath))
                 {
                     bool targetExistsCheck = Directory.Exists(targetPath) || File.Exists(targetPath);
                     bool isDirectoryCheck = Directory.Exists(targetPath);
                     
-                    if (targetExistsCheck)
+                    // 确定文件夹路径
+                    string folderPath = isDirectoryCheck ? targetPath : Path.GetDirectoryName(targetPath);
+                    
+                    // 如果目标存在，或者目标所在的目录存在，都显示"打开文件夹"按钮
+                    if (targetExistsCheck || (!string.IsNullOrEmpty(folderPath) && Directory.Exists(folderPath)))
                     {
-                        // 无论目标是文件夹还是文件，都显示"打开文件夹"按钮
-                        string folderPath = isDirectoryCheck ? targetPath : Path.GetDirectoryName(targetPath);
                         if (!string.IsNullOrEmpty(folderPath) && Directory.Exists(folderPath))
                         {
                             buttons.Add(PreviewHelper.CreateOpenFolderButton(folderPath));
@@ -345,14 +348,34 @@ namespace OoiMRR.Previews
 
             if (!targetExists)
             {
-                var errorText = new TextBlock
+                // 检查目标所在的目录是否存在
+                string folderPath = Path.GetDirectoryName(targetPath);
+                bool folderExists = !string.IsNullOrEmpty(folderPath) && Directory.Exists(folderPath);
+                
+                if (folderExists)
                 {
-                    Text = "⚠️ 目标路径不存在",
-                    FontSize = 12,
-                    Foreground = Brushes.OrangeRed,
-                    Margin = new Thickness(0, 0, 0, 15)
-                };
-                infoPanel.Children.Add(errorText);
+                    // 如果目标所在的目录存在，不显示错误，只显示提示信息
+                    var infoText = new TextBlock
+                    {
+                        Text = "⚠️ 目标文件不存在，但所在目录存在",
+                        FontSize = 12,
+                        Foreground = Brushes.Orange,
+                        Margin = new Thickness(0, 0, 0, 15)
+                    };
+                    infoPanel.Children.Add(infoText);
+                }
+                else
+                {
+                    // 如果目标所在的目录也不存在，显示错误
+                    var errorText = new TextBlock
+                    {
+                        Text = "⚠️ 目标路径不存在",
+                        FontSize = 12,
+                        Foreground = Brushes.OrangeRed,
+                        Margin = new Thickness(0, 0, 0, 15)
+                    };
+                    infoPanel.Children.Add(errorText);
+                }
             }
             else
             {

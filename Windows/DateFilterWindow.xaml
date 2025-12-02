@@ -1,0 +1,98 @@
+<Window x:Class="OoiMRR.Windows.DateFilterWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="日期过滤" 
+        Height="420" 
+        Width="480"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="#FFFFFF">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <!-- 标题 -->
+        <TextBlock Grid.Row="0" Text="📅 日期过滤搜索" FontSize="18" FontWeight="Bold" Margin="0,0,0,20"/>
+        
+        <!-- 日期类型选择 -->
+        <GroupBox Grid.Row="1" Header="搜索类型" Margin="0,0,0,15">
+            <StackPanel Margin="10">
+                <CheckBox x:Name="SearchCreatedDateCheckBox" Content="搜索创建日期" IsChecked="True" Margin="0,5"/>
+                <CheckBox x:Name="SearchModifiedDateCheckBox" Content="搜索修改日期" IsChecked="True" Margin="0,5"/>
+                <TextBlock Text="同时搜索文件名中包含日期的文件" FontSize="11" Foreground="Gray" Margin="0,5,0,0"/>
+            </StackPanel>
+        </GroupBox>
+        
+        <!-- 日期范围选择 -->
+        <GroupBox Grid.Row="2" Header="日期范围" Margin="0,0,0,15">
+            <Grid Margin="10">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                
+                <RadioButton x:Name="SingleDateRadio" Content="单日" Grid.Row="0" Grid.Column="0" 
+                            IsChecked="True" Margin="0,5" Checked="DateTypeRadio_Checked"/>
+                <DatePicker x:Name="SingleDatePicker" Grid.Row="0" Grid.Column="1" 
+                           Margin="10,5,0,5"/>
+                
+                <RadioButton x:Name="DateRangeRadio" Content="日期范围" Grid.Row="1" Grid.Column="0" 
+                            Margin="0,10,0,5" Checked="DateTypeRadio_Checked"/>
+                <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="10,10,0,5">
+                    <DatePicker x:Name="StartDatePicker" Width="140" Margin="0,0,10,0"/>
+                    <TextBlock Text="至" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <DatePicker x:Name="EndDatePicker" Width="140"/>
+                </StackPanel>
+                
+                <TextBlock Grid.Row="2" Grid.ColumnSpan="2" 
+                          Text="提示：文件名日期搜索支持格式：20251104, 2025-11-04, 2025.11.04, 2025/11/04 等" 
+                          FontSize="10" Foreground="Gray" Margin="0,5,0,0" TextWrapping="Wrap"/>
+            </Grid>
+        </GroupBox>
+        
+        <!-- 搜索范围 -->
+        <GroupBox Grid.Row="3" Header="搜索范围" Margin="0,0,0,15">
+            <StackPanel Margin="10">
+                <RadioButton x:Name="AllDrivesRadio" Content="全部磁盘" IsChecked="True" Margin="0,5"/>
+                <RadioButton x:Name="CurrentDriveRadio" Content="当前磁盘" Margin="0,5"/>
+            </StackPanel>
+        </GroupBox>
+        
+        <!-- 分隔线 -->
+        <Separator Grid.Row="4" Margin="0,0,0,15"/>
+        
+        <!-- 说明文本 -->
+        <TextBlock Grid.Row="5" 
+                  TextWrapping="Wrap" 
+                  FontSize="11" 
+                  Foreground="#666666"
+                  Margin="0,0,0,15">
+            <Run Text="搜索结果将分为两层显示："/>
+            <LineBreak/>
+            <Run Text="• 第一层（蓝色标识）：文件名中包含日期的文件"/>
+            <LineBreak/>
+            <Run Text="• 第二层（绿色标识）：创建/修改日期匹配的文件（排除第一层结果）"/>
+        </TextBlock>
+        
+        <!-- 按钮区域 -->
+        <StackPanel Grid.Row="7" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+            <Button Content="搜索" Width="100" Height="32" Margin="0,0,10,0" 
+                   IsDefault="True" Click="SearchButton_Click"/>
+            <Button Content="取消" Width="100" Height="32" IsCancel="True"/>
+        </StackPanel>
+    </Grid>
+</Window>
+

@@ -253,6 +253,15 @@ namespace OoiMRR
                     parts.Add(t);
                     continue;
                 }
+                
+                // 检查是否为纯数字（可能被误认为是列名，需要转义）
+                if (t.All(char.IsDigit))
+                {
+                    // 纯数字需要用引号包裹，避免被误认为是列名
+                    parts.Add($"\"{t}\"*");
+                    continue;
+                }
+                
                 bool isAsciiWord = t.Any(ch => ch <= 0x007F && (char.IsLetterOrDigit(ch) || ch == '_' || ch == '-'));
                 if (isAsciiWord)
                 {
@@ -262,7 +271,18 @@ namespace OoiMRR
                 {
                     foreach (var ch in t)
                     {
-                        if (!char.IsWhiteSpace(ch)) parts.Add(ch + "*");
+                        if (!char.IsWhiteSpace(ch))
+                        {
+                            // 数字字符也需要用引号包裹
+                            if (char.IsDigit(ch))
+                            {
+                                parts.Add($"\"{ch}\"*");
+                            }
+                            else
+                            {
+                                parts.Add(ch + "*");
+                            }
+                        }
                     }
                 }
             }

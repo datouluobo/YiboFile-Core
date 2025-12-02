@@ -266,7 +266,7 @@
                         </Grid.RowDefinitions>
 
                         <!-- AI预测结果 -->
-                        <GroupBox Grid.Row="0" Name="TagTrainPredictionGroupBox" Margin="0,1,0,3" Padding="2" Style="{StaticResource ModernGroupBoxStyle}">
+                        <GroupBox Grid.Row="0" Margin="0,1,0,3" Padding="2" Style="{StaticResource ModernGroupBoxStyle}">
                             <GroupBox.Header>
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="🤖 AI预测结果" VerticalAlignment="Center" Margin="0,0,8,0"/>
@@ -311,14 +311,14 @@
                                           VerticalScrollBarVisibility="Auto"
                                           HorizontalScrollBarVisibility="Disabled"
                                           VerticalAlignment="Stretch">
-                                <StackPanel Name="TagTrainExistingTagsPanel" 
+                                <WrapPanel Name="TagTrainExistingTagsPanel" Orientation="Horizontal"
                                            VerticalAlignment="Top"
                                            SizeChanged="TagTrainExistingTagsPanel_SizeChanged"/>
                             </ScrollViewer>
                         </GroupBox>
 
                         <!-- 标签输入区域 -->
-                        <GroupBox Grid.Row="2" Name="TagTrainInputGroupBox" Header="🏷️ 输入标签（按Tab键分隔）" Margin="0,0,0,10" Padding="8" Style="{StaticResource ModernGroupBoxStyle}">
+                        <GroupBox Grid.Row="2" Header="🏷️ 输入标签（按Tab键分隔）" Margin="0,0,0,10" Padding="8" Style="{StaticResource ModernGroupBoxStyle}">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
@@ -405,7 +405,12 @@
                         </GroupBox>
 
                         <!-- 操作按钮区域 -->
-                        <WrapPanel Grid.Row="3" Name="TagTrainActionButtonsPanel" Orientation="Horizontal" Margin="0,0,0,10">
+                        <WrapPanel Grid.Row="3" Orientation="Horizontal" Margin="0,0,0,10">
+                            <Button Name="TagClickModeBtn"
+                                   Content="👁 浏览"
+                                   Click="TagClickModeBtn_Click"
+                                   Height="35" FontSize="13" Margin="0,0,8,8" MinWidth="90"
+                                   ToolTip="切换标签点击行为：浏览(显示文件) / 编辑(给所选文件加/移除该标签)"/>
                             <Button Content="▶️ 开始训练" Click="TagTrainStartTraining_Click" 
                                    Name="TagTrainStartTrainingBtn" Height="35" FontSize="13" Margin="0,0,8,8" MinWidth="100"/>
                             <Button Content="⏸️ 暂停" Click="TagTrainPause_Click" Name="TagTrainPauseBtn" 
@@ -453,14 +458,6 @@
             <!-- 系统级按钮 -->
             <Border Grid.Row="1" Background="#F8F9FA" BorderBrush="#E9ECEF" BorderThickness="0,1,0,0">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="8,8">
-                    <Button Name="TagClickModeBtn"
-                           Content="👁 浏览"
-                           Click="TagClickModeBtn_Click"
-                           MinWidth="80" Height="32"
-                           Style="{StaticResource ModernButtonStyle}"
-                           ToolTip="切换标签点击行为：浏览(显示文件) / 编辑(给所选文件加/移除该标签)"
-                           Margin="4,0"
-                           Visibility="Collapsed"/>
                     <Button Content="⚙️" Click="Settings_Click" Width="32" Height="32" 
                             Style="{StaticResource ModernButtonStyle}" ToolTip="设置" Margin="4,0"/>
                     <Button Content="ℹ️" Click="About_Click" Width="32" Height="32" 
