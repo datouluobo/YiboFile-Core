@@ -26,6 +26,25 @@ namespace OoiMRR
         {
             try
             {
+                // 检查启动参数：如果是 --tagtrain，直接打开 TagTrain 窗口
+                if (e.Args.Length > 0 && e.Args[0] == "--tagtrain")
+                {
+                    // TagTrain 模式：跳过单实例检查，直接打开 TrainingWindow
+                    base.OnStartup(e);
+                    
+                    // 初始化 TagTrain
+                    InitializeTagTrain();
+                    
+                    // 打开 TagTrain 主窗口
+                    var trainingWindow = new TagTrain.UI.TrainingWindow();
+                    trainingWindow.Show();
+                    
+                    // 设置为主窗口，确保关闭时程序退出
+                    MainWindow = trainingWindow;
+                    return;
+                }
+                
+                // 原有的 OoiMRR 启动逻辑
                 // 检查是否已有实例运行
                 bool createdNew;
                 _mutex = new Mutex(true, MutexName, out createdNew);
@@ -43,11 +62,17 @@ namespace OoiMRR
                 // 初始化 FFmpeg（用于视频缩略图提取）
                 try
                 {
-                    FFmpegHelper.InitializeFFmpeg();
+                    bool ffmpegAvailable = FFmpegHelper.InitializeFFmpeg();
+                    if (ffmpegAvailable)
+                    {
+                                            }
+                    else
+                    {
+                                            }
                 }
-                catch
+                catch (Exception)
                 {
-                }
+                                    }
                 
                 // 初始化 Everything（用于快速文件搜索）
                 _ = Task.Run(async () =>
@@ -60,10 +85,13 @@ namespace OoiMRR
                             string version = EverythingHelper.GetVersion();
                             System.Diagnostics.Debug.WriteLine($"Everything 初始化成功，快速搜索功能可用 (版本: {version})");
                         }
+                        else
+                        {
+                                                    }
                     }
-                    catch
+                    catch (Exception)
                     {
-                    }
+                                            }
                 });
                 
                 // 初始化数据库
@@ -115,13 +143,13 @@ namespace OoiMRR
                     OoiMRRIntegration.Initialize();
                     
                     // 验证初始化是否成功
-                    OoiMRRIntegration.GetAllTags(OoiMRR.Services.OoiMRRIntegration.TagSortMode.Name);
-                    System.Diagnostics.Debug.WriteLine($"TagTrain 数据库路径: {TagTrain.Services.DataManager.GetDatabasePath()}");
+                    var tagCount = OoiMRRIntegration.GetAllTags(OoiMRR.Services.OoiMRRIntegration.TagSortMode.Name)?.Count ?? 0;
+                                                            System.Diagnostics.Debug.WriteLine($"TagTrain 数据库路径: {TagTrain.Services.DataManager.GetDatabasePath()}");
                     IsTagTrainAvailable = true;
                 }
-                catch
+                catch (Exception)
                 {
-                    IsTagTrainAvailable = false;
+                                                            IsTagTrainAvailable = false;
                     // 不阻止程序启动，只是记录错误
                 }
                 
@@ -133,9 +161,9 @@ namespace OoiMRR
                         OoiMRR.Services.ChmCacheManager.CleanupExpiredCache();
                         OoiMRR.Services.ChmCacheManager.EnforceCacheSizeLimit();
                     }
-                    catch
+                    catch (Exception)
                     {
-                    }
+                                            }
                 });
 
                 // 启动主窗口
@@ -163,6 +191,40 @@ namespace OoiMRR
                 catch { }
                 
                 Shutdown();
+            }
+        }
+
+        /// <summary>
+        /// 初始化 TagTrain（提取为独立方法，供启动参数模式使用）
+        /// </summary>
+        private void InitializeTagTrain()
+        {
+            try
+            {
+                // 确保默认数据目录存在（程序目录下的 data 目录）
+                var defaultDataDir = TagTrain.Services.SettingsManager.GetDataStorageDirectory();
+                if (!Directory.Exists(defaultDataDir))
+                {
+                    try
+                    {
+                        Directory.CreateDirectory(defaultDataDir);
+                    }
+                    catch (Exception)
+                    {
+                    }
+                }
+                
+                // 迁移旧配置文件到统一配置
+                TagTrain.Services.SettingsManager.MigrateOldSettings();
+                
+                // 初始化数据库
+                TagTrain.Services.DataManager.InitializeDatabase();
+                
+                IsTagTrainAvailable = true;
+            }
+            catch
+            {
+                IsTagTrainAvailable = false;
             }
         }
 

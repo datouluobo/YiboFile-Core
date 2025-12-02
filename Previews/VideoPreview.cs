@@ -1176,7 +1176,8 @@ namespace OoiMRR.Previews
                 // 使用文件路径和修改时间生成哈希值
                 string hashInput = $"{filePath}_{fileInfo.LastWriteTime.Ticks}";
                 byte[] hashBytes = SHA256.Create().ComputeHash(Encoding.UTF8.GetBytes(hashInput));
-                string hash = BitConverter.ToString(hashBytes).Replace("-", "").Substring(0, 16);
+                string hashStr = BitConverter.ToString(hashBytes).Replace("-", "");
+                string hash = hashStr.Length >= 16 ? hashStr.Substring(0, 16) : hashStr;
                 
                 // 生成缓存文件名
                 string cacheDir = Path.Combine(Path.GetTempPath(), "OoiMRR_VideoCache");

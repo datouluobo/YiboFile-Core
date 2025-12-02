@@ -65,9 +65,9 @@ namespace OoiMRR.Services
             {
                 return _trainer.PredictTags(imagePath);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                                return new List<TagPredictionResult>();
+                return new List<TagPredictionResult>();
             }
         }
 
@@ -96,7 +96,7 @@ namespace OoiMRR.Services
                 }
                 catch (Exception)
                 {
-                                        results[path] = new List<TagPredictionResult>();
+                    results[path] = new List<TagPredictionResult>();
                 }
             }
             
@@ -116,9 +116,9 @@ namespace OoiMRR.Services
             {
                 DataManager.SaveTrainingSample(imagePath, tagId, isManual: true);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                            }
+            }
         }
 
         /// <summary>
@@ -140,7 +140,8 @@ namespace OoiMRR.Services
                     }
                     catch (Exception)
                     {
-                                            }
+                        // 忽略保存训练样本时的错误
+                    }
                 }
             }
         }
@@ -334,9 +335,9 @@ namespace OoiMRR.Services
                         return tags.OrderBy(t => t.Name, comparer).ToList();
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                                return new List<TagInfo>();
+                return new List<TagInfo>();
             }
         }
 
@@ -351,9 +352,9 @@ namespace OoiMRR.Services
             {
                 return DataManager.GetOrCreateTagId(tagName);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                                return -1;
+                return -1;
             }
         }
 
@@ -368,9 +369,9 @@ namespace OoiMRR.Services
             {
                 return DataManager.GetTagName(tagId);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                                return null;
+                return null;
             }
         }
 
@@ -385,9 +386,9 @@ namespace OoiMRR.Services
             {
                 return DataManager.UpdateTagName(oldTagName, newTagName);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                                return false;
+                return false;
             }
         }
 
@@ -403,9 +404,9 @@ namespace OoiMRR.Services
                 DataManager.DeleteTag(tagId);
                 return true;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                                return false;
+                return false;
             }
         }
 
@@ -426,9 +427,9 @@ namespace OoiMRR.Services
                     DeletedTagIds = result.DeletedTagIds
                 };
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                                return new ConsolidationResult
+                return new ConsolidationResult
                 {
                     MergedGroups = 0,
                     UpdatedSamples = 0,
@@ -448,9 +449,9 @@ namespace OoiMRR.Services
             {
                 return DataManager.GetImageTags(imagePath);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                                return new List<int>();
+                return new List<int>();
             }
         }
 
@@ -465,9 +466,9 @@ namespace OoiMRR.Services
             {
                 DataManager.DeleteTrainingSample(imagePath, tagId);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                            }
+            }
         }
 
         /// <summary>
@@ -504,9 +505,9 @@ namespace OoiMRR.Services
                 
                 return filePaths;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                                return new List<string>();
+                return new List<string>();
             }
         }
 
@@ -529,9 +530,9 @@ namespace OoiMRR.Services
                     DataManager.SaveTrainingSample(filePath, tagId, isManual: true);
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                            }
+            }
         }
 
         /// <summary>
@@ -546,9 +547,9 @@ namespace OoiMRR.Services
                 // 从 TagTrain 的训练数据中删除
                 DataManager.DeleteTrainingSample(filePath, tagId);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                            }
+            }
         }
 
         /// <summary>
@@ -562,50 +563,9 @@ namespace OoiMRR.Services
             {
                 return DataManager.GetImageTags(filePath);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                                return new List<int>();
-            }
-        }
-
-        /// <summary>
-        /// 获取所有分组
-        /// </summary>
-        public static List<TagCategoryInfo> GetAllCategories()
-        {
-            Initialize();
-            
-            try
-            {
-                var categories = DataManager.GetAllCategories();
-                return categories.Select(c => new TagCategoryInfo
-                {
-                    Id = c.Id,
-                    Name = c.Name,
-                    Color = c.Color,
-                    SortOrder = c.SortOrder
-                }).ToList();
-            }
-            catch (Exception ex)
-            {
-                                return new List<TagCategoryInfo>();
-            }
-        }
-
-        /// <summary>
-        /// 获取标签所属的分组ID列表
-        /// </summary>
-        public static List<int> GetTagCategories(int tagId)
-        {
-            Initialize();
-            
-            try
-            {
-                return DataManager.GetTagCategories(tagId);
-            }
-            catch (Exception ex)
-            {
-                                return new List<int>();
+                return new List<int>();
             }
         }
     }
@@ -628,17 +588,6 @@ namespace OoiMRR.Services
         public int MergedGroups { get; set; }
         public int UpdatedSamples { get; set; }
         public int DeletedTagIds { get; set; }
-    }
-
-    /// <summary>
-    /// 分组信息
-    /// </summary>
-    public class TagCategoryInfo
-    {
-        public int Id { get; set; }
-        public string Name { get; set; }
-        public string Color { get; set; }
-        public int SortOrder { get; set; }
     }
 }
 

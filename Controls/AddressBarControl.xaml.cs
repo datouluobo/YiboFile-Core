@@ -263,6 +263,32 @@ namespace OoiMRR.Controls
                 badgeText.Foreground = System.Windows.Media.Brushes.Black;
             }
             badge.Child = badgeText;
+            
+            // 让tag按钮可以点击，点击后返回到标签浏览模式
+            badge.Cursor = Cursors.Hand;
+            badge.MouseLeftButtonDown += (s, e) =>
+            {
+                e.Handled = true;
+                BreadcrumbClicked?.Invoke(this, "tag://");
+            };
+            badge.MouseEnter += (s, e) =>
+            {
+                badge.Background = new System.Windows.Media.SolidColorBrush(
+                    System.Windows.Media.Color.FromRgb(255, 140, 0));
+            };
+            badge.MouseLeave += (s, e) =>
+            {
+                try
+                {
+                    var parentWindow = Window.GetWindow(this);
+                    var bg = parentWindow?.FindResource("HighlightBrush") as System.Windows.Media.SolidColorBrush;
+                    badge.Background = bg ?? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 165, 0));
+                }
+                catch
+                {
+                    badge.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 165, 0));
+                }
+            };
 
             var nameText = new TextBlock
             {

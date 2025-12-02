@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:OoiMRR"
         xmlns:controls="clr-namespace:OoiMRR.Controls"
+        xmlns:tagTrain="clr-namespace:TagTrain.UI"
         Title="OoiMRR - 文件资源管理器" 
         Height="800" 
         Width="1200"
@@ -252,219 +253,53 @@
                     </ScrollViewer>
                 </Grid>
                 
-                <!-- 标签导航内容：集成TagTrain训练面板（外层不滚动，标签列表自身滚动） -->
-                <ScrollViewer Name="NavTagContent" Margin="8" Visibility="Collapsed"
-                              VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Disabled">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="*"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                        </Grid.RowDefinitions>
-
-                        <!-- AI预测结果 -->
-                        <GroupBox Grid.Row="0" Margin="0,1,0,3" Padding="2" Style="{StaticResource ModernGroupBoxStyle}">
-                            <GroupBox.Header>
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="🤖 AI预测结果" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                    <Ellipse Name="TagTrainModelStatusIndicator" Width="12" Height="12" 
-                                            VerticalAlignment="Center" Margin="0,0,5,0">
-                                        <Ellipse.Fill>
-                                            <SolidColorBrush Color="Gray"/>
-                                        </Ellipse.Fill>
-                                    </Ellipse>
-                                    <TextBlock Name="TagTrainModelStatusText" Text="检查中..." FontSize="11" 
-                                              VerticalAlignment="Center" Foreground="Gray"/>
-                                </StackPanel>
-                            </GroupBox.Header>
-                            <!-- 预测区域固定两行标签高度，避免有无预测时布局跳动 -->
-                            <WrapPanel Name="TagTrainPredictionPanel" Orientation="Horizontal"
-                                       Height="64" MinHeight="64" MaxHeight="64"
-                                       VerticalAlignment="Top">
-                                <TextBlock Text="暂无预测结果" Foreground="Gray" FontStyle="Italic" 
-                                          Name="TagTrainNoPredictionText" Visibility="Visible"/>
-                            </WrapPanel>
-                        </GroupBox>
-
-                        <!-- 已标注标签列表 -->
-                        <GroupBox Grid.Row="1" Margin="0,1,0,3" Padding="2" Style="{StaticResource ModernGroupBoxStyle}">
-                            <GroupBox.Header>
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="📋 已有标签（点击选择，右键删除）" VerticalAlignment="Center"/>
-                                    <ComboBox Name="TagTrainTagSortComboBox" Grid.Column="1" Width="120" Height="25" 
-                                             SelectionChanged="TagTrainTagSortComboBox_SelectionChanged"
-                                             FontSize="11" VerticalContentAlignment="Center">
-                                        <ComboBoxItem Content="按使用次数" Tag="Count"/>
-                                        <ComboBoxItem Content="按字母顺序" Tag="Name" IsSelected="True"/>
-                                        <ComboBoxItem Content="按预测度" Tag="Prediction"/>
-                                    </ComboBox>
-                                </Grid>
-                            </GroupBox.Header>
-                            <ScrollViewer x:Name="TagTrainExistingTagsScrollViewer"
-                                          VerticalScrollBarVisibility="Auto"
-                                          HorizontalScrollBarVisibility="Disabled"
-                                          VerticalAlignment="Stretch">
-                                <WrapPanel Name="TagTrainExistingTagsPanel" Orientation="Horizontal"
-                                           VerticalAlignment="Top"
-                                           SizeChanged="TagTrainExistingTagsPanel_SizeChanged"/>
-                            </ScrollViewer>
-                        </GroupBox>
-
-                        <!-- 标签输入区域 -->
-                        <GroupBox Grid.Row="2" Header="🏷️ 输入标签（按Tab键分隔）" Margin="0,0,0,10" Padding="8" Style="{StaticResource ModernGroupBoxStyle}">
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
-
-                                <!-- 标签输入区域 -->
-                                <WrapPanel Grid.Row="0" Name="TagTrainTagInputPanel" Orientation="Horizontal" Margin="0,0,0,8">
-                                    <Border Name="TagTrainTagInputBorder" 
-                                           MinWidth="150" Width="250" Height="36"
-                                           Style="{StaticResource TagInputBorderStyle}">
-                                        <Grid>
-                                            <TextBox Name="TagTrainTagInputTextBox" 
-                                                    FontSize="13"
-                                                    VerticalContentAlignment="Center"
-                                                    Padding="6,0"
-                                                    BorderThickness="0"
-                                                    Background="Transparent"
-                                                    TextChanged="TagTrainTagInputTextBox_TextChanged"
-                                                    KeyDown="TagTrainTagInputTextBox_KeyDown"
-                                                    PreviewKeyDown="TagTrainTagInputTextBox_PreviewKeyDown"
-                                                    GotFocus="TagTrainTagInputTextBox_GotFocus"
-                                                    LostFocus="TagTrainTagInputTextBox_LostFocus"
-                                                    ToolTip="输入标签后按Tab键添加，按Tab键可自动补完"/>
-                                            <Popup Name="TagTrainTagAutocompletePopup" 
-                                                  Placement="Bottom"
-                                                  StaysOpen="True"
-                                                  AllowsTransparency="True"
-                                                  PopupAnimation="Fade"
-                                                  MaxHeight="200"
-                                                  MinWidth="150"
-                                                  HorizontalOffset="0"
-                                                  VerticalOffset="2"
-                                                  Focusable="False">
-                                                <Border BorderBrush="#CCCCCC" BorderThickness="1" 
-                                                       Background="White" CornerRadius="4"
-                                                       MinWidth="150">
-                                                    <ListBox Name="TagTrainTagAutocompleteListBox"
-                                                            MaxHeight="200"
-                                                            SelectionMode="Single"
-                                                            MouseDoubleClick="TagTrainTagAutocompleteListBox_MouseDoubleClick"
-                                                            KeyDown="TagTrainTagAutocompleteListBox_KeyDown"
-                                                            Background="White"
-                                                            BorderThickness="0"
-                                                            MinWidth="150">
-                                                        <ListBox.ItemTemplate>
-                                                            <DataTemplate>
-                                                                <TextBlock Text="{Binding}" 
-                                                                          Padding="8,4"
-                                                                          FontSize="12"/>
-                                                            </DataTemplate>
-                                                        </ListBox.ItemTemplate>
-                                                        <ListBox.ItemContainerStyle>
-                                                            <Style TargetType="ListBoxItem">
-                                                                <Setter Property="Padding" Value="0"/>
-                                                                <Style.Triggers>
-                                                                    <Trigger Property="IsMouseOver" Value="True">
-                                                                        <Setter Property="Background" Value="{DynamicResource HighlightHoverBrush}"/>
-                                                                    </Trigger>
-                                                                    <Trigger Property="IsSelected" Value="True">
-                                                                        <Setter Property="Background" Value="{DynamicResource HighlightBrush}"/>
-                                                                    </Trigger>
-                                                                </Style.Triggers>
-                                                            </Style>
-                                                        </ListBox.ItemContainerStyle>
-                                                    </ListBox>
-                                                </Border>
-                                            </Popup>
-                                        </Grid>
-                                    </Border>
-                                </WrapPanel>
-
-                                <WrapPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right">
-                                    <Button Content="✅ 确认标签" Click="TagTrainConfirmTag_Click" 
-                                           MinWidth="100" Height="35" FontSize="14" Margin="0,0,10,0"
-                                           IsDefault="True"/>
-                                    <Button Content="🤖 确认AI预测" Click="TagTrainConfirmAIPrediction_Click" 
-                                           MinWidth="110" Height="35" FontSize="14" Margin="0,0,10,0"
-                                           Name="TagTrainConfirmAIPredictionBtn"
-                                           ToolTip="确认AI预测结果，自动保存为训练数据"/>
-                                    <Button Content="⏭️ 跳过" Click="TagTrainSkip_Click" MinWidth="80" Height="35" FontSize="14"/>
-                                </WrapPanel>
-                            </Grid>
-                        </GroupBox>
-
-                        <!-- 操作按钮区域 -->
-                        <WrapPanel Grid.Row="3" Orientation="Horizontal" Margin="0,0,0,10">
-                            <Button Name="TagClickModeBtn"
-                                   Content="👁 浏览"
-                                   Click="TagClickModeBtn_Click"
-                                   Height="35" FontSize="13" Margin="0,0,8,8" MinWidth="90"
-                                   ToolTip="切换标签点击行为：浏览(显示文件) / 编辑(给所选文件加/移除该标签)"/>
-                            <Button Content="▶️ 开始训练" Click="TagTrainStartTraining_Click" 
-                                   Name="TagTrainStartTrainingBtn" Height="35" FontSize="13" Margin="0,0,8,8" MinWidth="100"/>
-                            <Button Content="⏸️ 暂停" Click="TagTrainPause_Click" Name="TagTrainPauseBtn" 
-                                   Height="35" FontSize="13" IsEnabled="False" Margin="0,0,8,8" MinWidth="80"
-                                   Visibility="Collapsed"/>
-                            <Button Content="🔄 重新训练模型" Click="TagTrainRetrainModel_Click" 
-                                   Name="TagTrainRetrainModelBtn" Height="35" FontSize="13" Margin="0,0,8,8" MinWidth="120"/>
-                            <Button Content="❌ 取消训练" Click="TagTrainCancelTraining_Click" 
-                                   Name="TagTrainCancelTrainingBtn" Height="35" FontSize="13" IsEnabled="False" Margin="0,0,8,8" MinWidth="100"
-                                   Visibility="Collapsed"/>
-                            <Button Content="📦 批量操作" Click="TagTrainBatchOperation_Click" 
-                                   Name="TagTrainBatchOperationBtn" Height="35" FontSize="13" Margin="0,0,8,8" MinWidth="100"/>
-                            <Button Content="📈 训练情况" Click="TagTrainTrainingStatus_Click" 
-                                   Name="TagTrainTrainingStatusBtn" Height="35" FontSize="13" Margin="0,0,8,8" MinWidth="100"/>
-                            <Button Content="🧹 清理重复标签" Click="TagTrainConsolidateTags_Click" 
-                                   Name="TagTrainConsolidateTagsBtn" Height="35" FontSize="13" Margin="0,0,8,8" MinWidth="120"/>
-                            <Button Content="⚙️ 设置" Click="TagTrainConfig_Click" 
-                                   Height="35" FontSize="13" Margin="0,0,0,8" MinWidth="80"/>
-                        </WrapPanel>
-
-                        <!-- 训练进度显示 -->
-                        <Grid Grid.Row="4" Margin="0,0,0,10" Visibility="Collapsed" Name="TagTrainTrainingProgressGrid">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-                            <TextBlock Grid.Row="0" Name="TagTrainTrainingStageText" Text="" 
-                                      FontSize="12" FontWeight="Bold" Margin="0,0,0,5"/>
-                            <ProgressBar Grid.Row="1" Name="TagTrainTrainingProgressBar" 
-                                        Height="20" Minimum="0" Maximum="100" Value="0"/>
-                            <TextBlock Grid.Row="2" Name="TagTrainTrainingProgressText" Text="" 
-                                      FontSize="11" Foreground="Gray" Margin="0,5,0,0"/>
-                        </Grid>
-
-                        <!-- 状态栏 -->
-                        <TextBlock Grid.Row="5" Name="TagTrainStatusText" Text="就绪" 
-                                  VerticalAlignment="Center" Foreground="Gray" FontSize="12" 
-                                  TextWrapping="Wrap" Margin="0,0,0,8"/>
-                    </Grid>
-                </ScrollViewer>
-                
+                <!-- 标签导航内容：支持浏览/编辑模式切换 -->
+                <Grid Name="NavTagContent" Margin="8" Visibility="Collapsed">
+                    <!-- 浏览模式：只显示标签列表（使用TagPanel） -->
+                    <tagTrain:TagPanel x:Name="TagBrowsePanel" Mode="Browse" Visibility="Visible"/>
+                    
+                    <!-- 编辑模式：完整TagTrain训练面板（使用TagPanel） -->
+                    <tagTrain:TagPanel x:Name="TagEditPanel" Mode="Edit" Visibility="Collapsed"/>
+                </Grid>
             </Grid>
             
-            <!-- 系统级按钮 -->
+            <!-- 底部按钮区：系统按钮 + 标签页面按钮 -->
             <Border Grid.Row="1" Background="#F8F9FA" BorderBrush="#E9ECEF" BorderThickness="0,1,0,0">
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="8,8">
-                    <Button Content="⚙️" Click="Settings_Click" Width="32" Height="32" 
-                            Style="{StaticResource ModernButtonStyle}" ToolTip="设置" Margin="4,0"/>
-                    <Button Content="ℹ️" Click="About_Click" Width="32" Height="32" 
-                            Style="{StaticResource ModernButtonStyle}" ToolTip="关于" Margin="4,0"/>
-                    <Button Content="🧪" Click="RunVisualTests_Click" Width="32" Height="32" 
-                            Style="{StaticResource ModernButtonStyle}" ToolTip="视觉测试" Margin="4,0"/>
-                </StackPanel>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <!-- 左侧：系统级按钮 -->
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Center" Margin="8,8">
+                        <Button Content="⚙️" Click="Settings_Click" Width="32" Height="32" 
+                                Style="{StaticResource ModernButtonStyle}" ToolTip="设置" Margin="4,0"/>
+                        <Button Content="ℹ️" Click="About_Click" Width="32" Height="32" 
+                                Style="{StaticResource ModernButtonStyle}" ToolTip="关于" Margin="4,0"/>
+                        <Button Content="🧪" Click="RunVisualTests_Click" Width="32" Height="32" 
+                                Style="{StaticResource ModernButtonStyle}" ToolTip="视觉测试" Margin="4,0"/>
+                    </StackPanel>
+                    
+                    <!-- 右侧：标签页面按钮（仅在标签页面显示） -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="8,8" 
+                                Visibility="Collapsed" Name="TagBottomButtons">
+                        <Button Name="TagClickModeBtn"
+                               Content="👁"
+                               Click="TagClickModeBtn_Click"
+                               Width="32" Height="32"
+                               Style="{StaticResource ModernButtonStyle}"
+                               ToolTip="切换浏览/编辑模式"
+                               Margin="4,0"/>
+                        <Button Name="TagCategoryManageBtn"
+                               Content="📁"
+                               Click="TagCategoryManageBtn_Click"
+                               Width="32" Height="32"
+                               Style="{StaticResource ModernButtonStyle}"
+                               ToolTip="分组管理"
+                               Margin="4,0"/>
+                    </StackPanel>
+                </Grid>
             </Border>
         </Grid>
         

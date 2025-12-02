@@ -598,7 +598,6 @@ namespace OoiMRR.Controls
         public event RoutedEventHandler NavigationUp;
         public event RoutedEventHandler SearchClicked;
         public event RoutedEventHandler FilterClicked;
-        public event RoutedEventHandler DateFilterClicked;
         public event RoutedEventHandler LoadMoreClicked;
         
         // 文件操作事件
