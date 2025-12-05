@@ -26,9 +26,13 @@ namespace OoiMRR.Controls.Converters
         // 视频缩略图缓存
         private static readonly Dictionary<string, BitmapSource> _videoThumbnailCache = new();
         private static readonly object _cacheLock = new object();
-        private const int MaxCacheSize = 100;
+        private const int MaxCacheSize = 50; // 从100降到50，减少内存占用
         private static readonly Dictionary<string, BitmapSource> _imageThumbnailCache = new();
-        private const int MaxImageCacheSize = 200;
+        private const int MaxImageCacheSize = 100; // 从200降到100，减少内存占用
+        
+        // FFmpeg初始化状态
+        private static bool _ffmpegInitialized = false;
+        private static readonly object _ffmpegInitLock = new object();
 
         // 立即加载的文件路径集合（第一页文件）
         private static readonly HashSet<string> _priorityLoadPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -720,11 +724,14 @@ namespace OoiMRR.Controls.Converters
                                                 return null;
                     }
 
+                    // 按需初始化FFmpeg
+                    EnsureFFmpegInitialized();
+                    
                     // 尝试直接调用 FFmpeg 命令（绕过 FFMpegCore，以便捕获错误输出）
                     string ffmpegPath = GetFFmpegPath();
                     if (string.IsNullOrEmpty(ffmpegPath))
                     {
-                                                return null;
+                        return null;
                     }
 
                                         // 构建 FFmpeg 命令参数
@@ -880,6 +887,34 @@ namespace OoiMRR.Controls.Converters
             }
         }
 
+        /// <summary>
+        /// 确保FFmpeg已初始化（按需加载）
+        /// </summary>
+        private static void EnsureFFmpegInitialized()
+        {
+            if (_ffmpegInitialized) return;
+            
+            lock (_ffmpegInitLock)
+            {
+                if (_ffmpegInitialized) return;
+                
+                try
+                {
+                    bool ffmpegAvailable = OoiMRR.Controls.FFmpegHelper.InitializeFFmpeg();
+                    if (ffmpegAvailable)
+                    {
+                        System.Diagnostics.Debug.WriteLine("FFmpeg 按需初始化成功");
+                    }
+                    _ffmpegInitialized = true; // 标记为已尝试初始化，避免重复尝试
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"FFmpeg 按需初始化失败: {ex.Message}");
+                    _ffmpegInitialized = true; // 标记为已尝试，避免重复尝试
+                }
+            }
+        }
+        
         /// <summary>
         /// 获取 FFmpeg 可执行文件路径
         /// </summary>

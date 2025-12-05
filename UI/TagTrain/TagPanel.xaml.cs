@@ -6,6 +6,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using TagTrain.Services;
+using OoiMRR;
 
 namespace TagTrain.UI
 {
@@ -216,33 +217,45 @@ namespace TagTrain.UI
                 panelWidth = 450;
             }
 
-            var spacing = 8.0;
-            var padding = 16.0;
+            // 检查是否配置了固定宽度
+            var config = ConfigManager.Load();
             double itemWidth;
-
-            if (_tagsPerRow == 1)
+            
+            if (config.TagBoxWidth > 0)
             {
-                itemWidth = panelWidth * 0.9;
-            }
-            else if (_tagsPerRow == 2)
-            {
-                itemWidth = (panelWidth - padding - spacing) / 2;
+                // 使用配置的固定宽度
+                itemWidth = config.TagBoxWidth;
             }
             else
             {
-                itemWidth = (panelWidth - padding - (_tagsPerRow - 1) * spacing) / _tagsPerRow;
-            }
+                // 自动计算宽度
+                var spacing = 8.0;
+                var padding = 16.0;
 
-            if (_tagsPerRow > 2)
-            {
-                if (itemWidth < 80) itemWidth = 80;
-                if (itemWidth > 200) itemWidth = 200;
-            }
-            else
-            {
-                if (itemWidth < 100) itemWidth = 100;
-                var maxWidth = panelWidth * 0.95;
-                if (itemWidth > maxWidth) itemWidth = maxWidth;
+                if (_tagsPerRow == 1)
+                {
+                    itemWidth = panelWidth * 0.9;
+                }
+                else if (_tagsPerRow == 2)
+                {
+                    itemWidth = (panelWidth - padding - spacing) / 2;
+                }
+                else
+                {
+                    itemWidth = (panelWidth - padding - (_tagsPerRow - 1) * spacing) / _tagsPerRow;
+                }
+
+                if (_tagsPerRow > 2)
+                {
+                    if (itemWidth < 80) itemWidth = 80;
+                    if (itemWidth > 200) itemWidth = 200;
+                }
+                else
+                {
+                    if (itemWidth < 100) itemWidth = 100;
+                    var maxWidth = panelWidth * 0.95;
+                    if (itemWidth > maxWidth) itemWidth = maxWidth;
+                }
             }
 
             // 按分组组织标签
@@ -301,14 +314,19 @@ namespace TagTrain.UI
                             catch { }
                         }
 
+                        // 获取配置的Tag字体大小
+                        double tagFontSize = config.TagFontSize > 0 ? config.TagFontSize : 16;
+                        double categoryFontSize = tagFontSize + 1;  // Tag分组比Tag大1
+                        
                         var expander = new Expander
                         {
                             Header = $"📁 {category.Name} ({tagsByCategory[category.Id].Count})",
                             FontWeight = FontWeights.Bold,
-                            FontSize = 13,
+                            FontSize = categoryFontSize,
                             Margin = new Thickness(0, 4, 0, 4),
                             IsExpanded = true,
-                            Foreground = categoryBrush
+                            Foreground = categoryBrush,
+                            MinHeight = categoryFontSize + 8  // 自动计算高度
                         };
 
                         var categoryTagsPanel = new WrapPanel
@@ -331,14 +349,19 @@ namespace TagTrain.UI
                 // 显示未分组的标签
                 if (ungroupedTags.Count > 0)
                 {
+                    // 获取配置的Tag字体大小
+                    double tagFontSize = config.TagFontSize > 0 ? config.TagFontSize : 16;
+                    double categoryFontSize = tagFontSize + 1;  // Tag分组比Tag大1
+                    
                     var ungroupedExpander = new Expander
                     {
                         Header = $"📋 未分组 ({ungroupedTags.Count})",
                         FontWeight = FontWeights.Bold,
-                        FontSize = 13,
+                        FontSize = categoryFontSize,
                         Margin = new Thickness(0, 4, 0, 4),
                         IsExpanded = true,
-                        Foreground = Brushes.Gray
+                        Foreground = Brushes.Gray,
+                        MinHeight = categoryFontSize + 8  // 自动计算高度
                     };
 
                     var ungroupedTagsPanel = new WrapPanel
@@ -604,11 +627,15 @@ namespace TagTrain.UI
                 IsHitTestVisible = false
             };
 
+            // 获取配置的Tag字体大小
+            var config = ConfigManager.Load();
+            double tagFontSize = config.TagFontSize > 0 ? config.TagFontSize : 16;
+            
             stackPanel.Children.Add(new TextBlock
             {
                 Text = tagName,
                 FontWeight = FontWeights.Bold,
-                FontSize = 12,
+                FontSize = tagFontSize,
                 Margin = new Thickness(0, 0, 4, 0),
                 VerticalAlignment = VerticalAlignment.Center,
                 IsHitTestVisible = false
@@ -622,7 +649,7 @@ namespace TagTrain.UI
                     Foreground = exceedsThreshold
                         ? Brushes.DarkOrange
                         : Brushes.DarkGray,
-                    FontSize = 11,
+                    FontSize = tagFontSize - 2,
                     FontWeight = FontWeights.Bold,
                     VerticalAlignment = VerticalAlignment.Center,
                     IsHitTestVisible = false
@@ -636,11 +663,15 @@ namespace TagTrain.UI
                 {
                     Text = $"({count})",
                     Foreground = Brushes.DarkGray,
-                    FontSize = 10,
+                    FontSize = tagFontSize - 2,
                     VerticalAlignment = VerticalAlignment.Center,
                     IsHitTestVisible = false
                 });
             }
+            
+            // 设置 border 的 Padding 和 MinHeight
+            border.Padding = new Thickness(6, 4, 6, 4);
+            border.MinHeight = tagFontSize + 8;
 
             border.Child = stackPanel;
             return border;

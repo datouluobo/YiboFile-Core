@@ -2,6 +2,10 @@
 
 Write-Host "开始清理..."
 
+# 切换到项目根目录
+$scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
+Set-Location (Join-Path $scriptPath "..")
+
 # 清理构建产物
 if (Test-Path "bin") {
     Write-Host "删除 bin 目录..."
@@ -44,6 +48,13 @@ if (Test-Path "dragdrop_log.txt") {
 }
 
 Write-Host "清理完成！"
+
+
+
+
+
+
+
 
 
 

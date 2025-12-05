@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -22,6 +23,9 @@ namespace OoiMRR
         public event MouseButtonEventHandler TitleBarMouseDown;
         public event EventHandler<string> PreviewOpenFileRequested;  // 预览区打开文件请求
         public event MouseButtonEventHandler PreviewMiddleClickRequested;  // 中键打开文件请求
+        public event EventHandler NavigatePrevImageRequested;  // 上一张图片请求
+        public event EventHandler NavigateNextImageRequested;  // 下一张图片请求
+        public event EventHandler<int> NavigateToImageIndexRequested;  // 跳转到指定图片索引请求
         
         private System.Windows.Threading.DispatcherTimer _autoSaveTimer;
         private bool _hasPendingChanges = false;
@@ -63,6 +67,11 @@ namespace OoiMRR
         }
         
         // 显示图片预览（使用TagTrain样式）
+        private System.Threading.CancellationTokenSource _previewLoadCancellation;
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, BitmapImage> _previewCache = new System.Collections.Concurrent.ConcurrentDictionary<string, BitmapImage>();
+        private const int MaxPreviewCacheSize = 10;
+        private const int MaxPreviewWidth = 1920; // 限制预览图片最大宽度，减少内存占用
+
         public void DisplayImagePreview(string imagePath)
         {
             if (ImagePreviewDisplay == null || ImagePreviewBorder == null || DefaultPreviewText == null)
@@ -79,6 +88,15 @@ namespace OoiMRR
                     }
                     return;
                 }
+                
+                // 取消之前的加载任务
+                if (_previewLoadCancellation != null)
+                {
+                    _previewLoadCancellation.Cancel();
+                    _previewLoadCancellation.Dispose();
+                }
+                _previewLoadCancellation = new System.Threading.CancellationTokenSource();
+                var cancellationToken = _previewLoadCancellation.Token;
                 
                 // 清理PreviewGrid中可能残留的其它预览元素，避免遮挡图片
                 if (PreviewGrid != null)
@@ -107,20 +125,10 @@ namespace OoiMRR
                     }
                 }
                 
-                // 隐藏默认预览文本
-                DefaultPreviewText.Visibility = Visibility.Collapsed;
-                
-                // 显示图片预览边框
+                // 显示加载提示
+                DefaultPreviewText.Text = "加载中...";
+                DefaultPreviewText.Visibility = Visibility.Visible;
                 ImagePreviewBorder.Visibility = Visibility.Visible;
-                
-                // 加载图片
-                if (!File.Exists(imagePath))
-                {
-                    DefaultPreviewText.Text = $"图片文件不存在: {imagePath}";
-                    DefaultPreviewText.Visibility = Visibility.Visible;
-                    ImagePreviewBorder.Visibility = Visibility.Collapsed;
-                    return;
-                }
                 
                 // 确保使用绝对路径
                 if (!Path.IsPathRooted(imagePath))
@@ -128,39 +136,130 @@ namespace OoiMRR
                     imagePath = Path.GetFullPath(imagePath);
                 }
                 
-                BitmapImage bitmap;
+                // 检查缓存
+                var fileInfo = new FileInfo(imagePath);
+                var cacheKey = $"{imagePath}_{fileInfo.LastWriteTime.Ticks}";
                 
-                // 优先尝试使用UriSource（性能更好），如果失败则使用StreamSource
-                try
+                if (_previewCache.TryGetValue(cacheKey, out var cachedBitmap))
                 {
-                    bitmap = new BitmapImage();
-                    bitmap.BeginInit();
-                    bitmap.UriSource = new Uri(imagePath, UriKind.Absolute);
-                    bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                    // 不设置DecodePixelWidth，让图片保持原始尺寸，由Stretch属性控制显示
-                    bitmap.EndInit();
-                    bitmap.Freeze();
-                }
-                catch
-                {
-                    // 如果UriSource失败（可能包含特殊字符），使用StreamSource
-                    bitmap = new BitmapImage();
-                    bitmap.BeginInit();
-                    bitmap.StreamSource = new FileStream(imagePath, FileMode.Open, FileAccess.Read);
-                    bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                    // 不设置DecodePixelWidth，让图片保持原始尺寸，由Stretch属性控制显示
-                    bitmap.EndInit();
-                    bitmap.Freeze();
+                    if (!cancellationToken.IsCancellationRequested)
+                    {
+                        ImagePreviewDisplay.Source = cachedBitmap;
+                        DefaultPreviewText.Visibility = Visibility.Collapsed;
+                        if (NoImagePreviewText != null)
+                        {
+                            NoImagePreviewText.Visibility = Visibility.Collapsed;
+                        }
+                    }
+                    return;
                 }
                 
-                ImagePreviewDisplay.Source = bitmap;
-                if (NoImagePreviewText != null)
+                // 异步加载图片
+                System.Threading.Tasks.Task.Run(() =>
                 {
-                    NoImagePreviewText.Visibility = Visibility.Collapsed;
-                }
+                    try
+                    {
+                        if (cancellationToken.IsCancellationRequested)
+                            return;
+                            
+                        BitmapImage bitmap = null;
+                        
+                        // 优先尝试使用UriSource（性能更好），如果失败则使用StreamSource
+                        try
+                        {
+                            bitmap = new BitmapImage();
+                            bitmap.BeginInit();
+                            bitmap.UriSource = new Uri(imagePath, UriKind.Absolute);
+                            bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                            // 限制预览图片大小，减少内存占用
+                            bitmap.DecodePixelWidth = MaxPreviewWidth;
+                            bitmap.EndInit();
+                            bitmap.Freeze();
+                        }
+                        catch
+                        {
+                            // 如果UriSource失败（可能包含特殊字符），使用StreamSource
+                            try
+                            {
+                                bitmap = new BitmapImage();
+                                bitmap.BeginInit();
+                                bitmap.StreamSource = new FileStream(imagePath, FileMode.Open, FileAccess.Read);
+                                bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                                // 限制预览图片大小，减少内存占用
+                                bitmap.DecodePixelWidth = MaxPreviewWidth;
+                                bitmap.EndInit();
+                                bitmap.Freeze();
+                            }
+                            catch
+                            {
+                                bitmap = null;
+                            }
+                        }
+                        
+                        if (bitmap != null && !cancellationToken.IsCancellationRequested)
+                        {
+                            // 添加到缓存
+                            if (_previewCache.Count >= MaxPreviewCacheSize)
+                            {
+                                // 移除最早的缓存项
+                                var firstKey = _previewCache.Keys.FirstOrDefault();
+                                if (firstKey != null)
+                                {
+                                    _previewCache.TryRemove(firstKey, out _);
+                                }
+                            }
+                            _previewCache[cacheKey] = bitmap;
+                            
+                            // 在UI线程更新
+                            Application.Current?.Dispatcher.Invoke(() =>
+                            {
+                                if (!cancellationToken.IsCancellationRequested && ImagePreviewDisplay != null)
+                                {
+                                    ImagePreviewDisplay.Source = bitmap;
+                                    DefaultPreviewText.Visibility = Visibility.Collapsed;
+                                    if (NoImagePreviewText != null)
+                                    {
+                                        NoImagePreviewText.Visibility = Visibility.Collapsed;
+                                    }
+                                }
+                            }, System.Windows.Threading.DispatcherPriority.Background);
+                        }
+                        else if (!cancellationToken.IsCancellationRequested)
+                        {
+                            Application.Current?.Dispatcher.Invoke(() =>
+                            {
+                                if (DefaultPreviewText != null)
+                                {
+                                    DefaultPreviewText.Text = "图片加载失败";
+                                    DefaultPreviewText.Visibility = Visibility.Visible;
+                                }
+                                if (ImagePreviewBorder != null)
+                                {
+                                    ImagePreviewBorder.Visibility = Visibility.Collapsed;
+                                }
+                            }, System.Windows.Threading.DispatcherPriority.Background);
+                        }
+                    }
+                    catch (System.OperationCanceledException)
+                    {
+                        // 正常取消，忽略
+                    }
+                    catch
+                    {
+                        if (!cancellationToken.IsCancellationRequested)
+                        {
+                            Application.Current?.Dispatcher.Invoke(() =>
+                            {
+                                ClearImagePreview();
+                            }, System.Windows.Threading.DispatcherPriority.Background);
+                        }
+                    }
+                }, cancellationToken);
             }
             catch (Exception)
-            {ClearImagePreview();}
+            {
+                ClearImagePreview();
+            }
         }
         
         // 清除图片预览，恢复原有预览状态
@@ -259,6 +358,56 @@ namespace OoiMRR
         private void TitleBarArea_MouseDown(object sender, MouseButtonEventArgs e)
         {
             TitleBarMouseDown?.Invoke(sender, e);
+        }
+        
+        // 显示/隐藏图片导航控件
+        public void ShowImageNavigation(bool show)
+        {
+            if (PrevImageBtn != null) PrevImageBtn.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+            if (NextImageBtn != null) NextImageBtn.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+            if (ImageIndexText != null) ImageIndexText.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+        }
+        
+        // 更新图片索引显示
+        public void UpdateImageIndex(int currentIndex, int totalCount, string imagePath = null)
+        {
+            if (ImageIndexText == null) return;
+            
+            if (totalCount > 0 && currentIndex >= 0)
+            {
+                var displayText = imagePath != null 
+                    ? $"第 {currentIndex + 1}/{totalCount} 张: {Path.GetFileName(imagePath)}"
+                    : $"第 {currentIndex + 1}/{totalCount} 张";
+                ImageIndexText.Text = displayText;
+            }
+            else
+            {
+                ImageIndexText.Text = "";
+            }
+        }
+        
+        // 更新导航按钮状态
+        public void UpdateNavigationButtons(bool hasPrev, bool hasNext)
+        {
+            if (PrevImageBtn != null) PrevImageBtn.IsEnabled = hasPrev;
+            if (NextImageBtn != null) NextImageBtn.IsEnabled = hasNext;
+        }
+        
+        // 导航按钮事件处理
+        private void PrevImageBtn_Click(object sender, RoutedEventArgs e)
+        {
+            NavigatePrevImageRequested?.Invoke(this, EventArgs.Empty);
+        }
+        
+        private void NextImageBtn_Click(object sender, RoutedEventArgs e)
+        {
+            NavigateNextImageRequested?.Invoke(this, EventArgs.Empty);
+        }
+        
+        private void ImageIndexText_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            // 触发跳转事件，由MainWindow处理跳转逻辑（-1表示需要弹出对话框）
+            NavigateToImageIndexRequested?.Invoke(this, -1);
         }
     }
 }

@@ -5,6 +5,9 @@ echo.
 echo Checking and starting application...
 echo.
 
+REM Change to project root directory
+cd /d "%~dp0.."
+
 REM Check if instance is already running
 tasklist /FI "IMAGENAME eq OoiMRR.exe" 2>NUL | find /I /N "OoiMRR.exe">NUL
 if "%ERRORLEVEL%"=="0" (
@@ -33,3 +36,13 @@ if exist "bin\Debug\net8.0-windows\OoiMRR.exe" (
 
 echo.
 pause
+
+
+
+
+
+
+
+
+
+

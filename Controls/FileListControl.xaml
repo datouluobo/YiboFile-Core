@@ -1,0 +1,131 @@
+<UserControl x:Class="OoiMRR.Controls.FileListControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" 
+             d:DesignHeight="600" d:DesignWidth="800">
+    <Grid>
+        <!-- 文件列表 -->
+        <Border Background="#FFFFFF" BorderBrush="#E9ECEF" BorderThickness="0,1,0,0">
+            <Grid>
+                <ListView x:Name="FilesListView" 
+                      SelectionMode="Extended"
+                      Background="#FFFFFF">
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem">
+                            <Setter Property="Background" Value="#FFFFFF"/>
+                            <Setter Property="BorderBrush" Value="Transparent"/>
+                            <Setter Property="BorderThickness" Value="0"/>
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                            <Setter Property="VerticalContentAlignment" Value="Center"/>
+                            <Style.Triggers>
+                                <!-- 文件名日期匹配 - 蓝色背景 -->
+                                <DataTrigger Binding="{Binding Notes}" Value="文件名日期匹配">
+                                    <Setter Property="Background" Value="#E3F2FD"/>
+                                    <Setter Property="BorderBrush" Value="#BBDEFB"/>
+                                    <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                </DataTrigger>
+                                <!-- 文件日期匹配 - 绿色背景 -->
+                                <DataTrigger Binding="{Binding Notes}" Value="创建日期匹配">
+                                    <Setter Property="Background" Value="#E8F5E9"/>
+                                    <Setter Property="BorderBrush" Value="#C8E6C9"/>
+                                    <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Notes}" Value="修改日期匹配">
+                                    <Setter Property="Background" Value="#E8F5E9"/>
+                                    <Setter Property="BorderBrush" Value="#C8E6C9"/>
+                                    <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Notes}" Value="创建/修改日期匹配">
+                                    <Setter Property="Background" Value="#E8F5E9"/>
+                                    <Setter Property="BorderBrush" Value="#C8E6C9"/>
+                                    <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                </DataTrigger>
+                                <!-- 选中状态 -->
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter Property="Background" Value="#64B5F6"/>
+                                    <Setter Property="Foreground" Value="#FFFFFF"/>
+                                </Trigger>
+                                <MultiTrigger>
+                                    <MultiTrigger.Conditions>
+                                        <Condition Property="IsSelected" Value="True"/>
+                                        <Condition Property="IsMouseOver" Value="True"/>
+                                    </MultiTrigger.Conditions>
+                                    <Setter Property="Background" Value="#42A5F5"/>
+                                    <Setter Property="Foreground" Value="#FFFFFF"/>
+                                </MultiTrigger>
+                                <!-- 鼠标悬停 -->
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#E3F2FD"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ListView.ItemContainerStyle>
+                    <ListView.View>
+                        <GridView x:Name="FilesGridView">
+                            <GridViewColumn Width="200" DisplayMemberBinding="{Binding Name}">
+                                <GridViewColumn.Header>
+                                    <GridViewColumnHeader Content="名称" Tag="Name"/>
+                                </GridViewColumn.Header>
+                            </GridViewColumn>
+                            <GridViewColumn x:Name="ColSize" Width="100" DisplayMemberBinding="{Binding Size}">
+                                <GridViewColumn.Header>
+                                    <GridViewColumnHeader Content="大小" Tag="Size"/>
+                                </GridViewColumn.Header>
+                            </GridViewColumn>
+                            <GridViewColumn x:Name="ColType" Width="100" DisplayMemberBinding="{Binding Type}">
+                                <GridViewColumn.Header>
+                                    <GridViewColumnHeader Content="类型" Tag="Type"/>
+                                </GridViewColumn.Header>
+                            </GridViewColumn>
+                            <GridViewColumn Width="150" DisplayMemberBinding="{Binding ModifiedDate}">
+                                <GridViewColumn.Header>
+                                    <GridViewColumnHeader Content="修改日期" Tag="ModifiedDate"/>
+                                </GridViewColumn.Header>
+                            </GridViewColumn>
+                            <GridViewColumn Width="50">
+                                <GridViewColumn.Header>
+                                    <GridViewColumnHeader Content="创建" Tag="CreatedTime"/>
+                                </GridViewColumn.Header>
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock>
+                                            <TextBlock.Text>
+                                                <Binding Path="CreatedTime"/>
+                                            </TextBlock.Text>
+                                        </TextBlock>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                            <GridViewColumn Width="150" DisplayMemberBinding="{Binding Tags}">
+                                <GridViewColumn.Header>
+                                    <GridViewColumnHeader Content="标签" Tag="Tags"/>
+                                </GridViewColumn.Header>
+                            </GridViewColumn>
+                            <GridViewColumn Width="200" DisplayMemberBinding="{Binding Notes}">
+                                <GridViewColumn.Header>
+                                    <GridViewColumnHeader Content="备注" Tag="Notes"/>
+                                </GridViewColumn.Header>
+                            </GridViewColumn>
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+                <!-- 加载更多按钮 -->
+                <Button x:Name="LoadMoreBtn" Content="加载更多" Width="88" Height="28"
+                        HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="8"
+                        Visibility="Collapsed" Click="LoadMoreBtn_Click"/>
+                
+                <!-- 空状态提示 -->
+                <TextBlock x:Name="EmptyStateText" 
+                           Text="暂无文件"
+                           FontSize="16"
+                           Foreground="#999999"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           Visibility="Collapsed"/>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>
+

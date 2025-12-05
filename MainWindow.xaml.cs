@@ -50,6 +50,7 @@ namespace OoiMRR
         // 加载锁定，防止重复加载导致卡死
         private bool _isLoadingFiles = false;
         private System.Threading.SemaphoreSlim _loadFilesSemaphore = new System.Threading.SemaphoreSlim(1, 1);
+        private System.Threading.CancellationTokenSource _loadLibraryCancellation = new System.Threading.CancellationTokenSource();
         
         // 性能优化：限制并发文件夹大小计算任务（减少到1个，避免CPU占用过高）
         private System.Threading.SemaphoreSlim _folderSizeCalculationSemaphore = new System.Threading.SemaphoreSlim(1, 1); // 最多1个并发任务
@@ -2183,34 +2184,61 @@ namespace OoiMRR
             // 如果强制新标签页，直接创建新标签页
             if (forceNewTab)
             {
-                var tab = new PathTab
+                // 清除当前库的标签页，创建新的
+                if (_currentLibrary != null && _currentLibrary.Id == library.Id)
                 {
-                    Type = TabType.Library,
-                    Path = library.Name,  // 库标签页使用库名称作为Path标识
-                    Title = library.Name,
-                    Library = library
-                };
-                CreateTabInternal(tab);
+                    // 移除当前库的所有路径标签页
+                    var tabsToRemove = _pathTabs.Where(t => t.Type == TabType.Path && library.Paths != null && library.Paths.Contains(t.Path)).ToList();
+                    foreach (var tab in tabsToRemove)
+                    {
+                        CloseTab(tab);
+                    }
+                }
+                
+                // 设置当前库并创建标签页
+                _currentLibrary = library;
+                _config.LastLibraryId = library.Id;
+                ConfigManager.Save(_config);
+                SetupLibraryTabs(library);
+                LoadLibraryFiles(library);
                 return;
             }
             
-            // 检查是否已存在该库的标签页
-            var existingTab = _pathTabs.FirstOrDefault(t => t.Type == TabType.Library && t.Library != null && t.Library.Id == library.Id);
-            if (existingTab != null)
+            // 检查是否已存在该库的库类型标签页（向后兼容）
+            var existingLibraryTab = _pathTabs.FirstOrDefault(t => t.Type == TabType.Library && t.Library != null && t.Library.Id == library.Id);
+            if (existingLibraryTab != null)
             {
-                SwitchToTab(existingTab);
+                _currentLibrary = library;
+                _config.LastLibraryId = library.Id;
+                ConfigManager.Save(_config);
+                SwitchToTab(existingLibraryTab);
                 return;
             }
             
+            // 如果没有已有标签页，检查当前库是否已经是这个库
+            if (_currentLibrary != null && _currentLibrary.Id == library.Id)
+            {
+                // 已经是当前库，但可能没有标签页，直接加载文件
+                LoadLibraryFiles(library);
+                return;
+            }
+            
+            // 创建新的库标签页（TabType.Library类型，标题为库名称）
+            _currentLibrary = library;
+            _config.LastLibraryId = library.Id;
+            ConfigManager.Save(_config);
+            
+            // 创建库类型的标签页
             var newTab = new PathTab
             {
                 Type = TabType.Library,
-                Path = library.Name,  // 库标签页使用库名称作为Path标识
-                Title = library.Name,
+                Path = $"library://{library.Id}",  // 使用库ID作为标识
+                Title = library.Name,  // 使用库名称作为标题
                 Library = library
             };
             
             CreateTabInternal(newTab);
+            LoadLibraryFiles(library);
         }
         
         private void OpenTagInTab(Tag tag, bool forceNewTab = false)
@@ -6629,7 +6657,7 @@ namespace OoiMRR
                 LibraryRenameMenuItem.IsEnabled = hasSelection;
                 LibraryDeleteMenuItem.IsEnabled = hasSelection;
                 LibraryManageMenuItem.IsEnabled = hasSelection;
-                LibraryOpenInExplorerMenuItem.IsEnabled = hasSelection;
+                // LibraryOpenInExplorerMenuItem.IsEnabled = hasSelection; // 已移除该菜单项
             }
         }
 
@@ -6755,6 +6783,16 @@ namespace OoiMRR
             LoadLibraries();
         }
 
+        private void LibraryManageBottomBtn_Click(object sender, RoutedEventArgs e)
+        {
+            ManageLibraries_Click(sender, e);
+        }
+
+        private void LibraryRefreshBottomBtn_Click(object sender, RoutedEventArgs e)
+        {
+            LoadLibraries();
+        }
+
         private bool _libraryClickForceNewTab = false;
 
         private void LibrariesListBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
@@ -6828,10 +6866,21 @@ namespace OoiMRR
 
         private void LoadLibraryFiles(Library library)
         {
+            // 取消之前的加载任务
+            _loadLibraryCancellation.Cancel();
+            _loadLibraryCancellation = new System.Threading.CancellationTokenSource();
+            var cancellationToken = _loadLibraryCancellation.Token;
+            
             // 使用信号量防止重复加载
             if (!_loadFilesSemaphore.Wait(0))
             {
-                System.Diagnostics.Debug.WriteLine("LoadLibraryFiles: 已有加载任务在进行，跳过此次调用");
+                System.Diagnostics.Debug.WriteLine("LoadLibraryFiles: 已有加载任务在进行，等待完成后重新加载");
+                // 等待一小段时间后重试
+                _ = System.Threading.Tasks.Task.Run(async () =>
+                {
+                    await System.Threading.Tasks.Task.Delay(100);
+                    _ = Dispatcher.BeginInvoke(new Action(() => LoadLibraryFiles(library)), System.Windows.Threading.DispatcherPriority.Background);
+                });
                 return;
             }
             
@@ -6880,12 +6929,31 @@ namespace OoiMRR
                 {
                     try
                     {
+                        // 检查是否已取消
+                        if (cancellationToken.IsCancellationRequested)
+                        {
+                            System.Diagnostics.Debug.WriteLine("[加载库文件] 任务已取消");
+                            Dispatcher.BeginInvoke(new Action(() =>
+                            {
+                                _isLoadingFiles = false;
+                                _loadFilesSemaphore.Release();
+                            }), System.Windows.Threading.DispatcherPriority.Background);
+                            return;
+                        }
+                        
                         System.Diagnostics.Debug.WriteLine($"[加载库文件] 库有 {library.Paths.Count} 个位置");
                         var allItems = new Dictionary<string, FileSystemItem>();
                         
                         // 遍历库中的所有位置
                         foreach (var path in library.Paths)
                 {
+                        // 检查是否已取消
+                        if (cancellationToken.IsCancellationRequested)
+                        {
+                            System.Diagnostics.Debug.WriteLine("[加载库文件] 任务已取消");
+                            break;
+                        }
+                        
                     System.Diagnostics.Debug.WriteLine($"[加载库文件] 处理路径: {path}");
                     if (!Directory.Exists(path))
                     {
@@ -7015,11 +7083,30 @@ namespace OoiMRR
                     }
                 }
 
+                        // 检查是否已取消
+                        if (cancellationToken.IsCancellationRequested)
+                        {
+                            System.Diagnostics.Debug.WriteLine("[加载库文件] 任务已取消，不更新UI");
+                            Dispatcher.BeginInvoke(new Action(() =>
+                            {
+                                _isLoadingFiles = false;
+                                _loadFilesSemaphore.Release();
+                            }), System.Windows.Threading.DispatcherPriority.Background);
+                            return;
+                        }
+                        
                         // 在UI线程更新文件列表
                         Dispatcher.BeginInvoke(new Action(() =>
                         {
                             try
                             {
+                                // 再次检查是否已取消（可能在等待UI线程时被取消）
+                                if (cancellationToken.IsCancellationRequested)
+                                {
+                                    System.Diagnostics.Debug.WriteLine("[加载库文件] UI更新时任务已取消");
+                                    return;
+                                }
+                                
                                 // 显示合并的库文件（库标签页统一显示合并视图）
                                 ShowMergedLibraryFiles(allItems.Values.ToList(), library);
                             }
@@ -9234,7 +9321,30 @@ Write-Host ""Hello World""
 
         private void Settings_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("设置已包含导入/导出配置功能，请使用工具菜单中的相应项。", "设置", MessageBoxButton.OK, MessageBoxImage.Information);
+            // 显示设置面板
+            if (SettingsOverlay != null)
+            {
+                SettingsOverlay.Visibility = Visibility.Visible;
+                // 加载设置
+                if (SettingsPanel != null)
+                {
+                    SettingsPanel.LoadAllSettings();
+                }
+            }
+        }
+
+        private void SettingsPanel_CloseRequested(object sender, EventArgs e)
+        {
+            // 保存设置
+            if (SettingsPanel != null)
+            {
+                SettingsPanel.SaveAllSettings();
+            }
+            // 隐藏设置面板
+            if (SettingsOverlay != null)
+            {
+                SettingsOverlay.Visibility = Visibility.Collapsed;
+            }
         }
 
         private void ImportConfig_Click(object sender, RoutedEventArgs e)
@@ -12421,14 +12531,14 @@ Write-Host ""Hello World""
                     TagEditPanel.TagInputTextBox.Text = "";
                 
                 // 选中下一个文件项（如果存在）
-                if (FileBrowser?.FilesListView != null && FileBrowser.FilesListView.Items.Count > 0)
+                if (FileBrowser?.FilesList != null && FileBrowser.FilesList.Items.Count > 0)
                 {
-                    var idx = FileBrowser.FilesListView.SelectedIndex;
-                    var next = Math.Min(Math.Max(idx + 1, 0), FileBrowser.FilesListView.Items.Count - 1);
+                    var idx = FileBrowser.FilesList.SelectedIndex;
+                    var next = Math.Min(Math.Max(idx + 1, 0), FileBrowser.FilesList.Items.Count - 1);
                     if (next != idx)
                     {
-                        FileBrowser.FilesListView.SelectedIndex = next;
-                        FileBrowser.FilesListView.ScrollIntoView(FileBrowser.FilesListView.SelectedItem);
+                        FileBrowser.FilesList.SelectedIndex = next;
+                        FileBrowser.FilesList.ScrollIntoView(FileBrowser.FilesList.SelectedItem);
                     }
                 }
             }

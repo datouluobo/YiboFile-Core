@@ -144,6 +144,29 @@ namespace OoiMRR
             {
                 // 记录错误但不中断初始化
             }
+
+            // 数据库迁移：添加 DisplayOrder 字段
+            try
+            {
+                var checkOrderColumn = "SELECT COUNT(*) FROM pragma_table_info('Libraries') WHERE name='DisplayOrder'";
+                command.CommandText = checkOrderColumn;
+                var hasOrderColumn = Convert.ToInt32(command.ExecuteScalar()) > 0;
+                
+                if (!hasOrderColumn)
+                {
+                    // 添加 DisplayOrder 列
+                    command.CommandText = "ALTER TABLE Libraries ADD COLUMN DisplayOrder INTEGER DEFAULT 0";
+                    command.ExecuteNonQuery();
+                    
+                    // 为现有库设置初始排序值（按Id）
+                    command.CommandText = "UPDATE Libraries SET DisplayOrder = Id";
+                    command.ExecuteNonQuery();
+                }
+            }
+            catch
+            {
+                // 记录错误但不中断初始化
+            }
         }
 
         // 本地标签相关 API 已弃用（改为完全使用 TagTrain），故移除
@@ -307,9 +330,15 @@ namespace OoiMRR
             }
             
             // 库不存在，创建新库
+            // 获取当前最大的 DisplayOrder 值
+            using var maxOrderCommand = connection.CreateCommand();
+            maxOrderCommand.CommandText = "SELECT COALESCE(MAX(DisplayOrder), 0) FROM Libraries";
+            var maxOrder = Convert.ToInt32(maxOrderCommand.ExecuteScalar());
+            
             using var insertCommand = connection.CreateCommand();
-            insertCommand.CommandText = "INSERT INTO Libraries (Name) VALUES (@name); SELECT last_insert_rowid();";
+            insertCommand.CommandText = "INSERT INTO Libraries (Name, DisplayOrder) VALUES (@name, @displayOrder); SELECT last_insert_rowid();";
             insertCommand.Parameters.AddWithValue("@name", name);
+            insertCommand.Parameters.AddWithValue("@displayOrder", maxOrder + 1);
             var newId = insertCommand.ExecuteScalar();
             
             if (newId != null && newId != DBNull.Value)
@@ -372,12 +401,13 @@ namespace OoiMRR
             
             // 获取所有库
             using var command = connection.CreateCommand();
-            command.CommandText = "SELECT Id, Name FROM Libraries ORDER BY Name";
+            command.CommandText = "SELECT Id, Name, DisplayOrder FROM Libraries ORDER BY DisplayOrder, Id";
             using var reader = command.ExecuteReader();
             while (reader.Read())
             {
                 var libraryId = reader.GetInt32(0);
                 var libraryName = reader.GetString(1);
+                var displayOrder = reader.IsDBNull(2) ? 0 : reader.GetInt32(2);
                 
                 // 获取该库的所有位置
                 var paths = new List<string>();
@@ -394,11 +424,92 @@ namespace OoiMRR
                 {
                     Id = libraryId,
                     Name = libraryName,
-                    Paths = paths
+                    Paths = paths,
+                    DisplayOrder = displayOrder
                 });
             }
             
             return libraries;
+        }
+
+        public static void MoveLibraryUp(int libraryId)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            
+            // 获取当前库的DisplayOrder
+            using var getCurrentCommand = connection.CreateCommand();
+            getCurrentCommand.CommandText = "SELECT DisplayOrder FROM Libraries WHERE Id = @id";
+            getCurrentCommand.Parameters.AddWithValue("@id", libraryId);
+            var currentOrder = getCurrentCommand.ExecuteScalar();
+            
+            if (currentOrder == null || currentOrder == DBNull.Value) return;
+            var currentOrderValue = Convert.ToInt32(currentOrder);
+            
+            // 查找上一个库（DisplayOrder小于当前值的最大DisplayOrder）
+            using var getPrevCommand = connection.CreateCommand();
+            getPrevCommand.CommandText = "SELECT Id, DisplayOrder FROM Libraries WHERE DisplayOrder < @order ORDER BY DisplayOrder DESC LIMIT 1";
+            getPrevCommand.Parameters.AddWithValue("@order", currentOrderValue);
+            using var prevReader = getPrevCommand.ExecuteReader();
+            
+            if (prevReader.Read())
+            {
+                var prevId = prevReader.GetInt32(0);
+                var prevOrder = prevReader.GetInt32(1);
+                
+                // 交换两个库的DisplayOrder
+                using var updateCommand = connection.CreateCommand();
+                updateCommand.CommandText = "UPDATE Libraries SET DisplayOrder = @newOrder WHERE Id = @id";
+                
+                updateCommand.Parameters.AddWithValue("@newOrder", prevOrder);
+                updateCommand.Parameters.AddWithValue("@id", libraryId);
+                updateCommand.ExecuteNonQuery();
+                
+                updateCommand.Parameters.Clear();
+                updateCommand.Parameters.AddWithValue("@newOrder", currentOrderValue);
+                updateCommand.Parameters.AddWithValue("@id", prevId);
+                updateCommand.ExecuteNonQuery();
+            }
+        }
+
+        public static void MoveLibraryDown(int libraryId)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            
+            // 获取当前库的DisplayOrder
+            using var getCurrentCommand = connection.CreateCommand();
+            getCurrentCommand.CommandText = "SELECT DisplayOrder FROM Libraries WHERE Id = @id";
+            getCurrentCommand.Parameters.AddWithValue("@id", libraryId);
+            var currentOrder = getCurrentCommand.ExecuteScalar();
+            
+            if (currentOrder == null || currentOrder == DBNull.Value) return;
+            var currentOrderValue = Convert.ToInt32(currentOrder);
+            
+            // 查找下一个库（DisplayOrder大于当前值的最小DisplayOrder）
+            using var getNextCommand = connection.CreateCommand();
+            getNextCommand.CommandText = "SELECT Id, DisplayOrder FROM Libraries WHERE DisplayOrder > @order ORDER BY DisplayOrder ASC LIMIT 1";
+            getNextCommand.Parameters.AddWithValue("@order", currentOrderValue);
+            using var nextReader = getNextCommand.ExecuteReader();
+            
+            if (nextReader.Read())
+            {
+                var nextId = nextReader.GetInt32(0);
+                var nextOrder = nextReader.GetInt32(1);
+                
+                // 交换两个库的DisplayOrder
+                using var updateCommand = connection.CreateCommand();
+                updateCommand.CommandText = "UPDATE Libraries SET DisplayOrder = @newOrder WHERE Id = @id";
+                
+                updateCommand.Parameters.AddWithValue("@newOrder", nextOrder);
+                updateCommand.Parameters.AddWithValue("@id", libraryId);
+                updateCommand.ExecuteNonQuery();
+                
+                updateCommand.Parameters.Clear();
+                updateCommand.Parameters.AddWithValue("@newOrder", currentOrderValue);
+                updateCommand.Parameters.AddWithValue("@id", nextId);
+                updateCommand.ExecuteNonQuery();
+            }
         }
 
         public static Library GetLibrary(int libraryId)
@@ -406,26 +517,41 @@ namespace OoiMRR
             using var connection = new SqliteConnection(_connectionString);
             connection.Open();
             
-            using var command = connection.CreateCommand();
-            command.CommandText = "SELECT Name FROM Libraries WHERE Id = @libraryId";
-            command.Parameters.AddWithValue("@libraryId", libraryId);
-            var name = command.ExecuteScalar()?.ToString();
+            string name;
+            int displayOrder;
             
-            if (name == null) return null;
-            
-            var paths = new List<string>();
-            command.CommandText = "SELECT Path FROM LibraryPaths WHERE LibraryId = @libraryId ORDER BY Id";
-            using var reader = command.ExecuteReader();
-            while (reader.Read())
+            // 获取库的基本信息
+            using (var command = connection.CreateCommand())
             {
-                paths.Add(reader.GetString(0));
+                command.CommandText = "SELECT Name, DisplayOrder FROM Libraries WHERE Id = @libraryId";
+                command.Parameters.AddWithValue("@libraryId", libraryId);
+                using var reader = command.ExecuteReader();
+                
+                if (!reader.Read()) return null;
+                
+                name = reader.GetString(0);
+                displayOrder = reader.IsDBNull(1) ? 0 : reader.GetInt32(1);
+            }
+            
+            // 获取库的所有路径（使用新的command对象）
+            var paths = new List<string>();
+            using (var pathCommand = connection.CreateCommand())
+            {
+                pathCommand.CommandText = "SELECT Path FROM LibraryPaths WHERE LibraryId = @libraryId ORDER BY Id";
+                pathCommand.Parameters.AddWithValue("@libraryId", libraryId);
+                using var pathReader = pathCommand.ExecuteReader();
+                while (pathReader.Read())
+                {
+                    paths.Add(pathReader.GetString(0));
+                }
             }
             
             return new Library
             {
                 Id = libraryId,
                 Name = name,
-                Paths = paths
+                Paths = paths,
+                DisplayOrder = displayOrder
             };
         }
 
@@ -817,6 +943,7 @@ namespace OoiMRR
         public int Id { get; set; }
         public string Name { get; set; }
         public List<string> Paths { get; set; } = new List<string>();
+        public int DisplayOrder { get; set; }
         
         // 兼容旧代码
         [Obsolete("Use Paths property instead")]

@@ -19,32 +19,53 @@ namespace OoiMRR.Services
             Count,
             Prediction // 预留；当前实现等同于 Name
         }
-        private static ImageTagTrainer _trainer;
-        private static bool _initialized = false;
+        private static Lazy<ImageTagTrainer> _lazyTrainer = new Lazy<ImageTagTrainer>(() =>
+        {
+            try
+            {
+                DataManager.InitializeDatabase();
+                var trainer = new ImageTagTrainer();
+                trainer.LoadModel(); // 延迟加载模型，只在首次使用时加载
+                return trainer;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }, System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);
+        
+        private static bool _databaseInitialized = false;
         private static readonly object _lockObject = new object();
 
         /// <summary>
-        /// 初始化TagTrain系统
+        /// 初始化TagTrain系统（延迟加载，只初始化数据库，不加载模型）
         /// </summary>
         public static void Initialize()
         {
-            if (_initialized) return;
+            if (_databaseInitialized) return;
             
             lock (_lockObject)
             {
-                if (_initialized) return;
+                if (_databaseInitialized) return;
                 
                 try
                 {
                     DataManager.InitializeDatabase();
-                    _trainer = new ImageTagTrainer();
-                    _trainer.LoadModel();
-                    _initialized = true;
+                    _databaseInitialized = true;
                 }
                 catch (Exception)
                 {
-                                    }
+                }
             }
+        }
+        
+        /// <summary>
+        /// 获取训练器（延迟加载）
+        /// </summary>
+        private static ImageTagTrainer GetTrainer()
+        {
+            Initialize(); // 确保数据库已初始化
+            return _lazyTrainer.Value;
         }
 
         /// <summary>
@@ -56,14 +77,15 @@ namespace OoiMRR.Services
         {
             Initialize();
             
-            if (_trainer == null || string.IsNullOrEmpty(imagePath))
+            var trainer = GetTrainer();
+            if (trainer == null || string.IsNullOrEmpty(imagePath))
             {
                 return new List<TagPredictionResult>();
             }
 
             try
             {
-                return _trainer.PredictTags(imagePath);
+                return trainer.PredictTags(imagePath);
             }
             catch (Exception)
             {
@@ -83,7 +105,8 @@ namespace OoiMRR.Services
             
             var results = new Dictionary<string, List<TagPredictionResult>>();
             
-            if (_trainer == null || imagePaths == null)
+            var trainer = GetTrainer();
+            if (trainer == null || imagePaths == null)
             {
                 return results;
             }
@@ -92,7 +115,7 @@ namespace OoiMRR.Services
             {
                 try
                 {
-                    results[path] = _trainer.PredictTags(path);
+                    results[path] = trainer.PredictTags(path);
                 }
                 catch (Exception)
                 {
@@ -160,7 +183,8 @@ namespace OoiMRR.Services
         {
             Initialize();
             
-            if (_trainer == null)
+            var trainer = GetTrainer();
+            if (trainer == null)
             {
                 return new TrainingResult
                 {
@@ -176,10 +200,10 @@ namespace OoiMRR.Services
                     var all = DataManager.LoadAllTrainingData();
                     if (all.Count == 0)
                         return new TrainingResult { Success = false, Message = "没有训练数据" };
-                    var result = _trainer.TrainModel(all, progress, cancellationToken);
+                    var result = trainer.TrainModel(all, progress, cancellationToken);
                     if (result.Success)
                     {
-                        DataManager.AddModelVersion($"full-{DateTime.Now:yyyyMMddHHmmss}", _trainer.GetModelPath(), all.Count);
+                        DataManager.AddModelVersion($"full-{DateTime.Now:yyyyMMddHHmmss}", trainer.GetModelPath(), all.Count);
                     }
                     return result;
                 }
@@ -196,10 +220,10 @@ namespace OoiMRR.Services
                     if (newSamples.Count == 0)
                         return new TrainingResult { Success = false, Message = "没有新增样本，无需增量训练" };
                     
-                    var result = _trainer.IncrementalTrain(newSamples, progress, cancellationToken);
+                    var result = trainer.IncrementalTrain(newSamples, progress, cancellationToken);
                     if (result.Success)
                     {
-                        DataManager.AddModelVersion($"inc-{DateTime.Now:yyyyMMddHHmmss}", _trainer.GetModelPath(), newSamples.Count);
+                        DataManager.AddModelVersion($"inc-{DateTime.Now:yyyyMMddHHmmss}", trainer.GetModelPath(), newSamples.Count);
                     }
                     return result;
                 }
@@ -245,7 +269,8 @@ namespace OoiMRR.Services
         public static bool ModelExists()
         {
             Initialize();
-            return _trainer != null && _trainer.ModelExists();
+            var trainer = GetTrainer();
+            return trainer != null && trainer.ModelExists();
         }
 
         /// <summary>
@@ -254,7 +279,8 @@ namespace OoiMRR.Services
         public static string GetModelPath()
         {
             Initialize();
-            return _trainer?.GetModelPath() ?? "";
+            var trainer = GetTrainer();
+            return trainer?.GetModelPath() ?? "";
         }
         
         /// <summary>
@@ -263,7 +289,8 @@ namespace OoiMRR.Services
         public static bool IsModelLoaded()
         {
             Initialize();
-            return _trainer != null && _trainer.IsModelLoaded();
+            var trainer = GetTrainer();
+            return trainer != null && trainer.IsModelLoaded();
         }
 
         /// <summary>

@@ -10,7 +10,7 @@ namespace OoiMRR.Services
     public static class ChmCacheManager
     {
         private static readonly string CacheBaseDir = Path.Combine(Path.GetTempPath(), "MRR_CHM_Cache");
-        private const long MaxCacheSizeBytes = 500 * 1024 * 1024; // 500MB
+        private const long MaxCacheSizeBytes = 250 * 1024 * 1024; // 250MB (从500MB降低，减少磁盘占用)
         private const int CacheExpirationDays = 7;
 
         /// <summary>
@@ -47,7 +47,7 @@ namespace OoiMRR.Services
         }
 
         /// <summary>
-        /// 强制执行缓存大小限制（最大500MB）
+        /// 强制执行缓存大小限制（最大250MB）
         /// </summary>
         public static void EnforceCacheSizeLimit()
         {

@@ -59,45 +59,14 @@ namespace OoiMRR
 
                 base.OnStartup(e);
                 
-                // 初始化 FFmpeg（用于视频缩略图提取）
-                try
-                {
-                    bool ffmpegAvailable = FFmpegHelper.InitializeFFmpeg();
-                    if (ffmpegAvailable)
-                    {
-                                            }
-                    else
-                    {
-                                            }
-                }
-                catch (Exception)
-                {
-                                    }
-                
-                // 初始化 Everything（用于快速文件搜索）
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        bool everythingAvailable = await EverythingHelper.InitializeAsync();
-                        if (everythingAvailable)
-                        {
-                            string version = EverythingHelper.GetVersion();
-                            System.Diagnostics.Debug.WriteLine($"Everything 初始化成功，快速搜索功能可用 (版本: {version})");
-                        }
-                        else
-                        {
-                                                    }
-                    }
-                    catch (Exception)
-                    {
-                                            }
-                });
+                // FFmpeg 和 Everything 改为按需加载，不再在启动时初始化
+                // 这样可以减少启动时间和内存占用
                 
                 // 初始化数据库
                 DatabaseManager.Initialize();
                 
-                // 初始化 TagTrain（确保数据目录存在）
+                // TagTrain 改为延迟加载，不再在启动时初始化模型
+                // 只确保数据目录存在，模型在实际使用时再加载
                 try
                 {
                     // 优先使用 OoiMRR 自己保存的 TT 数据目录（持久化），避免默认落到 OoiMRR\\bin\\data
@@ -139,17 +108,15 @@ namespace OoiMRR
                         Directory.CreateDirectory(tagTrainDataDir);
                     }
                     
-                    // 主动初始化 TagTrain
-                    OoiMRRIntegration.Initialize();
+                    // 只初始化数据库，不加载模型（延迟加载）
+                    TagTrain.Services.DataManager.InitializeDatabase();
                     
-                    // 验证初始化是否成功
-                    var tagCount = OoiMRRIntegration.GetAllTags(OoiMRR.Services.OoiMRRIntegration.TagSortMode.Name)?.Count ?? 0;
-                                                            System.Diagnostics.Debug.WriteLine($"TagTrain 数据库路径: {TagTrain.Services.DataManager.GetDatabasePath()}");
+                    System.Diagnostics.Debug.WriteLine($"TagTrain 数据库路径: {TagTrain.Services.DataManager.GetDatabasePath()}");
                     IsTagTrainAvailable = true;
                 }
                 catch (Exception)
                 {
-                                                            IsTagTrainAvailable = false;
+                    IsTagTrainAvailable = false;
                     // 不阻止程序启动，只是记录错误
                 }
                 

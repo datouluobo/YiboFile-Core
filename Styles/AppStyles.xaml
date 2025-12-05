@@ -333,47 +333,82 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ListBoxItem">
+                    <!-- Bd背景透明，让内部Grid的TextArea和GradientArea显示背景 -->
                     <Border x:Name="Bd"
-                            Background="{TemplateBinding Background}"
+                            Background="Transparent"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}">
-                        <ContentPresenter HorizontalAlignment="Stretch" VerticalAlignment="Center"/>
+                        <Grid HorizontalAlignment="Stretch">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <!-- 文字区域：默认背景色 -->
+                            <Border Grid.Column="0" 
+                                    x:Name="TextArea"
+                                    Background="#EEEEEE"
+                                    HorizontalAlignment="Left">
+                                <ContentPresenter HorizontalAlignment="Left" 
+                                                VerticalAlignment="Center"
+                                                Margin="{TemplateBinding Padding}"/>
+                            </Border>
+                            
+                            <!-- 渐变区域：默认渐变 -->
+                            <Border Grid.Column="1" x:Name="GradientArea">
+                                <Border.Background>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                        <GradientStop Offset="0" Color="#EEEEEE"/>
+                                        <GradientStop Offset="1" Color="#FFFFFF"/>
+                                    </LinearGradientBrush>
+                                </Border.Background>
+                            </Border>
+                        </Grid>
                     </Border>
                     <ControlTemplate.Triggers>
-                        <!-- 匹配高亮（优先级最高） -->
-                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Tag}" Value="Match">
-                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource HighlightBrush}"/>
-                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource HighlightBorderBrush}"/>
-                            <Setter Property="Foreground" Value="{DynamicResource HighlightForegroundBrush}"/>
-                            <Setter Property="FontWeight" Value="SemiBold"/>
-                        </DataTrigger>
-                        <MultiDataTrigger>
-                            <MultiDataTrigger.Conditions>
-                                <Condition Binding="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Tag}" Value="Match"/>
-                                <Condition Binding="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=IsMouseOver}" Value="True"/>
-                            </MultiDataTrigger.Conditions>
-                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource HighlightHoverBrush}"/>
-                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource HighlightBorderBrush}"/>
-                        </MultiDataTrigger>
-
-                        <!-- 选中与悬停统一 -->
-                        <MultiTrigger>
-                            <MultiTrigger.Conditions>
-                                <Condition Property="IsSelected" Value="True"/>
-                                <Condition Property="IsMouseOver" Value="True"/>
-                            </MultiTrigger.Conditions>
-                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource HighlightHoverBrush}"/>
-                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource HighlightBorderBrush}"/>
-                            <Setter Property="Foreground" Value="{DynamicResource HighlightForegroundBrush}"/>
-                        </MultiTrigger>
+                        <!-- 选中状态 -->
                         <Trigger Property="IsSelected" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource HighlightBrush}"/>
+                            <Setter TargetName="TextArea" Property="Background" Value="{DynamicResource HighlightBrush}"/>
+                            <Setter TargetName="GradientArea" Property="Background">
+                                <Setter.Value>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                        <GradientStop Offset="0" Color="#FFA500"/>
+                                        <GradientStop Offset="1" Color="#FFFFFF"/>
+                                    </LinearGradientBrush>
+                                </Setter.Value>
+                            </Setter>
                             <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource HighlightBorderBrush}"/>
                             <Setter Property="Foreground" Value="{DynamicResource HighlightForegroundBrush}"/>
                         </Trigger>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource HighlightHoverBrush}"/>
+                        
+                        <!-- 匹配状态（使用 Trigger 代替 DataTrigger，Tag 是依赖属性） -->
+                        <Trigger Property="Tag" Value="Match">
+                            <Setter TargetName="TextArea" Property="Background" Value="{DynamicResource HighlightBrush}"/>
+                            <Setter TargetName="GradientArea" Property="Background">
+                                <Setter.Value>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                        <GradientStop Offset="0" Color="#FFA500"/>
+                                        <GradientStop Offset="1" Color="#FFFFFF"/>
+                                    </LinearGradientBrush>
+                                </Setter.Value>
+                            </Setter>
                             <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource HighlightBorderBrush}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource HighlightForegroundBrush}"/>
+                        </Trigger>
+                        
+                        <!-- 悬停（覆盖选中/匹配，显示更亮的颜色） -->
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="TextArea" Property="Background" Value="{DynamicResource HighlightHoverBrush}"/>
+                            <Setter TargetName="GradientArea" Property="Background">
+                                <Setter.Value>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                        <GradientStop Offset="0" Color="#FFB84D"/>
+                                        <GradientStop Offset="1" Color="#FFFFFF"/>
+                                    </LinearGradientBrush>
+                                </Setter.Value>
+                            </Setter>
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource HighlightBorderBrush}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource HighlightForegroundBrush}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -501,6 +536,43 @@
                                     <DropShadowEffect Color="#60000000" Direction="270" ShadowDepth="2" Opacity="0.55" BlurRadius="4"/>
                                 </Setter.Value>
                             </Setter>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- 视图切换按钮样式 -->
+    <Style x:Key="ViewToggleButtonStyle" TargetType="Button">
+        <Setter Property="Width" Value="28"/>
+        <Setter Property="Height" Value="28"/>
+        <Setter Property="Margin" Value="2,0"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="Background" Value="#E3F2FD"/>
+        <Setter Property="BorderBrush" Value="#BBDEFB"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border Background="{TemplateBinding Background}" 
+                            BorderBrush="{TemplateBinding BorderBrush}" 
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="4">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="#BBDEFB"/>
+                            <Setter Property="BorderBrush" Value="#90CAF9"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter Property="Background" Value="#90CAF9"/>
+                            <Setter Property="BorderBrush" Value="#64B5F6"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.6"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

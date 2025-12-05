@@ -4,6 +4,10 @@ Write-Host ""
 Write-Host "正在检查并启动应用程序..." -ForegroundColor Green
 Write-Host ""
 
+# 切换到项目根目录
+$scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
+Set-Location (Join-Path $scriptPath "..")
+
 # 检查是否已经有实例在运行
 $processes = Get-Process -Name "OoiMRR" -ErrorAction SilentlyContinue
 if ($processes) {
@@ -33,3 +37,13 @@ if (Test-Path "bin\Debug\net8.0-windows\OoiMRR.exe") {
 Write-Host ""
 Write-Host "按任意键退出..." -ForegroundColor Yellow
 $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+
+
+
+
+
+
+
+
+
+

@@ -5,6 +5,7 @@ Stop-Process -Name "OoiMRR" -Force -ErrorAction SilentlyContinue
 Start-Sleep -Milliseconds 500
 
 Write-Host "开始编译..." -ForegroundColor Green
+Set-Location ..
 dotnet build
 
 if ($LASTEXITCODE -eq 0) {
@@ -19,4 +20,13 @@ if ($LASTEXITCODE -eq 0) {
 } else {
     Write-Host "编译失败！" -ForegroundColor Red
 }
+
+
+
+
+
+
+
+
+
 

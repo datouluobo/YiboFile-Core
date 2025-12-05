@@ -5,6 +5,10 @@ Write-Host "  OoiMRR - Push to GitHub" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
+# 切换到项目根目录
+$scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
+Set-Location (Join-Path $scriptPath "..")
+
 # 检查是否已配置远程仓库
 $remoteUrl = git remote get-url origin 2>$null
 
@@ -14,7 +18,7 @@ if (-not $remoteUrl) {
     Write-Host "请先在 GitHub 上创建私有仓库，然后运行：" -ForegroundColor White
     Write-Host "git remote add origin https://github.com/你的用户名/OoiMRR.git" -ForegroundColor Green
     Write-Host ""
-    Write-Host "详细步骤请参考 GITHUB_SETUP.md 文件" -ForegroundColor White
+    Write-Host "详细步骤请参考 docs/GITHUB_SETUP.md 文件" -ForegroundColor White
     Write-Host ""
     pause
     exit
@@ -56,7 +60,7 @@ if ($confirm -eq 'y' -or $confirm -eq 'Y') {
         Write-Host "2. 网络问题 - 请检查网络连接" -ForegroundColor White
         Write-Host "3. 权限问题 - 请检查仓库权限" -ForegroundColor White
         Write-Host ""
-        Write-Host "详细步骤请参考 GITHUB_SETUP.md 文件" -ForegroundColor White
+        Write-Host "详细步骤请参考 docs/GITHUB_SETUP.md 文件" -ForegroundColor White
     }
 } else {
     Write-Host ""

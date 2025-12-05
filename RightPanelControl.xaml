@@ -43,6 +43,43 @@
                                VerticalAlignment="Center"
                                StretchDirection="Both"
                                RenderOptions.BitmapScalingMode="HighQuality"/>
+                        
+                        <!-- 图片导航控件（叠加在图片上方） -->
+                        <Grid VerticalAlignment="Bottom" Margin="0,0,0,10">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            
+                            <!-- 导航按钮 -->
+                            <StackPanel Grid.Row="0" Orientation="Horizontal" 
+                                        HorizontalAlignment="Center" Margin="0,0,0,5">
+                                <Button Name="PrevImageBtn" Content="◀ 上一张" 
+                                        Padding="10,5" Margin="0,0,5,0" 
+                                        Click="PrevImageBtn_Click" 
+                                        Visibility="Collapsed"
+                                        Background="#E0E0E0" BorderBrush="#CCCCCC"
+                                        Cursor="Hand"/>
+                                <Button Name="NextImageBtn" Content="下一张 ▶" 
+                                        Padding="10,5" 
+                                        Click="NextImageBtn_Click" 
+                                        Visibility="Collapsed"
+                                        Background="#E0E0E0" BorderBrush="#CCCCCC"
+                                        Cursor="Hand"/>
+                            </StackPanel>
+                            
+                            <!-- 图片索引显示 -->
+                            <TextBlock Name="ImageIndexText" 
+                                       Text="第 1/10 张" 
+                                       HorizontalAlignment="Center"
+                                       FontSize="12" Foreground="#666666"
+                                       Cursor="Hand" 
+                                       MouseLeftButtonDown="ImageIndexText_MouseLeftButtonDown"
+                                       ToolTip="点击跳转到指定图片"
+                                       Visibility="Collapsed"
+                                       Padding="5,2"/>
+                        </Grid>
+                        
                         <TextBlock Name="NoImagePreviewText" Text="选择一个文件进行预览" 
                                   HorizontalAlignment="Center" 
                                   VerticalAlignment="Center"

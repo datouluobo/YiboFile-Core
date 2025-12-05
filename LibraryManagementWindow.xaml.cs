@@ -22,6 +22,7 @@ namespace OoiMRR
         {
             if (e.Key == System.Windows.Input.Key.Escape)
             {
+                DialogResult = false;
                 Close();
             }
         }
@@ -34,13 +35,27 @@ namespace OoiMRR
 
         private void LibrariesListBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
         {
-            if (LibrariesListBox.SelectedItem is Library selectedLibrary)
+            bool hasSelection = LibrariesListBox.SelectedItem != null;
+            RenameLibraryBtn.IsEnabled = hasSelection;
+            DeleteLibraryBtn.IsEnabled = hasSelection;
+            
+            // 更新上/下移按钮状态
+            int selectedIndex = LibrariesListBox.SelectedIndex;
+            int itemCount = LibrariesListBox.Items.Count;
+            MoveUpBtn.IsEnabled = hasSelection && selectedIndex > 0;
+            MoveDownBtn.IsEnabled = hasSelection && selectedIndex < itemCount - 1;
+            
+            // 更新库位置按钮状态
+            AddPathBtn.IsEnabled = hasSelection;
+            
+            if (hasSelection && LibrariesListBox.SelectedItem is Library selectedLibrary)
             {
                 LoadLibraryPaths(selectedLibrary.Id);
             }
             else
             {
                 PathsListBox.ItemsSource = null;
+                RemovePathBtn.IsEnabled = false;
             }
         }
 
@@ -59,67 +74,82 @@ namespace OoiMRR
 
         private void NewLibrary_Click(object sender, RoutedEventArgs e)
         {
-            var dialog = new PathInputDialog("请输入库名称:");
-            if (dialog.ShowDialog() == true)
+            CreateNewLibrary();
+        }
+
+        private void NewLibraryNameTextBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key == System.Windows.Input.Key.Enter)
             {
-                var name = dialog.InputText.Trim();
-                if (string.IsNullOrEmpty(name))
-                {
-                    DialogService.Warning("库名称不能为空", "提示", this);
-                    return;
-                }
+                CreateNewLibrary();
+            }
+        }
 
-                try
+        private void CreateNewLibrary()
+        {
+            var categoryName = NewLibraryNameTextBox.Text?.Trim();
+            if (string.IsNullOrWhiteSpace(categoryName))
+            {
+                DialogService.Warning("请输入库名称", "提示", this);
+                NewLibraryNameTextBox.Focus();
+                return;
+            }
+
+            try
+            {
+                var libraryId = DatabaseManager.AddLibrary(categoryName);
+                if (libraryId > 0)
                 {
-                    var libraryId = DatabaseManager.AddLibrary(name);
-                    if (libraryId > 0)
+                    // 清空输入框
+                    NewLibraryNameTextBox.Text = "";
+                    
+                    LoadLibraries();
+                    
+                    // 选中新创建的库
+                    var newLibrary = _libraries.FirstOrDefault(l => l.Id == libraryId);
+                    if (newLibrary != null)
                     {
-                        LoadLibraries();
-                        // 选中新创建的库
-                        var newLibrary = _libraries.FirstOrDefault(l => l.Id == libraryId);
-                        if (newLibrary != null)
+                        LibrariesListBox.SelectedItem = newLibrary;
+                    }
+                    
+                    // 使用文件夹选择对话框添加初始位置（可选）
+                    if (DialogService.Ask("是否现在添加库的位置？\n\n您可以稍后在库位置列表中添加位置。", "添加位置", this))
+                    {
+                        using (var folderDialog = new FolderBrowserDialog())
                         {
-                            LibrariesListBox.SelectedItem = newLibrary;
-                        }
-                        
-                        // 使用文件夹选择对话框添加初始位置（可选）
-                        if (DialogService.Ask("是否现在添加库的位置？\n\n您可以稍后在库位置列表中添加位置。", "添加位置", this))
-                        {
-                            using (var folderDialog = new FolderBrowserDialog())
-                            {
-                                folderDialog.Description = "选择库的初始文件夹:";
-                                folderDialog.ShowNewFolderButton = false;
-                                folderDialog.SelectedPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+                            folderDialog.Description = "选择库的初始文件夹:";
+                            folderDialog.ShowNewFolderButton = false;
+                            folderDialog.SelectedPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
 
-                                if (folderDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-                                {
-                                    var path = folderDialog.SelectedPath;
-                                    DatabaseManager.AddLibraryPath(libraryId, path);
-                                    LoadLibraryPaths(libraryId);
-                                }
+                            if (folderDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                            {
+                                var path = folderDialog.SelectedPath;
+                                DatabaseManager.AddLibraryPath(libraryId, path);
+                                LoadLibraryPaths(libraryId);
                             }
                         }
                     }
-                    else if (libraryId < 0)
-                    {
-                        // 库已存在，刷新列表并选中它
-                        LoadLibraries();
-                        var existingLibrary = _libraries.FirstOrDefault(l => l.Name == name);
-                        if (existingLibrary != null)
-                        {
-                            LibrariesListBox.SelectedItem = existingLibrary;
-                        }
-                        DialogService.Info("库名称已存在，已选中该库", "提示", this);
-                    }
-                    else
-                    {
-                        DialogService.Error("创建库失败", "错误", this);
-                    }
                 }
-                catch (Exception ex)
+                else if (libraryId < 0)
                 {
-                    DialogService.Error($"创建库失败: {ex.Message}", "错误", this);
+                    // 库已存在，刷新列表并选中它
+                    LoadLibraries();
+                    var existingLibrary = _libraries.FirstOrDefault(l => l.Name == categoryName);
+                    if (existingLibrary != null)
+                    {
+                        LibrariesListBox.SelectedItem = existingLibrary;
+                    }
+                    DialogService.Info("库名称已存在，已选中该库", "提示", this);
+                    NewLibraryNameTextBox.Text = "";
                 }
+                else
+                {
+                    DialogService.Error("创建库失败", "错误", this);
+                }
+            }
+            catch (Exception ex)
+            {
+                DialogService.Error($"创建库失败: {ex.Message}", "错误", this);
             }
         }
 
@@ -146,13 +176,9 @@ namespace OoiMRR
                     }
                     catch (Exception ex)
                     {
-                        DialogService.Error($"重命名失败: {ex.Message}", "错误", this);
+                        DialogService.Error($"编辑库失败: {ex.Message}", "错误", this);
                     }
                 }
-            }
-            else
-            {
-                DialogService.Info("请先选择一个库", "提示", this);
             }
         }
 
@@ -161,7 +187,7 @@ namespace OoiMRR
             if (LibrariesListBox.SelectedItem is Library selectedLibrary)
             {
                 if (!ConfirmDialog.Show(
-                    $"确定要删除库 \"{selectedLibrary.Name}\" 吗？\n这将删除库及其所有位置，但不会删除实际文件。",
+                    $"确定要删除库 \"{selectedLibrary.Name}\" 吗？\n\n删除后，该库的所有位置将被移除，但不会删除实际文件。",
                     "确认删除",
                     ConfirmDialog.DialogType.Question,
                     this))
@@ -179,10 +205,6 @@ namespace OoiMRR
                 {
                     DialogService.Error($"删除库失败: {ex.Message}", "错误", this);
                 }
-            }
-            else
-            {
-                DialogService.Info("请先选择一个库", "提示", this);
             }
         }
 
@@ -234,10 +256,6 @@ namespace OoiMRR
                     }
                 }
             }
-            else
-            {
-                DialogService.Info("请先选择一个库", "提示", this);
-            }
         }
 
         private void RemovePath_Click(object sender, RoutedEventArgs e)
@@ -253,24 +271,73 @@ namespace OoiMRR
                     }
                     catch (Exception ex)
                     {
-                        DialogService.Error($"移除位置失败: {ex.Message}", "错误", this);
+                        DialogService.Error($"删除位置失败: {ex.Message}", "错误", this);
                     }
                 }
-            }
-            else
-            {
-                DialogService.Info("请先选择一个位置", "提示", this);
             }
         }
 
         private void PathsListBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
         {
-            // 可以在这里添加位置选择改变的处理
+            bool hasSelection = PathsListBox.SelectedItem != null;
+            RemovePathBtn.IsEnabled = hasSelection;
         }
 
-        private void Close_Click(object sender, RoutedEventArgs e)
+        private void MoveLibraryUp_Click(object sender, RoutedEventArgs e)
+        {
+            MoveLibrary(-1);
+        }
+
+        private void MoveLibraryDown_Click(object sender, RoutedEventArgs e)
+        {
+            MoveLibrary(1);
+        }
+
+        private void MoveLibrary(int direction)
+        {
+            if (LibrariesListBox.SelectedItem == null) return;
+            
+            int selectedIndex = LibrariesListBox.SelectedIndex;
+            int newIndex = selectedIndex + direction;
+            
+            if (newIndex < 0 || newIndex >= _libraries.Count) return;
+
+            try
+            {
+                var currentLibrary = _libraries[selectedIndex];
+
+                if (direction < 0)
+                {
+                    DatabaseManager.MoveLibraryUp(currentLibrary.Id);
+                }
+                else
+                {
+                    DatabaseManager.MoveLibraryDown(currentLibrary.Id);
+                }
+
+                // 重新加载并恢复选中
+                LoadLibraries();
+                
+                if (newIndex >= 0 && newIndex < LibrariesListBox.Items.Count)
+                {
+                    LibrariesListBox.SelectedIndex = newIndex;
+                }
+            }
+            catch (Exception ex)
+            {
+                DialogService.Error($"移动库失败: {ex.Message}", "错误", this);
+            }
+        }
+
+        private void OK_Click(object sender, RoutedEventArgs e)
         {
             DialogResult = true;
+            Close();
+        }
+
+        private void Cancel_Click(object sender, RoutedEventArgs e)
+        {
+            DialogResult = false;
             Close();
         }
     }
