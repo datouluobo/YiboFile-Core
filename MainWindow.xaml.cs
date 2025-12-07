@@ -17,6 +17,7 @@ using Microsoft.Win32;
 using System.Runtime.InteropServices;
 using System.ComponentModel;
 using OoiMRR.Services;
+using OoiMRR.Services.FileOperations;
 using System.Threading;
 
 namespace OoiMRR
@@ -34,8 +35,6 @@ namespace OoiMRR
         private bool _isApplyingConfig = false;
         private FileSystemWatcher _fileWatcher;
         private System.Windows.Threading.DispatcherTimer _refreshDebounceTimer;
-        private List<string> _copiedPaths = new List<string>();
-        private bool _isCutOperation = false;
         private DragDropManager _dragDropManager;
         private string _lastSortColumn = "Name";
         private bool _sortAscending = true;
@@ -50,7 +49,6 @@ namespace OoiMRR
         // 加载锁定，防止重复加载导致卡死
         private bool _isLoadingFiles = false;
         private System.Threading.SemaphoreSlim _loadFilesSemaphore = new System.Threading.SemaphoreSlim(1, 1);
-        private System.Threading.CancellationTokenSource _loadLibraryCancellation = new System.Threading.CancellationTokenSource();
         
         // 性能优化：限制并发文件夹大小计算任务（减少到1个，避免CPU占用过高）
         private System.Threading.SemaphoreSlim _folderSizeCalculationSemaphore = new System.Threading.SemaphoreSlim(1, 1); // 最多1个并发任务
@@ -2184,61 +2182,34 @@ namespace OoiMRR
             // 如果强制新标签页，直接创建新标签页
             if (forceNewTab)
             {
-                // 清除当前库的标签页，创建新的
-                if (_currentLibrary != null && _currentLibrary.Id == library.Id)
+                var tab = new PathTab
                 {
-                    // 移除当前库的所有路径标签页
-                    var tabsToRemove = _pathTabs.Where(t => t.Type == TabType.Path && library.Paths != null && library.Paths.Contains(t.Path)).ToList();
-                    foreach (var tab in tabsToRemove)
-                    {
-                        CloseTab(tab);
-                    }
-                }
-                
-                // 设置当前库并创建标签页
-                _currentLibrary = library;
-                _config.LastLibraryId = library.Id;
-                ConfigManager.Save(_config);
-                SetupLibraryTabs(library);
-                LoadLibraryFiles(library);
+                    Type = TabType.Library,
+                    Path = library.Name,  // 库标签页使用库名称作为Path标识
+                    Title = library.Name,
+                    Library = library
+                };
+                CreateTabInternal(tab);
                 return;
             }
             
-            // 检查是否已存在该库的库类型标签页（向后兼容）
-            var existingLibraryTab = _pathTabs.FirstOrDefault(t => t.Type == TabType.Library && t.Library != null && t.Library.Id == library.Id);
-            if (existingLibraryTab != null)
+            // 检查是否已存在该库的标签页
+            var existingTab = _pathTabs.FirstOrDefault(t => t.Type == TabType.Library && t.Library != null && t.Library.Id == library.Id);
+            if (existingTab != null)
             {
-                _currentLibrary = library;
-                _config.LastLibraryId = library.Id;
-                ConfigManager.Save(_config);
-                SwitchToTab(existingLibraryTab);
+                SwitchToTab(existingTab);
                 return;
             }
             
-            // 如果没有已有标签页，检查当前库是否已经是这个库
-            if (_currentLibrary != null && _currentLibrary.Id == library.Id)
-            {
-                // 已经是当前库，但可能没有标签页，直接加载文件
-                LoadLibraryFiles(library);
-                return;
-            }
-            
-            // 创建新的库标签页（TabType.Library类型，标题为库名称）
-            _currentLibrary = library;
-            _config.LastLibraryId = library.Id;
-            ConfigManager.Save(_config);
-            
-            // 创建库类型的标签页
             var newTab = new PathTab
             {
                 Type = TabType.Library,
-                Path = $"library://{library.Id}",  // 使用库ID作为标识
-                Title = library.Name,  // 使用库名称作为标题
+                Path = library.Name,  // 库标签页使用库名称作为Path标识
+                Title = library.Name,
                 Library = library
             };
             
             CreateTabInternal(newTab);
-            LoadLibraryFiles(library);
         }
         
         private void OpenTagInTab(Tag tag, bool forceNewTab = false)
@@ -5076,7 +5047,23 @@ namespace OoiMRR
         private void Refresh_Click(object sender, RoutedEventArgs e)
         {
             ClearFilter();
-            LoadCurrentDirectory();
+            
+            // 根据当前导航模式执行不同的刷新操作
+            if (NavLibraryContent != null && NavLibraryContent.Visibility == Visibility.Visible)
+            {
+                // 库模式：刷新库列表
+                LoadLibraries();
+            }
+            else if (NavTagContent != null && NavTagContent.Visibility == Visibility.Visible)
+            {
+                // 标签模式：刷新文件列表
+                RefreshFileList();
+            }
+            else
+            {
+                // 路径模式：刷新当前目录
+                LoadCurrentDirectory();
+            }
         }
 
         private void ClearFilter_Click(object sender, RoutedEventArgs e)
@@ -6657,7 +6644,6 @@ namespace OoiMRR
                 LibraryRenameMenuItem.IsEnabled = hasSelection;
                 LibraryDeleteMenuItem.IsEnabled = hasSelection;
                 LibraryManageMenuItem.IsEnabled = hasSelection;
-                // LibraryOpenInExplorerMenuItem.IsEnabled = hasSelection; // 已移除该菜单项
             }
         }
 
@@ -6788,11 +6774,6 @@ namespace OoiMRR
             ManageLibraries_Click(sender, e);
         }
 
-        private void LibraryRefreshBottomBtn_Click(object sender, RoutedEventArgs e)
-        {
-            LoadLibraries();
-        }
-
         private bool _libraryClickForceNewTab = false;
 
         private void LibrariesListBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
@@ -6866,21 +6847,10 @@ namespace OoiMRR
 
         private void LoadLibraryFiles(Library library)
         {
-            // 取消之前的加载任务
-            _loadLibraryCancellation.Cancel();
-            _loadLibraryCancellation = new System.Threading.CancellationTokenSource();
-            var cancellationToken = _loadLibraryCancellation.Token;
-            
             // 使用信号量防止重复加载
             if (!_loadFilesSemaphore.Wait(0))
             {
-                System.Diagnostics.Debug.WriteLine("LoadLibraryFiles: 已有加载任务在进行，等待完成后重新加载");
-                // 等待一小段时间后重试
-                _ = System.Threading.Tasks.Task.Run(async () =>
-                {
-                    await System.Threading.Tasks.Task.Delay(100);
-                    _ = Dispatcher.BeginInvoke(new Action(() => LoadLibraryFiles(library)), System.Windows.Threading.DispatcherPriority.Background);
-                });
+                System.Diagnostics.Debug.WriteLine("LoadLibraryFiles: 已有加载任务在进行，跳过此次调用");
                 return;
             }
             
@@ -6929,31 +6899,12 @@ namespace OoiMRR
                 {
                     try
                     {
-                        // 检查是否已取消
-                        if (cancellationToken.IsCancellationRequested)
-                        {
-                            System.Diagnostics.Debug.WriteLine("[加载库文件] 任务已取消");
-                            Dispatcher.BeginInvoke(new Action(() =>
-                            {
-                                _isLoadingFiles = false;
-                                _loadFilesSemaphore.Release();
-                            }), System.Windows.Threading.DispatcherPriority.Background);
-                            return;
-                        }
-                        
                         System.Diagnostics.Debug.WriteLine($"[加载库文件] 库有 {library.Paths.Count} 个位置");
                         var allItems = new Dictionary<string, FileSystemItem>();
                         
                         // 遍历库中的所有位置
                         foreach (var path in library.Paths)
                 {
-                        // 检查是否已取消
-                        if (cancellationToken.IsCancellationRequested)
-                        {
-                            System.Diagnostics.Debug.WriteLine("[加载库文件] 任务已取消");
-                            break;
-                        }
-                        
                     System.Diagnostics.Debug.WriteLine($"[加载库文件] 处理路径: {path}");
                     if (!Directory.Exists(path))
                     {
@@ -7083,30 +7034,11 @@ namespace OoiMRR
                     }
                 }
 
-                        // 检查是否已取消
-                        if (cancellationToken.IsCancellationRequested)
-                        {
-                            System.Diagnostics.Debug.WriteLine("[加载库文件] 任务已取消，不更新UI");
-                            Dispatcher.BeginInvoke(new Action(() =>
-                            {
-                                _isLoadingFiles = false;
-                                _loadFilesSemaphore.Release();
-                            }), System.Windows.Threading.DispatcherPriority.Background);
-                            return;
-                        }
-                        
                         // 在UI线程更新文件列表
                         Dispatcher.BeginInvoke(new Action(() =>
                         {
                             try
                             {
-                                // 再次检查是否已取消（可能在等待UI线程时被取消）
-                                if (cancellationToken.IsCancellationRequested)
-                                {
-                                    System.Diagnostics.Debug.WriteLine("[加载库文件] UI更新时任务已取消");
-                                    return;
-                                }
-                                
                                 // 显示合并的库文件（库标签页统一显示合并视图）
                                 ShowMergedLibraryFiles(allItems.Values.ToList(), library);
                             }
@@ -8711,577 +8643,56 @@ namespace OoiMRR
 
         #endregion
 
+        #region 文件操作辅助方法
+
+        /// <summary>
+        /// 获取当前文件操作上下文
+        /// </summary>
+        private IFileOperationContext GetCurrentFileOperationContext()
+        {
+            var refreshCallback = new Action(() => 
+            {
+                if (_currentLibrary != null)
+                    LoadLibraryFiles(_currentLibrary);
+                else if (_currentTagFilter != null)
+                    FilterByTag(_currentTagFilter);
+                else
+                    LoadCurrentDirectory();
+            });
+
+            if (_currentLibrary != null)
+            {
+                return new LibraryOperationContext(_currentLibrary, FileBrowser, this, refreshCallback);
+            }
+            else if (_currentTagFilter != null)
+            {
+                return new TagOperationContext(_currentTagFilter, FileBrowser, this, refreshCallback);
+            }
+            else
+            {
+                return new PathOperationContext(_currentPath, FileBrowser, this, refreshCallback);
+            }
+        }
+
+        #endregion
+
         #region 菜单事件
 
         private void NewFolder_Click(object sender, RoutedEventArgs e)
         {
-            try
-            {
-                string targetPath = null;
-                
-                // 判断当前模式：库模式还是路径模式
-                if (_currentLibrary != null)
-                {
-                    // 库模式：使用库的第一个位置
-                    if (_currentLibrary.Paths == null || _currentLibrary.Paths.Count == 0)
-                    {
-                        MessageBox.Show("当前库没有添加任何位置，请先在管理库中添加位置", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-                        return;
-                    }
-                    
-                    // 如果有多个位置，让用户选择
-                    if (_currentLibrary.Paths.Count > 1)
-                    {
-                        var paths = string.Join("\n", _currentLibrary.Paths.Select((p, i) => $"{i + 1}. {p}"));
-                        var result = MessageBox.Show(
-                            $"当前库有多个位置，将在第一个位置创建文件夹：\n\n{_currentLibrary.Paths[0]}\n\n是否继续？\n\n所有位置：\n{paths}",
-                            "选择位置",
-                            MessageBoxButton.YesNo,
-                            MessageBoxImage.Question);
-                        
-                        if (result != MessageBoxResult.Yes)
-                        {
-                            return;
-                        }
-                    }
-                    
-                    targetPath = _currentLibrary.Paths[0];
-                    if (!Directory.Exists(targetPath))
-                    {
-                        MessageBox.Show($"库位置不存在: {targetPath}", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
-                        return;
-                    }
-                }
-                else if (!string.IsNullOrEmpty(_currentPath) && Directory.Exists(_currentPath))
-                {
-                    // 路径模式：使用当前路径
-                    targetPath = _currentPath;
-                }
-                else
-                {
-                    MessageBox.Show("当前没有可用的路径", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
+            var context = GetCurrentFileOperationContext();
+            var newFolderOperation = new NewFolderOperation(context, this);
 
-                // 使用简单的输入对话框
-                var dialog = new PathInputDialog
-                {
-                    Title = "新建文件夹",
-                    PromptText = "请输入文件夹名称：",
-                    InputText = "新建文件夹",
-                    Owner = this
-                };
-
-                if (dialog.ShowDialog() == true)
-                {
-                    var folderName = dialog.InputText.Trim();
-                    
-                    // 验证文件夹名称
-                    if (string.IsNullOrEmpty(folderName))
-                    {
-                        MessageBox.Show("文件夹名称不能为空", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
-                        return;
-                    }
-
-                    // 检查非法字符
-                    char[] invalidChars = Path.GetInvalidFileNameChars();
-                    if (folderName.IndexOfAny(invalidChars) >= 0)
-                    {
-                        MessageBox.Show("文件夹名称包含非法字符", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
-                        return;
-                    }
-
-                    var folderPath = Path.Combine(targetPath, folderName);
-
-                    // 如果已存在，自动添加序号
-                    if (Directory.Exists(folderPath))
-                    {
-                        int counter = 2;
-                        string newFolderName;
-                        do
-                        {
-                            newFolderName = $"{folderName} ({counter})";
-                            folderPath = Path.Combine(targetPath, newFolderName);
-                            counter++;
-                        }
-                        while (Directory.Exists(folderPath));
-                    }
-
-                    // 创建文件夹
-                    Directory.CreateDirectory(folderPath);
-                    
-                    // 刷新显示
-                    RefreshFileList();
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"创建文件夹失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+            newFolderOperation.Execute();
         }
 
         private void NewFile_Click(object sender, RoutedEventArgs e)
         {
-            try
-            {
-                // 显示文件类型选择菜单
-                var contextMenu = new ContextMenu
-                {
-                    Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom,
-                    PlacementTarget = sender as UIElement
-                };
-                
-                // 常用文件类型列表
-                var fileTypes = new[]
-                {
-                    ("📄 文本文件", ".txt"),
-                    ("📝 Word 文档", ".docx"),
-                    ("📊 Excel 表格", ".xlsx"),
-                    ("📽️ PowerPoint", ".pptx"),
-                    ("🖼️ PNG 图片", ".png"),
-                    ("🖼️ JPEG 图片", ".jpg"),
-                    ("🖼️ GIF 图片", ".gif"),
-                    ("🖼️ BMP 图片", ".bmp"),
-                    ("🖼️ SVG 矢量图", ".svg"),
-                    ("💻 C# 代码", ".cs"),
-                    ("🌐 HTML 网页", ".html"),
-                    ("🎨 CSS 样式", ".css"),
-                    ("⚡ JavaScript", ".js"),
-                    ("🐍 Python", ".py"),
-                    ("☕ Java", ".java"),
-                    ("📋 JSON", ".json"),
-                    ("📋 XML", ".xml"),
-                    ("📋 Markdown", ".md"),
-                    ("⚙️ 配置文件", ".ini"),
-                    ("📦 批处理", ".bat"),
-                    ("🔧 PowerShell", ".ps1")
-                };
+            var context = GetCurrentFileOperationContext();
+            var placementTarget = sender as UIElement;
+            var newFileOperation = new NewFileOperation(context, this, placementTarget);
 
-                foreach (var (name, extension) in fileTypes)
-                {
-                    var menuItem = new MenuItem
-                    {
-                        Header = name,
-                        Tag = extension,
-                        Padding = new Thickness(10, 5, 10, 5)
-                    };
-                    menuItem.Click += (s, args) =>
-                    {
-                        CreateNewFileWithExtension(extension);
-                    };
-                    contextMenu.Items.Add(menuItem);
-                }
-
-                // 添加分隔符和自定义选项
-                contextMenu.Items.Add(new Separator());
-                
-                var customMenuItem = new MenuItem
-                {
-                    Header = "✏️ 自定义扩展名...",
-                    Padding = new Thickness(10, 5, 10, 5)
-                };
-                customMenuItem.Click += (s, args) =>
-                {
-                    var dialog = new PathInputDialog
-                    {
-                        Title = "新建文件",
-                        PromptText = "请输入文件扩展名（如 .txt）：",
-                        InputText = ".txt",
-                        Owner = this
-                    };
-
-                    if (dialog.ShowDialog() == true)
-                    {
-                        var extension = dialog.InputText.Trim();
-                        if (!extension.StartsWith("."))
-                        {
-                            extension = "." + extension;
-                        }
-                        CreateNewFileWithExtension(extension);
-                    }
-                };
-                contextMenu.Items.Add(customMenuItem);
-
-                // 显示菜单
-                contextMenu.IsOpen = true;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"创建文件失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        private void CreateNewFileWithExtension(string extension)
-        {
-            try
-            {
-                string targetPath = null;
-                
-                // 判断当前模式：库模式还是路径模式
-                if (_currentLibrary != null)
-                {
-                    // 库模式：使用库的第一个位置
-                    if (_currentLibrary.Paths == null || _currentLibrary.Paths.Count == 0)
-                    {
-                        MessageBox.Show("当前库没有添加任何位置，请先在管理库中添加位置", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-                        return;
-                    }
-                    
-                    // 如果有多个位置，让用户选择
-                    if (_currentLibrary.Paths.Count > 1)
-                    {
-                        var paths = string.Join("\n", _currentLibrary.Paths.Select((p, i) => $"{i + 1}. {p}"));
-                        var result = MessageBox.Show(
-                            $"当前库有多个位置，将在第一个位置创建文件：\n\n{_currentLibrary.Paths[0]}\n\n是否继续？\n\n所有位置：\n{paths}",
-                            "选择位置",
-                            MessageBoxButton.YesNo,
-                            MessageBoxImage.Question);
-                        
-                        if (result != MessageBoxResult.Yes)
-                        {
-                            return;
-                        }
-                    }
-                    
-                    targetPath = _currentLibrary.Paths[0];
-                    if (!Directory.Exists(targetPath))
-                    {
-                        MessageBox.Show($"库位置不存在: {targetPath}", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
-                        return;
-                    }
-                }
-                else if (!string.IsNullOrEmpty(_currentPath) && Directory.Exists(_currentPath))
-                {
-                    // 路径模式：使用当前路径
-                    targetPath = _currentPath;
-                }
-                else
-                {
-                    MessageBox.Show("当前没有可用的路径", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
-
-                // 根据扩展名生成文件名
-                string baseFileName = $"新建文件{extension}";
-                string filePath = Path.Combine(targetPath, baseFileName);
-
-                // 如果已存在，自动添加序号
-                if (File.Exists(filePath))
-                {
-                    string fileNameWithoutExt = Path.GetFileNameWithoutExtension(baseFileName);
-                    int counter = 2;
-                    
-                    do
-                    {
-                        string candidateFileName = $"{fileNameWithoutExt} ({counter}){extension}";
-                        filePath = Path.Combine(targetPath, candidateFileName);
-                        counter++;
-                    }
-                    while (File.Exists(filePath));
-                }
-
-                // 根据文件类型创建合适的文件内容
-                CreateFileWithProperFormat(filePath, extension.ToLower());
-                
-                // 刷新显示
-                RefreshFileList();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"创建文件失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-        private void CreateFileWithProperFormat(string filePath, string extension)
-        {
-            switch (extension)
-            {
-                case ".docx":
-                case ".xlsx":
-                case ".pptx":
-                    // Office 文件需要使用 COM 或库创建
-                    CreateOfficeFile(filePath, extension);
-                    break;
-
-                case ".html":
-                    File.WriteAllText(filePath, @"<!DOCTYPE html>
-<html lang=""zh-CN"">
-<head>
-    <meta charset=""UTF-8"">
-    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
-    <title>新建网页</title>
-</head>
-<body>
-    <h1>Hello World</h1>
-</body>
-</html>");
-                    break;
-
-                case ".css":
-                    File.WriteAllText(filePath, @"/* CSS Stylesheet */
-
-body {
-    margin: 0;
-    padding: 0;
-    font-family: Arial, sans-serif;
-}
-");
-                    break;
-
-                case ".js":
-                    File.WriteAllText(filePath, @"// JavaScript
-
-console.log('Hello World');
-");
-                    break;
-
-                case ".cs":
-                    File.WriteAllText(filePath, @"using System;
-
-namespace MyNamespace
-{
-    class Program
-    {
-        static void Main(string[] args)
-        {
-            Console.WriteLine(""Hello World"");
-        }
-    }
-}
-");
-                    break;
-
-                case ".py":
-                    File.WriteAllText(filePath, @"# Python Script
-
-def main():
-    print('Hello World')
-
-if __name__ == '__main__':
-    main()
-");
-                    break;
-
-                case ".java":
-                    string className = Path.GetFileNameWithoutExtension(filePath).Replace(" ", "_");
-                    File.WriteAllText(filePath, $@"public class {className} {{
-    public static void main(String[] args) {{
-        System.out.println(""Hello World"");
-    }}
-}}
-");
-                    break;
-
-                case ".json":
-                    File.WriteAllText(filePath, @"{
-    ""name"": ""example"",
-    ""version"": ""1.0.0""
-}
-");
-                    break;
-
-                case ".xml":
-                    File.WriteAllText(filePath, @"<?xml version=""1.0"" encoding=""UTF-8""?>
-<root>
-    <item>Example</item>
-</root>
-");
-                    break;
-
-                case ".md":
-                    File.WriteAllText(filePath, @"# 标题
-
-这是一个 Markdown 文档。
-
-## 二级标题
-
-- 列表项 1
-- 列表项 2
-");
-                    break;
-
-                case ".ini":
-                    File.WriteAllText(filePath, @"[Settings]
-Key=Value
-");
-                    break;
-
-                case ".bat":
-                    File.WriteAllText(filePath, @"@echo off
-echo Hello World
-pause
-");
-                    break;
-
-                case ".ps1":
-                    File.WriteAllText(filePath, @"# PowerShell Script
-
-Write-Host ""Hello World""
-");
-                    break;
-
-                case ".png":
-                case ".jpg":
-                case ".jpeg":
-                case ".bmp":
-                case ".gif":
-                    // 创建一个简单的图片文件
-                    CreateImageFile(filePath, extension);
-                    break;
-
-                case ".svg":
-                    // 创建一个简单的SVG文件
-                    File.WriteAllText(filePath, @"<?xml version=""1.0"" encoding=""UTF-8""?>
-<svg width=""500"" height=""500"" xmlns=""http://www.w3.org/2000/svg"">
-    <rect width=""500"" height=""500"" fill=""#FFFFFF""/>
-</svg>");
-                    break;
-
-                default:
-                    // 其他文件类型创建空文件
-                    File.WriteAllText(filePath, string.Empty);
-                    break;
-            }
-        }
-
-        private void CreateImageFile(string filePath, string extension)
-        {
-            try
-            {
-                // 创建一个500x500的空白图片
-                using (var bitmap = new Bitmap(500, 500))
-                {
-                    using (var graphics = Graphics.FromImage(bitmap))
-                    {
-                        // 填充白色背景
-                        graphics.Clear(System.Drawing.Color.White);
-                    }
-
-                    // 根据扩展名保存为相应格式
-                    switch (extension.ToLower())
-                    {
-                        case ".png":
-                            bitmap.Save(filePath, System.Drawing.Imaging.ImageFormat.Png);
-                            break;
-                        case ".jpg":
-                        case ".jpeg":
-                            bitmap.Save(filePath, System.Drawing.Imaging.ImageFormat.Jpeg);
-                            break;
-                        case ".bmp":
-                            bitmap.Save(filePath, System.Drawing.Imaging.ImageFormat.Bmp);
-                            break;
-                        case ".gif":
-                            bitmap.Save(filePath, System.Drawing.Imaging.ImageFormat.Gif);
-                            break;
-                        default:
-                            bitmap.Save(filePath, System.Drawing.Imaging.ImageFormat.Png);
-                            break;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"创建图片文件失败: {ex.Message}\n将创建空文件", "警告", MessageBoxButton.OK, MessageBoxImage.Warning);
-                File.WriteAllText(filePath, string.Empty);
-            }
-        }
-
-        private void CreateOfficeFile(string filePath, string extension)
-        {
-            try
-            {
-                dynamic app = null;
-                dynamic doc = null;
-
-                switch (extension)
-                {
-                    case ".docx":
-                        try
-                        {
-                            var wordType = Type.GetTypeFromProgID("Word.Application");
-                            if (wordType == null)
-                            {
-                                MessageBox.Show("未检测到 Microsoft Word，将创建空文件", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-                                File.WriteAllText(filePath, string.Empty);
-                                return;
-                            }
-
-                            app = Activator.CreateInstance(wordType);
-                            app.Visible = false;
-                            app.DisplayAlerts = 0;
-                            doc = app.Documents.Add();
-                            doc.SaveAs2(filePath);
-                            doc.Close(false);
-                        }
-                        finally
-                        {
-                            if (app != null)
-                            {
-                                app.Quit(false);
-                                System.Runtime.InteropServices.Marshal.ReleaseComObject(app);
-                            }
-                        }
-                        break;
-
-                    case ".xlsx":
-                        try
-                        {
-                            var excelType = Type.GetTypeFromProgID("Excel.Application");
-                            if (excelType == null)
-                            {
-                                MessageBox.Show("未检测到 Microsoft Excel，将创建空文件", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-                                File.WriteAllText(filePath, string.Empty);
-                                return;
-                            }
-
-                            app = Activator.CreateInstance(excelType);
-                            app.Visible = false;
-                            app.DisplayAlerts = false;
-                            doc = app.Workbooks.Add();
-                            doc.SaveAs(filePath);
-                            doc.Close(false);
-                        }
-                        finally
-                        {
-                            if (app != null)
-                            {
-                                app.Quit();
-                                System.Runtime.InteropServices.Marshal.ReleaseComObject(app);
-                            }
-                        }
-                        break;
-
-                    case ".pptx":
-                        try
-                        {
-                            var pptType = Type.GetTypeFromProgID("PowerPoint.Application");
-                            if (pptType == null)
-                            {
-                                MessageBox.Show("未检测到 Microsoft PowerPoint，将创建空文件", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-                                File.WriteAllText(filePath, string.Empty);
-                                return;
-                            }
-
-                            app = Activator.CreateInstance(pptType);
-                            doc = app.Presentations.Add();
-                            doc.SaveAs(filePath);
-                            doc.Close();
-                        }
-                        finally
-                        {
-                            if (app != null)
-                            {
-                                app.Quit();
-                                System.Runtime.InteropServices.Marshal.ReleaseComObject(app);
-                            }
-                        }
-                        break;
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"创建 Office 文件失败: {ex.Message}\n将创建空文件", "警告", MessageBoxButton.OK, MessageBoxImage.Warning);
-                File.WriteAllText(filePath, string.Empty);
-            }
+            newFileOperation.Execute();
         }
 
         private void Exit_Click(object sender, RoutedEventArgs e)
@@ -9321,30 +8732,7 @@ Write-Host ""Hello World""
 
         private void Settings_Click(object sender, RoutedEventArgs e)
         {
-            // 显示设置面板
-            if (SettingsOverlay != null)
-            {
-                SettingsOverlay.Visibility = Visibility.Visible;
-                // 加载设置
-                if (SettingsPanel != null)
-                {
-                    SettingsPanel.LoadAllSettings();
-                }
-            }
-        }
-
-        private void SettingsPanel_CloseRequested(object sender, EventArgs e)
-        {
-            // 保存设置
-            if (SettingsPanel != null)
-            {
-                SettingsPanel.SaveAllSettings();
-            }
-            // 隐藏设置面板
-            if (SettingsOverlay != null)
-            {
-                SettingsOverlay.Visibility = Visibility.Collapsed;
-            }
+            MessageBox.Show("设置已包含导入/导出配置功能，请使用工具菜单中的相应项。", "设置", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private void ImportConfig_Click(object sender, RoutedEventArgs e)
@@ -11582,14 +10970,13 @@ Write-Host ""Hello World""
             if (FileBrowser?.FilesSelectedItems == null || FileBrowser.FilesSelectedItems.Count == 0)
                 return;
 
-            _copiedPaths.Clear();
-            _isCutOperation = false;
-
-            if (FileBrowser?.FilesSelectedItems != null)
-                foreach (FileSystemItem item in FileBrowser.FilesSelectedItems)
+            var selectedPaths = new List<string>();
+            foreach (FileSystemItem item in FileBrowser.FilesSelectedItems)
             {
-                _copiedPaths.Add(item.Path);
+                selectedPaths.Add(item.Path);
             }
+
+            FileClipboardManager.SetCopyPaths(selectedPaths);
         }
 
         private void Cut_Click(object sender, RoutedEventArgs e)
@@ -11597,96 +10984,31 @@ Write-Host ""Hello World""
             if (FileBrowser?.FilesSelectedItems == null || FileBrowser.FilesSelectedItems.Count == 0)
                 return;
 
-            _copiedPaths.Clear();
-            _isCutOperation = true;
-
-            if (FileBrowser?.FilesSelectedItems != null)
-                foreach (FileSystemItem item in FileBrowser.FilesSelectedItems)
+            var selectedPaths = new List<string>();
+            foreach (FileSystemItem item in FileBrowser.FilesSelectedItems)
             {
-                _copiedPaths.Add(item.Path);
+                selectedPaths.Add(item.Path);
             }
+
+            FileClipboardManager.SetCutPaths(selectedPaths);
         }
 
         private void Paste_Click(object sender, RoutedEventArgs e)
         {
-            if (_copiedPaths.Count == 0)
+            if (!FileClipboardManager.HasContent)
                 return;
 
-            try
+            var context = GetCurrentFileOperationContext();
+            var pasteOperation = new PasteOperation(context);
+            var copiedPaths = FileClipboardManager.GetCopiedPaths();
+            var isCut = FileClipboardManager.IsCutOperation;
+
+            pasteOperation.Execute(copiedPaths, isCut);
+
+            // 如果是剪切操作，粘贴后清除剪贴板
+            if (isCut)
             {
-                foreach (var sourcePath in _copiedPaths)
-                {
-                    var fileName = Path.GetFileName(sourcePath);
-                    var destPath = Path.Combine(_currentPath, fileName);
-
-                    // 如果目标已存在，添加序号
-                    if (File.Exists(destPath) || Directory.Exists(destPath))
-                    {
-                        var extension = Path.GetExtension(fileName);
-                        var nameWithoutExt = Path.GetFileNameWithoutExtension(fileName);
-                        int counter = 1;
-
-                        do
-                        {
-                            fileName = $"{nameWithoutExt} ({counter}){extension}";
-                            destPath = Path.Combine(_currentPath, fileName);
-                            counter++;
-                        }
-                        while (File.Exists(destPath) || Directory.Exists(destPath));
-                    }
-
-                    if (File.Exists(sourcePath))
-                    {
-                        if (_isCutOperation)
-                        {
-                            File.Move(sourcePath, destPath);
-                        }
-                        else
-                        {
-                            File.Copy(sourcePath, destPath);
-                        }
-                    }
-                    else if (Directory.Exists(sourcePath))
-                    {
-                        if (_isCutOperation)
-                        {
-                            Directory.Move(sourcePath, destPath);
-                        }
-                        else
-                        {
-                            CopyDirectory(sourcePath, destPath);
-                        }
-                    }
-                }
-
-                if (_isCutOperation)
-                {
-                    _copiedPaths.Clear();
-                    _isCutOperation = false;
-                }
-
-                LoadCurrentDirectory();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"粘贴失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        private void CopyDirectory(string sourceDir, string destDir)
-        {
-            Directory.CreateDirectory(destDir);
-
-            foreach (var file in Directory.GetFiles(sourceDir))
-            {
-                var fileName = Path.GetFileName(file);
-                File.Copy(file, Path.Combine(destDir, fileName), true);
-            }
-
-            foreach (var dir in Directory.GetDirectories(sourceDir))
-            {
-                var dirName = Path.GetFileName(dir);
-                CopyDirectory(dir, Path.Combine(destDir, dirName));
+                FileClipboardManager.ClearCutOperation();
             }
         }
 
@@ -11695,52 +11017,11 @@ Write-Host ""Hello World""
             if (FileBrowser?.FilesSelectedItems == null || FileBrowser.FilesSelectedItems.Count == 0)
                 return;
 
-            var itemCount = FileBrowser?.FilesSelectedItems?.Count ?? 0;
-            var message = itemCount == 1 
-                ? $"确定要删除 \"{(FileBrowser?.FilesSelectedItem as FileSystemItem)?.Name}\" 吗？"
-                : $"确定要删除这 {itemCount} 个项目吗？";
+            var context = GetCurrentFileOperationContext();
+            var deleteOperation = new DeleteOperation(context);
+            var selectedItems = context.GetSelectedItems();
 
-            if (!ConfirmDialog.Show(message, "确认删除", ConfirmDialog.DialogType.Warning, this))
-                return;
-
-            var itemsToDelete = new List<FileSystemItem>();
-            if (FileBrowser?.FilesSelectedItems != null)
-                foreach (FileSystemItem item in FileBrowser.FilesSelectedItems)
-            {
-                itemsToDelete.Add(item);
-            }
-
-            var failedItems = new List<string>();
-
-            foreach (var item in itemsToDelete)
-            {
-                try
-                {
-                    if (item.IsDirectory)
-                    {
-                        Directory.Delete(item.Path, true);
-                    }
-                    else
-                    {
-                        File.Delete(item.Path);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    failedItems.Add($"{item.Name}: {ex.Message}");
-                }
-            }
-
-            LoadCurrentDirectory();
-
-            if (failedItems.Count > 0)
-            {
-                MessageBox.Show(
-                    $"以下项目删除失败:\n\n{string.Join("\n", failedItems)}",
-                    "删除失败",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
-            }
+            deleteOperation.Execute(selectedItems);
         }
 
         private void Rename_Click(object sender, RoutedEventArgs e)
@@ -11748,44 +11029,10 @@ Write-Host ""Hello World""
             if (FileBrowser?.FilesSelectedItem is not FileSystemItem selectedItem)
                 return;
 
-            var dialog = new PathInputDialog
-            {
-                Title = "重命名",
-                PromptText = "请输入新名称：",
-                InputText = selectedItem.Name,
-                SelectFileNameOnly = true,
-                Owner = this
-            };
+            var context = GetCurrentFileOperationContext();
+            var renameOperation = new RenameOperation(context, this);
 
-            if (dialog.ShowDialog() == true)
-            {
-                try
-                {
-                    var newName = dialog.InputText.Trim();
-                    if (string.IsNullOrEmpty(newName))
-                    {
-                        MessageBox.Show("名称不能为空", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                        return;
-                    }
-
-                    var newPath = Path.Combine(Path.GetDirectoryName(selectedItem.Path), newName);
-
-                    if (selectedItem.IsDirectory)
-                    {
-                        Directory.Move(selectedItem.Path, newPath);
-                    }
-                    else
-                    {
-                        File.Move(selectedItem.Path, newPath);
-                    }
-
-                    LoadCurrentDirectory();
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"重命名失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-            }
+            renameOperation.Execute(selectedItem);
         }
 
         private void ShowProperties_Click(object sender, RoutedEventArgs e)

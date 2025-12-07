@@ -198,6 +198,13 @@
                                 </Style>
                             </Button.Style>
                         </Button>
+                        <Button Content="🔄 刷新" Click="Refresh_Click" Margin="0,0,4,0" Height="36">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                                    <Setter Property="Padding" Value="8,0"/>
+                                </Style>
+                            </Button.Style>
+                        </Button>
                     </StackPanel>
                     
                     <StackPanel Name="TagActionButtons" Orientation="Horizontal" Visibility="Collapsed">
@@ -400,13 +407,6 @@
                                    Style="{StaticResource ModernButtonStyle}"
                                    ToolTip="管理库（包含新建库功能）"
                                    Margin="4,0"/>
-                            <Button Name="LibraryRefreshBtn"
-                                   Content="🔄 刷新"
-                                   Click="LibraryRefreshBottomBtn_Click"
-                                   Height="32"
-                                   Style="{StaticResource ModernButtonStyle}"
-                                   ToolTip="刷新库列表"
-                                   Margin="4,0"/>
                         </StackPanel>
                         
                         <!-- 标签页面按钮 -->
@@ -460,8 +460,7 @@
               Background="#F0F0F0"
               Panel.ZIndex="5000"
               Visibility="Collapsed">
-            <controls:SettingsPanelControl x:Name="SettingsPanel" 
-                                           CloseRequested="SettingsPanel_CloseRequested"/>
+            <controls:SettingsPanelControl x:Name="SettingsPanel"/>
         </Grid>
         </Grid>
         

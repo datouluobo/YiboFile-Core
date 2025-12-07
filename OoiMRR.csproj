@@ -8,10 +8,10 @@
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <AssemblyTitle>OoiMRR - 文件资源管理器</AssemblyTitle>
     <AssemblyDescription>Windows文件资源管理器程序，用于管理、归档、浏览各种格式的文档、图片、视频</AssemblyDescription>
-    <AssemblyVersion>1.4.3.0</AssemblyVersion>
-    <FileVersion>1.4.3.0</FileVersion>
-    <Version>1.4.3</Version>
-    <NoWarn>$(NoWarn);NU1701</NoWarn>
+    <AssemblyVersion>1.4.4.0</AssemblyVersion>
+    <FileVersion>1.4.4.0</FileVersion>
+    <Version>1.4.4</Version>
+    <NoWarn>$(NoWarn);NU1701;NU1902</NoWarn>
     <!-- 构建优化 -->
     <UseSharedCompilation>true</UseSharedCompilation>
     <BuildInParallel>true</BuildInParallel>
