@@ -10,13 +10,25 @@
         <TextBox Name="AddressTextBox" 
                  TextChanged="AddressTextBox_TextChanged"
                  KeyDown="AddressTextBox_KeyDown"
+                 PreviewKeyDown="AddressTextBox_PreviewKeyDown"
                  LostFocus="AddressTextBox_LostFocus"
                  GotFocus="AddressTextBox_GotFocus"
+                 PreviewMouseRightButtonDown="AddressTextBox_PreviewMouseRightButtonDown"
+                 ContextMenuOpening="AddressTextBox_ContextMenuOpening"
                  Visibility="Collapsed"
                  VerticalContentAlignment="Center"
                  VerticalAlignment="Stretch"
                  Height="30"
-                 Padding="5,3"/>
+                 Padding="5,3"
+                 AcceptsReturn="False"
+                 AcceptsTab="False">
+            <TextBox.CommandBindings>
+                <CommandBinding Command="ApplicationCommands.Copy" Executed="CopyCommand_Executed" CanExecute="CopyCommand_CanExecute"/>
+                <CommandBinding Command="ApplicationCommands.Cut" Executed="CutCommand_Executed" CanExecute="CutCommand_CanExecute"/>
+                <CommandBinding Command="ApplicationCommands.Paste" Executed="PasteCommand_Executed" CanExecute="PasteCommand_CanExecute"/>
+                <CommandBinding Command="ApplicationCommands.SelectAll" Executed="SelectAllCommand_Executed"/>
+            </TextBox.CommandBindings>
+        </TextBox>
         
         <!-- 面包屑导航（默认显示） -->
         <Border Name="BreadcrumbContainer"

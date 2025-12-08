@@ -401,9 +401,9 @@
                         <!-- 库管理按钮 -->
                         <StackPanel Orientation="Horizontal" Name="LibraryBottomButtons" Visibility="Collapsed">
                             <Button Name="LibraryManageBtn"
-                                   Content="⚙️ 管理库"
+                                   Content="⚙️"
                                    Click="LibraryManageBottomBtn_Click"
-                                   Height="32"
+                                   Width="32" Height="32"
                                    Style="{StaticResource ModernButtonStyle}"
                                    ToolTip="管理库（包含新建库功能）"
                                    Margin="4,0"/>

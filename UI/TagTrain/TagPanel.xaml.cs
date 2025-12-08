@@ -5,8 +5,12 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
+using System.Threading;
+using System.Threading.Tasks;
 using TagTrain.Services;
 using OoiMRR;
+using TagCategory = TagTrain.Services.DataManager.TagCategory;
 
 namespace TagTrain.UI
 {
@@ -41,6 +45,7 @@ namespace TagTrain.UI
         private int _tagsPerRow = 5;
         private double _predictionThreshold = 50.0;
         private string _tagSortMode = "Count";
+        private readonly SemaphoreSlim _loadTagsLock = new SemaphoreSlim(1, 1);
 
         // 事件：标签点击（参数：标签名称，是否强制新标签页）
         public event Action<string, bool> TagClicked;
@@ -128,162 +133,160 @@ namespace TagTrain.UI
         /// <summary>
         /// 加载标签列表
         /// </summary>
-        public void LoadExistingTags()
+        public async void LoadExistingTags()
         {
             if (ExistingTagsPanel == null) return;
 
-            ExistingTagsPanel.Children.Clear();
+            var dispatcher = Dispatcher ?? Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
 
-            // 从数据库加载所有标签名称
-            var tagNames = DataManager.GetAllTagNames();
-            _tagCache = tagNames;
-
-            // 从训练数据中提取已手动标注的标签
-            var trainingData = DataManager.LoadAllTrainingData();
-
-            // 先创建预测结果字典（TagId -> Confidence），排序时需要用到
-            var predictionDict = new Dictionary<int, float>();
-            if (_currentPredictions != null && _currentPredictions.Count > 0)
+            if (!_loadTagsLock.Wait(0))
             {
-                foreach (var pred in _currentPredictions)
-                {
-                    if (!predictionDict.ContainsKey(pred.TagId) || predictionDict[pred.TagId] < pred.Confidence)
-                    {
-                        predictionDict[pred.TagId] = pred.Confidence;
-                    }
-                }
+                System.Diagnostics.Debug.WriteLine("LoadExistingTags: previous load still running, skip.");
+                return;
             }
 
-            // 先按TagName分组，整合同名标签
-            var existingTagsQuery = trainingData
-                .Where(t => t.IsManual)
-                .GroupBy(t => DataManager.GetTagName(t.TagId) ?? $"标签{t.TagId}")
-                .Select(g => new
-                {
-                    TagName = g.Key,
-                    TagIds = g.Select(t => t.TagId).Distinct().ToList(),
-                    Count = g.Count()
-                });
-
-            // 根据排序模式排序
-            IEnumerable<dynamic> sortedTags;
-            switch (_tagSortMode)
-            {
-                case "Name":
-                    sortedTags = existingTagsQuery.OrderBy(x => x.TagName);
-                    break;
-                case "Prediction":
-                    sortedTags = existingTagsQuery.OrderByDescending(x =>
-                    {
-                        float maxConfidence = 0f;
-                        foreach (var tagId in x.TagIds)
-                        {
-                            if (predictionDict.ContainsKey(tagId) && predictionDict[tagId] > maxConfidence)
-                            {
-                                maxConfidence = predictionDict[tagId];
-                            }
-                        }
-                        return maxConfidence;
-                    });
-                    break;
-                case "Count":
-                default:
-                    sortedTags = existingTagsQuery.OrderByDescending(x => x.Count);
-                    break;
-            }
-
-            var existingTags = sortedTags.ToList();
-
-            // 计算每个标签的宽度
-            double panelWidth = 0;
-            var scrollViewer = ExistingTagsPanel.Parent as ScrollViewer;
-            if (scrollViewer != null)
-            {
-                panelWidth = scrollViewer.ActualWidth;
-                panelWidth -= 17; // 预留滚动条宽度
-            }
-
-            if (panelWidth <= 0)
-            {
-                var parent = ExistingTagsPanel.Parent as FrameworkElement;
-                if (parent != null)
-                {
-                    panelWidth = parent.ActualWidth;
-                }
-            }
-
-            if (panelWidth <= 0)
-            {
-                panelWidth = 450;
-            }
-
-            // 检查是否配置了固定宽度
-            var config = ConfigManager.Load();
-            double itemWidth;
-            
-            if (config.TagBoxWidth > 0)
-            {
-                // 使用配置的固定宽度
-                itemWidth = config.TagBoxWidth;
-            }
-            else
-            {
-                // 自动计算宽度
-                var spacing = 8.0;
-                var padding = 16.0;
-
-                if (_tagsPerRow == 1)
-                {
-                    itemWidth = panelWidth * 0.9;
-                }
-                else if (_tagsPerRow == 2)
-                {
-                    itemWidth = (panelWidth - padding - spacing) / 2;
-                }
-                else
-                {
-                    itemWidth = (panelWidth - padding - (_tagsPerRow - 1) * spacing) / _tagsPerRow;
-                }
-
-                if (_tagsPerRow > 2)
-                {
-                    if (itemWidth < 80) itemWidth = 80;
-                    if (itemWidth > 200) itemWidth = 200;
-                }
-                else
-                {
-                    if (itemWidth < 100) itemWidth = 100;
-                    var maxWidth = panelWidth * 0.95;
-                    if (itemWidth > maxWidth) itemWidth = maxWidth;
-                }
-            }
-
-            // 按分组组织标签
             try
             {
-                var categories = DataManager.GetAllCategories().OrderBy(c => c.SortOrder).ThenBy(c => c.Name).ToList();
-                var tagsByCategory = new Dictionary<int, List<dynamic>>();
-                var ungroupedTags = new List<dynamic>();
+                await dispatcher.InvokeAsync(() => ExistingTagsPanel.Children.Clear());
 
-                foreach (var tagInfo in existingTags)
+                var predictionsSnapshot = _currentPredictions?.ToList() ?? new List<Services.TagPredictionResult>();
+                var tagSortMode = _tagSortMode;
+                var tagsPerRow = _tagsPerRow;
+
+                var data = await Task.Run(() => BuildTagLoadSnapshot(predictionsSnapshot));
+
+                await dispatcher.InvokeAsync(() =>
                 {
-                    var tagIds = (List<int>)tagInfo.TagIds;
-                    var firstTagId = tagIds.Count > 0 ? tagIds[0] : 0;
+                    if (ExistingTagsPanel == null) return;
 
-                    if (firstTagId != 0)
-                    {
-                        var tagCategories = DataManager.GetTagCategories(firstTagId);
-                        if (tagCategories.Count > 0)
+                    _tagCache = data.TagNames;
+
+                    var existingTagsQuery = data.TrainingData
+                        .Where(t => t.IsManual)
+                        .GroupBy(t =>
                         {
-                            foreach (var categoryId in tagCategories)
+                            if (data.TagNames.TryGetValue(t.TagId, out var name) && !string.IsNullOrWhiteSpace(name))
                             {
-                                if (!tagsByCategory.ContainsKey(categoryId))
+                                return name;
+                            }
+                            return $"标签{t.TagId}";
+                        })
+                        .Select(g => new
+                        {
+                            TagName = g.Key,
+                            TagIds = g.Select(t => t.TagId).Distinct().ToList(),
+                            Count = g.Count()
+                        });
+
+                    IEnumerable<dynamic> sortedTags;
+                    switch (tagSortMode)
+                    {
+                        case "Name":
+                            sortedTags = existingTagsQuery.OrderBy(x => x.TagName);
+                            break;
+                        case "Prediction":
+                            sortedTags = existingTagsQuery.OrderByDescending(x =>
+                            {
+                                float maxConfidence = 0f;
+                                foreach (var tagId in x.TagIds)
                                 {
-                                    tagsByCategory[categoryId] = new List<dynamic>();
+                                    if (data.PredictionDict.TryGetValue(tagId, out var confidence) && confidence > maxConfidence)
+                                    {
+                                        maxConfidence = confidence;
+                                    }
                                 }
-                                if (!tagsByCategory[categoryId].Any(t => ((List<int>)t.TagIds)[0] == firstTagId))
+                                return maxConfidence;
+                            });
+                            break;
+                        case "Count":
+                        default:
+                            sortedTags = existingTagsQuery.OrderByDescending(x => x.Count);
+                            break;
+                    }
+
+                    var existingTags = sortedTags.ToList();
+
+                    double panelWidth = 0;
+                    var scrollViewer = ExistingTagsPanel.Parent as ScrollViewer;
+                    if (scrollViewer != null)
+                    {
+                        panelWidth = scrollViewer.ActualWidth;
+                        panelWidth -= 17;
+                    }
+
+                    if (panelWidth <= 0)
+                    {
+                        var parent = ExistingTagsPanel.Parent as FrameworkElement;
+                        if (parent != null)
+                        {
+                            panelWidth = parent.ActualWidth;
+                        }
+                    }
+
+                    if (panelWidth <= 0)
+                    {
+                        panelWidth = 450;
+                    }
+
+                    var config = ConfigManager.Load();
+                    double itemWidth;
+                    
+                    if (config.TagBoxWidth > 0)
+                    {
+                        itemWidth = config.TagBoxWidth;
+                    }
+                    else
+                    {
+                        var spacing = 8.0;
+                        var padding = 16.0;
+
+                        if (tagsPerRow == 1)
+                        {
+                            itemWidth = panelWidth * 0.9;
+                        }
+                        else if (tagsPerRow == 2)
+                        {
+                            itemWidth = (panelWidth - padding - spacing) / 2;
+                        }
+                        else
+                        {
+                            itemWidth = (panelWidth - padding - (tagsPerRow - 1) * spacing) / tagsPerRow;
+                        }
+
+                        if (tagsPerRow > 2)
+                        {
+                            if (itemWidth < 80) itemWidth = 80;
+                            if (itemWidth > 200) itemWidth = 200;
+                        }
+                        else
+                        {
+                            if (itemWidth < 100) itemWidth = 100;
+                            var maxWidth = panelWidth * 0.95;
+                            if (itemWidth > maxWidth) itemWidth = maxWidth;
+                        }
+                    }
+
+                    var tagsByCategory = new Dictionary<int, List<dynamic>>();
+                    var ungroupedTags = new List<dynamic>();
+
+                    foreach (var tagInfo in existingTags)
+                    {
+                        var tagIds = (List<int>)tagInfo.TagIds;
+                        var firstTagId = tagIds.Count > 0 ? tagIds[0] : 0;
+
+                        if (firstTagId != 0 && data.TagCategoryMap.TryGetValue(firstTagId, out var mappedCategories) && mappedCategories.Count > 0)
+                        {
+                            foreach (var categoryId in mappedCategories)
+                            {
+                                if (!tagsByCategory.TryGetValue(categoryId, out var list))
                                 {
-                                    tagsByCategory[categoryId].Add(tagInfo);
+                                    list = new List<dynamic>();
+                                    tagsByCategory[categoryId] = list;
+                                }
+
+                                if (!list.Any(t => ((List<int>)t.TagIds)[0] == firstTagId))
+                                {
+                                    list.Add(tagInfo);
                                 }
                             }
                         }
@@ -292,107 +295,142 @@ namespace TagTrain.UI
                             ungroupedTags.Add(tagInfo);
                         }
                     }
-                    else
-                    {
-                        ungroupedTags.Add(tagInfo);
-                    }
-                }
 
-                // 为每个分组创建Expander
-                foreach (var category in categories)
-                {
-                    if (tagsByCategory.ContainsKey(category.Id) && tagsByCategory[category.Id].Count > 0)
+                    try
                     {
-                        Brush categoryBrush = Brushes.DarkSlateGray;
-                        if (!string.IsNullOrEmpty(category.Color))
+                        foreach (var category in data.Categories)
                         {
-                            try
+                            if (tagsByCategory.TryGetValue(category.Id, out var categoryTags) && categoryTags.Count > 0)
                             {
-                                var color = (Color)System.Windows.Media.ColorConverter.ConvertFromString(category.Color);
-                                categoryBrush = new SolidColorBrush(color);
+                                Brush categoryBrush = Brushes.DarkSlateGray;
+                                if (!string.IsNullOrEmpty(category.Color))
+                                {
+                                    try
+                                    {
+                                        var color = (Color)System.Windows.Media.ColorConverter.ConvertFromString(category.Color);
+                                        categoryBrush = new SolidColorBrush(color);
+                                    }
+                                    catch { }
+                                }
+
+                                double tagFontSize = config.TagFontSize > 0 ? config.TagFontSize : 16;
+                                double categoryFontSize = tagFontSize + 1;
+                                
+                                var expander = new Expander
+                                {
+                                    Header = $"📁 {category.Name} ({categoryTags.Count})",
+                                    FontWeight = FontWeights.Bold,
+                                    FontSize = categoryFontSize,
+                                    Margin = new Thickness(0, 4, 0, 4),
+                                    IsExpanded = true,
+                                    Foreground = categoryBrush,
+                                    MinHeight = categoryFontSize + 8
+                                };
+
+                                var categoryTagsPanel = new WrapPanel
+                                {
+                                    Orientation = Orientation.Horizontal,
+                                    Margin = new Thickness(0, 4, 0, 4)
+                                };
+
+                                foreach (var tagInfo in categoryTags)
+                                {
+                                    var tagBorder = CreateTagBorder(tagInfo, itemWidth, data.PredictionDict);
+                                    categoryTagsPanel.Children.Add(tagBorder);
+                                }
+
+                                expander.Content = categoryTagsPanel;
+                                ExistingTagsPanel.Children.Add(expander);
                             }
-                            catch { }
                         }
 
-                        // 获取配置的Tag字体大小
-                        double tagFontSize = config.TagFontSize > 0 ? config.TagFontSize : 16;
-                        double categoryFontSize = tagFontSize + 1;  // Tag分组比Tag大1
-                        
-                        var expander = new Expander
+                        if (ungroupedTags.Count > 0)
                         {
-                            Header = $"📁 {category.Name} ({tagsByCategory[category.Id].Count})",
-                            FontWeight = FontWeights.Bold,
-                            FontSize = categoryFontSize,
-                            Margin = new Thickness(0, 4, 0, 4),
-                            IsExpanded = true,
-                            Foreground = categoryBrush,
-                            MinHeight = categoryFontSize + 8  // 自动计算高度
-                        };
+                            double tagFontSize = config.TagFontSize > 0 ? config.TagFontSize : 16;
+                            double categoryFontSize = tagFontSize + 1;
+                            
+                            var ungroupedExpander = new Expander
+                            {
+                                Header = $"📋 未分组 ({ungroupedTags.Count})",
+                                FontWeight = FontWeights.Bold,
+                                FontSize = categoryFontSize,
+                                Margin = new Thickness(0, 4, 0, 4),
+                                IsExpanded = true,
+                                Foreground = Brushes.Gray,
+                                MinHeight = categoryFontSize + 8
+                            };
 
-                        var categoryTagsPanel = new WrapPanel
-                        {
-                            Orientation = Orientation.Horizontal,
-                            Margin = new Thickness(0, 4, 0, 4)
-                        };
+                            var ungroupedTagsPanel = new WrapPanel
+                            {
+                                Orientation = Orientation.Horizontal,
+                                Margin = new Thickness(0, 4, 0, 4)
+                            };
 
-                        foreach (var tagInfo in tagsByCategory[category.Id])
-                        {
-                            var tagBorder = CreateTagBorder(tagInfo, itemWidth, predictionDict);
-                            categoryTagsPanel.Children.Add(tagBorder);
+                            foreach (var tagInfo in ungroupedTags)
+                            {
+                                var tagBorder = CreateTagBorder(tagInfo, itemWidth, data.PredictionDict);
+                                ungroupedTagsPanel.Children.Add(tagBorder);
+                            }
+
+                            ungroupedExpander.Content = ungroupedTagsPanel;
+                            ExistingTagsPanel.Children.Add(ungroupedExpander);
                         }
-
-                        expander.Content = categoryTagsPanel;
-                        ExistingTagsPanel.Children.Add(expander);
                     }
-                }
-
-                // 显示未分组的标签
-                if (ungroupedTags.Count > 0)
-                {
-                    // 获取配置的Tag字体大小
-                    double tagFontSize = config.TagFontSize > 0 ? config.TagFontSize : 16;
-                    double categoryFontSize = tagFontSize + 1;  // Tag分组比Tag大1
-                    
-                    var ungroupedExpander = new Expander
+                    catch (Exception)
                     {
-                        Header = $"📋 未分组 ({ungroupedTags.Count})",
-                        FontWeight = FontWeights.Bold,
-                        FontSize = categoryFontSize,
-                        Margin = new Thickness(0, 4, 0, 4),
-                        IsExpanded = true,
-                        Foreground = Brushes.Gray,
-                        MinHeight = categoryFontSize + 8  // 自动计算高度
-                    };
-
-                    var ungroupedTagsPanel = new WrapPanel
-                    {
-                        Orientation = Orientation.Horizontal,
-                        Margin = new Thickness(0, 4, 0, 4)
-                    };
-
-                    foreach (var tagInfo in ungroupedTags)
-                    {
-                        var tagBorder = CreateTagBorder(tagInfo, itemWidth, predictionDict);
-                        ungroupedTagsPanel.Children.Add(tagBorder);
+                        var fallbackPanel = new WrapPanel { Orientation = Orientation.Horizontal };
+                        foreach (var tagInfo in existingTags)
+                        {
+                            var tagBorder = CreateTagBorder(tagInfo, itemWidth, data.PredictionDict);
+                            fallbackPanel.Children.Add(tagBorder);
+                        }
+                        ExistingTagsPanel.Children.Add(fallbackPanel);
                     }
 
-                    ungroupedExpander.Content = ungroupedTagsPanel;
-                    ExistingTagsPanel.Children.Add(ungroupedExpander);
-                }
+                    TagsRefreshed?.Invoke();
+                });
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // 回退到原来的显示方式
-                var fallbackPanel = new WrapPanel { Orientation = Orientation.Horizontal };
-                foreach (var tagInfo in existingTags)
+                System.Diagnostics.Debug.WriteLine($"LoadExistingTags: {ex.Message}");
+            }
+            finally
+            {
+                _loadTagsLock.Release();
+            }
+        }
+
+        private TagLoadSnapshot BuildTagLoadSnapshot(List<Services.TagPredictionResult> predictionsSnapshot)
+        {
+            var predictionDict = new Dictionary<int, float>();
+            if (predictionsSnapshot != null)
+            {
+                foreach (var pred in predictionsSnapshot)
                 {
-                    var tagBorder = CreateTagBorder(tagInfo, itemWidth, predictionDict);
-                    fallbackPanel.Children.Add(tagBorder);
+                    if (!predictionDict.TryGetValue(pred.TagId, out var existingConfidence) || existingConfidence < pred.Confidence)
+                    {
+                        predictionDict[pred.TagId] = pred.Confidence;
+                    }
                 }
-                ExistingTagsPanel.Children.Add(fallbackPanel);
             }
 
-            TagsRefreshed?.Invoke();
+            return new TagLoadSnapshot
+            {
+                TagNames = DataManager.GetAllTagNames(),
+                TrainingData = DataManager.LoadAllTrainingData(),
+                Categories = DataManager.GetAllCategories().OrderBy(c => c.SortOrder).ThenBy(c => c.Name).ToList(),
+                TagCategoryMap = DataManager.GetTagCategoryMap(),
+                PredictionDict = predictionDict
+            };
+        }
+
+        private class TagLoadSnapshot
+        {
+            public Dictionary<int, string> TagNames { get; set; }
+            public List<TrainingSample> TrainingData { get; set; }
+            public List<TagCategory> Categories { get; set; }
+            public Dictionary<int, List<int>> TagCategoryMap { get; set; }
+            public Dictionary<int, float> PredictionDict { get; set; }
         }
 
         /// <summary>

@@ -789,6 +789,35 @@ namespace TagTrain.Services
         }
 
         /// <summary>
+        /// 获取标签到分组的映射（批量加载，避免重复查询）
+        /// </summary>
+        public static Dictionary<int, List<int>> GetTagCategoryMap()
+        {
+            var map = new Dictionary<int, List<int>>();
+            using var connection = new SqliteConnection(GetConnectionString());
+            connection.Open();
+
+            var select = "SELECT TagId, CategoryId FROM TagCategoryMapping";
+            using var command = connection.CreateCommand();
+            command.CommandText = select;
+
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                var tagId = reader.GetInt32(0);
+                var categoryId = reader.GetInt32(1);
+                if (!map.TryGetValue(tagId, out var categories))
+                {
+                    categories = new List<int>();
+                    map[tagId] = categories;
+                }
+                categories.Add(categoryId);
+            }
+
+            return map;
+        }
+
+        /// <summary>
         /// 获取分组下的所有标签ID列表
         /// </summary>
         public static List<int> GetCategoryTags(int categoryId)

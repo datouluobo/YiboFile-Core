@@ -13,14 +13,14 @@ namespace OoiMRR.Services.FileOperations
     /// </summary>
     public class TagOperationContext : IFileOperationContext
     {
-        private readonly Tag _currentTagFilter;
+        private readonly OoiMRR.Tag _currentTagFilter;
         private readonly FileBrowserControl _fileBrowser;
         private readonly Window _ownerWindow;
         private readonly Action _refreshCallback;
 
         public NavigationStateManager.NavigationMode Mode => NavigationStateManager.NavigationMode.Tag;
 
-        public TagOperationContext(Tag currentTagFilter, FileBrowserControl fileBrowser, Window ownerWindow, Action refreshCallback)
+        public TagOperationContext(OoiMRR.Tag currentTagFilter, FileBrowserControl fileBrowser, Window ownerWindow, Action refreshCallback)
         {
             _currentTagFilter = currentTagFilter;
             _fileBrowser = fileBrowser;
@@ -84,6 +84,7 @@ namespace OoiMRR.Services.FileOperations
         }
     }
 }
+
 
 
 

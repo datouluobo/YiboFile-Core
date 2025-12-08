@@ -56,59 +56,12 @@ namespace OoiMRR.Controls
         public event EventHandler<TabInfo> TabClosed;
         public event EventHandler<TabInfo> TabPinned;
         public event EventHandler<TabInfo> TabTitleChanged;
-        
-        // 视图切换事件
-        public event RoutedEventHandler ViewDetailsClicked;
-        public event RoutedEventHandler ViewTilesClicked;
-        public event RoutedPropertyChangedEventHandler<double> ThumbnailSizeChanged;
 
         public TabManagerControl()
         {
             InitializeComponent();
             _config = ConfigManager.Load();
             InitializeDragDrop();
-            
-            // 初始化视图按钮状态
-            if (BtnViewDetails != null) BtnViewDetails.IsEnabled = false;  // 默认是详细信息视图
-            if (BtnViewTiles != null) BtnViewTiles.IsEnabled = true;
-        }
-        
-        // 视图切换按钮事件处理
-        private void BtnViewDetails_Click(object sender, RoutedEventArgs e)
-        {
-            if (BtnViewDetails != null) BtnViewDetails.IsEnabled = false;
-            if (BtnViewTiles != null) BtnViewTiles.IsEnabled = true;
-            ViewDetailsClicked?.Invoke(sender, e);
-        }
-        
-        private void BtnViewTiles_Click(object sender, RoutedEventArgs e)
-        {
-            if (BtnViewDetails != null) BtnViewDetails.IsEnabled = true;
-            if (BtnViewTiles != null) BtnViewTiles.IsEnabled = false;
-            ViewTilesClicked?.Invoke(sender, e);
-        }
-        
-        private void ThumbnailSizeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            ThumbnailSizeChanged?.Invoke(sender, e);
-        }
-        
-        // 公共方法：设置视图模式
-        public void SetViewMode(bool isDetails)
-        {
-            if (BtnViewDetails != null) BtnViewDetails.IsEnabled = !isDetails;
-            if (BtnViewTiles != null) BtnViewTiles.IsEnabled = isDetails;
-        }
-        
-        // 公共属性：缩略图大小
-        public double ThumbnailSize
-        {
-            get => ThumbnailSizeSlider?.Value ?? 128;
-            set
-            {
-                if (ThumbnailSizeSlider != null)
-                    ThumbnailSizeSlider.Value = value;
-            }
         }
 
         /// <summary>

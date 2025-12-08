@@ -109,22 +109,16 @@ namespace OoiMRR.Services
             return true;
         }
 
+        // 视图切换功能已移除，将在后期重做
         public static bool SetViewMode(string mode)
         {
-            var mw = GetMainWindow();
-            if (mw == null || mw.FileBrowser == null) return false;
-            var m = (mode ?? "").Trim().ToLowerInvariant();
-            bool tiles = m == "tiles" || m == "thumbnail" || m == "缩略图";
-            mw.Dispatcher.Invoke(() => { mw.FileBrowser.SetViewModeTiles(tiles); }, DispatcherPriority.Normal);
-            return true;
+            return false;
         }
 
+        // 缩略图大小设置功能已移除，将在后期重做
         public static bool SetThumbnailSize(double size)
         {
-            var mw = GetMainWindow();
-            if (mw == null || mw.FileBrowser == null) return false;
-            mw.Dispatcher.Invoke(() => { mw.FileBrowser.SetThumbnailSize(size); }, DispatcherPriority.Normal);
-            return true;
+            return false;
         }
 
         public static bool SetWindowState(string state)

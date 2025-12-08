@@ -9,7 +9,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 
-namespace OoiMRR
+namespace OoiMRR.Services
 {
     /// <summary>
     /// 拖拽管理器 - 处理文件列表的拖拽操作
@@ -1532,3 +1532,7 @@ namespace OoiMRR
         #endregion
     }
 }
+
+
+
+

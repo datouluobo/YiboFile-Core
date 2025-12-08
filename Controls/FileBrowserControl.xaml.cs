@@ -6,6 +6,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
 using OoiMRR.Controls.Converters;
+using OoiMRR.Services.Search;
 
 namespace OoiMRR.Controls
 {
@@ -74,23 +75,6 @@ namespace OoiMRR.Controls
             }
         }
         
-        // 视图模式设置（委托给FileListControl）
-        public void SetViewModeTiles(bool tiles)
-        {
-            if (FileList != null)
-            {
-                FileList.CurrentViewMode = tiles ? FileListControl.ViewModeType.Tiles : FileListControl.ViewModeType.Details;
-            }
-        }
-
-        // 缩略图大小设置（委托给FileListControl）
-        public void SetThumbnailSize(double size)
-        {
-            if (FileList != null)
-            {
-                FileList.ThumbnailSize = size;
-            }
-        }
 
         // 公共属性（保持向后兼容）
         public AddressBarControl AddressBar => AddressBarControl;
@@ -164,6 +148,14 @@ namespace OoiMRR.Controls
                     FileList.ItemsSource = value;
                 }
             }
+        }
+        
+        /// <summary>
+        /// 设置分组搜索结果
+        /// </summary>
+        public void SetGroupedSearchResults(Dictionary<SearchResultType, List<FileSystemItem>> groupedItems)
+        {
+            FileList?.SetGroupedSearchResults(groupedItems);
         }
 
         public object FilesSelectedItem

@@ -73,6 +73,16 @@ namespace OoiMRR
             command.CommandText = createFileNotesFts;
             command.ExecuteNonQuery();
 
+            // 同步 FTS 表：确保所有 FileNotes 表中的数据都在 FTS 表中
+            try
+            {
+                SyncFileNotesFts();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"同步 FTS 表失败: {ex.Message}");
+            }
+
             // 创建收藏表
             var createFavoritesTable = @"
                 CREATE TABLE IF NOT EXISTS Favorites (
@@ -185,21 +195,22 @@ namespace OoiMRR
                 command.Parameters.AddWithValue("@notes", notes);
                 command.ExecuteNonQuery();
 
-                using var fts = connection.CreateCommand();
-                fts.CommandText = @"
+                // 更新 FTS 表：先删除旧记录（如果存在），再插入新记录
+                using var deleteFts = connection.CreateCommand();
+                deleteFts.CommandText = "DELETE FROM FileNotesFts WHERE FilePath = @filePath";
+                deleteFts.Parameters.AddWithValue("@filePath", filePath);
+                deleteFts.ExecuteNonQuery();
+
+                using var insertFts = connection.CreateCommand();
+                insertFts.CommandText = @"
                     INSERT INTO FileNotesFts (FilePath, Notes) VALUES (@filePath, @notes)";
-                fts.Parameters.AddWithValue("@filePath", filePath);
-                fts.Parameters.AddWithValue("@notes", notes);
-                try { fts.ExecuteNonQuery(); } catch { 
-                    using var upd = connection.CreateCommand();
-                    upd.CommandText = "UPDATE FileNotesFts SET Notes=@notes WHERE FilePath=@filePath";
-                    upd.Parameters.AddWithValue("@filePath", filePath);
-                    upd.Parameters.AddWithValue("@notes", notes);
-                    upd.ExecuteNonQuery();
-                }
+                insertFts.Parameters.AddWithValue("@filePath", filePath);
+                insertFts.Parameters.AddWithValue("@notes", notes);
+                insertFts.ExecuteNonQuery();
             }
-            catch
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"设置备注失败: {ex.Message}");
                 throw;
             }
         }
@@ -230,35 +241,90 @@ namespace OoiMRR
         public static List<string> SearchFilesByNotes(string searchText)
         {
             var results = new List<string>();
-            using var connection = new SqliteConnection(_connectionString);
-            connection.Open();
-            using var command = connection.CreateCommand();
-            var query = searchText?.Trim() ?? "";
-            if (string.IsNullOrEmpty(query)) return results;
-            var ftsQuery = BuildFtsWildcardQuery(query);
-            command.CommandText = "SELECT FilePath FROM FileNotesFts WHERE FileNotesFts MATCH @q";
-            command.Parameters.AddWithValue("@q", ftsQuery);
-            using var reader = command.ExecuteReader();
-            while (reader.Read())
+            try
             {
-                var filePath = reader.GetString(0);
-                // 验证文件是否存在
-                if (File.Exists(filePath) || Directory.Exists(filePath))
+                // 确保 FTS 表已同步（在搜索前检查）
+                try
                 {
-                    results.Add(filePath);
+                    SyncFileNotesFts();
                 }
+                catch (Exception syncEx)
+                {
+                    System.Diagnostics.Debug.WriteLine($"备注搜索：同步 FTS 表失败（继续搜索）: {syncEx.Message}");
+                }
+
+                using var connection = new SqliteConnection(_connectionString);
+                connection.Open();
+                var query = searchText?.Trim() ?? "";
+                if (string.IsNullOrEmpty(query)) 
+                {
+                    System.Diagnostics.Debug.WriteLine("备注搜索：关键词为空");
+                    return results;
+                }
+
+                System.Diagnostics.Debug.WriteLine($"备注搜索：开始搜索关键词 '{query}'");
+
+                // 首先尝试使用 FTS5 全文搜索
+                try
+                {
+                    using var command = connection.CreateCommand();
+                    var ftsQuery = BuildFtsWildcardQuery(query);
+                    System.Diagnostics.Debug.WriteLine($"备注搜索：FTS 查询语句 '{ftsQuery}'");
+                    command.CommandText = "SELECT FilePath FROM FileNotesFts WHERE FileNotesFts MATCH @q";
+                    command.Parameters.AddWithValue("@q", ftsQuery);
+                    using var reader = command.ExecuteReader();
+                    while (reader.Read())
+                    {
+                        var filePath = reader.GetString(0);
+                        // 验证文件是否存在
+                        if (File.Exists(filePath) || Directory.Exists(filePath))
+                        {
+                            results.Add(filePath);
+                        }
+                    }
+                    System.Diagnostics.Debug.WriteLine($"备注搜索：FTS 搜索找到 {results.Count} 个结果");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"备注搜索：FTS 搜索失败，回退到 LIKE 查询: {ex.Message}");
+                }
+
+                // 如果 FTS 搜索没有结果，使用 LIKE 查询作为回退
+                if (results.Count == 0)
+                {
+                    System.Diagnostics.Debug.WriteLine("备注搜索：使用 LIKE 查询作为回退");
+                    using var likeCmd = connection.CreateCommand();
+                    likeCmd.CommandText = "SELECT FilePath, Notes FROM FileNotes WHERE Notes LIKE @kw";
+                    likeCmd.Parameters.AddWithValue("@kw", $"%{query}%");
+                    using var likeReader = likeCmd.ExecuteReader();
+                    int likeCount = 0;
+                    while (likeReader.Read())
+                    {
+                        var p = likeReader.GetString(0);
+                        var notes = likeReader.IsDBNull(1) ? "" : likeReader.GetString(1);
+                        System.Diagnostics.Debug.WriteLine($"备注搜索：LIKE 匹配到文件 '{p}'，备注内容: '{notes}'");
+                        if (File.Exists(p) || Directory.Exists(p)) 
+                        {
+                            results.Add(p);
+                            likeCount++;
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine($"备注搜索：文件不存在，跳过 '{p}'");
+                        }
+                    }
+                    System.Diagnostics.Debug.WriteLine($"备注搜索：LIKE 查询找到 {likeCount} 个有效结果（共 {results.Count} 个）");
+                }
+
+                // 去重并返回
+                var distinctResults = results.Distinct().ToList();
+                System.Diagnostics.Debug.WriteLine($"备注搜索：最终结果 {distinctResults.Count} 个文件");
+                return distinctResults;
             }
-            if (results.Count == 0)
+            catch (Exception ex)
             {
-                using var likeCmd = connection.CreateCommand();
-                likeCmd.CommandText = "SELECT FilePath FROM FileNotes WHERE Notes LIKE @kw";
-                likeCmd.Parameters.AddWithValue("@kw", $"%{query}%");
-                using var likeReader = likeCmd.ExecuteReader();
-                while (likeReader.Read())
-                {
-                    var p = likeReader.GetString(0);
-                    if (File.Exists(p) || Directory.Exists(p)) results.Add(p);
-                }
+                // 记录异常但不抛出，返回空列表
+                System.Diagnostics.Debug.WriteLine($"备注搜索异常: {ex.Message}\n{ex.StackTrace}");
             }
             return results.Distinct().ToList();
         }
@@ -310,6 +376,70 @@ namespace OoiMRR
                 }
             }
             return string.Join(" AND ", parts);
+        }
+
+        /// <summary>
+        /// 同步 FileNotesFts 表，确保所有 FileNotes 表中的数据都在 FTS 表中
+        /// </summary>
+        private static void SyncFileNotesFts()
+        {
+            try
+            {
+                using var connection = new SqliteConnection(_connectionString);
+                connection.Open();
+
+                // 获取所有 FileNotes 表中的记录
+                using var selectCmd = connection.CreateCommand();
+                selectCmd.CommandText = "SELECT FilePath, Notes FROM FileNotes";
+                var notesToSync = new List<(string FilePath, string Notes)>();
+                using (var reader = selectCmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        notesToSync.Add((reader.GetString(0), reader.GetString(1)));
+                    }
+                }
+
+                if (notesToSync.Count == 0)
+                {
+                    System.Diagnostics.Debug.WriteLine("FTS 表同步：FileNotes 表中没有数据");
+                    return;
+                }
+
+                // 检查 FTS 表中已存在的记录
+                using var checkCmd = connection.CreateCommand();
+                checkCmd.CommandText = "SELECT FilePath FROM FileNotesFts";
+                var existingPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                using (var reader = checkCmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        existingPaths.Add(reader.GetString(0));
+                    }
+                }
+
+                // 同步缺失的记录
+                int syncedCount = 0;
+                foreach (var (filePath, notes) in notesToSync)
+                {
+                    if (!existingPaths.Contains(filePath))
+                    {
+                        using var insertCmd = connection.CreateCommand();
+                        insertCmd.CommandText = "INSERT INTO FileNotesFts (FilePath, Notes) VALUES (@filePath, @notes)";
+                        insertCmd.Parameters.AddWithValue("@filePath", filePath);
+                        insertCmd.Parameters.AddWithValue("@notes", notes);
+                        insertCmd.ExecuteNonQuery();
+                        syncedCount++;
+                    }
+                }
+
+                System.Diagnostics.Debug.WriteLine($"FTS 表同步完成：同步了 {syncedCount} 条记录，共 {notesToSync.Count} 条记录");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"同步 FTS 表失败: {ex.Message}");
+                throw;
+            }
         }
 
         public static int AddLibrary(string name)

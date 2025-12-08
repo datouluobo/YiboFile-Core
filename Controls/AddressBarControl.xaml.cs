@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -46,6 +47,16 @@ namespace OoiMRR.Controls
             get => AddressTextBox.IsReadOnly;
             set => AddressTextBox.IsReadOnly = value;
         }
+        
+        /// <summary>
+        /// 是否处于编辑模式
+        /// </summary>
+        public bool IsEditMode => _isEditMode;
+        
+        /// <summary>
+        /// 地址栏文本框是否有焦点
+        /// </summary>
+        public bool IsAddressTextBoxFocused => AddressTextBox != null && (AddressTextBox.IsFocused || AddressTextBox.IsKeyboardFocused);
 
         public void UpdateBreadcrumb(string path)
         {
@@ -440,8 +451,14 @@ namespace OoiMRR.Controls
             AddressTextBox.Text = _currentPath;
             AddressTextBox.Visibility = Visibility.Visible;
             BreadcrumbContainer.Visibility = Visibility.Collapsed;
-            AddressTextBox.Focus();
-            AddressTextBox.SelectAll();
+            
+            // 延迟设置焦点，确保UI更新完成
+            Dispatcher.BeginInvoke(new System.Action(() =>
+            {
+                AddressTextBox.Focus();
+                Keyboard.Focus(AddressTextBox);
+                AddressTextBox.SelectAll();
+            }), System.Windows.Threading.DispatcherPriority.Input);
         }
 
         private void SwitchToBreadcrumbMode()
@@ -486,6 +503,246 @@ namespace OoiMRR.Controls
                 SwitchToBreadcrumbMode();
                 e.Handled = true;
             }
+            // KeyDown 中不处理快捷键，让 PreviewKeyDown 处理，避免重复
+        }
+        
+        // 极速剪贴板操作（无延迟，直接操作）
+        private static string FastGetClipboardText()
+        {
+            try
+            {
+                return Clipboard.ContainsText() ? Clipboard.GetText() : null;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+        
+        private static void FastSetClipboardText(string text)
+        {
+            try
+            {
+                Clipboard.SetText(text);
+            }
+            catch { }
+        }
+        
+        private void AddressTextBox_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            // 处理键盘快捷键（仅在地址栏编辑模式下）
+            if (!_isEditMode)
+                return;
+            
+            // 确保 TextBox 有焦点
+            if (!AddressTextBox.IsFocused && !AddressTextBox.IsKeyboardFocused)
+                return;
+            
+            if (Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                switch (e.Key)
+                {
+                    case Key.A: // Ctrl+A 全选
+                        AddressTextBox.SelectAll();
+                        e.Handled = true;
+                        break;
+                        
+                    case Key.C: // Ctrl+C 复制
+                        var textToCopy = AddressTextBox.SelectionLength > 0 
+                            ? AddressTextBox.SelectedText 
+                            : AddressTextBox.Text;
+                        FastSetClipboardText(textToCopy);
+                        e.Handled = true;
+                        break;
+                        
+                    case Key.X: // Ctrl+X 剪切
+                        if (AddressTextBox.SelectionLength > 0)
+                        {
+                            var textToCut = AddressTextBox.SelectedText;
+                            var selectionStart = AddressTextBox.SelectionStart;
+                            var selectionLength = AddressTextBox.SelectionLength;
+                            
+                            // 先设置剪贴板
+                            FastSetClipboardText(textToCut);
+                            
+                            // 直接操作 Text 属性来删除选中文本
+                            var currentText = AddressTextBox.Text;
+                            var newText = currentText.Remove(selectionStart, selectionLength);
+                            AddressTextBox.Text = newText;
+                            AddressTextBox.CaretIndex = selectionStart;
+                        }
+                        e.Handled = true;
+                        break;
+                        
+                    case Key.V: // Ctrl+V 粘贴
+                        var textToPaste = FastGetClipboardText();
+                        if (textToPaste != null)
+                        {
+                            if (AddressTextBox.SelectionLength > 0)
+                            {
+                                var selectionStart = AddressTextBox.SelectionStart;
+                                var selectionLength = AddressTextBox.SelectionLength;
+                                var currentText = AddressTextBox.Text;
+                                var newText = currentText.Remove(selectionStart, selectionLength).Insert(selectionStart, textToPaste);
+                                AddressTextBox.Text = newText;
+                                AddressTextBox.CaretIndex = selectionStart + textToPaste.Length;
+                            }
+                            else
+                            {
+                                var caretIndex = AddressTextBox.CaretIndex;
+                                AddressTextBox.Text = AddressTextBox.Text.Insert(caretIndex, textToPaste);
+                                AddressTextBox.CaretIndex = caretIndex + textToPaste.Length;
+                            }
+                        }
+                        e.Handled = true;
+                        break;
+                }
+            }
+            else if (e.Key == Key.F5)
+            {
+                // F5 刷新当前路径
+                if (!string.IsNullOrEmpty(_currentPath))
+                {
+                    PathChanged?.Invoke(this, _currentPath);
+                }
+                e.Handled = true;
+            }
+        }
+        
+        private void AddressTextBox_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            // 右键点击时，如果文本框没有焦点，先获得焦点
+            if (!AddressTextBox.IsFocused)
+            {
+                AddressTextBox.Focus();
+                e.Handled = true;
+            }
+        }
+        
+        private void AddressTextBox_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+        {
+            // 创建自定义右键菜单
+            var contextMenu = new ContextMenu();
+            
+            // 撤销
+            var undoItem = new MenuItem
+            {
+                Header = "撤销(_U)",
+                Command = ApplicationCommands.Undo,
+                CommandTarget = AddressTextBox
+            };
+            contextMenu.Items.Add(undoItem);
+            
+            contextMenu.Items.Add(new Separator());
+            
+            // 剪切
+            var cutItem = new MenuItem
+            {
+                Header = "剪切(_T)",
+                Command = ApplicationCommands.Cut,
+                CommandTarget = AddressTextBox
+            };
+            contextMenu.Items.Add(cutItem);
+            
+            // 复制
+            var copyItem = new MenuItem
+            {
+                Header = "复制(_C)",
+                Command = ApplicationCommands.Copy,
+                CommandTarget = AddressTextBox
+            };
+            contextMenu.Items.Add(copyItem);
+            
+            // 粘贴
+            var pasteItem = new MenuItem
+            {
+                Header = "粘贴(_P)",
+                Command = ApplicationCommands.Paste,
+                CommandTarget = AddressTextBox
+            };
+            contextMenu.Items.Add(pasteItem);
+            
+            contextMenu.Items.Add(new Separator());
+            
+            // 全选
+            var selectAllItem = new MenuItem
+            {
+                Header = "全选(_A)",
+                Command = ApplicationCommands.SelectAll,
+                CommandTarget = AddressTextBox
+            };
+            contextMenu.Items.Add(selectAllItem);
+            
+            AddressTextBox.ContextMenu = contextMenu;
+        }
+        
+        // 命令处理
+        private void CopyCommand_Executed(object sender, ExecutedRoutedEventArgs e)
+        {
+            var textToCopy = AddressTextBox.SelectionLength > 0 
+                ? AddressTextBox.SelectedText 
+                : AddressTextBox.Text;
+            FastSetClipboardText(textToCopy);
+        }
+        
+        private void CopyCommand_CanExecute(object sender, CanExecuteRoutedEventArgs e)
+        {
+            e.CanExecute = AddressTextBox != null && !string.IsNullOrEmpty(AddressTextBox.Text);
+        }
+        
+        private void CutCommand_Executed(object sender, ExecutedRoutedEventArgs e)
+        {
+            if (AddressTextBox.SelectionLength > 0)
+            {
+                var textToCut = AddressTextBox.SelectedText;
+                var selectionStart = AddressTextBox.SelectionStart;
+                var selectionLength = AddressTextBox.SelectionLength;
+                
+                FastSetClipboardText(textToCut);
+                
+                var currentText = AddressTextBox.Text;
+                var newText = currentText.Remove(selectionStart, selectionLength);
+                AddressTextBox.Text = newText;
+                AddressTextBox.CaretIndex = selectionStart;
+            }
+        }
+        
+        private void CutCommand_CanExecute(object sender, CanExecuteRoutedEventArgs e)
+        {
+            e.CanExecute = AddressTextBox != null && AddressTextBox.SelectionLength > 0;
+        }
+        
+        private void PasteCommand_Executed(object sender, ExecutedRoutedEventArgs e)
+        {
+            var textToPaste = FastGetClipboardText();
+            if (textToPaste != null)
+            {
+                if (AddressTextBox.SelectionLength > 0)
+                {
+                    var selectionStart = AddressTextBox.SelectionStart;
+                    var selectionLength = AddressTextBox.SelectionLength;
+                    var currentText = AddressTextBox.Text;
+                    var newText = currentText.Remove(selectionStart, selectionLength).Insert(selectionStart, textToPaste);
+                    AddressTextBox.Text = newText;
+                    AddressTextBox.CaretIndex = selectionStart + textToPaste.Length;
+                }
+                else
+                {
+                    var caretIndex = AddressTextBox.CaretIndex;
+                    AddressTextBox.Text = AddressTextBox.Text.Insert(caretIndex, textToPaste);
+                    AddressTextBox.CaretIndex = caretIndex + textToPaste.Length;
+                }
+            }
+        }
+        
+        private void PasteCommand_CanExecute(object sender, CanExecuteRoutedEventArgs e)
+        {
+            e.CanExecute = Clipboard.ContainsText();
+        }
+        
+        private void SelectAllCommand_Executed(object sender, ExecutedRoutedEventArgs e)
+        {
+            AddressTextBox.SelectAll();
         }
 
         private void AddressTextBox_LostFocus(object sender, RoutedEventArgs e)

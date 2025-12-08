@@ -9,6 +9,7 @@ using System.Windows;
 using System.Windows.Threading;
 using OoiMRR.Controls;
 using OoiMRR.Services;
+using OoiMRR.Services.FileList;
 
 namespace OoiMRR.ViewModels
 {
@@ -21,6 +22,7 @@ namespace OoiMRR.ViewModels
         private readonly FileBrowserControl _fileBrowser;
         private readonly Window _ownerWindow;
         private readonly Dispatcher _dispatcher;
+        private readonly FileListService _fileListService;
 
         private ObservableCollection<FileSystemItem> _files = new ObservableCollection<FileSystemItem>();
         private bool _isLoading = false;
@@ -65,6 +67,7 @@ namespace OoiMRR.ViewModels
             _fileBrowser = fileBrowser ?? throw new ArgumentNullException(nameof(fileBrowser));
             _ownerWindow = ownerWindow ?? throw new ArgumentNullException(nameof(ownerWindow));
             _dispatcher = ownerWindow.Dispatcher;
+            _fileListService = new FileListService();
 
             // 初始化防抖定时器
             _refreshDebounceTimer = new DispatcherTimer
@@ -110,54 +113,8 @@ namespace OoiMRR.ViewModels
 
                     try
                     {
-                        var files = new List<FileSystemItem>();
-                        var directories = Directory.GetDirectories(path);
-                        var fileInfos = Directory.GetFiles(path);
-
-                        // 添加文件夹
-                        foreach (var dir in directories)
-                        {
-                            try
-                            {
-                                var dirInfo = new DirectoryInfo(dir);
-                                files.Add(new FileSystemItem
-                                {
-                                    Name = dirInfo.Name,
-                                    Path = dirInfo.FullName,
-                                    Type = "文件夹",
-                                    IsDirectory = true,
-                                    ModifiedDate = dirInfo.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss"),
-                                    CreatedTime = dirInfo.CreationTime.ToString("yyyy-MM-dd HH:mm:ss")
-                                });
-                            }
-                            catch (Exception ex)
-                            {
-                                System.Diagnostics.Debug.WriteLine($"无法读取文件夹 {dir}: {ex.Message}");
-                            }
-                        }
-
-                        // 添加文件
-                        foreach (var file in fileInfos)
-                        {
-                            try
-                            {
-                                var fileInfo = new FileInfo(file);
-                                files.Add(new FileSystemItem
-                                {
-                                    Name = fileInfo.Name,
-                                    Path = fileInfo.FullName,
-                                    Type = FileTypeManager.GetFileCategory(fileInfo.FullName),
-                                    Size = FormatFileSize(fileInfo.Length),
-                                    IsDirectory = false,
-                                    ModifiedDate = fileInfo.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss"),
-                                    CreatedTime = fileInfo.CreationTime.ToString("yyyy-MM-dd HH:mm:ss")
-                                });
-                            }
-                            catch (Exception ex)
-                            {
-                                System.Diagnostics.Debug.WriteLine($"无法读取文件 {file}: {ex.Message}");
-                            }
-                        }
+                        // 使用 FileListService 加载文件列表
+                        var files = _fileListService.LoadFileSystemItems(path);
 
                         // 排序
                         SortFiles(files);
@@ -346,18 +303,6 @@ namespace OoiMRR.ViewModels
             return DateTime.MinValue;
         }
 
-        private string FormatFileSize(long bytes)
-        {
-            string[] sizes = { "B", "KB", "MB", "GB", "TB" };
-            double len = bytes;
-            int order = 0;
-            while (len >= 1024 && order < sizes.Length - 1)
-            {
-                order++;
-                len = len / 1024;
-            }
-            return $"{len:0.##} {sizes[order]}";
-        }
 
         public void Dispose()
         {

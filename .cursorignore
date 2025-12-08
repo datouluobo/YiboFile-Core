@@ -1,0 +1,46 @@
+# 依赖包
+
+node_modules/
+
+vendor/
+
+# 锁文件 (体积巨大且对AI理解逻辑无用)
+
+package-lock.json
+
+yarn.lock
+
+pnpm-lock.yaml
+
+# 构建产物
+
+dist/
+
+build/
+
+out/
+
+bin/
+
+obj/
+
+# 其他大文件
+
+*.svg
+
+*.png
+
+*.log
+
+*.dll
+
+*.exe
+
+*.pdb
+
+# 依赖文件夹（包含大量二进制文件）
+
+Dependencies/
+
+
+
