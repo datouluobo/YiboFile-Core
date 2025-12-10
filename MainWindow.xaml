@@ -56,210 +56,39 @@
                 <Grid Name="NavButtonsContainer" Grid.Column="0" VerticalAlignment="Center" Margin="8,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Name="NavButtonsColumn" Width="220"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="8"/>
+                        <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     
                     <!-- 导航按钮区域：3个按钮平均分配列1宽度 -->
                     <UniformGrid Grid.Column="0" Rows="1" Columns="3">
-                        <Button Name="NavPathBtn" Content="路径" Click="NavPathBtn_Click" Margin="2,0" Height="36">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
-                                    <Setter Property="Padding" Value="8,0"/>
-                                    <Setter Property="FontSize" Value="14"/>
-                                    <Setter Property="FontWeight" Value="SemiBold"/>
-                                    <Setter Property="HorizontalContentAlignment" Value="Center"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding ElementName=NavPathContent, Path=Visibility}" Value="Visible">
-                                            <Setter Property="Background" Value="{DynamicResource HighlightBrush}"/>
-                                            <Setter Property="BorderBrush" Value="{DynamicResource HighlightBorderBrush}"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
-                        </Button>
-                        <Button Name="NavLibraryBtn" Content="库" Click="NavLibraryBtn_Click" Margin="2,0" Height="36">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
-                                    <Setter Property="Padding" Value="8,0"/>
-                                    <Setter Property="FontSize" Value="14"/>
-                                    <Setter Property="FontWeight" Value="SemiBold"/>
-                                    <Setter Property="HorizontalContentAlignment" Value="Center"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding ElementName=NavLibraryContent, Path=Visibility}" Value="Visible">
-                                            <Setter Property="Background" Value="{DynamicResource HighlightBrush}"/>
-                                            <Setter Property="BorderBrush" Value="{DynamicResource HighlightBorderBrush}"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
-                        </Button>
-                        <Button Name="NavTagBtn" Content="标签" Click="NavTagBtn_Click" Margin="2,0" Height="36">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
-                                    <Setter Property="Padding" Value="8,0"/>
-                                    <Setter Property="FontSize" Value="14"/>
-                                    <Setter Property="FontWeight" Value="SemiBold"/>
-                                    <Setter Property="HorizontalContentAlignment" Value="Center"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding ElementName=NavTagContent, Path=Visibility}" Value="Visible">
-                                            <Setter Property="Background" Value="{DynamicResource HighlightBrush}"/>
-                                            <Setter Property="BorderBrush" Value="{DynamicResource HighlightBorderBrush}"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
-                        </Button>
+                        <Button Name="NavPathBtn" Content="路径" Click="NavPathBtn_Click" Margin="2,0" Height="36"
+                                Style="{StaticResource ModernButtonStyle}"/>
+                        <Button Name="NavLibraryBtn" Content="库" Click="NavLibraryBtn_Click" Margin="2,0" Height="36"
+                                Style="{StaticResource ModernButtonStyle}"/>
+                        <Button Name="NavTagBtn" Content="标签" Click="NavTagBtn_Click" Margin="2,0" Height="36"
+                                Style="{StaticResource ModernButtonStyle}"/>
                     </UniformGrid>
                     
                     <!-- 分隔符 -->
                     <Separator Name="TitleBarSeparator" Grid.Column="1" Margin="12,0" VerticalAlignment="Center" Height="24" Width="1"/>
                     
-                    <!-- 动态操作按钮区域（可拖动排序） -->
-                    <StackPanel Grid.Column="2" Name="ActionButtonsContainer" Orientation="Horizontal" VerticalAlignment="Center"/>
-                </Grid>
-                
-                <!-- 列2：占位（原操作按钮区域已移除） -->
-                <Grid Grid.Column="1" Name="ActionButtonsGrid" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="8,0">
-                    <!-- 隐藏的按钮定义（用于从代码中读取） -->
-                    <StackPanel Name="PathActionButtons" Orientation="Horizontal" Visibility="Collapsed">
-                        <Button Content="📁 新建文件夹" Click="NewFolder_Click" Margin="0,0,4,0" Height="36">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
-                                    <Setter Property="Padding" Value="8,0"/>
-                                </Style>
-                            </Button.Style>
-                        </Button>
-                        <Button Content="📄 新建文件" Click="NewFile_Click" Margin="0,0,4,0" Height="36">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
-                                    <Setter Property="Padding" Value="8,0"/>
-                                </Style>
-                            </Button.Style>
-                        </Button>
-                        <Separator Margin="16,0" Height="24" VerticalAlignment="Center"/>
-                        <Button Content="复制" Click="Copy_Click" Margin="0,0,4,0" Height="36">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
-                                    <Setter Property="Padding" Value="8,0"/>
-                                </Style>
-                            </Button.Style>
-                        </Button>
-                        <Button Content="粘贴" Click="Paste_Click" Margin="0,0,4,0" Height="36">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
-                                    <Setter Property="Padding" Value="8,0"/>
-                                </Style>
-                            </Button.Style>
-                        </Button>
-                        <Button Content="删除" Click="Delete_Click" Margin="0,0,4,0" Height="36">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
-                                    <Setter Property="Padding" Value="8,0"/>
-                                </Style>
-                            </Button.Style>
-                        </Button>
-                    </StackPanel>
-                    
-                    <StackPanel Name="LibraryActionButtons" Orientation="Horizontal" Visibility="Collapsed">
-                        <Button Content="📁 新建文件夹" Click="NewFolder_Click" Margin="0,0,4,0" Height="36">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
-                                    <Setter Property="Padding" Value="8,0"/>
-                                </Style>
-                            </Button.Style>
-                        </Button>
-                        <Button Content="📄 新建文件" Click="NewFile_Click" Margin="0,0,4,0" Height="36">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
-                                    <Setter Property="Padding" Value="8,0"/>
-                                </Style>
-                            </Button.Style>
-                        </Button>
-                        <Separator Margin="16,0" Height="24" VerticalAlignment="Center"/>
-                        <Button Content="复制" Click="Copy_Click" Margin="0,0,4,0" Height="36">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
-                                    <Setter Property="Padding" Value="8,0"/>
-                                </Style>
-                            </Button.Style>
-                        </Button>
-                        <Button Content="粘贴" Click="Paste_Click" Margin="0,0,4,0" Height="36">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
-                                    <Setter Property="Padding" Value="8,0"/>
-                                </Style>
-                            </Button.Style>
-                        </Button>
-                        <Button Content="删除" Click="Delete_Click" Margin="0,0,4,0" Height="36">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
-                                    <Setter Property="Padding" Value="8,0"/>
-                                </Style>
-                            </Button.Style>
-                        </Button>
-                        <Button Content="🔄 刷新" Click="Refresh_Click" Margin="0,0,4,0" Height="36">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
-                                    <Setter Property="Padding" Value="8,0"/>
-                                </Style>
-                            </Button.Style>
-                        </Button>
-                    </StackPanel>
-                    
-                    <StackPanel Name="TagActionButtons" Orientation="Horizontal" Visibility="Collapsed">
-                        <Button Content="🏷️ 新建标签" Click="NewTag_Click" Margin="0,0,4,0" Height="36">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
-                                    <Setter Property="Padding" Value="8,0"/>
-                                </Style>
-                            </Button.Style>
-                        </Button>
-                        <Button Content="🛠️ 管理标签" Click="ManageTags_Click" Margin="0,0,4,0" Height="36">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
-                                    <Setter Property="Padding" Value="8,0"/>
-                                </Style>
-                            </Button.Style>
-                        </Button>
-                        <Separator Margin="16,0" Height="24" VerticalAlignment="Center"/>
-                        <Button Content="📦 批量添加" Click="BatchAddTags_Click" Margin="0,0,4,0" Height="36">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
-                                    <Setter Property="Padding" Value="8,0"/>
-                                </Style>
-                            </Button.Style>
-                        </Button>
-                        <Button Content="📊 标签统计" Click="TagStatistics_Click" Margin="0,0,4,0" Height="36">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
-                                    <Setter Property="Padding" Value="8,0"/>
-                                </Style>
-                            </Button.Style>
-                        </Button>
-                        <Separator Margin="16,0" Height="24" VerticalAlignment="Center"/>
-                        <Button Content="复制" Click="Copy_Click" Margin="0,0,4,0" Height="36">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
-                                    <Setter Property="Padding" Value="8,0"/>
-                                </Style>
-                            </Button.Style>
-                        </Button>
-                        <Button Content="粘贴" Click="Paste_Click" Margin="0,0,4,0" Height="36">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
-                                    <Setter Property="Padding" Value="8,0"/>
-                                </Style>
-                            </Button.Style>
-                        </Button>
-                        <Button Content="删除" Click="Delete_Click" Margin="0,0,4,0" Height="36">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
-                                    <Setter Property="Padding" Value="8,0"/>
-                                </Style>
-                            </Button.Style>
-                        </Button>
-                    </StackPanel>
+                    <!-- 操作按钮栏 -->
+                    <controls:TitleActionBar Grid.Column="2"
+                                             x:Name="TitleActionBar"
+                                             VerticalAlignment="Center"
+                                             Margin="8,0,0,0"
+                                             Mode="Path"
+                                             NewFolderClicked="NewFolder_Click"
+                                             NewFileClicked="NewFile_Click"
+                                             CopyClicked="Copy_Click"
+                                             PasteClicked="Paste_Click"
+                                             DeleteClicked="Delete_Click"
+                                             RefreshClicked="Refresh_Click"
+                                             NewTagClicked="NewTag_Click"
+                                             ManageTagsClicked="ManageTags_Click"
+                                             BatchAddTagsClicked="BatchAddTags_Click"
+                                             TagStatisticsClicked="TagStatistics_Click"/>
                 </Grid>
                 
             </Grid>
@@ -271,165 +100,8 @@
         <GridSplitter Grid.Row="1" Grid.Column="3" Grid.RowSpan="2" 
                       Style="{StaticResource VerticalGridSplitterStyle}"/>
         
-        <!-- ========== 列1：导航区 ========== -->
-        <!-- 导航按钮已移到标题栏，直接显示内容区域 -->
-        <Grid Grid.Row="1" Grid.Column="0" Grid.RowSpan="2" Background="#FFFFFF">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="*"/>
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
-            
-            <Grid Name="NavContentGrid" Grid.Row="0">
-                <!-- 路径导航内容 -->
-                <Grid Name="NavPathContent" Margin="8">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-                    
-                    <!-- 子行0：面包屑导航（完整路径，支持多行） -->
-                    <Border Grid.Row="0" Background="#FFFFFF" Margin="0,0,0,8">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="4" MaxHeight="120">
-                            <WrapPanel Name="BreadcrumbPanel" Orientation="Horizontal"/>
-                        </ScrollViewer>
-                    </Border>
-                    
-                    <!-- 驱动器列表 -->
-                    <GroupBox Grid.Row="1" Header="驱动器" Margin="0,0,0,8" Style="{StaticResource ModernGroupBoxStyle}">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <ListBox Name="DrivesListBox" 
-                                     Margin="2"
-                                     BorderThickness="0"
-                                     Background="Transparent"
-                                     SelectionMode="Single"
-                                     PreviewMouseDown="DrivesListBox_PreviewMouseDown"
-                                     ItemContainerStyle="{StaticResource NavListBoxItemStyle}"/>
-                        </ScrollViewer>
-                    </GroupBox>
-                    
-                    <!-- 快速访问 -->
-                    <GroupBox Grid.Row="2" Header="快速访问" Margin="0,0,0,8" Style="{StaticResource ModernGroupBoxStyle}">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <ListBox Name="QuickAccessListBox" 
-                                     Margin="2"
-                                     BorderThickness="0"
-                                     Background="Transparent"
-                                     SelectionMode="Single"
-                                     PreviewMouseDown="QuickAccessListBox_PreviewMouseDown"
-                                     ItemContainerStyle="{StaticResource NavListBoxItemStyle}"/>
-                        </ScrollViewer>
-                    </GroupBox>
-                    
-                    <!-- 收藏 -->
-                    <GroupBox Grid.Row="3" Header="收藏" Style="{StaticResource ModernGroupBoxStyle}">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <ListBox Name="FavoritesListBox" 
-                                     Margin="2"
-                                     BorderThickness="0"
-                                     Background="Transparent"
-                                     SelectionMode="Single"
-                                     PreviewMouseDown="FavoritesListBox_PreviewMouseDown"
-                                     ItemContainerStyle="{StaticResource NavListBoxItemStyle}"/>
-                        </ScrollViewer>
-                    </GroupBox>
-                </Grid>
-                
-                <!-- 库导航内容 -->
-                <Grid Name="NavLibraryContent" Margin="8" Visibility="Collapsed">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-                    
-                    <!-- 库功能按钮已移动到标题栏，此处不再显示 -->
-                    
-                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                        <ListBox Name="LibrariesListBox" 
-                                 Margin="2"
-                                 BorderThickness="0"
-                                 Background="Transparent"
-                                 SelectionMode="Single"
-                                 SelectionChanged="LibrariesListBox_SelectionChanged"
-                                 DisplayMemberPath="Name"
-                                 ContextMenuOpening="LibrariesListBox_ContextMenuOpening"
-                                 AllowDrop="True"
-                                 ItemContainerStyle="{StaticResource NavListBoxItemStyle}">
-                            <ListBox.ContextMenu>
-                                <ContextMenu Name="LibraryContextMenu">
-                                    <MenuItem Header="📂 添加到库" Click="AddFileToLibrary_Click" Name="AddFileToLibraryMenuItem"/>
-                                    <Separator/>
-                                    <MenuItem Header="重命名" Click="LibraryRename_Click" Name="LibraryRenameMenuItem"/>
-                                    <MenuItem Header="删除库" Click="LibraryDelete_Click" Name="LibraryDeleteMenuItem"/>
-                                    <Separator/>
-                                    <MenuItem Header="管理库" Click="LibraryManage_Click" Name="LibraryManageMenuItem"/>
-                                </ContextMenu>
-                            </ListBox.ContextMenu>
-                        </ListBox>
-                    </ScrollViewer>
-                </Grid>
-                
-                <!-- 标签导航内容：支持浏览/编辑模式切换 -->
-                <Grid Name="NavTagContent" Margin="8" Visibility="Collapsed">
-                    <!-- 浏览模式：只显示标签列表（使用TagPanel） -->
-                    <tagTrain:TagPanel x:Name="TagBrowsePanel" Mode="Browse" Visibility="Visible"/>
-                    
-                    <!-- 编辑模式：完整TagTrain训练面板（使用TagPanel） -->
-                    <tagTrain:TagPanel x:Name="TagEditPanel" Mode="Edit" Visibility="Collapsed"/>
-                </Grid>
-            </Grid>
-            
-            <!-- 底部按钮区：系统按钮 + 标签页面按钮 + 库管理按钮 -->
-            <Border Grid.Row="1" Background="#F8F9FA" BorderBrush="#E9ECEF" BorderThickness="0,1,0,0">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    
-                    <!-- 左侧：添加收藏/标签按钮 -->
-                    <StackPanel Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Left" Margin="8,8">
-                        <Button Content="❤️" Click="AddFavorite_Click" Width="32" Height="32"
-                                Style="{StaticResource ModernButtonStyle}" ToolTip="添加收藏" Margin="0,0,4,0"/>
-                        <Button Content="📌" Click="AddTagToFile_Click" Width="32" Height="32"
-                                Style="{StaticResource ModernButtonStyle}" ToolTip="添加标签" Margin="0,0,4,0"/>
-                    </StackPanel>
-                    
-                    <!-- 右侧：库管理按钮（仅在库模式显示）+ 标签页面按钮（仅在标签页面显示） -->
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="8,8">
-                        <!-- 库管理按钮 -->
-                        <StackPanel Orientation="Horizontal" Name="LibraryBottomButtons" Visibility="Collapsed">
-                            <Button Name="LibraryManageBtn"
-                                   Content="⚙️"
-                                   Click="LibraryManageBottomBtn_Click"
-                                   Width="32" Height="32"
-                                   Style="{StaticResource ModernButtonStyle}"
-                                   ToolTip="管理库（包含新建库功能）"
-                                   Margin="4,0"/>
-                        </StackPanel>
-                        
-                        <!-- 标签页面按钮 -->
-                        <StackPanel Orientation="Horizontal" Visibility="Collapsed" Name="TagBottomButtons">
-                            <Button Name="TagClickModeBtn"
-                                   Content="👁"
-                                   Click="TagClickModeBtn_Click"
-                                   Width="32" Height="32"
-                                   Style="{StaticResource ModernButtonStyle}"
-                                   ToolTip="切换浏览/编辑模式"
-                                   Margin="4,0"/>
-                            <Button Name="TagCategoryManageBtn"
-                                   Content="📁"
-                                   Click="TagCategoryManageBtn_Click"
-                                   Width="32" Height="32"
-                                   Style="{StaticResource ModernButtonStyle}"
-                                   ToolTip="分组管理"
-                                   Margin="4,0"/>
-                        </StackPanel>
-                    </StackPanel>
-                </Grid>
-            </Border>
-        </Grid>
+        <!-- ========== 列1：导航区（独立控件） ========== -->
+        <controls:NavigationPanelControl Grid.Row="1" Grid.Column="0" Grid.RowSpan="2" x:Name="NavigationPanelControl"/>
         
         <!-- ========== 列2：文件显示区 ========== -->
         <controls:FileBrowserControl Grid.Row="1" Grid.Column="2" Grid.RowSpan="2"

@@ -83,7 +83,10 @@ namespace OoiMRR.Services
             mw.Dispatcher.Invoke(() =>
             {
                 var v = visible ? Visibility.Visible : Visibility.Collapsed;
-                mw.NavContentGrid.Visibility = v;
+                if (mw.NavigationPanelControl != null)
+                {
+                    mw.NavigationPanelControl.Visibility = v;
+                }
                 if (!visible)
                 {
                     mw.ColLeft.MinWidth = 0;

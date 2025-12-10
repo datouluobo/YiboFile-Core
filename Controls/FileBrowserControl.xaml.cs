@@ -41,6 +41,7 @@ namespace OoiMRR.Controls
             {
                 AddressBarControl.PathChanged += AddressBarControl_PathChanged;
                 AddressBarControl.BreadcrumbClicked += AddressBarControl_BreadcrumbClicked;
+                AddressBarControl.BreadcrumbMiddleClicked += AddressBarControl_BreadcrumbMiddleClicked;
             }
             
             // 订阅文件列表控件的事件（转发到外部事件）
@@ -198,6 +199,7 @@ namespace OoiMRR.Controls
         // 地址栏事件（转发给外部）
         public event EventHandler<string> PathChanged;
         public event EventHandler<string> BreadcrumbClicked;
+        public event EventHandler<string> BreadcrumbMiddleClicked;
         public event RoutedEventHandler NavigationBack;
         public event RoutedEventHandler NavigationForward;
         public event RoutedEventHandler NavigationUp;
@@ -223,6 +225,12 @@ namespace OoiMRR.Controls
         private void AddressBarControl_BreadcrumbClicked(object sender, string path)
         {
             BreadcrumbClicked?.Invoke(this, path);
+        }
+
+        private void AddressBarControl_BreadcrumbMiddleClicked(object sender, string path)
+        {
+            // 中键打开新标签，触发专门的事件
+            BreadcrumbMiddleClicked?.Invoke(this, path);
         }
         
         private void NavBackBtn_Click(object sender, RoutedEventArgs e)

@@ -490,23 +490,35 @@ namespace TagTrain.UI
             // 点击事件：根据模式处理
             if (_displayMode == DisplayMode.Browse)
             {
-                // 浏览模式：触发TagClicked事件
-                border.MouseLeftButtonDown += (s, e) =>
-                {
-                    // 检测Ctrl键或鼠标中键，强制打开新标签页
-                    bool forceNewTab = (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control;
-                    TagClicked?.Invoke(tagName, forceNewTab);
-                    e.Handled = true;
-                };
-                
-                // 鼠标中键点击
-                border.MouseDown += (s, e) =>
+                // 使用PreviewMouseDown优先处理中键和Ctrl+左键，避免重复触发
+                border.PreviewMouseDown += (s, e) =>
                 {
                     if (e.ChangedButton == MouseButton.Middle)
                     {
                         TagClicked?.Invoke(tagName, true);
                         e.Handled = true;
                     }
+                    else if (e.ChangedButton == MouseButton.Left && 
+                             (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+                    {
+                        TagClicked?.Invoke(tagName, true);
+                        e.Handled = true;
+                    }
+                };
+                
+                // 浏览模式：触发TagClicked事件（普通左键点击）
+                border.MouseLeftButtonDown += (s, e) =>
+                {
+                    // PreviewMouseDown中如果设置了e.Handled = true，这里不会触发
+                    // 但为了安全，仍然检查Ctrl键（备用处理）
+                    if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+                    {
+                        e.Handled = true;
+                        return;
+                    }
+                    
+                    TagClicked?.Invoke(tagName, false);
+                    e.Handled = true;
                 };
             }
             else

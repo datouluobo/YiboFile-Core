@@ -238,7 +238,7 @@ namespace TagTrain.UI
                     }
                     catch { }
                     
-                    MessageBox.Show("已切换到新数据目录\n\n程序将加载此目录中的数据（settings.txt, training.db, model.zip）\n\n请重新启动程序以确保所有连接使用新路径。", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show("已切换到新数据目录\n\n程序将加载此目录中的数据（tt_settings.txt, tt_training.db, tt_model.zip）\n\n请重新启动程序以确保所有连接使用新路径。", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 else
                 {

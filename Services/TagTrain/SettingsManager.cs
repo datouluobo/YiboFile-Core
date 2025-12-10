@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Windows;
 using Microsoft.Data.Sqlite;
+using OoiMRR;
 
 namespace TagTrain.Services
 {
@@ -21,23 +22,26 @@ namespace TagTrain.Services
         /// </summary>
         private static string GetDefaultDataDirectory()
         {
-            var assemblyLocation = Assembly.GetExecutingAssembly().Location;
-            if (string.IsNullOrEmpty(assemblyLocation))
+            try
             {
-                // 如果无法获取程序集位置，使用当前工作目录
-                assemblyLocation = Environment.CurrentDirectory;
+                return ConfigManager.GetBaseDirectory();
             }
-            
-            var appDir = Path.GetDirectoryName(assemblyLocation);
-            if (string.IsNullOrEmpty(appDir))
+            catch
             {
-                // 如果无法获取目录，使用当前工作目录
-                appDir = Environment.CurrentDirectory;
+                var assemblyLocation = Assembly.GetExecutingAssembly().Location;
+                if (string.IsNullOrEmpty(assemblyLocation))
+                {
+                    assemblyLocation = Environment.CurrentDirectory;
+                }
+
+                var appDir = Path.GetDirectoryName(assemblyLocation);
+                if (string.IsNullOrEmpty(appDir))
+                {
+                    appDir = Environment.CurrentDirectory;
+                }
+
+                return Path.Combine(appDir, "AppData");
             }
-            
-            // 返回程序目录下的 data 目录
-            // 当从 win-x64 目录运行时，会自动指向 win-x64\data\
-            return Path.Combine(appDir, "data");
         }
 
         private static string GetSettingsPath(bool useCache = true)
@@ -271,7 +275,7 @@ namespace TagTrain.Services
             var dir = GetValue("DataStorageDirectory", "");
             if (string.IsNullOrEmpty(dir))
             {
-                // 默认路径：程序目录下的 data 目录
+                // 默认路径：程序根目录下的 AppData 目录
                 dir = GetDefaultDataDirectory();
             }
             return dir;
@@ -291,7 +295,7 @@ namespace TagTrain.Services
         public static string GetDatabasePath()
         {
             var storageDir = GetDataStorageDirectory();
-            return Path.Combine(storageDir, "training.db");
+            return Path.Combine(storageDir, "tt_training.db");
         }
 
         /// <summary>
@@ -300,7 +304,7 @@ namespace TagTrain.Services
         public static string GetModelPath()
         {
             var storageDir = GetDataStorageDirectory();
-            return Path.Combine(storageDir, "model.zip");
+            return Path.Combine(storageDir, "tt_model.zip");
         }
 
         /// <summary>
@@ -309,7 +313,7 @@ namespace TagTrain.Services
         public static string GetSettingsFilePath()
         {
             var storageDir = GetDataStorageDirectory();
-            return Path.Combine(storageDir, "settings.txt");
+            return Path.Combine(storageDir, "tt_settings.txt");
         }
 
         /// <summary>
@@ -670,7 +674,7 @@ namespace TagTrain.Services
                     }
                     
                     // 保存到新位置
-                    var newSettingsPath = Path.Combine(newDataDir, "settings.txt");
+                    var newSettingsPath = Path.Combine(newDataDir, "tt_settings.txt");
                     var lines = settings.Select(kvp => $"{kvp.Key}={kvp.Value}").ToList();
                     File.WriteAllLines(newSettingsPath, lines);
                     
@@ -685,22 +689,22 @@ namespace TagTrain.Services
                 {
                     var dataFiles = new[]
                     {
-                        new { Name = "settings.txt", Description = "设置文件" },
-                        new { Name = "training.db", Description = "训练数据库" },
-                        new { Name = "model.zip", Description = "模型文件" }
+                        new { Old = "settings.txt", New = "tt_settings.txt", Description = "设置文件" },
+                        new { Old = "training.db", New = "tt_training.db", Description = "训练数据库" },
+                        new { Old = "model.zip", New = "tt_model.zip", Description = "模型文件" }
                     };
                     
                     foreach (var fileInfo in dataFiles)
                     {
-                        var oldFilePath = Path.Combine(oldSettingsDir, fileInfo.Name);
-                        var newFilePath = Path.Combine(newDataDir, fileInfo.Name);
+                        var oldFilePath = Path.Combine(oldSettingsDir, fileInfo.Old);
+                        var newFilePath = Path.Combine(newDataDir, fileInfo.New);
                         
                         // 如果旧文件存在且新文件不存在，则迁移
                         if (File.Exists(oldFilePath) && !File.Exists(newFilePath))
                         {
                             try
                             {
-                                if (fileInfo.Name == "training.db")
+                                if (fileInfo.Old == "training.db")
                                 {
                                     // 数据库文件使用备份方式迁移
                                     using (var sourceConnection = new SqliteConnection($"Data Source={oldFilePath}"))

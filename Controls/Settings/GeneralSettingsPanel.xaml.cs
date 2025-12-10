@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using Microsoft.Win32;
 using OoiMRR.Controls;
+using Forms = System.Windows.Forms;
 
 namespace OoiMRR.Controls.Settings
 {
@@ -14,9 +15,7 @@ namespace OoiMRR.Controls.Settings
         
         private CheckBox _rememberWindowPositionCheckBox;
         private CheckBox _startMaximizedCheckBox;
-        private TextBox _configDirectoryTextBox;
-        private TextBox _dataDirectoryTextBox;
-        private TextBox _databasePathTextBox;
+        private TextBox _baseDirectoryTextBox;
         private TextBox _uiFontSizeTextBox;
         private Button _fontSizeUpButton;
         private Button _fontSizeDownButton;
@@ -308,13 +307,21 @@ namespace OoiMRR.Controls.Settings
                 Text = "路径设置", 
                 FontSize = 18, 
                 FontWeight = FontWeights.Bold, 
-                Margin = new Thickness(0, 24, 0, 16) 
+                Margin = new Thickness(0, 24, 0, 8) 
             };
             stackPanel.Children.Add(pathTitle);
             
-            _configDirectoryTextBox = CreatePathPanel(stackPanel, "配置文件目录:");
-            _dataDirectoryTextBox = CreatePathPanel(stackPanel, "数据目录:");
-            _databasePathTextBox = CreatePathPanel(stackPanel, "数据库路径:", isReadOnly: true);
+            var pathHint = new TextBlock
+            {
+                Text = "默认目录：程序根目录下的 .\\AppData\\ （配置、数据、TagTrain 文件全部集中）",
+                FontSize = 12,
+                Foreground = System.Windows.Media.Brushes.Gray,
+                Margin = new Thickness(0, 0, 0, 12),
+                TextWrapping = TextWrapping.Wrap
+            };
+            stackPanel.Children.Add(pathHint);
+            
+            _baseDirectoryTextBox = CreatePathPanelWithButton(stackPanel, "当前目录:", BrowseBaseDirectory_Click);
             
             // 导入导出
             var separator = new Separator { Margin = new Thickness(0, 20, 0, 12) };
@@ -322,34 +329,16 @@ namespace OoiMRR.Controls.Settings
             
             var configTitle = new TextBlock 
             { 
-                Text = "配置管理", 
+                Text = "导入 / 导出", 
                 FontSize = 18, 
                 FontWeight = FontWeights.Bold, 
                 Margin = new Thickness(0, 0, 0, 16) 
             };
             stackPanel.Children.Add(configTitle);
             
-            var configButtonPanel = new StackPanel { Orientation = Orientation.Horizontal };
-            var exportButton = new Button 
-            { 
-                Content = "导出所有设置", 
-                FontSize = 14,
-                Padding = new Thickness(18, 8, 18, 8), 
-                MinHeight = 40,
-                Margin = new Thickness(0, 0, 12, 0)
-            };
-            exportButton.Click += ExportAllSettings_Click;
-            var importButton = new Button 
-            { 
-                Content = "导入所有设置", 
-                FontSize = 14,
-                Padding = new Thickness(18, 8, 18, 8),
-                MinHeight = 40
-            };
-            importButton.Click += ImportAllSettings_Click;
-            configButtonPanel.Children.Add(exportButton);
-            configButtonPanel.Children.Add(importButton);
-            stackPanel.Children.Add(configButtonPanel);
+            stackPanel.Children.Add(CreateImportExportRow("仅配置（ooi_config.json + tt_settings.txt）", ExportConfigs_Click, ImportConfigs_Click));
+            stackPanel.Children.Add(CreateImportExportRow("仅数据（ooi_data.db + tt_training.db + tt_model.zip）", ExportData_Click, ImportData_Click));
+            stackPanel.Children.Add(CreateImportExportRow("全部（配置 + 数据）", ExportAll_Click, ImportAll_Click));
             
             var scrollViewer = new ScrollViewer
             {
@@ -443,6 +432,91 @@ namespace OoiMRR.Controls.Settings
             return textBox;
         }
 
+        private TextBox CreatePathPanelWithButton(StackPanel parent, string label, RoutedEventHandler browseHandler)
+        {
+            var grid = new Grid { Margin = new Thickness(0, 0, 0, 12) };
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            
+            var labelText = new TextBlock
+            {
+                Text = label,
+                FontSize = 14,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, 12, 0),
+                MinWidth = 140,
+                MinHeight = 36
+            };
+            Grid.SetColumn(labelText, 0);
+            grid.Children.Add(labelText);
+            
+            var textBox = new TextBox
+            {
+                FontSize = 14,
+                MinHeight = 36,
+                VerticalContentAlignment = VerticalAlignment.Center,
+                Padding = new Thickness(10, 6, 10, 6),
+                IsReadOnly = true
+            };
+            Grid.SetColumn(textBox, 1);
+            grid.Children.Add(textBox);
+            
+            var button = new Button
+            {
+                Content = "选择文件夹",
+                FontSize = 13,
+                Padding = new Thickness(12, 6, 12, 6),
+                MinHeight = 32,
+                Margin = new Thickness(8, 0, 0, 0)
+            };
+            button.Click += browseHandler;
+            Grid.SetColumn(button, 2);
+            grid.Children.Add(button);
+            
+            parent.Children.Add(grid);
+            return textBox;
+        }
+
+        private UIElement CreateImportExportRow(string title, RoutedEventHandler exportHandler, RoutedEventHandler importHandler)
+        {
+            var panel = new StackPanel { Orientation = Orientation.Vertical, Margin = new Thickness(0, 0, 0, 12) };
+            
+            var text = new TextBlock
+            {
+                Text = title,
+                FontSize = 14,
+                Margin = new Thickness(0, 0, 0, 6)
+            };
+            panel.Children.Add(text);
+            
+            var buttonPanel = new StackPanel { Orientation = Orientation.Horizontal };
+            
+            var exportButton = new Button
+            {
+                Content = "导出",
+                FontSize = 13,
+                Padding = new Thickness(14, 6, 14, 6),
+                MinHeight = 32,
+                Margin = new Thickness(0, 0, 8, 0)
+            };
+            exportButton.Click += exportHandler;
+            buttonPanel.Children.Add(exportButton);
+            
+            var importButton = new Button
+            {
+                Content = "导入",
+                FontSize = 13,
+                Padding = new Thickness(14, 6, 14, 6),
+                MinHeight = 32
+            };
+            importButton.Click += importHandler;
+            buttonPanel.Children.Add(importButton);
+            
+            panel.Children.Add(buttonPanel);
+            return panel;
+        }
+
         public void LoadSettings()
         {
             _isLoadingSettings = true;
@@ -468,16 +542,8 @@ namespace OoiMRR.Controls.Settings
                     _tagBoxWidthTextBox.Text = ((int)config.TagBoxWidth).ToString();
                 }
                 
-                if (_configDirectoryTextBox != null)
-                    _configDirectoryTextBox.Text = ConfigManager.GetConfigDirectory();
-                
-                if (_dataDirectoryTextBox != null && App.IsTagTrainAvailable)
-                {
-                    TagTrain.Services.SettingsManager.ClearCache();
-                    _dataDirectoryTextBox.Text = TagTrain.Services.SettingsManager.GetDataStorageDirectory();
-                    if (_databasePathTextBox != null)
-                        _databasePathTextBox.Text = TagTrain.Services.SettingsManager.GetDatabasePath();
-                }
+                if (_baseDirectoryTextBox != null)
+                    _baseDirectoryTextBox.Text = ConfigManager.GetBaseDirectory();
             }
             finally
             {
@@ -727,20 +793,86 @@ namespace OoiMRR.Controls.Settings
             SettingsChanged?.Invoke(this, EventArgs.Empty);
         }
 
-        private void ExportAllSettings_Click(object sender, RoutedEventArgs e)
+        private void BrowseBaseDirectory_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dialog = new Forms.FolderBrowserDialog
+                {
+                    Description = "选择配置/数据存储目录（默认 .\\AppData）",
+                    SelectedPath = ConfigManager.GetBaseDirectory()
+                };
+
+                if (dialog.ShowDialog() == Forms.DialogResult.OK)
+                {
+                    ApplyBaseDirectoryChange(dialog.SelectedPath);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"选择目录失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void ApplyBaseDirectoryChange(string newDir)
+        {
+            if (string.IsNullOrWhiteSpace(newDir)) return;
+
+            var oldDir = ConfigManager.GetBaseDirectory();
+            if (string.Equals(NormalizePath(oldDir), NormalizePath(newDir), StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            ConfigManager.SetBaseDirectory(newDir, copyMissingFromOld: true);
+
+            if (App.IsTagTrainAvailable)
+            {
+                try
+                {
+                    TagTrain.Services.SettingsManager.ClearCache();
+                    TagTrain.Services.SettingsManager.SetDataStorageDirectory(ConfigManager.GetBaseDirectory());
+                    TagTrain.Services.SettingsManager.ClearCache();
+                }
+                catch { }
+            }
+
+            try
+            {
+                DatabaseManager.Initialize();
+            }
+            catch { }
+
+            LoadSettings();
+            SettingsChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        private static string NormalizePath(string path)
+        {
+            try
+            {
+                return Path.GetFullPath(path.Trim());
+            }
+            catch
+            {
+                return path;
+            }
+        }
+
+        private void ExportConfigs_Click(object sender, RoutedEventArgs e)
         {
             var sfd = new SaveFileDialog
             {
-                FileName = "OoiMRR_Settings.json",
-                Filter = "配置文件 (*.json)|*.json|所有文件 (*.*)|*.*"
+                FileName = "configs.zip",
+                Filter = "ZIP文件 (*.zip)|*.zip|所有文件 (*.*)|*.*"
             };
-            
+
             if (sfd.ShowDialog() == true)
             {
                 try
                 {
-                    ConfigManager.ExportAllSettings(sfd.FileName);
-                    MessageBox.Show("所有设置已成功导出。", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                    ConfigManager.ExportConfigsZip(sfd.FileName);
+                    MessageBox.Show("配置已导出。", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 catch (Exception ex)
                 {
@@ -749,21 +881,111 @@ namespace OoiMRR.Controls.Settings
             }
         }
 
-        private void ImportAllSettings_Click(object sender, RoutedEventArgs e)
+        private void ImportConfigs_Click(object sender, RoutedEventArgs e)
         {
             var ofd = new OpenFileDialog
             {
-                Filter = "配置文件 (*.json)|*.json|所有文件 (*.*)|*.*"
+                Filter = "ZIP文件 (*.zip)|*.zip|所有文件 (*.*)|*.*"
             };
-            
+
             if (ofd.ShowDialog() == true)
             {
                 try
                 {
-                    ConfigManager.ImportAllSettings(ofd.FileName);
-                    MessageBox.Show("所有设置已成功导入。\n\n部分设置需要重启程序后生效。", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
-                    
+                    ConfigManager.ImportConfigsZip(ofd.FileName);
                     LoadSettings();
+                    SettingsChanged?.Invoke(this, EventArgs.Empty);
+                    MessageBox.Show("配置已导入。", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"导入失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        private void ExportData_Click(object sender, RoutedEventArgs e)
+        {
+            var sfd = new SaveFileDialog
+            {
+                FileName = "data.zip",
+                Filter = "ZIP文件 (*.zip)|*.zip|所有文件 (*.*)|*.*"
+            };
+
+            if (sfd.ShowDialog() == true)
+            {
+                try
+                {
+                    ConfigManager.ExportDataZip(sfd.FileName);
+                    MessageBox.Show("数据已导出。", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"导出失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        private void ImportData_Click(object sender, RoutedEventArgs e)
+        {
+            var ofd = new OpenFileDialog
+            {
+                Filter = "ZIP文件 (*.zip)|*.zip|所有文件 (*.*)|*.*"
+            };
+
+            if (ofd.ShowDialog() == true)
+            {
+                try
+                {
+                    ConfigManager.ImportDataZip(ofd.FileName);
+                    LoadSettings();
+                    SettingsChanged?.Invoke(this, EventArgs.Empty);
+                    MessageBox.Show("数据已导入。", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"导入失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        private void ExportAll_Click(object sender, RoutedEventArgs e)
+        {
+            var sfd = new SaveFileDialog
+            {
+                FileName = "all.zip",
+                Filter = "ZIP文件 (*.zip)|*.zip|所有文件 (*.*)|*.*"
+            };
+
+            if (sfd.ShowDialog() == true)
+            {
+                try
+                {
+                    ConfigManager.ExportAllZip(sfd.FileName);
+                    MessageBox.Show("全部文件已导出。", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"导出失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        private void ImportAll_Click(object sender, RoutedEventArgs e)
+        {
+            var ofd = new OpenFileDialog
+            {
+                Filter = "ZIP文件 (*.zip)|*.zip|所有文件 (*.*)|*.*"
+            };
+
+            if (ofd.ShowDialog() == true)
+            {
+                try
+                {
+                    ConfigManager.ImportAllZip(ofd.FileName);
+                    LoadSettings();
+                    SettingsChanged?.Invoke(this, EventArgs.Empty);
+                    MessageBox.Show("全部文件已导入。", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 catch (Exception ex)
                 {

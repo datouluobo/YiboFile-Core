@@ -3364,9 +3364,7 @@ namespace TagTrain.UI
             // 从数据库删除该标签的所有训练数据
             try
             {
-                var dbPath = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                    "TagTrain", "training.db");
+                var dbPath = TagTrain.Services.SettingsManager.GetDatabasePath();
                 
                 if (!File.Exists(dbPath))
                     return;

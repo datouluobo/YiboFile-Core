@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Text.Json;
 
@@ -62,21 +63,191 @@ namespace OoiMRR
 
     public static class ConfigManager
     {
-        private static readonly string ConfigDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "OoiMRR");
-        private static readonly string ConfigPath = Path.Combine(ConfigDirectory, "config.json");
+        private const string ConfigFileName = "ooi_config.json";
+        private const string DataFileName = "ooi_data.db";
+        private const string TagTrainSettingsFileName = "tt_settings.txt";
+        private const string TagTrainDbFileName = "tt_training.db";
+        private const string TagTrainModelFileName = "tt_model.zip";
+        private const string BasePathMarkerFileName = "basepath.txt";
+
+        private static readonly string DefaultBaseDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "AppData");
+        private static readonly string LegacyBaseDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "OoiMRR");
+        
+        private static string _baseDirectory;
 
         public static string GetConfigDirectory()
         {
-            return ConfigDirectory;
+            return GetBaseDirectory();
+        }
+
+        public static string GetConfigFilePath() => Path.Combine(GetBaseDirectory(), ConfigFileName);
+        public static string GetDataFilePath() => Path.Combine(GetBaseDirectory(), DataFileName);
+        public static string GetTagTrainSettingsPath() => Path.Combine(GetBaseDirectory(), TagTrainSettingsFileName);
+        public static string GetTagTrainDatabasePath() => Path.Combine(GetBaseDirectory(), TagTrainDbFileName);
+        public static string GetTagTrainModelPath() => Path.Combine(GetBaseDirectory(), TagTrainModelFileName);
+
+        public static string GetBaseDirectory()
+        {
+            if (!string.IsNullOrEmpty(_baseDirectory))
+            {
+                return _baseDirectory;
+            }
+
+            var candidates = new List<string>();
+            var markerPaths = new[]
+            {
+                Path.Combine(DefaultBaseDirectory, BasePathMarkerFileName),
+                Path.Combine(LegacyBaseDirectory, BasePathMarkerFileName)
+            };
+
+            foreach (var marker in markerPaths)
+            {
+                if (File.Exists(marker))
+                {
+                    try
+                    {
+                        var path = File.ReadAllText(marker).Trim();
+                        if (!string.IsNullOrEmpty(path))
+                        {
+                            candidates.Add(path);
+                        }
+                    }
+                    catch { }
+                }
+            }
+
+            candidates.Add(DefaultBaseDirectory);
+            candidates.Add(LegacyBaseDirectory);
+
+            string PickExisting(IEnumerable<string> paths)
+            {
+                foreach (var p in paths.Where(p => !string.IsNullOrWhiteSpace(p)).Distinct(StringComparer.OrdinalIgnoreCase))
+                {
+                    try
+                    {
+                        if (Directory.Exists(p) || File.Exists(Path.Combine(p, ConfigFileName)))
+                        {
+                            return p;
+                        }
+                    }
+                    catch { }
+                }
+                return null;
+            }
+
+            var selected = PickExisting(candidates) ?? DefaultBaseDirectory;
+            try
+            {
+                Directory.CreateDirectory(selected);
+            }
+            catch { }
+
+            _baseDirectory = selected;
+            WriteBasePathMarker(_baseDirectory);
+
+            // 如果使用默认目录且存在旧目录中的文件，自动补齐
+            if (!string.Equals(_baseDirectory, LegacyBaseDirectory, StringComparison.OrdinalIgnoreCase))
+            {
+                TryCopyMissingFiles(LegacyBaseDirectory, _baseDirectory);
+            }
+
+            return _baseDirectory;
+        }
+
+        public static void SetBaseDirectory(string newBaseDirectory, bool copyMissingFromOld = true)
+        {
+            if (string.IsNullOrWhiteSpace(newBaseDirectory))
+            {
+                return;
+            }
+
+            var oldBase = GetBaseDirectory();
+            _baseDirectory = newBaseDirectory;
+
+            try
+            {
+                Directory.CreateDirectory(_baseDirectory);
+            }
+            catch { }
+
+            WriteBasePathMarker(_baseDirectory);
+
+            if (copyMissingFromOld && !string.Equals(oldBase, _baseDirectory, StringComparison.OrdinalIgnoreCase))
+            {
+                TryCopyMissingFiles(oldBase, _baseDirectory);
+            }
+        }
+
+        private static void WriteBasePathMarker(string baseDirectory)
+        {
+            try
+            {
+                Directory.CreateDirectory(DefaultBaseDirectory);
+                File.WriteAllText(Path.Combine(DefaultBaseDirectory, BasePathMarkerFileName), baseDirectory);
+            }
+            catch { }
+
+            try
+            {
+                Directory.CreateDirectory(LegacyBaseDirectory);
+                File.WriteAllText(Path.Combine(LegacyBaseDirectory, BasePathMarkerFileName), baseDirectory);
+            }
+            catch { }
+        }
+
+        private static void TryCopyMissingFiles(string sourceDir, string targetDir)
+        {
+            if (string.IsNullOrWhiteSpace(sourceDir) || string.IsNullOrWhiteSpace(targetDir) ||
+                string.Equals(sourceDir, targetDir, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            var fileMappings = new[]
+            {
+                new { NewName = ConfigFileName, Legacy = new [] { "config.json", ConfigFileName } },
+                new { NewName = DataFileName, Legacy = new [] { "data.db", DataFileName } },
+                new { NewName = TagTrainSettingsFileName, Legacy = new [] { "settings.txt", TagTrainSettingsFileName } },
+                new { NewName = TagTrainDbFileName, Legacy = new [] { "training.db", TagTrainDbFileName } },
+                new { NewName = TagTrainModelFileName, Legacy = new [] { "model.zip", TagTrainModelFileName } }
+            };
+
+            foreach (var mapping in fileMappings)
+            {
+                try
+                {
+                    var targetPath = Path.Combine(targetDir, mapping.NewName);
+                    if (File.Exists(targetPath)) continue;
+
+                    string sourcePath = null;
+                    foreach (var legacy in mapping.Legacy)
+                    {
+                        var candidate = Path.Combine(sourceDir, legacy);
+                        if (File.Exists(candidate))
+                        {
+                            sourcePath = candidate;
+                            break;
+                        }
+                    }
+
+                    if (sourcePath != null)
+                    {
+                        Directory.CreateDirectory(Path.GetDirectoryName(targetPath) ?? targetDir);
+                        File.Copy(sourcePath, targetPath, overwrite: false);
+                    }
+                }
+                catch { }
+            }
         }
 
         public static AppConfig Load()
         {
             try
             {
-                if (File.Exists(ConfigPath))
+                var path = GetConfigFilePath();
+                if (File.Exists(path))
                 {
-                    var json = File.ReadAllText(ConfigPath);
+                    var json = File.ReadAllText(path);
                     var cfg = JsonSerializer.Deserialize<AppConfig>(json);
                     return cfg ?? new AppConfig();
                 }
@@ -92,9 +263,10 @@ namespace OoiMRR
         {
             try
             {
-                if (!Directory.Exists(ConfigDirectory)) Directory.CreateDirectory(ConfigDirectory);
+                var baseDir = GetBaseDirectory();
+                Directory.CreateDirectory(baseDir);
                 var json = JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(ConfigPath, json);
+                File.WriteAllText(GetConfigFilePath(), json);
             }
             catch
             {
@@ -117,91 +289,139 @@ namespace OoiMRR
             Save(cfg);
         }
 
-        public static void ExportAllSettings(string targetFile)
+        public static void ExportConfigsZip(string targetZip)
         {
+            ExportZip(targetZip, new[]
+            {
+                GetConfigFilePath(),
+                GetTagTrainSettingsPath()
+            });
+        }
+
+        public static void ExportDataZip(string targetZip)
+        {
+            ExportZip(targetZip, new[]
+            {
+                GetDataFilePath(),
+                GetTagTrainDatabasePath(),
+                GetTagTrainModelPath()
+            });
+        }
+
+        public static void ExportAllZip(string targetZip)
+        {
+            ExportZip(targetZip, new[]
+            {
+                GetConfigFilePath(),
+                GetTagTrainSettingsPath(),
+                GetDataFilePath(),
+                GetTagTrainDatabasePath(),
+                GetTagTrainModelPath()
+            });
+        }
+
+        public static void ImportConfigsZip(string sourceZip)
+        {
+            var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                { ConfigFileName, GetConfigFilePath() },
+                { TagTrainSettingsFileName, GetTagTrainSettingsPath() }
+            };
+            ImportZip(sourceZip, map);
+        }
+
+        public static void ImportDataZip(string sourceZip)
+        {
+            var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                { DataFileName, GetDataFilePath() },
+                { TagTrainDbFileName, GetTagTrainDatabasePath() },
+                { TagTrainModelFileName, GetTagTrainModelPath() }
+            };
+            ImportZip(sourceZip, map);
+        }
+
+        public static void ImportAllZip(string sourceZip)
+        {
+            var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                { ConfigFileName, GetConfigFilePath() },
+                { TagTrainSettingsFileName, GetTagTrainSettingsPath() },
+                { DataFileName, GetDataFilePath() },
+                { TagTrainDbFileName, GetTagTrainDatabasePath() },
+                { TagTrainModelFileName, GetTagTrainModelPath() }
+            };
+            ImportZip(sourceZip, map);
+        }
+
+        private static void ExportZip(string targetZip, IEnumerable<string> filePaths)
+        {
+            var baseDir = Path.GetDirectoryName(targetZip);
+            if (!string.IsNullOrEmpty(baseDir))
+            {
+                Directory.CreateDirectory(baseDir);
+            }
+
+            if (File.Exists(targetZip))
+            {
+                File.Delete(targetZip);
+            }
+
+            var tempDir = Path.Combine(Path.GetTempPath(), "OoiMRR_Export_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempDir);
+
             try
             {
-                var allSettings = new AllSettingsConfig
+                using var archive = ZipFile.Open(targetZip, ZipArchiveMode.Create);
+                foreach (var file in filePaths.Distinct(StringComparer.OrdinalIgnoreCase))
                 {
-                    OoiMRRConfig = Load()
-                };
-                
-                // 导出TagTrain设置
-                if (App.IsTagTrainAvailable)
-                {
+                    if (!File.Exists(file)) continue;
+
+                    var entryName = Path.GetFileName(file);
+                    var tempFile = Path.Combine(tempDir, entryName);
+
                     try
                     {
-                        TagTrain.Services.SettingsManager.ClearCache();
-                        var settingsPath = TagTrain.Services.SettingsManager.GetSettingsFilePath();
-                        if (File.Exists(settingsPath))
+                        // 尝试在共享读写模式下复制，避免被 SQLite 占用导致导出失败
+                        using (var source = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                        using (var dest = new FileStream(tempFile, FileMode.Create, FileAccess.Write, FileShare.None))
                         {
-                            var lines = File.ReadAllLines(settingsPath);
-                            foreach (var line in lines)
-                            {
-                                if (string.IsNullOrWhiteSpace(line) || line.TrimStart().StartsWith("#"))
-                                    continue;
-                                var parts = line.Split(new[] { '=' }, 2);
-                                if (parts.Length == 2)
-                                {
-                                    allSettings.TagTrainSettings[parts[0].Trim()] = parts[1].Trim();
-                                }
-                            }
+                            source.CopyTo(dest);
                         }
+
+                        archive.CreateEntryFromFile(tempFile, entryName, CompressionLevel.Optimal);
                     }
-                    catch { }
+                    catch
+                    {
+                        // 忽略单个文件的复制/压缩错误，继续处理其它文件
+                    }
                 }
-                
-                var json = JsonSerializer.Serialize(allSettings, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(targetFile, json);
             }
-            catch (Exception ex)
+            finally
             {
-                throw new Exception($"导出设置失败: {ex.Message}", ex);
+                try { if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true); } catch { }
             }
         }
 
-        public static void ImportAllSettings(string sourceFile)
+        private static void ImportZip(string sourceZip, Dictionary<string, string> targetMap)
         {
-            try
+            if (!File.Exists(sourceZip))
             {
-                if (!File.Exists(sourceFile)) return;
-                
-                var json = File.ReadAllText(sourceFile);
-                var allSettings = JsonSerializer.Deserialize<AllSettingsConfig>(json);
-                if (allSettings == null) return;
-                
-                // 导入OoiMRR配置
-                if (allSettings.OoiMRRConfig != null)
-                {
-                    Save(allSettings.OoiMRRConfig);
-                }
-                
-                // 导入TagTrain设置
-                if (allSettings.TagTrainSettings != null && allSettings.TagTrainSettings.Count > 0)
-                {
-                    if (App.IsTagTrainAvailable)
-                    {
-                        try
-                        {
-                            TagTrain.Services.SettingsManager.ClearCache();
-                            var settingsPath = TagTrain.Services.SettingsManager.GetSettingsFilePath();
-                            var settingsDir = Path.GetDirectoryName(settingsPath);
-                            if (!string.IsNullOrEmpty(settingsDir))
-                            {
-                                Directory.CreateDirectory(settingsDir);
-                            }
-                            
-                            var lines = allSettings.TagTrainSettings.Select(kvp => $"{kvp.Key}={kvp.Value}").ToList();
-                            File.WriteAllLines(settingsPath, lines);
-                            TagTrain.Services.SettingsManager.ClearCache();
-                        }
-                        catch { }
-                    }
-                }
+                throw new FileNotFoundException("未找到导入包", sourceZip);
             }
-            catch (Exception ex)
+
+            using var archive = ZipFile.OpenRead(sourceZip);
+            foreach (var entry in archive.Entries)
             {
-                throw new Exception($"导入设置失败: {ex.Message}", ex);
+                if (targetMap.TryGetValue(entry.Name, out var targetPath))
+                {
+                    var targetDir = Path.GetDirectoryName(targetPath);
+                    if (!string.IsNullOrEmpty(targetDir))
+                    {
+                        Directory.CreateDirectory(targetDir);
+                    }
+                    entry.ExtractToFile(targetPath, overwrite: true);
+                }
             }
         }
     }

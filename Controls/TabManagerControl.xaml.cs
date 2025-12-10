@@ -83,6 +83,16 @@ namespace OoiMRR.Controls
         public TabInfo ActiveTab => _activeTab;
 
         /// <summary>
+        /// 标签页面板控件（公开给外部访问）
+        /// </summary>
+        public StackPanel TabsPanelControl => TabsPanel;
+
+        /// <summary>
+        /// 标签页边框控件（公开给外部访问）
+        /// </summary>
+        public Border TabsBorderControl => TabsBorder;
+
+        /// <summary>
         /// 标签页是否可见
         /// </summary>
         public new bool IsVisible
@@ -93,16 +103,6 @@ namespace OoiMRR.Controls
                 TabsBorder.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
             }
         }
-
-        /// <summary>
-        /// 标签页容器（用于向后兼容）
-        /// </summary>
-        public StackPanel TabsPanelControl => this.TabsPanel;
-
-        /// <summary>
-        /// 标签页边框容器（用于向后兼容）
-        /// </summary>
-        public Border TabsBorderControl => this.TabsBorder;
 
         /// <summary>
         /// 统一的标签页打开逻辑

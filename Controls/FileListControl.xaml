@@ -129,39 +129,47 @@
                             Background="#F5F5F5" 
                             BorderBrush="#E0E0E0" 
                             BorderThickness="0,0,0,1">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="200"/>
-                                <ColumnDefinition Width="100"/>
-                                <ColumnDefinition Width="100"/>
-                                <ColumnDefinition Width="150"/>
-                                <ColumnDefinition Width="50"/>
-                                <ColumnDefinition Width="150"/>
-                                <ColumnDefinition Width="200"/>
-                            </Grid.ColumnDefinitions>
-                            
-                            <Border Grid.Column="0" BorderBrush="#E0E0E0" BorderThickness="0,0,1,0" Padding="8,6">
-                                <TextBlock Text="名称" FontWeight="SemiBold"/>
-                            </Border>
-                            <Border Grid.Column="1" BorderBrush="#E0E0E0" BorderThickness="0,0,1,0" Padding="8,6">
-                                <TextBlock Text="大小" FontWeight="SemiBold"/>
-                            </Border>
-                            <Border Grid.Column="2" BorderBrush="#E0E0E0" BorderThickness="0,0,1,0" Padding="8,6">
-                                <TextBlock Text="类型" FontWeight="SemiBold"/>
-                            </Border>
-                            <Border Grid.Column="3" BorderBrush="#E0E0E0" BorderThickness="0,0,1,0" Padding="8,6">
-                                <TextBlock Text="修改日期" FontWeight="SemiBold"/>
-                            </Border>
-                            <Border Grid.Column="4" BorderBrush="#E0E0E0" BorderThickness="0,0,1,0" Padding="8,6">
-                                <TextBlock Text="创建" FontWeight="SemiBold"/>
-                            </Border>
-                            <Border Grid.Column="5" BorderBrush="#E0E0E0" BorderThickness="0,0,1,0" Padding="8,6">
-                                <TextBlock Text="标签" FontWeight="SemiBold"/>
-                            </Border>
-                            <Border Grid.Column="6" Padding="8,6">
-                                <TextBlock Text="备注" FontWeight="SemiBold"/>
-                            </Border>
-                        </Grid>
+                        <ListView x:Name="GroupedHeaderListView" BorderThickness="0" Background="Transparent">
+                            <ListView.View>
+                                <GridView>
+                                    <GridViewColumn x:Name="ColHeaderName" Width="200">
+                                        <GridViewColumn.Header>
+                                            <GridViewColumnHeader Content="名称" Tag="Name"/>
+                                        </GridViewColumn.Header>
+                                    </GridViewColumn>
+                                    <GridViewColumn x:Name="ColHeaderSize" Width="100">
+                                        <GridViewColumn.Header>
+                                            <GridViewColumnHeader Content="大小" Tag="Size"/>
+                                        </GridViewColumn.Header>
+                                    </GridViewColumn>
+                                    <GridViewColumn x:Name="ColHeaderType" Width="100">
+                                        <GridViewColumn.Header>
+                                            <GridViewColumnHeader Content="类型" Tag="Type"/>
+                                        </GridViewColumn.Header>
+                                    </GridViewColumn>
+                                    <GridViewColumn x:Name="ColHeaderModifiedDate" Width="150">
+                                        <GridViewColumn.Header>
+                                            <GridViewColumnHeader Content="修改日期" Tag="ModifiedDate"/>
+                                        </GridViewColumn.Header>
+                                    </GridViewColumn>
+                                    <GridViewColumn x:Name="ColHeaderCreatedTime" Width="50">
+                                        <GridViewColumn.Header>
+                                            <GridViewColumnHeader Content="创建" Tag="CreatedTime"/>
+                                        </GridViewColumn.Header>
+                                    </GridViewColumn>
+                                    <GridViewColumn x:Name="ColHeaderTags" Width="150">
+                                        <GridViewColumn.Header>
+                                            <GridViewColumnHeader Content="标签" Tag="Tags"/>
+                                        </GridViewColumn.Header>
+                                    </GridViewColumn>
+                                    <GridViewColumn x:Name="ColHeaderNotes" Width="200">
+                                        <GridViewColumn.Header>
+                                            <GridViewColumnHeader Content="备注" Tag="Notes"/>
+                                        </GridViewColumn.Header>
+                                    </GridViewColumn>
+                                </GridView>
+                            </ListView.View>
+                        </ListView>
                     </Border>
                     
                     <!-- 分组内容区域 -->
@@ -214,58 +222,72 @@
                                                 </Grid>
                                             </Border>
                                             
-                                            <!-- 分组内容（可折叠，使用Grid对齐列） -->
-                                            <ItemsControl ItemsSource="{Binding Items}"
-                                                          Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVisibilityConverter}}">
-                                                <ItemsControl.ItemTemplate>
-                                                    <DataTemplate>
-                                                        <Border Background="#FFFFFF"
-                                                                BorderBrush="#E0E0E0"
-                                                                BorderThickness="0,0,0,1">
-                                                            <Grid>
-                                                                <Grid.ColumnDefinitions>
-                                                                    <ColumnDefinition Width="200"/>
-                                                                    <ColumnDefinition Width="100"/>
-                                                                    <ColumnDefinition Width="100"/>
-                                                                    <ColumnDefinition Width="150"/>
-                                                                    <ColumnDefinition Width="50"/>
-                                                                    <ColumnDefinition Width="150"/>
-                                                                    <ColumnDefinition Width="200"/>
-                                                                </Grid.ColumnDefinitions>
-                                                                
-                                                                <TextBlock Grid.Column="0" 
-                                                                           Text="{Binding Name}" 
-                                                                           VerticalAlignment="Center"
-                                                                           Padding="8,6,8,6"/>
-                                                                <TextBlock Grid.Column="1" 
-                                                                           Text="{Binding Size}" 
-                                                                           VerticalAlignment="Center"
-                                                                           Padding="8,6,8,6"/>
-                                                                <TextBlock Grid.Column="2" 
-                                                                           Text="{Binding Type}" 
-                                                                           VerticalAlignment="Center"
-                                                                           Padding="8,6,8,6"/>
-                                                                <TextBlock Grid.Column="3" 
-                                                                           Text="{Binding ModifiedDate}" 
-                                                                           VerticalAlignment="Center"
-                                                                           Padding="8,6,8,6"/>
-                                                                <TextBlock Grid.Column="4" 
-                                                                           Text="{Binding CreatedTime}" 
-                                                                           VerticalAlignment="Center"
-                                                                           Padding="8,6,8,6"/>
-                                                                <TextBlock Grid.Column="5" 
-                                                                           Text="{Binding Tags}" 
-                                                                           VerticalAlignment="Center"
-                                                                           Padding="8,6,8,6"/>
-                                                                <TextBlock Grid.Column="6" 
-                                                                           Text="{Binding Notes}" 
-                                                                           VerticalAlignment="Center"
-                                                                           Padding="8,6,8,6"/>
-                                                            </Grid>
-                                                        </Border>
-                                                    </DataTemplate>
-                                                </ItemsControl.ItemTemplate>
-                                            </ItemsControl>
+                                            <!-- 分组内容（可折叠，使用ListView+GridView，隐藏列头） -->
+                                            <ListView ItemsSource="{Binding Items}"
+                                                      SelectionMode="Extended"
+                                                      BorderThickness="0"
+                                                      Background="Transparent"
+                                                      Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                <ListView.ItemContainerStyle>
+                                                    <Style TargetType="ListViewItem">
+                                                        <Setter Property="Background" Value="#FFFFFF"/>
+                                                        <Setter Property="BorderBrush" Value="Transparent"/>
+                                                        <Setter Property="BorderThickness" Value="0"/>
+                                                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                                        <Setter Property="VerticalContentAlignment" Value="Center"/>
+                                                        <Style.Triggers>
+                                                            <Trigger Property="IsSelected" Value="True">
+                                                                <Setter Property="Background" Value="#64B5F6"/>
+                                                                <Setter Property="Foreground" Value="#FFFFFF"/>
+                                                            </Trigger>
+                                                            <MultiTrigger>
+                                                                <MultiTrigger.Conditions>
+                                                                    <Condition Property="IsSelected" Value="True"/>
+                                                                    <Condition Property="IsMouseOver" Value="True"/>
+                                                                </MultiTrigger.Conditions>
+                                                                <Setter Property="Background" Value="#42A5F5"/>
+                                                                <Setter Property="Foreground" Value="#FFFFFF"/>
+                                                            </MultiTrigger>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter Property="Background" Value="#E3F2FD"/>
+                                                            </Trigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </ListView.ItemContainerStyle>
+                                                <ListView.View>
+                                                    <GridView>
+                                                        <GridViewColumn Width="{Binding ElementName=ColHeaderName, Path=Width}" DisplayMemberBinding="{Binding Name}"/>
+                                                        <GridViewColumn Width="{Binding ElementName=ColHeaderSize, Path=Width}" DisplayMemberBinding="{Binding Size}"/>
+                                                        <GridViewColumn Width="{Binding ElementName=ColHeaderType, Path=Width}" DisplayMemberBinding="{Binding Type}"/>
+                                                        <GridViewColumn Width="{Binding ElementName=ColHeaderModifiedDate, Path=Width}" DisplayMemberBinding="{Binding ModifiedDate}"/>
+                                                        <GridViewColumn Width="{Binding ElementName=ColHeaderCreatedTime, Path=Width}">
+                                                            <GridViewColumn.CellTemplate>
+                                                                <DataTemplate>
+                                                                    <TextBlock Text="{Binding CreatedTime}">
+                                                                        <TextBlock.Style>
+                                                                            <Style TargetType="TextBlock">
+                                                                                <Setter Property="Foreground" Value="Black"/>
+                                                                                <Style.Triggers>
+                                                                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListViewItem}, Path=IsSelected}" Value="True">
+                                                                                        <Setter Property="Foreground" Value="White"/>
+                                                                                    </DataTrigger>
+                                                                                </Style.Triggers>
+                                                                            </Style>
+                                                                        </TextBlock.Style>
+                                                                    </TextBlock>
+                                                                </DataTemplate>
+                                                            </GridViewColumn.CellTemplate>
+                                                        </GridViewColumn>
+                                                        <GridViewColumn Width="{Binding ElementName=ColHeaderTags, Path=Width}" DisplayMemberBinding="{Binding Tags}"/>
+                                                        <GridViewColumn Width="{Binding ElementName=ColHeaderNotes, Path=Width}" DisplayMemberBinding="{Binding Notes}"/>
+                                                    </GridView>
+                                                </ListView.View>
+                                                <ListView.Resources>
+                                                    <Style TargetType="GridViewColumnHeader">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </Style>
+                                                </ListView.Resources>
+                                            </ListView>
                                         </StackPanel>
                                     </Border>
                                 </DataTemplate>

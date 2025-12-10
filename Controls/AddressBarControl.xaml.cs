@@ -15,10 +15,12 @@ namespace OoiMRR.Controls
     {
         public event EventHandler<string> PathChanged;
         public event EventHandler<string> BreadcrumbClicked;
+        public event EventHandler<string> BreadcrumbMiddleClicked;
 
         private string _currentPath = "";
         private bool _isEditMode = false;
         private string _breadcrumbCustomText = null;
+        private bool _ctrlLeftClickHandled = false;
 
         public AddressBarControl()
         {
@@ -179,8 +181,39 @@ namespace OoiMRR.Controls
                 catch { }
 
                 var pathToNavigate = currentPath;
+                button.PreviewMouseDown += (s, e) =>
+                {
+                    // 检测Ctrl+左键或中键，强制打开新标签页
+                    if (e.ChangedButton == MouseButton.Middle)
+                    {
+                        e.Handled = true;
+                        BreadcrumbMiddleClicked?.Invoke(this, pathToNavigate);
+                    }
+                    else if (e.ChangedButton == MouseButton.Left && 
+                             (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+                    {
+                        e.Handled = true;
+                        _ctrlLeftClickHandled = true; // 标记已处理
+                        BreadcrumbMiddleClicked?.Invoke(this, pathToNavigate);
+                        // 延迟重置标志，确保Click事件不会重复处理
+                        Dispatcher.BeginInvoke(new System.Action(() =>
+                        {
+                            _ctrlLeftClickHandled = false;
+                        }), System.Windows.Threading.DispatcherPriority.Input);
+                    }
+                    else
+                    {
+                        _ctrlLeftClickHandled = false;
+                    }
+                };
                 button.Click += (s, e) => 
                 {
+                    // 如果已经在PreviewMouseDown中处理了Ctrl+左键，不再处理Click事件
+                    if (_ctrlLeftClickHandled)
+                    {
+                        e.Handled = true;
+                        return;
+                    }
                     e.Handled = true; // 阻止事件冒泡到容器
                     BreadcrumbClicked?.Invoke(this, pathToNavigate);
                 };

@@ -6,9 +6,12 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Data;
 using System.Windows.Threading;
+using OoiMRR;
 using OoiMRR.Controls;
 using OoiMRR.Services;
+using OoiMRR.Services.ColumnHeader;
 using OoiMRR.Services.FileList;
 
 namespace OoiMRR.ViewModels
@@ -17,13 +20,20 @@ namespace OoiMRR.ViewModels
     /// 文件列表 ViewModel
     /// 负责管理文件列表的加载、刷新、排序等功能
     /// </summary>
-    public class FileListViewModel : BaseViewModel
+    public class FileListViewModel : BaseViewModel, IDisposable
     {
         private readonly FileBrowserControl _fileBrowser;
         private readonly Window _ownerWindow;
         private readonly Dispatcher _dispatcher;
         private readonly FileListService _fileListService;
+        private readonly ColumnHeaderService _columnHeaderService;
+        private readonly FileMetadataEnricher _metadataEnricher;
+        private readonly FolderSizeCalculator _folderSizeCalculator;
+        private readonly Action _refreshAction;
+        private const int MaxMetadataEnrichCount = 500;
 
+        private string _currentPath = null;
+        private string _pendingPath = null;
         private ObservableCollection<FileSystemItem> _files = new ObservableCollection<FileSystemItem>();
         private bool _isLoading = false;
         private string _lastSortColumn = "Name";
@@ -31,12 +41,9 @@ namespace OoiMRR.ViewModels
         private FileSystemWatcher _fileWatcher;
         private DispatcherTimer _refreshDebounceTimer;
         private bool _isLoadingFiles = false;
-        private SemaphoreSlim _loadFilesSemaphore = new SemaphoreSlim(1, 1);
-        // 文件夹大小计算相关（预留，暂未实现）
-        // private SemaphoreSlim _folderSizeCalculationSemaphore = new SemaphoreSlim(1, 1);
-        // private CancellationTokenSource _folderSizeCalculationCancellation = new CancellationTokenSource();
-        // private Queue<string> _pendingFolderSizeCalculations = new Queue<string>();
-        // private DispatcherTimer _idleFolderSizeCalculationTimer;
+        private bool _loadFilesPending = false;
+        private readonly SemaphoreSlim _loadFilesSemaphore = new SemaphoreSlim(1, 1);
+        private CancellationTokenSource _loadCancellationTokenSource = null;
 
         public ObservableCollection<FileSystemItem> Files
         {
@@ -62,12 +69,22 @@ namespace OoiMRR.ViewModels
             set => SetProperty(ref _sortAscending, value);
         }
 
-        public FileListViewModel(FileBrowserControl fileBrowser, Window ownerWindow)
+        public FileListViewModel(
+            FileBrowserControl fileBrowser,
+            Window ownerWindow,
+            Action refreshAction = null,
+            ColumnHeaderService columnHeaderService = null,
+            FileMetadataEnricher metadataEnricher = null,
+            FolderSizeCalculator folderSizeCalculator = null)
         {
             _fileBrowser = fileBrowser ?? throw new ArgumentNullException(nameof(fileBrowser));
             _ownerWindow = ownerWindow ?? throw new ArgumentNullException(nameof(ownerWindow));
             _dispatcher = ownerWindow.Dispatcher;
             _fileListService = new FileListService();
+            _columnHeaderService = columnHeaderService;
+            _metadataEnricher = metadataEnricher ?? new FileMetadataEnricher();
+            _folderSizeCalculator = folderSizeCalculator ?? new FolderSizeCalculator();
+            _refreshAction = refreshAction;
 
             // 初始化防抖定时器
             _refreshDebounceTimer = new DispatcherTimer
@@ -77,7 +94,9 @@ namespace OoiMRR.ViewModels
             _refreshDebounceTimer.Tick += (s, e) =>
             {
                 _refreshDebounceTimer.Stop();
-                if (!_isLoadingFiles)
+                _refreshAction?.Invoke();
+
+                if (_refreshAction == null && !_isLoadingFiles)
                 {
                     RefreshFiles();
                 }
@@ -85,73 +104,130 @@ namespace OoiMRR.ViewModels
         }
 
         /// <summary>
-        /// 加载文件列表
+        /// 加载文件列表（替代旧 LoadFiles / LoadCurrentDirectory）
         /// </summary>
-        public async Task LoadFilesAsync(string path)
+        public async Task LoadPathAsync(string path)
         {
-            if (string.IsNullOrEmpty(path) || !Directory.Exists(path))
+            if (!_loadFilesSemaphore.Wait(0))
             {
-                Files.Clear();
+                _loadFilesPending = true;
+                _pendingPath = path;
                 return;
             }
 
-            await _loadFilesSemaphore.WaitAsync();
             try
             {
-                if (_isLoadingFiles)
+                CancelOngoingOperations();
+                _loadCancellationTokenSource = new CancellationTokenSource();
+                var cancellationToken = _loadCancellationTokenSource.Token;
+
+                _currentPath = path;
+                if (string.IsNullOrEmpty(path) || !Directory.Exists(path))
+                {
+                    await _dispatcher.InvokeAsync(() =>
+                    {
+                        Files.Clear();
+                        _fileBrowser.FilesItemsSource = Files;
+                    }, DispatcherPriority.Background);
+                    SetupFileWatcher(null);
                     return;
+                }
+
+                if (_isLoadingFiles)
+                {
+                    return;
+                }
 
                 _isLoadingFiles = true;
                 IsLoading = true;
 
-                await Task.Run(() =>
+                var files = await Task.Run(() =>
                 {
-                    _dispatcher.Invoke(() =>
-                    {
-                        Files.Clear();
-                    });
+                    cancellationToken.ThrowIfCancellationRequested();
+                    return _fileListService.LoadFileSystemItems(
+                        path,
+                        p => DatabaseManager.GetFolderSize(p),
+                        b => _fileListService.FormatFileSize(b));
+                }, cancellationToken);
 
-                    try
-                    {
-                        // 使用 FileListService 加载文件列表
-                        var files = _fileListService.LoadFileSystemItems(path);
+                var sortedFiles = ApplySorting(files);
 
-                        // 排序
-                        SortFiles(files);
-
-                        // 更新 UI
-                        _dispatcher.Invoke(() =>
-                        {
-                            foreach (var item in files)
-                            {
-                                Files.Add(item);
-                            }
-                        });
-                    }
-                    catch (Exception ex)
-                    {
-                        _dispatcher.Invoke(() =>
-                        {
-                            MessageBox.Show(_ownerWindow, $"加载文件列表失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                        });
-                    }
-                });
-
-                // 更新 FileBrowser
-                _dispatcher.Invoke(() =>
+                await _dispatcher.InvokeAsync(() =>
                 {
+                    Files = new ObservableCollection<FileSystemItem>(sortedFiles);
                     if (_fileBrowser != null)
                     {
                         _fileBrowser.FilesItemsSource = Files;
                     }
-                });
+                }, DispatcherPriority.Background);
+
+                await _dispatcher.InvokeAsync(() => SetupFileWatcher(_currentPath), DispatcherPriority.Background);
+
+                var enrichmentTargets = Files.Take(MaxMetadataEnrichCount).ToList();
+                if (enrichmentTargets.Count > 0)
+                {
+                    _ = _metadataEnricher.EnrichAsync(
+                        enrichmentTargets,
+                        cancellationToken,
+                        _dispatcher,
+                        null,
+                        RefreshCollectionView);
+                }
+
+                _ = _folderSizeCalculator.CalculateAsync(
+                    Files,
+                    cancellationToken,
+                    _dispatcher,
+                    _fileListService.FormatFileSize,
+                    RefreshCollectionView);
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception ex)
+            {
+                await _dispatcher.InvokeAsync(() =>
+                {
+                    MessageBox.Show(_ownerWindow, $"加载文件列表失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                }, DispatcherPriority.Normal);
             }
             finally
             {
                 _isLoadingFiles = false;
                 IsLoading = false;
                 _loadFilesSemaphore.Release();
+                CheckPendingLoad();
             }
+        }
+
+        /// <summary>
+        /// 兼容旧接口，调用 LoadPathAsync。
+        /// </summary>
+        public Task LoadFilesAsync(string path) => LoadPathAsync(path);
+
+        /// <summary>
+        /// 直接设置文件列表（搜索、标签或库合并场景）。
+        /// </summary>
+        public void SetFiles(IEnumerable<FileSystemItem> files)
+        {
+            CancelOngoingOperations();
+            _loadFilesPending = false;
+            _pendingPath = null;
+            _currentPath = null;
+
+            var items = files?.ToList() ?? new List<FileSystemItem>();
+            var sorted = ApplySorting(items);
+
+            _dispatcher.Invoke(() =>
+            {
+                Files = new ObservableCollection<FileSystemItem>(sorted);
+                if (_fileBrowser != null)
+                {
+                    _fileBrowser.FilesItemsSource = Files;
+                }
+                SetupFileWatcher(null);
+                RefreshCollectionView();
+            });
         }
 
         /// <summary>
@@ -159,8 +235,19 @@ namespace OoiMRR.ViewModels
         /// </summary>
         public void RefreshFiles()
         {
-            // 这个方法需要由外部调用时传入当前路径
-            // 这里只是占位，实际实现需要根据当前导航模式决定
+            if (_refreshAction != null)
+            {
+                _refreshAction();
+                return;
+            }
+
+            var targetPath = _currentPath;
+            if (string.IsNullOrEmpty(targetPath) || _isLoadingFiles)
+            {
+                return;
+            }
+
+            _ = LoadPathAsync(targetPath);
         }
 
         /// <summary>
@@ -168,6 +255,8 @@ namespace OoiMRR.ViewModels
         /// </summary>
         public void SetupFileWatcher(string path)
         {
+            _currentPath = path;
+
             if (_fileWatcher != null)
             {
                 _fileWatcher.EnableRaisingEvents = false;
@@ -218,12 +307,51 @@ namespace OoiMRR.ViewModels
         }
 
         /// <summary>
-        /// 排序文件列表
+        /// 通过 ColumnHeaderService 统一排序入口。
         /// </summary>
-        public void SortFiles(List<FileSystemItem> files, string column = null, bool? ascending = null)
+        public void ApplySort(string column, bool ascending)
+        {
+            if (string.IsNullOrWhiteSpace(column) && string.IsNullOrWhiteSpace(LastSortColumn))
+            {
+                return;
+            }
+
+            LastSortColumn = string.IsNullOrWhiteSpace(column) ? LastSortColumn : column;
+            SortAscending = ascending;
+
+            var sorted = ApplySorting(Files?.ToList() ?? new List<FileSystemItem>());
+            _dispatcher.Invoke(() =>
+            {
+                Files = new ObservableCollection<FileSystemItem>(sorted);
+                if (_fileBrowser != null)
+                {
+                    _fileBrowser.FilesItemsSource = Files;
+                }
+                RefreshCollectionView();
+            });
+        }
+
+        private List<FileSystemItem> ApplySorting(List<FileSystemItem> files)
         {
             if (files == null || files.Count == 0)
-                return;
+            {
+                return files ?? new List<FileSystemItem>();
+            }
+
+            if (_columnHeaderService != null)
+            {
+                return _columnHeaderService.SortFiles(files, LastSortColumn, SortAscending);
+            }
+
+            return LegacySort(files, LastSortColumn, SortAscending);
+        }
+
+        private List<FileSystemItem> LegacySort(List<FileSystemItem> files, string column = null, bool? ascending = null)
+        {
+            if (files == null || files.Count == 0)
+            {
+                return files ?? new List<FileSystemItem>();
+            }
 
             string sortColumn = column ?? LastSortColumn;
             bool sortAscending = ascending ?? SortAscending;
@@ -260,6 +388,7 @@ namespace OoiMRR.ViewModels
 
             LastSortColumn = sortColumn;
             SortAscending = sortAscending;
+            return files;
         }
 
         private long ParseFileSize(string sizeStr)
@@ -314,9 +443,47 @@ namespace OoiMRR.ViewModels
             }
 
             _refreshDebounceTimer?.Stop();
+            CancelOngoingOperations();
             _loadFilesSemaphore?.Dispose();
-            // _folderSizeCalculationSemaphore?.Dispose();
-            // _folderSizeCalculationCancellation?.Cancel();
+        }
+
+        private void CancelOngoingOperations()
+        {
+            if (_loadCancellationTokenSource != null)
+            {
+                try
+                {
+                    _loadCancellationTokenSource.Cancel();
+                }
+                catch
+                {
+                }
+                finally
+                {
+                    _loadCancellationTokenSource.Dispose();
+                    _loadCancellationTokenSource = null;
+                }
+            }
+        }
+
+        private void CheckPendingLoad()
+        {
+            if (_loadFilesPending)
+            {
+                _loadFilesPending = false;
+                var nextPath = _pendingPath;
+                _pendingPath = null;
+                if (!string.IsNullOrWhiteSpace(nextPath))
+                {
+                    _ = LoadPathAsync(nextPath);
+                }
+            }
+        }
+
+        private void RefreshCollectionView()
+        {
+            var view = CollectionViewSource.GetDefaultView(_fileBrowser?.FilesItemsSource ?? Files);
+            view?.Refresh();
         }
     }
 }

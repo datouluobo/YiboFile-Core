@@ -1,0 +1,180 @@
+<UserControl x:Class="OoiMRR.Controls.TitleActionBar"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="Transparent">
+    <Grid>
+        <StackPanel x:Name="PathPanel" Orientation="Horizontal" VerticalAlignment="Center">
+            <Button Content="📁 新建文件夹" Click="OnNewFolderClicked" Margin="0,0,4,0" Height="36">
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                        <Setter Property="Padding" Value="8,0"/>
+                    </Style>
+                </Button.Style>
+            </Button>
+            <Button Content="📄 新建文件" Click="OnNewFileClicked" Margin="0,0,4,0" Height="36">
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                        <Setter Property="Padding" Value="8,0"/>
+                    </Style>
+                </Button.Style>
+            </Button>
+            <Separator Margin="16,0" Height="24" VerticalAlignment="Center"/>
+            <Button Content="复制" Click="OnCopyClicked" Margin="0,0,4,0" Height="36">
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                        <Setter Property="Padding" Value="8,0"/>
+                    </Style>
+                </Button.Style>
+            </Button>
+            <Button Content="粘贴" Click="OnPasteClicked" Margin="0,0,4,0" Height="36">
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                        <Setter Property="Padding" Value="8,0"/>
+                    </Style>
+                </Button.Style>
+            </Button>
+            <Button Content="删除" Click="OnDeleteClicked" Margin="0,0,4,0" Height="36">
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                        <Setter Property="Padding" Value="8,0"/>
+                    </Style>
+                </Button.Style>
+            </Button>
+        </StackPanel>
+
+        <StackPanel x:Name="LibraryPanel" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
+            <Button Content="📁 新建文件夹" Click="OnNewFolderClicked" Margin="0,0,4,0" Height="36">
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                        <Setter Property="Padding" Value="8,0"/>
+                    </Style>
+                </Button.Style>
+            </Button>
+            <Button Content="📄 新建文件" Click="OnNewFileClicked" Margin="0,0,4,0" Height="36">
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                        <Setter Property="Padding" Value="8,0"/>
+                    </Style>
+                </Button.Style>
+            </Button>
+            <Separator Margin="16,0" Height="24" VerticalAlignment="Center"/>
+            <Button Content="复制" Click="OnCopyClicked" Margin="0,0,4,0" Height="36">
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                        <Setter Property="Padding" Value="8,0"/>
+                    </Style>
+                </Button.Style>
+            </Button>
+            <Button Content="粘贴" Click="OnPasteClicked" Margin="0,0,4,0" Height="36">
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                        <Setter Property="Padding" Value="8,0"/>
+                    </Style>
+                </Button.Style>
+            </Button>
+            <Button Content="删除" Click="OnDeleteClicked" Margin="0,0,4,0" Height="36">
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                        <Setter Property="Padding" Value="8,0"/>
+                    </Style>
+                </Button.Style>
+            </Button>
+            <Button Content="🔄 刷新" Click="OnRefreshClicked" Margin="0,0,4,0" Height="36">
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                        <Setter Property="Padding" Value="8,0"/>
+                    </Style>
+                </Button.Style>
+            </Button>
+        </StackPanel>
+
+        <StackPanel x:Name="TagPanel" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
+            <Button Content="🏷️ 新建标签" Click="OnNewTagClicked" Margin="0,0,4,0" Height="36">
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                        <Setter Property="Padding" Value="8,0"/>
+                    </Style>
+                </Button.Style>
+            </Button>
+            <Button Content="🛠️ 管理标签" Click="OnManageTagsClicked" Margin="0,0,4,0" Height="36">
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                        <Setter Property="Padding" Value="8,0"/>
+                    </Style>
+                </Button.Style>
+            </Button>
+            <Separator Margin="16,0" Height="24" VerticalAlignment="Center"/>
+            <Button Content="📦 批量添加" Click="OnBatchAddTagsClicked" Margin="0,0,4,0" Height="36">
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                        <Setter Property="Padding" Value="8,0"/>
+                    </Style>
+                </Button.Style>
+            </Button>
+            <Button Content="📊 标签统计" Click="OnTagStatisticsClicked" Margin="0,0,4,0" Height="36">
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                        <Setter Property="Padding" Value="8,0"/>
+                    </Style>
+                </Button.Style>
+            </Button>
+            <Separator Margin="16,0" Height="24" VerticalAlignment="Center"/>
+            <Button Content="复制" Click="OnCopyClicked" Margin="0,0,4,0" Height="36">
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                        <Setter Property="Padding" Value="8,0"/>
+                    </Style>
+                </Button.Style>
+            </Button>
+            <Button Content="粘贴" Click="OnPasteClicked" Margin="0,0,4,0" Height="36">
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                        <Setter Property="Padding" Value="8,0"/>
+                    </Style>
+                </Button.Style>
+            </Button>
+            <Button Content="删除" Click="OnDeleteClicked" Margin="0,0,4,0" Height="36">
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                        <Setter Property="Padding" Value="8,0"/>
+                    </Style>
+                </Button.Style>
+            </Button>
+        </StackPanel>
+
+        <StackPanel x:Name="SearchPanel" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
+            <Button Content="复制" Click="OnCopyClicked" Margin="0,0,4,0" Height="36">
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                        <Setter Property="Padding" Value="8,0"/>
+                    </Style>
+                </Button.Style>
+            </Button>
+            <Button Content="粘贴" Click="OnPasteClicked" Margin="0,0,4,0" Height="36">
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                        <Setter Property="Padding" Value="8,0"/>
+                    </Style>
+                </Button.Style>
+            </Button>
+            <Button Content="删除" Click="OnDeleteClicked" Margin="0,0,4,0" Height="36">
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                        <Setter Property="Padding" Value="8,0"/>
+                    </Style>
+                </Button.Style>
+            </Button>
+            <Button Content="🔄 刷新" Click="OnRefreshClicked" Margin="0,0,4,0" Height="36">
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                        <Setter Property="Padding" Value="8,0"/>
+                    </Style>
+                </Button.Style>
+            </Button>
+        </StackPanel>
+    </Grid>
+</UserControl>
+
+
+
+

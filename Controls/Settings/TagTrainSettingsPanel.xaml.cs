@@ -39,7 +39,7 @@ namespace OoiMRR.Controls.Settings
             
             var mainPanel = new StackPanel();
             
-            // 直接引用 SettingsWindow.xaml.cs 中的 LoadTagTrainSettings 代码逻辑
+            // 复用 TagTrain 设置加载逻辑，与主设置面板一致
             if (App.IsTagTrainAvailable)
             {
                 // 标题
@@ -126,7 +126,7 @@ namespace OoiMRR.Controls.Settings
                 
                 var dataStorageInfo = new TextBlock
                 {
-                    Text = "程序将从此目录加载数据: settings.txt, training.db, model.zip（不迁移旧数据）",
+                    Text = "程序将从此目录加载数据: tt_settings.txt, tt_training.db, tt_model.zip（不迁移旧数据）",
                     FontSize = 11,
                     Foreground = System.Windows.Media.Brushes.Gray,
                     TextWrapping = TextWrapping.Wrap,

@@ -40,6 +40,8 @@
 ## 使用示例
 
 ```csharp
+using OoiMRR.Services.FileNotes;
+
 // 1. 初始化服务
 var filterService = new SearchFilterService();
 var cacheService = new SearchCacheService();
@@ -47,7 +49,7 @@ var resultBuilder = new SearchResultBuilder(
     formatFileSize: FormatFileSize,
     getFileTagIds: path => OoiMRRIntegration.GetFileTagIds(path),
     getTagName: tagId => OoiMRRIntegration.GetTagName(tagId),
-    getFileNotes: path => DatabaseManager.GetFileNotes(path)
+    getFileNotes: path => FileNotesService.GetFileNotes(path)
 );
 var searchService = new SearchService(filterService, cacheService, resultBuilder);
 
@@ -63,7 +65,7 @@ var result = await searchService.PerformSearchAsync(
     currentPath: "C:\\",
     searchNames: true,
     searchNotes: true,
-    getNotesFromDb: keyword => DatabaseManager.SearchFilesByNotes(keyword),
+    getNotesFromDb: keyword => FileNotesService.SearchFilesByNotes(keyword),
     progressCallback: (pageResult) => 
     {
         // 更新UI显示每页结果

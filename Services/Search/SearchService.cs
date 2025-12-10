@@ -103,6 +103,13 @@ namespace OoiMRR.Services.Search
                 return new SearchResult { Keyword = keyword };
             }
 
+            // 强制依赖 Everything，未运行则不回退到系统枚举，避免卡顿
+            var everythingReady = await EverythingHelper.InitializeAsync();
+            if (!everythingReady || !EverythingHelper.IsEverythingRunning())
+            {
+                return new SearchResult { Keyword = keyword };
+            }
+
             var normalizedKeyword = NormalizeKeyword(keyword);
             var results = new List<FileSystemItem>();
             var resultPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -123,31 +130,16 @@ namespace OoiMRR.Services.Search
                     throw new ArgumentException("请至少选择一个搜索选项");
                 }
 
-                // 名称搜索（优先使用 Everything）
+                // 名称搜索（强制使用 Everything）
                 if (searchNames)
                 {
-                    if (EverythingHelper.IsEverythingRunning())
-                    {
-                        try
-                        {
-                            await PerformEverythingSearchAsync(
-                                normalizedKeyword,
-                                searchOptions,
-                                currentPath,
-                                resultPaths,
-                                progressCallback,
-                                _cancellationTokenSource.Token);
-                        }
-                        catch (Exception ex)
-                        {
-                            Debug.WriteLine($"Everything搜索失败: {ex.Message}，回退默认搜索");
-                            PerformDefaultNameSearch(normalizedKeyword, resultPaths);
-                        }
-                    }
-                    else
-                    {
-                        PerformDefaultNameSearch(normalizedKeyword, resultPaths);
-                    }
+                    await PerformEverythingSearchAsync(
+                        normalizedKeyword,
+                        searchOptions,
+                        currentPath,
+                        resultPaths,
+                        progressCallback,
+                        _cancellationTokenSource.Token);
                     
                     // 记录文件名搜索结果
                     foreach (var path in resultPaths)
@@ -204,6 +196,21 @@ namespace OoiMRR.Services.Search
 
                 // 构建结果项
                 results = _resultBuilder.BuildItemsFromPaths(sortedPaths);
+
+                // 限制展示：备注与文件夹全部保留，文件仅取前100条
+                const int maxFiles = 100;
+                var limited = new List<FileSystemItem>();
+                var noteItemsLimited = results.Where(r => r.SearchResultType == SearchResultType.Notes).ToList();
+                var folderItemsLimited = results.Where(r => r.IsDirectory).ToList();
+                var fileItemsLimited = results
+                    .Where(r => !r.IsDirectory && (r.SearchResultType == null || r.SearchResultType == SearchResultType.File))
+                    .Take(maxFiles)
+                    .ToList();
+
+                limited.AddRange(noteItemsLimited);
+                limited.AddRange(folderItemsLimited);
+                limited.AddRange(fileItemsLimited);
+                results = limited;
                 
                 // 构建分组结果
                 var groupedItems = new Dictionary<SearchResultType, List<FileSystemItem>>();
@@ -215,25 +222,37 @@ namespace OoiMRR.Services.Search
                 
                 foreach (var item in results)
                 {
-                    // 检查是否来自备注搜索（优先级最高）
-                    if (notesResultPaths.Contains(item.Path, StringComparer.OrdinalIgnoreCase))
+                    bool isNoteMatch = notesResultPaths.Contains(item.Path, StringComparer.OrdinalIgnoreCase);
+                    bool isNameMatch = nameResultPaths.Contains(item.Path, StringComparer.OrdinalIgnoreCase);
+
+                    // 备注匹配优先：只要备注匹配就进入备注分组（文件夹仍归“文件夹”）
+                    if (isNoteMatch)
                     {
-                        item.SearchResultType = SearchResultType.Notes;
                         item.IsFromNotesSearch = true;
-                        notesItems.Add(item);
+                        if (item.IsDirectory)
+                        {
+                            item.SearchResultType = SearchResultType.Folder;
+                            folderItems.Add(item);
+                        }
+                        else
+                        {
+                            item.SearchResultType = SearchResultType.Notes;
+                            notesItems.Add(item);
+                        }
+                        continue;
                     }
-                    // 检查是否为文件夹（且不是备注匹配）
-                    else if (item.IsDirectory)
+
+                    // 名称匹配
+                    if (item.IsDirectory)
                     {
                         item.SearchResultType = SearchResultType.Folder;
-                        item.IsFromNameSearch = true;
+                        item.IsFromNameSearch = isNameMatch;
                         folderItems.Add(item);
                     }
-                    // 其他为文件（且不是备注匹配）
                     else
                     {
                         item.SearchResultType = SearchResultType.File;
-                        item.IsFromNameSearch = nameResultPaths.Contains(item.Path, StringComparer.OrdinalIgnoreCase);
+                        item.IsFromNameSearch = isNameMatch;
                         fileItems.Add(item);
                     }
                 }
@@ -249,16 +268,38 @@ namespace OoiMRR.Services.Search
                 Debug.WriteLine($"搜索完成，共找到 {results.Count} 个结果");
                 Debug.WriteLine($"分组结果: 备注={notesItems.Count}, 文件夹={folderItems.Count}, 文件={fileItems.Count}");
 
-                return new SearchResult
+                var searchResult = new SearchResult
                 {
                     Items = results,
                     Keyword = normalizedKeyword,
-                    Offset = Math.Min(_pageSize, results.Count),
-                    HasMore = results.Count >= _pageSize && results.Count < _maxResults,
+                    Offset = results.Count,
+                    HasMore = false, // 已截断文件数量，不再分页
                     PageSize = _pageSize,
                     MaxResults = _maxResults,
                     GroupedItems = groupedItems
                 };
+
+                // 将完整搜索结果写入缓存，避免重复触发搜索导致卡顿
+                try
+                {
+                    var cacheKey = $"search://{normalizedKeyword}";
+                    var rangePath = _filterService.GetRangePath(searchOptions.PathRange, currentPath);
+                    _cacheService.UpdateCache(
+                        cacheKey,
+                        searchResult.Items?.ToList() ?? new List<FileSystemItem>(),
+                        searchResult.Offset,
+                        searchResult.HasMore,
+                        normalizedKeyword,
+                        rangePath,
+                        searchOptions.Type,
+                        searchOptions.PathRange);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"搜索结果写入缓存失败: {ex.Message}");
+                }
+
+                return searchResult;
             }
             catch (OperationCanceledException)
             {

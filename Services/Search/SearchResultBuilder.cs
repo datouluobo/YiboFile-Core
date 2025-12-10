@@ -95,6 +95,7 @@ namespace OoiMRR.Services.Search
             {
                 item.Size = "";
                 item.ModifiedDate = Directory.GetLastWriteTime(filePath).ToString("yyyy-MM-dd HH:mm");
+                item.CreatedTime = FileSystemItem.FormatTimeAgo(Directory.GetCreationTime(filePath));
             }
             else
             {
@@ -103,11 +104,13 @@ namespace OoiMRR.Services.Search
                     var fileInfo = new FileInfo(filePath);
                     item.Size = _formatFileSize(fileInfo.Length);
                     item.ModifiedDate = File.GetLastWriteTime(filePath).ToString("yyyy-MM-dd HH:mm");
+                    item.CreatedTime = FileSystemItem.FormatTimeAgo(fileInfo.CreationTime);
                 }
                 catch
                 {
                     item.Size = "";
                     item.ModifiedDate = "";
+                    item.CreatedTime = "";
                 }
             }
 
