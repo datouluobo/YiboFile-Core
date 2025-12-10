@@ -517,14 +517,18 @@ namespace OoiMRR.Controls
             if (e.Key == Key.Enter)
             {
                 var path = AddressTextBox.Text.Trim();
+                System.Diagnostics.Debug.WriteLine($"[AddressBarControl] 回车键按下，输入内容: '{path}'");
+                
                 if (!string.IsNullOrEmpty(path))
                 {
                     _currentPath = path;
+                    System.Diagnostics.Debug.WriteLine($"[AddressBarControl] 触发 PathChanged 事件，路径: '{path}'");
                     PathChanged?.Invoke(this, path);
                     SwitchToBreadcrumbMode();
                 }
                 else
                 {
+                    System.Diagnostics.Debug.WriteLine($"[AddressBarControl] 输入为空，只切换模式");
                     SwitchToBreadcrumbMode();
                 }
                 e.Handled = true;

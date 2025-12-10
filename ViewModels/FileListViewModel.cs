@@ -80,7 +80,7 @@ namespace OoiMRR.ViewModels
             _fileBrowser = fileBrowser ?? throw new ArgumentNullException(nameof(fileBrowser));
             _ownerWindow = ownerWindow ?? throw new ArgumentNullException(nameof(ownerWindow));
             _dispatcher = ownerWindow.Dispatcher;
-            _fileListService = new FileListService();
+            _fileListService = new FileListService(_dispatcher);
             _columnHeaderService = columnHeaderService;
             _metadataEnricher = metadataEnricher ?? new FileMetadataEnricher();
             _folderSizeCalculator = folderSizeCalculator ?? new FolderSizeCalculator();

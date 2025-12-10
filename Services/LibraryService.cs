@@ -53,7 +53,7 @@ namespace OoiMRR.Services
         public LibraryService(Dispatcher dispatcher = null)
         {
             _dispatcher = dispatcher ?? Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
-            _fileListService = new FileListService();
+            _fileListService = new FileListService(_dispatcher);
         }
 
         #endregion

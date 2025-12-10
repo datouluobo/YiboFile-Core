@@ -20,6 +20,10 @@ using OoiMRR.Services;
 using OoiMRR.Services.FileNotes;
 using OoiMRR.Services.Search;
 using OoiMRR.Services.Navigation;
+using OoiMRR.Services.FileOperations;
+using OoiMRR.Services.Favorite;
+using OoiMRR.Services.QuickAccess;
+using OoiMRR.Services.FileList;
 using System.Threading;
 using TagTrain.UI;
 
@@ -36,10 +40,6 @@ namespace OoiMRR
         private List<FileSystemItem> _currentFiles = new List<FileSystemItem>();
         private AppConfig _config = new AppConfig();
         private bool _isApplyingConfig = false;
-        private FileSystemWatcher _fileWatcher;
-        private System.Windows.Threading.DispatcherTimer _refreshDebounceTimer;
-        private List<string> _copiedPaths = new List<string>();
-        private bool _isCutOperation = false;
         private DragDropManager _dragDropManager;
         private string _lastSortColumn = "Name";
         private bool _sortAscending = true;
@@ -54,17 +54,18 @@ namespace OoiMRR
         // 统一导航协调器
         private NavigationCoordinator _navigationCoordinator;
         
+        // 服务实例
+        private LibraryService _libraryService;
+        private FavoriteService _favoriteService;
+        private QuickAccessService _quickAccessService;
+        private FileListService _fileListService;
+        private FileSystemWatcherService _fileSystemWatcherService;
+        private FolderSizeCalculationService _folderSizeCalculationService;
+        
         // 加载锁定，防止重复加载导致卡死
+        // TODO: 过渡代码 - 这些字段在事件处理器中仍在使用，后续考虑通过服务状态管理
         private bool _isLoadingFiles = false;
         private System.Threading.SemaphoreSlim _loadFilesSemaphore = new System.Threading.SemaphoreSlim(1, 1);
-        
-        // 性能优化：限制并发文件夹大小计算任务（减少到1个，避免CPU占用过高）
-        private System.Threading.SemaphoreSlim _folderSizeCalculationSemaphore = new System.Threading.SemaphoreSlim(1, 1); // 最多1个并发任务
-        private System.Threading.CancellationTokenSource _folderSizeCalculationCancellation = new System.Threading.CancellationTokenSource();
-        
-        // 剩余文件夹大小计算队列（用于闲置时计算）
-        private Queue<string> _pendingFolderSizeCalculations = new Queue<string>();
-        private System.Windows.Threading.DispatcherTimer _idleFolderSizeCalculationTimer;
         
         // 定时器管理
         private System.Windows.Threading.DispatcherTimer _periodicTimer;
@@ -202,6 +203,117 @@ namespace OoiMRR
             
             // 初始化统一导航协调器
             _navigationCoordinator = new NavigationCoordinator();
+            
+            // 初始化服务实例
+            _libraryService = new LibraryService(this.Dispatcher);
+            _favoriteService = new FavoriteService(this.Dispatcher);
+            _quickAccessService = new QuickAccessService(this.Dispatcher);
+            _fileListService = new FileListService(this.Dispatcher);
+            _fileSystemWatcherService = new FileSystemWatcherService(this.Dispatcher);
+            _folderSizeCalculationService = new FolderSizeCalculationService();
+            
+            // 订阅 FileListService 事件
+            _fileListService.FilesLoaded += OnFileListServiceFilesLoaded;
+            _fileListService.FolderSizeCalculated += OnFileListServiceFolderSizeCalculated;
+            _fileListService.MetadataEnriched += OnFileListServiceMetadataEnriched;
+            _fileListService.ErrorOccurred += OnFileListServiceErrorOccurred;
+            
+            // 订阅 FileSystemWatcherService 事件
+            _fileSystemWatcherService.FileSystemChanged += OnFileSystemWatcherServiceFileSystemChanged;
+            _fileSystemWatcherService.RefreshRequested += OnFileSystemWatcherServiceRefreshRequested;
+            
+            // 订阅库服务事件
+            _libraryService.LibrariesLoaded += (s, libraries) =>
+            {
+                var currentSelected = LibrariesListBox?.SelectedItem;
+                LibrariesListBox.ItemsSource = null;
+                LibrariesListBox.ItemsSource = libraries;
+                LibrariesListBox.Items.Refresh();
+                
+                if (currentSelected != null)
+                {
+                    this.Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        EnsureSelectedItemVisible(LibrariesListBox, currentSelected);
+                        HighlightMatchingLibrary(currentSelected as Library);
+                    }), System.Windows.Threading.DispatcherPriority.Loaded);
+                }
+            };
+            
+            _libraryService.LibraryFilesLoaded += (s, e) =>
+            {
+                _isLoadingFiles = false;
+                _loadFilesSemaphore.Release();
+                
+                if (e.IsEmpty)
+                {
+                    _currentFiles.Clear();
+                    if (FileBrowser != null)
+                    {
+                        FileBrowser.FilesItemsSource = null;
+                        FileBrowser.AddressText = e.Library.Name + " (无位置)";
+                    }
+                    ShowEmptyLibraryMessage(e.Library.Name);
+                    ClearPreviewAndInfo();
+                    ClearItemHighlights();
+                    ClearTabsInLibraryMode();
+                }
+                else
+                {
+                    ShowMergedLibraryFiles(e.Files, e.Library);
+                }
+            };
+            
+            _libraryService.LibraryHighlightRequested += (s, library) =>
+            {
+                HighlightMatchingLibrary(library);
+            };
+            
+            // 订阅收藏服务事件
+            _favoriteService.NavigateRequested += (s, path) =>
+            {
+                _lastLeftNavSource = "Favorite";
+                _navigationCoordinator.HandlePathNavigation(path, NavigationCoordinator.NavigationSource.Favorite, NavigationCoordinator.ClickType.LeftClick);
+            };
+            
+            _favoriteService.FileOpenRequested += (s, filePath) =>
+            {
+                try
+                {
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = filePath,
+                        UseShellExecute = true
+                    });
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"无法打开文件: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            };
+            
+            _favoriteService.CreateTabRequested += (s, path) =>
+            {
+                CreateTab(path, true);
+            };
+            
+            _favoriteService.FavoritesLoaded += (s, e) =>
+            {
+                // 收藏列表已加载，UI已更新
+            };
+            
+            // 订阅快速访问服务事件
+            _quickAccessService.NavigateRequested += (s, path) =>
+            {
+                _lastLeftNavSource = "QuickAccess";
+                _navigationCoordinator.HandlePathNavigation(path, NavigationCoordinator.NavigationSource.QuickAccess, NavigationCoordinator.ClickType.LeftClick);
+            };
+            
+            _quickAccessService.CreateTabRequested += (s, path) =>
+            {
+                CreateTab(path, true);
+            };
+            
             _navigationCoordinator.PathNavigateRequested += (path, forceNewTab) =>
             {
                 if (forceNewTab)
@@ -243,7 +355,7 @@ namespace OoiMRR
                 if (result == MessageBoxResult.Yes)
                 {
                     DatabaseManager.RemoveFavorite(favorite.Path);
-                    LoadFavorites();
+                    _favoriteService.LoadFavorites(FavoritesListBox);
                 }
             };
             
@@ -353,7 +465,7 @@ namespace OoiMRR
                 // 程序启动后，异步清理不存在的文件夹大小缓存（防止数据库无限增长）
                 this.Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    CleanupFolderSizeCacheOnStartup();
+                    _folderSizeCalculationService?.CleanupFolderSizeCacheOnStartup();
                 }), System.Windows.Threading.DispatcherPriority.Background);
                 
                 // 确保库列表拖拽功能已初始化（延迟到控件完全加载后）
@@ -753,35 +865,10 @@ namespace OoiMRR
                     _layoutCheckTimer = null;
                 }
                 
-                // 停止文件监视器
-                if (_fileWatcher != null)
-                {
-                    _fileWatcher.EnableRaisingEvents = false;
-                    _fileWatcher.Dispose();
-                    _fileWatcher = null;
-                }
+                // 文件系统监控由 FileSystemWatcherService 管理，无需手动清理
                 
-                // 停止刷新定时器
-                if (_refreshDebounceTimer != null)
-                {
-                    _refreshDebounceTimer.Stop();
-                    _refreshDebounceTimer = null;
-                }
-                
-                // 取消文件夹大小计算任务（不等待，直接取消）
-                if (_folderSizeCalculationCancellation != null)
-                {
-                    _folderSizeCalculationCancellation.Cancel();
-                    _folderSizeCalculationCancellation.Dispose();
-                    _folderSizeCalculationCancellation = null;
-                }
-                
-                // 释放信号量（不等待，直接释放）
-                if (_folderSizeCalculationSemaphore != null)
-                {
-                    _folderSizeCalculationSemaphore.Dispose();
-                    _folderSizeCalculationSemaphore = null;
-                }
+                // 释放文件夹大小计算服务
+                _folderSizeCalculationService?.Dispose();
                 
                 // 保存配置（不等待布局更新，避免阻塞）
                 try
@@ -1252,6 +1339,13 @@ namespace OoiMRR
         
         private void RefreshFileList()
         {
+            // 检查是否是搜索标签页
+            if (_activeTab != null && _activeTab.Path != null && _activeTab.Path.StartsWith("search://"))
+            {
+                CheckAndRefreshSearchTab(_activeTab.Path);
+                return;
+            }
+            
             // 根据当前导航模式刷新文件列表
             if (NavTagContent != null && NavTagContent.Visibility == Visibility.Visible)
             {
@@ -1464,7 +1558,10 @@ namespace OoiMRR
 
         #region 导航功能
 
-        private void LoadCurrentDirectory()
+        /// <summary>
+        /// 异步加载当前目录
+        /// </summary>
+        private async Task LoadCurrentDirectoryAsync()
         {
             try
             {
@@ -1475,8 +1572,18 @@ namespace OoiMRR
                     FileBrowser.IsAddressReadOnly = false;
                     FileBrowser.UpdateBreadcrumb(_currentPath);
                 }
-                LoadFiles();
-                SetupFileWatcher(_currentPath);
+
+                // 检查目录是否存在
+                if (string.IsNullOrEmpty(_currentPath) || !Directory.Exists(_currentPath))
+                {
+                    throw new DirectoryNotFoundException($"路径不存在: {_currentPath}");
+                }
+
+                // 使用 FileListService 异步加载文件
+                await LoadFilesAsync();
+
+                // 设置文件系统监控
+                _fileSystemWatcherService.SetupFileWatcher(_currentPath);
                 
                 // 高亮匹配当前路径的列表项
                 HighlightMatchingItems(_currentPath);
@@ -1522,6 +1629,15 @@ namespace OoiMRR
                     FileBrowser.FilesItemsSource = null;
                 ShowEmptyStateMessage($"加载失败：\n{ex.Message}");
             }
+        }
+
+        /// <summary>
+        /// 加载当前目录（同步包装器，保持向后兼容）
+        /// </summary>
+        private void LoadCurrentDirectory()
+        {
+            // 使用异步方法，但不等待，避免阻塞UI
+            _ = LoadCurrentDirectoryAsync();
         }
         /// <summary>
         /// 高亮匹配当前库的列表项
@@ -1813,94 +1929,8 @@ namespace OoiMRR
 
         private void SetupFileWatcher(string path)
         {
-            // 停止并释放旧的监视器
-            if (_fileWatcher != null)
-            {
-                _fileWatcher.EnableRaisingEvents = false;
-                _fileWatcher.Dispose();
-                _fileWatcher = null;
-            }
-
-            // 初始化防抖定时器（只初始化一次）
-            if (_refreshDebounceTimer == null)
-            {
-                _refreshDebounceTimer = new System.Windows.Threading.DispatcherTimer
-                {
-                    Interval = TimeSpan.FromMilliseconds(3000) // 增加到3秒防抖延迟，大幅减少CPU占用和文件系统监控频率
-                };
-                _refreshDebounceTimer.Tick += (s, e) =>
-                {
-                    _refreshDebounceTimer.Stop();
-                    try
-                    {
-                        // 检查是否正在加载，避免重复加载
-                        if (!_isLoadingFiles)
-                        {
-                            System.Diagnostics.Debug.WriteLine("自动刷新文件列表...");
-                            LoadFiles();
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"自动刷新失败: {ex.Message}");
-                    }
-                };
-            }
-
-            try
-            {
-                // 创建新的文件系统监视器
-                // 只监控文件名和目录名变化，减少事件触发频率
-                _fileWatcher = new FileSystemWatcher
-                {
-                    Path = path,
-                    NotifyFilter = NotifyFilters.FileName | 
-                                   NotifyFilters.DirectoryName,  // 移除LastWrite和Size，减少事件频率
-                    Filter = "*.*",
-                    IncludeSubdirectories = false,
-                    InternalBufferSize = 8192  // 设置缓冲区大小，减少事件丢失
-                };
-
-                // 文件创建事件
-                _fileWatcher.Created += OnFileSystemChanged;
-                // 文件删除事件
-                _fileWatcher.Deleted += OnFileSystemChanged;
-                // 文件重命名事件
-                _fileWatcher.Renamed += OnFileSystemChanged;
-                // 文件修改事件
-                _fileWatcher.Changed += OnFileSystemChanged;
-
-                // 启用监视
-                _fileWatcher.EnableRaisingEvents = true;
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"无法设置文件监视器: {ex.Message}");
-            }
-        }
-
-        private void OnFileSystemChanged(object sender, FileSystemEventArgs e)
-        {
-            // 使用防抖机制，避免频繁刷新
-            // 如果正在加载文件，跳过本次事件，避免循环触发
-            if (_isLoadingFiles)
-            {
-                return;
-            }
-            
-            // 移除Debug输出，避免性能损耗
-            // System.Diagnostics.Debug.WriteLine($"文件系统变化: {e.ChangeType} - {e.Name}");
-            
-            // 使用最低优先级，避免影响其他操作
-            Dispatcher.BeginInvoke(new Action(() =>
-            {
-                // 再次检查是否正在加载
-                if (!_isLoadingFiles && _refreshDebounceTimer != null)
-                {
-                    _refreshDebounceTimer.Stop();
-                    _refreshDebounceTimer.Start();
-                }
-            }), System.Windows.Threading.DispatcherPriority.SystemIdle);
+            // 使用 FileSystemWatcherService 进行文件系统监控
+            _fileSystemWatcherService?.SetupFileWatcher(path);
         }
 
         private void UpdateAddressBar(string text)
@@ -2778,10 +2808,22 @@ namespace OoiMRR
                 if (DateTime.UtcNow - cache.LastUpdated <= _searchCacheTTL)
                 {
                     _currentFiles = new List<FileSystemItem>(cache.Items);
+                    
+                    // 从缓存恢复时，如果结果项已有 SearchResultType，则构建分组显示
+                    // 否则使用普通列表显示
+                    var groupedItems = SearchResultGrouper.BuildGroupedFromCachedResults(_currentFiles);
+                    
                     if (FileBrowser != null)
                     {
-                        FileBrowser.FilesItemsSource = null;
-                        FileBrowser.FilesItemsSource = _currentFiles;
+                        if (groupedItems != null && groupedItems.Count > 0)
+                        {
+                            FileBrowser.SetGroupedSearchResults(groupedItems);
+                        }
+                        else
+                        {
+                            FileBrowser.FilesItemsSource = null;
+                            FileBrowser.FilesItemsSource = _currentFiles;
+                        }
                         FileBrowser.LoadMoreVisible = cache.HasMore;
                     }
                     _searchKeywordPaging = cache.Keyword;
@@ -2819,6 +2861,9 @@ namespace OoiMRR
                     _searchOffset = firstPage.Count;
                     _searchHasMore = firstPage.Count == _searchPageSize && _searchOffset < _searchMax;
                     UpdateSearchCache($"search://{keyword}", items, _searchOffset, _searchHasMore, keyword, rangePath);
+                    
+                    // RefreshActiveSearchTab 只做简单刷新，不构建分组（因为缺少备注搜索信息）
+                    // 如果需要分组显示，应该重新执行完整搜索
                     if (FileBrowser != null)
                     {
                         FileBrowser.FilesItemsSource = null;
@@ -3141,7 +3186,7 @@ namespace OoiMRR
                         Name = Path.GetFileName(filePath),
                         Path = filePath,
                         Type = Directory.Exists(filePath) ? "文件夹" : Path.GetExtension(filePath),
-                        Size = Directory.Exists(filePath) ? "" : FormatFileSize(new FileInfo(filePath).Length),
+                        Size = Directory.Exists(filePath) ? "" : _fileListService.FormatFileSize(new FileInfo(filePath).Length),
                         ModifiedDate = Directory.Exists(filePath) ?
                             Directory.GetLastWriteTime(filePath).ToString("yyyy-MM-dd HH:mm") :
                             File.GetLastWriteTime(filePath).ToString("yyyy-MM-dd HH:mm"),
@@ -3231,14 +3276,15 @@ namespace OoiMRR
             if (!cachedSize.HasValue)
             {
                 // 没有缓存，异步计算并更新
-                CalculateAndUpdateFolderSize(path);
+                _ = _folderSizeCalculationService.CalculateAndUpdateFolderSizeAsync(path);
             }
             else
             {
                 // 有缓存，但需要验证是否仍然有效（通过最后修改时间检查）
                 // GetFolderSize 已经做了这个检查，所以这里只需要计算实际大小并比较
                 // 异步计算并更新（如果大小有变化）
-                CalculateAndUpdateFolderSizeIfChanged(path, cachedSize.Value);
+                _ = _folderSizeCalculationService.CalculateAndUpdateFolderSizeIfChangedAsync(
+                    path, cachedSize.Value);
             }
 
             // 只有在当前路径不为空时才添加到历史记录
@@ -3256,7 +3302,7 @@ namespace OoiMRR
             // 延迟执行，避免阻塞文件列表加载
             this.Dispatcher.BeginInvoke(new Action(() =>
             {
-                CalculateAllSubfolderSizesOnFirstOpen(path);
+                _ = _folderSizeCalculationService.CalculateAllSubfolderSizesOnFirstOpenAsync(path);
             }), System.Windows.Threading.DispatcherPriority.Background);
             
             // 保存当前路径到配置
@@ -3264,259 +3310,6 @@ namespace OoiMRR
             ConfigManager.Save(_config);
         }
         
-        /// <summary>
-        /// 第一次打开文件夹时，计算所有子文件夹的大小（性能优化版本）
-        /// </summary>
-        private void CalculateAllSubfolderSizesOnFirstOpen(string folderPath)
-        {
-            if (string.IsNullOrEmpty(folderPath) || !Directory.Exists(folderPath))
-                return;
-            
-            // 异步检查是否需要计算
-            System.Threading.Tasks.Task.Run(() =>
-            {
-                try
-                {
-                    // 获取所有子文件夹
-                    string[] subfolders;
-                    try
-                    {
-                        subfolders = Directory.GetDirectories(folderPath);
-                    }
-                    catch
-                    {
-                        return; // 无法访问，跳过
-                    }
-                    
-                    if (subfolders.Length == 0)
-                        return; // 没有子文件夹，不需要计算
-                    
-                    // 检查有多少子文件夹已有缓存
-                    var cachedCount = 0;
-                    foreach (var subfolder in subfolders)
-                    {
-                        var cachedSize = DatabaseManager.GetFolderSize(subfolder);
-                        if (cachedSize.HasValue)
-                        {
-                            cachedCount++;
-                        }
-                    }
-                    
-                    // 如果缓存率低于50%，认为是第一次打开，计算所有子文件夹大小
-                    var cacheRate = (double)cachedCount / subfolders.Length;
-                    if (cacheRate < 0.5)
-                    {
-                        // 异步计算所有子文件夹大小（分批处理，控制性能）
-                        CalculateSubfolderSizesBatch(subfolders);
-                    }
-                }
-                catch { }
-            });
-        }
-        
-        /// <summary>
-        /// 分批计算子文件夹大小（性能优化：限制并发、延迟处理）
-        /// </summary>
-        private void CalculateSubfolderSizesBatch(string[] folderPaths)
-        {
-            if (folderPaths == null || folderPaths.Length == 0)
-                return;
-            
-            var cancellationToken = _folderSizeCalculationCancellation.Token;
-            
-            // 分批处理，每批最多10个文件夹
-            int batchSize = 10;
-            int delayBetweenBatches = 2000; // 每批之间延迟2秒
-            
-            for (int i = 0; i < folderPaths.Length; i += batchSize)
-            {
-                var batch = folderPaths.Skip(i).Take(batchSize).ToArray();
-                var batchIndex = i / batchSize;
-                var delay = batchIndex * delayBetweenBatches;
-                
-                System.Threading.Tasks.Task.Run(async () =>
-                {
-                    try
-                    {
-                        // 延迟启动，避免同时启动太多任务
-                        if (delay > 0)
-                        {
-                            await System.Threading.Tasks.Task.Delay(delay, cancellationToken);
-                        }
-                        
-                        if (cancellationToken.IsCancellationRequested) return;
-                        
-                        // 处理当前批次
-                        foreach (var folderPath in batch)
-                        {
-                            if (cancellationToken.IsCancellationRequested) return;
-                            
-                            // 检查是否已有缓存
-                            var cachedSize = DatabaseManager.GetFolderSize(folderPath);
-                            if (cachedSize.HasValue)
-                            {
-                                continue; // 已有缓存，跳过
-                            }
-                            
-                            // 尝试获取信号量（非阻塞，如果无法获取则跳过）
-                            if (!await _folderSizeCalculationSemaphore.WaitAsync(100, cancellationToken))
-                            {
-                                // 无法获取，延迟后重试或跳过
-                                continue;
-                            }
-                            
-                            try
-                            {
-                                if (cancellationToken.IsCancellationRequested) return;
-                                
-                                // 计算文件夹大小
-                                var size = CalculateDirectorySize(folderPath, cancellationToken);
-                                if (cancellationToken.IsCancellationRequested) return;
-                                
-                                // 更新数据库缓存
-                                DatabaseManager.SetFolderSize(folderPath, size);
-                                
-                                // 更新UI（使用低优先级，避免影响用户操作）
-                                _ = Dispatcher.BeginInvoke(new Action(() =>
-                                {
-                                    if (!cancellationToken.IsCancellationRequested)
-                                    {
-                                        var item = _currentFiles.FirstOrDefault(f => f.Path == folderPath);
-                                        if (item != null && (item.Size == "计算中..." || string.IsNullOrEmpty(item.Size)))
-                                        {
-                                            item.Size = FormatFileSize(size);
-                                            var collectionView = System.Windows.Data.CollectionViewSource.GetDefaultView(FileBrowser?.FilesItemsSource);
-                                            collectionView?.Refresh();
-                                        }
-                                    }
-                                }), System.Windows.Threading.DispatcherPriority.SystemIdle);
-                            }
-                            catch (OperationCanceledException) { }
-                            catch { }
-                            finally
-                            {
-                                _folderSizeCalculationSemaphore.Release();
-                            }
-                            
-                            // 每个文件夹之间延迟100ms，避免CPU占用过高
-                            await System.Threading.Tasks.Task.Delay(100, cancellationToken);
-                        }
-                    }
-                    catch (OperationCanceledException) { }
-                    catch { }
-                }, cancellationToken);
-            }
-        }
-        
-        /// <summary>
-        /// 程序启动时清理不存在的文件夹大小缓存
-        /// </summary>
-        private void CleanupFolderSizeCacheOnStartup()
-        {
-            // 异步执行，不阻塞UI
-            System.Threading.Tasks.Task.Run(() =>
-            {
-                try
-                {
-                    // 获取缓存总数
-                    int totalCount = DatabaseManager.GetFolderSizeCacheCount();
-                    if (totalCount == 0)
-                        return; // 没有缓存，不需要清理
-                    
-                    // 如果缓存数量较少，清理所有；如果较多，只清理一部分（避免启动时耗时过长）
-                    int maxProcessed = totalCount > 5000 ? 1000 : 0; // 超过5000条时，只清理1000条
-                    int cleanedCount = DatabaseManager.CleanupNonExistentFolderSizes(batchSize: 100, maxProcessed: maxProcessed);
-                    
-                    if (cleanedCount > 0)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"启动时清理了 {cleanedCount} 条不存在的文件夹大小缓存");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"清理文件夹大小缓存失败: {ex.Message}");
-                }
-            });
-        }
-        
-        /// <summary>
-        /// 计算并更新文件夹大小（进入文件夹时调用）
-        /// </summary>
-        private void CalculateAndUpdateFolderSize(string folderPath)
-        {
-            if (string.IsNullOrEmpty(folderPath) || !Directory.Exists(folderPath))
-                return;
-            
-            var cancellationToken = _folderSizeCalculationCancellation.Token;
-            System.Threading.Tasks.Task.Run(async () =>
-            {
-                try
-                {
-                    if (cancellationToken.IsCancellationRequested) return;
-                    
-                    await _folderSizeCalculationSemaphore.WaitAsync(cancellationToken);
-                    try
-                    {
-                        if (cancellationToken.IsCancellationRequested) return;
-                        
-                        var size = CalculateDirectorySize(folderPath, cancellationToken);
-                        if (cancellationToken.IsCancellationRequested) return;
-                        
-                        // 更新数据库缓存
-                        DatabaseManager.SetFolderSize(folderPath, size);
-                    }
-                    catch (OperationCanceledException) { }
-                    catch { }
-                    finally
-                    {
-                        _folderSizeCalculationSemaphore.Release();
-                    }
-                }
-                catch (OperationCanceledException) { }
-                catch { }
-            }, cancellationToken);
-        }
-        
-        /// <summary>
-        /// 如果文件夹大小有变化，则计算并更新（进入文件夹时调用，已有缓存）
-        /// </summary>
-        private void CalculateAndUpdateFolderSizeIfChanged(string folderPath, long cachedSize)
-        {
-            if (string.IsNullOrEmpty(folderPath) || !Directory.Exists(folderPath))
-                return;
-            
-            var cancellationToken = _folderSizeCalculationCancellation.Token;
-            System.Threading.Tasks.Task.Run(async () =>
-            {
-                try
-                {
-                    if (cancellationToken.IsCancellationRequested) return;
-                    
-                    await _folderSizeCalculationSemaphore.WaitAsync(cancellationToken);
-                    try
-                    {
-                        if (cancellationToken.IsCancellationRequested) return;
-                        
-                        var size = CalculateDirectorySize(folderPath, cancellationToken);
-                        if (cancellationToken.IsCancellationRequested) return;
-                        
-                        // 如果大小有变化，更新数据库缓存
-                        if (size != cachedSize)
-                        {
-                            DatabaseManager.SetFolderSize(folderPath, size);
-                        }
-                    }
-                    catch (OperationCanceledException) { }
-                    catch { }
-                    finally
-                    {
-                        _folderSizeCalculationSemaphore.Release();
-                    }
-                }
-                catch (OperationCanceledException) { }
-                catch { }
-            }, cancellationToken);
-        }
 
         private void AddToHistory(string path)
         {
@@ -3528,7 +3321,10 @@ namespace OoiMRR
             _navigationHistory.Add(path);
             _currentHistoryIndex = _navigationHistory.Count - 1;
         }
-        private void LoadFiles()
+        /// <summary>
+        /// 异步加载文件列表
+        /// </summary>
+        private async Task LoadFilesAsync()
         {
             // 使用信号量防止重复加载
             if (!_loadFilesSemaphore.Wait(0))
@@ -3541,531 +3337,195 @@ namespace OoiMRR
             {
                 // 设置加载标志
                 _isLoadingFiles = true;
-                
-                _currentFiles.Clear();
-                
-                // 先检查目录是否存在和可访问
-                if (!Directory.Exists(_currentPath))
-                {
-                    throw new DirectoryNotFoundException($"路径不存在: {_currentPath}");
-                }
 
-                // 异步加载文件列表，避免阻塞UI线程
-                System.Threading.Tasks.Task.Run(() =>
-                {
-                    try
-                    {
-                        // 加载文件夹（处理权限错误）
-                        var directories = new List<FileSystemItem>();
-                        try
-                        {
-                            directories = Directory.GetDirectories(_currentPath)
-                                .Select(d =>
-                                {
-                                    try
-                                    {
-                                        // 检查文件夹是否存在（如果不存在，清理数据库缓存）
-                                        if (!Directory.Exists(d))
-                                        {
-                                            DatabaseManager.RemoveFolderSize(d);
-                                            return null;
-                                        }
-                                        
-                                        var dirInfo = new DirectoryInfo(d);
-                                        
-                                        // 从数据库读取文件夹大小缓存
-                                        var cachedSize = DatabaseManager.GetFolderSize(d);
-                                        string sizeDisplay = cachedSize.HasValue 
-                                            ? FormatFileSize(cachedSize.Value) 
-                                            : "计算中...";
-                                        
-                                        var item = new FileSystemItem
-                                        {
-                                            Name = Path.GetFileName(d),
-                                            Path = d,
-                                            Type = "文件夹",
-                                            Size = sizeDisplay,
-                                            ModifiedDate = dirInfo.LastWriteTime.ToString("yyyy-MM-dd HH:mm"),
-                                            CreatedTime = FileSystemItem.FormatTimeAgo(dirInfo.CreationTime),
-                                            IsDirectory = true
-                                        };
-                                        // 文件夹通常没有备注，但为了统一处理也设置
-                                        item.Notes = "";
-                                        return item;
-                                    }
-                                    catch (UnauthorizedAccessException)
-                                    {
-                                        // 跳过无法访问的文件夹
-                                        return null;
-                                    }
-                                    catch
-                                    {
-                                        return null;
-                                    }
-                                })
-                                .Where(item => item != null)
-                                .ToList();
-                        }
-                        catch (UnauthorizedAccessException)
-                        {
-                            // 如果整个目录都无法访问，抛出异常
-                            throw;
-                        }
-
-                        // 加载文件（处理权限错误）
-                        var files = new List<FileSystemItem>();
-                        try
-                        {
-                            files = Directory.GetFiles(_currentPath)
-                                .Select(f =>
-                                {
-                                    try
-                                    {
-                                        var fileInfo = new FileInfo(f);
-                                        return new FileSystemItem
-                                        {
-                                            Name = Path.GetFileName(f),
-                                            Path = f,
-                                            Type = Path.GetExtension(f),
-                                            Size = FormatFileSize(fileInfo.Length),
-                                            ModifiedDate = fileInfo.LastWriteTime.ToString("yyyy-MM-dd HH:mm"),
-                                            CreatedTime = FileSystemItem.FormatTimeAgo(fileInfo.CreationTime),
-                                            IsDirectory = false
-                                        };
-                                    }
-                                    catch (UnauthorizedAccessException)
-                                    {
-                                        // 跳过无法访问的文件
-                                        return null;
-                                    }
-                                    catch
-                                    {
-                                        return null;
-                                    }
-                                })
-                                .Where(item => item != null)
-                                .ToList();
-                        }
-                        catch (UnauthorizedAccessException)
-                        {
-                            // 如果整个目录都无法访问，抛出异常
-                            throw;
-                        }
-
-                        var allFiles = new List<FileSystemItem>();
-                        allFiles.AddRange(directories);
-                        allFiles.AddRange(files);
-
-                        // 在UI线程更新文件列表
-                        Dispatcher.BeginInvoke(new Action(() =>
-                        {
-                            try
-                            {
-                                _currentFiles.Clear();
-                                _currentFiles.AddRange(allFiles);
-                                
-                                // 应用排序
-                                SortFiles();
-
-                                if (FileBrowser != null)
-                                    FileBrowser.FilesItemsSource = _currentFiles;
-
-                                // 取消之前的文件夹大小计算任务
-                                _folderSizeCalculationCancellation.Cancel();
-                                _folderSizeCalculationCancellation = new System.Threading.CancellationTokenSource();
-                                var cancellationToken = _folderSizeCalculationCancellation.Token;
-                                
-                                // 清空待计算的文件夹队列（文件列表已改变）
-                                lock (_pendingFolderSizeCalculations)
-                                {
-                                    _pendingFolderSizeCalculations.Clear();
-                                }
-                                
-                                // 停止闲置计算定时器
-                                if (_idleFolderSizeCalculationTimer != null)
-                                {
-                                    _idleFolderSizeCalculationTimer.Stop();
-                                }
-
-                                // 异步加载标签和备注（延迟加载，避免阻塞UI）
-                                System.Threading.Tasks.Task.Run(() =>
-                                {
-                                    try
-                                    {
-                                        // 批量加载标签和备注（限制并发，减少到2个避免CPU占用过高）
-                                        var semaphore = new System.Threading.SemaphoreSlim(2, 2); // 最多2个并发查询
-                                        var tasks = _currentFiles.Select(async item =>
-                                        {
-                                            if (cancellationToken.IsCancellationRequested) return;
-                                            
-                                            await semaphore.WaitAsync(cancellationToken);
-                                            try
-                                            {
-                                                if (cancellationToken.IsCancellationRequested) return;
-                                                
-                                                // 从 TagTrain 获取文件的标签
-                                                if (App.IsTagTrainAvailable)
-                                                {
-                                                    var fileTagIds = OoiMRRIntegration.GetFileTagIds(item.Path);
-                                                    if (fileTagIds != null && fileTagIds.Count > 0)
-                                                    {
-                                                        var fileTagNames = OrderTagNames(fileTagIds);
-                                                        item.Tags = string.Join(", ", fileTagNames);
-                                                    }
-                                                    else
-                                                    {
-                                                        item.Tags = "";
-                                                    }
-                                                }
-                                                else
-                                                {
-                                                    item.Tags = "";
-                                                }
-                                                
-                                                var notes = FileNotesService.GetFileNotes(item.Path);
-                                                if (!string.IsNullOrEmpty(notes))
-                                                {
-                                                    var firstLine = notes.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "";
-                                                    item.Notes = firstLine.Length > 100 ? firstLine.Substring(0, 100) + "..." : firstLine;
-                                                }
-                                                else
-                                                {
-                                                    item.Notes = "";
-                                                }
-                                            }
-                                            finally
-                                            {
-                                                semaphore.Release();
-                                            }
-                                        }).ToList();
-                                        
-                                        try
-                                        {
-                                            System.Threading.Tasks.Task.WaitAll(tasks.ToArray(), cancellationToken);
-                                        }
-                                        catch (OperationCanceledException) { }
-                                        
-                                        // 批量更新UI（减少刷新次数）
-                                        Dispatcher.BeginInvoke(new Action(() =>
-                                        {
-                                            if (!cancellationToken.IsCancellationRequested)
-                                            {
-                                                var collectionView = System.Windows.Data.CollectionViewSource.GetDefaultView(FileBrowser?.FilesItemsSource);
-                                                collectionView?.Refresh();
-                                            }
-                                        }), System.Windows.Threading.DispatcherPriority.Background);
-                                    }
-                                    catch (OperationCanceledException) { }
-                                    catch { }
-                                }, cancellationToken);
-
-                                // 异步计算文件夹大小（严格限制数量和延迟，避免资源消耗过大）
-                                // 只计算前5个文件夹的大小，大幅减少资源消耗
-                                int maxCalculations = Math.Min(5, directories.Count);
-                                int delayIndex = 0;
-                                
-                                for (int i = 0; i < maxCalculations; i++)
-                                {
-                                    var dir = directories[i];
-                                    var path = dir.Path;
-                                    var currentDelay = delayIndex * 1000; // 每个任务延迟1秒，避免同时启动
-                                    delayIndex++;
-                                    
-                                    System.Threading.Tasks.Task.Run(async () =>
-                                    {
-                                        try
-                                        {
-                                            // 延迟启动，避免同时启动太多任务
-                                            if (currentDelay > 0)
-                                            {
-                                                await System.Threading.Tasks.Task.Delay(currentDelay, cancellationToken);
-                                            }
-                                            
-                                            if (cancellationToken.IsCancellationRequested) return;
-                                            
-                                            await _folderSizeCalculationSemaphore.WaitAsync(cancellationToken);
-                                            try
-                                            {
-                                                if (cancellationToken.IsCancellationRequested) return;
-                                                
-                                                var size = CalculateDirectorySize(path, cancellationToken);
-                                                if (cancellationToken.IsCancellationRequested) return;
-                                                
-                                                // 更新数据库缓存
-                                                DatabaseManager.SetFolderSize(path, size);
-                                                
-                                                // 使用低优先级批量更新，减少UI刷新频率
-                                                _ = Dispatcher.BeginInvoke(new Action(() =>
-                                                {
-                                                    if (!cancellationToken.IsCancellationRequested)
-                                                    {
-                                                        var item = _currentFiles.FirstOrDefault(f => f.Path == path);
-                                                        if (item != null)
-                                                        {
-                                                            item.Size = FormatFileSize(size);
-                                                            var collectionView = System.Windows.Data.CollectionViewSource.GetDefaultView(FileBrowser?.FilesItemsSource);
-                                                            collectionView?.Refresh();
-                                                        }
-                                                    }
-                                                }), System.Windows.Threading.DispatcherPriority.SystemIdle);
-                                            }
-                                            catch (OperationCanceledException) { }
-                                            catch { }
-                                            finally
-                                            {
-                                                _folderSizeCalculationSemaphore.Release();
-                                            }
-                                        }
-                                        catch (OperationCanceledException) { }
-                                        catch { }
-                                    }, cancellationToken);
-                                }
-                            }
-                            finally
-                            {
-                                // 重置加载标志并释放信号量
-                                _isLoadingFiles = false;
-                                _loadFilesSemaphore.Release();
-                            }
-                        }), System.Windows.Threading.DispatcherPriority.Background);
-                    }
-                    catch (UnauthorizedAccessException ex)
-                    {
-                        // 在UI线程显示错误
-                        Dispatcher.BeginInvoke(new Action(() =>
-                        {
-                            _isLoadingFiles = false;
-                            _loadFilesSemaphore.Release();
-                            throw ex;
-                        }), System.Windows.Threading.DispatcherPriority.Background);
-                    }
-                    catch (Exception ex)
-                    {
-                        // 在UI线程显示错误
-                        Dispatcher.BeginInvoke(new Action(() =>
-                        {
-                            _isLoadingFiles = false;
-                            _loadFilesSemaphore.Release();
-                            throw ex;
-                        }), System.Windows.Threading.DispatcherPriority.Background);
-                    }
-                });
+                // 使用 FileListService 异步加载文件
+                // 文件加载完成后会通过 FilesLoaded 事件通知，由事件处理器更新UI
+                // 错误会通过 ErrorOccurred 事件通知
+                await _fileListService.LoadFileSystemItemsAsync(
+                    _currentPath,
+                    OrderTagNames);
             }
-            catch (UnauthorizedAccessException)
+            catch (Exception ex)
             {
-                // 确保释放锁
+                System.Diagnostics.Debug.WriteLine($"LoadFilesAsync 失败: {ex.Message}");
+                // 确保释放资源
                 _isLoadingFiles = false;
                 _loadFilesSemaphore.Release();
-                // 重新抛出，让 LoadCurrentDirectory 处理
-                throw;
-            }
-            catch (Exception)
-            {
-                // 确保释放锁
-                _isLoadingFiles = false;
-                _loadFilesSemaphore.Release();
-                // 重新抛出，让 LoadCurrentDirectory 处理
-                throw;
             }
         }
 
-        private long CalculateDirectorySize(string directory, System.Threading.CancellationToken cancellationToken = default)
-        {
-            long size = 0;
-            try
-            {
-                var dirInfo = new DirectoryInfo(directory);
-                if (!dirInfo.Exists) return size;
-                
-                var startTime = System.Diagnostics.Stopwatch.StartNew();
-                int maxTimeMs = 10000; // 增加到10秒超时（因为要递归计算）
-                int maxDepth = 20; // 限制递归深度，避免过深
-                int maxFilesPerLevel = 5000; // 每层最多计算5000个文件
-                
-                // 使用递归方法计算，包含所有子文件夹的大小
-                size = CalculateDirectorySizeRecursiveOptimized(dirInfo, 0, maxDepth, maxFilesPerLevel, startTime, maxTimeMs, cancellationToken);
-            }
-            catch { }
-            return size;
-        }
-        
         /// <summary>
-        /// 递归计算文件夹大小（优化版本，包含所有子文件夹）
+        /// 加载文件列表（同步包装器，保持向后兼容）
         /// </summary>
-        private long CalculateDirectorySizeRecursiveOptimized(
-            DirectoryInfo dirInfo, 
-            int currentDepth, 
-            int maxDepth, 
-            int maxFilesPerLevel,
-            System.Diagnostics.Stopwatch startTime,
-            int maxTimeMs,
-            System.Threading.CancellationToken cancellationToken)
+        private void LoadFiles()
         {
-            long size = 0;
-            
-            if (currentDepth >= maxDepth || cancellationToken.IsCancellationRequested) 
-                return size;
-            
-            // 超时检查
-            if (startTime.ElapsedMilliseconds > maxTimeMs)
-                return size;
-            
-            try
+            // 使用异步方法，但不等待，避免阻塞UI
+            _ = LoadFilesAsync();
+        }
+
+        #endregion
+
+        #region FileListService 事件处理
+
+        /// <summary>
+        /// FileListService 文件加载完成事件处理
+        /// </summary>
+        private void OnFileListServiceFilesLoaded(object sender, List<FileSystemItem> items)
+        {
+            // 文件加载完成后在UI线程更新文件列表
+            Dispatcher.BeginInvoke(new Action(() =>
             {
-                // 先尝试从数据库读取子文件夹的缓存大小（如果存在）
-                // 这样可以避免重复计算已缓存的子文件夹
-                var subDirs = dirInfo.GetDirectories("*", SearchOption.TopDirectoryOnly);
-                var subDirsToCalculate = new List<DirectoryInfo>();
-                long cachedSubDirSize = 0;
-                
-                foreach (var subDir in subDirs)
+                try
                 {
-                    if (cancellationToken.IsCancellationRequested) return size;
-                    if (startTime.ElapsedMilliseconds > maxTimeMs) return size;
+                    _currentFiles.Clear();
+                    _currentFiles.AddRange(items);
                     
-                    // 尝试从数据库读取缓存
-                    var cachedSize = DatabaseManager.GetFolderSize(subDir.FullName);
-                    if (cachedSize.HasValue)
+                    // 应用排序
+                    SortFiles();
+
+                    if (FileBrowser != null)
+                        FileBrowser.FilesItemsSource = _currentFiles;
+                        
+                    // 重置加载标志并释放信号量
+                    _isLoadingFiles = false;
+                    _loadFilesSemaphore.Release();
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"处理文件加载完成事件失败: {ex.Message}");
+                    _isLoadingFiles = false;
+                    _loadFilesSemaphore.Release();
+                }
+            }), System.Windows.Threading.DispatcherPriority.Background);
+        }
+
+        /// <summary>
+        /// FileListService 文件夹大小计算完成事件处理
+        /// </summary>
+        private void OnFileListServiceFolderSizeCalculated(object sender, FileSystemItem item)
+        {
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                try
+                {
+                    var existingItem = _currentFiles.FirstOrDefault(f => f.Path == item.Path);
+                    if (existingItem != null)
                     {
-                        cachedSubDirSize += cachedSize.Value;
+                        existingItem.Size = item.Size;
+                        var collectionView = System.Windows.Data.CollectionViewSource.GetDefaultView(FileBrowser?.FilesItemsSource);
+                        collectionView?.Refresh();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"处理文件夹大小计算完成事件失败: {ex.Message}");
+                }
+            }), System.Windows.Threading.DispatcherPriority.Background);
+        }
+
+        /// <summary>
+        /// FileListService 元数据加载完成事件处理
+        /// </summary>
+        private void OnFileListServiceMetadataEnriched(object sender, List<FileSystemItem> items)
+        {
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                try
+                {
+                    // 更新现有项的元素数据（标签和备注）
+                    foreach (var enrichedItem in items)
+                    {
+                        var existingItem = _currentFiles.FirstOrDefault(f => f.Path == enrichedItem.Path);
+                        if (existingItem != null)
+                        {
+                            existingItem.Tags = enrichedItem.Tags;
+                            existingItem.Notes = enrichedItem.Notes;
+                        }
+                    }
+                    
+                    var collectionView = System.Windows.Data.CollectionViewSource.GetDefaultView(FileBrowser?.FilesItemsSource);
+                    collectionView?.Refresh();
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"处理元数据加载完成事件失败: {ex.Message}");
+                }
+            }), System.Windows.Threading.DispatcherPriority.Background);
+        }
+
+        /// <summary>
+        /// FileSystemWatcherService 文件系统变化事件处理
+        /// </summary>
+        private void OnFileSystemWatcherServiceFileSystemChanged(object sender, FileSystemEventArgs e)
+        {
+            // 记录文件系统变化事件（用于调试）
+            System.Diagnostics.Debug.WriteLine($"[MainWindow] 文件系统变化: {e.ChangeType} - {e.Name}");
+            
+            // 事件已由 FileSystemWatcherService 处理防抖，这里可以记录日志或做其他处理
+            // 防抖后的刷新请求会通过 RefreshRequested 事件触发
+        }
+
+        /// <summary>
+        /// FileSystemWatcherService 刷新请求事件处理
+        /// </summary>
+        private void OnFileSystemWatcherServiceRefreshRequested(object sender, EventArgs e)
+        {
+            // 检查是否正在加载，避免重复加载
+            if (!_isLoadingFiles)
+            {
+                System.Diagnostics.Debug.WriteLine("[MainWindow] 收到刷新请求，开始刷新文件列表...");
+                RefreshFileList();
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("[MainWindow] 正在加载中，跳过刷新请求");
+            }
+        }
+
+        /// <summary>
+        /// FileListService 错误发生事件处理
+        /// </summary>
+        private void OnFileListServiceErrorOccurred(object sender, string errorMessage)
+        {
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                try
+                {
+                    // 清空文件列表
+                    _currentFiles.Clear();
+                    if (FileBrowser != null)
+                    {
+                        FileBrowser.FilesItemsSource = null;
+                    }
+
+                    // 显示错误消息
+                    if (errorMessage.Contains("无权限访问"))
+                    {
+                        MessageBox.Show(errorMessage, "权限错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        ShowEmptyStateMessage($"无法访问此路径：\n{_currentPath}");
+                    }
+                    else if (errorMessage.Contains("路径不存在"))
+                    {
+                        MessageBox.Show(errorMessage, "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        ShowEmptyStateMessage($"路径不存在：\n{_currentPath}");
                     }
                     else
                     {
-                        subDirsToCalculate.Add(subDir);
+                        MessageBox.Show(errorMessage, "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        ShowEmptyStateMessage($"加载失败：\n{errorMessage}");
                     }
                 }
-                
-                size += cachedSubDirSize;
-                
-                // 计算当前目录的直接文件
-                int fileCount = 0;
-                try
+                catch (Exception ex)
                 {
-                    var files = dirInfo.GetFiles("*", SearchOption.TopDirectoryOnly);
-                    foreach (var file in files)
-                    {
-                        if (cancellationToken.IsCancellationRequested) return size;
-                        if (startTime.ElapsedMilliseconds > maxTimeMs) return size;
-                        if (fileCount >= maxFilesPerLevel) break; // 超过限制，停止计算
-                        
-                        // 每处理100个文件检查一次取消并让出CPU
-                        fileCount++;
-                        if (fileCount % 100 == 0)
-                        {
-                            System.Threading.Thread.Sleep(20);
-                            if (cancellationToken.IsCancellationRequested) return size;
-                            if (startTime.ElapsedMilliseconds > maxTimeMs) return size;
-                        }
-                        
-                        try
-                        {
-                            size += file.Length;
-                        }
-                        catch { }
-                    }
+                    System.Diagnostics.Debug.WriteLine($"处理错误事件失败: {ex.Message}");
                 }
-                catch { }
-                
-                // 递归计算子目录（只计算没有缓存的）
-                foreach (var subDir in subDirsToCalculate)
+                finally
                 {
-                    if (cancellationToken.IsCancellationRequested) return size;
-                    if (startTime.ElapsedMilliseconds > maxTimeMs) return size;
-                    
-                    try
-                    {
-                        long subDirSize = CalculateDirectorySizeRecursiveOptimized(
-                            subDir, 
-                            currentDepth + 1, 
-                            maxDepth, 
-                            maxFilesPerLevel,
-                            startTime,
-                            maxTimeMs,
-                            cancellationToken);
-                        size += subDirSize;
-                        
-                        // 将子文件夹的大小缓存到数据库（异步，不阻塞）
-                        if (subDirSize > 0)
-                        {
-                            System.Threading.Tasks.Task.Run(() =>
-                            {
-                                try
-                                {
-                                    DatabaseManager.SetFolderSize(subDir.FullName, subDirSize);
-                                }
-                                catch { }
-                            });
-                        }
-                    }
-                    catch { }
-                    
-                    // 每个子文件夹之间延迟，避免CPU占用过高
-                    if (currentDepth < 3) // 只在浅层延迟，深层不延迟以加快速度
-                    {
-                        System.Threading.Thread.Sleep(10);
-                    }
+                    // 释放加载锁定
+                    _isLoadingFiles = false;
+                    _loadFilesSemaphore.Release();
                 }
-            }
-            catch { }
-            
-            return size;
-        }
-        
-        private long CalculateDirectorySizeRecursive(DirectoryInfo dirInfo, int currentDepth, int maxDepth, System.Threading.CancellationToken cancellationToken)
-        {
-            long size = 0;
-            if (currentDepth >= maxDepth || cancellationToken.IsCancellationRequested) return size;
-            
-            try
-            {
-                // 计算当前目录的直接文件
-                int fileCount = 0;
-                foreach (var file in dirInfo.GetFiles("*", SearchOption.TopDirectoryOnly))
-                {
-                    if (cancellationToken.IsCancellationRequested) return size;
-                    
-                    // 每处理20个文件检查一次取消，并让出CPU时间片（增加频率减少CPU占用）
-                    fileCount++;
-                    if (fileCount % 20 == 0)
-                    {
-                        System.Threading.Thread.Sleep(10); // 增加到10ms，让出更多CPU时间片
-                        if (cancellationToken.IsCancellationRequested) return size;
-                    }
-                    
-                    try
-                    {
-                        size += file.Length;
-                    }
-                    catch { }
-                }
-                
-                // 递归计算子目录（限制深度）
-                foreach (var subDir in dirInfo.GetDirectories("*", SearchOption.TopDirectoryOnly))
-                {
-                    if (cancellationToken.IsCancellationRequested) return size;
-                    try
-                    {
-                        size += CalculateDirectorySizeRecursive(subDir, currentDepth + 1, maxDepth, cancellationToken);
-                    }
-                    catch { }
-                }
-            }
-            catch { }
-            
-            return size;
-        }
-
-        private string FormatFileSize(long bytes)
-        {
-            string[] sizes = { "B", "KB", "MB", "GB", "TB" };
-            double len = bytes;
-            int order = 0;
-            while (len >= 1024 && order < sizes.Length - 1)
-            {
-                order++;
-                len = len / 1024;
-            }
-            return $"{len:0.##} {sizes[order]}";
+            }), System.Windows.Threading.DispatcherPriority.Normal);
         }
 
         #endregion
@@ -4762,7 +4222,13 @@ namespace OoiMRR
             if (string.IsNullOrEmpty(path))
                 return;
             
-            if (Directory.Exists(path) || File.Exists(path))
+            System.Diagnostics.Debug.WriteLine($"[FileBrowser_PathChanged] 收到路径变化: {path}");
+            
+            // 检查是否为有效路径
+            bool isPath = Directory.Exists(path) || File.Exists(path);
+            System.Diagnostics.Debug.WriteLine($"[FileBrowser_PathChanged] 是否为有效路径: {isPath}");
+            
+            if (isPath)
             {
                 // 使用统一导航协调器处理路径导航（左键点击）
                 _navigationCoordinator.HandlePathNavigation(path, NavigationCoordinator.NavigationSource.AddressBar, NavigationCoordinator.ClickType.LeftClick);
@@ -4778,7 +4244,13 @@ namespace OoiMRR
                 {
                     keyword = keyword.Substring("搜索:".Length).Trim();
                 }
+                
+                System.Diagnostics.Debug.WriteLine($"[FileBrowser_PathChanged] 执行搜索，关键词: {keyword}");
                 PerformSearch(keyword, true, true);
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[FileBrowser_PathChanged] 关键词为空，不执行搜索");
             }
         }
 
@@ -5361,9 +4833,8 @@ namespace OoiMRR
         
         private void FilesListView_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
-            // 只处理中键或Ctrl+左键点击
-            var clickType = NavigationCoordinator.GetClickType(e);
-            if (clickType == NavigationCoordinator.ClickType.LeftClick) return;
+            // 只处理中键点击（打开新标签页），Ctrl+左键用于多选，不在这里处理
+            if (e.ChangedButton != MouseButton.Middle) return;
 
             var listView = sender as ListView;
             if (listView == null) return;
@@ -5382,8 +4853,8 @@ namespace OoiMRR
                     {
                         if (selectedItem.IsDirectory)
                         {
-                            // 使用统一导航协调器处理文件列表中键/Ctrl+左键点击
-                            _navigationCoordinator.HandlePathNavigation(selectedItem.Path, NavigationCoordinator.NavigationSource.FileList, clickType);
+                            // 中键点击：在新标签页打开文件夹
+                            _navigationCoordinator.HandlePathNavigation(selectedItem.Path, NavigationCoordinator.NavigationSource.FileList, NavigationCoordinator.ClickType.MiddleClick);
                             e.Handled = true;
                             return;
                         }
@@ -5888,7 +5359,7 @@ namespace OoiMRR
                         ("类型", "文件夹"),
                         ("文件数", files.Length.ToString()),
                         ("文件夹数", directories.Length.ToString()),
-                        ("总大小", FormatFileSize(totalSize)),
+                        ("总大小", _fileListService.FormatFileSize(totalSize)),
                         ("修改日期", item.ModifiedDate),
                         ("标签", item.Tags)
                     };
@@ -6300,23 +5771,7 @@ namespace OoiMRR
 
         private void LoadLibraries()
         {
-            var libraries = DatabaseManager.GetAllLibraries();
-            var currentSelected = LibrariesListBox.SelectedItem; // 保存当前选中项
-            LibrariesListBox.ItemsSource = null; // 先清空以强制刷新
-            LibrariesListBox.ItemsSource = libraries;
-            LibrariesListBox.Items.Refresh(); // 强制刷新显示
-            
-            // 如果有之前选中的库，恢复选中状态并确保视觉状态正确
-            if (currentSelected != null)
-            {
-                this.Dispatcher.BeginInvoke(new Action(() =>
-                {
-                    EnsureSelectedItemVisible(LibrariesListBox, currentSelected);
-                    
-                    // 高亮当前选中的库（作为匹配当前库）
-                    HighlightMatchingLibrary(currentSelected as Library);
-                }), System.Windows.Threading.DispatcherPriority.Loaded);
-            }
+            _libraryService.LoadLibraries();
         }
 
         private void AddLibrary_Click(object sender, RoutedEventArgs e)
@@ -6324,40 +5779,16 @@ namespace OoiMRR
             var dialog = new LibraryDialog();
             if (dialog.ShowDialog() == true)
             {
-                try
+                var libraryId = _libraryService.AddLibrary(dialog.LibraryName, dialog.LibraryPath);
+                if (libraryId > 0)
                 {
-                    var libraryId = DatabaseManager.AddLibrary(dialog.LibraryName);
-                    if (libraryId > 0)
+                    // 创建后自动打开库标签页并高亮
+                    var newLibrary = _libraryService.GetLibrary(libraryId);
+                    if (newLibrary != null)
                     {
-                        // 如果提供了初始路径，添加到库中
-                        if (!string.IsNullOrWhiteSpace(dialog.LibraryPath))
-                        {
-                            DatabaseManager.AddLibraryPath(libraryId, dialog.LibraryPath);
-                        }
-                        LoadLibraries();
-
-                        // 创建后自动打开库标签页并高亮
-                        var newLibrary = DatabaseManager.GetLibrary(libraryId);
-                        if (newLibrary != null)
-                        {
-                            OpenLibraryInTab(newLibrary);
-                            HighlightMatchingLibrary(newLibrary);
-                        }
+                        OpenLibraryInTab(newLibrary);
+                        HighlightMatchingLibrary(newLibrary);
                     }
-                    else if (libraryId < 0)
-                    {
-                        // 库已存在，刷新列表以显示
-                        LoadLibraries();
-                        MessageBox.Show($"库名称已存在，已刷新库列表", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-                    }
-                    else
-                    {
-                        MessageBox.Show("创建库失败", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"创建库失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
@@ -6415,21 +5846,12 @@ namespace OoiMRR
                 if (dialog.ShowDialog() == true)
                 {
                     var newName = dialog.InputText.Trim();
-                    if (string.IsNullOrEmpty(newName))
+                    if (_libraryService.UpdateLibraryName(selectedLibrary.Id, newName))
                     {
-                        MessageBox.Show("库名称不能为空", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
-                        return;
-                    }
-
-                    try
-                    {
-                        DatabaseManager.UpdateLibraryName(selectedLibrary.Id, newName);
-                        LoadLibraries();
-                        
                         // 如果当前库被重命名，更新当前库引用并恢复选中状态
                         if (_currentLibrary != null && _currentLibrary.Id == selectedLibrary.Id)
                         {
-                            var updatedLibrary = DatabaseManager.GetLibrary(selectedLibrary.Id);
+                            var updatedLibrary = _libraryService.GetLibrary(selectedLibrary.Id);
                             if (updatedLibrary != null)
                             {
                                 _currentLibrary = updatedLibrary;
@@ -6441,10 +5863,6 @@ namespace OoiMRR
                                 }), System.Windows.Threading.DispatcherPriority.Loaded);
                             }
                         }
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show($"重命名失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                     }
                 }
             }
@@ -6463,25 +5881,18 @@ namespace OoiMRR
                     return;
                 }
 
-                try
+                if (_libraryService.DeleteLibrary(selectedLibrary.Id, selectedLibrary.Name))
                 {
-                    DatabaseManager.DeleteLibrary(selectedLibrary.Id);
-                    LoadLibraries();
-                    
                     // 如果删除的是当前库，清空显示
                     if (_currentLibrary != null && _currentLibrary.Id == selectedLibrary.Id)
                     {
                         _currentLibrary = null;
                         _currentFiles.Clear();
                         if (FileBrowser != null)
-                    FileBrowser.FilesItemsSource = null;
+                            FileBrowser.FilesItemsSource = null;
                         if (FileBrowser != null)
                             FileBrowser.AddressText = "";
                     }
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"删除库失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
@@ -6495,34 +5906,8 @@ namespace OoiMRR
         {
             if (LibrariesListBox.SelectedItem is Library selectedLibrary)
             {
-                var updatedLibrary = DatabaseManager.GetLibrary(selectedLibrary.Id);
-                if (updatedLibrary != null && updatedLibrary.Paths != null && updatedLibrary.Paths.Count > 0)
-                {
-                    // 打开第一个位置
-                    var firstPath = updatedLibrary.Paths[0];
-                    if (Directory.Exists(firstPath))
-                    {
-                        try
-                        {
-                            System.Diagnostics.Process.Start("explorer.exe", firstPath);
-                        }
-                        catch (Exception ex)
-                        {
-                            MessageBox.Show($"无法打开文件夹: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                        }
-                    }
-                    else
-                    {
-                        MessageBox.Show($"路径不存在: {firstPath}", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    }
-                }
-                else
-                {
-                    MessageBox.Show("该库没有添加任何位置", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-
+                _libraryService.OpenLibraryInExplorer(selectedLibrary.Id);
             }
-
         }
 
         private void LibraryRefresh_Click(object sender, RoutedEventArgs e)
@@ -6621,208 +6006,14 @@ namespace OoiMRR
                 // 设置加载标志
                 _isLoadingFiles = true;
                 
-                System.Diagnostics.Debug.WriteLine($"[加载库文件] 开始加载库: {library.Name}");
-                
                 _currentFiles.Clear();
                 _currentPath = null; // 标记当前在库模式下
                 if (FileBrowser != null) FileBrowser.NavUpEnabled = false;
                 
-                if (library.Paths == null || library.Paths.Count == 0)
-                {
-                    System.Diagnostics.Debug.WriteLine("[加载库文件] 库没有位置，显示提示");
-                    _currentFiles.Clear();
-                    if (FileBrowser != null)
-                    {
-                        FileBrowser.FilesItemsSource = null;
-                        FileBrowser.AddressText = library.Name + " (无位置)";
-                    }
-                    
-                    // 在文件列表区域显示提示信息，而不是弹窗
-                    ShowEmptyLibraryMessage(library.Name);
-                    
-                    // 清除预览区
-                    ClearPreviewAndInfo();
-                    
-                    // 库模式下清除路径匹配高亮（无库时不显示）
-                    ClearItemHighlights();
-                    
-                    // 清空标签页（库没有位置时）
-                    ClearTabsInLibraryMode();
-                    
-                    _isLoadingFiles = false;
-                    _loadFilesSemaphore.Release();
-                    return;
-                }
-                
-                // 不再需要 SetupLibraryTabs，库已经在标签页中打开
-                
-                // 异步加载库文件，避免阻塞UI线程
-                System.Threading.Tasks.Task.Run(() =>
-                {
-                    try
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[加载库文件] 库有 {library.Paths.Count} 个位置");
-                        var allItems = new Dictionary<string, FileSystemItem>();
-                        
-                        // 遍历库中的所有位置
-                        foreach (var path in library.Paths)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[加载库文件] 处理路径: {path}");
-                    if (!Directory.Exists(path))
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[加载库文件] 路径不存在: {path}");
-                        continue;
-                    }
-                    
-                    try
-                    {
-                        // 加载文件夹
-                        var directories = new List<FileSystemItem>();
-                        try
-                        {
-                            var dirPaths = Directory.GetDirectories(path);
-                            foreach (var d in dirPaths)
-                            {
-                                try
-                                {
-                                    // 检查文件夹是否存在（如果不存在，清理数据库缓存）
-                                    if (!Directory.Exists(d))
-                                    {
-                                        DatabaseManager.RemoveFolderSize(d);
-                                        continue; // 跳过不存在的文件夹
-                                    }
-                                    
-                                    var dirInfo = new DirectoryInfo(d);
-                                    
-                                    // 从数据库读取文件夹大小缓存
-                                    var cachedSize = DatabaseManager.GetFolderSize(d);
-                                    string sizeDisplay = cachedSize.HasValue 
-                                        ? FormatFileSize(cachedSize.Value) 
-                                        : "计算中...";
-                                    
-                                    directories.Add(new FileSystemItem
-                                    {
-                                        Name = Path.GetFileName(d),
-                                        Path = d,
-                                        Type = "文件夹",
-                                        Size = sizeDisplay,
-                                        ModifiedDate = dirInfo.LastWriteTime.ToString("yyyy-MM-dd HH:mm"),
-                                        CreatedTime = FileSystemItem.FormatTimeAgo(dirInfo.CreationTime),
-                                        IsDirectory = true,
-                                        SourcePath = path // 标记来源路径
-                                    });
-                                }
-                                catch (UnauthorizedAccessException)
-                                {
-                                    // 跳过无权限访问的文件夹
-                                    System.Diagnostics.Debug.WriteLine($"[加载库文件] 无权限访问文件夹: {d}");
-                                    continue;
-                                }
-                                catch (Exception ex)
-                                {
-                                    // 跳过其他异常的文件/文件夹
-                                    System.Diagnostics.Debug.WriteLine($"[加载库文件] 处理文件夹失败 {d}: {ex.Message}");
-                                    continue;
-                                }
-                            }
-                        }
-                        catch (UnauthorizedAccessException)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"[加载库文件] 无权限访问路径: {path}");
-                        }
-                        catch (Exception ex)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"[加载库文件] 获取文件夹列表失败 {path}: {ex.Message}");
-                        }
-
-                        // 加载文件
-                        var files = new List<FileSystemItem>();
-                        try
-                        {
-                            var filePaths = Directory.GetFiles(path);
-                            foreach (var f in filePaths)
-                            {
-                                try
-                                {
-                                    var fileInfo = new FileInfo(f);
-                                    files.Add(new FileSystemItem
-                                    {
-                                        Name = Path.GetFileName(f),
-                                        Path = f,
-                                        Type = Path.GetExtension(f),
-                                        Size = FormatFileSize(fileInfo.Length),
-                                        ModifiedDate = fileInfo.LastWriteTime.ToString("yyyy-MM-dd HH:mm"),
-                                        CreatedTime = FileSystemItem.FormatTimeAgo(fileInfo.CreationTime),
-                                        IsDirectory = false,
-                                        SourcePath = path // 标记来源路径
-                                    });
-                                }
-                                catch (UnauthorizedAccessException)
-                                {
-                                    // 跳过无权限访问的文件
-                                    System.Diagnostics.Debug.WriteLine($"[加载库文件] 无权限访问文件: {f}");
-                                    continue;
-                                }
-                                catch (Exception ex)
-                                {
-                                    // 跳过其他异常的文件
-                                    System.Diagnostics.Debug.WriteLine($"[加载库文件] 处理文件失败 {f}: {ex.Message}");
-                                    continue;
-                                }
-                            }
-                        }
-                        catch (UnauthorizedAccessException)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"[加载库文件] 无权限访问路径: {path}");
-                        }
-                        catch (Exception ex)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"[加载库文件] 获取文件列表失败 {path}: {ex.Message}");
-                        }
-
-                        // 合并文件，同名文件保留第一个（或可以选择最新的）
-                        foreach (var item in directories.Concat(files))
-                        {
-                            var key = item.Name.ToLowerInvariant();
-                            if (!allItems.ContainsKey(key))
-                            {
-                                allItems[key] = item;
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"加载路径失败 {path}: {ex.Message}");
-                    }
-                }
-
-                        // 在UI线程更新文件列表
-                        Dispatcher.BeginInvoke(new Action(() =>
-                        {
-                            try
-                            {
-                                // 显示合并的库文件（库标签页统一显示合并视图）
-                                ShowMergedLibraryFiles(allItems.Values.ToList(), library);
-                            }
-                            finally
-                            {
-                                // 重置加载标志并释放信号量
-                                _isLoadingFiles = false;
-                                _loadFilesSemaphore.Release();
-                            }
-                        }), System.Windows.Threading.DispatcherPriority.Background);
-                    }
-                    catch (Exception ex)
-                    {
-                        // 在UI线程显示错误
-                        Dispatcher.BeginInvoke(new Action(() =>
-                        {
-                            _isLoadingFiles = false;
-                            _loadFilesSemaphore.Release();
-                            MessageBox.Show($"加载库文件失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                        }), System.Windows.Threading.DispatcherPriority.Background);
-                    }
-                });
+                // 使用库服务加载文件
+                _libraryService.LoadLibraryFiles(library, 
+                    (path) => DatabaseManager.GetFolderSize(path),
+                    (bytes) => _fileListService.FormatFileSize(bytes));
             }
             catch (Exception ex)
             {
@@ -6882,9 +6073,7 @@ namespace OoiMRR
             System.Diagnostics.Debug.WriteLine($"[加载库文件] 完成，ItemsSource 已设置");
 
             // 取消之前的文件夹大小计算任务
-            _folderSizeCalculationCancellation.Cancel();
-            _folderSizeCalculationCancellation = new System.Threading.CancellationTokenSource();
-            var cancellationToken = _folderSizeCalculationCancellation.Token;
+            _folderSizeCalculationService?.Cancel();
 
             // 异步加载标签和备注（延迟加载，避免阻塞UI）
             System.Threading.Tasks.Task.Run(() =>
@@ -6895,13 +6084,9 @@ namespace OoiMRR
                     var semaphore = new System.Threading.SemaphoreSlim(2, 2); // 最多2个并发查询
                     var tasks = _currentFiles.Select(async item =>
                     {
-                        if (cancellationToken.IsCancellationRequested) return;
-                        
-                        await semaphore.WaitAsync(cancellationToken);
+                        await semaphore.WaitAsync();
                         try
                         {
-                            if (cancellationToken.IsCancellationRequested) return;
-                            
                             // 从 TagTrain 获取文件的标签
                             if (App.IsTagTrainAvailable)
                             {
@@ -6940,37 +6125,31 @@ namespace OoiMRR
                     
                     try
                     {
-                        System.Threading.Tasks.Task.WaitAll(tasks.ToArray(), cancellationToken);
+                        System.Threading.Tasks.Task.WaitAll(tasks.ToArray());
                     }
-                    catch (OperationCanceledException) { }
+                    catch { }
                     
                     // 批量更新UI（减少刷新次数）
                     Dispatcher.BeginInvoke(new Action(() =>
                     {
-                        if (!cancellationToken.IsCancellationRequested)
-                        {
-                            var collectionView = System.Windows.Data.CollectionViewSource.GetDefaultView(FileBrowser?.FilesItemsSource);
-                            collectionView?.Refresh();
-                        }
+                        var collectionView = System.Windows.Data.CollectionViewSource.GetDefaultView(FileBrowser?.FilesItemsSource);
+                        collectionView?.Refresh();
                     }), System.Windows.Threading.DispatcherPriority.Background);
                 }
-                catch (OperationCanceledException) { }
                 catch { }
-            }, cancellationToken);
+            });
 
-            // 异步计算文件夹大小（严格限制数量和延迟，避免资源消耗过大）
+            // 异步计算文件夹大小（使用服务方法，限制数量和延迟，避免资源消耗过大）
             var dirsToCalculate = _currentFiles.Where(f => f.IsDirectory).ToList();
             // 只计算前5个文件夹，大幅减少资源消耗
             int maxCalculations = Math.Min(5, dirsToCalculate.Count);
-            int delayIndex = 0;
             
             // 立即计算前5个文件夹
             for (int i = 0; i < maxCalculations; i++)
             {
                 var dir = dirsToCalculate[i];
                 var path = dir.Path;
-                var currentDelay = delayIndex * 1000; // 每个任务延迟1秒，避免同时启动
-                delayIndex++;
+                var currentDelay = i * 1000; // 每个任务延迟1秒，避免同时启动
                 
                 System.Threading.Tasks.Task.Run(async () =>
                 {
@@ -6979,193 +6158,41 @@ namespace OoiMRR
                         // 延迟启动，避免同时启动太多任务
                         if (currentDelay > 0)
                         {
-                            await System.Threading.Tasks.Task.Delay(currentDelay, cancellationToken);
+                            await System.Threading.Tasks.Task.Delay(currentDelay);
                         }
                         
-                        if (cancellationToken.IsCancellationRequested) return;
+                        // 使用服务方法计算文件夹大小
+                        await _folderSizeCalculationService.CalculateAndUpdateFolderSizeAsync(path);
                         
-                        await _folderSizeCalculationSemaphore.WaitAsync(cancellationToken);
-                        try
+                        // 更新UI
+                        _ = Dispatcher.BeginInvoke(new Action(() =>
                         {
-                            if (cancellationToken.IsCancellationRequested) return;
-                            
-                            var size = CalculateDirectorySize(path, cancellationToken);
-                            if (cancellationToken.IsCancellationRequested) return;
-                            
-                            _ = Dispatcher.BeginInvoke(new Action(() =>
+                            var item = _currentFiles.FirstOrDefault(f => f.Path == path);
+                            if (item != null)
                             {
-                                if (!cancellationToken.IsCancellationRequested)
+                                var cachedSize = DatabaseManager.GetFolderSize(path);
+                                if (cachedSize.HasValue)
                                 {
-                                    var item = _currentFiles.FirstOrDefault(f => f.Path == path);
-                                    if (item != null)
-                                    {
-                                        item.Size = FormatFileSize(size);
-                                        // 使用低优先级批量更新，减少UI刷新频率
-                                        var collectionView = System.Windows.Data.CollectionViewSource.GetDefaultView(FileBrowser?.FilesItemsSource);
-                                        collectionView?.Refresh();
-                                    }
+                                    item.Size = _fileListService.FormatFileSize(cachedSize.Value);
+                                    // 使用低优先级批量更新，减少UI刷新频率
+                                    var collectionView = System.Windows.Data.CollectionViewSource.GetDefaultView(FileBrowser?.FilesItemsSource);
+                                    collectionView?.Refresh();
                                 }
-                            }), System.Windows.Threading.DispatcherPriority.SystemIdle);
-                        }
-                        catch (OperationCanceledException) { }
-                        catch { }
-                        finally
-                        {
-                            _folderSizeCalculationSemaphore.Release();
-                        }
+                            }
+                        }), System.Windows.Threading.DispatcherPriority.SystemIdle);
                     }
-                    catch (OperationCanceledException) { }
                     catch { }
-                }, cancellationToken);
+                });
             }
             
-            // 将剩余文件夹加入队列，在CPU/程序闲置时计算
+            // 剩余文件夹通过服务的批量计算方法异步处理
             if (dirsToCalculate.Count > maxCalculations)
             {
-                lock (_pendingFolderSizeCalculations)
-                {
-                    // 清空旧队列（如果当前文件列表已改变）
-                    _pendingFolderSizeCalculations.Clear();
-                    
-                    // 将剩余文件夹加入队列
-                    for (int i = maxCalculations; i < dirsToCalculate.Count; i++)
-                    {
-                        _pendingFolderSizeCalculations.Enqueue(dirsToCalculate[i].Path);
-                    }
-                }
-                
-                // 启动闲置计算定时器（如果尚未启动）
-                StartIdleFolderSizeCalculation();
+                var remainingPaths = dirsToCalculate.Skip(maxCalculations).Select(d => d.Path).ToArray();
+                _folderSizeCalculationService?.CalculateSubfolderSizesBatchAsync(remainingPaths);
             }
         }
 
-        /// <summary>
-        /// 启动闲置时文件夹大小计算定时器
-        /// </summary>
-        private void StartIdleFolderSizeCalculation()
-        {
-            // 如果定时器已存在且正在运行，不需要重新创建
-            if (_idleFolderSizeCalculationTimer != null && _idleFolderSizeCalculationTimer.IsEnabled)
-                return;
-            
-            // 创建或重置定时器
-            if (_idleFolderSizeCalculationTimer == null)
-            {
-                _idleFolderSizeCalculationTimer = new System.Windows.Threading.DispatcherTimer
-                {
-                    Interval = TimeSpan.FromSeconds(3) // 每3秒检查一次，在CPU闲置时计算
-                };
-                _idleFolderSizeCalculationTimer.Tick += IdleFolderSizeCalculationTimer_Tick;
-            }
-            
-            // 启动定时器
-            _idleFolderSizeCalculationTimer.Start();
-        }
-        
-        /// <summary>
-        /// 闲置时文件夹大小计算定时器回调
-        /// </summary>
-        private void IdleFolderSizeCalculationTimer_Tick(object sender, EventArgs e)
-        {
-            // 如果正在加载文件或没有待计算的文件夹，停止定时器
-            if (_isLoadingFiles)
-            {
-                return;
-            }
-            
-            string pathToCalculate = null;
-            lock (_pendingFolderSizeCalculations)
-            {
-                if (_pendingFolderSizeCalculations.Count == 0)
-                {
-                    // 没有待计算的文件夹，停止定时器
-                    if (_idleFolderSizeCalculationTimer != null)
-                    {
-                        _idleFolderSizeCalculationTimer.Stop();
-                    }
-                    return;
-                }
-                
-                // 取出一个待计算的文件夹
-                pathToCalculate = _pendingFolderSizeCalculations.Dequeue();
-            }
-            
-            if (string.IsNullOrEmpty(pathToCalculate))
-                return;
-            
-            // 使用SystemIdle优先级，在CPU闲置时计算
-            Dispatcher.BeginInvoke(new Action(() =>
-            {
-                // 检查文件夹是否仍在当前文件列表中
-                var item = _currentFiles.FirstOrDefault(f => f.Path == pathToCalculate && f.IsDirectory);
-                if (item == null)
-                {
-                    // 文件夹不在当前列表中，跳过
-                    return;
-                }
-                
-                // 如果已经计算过大小，跳过
-                if (!string.IsNullOrEmpty(item.Size) && item.Size != "-")
-                {
-                    return;
-                }
-                
-                // 异步计算文件夹大小
-                var cancellationToken = _folderSizeCalculationCancellation.Token;
-                System.Threading.Tasks.Task.Run(async () =>
-                {
-                    try
-                    {
-                        if (cancellationToken.IsCancellationRequested) return;
-                        
-                        // 尝试获取信号量（非阻塞，如果正在计算其他文件夹则跳过）
-                        if (!await _folderSizeCalculationSemaphore.WaitAsync(100, cancellationToken))
-                        {
-                            // 无法获取信号量，将路径重新加入队列
-                            lock (_pendingFolderSizeCalculations)
-                            {
-                                _pendingFolderSizeCalculations.Enqueue(pathToCalculate);
-                            }
-                            return;
-                        }
-                        
-                        try
-                        {
-                            if (cancellationToken.IsCancellationRequested) return;
-                            
-                            var size = CalculateDirectorySize(pathToCalculate, cancellationToken);
-                            if (cancellationToken.IsCancellationRequested) return;
-                            
-                            // 更新数据库缓存
-                            DatabaseManager.SetFolderSize(pathToCalculate, size);
-                            
-                            // 使用SystemIdle优先级更新UI，避免影响用户操作
-                            _ = Dispatcher.BeginInvoke(new Action(() =>
-                            {
-                                if (!cancellationToken.IsCancellationRequested)
-                                {
-                                    var updatedItem = _currentFiles.FirstOrDefault(f => f.Path == pathToCalculate);
-                                    if (updatedItem != null)
-                                    {
-                                        updatedItem.Size = FormatFileSize(size);
-                                        var collectionView = System.Windows.Data.CollectionViewSource.GetDefaultView(FileBrowser?.FilesItemsSource);
-                                        collectionView?.Refresh();
-                                    }
-                                }
-                            }), System.Windows.Threading.DispatcherPriority.SystemIdle);
-                        }
-                        catch (OperationCanceledException) { }
-                        catch { }
-                        finally
-                        {
-                            _folderSizeCalculationSemaphore.Release();
-                        }
-                    }
-                    catch (OperationCanceledException) { }
-                    catch { }
-                }, cancellationToken);
-            }), System.Windows.Threading.DispatcherPriority.SystemIdle);
-        }
         /// <summary>
         /// 立即计算指定文件夹的大小（用户选中时触发）
         /// </summary>
@@ -7183,68 +6210,12 @@ namespace OoiMRR
                     item.Size = "计算中...";
                     var collectionView = System.Windows.Data.CollectionViewSource.GetDefaultView(FileBrowser?.FilesItemsSource);
                     collectionView?.Refresh();
+                    
+                    // 使用 FileListService 计算文件夹大小
+                    // 计算完成后会通过 FolderSizeCalculated 事件更新UI
+                    _ = _fileListService.CalculateFolderSizeAsync(item);
                 }
             }), System.Windows.Threading.DispatcherPriority.Normal);
-            
-            // 从队列中移除该文件夹（如果存在），避免重复计算
-            lock (_pendingFolderSizeCalculations)
-            {
-                var queueList = _pendingFolderSizeCalculations.ToList();
-                _pendingFolderSizeCalculations.Clear();
-                foreach (var path in queueList)
-                {
-                    if (path != folderPath)
-                    {
-                        _pendingFolderSizeCalculations.Enqueue(path);
-                    }
-                }
-            }
-            
-            // 立即启动计算任务
-            var cancellationToken = _folderSizeCalculationCancellation.Token;
-            System.Threading.Tasks.Task.Run(async () =>
-            {
-                try
-                {
-                    if (cancellationToken.IsCancellationRequested) return;
-                    
-                    // 获取信号量（优先计算，但也要等待当前任务完成）
-                    await _folderSizeCalculationSemaphore.WaitAsync(cancellationToken);
-                    try
-                    {
-                        if (cancellationToken.IsCancellationRequested) return;
-                        
-                        var size = CalculateDirectorySize(folderPath, cancellationToken);
-                        if (cancellationToken.IsCancellationRequested) return;
-                        
-                        // 更新数据库缓存
-                        DatabaseManager.SetFolderSize(folderPath, size);
-                        
-                        // 使用正常优先级更新UI（用户主动选中，应该及时反馈）
-                        _ = Dispatcher.BeginInvoke(new Action(() =>
-                        {
-                            if (!cancellationToken.IsCancellationRequested)
-                            {
-                                var item = _currentFiles.FirstOrDefault(f => f.Path == folderPath);
-                                if (item != null)
-                                {
-                                    item.Size = FormatFileSize(size);
-                                    var collectionView = System.Windows.Data.CollectionViewSource.GetDefaultView(FileBrowser?.FilesItemsSource);
-                                    collectionView?.Refresh();
-                                }
-                            }
-                        }), System.Windows.Threading.DispatcherPriority.Normal);
-                    }
-                    catch (OperationCanceledException) { }
-                    catch { }
-                    finally
-                    {
-                        _folderSizeCalculationSemaphore.Release();
-                    }
-                }
-                catch (OperationCanceledException) { }
-                catch { }
-            }, cancellationToken);
         }
 
         #endregion
@@ -7802,7 +6773,7 @@ namespace OoiMRR
                             Path = path,
                             IsDirectory = isDirectory,
                             Type = isDirectory ? "文件夹" : Path.GetExtension(path),
-                            Size = isDirectory ? "" : FormatFileSize(new FileInfo(path).Length),
+                            Size = isDirectory ? "" : _fileListService.FormatFileSize(new FileInfo(path).Length),
                             ModifiedDate = isDirectory ?
                                 Directory.GetLastWriteTime(path).ToString("yyyy-MM-dd HH:mm") :
                                 File.GetLastWriteTime(path).ToString("yyyy-MM-dd HH:mm"),
@@ -8196,6 +7167,10 @@ namespace OoiMRR
                     }
                 }
                 
+                // 分别记录备注搜索结果和文件名搜索结果
+                HashSet<string> notesResultPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                HashSet<string> nameResultPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                
                 // 备注搜索
                 if (searchNotes)
                 {
@@ -8207,12 +7182,25 @@ namespace OoiMRR
                         foreach (var path in notesResults)
                         {
                             resultPaths.Add(path);
+                            notesResultPaths.Add(path);
                         }
                     }
                     catch (Exception ex)
                     {
                         Debug.WriteLine($"备注搜索失败: {ex.Message}");
                         // 备注搜索失败不阻断流程，继续使用名称搜索结果创建标签页
+                    }
+                }
+                
+                // 记录文件名搜索结果（在备注搜索之后，避免重复）
+                if (searchNames)
+                {
+                    foreach (var path in resultPaths)
+                    {
+                        if (!notesResultPaths.Contains(path))
+                        {
+                            nameResultPaths.Add(path);
+                        }
                     }
                 }
                 
@@ -8241,13 +7229,36 @@ namespace OoiMRR
                     try
                     {
                         var items = BuildItemsFromPaths(new[] { filePath });
-                        if (items.Count > 0) results.Add(items[0]);
+                        if (items.Count > 0)
+                        {
+                            var item = items[0];
+                            // 标记搜索结果类型
+                            bool isNoteMatch = notesResultPaths.Contains(filePath, StringComparer.OrdinalIgnoreCase);
+                            bool isNameMatch = nameResultPaths.Contains(filePath, StringComparer.OrdinalIgnoreCase);
+                            
+                            if (isNoteMatch)
+                            {
+                                item.IsFromNotesSearch = true;
+                            }
+                            if (isNameMatch)
+                            {
+                                item.IsFromNameSearch = true;
+                            }
+                            
+                            results.Add(item);
+                        }
                     }
                     catch (Exception ex)
                     {
                         Debug.WriteLine($"处理文件 {filePath} 时出错: {ex.Message}");
                     }
                 }
+                
+                // 构建分组结果
+                var groupedItems = SearchResultGrouper.BuildGroupedResults(
+                    results, 
+                    notesResultPaths, 
+                    nameResultPaths);
                 
                 Debug.WriteLine($"搜索完成，共找到 {results.Count} 个结果");
                 
@@ -8265,7 +7276,15 @@ namespace OoiMRR
                     _currentFiles = results;
                     if (FileBrowser != null)
                     {
-                        FileBrowser.FilesItemsSource = results;
+                        // 使用分组显示
+                        if (groupedItems.Count > 0)
+                        {
+                            FileBrowser.SetGroupedSearchResults(groupedItems);
+                        }
+                        else
+                        {
+                            FileBrowser.FilesItemsSource = results;
+                        }
                         FileBrowser.SetSearchBreadcrumb(normalizedKeyword);
                         FileBrowser.AddressText = normalizedKeyword;
                     }
@@ -8288,7 +7307,15 @@ namespace OoiMRR
                     _currentFiles = results;
                     if (FileBrowser != null)
                     {
-                        FileBrowser.FilesItemsSource = results;
+                        // 使用分组显示
+                        if (groupedItems.Count > 0)
+                        {
+                            FileBrowser.SetGroupedSearchResults(groupedItems);
+                        }
+                        else
+                        {
+                            FileBrowser.FilesItemsSource = results;
+                        }
                         FileBrowser.SetSearchBreadcrumb(normalizedKeyword);
                         FileBrowser.AddressText = normalizedKeyword;
                         FileBrowser.NavUpEnabled = false;
@@ -8311,48 +7338,12 @@ namespace OoiMRR
         private void LoadQuickAccess()
         {
             if (QuickAccessListBox == null) return;
-            
-            var quickAccessPaths = new[]
-            {
-                (Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "🖥️ 桌面"),
-                (Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "📄 文档"),
-                (Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "🖼️ 图片"),
-                (Environment.GetFolderPath(Environment.SpecialFolder.MyMusic), "🎵 音乐"),
-                (Environment.GetFolderPath(Environment.SpecialFolder.MyVideos), "🎬 视频"),
-                (Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "👤 用户")
-            };
-
-            var accessItems = quickAccessPaths
-                .Where(item => Directory.Exists(item.Item1))
-                .Select(item => new { DisplayName = item.Item2, Path = item.Item1 })
-                .ToList();
-            
-            QuickAccessListBox.ItemsSource = accessItems;
-            QuickAccessListBox.DisplayMemberPath = "DisplayName";
-            
-            // 设置选择事件
-            QuickAccessListBox.SelectionChanged -= QuickAccessListBox_SelectionChanged;
-            QuickAccessListBox.SelectionChanged += QuickAccessListBox_SelectionChanged;
+            _quickAccessService.LoadQuickAccess(QuickAccessListBox);
         }
         
         private void QuickAccessListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (QuickAccessListBox.SelectedItem == null) return;
-            
-            var selectedItem = QuickAccessListBox.SelectedItem;
-            var pathProperty = selectedItem.GetType().GetProperty("Path");
-            if (pathProperty != null)
-            {
-                var path = pathProperty.GetValue(selectedItem) as string;
-                if (!string.IsNullOrEmpty(path))
-                {
-                    _lastLeftNavSource = "QuickAccess";
-                    _navigationCoordinator.HandlePathNavigation(path, NavigationCoordinator.NavigationSource.QuickAccess, NavigationCoordinator.ClickType.LeftClick);
-                }
-            }
-            
-            // 清除选择
-            QuickAccessListBox.SelectedItem = null;
+            // 事件处理已由QuickAccessService内部处理，此方法保留以兼容现有代码
         }
 
         #endregion
@@ -8362,48 +7353,12 @@ namespace OoiMRR
         private void LoadDrives()
         {
             if (DrivesListBox == null) return;
-            
-            try
-            {
-                var drives = DriveInfo.GetDrives().Where(d => d.IsReady).ToList();
-                var driveItems = drives.Select(drive => new
-                {
-                    DisplayName = $"{drive.Name} ({drive.VolumeLabel})",
-                    Path = drive.Name,
-                    ToolTip = $"总空间: {FormatFileSize(drive.TotalSize)}\n可用空间: {FormatFileSize(drive.AvailableFreeSpace)}"
-                }).ToList();
-                
-                DrivesListBox.ItemsSource = driveItems;
-                DrivesListBox.DisplayMemberPath = "DisplayName";
-                
-                // 设置选择事件
-                DrivesListBox.SelectionChanged -= DrivesListBox_SelectionChanged;
-                DrivesListBox.SelectionChanged += DrivesListBox_SelectionChanged;
-            }
-            catch
-            {
-                DrivesListBox.ItemsSource = null;
-            }
+            _quickAccessService.LoadDrives(DrivesListBox, _fileListService.FormatFileSize);
         }
         
         private void DrivesListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (DrivesListBox.SelectedItem == null) return;
-            
-            var selectedItem = DrivesListBox.SelectedItem;
-            var pathProperty = selectedItem.GetType().GetProperty("Path");
-            if (pathProperty != null)
-            {
-                var path = pathProperty.GetValue(selectedItem) as string;
-                if (!string.IsNullOrEmpty(path))
-                {
-                    _lastLeftNavSource = "Drive";
-                    _navigationCoordinator.HandlePathNavigation(path, NavigationCoordinator.NavigationSource.Drive, NavigationCoordinator.ClickType.LeftClick);
-                }
-            }
-            
-            // 清除选择
-            DrivesListBox.SelectedItem = null;
+            // 事件处理已由QuickAccessService内部处理，此方法保留以兼容现有代码
         }
 
         #endregion
@@ -9908,105 +8863,7 @@ Write-Host ""Hello World""
         private void LoadFavorites()
         {
             if (FavoritesListBox == null) return;
-            
-            try
-            {
-                var favorites = DatabaseManager.GetAllFavorites();
-                
-                if (favorites.Count == 0)
-                {
-                    FavoritesListBox.ItemsSource = null;
-                    return;
-                }
-                
-                // 检查同名文件/文件夹
-                var nameGroups = favorites.GroupBy(f => 
-                {
-                    string name = f.DisplayName ?? System.IO.Path.GetFileName(f.Path);
-                    if (string.IsNullOrEmpty(name)) name = f.Path;
-                    return name;
-                }).ToList();
-                
-                // 创建显示项列表
-                var displayItems = favorites.Select(favorite =>
-                {
-                    string icon = favorite.IsDirectory ? "📁" : "📄";
-                    string displayName = favorite.DisplayName ?? System.IO.Path.GetFileName(favorite.Path);
-                    if (string.IsNullOrEmpty(displayName))
-                    {
-                        displayName = favorite.Path;
-                    }
-                    
-                    // 如果存在同名项，添加路径标识
-                    var sameNameGroup = nameGroups.FirstOrDefault(g => 
-                    {
-                        string name = favorite.DisplayName ?? System.IO.Path.GetFileName(favorite.Path);
-                        if (string.IsNullOrEmpty(name)) name = favorite.Path;
-                        return g.Key == name;
-                    });
-                    
-                    if (sameNameGroup != null && sameNameGroup.Count() > 1)
-                    {
-                        // 添加父文件夹名称作为区分
-                        var parentDir = System.IO.Path.GetDirectoryName(favorite.Path);
-                        if (!string.IsNullOrEmpty(parentDir))
-                        {
-                            var parentName = System.IO.Path.GetFileName(parentDir);
-                            if (!string.IsNullOrEmpty(parentName))
-                            {
-                                displayName = $"{displayName} ({parentName})";
-                            }
-                        }
-                    }
-                    
-                    return new
-                    {
-                        Favorite = favorite,
-                        Icon = icon,
-                        DisplayName = displayName,
-                        Path = favorite.Path
-                    };
-                }).ToList();
-                
-                FavoritesListBox.ItemsSource = displayItems;
-                FavoritesListBox.DisplayMemberPath = null; // 使用模板显示
-                
-                // 设置数据模板
-                if (FavoritesListBox.ItemTemplate == null)
-                {
-                    var template = new DataTemplate();
-                    var stackPanelFactory = new FrameworkElementFactory(typeof(StackPanel));
-                    stackPanelFactory.SetValue(StackPanel.OrientationProperty, Orientation.Horizontal);
-                    
-                    var iconFactory = new FrameworkElementFactory(typeof(TextBlock));
-                    iconFactory.SetBinding(TextBlock.TextProperty, new Binding("Icon"));
-                    iconFactory.SetValue(TextBlock.MarginProperty, new Thickness(0, 0, 5, 0));
-                    iconFactory.SetValue(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center);
-                    
-                    var nameFactory = new FrameworkElementFactory(typeof(TextBlock));
-                    nameFactory.SetBinding(TextBlock.TextProperty, new Binding("DisplayName"));
-                    nameFactory.SetValue(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center);
-                    nameFactory.SetValue(TextBlock.TextTrimmingProperty, TextTrimming.CharacterEllipsis);
-                    
-                    stackPanelFactory.AppendChild(iconFactory);
-                    stackPanelFactory.AppendChild(nameFactory);
-                    template.VisualTree = stackPanelFactory;
-                    FavoritesListBox.ItemTemplate = template;
-                }
-                
-                // 设置选择事件（单击进入）
-                FavoritesListBox.SelectionChanged -= FavoritesListBox_SelectionChanged;
-                FavoritesListBox.SelectionChanged += FavoritesListBox_SelectionChanged;
-                
-                // 设置右键菜单
-                FavoritesListBox.ContextMenu = CreateFavoritesContextMenu();
-                FavoritesListBox.PreviewMouseRightButtonDown -= FavoritesListBox_PreviewMouseRightButtonDown;
-                FavoritesListBox.PreviewMouseRightButtonDown += FavoritesListBox_PreviewMouseRightButtonDown;
-            }
-            catch
-            {
-                FavoritesListBox.ItemsSource = null;
-            }
+            _favoriteService.LoadFavorites(FavoritesListBox);
         }
         
         private void FavoritesListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -11205,14 +10062,13 @@ Write-Host ""Hello World""
             if (FileBrowser?.FilesSelectedItems == null || FileBrowser.FilesSelectedItems.Count == 0)
                 return;
 
-            _copiedPaths.Clear();
-            _isCutOperation = false;
-
-            if (FileBrowser?.FilesSelectedItems != null)
-                foreach (FileSystemItem item in FileBrowser.FilesSelectedItems)
+            var paths = new List<string>();
+            foreach (FileSystemItem item in FileBrowser.FilesSelectedItems)
             {
-                _copiedPaths.Add(item.Path);
+                paths.Add(item.Path);
             }
+            
+            FileClipboardManager.SetCopyPaths(paths);
         }
 
         private void Cut_Click(object sender, RoutedEventArgs e)
@@ -11220,96 +10076,49 @@ Write-Host ""Hello World""
             if (FileBrowser?.FilesSelectedItems == null || FileBrowser.FilesSelectedItems.Count == 0)
                 return;
 
-            _copiedPaths.Clear();
-            _isCutOperation = true;
-
-            if (FileBrowser?.FilesSelectedItems != null)
-                foreach (FileSystemItem item in FileBrowser.FilesSelectedItems)
+            var paths = new List<string>();
+            foreach (FileSystemItem item in FileBrowser.FilesSelectedItems)
             {
-                _copiedPaths.Add(item.Path);
+                paths.Add(item.Path);
+            }
+            
+            FileClipboardManager.SetCutPaths(paths);
+        }
+
+        /// <summary>
+        /// 获取当前操作上下文
+        /// </summary>
+        private IFileOperationContext GetCurrentOperationContext()
+        {
+            if (_currentLibrary != null)
+            {
+                return new LibraryOperationContext(_currentLibrary, FileBrowser, this, () => LoadLibraryFiles(_currentLibrary));
+            }
+            else if (_currentTagFilter != null)
+            {
+                return new TagOperationContext(_currentTagFilter, FileBrowser, this, () => FilterByTag(_currentTagFilter));
+            }
+            else
+            {
+                return new PathOperationContext(_currentPath, FileBrowser, this, LoadCurrentDirectory);
             }
         }
 
         private void Paste_Click(object sender, RoutedEventArgs e)
         {
-            if (_copiedPaths.Count == 0)
+            if (!FileClipboardManager.HasContent)
                 return;
 
-            try
+            var context = GetCurrentOperationContext();
+            var operation = new PasteOperation(context);
+            var copiedPaths = FileClipboardManager.GetCopiedPaths();
+            var isCut = FileClipboardManager.IsCutOperation;
+            
+            operation.Execute(copiedPaths, isCut);
+            
+            if (isCut)
             {
-                foreach (var sourcePath in _copiedPaths)
-                {
-                    var fileName = Path.GetFileName(sourcePath);
-                    var destPath = Path.Combine(_currentPath, fileName);
-
-                    // 如果目标已存在，添加序号
-                    if (File.Exists(destPath) || Directory.Exists(destPath))
-                    {
-                        var extension = Path.GetExtension(fileName);
-                        var nameWithoutExt = Path.GetFileNameWithoutExtension(fileName);
-                        int counter = 1;
-
-                        do
-                        {
-                            fileName = $"{nameWithoutExt} ({counter}){extension}";
-                            destPath = Path.Combine(_currentPath, fileName);
-                            counter++;
-                        }
-                        while (File.Exists(destPath) || Directory.Exists(destPath));
-                    }
-
-                    if (File.Exists(sourcePath))
-                    {
-                        if (_isCutOperation)
-                        {
-                            File.Move(sourcePath, destPath);
-                        }
-                        else
-                        {
-                            File.Copy(sourcePath, destPath);
-                        }
-                    }
-                    else if (Directory.Exists(sourcePath))
-                    {
-                        if (_isCutOperation)
-                        {
-                            Directory.Move(sourcePath, destPath);
-                        }
-                        else
-                        {
-                            CopyDirectory(sourcePath, destPath);
-                        }
-                    }
-                }
-
-                if (_isCutOperation)
-                {
-                    _copiedPaths.Clear();
-                    _isCutOperation = false;
-                }
-
-                LoadCurrentDirectory();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"粘贴失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        private void CopyDirectory(string sourceDir, string destDir)
-        {
-            Directory.CreateDirectory(destDir);
-
-            foreach (var file in Directory.GetFiles(sourceDir))
-            {
-                var fileName = Path.GetFileName(file);
-                File.Copy(file, Path.Combine(destDir, fileName), true);
-            }
-
-            foreach (var dir in Directory.GetDirectories(sourceDir))
-            {
-                var dirName = Path.GetFileName(dir);
-                CopyDirectory(dir, Path.Combine(destDir, dirName));
+                FileClipboardManager.ClearCutOperation();
             }
         }
 
@@ -11318,52 +10127,16 @@ Write-Host ""Hello World""
             if (FileBrowser?.FilesSelectedItems == null || FileBrowser.FilesSelectedItems.Count == 0)
                 return;
 
-            var itemCount = FileBrowser?.FilesSelectedItems?.Count ?? 0;
-            var message = itemCount == 1 
-                ? $"确定要删除 \"{(FileBrowser?.FilesSelectedItem as FileSystemItem)?.Name}\" 吗？"
-                : $"确定要删除这 {itemCount} 个项目吗？";
-
-            if (!ConfirmDialog.Show(message, "确认删除", ConfirmDialog.DialogType.Warning, this))
-                return;
-
+            var context = GetCurrentOperationContext();
+            var operation = new DeleteOperation(context);
             var itemsToDelete = new List<FileSystemItem>();
-            if (FileBrowser?.FilesSelectedItems != null)
-                foreach (FileSystemItem item in FileBrowser.FilesSelectedItems)
+            
+            foreach (FileSystemItem item in FileBrowser.FilesSelectedItems)
             {
                 itemsToDelete.Add(item);
             }
-
-            var failedItems = new List<string>();
-
-            foreach (var item in itemsToDelete)
-            {
-                try
-                {
-                    if (item.IsDirectory)
-                    {
-                        Directory.Delete(item.Path, true);
-                    }
-                    else
-                    {
-                        File.Delete(item.Path);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    failedItems.Add($"{item.Name}: {ex.Message}");
-                }
-            }
-
-            LoadCurrentDirectory();
-
-            if (failedItems.Count > 0)
-            {
-                MessageBox.Show(
-                    $"以下项目删除失败:\n\n{string.Join("\n", failedItems)}",
-                    "删除失败",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
-            }
+            
+            operation.Execute(itemsToDelete);
         }
 
         private void Rename_Click(object sender, RoutedEventArgs e)
@@ -11371,44 +10144,9 @@ Write-Host ""Hello World""
             if (FileBrowser?.FilesSelectedItem is not FileSystemItem selectedItem)
                 return;
 
-            var dialog = new PathInputDialog
-            {
-                Title = "重命名",
-                PromptText = "请输入新名称：",
-                InputText = selectedItem.Name,
-                SelectFileNameOnly = true,
-                Owner = this
-            };
-
-            if (dialog.ShowDialog() == true)
-            {
-                try
-                {
-                    var newName = dialog.InputText.Trim();
-                    if (string.IsNullOrEmpty(newName))
-                    {
-                        MessageBox.Show("名称不能为空", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                        return;
-                    }
-
-                    var newPath = Path.Combine(Path.GetDirectoryName(selectedItem.Path), newName);
-
-                    if (selectedItem.IsDirectory)
-                    {
-                        Directory.Move(selectedItem.Path, newPath);
-                    }
-                    else
-                    {
-                        File.Move(selectedItem.Path, newPath);
-                    }
-
-                    LoadCurrentDirectory();
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"重命名失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-            }
+            var context = GetCurrentOperationContext();
+            var operation = new RenameOperation(context, this);
+            operation.Execute(selectedItem);
         }
 
         private void ShowProperties_Click(object sender, RoutedEventArgs e)

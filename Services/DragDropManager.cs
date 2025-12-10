@@ -275,6 +275,289 @@ namespace OoiMRR.Services
             quickAccessPanel.Drop += (s, e) => DropTarget_Drop(s, e, DropTargetType.QuickAccess);
         }
 
+        /// <summary>
+        /// 初始化库列表的拖放功能
+        /// </summary>
+        public void InitializeLibraryDrop(ListBox librariesListBox, FrameworkElement navLibraryContent, 
+            Func<bool> isLibraryModeVisible, Action<Library> onLibraryCreated = null)
+        {
+            if (librariesListBox == null) return;
+
+            librariesListBox.AllowDrop = true;
+            librariesListBox.DragEnter += (s, e) => Library_DragEnter(s, e, navLibraryContent, isLibraryModeVisible);
+            librariesListBox.DragOver += (s, e) => Library_DragOver(s, e, librariesListBox, navLibraryContent, isLibraryModeVisible);
+            librariesListBox.DragLeave += (s, e) => Library_DragLeave(s, e, librariesListBox);
+            librariesListBox.Drop += (s, e) => Library_Drop(s, e, librariesListBox, navLibraryContent, isLibraryModeVisible, onLibraryCreated);
+
+            // 同时为 ScrollViewer 设置拖放
+            var scrollViewer = VisualTreeHelper.GetParent(librariesListBox) as ScrollViewer;
+            if (scrollViewer != null)
+            {
+                scrollViewer.AllowDrop = true;
+                scrollViewer.DragEnter += (s, e) => Library_DragEnter(s, e, navLibraryContent, isLibraryModeVisible);
+                scrollViewer.DragOver += (s, e) => Library_DragOver(s, e, librariesListBox, navLibraryContent, isLibraryModeVisible);
+                scrollViewer.DragLeave += (s, e) => Library_DragLeave(s, e, librariesListBox);
+                scrollViewer.Drop += (s, e) => Library_Drop(s, e, librariesListBox, navLibraryContent, isLibraryModeVisible, onLibraryCreated);
+            }
+
+            // 为整个 NavLibraryContent Grid 设置拖放
+            if (navLibraryContent != null)
+            {
+                navLibraryContent.AllowDrop = true;
+                navLibraryContent.DragEnter += (s, e) => Library_DragEnter(s, e, navLibraryContent, isLibraryModeVisible);
+                navLibraryContent.DragOver += (s, e) => Library_DragOver(s, e, librariesListBox, navLibraryContent, isLibraryModeVisible);
+                navLibraryContent.DragLeave += (s, e) => Library_DragLeave(s, e, librariesListBox);
+                navLibraryContent.Drop += (s, e) => Library_Drop(s, e, librariesListBox, navLibraryContent, isLibraryModeVisible, onLibraryCreated);
+            }
+        }
+
+        private void Library_DragEnter(object sender, DragEventArgs e, FrameworkElement navLibraryContent, Func<bool> isLibraryModeVisible)
+        {
+            try
+            {
+                if (navLibraryContent == null || !isLibraryModeVisible())
+                {
+                    e.Effects = DragDropEffects.None;
+                    return;
+                }
+
+                if (!e.Data.GetDataPresent(DataFormats.FileDrop))
+                {
+                    e.Effects = DragDropEffects.None;
+                    return;
+                }
+
+                e.Effects = DragDropEffects.Link;
+                e.Handled = true;
+            }
+            catch
+            {
+                e.Effects = DragDropEffects.None;
+            }
+        }
+
+        private void Library_DragOver(object sender, DragEventArgs e, ListBox librariesListBox, FrameworkElement navLibraryContent, Func<bool> isLibraryModeVisible)
+        {
+            try
+            {
+                if (navLibraryContent == null || !isLibraryModeVisible())
+                {
+                    e.Effects = DragDropEffects.None;
+                    return;
+                }
+
+                if (!e.Data.GetDataPresent(DataFormats.FileDrop))
+                {
+                    e.Effects = DragDropEffects.None;
+                    return;
+                }
+
+                // 获取实际的 ListBox
+                ListBox listBox = sender as ListBox ?? librariesListBox;
+
+                // 高亮显示鼠标下的库项
+                if (listBox != null)
+                {
+                    // 清除拖拽高亮
+                    foreach (var listItem in listBox.Items)
+                    {
+                        var container = listBox.ItemContainerGenerator.ContainerFromItem(listItem) as ListBoxItem;
+                        if (container != null)
+                        {
+                            var tag = container.Tag as string;
+                            if (tag != "Match")
+                            {
+                                var bg = container.Background as SolidColorBrush;
+                                if (bg != null && bg.Color.A < 255)
+                                {
+                                    container.ClearValue(ListBoxItem.BackgroundProperty);
+                                    container.ClearValue(ListBoxItem.ForegroundProperty);
+                                    container.ClearValue(ListBoxItem.BorderBrushProperty);
+                                }
+                            }
+                        }
+                    }
+
+                    var point = e.GetPosition(listBox);
+                    var element = listBox.InputHitTest(point) as DependencyObject;
+
+                    while (element != null && !(element is ListBoxItem))
+                    {
+                        element = VisualTreeHelper.GetParent(element);
+                    }
+
+                    if (element is ListBoxItem listBoxItem && listBoxItem.Content is Library library)
+                    {
+                        var tag = listBoxItem.Tag as string;
+                        if (tag != "Match")
+                        {
+                            listBoxItem.Background = new SolidColorBrush(Color.FromArgb(50, 33, 150, 243));
+                        }
+                    }
+                }
+
+                e.Effects = DragDropEffects.Link;
+                e.Handled = true;
+            }
+            catch
+            {
+                e.Effects = DragDropEffects.None;
+            }
+        }
+
+        private void Library_DragLeave(object sender, DragEventArgs e, ListBox librariesListBox)
+        {
+            ListBox listBox = sender as ListBox ?? librariesListBox;
+
+            if (listBox != null)
+            {
+                foreach (var item in listBox.Items)
+                {
+                    var container = listBox.ItemContainerGenerator.ContainerFromItem(item) as ListBoxItem;
+                    if (container != null)
+                    {
+                        var tag = container.Tag as string;
+                        if (tag != "Match")
+                        {
+                            var bg = container.Background as SolidColorBrush;
+                            if (bg != null && bg.Color.A < 255)
+                            {
+                                container.ClearValue(ListBoxItem.BackgroundProperty);
+                                container.ClearValue(ListBoxItem.ForegroundProperty);
+                                container.ClearValue(ListBoxItem.BorderBrushProperty);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        private void Library_Drop(object sender, DragEventArgs e, ListBox librariesListBox, FrameworkElement navLibraryContent, 
+            Func<bool> isLibraryModeVisible, Action<Library> onLibraryCreated)
+        {
+            try
+            {
+                if (navLibraryContent == null || !isLibraryModeVisible())
+                {
+                    MessageBox.Show("请先切换到库模式", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                Library_DragLeave(sender, e, librariesListBox);
+
+                if (!e.Data.GetDataPresent(DataFormats.FileDrop))
+                {
+                    MessageBox.Show("无法识别拖拽的数据格式", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                var files = e.Data.GetData(DataFormats.FileDrop) as string[];
+                if (files == null || files.Length == 0)
+                {
+                    MessageBox.Show("没有可添加的文件或文件夹", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                ListBox listBox = sender as ListBox ?? librariesListBox;
+                if (listBox == null) return;
+
+                var point = e.GetPosition(listBox);
+                var element = listBox.InputHitTest(point) as DependencyObject;
+
+                while (element != null && !(element is ListBoxItem))
+                {
+                    element = VisualTreeHelper.GetParent(element);
+                }
+
+                Library targetLibrary = null;
+
+                if (element is ListBoxItem item && item.Content is Library library)
+                {
+                    targetLibrary = library;
+                }
+
+                // 如果目标库为空，创建新库
+                if (targetLibrary == null)
+                {
+                    if (files == null || files.Length == 0) return;
+
+                    string firstPath = files[0];
+                    string libraryName = Path.GetFileName(firstPath);
+
+                    if (string.IsNullOrEmpty(libraryName))
+                    {
+                        libraryName = firstPath.TrimEnd('\\', '/');
+                        if (libraryName.Length > 1)
+                        {
+                            libraryName = Path.GetFileName(libraryName);
+                        }
+                        if (string.IsNullOrEmpty(libraryName))
+                        {
+                            libraryName = "新建库";
+                        }
+                    }
+
+                    string baseLibraryName = libraryName;
+                    int counter = 1;
+                    while (true)
+                    {
+                        var existingLibraries = DatabaseManager.GetAllLibraries();
+                        if (!existingLibraries.Any(l => l.Name.Equals(libraryName, StringComparison.OrdinalIgnoreCase)))
+                        {
+                            break;
+                        }
+                        libraryName = $"{baseLibraryName} ({counter})";
+                        counter++;
+                    }
+
+                    try
+                    {
+                        var libraryId = DatabaseManager.AddLibrary(libraryName);
+                        if (libraryId > 0)
+                        {
+                            targetLibrary = DatabaseManager.GetLibrary(libraryId);
+                            if (targetLibrary == null)
+                            {
+                                MessageBox.Show("创建库失败", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                                return;
+                            }
+                            onLibraryCreated?.Invoke(targetLibrary);
+                        }
+                        else
+                        {
+                            MessageBox.Show("创建库失败", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                            return;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"创建库失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+                }
+
+                // 创建拖拽数据
+                var dragData = new DragDropData
+                {
+                    SourcePaths = files.ToList(),
+                    TargetPath = targetLibrary.Id.ToString(),
+                    TargetType = DropTargetType.Library,
+                    Operation = DragDropOperation.AddToLibrary,
+                    TargetControl = listBox
+                };
+
+                dragData.TargetControl.Tag = targetLibrary;
+                ForceCloseDragVisual();
+                DragDropCompleted?.Invoke(this, dragData);
+
+                e.Handled = true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"拖拽操作失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         #endregion
 
         #region 文件列表拖拽事件
@@ -1042,9 +1325,73 @@ namespace OoiMRR.Services
 
         private bool ExecuteAddToLibrary(DragDropData data)
         {
-            // TODO: 实现添加到库功能
-            MessageBox.Show($"已添加 {data.SourcePaths.Count} 项到库", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-            return true;
+            // 从 TargetControl.Tag 获取目标库
+            Library targetLibrary = null;
+            if (data.TargetControl?.Tag is Library library)
+            {
+                targetLibrary = library;
+            }
+            else if (data.TargetPath != null && int.TryParse(data.TargetPath, out int libraryId))
+            {
+                targetLibrary = DatabaseManager.GetLibrary(libraryId);
+            }
+
+            if (targetLibrary == null)
+            {
+                MessageBox.Show("无法确定目标库", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                return false;
+            }
+
+            // 添加文件/文件夹路径到库
+            int successCount = 0;
+            int failCount = 0;
+            var failedItems = new List<string>();
+
+            foreach (var sourcePath in data.SourcePaths)
+            {
+                try
+                {
+                    // 检查路径是否存在
+                    if (!File.Exists(sourcePath) && !Directory.Exists(sourcePath))
+                    {
+                        failCount++;
+                        failedItems.Add($"{Path.GetFileName(sourcePath)} (路径不存在)");
+                        continue;
+                    }
+
+                    // 检查路径是否已存在
+                    var existingPaths = DatabaseManager.GetLibraryPaths(targetLibrary.Id);
+                    if (!existingPaths.Any(p => p.Path.Equals(sourcePath, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        DatabaseManager.AddLibraryPath(targetLibrary.Id, sourcePath);
+                        successCount++;
+                    }
+                    else
+                    {
+                        failCount++;
+                        failedItems.Add($"{Path.GetFileName(sourcePath)} (已存在于库中)");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    failCount++;
+                    failedItems.Add($"{Path.GetFileName(sourcePath)} ({ex.Message})");
+                }
+            }
+
+            // 如果有失败项，显示错误提示
+            if (failCount > 0 && successCount == 0)
+            {
+                var message = $"添加失败:\n{string.Join("\n", failedItems)}";
+                MessageBox.Show(message, "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            else if (failCount > 0)
+            {
+                var message = $"部分添加成功\n成功: {successCount} 个\n失败: {failCount} 个\n\n失败项:\n{string.Join("\n", failedItems)}";
+                MessageBox.Show(message, "操作结果", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+
+            return successCount > 0;
         }
 
         private bool ExecuteAddTag(DragDropData data)

@@ -213,60 +213,12 @@ namespace OoiMRR.Services.Search
                 results = limited;
                 
                 // 构建分组结果
-                var groupedItems = new Dictionary<SearchResultType, List<FileSystemItem>>();
-                
-                // 分离备注匹配结果
-                var notesItems = new List<FileSystemItem>();
-                var folderItems = new List<FileSystemItem>();
-                var fileItems = new List<FileSystemItem>();
-                
-                foreach (var item in results)
-                {
-                    bool isNoteMatch = notesResultPaths.Contains(item.Path, StringComparer.OrdinalIgnoreCase);
-                    bool isNameMatch = nameResultPaths.Contains(item.Path, StringComparer.OrdinalIgnoreCase);
-
-                    // 备注匹配优先：只要备注匹配就进入备注分组（文件夹仍归“文件夹”）
-                    if (isNoteMatch)
-                    {
-                        item.IsFromNotesSearch = true;
-                        if (item.IsDirectory)
-                        {
-                            item.SearchResultType = SearchResultType.Folder;
-                            folderItems.Add(item);
-                        }
-                        else
-                        {
-                            item.SearchResultType = SearchResultType.Notes;
-                            notesItems.Add(item);
-                        }
-                        continue;
-                    }
-
-                    // 名称匹配
-                    if (item.IsDirectory)
-                    {
-                        item.SearchResultType = SearchResultType.Folder;
-                        item.IsFromNameSearch = isNameMatch;
-                        folderItems.Add(item);
-                    }
-                    else
-                    {
-                        item.SearchResultType = SearchResultType.File;
-                        item.IsFromNameSearch = isNameMatch;
-                        fileItems.Add(item);
-                    }
-                }
-                
-                // 添加到分组字典
-                if (notesItems.Count > 0)
-                    groupedItems[SearchResultType.Notes] = notesItems;
-                if (folderItems.Count > 0)
-                    groupedItems[SearchResultType.Folder] = folderItems;
-                if (fileItems.Count > 0)
-                    groupedItems[SearchResultType.File] = fileItems;
+                var groupedItems = SearchResultGrouper.BuildGroupedResults(
+                    results, 
+                    notesResultPaths, 
+                    nameResultPaths);
 
                 Debug.WriteLine($"搜索完成，共找到 {results.Count} 个结果");
-                Debug.WriteLine($"分组结果: 备注={notesItems.Count}, 文件夹={folderItems.Count}, 文件={fileItems.Count}");
 
                 var searchResult = new SearchResult
                 {

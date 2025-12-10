@@ -109,7 +109,7 @@ namespace OoiMRR.Services.QuickAccess
                     drivesListBox.SelectionChanged -= DrivesListBox_SelectionChanged;
                     drivesListBox.SelectionChanged += DrivesListBox_SelectionChanged;
 
-                    // 设置鼠标中键事件
+                    // 设置鼠标中键事件（已在LoadDrives中处理）
                     drivesListBox.PreviewMouseDown -= DrivesListBox_PreviewMouseDown;
                     drivesListBox.PreviewMouseDown += DrivesListBox_PreviewMouseDown;
                 }
