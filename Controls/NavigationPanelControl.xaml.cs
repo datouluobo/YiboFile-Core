@@ -105,11 +105,6 @@ namespace OoiMRR.Controls
                 libraryManageBtn.Click += (s, e) => LibraryManageClick?.Invoke(s, e);
             }
 
-            var libraryRefreshBtn = FindName("LibraryRefreshBtn") as Button;
-            if (libraryRefreshBtn != null)
-            {
-                libraryRefreshBtn.Click += (s, e) => LibraryRefreshClick?.Invoke(s, e);
-            }
 
             var tagClickModeBtn = FindName("TagClickModeBtn") as Button;
             if (tagClickModeBtn != null)
@@ -140,7 +135,6 @@ namespace OoiMRR.Controls
         }
 
         // 公共属性访问器（通过FindName获取，避免命名冲突）
-        public WrapPanel BreadcrumbPanelControl => FindName("BreadcrumbPanel") as WrapPanel;
         public ListBox DrivesListBoxControl => FindName("DrivesListBox") as ListBox;
         public ListBox QuickAccessListBoxControl => FindName("QuickAccessListBox") as ListBox;
         public ListBox FavoritesListBoxControl => FindName("FavoritesListBox") as ListBox;

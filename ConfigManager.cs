@@ -48,6 +48,10 @@ namespace OoiMRR
         public System.Collections.Generic.List<string> PinnedTabs { get; set; } = new System.Collections.Generic.List<string>();
         public double PinnedTabWidth { get; set; } = 90;
         
+        // 标签页状态保存（所有打开的标签页和活动标签页）
+        public System.Collections.Generic.List<string> OpenTabs { get; set; } = new System.Collections.Generic.List<string>(); // 所有打开的标签页键值列表（按顺序）
+        public string ActiveTabKey { get; set; } = string.Empty; // 活动标签页的键值
+        
         // 字体设置
         public double UIFontSize { get; set; } = 16; // 界面字体大小（默认16）
         public double TagFontSize { get; set; } = 16; // Tag字体大小（默认16）
@@ -249,7 +253,12 @@ namespace OoiMRR
                 {
                     var json = File.ReadAllText(path);
                     var cfg = JsonSerializer.Deserialize<AppConfig>(json);
-                    return cfg ?? new AppConfig();
+                    if (cfg != null)
+                    {
+                        // 迁移配置：清理旧字段，确保新字段有值
+                        MigrateConfig(cfg);
+                        return cfg;
+                    }
                 }
             }
             catch
@@ -259,17 +268,74 @@ namespace OoiMRR
             return new AppConfig();
         }
 
+        /// <summary>
+        /// 迁移配置：清理旧字段，确保新字段正确
+        /// </summary>
+        public static void MigrateConfig(AppConfig config)
+        {
+            if (config == null) return;
+
+            // 确保 OpenTabs 和 ActiveTabKey 已初始化
+            if (config.OpenTabs == null)
+            {
+                config.OpenTabs = new List<string>();
+            }
+            if (string.IsNullOrEmpty(config.ActiveTabKey))
+            {
+                config.ActiveTabKey = string.Empty;
+            }
+
+            // 如果 ColLeftWidth 和 ColCenterWidth 为 0，但 LeftPanelWidth 和 MiddlePanelWidth 有值，则迁移
+            if (config.ColLeftWidth <= 0 && config.LeftPanelWidth > 0)
+            {
+                config.ColLeftWidth = config.LeftPanelWidth;
+            }
+            if (config.ColCenterWidth <= 0 && config.MiddlePanelWidth > 0)
+            {
+                config.ColCenterWidth = config.MiddlePanelWidth;
+            }
+
+            // 确保导航模式有默认值
+            if (string.IsNullOrEmpty(config.LastNavigationMode))
+            {
+                config.LastNavigationMode = "Path";
+            }
+
+            // 确保窗口尺寸有效
+            if (config.WindowWidth <= 0) config.WindowWidth = 1200;
+            if (config.WindowHeight <= 0) config.WindowHeight = 800;
+            if (config.ColLeftWidth <= 0) config.ColLeftWidth = 220;
+        }
+
         public static void Save(AppConfig config)
         {
             try
             {
+                if (config == null) return;
+
+                // #region agent log
+                var logPath = @"f:\Download\GitHub\OoiMRR\.cursor\debug.log";
+                try { System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(logPath)); System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "D", location = "ConfigManager.cs:310", message = "ConfigManager.Save开始", data = new { windowWidth = config.WindowWidth, windowHeight = config.WindowHeight, windowTop = config.WindowTop, windowLeft = config.WindowLeft, isMaximized = config.IsMaximized, colLeftWidth = config.ColLeftWidth, colCenterWidth = config.ColCenterWidth, openTabsCount = config.OpenTabs?.Count ?? 0, activeTabKey = config.ActiveTabKey }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
+                // #endregion
+
+                // 迁移配置：确保新字段正确
+                MigrateConfig(config);
+
                 var baseDir = GetBaseDirectory();
                 Directory.CreateDirectory(baseDir);
                 var json = JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(GetConfigFilePath(), json);
+                var configPath = GetConfigFilePath();
+                File.WriteAllText(configPath, json);
+                
+                // #region agent log
+                try { System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "D", location = "ConfigManager.cs:322", message = "ConfigManager.Save完成", data = new { configPath = configPath, jsonLength = json.Length, savedWindowWidth = config.WindowWidth, savedWindowHeight = config.WindowHeight, savedColLeftWidth = config.ColLeftWidth, savedColCenterWidth = config.ColCenterWidth, savedOpenTabsCount = config.OpenTabs?.Count ?? 0 }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
+                // #endregion
             }
-            catch
+            catch (Exception ex)
             {
+                // #region agent log
+                try { var logPath = @"f:\Download\GitHub\OoiMRR\.cursor\debug.log"; System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "D", location = "ConfigManager.cs:327", message = "ConfigManager.Save异常", data = new { error = ex.Message, stackTrace = ex.StackTrace }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
+                // #endregion
                 // ignore disk errors for now
             }
         }

@@ -55,6 +55,7 @@ namespace OoiMRR
             else
             {
                 PathsListBox.ItemsSource = null;
+                EditPathBtn.IsEnabled = false;
                 RemovePathBtn.IsEnabled = false;
             }
         }
@@ -258,6 +259,33 @@ namespace OoiMRR
             }
         }
 
+        private void EditPath_Click(object sender, RoutedEventArgs e)
+        {
+            if (PathsListBox.SelectedItem is LibraryPath selectedPath)
+            {
+                var dialog = new PathInputDialog("请输入显示名称:");
+                dialog.InputText = selectedPath.DisplayName ?? Path.GetFileName(selectedPath.Path) ?? selectedPath.Path;
+                if (dialog.ShowDialog() == true)
+                {
+                    var newDisplayName = dialog.InputText.Trim();
+                    if (string.IsNullOrEmpty(newDisplayName))
+                    {
+                        newDisplayName = null;
+                    }
+
+                    try
+                    {
+                        DatabaseManager.UpdateLibraryPathDisplayName(selectedPath.LibraryId, selectedPath.Path, newDisplayName);
+                        LoadLibraryPaths(selectedPath.LibraryId);
+                    }
+                    catch (Exception ex)
+                    {
+                        DialogService.Error($"更新显示名称失败: {ex.Message}", "错误", this);
+                    }
+                }
+            }
+        }
+
         private void RemovePath_Click(object sender, RoutedEventArgs e)
         {
             if (PathsListBox.SelectedItem is LibraryPath selectedPath)
@@ -280,6 +308,7 @@ namespace OoiMRR
         private void PathsListBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
         {
             bool hasSelection = PathsListBox.SelectedItem != null;
+            EditPathBtn.IsEnabled = hasSelection;
             RemovePathBtn.IsEnabled = hasSelection;
         }
 

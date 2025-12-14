@@ -571,7 +571,7 @@ namespace OoiMRR.Services.FileList
 
                     try
                     {
-                        var fileInfo = new FileInfo(filePath);
+                        var fileInfo = new System.IO.FileInfo(filePath);
                         files.Add(new FileSystemItem
                         {
                             Name = Path.GetFileName(filePath),
@@ -697,7 +697,7 @@ namespace OoiMRR.Services.FileList
                 {
                     try
                     {
-                        var fileInfo = new FileInfo(filePath);
+                        var fileInfo = new System.IO.FileInfo(filePath);
                         files.Add(new FileSystemItem
                         {
                             Name = Path.GetFileName(filePath),

@@ -196,3 +196,16 @@ Assert.IsTrue(metadataEnriched);
    - 删除 MainWindow.xaml.cs 中的旧实现
    - 统一使用 FileListService
 
+
+
+
+
+
+
+
+
+
+
+
+
+

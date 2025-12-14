@@ -86,6 +86,9 @@
                     <Button Content="添加位置" Click="AddPath_Click" 
                            Name="AddPathBtn" Height="30" FontSize="12" 
                            IsEnabled="False" Margin="0,0,8,0" MinWidth="100"/>
+                    <Button Content="⚙️ 设置" Click="EditPath_Click" 
+                           Name="EditPathBtn" Height="30" FontSize="12" 
+                           IsEnabled="False" Margin="0,0,8,0" MinWidth="100" ToolTip="编辑显示名称"/>
                     <Button Content="删除位置" Click="RemovePath_Click" 
                            Name="RemovePathBtn" Height="30" FontSize="12" 
                            IsEnabled="False" MinWidth="100"/>

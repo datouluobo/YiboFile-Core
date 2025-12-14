@@ -240,6 +240,18 @@ namespace OoiMRR
             command.ExecuteNonQuery();
         }
 
+        public static void UpdateLibraryPathDisplayName(int libraryId, string path, string displayName)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "UPDATE LibraryPaths SET DisplayName = @displayName WHERE LibraryId = @libraryId AND Path = @path";
+            command.Parameters.AddWithValue("@displayName", string.IsNullOrWhiteSpace(displayName) ? (object)DBNull.Value : displayName);
+            command.Parameters.AddWithValue("@libraryId", libraryId);
+            command.Parameters.AddWithValue("@path", path);
+            command.ExecuteNonQuery();
+        }
+
         public static void UpdateLibraryName(int libraryId, string newName)
         {
             using var connection = new SqliteConnection(_connectionString);

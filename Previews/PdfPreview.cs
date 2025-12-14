@@ -10,7 +10,7 @@ using Microsoft.Web.WebView2.Wpf;
 namespace OoiMRR.Previews
 {
     /// <summary>
-    /// PDF文件预览提供者 (v1.0.2)
+    /// PDF文件预览提供者
     /// </summary>
     public class PdfPreview : IPreviewProvider
     {
@@ -313,4 +313,3 @@ namespace OoiMRR.Previews
         }
     }
 }
-

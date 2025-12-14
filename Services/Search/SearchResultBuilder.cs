@@ -101,7 +101,7 @@ namespace OoiMRR.Services.Search
             {
                 try
                 {
-                    var fileInfo = new FileInfo(filePath);
+                    var fileInfo = new System.IO.FileInfo(filePath);
                     item.Size = _formatFileSize(fileInfo.Length);
                     item.ModifiedDate = File.GetLastWriteTime(filePath).ToString("yyyy-MM-dd HH:mm");
                     item.CreatedTime = FileSystemItem.FormatTimeAgo(fileInfo.CreationTime);

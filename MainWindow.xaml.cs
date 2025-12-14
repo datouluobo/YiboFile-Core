@@ -1,6 +1,8 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Diagnostics;
 using System.Threading.Tasks;
@@ -11,6 +13,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Controls.Primitives;
 using System.Drawing;
 using System.Drawing.Imaging;
 using Microsoft.Win32;
@@ -24,7 +27,15 @@ using OoiMRR.Services.FileOperations;
 using OoiMRR.Services.Favorite;
 using OoiMRR.Services.QuickAccess;
 using OoiMRR.Services.FileList;
+using OoiMRR.Services.Tabs;
+using OoiMRR.Services.Preview;
+using OoiMRR.Services.ColumnManagement;
+using OoiMRR.Services.Config;
+using OoiMRR.Services.FileInfo;
+using OoiMRR.Handlers;
 using System.Threading;
+using System.Text.Json;
+using System.Text;
 using TagTrain.UI;
 
 namespace OoiMRR
@@ -32,35 +43,50 @@ namespace OoiMRR
     /// <summary>
     /// MainWindow.xaml 的交互逻辑
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class MainWindow : Window, IConfigUIHelper, Services.Navigation.INavigationModeUIHelper
     {
-        private string _currentPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-        private List<string> _navigationHistory = new List<string>();
-        private int _currentHistoryIndex = -1;
-        private List<FileSystemItem> _currentFiles = new List<FileSystemItem>();
-        private AppConfig _config = new AppConfig();
-        private bool _isApplyingConfig = false;
+        internal string _currentPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+        internal List<FileSystemItem> _currentFiles = new List<FileSystemItem>();
+        // _config 已迁移到 ConfigService
+        // _isApplyingConfig 已迁移到 ConfigService
         private DragDropManager _dragDropManager;
-        private string _lastSortColumn = "Name";
-        private bool _sortAscending = true;
         private System.Windows.Point _mouseDownPoint;
         private bool _isMouseDownOnListView = false;
         private bool _isMouseDownOnColumnHeader = false;
-        private Library _currentLibrary = null;
-        private Tag _currentTagFilter = null;
+        internal Library _currentLibrary = null;
+        internal Tag _currentTagFilter = null;
         private bool _isUpdatingTagSelection = false;
-        private string _lastLeftNavSource = null;
+        // _lastLeftNavSource 已迁移到 NavigationService.LastLeftNavSource
         
         // 统一导航协调器
-        private NavigationCoordinator _navigationCoordinator;
+        internal NavigationCoordinator _navigationCoordinator;
         
         // 服务实例
-        private LibraryService _libraryService;
+        internal NavigationService _navigationService;
+        internal LibraryService _libraryService;
         private FavoriteService _favoriteService;
         private QuickAccessService _quickAccessService;
         private FileListService _fileListService;
         private FileSystemWatcherService _fileSystemWatcherService;
-        private FolderSizeCalculationService _folderSizeCalculationService;
+        internal FolderSizeCalculationService _folderSizeCalculationService;
+        internal TabService _tabService;
+        internal Services.Preview.PreviewService _previewService;
+        internal SearchService _searchService;
+        internal SearchCacheService _searchCacheService;
+        internal Services.ColumnManagement.ColumnService _columnService;
+        internal ConfigService _configService;
+        internal Services.Settings.SettingsOverlayController _settingsOverlayController;
+        internal Services.Navigation.NavigationModeService _navigationModeService;
+        internal Services.UIHelper.UIHelperService _uiHelperService;
+        internal FileInfoService _fileInfoService;
+        internal Services.WindowStateManager _windowStateManager;
+        
+        // 事件处理器
+        internal Handlers.FileBrowserEventHandler _fileBrowserEventHandler;
+        internal Handlers.MenuEventHandler _menuEventHandler;
+        internal Handlers.KeyboardEventHandler _keyboardEventHandler;
+        internal Handlers.MouseEventHandler _mouseEventHandler;
+        internal Services.TagTrain.TagTrainEventHandler _tagTrainEventHandler;
         
         // 加载锁定，防止重复加载导致卡死
         // TODO: 过渡代码 - 这些字段在事件处理器中仍在使用，后续考虑通过服务状态管理
@@ -68,42 +94,12 @@ namespace OoiMRR
         private System.Threading.SemaphoreSlim _loadFilesSemaphore = new System.Threading.SemaphoreSlim(1, 1);
         
         // 定时器管理
-        private System.Windows.Threading.DispatcherTimer _periodicTimer;
-        private System.Windows.Threading.DispatcherTimer _layoutCheckTimer;
-        private System.Windows.Threading.DispatcherTimer _saveTimer;
-        private System.Windows.Threading.DispatcherTimer _columnWidthSaveTimer;
-        private System.Threading.CancellationTokenSource _searchCts;
-        private bool _isSplitterDragging = false; // 标记是否正在拖拽分割器
-        private int _searchOffset = 0;
-        private int _searchPageSize = 1000;
-        private int _searchMax = 5000;
-        private string _searchKeywordPaging = null;
-        private bool _searchHasMore = false;
-        private TimeSpan _searchCacheTTL = TimeSpan.FromSeconds(30);
-        private class SearchCache
-        {
-            public string Keyword;
-            public List<FileSystemItem> Items = new List<FileSystemItem>();
-            public DateTime LastUpdated;
-            public FileTypeFilter Type;
-            public PathRangeFilter PathRange;
-            public string RangePath;
-            public int Offset;
-            public bool HasMore;
-        }
-        private Dictionary<string, SearchCache> _searchCache = new Dictionary<string, SearchCache>();
-        private enum FileTypeFilter { All, Images, Videos, Documents, Folders }
-        private enum PathRangeFilter { AllDrives, CurrentDrive }
-        private class SearchOptions { public FileTypeFilter Type = FileTypeFilter.All; public PathRangeFilter PathRange = PathRangeFilter.AllDrives; }
-        private SearchOptions _searchOptions = new SearchOptions();
-        
-        // 标签页管理（统一处理库和路径）
-        private enum TabType
-        {
-            Path,    // 路径标签页
-            Library, // 库标签页
-            Tag      // 标签标签页（仅当 TagTrain 可用时）
-        }
+        internal System.Windows.Threading.DispatcherTimer _periodicTimer;
+        internal System.Windows.Threading.DispatcherTimer _layoutCheckTimer;
+        // _saveTimer 已迁移到 ConfigService
+        // _columnWidthSaveTimer 已迁移到 ConfigService
+        internal bool _isSplitterDragging = false; // 标记是否正在拖拽分割器
+        internal Services.Search.SearchOptions _searchOptions = new Services.Search.SearchOptions();
         
         // 统一的标签显示排序：当前过滤标签优先，其余按名称升序
         private List<string> OrderTagNames(List<int> tagIds)
@@ -138,30 +134,19 @@ namespace OoiMRR
         }
         
         // TagTrain 训练状态
-        private CancellationTokenSource _tagTrainTrainingCancellation = null;
-        private bool _tagTrainIsTraining = false;
+        internal CancellationTokenSource _tagTrainTrainingCancellation = null;
+        internal bool _tagTrainIsTraining = false;
         
         // 标签点击模式
-        private enum TagClickMode { Browse, Edit }
-        private TagClickMode _tagClickMode = TagClickMode.Browse;
-        
-        private class PathTab
+        internal enum TagClickMode { Browse, Edit }
+        internal TagClickMode _tagClickMode = TagClickMode.Browse;
+
+        // INavigationModeUIHelper 实现
+        Services.Navigation.TagClickMode Services.Navigation.INavigationModeUIHelper.TagClickMode
         {
-            public TabType Type { get; set; } = TabType.Path;
-            public string Path { get; set; }  // 路径标签页使用路径，库/标签页使用名称或标识
-            public string Title { get; set; }
-            public Button TabButton { get; set; }
-            public FrameworkElement CloseButton { get; set; }
-            public Library Library { get; set; }  // 库标签页时使用
-            public int TagId { get; set; }       // 标签页时使用
-            public string TagName { get; set; }  // 标签页时使用
-            public bool IsPinned { get; set; }
-            public StackPanel TabContainer { get; set; }
-            public TextBlock TitleTextBlock { get; set; }
-            public string OverrideTitle { get; set; }
+            get => (Services.Navigation.TagClickMode)_tagClickMode;
+            set => _tagClickMode = (TagClickMode)value;
         }
-        private List<PathTab> _pathTabs = new List<PathTab>();
-        private PathTab _activeTab = null;
         
         // 可拖动按钮管理
         private class DraggableButton
@@ -181,21 +166,57 @@ namespace OoiMRR
         
         private List<DraggableButton> _currentActionButtons = new List<DraggableButton>();
         private List<ActionItem> _actionItems = new List<ActionItem>(); // 保存按钮和分隔符的完整顺序
-        private PathTab _draggingTab = null;
-        private System.Windows.Point _tabDragStartPoint;
 
         // NavigationPanelControl控件的便捷访问属性
-        private ListBox LibrariesListBox => NavigationPanelControl?.LibrariesListBoxControl;
-        private ListBox DrivesListBox => NavigationPanelControl?.DrivesListBoxControl;
-        private ListBox QuickAccessListBox => NavigationPanelControl?.QuickAccessListBoxControl;
-        private ListBox FavoritesListBox => NavigationPanelControl?.FavoritesListBoxControl;
-        private Grid NavPathContent => NavigationPanelControl?.NavPathContentControl;
-        private Grid NavLibraryContent => NavigationPanelControl?.NavLibraryContentControl;
-        private Grid NavTagContent => NavigationPanelControl?.NavTagContentControl;
-        private TagPanel TagBrowsePanel => NavigationPanelControl?.TagBrowsePanelControl;
-        private TagPanel TagEditPanel => NavigationPanelControl?.TagEditPanelControl;
+        // 改为 internal 以便 NavigationUIHelper 可以访问
+        internal ListBox LibrariesListBox => NavigationPanelControl?.LibrariesListBoxControl;
+        internal ListBox DrivesListBox => NavigationPanelControl?.DrivesListBoxControl;
+        internal ListBox QuickAccessListBox => NavigationPanelControl?.QuickAccessListBoxControl;
+        internal ListBox FavoritesListBox => NavigationPanelControl?.FavoritesListBoxControl;
+        internal Grid NavPathContent => NavigationPanelControl?.NavPathContentControl;
+        internal Grid NavLibraryContent => NavigationPanelControl?.NavLibraryContentControl;
+        internal Grid NavTagContent => NavigationPanelControl?.NavTagContentControl;
+        internal TagPanel TagBrowsePanel => NavigationPanelControl?.TagBrowsePanelControl;
+        internal TagPanel TagEditPanel => NavigationPanelControl?.TagEditPanelControl;
         private StackPanel TagBottomButtons => NavigationPanelControl?.TagBottomButtonsControl;
-        private ContextMenu LibraryContextMenu => NavigationPanelControl?.LibraryContextMenuControl;
+        private StackPanel LibraryBottomButtons => NavigationPanelControl?.LibraryBottomButtonsControl;
+        internal ContextMenu LibraryContextMenu => NavigationPanelControl?.LibraryContextMenuControl;
+
+        // INavigationModeUIHelper 实现
+        System.Windows.Threading.Dispatcher Services.Navigation.INavigationModeUIHelper.Dispatcher => this.Dispatcher;
+        Library Services.Navigation.INavigationModeUIHelper.CurrentLibrary
+        {
+            get => _currentLibrary;
+            set => _currentLibrary = value;
+        }
+        string Services.Navigation.INavigationModeUIHelper.CurrentPath
+        {
+            get => _currentPath;
+            set => _currentPath = value;
+        }
+        StackPanel Services.Navigation.INavigationModeUIHelper.TagBottomButtons => TagBottomButtons;
+        StackPanel Services.Navigation.INavigationModeUIHelper.LibraryBottomButtons => LibraryBottomButtons;
+        Grid Services.Navigation.INavigationModeUIHelper.NavTagContent => NavTagContent;
+        TagTrain.UI.TagPanel Services.Navigation.INavigationModeUIHelper.TagBrowsePanel => TagBrowsePanel;
+        TagTrain.UI.TagPanel Services.Navigation.INavigationModeUIHelper.TagEditPanel => TagEditPanel;
+        Controls.FileBrowserControl Services.Navigation.INavigationModeUIHelper.FileBrowser => FileBrowser;
+        ListBox Services.Navigation.INavigationModeUIHelper.LibrariesListBox => LibrariesListBox;
+        Controls.NavigationPanelControl Services.Navigation.INavigationModeUIHelper.NavigationPanelControl => NavigationPanelControl;
+        System.Windows.Controls.Button Services.Navigation.INavigationModeUIHelper.NavPathButton => NavPathBtn;
+        System.Windows.Controls.Button Services.Navigation.INavigationModeUIHelper.NavLibraryButton => NavLibraryBtn;
+        System.Windows.Controls.Button Services.Navigation.INavigationModeUIHelper.NavTagButton => NavTagBtn;
+
+        // INavigationModeUIHelper 方法实现
+        void Services.Navigation.INavigationModeUIHelper.InitializeTagTrainPanel() => InitializeTagTrainPanel();
+        void Services.Navigation.INavigationModeUIHelper.SwitchToTab(Services.Tabs.PathTab tab) => SwitchToTab(tab);
+        void Services.Navigation.INavigationModeUIHelper.CreateTab(string path) => CreateTab(path);
+        void Services.Navigation.INavigationModeUIHelper.HighlightMatchingLibrary(Library library) => HighlightMatchingLibrary(library);
+        void Services.Navigation.INavigationModeUIHelper.EnsureSelectedItemVisible(ListBox listBox, object selectedItem) => _uiHelperService?.EnsureSelectedItemVisible(listBox, selectedItem);
+        void Services.Navigation.INavigationModeUIHelper.LoadLibraryFiles(Library library) => LoadLibraryFiles(library);
+        void Services.Navigation.INavigationModeUIHelper.InitializeLibraryDragDrop() => InitializeLibraryDragDrop();
+        void Services.Navigation.INavigationModeUIHelper.ApplyVisibleColumnsForCurrentMode() => ApplyVisibleColumnsForCurrentMode();
+        void Services.Navigation.INavigationModeUIHelper.EnsureHeaderContextMenuHook() => EnsureHeaderContextMenuHook();
+        void Services.Navigation.INavigationModeUIHelper.RefreshFileList() => RefreshFileList();
 
         public MainWindow()
         {
@@ -205,12 +226,89 @@ namespace OoiMRR
             _navigationCoordinator = new NavigationCoordinator();
             
             // 初始化服务实例
+            _navigationService = new NavigationService(_currentPath);
+            
+            // 创建并设置 UI Helper
+            var uiHelper = new NavigationUIHelper(this);
+            _navigationService.UIHelper = uiHelper;
+            
             _libraryService = new LibraryService(this.Dispatcher);
             _favoriteService = new FavoriteService(this.Dispatcher);
             _quickAccessService = new QuickAccessService(this.Dispatcher);
             _fileListService = new FileListService(this.Dispatcher);
             _fileSystemWatcherService = new FileSystemWatcherService(this.Dispatcher);
             _folderSizeCalculationService = new FolderSizeCalculationService();
+            
+            // 初始化标签页服务（需要配置，在加载配置后更新）
+            // 注意：_config 将在 InitializeApplication 中加载，这里先创建空配置
+            _tabService = new TabService(new AppConfig());
+            
+            // 初始化搜索服务
+            var searchFilterService = new SearchFilterService();
+            _searchCacheService = new SearchCacheService();
+            var searchResultBuilder = new SearchResultBuilder(
+                formatFileSize: size => _fileListService.FormatFileSize(size),
+                getFileTagIds: path => App.IsTagTrainAvailable ? OoiMRRIntegration.GetFileTagIds(path) : null,
+                getTagName: tagId => App.IsTagTrainAvailable ? OoiMRRIntegration.GetTagName(tagId) : null,
+                getFileNotes: path => FileNotesService.GetFileNotes(path)
+            );
+            _searchService = new SearchService(searchFilterService, _searchCacheService, searchResultBuilder);
+
+            // 初始化列管理服务
+            // 注意：_config 将在 InitializeApplication 中加载，这里先创建空配置
+            var tempConfig = new AppConfig();
+            _columnService = new ColumnService(
+                tempConfig,
+                () => GetCurrentModeKey(),
+                () => { if (_configService != null) _configService.SaveCurrentConfig(); }
+            );
+
+            AttachTabServiceUiContext();
+
+            // 初始化 UI 辅助服务（需要在 InitializeComponent 之后，因为需要 FileBrowser）
+            _uiHelperService = new Services.UIHelper.UIHelperService(FileBrowser, this.Dispatcher);
+
+            // 初始化文件信息显示服务（需要在 InitializeComponent 之后，因为需要 FileBrowser）
+            _fileInfoService = new FileInfoService(FileBrowser, _fileListService);
+
+            // 初始化鼠标事件处理器（需要在 InitializeComponent 之后）
+            _mouseEventHandler = new Handlers.MouseEventHandler(
+                windowMaximizeClick: () => WindowMaximize_Click(null, null),
+                windowDragMove: WindowDragMove,
+                getFavoritesListBox: () => FavoritesListBox,
+                getDrivesListBox: () => DrivesListBox,
+                getQuickAccessListBox: () => QuickAccessListBox,
+                navigationCoordinator: _navigationCoordinator,
+                handleFavoriteNavigation: (favorite) => _navigationCoordinator?.HandleFavoriteNavigation(favorite, Services.Navigation.NavigationCoordinator.ClickType.LeftClick),
+                handleDriveNavigation: (path) => _navigationCoordinator?.HandlePathNavigation(path, Services.Navigation.NavigationCoordinator.NavigationSource.Drive, Services.Navigation.NavigationCoordinator.ClickType.LeftClick),
+                handleQuickAccessNavigation: (path) => _navigationCoordinator?.HandlePathNavigation(path, Services.Navigation.NavigationCoordinator.NavigationSource.QuickAccess, Services.Navigation.NavigationCoordinator.ClickType.LeftClick)
+            );
+
+            // 初始化预览服务（需要在 InitializeComponent 之后，因为需要 RightPanel 和 FileBrowser）
+            // 注意：PreviewService 的初始化在 InitializeComponent 之后进行
+            
+            // 订阅 NavigationService 事件
+            _navigationService.NavigateRequested += OnNavigationServiceNavigateRequested;
+            
+            // 订阅标签页服务事件
+            _tabService.TabAdded += (s, tab) => { /* UI 已通过 CreateTabInternal 处理 */ };
+            _tabService.TabRemoved += (s, tab) => { /* UI 已通过 CloseTab 处理 */ };
+            _tabService.ActiveTabChanged += (s, tab) => 
+            {
+                if (tab != null)
+                {
+                    UpdateTabStyles();
+                }
+            };
+            _tabService.TabPinStateChanged += (s, tab) =>
+            {
+                _tabService.ApplyPinVisual(tab);
+                _tabService.ReorderTabs();
+            };
+            _tabService.TabTitleChanged += (s, tab) =>
+            {
+                _tabService.ApplyPinVisual(tab);
+            };
             
             // 订阅 FileListService 事件
             _fileListService.FilesLoaded += OnFileListServiceFilesLoaded;
@@ -234,7 +332,7 @@ namespace OoiMRR
                 {
                     this.Dispatcher.BeginInvoke(new Action(() =>
                     {
-                        EnsureSelectedItemVisible(LibrariesListBox, currentSelected);
+                        _uiHelperService?.EnsureSelectedItemVisible(LibrariesListBox, currentSelected);
                         HighlightMatchingLibrary(currentSelected as Library);
                     }), System.Windows.Threading.DispatcherPriority.Loaded);
                 }
@@ -272,7 +370,7 @@ namespace OoiMRR
             // 订阅收藏服务事件
             _favoriteService.NavigateRequested += (s, path) =>
             {
-                _lastLeftNavSource = "Favorite";
+                _navigationService.LastLeftNavSource = "Favorites";
                 _navigationCoordinator.HandlePathNavigation(path, NavigationCoordinator.NavigationSource.Favorite, NavigationCoordinator.ClickType.LeftClick);
             };
             
@@ -305,7 +403,7 @@ namespace OoiMRR
             // 订阅快速访问服务事件
             _quickAccessService.NavigateRequested += (s, path) =>
             {
-                _lastLeftNavSource = "QuickAccess";
+                _navigationService.LastLeftNavSource = "QuickAccess";
                 _navigationCoordinator.HandlePathNavigation(path, NavigationCoordinator.NavigationSource.QuickAccess, NavigationCoordinator.ClickType.LeftClick);
             };
             
@@ -384,833 +482,73 @@ namespace OoiMRR
                 NavigationPanelControl.TagEditPanelTagClicked += TagEditPanel_TagClicked;
             }
             
-            // 订阅文件浏览控件的事件
-            if (FileBrowser != null)
-            {
-                // 地址栏事件已在 XAML 中绑定
-                // 文件列表事件已在 XAML 中绑定
-                // 导航按钮事件
-                FileBrowser.NavigationBack += NavigateBack_Click;
-                FileBrowser.NavigationForward += NavigateForward_Click;
-                FileBrowser.NavigationUp += NavigateUp_Click;
-                FileBrowser.BreadcrumbMiddleClicked += FileBrowser_BreadcrumbMiddleClicked;
-                // 搜索按钮事件
-                FileBrowser.SearchClicked += FileBrowser_SearchClicked;
-                FileBrowser.FilterClicked += FileBrowser_FilterClicked;
-                FileBrowser.LoadMoreClicked += FileBrowser_LoadMoreClicked;
-                FileBrowser.EnableAutoLoadMore();
-                
-                // 文件操作事件
-                FileBrowser.FileCopy += Copy_Click;
-                FileBrowser.FileCut += Cut_Click;
-                FileBrowser.FilePaste += Paste_Click;
-                FileBrowser.FileDelete += Delete_Click;
-                FileBrowser.FileRename += Rename_Click;
-                FileBrowser.FileRefresh += Refresh_Click;
-                FileBrowser.FileProperties += ShowProperties_Click;
-            }
-            InitializeApplication();
+            // 使用 MainWindowInitializer 进行初始化
+            var initializer = new Services.MainWindowInitializer(this);
+            initializer.InitializeApplication();
             this.Activated += (s, e) =>
             {
-                if (_activeTab != null && _activeTab.Path != null && _activeTab.Path.StartsWith("search://"))
+                var activeTab = _tabService.ActiveTab;
+                if (activeTab != null && activeTab.Path != null && activeTab.Path.StartsWith("search://"))
                 {
-                    CheckAndRefreshSearchTab(_activeTab.Path);
+                    CheckAndRefreshSearchTab(activeTab.Path);
                 }
             };
         }
 
-        private void InitializeApplication()
+        // InitializeEventHandlers 已迁移到 MainWindowInitializer
+
+        private void AttachTabServiceUiContext()
         {
-            // 加载配置
-            _config = ConfigManager.Load();
-            
-            // 先应用路径配置（在Loaded之前）
-            if (!string.IsNullOrEmpty(_config.LastPath) && Directory.Exists(_config.LastPath))
+            if (_tabService == null) return;
+            var context = new TabUiContext
             {
-                _currentPath = _config.LastPath;
-            }
-            
-            // 窗口加载完成后异步加载初始数据，避免阻塞UI
-            this.Loaded += (s, e) => 
-            {
-                ApplyConfig(_config);
-                
-                // 如果 TagTrain 不可用，隐藏标签按钮
-                if (!App.IsTagTrainAvailable && NavTagBtn != null)
-                {
-                    NavTagBtn.Visibility = Visibility.Collapsed;
-                }
-                
-                // 直接在主线程加载UI数据，避免嵌套Dispatcher调用
-                LoadLibraries(); // 先加载库列表，确保后续恢复选中时库列表已准备好
-                if (App.IsTagTrainAvailable)
-                {
-                    LoadTags();
-                }
-                LoadQuickAccess();
-                LoadDrives();
-                LoadFavorites();
-                
-                // 初始化拖拽管理器
-                InitializeDragDrop();
-                
-                // 延迟加载文件列表，确保窗口完全显示后再加载
-                this.Dispatcher.BeginInvoke(new Action(() =>
-                {
-                    // 初始化导航，恢复最后使用的模式（这会触发文件列表加载）
-                    string lastMode = !string.IsNullOrEmpty(_config.LastNavigationMode) ? _config.LastNavigationMode : "Path";
-                    SwitchNavigationMode(lastMode);
-                }), System.Windows.Threading.DispatcherPriority.Background);
-                
-                // 程序启动后，异步清理不存在的文件夹大小缓存（防止数据库无限增长）
-                this.Dispatcher.BeginInvoke(new Action(() =>
-                {
-                    _folderSizeCalculationService?.CleanupFolderSizeCacheOnStartup();
-                }), System.Windows.Threading.DispatcherPriority.Background);
-                
-                // 确保库列表拖拽功能已初始化（延迟到控件完全加载后）
-                this.Dispatcher.BeginInvoke(new Action(() =>
-                {
-                    InitializeLibraryDragDrop();
-                    InitializeTabsDragDrop();
-                }), System.Windows.Threading.DispatcherPriority.Loaded);
-                
-                // 连接右侧面板事件（按钮已移到主窗口，不再需要按钮事件）
-                if (RightPanel != null)
-                {
-                    RightPanel.NotesTextChanged += NotesTextBox_TextChanged;
-                    RightPanel.NotesAutoSaved += NotesAutoSaved_Handler;
-                    RightPanel.PreviewMiddleClickRequested += RightPanel_PreviewMiddleClickRequested;
-                    RightPanel.PreviewOpenFileRequested += RightPanel_PreviewOpenFileRequested;
-                    // 按钮已移到主窗口，不再从右侧面板获取事件
-                }
-                
-                // 标题栏拖拽功能已在XAML中绑定到TitleBar_MouseDown，无需额外设置
-                // TopDragArea 和 RightPanel 的拖拽功能已移除，统一使用顶部标题栏
-                
-                // 设置窗口最小宽度=三列MinWidth之和+两个分割器宽度
-                this.MinWidth = ColLeft.MinWidth + ColCenter.MinWidth + ColRight.MinWidth + 12;
-
-                // 设置ListView列的最小宽度和压缩顺序
-                if (FileBrowser != null && FileBrowser.FilesList != null)
-                {
-                    FileBrowser.FilesList.SizeChanged += ListView_SizeChanged;
-                    
-                    // 捕获列头分隔线的双击（即使事件已被子元素标记为Handled）
-                    FileBrowser.FilesList.AddHandler(UIElement.PreviewMouseLeftButtonDownEvent,
-                        new MouseButtonEventHandler(FilesList_HeaderThumbDoubleClick), true);
-                    
-                    // 添加双击空白区域的事件处理
-                    if (FileBrowser.FilesList != null)
-                        FileBrowser.FilesList.PreviewMouseDoubleClick += FilesListView_PreviewMouseDoubleClickForBlank;
-                    
-                    // 延迟加载列宽度，确保GridView已初始化
-                    this.Dispatcher.BeginInvoke(new Action(() =>
-                    {
-                        LoadColumnWidths();
-                        ApplyVisibleColumnsForCurrentMode();
-                        EnsureHeaderContextMenuHook();
-                        HookHeaderThumbs();
-                        // 设置定时保存列宽度（延迟保存，避免频繁写入）
-                        _columnWidthSaveTimer = new System.Windows.Threading.DispatcherTimer
-                        {
-                            Interval = TimeSpan.FromSeconds(1)
-                        };
-                        _columnWidthSaveTimer.Tick += (s, e) =>
-                        {
-                            SaveColumnWidths();
-                            _columnWidthSaveTimer.Stop();
-                        };
-                        
-                        // 监听列宽度变化
-                        if (FileBrowser.FilesGrid != null)
-                        {
-                            foreach (var column in FileBrowser.FilesGrid.Columns)
-                            {
-                                // 使用依赖属性监听宽度变化
-                                var dpd = System.ComponentModel.DependencyPropertyDescriptor.FromProperty(GridViewColumn.WidthProperty, typeof(GridViewColumn));
-                                if (dpd != null)
-                                {
-                                    dpd.AddValueChanged(column, (s, e) =>
-                                    {
-                                        // 若该列在当前模式不可见，则强制保持为0，阻止任何拖动或布局将其拉出
-                                        if (s is GridViewColumn changedCol)
-                                        {
-                                            var header = changedCol.Header as GridViewColumnHeader;
-                                            var tag = header?.Tag?.ToString();
-                                            if (!string.IsNullOrEmpty(tag))
-                                            {
-                                                var visibleCsvLocal = GetVisibleColumnsForCurrentMode() ?? "";
-                                                var set = new HashSet<string>(visibleCsvLocal.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries), StringComparer.OrdinalIgnoreCase);
-                                                if (!set.Contains(tag))
-                                                {
-                                                    if (changedCol.Width != 0)
-                                                    {
-                                                        changedCol.Width = 0;
-                                                        return;
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        
-                                        if (_columnWidthSaveTimer != null)
-                                        {
-                                            _columnWidthSaveTimer.Stop();
-                                            _columnWidthSaveTimer.Start();
-                                        }
-                                    });
-                                }
-                            }
-                        }
-                    }), System.Windows.Threading.DispatcherPriority.Loaded);
-                }
-
-                // 强制初始化列2和列3为固定宽度（不使用Star模式）
-                this.Dispatcher.BeginInvoke(new Action(() =>
-                {
-                    ForceColumnWidthsToFixed();
-                    // 更新列2操作按钮位置，使其居中对齐列2区域
-                    UpdateActionButtonsPosition();
-                    // 更新分隔符位置，使其与列1和列2之间的分割器对齐
-                    UpdateSeparatorPosition();
-                }), System.Windows.Threading.DispatcherPriority.Loaded);
-                
-                // 监听列宽度变化，更新按钮位置和分隔符位置
-                this.SizeChanged += (s, e) =>
-                {
-                    this.Dispatcher.BeginInvoke(new Action(() =>
-                    {
-                        UpdateActionButtonsPosition();
-                        UpdateSeparatorPosition();
-                    }), System.Windows.Threading.DispatcherPriority.Loaded);
-                };
-                
-                // 监听GridSplitter拖拽，更新按钮位置和分隔符位置
-                var splitters1 = RootGrid.Children.OfType<GridSplitter>().ToList();
-                foreach (var splitter in splitters1)
-                {
-                    splitter.DragCompleted += (s, e) =>
-                    {
-                        this.Dispatcher.BeginInvoke(new Action(() =>
-                        {
-                            UpdateActionButtonsPosition();
-                            UpdateSeparatorPosition();
-                        }), System.Windows.Threading.DispatcherPriority.Loaded);
-                    };
-                }
-
-                // 监听GridSplitter拖拽事件，实时限制最小宽度
-                var splitters = FindVisualChildren<GridSplitter>(this).ToList();
-                for (int i = 0; i < splitters.Count; i++)
-                {
-                    var splitter = splitters[i];
-                    int splitterColumn = Grid.GetColumn(splitter);
-                    
-                    // 判断是哪个分割线：Column=1是列1和列2之间，Column=3是列2和列3之间
-                    bool isRightSplitter = (splitterColumn == 3); // 列2和列3之间的分割线
-                    
-                    // 在拖拽开始时，记录当前宽度
-                    double? savedCenterWidth = null;
-                    double? savedRightWidth = null;
-                    
-                    splitter.DragStarted += (s2, e2) =>
-                    {
-                        // 设置拖拽状态标记，防止UpdateLayout影响DataGrid列宽
-                        _isSplitterDragging = true;
-                        
-                        // 保存当前宽度
-                        savedCenterWidth = ColCenter.ActualWidth;
-                        savedRightWidth = ColRight.ActualWidth;
-                        
-                        Debug.WriteLine($"[DragStarted] Splitter Column={splitterColumn}, IsRightSplitter={isRightSplitter}");
-                        Debug.WriteLine($"[DragStarted] 分割器拖拽开始，设置_isSplitterDragging=true");
-                        Debug.WriteLine($"[DragStarted] ColCenter: IsStar={ColCenter.Width.IsStar}, ActualWidth={ColCenter.ActualWidth}, MinWidth={ColCenter.MinWidth}, Width.Value={ColCenter.Width.Value}");
-                        Debug.WriteLine($"[DragStarted] ColRight: IsStar={ColRight.Width.IsStar}, ActualWidth={ColRight.ActualWidth}, MinWidth={ColRight.MinWidth}, Width.Value={ColRight.Width.Value}");
-                        
-                        // 强制将列2设置为固定宽度（不使用Star模式）
-                        if (ColCenter.Width.IsStar && savedCenterWidth.HasValue)
-                        {
-                            double newWidth = Math.Max(ColCenter.MinWidth, savedCenterWidth.Value);
-                            ColCenter.Width = new GridLength(newWidth);
-                            Debug.WriteLine($"[DragStarted] ColCenter: 从Star模式改为固定宽度 {newWidth}");
-                        }
-                        
-                        // 确保列3使用Star模式
-                        if (!ColRight.Width.IsStar && savedRightWidth.HasValue)
-                        {
-                            // 如果列3不是Star模式，改为Star模式以允许调整
-                            ColRight.Width = new GridLength(1, GridUnitType.Star);
-                            Debug.WriteLine($"[DragStarted] ColRight: 改为Star模式，允许调整宽度");
-                        }
-                    };
-                    
-                    // 在拖拽过程中实时检查并限制最小宽度
-                    splitter.DragDelta += (s2, e2) =>
-                    {
-                        // 设置拖拽状态标记
-                        _isSplitterDragging = true;
-                        
-                        // 延迟检查，在GridSplitter改变列宽之后立即修复
-                        this.Dispatcher.BeginInvoke(new Action(() =>
-                        {
-                            double centerActual = ColCenter.ActualWidth;
-                            double rightActual = ColRight.ActualWidth;
-                            double minCenter = ColCenter.MinWidth;
-                            double minRight = ColRight.MinWidth;
-                            
-                            Debug.WriteLine($"[DragDelta] HorizontalChange={e2.HorizontalChange}, IsRightSplitter={isRightSplitter}");
-                            Debug.WriteLine($"[DragDelta] ColCenter: IsStar={ColCenter.Width.IsStar}, ActualWidth={centerActual}, MinWidth={minCenter}, Width.Value={ColCenter.Width.Value}");
-                            Debug.WriteLine($"[DragDelta] ColRight: IsStar={ColRight.Width.IsStar}, ActualWidth={rightActual}, MinWidth={minRight}, Width.Value={ColRight.Width.Value}");
-                            
-                            bool needFix = false;
-                            
-                            // 检查并修复列2（中间列）
-                            if (centerActual < minCenter)
-                            {
-                                // 如果列2小于最小宽度，设置为最小宽度
-                                ColCenter.Width = new GridLength(minCenter);
-                                needFix = true;
-                                Debug.WriteLine($"[DragDelta] 修复列2: {centerActual} < {minCenter}, 设置为 {minCenter}");
-                            }
-                            else if (ColCenter.Width.IsStar)
-                            {
-                                // 如果列2是Star模式，改为固定宽度
-                                double newWidth = Math.Max(minCenter, centerActual);
-                                ColCenter.Width = new GridLength(newWidth);
-                                needFix = true;
-                                Debug.WriteLine($"[DragDelta] 列2从Star模式改为固定宽度: {newWidth}");
-                            }
-                            
-                            // 只检查列3最小宽度，保持Star模式
-                            if (rightActual < minRight)
-                            {
-                                // 如果列3小于最小宽度，设置为最小宽度（但保持Star模式）
-                                // 需要改为固定宽度才能设置最小宽度
-                                ColRight.Width = new GridLength(minRight);
-                                needFix = true;
-                                Debug.WriteLine($"[DragDelta] 修复列3最小宽度: {rightActual} < {minRight}, 设置为 {minRight}");
-                            }
-                            else if (!ColRight.Width.IsStar)
-                            {
-                                // 如果列3不是Star模式，改为Star模式以允许调整
-                                ColRight.Width = new GridLength(1, GridUnitType.Star);
-                                needFix = true;
-                                Debug.WriteLine($"[DragDelta] 列3改为Star模式，允许调整宽度");
-                            }
-                            
-                            // 拖拽过程中不调用UpdateLayout，避免影响DataGrid列宽
-                            // Grid的列宽调整会自然生效，不需要强制更新布局
-                            if (needFix)
-                            {
-                                Debug.WriteLine($"[DragDelta] 跳过UpdateLayout以避免重置DataGrid列宽");
-                            }
-                        }), System.Windows.Threading.DispatcherPriority.Input);
-                    };
-                    
-                    // 拖拽结束后保存配置
-                    splitter.DragCompleted += (s2, e2) => 
-                    {
-                        Debug.WriteLine($"[DragCompleted] 分割器拖拽结束，准备清理");
-                        
-                        // 延迟一点再清除标记，确保所有拖拽相关操作完成
-                        this.Dispatcher.BeginInvoke(new Action(() =>
-                        {
-                            System.Threading.Thread.Sleep(100);
-                            
-                            // 确保列2和列3最小宽度
-                            double centerActual = ColCenter.ActualWidth;
-                            double rightActual = ColRight.ActualWidth;
-                            double minCenter = ColCenter.MinWidth;
-                            double minRight = ColRight.MinWidth;
-                            
-                            Debug.WriteLine($"[DragCompleted] IsRightSplitter={isRightSplitter}");
-                            Debug.WriteLine($"[DragCompleted] ColCenter: IsStar={ColCenter.Width.IsStar}, ActualWidth={centerActual}, MinWidth={minCenter}, Width.Value={ColCenter.Width.Value}");
-                            Debug.WriteLine($"[DragCompleted] ColRight: IsStar={ColRight.Width.IsStar}, ActualWidth={rightActual}, MinWidth={minRight}, Width.Value={ColRight.Width.Value}");
-                            
-                            bool needFix = false;
-                            if (centerActual < minCenter)
-                            {
-                                ColCenter.Width = new GridLength(minCenter);
-                                needFix = true;
-                                Debug.WriteLine($"[DragCompleted] 修复列2: {centerActual} < {minCenter}, 设置为 {minCenter}");
-                            }
-                            
-                            // 只检查列3最小宽度，保持Star模式
-                            if (rightActual < minRight)
-                            {
-                                ColRight.Width = new GridLength(minRight);
-                                needFix = true;
-                                Debug.WriteLine($"[DragCompleted] 修复列3最小宽度: {rightActual} < {minRight}, 设置为 {minRight}");
-                            }
-                            else if (!ColRight.Width.IsStar)
-                            {
-                                // 如果列3不是Star模式，改为Star模式使用剩余空间
-                                ColRight.Width = new GridLength(1, GridUnitType.Star);
-                                needFix = true;
-                                Debug.WriteLine($"[DragCompleted] 列3改为Star模式，使用剩余空间");
-                            }
-                            
-                            // 清除拖拽标记后再调用ForceColumnWidthsToFixed，允许UpdateLayout
-                            _isSplitterDragging = false;
-                            Debug.WriteLine($"[DragCompleted] 清除拖拽标记，调用ForceColumnWidthsToFixed");
-                            
-                            // 强制确保列2不是Star模式（现在可以安全调用UpdateLayout了）
-                            ForceColumnWidthsToFixed();
-                            
-                            if (needFix)
-                            {
-                                Debug.WriteLine($"[DragCompleted] 调用AdjustColumnWidths重新分配");
-                                AdjustColumnWidths();
-                            }
-                            
-                            SaveCurrentConfig();
-                            
-                            Debug.WriteLine($"[DragCompleted] 分割器拖拽处理完成");
-                        }), System.Windows.Threading.DispatcherPriority.Loaded);
-                    };
-                }
+                FileBrowser = FileBrowser,
+                Dispatcher = this.Dispatcher,
+                OwnerWindow = this,
+                GetConfig = () => _configService?.Config ?? new AppConfig(),
+                SaveConfig = ConfigManager.Save,
+                GetCurrentLibrary = () => _currentLibrary,
+                SetCurrentLibrary = lib => _currentLibrary = lib,
+                GetCurrentPath = () => _currentPath,
+                SetCurrentPath = path => _currentPath = path,
+                SetNavigationCurrentPath = path => _navigationService.CurrentPath = path,
+                GetCurrentTagFilter = () => _currentTagFilter,
+                SetCurrentTagFilter = tag => _currentTagFilter = tag,
+                FilterByTag = FilterByTag,
+                LoadLibraryFiles = lib => LoadLibraryFiles(lib),
+                NavigateToPathInternal = NavigateToPathInternal,
+                UpdateNavigationButtonsState = UpdateNavigationButtonsState,
+                SearchService = _searchService,
+                GetSearchCacheService = () => _searchCacheService,
+                GetSearchOptions = () => _searchOptions,
+                GetCurrentFiles = () => _currentFiles,
+                SetCurrentFiles = files => _currentFiles = files,
+                ClearFilter = ClearFilter,
+                RefreshSearchTab = path => { CheckAndRefreshSearchTab(path); return Task.CompletedTask; },
+                FindResource = key => FindResource(key),
+                IsTagTrainAvailable = () => App.IsTagTrainAvailable
             };
-
-            // 根据窗口大小动态约束列宽（优先保持列3，再列2，最后列1）
-            this.SizeChanged += (s, e) =>
-            {
-                // 防止小于三列最小宽度总和
-                double minTotal = ColLeft.MinWidth + ColCenter.MinWidth + ColRight.MinWidth + 12;
-                if (this.ActualWidth < minTotal)
-                {
-                    // 不要强制设置窗口宽度，否则可能影响窗口边缘调整
-                    // 只在极端情况下设置MinWidth
-                    if (this.WindowState == WindowState.Normal && this.Width < minTotal)
-                    {
-                        // 使用MinWidth而不是Width，避免干扰窗口边缘调整
-                        this.MinWidth = minTotal;
-                    }
-                    return;
-                }
-
-                // 等待布局完成后再调整
-                this.Dispatcher.BeginInvoke(new Action(() =>
-                {
-                    AdjustColumnWidths();
-                }), System.Windows.Threading.DispatcherPriority.Loaded);
-            };
-            
-            // 禁用LayoutUpdated监听，避免性能问题
-            // 列宽度调整已在SizeChanged和GridSplitter事件中处理，无需持续监听
-            // this.LayoutUpdated += (s, e) => { ... };
-            UpdateWindowStateUI();
-
-            // 延迟保存配置，避免频繁保存
-            // 使用成员变量而不是局部变量
-            _saveTimer = null;
-            Action delayedSave = () =>
-            {
-                if (_saveTimer != null)
-                {
-                    _saveTimer.Stop();
-                }
-                _saveTimer = new System.Windows.Threading.DispatcherTimer
-                {
-                    Interval = TimeSpan.FromMilliseconds(500)
-                };
-                _saveTimer.Tick += (s2, e2) =>
-                {
-                    _saveTimer.Stop();
-                    SaveCurrentConfig();
-                };
-                _saveTimer.Start();
-            };
-            
-            // 窗口大小改变时延迟保存配置
-            this.SizeChanged += (s, e) => delayedSave();
-            
-            // 禁用RootGrid.LayoutUpdated监听，避免性能问题
-            // 配置保存已在SizeChanged和GridSplitter事件中处理
-            // if (this.RootGrid != null)
-            // {
-            //     this.RootGrid.LayoutUpdated += (s, e) => delayedSave();
-            // }
-            
-            // 关闭时立即保存配置
-                this.Closing += (s, e) => 
-                {
-                // 保存当前路径
-                _config.LastPath = _currentPath;
-                
-                // 强制保存备注
-                if (RightPanel != null)
-                {
-                    RightPanel.ForceSaveNotes();
-                }
-                
-                // 停止所有定时器
-                if (_saveTimer != null)
-                {
-                    _saveTimer.Stop();
-                    _saveTimer = null;
-                }
-                if (_columnWidthSaveTimer != null)
-                {
-                    _columnWidthSaveTimer.Stop();
-                    _columnWidthSaveTimer = null;
-                }
-                if (_periodicTimer != null)
-                {
-                    _periodicTimer.Stop();
-                    _periodicTimer = null;
-                }
-                if (_layoutCheckTimer != null)
-                {
-                    _layoutCheckTimer.Stop();
-                    _layoutCheckTimer = null;
-                }
-                
-                // 文件系统监控由 FileSystemWatcherService 管理，无需手动清理
-                
-                // 释放文件夹大小计算服务
-                _folderSizeCalculationService?.Dispose();
-                
-                // 保存配置（不等待布局更新，避免阻塞）
-                try
-                {
-                    SaveCurrentConfig();
-                }
-                catch { }
-            };
-
-            // 定期保存配置（作为备份）
-            _periodicTimer = new System.Windows.Threading.DispatcherTimer
-            {
-                Interval = TimeSpan.FromSeconds(10)
-            };
-            _periodicTimer.Tick += (s, e) => SaveCurrentConfig();
-            _periodicTimer.Start();
+            _tabService.AttachUiContext(context);
         }
 
-        private void ApplyConfig(AppConfig cfg)
+        internal void GridSplitter_DragDelta(object sender, DragDeltaEventArgs e)
         {
-            try
-            {
-                _isApplyingConfig = true;
-
-                if (cfg.IsMaximized)
-                {
-                    // 使用伪最大化而不是WindowState.Maximized，避免系统边距
-                    _restoreBounds = new Rect(0, 0, cfg.WindowWidth, cfg.WindowHeight);
-                    var wa = GetCurrentMonitorWorkAreaDIPs();
-                    this.WindowState = WindowState.Normal;
-                    this.Left = wa.Left;
-                    this.Top = wa.Top;
-                    this.Width = wa.Width;
-                    this.Height = wa.Height;
-                    _isPseudoMaximized = true;
-                    this.ResizeMode = ResizeMode.NoResize;
-                    
-                    // 等待窗口加载完成后再移除边框
-                    this.Loaded += (s, e) =>
-                    {
-                        if (_isPseudoMaximized)
-                        {
-                            var hwnd = new WindowInteropHelper(this).Handle;
-                            var margins = new NativeMethods.MARGINS { cxLeftWidth = -1, cxRightWidth = -1, cyTopHeight = -1, cyBottomHeight = -1 };
-                            NativeMethods.DwmExtendFrameIntoClientArea(hwnd, ref margins);
-                        }
-                    };
-                }
-                else
-                {
-                    this.Width = cfg.WindowWidth;
-                    this.Height = cfg.WindowHeight;
-                    if (!double.IsNaN(cfg.WindowTop)) this.Top = cfg.WindowTop;
-                    if (!double.IsNaN(cfg.WindowLeft)) this.Left = cfg.WindowLeft;
-                    _isPseudoMaximized = false;
-                    this.ResizeMode = ResizeMode.CanResize;
-                }
-
-                // 应用主Grid列宽
-                if (this.RootGrid != null)
-                {
-                    // 列 0,2 分别对应 左/中；右侧自适应
-                    // 确保设置的宽度不小于最小宽度
-                    var leftWidth = Math.Max(ColLeft.MinWidth, cfg.LeftPanelWidth);
-                    var centerWidth = Math.Max(ColCenter.MinWidth, cfg.MiddlePanelWidth);
-                    
-                    this.RootGrid.ColumnDefinitions[0].Width = new GridLength(leftWidth);
-                    this.RootGrid.ColumnDefinitions[2].Width = new GridLength(centerWidth);
-                    // 右侧(列4)使用*自适应，不设置固定宽度
-                    
-                    // 确保窗口最小宽度正确设置
-                    var minTotalWidth = ColLeft.MinWidth + ColCenter.MinWidth + ColRight.MinWidth + 12;
-                    if (this.MinWidth < minTotalWidth)
-                    {
-                        this.MinWidth = minTotalWidth;
-                    }
-                }
-                
-                // 重要：应用完配置后，立即调整列宽以确保MinWidth生效
-                this.UpdateLayout();
-                AdjustColumnWidths();
-                // 确保列3的最小宽度约束生效
-                EnsureColumnMinWidths();
-            }
-            catch { }
-            finally
-            {
-                _isApplyingConfig = false;
-            }
+            _fileBrowserEventHandler?.FileBrowser_GridSplitterDragDelta(sender, e);
         }
 
-        private void SaveCurrentConfig()
-        {
-            // 如果正在应用配置，不保存
-            if (_isApplyingConfig) return;
-            
-            try
-            {
-                // 保存当前路径
-                _config.LastPath = _currentPath;
-                _config.IsMaximized = _isPseudoMaximized; // 使用_isPseudoMaximized而不是WindowState
-                if (!_config.IsMaximized)
-                {
-                    _config.WindowWidth = this.Width;
-                    _config.WindowHeight = this.Height;
-                    _config.WindowTop = this.Top;
-                    _config.WindowLeft = this.Left;
-                }
+        // InitializeApplication 已迁移到 MainWindowInitializer
 
-                if (this.RootGrid != null && this.RootGrid.IsLoaded)
-                {
-                    // 强制更新布局
-                    this.RootGrid.UpdateLayout();
-                    
-                    // 获取实际尺寸
-                    var leftWidth = this.RootGrid.ColumnDefinitions[0].ActualWidth;
-                    var middleWidth = this.RootGrid.ColumnDefinitions[2].ActualWidth;
-                    var rightWidth = this.RootGrid.ColumnDefinitions[4].ActualWidth;
-                    
-                    // 只有当实际尺寸大于0时才保存
-                    if (leftWidth > 0) _config.LeftPanelWidth = leftWidth;
-                    if (middleWidth > 0) _config.MiddlePanelWidth = middleWidth;
-                    // 右侧为自适应宽度，不保存
-                }
-                else if (this.RootGrid != null)
-                {
-                    // 如果Grid未加载，尝试使用Width值
-                    var leftWidth = this.RootGrid.ColumnDefinitions[0].Width;
-                    var middleWidth = this.RootGrid.ColumnDefinitions[2].Width;
-                    var rightWidth = this.RootGrid.ColumnDefinitions[4].Width;
-                    
-                    if (leftWidth.IsAbsolute) _config.LeftPanelWidth = leftWidth.Value;
-                    if (middleWidth.IsAbsolute) _config.MiddlePanelWidth = middleWidth.Value;
-                    // 右侧为自适应宽度，不保存
-                }
-
-                ConfigManager.Save(_config);
-            }
-            catch { }
-        }
+        // ApplyConfig、SaveCurrentConfig、UpdateActionButtons 已迁移到 ConfigService
         #region 导航功能
-        private void UpdateActionButtons(string mode)
-        {
-            // TitleActionBar已经根据Mode自动显示/隐藏对应的面板，只需要更新Mode属性
-            if (TitleActionBar != null)
-            {
-                TitleActionBar.Mode = mode;
-            }
-        }
         
         
-        private void SwitchNavigationMode(string mode)
+        internal void SwitchNavigationMode(string mode)
         {
-            // 隐藏所有导航内容（添加空值检查）
-            if (NavPathContent != null) NavPathContent.Visibility = Visibility.Collapsed;
-            if (NavLibraryContent != null) NavLibraryContent.Visibility = Visibility.Collapsed;
-            if (NavTagContent != null) NavTagContent.Visibility = Visibility.Collapsed;
-            
-            // 切换到非库模式时清空当前库
-            if (mode != "Library")
+            // 使用 NavigationModeService 处理导航模式切换
+            if (_navigationModeService != null)
             {
-                _currentLibrary = null;
+                _navigationModeService.SwitchNavigationMode(mode);
             }
-            
-            // 根据模式显示对应内容和按钮
-            switch (mode)
-            {
-                case "Path":
-                    if (NavPathContent != null) NavPathContent.Visibility = Visibility.Visible;
-                    if (NavLibraryContent != null) NavLibraryContent.Visibility = Visibility.Collapsed;
-                    if (NavTagContent != null) NavTagContent.Visibility = Visibility.Collapsed;
-                    UpdateActionButtons("Path");
-                    
-                    // 隐藏标签页面底部按钮
-                    if (TagBottomButtons != null)
-                    {
-                        TagBottomButtons.Visibility = Visibility.Collapsed;
-                    }
-                    
-                    if (FileBrowser != null) FileBrowser.TabsVisible = true;
-                    // 切换到路径模式时，清除库的高亮
-                    if (LibrariesListBox != null && LibrariesListBox.Items != null)
-                    {
-                        foreach (var item in LibrariesListBox.Items)
-                        {
-                            SetItemHighlight(LibrariesListBox, item, false);
-                        }
-                    }
-                    // 从库切换到路径时，查找或创建标签页
-                    // 延迟执行，确保控件已初始化
-                    this.Dispatcher.BeginInvoke(new Action(() =>
-                    {
-                        if (FileBrowser == null || FileBrowser.TabsPanelControl == null) return; // 确保控件已初始化
-                        
-                        if (string.IsNullOrEmpty(_currentPath))
-                        {
-                            // 查找第一个使用路径的标签页
-                            PathTab matchingTab = _pathTabs.FirstOrDefault();
-                            if (matchingTab != null && Directory.Exists(matchingTab.Path))
-                            {
-                                _currentPath = matchingTab.Path;
-                                SwitchToTab(matchingTab);
-                            }
-                            else
-                            {
-                                // 如果没有标签页，创建新标签页，默认路径为桌面
-                                _currentPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-                                CreateTab(_currentPath);
-                            }
-                        }
-                        else
-                        {
-                            // 如果已有路径，查找或创建对应的标签页
-                            PathTab existingTab = _pathTabs.FirstOrDefault(t => t.Path == _currentPath);
-                            if (existingTab != null)
-                            {
-                                SwitchToTab(existingTab);
-                            }
-                            else
-                            {
-                                CreateTab(_currentPath);
-                            }
-                        }
-                    }), System.Windows.Threading.DispatcherPriority.Loaded);
-                    break;
-                case "Library":
-                    if (NavPathContent != null) NavPathContent.Visibility = Visibility.Collapsed;
-                    if (NavLibraryContent != null) NavLibraryContent.Visibility = Visibility.Visible;
-                    if (NavTagContent != null) NavTagContent.Visibility = Visibility.Collapsed;
-                    UpdateActionButtons("Library");
-                    
-                    // 隐藏标签页面底部按钮
-                    if (TagBottomButtons != null)
-                    {
-                        TagBottomButtons.Visibility = Visibility.Collapsed;
-                    }
-                    // 延迟刷新列2按钮，确保容器已完全初始化
-                    this.Dispatcher.BeginInvoke(new Action(() =>
-                    {
-                    }), System.Windows.Threading.DispatcherPriority.Loaded);
-                    // 库模式下也显示标签页
-                    if (FileBrowser != null) FileBrowser.TabsVisible = true;
-                    // 切换到库模式时，恢复最后选中的库
-                    this.Dispatcher.BeginInvoke(new Action(() =>
-                    {
-                        if (_currentLibrary == null && _config.LastLibraryId > 0)
-                        {
-                            var lastLibrary = DatabaseManager.GetLibrary(_config.LastLibraryId);
-                            if (lastLibrary != null)
-                            {
-                                _currentLibrary = lastLibrary;
-                                // 使用辅助方法确保选中状态正确显示
-                                EnsureSelectedItemVisible(LibrariesListBox, lastLibrary);
-                                // 高亮当前库（作为匹配当前库）
-                                HighlightMatchingLibrary(lastLibrary);
-                                // 确保文件列表被加载
-                                LoadLibraryFiles(lastLibrary);
-                            }
-                        }
-                        else if (_currentLibrary != null)
-                        {
-                            // 如果已有当前库，高亮它
-                            HighlightMatchingLibrary(_currentLibrary);
-                        }
-                        InitializeLibraryDragDrop();
-                    }), System.Windows.Threading.DispatcherPriority.Loaded);
-                    break;
-                case "Tag":
-                    // 只有在 TagTrain 可用时才显示标签页面
-                    if (App.IsTagTrainAvailable)
-                    {
-                        if (NavPathContent != null) NavPathContent.Visibility = Visibility.Collapsed;
-                        if (NavLibraryContent != null) NavLibraryContent.Visibility = Visibility.Collapsed;
-                        if (NavTagContent != null) NavTagContent.Visibility = Visibility.Visible;
-                        UpdateActionButtons("Tag");
-                        
-                        // 显示标签页面底部按钮
-                        if (TagBottomButtons != null)
-                        {
-                            TagBottomButtons.Visibility = Visibility.Visible;
-                        }
-                        
-                        // 默认使用浏览模式
-                        _tagClickMode = TagClickMode.Browse;
-                        var tagClickModeBtn = NavigationPanelControl?.TagBottomButtonsControl?.FindName("TagClickModeBtn") as Button;
-                        if (tagClickModeBtn != null)
-                        {
-                            tagClickModeBtn.Content = "👁";
-                            tagClickModeBtn.ToolTip = "切换到编辑模式：显示完整TagTrain训练面板";
-                        }
-                        
-                        // 延迟刷新列2按钮，确保容器已完全初始化
-                        // 先确保UI元素已加载，再初始化
-                        this.Dispatcher.BeginInvoke(new Action(() =>
-                        {
-                            System.Diagnostics.Debug.WriteLine("SwitchNavigationMode(Tag): 开始初始化TagTrain面板");
-                            
-                            // 确保NavTagContent已可见
-                            if (NavTagContent != null && NavTagContent.Visibility != Visibility.Visible)
-                            {
-                                NavTagContent.Visibility = Visibility.Visible;
-                            }
-                            
-                            // 切换到浏览模式
-                            SwitchTagMode();
-                            
-                            // 延迟初始化，确保所有UI元素都已渲染
-                            this.Dispatcher.BeginInvoke(new Action(() =>
-                            {
-                                // 初始化TagTrain面板（用于编辑模式）
-                                InitializeTagTrainPanel();
-                                System.Diagnostics.Debug.WriteLine("SwitchNavigationMode(Tag): TagTrain面板初始化完成");
-                            }), System.Windows.Threading.DispatcherPriority.Loaded);
-                        }), System.Windows.Threading.DispatcherPriority.Loaded);
-                        if (FileBrowser != null) FileBrowser.TabsVisible = true; // 标签模式也显示标签页
-                        
-                        // 初始化地址栏（标签浏览模式）- 显示tag按钮
-                        if (FileBrowser != null)
-                        {
-                            FileBrowser.AddressText = "";
-                            FileBrowser.IsAddressReadOnly = true;
-                            FileBrowser.SetTagBreadcrumb("标签");
-                        }
-                    }
-                    else
-                    {
-                        // TagTrain 不可用，切换到路径模式
-                        SwitchNavigationMode("Path");
-                    }
-                    break;
-            }
-            
-            // 保存当前模式
-            _config.LastNavigationMode = mode;
-            ConfigManager.Save(_config);
-            
-            // 应用可见列设置并确保右键菜单绑定
-            ApplyVisibleColumnsForCurrentMode();
-            EnsureHeaderContextMenuHook();
-            
-            // 更新文件列表
-            RefreshFileList();
         }
         
         private void NavPathBtn_Click(object sender, RoutedEventArgs e)
@@ -1236,113 +574,14 @@ namespace OoiMRR
             }
         }
         
-        private void FileBrowser_SearchClicked(object sender, RoutedEventArgs e)
-        {
-            // 从列2地址栏读取搜索关键词
-            var searchText = FileBrowser?.AddressText?.Trim() ?? "";
-            // 规范化：剥离前缀“搜索:”避免污染关键词（多次前缀）
-            while (!string.IsNullOrEmpty(searchText) && searchText.StartsWith("搜索:"))
-            {
-                searchText = searchText.Substring("搜索:".Length).Trim();
-            }
-            
-            if (string.IsNullOrEmpty(searchText))
-            {
-                MessageBox.Show("请在地址栏输入搜索关键词", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-                return;
-            }
-            
-            // 检查是否为有效路径
-            if (Directory.Exists(searchText) || File.Exists(searchText))
-            {
-                // 如果是有效路径，导航到该路径
-                NavigateToPath(searchText);
-                return;
-            }
-            
-            // 非路径，执行全盘搜索（文件名+备注）
-            PerformSearch(searchText, true, true);
-        }
 
-        private void FileBrowser_FilterClicked(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                var cm = new ContextMenu();
-                void AddType(string text, FileTypeFilter type)
-                {
-                    var mi = new MenuItem { Header = text, IsCheckable = true, IsChecked = _searchOptions.Type == type };
-                    mi.Click += (s, ev) => { _searchOptions.Type = type; };
-                    cm.Items.Add(mi);
-                }
-                AddType("全部", FileTypeFilter.All);
-                AddType("图片", FileTypeFilter.Images);
-                AddType("视频", FileTypeFilter.Videos);
-                AddType("文档", FileTypeFilter.Documents);
-                AddType("文件夹", FileTypeFilter.Folders);
-                var rangeCurrent = new MenuItem { Header = "当前磁盘", IsCheckable = true, IsChecked = _searchOptions.PathRange == PathRangeFilter.CurrentDrive };
-                rangeCurrent.Click += (s, ev) => { _searchOptions.PathRange = PathRangeFilter.CurrentDrive; };
-                cm.Items.Add(rangeCurrent);
-                var rangeAll = new MenuItem { Header = "全部磁盘", IsCheckable = true, IsChecked = _searchOptions.PathRange == PathRangeFilter.AllDrives };
-                rangeAll.Click += (s, ev) => { _searchOptions.PathRange = PathRangeFilter.AllDrives; };
-                cm.Items.Add(rangeAll);
-                cm.IsOpen = true;
-            }
-            catch { }
-        }
-
-        private void FileBrowser_LoadMoreClicked(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                if (!_searchHasMore || string.IsNullOrEmpty(_searchKeywordPaging)) return;
-                if (!EverythingHelper.IsEverythingRunning()) return;
-                var rangePath = (_searchOptions.PathRange == PathRangeFilter.CurrentDrive && !string.IsNullOrEmpty(_currentPath))
-                    ? new DriveInfo(_currentPath).RootDirectory.FullName
-                    : null;
-                var page = Services.EverythingHelper.SearchFilesPaged(_searchKeywordPaging, _searchOffset, _searchPageSize, rangePath);
-                _searchOffset += page.Count;
-                _searchHasMore = page.Count == _searchPageSize && _searchOffset < _searchMax;
-                if (FileBrowser != null) FileBrowser.LoadMoreVisible = _searchHasMore;
-                var filtered = ApplyTypeFilter(page);
-                var newItems = BuildItemsFromPaths(filtered);
-                _currentFiles.AddRange(newItems);
-                if (FileBrowser != null)
-                {
-                    FileBrowser.FilesItemsSource = null;
-                    FileBrowser.FilesItemsSource = _currentFiles;
-                }
-            }
-            catch { }
-        }
-
-        private IEnumerable<string> ApplyTypeFilter(IEnumerable<string> paths)
-        {
-            if (paths == null) return Enumerable.Empty<string>();
-            switch (_searchOptions.Type)
-            {
-                case FileTypeFilter.Images:
-                    return paths.Where(p => new[] { ".png", ".jpg", ".jpeg", ".bmp", ".gif", ".webp", ".tif", ".tiff" }
-                        .Contains(System.IO.Path.GetExtension(p), StringComparer.OrdinalIgnoreCase));
-                case FileTypeFilter.Videos:
-                    return paths.Where(p => new[] { ".mp4", ".mov", ".mkv", ".avi", ".wmv", ".flv", ".webm" }
-                        .Contains(System.IO.Path.GetExtension(p), StringComparer.OrdinalIgnoreCase));
-                case FileTypeFilter.Documents:
-                    return paths.Where(p => new[] { ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".txt" }
-                        .Contains(System.IO.Path.GetExtension(p), StringComparer.OrdinalIgnoreCase));
-                case FileTypeFilter.Folders:
-                    return paths.Where(p => Directory.Exists(p));
-                default:
-                    return paths;
-            }
-        }
-        
-        private void RefreshFileList()
+        internal void RefreshFileList()
         {
             // 检查是否是搜索标签页
-            if (_activeTab != null && _activeTab.Path != null && _activeTab.Path.StartsWith("search://"))
+            var activeTab = _tabService.ActiveTab;
+            if (activeTab != null && activeTab.Path != null && activeTab.Path.StartsWith("search://"))
             {
-                CheckAndRefreshSearchTab(_activeTab.Path);
+                CheckAndRefreshSearchTab(activeTab.Path);
                 return;
             }
             
@@ -1380,14 +619,14 @@ namespace OoiMRR
                 // 如果是库模式但没有当前库，尝试恢复最后选中的库
                 if (NavLibraryContent != null && NavLibraryContent.Visibility == Visibility.Visible)
                 {
-                    if (_config.LastLibraryId > 0)
+                    if (_configService?.Config.LastLibraryId > 0)
                     {
-                        var lastLibrary = DatabaseManager.GetLibrary(_config.LastLibraryId);
+                        var lastLibrary = DatabaseManager.GetLibrary(_configService.Config.LastLibraryId);
                         if (lastLibrary != null)
                         {
                             _currentLibrary = lastLibrary;
                             // 使用辅助方法确保选中状态正确显示
-                            EnsureSelectedItemVisible(LibrariesListBox, lastLibrary);
+                            _uiHelperService?.EnsureSelectedItemVisible(LibrariesListBox, lastLibrary);
                             LoadLibraryFiles(lastLibrary);
                             return;
                         }
@@ -1404,157 +643,7 @@ namespace OoiMRR
         
         #endregion
 
-        #region 辅助方法：确保选中状态正确显示
-        
-        /// <summary>
-        /// 确保 ListBox 的选中项正确显示（强制刷新视觉状态）
-        /// </summary>
-        private void EnsureSelectedItemVisible(ListBox listBox, object selectedItem)
-        {
-            if (listBox == null || selectedItem == null) return;
-            
-            try
-            {
-                // 先更新布局，确保容器已生成
-                listBox.UpdateLayout();
-                
-                // 设置选中项
-                listBox.SelectedItem = selectedItem;
-                
-                // 等待容器生成
-                this.Dispatcher.BeginInvoke(new Action(() =>
-                {
-                    try
-                    {
-                        // 获取容器并强制刷新视觉状态
-                        var container = listBox.ItemContainerGenerator.ContainerFromItem(selectedItem) as ListBoxItem;
-                        if (container != null)
-                        {
-                            // 检查是否是匹配高亮（优先级最高，不应清除）
-                            var tag = container.Tag as string;
-                            bool isMatch = (tag == "Match");
-                            
-                            // 只清除拖拽高亮（半透明），保留匹配高亮（黄色）
-                            if (!isMatch)
-                            {
-                                var localBg = container.Background as SolidColorBrush;
-                                // 只清除拖拽高亮（半透明背景）
-                                if (localBg != null && localBg.Color.A < 255)
-                                {
-                                    container.ClearValue(ListBoxItem.BackgroundProperty);
-                                    container.ClearValue(ListBoxItem.ForegroundProperty);
-                                    container.ClearValue(ListBoxItem.BorderBrushProperty);
-                                }
-                            }
-                            
-                            // 强制刷新视觉状态
-                            container.InvalidateVisual();
-                            container.UpdateLayout();
-                            
-                            // 滚动到选中项
-                            container.BringIntoView();
-                        }
-                        else
-                        {
-                            // 如果容器还未生成，稍后重试
-                            this.Dispatcher.BeginInvoke(new Action(() =>
-                            {
-                                var retryContainer = listBox.ItemContainerGenerator.ContainerFromItem(selectedItem) as ListBoxItem;
-                                if (retryContainer != null)
-                                {
-                                    // 检查是否是匹配高亮
-                                    var tag = retryContainer.Tag as string;
-                                    bool isMatch = (tag == "Match");
-                                    
-                                    // 如果不是匹配，清除拖拽高亮
-                                    if (!isMatch)
-                                    {
-                                        var localBg = retryContainer.Background as SolidColorBrush;
-                                        if (localBg != null && localBg.Color.A < 255)
-                                        {
-                                            retryContainer.ClearValue(ListBoxItem.BackgroundProperty);
-                                            retryContainer.ClearValue(ListBoxItem.ForegroundProperty);
-                                            retryContainer.ClearValue(ListBoxItem.BorderBrushProperty);
-                                        }
-                                    }
-                                    retryContainer.InvalidateVisual();
-                                    retryContainer.UpdateLayout();
-                                    retryContainer.BringIntoView();
-                                }
-                            }), System.Windows.Threading.DispatcherPriority.Loaded);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"刷新选中项视觉状态失败: {ex.Message}");
-                    }
-                }), System.Windows.Threading.DispatcherPriority.Loaded);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"确保选中项可见失败: {ex.Message}");
-            }
-        }
-        
-        /// <summary>
-        /// 确保 ListView 的选中项正确显示（强制刷新视觉状态）
-        /// </summary>
-        private void EnsureSelectedItemVisible(ListView listView, object selectedItem)
-        {
-            if (listView == null || selectedItem == null) return;
-            
-            try
-            {
-                // 先更新布局，确保容器已生成
-                listView.UpdateLayout();
-                
-                // 设置选中项
-                listView.SelectedItem = selectedItem;
-                
-                // 等待容器生成
-                this.Dispatcher.BeginInvoke(new Action(() =>
-                {
-                    try
-                    {
-                        // 获取容器并强制刷新视觉状态
-                        var container = listView.ItemContainerGenerator.ContainerFromItem(selectedItem) as ListViewItem;
-                        if (container != null)
-                        {
-                            // 强制刷新视觉状态
-                            container.InvalidateVisual();
-                            container.UpdateLayout();
-                            
-                            // 滚动到选中项
-                            container.BringIntoView();
-                        }
-                        else
-                        {
-                            // 如果容器还未生成，稍后重试
-                            this.Dispatcher.BeginInvoke(new Action(() =>
-                            {
-                                var retryContainer = listView.ItemContainerGenerator.ContainerFromItem(selectedItem) as ListViewItem;
-                                if (retryContainer != null)
-                                {
-                                    retryContainer.InvalidateVisual();
-                                    retryContainer.UpdateLayout();
-                                    retryContainer.BringIntoView();
-                                }
-                            }), System.Windows.Threading.DispatcherPriority.Loaded);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"刷新选中项视觉状态失败: {ex.Message}");
-                    }
-                }), System.Windows.Threading.DispatcherPriority.Loaded);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"确保选中项可见失败: {ex.Message}");
-            }
-        }
-        
-        #endregion
+        // EnsureSelectedItemVisible 方法已迁移到 UIHelperService
 
         #region 导航功能
 
@@ -1634,298 +723,39 @@ namespace OoiMRR
         /// <summary>
         /// 加载当前目录（同步包装器，保持向后兼容）
         /// </summary>
-        private void LoadCurrentDirectory()
+        internal void LoadCurrentDirectory()
         {
             // 使用异步方法，但不等待，避免阻塞UI
             _ = LoadCurrentDirectoryAsync();
         }
         /// <summary>
         /// 高亮匹配当前库的列表项
+        /// 已迁移到 NavigationService
         /// </summary>
-        private void HighlightMatchingLibrary(Library currentLibrary)
+        internal void HighlightMatchingLibrary(Library currentLibrary)
         {
-            if (currentLibrary == null || LibrariesListBox == null || LibrariesListBox.Items == null) return;
-            
-            System.Diagnostics.Debug.WriteLine($"[库高亮] 开始高亮库: {currentLibrary.Name}, Id: {currentLibrary.Id}");
-            
-            // 使用 Dispatcher 延迟执行，确保 UI 完全准备好
-            this.Dispatcher.BeginInvoke(new Action(() =>
-            {
-                try
-                {
-                    LibrariesListBox.UpdateLayout();
-                    
-                    // 清除所有库的高亮
-                    foreach (var item in LibrariesListBox.Items)
-                    {
-                        SetItemHighlight(LibrariesListBox, item, false);
-                    }
-                    
-                    // 通过 ID 查找库（因为对象引用可能不同）
-                    Library libraryToHighlight = null;
-                    foreach (var item in LibrariesListBox.Items)
-                    {
-                        if (item is Library lib && lib.Id == currentLibrary.Id)
-                        {
-                            libraryToHighlight = lib;
-                            break;
-                        }
-                    }
-                    
-                    // 如果找到了库，高亮它
-                    if (libraryToHighlight != null)
-                    {
-                        SetItemHighlight(LibrariesListBox, libraryToHighlight, true);
-                        
-                        // 确保选中状态也设置（使用找到的对象，确保引用一致）
-                        LibrariesListBox.SelectedItem = libraryToHighlight;
-                        
-                        System.Diagnostics.Debug.WriteLine($"[库高亮] 高亮成功: {libraryToHighlight.Name}, Id: {libraryToHighlight.Id}");
-                    }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[库高亮] 未找到库，Id: {currentLibrary.Id}");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"高亮匹配库失败: {ex.Message}");
-                }
-            }), System.Windows.Threading.DispatcherPriority.Loaded);
+            _navigationService.HighlightMatchingLibrary(currentLibrary);
         }
         
         /// <summary>
         /// 高亮匹配当前路径的列表项（驱动器、快速访问、收藏）
+        /// 已迁移到 NavigationService
         /// </summary>
         private void HighlightMatchingItems(string currentPath)
         {
-            if (string.IsNullOrEmpty(currentPath)) return;
-            
-            string normalizedPath = currentPath.TrimEnd('\\', '/');
-            if (string.IsNullOrEmpty(normalizedPath)) normalizedPath = currentPath;
-            
-            // 先清除所有高亮，确保不会出现多个列表同时高亮同一路径
-            ClearItemHighlights();
-            
-            object driveMatch = null;
-            object quickMatch = null;
-            object favoriteMatch = null;
-            
-            // 查找驱动器匹配项
-            if (DrivesListBox != null && DrivesListBox.Items != null)
-            {
-                foreach (var item in DrivesListBox.Items)
-                {
-                    var pathProperty = item.GetType().GetProperty("Path");
-                    if (pathProperty != null)
-                    {
-                        var drivePath = pathProperty.GetValue(item) as string;
-                        if (!string.IsNullOrEmpty(drivePath))
-                        {
-                            string normalizedDrive = drivePath.TrimEnd('\\', '/');
-                            if (normalizedPath.Equals(normalizedDrive, StringComparison.OrdinalIgnoreCase))
-                            {
-                                driveMatch = item;
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-            
-            // 查找快速访问匹配项
-            if (QuickAccessListBox != null && QuickAccessListBox.Items != null)
-            {
-                foreach (var item in QuickAccessListBox.Items)
-                {
-                    var pathProperty = item.GetType().GetProperty("Path");
-                    if (pathProperty != null)
-                    {
-                        var accessPath = pathProperty.GetValue(item) as string;
-                        if (!string.IsNullOrEmpty(accessPath))
-                        {
-                            string normalizedAccess = accessPath.TrimEnd('\\', '/');
-                            if (normalizedPath.Equals(normalizedAccess, StringComparison.OrdinalIgnoreCase))
-                            {
-                                quickMatch = item;
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-            
-            // 查找收藏匹配项
-            if (FavoritesListBox != null && FavoritesListBox.Items != null)
-            {
-                foreach (var item in FavoritesListBox.Items)
-                {
-                    var pathProp = item?.GetType().GetProperty("Path");
-                    var pathVal = pathProp != null ? (pathProp.GetValue(item) as string) : null;
-                    if (!string.IsNullOrEmpty(pathVal))
-                    {
-                        if (normalizedPath.Equals(pathVal.TrimEnd('\\', '/'), StringComparison.OrdinalIgnoreCase))
-                        {
-                            favoriteMatch = item;
-                            break;
-                        }
-                    }
-                    else if (item is Favorite favorite && !string.IsNullOrEmpty(favorite.Path))
-                    {
-                        if (normalizedPath.Equals(favorite.Path.TrimEnd('\\', '/'), StringComparison.OrdinalIgnoreCase))
-                        {
-                            favoriteMatch = item;
-                            break;
-                        }
-                    }
-                }
-            }
-            
-            // 决定高亮的唯一来源
-            string source = _lastLeftNavSource;
-            if (source == "Drive" && driveMatch != null)
-            {
-                SetItemHighlight(DrivesListBox, driveMatch, true);
-                return;
-            }
-            if (source == "QuickAccess" && quickMatch != null)
-            {
-                SetItemHighlight(QuickAccessListBox, quickMatch, true);
-                return;
-            }
-            if (source == "Favorites" && favoriteMatch != null)
-            {
-                SetItemHighlight(FavoritesListBox, favoriteMatch, true);
-                return;
-            }
-            
-            // 默认优先级：快速访问 > 收藏 > 驱动器
-            if (quickMatch != null)
-            {
-                SetItemHighlight(QuickAccessListBox, quickMatch, true);
-            }
-            else if (favoriteMatch != null)
-            {
-                SetItemHighlight(FavoritesListBox, favoriteMatch, true);
-            }
-            else if (driveMatch != null)
-            {
-                SetItemHighlight(DrivesListBox, driveMatch, true);
-            }
+            _navigationService.HighlightMatchingItems(currentPath);
         }
         
         /// <summary>
         /// 清除所有列表项的高亮状态
+        /// 已迁移到 NavigationService
         /// </summary>
         private void ClearItemHighlights()
         {
-            ClearListBoxHighlights(DrivesListBox);
-            ClearListBoxHighlights(QuickAccessListBox);
-            ClearListBoxHighlights(FavoritesListBox);
+            _navigationService.ClearItemHighlights();
         }
         
-        /// <summary>
-        /// 清除指定列表的所有高亮
-        /// </summary>
-        private void ClearListBoxHighlights(ListBox listBox)
-        {
-            if (listBox == null || listBox.Items == null) return;
-            
-            foreach (var item in listBox.Items)
-            {
-                SetItemHighlight(listBox, item, false);
-            }
-        }
-        
-        /// <summary>
-        /// 设置列表项的高亮状态（匹配高亮 - 优先级最高）
-        /// 无论是否选中，匹配当前路径/库的项都显示为黄色，让用户知道当前位置
-        /// 这是统一的高亮函数，用于路径匹配和库匹配
-        /// </summary>
-        private void SetItemHighlight(ListBox listBox, object item, bool highlight)
-        {
-            try
-            {
-                var container = listBox.ItemContainerGenerator.ContainerFromItem(item) as ListBoxItem;
-                if (container != null)
-                {
-                    if (highlight)
-                    {
-                        // 检查是否已经高亮，避免重复设置
-                        if (container.Tag as string == "Match")
-                            return;
-                        
-                        // 匹配当前路径/库：无论是否选中，都显示黄色（优先级最高）
-                        var yellowBg = this.FindResource("HighlightBrush") as SolidColorBrush;
-                        var blackFg = this.FindResource("HighlightForegroundBrush") as SolidColorBrush;
-                        var orangeBorder = this.FindResource("HighlightBorderBrush") as SolidColorBrush;
-                        
-                        container.ClearValue(ListBoxItem.BackgroundProperty);
-                        container.ClearValue(ListBoxItem.ForegroundProperty);
-                        container.ClearValue(ListBoxItem.BorderBrushProperty);
-                        container.SetValue(ListBoxItem.BackgroundProperty, yellowBg);
-                        container.SetValue(ListBoxItem.ForegroundProperty, blackFg);
-                        container.SetValue(ListBoxItem.BorderBrushProperty, orangeBorder);
-                        container.Tag = "Match";
-                    }
-                    else
-                    {
-                        // 清除匹配高亮
-                        var tag = container.Tag as string;
-                        if (tag == "Match")
-                        {
-                            container.Tag = null;
-                            container.ClearValue(ListBoxItem.BackgroundProperty);
-                            container.ClearValue(ListBoxItem.ForegroundProperty);
-                            container.ClearValue(ListBoxItem.BorderBrushProperty);
-                        }
-                    }
-                }
-                else
-                {
-                    // 如果容器还未生成，延迟执行（使用低优先级避免阻塞UI）
-                    this.Dispatcher.BeginInvoke(new Action(() =>
-                    {
-                        var retryContainer = listBox.ItemContainerGenerator.ContainerFromItem(item) as ListBoxItem;
-                        if (retryContainer != null)
-                        {
-                            if (highlight)
-                            {
-                                if (retryContainer.Tag as string == "Match")
-                                    return;
-                                
-                                var yellowBg = this.FindResource("HighlightBrush") as SolidColorBrush;
-                                var blackFg = this.FindResource("HighlightForegroundBrush") as SolidColorBrush;
-                                var orangeBorder = this.FindResource("HighlightBorderBrush") as SolidColorBrush;
-                                
-                                retryContainer.ClearValue(ListBoxItem.BackgroundProperty);
-                                retryContainer.ClearValue(ListBoxItem.ForegroundProperty);
-                                retryContainer.ClearValue(ListBoxItem.BorderBrushProperty);
-                                retryContainer.SetValue(ListBoxItem.BackgroundProperty, yellowBg);
-                                retryContainer.SetValue(ListBoxItem.ForegroundProperty, blackFg);
-                                retryContainer.SetValue(ListBoxItem.BorderBrushProperty, orangeBorder);
-                                retryContainer.Tag = "Match";
-                            }
-                            else
-                            {
-                                var tag = retryContainer.Tag as string;
-                                if (tag == "Match")
-                                {
-                                    retryContainer.Tag = null;
-                                    retryContainer.ClearValue(ListBoxItem.BackgroundProperty);
-                                    retryContainer.ClearValue(ListBoxItem.ForegroundProperty);
-                                    retryContainer.ClearValue(ListBoxItem.BorderBrushProperty);
-                                }
-                            }
-                        }
-                    }), System.Windows.Threading.DispatcherPriority.Background);
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"设置列表项高亮失败: {ex.Message}");
-            }
-        }
+        // SetItemHighlight 方法已迁移到 NavigationService，通过 NavigationUIHelper 实现
 
         private void SetupFileWatcher(string path)
         {
@@ -1933,888 +763,115 @@ namespace OoiMRR
             _fileSystemWatcherService?.SetupFileWatcher(path);
         }
 
-        private void UpdateAddressBar(string text)
-        {
-            if (FileBrowser != null)
-            {
-                FileBrowser.AddressText = text;
-            }
-        }
-
-        private void UpdateBreadcrumb(string text)
-        {
-            if (FileBrowser != null)
-            {
-                FileBrowser.UpdateBreadcrumbText(text);
-            }
-        }
+        // UpdateAddressBar 和 UpdateBreadcrumb 方法已迁移到 UIHelperService
 
         #region 标签页管理
 
         /// <summary>
         /// 创建新标签页
         /// </summary>
-        private void CreateTab(string path, bool forceNewTab = false)
+        internal void CreateTab(string path, bool forceNewTab = false)
         {
-            try
-            {
-                if (!Directory.Exists(path))
-                {
-                    MessageBox.Show($"路径不存在: {path}", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                MessageBox.Show($"无法访问路径: {path}\n\n{ex.Message}", "权限错误", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"无法访问路径: {path}\n\n{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-            
-            if (FileBrowser == null || FileBrowser.TabsPanelControl == null) return; // 确保控件已初始化
-
-            // 如果强制新标签页，直接创建新标签页
-            if (forceNewTab)
-            {
-                var tab = new PathTab
-                {
-                    Type = TabType.Path,
-                    Path = path,
-                    Title = GetPathDisplayTitle(path)
-                };
-                CreateTabInternal(tab);
-                return;
-            }
-
-            // 检查是否已存在该路径的标签页
-            var existingTab = _pathTabs.FirstOrDefault(t => t.Type == TabType.Path && t.Path == path);
-            if (existingTab != null)
-            {
-                SwitchToTab(existingTab);
-                return;
-            }
-
-            var newTab = new PathTab
-            {
-                Type = TabType.Path,
-                Path = path,
-                Title = GetPathDisplayTitle(path)
-            };
-            
-            CreateTabInternal(newTab);
+            _tabService?.CreatePathTab(path, forceNewTab);
         }
         
         /// <summary>
         /// 在标签页中打开库
         /// </summary>
-        private void OpenLibraryInTab(Library library, bool forceNewTab = false)
+        internal void OpenLibraryInTab(Library library, bool forceNewTab = false)
         {
-            if (library == null) return;
+            // 切换到库导航模式
+            SwitchNavigationMode("Library");
             
-            // 如果强制新标签页，直接创建新标签页
-            if (forceNewTab)
-            {
-                var tab = new PathTab
-                {
-                    Type = TabType.Library,
-                    Path = library.Name,  // 库标签页使用库名称作为Path标识
-                    Title = library.Name,
-                    Library = library
-                };
-                CreateTabInternal(tab);
-                return;
-            }
-            
-            // 1. 查找是否已存在该库的标签页（按库ID）
-            var existingTab = _pathTabs.FirstOrDefault(t => t.Type == TabType.Library && t.Library != null && t.Library.Id == library.Id);
-            if (existingTab != null)
-            {
-                SwitchToTab(existingTab);
-                return;
-            }
-            
-            // 2. 如果没有同名标签页，但当前标签页是库页，用当前页打开（参考tag模式）
-            if (_activeTab != null && _activeTab.Type == TabType.Library)
-            {
-                // 更新当前标签页的库信息
-                _activeTab.Library = library;
-                _activeTab.Path = library.Name;
-                _activeTab.Title = library.Name;
-                
-                // 更新标签页标题显示
-                if (_activeTab.TitleTextBlock != null)
-                {
-                    _activeTab.TitleTextBlock.Text = library.Name;
-                }
-                if (_activeTab.TabButton != null)
-                {
-                    _activeTab.TabButton.ToolTip = library.Name;
-                }
-                
-                // 切换到该库
-                SwitchToTab(_activeTab);
-                return;
-            }
-            
-            // 3. 如果都没有，打开一个新标签页
-            var newTab = new PathTab
-            {
-                Type = TabType.Library,
-                Path = library.Name,  // 库标签页使用库名称作为Path标识
-                Title = library.Name,
-                Library = library
-            };
-            
-            CreateTabInternal(newTab);
+            _tabService?.OpenLibraryTab(library, forceNewTab);
         }
         
         private void OpenTagInTab(Tag tag, bool forceNewTab = false)
         {
-            if (tag == null || string.IsNullOrWhiteSpace(tag.Name)) return;
-
-            // 如果强制新标签页，直接创建新标签页
-            if (forceNewTab)
-            {
-                var tab = new PathTab
-                {
-                    Type = TabType.Tag,
-                    Path = $"tag://{tag.Id}",
-                    Title = tag.Name,
-                    TagId = tag.Id,
-                    TagName = tag.Name
-                };
-                CreateTabInternal(tab);
-                return;
-            }
-
-            // 1. 查找是否已存在该标签的标签页（按标签ID）
-            var existingTab = _pathTabs.FirstOrDefault(t => t.Type == TabType.Tag && t.TagId == tag.Id);
-            if (existingTab != null)
-            {
-                SwitchToTab(existingTab);
-                return;
-            }
-
-            // 2. 如果没有同名标签页，但当前标签页是tag页，用当前页打开
-            if (_activeTab != null && _activeTab.Type == TabType.Tag)
-            {
-                // 更新当前标签页的tag信息
-                _activeTab.TagId = tag.Id;
-                _activeTab.TagName = tag.Name;
-                _activeTab.Path = $"tag://{tag.Id}";
-                _activeTab.Title = tag.Name;
-                
-                // 更新标签页标题显示
-                if (_activeTab.TitleTextBlock != null)
-                {
-                    _activeTab.TitleTextBlock.Text = tag.Name;
-                }
-                if (_activeTab.TabButton != null)
-                {
-                    _activeTab.TabButton.ToolTip = tag.Name;
-                }
-                
-                // 切换到该标签
-                SwitchToTab(_activeTab);
-                return;
-            }
-
-            // 3. 如果都没有，打开一个新标签页
-            var newTab = new PathTab
-            {
-                Type = TabType.Tag,
-                Path = $"tag://{tag.Id}",
-                Title = tag.Name,
-                TagId = tag.Id,
-                TagName = tag.Name
-            };
-
-            CreateTabInternal(newTab);
-        }
-        
-        /// <summary>
-        /// 创建标签页的内部实现（统一处理库和路径）
-        /// </summary>
-        private void CreateTabInternal(PathTab tab)
-        {
-            if (FileBrowser == null || FileBrowser.TabsPanelControl == null) return;
-
-            // 创建标签按钮容器
-            var tabContainer = new StackPanel
-            {
-                Orientation = Orientation.Horizontal,
-                Margin = new Thickness(0, 0, 2, 0)
-            };
-
-            // 创建标签文本（靠左，支持省略号）
-            var titleText = new TextBlock
-            {
-                Text = tab.Title,
-                HorizontalAlignment = HorizontalAlignment.Left,
-                VerticalAlignment = VerticalAlignment.Center,
-                TextAlignment = TextAlignment.Left,
-                TextTrimming = TextTrimming.CharacterEllipsis,
-                TextWrapping = TextWrapping.NoWrap,
-                Margin = new Thickness(0, 0, 8, 0)
-            };
-
-            // 创建关闭按钮文本（居中显示，与标题重叠）
-            var closeButtonText = new TextBlock
-            {
-                Text = "×",
-                FontSize = 18,
-                FontWeight = FontWeights.Bold,
-                FontFamily = new System.Windows.Media.FontFamily("Segoe UI Symbol"),
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center,
-                TextAlignment = TextAlignment.Center,
-                Tag = tab,
-                Opacity = 0.0,  // 初始不可见
-                Cursor = Cursors.Hand
-            };
-            
-            // 关闭按钮的点击区域（使用Border作为点击目标，固定在右侧）
-            var closeButton = new Border
-            {
-                Width = 24,
-                Height = 24,
-                Background = System.Windows.Media.Brushes.Transparent,
-                Tag = tab,
-                Cursor = Cursors.Hand,
-                Child = closeButtonText,
-                VerticalAlignment = VerticalAlignment.Center,
-                HorizontalAlignment = HorizontalAlignment.Right,
-                Margin = new Thickness(4, 0, 0, 0)
-            };
-            
-            closeButton.MouseLeftButtonDown += (s, e) =>
-            {
-                e.Handled = true;
-                if (s is Border border && border.Tag is PathTab tabToClose)
-                {
-                    CloseTab(tabToClose);
-                }
-            };
-            
-            closeButton.MouseEnter += (s, e) =>
-            {
-                if (s is Border border && border.Child is TextBlock textBlock)
-                {
-                    textBlock.Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0xDC, 0x35, 0x45)); // 悬停时变红色
-                }
-            };
-            
-            closeButton.MouseLeave += (s, e) =>
-            {
-                if (s is Border border && border.Child is TextBlock textBlock)
-                {
-                    // 根据标签状态设置颜色
-                    var tabToCheck = border.Tag as PathTab;
-                    if (tabToCheck != null && tabToCheck == _activeTab)
-                    {
-                        textBlock.Foreground = System.Windows.Media.Brushes.White; // 活动标签使用白色
-                    }
-                    else
-                    {
-                        textBlock.Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0x6C, 0x75, 0x7D)); // 非活动标签使用灰色
-                    }
-                }
-            };
-
-            // 使用Grid作为按钮内容，左侧文本，右侧关闭按钮
-            var buttonContent = new Grid
-            {
-                HorizontalAlignment = HorizontalAlignment.Stretch,
-                VerticalAlignment = VerticalAlignment.Stretch
-            };
-            buttonContent.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            buttonContent.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            Grid.SetColumn(titleText, 0);
-            Grid.SetColumn(closeButton, 1);
-            buttonContent.Children.Add(titleText);
-            buttonContent.Children.Add(closeButton);
-
-            // 创建标签按钮
-            var button = new Button
-            {
-                Content = buttonContent,
-                Style = (Style)FindResource("TabButtonStyle"),
-                Tag = tab,
-                Padding = new Thickness(12, 6, 12, 6),
-                Margin = new Thickness(0)
-            };
-            button.Click += TabButton_Click;
-
-            // 启动拖拽：记录按下位置并在移动超过阈值时开始拖拽
-            button.PreviewMouseLeftButtonDown += (s, e) =>
-            {
-                _tabDragStartPoint = e.GetPosition(null);
-                _draggingTab = tab;
-            };
-            button.MouseMove += (s, e) =>
-            {
-                if (_draggingTab == tab && e.LeftButton == MouseButtonState.Pressed)
-                {
-                    var pos = e.GetPosition(null);
-                    if (Math.Abs(pos.X - _tabDragStartPoint.X) > 4 || Math.Abs(pos.Y - _tabDragStartPoint.Y) > 4)
-                    {
-                        var data = new DataObject();
-                        data.SetData("OoiMRR_TabKey", GetTabKey(tab));
-                        data.SetData("OoiMRR_TabPinned", tab.IsPinned);
-                        DragDrop.DoDragDrop(button, data, DragDropEffects.Move);
-                        _draggingTab = null;
-                    }
-                }
-            };
-            button.PreviewMouseLeftButtonUp += (s, e) => { _draggingTab = null; };
-
-            var cm = new ContextMenu();
-            var pinItem = new MenuItem { Header = "固定此标签页" };
-            pinItem.Click += (s, e) => TogglePinTab(tab);
-            var renameItem = new MenuItem { Header = "重命名显示标题" };
-            renameItem.Click += (s, e) => RenameDisplayTitle(tab);
-            cm.Items.Add(pinItem);
-            cm.Items.Add(renameItem);
-            cm.Opened += (s, e) => { pinItem.Header = tab.IsPinned ? "取消固定此标签页" : "固定此标签页"; };
-            button.ContextMenu = cm;
-            
-            // 添加中键点击关闭标签页
-            button.PreviewMouseDown += (s, e) =>
-            {
-                if (e.ChangedButton == MouseButton.Middle)
-                {
-                    if (s is Button btn && btn.Tag is PathTab tabToClose)
-                    {
-                        CloseTab(tabToClose);
-                        e.Handled = true;
-                    }
-                }
-            };
-
-            // 设置关闭按钮的初始颜色（根据标签状态）
-            if (tab == _activeTab)
-            {
-                closeButtonText.Foreground = System.Windows.Media.Brushes.White;
-            }
-            else
-            {
-                closeButtonText.Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0x6C, 0x75, 0x7D));
-            }
-            
-            // 创建动画对象用于平滑过渡
-            var fadeInAnimation = new System.Windows.Media.Animation.DoubleAnimation
-            {
-                To = 1.0,
-                Duration = TimeSpan.FromMilliseconds(200),
-                EasingFunction = new System.Windows.Media.Animation.QuadraticEase { EasingMode = System.Windows.Media.Animation.EasingMode.EaseInOut }
-            };
-            
-            var fadeOutAnimation = new System.Windows.Media.Animation.DoubleAnimation
-            {
-                To = 0.0,
-                Duration = TimeSpan.FromMilliseconds(200),
-                EasingFunction = new System.Windows.Media.Animation.QuadraticEase { EasingMode = System.Windows.Media.Animation.EasingMode.EaseInOut }
-            };
-            
-            // 鼠标悬停时显示关闭按钮，标题不隐藏
-            button.MouseEnter += (s, e) => 
-            {
-                closeButtonText.BeginAnimation(UIElement.OpacityProperty, fadeInAnimation);
-            };
-            
-            button.MouseLeave += (s, e) => 
-            {
-                // 检查鼠标是否还在按钮区域内
-                var btn = button;
-                var mousePos = Mouse.GetPosition(btn);
-                if (mousePos.X < 0 || mousePos.Y < 0 || mousePos.X > btn.ActualWidth || mousePos.Y > btn.ActualHeight)
-                {
-                    closeButtonText.BeginAnimation(UIElement.OpacityProperty, fadeOutAnimation);
-                }
-            };
-
-            
-            // 关闭按钮区域也要支持鼠标悬停
-            closeButton.MouseEnter += (s, e) => 
-            {
-                closeButtonText.BeginAnimation(UIElement.OpacityProperty, fadeInAnimation);
-            };
-            
-            closeButton.MouseLeave += (s, e) =>
-            {
-                var btn = button;
-                var mousePos = Mouse.GetPosition(btn);
-                if (mousePos.X < 0 || mousePos.Y < 0 || mousePos.X > btn.ActualWidth || mousePos.Y > btn.ActualHeight)
-                {
-                    closeButtonText.BeginAnimation(UIElement.OpacityProperty, fadeOutAnimation);
-                }
-            };
-
-
-            tabContainer.Children.Add(button);
-            
-            // 保存关闭按钮引用以便后续访问
-            tab.CloseButton = closeButton;
-            tab.TitleTextBlock = titleText;
-            tab.TabContainer = tabContainer;
-
-            tab.TabButton = button;
-            _pathTabs.Add(tab);
-
-            // 添加到面板
-            if (FileBrowser != null && FileBrowser.TabsPanelControl != null)
-            {
-                FileBrowser.TabsPanelControl.Children.Add(tabContainer);
-            }
-
-            ApplyTabOverrides(tab);
-            ApplyPinVisual(tab);
-            ReorderTabs();
-
-            // 切换到新标签页
-            SwitchToTab(tab);
-        }
-
-        private void InitializeTabsDragDrop()
-        {
-            try
-            {
-                if (FileBrowser?.TabsPanelControl == null) return;
-                var panel = FileBrowser.TabsPanelControl;
-                panel.AllowDrop = true;
-                panel.DragOver -= TabsPanel_DragOver;
-                panel.Drop -= TabsPanel_Drop;
-                panel.DragOver += TabsPanel_DragOver;
-                panel.Drop += TabsPanel_Drop;
-            }
-            catch { }
-        }
-
-        private void TabsPanel_DragOver(object sender, DragEventArgs e)
-        {
-            if (!e.Data.GetDataPresent("OoiMRR_TabKey"))
-            {
-                e.Effects = DragDropEffects.None;
-                return;
-            }
-            e.Effects = DragDropEffects.Move;
-            e.Handled = true;
-        }
-
-        private void TabsPanel_Drop(object sender, DragEventArgs e)
-        {
-            try
-            {
-                if (!e.Data.GetDataPresent("OoiMRR_TabKey")) return;
-                var key = e.Data.GetData("OoiMRR_TabKey") as string;
-                if (string.IsNullOrEmpty(key) || FileBrowser?.TabsPanelControl == null) return;
-                var tab = _pathTabs.FirstOrDefault(t => GetTabKey(t) == key);
-                if (tab == null) return;
-
-                var panel = FileBrowser.TabsPanelControl;
-                var mousePos = e.GetPosition(panel);
-                var children = panel.Children.OfType<StackPanel>().ToList();
-                int targetIndex = 0;
-                for (int i = 0; i < children.Count; i++)
-                {
-                    var child = children[i] as FrameworkElement;
-                    if (child == null) continue;
-                    var pos = child.TransformToAncestor(panel).Transform(new System.Windows.Point(0, 0));
-                    double mid = pos.X + child.ActualWidth / 2;
-                    if (mousePos.X > mid) targetIndex = i + 1;
-                }
-
-                int pinnedCount = _pathTabs.Count(t => t.IsPinned);
-                if (tab.IsPinned) targetIndex = Math.Min(targetIndex, pinnedCount);
-                else targetIndex = Math.Max(targetIndex, pinnedCount);
-
-                int currentIndex = children.IndexOf(tab.TabContainer);
-                if (currentIndex == targetIndex) return;
-
-                var pinned = _pathTabs.Where(t => t.IsPinned).ToList();
-                var unpinned = _pathTabs.Where(t => !t.IsPinned).ToList();
-
-                if (tab.IsPinned)
-                {
-                    pinned.Remove(tab);
-                    pinned.Insert(targetIndex, tab);
-                    _config.PinnedTabs = pinned.Select(t => GetTabKey(t)).ToList();
-                    ConfigManager.Save(_config);
-                    _pathTabs = pinned.Concat(unpinned).ToList();
-                }
-                else
-                {
-                    int unTarget = Math.Max(0, targetIndex - pinnedCount);
-                    int unCurrent = unpinned.IndexOf(tab);
-                    if (unCurrent == -1) return;
-                    unpinned.Remove(tab);
-                    if (unTarget > unpinned.Count) unTarget = unpinned.Count;
-                    unpinned.Insert(unTarget, tab);
-                    _pathTabs = pinned.Concat(unpinned).ToList();
-                }
-
-                ReorderTabs();
-                UpdateTabStyles();
-            }
-            catch { }
-        }
-
-        private string GetTabKey(PathTab tab)
-        {
-            if (tab.Type == TabType.Path) return "path:" + (tab.Path ?? string.Empty);
-            if (tab.Type == TabType.Library) return "library:" + (tab.Library?.Id.ToString() ?? "");
-            if (tab.Type == TabType.Tag) return "tag:" + tab.TagId.ToString();
-            return "unknown:" + (tab.Title ?? "");
-        }
-
-        private void ApplyTabOverrides(PathTab tab)
-        {
-            var key = GetTabKey(tab);
-            if (_config.TabTitleOverrides != null && _config.TabTitleOverrides.TryGetValue(key, out var overrideTitle) && !string.IsNullOrWhiteSpace(overrideTitle))
-            {
-                tab.OverrideTitle = overrideTitle;
-                if (tab.TitleTextBlock != null) tab.TitleTextBlock.Text = GetEffectiveTitle(tab);
-                if (tab.TabButton != null) tab.TabButton.ToolTip = tab.Title;
-            }
-            if (_config.PinnedTabs != null && _config.PinnedTabs.Contains(key))
-            {
-                tab.IsPinned = true;
-            }
-        }
-
-        private string GetEffectiveTitle(PathTab tab)
-        {
-            return string.IsNullOrWhiteSpace(tab.OverrideTitle) ? tab.Title : tab.OverrideTitle;
-        }
-
-        private void TogglePinTab(PathTab tab)
-        {
-            if (tab == null) return;
-            tab.IsPinned = !tab.IsPinned;
-            var key = GetTabKey(tab);
-            if (_config.PinnedTabs == null) _config.PinnedTabs = new List<string>();
-            if (tab.IsPinned)
-            {
-                if (!_config.PinnedTabs.Contains(key)) _config.PinnedTabs.Insert(0, key);
-            }
-            else
-            {
-                _config.PinnedTabs.Remove(key);
-            }
-            ConfigManager.Save(_config);
-            ApplyPinVisual(tab);
-            ReorderTabs();
-        }
-
-        private void ApplyPinVisual(PathTab tab)
-        {
-            if (tab == null || tab.TabButton == null || tab.TitleTextBlock == null) return;
-            if (tab.IsPinned)
-            {
-                tab.TabButton.Width = _config.PinnedTabWidth > 0 ? _config.PinnedTabWidth : 90;
-                tab.TitleTextBlock.Text = "📌 " + GetEffectiveTitle(tab);
-                tab.TabButton.ToolTip = GetEffectiveTitle(tab);
-            }
-            else
-            {
-                tab.TabButton.Width = double.NaN;
-                tab.TitleTextBlock.Text = GetEffectiveTitle(tab);
-                tab.TabButton.ToolTip = null;
-            }
-        }
-
-        private void ReorderTabs()
-        {
-            if (FileBrowser == null || FileBrowser.TabsPanelControl == null) return;
-            var pinned = _pathTabs.Where(t => t.IsPinned).ToList();
-            var unpinned = _pathTabs.Where(t => !t.IsPinned).ToList();
-            var ordered = new List<PathTab>();
-            if (_config.PinnedTabs != null && _config.PinnedTabs.Count > 0)
-            {
-                foreach (var k in _config.PinnedTabs)
-                {
-                    var found = pinned.FirstOrDefault(t => GetTabKey(t) == k);
-                    if (found != null) ordered.Add(found);
-                }
-                foreach (var t in pinned)
-                {
-                    if (!ordered.Contains(t)) ordered.Add(t);
-                }
-            }
-            else
-            {
-                ordered.AddRange(pinned);
-            }
-            ordered.AddRange(unpinned);
-            FileBrowser.TabsPanelControl.Children.Clear();
-            foreach (var t in ordered)
-            {
-                if (t.TabContainer != null) FileBrowser.TabsPanelControl.Children.Add(t.TabContainer);
-            }
-            FileBrowser.TabsPanelControl.UpdateLayout();
-            if (FileBrowser.TabsBorderControl != null) FileBrowser.TabsBorderControl.UpdateLayout();
-        }
-
-        private void RenameDisplayTitle(PathTab tab)
-        {
-            try
-            {
-                var dlg = new PathInputDialog("请输入新的显示标题：");
-                dlg.Owner = this;
-                dlg.InputText = GetEffectiveTitle(tab);
-                if (dlg.ShowDialog() == true)
-                {
-                    var newTitle = dlg.InputText?.Trim() ?? string.Empty;
-                    var key = GetTabKey(tab);
-                    if (string.IsNullOrWhiteSpace(newTitle))
-                    {
-                        tab.OverrideTitle = null;
-                        if (_config.TabTitleOverrides != null) _config.TabTitleOverrides.Remove(key);
-                    }
-                    else
-                    {
-                        tab.OverrideTitle = newTitle;
-                        if (_config.TabTitleOverrides == null) _config.TabTitleOverrides = new Dictionary<string, string>();
-                        _config.TabTitleOverrides[key] = newTitle;
-                    }
-                    ConfigManager.Save(_config);
-                    ApplyPinVisual(tab);
-                    if (tab.TitleTextBlock != null) tab.TitleTextBlock.Text = GetEffectiveTitle(tab);
-                }
-            }
-            catch { }
+            _tabService?.OpenTagTab(tag, forceNewTab);
         }
 
         /// <summary>
         /// 切换到指定标签页（统一处理库和路径）
         /// </summary>
-        private void SwitchToTab(PathTab tab)
+        internal void SwitchToTab(PathTab tab)
         {
-            if (tab == null) return;
-
-            _activeTab = tab;
-            UpdateTabStyles();
-
-            // 根据标签页类型加载内容
-            if (tab.Type == TabType.Library)
-            {
-                // 库类型标签页
-                if (tab.Library != null)
-                {
-                    _currentLibrary = tab.Library;
-                    _currentPath = null;  // 库模式下不使用单一路径
-                    _config.LastLibraryId = tab.Library.Id;
-                    ConfigManager.Save(_config);
-                    if (FileBrowser != null) FileBrowser.NavUpEnabled = false;
-                    LoadLibraryFiles(tab.Library);
-                }
-            }
-            else if (tab.Type == TabType.Tag)
-            {
-                _currentLibrary = null;
-                _currentPath = null;
-                _currentTagFilter = new Tag { Id = tab.TagId, Name = tab.TagName };
-                if (FileBrowser != null)
-                {
-                    FileBrowser.AddressText = "";
-                    FileBrowser.IsAddressReadOnly = true;
-                    FileBrowser.SetTagBreadcrumb(tab.TagName);
-                    FileBrowser.NavUpEnabled = false;
-                }
-                FilterByTag(_currentTagFilter);
-            }
-            else
-            {
-                // 路径类型标签页
-                _currentLibrary = null;  // 路径模式下清除库引用
-                
-                // 检查是否是搜索标签页（search://协议）
-                if (tab.Path != null && tab.Path.StartsWith("search://"))
-                {
-                    // 搜索标签页：同步地址栏为规范化关键词并更新面包屑
-                    var keyword = tab.Path.Substring("search://".Length);
-                    _currentPath = null;
-                    if (FileBrowser != null)
-                    {
-                        FileBrowser.AddressText = keyword;
-                        FileBrowser.IsAddressReadOnly = false;
-                        FileBrowser.SetSearchBreadcrumb(keyword);
-                        FileBrowser.NavUpEnabled = false;
-                    }
-                    CheckAndRefreshSearchTab(tab.Path);
-                    return;
-                }
-                
-                try
-                {
-                    // 验证路径是否仍然有效
-                    if (!Directory.Exists(tab.Path))
-                    {
-                        MessageBox.Show($"路径不存在: {tab.Path}\n\n标签页将被关闭。", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
-                        CloseTab(tab);
-                        return;
-                    }
-                }
-                catch (UnauthorizedAccessException ex)
-                {
-                    MessageBox.Show($"无法访问路径: {tab.Path}\n\n{ex.Message}\n\n标签页将被关闭。", "权限错误", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    CloseTab(tab);
-                    return;
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"无法访问路径: {tab.Path}\n\n{ex.Message}\n\n标签页将被关闭。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                    CloseTab(tab);
-                    return;
-                }
-
-                _currentPath = tab.Path;
-                
-                // 正常加载路径
-                try
-                {
-                    NavigateToPathInternal(tab.Path);
-                    if (FileBrowser != null) FileBrowser.NavUpEnabled = true;
-                }
-                catch (UnauthorizedAccessException ex)
-                {
-                    MessageBox.Show($"无法加载路径: {tab.Path}\n\n{ex.Message}", "权限错误", MessageBoxButton.OK, MessageBoxImage.Warning);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"无法加载路径: {tab.Path}\n\n{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-            }
+            _tabService?.SwitchToTab(tab);
         }
 
-        private void RunVisualTests_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                var outDir = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "VisualTests");
-                System.IO.Directory.CreateDirectory(outDir);
-                CaptureElement(NavPathContent, System.IO.Path.Combine(outDir, "NavPath.png"));
-                CaptureElement(NavLibraryContent, System.IO.Path.Combine(outDir, "NavLibrary.png"));
-                CaptureElement(NavTagContent, System.IO.Path.Combine(outDir, "NavTag.png"));
-                if (FileBrowser?.TabsPanelControl != null)
-                {
-                    CaptureElement(FileBrowser.TabsPanelControl, System.IO.Path.Combine(outDir, "Tabs.png"));
-                }
-                var baselineDir = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "VisualBaseline");
-                double diffTotal = 0; int diffCount = 0;
-                foreach (var name in new[] { "NavPath.png", "NavLibrary.png", "NavTag.png", "Tabs.png" })
-                {
-                    var current = System.IO.Path.Combine(outDir, name);
-                    var baseline = System.IO.Path.Combine(baselineDir, name);
-                    if (System.IO.File.Exists(baseline) && System.IO.File.Exists(current))
-                    {
-                        var pct = CompareImages(baseline, current);
-                        diffTotal += pct; diffCount++;
-                    }
-                }
-                if (diffCount > 0)
-                {
-                    var avg = diffTotal / diffCount;
-                    MessageBox.Show($"视觉测试完成，平均差异 {avg:F2}%。快照位于 VisualTests。", "完成", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-                else
-                {
-                    MessageBox.Show("视觉测试快照已生成于 VisualTests 目录。未找到基准图像。", "完成", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message, "视觉测试失败", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        private void CaptureElement(FrameworkElement element, string path)
-        {
-            if (element == null) return;
-            var vis = element.Visibility;
-            if (vis != Visibility.Visible)
-            {
-                element.Visibility = Visibility.Visible;
-                element.UpdateLayout();
-            }
-            element.Measure(new System.Windows.Size(double.PositiveInfinity, double.PositiveInfinity));
-            element.Arrange(new System.Windows.Rect(new System.Windows.Point(0, 0), new System.Windows.Size(element.ActualWidth > 0 ? element.ActualWidth : element.DesiredSize.Width,
-                                                               element.ActualHeight > 0 ? element.ActualHeight : element.DesiredSize.Height)));
-            element.UpdateLayout();
-            var width = (int)Math.Max(1, element.RenderSize.Width);
-            var height = (int)Math.Max(1, element.RenderSize.Height);
-            var rtb = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
-            rtb.Render(element);
-            var encoder = new PngBitmapEncoder();
-            encoder.Frames.Add(BitmapFrame.Create(rtb));
-            using (var fs = System.IO.File.Create(path))
-            {
-                encoder.Save(fs);
-            }
-        }
-
-        private double CompareImages(string baselinePath, string currentPath)
-        {
-            BitmapImage Load(string p)
-            {
-                var img = new BitmapImage();
-                img.BeginInit();
-                img.CacheOption = BitmapCacheOption.OnLoad;
-                img.UriSource = new Uri(p);
-                img.EndInit();
-                return img;
-            }
-            var a = Load(baselinePath);
-            var b = Load(currentPath);
-            if (a.PixelWidth != b.PixelWidth || a.PixelHeight != b.PixelHeight)
-            {
-                return 100.0; // 尺寸不同，视为完全不同
-            }
-            var fmt = PixelFormats.Pbgra32;
-            var fa = new FormatConvertedBitmap(a, fmt, null, 0);
-            var fb = new FormatConvertedBitmap(b, fmt, null, 0);
-            int stride = fa.PixelWidth * (fmt.BitsPerPixel / 8);
-            byte[] pa = new byte[fa.PixelHeight * stride];
-            byte[] pb = new byte[fb.PixelHeight * stride];
-            fa.CopyPixels(pa, stride, 0);
-            fb.CopyPixels(pb, stride, 0);
-            long diff = 0; long total = pa.Length;
-            for (int i = 0; i < pa.Length; i++)
-            {
-                diff += Math.Abs(pa[i] - pb[i]);
-            }
-            // 将字节总差异归一化为百分比（最大差异 255 每字节）
-            double pct = (diff / (double)(total * 255)) * 100.0;
-            return Math.Min(100.0, Math.Max(0.0, pct));
-        }
-
-        private void CheckAndRefreshSearchTab(string searchTabPath)
+        private async void CheckAndRefreshSearchTab(string searchTabPath)
         {
             try
             {
                 if (string.IsNullOrEmpty(searchTabPath)) return;
-                if (!_searchCache.TryGetValue(searchTabPath, out var cache))
+                
+                var keyword = searchTabPath.Substring("search://".Length);
+                if (string.IsNullOrEmpty(keyword)) return;
+                
+                var cacheKey = searchTabPath;
+                var cache = _searchCacheService.GetCache(cacheKey);
+                
+                if (cache == null || !_searchCacheService.IsCacheValid(cacheKey))
                 {
-                    // 无缓存，触发刷新
-                    var keyword = searchTabPath.Substring("search://".Length);
-                    RefreshActiveSearchTab(keyword);
+                    // 无缓存或缓存过期，触发刷新
+                    await RefreshActiveSearchTab(keyword);
                     return;
                 }
+                
                 // 缓存有效则直接使用
-                if (DateTime.UtcNow - cache.LastUpdated <= _searchCacheTTL)
+                _currentFiles = new List<FileSystemItem>(cache.Items);
+                
+                // 从缓存恢复时，如果结果项已有 SearchResultType，则构建分组显示
+                // 否则使用普通列表显示
+                var groupedItems = SearchResultGrouper.BuildGroupedFromCachedResults(_currentFiles);
+                
+                if (FileBrowser != null)
                 {
-                    _currentFiles = new List<FileSystemItem>(cache.Items);
-                    
-                    // 从缓存恢复时，如果结果项已有 SearchResultType，则构建分组显示
-                    // 否则使用普通列表显示
-                    var groupedItems = SearchResultGrouper.BuildGroupedFromCachedResults(_currentFiles);
+                    if (groupedItems != null && groupedItems.Count > 0)
+                    {
+                        FileBrowser.SetGroupedSearchResults(groupedItems);
+                    }
+                    else
+                    {
+                        FileBrowser.FilesItemsSource = null;
+                        FileBrowser.FilesItemsSource = _currentFiles;
+                    }
+                    FileBrowser.LoadMoreVisible = cache.HasMore;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"检查搜索缓存失败: {ex.Message}");
+            }
+        }
+
+        private async Task RefreshActiveSearchTab(string keyword)
+        {
+            try
+            {
+                // 规范化关键词（确保使用规范化后的关键词）
+                var normalizedKeyword = SearchService.NormalizeKeyword(keyword);
+                
+                FileBrowser?.ShowEmptyState("正在刷新...");
+                
+                // 使用 SearchService 刷新搜索（重新执行完整搜索，包含备注搜索以支持分组显示）
+                var searchResult = await _searchService.PerformSearchAsync(
+                    keyword: normalizedKeyword,
+                    searchOptions: _searchOptions,
+                    currentPath: _currentPath,
+                    searchNames: true,
+                    searchNotes: true,
+                    getNotesFromDb: keywordParam => FileNotesService.SearchFilesByNotes(keywordParam)
+                );
+                
+                if (searchResult != null && searchResult.Items != null)
+                {
+                    _currentFiles = searchResult.Items;
+                    var groupedItems = searchResult.GroupedItems;
                     
                     if (FileBrowser != null)
                     {
+                        // 使用分组显示
                         if (groupedItems != null && groupedItems.Count > 0)
                         {
                             FileBrowser.SetGroupedSearchResults(groupedItems);
@@ -2824,53 +881,16 @@ namespace OoiMRR
                             FileBrowser.FilesItemsSource = null;
                             FileBrowser.FilesItemsSource = _currentFiles;
                         }
-                        FileBrowser.LoadMoreVisible = cache.HasMore;
-                    }
-                    _searchKeywordPaging = cache.Keyword;
-                    _searchOffset = cache.Offset;
-                    _searchHasMore = cache.HasMore;
-                    _searchPageSize = 1000;
-                    return;
-                }
-                // 缓存过期，刷新
-                RefreshActiveSearchTab(cache.Keyword);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"检查搜索缓存失败: {ex.Message}");
-            }
-        }
-
-        private void RefreshActiveSearchTab(string keyword)
-        {
-            try
-            {
-                _searchCts?.Cancel();
-                _searchCts = new System.Threading.CancellationTokenSource();
-                FileBrowser?.ShowEmptyState("正在刷新...");
-                if (EverythingHelper.IsEverythingRunning())
-                {
-                    var rangePath = (_searchOptions.PathRange == PathRangeFilter.CurrentDrive && !string.IsNullOrEmpty(_currentPath))
-                        ? new DriveInfo(_currentPath).RootDirectory.FullName
-                        : null;
-                    var firstPage = EverythingHelper.SearchFilesPaged(keyword, 0, _searchPageSize, rangePath);
-                    var filtered = ApplyTypeFilter(firstPage).ToList();
-                    var items = BuildItemsFromPaths(filtered);
-                    _currentFiles = new List<FileSystemItem>(items);
-                    _searchKeywordPaging = keyword;
-                    _searchOffset = firstPage.Count;
-                    _searchHasMore = firstPage.Count == _searchPageSize && _searchOffset < _searchMax;
-                    UpdateSearchCache($"search://{keyword}", items, _searchOffset, _searchHasMore, keyword, rangePath);
-                    
-                    // RefreshActiveSearchTab 只做简单刷新，不构建分组（因为缺少备注搜索信息）
-                    // 如果需要分组显示，应该重新执行完整搜索
-                    if (FileBrowser != null)
-                    {
-                        FileBrowser.FilesItemsSource = null;
-                        FileBrowser.FilesItemsSource = _currentFiles;
-                        FileBrowser.LoadMoreVisible = _searchHasMore;
+                        // 更新地址栏和面包屑，确保显示规范化关键词
+                        FileBrowser.SetSearchBreadcrumb(normalizedKeyword);
+                        FileBrowser.AddressText = normalizedKeyword;
+                        FileBrowser.LoadMoreVisible = searchResult.HasMore;
                         FileBrowser.HideEmptyState();
                     }
+                }
+                else
+                {
+                    FileBrowser?.ShowEmptyState("刷新失败，点击搜索重试");
                 }
             }
             catch (Exception ex)
@@ -2880,109 +900,19 @@ namespace OoiMRR
             }
         }
 
-        private void UpdateSearchCache(string key, List<FileSystemItem> items, int offset, bool hasMore, string keyword, string rangePath)
-        {
-            try
-            {
-                _searchCache[key] = new SearchCache
-                {
-                    Keyword = keyword,
-                    Items = new List<FileSystemItem>(items),
-                    LastUpdated = DateTime.UtcNow,
-                    Type = _searchOptions.Type,
-                    PathRange = _searchOptions.PathRange,
-                    RangePath = rangePath,
-                    Offset = offset,
-                    HasMore = hasMore
-                };
-            }
-            catch { }
-        }
-
         /// <summary>
         /// 更新所有标签页样式（高亮当前标签）
         /// </summary>
         private void UpdateTabStyles()
         {
-            foreach (var tab in _pathTabs)
-            {
-                if (tab.TabButton != null)
-                {
-                    if (tab == _activeTab)
-                    {
-                        tab.TabButton.Style = (Style)FindResource("ActiveTabButtonStyle");
-                    }
-                    else
-                    {
-                        tab.TabButton.Style = (Style)FindResource("TabButtonStyle");
-                    }
-                    
-                    // 更新关闭按钮的颜色（根据标签状态）
-                    if (tab.CloseButton is Border border && border.Child is TextBlock closeButtonText)
-                    {
-                        if (tab == _activeTab)
-                        {
-                            closeButtonText.Foreground = System.Windows.Media.Brushes.White; // 活动标签使用白色
-                        }
-                        else
-                        {
-                            closeButtonText.Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0x6C, 0x75, 0x7D)); // 非活动标签使用灰色
-                        }
-                    }
-                }
-            }
+            _tabService?.UpdateTabStyles();
         }
         /// <summary>
         /// 在库模式下设置标签页（为库的每个路径创建标签页）
         /// </summary>
         private void SetupLibraryTabs(Library library)
         {
-            if (library == null || library.Paths == null || library.Paths.Count == 0) return;
-            if (FileBrowser == null || FileBrowser.TabsPanelControl == null) return;
-
-            // 获取库中所有有效的路径
-            var validPaths = library.Paths.Where(p => Directory.Exists(p)).ToList();
-            
-            if (validPaths.Count == 0) return;
-
-            // 只移除不属于当前库的标签页，保留属于当前库的标签页
-            var tabsToRemove = _pathTabs.Where(tab => !validPaths.Contains(tab.Path)).ToList();
-            foreach (var tab in tabsToRemove)
-            {
-                CloseTab(tab);
-            }
-
-            // 为每个有效路径创建标签页（如果不存在）
-            foreach (var path in validPaths)
-            {
-                try
-                {
-                    // 检查是否已存在该路径的标签页
-                    var existingTab = _pathTabs.FirstOrDefault(t => t.Path == path);
-                    if (existingTab == null)
-                    {
-                        CreateTab(path);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"创建库路径标签页失败 {path}: {ex.Message}");
-                }
-            }
-
-            // 如果没有活动标签页，或者当前活动标签页不属于当前库，激活第一个标签页
-            if (_activeTab == null || !validPaths.Contains(_activeTab.Path))
-            {
-                var firstTab = _pathTabs.FirstOrDefault(t => validPaths.Contains(t.Path));
-                if (firstTab != null)
-                {
-                    SwitchToTab(firstTab);
-                }
-                else if (_pathTabs.Count > 0)
-                {
-                    SwitchToTab(_pathTabs.First());
-                }
-            }
+            _tabService?.SetupLibraryTabs(library);
         }
 
         /// <summary>
@@ -2990,126 +920,15 @@ namespace OoiMRR
         /// </summary>
         private void ClearTabsInLibraryMode()
         {
-            if (FileBrowser == null || FileBrowser.TabsPanelControl == null) return;
-
-            // 清空所有标签页
-            var tabsToRemove = _pathTabs.ToList();
-            foreach (var tab in tabsToRemove)
-            {
-                CloseTab(tab);
-            }
-
-            // 如果没有标签页了，至少创建一个默认标签页（桌面）
-            if (_pathTabs.Count == 0)
-            {
-                var desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-                if (Directory.Exists(desktopPath))
-                {
-                    CreateTab(desktopPath);
-                }
-            }
+            _tabService?.ClearTabsInLibraryMode();
         }
 
         /// <summary>
         /// 关闭标签页
         /// </summary>
-        private void CloseTab(PathTab tab)
+        internal void CloseTab(PathTab tab)
         {
-            if (tab == null || tab.TabButton == null) return;
-            // 在库模式下，如果关闭的是最后一个标签页，不阻止关闭（会重新加载库）
-            // 在路径模式下，至少保留一个标签页
-            if (_currentLibrary == null && _pathTabs.Count <= 1) return;
-            if (FileBrowser == null || FileBrowser.TabsPanelControl == null) return; // 确保控件已初始化
-
-            // 从列表中移除
-            _pathTabs.Remove(tab);
-
-            // 从面板中移除（找到包含按钮的容器）
-            var container = tab.TabButton.Parent as StackPanel;
-            if (container != null && FileBrowser != null && FileBrowser.TabsPanelControl != null)
-            {
-                // 先移除所有子元素，确保完全清理
-                container.Children.Clear();
-                FileBrowser.TabsPanelControl.Children.Remove(container);
-                
-                // 强制更新布局，避免残留占位符
-                FileBrowser.TabsPanelControl.UpdateLayout();
-                if (FileBrowser.TabsBorderControl != null)
-                {
-                    FileBrowser.TabsBorderControl.UpdateLayout();
-                }
-            }
-            
-            // 清理资源
-            tab.TabButton = null;
-            tab.CloseButton = null;
-
-            // 如果关闭的是当前标签页，切换到其他标签页
-            if (tab == _activeTab)
-            {
-                if (_pathTabs.Count > 0)
-                {
-                    SwitchToTab(_pathTabs.First());
-                }
-                else
-                {
-                    // 如果没有标签页了，创建默认标签页（桌面）
-                    var desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-                    if (Directory.Exists(desktopPath))
-                    {
-                        CreateTab(desktopPath);
-                    }
-                }
-            }
-            else
-            {
-                UpdateTabStyles();
-            }
-        }
-
-        /// <summary>
-        /// 获取路径的显示标题（处理驱动器根目录）
-        /// </summary>
-        private string GetPathDisplayTitle(string path)
-        {
-            if (string.IsNullOrEmpty(path)) return path;
-            
-            // 规范化路径（移除末尾的反斜杠，但保留驱动器根目录的形式）
-            string normalizedPath = path.TrimEnd('\\');
-            if (string.IsNullOrEmpty(normalizedPath)) normalizedPath = path;
-            
-            // 检查是否是驱动器根目录（如 C:\ 或 F:\）
-            string rootPath = Path.GetPathRoot(path);
-            if (rootPath == path || rootPath.TrimEnd('\\') == normalizedPath)
-            {
-                // 是驱动器根目录，尝试获取卷标
-                try
-                {
-                    var driveInfo = new DriveInfo(rootPath);
-                    if (driveInfo.IsReady && !string.IsNullOrEmpty(driveInfo.VolumeLabel))
-                    {
-                        return $"{driveInfo.Name.TrimEnd('\\')} ({driveInfo.VolumeLabel})";
-                    }
-                    else
-                    {
-                        return driveInfo.Name.TrimEnd('\\');
-                    }
-                }
-                catch
-                {
-                    // 如果获取失败，返回路径本身（去掉末尾反斜杠）
-                    return rootPath.TrimEnd('\\');
-                }
-            }
-            
-            // 普通路径，使用文件名
-            string fileName = Path.GetFileName(path);
-            if (string.IsNullOrEmpty(fileName))
-            {
-                // 如果 GetFileName 返回空，可能路径本身有问题，返回路径
-                return path;
-            }
-            return fileName;
+            _tabService?.CloseTab(tab);
         }
 
         /// <summary>
@@ -3117,123 +936,29 @@ namespace OoiMRR
         /// </summary>
         private void UpdateTabTitle(PathTab tab, string path)
         {
-            if (tab == null) return;
-            tab.Title = GetPathDisplayTitle(path);
-            if (tab.TitleTextBlock != null)
-            {
-                tab.TitleTextBlock.Text = GetEffectiveTitle(tab);
-            }
+            _tabService?.UpdateTabTitle(tab, path);
         }
 
         private void TabButton_Click(object sender, RoutedEventArgs e)
         {
             if (sender is Button button && button.Tag is PathTab tab)
             {
-                SwitchToTab(tab);
+                _tabService?.SwitchToTab(tab);
             }
         }
-
-        // 默认名称搜索（顶层文件/目录）
-        private void TryDefaultNameSearch(string keyword, HashSet<string> resultPaths)
-        {
-            try
-            {
-                var drives = DriveInfo.GetDrives().Where(d => d.IsReady && d.DriveType == DriveType.Fixed);
-                foreach (var drive in drives)
-                {
-                    try
-                    {
-                        var root = drive.RootDirectory.FullName;
-                        var files = Directory.GetFiles(root, "*" + keyword + "*", SearchOption.TopDirectoryOnly).Take(1000);
-                        foreach (var file in files)
-                        {
-                            resultPaths.Add(file);
-                        }
-                        var dirs = Directory.GetDirectories(root, "*" + keyword + "*", SearchOption.TopDirectoryOnly).Take(1000);
-                        foreach (var dir in dirs)
-                        {
-                            resultPaths.Add(dir);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine($"搜索驱动器 {drive.Name} 失败: {ex.Message}");
-                    }
-                }
-                Debug.WriteLine($"默认搜索完成，聚合结果数: {resultPaths.Count}");
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"默认搜索失败: {ex.Message}");
-                MessageBox.Show($"文件搜索失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
 
         #endregion
 
-        private List<FileSystemItem> BuildItemsFromPaths(IEnumerable<string> paths)
-        {
-            var list = new List<FileSystemItem>();
-            foreach (var filePath in paths)
-            {
-                if (!File.Exists(filePath) && !Directory.Exists(filePath))
-                    continue;
-                try
-                {
-                    var item = new FileSystemItem
-                    {
-                        Name = Path.GetFileName(filePath),
-                        Path = filePath,
-                        Type = Directory.Exists(filePath) ? "文件夹" : Path.GetExtension(filePath),
-                        Size = Directory.Exists(filePath) ? "" : _fileListService.FormatFileSize(new FileInfo(filePath).Length),
-                        ModifiedDate = Directory.Exists(filePath) ?
-                            Directory.GetLastWriteTime(filePath).ToString("yyyy-MM-dd HH:mm") :
-                            File.GetLastWriteTime(filePath).ToString("yyyy-MM-dd HH:mm"),
-                        IsDirectory = Directory.Exists(filePath)
-                    };
-                    if (App.IsTagTrainAvailable)
-                    {
-                        var fileTagIds = OoiMRRIntegration.GetFileTagIds(item.Path);
-                        if (fileTagIds != null && fileTagIds.Count > 0)
-                        {
-                            var fileTagNames = fileTagIds.Select(tagId => OoiMRRIntegration.GetTagName(tagId))
-                                .Where(name => !string.IsNullOrEmpty(name))
-                                .ToList();
-                            item.Tags = string.Join(", ", fileTagNames);
-                        }
-                        else
-                        {
-                            item.Tags = "";
-                        }
-                    }
-                    else
-                    {
-                        item.Tags = "";
-                    }
-                    var notes = FileNotesService.GetFileNotes(item.Path);
-                    if (!string.IsNullOrEmpty(notes))
-                    {
-                        var firstLine = notes.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "";
-                        item.Notes = firstLine.Length > 100 ? firstLine.Substring(0, 100) + "..." : firstLine;
-                    }
-                    else
-                    {
-                        item.Notes = "";
-                    }
-                    list.Add(item);
-                }
-                catch { }
-            }
-            return list;
-        }
-
-        private void NavigateToPath(string path)
+        internal void NavigateToPath(string path)
         {
             if (Directory.Exists(path))
             {
+                // 切换到路径导航模式
+                SwitchNavigationMode("Path");
+                
                 // 更新或创建标签页
-                if (_activeTab != null && _activeTab.Type == TabType.Path && _activeTab.Path == path)
+                var activeTab = _tabService.ActiveTab;
+                if (activeTab != null && activeTab.Type == TabType.Path && activeTab.Path == path)
                 {
                     // 已经是当前标签页的路径，直接导航
                     NavigateToPathInternal(path);
@@ -3241,7 +966,7 @@ namespace OoiMRR
                 else
                 {
                     // 查找是否已有该路径的标签页
-                    var existingTab = _pathTabs.FirstOrDefault(t => t.Type == TabType.Path && t.Path == path);
+                    var existingTab = _tabService.FindTabByPath(path);
                     if (existingTab != null)
                     {
                         SwitchToTab(existingTab);
@@ -3249,11 +974,11 @@ namespace OoiMRR
                     else
                     {
                         // 更新当前标签页路径或创建新标签页
-                        if (_activeTab != null && _activeTab.Type == TabType.Path)
+                        if (activeTab != null && activeTab.Type == TabType.Path)
                         {
                             // 如果当前标签页是路径类型，更新它
-                            _activeTab.Path = path;
-                            UpdateTabTitle(_activeTab, path);
+                            activeTab.Path = path;
+                            UpdateTabTitle(activeTab, path);
                             NavigateToPathInternal(path);
                         }
                         else
@@ -3270,57 +995,53 @@ namespace OoiMRR
         {
             if (!Directory.Exists(path)) return;
 
-            // 如果进入的是文件夹，计算并更新其大小缓存
-            // 检查数据库中是否有缓存，如果没有或已过期，重新计算
-            var cachedSize = DatabaseManager.GetFolderSize(path);
-            if (!cachedSize.HasValue)
+            var isDriveRoot = string.Equals(
+                System.IO.Path.GetPathRoot(path)?.TrimEnd('\\'),
+                path.TrimEnd('\\'),
+                StringComparison.OrdinalIgnoreCase);
+
+            // 如果进入的是文件夹，计算并更新其大小缓存（驱动器根目录跳过，避免耗时）
+            if (!isDriveRoot)
             {
-                // 没有缓存，异步计算并更新
-                _ = _folderSizeCalculationService.CalculateAndUpdateFolderSizeAsync(path);
-            }
-            else
-            {
-                // 有缓存，但需要验证是否仍然有效（通过最后修改时间检查）
-                // GetFolderSize 已经做了这个检查，所以这里只需要计算实际大小并比较
-                // 异步计算并更新（如果大小有变化）
-                _ = _folderSizeCalculationService.CalculateAndUpdateFolderSizeIfChangedAsync(
-                    path, cachedSize.Value);
+                var cachedSize = DatabaseManager.GetFolderSize(path);
+                if (!cachedSize.HasValue)
+                {
+                    _ = _folderSizeCalculationService.CalculateAndUpdateFolderSizeAsync(path);
+                }
+                else
+                {
+                    _ = _folderSizeCalculationService.CalculateAndUpdateFolderSizeIfChangedAsync(
+                        path, cachedSize.Value);
+                }
             }
 
-            // 只有在当前路径不为空时才添加到历史记录
-            if (!string.IsNullOrEmpty(_currentPath) && _currentPath != path)
-            {
-                AddToHistory(_currentPath);
-            }
+            // 更新导航服务的当前路径（会自动添加到历史记录）
+            _navigationService.CurrentPath = path;
             _currentPath = path;
             // 清除任何过滤状态
             ClearFilter();
             LoadCurrentDirectory();
             if (FileBrowser != null) FileBrowser.NavUpEnabled = true;
+            UpdateNavigationButtonsState();
             
-            // 第一次打开文件夹时，异步计算所有子文件夹的大小
-            // 延迟执行，避免阻塞文件列表加载
-            this.Dispatcher.BeginInvoke(new Action(() =>
+            // 第一次打开文件夹时，异步计算所有子文件夹的大小（驱动器根目录跳过，避免卡顿）
+            if (!isDriveRoot)
             {
-                _ = _folderSizeCalculationService.CalculateAllSubfolderSizesOnFirstOpenAsync(path);
-            }), System.Windows.Threading.DispatcherPriority.Background);
+                this.Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    _ = _folderSizeCalculationService.CalculateAllSubfolderSizesOnFirstOpenAsync(path);
+                }), System.Windows.Threading.DispatcherPriority.Background);
+            }
             
             // 保存当前路径到配置
-            _config.LastPath = _currentPath;
-            ConfigManager.Save(_config);
+            if (_configService != null)
+            {
+                _configService.Config.LastPath = _currentPath;
+                _configService.SaveCurrentConfig();
+            }
         }
         
 
-        private void AddToHistory(string path)
-        {
-            if (_currentHistoryIndex >= 0 && _currentHistoryIndex < _navigationHistory.Count - 1)
-            {
-                _navigationHistory.RemoveRange(_currentHistoryIndex + 1, _navigationHistory.Count - _currentHistoryIndex - 1);
-            }
-            
-            _navigationHistory.Add(path);
-            _currentHistoryIndex = _navigationHistory.Count - 1;
-        }
         /// <summary>
         /// 异步加载文件列表
         /// </summary>
@@ -3357,7 +1078,7 @@ namespace OoiMRR
         /// <summary>
         /// 加载文件列表（同步包装器，保持向后兼容）
         /// </summary>
-        private void LoadFiles()
+        internal void LoadFiles()
         {
             // 使用异步方法，但不等待，避免阻塞UI
             _ = LoadFilesAsync();
@@ -3381,7 +1102,10 @@ namespace OoiMRR
                     _currentFiles.AddRange(items);
                     
                     // 应用排序
-                    SortFiles();
+                    if (_columnService != null)
+                    {
+                        _currentFiles = _columnService.SortFiles(_currentFiles);
+                    }
 
                     if (FileBrowser != null)
                         FileBrowser.FilesItemsSource = _currentFiles;
@@ -3532,7 +1256,7 @@ namespace OoiMRR
 
         #region 拖拽功能
 
-        private void InitializeDragDrop()
+        internal void InitializeDragDrop()
         {
             _dragDropManager = new DragDropManager();
             
@@ -3549,7 +1273,7 @@ namespace OoiMRR
             InitializeLibraryDragDrop();
         }
         
-        private void InitializeLibraryDragDrop()
+        internal void InitializeLibraryDragDrop()
         {
             if (LibrariesListBox == null) return;
             
@@ -3928,7 +1652,7 @@ namespace OoiMRR
                         LoadLibraries();
                         
                         // 选中新创建的库
-                        EnsureSelectedItemVisible(LibrariesListBox, targetLibrary);
+                        _uiHelperService?.EnsureSelectedItemVisible(LibrariesListBox, targetLibrary);
                     }
                     else if (libraryId < 0)
                     {
@@ -3939,7 +1663,7 @@ namespace OoiMRR
                         if (existingLibrary != null)
                         {
                             targetLibrary = existingLibrary;
-                            EnsureSelectedItemVisible(LibrariesListBox, targetLibrary);
+                            _uiHelperService?.EnsureSelectedItemVisible(LibrariesListBox, targetLibrary);
                         }
                     }
                     else
@@ -4162,242 +1886,85 @@ namespace OoiMRR
 
         #region 事件处理
 
-        private void NavigateBack_Click(object sender, RoutedEventArgs e)
+        internal void NavigateBack_Click(object sender, RoutedEventArgs e)
         {
-            if (_currentHistoryIndex > 0)
+            string path = _navigationService.NavigateBack();
+            if (!string.IsNullOrEmpty(path))
             {
-                _currentHistoryIndex--;
-                _currentPath = _navigationHistory[_currentHistoryIndex];
+                _currentPath = path;
                 ClearFilter();
                 LoadCurrentDirectory();
+                UpdateNavigationButtonsState();
             }
         }
 
         private void NavigateForward_Click(object sender, RoutedEventArgs e)
         {
-            if (_currentHistoryIndex < _navigationHistory.Count - 1)
+            string path = _navigationService.NavigateForward();
+            if (!string.IsNullOrEmpty(path))
             {
-                _currentHistoryIndex++;
-                _currentPath = _navigationHistory[_currentHistoryIndex];
+                _currentPath = path;
                 ClearFilter();
                 LoadCurrentDirectory();
+                UpdateNavigationButtonsState();
             }
         }
 
         private void NavigateUp_Click(object sender, RoutedEventArgs e)
         {
-            if (string.IsNullOrEmpty(_currentPath))
+            string parentPath = _navigationService.NavigateUp();
+            if (!string.IsNullOrEmpty(parentPath))
             {
-                return;
+                NavigateToPath(parentPath);
             }
-
-            try
-            {
-                if (File.Exists(_currentPath))
-                {
-                    var dir = Path.GetDirectoryName(_currentPath);
-                    if (!string.IsNullOrEmpty(dir))
-                    {
-                        NavigateToPath(dir);
-                    }
-                    return;
-                }
-
-                var parent = Directory.GetParent(_currentPath);
-                if (parent != null)
-                {
-                    NavigateToPath(parent.FullName);
-                }
-            }
-            catch (ArgumentNullException)
-            {
-            }
-            catch (ArgumentException)
-            {
-            }
-        }
-
-        private void FileBrowser_PathChanged(object sender, string path)
-        {
-            if (string.IsNullOrEmpty(path))
-                return;
-            
-            System.Diagnostics.Debug.WriteLine($"[FileBrowser_PathChanged] 收到路径变化: {path}");
-            
-            // 检查是否为有效路径
-            bool isPath = Directory.Exists(path) || File.Exists(path);
-            System.Diagnostics.Debug.WriteLine($"[FileBrowser_PathChanged] 是否为有效路径: {isPath}");
-            
-            if (isPath)
-            {
-                // 使用统一导航协调器处理路径导航（左键点击）
-                _navigationCoordinator.HandlePathNavigation(path, NavigationCoordinator.NavigationSource.AddressBar, NavigationCoordinator.ClickType.LeftClick);
-                return;
-            }
-            
-            // 非有效路径：按搜索关键词处理（支持回车触发搜索）
-            var keyword = path?.Trim() ?? "";
-            if (!string.IsNullOrEmpty(keyword))
-            {
-                // 规范化前缀"搜索:"
-                while (keyword.StartsWith("搜索:"))
-                {
-                    keyword = keyword.Substring("搜索:".Length).Trim();
-                }
-                
-                System.Diagnostics.Debug.WriteLine($"[FileBrowser_PathChanged] 执行搜索，关键词: {keyword}");
-                PerformSearch(keyword, true, true);
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine($"[FileBrowser_PathChanged] 关键词为空，不执行搜索");
-            }
-        }
-
-        private void FileBrowser_BreadcrumbMiddleClicked(object sender, string path)
-        {
-            if (string.IsNullOrEmpty(path))
-                return;
-            
-            // 处理tag://路径，返回到标签浏览模式
-            if (path == "tag://")
-            {
-                // 切换到标签模式（如果当前不在标签模式）
-                if (_config.LastNavigationMode != "Tag")
-                {
-                    SwitchNavigationMode("Tag");
-                }
-                else
-                {
-                    // 已经在标签模式，清除当前选中的标签，显示所有标签
-                    _currentTagFilter = null;
-                    if (FileBrowser != null)
-                    {
-                        FileBrowser.FilesItemsSource = null;
-                        FileBrowser.AddressText = "";
-                        FileBrowser.IsAddressReadOnly = true;
-                        FileBrowser.SetTagBreadcrumb("标签");
-                    }
-                    HideEmptyStateMessage();
-                }
-                return;
-            }
-            
-            // 使用统一导航协调器处理面包屑中键点击（中键打开新标签页）
-            _navigationCoordinator.HandlePathNavigation(path, NavigationCoordinator.NavigationSource.Breadcrumb, NavigationCoordinator.ClickType.MiddleClick);
-        }
-
-        private void FileBrowser_BreadcrumbClicked(object sender, string path)
-        {
-            // 处理tag://路径，返回到标签浏览模式
-            if (path == "tag://")
-            {
-                // 切换到标签模式（如果当前不在标签模式）
-                if (_config.LastNavigationMode != "Tag")
-                {
-                    SwitchNavigationMode("Tag");
-                }
-                else
-                {
-                    // 已经在标签模式，清除当前选中的标签，显示所有标签
-                    _currentTagFilter = null;
-                    if (FileBrowser != null)
-                    {
-                        FileBrowser.FilesItemsSource = null;
-                        FileBrowser.AddressText = "";
-                        FileBrowser.IsAddressReadOnly = true;
-                        FileBrowser.SetTagBreadcrumb("标签");
-                    }
-                    HideEmptyStateMessage();
-                }
-                return;
-            }
-            
-            // 使用统一导航协调器处理面包屑左键点击
-            _navigationCoordinator.HandlePathNavigation(path, NavigationCoordinator.NavigationSource.Breadcrumb, NavigationCoordinator.ClickType.LeftClick);
         }
         
-        // 文件浏览控件的事件转发
-        private void FileBrowser_FilesSelectionChanged(object sender, SelectionChangedEventArgs e)
+        /// <summary>
+        /// NavigationService 导航请求事件处理
+        /// </summary>
+        private void OnNavigationServiceNavigateRequested(object sender, string path)
         {
-            FilesListView_SelectionChanged(sender, e);
+            // 导航服务已更新 CurrentPath，这里只需要同步 _currentPath
+            _currentPath = path;
+            UpdateNavigationButtonsState();
         }
-
-        private void FileBrowser_FilesMouseDoubleClick(object sender, MouseButtonEventArgs e)
+        
+        /// <summary>
+        /// 更新导航按钮状态
+        /// </summary>
+        internal void UpdateNavigationButtonsState()
         {
-            FilesListView_MouseDoubleClick(sender, e);
-        }
-
-        private void FileBrowser_FilesPreviewMouseDoubleClick(object sender, MouseButtonEventArgs e)
-        {
-            FilesListView_PreviewMouseDoubleClick(sender, e);
-        }
-
-        private void FileBrowser_FilesPreviewKeyDown(object sender, KeyEventArgs e)
-        {
-            FilesListView_PreviewKeyDown(sender, e);
-        }
-
-        private void FileBrowser_FilesPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-        {
-            FilesListView_PreviewMouseLeftButtonDown(sender, e);
-        }
-
-        private void FileBrowser_FilesMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
-        {
-            FilesListView_MouseLeftButtonUp(sender, e);
-        }
-
-        private void FileBrowser_FilesPreviewMouseDown(object sender, MouseButtonEventArgs e)
-        {
-            FilesListView_PreviewMouseDown(sender, e);
-        }
-
-        private void FileBrowser_GridViewColumnHeaderClick(object sender, RoutedEventArgs e)
-        {
-            GridViewColumnHeader_Click(sender, e);
-        }
-
-        private void FileBrowser_FilesSizeChanged(object sender, SizeChangedEventArgs e)
-        {
-            ListView_SizeChanged(sender, e);
-        }
-
-        private void GridSplitter_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
-        {
-            try
+            // 使用 NavigationModeService 更新导航按钮状态
+            if (_navigationModeService != null)
             {
-                if (ColLeft != null)
-                {
-                    var w = ColLeft.Width.Value;
-                    var newW = w + e.HorizontalChange;
-                    if (newW < 0) newW = 0;
-                    var min = Math.Max(0, ColLeft.MinWidth);
-                    if (newW < min) newW = min;
-                    ColLeft.Width = new GridLength(newW);
-                }
+                _navigationModeService.UpdateNavigationButtonsState();
             }
-            catch { }
         }
 
-        private void FileBrowser_FilesPreviewMouseDoubleClickForBlank(object sender, MouseButtonEventArgs e)
-        {
-            FilesListView_PreviewMouseDoubleClickForBlank(sender, e);
-        }
+        // FileBrowser 事件桥接方法 - 已迁移到 FileBrowserEventHandler
+        private void FileBrowser_PathChanged(object sender, string path) => _fileBrowserEventHandler?.FileBrowser_PathChanged(sender, path);
+        private void FileBrowser_BreadcrumbMiddleClicked(object sender, string path) => _fileBrowserEventHandler?.FileBrowser_BreadcrumbMiddleClicked(sender, path);
+        private void FileBrowser_BreadcrumbClicked(object sender, string path) => _fileBrowserEventHandler?.FileBrowser_BreadcrumbClicked(sender, path);
+        private void FileBrowser_FilesSelectionChanged(object sender, SelectionChangedEventArgs e) => _fileBrowserEventHandler?.FileBrowser_FilesSelectionChanged(sender, e);
+        private void FileBrowser_FilesMouseDoubleClick(object sender, MouseButtonEventArgs e) => _fileBrowserEventHandler?.FileBrowser_FilesMouseDoubleClick(sender, e);
+        private void FileBrowser_FilesPreviewMouseDoubleClick(object sender, MouseButtonEventArgs e) => _fileBrowserEventHandler?.FileBrowser_FilesPreviewMouseDoubleClick(sender, e);
+        private void FileBrowser_FilesPreviewKeyDown(object sender, KeyEventArgs e) => _fileBrowserEventHandler?.FileBrowser_FilesPreviewKeyDown(sender, e);
+        private void FileBrowser_FilesPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e) => _fileBrowserEventHandler?.FileBrowser_FilesPreviewMouseLeftButtonDown(sender, e);
+        private void FileBrowser_FilesMouseLeftButtonUp(object sender, MouseButtonEventArgs e) => _fileBrowserEventHandler?.FileBrowser_FilesMouseLeftButtonUp(sender, e);
+        private void FileBrowser_FilesPreviewMouseDown(object sender, MouseButtonEventArgs e) => _fileBrowserEventHandler?.FileBrowser_FilesPreviewMouseDown(sender, e);
+        private void FileBrowser_GridViewColumnHeaderClick(object sender, RoutedEventArgs e) => _fileBrowserEventHandler?.FileBrowser_GridViewColumnHeaderClick(sender, e);
+        private void FileBrowser_FilesSizeChanged(object sender, SizeChangedEventArgs e) => _fileBrowserEventHandler?.FileBrowser_FilesSizeChanged(sender, e);
+        private void FileBrowser_FilesPreviewMouseDoubleClickForBlank(object sender, MouseButtonEventArgs e) => _fileBrowserEventHandler?.FileBrowser_FilesPreviewMouseDoubleClickForBlank(sender, e);
+        private void FileBrowser_SearchClicked(object sender, RoutedEventArgs e) => _fileBrowserEventHandler?.FileBrowser_SearchClicked(sender, e);
+        private void FileBrowser_FilterClicked(object sender, RoutedEventArgs e) => _fileBrowserEventHandler?.FileBrowser_FilterClicked(sender, e);
+        private void FileBrowser_LoadMoreClicked(object sender, RoutedEventArgs e) => _fileBrowserEventHandler?.FileBrowser_LoadMoreClicked(sender, e);
+        private void FileBrowser_Loaded(object sender, RoutedEventArgs e) => _fileBrowserEventHandler?.FileBrowser_Loaded(sender, e);
+        
+        // 菜单事件桥接方法 - 已迁移到 MenuEventHandler
+        internal void Refresh_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.Refresh_Click(sender, e);
+        private void ClearFilter_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.ClearFilter_Click(sender, e);
 
-        private void Refresh_Click(object sender, RoutedEventArgs e)
-        {
-            ClearFilter();
-            LoadCurrentDirectory();
-        }
-
-        private void ClearFilter_Click(object sender, RoutedEventArgs e)
-        {
-            ClearFilter();
-            LoadCurrentDirectory();
-        }
-
-        private void ClearFilter()
+        internal void ClearFilter()
         {
             // 清除过滤状态，恢复正常的文件浏览
             _currentTagFilter = null;
@@ -4409,11 +1976,11 @@ namespace OoiMRR
             HideEmptyStateMessage();
         }
 
-        private void FilesListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        internal void FilesListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (FileBrowser?.FilesSelectedItem is FileSystemItem selectedItem)
             {
-                ShowFileInfo(selectedItem);
+                _fileInfoService?.ShowFileInfo(selectedItem);
                 LoadFilePreview(selectedItem);
                 LoadFileNotes(selectedItem);
                 
@@ -4473,11 +2040,8 @@ namespace OoiMRR
         
         private void ClearPreviewAndInfo()
         {
-            // 清除图片预览
-            if (RightPanel != null)
-            {
-                RightPanel.ClearImagePreview();
-            }
+            // 清除预览（使用 PreviewService）
+            _previewService?.ClearPreview();
             
             // 清空预测面板
             try
@@ -4485,37 +2049,6 @@ namespace OoiMRR
                 RenderPredictionResults(new List<TagTrain.Services.TagPredictionResult>());
             }
             catch { }
-            
-            // 清除其他预览：不要清空 Children，避免移除默认预览结构（DefaultPreviewText、ImagePreviewBorder）
-            if (RightPanel?.PreviewGrid != null)
-            {
-                // 清除所有预览元素（保留 DefaultPreviewText 和 ImagePreviewBorder）
-                for (int i = RightPanel.PreviewGrid.Children.Count - 1; i >= 0; i--)
-                {
-                    var child = RightPanel.PreviewGrid.Children[i];
-                    // 保留 DefaultPreviewText 和 ImagePreviewBorder，清除其他元素（包括 SVG、PSD 等预览）
-                    if (child != RightPanel.DefaultPreviewText && child != RightPanel.ImagePreviewBorder)
-                    {
-                        RightPanel.PreviewGrid.Children.RemoveAt(i);
-                    }
-                }
-                
-                // 显示默认提示文本
-                var defaultText = RightPanel.PreviewGrid.Children.OfType<TextBlock>()
-                    .FirstOrDefault(tb => tb.Name == "DefaultPreviewText");
-                if (defaultText != null)
-                {
-                    defaultText.Visibility = Visibility.Visible;
-                }
-                
-                // 同时确保图片预览边框处于隐藏状态
-                var imageBorder = RightPanel.PreviewGrid.Children.OfType<Border>()
-                    .FirstOrDefault(b => b.Name == "ImagePreviewBorder");
-                if (imageBorder != null)
-                {
-                    imageBorder.Visibility = Visibility.Collapsed;
-                }
-            }
             
             // 清除文件信息
             if (FileBrowser?.FileInfoPanelControl != null)
@@ -4577,7 +2110,7 @@ namespace OoiMRR
             }
         }
         
-        private void HideEmptyStateMessage()
+        internal void HideEmptyStateMessage()
         {
             if (FileBrowser != null)
             {
@@ -4593,7 +2126,7 @@ namespace OoiMRR
             }
         }
 
-        private void FilesListView_PreviewMouseDoubleClick(object sender, MouseButtonEventArgs e)
+        internal void FilesListView_PreviewMouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
             // 如果双击发生在列头或分隔线，拦截，不进行文件/文件夹打开
             var src = e.OriginalSource as DependencyObject;
@@ -4610,7 +2143,7 @@ namespace OoiMRR
             HandleDoubleClick(e);
         }
         
-        private void FilesListView_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        internal void FilesListView_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
             // 如果双击发生在列头或分隔线，拦截
             var src = e.OriginalSource as DependencyObject;
@@ -4717,7 +2250,7 @@ namespace OoiMRR
             }
         }
         
-        private void FilesListView_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        internal void FilesListView_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             // 记录鼠标按下位置，用于区分点击和拖动
             var listView = sender as ListView;
@@ -4831,12 +2364,17 @@ namespace OoiMRR
             }
         }
         
-        private void FilesListView_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        internal void FilesListView_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
             // 只处理中键点击（打开新标签页），Ctrl+左键用于多选，不在这里处理
             if (e.ChangedButton != MouseButton.Middle) return;
 
+            // 如果 sender 为 null，尝试从 FileBrowser 获取 ListView
             var listView = sender as ListView;
+            if (listView == null)
+            {
+                listView = FileBrowser?.FilesList;
+            }
             if (listView == null) return;
 
             // 获取点击位置对应的项目
@@ -4923,7 +2461,7 @@ namespace OoiMRR
             var path = ExtractPathFromListBoxItem(listBox, e.GetPosition(listBox));
             if (!string.IsNullOrEmpty(path))
             {
-                _lastLeftNavSource = "Drive";
+                _navigationService.LastLeftNavSource = "Drive";
                 _navigationCoordinator.HandlePathNavigation(path, NavigationCoordinator.NavigationSource.Drive, clickType);
                 e.Handled = true;
             }
@@ -4940,7 +2478,7 @@ namespace OoiMRR
             var path = ExtractPathFromListBoxItem(listBox, e.GetPosition(listBox));
             if (!string.IsNullOrEmpty(path))
             {
-                _lastLeftNavSource = "QuickAccess";
+                _navigationService.LastLeftNavSource = "QuickAccess";
                 _navigationCoordinator.HandlePathNavigation(path, NavigationCoordinator.NavigationSource.QuickAccess, clickType);
                 e.Handled = true;
             }
@@ -4957,13 +2495,13 @@ namespace OoiMRR
             var favorite = ExtractFavoriteFromListBoxItem(listBox, e.GetPosition(listBox));
             if (favorite != null)
             {
-                _lastLeftNavSource = "Favorites";
+                _navigationService.LastLeftNavSource = "Favorites";
                 _navigationCoordinator.HandleFavoriteNavigation(favorite, clickType);
                 e.Handled = true;
             }
         }
 
-        private void FilesListView_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        internal void FilesListView_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
             // 如果按下时在列头区域，无论抬起位置在哪里，都不处理清除选中
             if (_isMouseDownOnColumnHeader)
@@ -5081,34 +2619,31 @@ namespace OoiMRR
             _isMouseDownOnColumnHeader = false; // 清除列头标志
         }
         
-        private void RightPanel_PreviewMiddleClickRequested(object sender, MouseButtonEventArgs e)
+        internal void RightPanel_PreviewMiddleClickRequested(object sender, MouseButtonEventArgs e)
         {
             // 预览区中键打开文件
-            if (FileBrowser?.FilesSelectedItem is FileSystemItem selectedItem && !selectedItem.IsDirectory)
+            if (FileBrowser?.FilesSelectedItem is FileSystemItem selectedItem)
             {
-                try
-                {
-                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                    {
-                        FileName = selectedItem.Path,
-                        UseShellExecute = true
-                    });
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"无法打开文件: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
+                _previewService?.HandlePreviewMiddleClickRequest(selectedItem);
             }
         }
         
-        private void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e)
+        // 键盘事件桥接方法 - 已迁移到 KeyboardEventHandler
+        private void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e) => _keyboardEventHandler?.MainWindow_PreviewKeyDown(sender, e);
+        private void MainWindow_KeyDown(object sender, KeyEventArgs e) => _keyboardEventHandler?.MainWindow_KeyDown(sender, e);
+
+#if false
+        // 以下方法已移除，功能已迁移到 KeyboardEventHandler
+        // Legacy keyboard handlers kept for reference
+        private void MainWindow_PreviewKeyDown_OLD(object sender, KeyEventArgs e)
         {
             // Ctrl+W 或 Ctrl+F4: 关闭当前标签页
             if ((e.Key == Key.W || e.Key == Key.F4) && Keyboard.Modifiers == ModifierKeys.Control)
             {
-                if (_activeTab != null && _pathTabs.Count > 1)
+                var activeTab = _tabService.ActiveTab;
+                if (activeTab != null && _tabService.TabCount > 1)
                 {
-                    CloseTab(_activeTab);
+                    CloseTab(activeTab);
                     e.Handled = true;
                     return;
                 }
@@ -5126,11 +2661,13 @@ namespace OoiMRR
             // Ctrl+Tab: 切换到下一个标签页
             if (e.Key == Key.Tab && Keyboard.Modifiers == ModifierKeys.Control && !Keyboard.IsKeyDown(Key.LeftShift) && !Keyboard.IsKeyDown(Key.RightShift))
             {
-                if (_pathTabs.Count > 1)
+                var tabs = _tabService.Tabs.ToList();
+                if (tabs.Count > 1)
                 {
-                    var currentIndex = _pathTabs.IndexOf(_activeTab);
-                    var nextIndex = (currentIndex + 1) % _pathTabs.Count;
-                    SwitchToTab(_pathTabs[nextIndex]);
+                    var activeTab = _tabService.ActiveTab;
+                    var currentIndex = tabs.IndexOf(activeTab);
+                    var nextIndex = (currentIndex + 1) % tabs.Count;
+                    SwitchToTab(tabs[nextIndex]);
                     e.Handled = true;
                     return;
                 }
@@ -5139,11 +2676,13 @@ namespace OoiMRR
             // Ctrl+Shift+Tab: 切换到上一个标签页
             if (e.Key == Key.Tab && Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift))
             {
-                if (_pathTabs.Count > 1)
+                var tabs = _tabService.Tabs.ToList();
+                if (tabs.Count > 1)
                 {
-                    var currentIndex = _pathTabs.IndexOf(_activeTab);
-                    var prevIndex = (currentIndex - 1 + _pathTabs.Count) % _pathTabs.Count;
-                    SwitchToTab(_pathTabs[prevIndex]);
+                    var activeTab = _tabService.ActiveTab;
+                    var currentIndex = tabs.IndexOf(activeTab);
+                    var prevIndex = (currentIndex - 1 + tabs.Count) % tabs.Count;
+                    SwitchToTab(tabs[prevIndex]);
                     e.Handled = true;
                     return;
                 }
@@ -5317,379 +2856,20 @@ namespace OoiMRR
                 }
             }
         }
+#endif
 
-        private void RightPanel_PreviewOpenFileRequested(object sender, string filePath)
+        internal void RightPanel_PreviewOpenFileRequested(object sender, string filePath)
         {
             // 预览区打开文件请求 - 在当前预览区显示文件内容
-            if (!string.IsNullOrEmpty(filePath) && File.Exists(filePath))
-            {
-                LoadFilePreview(new FileSystemItem
-                {
-                    Path = filePath,
-                    Name = System.IO.Path.GetFileName(filePath),
-                    IsDirectory = false
-                });
-            }
+            _previewService?.HandlePreviewOpenFileRequest(filePath);
         }
 
         #endregion
-
-        #region 文件信息显示
-
-        private void ShowFileInfo(FileSystemItem item)
-        {
-            // 恢复列2的详细信息显示
-            if (FileBrowser?.FileInfoPanelControl == null) return;
-            
-            FileBrowser.FileInfoPanelControl.Children.Clear();
-
-            if (item.IsDirectory)
-            {
-                // 文件夹详细信息
-                try
-                {
-                    var files = Directory.GetFiles(item.Path);
-                    var directories = Directory.GetDirectories(item.Path);
-                    long totalSize = files.Sum(f => new FileInfo(f).Length);
-
-                    var infoItems = new[]
-                    {
-                        ("名称", item.Name),
-                        ("路径", item.Path),
-                        ("类型", "文件夹"),
-                        ("文件数", files.Length.ToString()),
-                        ("文件夹数", directories.Length.ToString()),
-                        ("总大小", _fileListService.FormatFileSize(totalSize)),
-                        ("修改日期", item.ModifiedDate),
-                        ("标签", item.Tags)
-                    };
-
-                    foreach (var (label, value) in infoItems)
-                    {
-                        var panel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 2) };
-                        panel.Children.Add(new TextBlock { Text = $"{label}: ", FontWeight = FontWeights.Bold, Width = 80 });
-                        panel.Children.Add(new TextBlock { Text = value, TextWrapping = TextWrapping.Wrap });
-                        if (FileBrowser?.FileInfoPanelControl != null)
-                            FileBrowser.FileInfoPanelControl.Children.Add(panel);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    var errorPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 2) };
-                    errorPanel.Children.Add(new TextBlock { Text = "错误: ", FontWeight = FontWeights.Bold, Width = 80 });
-                    errorPanel.Children.Add(new TextBlock { Text = ex.Message, TextWrapping = TextWrapping.Wrap, Foreground = System.Windows.Media.Brushes.Red });
-                    if (FileBrowser?.FileInfoPanelControl != null)
-                        FileBrowser.FileInfoPanelControl.Children.Add(errorPanel);
-                }
-            }
-            else
-            {
-                // 文件详细信息
-                var infoItems = new List<(string label, string value)>
-                {
-                    ("名称", item.Name),
-                    ("路径", item.Path),
-                    ("类型", item.Type),
-                    ("大小", item.Size),
-                    ("修改日期", item.ModifiedDate),
-                    ("标签", item.Tags)
-                };
-
-                // 如果是图片文件，添加尺寸信息
-                var fileExtension = System.IO.Path.GetExtension(item.Path)?.ToLowerInvariant();
-                var imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".webp", ".tiff", ".tif", ".svg", ".psd", ".ico" };
-                if (!string.IsNullOrEmpty(fileExtension) && imageExtensions.Contains(fileExtension))
-                {
-                    try
-                    {
-                        string imageSize = GetImageDimensions(item.Path);
-                        if (!string.IsNullOrEmpty(imageSize))
-                        {
-                            infoItems.Insert(4, ("尺寸", imageSize)); // 在"大小"之后插入
-                        }
-                    }
-                    catch
-                    {
-                        // 获取尺寸失败，忽略
-                    }
-                }
-
-                foreach (var (label, value) in infoItems)
-                {
-                    var panel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 2) };
-                    panel.Children.Add(new TextBlock { Text = $"{label}: ", FontWeight = FontWeights.Bold, Width = 80 });
-                    panel.Children.Add(new TextBlock { Text = value, TextWrapping = TextWrapping.Wrap });
-                    if (FileBrowser?.FileInfoPanelControl != null)
-                        FileBrowser.FileInfoPanelControl.Children.Add(panel);
-                }
-            }
-        }
-
-        /// <summary>
-        /// 获取图片的尺寸信息
-        /// </summary>
-        private string GetImageDimensions(string imagePath)
-        {
-            try
-            {
-                if (string.IsNullOrEmpty(imagePath) || !File.Exists(imagePath))
-                    return null;
-
-                var extension = System.IO.Path.GetExtension(imagePath)?.ToLowerInvariant();
-                
-                // 优先使用 Magick.NET（支持更多格式，包括 SVG 和 PSD）
-                try
-                {
-                    using (var image = new ImageMagick.MagickImage(imagePath))
-                    {
-                        return $"{image.Width} × {image.Height} 像素";
-                    }
-                }
-                catch
-                {
-                    // 如果 Magick.NET 失败，尝试使用 System.Drawing.Image（仅支持常见格式）
-                    try
-                    {
-                        using (var image = System.Drawing.Image.FromFile(imagePath))
-                        {
-                            return $"{image.Width} × {image.Height} 像素";
-                        }
-                    }
-                    catch
-                    {
-                        return null;
-                    }
-                }
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-        private void CleanupPreviousPreview()
-        {
-            if (RightPanel?.PreviewGrid == null) return;
-            
-            // 查找并停止所有MediaElement（视频预览）
-            var mediaElements = FindVisualChildren<System.Windows.Controls.MediaElement>(RightPanel.PreviewGrid).ToList();
-            foreach (var mediaElement in mediaElements)
-            {
-                try
-                {
-                    mediaElement.Stop();
-                    mediaElement.Source = null;
-                    mediaElement.Close();
-                }
-                catch
-                {
-                    // 忽略清理错误
-                }
-            }
-            
-            // 查找并停止所有DispatcherTimer（视频预览的定时器）
-            // 注意：DispatcherTimer无法直接从UI元素中查找，需要在VideoPreview中管理
-            // 这里只清理MediaElement即可
-        }
 
         private void LoadFilePreview(FileSystemItem item)
         {
-            if (RightPanel?.PreviewGrid == null) return;
-            
-            // 先清理之前的预览资源（特别是视频的MediaElement）
-            CleanupPreviousPreview();
-            
-            // 检查是否是图片文件，如果是则使用TagTrain样式的图片预览
-            var imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".webp", ".tiff", ".tif" };
-            var fileExtension = Path.GetExtension(item.Path)?.ToLowerInvariant();
-            
-            if (!item.IsDirectory && !string.IsNullOrEmpty(fileExtension) && imageExtensions.Contains(fileExtension))
-            {
-                // 先清除图片预览状态，确保干净的状态
-                RightPanel.ClearImagePreview();
-                
-                // 使用TagTrain样式的图片预览
-                // DisplayImagePreview 内部会清理其他预览元素，保留 ImagePreviewBorder 和 DefaultPreviewText
-                RightPanel.DisplayImagePreview(item.Path);
-                // 注意：图片预览时可以集成TagTrain的训练标记功能（后续实现）
-                return;
-            }
-            
-            // 对于非图片文件，先清除图片预览，然后使用原有的预览方式（通过PreviewGrid）
-            RightPanel.ClearImagePreview();
-            
-            // 确保ImagePreviewBorder不会遮挡预览内容
-            if (RightPanel.ImagePreviewBorder != null)
-            {
-                RightPanel.ImagePreviewBorder.Visibility = Visibility.Collapsed;
-                Panel.SetZIndex(RightPanel.ImagePreviewBorder, 0);
-            }
-            
-            // 清理PreviewGrid中的其他预览元素（保留DefaultPreviewText和ImagePreviewBorder）
-            if (RightPanel.PreviewGrid != null)
-            {
-                for (int i = RightPanel.PreviewGrid.Children.Count - 1; i >= 0; i--)
-                {
-                    var child = RightPanel.PreviewGrid.Children[i];
-                    // 保留DefaultPreviewText和ImagePreviewBorder，清除其他元素
-                    if (child != RightPanel.DefaultPreviewText && child != RightPanel.ImagePreviewBorder)
-                    {
-                        RightPanel.PreviewGrid.Children.RemoveAt(i);
-                    }
-                }
-            }
-
-            try
-            {
-                // 设置刷新回调
-                OoiMRR.Previews.PreviewFactory.OnFileListRefreshRequested = () =>
-                {
-                    Dispatcher.Invoke(() =>
-                    {
-                        LoadCurrentDirectory();
-                    });
-                };
-                
-                // 设置在新标签页中打开文件夹的回调
-                OoiMRR.Previews.PreviewFactory.OnOpenFolderInNewTab = (folderPath) =>
-                {
-                    Dispatcher.Invoke(() =>
-                    {
-                        CreateTab(folderPath);
-                    });
-                };
-
-                // PreviewFactory 会自动处理文件夹和文件
-                var previewElement = OoiMRR.Previews.PreviewFactory.CreatePreview(item.Path);
-                if (previewElement != null)
-                {
-                    // 确保预览元素在ImagePreviewBorder之上
-                    Panel.SetZIndex(previewElement, 1);
-                    RightPanel.PreviewGrid.Children.Add(previewElement);
-                    
-                    // 隐藏默认预览文本
-                    var defaultText = RightPanel.PreviewGrid.Children.OfType<TextBlock>()
-                        .FirstOrDefault(tb => tb.Name == "DefaultPreviewText");
-                    if (defaultText != null)
-                    {
-                        defaultText.Visibility = Visibility.Collapsed;
-                    }
-                }
-                else
-                {
-                    // 如果预览元素为null，显示默认提示
-                    var defaultText = new TextBlock
-                    {
-                        Text = "无法创建预览",
-                        HorizontalAlignment = HorizontalAlignment.Center,
-                        VerticalAlignment = VerticalAlignment.Center,
-                        Foreground = System.Windows.Media.Brushes.Gray,
-                        FontSize = 14
-                    };
-                    RightPanel.PreviewGrid.Children.Add(defaultText);
-                }
-                
-                // 延迟绑定按钮事件，确保UI元素已完全加载
-                this.Dispatcher.BeginInvoke(new Action(() =>
-                {
-                    // 为预览元素中的按钮绑定事件
-                    AttachPreviewButtonEvents(previewElement, item.Path);
-                }), System.Windows.Threading.DispatcherPriority.Loaded);
-            }
-            catch (Exception ex)
-            {
-                RightPanel.PreviewGrid.Children.Add(new TextBlock 
-                { 
-                    Text = $"预览失败: {ex.Message}", 
-                    HorizontalAlignment = HorizontalAlignment.Center, 
-                    VerticalAlignment = VerticalAlignment.Center,
-                    Foreground = System.Windows.Media.Brushes.Red
-                });
-            }
+            _previewService?.LoadFilePreview(item);
         }
-        
-        private void AttachPreviewButtonEvents(UIElement element, string filePath)
-        {
-            // 递归查找所有按钮并绑定事件
-            if (element == null) return;
-            
-            var allElements = FindVisualChildren<Button>(element).ToList();
-            
-            foreach (var button in allElements)
-            {
-                if (button.Tag is string tagValue)
-                {
-                    // 检查是否是"打开文件夹"按钮
-                    if (tagValue.StartsWith("OpenFolder:"))
-                    {
-                        string folderPath = tagValue.Length > "OpenFolder:".Length 
-                            ? tagValue.Substring("OpenFolder:".Length) 
-                            : "";
-                        
-                        // 清除可能存在的旧事件处理程序
-                        button.Click -= Button_OpenFolderClick;
-                        
-                        // 创建新的事件处理程序
-                        RoutedEventHandler handler = (s, e) =>
-                        {
-                            e.Handled = true; // 标记事件已处理
-                            
-                            try
-                            {
-                                if (!string.IsNullOrEmpty(folderPath) && Directory.Exists(folderPath))
-                                {
-                                    System.Diagnostics.Debug.WriteLine($"Opening folder in new tab: {folderPath}");
-                                    // 在新标签页中打开文件夹
-                                    CreateTab(folderPath);
-                                }
-                                else
-                                {
-                                    System.Diagnostics.Debug.WriteLine($"Folder path does not exist: {folderPath}");
-                                    MessageBox.Show($"文件夹路径不存在: {folderPath}", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                System.Diagnostics.Debug.WriteLine($"Error opening folder: {ex.Message}");
-                                MessageBox.Show($"无法打开文件夹: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                            }
-                        };
-                        
-                        button.Click += handler;
-                        continue;
-                    }
-                    
-                    // 原有的预览区打开按钮逻辑
-                    if (tagValue == filePath)
-                    {
-                        string content = button.Content?.ToString() ?? "";
-                        if (content.Contains("预览区打开"))
-                        {
-                            button.Click -= PreviewButton_Click;
-                            button.Click += PreviewButton_Click;
-                        }
-                    }
-                }
-            }
-        }
-        
-        private void Button_OpenFolderClick(object sender, RoutedEventArgs e)
-        {
-            // 这个方法不会被使用，只是为了能够清除事件
-        }
-        
-        private void PreviewButton_Click(object sender, RoutedEventArgs e)
-        {
-            // 预览区打开按钮点击 - 在预览区中重新加载文件
-            var button = sender as Button;
-            var filePath = button?.Tag as string;
-            if (!string.IsNullOrEmpty(filePath))
-            {
-                RightPanel_PreviewOpenFileRequested(sender, filePath);
-            }
-        }
-
-        #endregion
 
         #region 备注功能
 
@@ -5708,7 +2888,7 @@ namespace OoiMRR
             }
         }
 
-        private void NotesTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        internal void NotesTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             // 备注文本变化时，实时更新列表中显示的备注
             if (RightPanel?.NotesTextBox == null) return;
@@ -5731,7 +2911,7 @@ namespace OoiMRR
                     FileBrowser.FilesList.Items.Refresh();
             }
         }
-        private async void NotesAutoSaved_Handler(object sender, RoutedEventArgs e)
+        internal async void NotesAutoSaved_Handler(object sender, RoutedEventArgs e)
         {
             if (RightPanel?.NotesTextBox == null) return;
             
@@ -5769,54 +2949,14 @@ namespace OoiMRR
 
         #region 库功能
 
-        private void LoadLibraries()
+        internal void LoadLibraries()
         {
             _libraryService.LoadLibraries();
         }
 
-        private void AddLibrary_Click(object sender, RoutedEventArgs e)
-        {
-            var dialog = new LibraryDialog();
-            if (dialog.ShowDialog() == true)
-            {
-                var libraryId = _libraryService.AddLibrary(dialog.LibraryName, dialog.LibraryPath);
-                if (libraryId > 0)
-                {
-                    // 创建后自动打开库标签页并高亮
-                    var newLibrary = _libraryService.GetLibrary(libraryId);
-                    if (newLibrary != null)
-                    {
-                        OpenLibraryInTab(newLibrary);
-                        HighlightMatchingLibrary(newLibrary);
-                    }
-                }
-            }
-        }
-
-        private void ManageLibraries_Click(object sender, RoutedEventArgs e)
-        {
-            var manageWindow = new LibraryManagementWindow();
-            manageWindow.ShowDialog();
-            LoadLibraries();
-            
-            // 如果当前库被删除或修改，刷新显示
-            if (_currentLibrary != null)
-            {
-                var updatedLibrary = DatabaseManager.GetLibrary(_currentLibrary.Id);
-                if (updatedLibrary != null)
-                {
-                    _currentLibrary = updatedLibrary;
-                    LoadLibraryFiles(_currentLibrary);
-                }
-                else
-                {
-                    _currentLibrary = null;
-                    _currentFiles.Clear();
-                    if (FileBrowser != null)
-                    FileBrowser.FilesItemsSource = null;
-                }
-            }
-        }
+        // 菜单事件桥接方法 - 已迁移到 MenuEventHandler
+        private void AddLibrary_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.AddLibrary_Click(sender, e);
+        private void ManageLibraries_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.ManageLibraries_Click(sender, e);
 
         private void LibrariesListBox_ContextMenuOpening(object sender, ContextMenuEventArgs e)
         {
@@ -5837,83 +2977,12 @@ namespace OoiMRR
             }
         }
 
-        private void LibraryRename_Click(object sender, RoutedEventArgs e)
-        {
-            if (LibrariesListBox.SelectedItem is Library selectedLibrary)
-            {
-                var dialog = new PathInputDialog("请输入新的库名称:");
-                dialog.InputText = selectedLibrary.Name;
-                if (dialog.ShowDialog() == true)
-                {
-                    var newName = dialog.InputText.Trim();
-                    if (_libraryService.UpdateLibraryName(selectedLibrary.Id, newName))
-                    {
-                        // 如果当前库被重命名，更新当前库引用并恢复选中状态
-                        if (_currentLibrary != null && _currentLibrary.Id == selectedLibrary.Id)
-                        {
-                            var updatedLibrary = _libraryService.GetLibrary(selectedLibrary.Id);
-                            if (updatedLibrary != null)
-                            {
-                                _currentLibrary = updatedLibrary;
-                                // 确保重命名后的库仍然被选中并正确显示
-                                this.Dispatcher.BeginInvoke(new Action(() =>
-                                {
-                                    EnsureSelectedItemVisible(LibrariesListBox, updatedLibrary);
-                                    LoadLibraryFiles(updatedLibrary);
-                                }), System.Windows.Threading.DispatcherPriority.Loaded);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        private void LibraryDelete_Click(object sender, RoutedEventArgs e)
-        {
-            if (LibrariesListBox.SelectedItem is Library selectedLibrary)
-            {
-                if (!ConfirmDialog.Show(
-                    $"确定要删除库 \"{selectedLibrary.Name}\" 吗？\n这将删除库及其所有位置，但不会删除实际文件。",
-                    "确认删除",
-                    ConfirmDialog.DialogType.Question,
-                    this))
-                {
-                    return;
-                }
-
-                if (_libraryService.DeleteLibrary(selectedLibrary.Id, selectedLibrary.Name))
-                {
-                    // 如果删除的是当前库，清空显示
-                    if (_currentLibrary != null && _currentLibrary.Id == selectedLibrary.Id)
-                    {
-                        _currentLibrary = null;
-                        _currentFiles.Clear();
-                        if (FileBrowser != null)
-                            FileBrowser.FilesItemsSource = null;
-                        if (FileBrowser != null)
-                            FileBrowser.AddressText = "";
-                    }
-                }
-            }
-        }
-
-        private void LibraryManage_Click(object sender, RoutedEventArgs e)
-        {
-            ManageLibraries_Click(sender, e);
-        }
-
-        private void LibraryOpenInExplorer_Click(object sender, RoutedEventArgs e)
-        {
-            if (LibrariesListBox.SelectedItem is Library selectedLibrary)
-            {
-                _libraryService.OpenLibraryInExplorer(selectedLibrary.Id);
-            }
-        }
-
-        private void LibraryRefresh_Click(object sender, RoutedEventArgs e)
-        {
-            LoadLibraries();
-        }
+        // 库管理事件桥接方法 - 已迁移到 MenuEventHandler
+        private void LibraryRename_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.LibraryRename_Click(sender, e);
+        private void LibraryDelete_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.LibraryDelete_Click(sender, e);
+        private void LibraryManage_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.LibraryManage_Click(sender, e);
+        private void LibraryOpenInExplorer_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.LibraryOpenInExplorer_Click(sender, e);
+        private void LibraryRefresh_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.LibraryRefresh_Click(sender, e);
 
         private void LibrariesListBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
@@ -5960,8 +3029,11 @@ namespace OoiMRR
                 else
                 {
                     _currentLibrary = null;
-                    _config.LastLibraryId = 0;
-                    ConfigManager.Save(_config);
+                    if (_configService != null)
+                    {
+                        _configService.Config.LastLibraryId = 0;
+                        _configService.SaveCurrentConfig();
+                    }
                     _currentFiles.Clear();
                     if (FileBrowser != null)
                     FileBrowser.FilesItemsSource = null;
@@ -5972,8 +3044,11 @@ namespace OoiMRR
             else
             {
                 _currentLibrary = null;
-                _config.LastLibraryId = 0;
-                ConfigManager.Save(_config);
+                if (_configService != null)
+                {
+                    _configService.Config.LastLibraryId = 0;
+                    _configService.SaveCurrentConfig();
+                }
                 _currentFiles.Clear();
                 if (FileBrowser != null)
                 {
@@ -5982,13 +3057,7 @@ namespace OoiMRR
                 }
                 
                 // 清除所有库的高亮
-                if (LibrariesListBox != null && LibrariesListBox.Items != null)
-                {
-                    foreach (var item in LibrariesListBox.Items)
-                    {
-                        SetItemHighlight(LibrariesListBox, item, false);
-                    }
-                }
+                _navigationService.ClearItemHighlights();
             }
         }
 
@@ -6037,7 +3106,10 @@ namespace OoiMRR
             System.Diagnostics.Debug.WriteLine($"[加载库文件] 合并后共有 {_currentFiles.Count} 项");
 
             // 应用排序
-            SortFiles();
+            if (_columnService != null)
+            {
+                _currentFiles = _columnService.SortFiles(_currentFiles);
+            }
 
             System.Diagnostics.Debug.WriteLine($"[加载库文件] 设置 ItemsSource，文件数量: {_currentFiles.Count}");
             
@@ -6222,7 +3294,7 @@ namespace OoiMRR
 
         #region 标签功能
 
-        private void LoadTags()
+        internal void LoadTags()
         {
             // TagsListBox已移除，标签加载现在由TagTrain面板处理
             // 调用TagTrain面板的初始化
@@ -6289,7 +3361,7 @@ namespace OoiMRR
         // 浏览模式：打开分组管理
         private void TagBrowsePanel_CategoryManagementRequested()
         {
-            OpenCategoryManagement();
+            _tagTrainEventHandler?.OpenCategoryManagement();
         }
         
         // 编辑模式：标签点击事件 - 应用标签（需要实现TagTrain的功能）
@@ -6302,11 +3374,11 @@ namespace OoiMRR
         // 编辑模式：打开分组管理
         private void TagEditPanel_CategoryManagementRequested()
         {
-            OpenCategoryManagement();
+            _tagTrainEventHandler?.OpenCategoryManagement();
         }
         
         // 更新TagTrain模型状态
-        private void UpdateTagTrainModelStatus()
+        internal void UpdateTagTrainModelStatus()
         {
             // 模型状态现在由TagPanel内部管理，此方法已废弃
             // TagEditPanel会自动更新模型状态
@@ -6314,7 +3386,7 @@ namespace OoiMRR
             }
             
         // 加载TagTrain已有标签列表
-        private void LoadTagTrainExistingTags()
+        internal void LoadTagTrainExistingTags()
         {
             // 标签加载现在由TagPanel内部管理，直接调用TagPanel的方法
             TagEditPanel?.LoadExistingTags();
@@ -6460,7 +3532,7 @@ namespace OoiMRR
                     };
                     manageCategoryMenuItem.Click += (s, e) =>
                     {
-                        OpenCategoryManagement();
+                        _tagTrainEventHandler?.OpenCategoryManagement();
                         e.Handled = true;
                     };
                     assignToCategoryMenuItem.Items.Add(manageCategoryMenuItem);
@@ -6474,7 +3546,7 @@ namespace OoiMRR
                     };
                     noCategoryMenuItem.Click += (s, e) =>
                     {
-                        OpenCategoryManagement();
+                        _tagTrainEventHandler?.OpenCategoryManagement();
                         e.Handled = true;
                     };
                     assignToCategoryMenuItem.Items.Add(noCategoryMenuItem);
@@ -6733,7 +3805,7 @@ namespace OoiMRR
             catch { }
         }
 
-        private void FilterByTag(Tag tag)
+        internal void FilterByTag(Tag tag)
         {
             if (tag == null)
             {
@@ -7076,189 +4148,42 @@ namespace OoiMRR
 
         #region 搜索功能
 
-        private void PerformSearch(string searchText, bool searchNames, bool searchNotes)
+        internal async void PerformSearch(string searchText, bool searchNames, bool searchNotes)
         {
             if (string.IsNullOrEmpty(searchText))
             {
                 return;
             }
-
-            var results = new List<FileSystemItem>();
-            HashSet<string> resultPaths = new HashSet<string>();
-            _searchCts?.Cancel();
-            _searchCts = new System.Threading.CancellationTokenSource();
-            // 规范化关键词（去除前缀“搜索:”）
-            while (searchText.StartsWith("搜索:"))
+            
+            // 确保至少有一个搜索选项
+            if (!searchNames && !searchNotes)
             {
-                searchText = searchText.Substring("搜索:".Length).Trim();
+                MessageBox.Show("请至少选择一个搜索选项", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
             }
-            var normalizedKeyword = searchText;
+            
+            var normalizedKeyword = SearchService.NormalizeKeyword(searchText);
             
             try
             {
-                // 确保至少有一个搜索选项
-                if (!searchNames && !searchNotes)
+                // 执行搜索
+                var searchResult = await _searchService.PerformSearchAsync(
+                    keyword: normalizedKeyword,
+                    searchOptions: _searchOptions,
+                    currentPath: _currentPath,
+                    searchNames: searchNames,
+                    searchNotes: searchNotes,
+                    getNotesFromDb: searchNotes ? (Func<string, List<string>>)(keyword => FileNotesService.SearchFilesByNotes(keyword)) : null
+                );
+                
+                if (searchResult == null || searchResult.Items == null)
                 {
-                    MessageBox.Show("请至少选择一个搜索选项", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    Debug.WriteLine("搜索结果为空");
                     return;
                 }
                 
-                // 名称搜索（优先调用 Everything，失败回退默认搜索）
-                if (searchNames)
-                {
-                    if (EverythingHelper.IsEverythingRunning())
-                    {
-                        try
-                        {
-                            _searchPageSize = 1000;
-                            _searchMax = 5000;
-                            _searchKeywordPaging = normalizedKeyword;
-                            var rangePath = (_searchOptions.PathRange == PathRangeFilter.CurrentDrive && !string.IsNullOrEmpty(_currentPath))
-                                ? new DriveInfo(_currentPath).RootDirectory.FullName
-                                : null;
-                            var firstPage = EverythingHelper.SearchFilesPaged(normalizedKeyword, 0, _searchPageSize, rangePath);
-                            var filteredFirst = ApplyTypeFilter(firstPage);
-                            foreach (var p in filteredFirst) resultPaths.Add(p);
-                            _searchOffset = firstPage.Count;
-                            _searchHasMore = firstPage.Count == _searchPageSize && _searchOffset < _searchMax;
-                            if (FileBrowser != null) FileBrowser.LoadMoreVisible = _searchHasMore;
-                            FileBrowser?.EnableAutoLoadMore();
-                            var cts = _searchCts;
-                            System.Threading.Tasks.Task.Run(() =>
-                            {
-                                int offset = _searchOffset;
-                                while (!cts.IsCancellationRequested && offset < _searchMax)
-                                {
-                                    var page = EverythingHelper.SearchFilesPaged(normalizedKeyword, offset, _searchPageSize, rangePath);
-                                    if (page == null || page.Count == 0) break;
-                                    var newPaths = ApplyTypeFilter(page).Where(p => resultPaths.Add(p)).ToList();
-                                    if (newPaths.Count > 0)
-                                    {
-                                        var newItems = BuildItemsFromPaths(newPaths);
-                                        Dispatcher.BeginInvoke(new Action(() =>
-                                        {
-                                            _currentFiles.AddRange(newItems);
-                                            if (FileBrowser != null)
-                                            {
-                                                FileBrowser.FilesItemsSource = null;
-                                                FileBrowser.FilesItemsSource = _currentFiles;
-                                            }
-                                            if (FileBrowser != null)
-                                            {
-                                                _searchOffset = offset + page.Count;
-                                                _searchHasMore = page.Count == _searchPageSize && _searchOffset < _searchMax;
-                                                FileBrowser.LoadMoreVisible = _searchHasMore;
-                                            }
-                                        }));
-                                    }
-                                    offset += page.Count;
-                                }
-                            });
-                        }
-                        catch (Exception ex)
-                        {
-                            Debug.WriteLine($"Everything搜索失败: {ex.Message}，回退默认搜索");
-                            TryDefaultNameSearch(normalizedKeyword, resultPaths);
-                        }
-                    }
-                    else
-                    {
-                        TryDefaultNameSearch(normalizedKeyword, resultPaths);
-                    }
-                }
-                
-                // 分别记录备注搜索结果和文件名搜索结果
-                HashSet<string> notesResultPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                HashSet<string> nameResultPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                
-                // 备注搜索
-                if (searchNotes)
-                {
-                    try
-                    {
-                        var notesResults = FileNotesService.SearchFilesByNotes(searchText);
-                        Debug.WriteLine($"备注搜索完成，找到 {notesResults.Count} 个文件");
-                        
-                        foreach (var path in notesResults)
-                        {
-                            resultPaths.Add(path);
-                            notesResultPaths.Add(path);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine($"备注搜索失败: {ex.Message}");
-                        // 备注搜索失败不阻断流程，继续使用名称搜索结果创建标签页
-                    }
-                }
-                
-                // 记录文件名搜索结果（在备注搜索之后，避免重复）
-                if (searchNames)
-                {
-                    foreach (var path in resultPaths)
-                    {
-                        if (!notesResultPaths.Contains(path))
-                        {
-                            nameResultPaths.Add(path);
-                        }
-                    }
-                }
-                
-                // 混合搜索：如果两者都选，取交集；如果只选一个，使用该结果
-                if (searchNames && searchNotes)
-                {
-                    // 混合搜索：取并集（文件名或备注匹配）
-                    // resultPaths已经包含了所有结果
-                }
-                
-                var initialPaths = resultPaths.ToList();
-                var scores = new Dictionary<string,int>(StringComparer.OrdinalIgnoreCase);
-                foreach (var p in initialPaths)
-                {
-                    if (!File.Exists(p) && !Directory.Exists(p)) continue;
-                    var s = 0;
-                    var name = Path.GetFileName(p);
-                    if (string.Equals(name, normalizedKeyword, StringComparison.OrdinalIgnoreCase)) s += 100;
-                    else if (!string.IsNullOrEmpty(normalizedKeyword) && name.IndexOf(normalizedKeyword, StringComparison.OrdinalIgnoreCase) >= 0) s += 80;
-                    if (!string.IsNullOrEmpty(normalizedKeyword) && p.IndexOf(normalizedKeyword, StringComparison.OrdinalIgnoreCase) >= 0) s += 70;
-                    scores[p] = s;
-                }
-                foreach (var filePath in initialPaths.OrderByDescending(x => scores.ContainsKey(x)?scores[x]:0))
-                {
-                    if (!File.Exists(filePath) && !Directory.Exists(filePath)) continue;
-                    try
-                    {
-                        var items = BuildItemsFromPaths(new[] { filePath });
-                        if (items.Count > 0)
-                        {
-                            var item = items[0];
-                            // 标记搜索结果类型
-                            bool isNoteMatch = notesResultPaths.Contains(filePath, StringComparer.OrdinalIgnoreCase);
-                            bool isNameMatch = nameResultPaths.Contains(filePath, StringComparer.OrdinalIgnoreCase);
-                            
-                            if (isNoteMatch)
-                            {
-                                item.IsFromNotesSearch = true;
-                            }
-                            if (isNameMatch)
-                            {
-                                item.IsFromNameSearch = true;
-                            }
-                            
-                            results.Add(item);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine($"处理文件 {filePath} 时出错: {ex.Message}");
-                    }
-                }
-                
-                // 构建分组结果
-                var groupedItems = SearchResultGrouper.BuildGroupedResults(
-                    results, 
-                    notesResultPaths, 
-                    nameResultPaths);
+                var results = searchResult.Items;
+                var groupedItems = searchResult.GroupedItems;
                 
                 Debug.WriteLine($"搜索完成，共找到 {results.Count} 个结果");
                 
@@ -7268,16 +4193,17 @@ namespace OoiMRR
                 string searchTabPath = $"search://{normalizedKeyword}"; // 使用规范化关键词
                 
                 // 检查是否已存在相同的搜索标签页
-                var existingTab = _pathTabs.FirstOrDefault(t => t.Path == searchTabPath);
+                var existingTab = _tabService.FindTabByPath(searchTabPath);
                 if (existingTab != null)
                 {
                     // 切换到现有标签页
                     SwitchToTab(existingTab);
+                    // 更新搜索结果（即使切换到现有标签页，也要刷新结果）
                     _currentFiles = results;
                     if (FileBrowser != null)
                     {
                         // 使用分组显示
-                        if (groupedItems.Count > 0)
+                        if (groupedItems != null && groupedItems.Count > 0)
                         {
                             FileBrowser.SetGroupedSearchResults(groupedItems);
                         }
@@ -7285,8 +4211,11 @@ namespace OoiMRR
                         {
                             FileBrowser.FilesItemsSource = results;
                         }
+                        // 确保地址栏和面包屑显示规范化关键词
                         FileBrowser.SetSearchBreadcrumb(normalizedKeyword);
                         FileBrowser.AddressText = normalizedKeyword;
+                        FileBrowser.NavUpEnabled = false;
+                        FileBrowser.LoadMoreVisible = searchResult.HasMore;
                     }
                     Debug.WriteLine($"切换到现有搜索标签页: {searchTabTitle}");
                 }
@@ -7300,15 +4229,14 @@ namespace OoiMRR
                         Title = searchTabTitle
                     };
                     
-                    CreateTabInternal(searchTab);
-                    _activeTab = searchTab;
+                    _tabService?.CreatePathTab(searchTabPath, forceNewTab: true);
                     
                     // 显示搜索结果
                     _currentFiles = results;
                     if (FileBrowser != null)
                     {
                         // 使用分组显示
-                        if (groupedItems.Count > 0)
+                        if (groupedItems != null && groupedItems.Count > 0)
                         {
                             FileBrowser.SetGroupedSearchResults(groupedItems);
                         }
@@ -7319,6 +4247,7 @@ namespace OoiMRR
                         FileBrowser.SetSearchBreadcrumb(normalizedKeyword);
                         FileBrowser.AddressText = normalizedKeyword;
                         FileBrowser.NavUpEnabled = false;
+                        FileBrowser.LoadMoreVisible = searchResult.HasMore;
                     }
                     Debug.WriteLine($"创建新搜索标签页: {searchTabTitle}，结果数: {results.Count}");
                 }
@@ -7326,6 +4255,7 @@ namespace OoiMRR
             catch (Exception ex)
             {
                 MessageBox.Show($"搜索时发生错误: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                Debug.WriteLine($"搜索失败: {ex.Message}");
             }
 
         }
@@ -7335,7 +4265,7 @@ namespace OoiMRR
 
         #region 快速访问
 
-        private void LoadQuickAccess()
+        internal void LoadQuickAccess()
         {
             if (QuickAccessListBox == null) return;
             _quickAccessService.LoadQuickAccess(QuickAccessListBox);
@@ -7350,7 +4280,7 @@ namespace OoiMRR
 
         #region 驱动器功能
 
-        private void LoadDrives()
+        internal void LoadDrives()
         {
             if (DrivesListBox == null) return;
             _quickAccessService.LoadDrives(DrivesListBox, _fileListService.FormatFileSize);
@@ -7365,205 +4295,11 @@ namespace OoiMRR
 
         #region 菜单事件
 
-        private void NewFolder_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                string targetPath = null;
-                
-                // 判断当前模式：库模式还是路径模式
-                if (_currentLibrary != null)
-                {
-                    // 库模式：使用库的第一个位置
-                    if (_currentLibrary.Paths == null || _currentLibrary.Paths.Count == 0)
-                    {
-                        MessageBox.Show("当前库没有添加任何位置，请先在管理库中添加位置", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-                        return;
-                    }
-                    
-                    // 如果有多个位置，让用户选择
-                    if (_currentLibrary.Paths.Count > 1)
-                    {
-                        var paths = string.Join("\n", _currentLibrary.Paths.Select((p, i) => $"{i + 1}. {p}"));
-                        var result = MessageBox.Show(
-                            $"当前库有多个位置，将在第一个位置创建文件夹：\n\n{_currentLibrary.Paths[0]}\n\n是否继续？\n\n所有位置：\n{paths}",
-                            "选择位置",
-                            MessageBoxButton.YesNo,
-                            MessageBoxImage.Question);
-                        
-                        if (result != MessageBoxResult.Yes)
-                        {
-                            return;
-                        }
-                    }
-                    
-                    targetPath = _currentLibrary.Paths[0];
-                    if (!Directory.Exists(targetPath))
-                    {
-                        MessageBox.Show($"库位置不存在: {targetPath}", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
-                        return;
-                    }
-                }
-                else if (!string.IsNullOrEmpty(_currentPath) && Directory.Exists(_currentPath))
-                {
-                    // 路径模式：使用当前路径
-                    targetPath = _currentPath;
-                }
-                else
-                {
-                    MessageBox.Show("当前没有可用的路径", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
+        // 文件操作事件桥接方法 - 已迁移到 MenuEventHandler
+        internal void NewFolder_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.NewFolder_Click(sender, e);
+        private void NewFile_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.NewFile_Click(sender, e);
 
-                // 使用简单的输入对话框
-                var dialog = new PathInputDialog
-                {
-                    Title = "新建文件夹",
-                    PromptText = "请输入文件夹名称：",
-                    InputText = "新建文件夹",
-                    Owner = this
-                };
-
-                if (dialog.ShowDialog() == true)
-                {
-                    var folderName = dialog.InputText.Trim();
-                    
-                    // 验证文件夹名称
-                    if (string.IsNullOrEmpty(folderName))
-                    {
-                        MessageBox.Show("文件夹名称不能为空", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
-                        return;
-                    }
-
-                    // 检查非法字符
-                    char[] invalidChars = Path.GetInvalidFileNameChars();
-                    if (folderName.IndexOfAny(invalidChars) >= 0)
-                    {
-                        MessageBox.Show("文件夹名称包含非法字符", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
-                        return;
-                    }
-
-                    var folderPath = Path.Combine(targetPath, folderName);
-
-                    // 如果已存在，自动添加序号
-                    if (Directory.Exists(folderPath))
-                    {
-                        int counter = 2;
-                        string newFolderName;
-                        do
-                        {
-                            newFolderName = $"{folderName} ({counter})";
-                            folderPath = Path.Combine(targetPath, newFolderName);
-                            counter++;
-                        }
-                        while (Directory.Exists(folderPath));
-                    }
-
-                    // 创建文件夹
-                    Directory.CreateDirectory(folderPath);
-                    
-                    // 刷新显示
-                    RefreshFileList();
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"创建文件夹失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        private void NewFile_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                // 显示文件类型选择菜单
-                var contextMenu = new ContextMenu
-                {
-                    Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom,
-                    PlacementTarget = sender as UIElement
-                };
-                
-                // 常用文件类型列表
-                var fileTypes = new[]
-                {
-                    ("📄 文本文件", ".txt"),
-                    ("📝 Word 文档", ".docx"),
-                    ("📊 Excel 表格", ".xlsx"),
-                    ("📽️ PowerPoint", ".pptx"),
-                    ("🖼️ PNG 图片", ".png"),
-                    ("🖼️ JPEG 图片", ".jpg"),
-                    ("🖼️ GIF 图片", ".gif"),
-                    ("🖼️ BMP 图片", ".bmp"),
-                    ("🖼️ SVG 矢量图", ".svg"),
-                    ("💻 C# 代码", ".cs"),
-                    ("🌐 HTML 网页", ".html"),
-                    ("🎨 CSS 样式", ".css"),
-                    ("⚡ JavaScript", ".js"),
-                    ("🐍 Python", ".py"),
-                    ("☕ Java", ".java"),
-                    ("📋 JSON", ".json"),
-                    ("📋 XML", ".xml"),
-                    ("📋 Markdown", ".md"),
-                    ("⚙️ 配置文件", ".ini"),
-                    ("📦 批处理", ".bat"),
-                    ("🔧 PowerShell", ".ps1")
-                };
-
-                foreach (var (name, extension) in fileTypes)
-                {
-                    var menuItem = new MenuItem
-                    {
-                        Header = name,
-                        Tag = extension,
-                        Padding = new Thickness(10, 5, 10, 5)
-                    };
-                    menuItem.Click += (s, args) =>
-                    {
-                        CreateNewFileWithExtension(extension);
-                    };
-                    contextMenu.Items.Add(menuItem);
-                }
-
-                // 添加分隔符和自定义选项
-                contextMenu.Items.Add(new Separator());
-                
-                var customMenuItem = new MenuItem
-                {
-                    Header = "✏️ 自定义扩展名...",
-                    Padding = new Thickness(10, 5, 10, 5)
-                };
-                customMenuItem.Click += (s, args) =>
-                {
-                    var dialog = new PathInputDialog
-                    {
-                        Title = "新建文件",
-                        PromptText = "请输入文件扩展名（如 .txt）：",
-                        InputText = ".txt",
-                        Owner = this
-                    };
-
-                    if (dialog.ShowDialog() == true)
-                    {
-                        var extension = dialog.InputText.Trim();
-                        if (!extension.StartsWith("."))
-                        {
-                            extension = "." + extension;
-                        }
-                        CreateNewFileWithExtension(extension);
-                    }
-                };
-                contextMenu.Items.Add(customMenuItem);
-
-                // 显示菜单
-                contextMenu.IsOpen = true;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"创建文件失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        private void CreateNewFileWithExtension(string extension)
+        internal void CreateNewFileWithExtension(string extension)
         {
             try
             {
@@ -7650,125 +4386,172 @@ namespace OoiMRR
                 case ".docx":
                 case ".xlsx":
                 case ".pptx":
-                    // Office 文件需要使用 COM 或库创建
                     CreateOfficeFile(filePath, extension);
                     break;
 
                 case ".html":
-                    File.WriteAllText(filePath, @"<!DOCTYPE html>
-<html lang=""zh-CN"">
-<head>
-    <meta charset=""UTF-8"">
-    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
-    <title>新建网页</title>
-</head>
-<body>
-    <h1>Hello World</h1>
-</body>
-</html>");
+                    var htmlLines = new[]
+                    {
+                        "<!DOCTYPE html>",
+                        "<html lang=\"zh-CN\">",
+                        "<head>",
+                        "    <meta charset=\"UTF-8\">",
+                        "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">",
+                        "    <title>新建网页</title>",
+                        "</head>",
+                        "<body>",
+                        "    <h1>Hello World</h1>",
+                        "</body>",
+                        "</html>",
+                        string.Empty
+                    };
+                    File.WriteAllText(filePath, string.Join(Environment.NewLine, htmlLines));
                     break;
 
                 case ".css":
-                    File.WriteAllText(filePath, @"/* CSS Stylesheet */
-
-body {
-    margin: 0;
-    padding: 0;
-    font-family: Arial, sans-serif;
-}
-");
+                    var cssLines = new[]
+                    {
+                        "/* CSS Stylesheet */",
+                        string.Empty,
+                        "body {",
+                        "    margin: 0;",
+                        "    padding: 0;",
+                        "}",
+                        string.Empty
+                    };
+                    File.WriteAllText(filePath, string.Join(Environment.NewLine, cssLines));
                     break;
 
                 case ".js":
-                    File.WriteAllText(filePath, @"// JavaScript
-
-console.log('Hello World');
-");
+                    var jsLines = new[]
+                    {
+                        "// JavaScript",
+                        string.Empty,
+                        "console.log('Hello World');",
+                        string.Empty
+                    };
+                    File.WriteAllText(filePath, string.Join(Environment.NewLine, jsLines));
                     break;
 
                 case ".cs":
-                    File.WriteAllText(filePath, @"using System;
-
-namespace MyNamespace
-{
-    class Program
-    {
-        static void Main(string[] args)
-        {
-            Console.WriteLine(""Hello World"");
-        }
-    }
-}
-");
+                    var csLines = new[]
+                    {
+                        "using System;",
+                        string.Empty,
+                        "namespace MyNamespace",
+                        "{",
+                        "    class Program",
+                        "    {",
+                        "        static void Main(string[] args)",
+                        "        {",
+                        "            Console.WriteLine(\"Hello World\");",
+                        "        }",
+                        "    }",
+                        "}",
+                        string.Empty
+                    };
+                    File.WriteAllText(filePath, string.Join(Environment.NewLine, csLines));
                     break;
 
                 case ".py":
-                    File.WriteAllText(filePath, @"# Python Script
-
-def main():
-    print('Hello World')
-
-if __name__ == '__main__':
-    main()
-");
+                    var pyLines = new[]
+                    {
+                        "# Python Script",
+                        string.Empty,
+                        "def main():",
+                        "    print('Hello World')",
+                        string.Empty,
+                        "if __name__ == '__main__':",
+                        "    main()",
+                        string.Empty
+                    };
+                    File.WriteAllText(filePath, string.Join(Environment.NewLine, pyLines));
                     break;
 
                 case ".java":
-                    string className = Path.GetFileNameWithoutExtension(filePath).Replace(" ", "_");
-                    File.WriteAllText(filePath, $@"public class {className} {{
-    public static void main(String[] args) {{
-        System.out.println(""Hello World"");
-    }}
-}}
-");
+                    var className = Path.GetFileNameWithoutExtension(filePath).Replace(" ", "_");
+                    var javaLines = new[]
+                    {
+                        $"public class {className} {{",
+                        "    public static void main(String[] args) {",
+                        "        System.out.println(\"Hello World\");",
+                        "    }",
+                        "}",
+                        string.Empty
+                    };
+                    File.WriteAllText(filePath, string.Join(Environment.NewLine, javaLines));
                     break;
 
                 case ".json":
-                    File.WriteAllText(filePath, @"{
-    ""name"": ""example"",
-    ""version"": ""1.0.0""
-}
-");
+                    var jsonLines = new[]
+                    {
+                        "{",
+                        "    \"name\": \"example\",",
+                        "    \"version\": \"1.0.0\"",
+                        "}",
+                        string.Empty
+                    };
+                    File.WriteAllText(filePath, string.Join(Environment.NewLine, jsonLines));
                     break;
 
                 case ".xml":
-                    File.WriteAllText(filePath, @"<?xml version=""1.0"" encoding=""UTF-8""?>
-<root>
-    <item>Example</item>
-</root>
-");
+                    var xmlLines = new[]
+                    {
+                        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>",
+                        "<root>",
+                        "    <item>Example</item>",
+                        "</root>",
+                        string.Empty
+                    };
+                    File.WriteAllText(filePath, string.Join(Environment.NewLine, xmlLines));
                     break;
 
                 case ".md":
-                    File.WriteAllText(filePath, @"# 标题
-
-这是一个 Markdown 文档。
-
-## 二级标题
-
-- 列表项 1
-- 列表项 2
-");
+                    var mdLines = new[]
+                    {
+                        "# 标题",
+                        string.Empty,
+                        "这是一个 Markdown 文档。",
+                        string.Empty,
+                        "## 二级标题",
+                        string.Empty,
+                        "- 列表项 1",
+                        "- 列表项 2",
+                        string.Empty
+                    };
+                    File.WriteAllText(filePath, string.Join(Environment.NewLine, mdLines));
                     break;
 
                 case ".ini":
-                    File.WriteAllText(filePath, @"[Settings]
-Key=Value
-");
+                    var iniLines = new[]
+                    {
+                        "[Settings]",
+                        "Key=Value",
+                        string.Empty
+                    };
+                    File.WriteAllText(filePath, string.Join(Environment.NewLine, iniLines));
                     break;
 
                 case ".bat":
-                    File.WriteAllText(filePath, @"@echo off
-echo Hello World
-pause
-");
+                    var batLines = new[]
+                    {
+                        "@echo off",
+                        "echo Hello World",
+                        "pause",
+                        string.Empty
+                    };
+                    File.WriteAllText(filePath, string.Join(Environment.NewLine, batLines));
                     break;
 
                 case ".ps1":
-                    File.WriteAllText(filePath, @"# PowerShell Script
-
-Write-Host ""Hello World""
-");
+                    var psLines = new[]
+                    {
+                        "# PowerShell Script",
+                        string.Empty,
+                        "Write-Host \"Hello World\"",
+                        string.Empty
+                    };
+                    File.WriteAllText(filePath, string.Join(Environment.NewLine, psLines));
                     break;
 
                 case ".png":
@@ -7776,20 +4559,22 @@ Write-Host ""Hello World""
                 case ".jpeg":
                 case ".bmp":
                 case ".gif":
-                    // 创建一个简单的图片文件
                     CreateImageFile(filePath, extension);
                     break;
 
                 case ".svg":
-                    // 创建一个简单的SVG文件
-                    File.WriteAllText(filePath, @"<?xml version=""1.0"" encoding=""UTF-8""?>
-<svg width=""500"" height=""500"" xmlns=""http://www.w3.org/2000/svg"">
-    <rect width=""500"" height=""500"" fill=""#FFFFFF""/>
-</svg>");
+                    var svgLines = new[]
+                    {
+                        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>",
+                        "<svg width=\"500\" height=\"500\" xmlns=\"http://www.w3.org/2000/svg\">",
+                        "    <rect width=\"500\" height=\"500\" fill=\"#FFFFFF\"/>",
+                        "</svg>",
+                        string.Empty
+                    };
+                    File.WriteAllText(filePath, string.Join(Environment.NewLine, svgLines));
                     break;
 
                 default:
-                    // 其他文件类型创建空文件
                     File.WriteAllText(filePath, string.Empty);
                     break;
             }
@@ -7852,8 +4637,8 @@ Write-Host ""Hello World""
                             var wordType = Type.GetTypeFromProgID("Word.Application");
                             if (wordType == null)
                             {
-                                MessageBox.Show("未检测到 Microsoft Word，将创建空文件", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-                                File.WriteAllText(filePath, string.Empty);
+                                CreateBasicDocx(filePath);
+                                MessageBox.Show("未检测到 Microsoft Word，已创建基本 DOCX 模板。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
                                 return;
                             }
 
@@ -7863,6 +4648,11 @@ Write-Host ""Hello World""
                             doc = app.Documents.Add();
                             doc.SaveAs2(filePath);
                             doc.Close(false);
+                        }
+                        catch (Exception ex)
+                        {
+                            CreateBasicDocx(filePath);
+                            MessageBox.Show($"创建文件失败，已回退为基本 DOCX: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
                         }
                         finally
                         {
@@ -7931,118 +4721,118 @@ Write-Host ""Hello World""
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"创建 Office 文件失败: {ex.Message}\n将创建空文件", "警告", MessageBoxButton.OK, MessageBoxImage.Warning);
-                File.WriteAllText(filePath, string.Empty);
-            }
-        }
-
-        private void Exit_Click(object sender, RoutedEventArgs e)
-        {
-            Close();
-        }
-
-
-        private void SelectAll_Click(object sender, RoutedEventArgs e)
-        {
-            FileBrowser?.FilesList?.SelectAll();
-        }
-
-        private void ViewLargeIcons_Click(object sender, RoutedEventArgs e)
-        {
-            // TODO: 实现大图标视图
-            MessageBox.Show("大图标视图功能待实现", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-
-        private void ViewSmallIcons_Click(object sender, RoutedEventArgs e)
-        {
-            // TODO: 实现小图标视图
-            MessageBox.Show("小图标视图功能待实现", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-
-        private void ViewList_Click(object sender, RoutedEventArgs e)
-        {
-            // TODO: 实现列表视图
-            MessageBox.Show("列表视图功能待实现", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-
-        private void ViewDetails_Click(object sender, RoutedEventArgs e)
-        {
-            // TODO: 实现详细信息视图
-            MessageBox.Show("详细信息视图功能待实现", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-
-        private void Settings_Click(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show("设置已包含导入/导出配置功能，请使用工具菜单中的相应项。", "设置", MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-
-        private void ImportConfig_Click(object sender, RoutedEventArgs e)
-        {
-            var ofd = new OpenFileDialog
-            {
-                Filter = "配置文件 (*.json)|*.json|所有文件 (*.*)|*.*"
-            };
-            if (ofd.ShowDialog() == true)
-            {
-                try
+                if (extension.Equals(".docx", StringComparison.OrdinalIgnoreCase))
                 {
-                    ConfigManager.Import(ofd.FileName);
-                    _config = ConfigManager.Load();
-                    ApplyConfig(_config);
-                    MessageBox.Show("配置已导入并应用。", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                    CreateBasicDocx(filePath);
                 }
-                catch (Exception ex)
+                else
                 {
-                    MessageBox.Show($"导入失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    File.WriteAllText(filePath, string.Empty);
                 }
+                MessageBox.Show($"创建 Office 文件失败: {ex.Message}\n已写入占位文件", "警告", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
 
-        private void ExportConfig_Click(object sender, RoutedEventArgs e)
+        private void CreateBasicDocx(string filePath)
         {
-            var sfd = new SaveFileDialog
+            using (var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write))
+            using (var archive = new ZipArchive(fs, ZipArchiveMode.Create))
             {
-                FileName = "config.json",
-                Filter = "配置文件 (*.json)|*.json|所有文件 (*.*)|*.*"
-            };
-            if (sfd.ShowDialog() == true)
-            {
-                try
+                void AddEntry(string entryName, string content)
                 {
-                    SaveCurrentConfig();
-                    ConfigManager.Export(sfd.FileName);
-                    MessageBox.Show("配置已导出。", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                    var entry = archive.CreateEntry(entryName);
+                    using var writer = new StreamWriter(entry.Open(), Encoding.UTF8);
+                    writer.Write(content);
                 }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"导出失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
+
+                AddEntry("[Content_Types].xml",
+                    @"<?xml version=""1.0"" encoding=""UTF-8""?>
+<Types xmlns=""http://schemas.openxmlformats.org/package/2006/content-types"">
+  <Default Extension=""rels"" ContentType=""application/vnd.openxmlformats-package.relationships+xml""/>
+  <Default Extension=""xml"" ContentType=""application/xml""/>
+  <Override PartName=""/word/document.xml"" ContentType=""application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml""/>
+  <Override PartName=""/docProps/core.xml"" ContentType=""application/vnd.openxmlformats-package.core-properties+xml""/>
+  <Override PartName=""/docProps/app.xml"" ContentType=""application/vnd.openxmlformats-officedocument.extended-properties+xml""/>
+</Types>");
+
+                AddEntry("_rels/.rels",
+                    @"<?xml version=""1.0"" encoding=""UTF-8""?>
+<Relationships xmlns=""http://schemas.openxmlformats.org/package/2006/relationships"">
+  <Relationship Id=""rId1"" Type=""http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument"" Target=""word/document.xml""/>
+  <Relationship Id=""rId2"" Type=""http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties"" Target=""docProps/core.xml""/>
+  <Relationship Id=""rId3"" Type=""http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties"" Target=""docProps/app.xml""/>
+</Relationships>");
+
+                AddEntry("word/_rels/document.xml.rels",
+                    @"<?xml version=""1.0"" encoding=""UTF-8""?>
+<Relationships xmlns=""http://schemas.openxmlformats.org/package/2006/relationships"">
+</Relationships>");
+
+                AddEntry("word/document.xml",
+                    @"<?xml version=""1.0"" encoding=""UTF-8""?>
+<w:document xmlns:wpc=""http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas""
+ xmlns:mc=""http://schemas.openxmlformats.org/markup-compatibility/2006""
+ xmlns:o=""urn:schemas-microsoft-com:office:office""
+ xmlns:r=""http://schemas.openxmlformats.org/officeDocument/2006/relationships""
+ xmlns:m=""http://schemas.openxmlformats.org/officeDocument/2006/math""
+ xmlns:v=""urn:schemas-microsoft-com:vml""
+ xmlns:wp14=""http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing""
+ xmlns:wp=""http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing""
+ xmlns:w10=""urn:schemas-microsoft-com:office:word""
+ xmlns:w=""http://schemas.openxmlformats.org/wordprocessingml/2006/main""
+ xmlns:w14=""http://schemas.microsoft.com/office/word/2010/wordml""
+ xmlns:w15=""http://schemas.microsoft.com/office/word/2012/wordml""
+ mc:Ignorable=""w14 w15 wp14"">
+  <w:body>
+    <w:p>
+      <w:r>
+        <w:t>Hello World</w:t>
+      </w:r>
+    </w:p>
+  </w:body>
+</w:document>");
+
+                AddEntry("docProps/core.xml",
+                    @"<?xml version=""1.0"" encoding=""UTF-8""?>
+<cp:coreProperties xmlns:cp=""http://schemas.openxmlformats.org/package/2006/core-properties""
+ xmlns:dc=""http://purl.org/dc/elements/1.1/""
+ xmlns:dcterms=""http://purl.org/dc/terms/""
+ xmlns:dcmitype=""http://purl.org/dc/dcmitype/""
+ xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"">
+  <dc:title>New Document</dc:title>
+  <dc:creator>OoiMRR</dc:creator>
+  <cp:lastModifiedBy>OoiMRR</cp:lastModifiedBy>
+  <dcterms:created xsi:type=""dcterms:W3CDTF"">{DateTime.UtcNow:yyyy-MM-ddTHH:mm:ssZ}</dcterms:created>
+  <dcterms:modified xsi:type=""dcterms:W3CDTF"">{DateTime.UtcNow:yyyy-MM-ddTHH:mm:ssZ}</dcterms:modified>
+</cp:coreProperties>");
+
+                AddEntry("docProps/app.xml",
+                    @"<?xml version=""1.0"" encoding=""UTF-8""?>
+<Properties xmlns=""http://schemas.openxmlformats.org/officeDocument/2006/extended-properties""
+ xmlns:vt=""http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"">
+  <Application>OoiMRR</Application>
+</Properties>");
             }
         }
 
-        private void EditNotes_Click(object sender, RoutedEventArgs e)
-        {
-            if (FileBrowser?.FilesSelectedItem is FileSystemItem selectedItem)
-            {
-                RightPanel?.NotesTextBox?.Focus();
-            }
-            else
-            {
-                MessageBox.Show("请先选择一个文件", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
-        }
-
-        private void About_Click(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show("OoiMRR - 文件资源管理器\n版本 1.0\n\n一个功能强大的Windows文件管理工具", 
-                "关于", MessageBoxButton.OK, MessageBoxImage.Information);
-        }
+        // 菜单事件桥接方法 - 已迁移到 MenuEventHandler
+        private void Exit_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.Exit_Click(sender, e);
+        private void SelectAll_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.SelectAll_Click(sender, e);
+        private void ViewLargeIcons_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.ViewLargeIcons_Click(sender, e);
+        private void ViewSmallIcons_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.ViewSmallIcons_Click(sender, e);
+        private void ViewList_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.ViewList_Click(sender, e);
+        private void ViewDetails_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.ViewDetails_Click(sender, e);
+        private void Settings_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.Settings_Click(sender, e);
+        private void ImportConfig_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.ImportConfig_Click(sender, e);
+        private void ExportConfig_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.ExportConfig_Click(sender, e);
+        internal void EditNotes_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.EditNotes_Click(sender, e);
+        private void About_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.About_Click(sender, e);
 
         #endregion
 
         #region 新增按钮事件处理
 
-        private void BatchAddTags_Click(object sender, RoutedEventArgs e)
+        internal void BatchAddTags_Click(object sender, RoutedEventArgs e)
         {
             if (!App.IsTagTrainAvailable)
             {
@@ -8064,7 +4854,7 @@ Write-Host ""Hello World""
             OpenTagDialogForSelectedItems();
         }
 
-        private void TagStatistics_Click(object sender, RoutedEventArgs e)
+        internal void TagStatistics_Click(object sender, RoutedEventArgs e)
         {
             if (!App.IsTagTrainAvailable)
             {
@@ -8094,18 +4884,18 @@ Write-Host ""Hello World""
             }
         }
 
-        private void ImportLibrary_Click(object sender, RoutedEventArgs e)
+        internal void ImportLibrary_Click(object sender, RoutedEventArgs e)
         {
             MessageBox.Show("导入库功能待实现", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
-        private void ExportLibrary_Click(object sender, RoutedEventArgs e)
+        internal void ExportLibrary_Click(object sender, RoutedEventArgs e)
         {
             MessageBox.Show("导出库功能待实现", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
 
-        private void AddFileToLibrary_Click(object sender, RoutedEventArgs e)
+        internal void AddFileToLibrary_Click(object sender, RoutedEventArgs e)
         {
             // 获取选中的文件或文件夹
             var selectedItems = FileBrowser?.FilesSelectedItems?.Cast<FileSystemItem>().ToList() ?? new List<FileSystemItem>();
@@ -8284,7 +5074,26 @@ Write-Host ""Hello World""
         private bool _isPseudoMaximized = false;
         private Rect _restoreBounds;
 
-        private void WindowMaximize_Click(object sender, RoutedEventArgs e)
+        /// <summary>
+        /// 窗口拖拽移动方法
+        /// </summary>
+        private void WindowDragMove()
+        {
+            // 只有在非最大化状态下才允许拖拽
+            if (!_isPseudoMaximized && this.WindowState == WindowState.Normal)
+            {
+                try
+                {
+                    this.DragMove();
+                }
+                catch
+                {
+                    // 如果拖拽失败（例如在窗口边缘），忽略错误
+                }
+            }
+        }
+
+        internal void WindowMaximize_Click(object sender, RoutedEventArgs e)
         {
             // 使用系统最大化并限制到工作区，确保铺满且不遮挡任务栏
             if (_isPseudoMaximized)
@@ -8330,93 +5139,54 @@ Write-Host ""Hello World""
             this.Close();
         }
 
-        private void ListView_SizeChanged(object sender, SizeChangedEventArgs e)
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            // 关闭时保存所有窗口状态（窗口、分割线、导航、标签页）
+            if (_windowStateManager != null)
+            {
+                // 确保RestoreBounds已更新（如果窗口是正常状态）
+                if (!_isPseudoMaximized)
+                {
+                    _restoreBounds = new Rect(this.Left, this.Top, this.Width, this.Height);
+                }
+                _windowStateManager.SaveAllState();
+            }
+            else if (_configService != null)
+            {
+                // 降级处理：如果没有WindowStateManager，使用ConfigService保存基本状态
+                _configService.SaveCurrentConfig();
+            }
+        }
+
+        private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            // 窗口大小改变时，更新RestoreBounds（仅在非最大化状态下）
+            if (!_isPseudoMaximized && this.IsLoaded)
+            {
+                _restoreBounds = new Rect(this.Left, this.Top, this.Width, this.Height);
+            }
+        }
+
+        private void Window_LocationChanged(object sender, EventArgs e)
+        {
+            // 窗口位置改变时，更新RestoreBounds（仅在非最大化状态下）
+            if (!_isPseudoMaximized && this.IsLoaded)
+            {
+                _restoreBounds = new Rect(this.Left, this.Top, this.Width, this.Height);
+            }
+        }
+
+        internal void ListView_SizeChanged(object sender, SizeChangedEventArgs e)
         {
             AdjustListViewColumnWidths();
         }
 
         private void AdjustListViewColumnWidths()
         {
-            if (FileBrowser == null || FileBrowser.FilesList == null) return;
-
-            // 如果正在拖拽分割器，跳过列宽调整，避免重置用户调整的列宽
-            if (_isSplitterDragging) return;
-
-            var gridView = FileBrowser.FilesGrid;
-            if (gridView == null || gridView.Columns.Count < 5) return;
-
-            // 若有隐藏列，需尊重"可见列"配置：隐藏列保持宽度0，不参与自适应
-            var visibleCsv = GetVisibleColumnsForCurrentMode() ?? "";
-            var visible = new HashSet<string>(visibleCsv.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries), StringComparer.OrdinalIgnoreCase);
-            bool showName = visible.Contains("Name");
-            bool showSize = visible.Contains("Size");
-            bool showType = visible.Contains("Type");
-            bool showModified = visible.Contains("ModifiedDate");
-            bool showTags = visible.Contains("Tags");
-
-            // 获取可用宽度（减去名称、修改日期、标签列的宽度和边距）
-            double availableWidth = FileBrowser.FilesList.ActualWidth - 50; // 减去一些边距和滚动条
-
-            // 名称列固定宽度
-            double nameColWidth = showName ? 200 : 0;
-            // 修改日期列固定宽度
-            double modifiedDateColWidth = showModified ? 150 : 0;
-            // 标签列固定宽度
-            double tagsColWidth = showTags ? 150 : 0;
-
-            // 计算剩余可用宽度
-            double remainingWidth = availableWidth - nameColWidth - modifiedDateColWidth - tagsColWidth;
-
-            // 设置最小宽度
-            double minSizeColWidth = 80;
-            double minTypeColWidth = 80;
-
-            // 获取当前大小列和类型列的实际宽度，而不是使用硬编码的默认值
-            double sizeColWidth = showSize ? (gridView.Columns.Count >= 2 && gridView.Columns[1].ActualWidth > 0 ? gridView.Columns[1].ActualWidth : 100) : 0;
-            double typeColWidth = showType ? (gridView.Columns.Count >= 3 && gridView.Columns[2].ActualWidth > 0 ? gridView.Columns[2].ActualWidth : 100) : 0;
-
-            if (remainingWidth < sizeColWidth + typeColWidth && showSize && showType)
-            {
-                // 空间不足，需要压缩
-                if (remainingWidth >= minSizeColWidth + minTypeColWidth)
-                {
-                    // 可以容纳最小宽度，先压缩类型列
-                    double minTotal = minSizeColWidth + minTypeColWidth;
-                    double extraWidth = remainingWidth - minTotal;
-                    
-                    // 先压缩类型列
-                    double typeShrink = Math.Max(0, typeColWidth - minTypeColWidth);
-                    double typeCanShrink = Math.Min(typeShrink, extraWidth);
-                    typeColWidth -= typeCanShrink;
-                    
-                    // 如果还有空间，给大小列
-                    if (typeCanShrink < extraWidth)
-                    {
-                        sizeColWidth = minSizeColWidth + (extraWidth - typeCanShrink);
-                    }
-                    else
-                    {
-                        sizeColWidth = minSizeColWidth;
-                    }
-                }
-                else
-                {
-                    // 空间不足，都设置为最小宽度
-                    sizeColWidth = minSizeColWidth;
-                    typeColWidth = minTypeColWidth;
-                }
-            }
-
-            // 按列Tag应用，隐藏列保持0
-            // 索引与Tag对应：0-Name,1-Size,2-Type,3-ModifiedDate,4-CreatedTime,5-Tags,6-Notes
-            if (gridView.Columns.Count >= 1) gridView.Columns[0].Width = nameColWidth;           // Name
-            if (gridView.Columns.Count >= 2) gridView.Columns[1].Width = sizeColWidth;           // Size
-            if (gridView.Columns.Count >= 3) gridView.Columns[2].Width = typeColWidth;           // Type
-            if (gridView.Columns.Count >= 4) gridView.Columns[3].Width = modifiedDateColWidth;   // ModifiedDate
-            // 不调整 CreatedTime（[4]），由用户控制；若隐藏则保持0
-            if (gridView.Columns.Count >= 6) gridView.Columns[5].Width = tagsColWidth;           // Tags
+            if (FileBrowser == null || _isSplitterDragging) return;
+            _columnService?.AdjustListViewColumnWidths(FileBrowser);
         }
-        private void AdjustColumnWidths()
+        internal void AdjustColumnWidths()
         {
             // 获取可用总宽度（去掉两个垂直分割器）
             if (RootGrid == null) return;
@@ -8546,7 +5316,7 @@ Write-Host ""Hello World""
                 ColRight.Width = new GridLength(1, GridUnitType.Star);
             }
         }
-        private void ForceColumnWidthsToFixed(bool skipUpdateLayout = false)
+        internal void ForceColumnWidthsToFixed(bool skipUpdateLayout = false)
         {
             // 强制将列2和列3设置为固定宽度（不使用Star模式），确保MinWidth生效
             if (RootGrid == null || ColCenter == null || ColRight == null) return;
@@ -8676,7 +5446,7 @@ Write-Host ""Hello World""
             }
         }
 
-        private void UpdateWindowStateUI()
+        internal void UpdateWindowStateUI()
         {
             bool isMax = _isPseudoMaximized;
 
@@ -8760,12 +5530,12 @@ Write-Host ""Hello World""
                 public int cyBottomHeight;
             }
         }
-        private void UpdateActionButtonsPosition()
+        internal void UpdateActionButtonsPosition()
         {
             // TitleActionBar已经自动处理按钮布局，不再需要手动调整位置
         }
         
-        private void UpdateSeparatorPosition()
+        internal void UpdateSeparatorPosition()
         {
             // 更新分隔符位置，使其与列1和列2之间的分割器对齐
             if (TitleBarSeparator == null || ColLeft == null) return;
@@ -8819,22 +5589,8 @@ Write-Host ""Hello World""
             }
         }
 
-        private void TitleBar_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
-        {
-            if (e.ChangedButton == System.Windows.Input.MouseButton.Left)
-            {
-                if (e.ClickCount == 2)
-                {
-                    // 双击切换最大化/还原
-                    WindowMaximize_Click(sender, e);
-                }
-                else if (e.ClickCount == 1)
-                {
-                    // 单击拖拽窗口
-                    this.DragMove();
-                }
-            }
-        }
+        // 鼠标事件桥接方法 - 已迁移到 MouseEventHandler
+        private void TitleBar_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e) => _mouseEventHandler?.TitleBar_MouseDown(sender, e);
 
         private static IEnumerable<T> FindVisualChildren<T>(DependencyObject depObj) where T : DependencyObject
         {
@@ -8860,7 +5616,7 @@ Write-Host ""Hello World""
 
         #region 收藏功能
 
-        private void LoadFavorites()
+        internal void LoadFavorites()
         {
             if (FavoritesListBox == null) return;
             _favoriteService.LoadFavorites(FavoritesListBox);
@@ -8880,7 +5636,7 @@ Write-Host ""Hello World""
             var favorite = favoriteProperty.GetValue(selectedItem) as Favorite;
             if (favorite == null) return;
             
-            _lastLeftNavSource = "Favorites";
+            _navigationService.LastLeftNavSource = "Favorites";
             _navigationCoordinator.HandleFavoriteNavigation(favorite, NavigationCoordinator.ClickType.LeftClick);
 
             // 清除选择，避免残留选中状态
@@ -9202,164 +5958,8 @@ Write-Host ""Hello World""
 
             // 不再显示提示框，静默完成
         }
-        private void LoadColumnWidths()
-        {
-            if (FileBrowser?.FilesGrid == null || _config == null) return;
-            
-            try
-            {
-                var columns = FileBrowser.FilesGrid.Columns;
-                if (columns.Count >= 7)
-                {
-                    // 创建列名到列的映射
-                    var columnMap = new Dictionary<string, GridViewColumn>
-                    {
-                        { "Name", columns[0] },
-                        { "Size", columns[1] },
-                        { "Type", columns[2] },
-                        { "ModifiedDate", columns[3] },
-                        { "CreatedTime", columns[4] },
-                        { "Tags", columns[5] },
-                        { "Notes", columns[6] }
-                    };
-                    
-                    // 加载保存的列顺序
-                    if (!string.IsNullOrEmpty(_config.ColumnOrder))
-                    {
-                        var savedOrder = _config.ColumnOrder.Split(',');
-                        var newColumns = new List<GridViewColumn>();
-                        
-                        foreach (var colName in savedOrder)
-                        {
-                            var trimmedName = colName.Trim();
-                            if (columnMap.ContainsKey(trimmedName))
-                            {
-                                newColumns.Add(columnMap[trimmedName]);
-                            }
-                        }
-                        
-                        // 添加未在顺序中的列（向后兼容）
-                        foreach (var kvp in columnMap)
-                        {
-                            if (!savedOrder.Any(s => s.Trim() == kvp.Key))
-                            {
-                                newColumns.Add(kvp.Value);
-                            }
-                        }
-                        
-                        // 重新排序列
-                        if (newColumns.Count == columns.Count)
-                        {
-                            FileBrowser.FilesGrid.Columns.Clear();
-                            foreach (var col in newColumns)
-                            {
-                                FileBrowser.FilesGrid.Columns.Add(col);
-                            }
-                        }
-                    }
-                    
-                    // 加载列宽度并结合“可见列”配置（隐藏列保持宽度为0）
-                    var visibleCsv = GetVisibleColumnsForCurrentMode() ?? "";
-                    var visibleSet = new HashSet<string>(visibleCsv.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries), StringComparer.OrdinalIgnoreCase);
-                    foreach (var column in FileBrowser.FilesGrid.Columns)
-                    {
-                        var header = column.Header as GridViewColumnHeader;
-                        if (header?.Tag != null)
-                        {
-                            var tag = header.Tag.ToString();
-                            bool shouldShow = visibleSet.Contains(tag);
-                            if (!shouldShow)
-                            {
-                                column.Width = 0; // 隐藏
-                                continue;
-                            }
-                            
-                            double width = tag switch
-                            {
-                                "Name" => _config.ColNameWidth,
-                                "Size" => _config.ColSizeWidth,
-                                "Type" => _config.ColTypeWidth,
-                                "ModifiedDate" => _config.ColModifiedDateWidth,
-                                "CreatedTime" => _config.ColCreatedTimeWidth,
-                                "Tags" => _config.ColTagsWidth,
-                                "Notes" => _config.ColNotesWidth,
-                                _ => 0
-                            };
-                            if (width > 0) column.Width = width;
-                        }
-                    }
-                }
-            }
-            catch { }
-        }
         
-        private void SaveColumnWidths()
-        {
-            if (FileBrowser?.FilesGrid == null || _config == null) return;
-            
-            try
-            {
-                var columns = FileBrowser.FilesGrid.Columns;
-                if (columns.Count >= 7)
-                {
-                    // 保存列顺序
-                    var columnOrder = new List<string>();
-                    foreach (var column in columns)
-                    {
-                        var header = column.Header as GridViewColumnHeader;
-                        if (header?.Tag != null)
-                        {
-                            columnOrder.Add(header.Tag.ToString());
-                        }
-                    }
-                    _config.ColumnOrder = string.Join(",", columnOrder);
-                    
-                    // 保存列宽度（按Tag保存）
-                    foreach (var column in columns)
-                    {
-                        var header = column.Header as GridViewColumnHeader;
-                        if (header?.Tag != null)
-                        {
-                            var tag = header.Tag.ToString();
-                            var width = column.ActualWidth;
-                            
-                            // 如果列被隐藏（宽度=0），不要覆盖之前保存的宽度
-                            if (width <= 0) continue;
-                            
-                            switch (tag)
-                            {
-                                case "Name":
-                                    _config.ColNameWidth = width;
-                                    break;
-                                case "Size":
-                                    _config.ColSizeWidth = width;
-                                    break;
-                                case "Type":
-                                    _config.ColTypeWidth = width;
-                                    break;
-                                case "ModifiedDate":
-                                    _config.ColModifiedDateWidth = width;
-                                    break;
-                                case "CreatedTime":
-                                    _config.ColCreatedTimeWidth = width;
-                                    break;
-                                case "Tags":
-                                    _config.ColTagsWidth = width;
-                                    break;
-                                case "Notes":
-                                    _config.ColNotesWidth = width;
-                                    break;
-                            }
-                        }
-                    }
-                    
-                    ConfigManager.Save(_config);
-                }
-            }
-            catch { }
-        }
-        
-        private void FilesListView_PreviewMouseDoubleClickForBlank(object sender, MouseButtonEventArgs e)
+        internal void FilesListView_PreviewMouseDoubleClickForBlank(object sender, MouseButtonEventArgs e)
         {
             // 1) 优先判断列头分隔条（Thumb）双击：自动适配列宽
             var originalSource = e.OriginalSource as DependencyObject;
@@ -9370,7 +5970,7 @@ Write-Host ""Hello World""
                 var thumbHeader = FindAncestor<GridViewColumnHeader>(originalSource);
                 if (thumbHeader?.Column != null)
                 {
-                    AutoSizeGridViewColumn(thumbHeader.Column);
+                    _columnService?.AutoSizeGridViewColumn(thumbHeader.Column, FileBrowser);
                     e.Handled = true;
                     return;
                 }
@@ -9407,82 +6007,12 @@ Write-Host ""Hello World""
         // 根据内容自动调整列宽（用于双击列分隔条）
         private void AutoSizeGridViewColumn(GridViewColumn column)
         {
-            if (FileBrowser?.FilesList == null || column == null) return;
-            
-            // 若该列在当前模式被设置为隐藏，禁止在双击时把它显示出来
-            var headerForTag = column.Header as GridViewColumnHeader;
-            var tagName = headerForTag?.Tag?.ToString();
-            if (!string.IsNullOrEmpty(tagName))
-            {
-                var visibleCsv = GetVisibleColumnsForCurrentMode() ?? "";
-                var visibleSet = new HashSet<string>(
-                    visibleCsv.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries),
-                    StringComparer.OrdinalIgnoreCase);
-                if (!visibleSet.Contains(tagName))
-                {
-                    // 保持隐藏状态，直接返回
-                    return;
-                }
-            }
-            
-            double padding = 24; // 预留左右内边距和排序箭头空间
-            double maxWidth = 0;
-            
-            // 列头文本宽度
-            var header = column.Header as GridViewColumnHeader;
-            var headerText = header?.Content?.ToString() ?? "";
-            maxWidth = Math.Max(maxWidth, MeasureTextWidth(headerText) + padding);
-            
-            // 各行文本宽度
-            foreach (var item in FileBrowser.FilesList.Items)
-            {
-                string cellText = GetCellTextForColumn(item, column, header);
-                maxWidth = Math.Max(maxWidth, MeasureTextWidth(cellText) + padding);
-            }
-            
-            // 最小宽度保护
-            if (maxWidth < 50) maxWidth = 50;
-            column.Width = Math.Ceiling(maxWidth);
-        }
-
-        private string GetCellTextForColumn(object item, GridViewColumn column, GridViewColumnHeader header)
-        {
-            if (item == null) return "";
-            
-            // 优先使用 DisplayMemberBinding
-            if (column.DisplayMemberBinding is System.Windows.Data.Binding binding && binding.Path != null)
-            {
-                var prop = item.GetType().GetProperty(binding.Path.Path);
-                var val = prop?.GetValue(item);
-                return val?.ToString() ?? "";
-            }
-            
-            // 退化：使用列头 Tag 作为属性名尝试
-            var propName = header?.Tag?.ToString();
-            if (!string.IsNullOrEmpty(propName))
-            {
-                var prop2 = item.GetType().GetProperty(propName);
-                var val2 = prop2?.GetValue(item);
-                if (val2 != null) return val2.ToString();
-            }
-            
-            return "";
-        }
-
-        private double MeasureTextWidth(string text)
-        {
-            var tb = new TextBlock
-            {
-                Text = text ?? "",
-                FontSize = FileBrowser?.FilesList?.FontSize ?? 12,
-                FontFamily = FileBrowser?.FilesList?.FontFamily
-            };
-            tb.Measure(new System.Windows.Size(double.PositiveInfinity, double.PositiveInfinity));
-            return tb.DesiredSize.Width;
+            if (FileBrowser == null || column == null) return;
+            _columnService?.AutoSizeGridViewColumn(column, FileBrowser);
         }
 
         // 右键列头 -> 列显示设置
-        private void EnsureHeaderContextMenuHook()
+        internal void EnsureHeaderContextMenuHook()
         {
             if (FileBrowser?.FilesList == null) return;
             FileBrowser.FilesList.PreviewMouseRightButtonUp -= FilesList_PreviewMouseRightButtonUp_HeaderMenu;
@@ -9531,13 +6061,13 @@ Write-Host ""Hello World""
                             {
                                 double w = tag switch
                                 {
-                                    "Name" => _config.ColNameWidth,
-                                    "Size" => _config.ColSizeWidth,
-                                    "Type" => _config.ColTypeWidth,
-                                    "ModifiedDate" => _config.ColModifiedDateWidth,
-                                    "CreatedTime" => _config.ColCreatedTimeWidth,
-                                    "Tags" => _config.ColTagsWidth,
-                                    "Notes" => _config.ColNotesWidth,
+                                    "Name" => _configService?.Config.ColNameWidth ?? 200,
+                                    "Size" => _configService?.Config.ColSizeWidth ?? 100,
+                                    "Type" => _configService?.Config.ColTypeWidth ?? 100,
+                                    "ModifiedDate" => _configService?.Config.ColModifiedDateWidth ?? 150,
+                                    "CreatedTime" => _configService?.Config.ColCreatedTimeWidth ?? 50,
+                                    "Tags" => _configService?.Config.ColTagsWidth ?? 150,
+                                    "Notes" => _configService?.Config.ColNotesWidth ?? 200,
                                     _ => column.ActualWidth > 0 ? column.ActualWidth : 100
                                 };
                                 column.Width = Math.Max(40, w);
@@ -9547,7 +6077,7 @@ Write-Host ""Hello World""
                             var currentSet = new HashSet<string>(currentVisible.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries), StringComparer.OrdinalIgnoreCase);
                             currentSet.Add(tag);
                             SetVisibleColumnsForCurrentMode(string.Join(",", currentSet));
-                            ConfigManager.Save(_config);
+                            _configService?.SaveCurrentConfig();
                         };
                         
                         mi.Unchecked += (s, ev) =>
@@ -9559,7 +6089,7 @@ Write-Host ""Hello World""
                             var currentSet = new HashSet<string>(currentVisible.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries), StringComparer.OrdinalIgnoreCase);
                             currentSet.Remove(tag);
                             SetVisibleColumnsForCurrentMode(string.Join(",", currentSet));
-                            ConfigManager.Save(_config);
+                            _configService?.SaveCurrentConfig();
                         };
                         
                         cm.Items.Add(mi);
@@ -9577,77 +6107,30 @@ Write-Host ""Hello World""
             // 不设置 e.Handled，让事件继续传播到文件列表的 ContextMenu
         }
 
-        private string GetCurrentModeKey()
+        internal string GetCurrentModeKey()
         {
-            return _config?.LastNavigationMode ?? "Path";
+            return _configService?.Config.LastNavigationMode ?? "Path";
         }
 
-        private string GetVisibleColumnsForCurrentMode()
+        internal string GetVisibleColumnsForCurrentMode()
         {
-            var key = GetCurrentModeKey();
-            return key switch
-            {
-                "Library" => _config.VisibleColumns_Library,
-                "Tag" => _config.VisibleColumns_Tag,
-                _ => _config.VisibleColumns_Path
-            };
+            return _columnService?.GetVisibleColumnsForCurrentMode() ?? "";
         }
 
         private void SetVisibleColumnsForCurrentMode(string csv)
         {
-            var key = GetCurrentModeKey();
-            switch (key)
-            {
-                case "Library":
-                    _config.VisibleColumns_Library = csv;
-                    break;
-                case "Tag":
-                    _config.VisibleColumns_Tag = csv;
-                    break;
-                default:
-                    _config.VisibleColumns_Path = csv;
-                    break;
-            }
+            _columnService?.SetVisibleColumnsForCurrentMode(csv);
         }
 
-        private void ApplyVisibleColumnsForCurrentMode()
+        internal void ApplyVisibleColumnsForCurrentMode()
         {
-            if (FileBrowser?.FilesGrid == null) return;
-            var visibleCsv = GetVisibleColumnsForCurrentMode() ?? "";
-            var set = new HashSet<string>(visibleCsv.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries), StringComparer.OrdinalIgnoreCase);
-            foreach (var column in FileBrowser.FilesGrid.Columns)
-            {
-                var header = column.Header as GridViewColumnHeader;
-                var tag = header?.Tag?.ToString();
-                if (string.IsNullOrEmpty(tag)) continue;
-                bool shouldShow = set.Contains(tag);
-                if (shouldShow)
-                {
-                    // 恢复保存的宽度
-                    double w = tag switch
-                    {
-                        "Name" => _config.ColNameWidth,
-                        "Size" => _config.ColSizeWidth,
-                        "Type" => _config.ColTypeWidth,
-                        "ModifiedDate" => _config.ColModifiedDateWidth,
-                        "CreatedTime" => _config.ColCreatedTimeWidth,
-                        "Tags" => _config.ColTagsWidth,
-                        "Notes" => _config.ColNotesWidth,
-                        _ => column.ActualWidth > 0 ? column.ActualWidth : 100
-                    };
-                    column.Width = Math.Max(40, w);
-                }
-                else
-                {
-                    // 折叠
-                    column.Width = 0;
-                }
-            }
+            if (FileBrowser == null) return;
+            _columnService?.ApplyVisibleColumnsForCurrentMode(FileBrowser);
             HookHeaderThumbs();
         }
 
         // 绑定列头分隔线双击
-        private void HookHeaderThumbs()
+        internal void HookHeaderThumbs()
         {
             if (FileBrowser?.FilesGrid == null) return;
             foreach (var column in FileBrowser.FilesGrid.Columns)
@@ -9679,7 +6162,7 @@ Write-Host ""Hello World""
         }
 
         // 使用 AddHandler 捕获的分隔线双击
-        private void FilesList_HeaderThumbDoubleClick(object sender, MouseButtonEventArgs e)
+        internal void FilesList_HeaderThumbDoubleClick(object sender, MouseButtonEventArgs e)
         {
             if (e.ClickCount != 2) return;
             var src = e.OriginalSource as DependencyObject;
@@ -9780,10 +6263,7 @@ Write-Host ""Hello World""
 
         private bool IsColumnVisible(string tag)
         {
-            if (string.IsNullOrEmpty(tag)) return true;
-            var visibleCsv = GetVisibleColumnsForCurrentMode() ?? "";
-            var set = new HashSet<string>(visibleCsv.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries), StringComparer.OrdinalIgnoreCase);
-            return set.Contains(tag);
+            return _columnService?.IsColumnVisible(tag) ?? true;
         }
 
         private System.Windows.Controls.Primitives.Thumb FindHeaderThumb(GridViewColumnHeader header)
@@ -9813,7 +6293,7 @@ Write-Host ""Hello World""
 
         #region 键盘快捷键和文件操作
 
-        private void FilesListView_PreviewKeyDown(object sender, KeyEventArgs e)
+        internal void FilesListView_PreviewKeyDown(object sender, KeyEventArgs e)
         {
             var listView = sender as ListView;
             if (listView == null)
@@ -10057,33 +6537,9 @@ Write-Host ""Hello World""
             }
         }
 
-        private void Copy_Click(object sender, RoutedEventArgs e)
-        {
-            if (FileBrowser?.FilesSelectedItems == null || FileBrowser.FilesSelectedItems.Count == 0)
-                return;
-
-            var paths = new List<string>();
-            foreach (FileSystemItem item in FileBrowser.FilesSelectedItems)
-            {
-                paths.Add(item.Path);
-            }
-            
-            FileClipboardManager.SetCopyPaths(paths);
-        }
-
-        private void Cut_Click(object sender, RoutedEventArgs e)
-        {
-            if (FileBrowser?.FilesSelectedItems == null || FileBrowser.FilesSelectedItems.Count == 0)
-                return;
-
-            var paths = new List<string>();
-            foreach (FileSystemItem item in FileBrowser.FilesSelectedItems)
-            {
-                paths.Add(item.Path);
-            }
-            
-            FileClipboardManager.SetCutPaths(paths);
-        }
+        // 文件操作事件桥接方法 - 已迁移到 MenuEventHandler
+        private void Copy_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.Copy_Click(sender, e);
+        private void Cut_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.Cut_Click(sender, e);
 
         /// <summary>
         /// 获取当前操作上下文
@@ -10104,422 +6560,162 @@ Write-Host ""Hello World""
             }
         }
 
-        private void Paste_Click(object sender, RoutedEventArgs e)
+        /// <summary>
+        /// 执行复制操作
+        /// </summary>
+        internal void PerformCopyOperation()
         {
-            if (!FileClipboardManager.HasContent)
-                return;
-
-            var context = GetCurrentOperationContext();
-            var operation = new PasteOperation(context);
-            var copiedPaths = FileClipboardManager.GetCopiedPaths();
-            var isCut = FileClipboardManager.IsCutOperation;
-            
-            operation.Execute(copiedPaths, isCut);
-            
-            if (isCut)
-            {
-                FileClipboardManager.ClearCutOperation();
-            }
-        }
-
-        private void Delete_Click(object sender, RoutedEventArgs e)
-        {
-            if (FileBrowser?.FilesSelectedItems == null || FileBrowser.FilesSelectedItems.Count == 0)
-                return;
-
-            var context = GetCurrentOperationContext();
-            var operation = new DeleteOperation(context);
-            var itemsToDelete = new List<FileSystemItem>();
-            
-            foreach (FileSystemItem item in FileBrowser.FilesSelectedItems)
-            {
-                itemsToDelete.Add(item);
-            }
-            
-            operation.Execute(itemsToDelete);
-        }
-
-        private void Rename_Click(object sender, RoutedEventArgs e)
-        {
-            if (FileBrowser?.FilesSelectedItem is not FileSystemItem selectedItem)
-                return;
-
-            var context = GetCurrentOperationContext();
-            var operation = new RenameOperation(context, this);
-            operation.Execute(selectedItem);
-        }
-
-        private void ShowProperties_Click(object sender, RoutedEventArgs e)
-        {
-            if (FileBrowser?.FilesSelectedItem is not FileSystemItem selectedItem)
-                return;
-
             try
             {
-                var info = selectedItem.IsDirectory
-                    ? (FileSystemInfo)new DirectoryInfo(selectedItem.Path)
-                    : new FileInfo(selectedItem.Path);
+                var selectedItems = FileBrowser?.FilesSelectedItems?.Cast<FileSystemItem>().ToList() ?? new List<FileSystemItem>();
+                if (selectedItems.Count == 0)
+                {
+                    return;
+                }
 
-                var message = $"名称: {info.Name}\n" +
-                             $"位置: {Path.GetDirectoryName(info.FullName)}\n" +
-                             $"大小: {selectedItem.Size}\n" +
-                             $"创建时间: {info.CreationTime}\n" +
-                             $"修改时间: {info.LastWriteTime}\n" +
-                             $"访问时间: {info.LastAccessTime}\n" +
-                             $"属性: {info.Attributes}";
-
-                MessageBox.Show(message, "属性", MessageBoxButton.OK, MessageBoxImage.Information);
+                var paths = selectedItems.Select(item => item.Path).ToList();
+                FileClipboardManager.SetCopyPaths(paths);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"无法获取属性: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"复制操作失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+
+        /// <summary>
+        /// 执行剪切操作
+        /// </summary>
+        internal void PerformCutOperation()
+        {
+            try
+            {
+                var selectedItems = FileBrowser?.FilesSelectedItems?.Cast<FileSystemItem>().ToList() ?? new List<FileSystemItem>();
+                if (selectedItems.Count == 0)
+                {
+                    return;
+                }
+
+                var paths = selectedItems.Select(item => item.Path).ToList();
+                FileClipboardManager.SetCutPaths(paths);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"剪切操作失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        /// <summary>
+        /// 执行粘贴操作
+        /// </summary>
+        internal void PerformPasteOperation()
+        {
+            try
+            {
+                var copiedPaths = FileClipboardManager.GetCopiedPaths();
+                if (copiedPaths == null || copiedPaths.Count == 0)
+                {
+                    return;
+                }
+
+                var context = GetCurrentOperationContext();
+                if (context == null)
+                {
+                    return;
+                }
+
+                var isCut = FileClipboardManager.IsCutOperation;
+                var pasteOperation = new PasteOperation(context);
+                pasteOperation.Execute(copiedPaths, isCut);
+
+                if (isCut)
+                {
+                    FileClipboardManager.ClearCutOperation();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"粘贴操作失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        /// <summary>
+        /// 执行删除操作
+        /// </summary>
+        internal async void PerformDeleteOperation()
+        {
+            try
+            {
+                var selectedItems = FileBrowser?.FilesSelectedItems?.Cast<FileSystemItem>().ToList() ?? new List<FileSystemItem>();
+                if (selectedItems.Count == 0)
+                {
+                    return;
+                }
+
+                var context = GetCurrentOperationContext();
+                if (context == null)
+                {
+                    return;
+                }
+
+                var deleteOperation = new DeleteOperation(context);
+                await deleteOperation.ExecuteAsync(selectedItems);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"删除操作失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void Paste_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.Paste_Click(sender, e);
+        internal void Delete_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.Delete_Click(sender, e);
+        internal void Rename_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.Rename_Click(sender, e);
+        internal void ShowProperties_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.ShowProperties_Click(sender, e);
 
         #endregion
 
         #region 列表排序
 
-        private void GridViewColumnHeader_Click(object sender, RoutedEventArgs e)
+        internal void GridViewColumnHeader_Click(object sender, RoutedEventArgs e)
         {
             var header = sender as GridViewColumnHeader;
-            if (header == null || header.Tag == null)
-                return;
+            if (header == null || FileBrowser == null) return;
 
-            var columnName = header.Tag.ToString();
-
-            // 如果点击同一列，切换排序方向；否则默认升序
-            if (_lastSortColumn == columnName)
-            {
-                _sortAscending = !_sortAscending;
-            }
-            else
-            {
-                _lastSortColumn = columnName;
-                _sortAscending = true;
-            }
-
-            // 应用排序
-            SortFiles();
-            if (FileBrowser != null)
-                FileBrowser.FilesItemsSource = null;
-            if (FileBrowser != null)
-                FileBrowser.FilesItemsSource = _currentFiles;
-
-            // 更新列头显示排序指示器
-            UpdateSortIndicators(header);
-        }
-
-        private void SortFiles()
-        {
-            if (_currentFiles == null || _currentFiles.Count == 0)
-                return;
-
-            // 分离文件夹和文件
-            var directories = _currentFiles.Where(f => f.IsDirectory).ToList();
-            var files = _currentFiles.Where(f => !f.IsDirectory).ToList();
-
-            // 对文件夹和文件分别排序
-            directories = SortList(directories);
-            files = SortList(files);
-
-            // 合并：文件夹在前，文件在后
-            _currentFiles.Clear();
-            _currentFiles.AddRange(directories);
-            _currentFiles.AddRange(files);
-        }
-        private List<FileSystemItem> SortList(List<FileSystemItem> items)
-        {
-            IEnumerable<FileSystemItem> sorted = items;
-
-            switch (_lastSortColumn)
-            {
-                case "Name":
-                    sorted = _sortAscending 
-                        ? items.OrderBy(f => f.Name, StringComparer.OrdinalIgnoreCase)
-                        : items.OrderByDescending(f => f.Name, StringComparer.OrdinalIgnoreCase);
-                    break;
-
-                case "Size":
-                    sorted = _sortAscending
-                        ? items.OrderBy(f => ParseSize(f.Size))
-                        : items.OrderByDescending(f => ParseSize(f.Size));
-                    break;
-
-                case "Type":
-                    sorted = _sortAscending
-                        ? items.OrderBy(f => f.Type, StringComparer.OrdinalIgnoreCase)
-                        : items.OrderByDescending(f => f.Type, StringComparer.OrdinalIgnoreCase);
-                    break;
-
-                case "ModifiedDate":
-                    sorted = _sortAscending
-                        ? items.OrderBy(f => ParseDate(f.ModifiedDate))
-                        : items.OrderByDescending(f => ParseDate(f.ModifiedDate));
-                    break;
-
-                case "CreatedTime":
-                    sorted = _sortAscending
-                        ? items.OrderBy(f => ParseTimeAgo(f.CreatedTime))
-                        : items.OrderByDescending(f => ParseTimeAgo(f.CreatedTime));
-                    break;
-
-                case "Tags":
-                    sorted = _sortAscending
-                        ? items.OrderBy(f => f.Tags ?? "", StringComparer.OrdinalIgnoreCase)
-                        : items.OrderByDescending(f => f.Tags ?? "", StringComparer.OrdinalIgnoreCase);
-                    break;
-
-                case "Notes":
-                    sorted = _sortAscending
-                        ? items.OrderBy(f => f.Notes ?? "", StringComparer.OrdinalIgnoreCase)
-                        : items.OrderByDescending(f => f.Notes ?? "", StringComparer.OrdinalIgnoreCase);
-                    break;
-            }
-
-            return sorted.ToList();
-        }
-
-        private long ParseSize(string sizeStr)
-        {
-            if (string.IsNullOrEmpty(sizeStr) || sizeStr == "-" || sizeStr == "计算中...")
-                return 0;
-
-            // 移除空格
-            sizeStr = sizeStr.Replace(" ", "");
-
-            try
-            {
-                // 提取数字和单位
-                var number = new string(sizeStr.TakeWhile(c => char.IsDigit(c) || c == '.').ToArray());
-                var unit = sizeStr.Length > number.Length 
-                    ? sizeStr.Substring(number.Length).ToUpper() 
-                    : sizeStr.ToUpper();
-
-                if (string.IsNullOrEmpty(number))
-                    return 0;
-
-                double value = double.Parse(number);
-
-                // 转换为字节
-                switch (unit)
+            _columnService?.HandleColumnHeaderClick(
+                header,
+                _currentFiles,
+                (sortedFiles) =>
                 {
-                    case "B":
-                        return (long)value;
-                    case "KB":
-                        return (long)(value * 1024);
-                    case "MB":
-                        return (long)(value * 1024 * 1024);
-                    case "GB":
-                        return (long)(value * 1024 * 1024 * 1024);
-                    case "TB":
-                        return (long)(value * 1024 * 1024 * 1024 * 1024);
-                    default:
-                        return (long)value;
-                }
-            }
-            catch
-            {
-                return 0;
-            }
-        }
-
-        private DateTime ParseDate(string dateStr)
-        {
-            if (DateTime.TryParse(dateStr, out DateTime result))
-                return result;
-            return DateTime.MinValue;
-        }
-
-        private long ParseTimeAgo(string timeStr)
-        {
-            if (string.IsNullOrEmpty(timeStr))
-                return long.MaxValue;
-
-            try
-            {
-                // 提取数字
-                var number = new string(timeStr.TakeWhile(c => char.IsDigit(c)).ToArray());
-                if (string.IsNullOrEmpty(number))
-                    return long.MaxValue;
-
-                long value = long.Parse(number);
-
-                // 根据单位转换为秒
-                if (timeStr.EndsWith("s"))
-                    return value;
-                else if (timeStr.EndsWith("m"))
-                    return value * 60;
-                else if (timeStr.EndsWith("h"))
-                    return value * 3600;
-                else if (timeStr.EndsWith("d"))
-                    return value * 86400;
-                else if (timeStr.EndsWith("mo"))
-                    return value * 2592000; // 30天
-                else if (timeStr.EndsWith("y"))
-                    return value * 31536000; // 365天
-
-                return long.MaxValue;
-            }
-            catch
-            {
-                return long.MaxValue;
-            }
-        }
-
-        private void UpdateSortIndicators(GridViewColumnHeader clickedHeader)
-        {
-            // 清除所有列头的排序指示器
-            foreach (var column in FileBrowser.FilesGrid.Columns)
-            {
-                var header = column.Header as GridViewColumnHeader;
-                if (header != null && header.Tag != null)
-                {
-                    var content = header.Content.ToString();
-                    // 移除现有的排序符号
-                    content = content.Replace(" ▲", "").Replace(" ▼", "");
-                    header.Content = content;
-                }
-            }
-
-            // 为当前列添加排序指示器
-            if (clickedHeader != null)
-            {
-                var content = clickedHeader.Content.ToString();
-                content = content.Replace(" ▲", "").Replace(" ▼", "");
-                clickedHeader.Content = content + (_sortAscending ? " ▲" : " ▼");
-            }
+                    _currentFiles = sortedFiles;
+                    FileBrowser.FilesItemsSource = null;
+                    FileBrowser.FilesItemsSource = _currentFiles;
+                },
+                FileBrowser.FilesGrid
+            );
         }
 
         #endregion
 
         // ========== TagTrain 训练面板事件处理方法 ==========
-        // 注意：这些是占位实现，完整的TagTrain功能集成需要更深入的开发
+        // 已迁移到 Services.TagTrain.TagTrainEventHandler
         
-        private void TagTrainTagSortComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            // 重新加载标签列表（应用新的排序方式）
-            LoadTagTrainExistingTags();
-        }
+        private void TagTrainTagSortComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e) 
+            => _tagTrainEventHandler?.TagTrainTagSortComboBox_SelectionChanged(sender, e);
         
-        private void TagTrainTagInputTextBox_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            // TODO: 实现标签输入自动补完功能
-        }
+        private void TagTrainTagInputTextBox_TextChanged(object sender, TextChangedEventArgs e) 
+            => _tagTrainEventHandler?.TagTrainTagInputTextBox_TextChanged(sender, e);
         
-        private void TagTrainTagInputTextBox_KeyDown(object sender, KeyEventArgs e)
-        {
-            // TODO: 实现标签输入键盘导航功能
-        }
+        private void TagTrainTagInputTextBox_KeyDown(object sender, KeyEventArgs e) 
+            => _tagTrainEventHandler?.TagTrainTagInputTextBox_KeyDown(sender, e);
         
-        private void TagClickModeBtn_Click(object sender, RoutedEventArgs e)
-        {
-            _tagClickMode = _tagClickMode == TagClickMode.Browse ? TagClickMode.Edit : TagClickMode.Browse;
-            try
-            {
-                if (sender is Button btn)
-                {
-                    btn.Content = _tagClickMode == TagClickMode.Browse ? "👁" : "✏️";
-                    btn.ToolTip = _tagClickMode == TagClickMode.Browse
-                        ? "切换到编辑模式：显示完整TagTrain训练面板"
-                        : "切换到浏览模式：只显示标签列表";
-                }
-                
-                // 切换浏览/编辑模式的显示
-                SwitchTagMode();
-                
-                // 根据模式调整相关按钮显示/隐藏
-                ApplyTagClickModeVisibility();
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"TagClickModeBtn_Click error: {ex.Message}");
-            }
-        }
+        private void TagClickModeBtn_Click(object sender, RoutedEventArgs e) 
+            => _tagTrainEventHandler?.TagClickModeBtn_Click(sender, e);
         
-        // 切换标签浏览/编辑模式
-        private void SwitchTagMode()
-        {
-            try
-            {
-                if (TagBrowsePanel != null && TagEditPanel != null)
-                {
-                    if (_tagClickMode == TagClickMode.Browse)
-                    {
-                        TagBrowsePanel.Visibility = Visibility.Visible;
-                        TagEditPanel.Visibility = Visibility.Collapsed;
-                        // 加载浏览模式的标签列表
-                        if (TagBrowsePanel.Mode != TagTrain.UI.TagPanel.DisplayMode.Browse)
-                        {
-                            TagBrowsePanel.Mode = TagTrain.UI.TagPanel.DisplayMode.Browse;
-                        }
-                        TagBrowsePanel.LoadExistingTags();
-                    }
-                    else
-                    {
-                        TagBrowsePanel.Visibility = Visibility.Collapsed;
-                        TagEditPanel.Visibility = Visibility.Visible;
-                        // 加载编辑模式的标签列表
-                        if (TagEditPanel.Mode != TagTrain.UI.TagPanel.DisplayMode.Edit)
-                        {
-                            TagEditPanel.Mode = TagTrain.UI.TagPanel.DisplayMode.Edit;
-                        }
-                        TagEditPanel.LoadExistingTags();
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"SwitchTagMode error: {ex.Message}");
-            }
-        }
+        private void TagCategoryManageBtn_Click(object sender, RoutedEventArgs e) 
+            => _tagTrainEventHandler?.TagCategoryManageBtn_Click(sender, e);
         
-        // 分组管理按钮点击
-        private void TagCategoryManageBtn_Click(object sender, RoutedEventArgs e)
-        {
-            OpenCategoryManagement();
-        }
+        private void TagBrowseCategoryManagement_Click(object sender, RoutedEventArgs e) 
+            => _tagTrainEventHandler?.TagBrowseCategoryManagement_Click(sender, e);
         
-        // 浏览模式头部的分组管理按钮
-        private void TagBrowseCategoryManagement_Click(object sender, RoutedEventArgs e)
-        {
-            OpenCategoryManagement();
-        }
-        
-        // 打开分组管理窗口（统一方法）
-        private void OpenCategoryManagement()
-        {
-            try
-            {
-                if (!App.IsTagTrainAvailable)
-                {
-                    MessageBox.Show("TagTrain 不可用，无法打开分组管理。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-                    return;
-                }
-                
-                var window = new TagTrain.UI.CategoryManagementWindow
-                {
-                    Owner = this
-                };
-                window.ShowDialog();
-                
-                // 刷新标签列表
-                if (_tagClickMode == TagClickMode.Browse && TagBrowsePanel != null)
-                {
-                    TagBrowsePanel.LoadExistingTags();
-                }
-                else if (TagEditPanel != null)
-                {
-                    TagEditPanel.LoadExistingTags();
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"打开分组管理失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-        
-        // 修改标签名称
         private void EditTagName(int tagId, string oldTagName)
         {
             try
@@ -11121,7 +7317,7 @@ Write-Host ""Hello World""
         }
         
         // 根据路径集合恢复文件列表选中项
-        private void RestoreSelectionByPaths(List<string> paths)
+        internal void RestoreSelectionByPaths(List<string> paths)
         {
             if (paths == null || paths.Count == 0) return;
             try
@@ -11152,59 +7348,14 @@ Write-Host ""Hello World""
             catch { }
         }
         
-        private void TagTrainConfig_Click(object sender, RoutedEventArgs e)
-        {
-            // TODO: 实现设置功能（可以打开TagTrain的设置窗口）
-            try
-            {
-                if (App.IsTagTrainAvailable)
-                {
-                    // 可以尝试打开TagTrain的配置窗口
-                    try { TagTrain.Services.SettingsManager.ClearCache(); } catch { }
-                    var configWindow = new TagTrain.UI.ConfigWindow();
-                    var result = configWindow.ShowDialog();
-                    
-                    // 保存设置后自动刷新左侧标签，无需重启
-                    if (result == true)
-                    {
-                        // 清理 TagTrain 缓存，确保使用最新设置路径
-                        try
-                        {
-                            TagTrain.Services.SettingsManager.ClearCache();
-                            TagTrain.Services.DataManager.ClearDatabasePathCache();
-                            
-                            // 同步保存到 OoiMRR 自己的配置，便于下次启动前置设置
-                            var cfg = ConfigManager.Load();
-                            var storageDir = TagTrain.Services.SettingsManager.GetDataStorageDirectory();
-                            cfg.TagTrainDataDirectory = storageDir;
-                            
-                            // 关键：把 DataStorageDirectory 写入默认 settings.txt，
-                            // 让下次 LoadSettings 能从默认文件定位到新的目录
-                            TagTrain.Services.SettingsManager.SetDataStorageDirectory(storageDir);
-                            ConfigManager.Save(cfg);
-                        }
-                        catch { }
-                        
-                        // 重新加载状态与标签
-                        UpdateTagTrainModelStatus();
-                        LoadTagTrainExistingTags();
-                    }
-                }
-                else
-                {
-                    MessageBox.Show("TagTrain 不可用，无法打开设置。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"打开设置失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
+        private void TagTrainConfig_Click(object sender, RoutedEventArgs e) 
+            => _tagTrainEventHandler?.TagTrainConfig_Click(sender, e);
 
+        #if false
         private void FileBrowser_Loaded(object sender, RoutedEventArgs e)
         {
-
         }
+        #endif
     }
 
     public class FileSystemItem
@@ -11295,6 +7446,290 @@ Write-Host ""Hello World""
             throw new NotImplementedException();
         }
     }
+
+    /// <summary>
+    /// 导航 UI 辅助实现类
+    /// </summary>
+    internal class NavigationUIHelper : Services.Navigation.INavigationUIHelper
+    {
+        private readonly MainWindow _mainWindow;
+
+        public NavigationUIHelper(MainWindow mainWindow)
+        {
+            _mainWindow = mainWindow ?? throw new ArgumentNullException(nameof(mainWindow));
+        }
+
+        public System.Windows.Threading.Dispatcher Dispatcher => _mainWindow.Dispatcher;
+
+        public IEnumerable GetDrivesListItems()
+        {
+            return _mainWindow.DrivesListBox?.Items;
+        }
+
+        public IEnumerable GetQuickAccessListItems()
+        {
+            return _mainWindow.QuickAccessListBox?.Items;
+        }
+
+        public IEnumerable GetFavoritesListItems()
+        {
+            return _mainWindow.FavoritesListBox?.Items;
+        }
+
+        public IEnumerable GetLibrariesListItems()
+        {
+            return _mainWindow.LibrariesListBox?.Items;
+        }
+
+        public void SetItemHighlight(string listType, object item, bool highlight)
+        {
+            ListBox listBox = null;
+            switch (listType)
+            {
+                case "Drive":
+                    listBox = _mainWindow.DrivesListBox;
+                    break;
+                case "QuickAccess":
+                    listBox = _mainWindow.QuickAccessListBox;
+                    break;
+                case "Favorites":
+                    listBox = _mainWindow.FavoritesListBox;
+                    break;
+                case "Library":
+                    listBox = _mainWindow.LibrariesListBox;
+                    break;
+            }
+
+            if (listBox == null || item == null) return;
+
+            try
+            {
+                var container = listBox.ItemContainerGenerator.ContainerFromItem(item) as ListBoxItem;
+                if (container != null)
+                {
+                    if (highlight)
+                    {
+                        // 检查是否已经高亮，避免重复设置
+                        if (container.Tag as string == "Match")
+                            return;
+
+                        // 匹配当前路径/库：无论是否选中，都显示黄色（优先级最高）
+                        var yellowBg = _mainWindow.FindResource("HighlightBrush") as SolidColorBrush;
+                        var blackFg = _mainWindow.FindResource("HighlightForegroundBrush") as SolidColorBrush;
+                        var orangeBorder = _mainWindow.FindResource("HighlightBorderBrush") as SolidColorBrush;
+
+                        container.ClearValue(ListBoxItem.BackgroundProperty);
+                        container.ClearValue(ListBoxItem.ForegroundProperty);
+                        container.ClearValue(ListBoxItem.BorderBrushProperty);
+                        container.SetValue(ListBoxItem.BackgroundProperty, yellowBg);
+                        container.SetValue(ListBoxItem.ForegroundProperty, blackFg);
+                        container.SetValue(ListBoxItem.BorderBrushProperty, orangeBorder);
+                        container.Tag = "Match";
+                    }
+                    else
+                    {
+                        // 清除匹配高亮
+                        var tag = container.Tag as string;
+                        if (tag == "Match")
+                        {
+                            container.Tag = null;
+                            container.ClearValue(ListBoxItem.BackgroundProperty);
+                            container.ClearValue(ListBoxItem.ForegroundProperty);
+                            container.ClearValue(ListBoxItem.BorderBrushProperty);
+                        }
+                    }
+                }
+                else
+                {
+                    // 如果容器还未生成，延迟执行（使用低优先级避免阻塞UI）
+                    _mainWindow.Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        var retryContainer = listBox.ItemContainerGenerator.ContainerFromItem(item) as ListBoxItem;
+                        if (retryContainer != null)
+                        {
+                            if (highlight)
+                            {
+                                if (retryContainer.Tag as string == "Match")
+                                    return;
+
+                                var yellowBg = _mainWindow.FindResource("HighlightBrush") as SolidColorBrush;
+                                var blackFg = _mainWindow.FindResource("HighlightForegroundBrush") as SolidColorBrush;
+                                var orangeBorder = _mainWindow.FindResource("HighlightBorderBrush") as SolidColorBrush;
+
+                                retryContainer.ClearValue(ListBoxItem.BackgroundProperty);
+                                retryContainer.ClearValue(ListBoxItem.ForegroundProperty);
+                                retryContainer.ClearValue(ListBoxItem.BorderBrushProperty);
+                                retryContainer.SetValue(ListBoxItem.BackgroundProperty, yellowBg);
+                                retryContainer.SetValue(ListBoxItem.ForegroundProperty, blackFg);
+                                retryContainer.SetValue(ListBoxItem.BorderBrushProperty, orangeBorder);
+                                retryContainer.Tag = "Match";
+                            }
+                            else
+                            {
+                                var tag = retryContainer.Tag as string;
+                                if (tag == "Match")
+                                {
+                                    retryContainer.Tag = null;
+                                    retryContainer.ClearValue(ListBoxItem.BackgroundProperty);
+                                    retryContainer.ClearValue(ListBoxItem.ForegroundProperty);
+                                    retryContainer.ClearValue(ListBoxItem.BorderBrushProperty);
+                                }
+                            }
+                        }
+                    }), System.Windows.Threading.DispatcherPriority.Background);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"设置列表项高亮失败: {ex.Message}");
+            }
+        }
+
+        public void ClearListBoxHighlights(string listType)
+        {
+            ListBox listBox = null;
+            switch (listType)
+            {
+                case "Drive":
+                    listBox = _mainWindow.DrivesListBox;
+                    break;
+                case "QuickAccess":
+                    listBox = _mainWindow.QuickAccessListBox;
+                    break;
+                case "Favorites":
+                    listBox = _mainWindow.FavoritesListBox;
+                    break;
+                case "Library":
+                    listBox = _mainWindow.LibrariesListBox;
+                    break;
+            }
+
+            if (listBox == null || listBox.Items == null) return;
+
+            foreach (var item in listBox.Items)
+            {
+                SetItemHighlight(listType, item, false);
+            }
+        }
+
+        public void SetNavigationContentVisibility(string mode)
+        {
+            // 隐藏所有导航内容（添加空值检查）
+            if (_mainWindow.NavPathContent != null) _mainWindow.NavPathContent.Visibility = Visibility.Collapsed;
+            if (_mainWindow.NavLibraryContent != null) _mainWindow.NavLibraryContent.Visibility = Visibility.Collapsed;
+            if (_mainWindow.NavTagContent != null) _mainWindow.NavTagContent.Visibility = Visibility.Collapsed;
+
+            // 根据模式显示对应内容
+            switch (mode)
+            {
+                case "Path":
+                    if (_mainWindow.NavPathContent != null) _mainWindow.NavPathContent.Visibility = Visibility.Visible;
+                    if (_mainWindow.NavLibraryContent != null) _mainWindow.NavLibraryContent.Visibility = Visibility.Collapsed;
+                    if (_mainWindow.NavTagContent != null) _mainWindow.NavTagContent.Visibility = Visibility.Collapsed;
+                    break;
+                case "Library":
+                    if (_mainWindow.NavPathContent != null) _mainWindow.NavPathContent.Visibility = Visibility.Collapsed;
+                    if (_mainWindow.NavLibraryContent != null) _mainWindow.NavLibraryContent.Visibility = Visibility.Visible;
+                    if (_mainWindow.NavTagContent != null) _mainWindow.NavTagContent.Visibility = Visibility.Collapsed;
+                    break;
+                case "Tag":
+                    if (_mainWindow.NavPathContent != null) _mainWindow.NavPathContent.Visibility = Visibility.Collapsed;
+                    if (_mainWindow.NavLibraryContent != null) _mainWindow.NavLibraryContent.Visibility = Visibility.Collapsed;
+                    if (_mainWindow.NavTagContent != null) _mainWindow.NavTagContent.Visibility = Visibility.Visible;
+                    break;
+            }
+        }
+
+        public void UpdateActionButtons(string mode)
+        {
+            // 使用 ConfigService 更新操作按钮
+            _mainWindow._configService?.UpdateActionButtons(mode);
+        }
+
+        public SolidColorBrush GetResourceBrush(string resourceKey)
+        {
+            return _mainWindow.FindResource(resourceKey) as SolidColorBrush;
+        }
+
+        public void SetLibrarySelectedItem(object library)
+        {
+            if (_mainWindow.LibrariesListBox != null)
+            {
+                _mainWindow.LibrariesListBox.SelectedItem = library;
+            }
+        }
+    }
+
+    #region IConfigUIHelper 实现
+
+    /// <summary>
+    /// IConfigUIHelper 接口实现
+    /// </summary>
+    public partial class MainWindow
+    {
+        Window IConfigUIHelper.Window => this;
+
+        Grid IConfigUIHelper.RootGrid => this.RootGrid;
+
+        ColumnDefinition IConfigUIHelper.ColLeft => this.ColLeft;
+
+        ColumnDefinition IConfigUIHelper.ColCenter => this.ColCenter;
+
+        ColumnDefinition IConfigUIHelper.ColRight => this.ColRight;
+
+        Controls.TitleActionBar IConfigUIHelper.TitleActionBar => this.TitleActionBar;
+
+        string IConfigUIHelper.CurrentPath
+        {
+            get => _currentPath;
+            set => _currentPath = value;
+        }
+
+        object IConfigUIHelper.CurrentLibrary => _currentLibrary;
+
+        bool IConfigUIHelper.IsPseudoMaximized
+        {
+            get => _isPseudoMaximized;
+            set => _isPseudoMaximized = value;
+        }
+
+        Rect IConfigUIHelper.RestoreBounds
+        {
+            get => _restoreBounds;
+            set => _restoreBounds = value;
+        }
+
+        Rect IConfigUIHelper.GetCurrentMonitorWorkAreaDIPs()
+        {
+            return GetCurrentMonitorWorkAreaDIPs();
+        }
+
+        void IConfigUIHelper.AdjustColumnWidths()
+        {
+            AdjustColumnWidths();
+        }
+
+        void IConfigUIHelper.EnsureColumnMinWidths()
+        {
+            EnsureColumnMinWidths();
+        }
+
+        System.Windows.Threading.Dispatcher IConfigUIHelper.Dispatcher => this.Dispatcher;
+
+        void IConfigUIHelper.ExtendFrameIntoClientArea(int left, int right, int top, int bottom)
+        {
+            var hwnd = new WindowInteropHelper(this).Handle;
+            var margins = new NativeMethods.MARGINS { cxLeftWidth = left, cxRightWidth = right, cyTopHeight = top, cyBottomHeight = bottom };
+            NativeMethods.DwmExtendFrameIntoClientArea(hwnd, ref margins);
+        }
+
+        void IConfigUIHelper.UpdateWindowStateUI()
+        {
+            UpdateWindowStateUI();
+        }
+    }
+
+    #endregion
 }
 
 

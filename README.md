@@ -122,325 +122,156 @@ dotnet run
 
 ```
 OoiMRR/
-├── Previews/              # 预览功能模块
-│   ├── IPreviewProvider.cs      # 预览提供者接口
-│   ├── PreviewFactory.cs        # 预览工厂
-│   ├── PreviewHelper.cs         # 预览辅助工具
-│   ├── TextPreview.cs           # 文本预览
-│   ├── ImagePreview.cs          # 图片预览
-│   ├── VideoPreview.cs          # 视频预览
-│   ├── AudioPreview.cs          # 音频预览
-│   ├── DocumentPreview.cs       # 文档预览
-│   ├── ArchivePreview.cs        # 压缩包预览
-│   ├── FolderPreview.cs         # 文件夹预览
-│   └── DocxToHtmlConverter.cs   # DOCX 转 HTML
-├── Styles/                # 样式资源
-│   └── AppStyles.xaml
-├── MainWindow.xaml        # 主窗口界面
-├── MainWindow.xaml.cs     # 主窗口逻辑
-├── FileTypeManager.cs     # 文件类型管理
-├── ConfigManager.cs       # 配置管理
-├── DatabaseManager.cs     # 数据库管理
-├── RightPanelControl.xaml # 右侧面板控件
-├── PathInputDialog.xaml   # 路径输入对话框
-├── ConfirmDialog.xaml     # 确认对话框
-├── Services/              # 服务模块
-│   ├── OoiMRRIntegration.cs    # TagTrain 集成接口
-│   └── TagTrain/               # TagTrain 服务
-│       ├── ImageTagTrainer.cs  # 图片标签训练器
-│       ├── DataManager.cs      # 数据管理
-│       └── SettingsManager.cs  # 设置管理
-├── UI/TagTrain/          # TagTrain UI 模块
-│   ├── TrainingWindow.xaml     # 训练主窗口
-│   ├── TagPanel.xaml           # 标签面板
-│   ├── ConfigWindow.xaml       # 配置窗口
-│   └── TrainingStatusWindow.xaml # 训练状态窗口
-└── ...
+├── Previews/                      # 预览功能模块
+│   ├── IPreviewProvider.cs        # 预览提供者接口
+│   ├── PreviewFactory.cs          # 预览工厂
+│   ├── PreviewHelper.cs           # 预览辅助工具
+│   ├── TextPreview.cs             # 文本预览
+│   ├── ImagePreview_1.0.2.cs      # 图片预览
+│   ├── VideoPreview.cs            # 视频预览
+│   ├── AudioPreview.cs            # 音频预览
+│   ├── DocumentPreview.cs         # 文档预览
+│   ├── PdfPreview_1.0.2.cs        # PDF 预览
+│   ├── ExcelPreview.cs            # Excel 预览
+│   ├── PowerPointPreview.cs       # PowerPoint 预览
+│   ├── CadPreview.cs              # CAD 预览
+│   ├── ArchivePreview.cs          # 压缩包预览
+│   ├── FolderPreview.cs           # 文件夹预览
+│   ├── LnkPreview.cs              # 快捷方式预览
+│   ├── HtmlPreview.cs             # HTML 预览
+│   ├── XmlPreview.cs              # XML 预览
+│   └── DocxToHtmlConverter.cs     # DOCX 转 HTML
+├── Rendering/                     # 渲染引擎
+│   ├── DxfRenderEngine.cs         # DXF 渲染引擎
+│   └── DxfSvgConverter.cs         # DXF 转 SVG
+├── Controls/                      # 控件模块
+│   ├── ActionButtonsControl.xaml/cs        # 操作按钮控件
+│   ├── AddressBarControl.xaml/cs           # 地址栏控件
+│   ├── FileBrowserControl.xaml/cs          # 文件浏览器控件
+│   ├── FileListControl.xaml/cs             # 文件列表控件
+│   ├── NavigationPanelControl.xaml/cs      # 导航面板控件
+│   ├── SettingsPanelControl.xaml/cs        # 设置面板控件
+│   ├── TabManagerControl.xaml/cs           # 标签页管理控件
+│   ├── TitleActionBar.xaml/cs              # 标题栏操作控件
+│   ├── WindowControlButtonsControl.xaml/cs # 窗口控制按钮控件
+│   ├── RightPanelControl.xaml/cs           # 右侧面板控件
+│   ├── FFmpegHelper.cs                     # FFmpeg 辅助工具
+│   └── ThumbnailViewManager.cs             # 缩略图视图管理
+├── Services/                      # 服务模块
+│   ├── FileList/                  # 文件列表服务
+│   │   ├── FileListService.cs              # 文件列表服务
+│   │   ├── FileSystemWatcherService.cs     # 文件系统监控服务
+│   │   ├── FolderSizeCalculationService.cs # 文件夹大小计算服务
+│   │   ├── FolderSizeCalculator.cs         # 文件夹大小计算器
+│   │   └── FileMetadataEnricher.cs         # 文件元数据增强器
+│   ├── FileOperations/            # 文件操作服务
+│   │   ├── DeleteOperation.cs              # 删除操作
+│   │   ├── FileClipboardManager.cs         # 剪贴板管理
+│   │   ├── NewFileOperation.cs             # 新建文件操作
+│   │   ├── NewFolderOperation.cs           # 新建文件夹操作
+│   │   ├── PasteOperation.cs               # 粘贴操作
+│   │   ├── RenameOperation.cs              # 重命名操作
+│   │   ├── IFileOperationContext.cs        # 文件操作上下文接口
+│   │   ├── PathOperationContext.cs         # 路径操作上下文
+│   │   ├── LibraryOperationContext.cs      # 库操作上下文
+│   │   └── TagOperationContext.cs          # 标签操作上下文
+│   ├── Search/                    # 搜索服务
+│   │   ├── SearchService.cs                # 搜索服务
+│   │   ├── SearchCacheService.cs           # 搜索缓存服务
+│   │   ├── SearchFilterService.cs          # 搜索过滤服务
+│   │   ├── SearchResultBuilder.cs          # 搜索结果构建器
+│   │   ├── SearchResultGrouper.cs          # 搜索结果分组器
+│   │   ├── SearchPaginationService.cs      # 搜索分页服务
+│   │   ├── EverythingSearchExecutor.cs     # Everything 搜索执行器
+│   │   └── NotesSearchExecutor.cs          # 备注搜索执行器
+│   ├── Navigation/                # 导航服务
+│   │   ├── NavigationService.cs            # 导航服务
+│   │   ├── NavigationCoordinator.cs        # 导航协调器
+│   │   ├── NavigationModeService.cs        # 导航模式服务
+│   │   └── INavigationUIHelper.cs          # 导航 UI 辅助接口
+│   ├── ColumnHeader/              # 列头服务
+│   │   └── ColumnHeaderService.cs          # 列头管理服务
+│   ├── ColumnManagement/          # 列管理服务
+│   │   └── ColumnService.cs                # 列管理服务
+│   ├── Favorite/                  # 收藏服务
+│   │   └── FavoriteService.cs              # 收藏管理服务
+│   ├── QuickAccess/               # 快速访问服务
+│   │   └── QuickAccessService.cs           # 快速访问服务
+│   ├── Tag/                       # 标签服务
+│   │   └── TagService.cs                   # 标签管理服务
+│   ├── FileNotes/                 # 文件备注服务
+│   │   └── FileNotesService.cs             # 文件备注管理服务
+│   ├── Preview/                   # 预览服务
+│   │   └── PreviewService.cs               # 预览管理服务
+│   ├── Tabs/                      # 标签页服务
+│   │   ├── TabService.cs                   # 标签页管理服务
+│   │   └── TabModels.cs                    # 标签页模型
+│   ├── Settings/                  # 设置服务
+│   │   └── SettingsOverlayController_1.0.2.cs  # 设置覆盖层控制器
+│   ├── Config/                    # 配置服务
+│   │   ├── ConfigService.cs                # 配置管理服务
+│   │   └── IConfigUIHelper.cs              # 配置 UI 辅助接口
+│   ├── TagTrain/                  # TagTrain 服务
+│   │   ├── ImageTagTrainer.cs              # 图片标签训练器
+│   │   ├── DataManager.cs                  # 数据管理
+│   │   ├── SettingsManager.cs              # 设置管理
+│   │   └── TagTrainEventHandler.cs         # 事件处理器
+│   ├── Bridges/                   # 桥接服务
+│   │   └── FileBrowserBridge.cs            # 文件浏览器桥接
+│   ├── Abstractions/              # 抽象定义
+│   │   └── NavigationContracts.cs          # 导航契约
+│   ├── LibraryService.cs          # 库管理服务
+│   ├── NavigationStateManager.cs  # 导航状态管理
+│   ├── DragDropManager.cs         # 拖拽管理
+│   ├── MainWindowInitializer.cs   # MainWindow 初始化服务
+│   ├── OoiMRRIntegration.cs       # TagTrain 集成接口
+│   └── ...                        # 其他辅助服务
+├── ViewModels/                    # 视图模型
+│   ├── BaseViewModel.cs           # 视图模型基类
+│   ├── FileListViewModel.cs       # 文件列表视图模型
+│   ├── LibraryViewModel.cs        # 库视图模型
+│   ├── NavigationViewModel.cs     # 导航视图模型
+│   ├── TagViewModel.cs            # 标签视图模型
+│   └── SearchResultGroupViewModel.cs  # 搜索结果分组视图模型
+├── Handlers/                      # 事件处理器
+│   ├── FileBrowserEventHandler.cs # 文件浏览器事件处理器
+│   ├── FileListEventHandler.cs    # 文件列表事件处理器
+│   ├── KeyboardEventHandler.cs    # 键盘事件处理器
+│   ├── MenuEventHandler.cs        # 菜单事件处理器
+│   └── MouseEventHandler.cs       # 鼠标事件处理器
+├── Models/                        # 数据模型
+│   └── TabItemModel.cs            # 标签页项模型
+├── Styles/                        # 样式资源
+│   └── AppStyles.xaml             # 应用样式
+├── Windows/                       # 窗口
+│   ├── ColumnChooserWindow.xaml/cs    # 列选择窗口
+│   └── DateFilterWindow.xaml/cs       # 日期过滤窗口
+├── UI/TagTrain/                   # TagTrain UI 模块
+│   ├── TrainingWindow.xaml/cs     # 训练主窗口
+│   ├── TagPanel.xaml/cs           # 标签面板
+│   ├── ConfigWindow.xaml/cs       # 配置窗口
+│   └── TrainingStatusWindow.xaml/cs   # 训练状态窗口
+├── MainWindow.xaml/cs             # 主窗口
+├── FileTypeManager.cs             # 文件类型管理
+├── ConfigManager.cs               # 配置管理
+├── DatabaseManager.cs             # 数据库管理
+├── DialogService.cs               # 对话框服务
+├── PathInputDialog.xaml/cs        # 路径输入对话框
+├── ConfirmDialog.xaml/cs          # 确认对话框
+└── ...                            # 其他文件
 ```
 
 ## 更新日志
 
-### v1.4.9 (2025-12-11)
+详细的开发进度和历史版本更新记录，请查看 [PROGRESS.md](PROGRESS.md)
 
-#### 版本更新
-- ✅ **版本号升级**：从 v1.4.8 升级到 v1.4.9
-- ✅ **代码优化**：持续改进和优化
+## 项目统计
 
-### v1.4.8 (2025-12-10)
-
-#### 版本更新
-- ✅ **版本号升级**：从 v1.4.7 升级到 v1.4.8
-- ✅ **代码优化**：持续改进和优化
-
-### v1.4.7 (2025-12-09)
-
-#### 版本更新
-- ✅ **版本号升级**：从 v1.4.6 升级到 v1.4.7
-- ✅ **拆分与迁移**：拆分预览与服务层边界，准备配置与缓存目录迁移，降低耦合风险
-
-### v1.4.6 (2025-12-09)
-
-#### 版本更新
-- ✅ **版本号升级**：从 v1.4.5 升级到 v1.4.6
-- ✅ **文档更新**：同步 README 信息与发布日期
-
-### v1.4.5 (2025-12-08)
-
-#### 版本更新
-- ✅ **版本号升级**：从 v1.4.4 升级到 v1.4.5
-- ✅ **代码优化**：持续改进和优化
-- ✅ **代码重构**：优化文件操作服务结构
-- ✅ **文档整理**：清理过时文档，归档历史文档
-
-### v1.4.4 (2025-12-06)
-
-#### 版本更新
-- ✅ **版本号升级**：从 v1.4.3 升级到 v1.4.4
-- ✅ **代码优化**：持续改进和优化
-
-### v1.4.3 (2025-12-06)
-
-#### 版本更新
-- ✅ **版本号升级**：从 v1.4.2 升级到 v1.4.3
-- ✅ **代码优化**：持续改进和优化
-
-### v1.4.2 (2025-12-04)
-
-#### 版本更新
-- ✅ **版本号升级**：从 v1.4.1 升级到 v1.4.2
-- ✅ **代码优化**：持续改进和优化
-
-### v1.4.1 (2025-12-04)
-
-#### 版本更新
-- ✅ **版本号升级**：从 v1.4.0 升级到 v1.4.1
-- ✅ **代码优化**：持续改进和优化
-
-### v1.4.0 (2025-01-25)
-
-#### 重大更新 - TagTrain 整合
-- 🎉 **TagTrain 完整整合**：将 AI 图片标签训练系统完全整合到 OoiMRR
-- ✅ **机器学习标签预测**：
-  - 基于 ML.NET 的图片标签自动预测
-  - 支持 Top 10 预测结果，按置信度排序
-  - 实时预测，无需等待
-- ✅ **智能训练系统**：
-  - 手动标注训练样本
-  - 自动训练分类模型（使用 LbfgsMaximumEntropy 算法）
-  - 增量训练支持，持续优化模型
-  - 训练进度实时显示（初始化、数据准备、训练中、保存模型等阶段）
-  - 支持训练取消
-- ✅ **标签管理增强**：
-  - 标签自动补全和搜索
-  - 标签使用统计（按使用次数排序）
-  - 重复标签合并功能
-  - 批量操作支持
-  - 标签浏览模式，按标签查看文件
-- ✅ **无缝集成**：
-  - 在 OoiMRR 主窗口中直接使用标签功能
-  - 图片标注自动保存为训练数据
-  - 支持独立训练窗口模式（`--tagtrain` 启动参数）
-  - 标签模式与路径模式无缝切换
-- ✅ **模型管理**：
-  - 模型版本管理
-  - 模型验证和诊断
-  - 训练历史记录
-  - 模型状态指示器（实时显示模型加载状态）
-- ✅ **UI/UX 优化**：
-  - 训练窗口现代化设计
-  - 标签输入面板优化
-  - 预测结果可视化
-  - 训练状态窗口
-- ✅ **版本号升级**：从 v1.3.0 升级到 v1.4.0
-
-### v1.3.0 (2025-01-25)
-
-#### 重要版本说明
-- 📌 **最后一个不含 TagTrain 的版本**：此版本为 OoiMRR 独立版本，不包含 TagTrain 集成功能
-- ✅ **版本号升级**：从 v1.2.9 升级到 v1.3.0
-- ✅ **代码优化和重构**：持续改进代码质量和性能
-- ✅ **功能完善**：完善文件管理、预览和标签功能
-
-### v1.2.9 (2025-01-25)
-
-#### 版本更新
-- ✅ **版本号升级**：从 v1.2.8 升级到 v1.2.9
-- ✅ **代码优化**：持续改进和优化
-
-### v1.2.8 (2025-01-25)
-
-#### 修复和改进
-- 🐛 修复：窗口状态和位置记忆问题（包括最大化状态）
-- 🐛 修复：SkiaSharp 过时 API 警告（使用新的 SKFont API）
-- 🐛 修复：包兼容性警告（NU1701）
-- 🔧 代码清理：移除所有调试代码，优化性能
-- 🔧 编译优化：清理构建产物，重新编译
-
-### v1.2.8 (2025-01-25)
-
-#### 版本控制和依赖更新
-- ✅ **版本号统一**：统一项目版本号为 v1.2.8
-- ✅ **依赖包检查**：确认所有 NuGet 依赖包为最新稳定版本
-- ✅ **代码质量**：代码清理和优化
-
-### v1.2.7 (2025-11-24)
-
-#### 代码优化和性能改进
-- ✅ **代码清理和重构**：
-  - 缩略图转换器代码优化，减少约 400 行冗余代码
-  - 简化缩略图生成逻辑，提升代码可维护性
-  - 优化文件类型管理，增强扩展性
-- ✅ **性能优化**：
-  - 缩略图生成性能优化
-  - 减少不必要的内存分配
-  - 优化文件列表渲染性能
-
-### v1.2.6 (2025-11-24)
-
-#### 功能更新
-- ✅ **视频格式预览和缩略图功能**：
-  - **多格式视频支持**：支持 MP4、AVI、MKV、MOV、WMV、FLV、WEBM、M4V、MPG、MPEG 等格式
-  - **内置视频播放器**：
-    - 播放/暂停控制
-    - 停止功能
-    - 音量调节（0-100%）
-    - 进度条显示和拖动定位
-    - 时间显示（当前时间/总时长）
-    - 快进/快退（5秒）
-    - 播放速度调节（0.5×、1×、1.5×、2×）
-    - 视频旋转功能（90度旋转）
-    - 全屏播放模式
-    - 快捷键支持（空格播放/暂停、左右方向键快进/快退、上下方向键调节音量、F全屏、ESC退出全屏）
-  - **视频缩略图生成**：
-    - 使用 FFmpeg 提取视频第一帧作为缩略图
-    - 缩略图缓存机制，提升性能
-    - 支持在文件列表中显示视频缩略图
-  - **RealMedia 格式支持**：
-    - 支持 RMVB/RM 格式的转码预览
-    - 自动后台转码为 MP4 格式
-    - 转码进度显示
-    - 转码缓存机制，避免重复转码
-  - **智能格式处理**：对于 MediaElement 不支持的格式，自动提示使用默认播放器打开
-
-### v1.2.5 (2025-11-24)
-
-#### 功能更新
-- ✅ **音频格式预览功能**：
-  - **多格式音频支持**：支持 MP3、WAV、FLAC、AAC、OGG、WMA、M4A、OPUS、APE、WV、AC3、DTS、AMR、AU、RA、MID、MIDI 等格式
-  - **内置音频播放器**：
-    - 播放/暂停控制
-    - 停止功能
-    - 音量调节（0-100%）
-    - 进度条显示和拖动定位
-    - 时间显示（当前时间/总时长）
-  - **智能格式处理**：对于 MediaElement 不支持的格式，自动提示使用默认播放器打开
-  - **文件信息显示**：显示文件名、文件大小等基本信息
-
-### v1.2.4 (2025-11-24)
-
-#### 功能更新
-- ✅ **图片预览和缩略图功能增强**：
-  - **多格式图片预览**：支持 PNG、JPG、JPEG、GIF、BMP、TIFF、ICO、WEBP、SVG、PSD 等格式
-  - **智能缩略图生成**：
-    - 系统缩略图缓存优先使用，提升性能
-    - SVG/PSD 使用 Magick.NET 生成高质量缩略图
-    - 视频文件使用 FFmpeg 提取第一帧作为缩略图
-    - 支持缩略图大小调节，用户可自定义显示尺寸
-  - **缩略图视图模式**：文件列表支持缩略图视图，直观展示图片内容
-  - **性能优化**：缩略图缓存机制，避免重复生成
-
-### v1.2.3 (2025-11-24)
-
-#### 功能更新
-- ✅ **压缩文件预览增强**：完整支持 ZIP、7Z、RAR 格式预览
-  - ZIP：使用 .NET 内置支持，支持 GBK/UTF-8 编码
-  - 7Z：使用 7-Zip 工具读取文件列表，支持中文编码
-  - RAR：通过 7-Zip 工具支持，显示文件列表和统计信息
-  - 所有格式均显示文件列表、大小统计和文件夹结构
-
-### v1.2.2 (2025-11-24)
-
-#### 功能更新
-- ✅ 代码优化和性能改进
-- ✅ 修复已知问题
-
-### v1.2.1 (2025-11-11)
-
-#### 新增功能
-- ✅ **库功能增强**：新增库功能入口与操作流程，提供更直观的路径聚合体验
-
-### v1.2.0 (2025-01-15)
-
-#### 新增功能
-- ✅ **统一标签页系统**：库和路径使用浏览器式标签页，支持关闭按钮
-- ✅ **.lnk快捷方式预览**：显示快捷方式目标路径和文件信息
-- ✅ **文件夹预览双击**：支持双击预览区文件/文件夹打开
-- ✅ **文件夹大小缓存**：数据库缓存，智能计算，递归计算包含子文件夹
-- ✅ **按钮分组优化**：标题栏按钮按功能分组，组间间距增大
-- ✅ **库功能按钮整合**：将列1的库功能按钮移动到标题栏
-- ✅ **对话框统一**：删除库对话框使用统一的ConfirmDialog样式
-
-#### 性能优化
-- ⚡ 鼠标操作优化，减少不必要的布局更新
-- ⚡ 文件夹大小计算异步化，不阻塞UI
-- ⚡ 程序关闭速度优化
-
-### v1.1.0 (2025-01-02)
-
-#### 新增功能
-- ✅ **库功能**：Windows 风格的文件库，支持多路径聚合
-- ✅ **收藏功能**：收藏常用文件和文件夹，支持拖拽排序
-- ✅ **列头设置持久化**：列宽度和顺序自动保存
-- ✅ **双击空白区域**：快速返回上一级目录
-- ✅ **统一显示效果**：驱动器、快速访问、收藏统一背景和样式
-- ✅ **对话框快捷键**：所有对话框支持 Enter 和 Esc 键
-
-### v1.0.0 (2025-01-02)
-
-#### 核心功能
-- ✅ 三栏式文件管理器布局
-- ✅ 完整的文件操作功能（新建、复制、粘贴、删除、重命名）
-- ✅ Windows 标准快捷键支持
-- ✅ 文件系统实时监控和自动刷新
-
-#### 预览功能
-- ✅ 文本文件预览
-- ✅ 图片文件预览
-- ✅ 视频文件预览（带播放控制）
-- ✅ 音频文件预览
-- ✅ DOCX/DOC 文档预览（HTML 转换）
-- ✅ PDF 文件预览（WebView2）
-- ✅ XLSX 文件预览（表格数据）
-- ✅ ZIP/RAR/7Z 压缩包预览（支持中文编码）
-- ✅ 文件夹内容预览
-
-#### 新建文件
-- ✅ Office 文档（Word、Excel、PowerPoint）
-- ✅ 图片文件（PNG、JPG、GIF、BMP、SVG）- 500x500 空白图片
-- ✅ 代码文件（C#、Python、Java、JS、HTML、CSS 等）- 带模板代码
-- ✅ 配置文件（JSON、XML、INI、Markdown 等）
-
-#### UI/UX 改进
-- ✅ 创建时间列（s/m/h/d/mo/y 格式）
-- ✅ 创建时间彩虹色着色（绿→青→蓝→紫→棕→灰）
-- ✅ 文件夹预览与左侧列表一致的界面
-- ✅ 统一的对话框风格（圆角、无边框、现代化）
-- ✅ 列3与列2水平对齐
-- ✅ 自动序号命名（重名时）
-
-#### 文档转换
-- ✅ DOC 转 DOCX 功能
+功能完成情况、代码重构统计和版本分布，请查看 [STATISTICS.md](STATISTICS.md)
 
 ## 待开发功能
 
-- [ ] Excel 文件预览增强（多工作表支持）
-- [ ] PowerPoint 文件预览
-- [ ] CAD 文件预览（DWG/DXF）
-- [ ] 文件拖拽支持
-- [ ] 批量操作
-- [ ] 文件搜索增强
-- [ ] 主题切换（深色模式）
-- [ ] 历史记录
+未来功能规划和开发计划，请查看 [ROADMAP.md](ROADMAP.md)
 
 ## 许可证
 
@@ -452,6 +283,6 @@ OoiMRR Team
 
 ---
 
-**当前版本**: v1.4.9  
-**最后更新**: 2025-12-11  
-**版本说明**: 持续优化和改进
+**当前版本**: v1.4.10  
+**最后更新**: 2025-12-14  
+**版本说明**: 版本控制和文档更新

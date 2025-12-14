@@ -17,7 +17,7 @@
         </Grid.RowDefinitions>
         
         <!-- 行0：标题栏（占位，与列2工具栏对齐） -->
-        <Border Grid.Row="0" Height="36" Background="Transparent"/>
+        <Border Grid.Row="0" Height="36" Background="Transparent" IsHitTestVisible="False"/>
         
         <!-- 水平分割器 -->
         <GridSplitter Grid.Row="2" Style="{StaticResource HorizontalGridSplitterStyle}"

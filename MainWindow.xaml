@@ -15,7 +15,10 @@
         ResizeMode="CanResize"
         UseLayoutRounding="True"
         Background="#FFFFFF"
-        PreviewKeyDown="MainWindow_PreviewKeyDown">
+        PreviewKeyDown="MainWindow_PreviewKeyDown"
+        Closing="Window_Closing"
+        SizeChanged="Window_SizeChanged"
+        LocationChanged="Window_LocationChanged">
     
     <Window.Resources>
         <local:TimeUnitConverter x:Key="TimeUnitConverter"/>
@@ -44,7 +47,8 @@
         <!-- 标题栏：包含列1导航按钮和列2操作按钮，支持拖拽 -->
         <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="5"
                 Background="#F8F9FA" BorderBrush="#E9ECEF" BorderThickness="0,0,0,1"
-                MouseDown="TitleBar_MouseDown">
+                MouseDown="TitleBar_MouseDown"
+                Panel.ZIndex="1000">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>

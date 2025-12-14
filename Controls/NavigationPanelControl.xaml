@@ -15,19 +15,11 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
                 
-                <!-- 子行0：面包屑导航（完整路径，支持多行） -->
-                <Border Grid.Row="0" Background="#FFFFFF" Margin="0,0,0,8">
-                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="4" MaxHeight="120">
-                        <WrapPanel Name="BreadcrumbPanel" Orientation="Horizontal"/>
-                    </ScrollViewer>
-                </Border>
-                
                 <!-- 驱动器列表 -->
-                <GroupBox Grid.Row="1" Header="驱动器" Margin="0,0,0,8" Style="{StaticResource ModernGroupBoxStyle}">
+                <GroupBox Grid.Row="0" Header="驱动器" Margin="0,0,0,8" Style="{StaticResource ModernGroupBoxStyle}">
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <ListBox Name="DrivesListBox" 
                                  Margin="2"
@@ -39,7 +31,7 @@
                 </GroupBox>
                 
                 <!-- 快速访问 -->
-                <GroupBox Grid.Row="2" Header="快速访问" Margin="0,0,0,8" Style="{StaticResource ModernGroupBoxStyle}">
+                <GroupBox Grid.Row="1" Header="快速访问" Margin="0,0,0,8" Style="{StaticResource ModernGroupBoxStyle}">
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <ListBox Name="QuickAccessListBox" 
                                  Margin="2"
@@ -51,7 +43,7 @@
                 </GroupBox>
                 
                 <!-- 收藏 -->
-                <GroupBox Grid.Row="3" Header="收藏" Style="{StaticResource ModernGroupBoxStyle}">
+                <GroupBox Grid.Row="2" Header="收藏" Style="{StaticResource ModernGroupBoxStyle}">
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <ListBox Name="FavoritesListBox" 
                                  Margin="2"
@@ -124,16 +116,11 @@
                     <!-- 库管理按钮 -->
                     <StackPanel Orientation="Horizontal" Name="LibraryBottomButtons" Visibility="Collapsed">
                         <Button Name="LibraryManageBtn"
-                               Content="⚙️ 管理库"
+                               Content="⚙️"
+                               Width="32"
                                Height="32"
                                Style="{StaticResource ModernButtonStyle}"
                                ToolTip="管理库（包含新建库功能）"
-                               Margin="4,0"/>
-                        <Button Name="LibraryRefreshBtn"
-                               Content="🔄 刷新"
-                               Height="32"
-                               Style="{StaticResource ModernButtonStyle}"
-                               ToolTip="刷新库列表"
                                Margin="4,0"/>
                     </StackPanel>
                     
@@ -157,6 +144,16 @@
         </Border>
     </Grid>
 </UserControl>
+
+
+
+
+
+
+
+
+
+
 
 
 

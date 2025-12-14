@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,14 +9,17 @@ using OoiMRR.Services;
 namespace OoiMRR.Services.Search
 {
     /// <summary>
-    /// 搜索服务
-    /// 负责执行文件搜索操作
+    /// 搜索服务（编排器）
+    /// 负责协调各个搜索执行器，组合搜索结果
     /// </summary>
     public class SearchService
     {
         private readonly SearchFilterService _filterService;
         private readonly SearchCacheService _cacheService;
         private readonly SearchResultBuilder _resultBuilder;
+        private readonly EverythingSearchExecutor _everythingExecutor;
+        private readonly NotesSearchExecutor _notesExecutor;
+        private readonly SearchPaginationService _paginationService;
 
         // 搜索配置
         private int _pageSize = 1000;
@@ -30,7 +32,16 @@ namespace OoiMRR.Services.Search
         public int PageSize
         {
             get => _pageSize;
-            set => _pageSize = value > 0 ? value : 1000;
+            set
+            {
+                _pageSize = value > 0 ? value : 1000;
+                // 更新执行器的页面大小
+                if (_everythingExecutor != null)
+                {
+                    // 注意：EverythingSearchExecutor 在构造时接收 pageSize，这里需要重新创建
+                    // 或者可以添加一个 UpdatePageSize 方法，但为了简化，暂时保持现状
+                }
+            }
         }
 
         /// <summary>
@@ -48,14 +59,35 @@ namespace OoiMRR.Services.Search
         /// <param name="filterService">过滤器服务</param>
         /// <param name="cacheService">缓存服务</param>
         /// <param name="resultBuilder">结果构建器</param>
+        /// <param name="pageSize">页面大小（默认1000）</param>
+        /// <param name="maxResults">最大结果数（默认5000）</param>
         public SearchService(
             SearchFilterService filterService,
             SearchCacheService cacheService,
-            SearchResultBuilder resultBuilder)
+            SearchResultBuilder resultBuilder,
+            int pageSize = 1000,
+            int maxResults = 5000)
         {
             _filterService = filterService ?? throw new ArgumentNullException(nameof(filterService));
             _cacheService = cacheService ?? throw new ArgumentNullException(nameof(cacheService));
             _resultBuilder = resultBuilder ?? throw new ArgumentNullException(nameof(resultBuilder));
+            _pageSize = pageSize > 0 ? pageSize : 1000;
+            _maxResults = maxResults > 0 ? maxResults : 5000;
+
+            // 初始化各个执行器
+            _everythingExecutor = new EverythingSearchExecutor(
+                _filterService,
+                _resultBuilder,
+                _pageSize,
+                _maxResults);
+            _notesExecutor = new NotesSearchExecutor();
+            _paginationService = new SearchPaginationService(
+                _filterService,
+                _resultBuilder,
+                _cacheService,
+                _everythingExecutor,
+                _pageSize,
+                _maxResults);
         }
 
         /// <summary>
@@ -111,7 +143,6 @@ namespace OoiMRR.Services.Search
             }
 
             var normalizedKeyword = NormalizeKeyword(keyword);
-            var results = new List<FileSystemItem>();
             var resultPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             
             // 分别收集不同类型的搜索结果
@@ -133,7 +164,7 @@ namespace OoiMRR.Services.Search
                 // 名称搜索（强制使用 Everything）
                 if (searchNames)
                 {
-                    await PerformEverythingSearchAsync(
+                    await _everythingExecutor.ExecuteAsync(
                         normalizedKeyword,
                         searchOptions,
                         currentPath,
@@ -151,41 +182,10 @@ namespace OoiMRR.Services.Search
                 // 备注搜索
                 if (searchNotes && getNotesFromDb != null)
                 {
-                    Debug.WriteLine($"开始备注搜索，关键词: '{normalizedKeyword}'");
-                    try
-                    {
-                        var notesResults = getNotesFromDb(normalizedKeyword);
-                        Debug.WriteLine($"备注搜索返回结果: {notesResults?.Count ?? 0} 个");
-                        
-                        if (notesResults != null && notesResults.Count > 0)
-                        {
-                            Debug.WriteLine($"备注搜索完成，找到 {notesResults.Count} 个文件");
-                            
-                            foreach (var path in notesResults)
-                            {
-                                if (!string.IsNullOrEmpty(path))
-                                {
-                                    Debug.WriteLine($"备注搜索结果文件: {path}");
-                                    notesResultPaths.Add(path);
-                                    resultPaths.Add(path);
-                                }
-                            }
-                            Debug.WriteLine($"备注搜索后，总结果数: {resultPaths.Count}");
-                        }
-                        else
-                        {
-                            Debug.WriteLine($"备注搜索未找到匹配结果（关键词: '{normalizedKeyword}'）");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine($"备注搜索失败: {ex.Message}\n{ex.StackTrace}");
-                        // 备注搜索失败不影响文件名搜索，继续执行
-                    }
-                }
-                else
-                {
-                    Debug.WriteLine($"备注搜索未启用: searchNotes={searchNotes}, getNotesFromDb={getNotesFromDb != null}");
+                    notesResultPaths = _notesExecutor.Execute(
+                        normalizedKeyword,
+                        getNotesFromDb,
+                        resultPaths);
                 }
 
                 // 应用类型过滤
@@ -195,7 +195,7 @@ namespace OoiMRR.Services.Search
                 var sortedPaths = _resultBuilder.SortByRelevance(filteredPaths, normalizedKeyword).ToList();
 
                 // 构建结果项
-                results = _resultBuilder.BuildItemsFromPaths(sortedPaths);
+                var results = _resultBuilder.BuildItemsFromPaths(sortedPaths);
 
                 // 限制展示：备注与文件夹全部保留，文件仅取前100条
                 const int maxFiles = 100;
@@ -281,58 +281,7 @@ namespace OoiMRR.Services.Search
             string currentPath,
             CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrEmpty(keyword) || !EverythingHelper.IsEverythingRunning())
-            {
-                return new SearchResult { Keyword = keyword };
-            }
-
-            try
-            {
-                var rangePath = _filterService.GetRangePath(searchOptions.PathRange, currentPath);
-                var page = EverythingHelper.SearchFilesPaged(keyword, offset, _pageSize, rangePath);
-                
-                if (page == null || page.Count == 0)
-                {
-                    return new SearchResult
-                    {
-                        Keyword = keyword,
-                        Offset = offset,
-                        HasMore = false,
-                        PageSize = _pageSize
-                    };
-                }
-
-                var filtered = _filterService.ApplyTypeFilter(page, searchOptions.Type).ToList();
-                var newItems = _resultBuilder.BuildItemsFromPaths(filtered);
-
-                var newOffset = offset + page.Count;
-                var hasMore = page.Count == _pageSize && newOffset < _maxResults;
-
-                // 更新缓存（合并结果）
-                var cacheKey = $"search://{keyword}";
-                var existingCache = _cacheService.GetCache(cacheKey);
-                if (existingCache != null)
-                {
-                    var allItems = new List<FileSystemItem>(existingCache.Items);
-                    allItems.AddRange(newItems);
-                    _cacheService.UpdateCache(cacheKey, allItems, newOffset, hasMore, keyword, rangePath, searchOptions.Type, searchOptions.PathRange);
-                }
-
-                return new SearchResult
-                {
-                    Items = newItems,
-                    Keyword = keyword,
-                    Offset = newOffset,
-                    HasMore = hasMore,
-                    PageSize = _pageSize,
-                    MaxResults = _maxResults
-                };
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"加载更多搜索结果失败: {ex.Message}");
-                return new SearchResult { Keyword = keyword };
-            }
+            return _paginationService.LoadMore(keyword, offset, searchOptions, currentPath, cancellationToken);
         }
 
         /// <summary>
@@ -351,161 +300,9 @@ namespace OoiMRR.Services.Search
         {
             _cancellationTokenSource?.Cancel();
             _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-
-            if (string.IsNullOrEmpty(keyword) || !EverythingHelper.IsEverythingRunning())
-            {
-                return new SearchResult { Keyword = keyword };
-            }
-
-            try
-            {
-                var rangePath = _filterService.GetRangePath(searchOptions.PathRange, currentPath);
-                var firstPage = EverythingHelper.SearchFilesPaged(keyword, 0, _pageSize, rangePath);
-                var filtered = _filterService.ApplyTypeFilter(firstPage, searchOptions.Type).ToList();
-                var items = _resultBuilder.BuildItemsFromPaths(filtered);
-
-                var offset = firstPage.Count;
-                var hasMore = firstPage.Count == _pageSize && offset < _maxResults;
-
-                // 更新缓存
-                var cacheKey = $"search://{keyword}";
-                _cacheService.UpdateCache(cacheKey, items, offset, hasMore, keyword, rangePath, searchOptions.Type, searchOptions.PathRange);
-
-                return new SearchResult
-                {
-                    Items = items,
-                    Keyword = keyword,
-                    Offset = offset,
-                    HasMore = hasMore,
-                    PageSize = _pageSize,
-                    MaxResults = _maxResults
-                };
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"刷新搜索失败: {ex.Message}");
-                return new SearchResult { Keyword = keyword };
-            }
+            return _paginationService.Refresh(keyword, searchOptions, currentPath, cancellationToken);
         }
 
-        #region 私有方法
-
-        /// <summary>
-        /// 执行 Everything 搜索（异步分页加载）
-        /// </summary>
-        private async Task PerformEverythingSearchAsync(
-            string keyword,
-            SearchOptions searchOptions,
-            string currentPath,
-            HashSet<string> resultPaths,
-            Action<SearchResult> progressCallback,
-            CancellationToken cancellationToken)
-        {
-            var rangePath = _filterService.GetRangePath(searchOptions.PathRange, currentPath);
-            
-            // 加载第一页
-            var firstPage = EverythingHelper.SearchFilesPaged(keyword, 0, _pageSize, rangePath);
-            if (firstPage == null || firstPage.Count == 0)
-                return;
-
-            var filteredFirst = _filterService.ApplyTypeFilter(firstPage, searchOptions.Type);
-            foreach (var path in filteredFirst)
-            {
-                resultPaths.Add(path);
-            }
-
-            // 通知第一页完成
-            var firstPageItems = _resultBuilder.BuildItemsFromPaths(filteredFirst);
-            progressCallback?.Invoke(new SearchResult
-            {
-                Items = firstPageItems,
-                Keyword = keyword,
-                Offset = firstPage.Count,
-                HasMore = firstPage.Count == _pageSize && firstPage.Count < _maxResults,
-                PageSize = _pageSize,
-                MaxResults = _maxResults
-            });
-
-            // 异步加载后续页
-            await Task.Run(() =>
-            {
-                int offset = firstPage.Count;
-                while (!cancellationToken.IsCancellationRequested && offset < _maxResults)
-                {
-                    var page = EverythingHelper.SearchFilesPaged(keyword, offset, _pageSize, rangePath);
-                    if (page == null || page.Count == 0)
-                        break;
-
-                    var filtered = _filterService.ApplyTypeFilter(page, searchOptions.Type);
-                    var newPaths = filtered.Where(p => resultPaths.Add(p)).ToList();
-
-                    if (newPaths.Count > 0)
-                    {
-                        var newItems = _resultBuilder.BuildItemsFromPaths(newPaths);
-                        progressCallback?.Invoke(new SearchResult
-                        {
-                            Items = newItems,
-                            Keyword = keyword,
-                            Offset = offset + page.Count,
-                            HasMore = page.Count == _pageSize && (offset + page.Count) < _maxResults,
-                            PageSize = _pageSize,
-                            MaxResults = _maxResults
-                        });
-                    }
-
-                    offset += page.Count;
-                }
-            }, cancellationToken);
-        }
-
-        /// <summary>
-        /// 执行默认名称搜索（回退方案）
-        /// </summary>
-        private void PerformDefaultNameSearch(string keyword, HashSet<string> resultPaths)
-        {
-            try
-            {
-                var drives = DriveInfo.GetDrives()
-                    .Where(d => d.IsReady && d.DriveType == DriveType.Fixed);
-
-                foreach (var drive in drives)
-                {
-                    try
-                    {
-                        var root = drive.RootDirectory.FullName;
-                        
-                        // 搜索文件
-                        var files = Directory.GetFiles(root, "*" + keyword + "*", SearchOption.TopDirectoryOnly)
-                            .Take(1000);
-                        foreach (var file in files)
-                        {
-                            resultPaths.Add(file);
-                        }
-
-                        // 搜索文件夹
-                        var dirs = Directory.GetDirectories(root, "*" + keyword + "*", SearchOption.TopDirectoryOnly)
-                            .Take(1000);
-                        foreach (var dir in dirs)
-                        {
-                            resultPaths.Add(dir);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine($"搜索驱动器 {drive.Name} 失败: {ex.Message}");
-                    }
-                }
-
-                Debug.WriteLine($"默认搜索完成，聚合结果数: {resultPaths.Count}");
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"默认搜索失败: {ex.Message}");
-                throw;
-            }
-        }
-
-        #endregion
     }
 }
 

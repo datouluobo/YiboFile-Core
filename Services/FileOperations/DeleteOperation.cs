@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace OoiMRR.Services.FileOperations
 {
@@ -18,10 +19,19 @@ namespace OoiMRR.Services.FileOperations
         }
 
         /// <summary>
-        /// 执行删除操作
+        /// 执行删除操作（同步方法，已废弃，建议使用ExecuteAsync）
         /// </summary>
         /// <param name="items">要删除的文件项列表</param>
         public void Execute(List<FileSystemItem> items)
+        {
+            ExecuteAsync(items).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// 异步执行删除操作
+        /// </summary>
+        /// <param name="items">要删除的文件项列表</param>
+        public async Task ExecuteAsync(List<FileSystemItem> items)
         {
             if (items == null || items.Count == 0)
             {
@@ -45,24 +55,31 @@ namespace OoiMRR.Services.FileOperations
 
             var failedItems = new List<string>();
 
-            foreach (var item in items)
+            // 在后台线程中执行删除操作，避免阻塞UI
+            await Task.Run(() =>
             {
-                try
+                foreach (var item in items)
                 {
-                    if (item.IsDirectory)
+                    try
                     {
-                        Directory.Delete(item.Path, true);
+                        if (item.IsDirectory)
+                        {
+                            Directory.Delete(item.Path, true);
+                        }
+                        else
+                        {
+                            File.Delete(item.Path);
+                        }
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        File.Delete(item.Path);
+                        lock (failedItems)
+                        {
+                            failedItems.Add($"{item.Name}: {ex.Message}");
+                        }
                     }
                 }
-                catch (Exception ex)
-                {
-                    failedItems.Add($"{item.Name}: {ex.Message}");
-                }
-            }
+            });
 
             _context.RefreshAfterOperation();
 
@@ -77,6 +94,16 @@ namespace OoiMRR.Services.FileOperations
         }
     }
 }
+
+
+
+
+
+
+
+
+
+
 
 
 

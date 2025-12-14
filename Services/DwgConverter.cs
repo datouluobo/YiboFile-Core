@@ -19,7 +19,7 @@ namespace OoiMRR.Services
             if (!File.Exists(dwgFilePath))
                 return null;
             
-            var fileInfo = new FileInfo(dwgFilePath);
+            var fileInfo = new System.IO.FileInfo(dwgFilePath);
             var cacheKey = $"{dwgFilePath}_{fileInfo.LastWriteTimeUtc.Ticks}";
             var cacheFileName = $"{Path.GetFileNameWithoutExtension(dwgFilePath)}_{cacheKey.GetHashCode():x8}.dxf";
             var cachePath = Path.Combine(CacheDirectory, cacheFileName);
@@ -199,7 +199,7 @@ namespace OoiMRR.Services
                 
                 foreach (var file in files)
                 {
-                    var fileInfo = new FileInfo(file);
+                    var fileInfo = new System.IO.FileInfo(file);
                     if (now - fileInfo.CreationTimeUtc > TimeSpan.FromDays(7))
                     {
                         File.Delete(file);

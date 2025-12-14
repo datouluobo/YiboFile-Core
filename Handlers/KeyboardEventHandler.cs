@@ -1,0 +1,294 @@
+using System;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Windows;
+using System.Windows.Input;
+using OoiMRR.Controls;
+using OoiMRR.Services.Tabs;
+
+namespace OoiMRR.Handlers
+{
+    /// <summary>
+    /// 键盘事件处理器
+    /// 处理所有键盘快捷键，包括窗口级和文件列表的键盘事件
+    /// </summary>
+    public class KeyboardEventHandler
+    {
+        private readonly FileBrowserControl _fileBrowser;
+        private readonly TabService _tabService;
+        private readonly Action<PathTab> _closeTab;
+        private readonly Action<string> _createTab;
+        private readonly Action<PathTab> _switchToTab;
+        private readonly Action _newFolderClick;
+        private readonly Action _refreshClick;
+        private readonly Action _copyClick;
+        private readonly Action _pasteClick;
+        private readonly Action _cutClick;
+        private readonly Action _deleteClick;
+        private readonly Action _renameClick;
+        private readonly Action<string> _navigateToPath;
+        private readonly Action<string> _switchNavigationMode;
+        private readonly Func<bool> _isLibraryMode;
+        private readonly Action _navigateBack;
+
+        public KeyboardEventHandler(
+            FileBrowserControl fileBrowser,
+            TabService tabService,
+            Action<PathTab> closeTab,
+            Action<string> createTab,
+            Action<PathTab> switchToTab,
+            Action newFolderClick,
+            Action refreshClick,
+            Action copyClick,
+            Action pasteClick,
+            Action cutClick,
+            Action deleteClick,
+            Action renameClick,
+            Action<string> navigateToPath,
+            Action<string> switchNavigationMode,
+            Func<bool> isLibraryMode,
+            Action navigateBack)
+        {
+            _fileBrowser = fileBrowser ?? throw new ArgumentNullException(nameof(fileBrowser));
+            _tabService = tabService ?? throw new ArgumentNullException(nameof(tabService));
+            _closeTab = closeTab ?? throw new ArgumentNullException(nameof(closeTab));
+            _createTab = createTab ?? throw new ArgumentNullException(nameof(createTab));
+            _switchToTab = switchToTab ?? throw new ArgumentNullException(nameof(switchToTab));
+            _newFolderClick = newFolderClick ?? throw new ArgumentNullException(nameof(newFolderClick));
+            _refreshClick = refreshClick ?? throw new ArgumentNullException(nameof(refreshClick));
+            _copyClick = copyClick ?? throw new ArgumentNullException(nameof(copyClick));
+            _pasteClick = pasteClick ?? throw new ArgumentNullException(nameof(pasteClick));
+            _cutClick = cutClick ?? throw new ArgumentNullException(nameof(cutClick));
+            _deleteClick = deleteClick ?? throw new ArgumentNullException(nameof(deleteClick));
+            _renameClick = renameClick ?? throw new ArgumentNullException(nameof(renameClick));
+            _navigateToPath = navigateToPath ?? throw new ArgumentNullException(nameof(navigateToPath));
+            _switchNavigationMode = switchNavigationMode ?? throw new ArgumentNullException(nameof(switchNavigationMode));
+            _isLibraryMode = isLibraryMode ?? throw new ArgumentNullException(nameof(isLibraryMode));
+            _navigateBack = navigateBack ?? throw new ArgumentNullException(nameof(navigateBack));
+        }
+
+        public void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            // Ctrl+W 或 Ctrl+F4: 关闭当前标签页
+            if ((e.Key == Key.W || e.Key == Key.F4) && Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                var activeTab = _tabService.ActiveTab;
+                if (activeTab != null && _tabService.TabCount > 1)
+                {
+                    _closeTab(activeTab);
+                    e.Handled = true;
+                    return;
+                }
+            }
+
+            // Ctrl+T: 新建标签页（打开桌面）
+            if (e.Key == Key.T && Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                var desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+                _createTab(desktopPath);
+                e.Handled = true;
+                return;
+            }
+
+            // Ctrl+Tab: 切换到下一个标签页
+            if (e.Key == Key.Tab && Keyboard.Modifiers == ModifierKeys.Control && !Keyboard.IsKeyDown(Key.LeftShift) && !Keyboard.IsKeyDown(Key.RightShift))
+            {
+                var tabs = _tabService.Tabs.ToList();
+                if (tabs.Count > 1)
+                {
+                    var activeTab = _tabService.ActiveTab;
+                    var currentIndex = tabs.IndexOf(activeTab);
+                    var nextIndex = (currentIndex + 1) % tabs.Count;
+                    _switchToTab(tabs[nextIndex]);
+                    e.Handled = true;
+                    return;
+                }
+            }
+
+            // Ctrl+Shift+Tab: 切换到上一个标签页
+            if (e.Key == Key.Tab && Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift))
+            {
+                var tabs = _tabService.Tabs.ToList();
+                if (tabs.Count > 1)
+                {
+                    var activeTab = _tabService.ActiveTab;
+                    var currentIndex = tabs.IndexOf(activeTab);
+                    var prevIndex = (currentIndex - 1 + tabs.Count) % tabs.Count;
+                    _switchToTab(tabs[prevIndex]);
+                    e.Handled = true;
+                    return;
+                }
+            }
+
+            // Ctrl+N: 新建文件夹
+            if (e.Key == Key.N && Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                _newFolderClick();
+                e.Handled = true;
+                return;
+            }
+
+            // Ctrl+Shift+N: 新建文件夹（Windows标准）
+            if (e.Key == Key.N && Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift))
+            {
+                _newFolderClick();
+                e.Handled = true;
+                return;
+            }
+
+            // F5: 刷新
+            if (e.Key == Key.F5)
+            {
+                _refreshClick();
+                e.Handled = true;
+                return;
+            }
+
+            // Ctrl+A: 全选（在文件列表中）
+            if (e.Key == Key.A && Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                if (_fileBrowser?.FilesList != null && _fileBrowser.FilesList.Items.Count > 0)
+                {
+                    if (_fileBrowser?.FilesList != null)
+                        _fileBrowser.FilesList.SelectAll();
+                    e.Handled = true;
+                    return;
+                }
+            }
+
+            // Ctrl+C: 复制（如果文件列表有焦点）
+            if (e.Key == Key.C && Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                if (_fileBrowser?.FilesList != null && _fileBrowser.FilesList.IsFocused)
+                {
+                    _copyClick();
+                    e.Handled = true;
+                    return;
+                }
+            }
+
+            // Ctrl+V: 粘贴（如果文件列表有焦点）
+            if (e.Key == Key.V && Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                if (_fileBrowser?.FilesList != null && _fileBrowser.FilesList.IsFocused)
+                {
+                    _pasteClick();
+                    e.Handled = true;
+                    return;
+                }
+            }
+
+            // Ctrl+X: 剪切（如果文件列表有焦点）
+            if (e.Key == Key.X && Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                if (_fileBrowser?.FilesList != null && _fileBrowser.FilesList.IsFocused)
+                {
+                    _cutClick();
+                    e.Handled = true;
+                    return;
+                }
+            }
+
+            // Delete: 删除（如果文件列表有焦点，且不在文本框中）
+            if (e.Key == Key.Delete)
+            {
+                var focusedElement = Keyboard.FocusedElement;
+                if (focusedElement is System.Windows.Controls.TextBox || focusedElement is System.Windows.Controls.TextBlock)
+                {
+                    // 在文本框中，不处理
+                    return;
+                }
+                if (_fileBrowser?.FilesSelectedItems != null && _fileBrowser.FilesSelectedItems.Count > 0)
+                {
+                    _deleteClick();
+                    e.Handled = true;
+                    return;
+                }
+            }
+
+            // F2: 重命名（如果文件列表有焦点）
+            if (e.Key == Key.F2)
+            {
+                var focusedElement = Keyboard.FocusedElement;
+                if (focusedElement is System.Windows.Controls.TextBox)
+                {
+                    // 在文本框中，不处理
+                    return;
+                }
+                if (_fileBrowser?.FilesSelectedItem != null)
+                {
+                    _renameClick();
+                    e.Handled = true;
+                    return;
+                }
+            }
+
+            // 空格键触发 QuickLook 预览
+            if (e.Key == Key.Space)
+            {
+                // 检查是否有选中的文件
+                if (_fileBrowser?.FilesSelectedItem is FileSystemItem selectedItem && !selectedItem.IsDirectory)
+                {
+                    // 检查 QuickLook 是否安装
+                    if (OoiMRR.Previews.PreviewHelper.IsQuickLookInstalled())
+                    {
+                        try
+                        {
+                            var quickLookPath = OoiMRR.Previews.PreviewHelper.GetQuickLookPath();
+                            if (!string.IsNullOrEmpty(quickLookPath))
+                            {
+                                Process.Start(new ProcessStartInfo
+                                {
+                                    FileName = quickLookPath,
+                                    Arguments = $@"""{selectedItem.Path}""",
+                                    UseShellExecute = false
+                                });
+                                e.Handled = true; // 标记事件已处理
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"无法启动 QuickLook: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        }
+                    }
+                }
+            }
+        }
+
+        public void MainWindow_KeyDown(object sender, KeyEventArgs e)
+        {
+            // 空格键触发 QuickLook 预览
+            if (e.Key == Key.Space)
+            {
+                // 检查是否有选中的文件
+                if (_fileBrowser?.FilesSelectedItem is FileSystemItem selectedItem && !selectedItem.IsDirectory)
+                {
+                    // 检查 QuickLook 是否安装
+                    if (OoiMRR.Previews.PreviewHelper.IsQuickLookInstalled())
+                    {
+                        try
+                        {
+                            var quickLookPath = OoiMRR.Previews.PreviewHelper.GetQuickLookPath();
+                            if (!string.IsNullOrEmpty(quickLookPath))
+                            {
+                                Process.Start(new ProcessStartInfo
+                                {
+                                    FileName = quickLookPath,
+                                    Arguments = $@"""{selectedItem.Path}""",
+                                    UseShellExecute = false
+                                });
+                                e.Handled = true;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"无法启动 QuickLook: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+

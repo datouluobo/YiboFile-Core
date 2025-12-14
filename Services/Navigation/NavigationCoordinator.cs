@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Input;
 using OoiMRR.Controls;
 using FavoriteType = OoiMRR.Favorite;
+using TagType = OoiMRR.Tag;
 
 namespace OoiMRR.Services.Navigation
 {
@@ -51,7 +52,7 @@ namespace OoiMRR.Services.Navigation
         /// <summary>
         /// 标签导航请求事件
         /// </summary>
-        public event Action<Tag, bool> TagNavigateRequested; // tag, forceNewTab
+        public event Action<TagType, bool> TagNavigateRequested; // tag, forceNewTab
 
         /// <summary>
         /// 文件打开请求事件
@@ -135,7 +136,7 @@ namespace OoiMRR.Services.Navigation
         /// 3. 如果当前标签页是tag页，用当前页打开
         /// 4. 否则创建新标签页
         /// </summary>
-        public void HandleTagNavigation(Tag tag, ClickType clickType)
+        public void HandleTagNavigation(TagType tag, ClickType clickType)
         {
             if (tag == null || string.IsNullOrWhiteSpace(tag.Name))
                 return;

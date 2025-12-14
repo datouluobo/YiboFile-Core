@@ -1,5 +1,6 @@
 using System;
 using OoiMRR.Controls;
+using TagType = OoiMRR.Tag;
 
 namespace OoiMRR.Services
 {
@@ -24,7 +25,7 @@ namespace OoiMRR.Services
             public NavigationMode Mode { get; set; }
             public string CurrentPath { get; set; }
             public Library CurrentLibrary { get; set; }
-            public Tag CurrentTagFilter { get; set; }
+            public TagType CurrentTagFilter { get; set; }
 
             public void Clear()
             {
@@ -48,14 +49,14 @@ namespace OoiMRR.Services
                         break;
                     case TabManagerControl.TabType.Tag:
                         Mode = NavigationMode.Tag;
-                        if (tab.Data is Tag tag)
+                        if (tab.Data is TagType tag)
                         {
                             CurrentTagFilter = tag;
                         }
                         else if (!string.IsNullOrEmpty(tab.Identifier) && int.TryParse(tab.Identifier, out int tagId))
                         {
                             // 如果没有Tag对象，尝试从ID创建
-                            CurrentTagFilter = new Tag { Id = tagId, Name = tab.Title };
+                            CurrentTagFilter = new TagType { Id = tagId, Name = tab.Title };
                         }
                         break;
                 }
@@ -68,7 +69,7 @@ namespace OoiMRR.Services
                     Mode = this.Mode,
                     CurrentPath = this.CurrentPath,
                     CurrentLibrary = this.CurrentLibrary,
-                    CurrentTagFilter = this.CurrentTagFilter != null ? new Tag
+                    CurrentTagFilter = this.CurrentTagFilter != null ? new TagType
                     {
                         Id = this.CurrentTagFilter.Id,
                         Name = this.CurrentTagFilter.Name,
@@ -135,7 +136,7 @@ namespace OoiMRR.Services
                     break;
                 case NavigationMode.Tag:
                     saved.Mode = NavigationMode.Tag;
-                    saved.CurrentTagFilter = _currentState.CurrentTagFilter != null ? new Tag
+                    saved.CurrentTagFilter = _currentState.CurrentTagFilter != null ? new TagType
                     {
                         Id = _currentState.CurrentTagFilter.Id,
                         Name = _currentState.CurrentTagFilter.Name,

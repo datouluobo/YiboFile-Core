@@ -151,6 +151,39 @@
         </Setter>
     </Style>
 
+    <!-- 选中状态的导航按钮样式（橙色） -->
+    <Style x:Key="ActiveNavigationButtonStyle" TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+        <Setter Property="Background" Value="{DynamicResource HighlightBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource HighlightBorderBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource HighlightForegroundBrush}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border Background="{TemplateBinding Background}" 
+                            BorderBrush="{TemplateBinding BorderBrush}" 
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="4">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource HighlightHoverBrush}"/>
+                            <Setter Property="BorderBrush" Value="{DynamicResource HighlightBorderBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter Property="Background" Value="#FF8C00"/>
+                            <Setter Property="BorderBrush" Value="#FF6B00"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="{DynamicResource DisabledForegroundBrush}"/>
+                            <Setter Property="Opacity" Value="0.6"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style x:Key="MediaDarkButtonStyle" TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
         <Setter Property="Background" Value="#2B2B2B"/>
         <Setter Property="BorderBrush" Value="#3A3A3A"/>

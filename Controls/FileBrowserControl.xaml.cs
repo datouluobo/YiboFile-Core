@@ -283,6 +283,26 @@ namespace OoiMRR.Controls
             }
         }
 
+        public bool NavBackEnabled
+        {
+            get => NavBackBtn?.IsEnabled ?? false;
+            set
+            {
+                if (NavBackBtn != null)
+                    NavBackBtn.IsEnabled = value;
+            }
+        }
+
+        public bool NavForwardEnabled
+        {
+            get => NavForwardBtn?.IsEnabled ?? false;
+            set
+            {
+                if (NavForwardBtn != null)
+                    NavForwardBtn.IsEnabled = value;
+            }
+        }
+
         public void EnableAutoLoadMore()
         {
             try

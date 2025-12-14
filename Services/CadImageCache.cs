@@ -20,7 +20,7 @@ namespace OoiMRR.Services
 
         private static string Key(string filePath, int size)
         {
-            var info = new FileInfo(filePath);
+            var info = new System.IO.FileInfo(filePath);
             var s = $"{filePath}|{size}|{(info.Exists ? info.LastWriteTimeUtc.Ticks : 0)}";
             using var sha = SHA256.Create();
             var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(s));

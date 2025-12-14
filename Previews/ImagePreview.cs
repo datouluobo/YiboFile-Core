@@ -12,7 +12,7 @@ using ImageMagick;
 namespace OoiMRR.Previews
 {
     /// <summary>
-    /// 图片文件预览 - 支持多种图像格式 (v1.0.2)
+    /// 图片文件预览 - 支持多种图像格式
     /// 支持格式: bmp, jpeg, jpg, png, gif, tif, tiff, ico, svg, psd
     /// </summary>
     public class ImagePreview : IPreviewProvider
@@ -252,3 +252,4 @@ namespace OoiMRR.Previews
         }
     }
 }
+
