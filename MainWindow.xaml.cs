@@ -31,7 +31,6 @@ using OoiMRR.Services.Tabs;
 using OoiMRR.Services.Preview;
 using OoiMRR.Services.ColumnManagement;
 using OoiMRR.Services.Config;
-using OoiMRR.Services.FileInfo;
 using OoiMRR.Handlers;
 using System.Threading;
 using System.Text.Json;
@@ -55,7 +54,7 @@ namespace OoiMRR
         private bool _isMouseDownOnColumnHeader = false;
         internal Library _currentLibrary = null;
         internal Tag _currentTagFilter = null;
-        private bool _isUpdatingTagSelection = false;
+        internal bool _isUpdatingTagSelection = false;
         // _lastLeftNavSource 已迁移到 NavigationService.LastLeftNavSource
         
         // 统一导航协调器
@@ -66,7 +65,7 @@ namespace OoiMRR
         internal LibraryService _libraryService;
         private FavoriteService _favoriteService;
         private QuickAccessService _quickAccessService;
-        private FileListService _fileListService;
+        internal FileListService _fileListService;
         private FileSystemWatcherService _fileSystemWatcherService;
         internal FolderSizeCalculationService _folderSizeCalculationService;
         internal TabService _tabService;
@@ -78,8 +77,10 @@ namespace OoiMRR
         internal Services.Settings.SettingsOverlayController _settingsOverlayController;
         internal Services.Navigation.NavigationModeService _navigationModeService;
         internal Services.UIHelper.UIHelperService _uiHelperService;
-        internal FileInfoService _fileInfoService;
         internal Services.WindowStateManager _windowStateManager;
+        private Services.FileInfo.FileInfoService _fileInfoService;
+        private Services.FileNotes.FileNotesUIHandler _fileNotesUIHandler;
+        private Services.Tag.TagUIHandler _tagUIHandler;
         
         // 事件处理器
         internal Handlers.FileBrowserEventHandler _fileBrowserEventHandler;
@@ -102,7 +103,7 @@ namespace OoiMRR
         internal Services.Search.SearchOptions _searchOptions = new Services.Search.SearchOptions();
         
         // 统一的标签显示排序：当前过滤标签优先，其余按名称升序
-        private List<string> OrderTagNames(List<int> tagIds)
+        internal List<string> OrderTagNames(List<int> tagIds)
         {
             try
             {
@@ -268,24 +269,33 @@ namespace OoiMRR
             // 初始化 UI 辅助服务（需要在 InitializeComponent 之后，因为需要 FileBrowser）
             _uiHelperService = new Services.UIHelper.UIHelperService(FileBrowser, this.Dispatcher);
 
-            // 初始化文件信息显示服务（需要在 InitializeComponent 之后，因为需要 FileBrowser）
-            _fileInfoService = new FileInfoService(FileBrowser, _fileListService);
+            // 初始化文件信息服务（需要在 InitializeComponent 之后，因为需要 FileBrowser）
+            _fileInfoService = new Services.FileInfo.FileInfoService(FileBrowser, _fileListService);
 
-            // 初始化鼠标事件处理器（需要在 InitializeComponent 之后）
-            _mouseEventHandler = new Handlers.MouseEventHandler(
-                windowMaximizeClick: () => WindowMaximize_Click(null, null),
-                windowDragMove: WindowDragMove,
-                getFavoritesListBox: () => FavoritesListBox,
-                getDrivesListBox: () => DrivesListBox,
-                getQuickAccessListBox: () => QuickAccessListBox,
-                navigationCoordinator: _navigationCoordinator,
-                handleFavoriteNavigation: (favorite) => _navigationCoordinator?.HandleFavoriteNavigation(favorite, Services.Navigation.NavigationCoordinator.ClickType.LeftClick),
-                handleDriveNavigation: (path) => _navigationCoordinator?.HandlePathNavigation(path, Services.Navigation.NavigationCoordinator.NavigationSource.Drive, Services.Navigation.NavigationCoordinator.ClickType.LeftClick),
-                handleQuickAccessNavigation: (path) => _navigationCoordinator?.HandlePathNavigation(path, Services.Navigation.NavigationCoordinator.NavigationSource.QuickAccess, Services.Navigation.NavigationCoordinator.ClickType.LeftClick)
-            );
+            // 初始化备注UI处理器（需要在 InitializeComponent 之后，因为需要 RightPanel 和 FileBrowser）
+            _fileNotesUIHandler = new Services.FileNotes.FileNotesUIHandler(RightPanel, FileBrowser);
+
+            // 初始化标签UI处理器（需要创建上下文）
+            var tagUIHandlerContext = new TagUIHandlerContextImpl(this);
+            _tagUIHandler = new Services.Tag.TagUIHandler(tagUIHandlerContext);
 
             // 初始化预览服务（需要在 InitializeComponent 之后，因为需要 RightPanel 和 FileBrowser）
-            // 注意：PreviewService 的初始化在 InitializeComponent 之后进行
+            _previewService = new Services.Preview.PreviewService(
+                RightPanel,
+                FileBrowser,
+                this.Dispatcher,
+                LoadCurrentDirectory,
+                path => CreateTab(path, true)
+            );
+
+            // 订阅 RightPanel 事件
+            if (RightPanel != null)
+            {
+                RightPanel.NotesTextChanged += NotesTextBox_TextChanged;
+                RightPanel.NotesAutoSaved += NotesAutoSaved_Handler;
+                RightPanel.PreviewOpenFileRequested += RightPanel_PreviewOpenFileRequested;
+                RightPanel.PreviewMiddleClickRequested += RightPanel_PreviewMiddleClickRequested;
+            }
             
             // 订阅 NavigationService 事件
             _navigationService.NavigateRequested += OnNavigationServiceNavigateRequested;
@@ -503,6 +513,7 @@ namespace OoiMRR
             var context = new TabUiContext
             {
                 FileBrowser = FileBrowser,
+                TabManager = TabManager,
                 Dispatcher = this.Dispatcher,
                 OwnerWindow = this,
                 GetConfig = () => _configService?.Config ?? new AppConfig(),
@@ -518,6 +529,7 @@ namespace OoiMRR
                 LoadLibraryFiles = lib => LoadLibraryFiles(lib),
                 NavigateToPathInternal = NavigateToPathInternal,
                 UpdateNavigationButtonsState = UpdateNavigationButtonsState,
+                SwitchNavigationMode = SwitchNavigationMode,
                 SearchService = _searchService,
                 GetSearchCacheService = () => _searchCacheService,
                 GetSearchOptions = () => _searchOptions,
@@ -534,6 +546,19 @@ namespace OoiMRR
         internal void GridSplitter_DragDelta(object sender, DragDeltaEventArgs e)
         {
             _fileBrowserEventHandler?.FileBrowser_GridSplitterDragDelta(sender, e);
+        }
+
+        private void GridSplitter_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
+        {
+            System.Diagnostics.Debug.WriteLine("[GridSplitter] DragCompleted 触发，开始保存");
+            // 拖拽结束后，立即保存（不延迟）
+            if (_windowStateManager != null && this.IsLoaded)
+            {
+                // 强制更新布局
+                RootGrid?.UpdateLayout();
+                System.Diagnostics.Debug.WriteLine("[GridSplitter] 布局已更新，保存状态");
+                _windowStateManager.SaveAllState();
+            }
         }
 
         // InitializeApplication 已迁移到 MainWindowInitializer
@@ -780,9 +805,6 @@ namespace OoiMRR
         /// </summary>
         internal void OpenLibraryInTab(Library library, bool forceNewTab = false)
         {
-            // 切换到库导航模式
-            SwitchNavigationMode("Library");
-            
             _tabService?.OpenLibraryTab(library, forceNewTab);
         }
         
@@ -953,9 +975,6 @@ namespace OoiMRR
         {
             if (Directory.Exists(path))
             {
-                // 切换到路径导航模式
-                SwitchNavigationMode("Path");
-                
                 // 更新或创建标签页
                 var activeTab = _tabService.ActiveTab;
                 if (activeTab != null && activeTab.Type == TabType.Path && activeTab.Path == path)
@@ -1945,7 +1964,19 @@ namespace OoiMRR
         private void FileBrowser_PathChanged(object sender, string path) => _fileBrowserEventHandler?.FileBrowser_PathChanged(sender, path);
         private void FileBrowser_BreadcrumbMiddleClicked(object sender, string path) => _fileBrowserEventHandler?.FileBrowser_BreadcrumbMiddleClicked(sender, path);
         private void FileBrowser_BreadcrumbClicked(object sender, string path) => _fileBrowserEventHandler?.FileBrowser_BreadcrumbClicked(sender, path);
-        private void FileBrowser_FilesSelectionChanged(object sender, SelectionChangedEventArgs e) => _fileBrowserEventHandler?.FileBrowser_FilesSelectionChanged(sender, e);
+        private void FileBrowser_FilesSelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            // 如果事件处理器未初始化，直接调用选择变化处理方法
+            if (_fileBrowserEventHandler != null)
+            {
+                _fileBrowserEventHandler.FileBrowser_FilesSelectionChanged(sender, e);
+            }
+            else
+            {
+                // 直接处理选择变化，确保预览、备注、文件信息功能可用
+                FilesListView_SelectionChanged(sender, e);
+            }
+        }
         private void FileBrowser_FilesMouseDoubleClick(object sender, MouseButtonEventArgs e) => _fileBrowserEventHandler?.FileBrowser_FilesMouseDoubleClick(sender, e);
         private void FileBrowser_FilesPreviewMouseDoubleClick(object sender, MouseButtonEventArgs e) => _fileBrowserEventHandler?.FileBrowser_FilesPreviewMouseDoubleClick(sender, e);
         private void FileBrowser_FilesPreviewKeyDown(object sender, KeyEventArgs e) => _fileBrowserEventHandler?.FileBrowser_FilesPreviewKeyDown(sender, e);
@@ -1982,7 +2013,7 @@ namespace OoiMRR
             {
                 _fileInfoService?.ShowFileInfo(selectedItem);
                 LoadFilePreview(selectedItem);
-                LoadFileNotes(selectedItem);
+                _fileNotesUIHandler?.LoadFileNotes(selectedItem);
                 
                 // 标签页：对图片执行AI预测并渲染到预测面板
                 try
@@ -2866,83 +2897,25 @@ namespace OoiMRR
 
         #endregion
 
+        #region 文件信息显示
+
         private void LoadFilePreview(FileSystemItem item)
         {
             _previewService?.LoadFilePreview(item);
         }
 
-        #region 备注功能
+        #endregion
 
-        private void LoadFileNotes(FileSystemItem item)
-        {
-            if (RightPanel?.NotesTextBox == null) return;
-            
-            if (item != null)
-            {
-                var notes = FileNotesService.GetFileNotes(item.Path);
-                RightPanel.NotesTextBox.Text = notes;
-            }
-            else
-            {
-                RightPanel.NotesTextBox.Text = "";
-            }
-        }
+        #region 备注功能
 
         internal void NotesTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            // 备注文本变化时，实时更新列表中显示的备注
-            if (RightPanel?.NotesTextBox == null) return;
-            if (FileBrowser?.FilesSelectedItem is FileSystemItem selectedItem)
-            {
-                var notesText = RightPanel.NotesTextBox.Text;
-                // 更新备注的第一行显示
-                if (!string.IsNullOrEmpty(notesText))
-                {
-                    var firstLine = notesText.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "";
-                    selectedItem.Notes = firstLine.Length > 100 ? firstLine.Substring(0, 100) + "..." : firstLine;
-                }
-                else
-                {
-                    selectedItem.Notes = "";
-                }
-                
-                // 刷新显示
-                if (FileBrowser?.FilesList != null)
-                    FileBrowser.FilesList.Items.Refresh();
-            }
+            _fileNotesUIHandler?.NotesTextBox_TextChanged(sender, e);
         }
+        
         internal async void NotesAutoSaved_Handler(object sender, RoutedEventArgs e)
         {
-            if (RightPanel?.NotesTextBox == null) return;
-            
-            try
-            {
-                if (FileBrowser?.FilesSelectedItem is FileSystemItem selectedItem)
-                {
-                    // 异步保存，提升性能
-                    await FileNotesService.SetFileNotesAsync(selectedItem.Path, RightPanel.NotesTextBox.Text);
-                    
-                    // 确保备注显示已更新
-                    var notesText = RightPanel.NotesTextBox.Text;
-                    if (!string.IsNullOrEmpty(notesText))
-                    {
-                        var firstLine = notesText.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "";
-                        selectedItem.Notes = firstLine.Length > 100 ? firstLine.Substring(0, 100) + "..." : firstLine;
-                    }
-                    else
-                    {
-                        selectedItem.Notes = "";
-                    }
-                    
-                    // 刷新显示
-                    if (FileBrowser?.FilesList != null)
-                    FileBrowser.FilesList.Items.Refresh();
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"保存备注失败: {ex.Message}");
-            }
+            _fileNotesUIHandler?.NotesAutoSaved_Handler(sender, e);
         }
 
         #endregion
@@ -3061,7 +3034,7 @@ namespace OoiMRR
             }
         }
 
-        private void LoadLibraryFiles(Library library)
+        internal void LoadLibraryFiles(Library library)
         {
             // 使用信号量防止重复加载
             if (!_loadFilesSemaphore.Wait(0))
@@ -3721,7 +3694,7 @@ namespace OoiMRR
                 (int)((b + m) * 255));
         }
 
-        private void UpdateTagFilesUI(Tag tag, List<FileSystemItem> tagFiles)
+        internal void UpdateTagFilesUI(Tag tag, List<FileSystemItem> tagFiles)
         {
             try
             {
@@ -3807,303 +3780,33 @@ namespace OoiMRR
 
         internal void FilterByTag(Tag tag)
         {
-            if (tag == null)
-            {
-                System.Diagnostics.Debug.WriteLine("FilterByTag: tag 为 null");
-                return;
-            }
-
-            try
-            {
-                System.Diagnostics.Debug.WriteLine($"FilterByTag: 开始过滤标签: {tag.Name} (Id: {tag.Id})");
-                _currentTagFilter = tag;
-
-                // TagsListBox已移除，标签选择现在由TagTrain面板处理
-                // 后续可以在TagTrain面板中高亮选中的标签
-
-                // 从 TagTrain 获取该标签的文件路径
-                var taggedPaths = App.IsTagTrainAvailable 
-                    ? (OoiMRRIntegration.GetFilePathsByTag(tag.Id) ?? new List<string>())
-                    : new List<string>();
-                
-                System.Diagnostics.Debug.WriteLine($"FilterByTag: 获取到 {taggedPaths.Count} 个文件路径");
-                
-                var tagFiles = new List<FileSystemItem>();
-
-                foreach (var path in taggedPaths)
-                {
-                    try
-                    {
-                        bool isDirectory = Directory.Exists(path);
-                        bool isFile = File.Exists(path);
-                        if (!isDirectory && !isFile)
-                            continue;
-
-                        var item = new FileSystemItem
-                        {
-                            Name = Path.GetFileName(path),
-                            Path = path,
-                            IsDirectory = isDirectory,
-                            Type = isDirectory ? "文件夹" : Path.GetExtension(path),
-                            Size = isDirectory ? "" : _fileListService.FormatFileSize(new FileInfo(path).Length),
-                            ModifiedDate = isDirectory ?
-                                Directory.GetLastWriteTime(path).ToString("yyyy-MM-dd HH:mm") :
-                                File.GetLastWriteTime(path).ToString("yyyy-MM-dd HH:mm"),
-                            Notes = ""
-                        };
-
-                        // 从 TagTrain 获取文件的标签
-                        if (App.IsTagTrainAvailable)
-                        {
-                            var fileTagIds = OoiMRRIntegration.GetFileTagIds(path);
-                            if (fileTagIds != null && fileTagIds.Count > 0)
-                            {
-                                var fileTagNames = OrderTagNames(fileTagIds);
-                                item.Tags = string.Join(", ", fileTagNames);
-                            }
-                            else
-                            {
-                                item.Tags = "";
-                            }
-                        }
-                        else
-                        {
-                            item.Tags = "";
-                        }
-
-                        // 从 OoiMRR 获取备注（如果存在）
-                        var notes = FileNotesService.GetFileNotes(path);
-                        if (!string.IsNullOrEmpty(notes))
-                        {
-                            var firstLine = notes.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "";
-                            item.Notes = firstLine.Length > 100 ? firstLine.Substring(0, 100) + "..." : firstLine;
-                        }
-
-                        tagFiles.Add(item);
-                    }
-                    catch (UnauthorizedAccessException) { }
-                    catch (IOException) { }
-                }
-
-                System.Diagnostics.Debug.WriteLine($"FilterByTag: 处理完成，共 {tagFiles.Count} 个文件");
-                
-                // 确保在UI线程更新
-                if (!Dispatcher.CheckAccess())
-                {
-                    Dispatcher.Invoke(() => UpdateTagFilesUI(tag, tagFiles));
-                }
-                else
-                {
-                    UpdateTagFilesUI(tag, tagFiles);
-                }
-                
-                System.Diagnostics.Debug.WriteLine("FilterByTag: 完成");
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"FilterByTag: 发生错误: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"FilterByTag: 堆栈跟踪: {ex.StackTrace}");
-                MessageBox.Show($"过滤标签时发生错误: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+            _tagUIHandler?.FilterByTag(tag);
         }
 
         private void NewTag_Click(object sender, RoutedEventArgs e)
         {
-            if (!App.IsTagTrainAvailable)
-            {
-                MessageBox.Show("TagTrain 不可用，无法创建标签。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-                return;
-            }
-            
-            var dialog = new TagDialog();
-            if (dialog.ShowDialog() == true)
-            {
-                try
-                {
-                    System.Diagnostics.Debug.WriteLine($"NewTag_Click: 开始创建标签: {dialog.TagName}");
-                    
-                    // 使用 TagTrain 创建标签
-                    var tagId = OoiMRRIntegration.GetOrCreateTagId(dialog.TagName);
-                    System.Diagnostics.Debug.WriteLine($"NewTag_Click: 返回的标签ID: {tagId}");
-                    
-                    if (tagId > 0)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"NewTag_Click: 标签创建成功，重新加载标签列表");
-                        LoadTags();
-                        MessageBox.Show($"标签 \"{dialog.TagName}\" 创建成功！", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
-                    }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine($"NewTag_Click: 标签创建失败，tagId = {tagId}");
-                        MessageBox.Show("创建标签失败", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"NewTag_Click: 创建标签异常: {ex.Message}");
-                    System.Diagnostics.Debug.WriteLine($"NewTag_Click: 堆栈跟踪: {ex.StackTrace}");
-                    MessageBox.Show($"创建标签失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-            }
+            _tagUIHandler?.NewTag_Click(sender, e);
         }
 
         private void ManageTags_Click(object sender, RoutedEventArgs e)
         {
-            if (!App.IsTagTrainAvailable)
-            {
-                MessageBox.Show("TagTrain 不可用，无法打开标签训练工具。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-                return;
-            }
-            
-            // 打开 TagTrain 训练窗口（作为独立窗口打开）
-            try
-            {
-                var trainingWindow = new TagTrain.UI.TrainingWindow
-                {
-                    Owner = this
-                };
-                trainingWindow.Show();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"打开标签训练工具失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+            _tagUIHandler?.ManageTags_Click(sender, e);
         }
 
         private void AddTagToFile_Click(object sender, RoutedEventArgs e)
         {
-            if (!App.IsTagTrainAvailable)
-            {
-                MessageBox.Show("TagTrain 不可用，无法添加标签。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-                return;
-            }
-            
-            OpenTagDialogForSelectedItems();
+            _tagUIHandler?.AddTagToFile_Click(sender, e);
         }
 
         private void OpenTagDialogForSelectedItems()
         {
-            if (FileBrowser == null)
-                return;
-
-            var selectedItems = FileBrowser?.FilesSelectedItems?.Cast<FileSystemItem>().ToList() ?? new List<FileSystemItem>();
-            if (selectedItems.Count == 0)
-            {
-                MessageBox.Show("请先选择要添加标签的文件或文件夹", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-                return;
-            }
-
-            var sharedTagIds = GetSharedTagIds(selectedItems);
-            var dialog = new TagSelectionDialog(sharedTagIds)
-            {
-                Owner = this
-            };
-
-            if (dialog.ShowDialog() == true)
-            {
-                if (App.IsTagTrainAvailable)
-                {
-                    foreach (var item in selectedItems)
-                    {
-                        // 从 TagTrain 获取现有标签
-                        var existingTagIdsList = OoiMRRIntegration.GetFileTagIds(item.Path);
-                        var existingTagIds = (existingTagIdsList != null) ? existingTagIdsList.ToHashSet() : new HashSet<int>();
-                        var desiredTagIds = new HashSet<int>(dialog.SelectedTagIds ?? new List<int>());
-
-                        // 删除不再需要的标签
-                        foreach (var tagId in existingTagIds.Except(desiredTagIds).ToList())
-                        {
-                            // 只删除图片文件的标签（TagTrain 只处理图片）
-                            var ext = Path.GetExtension(item.Path).ToLower();
-                            var imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".webp" };
-                            if (imageExtensions.Contains(ext))
-                            {
-                                OoiMRRIntegration.RemoveTagFromFile(item.Path, tagId);
-                            }
-                        }
-
-                        // 添加新标签
-                        foreach (var tagId in desiredTagIds.Except(existingTagIds))
-                        {
-                            // 只添加图片文件的标签（TagTrain 只处理图片）
-                            var ext = Path.GetExtension(item.Path).ToLower();
-                            var imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".webp" };
-                            if (imageExtensions.Contains(ext))
-                            {
-                                OoiMRRIntegration.AddTagToFile(item.Path, tagId);
-                            }
-                        }
-                    }
-                }
-
-                if (_currentTagFilter != null)
-                {
-                    FilterByTag(_currentTagFilter);
-                }
-                else
-                {
-                    LoadFiles();
-                }
-            }
+            _tagUIHandler?.OpenTagDialogForSelectedItems();
         }
 
-        private List<int> GetSharedTagIds(List<FileSystemItem> items)
-        {
-            if (items == null || items.Count == 0)
-                return new List<int>();
-
-            try
-            {
-                // 从 TagTrain 获取第一个文件的标签
-                var firstTagIds = OoiMRRIntegration.GetFileTagIds(items[0].Path);
-                if (firstTagIds == null || firstTagIds.Count == 0)
-                    return new List<int>();
-                    
-                var initial = firstTagIds.ToHashSet();
-                foreach (var item in items.Skip(1))
-                {
-                    var itemTagIds = OoiMRRIntegration.GetFileTagIds(item.Path);
-                    if (itemTagIds == null || itemTagIds.Count == 0)
-                    {
-                        initial.Clear();
-                        break;
-                    }
-                    initial.IntersectWith(itemTagIds);
-                }
-
-                return initial.ToList();
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"获取共享标签失败: {ex.Message}");
-                return new List<int>();
-            }
-        }
 
         private void TagsListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            // TagsListBox已移除，此方法保留用于兼容性
-            // 标签选择现在由TagTrain面板处理，后续可以从TagTrain面板获取选中的标签
-            if (_isUpdatingTagSelection)
-                return;
-
-            // 如果_currentTagFilter有值，使用它来过滤文件
-            if (_currentTagFilter != null)
-            {
-                FilterByTag(_currentTagFilter);
-            }
-            else
-            {
-                // 没有选中标签，清空过滤
-                if (_currentLibrary != null)
-                {
-                    LoadLibraryFiles(_currentLibrary);
-                }
-                else if (!string.IsNullOrEmpty(_currentPath))
-                {
-                    LoadCurrentDirectory();
-                }
-            }
+            _tagUIHandler?.TagsListBox_SelectionChanged(sender, e);
         }
 
         #endregion
@@ -5074,25 +4777,6 @@ namespace OoiMRR
         private bool _isPseudoMaximized = false;
         private Rect _restoreBounds;
 
-        /// <summary>
-        /// 窗口拖拽移动方法
-        /// </summary>
-        private void WindowDragMove()
-        {
-            // 只有在非最大化状态下才允许拖拽
-            if (!_isPseudoMaximized && this.WindowState == WindowState.Normal)
-            {
-                try
-                {
-                    this.DragMove();
-                }
-                catch
-                {
-                    // 如果拖拽失败（例如在窗口边缘），忽略错误
-                }
-            }
-        }
-
         internal void WindowMaximize_Click(object sender, RoutedEventArgs e)
         {
             // 使用系统最大化并限制到工作区，确保铺满且不遮挡任务栏
@@ -5141,38 +4825,36 @@ namespace OoiMRR
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            // 关闭时保存所有窗口状态（窗口、分割线、导航、标签页）
-            if (_windowStateManager != null)
+            // 窗口关闭前统一保存所有状态（窗口大小/位置、分割线、导航、标签页）
+            try
             {
-                // 确保RestoreBounds已更新（如果窗口是正常状态）
-                if (!_isPseudoMaximized)
-                {
-                    _restoreBounds = new Rect(this.Left, this.Top, this.Width, this.Height);
-                }
-                _windowStateManager.SaveAllState();
+                _windowStateManager?.SaveAllState();
+
+                // 停止并刷新配置服务的定时器（如果有），确保配置落盘
+                _configService?.StopAllTimers();
+                _configService?.SaveCurrentConfig();
             }
-            else if (_configService != null)
+            catch
             {
-                // 降级处理：如果没有WindowStateManager，使用ConfigService保存基本状态
-                _configService.SaveCurrentConfig();
+                // 关闭阶段不再向外抛异常，避免影响程序退出
             }
         }
 
         private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
         {
-            // 窗口大小改变时，更新RestoreBounds（仅在非最大化状态下）
-            if (!_isPseudoMaximized && this.IsLoaded)
-            {
-                _restoreBounds = new Rect(this.Left, this.Top, this.Width, this.Height);
-            }
+            // 调整列宽适应新窗口大小
+            AdjustColumnWidths();
+
+            // 窗口大小变化时不立即保存，避免覆盖分割线拖拽的保存
+            // 保存会在下次用户操作时进行
         }
 
         private void Window_LocationChanged(object sender, EventArgs e)
         {
-            // 窗口位置改变时，更新RestoreBounds（仅在非最大化状态下）
-            if (!_isPseudoMaximized && this.IsLoaded)
+            // 保存窗口位置
+            if (_windowStateManager != null && this.IsLoaded)
             {
-                _restoreBounds = new Rect(this.Left, this.Top, this.Width, this.Height);
+                _windowStateManager.SaveAllState();
             }
         }
 
@@ -5186,202 +4868,24 @@ namespace OoiMRR
             if (FileBrowser == null || _isSplitterDragging) return;
             _columnService?.AdjustListViewColumnWidths(FileBrowser);
         }
+        /// <summary>
+        /// 调整列宽以适应窗口大小变化
+        /// </summary>
         internal void AdjustColumnWidths()
         {
-            // 获取可用总宽度（去掉两个垂直分割器）
             if (RootGrid == null) return;
-            double total = RootGrid.ActualWidth - 12; // 两个6像素分割器
 
-            // 当前实际宽度
-            // 列1和列2使用固定宽度值（如果已设置），否则使用ActualWidth
-            // 列3始终使用固定宽度360
-            double left = ColLeft.Width.IsAbsolute ? ColLeft.Width.Value : ColLeft.ActualWidth;
-            double center = ColCenter.Width.IsAbsolute ? ColCenter.Width.Value : ColCenter.ActualWidth;
-            double right = ColRight.Width.IsAbsolute ? ColRight.Width.Value : ColRight.ActualWidth; // 列3使用实际宽度
+            double total = RootGrid.ActualWidth - 12; // 减去分割器宽度
+            double left = ColLeft.ActualWidth;
+            double center = ColCenter.ActualWidth;
+            double sum = left + center;
 
-            double minLeft = ColLeft.MinWidth;
-            double minCenter = ColCenter.MinWidth;
-            double minRight = ColRight.MinWidth;
-
-            double sum = left + center + right;
-            
-            // 确保窗口最小宽度不小于三列MinWidth总和
-            var minTotalWidth = minLeft + minCenter + minRight + 12;
-            if (this.MinWidth < minTotalWidth)
+            // 如果空间不足，压缩列宽
+            if (total < sum)
             {
-                this.MinWidth = minTotalWidth;
-            }
-            
-            // 如果总宽度小于最小宽度总和，强制设置窗口宽度
-            if (total < minTotalWidth)
-            {
-                // 按比例分配最小宽度，但列3优先保持最小宽度
-                double scale = total / minTotalWidth;
-                left = minLeft * scale;
-                center = minCenter * scale;
-                
-                // 如果还有空间不够，继续压缩列2和列1
-                double needed = left + center + minRight;
-                if (needed > total)
-                {
-                    double shortage = needed - total;
-                    double canShrinkCenter = center - minCenter;
-                    if (canShrinkCenter >= shortage)
-                    {
-                        center -= shortage;
-                    }
-                    else
-                    {
-                        double remaining = shortage - canShrinkCenter;
-                        center = minCenter;
-                        left = Math.Max(minLeft, left - remaining);
-                    }
-                }
-                
-                // 应用像素宽度，确保不低于最小宽度
-                ColLeft.Width = new GridLength(Math.Max(minLeft, left));
-                ColCenter.Width = new GridLength(Math.Max(minCenter, center));
-                // 列3始终使用Star模式，确保顶到窗口右边缘
-                ColRight.Width = new GridLength(1, GridUnitType.Star);
-                return;
-            }
-            else if (total < sum)
-            {
-                // 需要压缩
-                double shortage = sum - total;
-
-                // 先从列2收缩
-                    double canShrinkCenter = Math.Max(0, center - minCenter);
-                    double shrinkCenter = Math.Min(canShrinkCenter, shortage);
-                    center -= shrinkCenter;
-                    shortage -= shrinkCenter;
-
-                // 然后列1（保持固定宽度，只在必要时压缩）
-                if (shortage > 0)
-                {
-                    double canShrinkLeft = Math.Max(0, left - minLeft);
-                    double shrinkLeft = Math.Min(canShrinkLeft, shortage);
-                    left -= shrinkLeft;
-                    shortage -= shrinkLeft;
-                    // 更新后保存列1宽度，确保后续使用固定值
-                    if (left > minLeft)
-                    {
-                        // 可以在这里保存列1的固定宽度
-                    }
-                }
-
-                // 应用像素宽度，确保不低于最小宽度
-                ColLeft.Width = new GridLength(Math.Max(minLeft, left));
-                ColCenter.Width = new GridLength(Math.Max(minCenter, center));
-                // 列3始终使用Star模式，确保顶到窗口右边缘
-                ColRight.Width = new GridLength(1, GridUnitType.Star);
-            }
-            else
-            {
-                // 宽度足够，不需要压缩
-                // 压缩顺序：列3 -> 列2 -> 列1
-                // 确保所有列都使用固定像素宽度（不使用Star），确保MinWidth生效
-                
-                // 确保列1（左侧列）保持固定宽度，不随窗口变化
-                // 优先使用Width.Value（如果已设置固定值），否则使用ActualWidth，但不小于最小宽度
-                double leftWidth;
-                if (ColLeft.Width.IsAbsolute && ColLeft.Width.Value > 0)
-                {
-                    // 如果已有固定宽度值，使用该值（但不小于最小宽度）
-                    leftWidth = Math.Max(minLeft, ColLeft.Width.Value);
-                }
-                else
-                {
-                    // 否则使用实际宽度，但不小于最小宽度
-                    leftWidth = Math.Max(minLeft, ColLeft.ActualWidth > 0 ? ColLeft.ActualWidth : minLeft);
-                }
-                
-                // 确保列2（中间列）保持固定宽度，不随窗口变化
-                // 如果列2当前是Star模式，使用ActualWidth；否则使用当前计算值，但不小于最小宽度
-                double centerWidth;
-                if (ColCenter.Width.IsStar)
-                {
-                    // 如果是Star模式，使用实际宽度，但不小于最小宽度
-                    centerWidth = Math.Max(minCenter, ColCenter.ActualWidth > 0 ? ColCenter.ActualWidth : minCenter);
-                }
-                else
-                {
-                    // 如果不是Star模式，使用当前宽度，但不小于最小宽度
-                    centerWidth = Math.Max(minCenter, center > 0 ? center : minCenter);
-                }
-                
-                // 列1和列2使用固定像素宽度，列3使用Star模式自动填充剩余空间
-                ColLeft.Width = new GridLength(leftWidth);
-                ColCenter.Width = new GridLength(centerWidth);
-                ColRight.Width = new GridLength(1, GridUnitType.Star);
-            }
-        }
-        internal void ForceColumnWidthsToFixed(bool skipUpdateLayout = false)
-        {
-            // 强制将列2和列3设置为固定宽度（不使用Star模式），确保MinWidth生效
-            if (RootGrid == null || ColCenter == null || ColRight == null) return;
-            
-            double centerActual = ColCenter.ActualWidth;
-            double rightActual = ColRight.ActualWidth;
-            double minCenter = ColCenter.MinWidth;
-            double minRight = ColRight.MinWidth;
-            
-            Debug.WriteLine($"[ForceColumnWidthsToFixed] 开始检查 (skipUpdateLayout={skipUpdateLayout}, _isSplitterDragging={_isSplitterDragging})");
-            Debug.WriteLine($"[ForceColumnWidthsToFixed] ColCenter: IsStar={ColCenter.Width.IsStar}, ActualWidth={centerActual}, MinWidth={minCenter}, Width.Value={ColCenter.Width.Value}");
-            Debug.WriteLine($"[ForceColumnWidthsToFixed] ColRight: IsStar={ColRight.Width.IsStar}, ActualWidth={rightActual}, MinWidth={minRight}, Width.Value={ColRight.Width.Value}");
-            
-            bool needFix = false;
-            
-            // 检查列2：如果是Star模式，或者宽度小于最小宽度，强制改为固定宽度
-            if (ColCenter.Width.IsStar || (centerActual > 0 && centerActual < minCenter))
-            {
-                double newCenterWidth = Math.Max(minCenter, centerActual > 0 ? centerActual : minCenter);
-                ColCenter.Width = new GridLength(newCenterWidth);
-                needFix = true;
-                Debug.WriteLine($"[ForceColumnWidthsToFixed] 修复列2: IsStar={ColCenter.Width.IsStar}, 实际宽度={centerActual}, 设置为 {newCenterWidth}");
-            }
-            else if (!ColCenter.Width.IsStar && ColCenter.Width.Value < minCenter)
-            {
-                ColCenter.Width = new GridLength(minCenter);
-                needFix = true;
-                Debug.WriteLine($"[ForceColumnWidthsToFixed] 修复列2宽度值: {ColCenter.Width.Value} < {minCenter}, 设置为 {minCenter}");
-            }
-            
-            // 检查列3：如果宽度小于最小宽度，修复它；否则保持Star模式或当前宽度
-            // 列3应该使用剩余空间（Star模式）
-            if (ColRight.Width.IsStar)
-            {
-                // Star模式是好的，让AdjustColumnWidths来处理
-                Debug.WriteLine($"[ForceColumnWidthsToFixed] 列3是Star模式，这是正常的");
-            }
-            else if (rightActual < minRight)
-            {
-                // 如果列3宽度小于最小宽度，改为Star模式让它使用剩余空间
-                ColRight.Width = new GridLength(1, GridUnitType.Star);
-                needFix = true;
-                Debug.WriteLine($"[ForceColumnWidthsToFixed] 列3宽度小于最小宽度，改为Star模式使用剩余空间");
-            }
-            else if (!ColRight.Width.IsStar)
-            {
-                // 如果列3不是Star模式，改为Star模式让它使用剩余空间
-                ColRight.Width = new GridLength(1, GridUnitType.Star);
-                needFix = true;
-                Debug.WriteLine($"[ForceColumnWidthsToFixed] 列3不是Star模式，改为Star模式使用剩余空间");
-            }
-            
-            // 如果修复了列宽，触发布局更新（但在拖拽期间跳过，避免影响DataGrid列宽）
-            if (needFix && !skipUpdateLayout && !_isSplitterDragging)
-            {
-                Debug.WriteLine($"[ForceColumnWidthsToFixed] 触发布局更新");
-                this.UpdateLayout();
-            }
-            else if (needFix)
-            {
-                Debug.WriteLine($"[ForceColumnWidthsToFixed] 跳过UpdateLayout (skipUpdateLayout={skipUpdateLayout}, _isSplitterDragging={_isSplitterDragging})");
-            }
-            else
-            {
-                Debug.WriteLine($"[ForceColumnWidthsToFixed] 无需修复");
+                double scale = total / sum;
+                ColLeft.Width = new GridLength(Math.Max(ColLeft.MinWidth, left * scale));
+                ColCenter.Width = new GridLength(Math.Max(ColCenter.MinWidth, center * scale));
             }
         }
 
@@ -5390,8 +4894,7 @@ namespace OoiMRR
             // 强制检查并应用所有列的最小宽度约束
             if (RootGrid == null) return;
             
-            // 先强制设置为固定宽度（不使用Star模式）
-            ForceColumnWidthsToFixed();
+            // 简化逻辑，不需要强制转换
             
             // 获取当前实际宽度
             double leftActual = ColLeft.ActualWidth;
@@ -5446,7 +4949,7 @@ namespace OoiMRR
             }
         }
 
-        internal void UpdateWindowStateUI()
+        public void UpdateWindowStateUI()
         {
             bool isMax = _isPseudoMaximized;
 
@@ -5590,7 +5093,74 @@ namespace OoiMRR
         }
 
         // 鼠标事件桥接方法 - 已迁移到 MouseEventHandler
-        private void TitleBar_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e) => _mouseEventHandler?.TitleBar_MouseDown(sender, e);
+        // 顶部标题栏鼠标按下：支持拖动窗口和双击最大化/还原
+        private void TitleBar_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton != System.Windows.Input.MouseButton.Left)
+                return;
+
+            bool isMaximized = _isPseudoMaximized || this.WindowState == WindowState.Maximized;
+
+            // 双击：最大化/还原
+            if (e.ClickCount == 2)
+            {
+                WindowMaximize_Click(sender, new RoutedEventArgs());
+                return;
+            }
+
+            // 单击：仅在非最大化时允许拖动窗口
+            if (e.ClickCount == 1 && !isMaximized)
+            {
+                try
+                {
+                    this.DragMove();
+                }
+                catch
+                {
+                    // 忽略拖动过程中的异常（例如在最大化状态下快速拖动）
+                }
+            }
+        }
+
+        // 右上角按钮容器的鼠标事件：非按钮区域也要支持拖动窗口
+        private void WindowControlButtonsContainer_PreviewMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton != System.Windows.Input.MouseButton.Left)
+                return;
+
+            bool isMaximized = _isPseudoMaximized || this.WindowState == WindowState.Maximized;
+
+            var element = sender as System.Windows.UIElement;
+            if (element == null) return;
+
+            // 命中测试：如果点击的是按钮，则让按钮自己处理
+            var hit = System.Windows.Media.VisualTreeHelper.HitTest(element, e.GetPosition(element));
+            if (hit != null)
+            {
+                var current = hit.VisualHit;
+                while (current != null && current != element)
+                {
+                    if (current is System.Windows.Controls.Button)
+                    {
+                        // 点击在按钮上，不做拖动处理
+                        return;
+                    }
+                    current = System.Windows.Media.VisualTreeHelper.GetParent(current);
+                }
+            }
+
+            // 非按钮区域：仅在非最大化时允许拖动窗口
+            if (!isMaximized)
+            {
+                try
+                {
+                    this.DragMove();
+                }
+                catch
+                {
+                }
+            }
+        }
 
         private static IEnumerable<T> FindVisualChildren<T>(DependencyObject depObj) where T : DependencyObject
         {
@@ -7730,6 +7300,38 @@ namespace OoiMRR
     }
 
     #endregion
+
+    /// <summary>
+    /// TagUIHandler 上下文实现类
+    /// </summary>
+    internal class TagUIHandlerContextImpl : Services.Tag.ITagUIHandlerContext
+    {
+        private readonly MainWindow _mainWindow;
+
+        public TagUIHandlerContextImpl(MainWindow mainWindow)
+        {
+            _mainWindow = mainWindow ?? throw new ArgumentNullException(nameof(mainWindow));
+        }
+
+        public Controls.FileBrowserControl FileBrowser => _mainWindow.FileBrowser;
+        public System.Windows.Threading.Dispatcher Dispatcher => _mainWindow.Dispatcher;
+        public System.Windows.Window OwnerWindow => _mainWindow;
+        public Func<Tag> GetCurrentTagFilter => () => _mainWindow._currentTagFilter;
+        public Action<Tag> SetCurrentTagFilter => tag => _mainWindow._currentTagFilter = tag;
+        public Func<List<FileSystemItem>> GetCurrentFiles => () => _mainWindow._currentFiles;
+        public Action<List<FileSystemItem>> SetCurrentFiles => files => _mainWindow._currentFiles = files;
+        public Func<Library> GetCurrentLibrary => () => _mainWindow._currentLibrary;
+        public Func<string> GetCurrentPath => () => _mainWindow._currentPath;
+        public Func<bool> GetIsUpdatingTagSelection => () => _mainWindow._isUpdatingTagSelection;
+        public Func<List<int>, List<string>> OrderTagNames => tagIds => _mainWindow.OrderTagNames(tagIds);
+        public Action<Tag, List<FileSystemItem>> UpdateTagFilesUI => (tag, files) => _mainWindow.UpdateTagFilesUI(tag, files);
+        public Action LoadFiles => () => _mainWindow.LoadFiles();
+        public Action<Library> LoadLibraryFiles => library => _mainWindow.LoadLibraryFiles(library);
+        public Action LoadCurrentDirectory => () => _mainWindow.LoadCurrentDirectory();
+        public Action LoadTags => () => _mainWindow.LoadTags();
+        public Func<System.Windows.Controls.Grid> GetNavTagContent => () => _mainWindow.NavTagContent;
+        public Func<Services.FileList.FileListService> GetFileListService => () => _mainWindow._fileListService;
+    }
 }
 
 

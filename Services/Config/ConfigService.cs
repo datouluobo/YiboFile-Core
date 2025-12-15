@@ -115,7 +115,10 @@ namespace OoiMRR.Services.Config
                     _uiHelper.IsPseudoMaximized = true;
                     window.ResizeMode = ResizeMode.NoResize;
 
-                    // 在窗口加载完成后应用最大化
+                    // 保存配置引用，供Loaded事件使用
+                    var configToApply = cfg;
+
+                    // 在窗口加载完成后应用最大化和分割线位置
                     window.Loaded += (s, e) =>
                     {
                         if (_uiHelper.IsPseudoMaximized)
@@ -130,86 +133,29 @@ namespace OoiMRR.Services.Config
                             _uiHelper.ExtendFrameIntoClientArea(-1, -1, -1, -1);
                             // 更新窗口状态UI（最大化按钮图标）
                             _uiHelper.UpdateWindowStateUI();
+                            
+                            // 最大化后也需要应用分割线位置
+                            ApplySplitterPositions(configToApply);
                         }
                     };
                 }
                 else
                 {
-                    window.WindowState = WindowState.Normal; // 确保窗口状态为正常
-                    window.Width = cfg.WindowWidth;
-                    window.Height = cfg.WindowHeight;
-                    if (!double.IsNaN(cfg.WindowTop)) window.Top = cfg.WindowTop;
-                    if (!double.IsNaN(cfg.WindowLeft)) window.Left = cfg.WindowLeft;
-                    _uiHelper.IsPseudoMaximized = false;
-                    window.ResizeMode = ResizeMode.CanResize;
-                    
-                    // #region agent log
-                    try { System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "E", location = "ConfigService.cs:125", message = "ApplyConfig应用窗口尺寸", data = new { appliedWidth = window.Width, appliedHeight = window.Height, appliedTop = window.Top, appliedLeft = window.Left }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
-                    // #endregion
-                }
-
-                // 应用主Grid列宽
-                if (_uiHelper.RootGrid != null)
-                {
-                    // 列 0,2 分别对应 左/中；右侧自适应
-                    // 优先使用ColLeftWidth和ColCenterWidth（新字段），如果为0则使用LeftPanelWidth和MiddlePanelWidth（兼容字段）
-                    var leftWidth = cfg.ColLeftWidth > 0 ? cfg.ColLeftWidth : cfg.LeftPanelWidth;
-                    var centerWidth = cfg.ColCenterWidth > 0 ? cfg.ColCenterWidth : cfg.MiddlePanelWidth;
-                    
-                    // 如果宽度有效（大于0），确保不小于最小宽度；如果为0，使用Star模式（自适应）
-                    if (leftWidth > 0)
+                    // 非最大化状态：等待窗口加载完成后应用配置
+                    if (window.IsLoaded)
                     {
-                        leftWidth = Math.Max(_uiHelper.ColLeft.MinWidth, leftWidth);
-                        _uiHelper.RootGrid.ColumnDefinitions[0].Width = new GridLength(leftWidth);
+                        ApplyNonMaximizedWindowState(window, cfg);
+                        ApplySplitterPositions(cfg);
                     }
                     else
                     {
-                        // 如果为0，使用Star模式（自适应）
-                        _uiHelper.RootGrid.ColumnDefinitions[0].Width = new GridLength(1, GridUnitType.Star);
-                    }
-                    
-                    if (centerWidth > 0)
-                    {
-                        centerWidth = Math.Max(_uiHelper.ColCenter.MinWidth, centerWidth);
-                        _uiHelper.RootGrid.ColumnDefinitions[2].Width = new GridLength(centerWidth);
-                    }
-                    else
-                    {
-                        // 如果为0，使用Star模式（自适应）
-                        _uiHelper.RootGrid.ColumnDefinitions[2].Width = new GridLength(1, GridUnitType.Star);
-                    }
-                    // 右侧(列4)使用*自适应，不设置固定宽度
-
-                    // #region agent log
-                    try { System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "E", location = "ConfigService.cs:139", message = "ApplyConfig应用列宽度", data = new { appliedLeftWidth = leftWidth, appliedCenterWidth = centerWidth, cfgColLeftWidth = cfg.ColLeftWidth, cfgColCenterWidth = cfg.ColCenterWidth, cfgLeftPanelWidth = cfg.LeftPanelWidth, cfgMiddlePanelWidth = cfg.MiddlePanelWidth }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
-                    // #endregion
-
-                    // 确保窗口最小宽度正确设置
-                    var minTotalWidth = _uiHelper.ColLeft.MinWidth + _uiHelper.ColCenter.MinWidth + _uiHelper.ColRight.MinWidth + 12;
-                    if (window.MinWidth < minTotalWidth)
-                    {
-                        window.MinWidth = minTotalWidth;
-                    }
-                }
-
-                // 重要：应用完配置后，立即调整列宽以确保MinWidth生效
-                // 但只在列宽度为Star模式时才调整，如果已经设置了固定宽度，不要覆盖
-                window.UpdateLayout();
-                // 延迟调用AdjustColumnWidths，避免覆盖刚刚设置的固定宽度
-                window.Dispatcher.BeginInvoke(new Action(() =>
-                {
-                    // 只有在列宽度为Star模式时才调整
-                    if (_uiHelper.RootGrid != null)
-                    {
-                        var leftCol = _uiHelper.RootGrid.ColumnDefinitions[0];
-                        var centerCol = _uiHelper.RootGrid.ColumnDefinitions[2];
-                        if (leftCol.Width.IsStar || centerCol.Width.IsStar)
+                        window.Loaded += (s, e) =>
                         {
-                            _uiHelper.AdjustColumnWidths();
-                        }
+                            ApplyNonMaximizedWindowState(window, cfg);
+                            ApplySplitterPositions(cfg);
+                        };
                     }
-                    _uiHelper.EnsureColumnMinWidths();
-                }), System.Windows.Threading.DispatcherPriority.Loaded);
+                }
 
                 ConfigApplied?.Invoke(this, cfg);
             }
@@ -277,32 +223,9 @@ namespace OoiMRR.Services.Config
                     _config.WindowLeft = window.Left;
                 }
 
-                if (_uiHelper.RootGrid != null && _uiHelper.RootGrid.IsLoaded)
-                {
-                    // 强制更新布局
-                    _uiHelper.RootGrid.UpdateLayout();
-
-                    // 获取实际尺寸
-                    var leftWidth = _uiHelper.RootGrid.ColumnDefinitions[0].ActualWidth;
-                    var middleWidth = _uiHelper.RootGrid.ColumnDefinitions[2].ActualWidth;
-                    var rightWidth = _uiHelper.RootGrid.ColumnDefinitions[4].ActualWidth;
-
-                    // 只有当实际尺寸大于0时才保存
-                    if (leftWidth > 0) _config.LeftPanelWidth = leftWidth;
-                    if (middleWidth > 0) _config.MiddlePanelWidth = middleWidth;
-                    // 右侧为自适应宽度，不保存
-                }
-                else if (_uiHelper.RootGrid != null)
-                {
-                    // 如果Grid未加载，尝试使用Width值
-                    var leftWidth = _uiHelper.RootGrid.ColumnDefinitions[0].Width;
-                    var middleWidth = _uiHelper.RootGrid.ColumnDefinitions[2].Width;
-                    var rightWidth = _uiHelper.RootGrid.ColumnDefinitions[4].Width;
-
-                    if (leftWidth.IsAbsolute) _config.LeftPanelWidth = leftWidth.Value;
-                    if (middleWidth.IsAbsolute) _config.MiddlePanelWidth = middleWidth.Value;
-                    // 右侧为自适应宽度，不保存
-                }
+                // 注意：列宽（分割线位置）由 WindowStateManager.SaveSplitterPositions() 统一管理
+                // 这里不再保存列宽，避免覆盖用户拖动后的位置
+                // 只有在 WindowStateManager 未初始化时（启动早期），才不保存列宽
 
                 ConfigManager.Save(_config);
                 ConfigSaved?.Invoke(this, _config);
@@ -412,6 +335,98 @@ namespace OoiMRR.Services.Config
         public void Dispose()
         {
             StopAllTimers();
+        }
+
+        /// <summary>
+        /// 应用非最大化窗口状态
+        /// </summary>
+        private void ApplyNonMaximizedWindowState(Window window, AppConfig cfg)
+        {
+            if (window == null || cfg == null) return;
+
+            window.WindowState = WindowState.Normal; // 确保窗口状态为正常
+            if (cfg.WindowWidth > 0) window.Width = cfg.WindowWidth;
+            if (cfg.WindowHeight > 0) window.Height = cfg.WindowHeight;
+            if (!double.IsNaN(cfg.WindowTop) && cfg.WindowTop >= 0) window.Top = cfg.WindowTop;
+            if (!double.IsNaN(cfg.WindowLeft) && cfg.WindowLeft >= 0) window.Left = cfg.WindowLeft;
+            _uiHelper.IsPseudoMaximized = false;
+            window.ResizeMode = ResizeMode.CanResize;
+            
+            // #region agent log
+            var logPath = @"f:\Download\GitHub\OoiMRR\.cursor\debug.log";
+            try { System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "E", location = "ConfigService.cs:ApplyNonMaximizedWindowState", message = "应用非最大化窗口状态", data = new { appliedWidth = window.Width, appliedHeight = window.Height, appliedTop = window.Top, appliedLeft = window.Left }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
+            // #endregion
+        }
+
+        /// <summary>
+        /// 应用分割线位置（列宽度）
+        /// </summary>
+        private void ApplySplitterPositions(AppConfig cfg)
+        {
+            if (_uiHelper.RootGrid == null || cfg == null) return;
+
+            // 列 0,2 分别对应 左/中；右侧自适应
+            // 优先使用ColLeftWidth和ColCenterWidth（新字段），如果为0则使用LeftPanelWidth和MiddlePanelWidth（兼容字段）
+            var leftWidth = cfg.ColLeftWidth > 0 ? cfg.ColLeftWidth : cfg.LeftPanelWidth;
+            var centerWidth = cfg.ColCenterWidth > 0 ? cfg.ColCenterWidth : cfg.MiddlePanelWidth;
+            
+            // 如果宽度有效（大于0），确保不小于最小宽度；如果为0，使用Star模式（自适应）
+            if (leftWidth > 0)
+            {
+                leftWidth = Math.Max(_uiHelper.ColLeft.MinWidth, leftWidth);
+                _uiHelper.RootGrid.ColumnDefinitions[0].Width = new GridLength(leftWidth);
+            }
+            else
+            {
+                // 如果为0，使用Star模式（自适应）
+                _uiHelper.RootGrid.ColumnDefinitions[0].Width = new GridLength(1, GridUnitType.Star);
+            }
+            
+            if (centerWidth > 0)
+            {
+                centerWidth = Math.Max(_uiHelper.ColCenter.MinWidth, centerWidth);
+                _uiHelper.RootGrid.ColumnDefinitions[2].Width = new GridLength(centerWidth);
+            }
+            else
+            {
+                // 如果为0，使用Star模式（自适应）
+                _uiHelper.RootGrid.ColumnDefinitions[2].Width = new GridLength(1, GridUnitType.Star);
+            }
+            // 右侧(列4)使用*自适应，不设置固定宽度
+
+            // #region agent log
+            var logPath = @"f:\Download\GitHub\OoiMRR\.cursor\debug.log";
+            try { System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "E", location = "ConfigService.cs:ApplySplitterPositions", message = "应用分割线位置", data = new { appliedLeftWidth = leftWidth, appliedCenterWidth = centerWidth, cfgColLeftWidth = cfg.ColLeftWidth, cfgColCenterWidth = cfg.ColCenterWidth, cfgLeftPanelWidth = cfg.LeftPanelWidth, cfgMiddlePanelWidth = cfg.MiddlePanelWidth }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
+            // #endregion
+
+            // 确保窗口最小宽度正确设置
+            var window = _uiHelper.Window;
+            if (window != null)
+            {
+                var minTotalWidth = _uiHelper.ColLeft.MinWidth + _uiHelper.ColCenter.MinWidth + _uiHelper.ColRight.MinWidth + 12;
+                if (window.MinWidth < minTotalWidth)
+                {
+                    window.MinWidth = minTotalWidth;
+                }
+                
+                // 确保窗口大小已经确定，如果窗口宽度小于列宽总和，需要调整
+                if (window.IsLoaded)
+                {
+                    double totalColumnWidth = leftWidth + centerWidth + 12; // 两个分割器宽度
+                    if (window.ActualWidth > 0 && window.ActualWidth < totalColumnWidth)
+                    {
+                        // 窗口宽度不够，需要调整窗口大小，确保能容纳所有列
+                        window.Width = Math.Max(window.Width, totalColumnWidth + 20); // 加一些边距
+                    }
+                }
+            }
+
+            // 应用完配置后，更新布局以确保MinWidth生效
+            _uiHelper.RootGrid.UpdateLayout();
+            
+            // 注意：不要在启动时调用 EnsureColumnMinWidths() 或 AdjustColumnWidths()
+            // 这些方法会重新计算列宽，覆盖我们刚刚从配置恢复的固定宽度
+            // 配置中的列宽已经是用户拖动后的正确值，不需要重新计算
         }
 
         #endregion

@@ -37,9 +37,10 @@
             <ColumnDefinition x:Name="ColRight" Width="*" MinWidth="360"/>
         </Grid.ColumnDefinitions>
         
-        <!-- 布局：标题栏行 + 内容行 -->
+        <!-- 布局：标题栏行 + 标签页行 + 内容行 -->
         <Grid.RowDefinitions>
             <RowDefinition Height="36"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
@@ -97,18 +98,26 @@
                 
             </Grid>
         </Border>
-        
-        <!-- 垂直分割器（从Row 1开始，跨越2行：Row 1和Row 2） -->
-        <GridSplitter Grid.Row="1" Grid.Column="1" Grid.RowSpan="2" 
-                      Style="{StaticResource VerticalGridSplitterStyle}" DragDelta="GridSplitter_DragDelta"/>
-        <GridSplitter Grid.Row="1" Grid.Column="3" Grid.RowSpan="2" 
-                      Style="{StaticResource VerticalGridSplitterStyle}"/>
-        
+
+        <!-- ========== 标签页管理器 ========== -->
+        <controls:TabManagerControl Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="5"
+                                    x:Name="TabManager" />
+
+        <!-- 垂直分割器（从Row 2开始，跨越2行：Row 2和Row 3） -->
+        <GridSplitter Grid.Row="2" Grid.Column="1" Grid.RowSpan="2"
+                      Style="{StaticResource VerticalGridSplitterStyle}"
+                      DragDelta="GridSplitter_DragDelta"
+                      DragCompleted="GridSplitter_DragCompleted"/>
+        <GridSplitter Grid.Row="2" Grid.Column="3" Grid.RowSpan="2"
+                      Style="{StaticResource VerticalGridSplitterStyle}"
+                      DragDelta="GridSplitter_DragDelta"
+                      DragCompleted="GridSplitter_DragCompleted"/>
+
         <!-- ========== 列1：导航区（独立控件） ========== -->
-        <controls:NavigationPanelControl Grid.Row="1" Grid.Column="0" Grid.RowSpan="2" x:Name="NavigationPanelControl"/>
-        
+        <controls:NavigationPanelControl Grid.Row="2" Grid.Column="0" Grid.RowSpan="2" x:Name="NavigationPanelControl"/>
+
         <!-- ========== 列2：文件显示区 ========== -->
-        <controls:FileBrowserControl Grid.Row="1" Grid.Column="2" Grid.RowSpan="2"
+        <controls:FileBrowserControl Grid.Row="2" Grid.Column="2" Grid.RowSpan="2"
                                      x:Name="FileBrowser"
                                      FilesSelectionChanged="FileBrowser_FilesSelectionChanged"
                                      FilesMouseDoubleClick="FileBrowser_FilesMouseDoubleClick"
@@ -124,14 +133,14 @@
                                      BreadcrumbClicked="FileBrowser_BreadcrumbClicked"/>
 
         <!-- ========== 列3：预览/备注区 ========== -->
-        <local:RightPanelControl Grid.Row="0" Grid.Column="4" Grid.RowSpan="3"
+        <local:RightPanelControl Grid.Row="0" Grid.Column="4" Grid.RowSpan="4"
                                  x:Name="RightPanel"
                                  HorizontalAlignment="Stretch"
                                  VerticalAlignment="Stretch"/>
-        
+
         <!-- 设置覆盖层：覆盖列2和列3 -->
-        <Grid Name="SettingsOverlay" 
-              Grid.Row="1" Grid.RowSpan="2"
+        <Grid Name="SettingsOverlay"
+              Grid.Row="2" Grid.RowSpan="2"
               Grid.Column="2" Grid.ColumnSpan="3"
               Background="#F0F0F0"
               Panel.ZIndex="5000"
@@ -147,7 +156,8 @@
               Background="Transparent"
               Width="200" Height="36"
               Panel.ZIndex="10000"
-              Margin="0,0,0,0">
+              Margin="0,0,0,0"
+              PreviewMouseDown="WindowControlButtonsContainer_PreviewMouseDown">
             <!-- 按钮区域：固定在右上角 -->
             <StackPanel Orientation="Horizontal"
                        HorizontalAlignment="Right" VerticalAlignment="Center"

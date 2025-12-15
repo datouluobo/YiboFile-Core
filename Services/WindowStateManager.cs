@@ -23,6 +23,7 @@ namespace OoiMRR.Services
         private readonly AppConfig _config;
         private readonly NavigationService _navigationService;
         private readonly Navigation.NavigationModeService _navigationModeService;
+        private bool _isInitialized = false;
 
         #endregion
 
@@ -50,6 +51,11 @@ namespace OoiMRR.Services
         /// </summary>
         public void SaveAllState()
         {
+            // 启动阶段或尚未初始化完成时不保存，避免覆盖已有配置
+            if (!_isInitialized || (_configService != null && _configService.IsApplyingConfig))
+            {
+                return;
+            }
             try
             {
                 // #region agent log
@@ -103,8 +109,10 @@ namespace OoiMRR.Services
             var window = _uiHelper.Window;
             if (window == null) return;
 
-            // 保存最大化状态
-            _config.IsMaximized = _uiHelper.IsPseudoMaximized;
+            // 保存最大化状态：同时考虑伪最大化和系统最大化
+            bool isPseudoMaximized = _uiHelper.IsPseudoMaximized;
+            bool isSystemMaximized = window.WindowState == WindowState.Maximized;
+            _config.IsMaximized = isPseudoMaximized || isSystemMaximized;
             
             // #region agent log
             try { System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "A", location = "WindowStateManager.cs:88", message = "SaveWindowState窗口属性", data = new { isLoaded = window.IsLoaded, isMaximized = _config.IsMaximized, windowWidth = window.Width, windowHeight = window.Height, windowTop = window.Top, windowLeft = window.Left }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
@@ -149,8 +157,20 @@ namespace OoiMRR.Services
                 }
                 else
                 {
-                    // 最大化状态：保存还原尺寸（从 RestoreBounds 获取）
-                    var restoreBounds = _uiHelper.RestoreBounds;
+                    // 最大化状态：保存还原尺寸
+                    Rect restoreBounds;
+                    if (isPseudoMaximized)
+                    {
+                        // 伪最大化：从 UIHelper.RestoreBounds 获取
+                        restoreBounds = _uiHelper.RestoreBounds;
+                    }
+                    else
+                    {
+                        // 系统最大化：从 Window.RestoreBounds 获取
+                        restoreBounds = window.RestoreBounds;
+                        // 同步到 UIHelper 的 RestoreBounds，便于下次伪最大化切换使用
+                        _uiHelper.RestoreBounds = restoreBounds;
+                    }
                     // #region agent log
                     try { System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "A", location = "WindowStateManager.cs:107", message = "SaveWindowState最大化状态RestoreBounds", data = new { restoreBoundsWidth = restoreBounds.Width, restoreBoundsHeight = restoreBounds.Height, restoreBoundsTop = restoreBounds.Top, restoreBoundsLeft = restoreBounds.Left }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
                     // #endregion
@@ -202,8 +222,14 @@ namespace OoiMRR.Services
         {
             // #region agent log
             var logPath = @"f:\Download\GitHub\OoiMRR\.cursor\debug.log";
-            try { System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(logPath)); System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "B", location = "WindowStateManager.cs:147", message = "SaveSplitterPositions开始", data = new { rootGridIsNull = _uiHelper?.RootGrid == null, rootGridIsLoaded = _uiHelper?.RootGrid?.IsLoaded ?? false }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
+            try { System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(logPath)); System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "B", location = "WindowStateManager.cs:147", message = "SaveSplitterPositions开始", data = new { rootGridIsNull = _uiHelper?.RootGrid == null, rootGridIsLoaded = _uiHelper?.RootGrid?.IsLoaded ?? false, isInitialized = _isInitialized, isApplyingConfig = _configService?.IsApplyingConfig ?? false }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
             // #endregion
+            
+            // 双重保护：启动阶段不保存分割线位置
+            if (!_isInitialized || (_configService != null && _configService.IsApplyingConfig))
+            {
+                return;
+            }
             
             if (_uiHelper.RootGrid == null || !_uiHelper.RootGrid.IsLoaded) return;
 
@@ -217,37 +243,16 @@ namespace OoiMRR.Services
             try { System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "B", location = "WindowStateManager.cs:159", message = "SaveSplitterPositions列宽度属性", data = new { leftColWidthIsAbsolute = leftCol.Width.IsAbsolute, leftColWidthValue = leftCol.Width.IsAbsolute ? leftCol.Width.Value : 0, leftColActualWidth = leftCol.ActualWidth, leftColMinWidth = leftCol.MinWidth, middleColWidthIsAbsolute = middleCol.Width.IsAbsolute, middleColWidthValue = middleCol.Width.IsAbsolute ? middleCol.Width.Value : 0, middleColWidthIsStar = middleCol.Width.IsStar, middleColActualWidth = middleCol.ActualWidth, middleColMinWidth = middleCol.MinWidth }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
             // #endregion
 
-            // 优先使用 Width.Value（如果IsAbsolute），因为这是用户拖拽设置的值
-            // GridSplitter拖拽时直接设置 Width = new GridLength(newW)，所以应该从Width获取
-            if (leftCol.Width.IsAbsolute && leftCol.Width.Value > 0)
+            // GridSplitter拖拽后，列宽已调整，优先使用ActualWidth获取实际显示的宽度
+            // 强制更新布局以确保ActualWidth是最新的
+            _uiHelper.RootGrid.UpdateLayout();
+
+            if (leftCol.ActualWidth > 0)
             {
-                leftWidth = leftCol.Width.Value;
-            }
-            else
-            {
-                // 如果Width不是绝对宽度（可能是Star），使用ActualWidth
-                // 强制更新布局以确保ActualWidth是最新的
-                _uiHelper.RootGrid.UpdateLayout();
-                if (leftCol.ActualWidth > 0)
-                {
-                    leftWidth = leftCol.ActualWidth;
-                }
+                leftWidth = leftCol.ActualWidth;
             }
 
-            if (middleCol.Width.IsAbsolute && middleCol.Width.Value > 0)
-            {
-                middleWidth = middleCol.Width.Value;
-            }
-            else if (middleCol.Width.IsStar)
-            {
-                // 中间列可能是Star模式，使用ActualWidth
-                _uiHelper.RootGrid.UpdateLayout();
-                if (middleCol.ActualWidth > 0)
-                {
-                    middleWidth = middleCol.ActualWidth;
-                }
-            }
-            else if (middleCol.ActualWidth > 0)
+            if (middleCol.ActualWidth > 0)
             {
                 middleWidth = middleCol.ActualWidth;
             }
@@ -360,6 +365,13 @@ namespace OoiMRR.Services
             var allTabs = _tabService.Tabs;
             var orderedTabs = _tabService.GetTabsInOrder();
 
+            // 启动早期：如果当前没有任何标签页，但配置中已有 OpenTabs，说明还没完成恢复，避免把配置清空
+            if ((allTabs == null || allTabs.Count == 0) &&
+                _config.OpenTabs != null && _config.OpenTabs.Count > 0)
+            {
+                return;
+            }
+
             // #region agent log
             try { System.IO.File.AppendAllText(logPath2, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "C", location = "WindowStateManager.cs:285", message = "SaveTabsState标签页列表", data = new { allTabsCount = allTabs?.Count ?? 0, orderedTabsCount = orderedTabs?.Count() ?? 0, orderedTabsKeys = orderedTabs?.Select(tab => GetTabKey(tab)).ToList() ?? new List<string>() }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
             // #endregion
@@ -450,25 +462,27 @@ namespace OoiMRR.Services
             var window = _uiHelper.Window;
             if (window == null) return;
 
-            // 如果窗口还未加载，等待窗口加载完成后再恢复
+            // 标记初始化完成
+            Action markInitialized = () => _isInitialized = true;
+
             if (!window.IsLoaded)
             {
                 window.Loaded += (s, e) =>
                 {
-                    // 延迟到下一个Dispatcher优先级，确保所有控件都已加载
-                    window.Dispatcher.BeginInvoke(new Action(() =>
+                    window.Dispatcher.BeginInvoke(() =>
                     {
                         RestoreTabsStateInternal();
-                    }), System.Windows.Threading.DispatcherPriority.Loaded);
+                        markInitialized();
+                    }, System.Windows.Threading.DispatcherPriority.Loaded);
                 };
                 return;
             }
 
-            // 如果窗口已加载，延迟执行以确保控件已完全初始化
-            window.Dispatcher.BeginInvoke(new Action(() =>
+            window.Dispatcher.BeginInvoke(() =>
             {
                 RestoreTabsStateInternal();
-            }), System.Windows.Threading.DispatcherPriority.Loaded);
+                markInitialized();
+            }, System.Windows.Threading.DispatcherPriority.Loaded);
         }
 
         /// <summary>
@@ -629,3 +643,7 @@ namespace OoiMRR.Services
         #endregion
     }
 }
+
+
+
+
