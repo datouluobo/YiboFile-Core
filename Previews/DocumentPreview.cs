@@ -185,190 +185,210 @@ namespace OoiMRR.Previews
 
         private UIElement CreateDocPreview(string filePath)
         {
-            try
+            // 创建一个容器，初始显示加载中
+            var mainContainer = new Grid();
+            mainContainer.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            mainContainer.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+
+            // 标题栏 (总是显示)
+            var buttons = new List<Button>
             {
-                var tempDocx = Path.Combine(Path.GetTempPath(), Path.GetFileNameWithoutExtension(filePath) + ".docx");
-                string errorMsg;
-                bool canPreview = ConvertDocToDocx(filePath, tempDocx, out errorMsg);
+                PreviewHelper.CreateOpenButton(filePath)
+            };
+            var titlePanel = PreviewHelper.CreateTitlePanel("📄", $"DOC 文档: {Path.GetFileName(filePath)}", buttons);
+            Grid.SetRow(titlePanel, 0);
+            mainContainer.Children.Add(titlePanel);
 
-                // 无论能否预览，都显示转换按钮
-                var grid = new Grid();
-                grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+            // 加载面板
+            var loadingPanel = new StackPanel
+            {
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Center
+            };
+            loadingPanel.Children.Add(new TextBlock 
+            { 
+                Text = "⏳ 正在检测文档预览...", 
+                FontSize = 14, 
+                Foreground = Brushes.Gray,
+                HorizontalAlignment = HorizontalAlignment.Center
+            });
+            Grid.SetRow(loadingPanel, 1);
+            mainContainer.Children.Add(loadingPanel);
 
-                // 转换按钮
-                var convertButton = new Button
+            // 异步检查是否可以转换预览
+            Task.Run(() =>
+            {
+                try
                 {
-                    Content = "🔄 转换为DOCX格式",
-                    Padding = new Thickness(12, 6, 12, 6),
-                    Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(76, 175, 80)),
-                    Foreground = Brushes.White,
-                    BorderThickness = new Thickness(0),
-                    Cursor = Cursors.Hand,
-                    FontSize = 13
-                };
+                    var tempDocx = Path.Combine(Path.GetTempPath(), Path.GetFileNameWithoutExtension(filePath) + ".docx");
+                    string errorMsg;
+                    // 同步调用，但在 Task.Run 中
+                    bool canPreview = ConvertDocToDocx(filePath, tempDocx, out errorMsg);
 
-                convertButton.Click += async (s, e) =>
-                {
-                    try
+                    Application.Current.Dispatcher.Invoke(() =>
                     {
-                        convertButton.IsEnabled = false;
-                        convertButton.Content = "⏳ 转换中...";
+                        // 移除加载面板
+                        mainContainer.Children.Remove(loadingPanel);
 
-                        try
+                        var grid = new Grid();
+                        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 转换按钮行
+                        grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // 内容行
+                        Grid.SetRow(grid, 1);
+                        mainContainer.Children.Add(grid);
+
+                        // 转换按钮
+                        var convertButton = new Button
                         {
-                            // 生成输出路径（同目录，同名）
-                            string directory = Path.GetDirectoryName(filePath);
-                            string baseName = Path.GetFileNameWithoutExtension(filePath);
-                            string outputPath = Path.Combine(directory, baseName + ".docx");
+                            Content = "🔄 转换为DOCX格式",
+                            Padding = new Thickness(12, 6, 12, 6),
+                            Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(76, 175, 80)),
+                            Foreground = Brushes.White,
+                            BorderThickness = new Thickness(0),
+                            Cursor = Cursors.Hand,
+                            FontSize = 13,
+                            Margin = new Thickness(10, 5, 10, 5)
+                        };
 
-                            // 如果文件已存在，添加序号
-                            outputPath = GetUniqueFilePath(outputPath);
-
-                            // 在后台线程执行转换
-                            string errorMessage = null;
-                            bool success = await Task.Run(() =>
-                            {
-                                bool result = ConvertDocToDocx(filePath, outputPath, out errorMessage);
-                                return result;
-                            });
-
-                            if (success)
-                            {
-                                convertButton.Content = "✅ 转换成功";
-                            }
-                            else
-                            {
-                                string errorTitle = errorMessage?.Contains("未检测到") == true ? "需要 Microsoft Word" : "转换错误";
-                                MessageBox.Show(
-                                    errorMessage ?? "转换失败",
-                                    errorTitle,
-                                    MessageBoxButton.OK,
-                                    MessageBoxImage.Error);
-                                convertButton.IsEnabled = true;
-                                convertButton.Content = "🔄 转换为DOCX格式";
-                            }
-                        }
-                        catch (Exception ex)
+                        convertButton.Click += async (s, e) =>
                         {
-                            MessageBox.Show($"转换失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                            convertButton.IsEnabled = true;
-                            convertButton.Content = "🔄 转换为DOCX格式";
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show($"转换失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                        convertButton.IsEnabled = true;
-                        convertButton.Content = "🔄 转换为DOCX格式";
-                    }
-                };
-
-                var buttons = new List<Button>
-                {
-                    convertButton,
-                    PreviewHelper.CreateOpenButton(filePath)
-                };
-                var titlePanel = PreviewHelper.CreateTitlePanel("📄", $"Word 文档: {Path.GetFileName(filePath)}", buttons);
-                Grid.SetRow(titlePanel, 0);
-                grid.Children.Add(titlePanel);
-
-                // 如果能预览，显示预览内容
-                if (canPreview)
-                {
-
-                    var webView = new WebView2
-                    {
-                        VerticalAlignment = VerticalAlignment.Stretch,
-                        HorizontalAlignment = HorizontalAlignment.Stretch,
-                        MinHeight = 400
-                    };
-                    Grid.SetRow(webView, 1);
-                    grid.Children.Add(webView);
-
-                    // 异步加载文档内容
-                    webView.Loaded += async (s, e) =>
-                    {
-                        try
-                        {
-                            await webView.EnsureCoreWebView2Async();
-
-                            // 在后台线程提取文本
-                            string html = await Task.Run(() =>
+                            try
                             {
+                                convertButton.IsEnabled = false;
+                                convertButton.Content = "⏳ 转换中...";
+
                                 try
                                 {
-                                    using (var wordDoc = WordprocessingDocument.Open(tempDocx, false))
+                                    string directory = Path.GetDirectoryName(filePath);
+                                    string baseName = Path.GetFileNameWithoutExtension(filePath);
+                                    string outputPath = Path.Combine(directory, baseName + ".docx");
+                                    outputPath = GetUniqueFilePath(outputPath);
+
+                                    string errorMessage = null;
+                                    bool success = await Task.Run(() =>
                                     {
-                                        var body = wordDoc.MainDocumentPart.Document.Body;
-                                        var paragraphs = new List<string>();
+                                        bool result = ConvertDocToDocx(filePath, outputPath, out errorMessage);
+                                        return result;
+                                    });
 
-                                        foreach (var element in body.Elements())
-                                        {
-                                            var text = element.InnerText ?? "";
-                                            if (!string.IsNullOrWhiteSpace(text))
-                                            {
-                                                paragraphs.Add(WebUtility.HtmlEncode(text));
-                                            }
-                                        }
-
-                                        return GenerateHtmlFromText(paragraphs, Path.GetFileName(filePath));
+                                    if (success)
+                                    {
+                                        convertButton.Content = "✅ 转换成功";
+                                    }
+                                    else
+                                    {
+                                        string errorTitle = errorMessage?.Contains("未检测到") == true ? "需要 Microsoft Word" : "转换错误";
+                                        MessageBox.Show(errorMessage ?? "转换失败", errorTitle, MessageBoxButton.OK, MessageBoxImage.Error);
+                                        convertButton.IsEnabled = true;
+                                        convertButton.Content = "🔄 转换为DOCX格式";
                                     }
                                 }
                                 catch (Exception ex)
                                 {
-                                    return $"<html><body style='font-family:Segoe UI;color:#c00;padding:16px'>预览失败: {WebUtility.HtmlEncode(ex.Message)}</body></html>";
+                                    MessageBox.Show($"转换失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                                    convertButton.IsEnabled = true;
+                                    convertButton.Content = "🔄 转换为DOCX格式";
                                 }
+                            }
+                            catch (Exception ex)
+                            {
+                                MessageBox.Show($"转换失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                                convertButton.IsEnabled = true;
+                                convertButton.Content = "🔄 转换为DOCX格式";
+                            }
+                        };
+                        
+                        // 添加按钮到顶部
+                        Grid.SetRow(convertButton, 0);
+                        grid.Children.Add(convertButton);
+
+                        if (canPreview)
+                        {
+                            var webView = new WebView2
+                            {
+                                VerticalAlignment = VerticalAlignment.Stretch,
+                                HorizontalAlignment = HorizontalAlignment.Stretch,
+                                MinHeight = 400
+                            };
+                            Grid.SetRow(webView, 1);
+                            grid.Children.Add(webView);
+
+                            webView.Loaded += async (s, e) =>
+                            {
+                                try
+                                {
+                                    await webView.EnsureCoreWebView2Async();
+                                    string html = await Task.Run(() =>
+                                    {
+                                        try
+                                        {
+                                            using (var wordDoc = WordprocessingDocument.Open(tempDocx, false))
+                                            {
+                                                var body = wordDoc.MainDocumentPart.Document.Body;
+                                                var paragraphs = new List<string>();
+                                                foreach (var element in body.Elements())
+                                                {
+                                                    var text = element.InnerText ?? "";
+                                                    if (!string.IsNullOrWhiteSpace(text))
+                                                        paragraphs.Add(WebUtility.HtmlEncode(text));
+                                                }
+                                                return GenerateHtmlFromText(paragraphs, Path.GetFileName(filePath));
+                                            }
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            return $"<html><body style='font-family:Segoe UI;color:#c00;padding:16px'>预览失败: {WebUtility.HtmlEncode(ex.Message)}</body></html>";
+                                        }
+                                    });
+                                    webView.NavigateToString(html);
+                                }
+                                catch (Exception ex)
+                                {
+                                    webView.NavigateToString($"<html><body style='font-family:Segoe UI;color:#c00;padding:16px'>预览失败: {WebUtility.HtmlEncode(ex.Message)}</body></html>");
+                                }
+                            };
+
+                            // 延迟删除临时文件
+                            Task.Delay(5000).ContinueWith(_ =>
+                            {
+                                try { if (File.Exists(tempDocx)) File.Delete(tempDocx); } catch { }
                             });
-
-                            webView.NavigateToString(html);
                         }
-                        catch (Exception ex)
+                        else
                         {
-                            webView.NavigateToString($"<html><body style='font-family:Segoe UI;color:#c00;padding:16px'>预览失败: {WebUtility.HtmlEncode(ex.Message)}</body></html>");
+                            // 无法预览（例如没有Word），显示错误信息
+                            var errorPanel = new StackPanel
+                            {
+                                Background = Brushes.White,
+                                Margin = new Thickness(15, 10, 15, 5)
+                            };
+                            var errorText = new TextBlock
+                            {
+                                Text = "DOC 预览需要安装 Microsoft Word 或兼容组件，或者转换为 DOCX 格式。",
+                                TextWrapping = TextWrapping.Wrap,
+                                Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(220, 53, 69)),
+                                LineHeight = 24
+                            };
+                            errorPanel.Children.Add(errorText);
+                            Grid.SetRow(errorPanel, 1);
+                            grid.Children.Add(errorPanel);
                         }
-                    };
-
-                    // 延迟删除临时文件，确保WebView加载完成
-                    Task.Delay(5000).ContinueWith(_ =>
-                    {
-                        try
-                        {
-                            if (File.Exists(tempDocx))
-                                File.Delete(tempDocx);
-                        }
-                        catch { }
                     });
                 }
-                else
+                catch (Exception ex)
                 {
-                    // 如果不能预览，显示错误信息
-                    var errorPanel = new StackPanel
+                    Application.Current.Dispatcher.Invoke(() =>
                     {
-                        Background = Brushes.White,
-                        Margin = new Thickness(15, 10, 15, 5)
-                    };
-
-                    var errorText = new TextBlock
-                    {
-                        Text = "DOC 预览需要安装 Microsoft Word 或兼容组件，或者转换为 DOCX 格式。",
-                        TextWrapping = TextWrapping.Wrap,
-                        Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(220, 53, 69)),
-                        LineHeight = 24
-                    };
-                    errorPanel.Children.Add(errorText);
-
-                    Grid.SetRow(errorPanel, 1);
-                    grid.Children.Add(errorPanel);
+                         mainContainer.Children.Remove(loadingPanel);
+                         var errorUI = CreateDocPreviewWithConvertButton(filePath, $"DOC 预览检测失败: {ex.Message}");
+                         // 替换 mainContainer 内容为 errorUI 的内容（或者简单地添加）
+                         // 这里简单起见，我们只能替换内容
+                         Grid.SetRow(errorUI, 1);
+                         mainContainer.Children.Add(errorUI); 
+                    });
                 }
+            });
 
-                return grid;
-            }
-            catch (Exception ex)
-            {
-                // 如果出错，显示包含转换按钮的界面
-                return CreateDocPreviewWithConvertButton(filePath, $"DOC 预览失败: {ex.Message}");
-            }
+            return mainContainer;
         }
 
         private UIElement CreateDocPreviewWithConvertButton(string filePath, string message)
@@ -508,6 +528,13 @@ namespace OoiMRR.Previews
 
         private bool ConvertDocToDocx(string docPath, string docxPath, out string errorMessage)
         {
+            // Note: This method is called inside Task.Run by the caller, so we can keep it synchronous here.
+            // But to be safe, we verify it is not on the UI thread if possible, or just trust the caller.
+            // The caller (CreateDocPreview -> convertButton.Click) already does Task.Run.
+            // However, CreateDocPreview ALSO calls ConvertDocToDocx synchronously at the start to check if it can preview!
+            // Line 192: bool canPreview = ConvertDocToDocx(filePath, tempDocx, out errorMsg);
+            // This IS the bottleneck!
+
             errorMessage = null;
 
             try

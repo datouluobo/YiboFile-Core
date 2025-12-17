@@ -44,6 +44,8 @@ namespace OoiMRR.Services.Search
     {
         public FileTypeFilter Type { get; set; } = FileTypeFilter.All;
         public PathRangeFilter PathRange { get; set; } = PathRangeFilter.AllDrives;
+        public bool SearchNames { get; set; } = true;
+        public bool SearchNotes { get; set; } = true;
     }
 
     /// <summary>

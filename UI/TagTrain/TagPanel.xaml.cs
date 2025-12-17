@@ -141,7 +141,6 @@ namespace TagTrain.UI
 
             if (!_loadTagsLock.Wait(0))
             {
-                System.Diagnostics.Debug.WriteLine("LoadExistingTags: previous load still running, skip.");
                 return;
             }
 
@@ -153,7 +152,16 @@ namespace TagTrain.UI
                 var tagSortMode = _tagSortMode;
                 var tagsPerRow = _tagsPerRow;
 
-                var data = await Task.Run(() => BuildTagLoadSnapshot(predictionsSnapshot));
+                var data = await Task.Run(() => 
+                {
+                    try {
+                         var snapshot = BuildTagLoadSnapshot(predictionsSnapshot);
+                         return snapshot;
+                    } catch (Exception ex) {
+                         OoiMRR.Services.Core.FileLogger.LogException($"[TagPanel] BuildTagLoadSnapshot 异常", ex);
+                         throw;
+                    }
+                });
 
                 await dispatcher.InvokeAsync(() =>
                 {
@@ -376,8 +384,9 @@ namespace TagTrain.UI
                             ExistingTagsPanel.Children.Add(ungroupedExpander);
                         }
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
+                        OoiMRR.Services.Core.FileLogger.LogException($"[TagPanel] 渲染循环异常", ex);
                         var fallbackPanel = new WrapPanel { Orientation = Orientation.Horizontal };
                         foreach (var tagInfo in existingTags)
                         {
@@ -392,7 +401,7 @@ namespace TagTrain.UI
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"LoadExistingTags: {ex.Message}");
+                OoiMRR.Services.Core.FileLogger.LogException($"[TagPanel] LoadExistingTags 异常", ex);
             }
             finally
             {
@@ -413,13 +422,25 @@ namespace TagTrain.UI
                     }
                 }
             }
+            
+
+            
+            var tagNames = DataManager.GetAllTagNames();
+            
+            var trainingData = DataManager.LoadAllTrainingData();
+            
+            var manualDataCount = trainingData?.Count(t => t.IsManual) ?? 0;
+
+            var categories = DataManager.GetAllCategories().OrderBy(c => c.SortOrder).ThenBy(c => c.Name).ToList();
+            
+            var categoryMap = DataManager.GetTagCategoryMap();
 
             return new TagLoadSnapshot
             {
-                TagNames = DataManager.GetAllTagNames(),
-                TrainingData = DataManager.LoadAllTrainingData(),
-                Categories = DataManager.GetAllCategories().OrderBy(c => c.SortOrder).ThenBy(c => c.Name).ToList(),
-                TagCategoryMap = DataManager.GetTagCategoryMap(),
+                TagNames = tagNames,
+                TrainingData = trainingData,
+                Categories = categories,
+                TagCategoryMap = categoryMap,
                 PredictionDict = predictionDict
             };
         }

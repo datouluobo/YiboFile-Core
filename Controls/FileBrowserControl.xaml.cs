@@ -414,5 +414,12 @@ namespace OoiMRR.Controls
             
             FileList.FilesList.ContextMenu = cm;
         }
+        private void ViewModeBtn_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is RadioButton btn && btn.Tag is string mode)
+            {
+                FileList?.SetViewMode(mode);
+            }
+        }
     }
 }

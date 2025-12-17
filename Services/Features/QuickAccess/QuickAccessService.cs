@@ -1,0 +1,283 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
+
+namespace OoiMRR.Services.QuickAccess
+{
+    /// <summary>
+    /// 快速访问服务
+    /// 负责快速访问项和驱动器的加载和管理
+    /// </summary>
+    public class QuickAccessService
+    {
+        #region 事件定义
+
+        /// <summary>
+        /// 路径导航请求事件
+        /// </summary>
+        public event EventHandler<string> NavigateRequested;
+
+        /// <summary>
+        /// 新标签页创建请求事件
+        /// </summary>
+        public event EventHandler<string> CreateTabRequested;
+
+        #endregion
+
+        #region 私有字段
+
+        private readonly System.Windows.Threading.Dispatcher _dispatcher;
+
+        #endregion
+
+        #region 构造函数
+
+        public QuickAccessService(System.Windows.Threading.Dispatcher dispatcher = null)
+        {
+            _dispatcher = dispatcher ?? Application.Current?.Dispatcher ?? System.Windows.Threading.Dispatcher.CurrentDispatcher;
+        }
+
+        #endregion
+
+        #region 公共方法
+
+        /// <summary>
+        /// 加载快速访问列表
+        /// </summary>
+        public void LoadQuickAccess(ListBox quickAccessListBox)
+        {
+            if (quickAccessListBox == null) return;
+
+            _dispatcher.Invoke(() =>
+            {
+                var quickAccessPaths = new[]
+                {
+                    (Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "🖥️ 桌面"),
+                    (Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "📄 文档"),
+                    (Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "🖼️ 图片"),
+                    (Environment.GetFolderPath(Environment.SpecialFolder.MyMusic), "🎵 音乐"),
+                    (Environment.GetFolderPath(Environment.SpecialFolder.MyVideos), "🎬 视频"),
+                    (Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "👤 用户")
+                };
+
+                var accessItems = quickAccessPaths
+                    .Where(item => Directory.Exists(item.Item1))
+                    .Select(item => new { DisplayName = item.Item2, Path = item.Item1 })
+                    .ToList();
+
+                quickAccessListBox.ItemsSource = accessItems;
+                quickAccessListBox.DisplayMemberPath = "DisplayName";
+
+                // 设置选择事件
+                quickAccessListBox.SelectionChanged -= QuickAccessListBox_SelectionChanged;
+                quickAccessListBox.SelectionChanged += QuickAccessListBox_SelectionChanged;
+
+                // 设置鼠标中键事件
+                quickAccessListBox.PreviewMouseDown -= QuickAccessListBox_PreviewMouseDown;
+                quickAccessListBox.PreviewMouseDown += QuickAccessListBox_PreviewMouseDown;
+            });
+        }
+
+        /// <summary>
+        /// 加载驱动器列表
+        /// </summary>
+        public void LoadDrives(ListBox drivesListBox, Func<long, string> formatFileSize)
+        {
+            if (drivesListBox == null) return;
+
+            _dispatcher.Invoke(() =>
+            {
+                try
+                {
+                    var drives = DriveInfo.GetDrives().Where(d => d.IsReady).ToList();
+                    var driveItems = drives.Select(drive => new
+                    {
+                        DisplayName = $"{drive.Name} ({drive.VolumeLabel})",
+                        Path = drive.Name,
+                        ToolTip = $"总空间: {formatFileSize(drive.TotalSize)}\n可用空间: {formatFileSize(drive.AvailableFreeSpace)}"
+                    }).ToList();
+
+                    drivesListBox.ItemsSource = driveItems;
+                    drivesListBox.DisplayMemberPath = "DisplayName";
+
+                    // 设置选择事件
+                    drivesListBox.SelectionChanged -= DrivesListBox_SelectionChanged;
+                    drivesListBox.SelectionChanged += DrivesListBox_SelectionChanged;
+
+                    // 设置鼠标中键事件（已在LoadDrives中处理）
+                    drivesListBox.PreviewMouseDown -= DrivesListBox_PreviewMouseDown;
+                    drivesListBox.PreviewMouseDown += DrivesListBox_PreviewMouseDown;
+                }
+                catch
+                {
+                    drivesListBox.ItemsSource = null;
+                }
+            });
+        }
+
+        #endregion
+
+        #region 事件处理
+
+        private void QuickAccessListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            var listBox = sender as ListBox;
+            if (listBox?.SelectedItem == null) return;
+
+            var selectedItem = listBox.SelectedItem;
+            var pathProperty = selectedItem.GetType().GetProperty("Path");
+            if (pathProperty != null)
+            {
+                var path = pathProperty.GetValue(selectedItem) as string;
+                if (!string.IsNullOrEmpty(path))
+                {
+                    NavigateRequested?.Invoke(this, path);
+                }
+            }
+
+            // 清除选择
+            listBox.SelectedItem = null;
+        }
+
+        private void DrivesListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            var listBox = sender as ListBox;
+            if (listBox?.SelectedItem == null) return;
+
+            var selectedItem = listBox.SelectedItem;
+            var pathProperty = selectedItem.GetType().GetProperty("Path");
+            if (pathProperty != null)
+            {
+                var path = pathProperty.GetValue(selectedItem) as string;
+                if (!string.IsNullOrEmpty(path))
+                {
+                    NavigateRequested?.Invoke(this, path);
+                }
+            }
+
+            // 清除选择
+            listBox.SelectedItem = null;
+        }
+
+        private void QuickAccessListBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            // 处理鼠标中键点击打开新标签页
+            if (e.ChangedButton == MouseButton.Middle)
+            {
+                var listBox = sender as ListBox;
+                if (listBox == null) return;
+
+                // 获取点击位置对应的项目
+                var hitResult = VisualTreeHelper.HitTest(listBox, e.GetPosition(listBox));
+                if (hitResult == null) return;
+
+                // 向上查找 ListBoxItem
+                DependencyObject current = hitResult.VisualHit;
+                while (current != null && current != listBox)
+                {
+                    if (current is ListBoxItem item && item.DataContext != null)
+                    {
+                        var pathProperty = item.DataContext.GetType().GetProperty("Path");
+                        if (pathProperty != null)
+                        {
+                            var path = pathProperty.GetValue(item.DataContext) as string;
+                            if (!string.IsNullOrEmpty(path))
+                            {
+                                try
+                                {
+                                    if (Directory.Exists(path))
+                                    {
+                                        CreateTabRequested?.Invoke(this, path);
+                                        e.Handled = true;
+                                        return;
+                                    }
+                                }
+                                catch (UnauthorizedAccessException ex)
+                                {
+                                    System.Diagnostics.Debug.WriteLine($"无法访问路径: {path}\n{ex.Message}");
+                                    // MessageBox.Show($"无法访问路径: {path}\n\n{ex.Message}", "权限错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                                    e.Handled = true;
+                                    return;
+                                }
+                                catch (Exception ex)
+                                {
+                                    System.Diagnostics.Debug.WriteLine($"无法打开路径: {path}\n{ex.Message}");
+                                    // MessageBox.Show($"无法打开路径: {path}\n\n{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                                    e.Handled = true;
+                                    return;
+                                }
+                            }
+                        }
+                        break;
+                    }
+                    current = VisualTreeHelper.GetParent(current);
+                }
+            }
+        }
+
+        private void DrivesListBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            // 处理鼠标中键点击打开新标签页
+            if (e.ChangedButton == MouseButton.Middle)
+            {
+                var listBox = sender as ListBox;
+                if (listBox == null) return;
+
+                // 获取点击位置对应的项目
+                var hitResult = VisualTreeHelper.HitTest(listBox, e.GetPosition(listBox));
+                if (hitResult == null) return;
+
+                // 向上查找 ListBoxItem
+                DependencyObject current = hitResult.VisualHit;
+                while (current != null && current != listBox)
+                {
+                    if (current is ListBoxItem item && item.DataContext != null)
+                    {
+                        var pathProperty = item.DataContext.GetType().GetProperty("Path");
+                        if (pathProperty != null)
+                        {
+                            var path = pathProperty.GetValue(item.DataContext) as string;
+                            if (!string.IsNullOrEmpty(path))
+                            {
+                                try
+                                {
+                                    if (Directory.Exists(path))
+                                    {
+                                        CreateTabRequested?.Invoke(this, path);
+                                        e.Handled = true;
+                                        return;
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    MessageBox.Show($"无法打开驱动器: {path}\n\n{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                                    e.Handled = true;
+                                    return;
+                                }
+                            }
+                        }
+                        break;
+                    }
+                    current = VisualTreeHelper.GetParent(current);
+                }
+            }
+        }
+
+        #endregion
+    }
+}
+
+
+
+
+
+
+
+
+
+

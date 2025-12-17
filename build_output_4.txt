@@ -1,0 +1,59 @@
+  姝ｅ湪纭畾瑕佽繕鍘熺殑椤圭洰鈥?
+F:\Download\GitHub\OoiMRR\OoiMRR.csproj : warning NU1903: 鍖?"Magick.NET-Q16-AnyCPU" 14.9.1 鍏锋湁宸茬煡鐨?楂?涓ラ噸鎬ф紡娲烇紝https://github.com/advisories/GHSA-6hjr-v6g4-3fm8 [F:\Download\GitHub\OoiMRR\OoiMRR.sln]
+F:\Download\GitHub\OoiMRR\OoiMRR.csproj : warning NU1902: 鍖?"Magick.NET-Q16-AnyCPU" 14.9.1 鍏锋湁宸茬煡鐨?涓?涓ラ噸鎬ф紡娲烇紝https://github.com/advisories/GHSA-q3hc-j9x5-mp9m [F:\Download\GitHub\OoiMRR\OoiMRR.sln]
+  鎵€鏈夐」鐩潎鏄渶鏂扮殑锛屾棤娉曡繕鍘熴€?
+F:\Download\GitHub\OoiMRR\OoiMRR.csproj : warning NU1903: 鍖?"Magick.NET-Q16-AnyCPU" 14.9.1 鍏锋湁宸茬煡鐨?楂?涓ラ噸鎬ф紡娲烇紝https://github.com/advisories/GHSA-6hjr-v6g4-3fm8
+F:\Download\GitHub\OoiMRR\OoiMRR.csproj : warning NU1902: 鍖?"Magick.NET-Q16-AnyCPU" 14.9.1 鍏锋湁宸茬煡鐨?涓?涓ラ噸鎬ф紡娲烇紝https://github.com/advisories/GHSA-q3hc-j9x5-mp9m
+F:\Download\GitHub\OoiMRR\OoiMRR_lquo0yqs_wpftmp.csproj : warning NU1903: 鍖?"Magick.NET-Q16-AnyCPU" 14.9.1 鍏锋湁宸茬煡鐨?楂?涓ラ噸鎬ф紡娲烇紝https://github.com/advisories/GHSA-6hjr-v6g4-3fm8
+F:\Download\GitHub\OoiMRR\OoiMRR_lquo0yqs_wpftmp.csproj : warning NU1902: 鍖?"Magick.NET-Q16-AnyCPU" 14.9.1 鍏锋湁宸茬煡鐨?涓?涓ラ噸鎬ф紡娲烇紝https://github.com/advisories/GHSA-q3hc-j9x5-mp9m
+F:\Download\GitHub\OoiMRR\MainWindow.Handlers.cs(57,23): error CS0120: 瀵硅薄寮曠敤瀵逛簬闈為潤鎬佺殑瀛楁銆佹柟娉曟垨灞炴€р€淐onfigService.Config鈥濇槸蹇呴渶鐨?[F:\Download\GitHub\OoiMRR\OoiMRR_lquo0yqs_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\MainWindow.Handlers.cs(176,23): error CS0103: 褰撳墠涓婁笅鏂囦腑涓嶅瓨鍦ㄥ悕绉扳€淟ibrariesList鈥?[F:\Download\GitHub\OoiMRR\OoiMRR_lquo0yqs_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\MainWindow.Handlers.cs(181,35): error CS7036: 鏈彁渚涗笌鈥淣ewFileOperation.NewFileOperation(IFileOperationContext, Window, UIElement)鈥濈殑鎵€闇€鍙傛暟鈥渙wnerWindow鈥濆搴旂殑鍙傛暟 [F:\Download\GitHub\OoiMRR\OoiMRR_lquo0yqs_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\MainWindow.Handlers.cs(188,24): error CS0120: 瀵硅薄寮曠敤瀵逛簬闈為潤鎬佺殑瀛楁銆佹柟娉曟垨灞炴€р€淐onfigService.Config鈥濇槸蹇呴渶鐨?[F:\Download\GitHub\OoiMRR\OoiMRR_lquo0yqs_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\MainWindow.Handlers.cs(189,27): error CS0120: 瀵硅薄寮曠敤瀵逛簬闈為潤鎬佺殑瀛楁銆佹柟娉曟垨灞炴€р€淐onfigService.ApplyConfig(AppConfig)鈥濇槸蹇呴渶鐨?[F:\Download\GitHub\OoiMRR\OoiMRR_lquo0yqs_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\MainWindow.Handlers.cs(190,38): error CS0117: 鈥淐onfigService鈥濇湭鍖呭惈鈥淪ave鈥濈殑瀹氫箟 [F:\Download\GitHub\OoiMRR\OoiMRR_lquo0yqs_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\MainWindow.Handlers.cs(198,46): error CS1503: 鍙傛暟 1: 鏃犳硶浠庘€渟tring鈥濊浆鎹负鈥淥oiMRR.Services.Tabs.PathTab鈥?[F:\Download\GitHub\OoiMRR\OoiMRR_lquo0yqs_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\MainWindow.Handlers.cs(199,38): error CS1061: 鈥淭abService鈥濇湭鍖呭惈鈥淎ctivateTab鈥濈殑瀹氫箟锛屽苟涓旀壘涓嶅埌鍙帴鍙楃涓€涓€淭abService鈥濈被鍨嬪弬鏁扮殑鍙闂墿灞曟柟娉曗€淎ctivateTab鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [F:\Download\GitHub\OoiMRR\OoiMRR_lquo0yqs_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\MainWindow.Handlers.cs(217,23): error CS0103: 褰撳墠涓婁笅鏂囦腑涓嶅瓨鍦ㄥ悕绉扳€淔avoritesList鈥?[F:\Download\GitHub\OoiMRR\OoiMRR_lquo0yqs_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\MainWindow.Handlers.cs(218,23): error CS0103: 褰撳墠涓婁笅鏂囦腑涓嶅瓨鍦ㄥ悕绉扳€淒rivesList鈥?[F:\Download\GitHub\OoiMRR\OoiMRR_lquo0yqs_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\MainWindow.Handlers.cs(219,23): error CS0103: 褰撳墠涓婁笅鏂囦腑涓嶅瓨鍦ㄥ悕绉扳€淨uickAccessList鈥?[F:\Download\GitHub\OoiMRR\OoiMRR_lquo0yqs_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\MainWindow.Handlers.cs(222,51): error CS1061: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淗andleDriveNavigation鈥濈殑瀹氫箟锛屽苟涓旀壘涓嶅埌鍙帴鍙楃涓€涓€淣avigationCoordinator鈥濈被鍨嬪弬鏁扮殑鍙闂墿灞曟柟娉曗€淗andleDriveNavigation鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [F:\Download\GitHub\OoiMRR\OoiMRR_lquo0yqs_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\MainWindow.Handlers.cs(223,50): error CS1061: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淗andleQuickAccessNavigation鈥濈殑瀹氫箟锛屽苟涓旀壘涓嶅埌鍙帴鍙楃涓€涓€淣avigationCoordinator鈥濈被鍨嬪弬鏁扮殑鍙闂墿灞曟柟娉曗€淗andleQuickAccessNavigation鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [F:\Download\GitHub\OoiMRR\OoiMRR_lquo0yqs_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\MainWindow.Handlers.cs(237,42): error CS0117: 鈥淥oiMRRIntegration鈥濇湭鍖呭惈鈥淚sTraining鈥濈殑瀹氫箟 [F:\Download\GitHub\OoiMRR\OoiMRR_lquo0yqs_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\MainWindow.Handlers.cs(244,24): error CS1501: 鈥淟oadFilesAsync鈥濇柟娉曟病鏈夐噰鐢?1 涓弬鏁扮殑閲嶈浇 [F:\Download\GitHub\OoiMRR\OoiMRR_lquo0yqs_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\MainWindow.Handlers.cs(385,34): error CS1061: 鈥淔ileNotesUIHandler鈥濇湭鍖呭惈鈥淭oggleNotesPanel鈥濈殑瀹氫箟锛屽苟涓旀壘涓嶅埌鍙帴鍙楃涓€涓€淔ileNotesUIHandler鈥濈被鍨嬪弬鏁扮殑鍙闂墿灞曟柟娉曗€淭oggleNotesPanel鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [F:\Download\GitHub\OoiMRR\OoiMRR_lquo0yqs_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\Controls\NavigationPanelControl.xaml.cs(26,41): warning CS0067: 浠庝笉浣跨敤浜嬩欢鈥淣avigationPanelControl.LibraryRefreshClick鈥?[F:\Download\GitHub\OoiMRR\OoiMRR_lquo0yqs_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\MainWindow.xaml.cs(99,59): warning CS0649: 浠庢湭瀵瑰瓧娈碘€淢ainWindow._layoutCheckTimer鈥濊祴鍊硷紝瀛楁灏嗕竴鐩翠繚鎸佸叾榛樿鍊?null [F:\Download\GitHub\OoiMRR\OoiMRR_lquo0yqs_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\MainWindow.xaml.cs(98,59): warning CS0649: 浠庢湭瀵瑰瓧娈碘€淢ainWindow._periodicTimer鈥濊祴鍊硷紝瀛楁灏嗕竴鐩翠繚鎸佸叾榛樿鍊?null [F:\Download\GitHub\OoiMRR\OoiMRR_lquo0yqs_wpftmp.csproj]
+
+鐢熸垚澶辫触銆?
+
+F:\Download\GitHub\OoiMRR\OoiMRR.csproj : warning NU1903: 鍖?"Magick.NET-Q16-AnyCPU" 14.9.1 鍏锋湁宸茬煡鐨?楂?涓ラ噸鎬ф紡娲烇紝https://github.com/advisories/GHSA-6hjr-v6g4-3fm8 [F:\Download\GitHub\OoiMRR\OoiMRR.sln]
+F:\Download\GitHub\OoiMRR\OoiMRR.csproj : warning NU1902: 鍖?"Magick.NET-Q16-AnyCPU" 14.9.1 鍏锋湁宸茬煡鐨?涓?涓ラ噸鎬ф紡娲烇紝https://github.com/advisories/GHSA-q3hc-j9x5-mp9m [F:\Download\GitHub\OoiMRR\OoiMRR.sln]
+F:\Download\GitHub\OoiMRR\OoiMRR.csproj : warning NU1903: 鍖?"Magick.NET-Q16-AnyCPU" 14.9.1 鍏锋湁宸茬煡鐨?楂?涓ラ噸鎬ф紡娲烇紝https://github.com/advisories/GHSA-6hjr-v6g4-3fm8
+F:\Download\GitHub\OoiMRR\OoiMRR.csproj : warning NU1902: 鍖?"Magick.NET-Q16-AnyCPU" 14.9.1 鍏锋湁宸茬煡鐨?涓?涓ラ噸鎬ф紡娲烇紝https://github.com/advisories/GHSA-q3hc-j9x5-mp9m
+F:\Download\GitHub\OoiMRR\OoiMRR_lquo0yqs_wpftmp.csproj : warning NU1903: 鍖?"Magick.NET-Q16-AnyCPU" 14.9.1 鍏锋湁宸茬煡鐨?楂?涓ラ噸鎬ф紡娲烇紝https://github.com/advisories/GHSA-6hjr-v6g4-3fm8
+F:\Download\GitHub\OoiMRR\OoiMRR_lquo0yqs_wpftmp.csproj : warning NU1902: 鍖?"Magick.NET-Q16-AnyCPU" 14.9.1 鍏锋湁宸茬煡鐨?涓?涓ラ噸鎬ф紡娲烇紝https://github.com/advisories/GHSA-q3hc-j9x5-mp9m
+F:\Download\GitHub\OoiMRR\Controls\NavigationPanelControl.xaml.cs(26,41): warning CS0067: 浠庝笉浣跨敤浜嬩欢鈥淣avigationPanelControl.LibraryRefreshClick鈥?[F:\Download\GitHub\OoiMRR\OoiMRR_lquo0yqs_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\MainWindow.xaml.cs(99,59): warning CS0649: 浠庢湭瀵瑰瓧娈碘€淢ainWindow._layoutCheckTimer鈥濊祴鍊硷紝瀛楁灏嗕竴鐩翠繚鎸佸叾榛樿鍊?null [F:\Download\GitHub\OoiMRR\OoiMRR_lquo0yqs_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\MainWindow.xaml.cs(98,59): warning CS0649: 浠庢湭瀵瑰瓧娈碘€淢ainWindow._periodicTimer鈥濊祴鍊硷紝瀛楁灏嗕竴鐩翠繚鎸佸叾榛樿鍊?null [F:\Download\GitHub\OoiMRR\OoiMRR_lquo0yqs_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\MainWindow.Handlers.cs(57,23): error CS0120: 瀵硅薄寮曠敤瀵逛簬闈為潤鎬佺殑瀛楁銆佹柟娉曟垨灞炴€р€淐onfigService.Config鈥濇槸蹇呴渶鐨?[F:\Download\GitHub\OoiMRR\OoiMRR_lquo0yqs_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\MainWindow.Handlers.cs(176,23): error CS0103: 褰撳墠涓婁笅鏂囦腑涓嶅瓨鍦ㄥ悕绉扳€淟ibrariesList鈥?[F:\Download\GitHub\OoiMRR\OoiMRR_lquo0yqs_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\MainWindow.Handlers.cs(181,35): error CS7036: 鏈彁渚涗笌鈥淣ewFileOperation.NewFileOperation(IFileOperationContext, Window, UIElement)鈥濈殑鎵€闇€鍙傛暟鈥渙wnerWindow鈥濆搴旂殑鍙傛暟 [F:\Download\GitHub\OoiMRR\OoiMRR_lquo0yqs_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\MainWindow.Handlers.cs(188,24): error CS0120: 瀵硅薄寮曠敤瀵逛簬闈為潤鎬佺殑瀛楁銆佹柟娉曟垨灞炴€р€淐onfigService.Config鈥濇槸蹇呴渶鐨?[F:\Download\GitHub\OoiMRR\OoiMRR_lquo0yqs_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\MainWindow.Handlers.cs(189,27): error CS0120: 瀵硅薄寮曠敤瀵逛簬闈為潤鎬佺殑瀛楁銆佹柟娉曟垨灞炴€р€淐onfigService.ApplyConfig(AppConfig)鈥濇槸蹇呴渶鐨?[F:\Download\GitHub\OoiMRR\OoiMRR_lquo0yqs_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\MainWindow.Handlers.cs(190,38): error CS0117: 鈥淐onfigService鈥濇湭鍖呭惈鈥淪ave鈥濈殑瀹氫箟 [F:\Download\GitHub\OoiMRR\OoiMRR_lquo0yqs_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\MainWindow.Handlers.cs(198,46): error CS1503: 鍙傛暟 1: 鏃犳硶浠庘€渟tring鈥濊浆鎹负鈥淥oiMRR.Services.Tabs.PathTab鈥?[F:\Download\GitHub\OoiMRR\OoiMRR_lquo0yqs_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\MainWindow.Handlers.cs(199,38): error CS1061: 鈥淭abService鈥濇湭鍖呭惈鈥淎ctivateTab鈥濈殑瀹氫箟锛屽苟涓旀壘涓嶅埌鍙帴鍙楃涓€涓€淭abService鈥濈被鍨嬪弬鏁扮殑鍙闂墿灞曟柟娉曗€淎ctivateTab鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [F:\Download\GitHub\OoiMRR\OoiMRR_lquo0yqs_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\MainWindow.Handlers.cs(217,23): error CS0103: 褰撳墠涓婁笅鏂囦腑涓嶅瓨鍦ㄥ悕绉扳€淔avoritesList鈥?[F:\Download\GitHub\OoiMRR\OoiMRR_lquo0yqs_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\MainWindow.Handlers.cs(218,23): error CS0103: 褰撳墠涓婁笅鏂囦腑涓嶅瓨鍦ㄥ悕绉扳€淒rivesList鈥?[F:\Download\GitHub\OoiMRR\OoiMRR_lquo0yqs_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\MainWindow.Handlers.cs(219,23): error CS0103: 褰撳墠涓婁笅鏂囦腑涓嶅瓨鍦ㄥ悕绉扳€淨uickAccessList鈥?[F:\Download\GitHub\OoiMRR\OoiMRR_lquo0yqs_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\MainWindow.Handlers.cs(222,51): error CS1061: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淗andleDriveNavigation鈥濈殑瀹氫箟锛屽苟涓旀壘涓嶅埌鍙帴鍙楃涓€涓€淣avigationCoordinator鈥濈被鍨嬪弬鏁扮殑鍙闂墿灞曟柟娉曗€淗andleDriveNavigation鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [F:\Download\GitHub\OoiMRR\OoiMRR_lquo0yqs_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\MainWindow.Handlers.cs(223,50): error CS1061: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淗andleQuickAccessNavigation鈥濈殑瀹氫箟锛屽苟涓旀壘涓嶅埌鍙帴鍙楃涓€涓€淣avigationCoordinator鈥濈被鍨嬪弬鏁扮殑鍙闂墿灞曟柟娉曗€淗andleQuickAccessNavigation鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [F:\Download\GitHub\OoiMRR\OoiMRR_lquo0yqs_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\MainWindow.Handlers.cs(237,42): error CS0117: 鈥淥oiMRRIntegration鈥濇湭鍖呭惈鈥淚sTraining鈥濈殑瀹氫箟 [F:\Download\GitHub\OoiMRR\OoiMRR_lquo0yqs_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\MainWindow.Handlers.cs(244,24): error CS1501: 鈥淟oadFilesAsync鈥濇柟娉曟病鏈夐噰鐢?1 涓弬鏁扮殑閲嶈浇 [F:\Download\GitHub\OoiMRR\OoiMRR_lquo0yqs_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\MainWindow.Handlers.cs(385,34): error CS1061: 鈥淔ileNotesUIHandler鈥濇湭鍖呭惈鈥淭oggleNotesPanel鈥濈殑瀹氫箟锛屽苟涓旀壘涓嶅埌鍙帴鍙楃涓€涓€淔ileNotesUIHandler鈥濈被鍨嬪弬鏁扮殑鍙闂墿灞曟柟娉曗€淭oggleNotesPanel鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [F:\Download\GitHub\OoiMRR\OoiMRR_lquo0yqs_wpftmp.csproj]
+    9 涓鍛?
+    16 涓敊璇?
+
+宸茬敤鏃堕棿 00:00:02.71

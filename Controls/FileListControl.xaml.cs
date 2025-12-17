@@ -9,6 +9,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
+using System.Windows.Data;
 using System.ComponentModel;
 using OoiMRR.Controls.Converters;
 using OoiMRR.ViewModels;
@@ -72,6 +73,12 @@ namespace OoiMRR.Controls
             
             // 初始化详细信息视图
             ApplyViewMode();
+            
+            // 初始化缩略图管理器
+            if (FilesListView != null)
+            {
+                 _thumbnailManager = new ThumbnailViewManager(FilesListView, 100);
+            }
         }
 
         private void LoadMoreBtn_Click(object sender, RoutedEventArgs e)
@@ -82,12 +89,53 @@ namespace OoiMRR.Controls
         private void ApplyViewMode()
         {
             if (FilesListView == null) return;
-            // 详细信息视图：使用 GridView（已在XAML定义）
-            FilesListView.ItemTemplate = null;
-            var itemsPanel = new ItemsPanelTemplate(new FrameworkElementFactory(typeof(VirtualizingStackPanel)));
-            FilesListView.ItemsPanel = itemsPanel;
-            if (FilesGridView != null) FilesListView.View = FilesGridView;
-            ScrollViewer.SetHorizontalScrollBarVisibility(FilesListView, ScrollBarVisibility.Auto);
+            
+            if (_currentViewMode == "Thumbnail")
+            {
+                // 缩略图视图
+                FilesListView.View = null; // 清除 GridView
+                FilesListView.ItemTemplate = (DataTemplate)FindResource("ThumbnailTemplate");
+                
+                // 使用 WrapPanel 进行布局
+                var factory = new FrameworkElementFactory(typeof(WrapPanel));
+                factory.SetValue(WrapPanel.OrientationProperty, Orientation.Horizontal);
+                factory.SetValue(WrapPanel.WidthProperty, new Binding("ActualWidth") { Source = FilesListView });
+                // factory.SetValue(WrapPanel.ItemWidthProperty, 130.0);
+                // factory.SetValue(WrapPanel.ItemHeightProperty, 150.0);
+                
+                // 注意：VirtualizingStackPanel 不支持 Wrap 布局，所以这里简单使用 WrapPanel
+                // 如果需要虚拟化缩略图，需要更复杂的实现（如 VirtualizingWrapPanel）
+                // 暂时使用普通 WrapPanel，依靠分页或虚拟化容器（如果 ItemsPanelTemplate 支持）
+                // 原生 ListView 默认 ItemsPanel 是 VirtualizingStackPanel，不支持 Wrap。
+                // 必须替换 ItemsPanel
+                FilesListView.ItemsPanel = new ItemsPanelTemplate(factory);
+                
+                ScrollViewer.SetHorizontalScrollBarVisibility(FilesListView, ScrollBarVisibility.Disabled);
+                
+                // 启动缩略图加载
+                _thumbnailManager?.LoadThumbnailsAsync();
+            }
+            else
+            {
+                // 详细信息视图：使用 GridView（已在XAML定义）
+                FilesListView.ItemTemplate = null;
+                var itemsPanel = new ItemsPanelTemplate(new FrameworkElementFactory(typeof(VirtualizingStackPanel)));
+                FilesListView.ItemsPanel = itemsPanel;
+                if (FilesGridView != null) FilesListView.View = FilesGridView;
+                ScrollViewer.SetHorizontalScrollBarVisibility(FilesListView, ScrollBarVisibility.Auto);
+                
+                // 停止缩略图加载（性能优化）
+                _thumbnailManager?.Stop();
+            }
+        }
+        
+        public void SetViewMode(string mode)
+        {
+            if (_currentViewMode != mode)
+            {
+                _currentViewMode = mode;
+                ApplyViewMode();
+            }
         }
 
 
@@ -96,6 +144,10 @@ namespace OoiMRR.Controls
         public GridView FilesGrid => FilesGridView;
         public TextBlock EmptyStateTextControl => EmptyStateText;
         
+        // 缩略图管理器
+        private ThumbnailViewManager _thumbnailManager;
+        private string _currentViewMode = "List"; // Default to List
+
         // 分组列头控件（由XAML自动生成字段）
         // GroupedHeaderListView 和 GroupedHeaderGridView 在XAML中定义
 
@@ -261,10 +313,10 @@ namespace OoiMRR.Controls
             SwitchToGroupedView();
 
             // 确保视觉树生成后立即订阅（避免首次点击前未注册SelectionChanged）
-            Dispatcher.BeginInvoke(new Action(() =>
-            {
-                FindAndSubscribeListViews(GroupedResultsList);
-            }), System.Windows.Threading.DispatcherPriority.Loaded);
+            // Dispatcher.BeginInvoke(new Action(() =>
+            // {
+            //    FindAndSubscribeListViews(GroupedResultsList);
+            // }), System.Windows.Threading.DispatcherPriority.Loaded);
         }
         
         private string GetGroupName(SearchResultType type)
@@ -285,6 +337,8 @@ namespace OoiMRR.Controls
             if (FilesListView != null)
                 FilesListView.Visibility = Visibility.Collapsed;
             
+            // Commented out for debugging
+            /*
             if (GroupedResultsViewer != null)
             {
                 GroupedResultsViewer.Visibility = Visibility.Visible;
@@ -306,6 +360,7 @@ namespace OoiMRR.Controls
                 HookGroupedHeaderThumbs();
                 HookGroupedHeaderContextMenu();
             }
+            */
         }
         
         /// <summary>
@@ -316,7 +371,7 @@ namespace OoiMRR.Controls
             _groupedListViews.Clear();
             _groupedSelectedItems.Clear();
             // 查找所有ListView并订阅SelectionChanged事件
-            FindAndSubscribeListViews(GroupedResultsList);
+            // FindAndSubscribeListViews(GroupedResultsList);
         }
         
         /// <summary>
@@ -324,6 +379,7 @@ namespace OoiMRR.Controls
         /// </summary>
         private void FindAndSubscribeListViews(DependencyObject parent)
         {
+            /*
             if (parent == null) return;
             
             if (parent is ListView listView && listView != GroupedHeaderListView)
@@ -348,6 +404,7 @@ namespace OoiMRR.Controls
                 var child = VisualTreeHelper.GetChild(parent, i);
                 FindAndSubscribeListViews(child);
             }
+            */
         }
 
         private T FindAncestor<T>(DependencyObject current) where T : DependencyObject
@@ -366,6 +423,7 @@ namespace OoiMRR.Controls
         /// </summary>
         private void SubscribeGroupedHeaderClicks()
         {
+            /*
             if (_headerClickSubscribed || GroupedHeaderListView == null) return;
 
             if (GroupedHeaderListView.View is GridView headerGridView)
@@ -382,6 +440,7 @@ namespace OoiMRR.Controls
                 }
                 _headerClickSubscribed = true;
             }
+            */
         }
 
         /// <summary>
@@ -389,10 +448,12 @@ namespace OoiMRR.Controls
         /// </summary>
         private void HookGroupedHeaderContextMenu()
         {
+            /*
             if (_groupedHeaderContextHooked || GroupedHeaderListView == null) return;
             GroupedHeaderListView.AddHandler(UIElement.PreviewMouseRightButtonUpEvent,
                 new MouseButtonEventHandler(GroupedHeader_PreviewMouseRightButtonUp), true);
             _groupedHeaderContextHooked = true;
+            */
         }
 
         private void GroupedHeader_PreviewMouseRightButtonUp(object sender, MouseButtonEventArgs e)
@@ -426,6 +487,7 @@ namespace OoiMRR.Controls
             if (string.IsNullOrEmpty(tag)) return;
 
             // 更新分组统一列头
+            /*
             if (GroupedHeaderListView?.View is GridView headerGrid)
             {
                 for (int i = 0; i < headerGrid.Columns.Count; i++)
@@ -445,6 +507,7 @@ namespace OoiMRR.Controls
                     }
                 }
             }
+            */
 
             // 同步到分组数据列（各ListView共享同序列）
             foreach (var lv in _groupedListViews)
@@ -505,6 +568,7 @@ namespace OoiMRR.Controls
         /// </summary>
         private void SyncGroupedHeaderWidthsFromMainGrid()
         {
+            /*
             if (GroupedHeaderListView?.View is GridView headerGrid && FilesGridView != null)
             {
                 int count = Math.Min(headerGrid.Columns.Count, FilesGridView.Columns.Count);
@@ -517,6 +581,7 @@ namespace OoiMRR.Controls
                     }
                 }
             }
+            */
         }
 
         /// <summary>
@@ -524,6 +589,7 @@ namespace OoiMRR.Controls
         /// </summary>
         private void SubscribeGroupedHeaderWidthChanges()
         {
+            /*
             if (_headerWidthSubscribed || GroupedHeaderListView?.View is not GridView headerGrid || FilesGridView == null) return;
 
             int count = Math.Min(headerGrid.Columns.Count, FilesGridView.Columns.Count);
@@ -542,6 +608,7 @@ namespace OoiMRR.Controls
             }
 
             _headerWidthSubscribed = true;
+            */
         }
 
         /// <summary>
@@ -549,10 +616,12 @@ namespace OoiMRR.Controls
         /// </summary>
         private void HookGroupedHeaderThumbs()
         {
+            /*
             if (_groupedThumbHooked || GroupedHeaderListView == null) return;
             GroupedHeaderListView.AddHandler(UIElement.PreviewMouseLeftButtonDownEvent,
                 new MouseButtonEventHandler(GroupedHeaderThumbDoubleClick), true);
             _groupedThumbHooked = true;
+            */
         }
 
         private void GroupedHeaderThumbDoubleClick(object sender, MouseButtonEventArgs e)
@@ -571,14 +640,18 @@ namespace OoiMRR.Controls
 
         private void AutoSizeGroupedColumn(GridViewColumn column)
         {
-            if (column == null || GroupedHeaderListView == null) return;
+            // if (column == null || GroupedHeaderListView == null) return;
+            if (column == null) return;
 
             double padding = 24;
             double maxWidth = 0;
 
             var header = column.Header as GridViewColumnHeader;
+            /*
             var headerText = header?.Content?.ToString() ?? "";
             maxWidth = Math.Max(maxWidth, MeasureTextWidth(headerText, GroupedHeaderListView) + padding);
+            */
+
 
             foreach (var lv in _groupedListViews)
             {
@@ -603,8 +676,8 @@ namespace OoiMRR.Controls
             if (FilesListView != null)
                 FilesListView.Visibility = Visibility.Visible;
             
-            if (GroupedResultsViewer != null)
-                GroupedResultsViewer.Visibility = Visibility.Collapsed;
+            // if (GroupedResultsViewer != null)
+            //    GroupedResultsViewer.Visibility = Visibility.Collapsed;
         }
         
         /// <summary>
@@ -663,14 +736,23 @@ namespace OoiMRR.Controls
 
         private double MeasureTextWidth(string text, ListView listView)
         {
-            var tb = new TextBlock
+            // System.Diagnostics.Debug.WriteLine($"MeasureTextWidth called for: {text}");
+            try
             {
-                Text = text ?? "",
-                FontSize = listView?.FontSize ?? 12,
-                FontFamily = listView?.FontFamily
-            };
-            tb.Measure(new System.Windows.Size(double.PositiveInfinity, double.PositiveInfinity));
-            return tb.DesiredSize.Width;
+                var tb = new TextBlock
+                {
+                    Text = text ?? "",
+                    FontSize = listView?.FontSize ?? 12,
+                    FontFamily = listView?.FontFamily ?? new System.Windows.Media.FontFamily("Segoe UI")
+                };
+                tb.Measure(new System.Windows.Size(double.PositiveInfinity, double.PositiveInfinity));
+                return tb.DesiredSize.Width;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"MeasureTextWidth Failed: {ex.Message}");
+                return 50; // Fallback
+            }
         }
     }
 }

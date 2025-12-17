@@ -1,0 +1,26 @@
+  姝ｅ湪纭畾瑕佽繕鍘熺殑椤圭洰鈥?
+  鎵€鏈夐」鐩潎鏄渶鏂扮殑锛屾棤娉曡繕鍘熴€?
+f:\Download\GitHub\OoiMRR\Controls\FileListControl.xaml.cs(266,22): warning CS0414: 瀛楁鈥淔ileListControl._groupedThumbHooked鈥濆凡琚祴鍊硷紝浣嗕粠鏈娇鐢ㄨ繃瀹冪殑鍊?[f:\Download\GitHub\OoiMRR\OoiMRR_t2ehheaf_wpftmp.csproj]
+f:\Download\GitHub\OoiMRR\Controls\FileListControl.xaml.cs(264,22): warning CS0414: 瀛楁鈥淔ileListControl._headerClickSubscribed鈥濆凡琚祴鍊硷紝浣嗕粠鏈娇鐢ㄨ繃瀹冪殑鍊?[f:\Download\GitHub\OoiMRR\OoiMRR_t2ehheaf_wpftmp.csproj]
+f:\Download\GitHub\OoiMRR\Controls\FileListControl.xaml.cs(267,22): warning CS0414: 瀛楁鈥淔ileListControl._groupedHeaderContextHooked鈥濆凡琚祴鍊硷紝浣嗕粠鏈娇鐢ㄨ繃瀹冪殑鍊?[f:\Download\GitHub\OoiMRR\OoiMRR_t2ehheaf_wpftmp.csproj]
+f:\Download\GitHub\OoiMRR\Controls\FileListControl.xaml.cs(265,22): warning CS0414: 瀛楁鈥淔ileListControl._headerWidthSubscribed鈥濆凡琚祴鍊硷紝浣嗕粠鏈娇鐢ㄨ繃瀹冪殑鍊?[f:\Download\GitHub\OoiMRR\OoiMRR_t2ehheaf_wpftmp.csproj]
+f:\Download\GitHub\OoiMRR\Controls\FileListControl.xaml.cs(264,22): warning CS0414: 瀛楁鈥淔ileListControl._headerClickSubscribed鈥濆凡琚祴鍊硷紝浣嗕粠鏈娇鐢ㄨ繃瀹冪殑鍊?[f:\Download\GitHub\OoiMRR\OoiMRR.csproj]
+f:\Download\GitHub\OoiMRR\Controls\FileListControl.xaml.cs(267,22): warning CS0414: 瀛楁鈥淔ileListControl._groupedHeaderContextHooked鈥濆凡琚祴鍊硷紝浣嗕粠鏈娇鐢ㄨ繃瀹冪殑鍊?[f:\Download\GitHub\OoiMRR\OoiMRR.csproj]
+f:\Download\GitHub\OoiMRR\Controls\FileListControl.xaml.cs(266,22): warning CS0414: 瀛楁鈥淔ileListControl._groupedThumbHooked鈥濆凡琚祴鍊硷紝浣嗕粠鏈娇鐢ㄨ繃瀹冪殑鍊?[f:\Download\GitHub\OoiMRR\OoiMRR.csproj]
+f:\Download\GitHub\OoiMRR\Controls\FileListControl.xaml.cs(265,22): warning CS0414: 瀛楁鈥淔ileListControl._headerWidthSubscribed鈥濆凡琚祴鍊硷紝浣嗕粠鏈娇鐢ㄨ繃瀹冪殑鍊?[f:\Download\GitHub\OoiMRR\OoiMRR.csproj]
+  OoiMRR -> f:\Download\GitHub\OoiMRR\bin\Debug\net8.0-windows\win-x64\OoiMRR.dll
+
+宸叉垚鍔熺敓鎴愩€?
+
+f:\Download\GitHub\OoiMRR\Controls\FileListControl.xaml.cs(266,22): warning CS0414: 瀛楁鈥淔ileListControl._groupedThumbHooked鈥濆凡琚祴鍊硷紝浣嗕粠鏈娇鐢ㄨ繃瀹冪殑鍊?[f:\Download\GitHub\OoiMRR\OoiMRR_t2ehheaf_wpftmp.csproj]
+f:\Download\GitHub\OoiMRR\Controls\FileListControl.xaml.cs(264,22): warning CS0414: 瀛楁鈥淔ileListControl._headerClickSubscribed鈥濆凡琚祴鍊硷紝浣嗕粠鏈娇鐢ㄨ繃瀹冪殑鍊?[f:\Download\GitHub\OoiMRR\OoiMRR_t2ehheaf_wpftmp.csproj]
+f:\Download\GitHub\OoiMRR\Controls\FileListControl.xaml.cs(267,22): warning CS0414: 瀛楁鈥淔ileListControl._groupedHeaderContextHooked鈥濆凡琚祴鍊硷紝浣嗕粠鏈娇鐢ㄨ繃瀹冪殑鍊?[f:\Download\GitHub\OoiMRR\OoiMRR_t2ehheaf_wpftmp.csproj]
+f:\Download\GitHub\OoiMRR\Controls\FileListControl.xaml.cs(265,22): warning CS0414: 瀛楁鈥淔ileListControl._headerWidthSubscribed鈥濆凡琚祴鍊硷紝浣嗕粠鏈娇鐢ㄨ繃瀹冪殑鍊?[f:\Download\GitHub\OoiMRR\OoiMRR_t2ehheaf_wpftmp.csproj]
+f:\Download\GitHub\OoiMRR\Controls\FileListControl.xaml.cs(264,22): warning CS0414: 瀛楁鈥淔ileListControl._headerClickSubscribed鈥濆凡琚祴鍊硷紝浣嗕粠鏈娇鐢ㄨ繃瀹冪殑鍊?[f:\Download\GitHub\OoiMRR\OoiMRR.csproj]
+f:\Download\GitHub\OoiMRR\Controls\FileListControl.xaml.cs(267,22): warning CS0414: 瀛楁鈥淔ileListControl._groupedHeaderContextHooked鈥濆凡琚祴鍊硷紝浣嗕粠鏈娇鐢ㄨ繃瀹冪殑鍊?[f:\Download\GitHub\OoiMRR\OoiMRR.csproj]
+f:\Download\GitHub\OoiMRR\Controls\FileListControl.xaml.cs(266,22): warning CS0414: 瀛楁鈥淔ileListControl._groupedThumbHooked鈥濆凡琚祴鍊硷紝浣嗕粠鏈娇鐢ㄨ繃瀹冪殑鍊?[f:\Download\GitHub\OoiMRR\OoiMRR.csproj]
+f:\Download\GitHub\OoiMRR\Controls\FileListControl.xaml.cs(265,22): warning CS0414: 瀛楁鈥淔ileListControl._headerWidthSubscribed鈥濆凡琚祴鍊硷紝浣嗕粠鏈娇鐢ㄨ繃瀹冪殑鍊?[f:\Download\GitHub\OoiMRR\OoiMRR.csproj]
+    8 涓鍛?
+    0 涓敊璇?
+
+宸茬敤鏃堕棿 00:00:14.04

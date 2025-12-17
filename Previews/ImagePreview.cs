@@ -120,67 +120,94 @@ namespace OoiMRR.Previews
         /// </summary>
         private UIElement CreateSvgPreview(string filePath)
         {
-            try
+            // 创建主容器
+            var grid = new Grid();
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+
+            // 标题栏
+            var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath) };
+            var titlePanel = PreviewHelper.CreateTitlePanel("🖼️", $"SVG 矢量图: {Path.GetFileName(filePath)}", buttons);
+            Grid.SetRow(titlePanel, 0);
+            grid.Children.Add(titlePanel);
+
+            // 加载指示器
+            var loadingText = new TextBlock
             {
-                // 使用 Magick.NET 加载 SVG 并转换为位图
-                BitmapImage bitmap;
-                
-                using (var magickImage = new MagickImage(filePath))
+                Text = "正在渲染 SVG...",
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Foreground = System.Windows.Media.Brushes.Gray,
+                FontSize = 14
+            };
+            Grid.SetRow(loadingText, 1);
+            grid.Children.Add(loadingText);
+
+            // 图片控件（初始隐藏）
+            var image = new Image
+            {
+                Stretch = Stretch.Uniform,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Visibility = Visibility.Collapsed
+            };
+            
+            // 添加ScrollViewer
+            var scrollViewer = new ScrollViewer
+            {
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                Content = image,
+                Visibility = Visibility.Collapsed
+            };
+            Grid.SetRow(scrollViewer, 1);
+            grid.Children.Add(scrollViewer);
+
+            // 异步加载
+            System.Threading.Tasks.Task.Run(() =>
+            {
+                try
                 {
-                    System.Diagnostics.Debug.WriteLine($"SVG: {Path.GetFileName(filePath)} {magickImage.Width}x{magickImage.Height}");
-                    var maxDim = 2048;
-                    if (magickImage.Width > maxDim || magickImage.Height > maxDim)
+                    BitmapImage bitmap = null;
+                    using (var magickImage = new MagickImage(filePath))
                     {
-                        magickImage.Resize(new MagickGeometry((uint)maxDim, (uint)maxDim) { IgnoreAspectRatio = false });
+                        System.Diagnostics.Debug.WriteLine($"SVG: {Path.GetFileName(filePath)} {magickImage.Width}x{magickImage.Height}");
+                        var maxDim = 2048;
+                        if (magickImage.Width > maxDim || magickImage.Height > maxDim)
+                        {
+                            magickImage.Resize(new MagickGeometry((uint)maxDim, (uint)maxDim) { IgnoreAspectRatio = false });
+                        }
+                        
+                        var bytes = magickImage.ToByteArray(MagickFormat.Png);
+                        
+                        bitmap = new BitmapImage();
+                        bitmap.BeginInit();
+                        bitmap.StreamSource = new MemoryStream(bytes);
+                        bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                        bitmap.EndInit();
+                        bitmap.Freeze();
                     }
-                    
-                    // 转换为字节数组
-                    var bytes = magickImage.ToByteArray(MagickFormat.Png);
-                    
-                    // 创建 BitmapImage
-                    bitmap = new BitmapImage();
-                    bitmap.BeginInit();
-                    bitmap.StreamSource = new MemoryStream(bytes);
-                    bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                    bitmap.EndInit();
-                    bitmap.Freeze();
+
+                    // UI 更新
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        image.Source = bitmap;
+                        image.Visibility = Visibility.Visible;
+                        scrollViewer.Visibility = Visibility.Visible;
+                        loadingText.Visibility = Visibility.Collapsed;
+                    });
                 }
-
-                // 创建主容器
-                var grid = new Grid();
-                grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-
-                // 标题栏
-                var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath) };
-                var titlePanel = PreviewHelper.CreateTitlePanel("🖼️", $"SVG 矢量图: {Path.GetFileName(filePath)}", buttons);
-                Grid.SetRow(titlePanel, 0);
-                grid.Children.Add(titlePanel);
-
-                var image = new Image 
-                { 
-                    Source = bitmap, 
-                    Stretch = Stretch.Uniform,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center
-                };
-                
-                // 添加ScrollViewer以支持大图片
-                var scrollViewer = new ScrollViewer
+                catch (Exception ex)
                 {
-                    HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
-                    VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-                    Content = image
-                };
-                Grid.SetRow(scrollViewer, 1);
-                grid.Children.Add(scrollViewer);
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        loadingText.Text = $"SVG 渲染失败: {ex.Message}";
+                        loadingText.Foreground = System.Windows.Media.Brushes.Red;
+                    });
+                }
+            });
 
-                return grid;
-            }
-            catch (Exception ex)
-            {
-                return PreviewHelper.CreateErrorPreview($"无法加载 SVG 文件: {ex.Message}");
-            }
+            return grid;
         }
 
         /// <summary>
@@ -188,67 +215,94 @@ namespace OoiMRR.Previews
         /// </summary>
         private UIElement CreatePsdPreview(string filePath)
         {
-            try
+            // 创建主容器
+            var grid = new Grid();
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+
+            // 标题栏
+            var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath) };
+            var titlePanel = PreviewHelper.CreateTitlePanel("🖼️", $"Photoshop 文件: {Path.GetFileName(filePath)}", buttons);
+            Grid.SetRow(titlePanel, 0);
+            grid.Children.Add(titlePanel);
+
+            // 加载指示器
+            var loadingText = new TextBlock
             {
-                // 使用 Magick.NET 加载 PSD 并转换为位图
-                BitmapImage bitmap;
-                
-                using (var magickImage = new MagickImage(filePath))
+                Text = "正在解析 PSD...",
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Foreground = System.Windows.Media.Brushes.Gray,
+                FontSize = 14
+            };
+            Grid.SetRow(loadingText, 1);
+            grid.Children.Add(loadingText);
+
+            // 图片控件（初始隐藏）
+            var image = new Image
+            {
+                Stretch = Stretch.Uniform,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Visibility = Visibility.Collapsed
+            };
+            
+            // 添加ScrollViewer
+            var scrollViewer = new ScrollViewer
+            {
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                Content = image,
+                Visibility = Visibility.Collapsed
+            };
+            Grid.SetRow(scrollViewer, 1);
+            grid.Children.Add(scrollViewer);
+
+            // 异步加载
+            System.Threading.Tasks.Task.Run(() =>
+            {
+                try
                 {
-                    System.Diagnostics.Debug.WriteLine($"PSD: {Path.GetFileName(filePath)} {magickImage.Width}x{magickImage.Height}");
-                    var maxDim = 2048;
-                    if (magickImage.Width > maxDim || magickImage.Height > maxDim)
+                    BitmapImage bitmap = null;
+                    using (var magickImage = new MagickImage(filePath))
                     {
-                        magickImage.Resize(new MagickGeometry((uint)maxDim, (uint)maxDim) { IgnoreAspectRatio = false });
+                        System.Diagnostics.Debug.WriteLine($"PSD: {Path.GetFileName(filePath)} {magickImage.Width}x{magickImage.Height}");
+                        var maxDim = 2048;
+                        if (magickImage.Width > maxDim || magickImage.Height > maxDim)
+                        {
+                            magickImage.Resize(new MagickGeometry((uint)maxDim, (uint)maxDim) { IgnoreAspectRatio = false });
+                        }
+                        
+                        var bytes = magickImage.ToByteArray(MagickFormat.Png);
+                        
+                        bitmap = new BitmapImage();
+                        bitmap.BeginInit();
+                        bitmap.StreamSource = new MemoryStream(bytes);
+                        bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                        bitmap.EndInit();
+                        bitmap.Freeze();
                     }
-                    
-                    // 转换为字节数组
-                    var bytes = magickImage.ToByteArray(MagickFormat.Png);
-                    
-                    // 创建 BitmapImage
-                    bitmap = new BitmapImage();
-                    bitmap.BeginInit();
-                    bitmap.StreamSource = new MemoryStream(bytes);
-                    bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                    bitmap.EndInit();
-                    bitmap.Freeze();
+
+                    // UI 更新
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        image.Source = bitmap;
+                        image.Visibility = Visibility.Visible;
+                        scrollViewer.Visibility = Visibility.Visible;
+                        loadingText.Visibility = Visibility.Collapsed;
+                    });
                 }
-
-                // 创建主容器
-                var grid = new Grid();
-                grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-
-                // 标题栏
-                var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath) };
-                var titlePanel = PreviewHelper.CreateTitlePanel("🖼️", $"Photoshop 文件: {Path.GetFileName(filePath)}", buttons);
-                Grid.SetRow(titlePanel, 0);
-                grid.Children.Add(titlePanel);
-
-                var image = new Image 
-                { 
-                    Source = bitmap, 
-                    Stretch = Stretch.Uniform,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center
-                };
-                
-                // 添加ScrollViewer以支持大图片
-                var scrollViewer = new ScrollViewer
+                catch (Exception ex)
                 {
-                    HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
-                    VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-                    Content = image
-                };
-                Grid.SetRow(scrollViewer, 1);
-                grid.Children.Add(scrollViewer);
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        loadingText.Text = $"PSD 解析失败: {ex.Message}";
+                        loadingText.Foreground = System.Windows.Media.Brushes.Red;
+                    });
+                }
+            });
 
-                return grid;
-            }
-            catch (Exception ex)
-            {
-                return PreviewHelper.CreateErrorPreview($"无法加载 PSD 文件: {ex.Message}");
-            }
+            return grid;
         }
     }
 }

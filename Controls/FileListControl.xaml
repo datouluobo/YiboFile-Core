@@ -8,6 +8,30 @@
              d:DesignHeight="600" d:DesignWidth="800">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        
+        <!-- 缩略图视图模板 -->
+        <DataTemplate x:Key="ThumbnailTemplate">
+            <Border Width="120" Height="140" Margin="5" Background="Transparent">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="100"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    
+                    <Border Grid.Row="0" Margin="4" Background="#F8F9FA" BorderBrush="#E9ECEF" BorderThickness="1" CornerRadius="4">
+                        <!-- 缩略图 Image，初始为空，Source由ThumbnailViewManager异步加载 -->
+                        <Image Source="{Binding Icon}" Stretch="Uniform" Margin="4"/>
+                    </Border>
+                    
+                    <TextBlock Grid.Row="1" Text="{Binding Name}" 
+                               TextAlignment="Center" 
+                               TextWrapping="Wrap" 
+                               MaxHeight="36" 
+                               TextTrimming="CharacterEllipsis"
+                               ToolTip="{Binding Name}"/>
+                </Grid>
+            </Border>
+        </DataTemplate>
     </UserControl.Resources>
     <Grid>
         <!-- 文件列表 -->
@@ -117,14 +141,14 @@
                     </ListView.View>
                 </ListView>
                 
-                <!-- 分组列表视图 -->
+                <!-- 分组列表视图 (Commented out for debugging ArgumentException) -->
+                <!--
                 <Grid x:Name="GroupedResultsViewer" Visibility="Collapsed">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
                     
-                    <!-- 统一的列头（只显示一次） -->
                     <Border Grid.Row="0" 
                             Background="#F5F5F5" 
                             BorderBrush="#E0E0E0" 
@@ -172,7 +196,6 @@
                         </ListView>
                     </Border>
                     
-                    <!-- 分组内容区域 -->
                     <ScrollViewer Grid.Row="1"
                                   VerticalScrollBarVisibility="Auto"
                                   HorizontalScrollBarVisibility="Disabled">
@@ -184,7 +207,6 @@
                                             BorderThickness="0,0,0,2"
                                             Margin="0,0,0,8">
                                         <StackPanel>
-                                            <!-- 分组标题（可折叠） -->
                                             <Border Background="{Binding GroupBackground}" 
                                                     BorderBrush="{Binding GroupBorderBrush}"
                                                     BorderThickness="0,0,0,1"
@@ -198,7 +220,6 @@
                                                         <ColumnDefinition Width="Auto"/>
                                                     </Grid.ColumnDefinitions>
                                                     
-                                                    <!-- 折叠/展开图标 -->
                                                     <TextBlock Grid.Column="0" 
                                                                Text="{Binding ExpandIcon}" 
                                                                FontSize="16"
@@ -207,7 +228,6 @@
                                                                Margin="0,0,12,0"
                                                                VerticalAlignment="Center"/>
                                                     
-                                                    <!-- 分组名称和计数 -->
                                                     <StackPanel Grid.Column="1" Orientation="Horizontal">
                                                         <TextBlock Text="{Binding GroupName}" 
                                                                    FontWeight="SemiBold"
@@ -222,7 +242,6 @@
                                                 </Grid>
                                             </Border>
                                             
-                                            <!-- 分组内容（可折叠，使用ListView+GridView，隐藏列头） -->
                                             <ListView ItemsSource="{Binding Items}"
                                                       SelectionMode="Extended"
                                                       BorderThickness="0"
@@ -295,6 +314,7 @@
                         </ItemsControl>
                     </ScrollViewer>
                 </Grid>
+                -->
                 
                 <!-- 加载更多按钮 -->
                 <Button x:Name="LoadMoreBtn" Content="加载更多" Width="88" Height="28"

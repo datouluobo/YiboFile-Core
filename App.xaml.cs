@@ -4,6 +4,7 @@ using System.Windows;
 using System.Threading;
 using System.Threading.Tasks;
 using OoiMRR.Services;
+using OoiMRR.Services.Core;
 using TagTrain.Services;
 using OoiMRR.Controls;
 
@@ -21,6 +22,18 @@ namespace OoiMRR
         /// TagTrain 是否可用
         /// </summary>
         public static bool IsTagTrainAvailable { get; private set; } = false;
+
+        public App()
+        {
+            this.DispatcherUnhandledException += App_DispatcherUnhandledException;
+        }
+
+        private void App_DispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
+        {
+            System.Diagnostics.Debug.WriteLine($"[GlobalException] Type: {e.Exception.GetType().Name}, Message: {e.Exception.Message}");
+            System.Diagnostics.Debug.WriteLine($"[GlobalException] StackTrace: {e.Exception.StackTrace}");
+            // e.Handled = true; // Uncomment if we want to suppress crash, but we want to see it for now (or maybe just log)
+        }
 
         protected override void OnStartup(StartupEventArgs e)
         {
@@ -57,18 +70,22 @@ namespace OoiMRR
                     return;
                 }
 
+                FileLogger.Log("Application passing single instance check.");
+
                 base.OnStartup(e);
                 
                 // FFmpeg 和 Everything 改为按需加载，不再在启动时初始化
                 // 这样可以减少启动时间和内存占用
                 
                 // 初始化数据库
+                FileLogger.Log("Initializing DatabaseManager...");
                 DatabaseManager.Initialize();
                 
                 // TagTrain 改为延迟加载，不再在启动时初始化模型
                 // 只确保数据目录存在，模型在实际使用时再加载
                 try
                 {
+                    FileLogger.Log("Configuring TagTrain storage...");
                     // 优先使用 OoiMRR 自己保存的 TT 数据目录（持久化），避免默认落到 OoiMRR\\bin\\data
                     var appConfig = ConfigManager.Load();
                     var tagTrainDataDir = appConfig?.TagTrainDataDirectory;
@@ -113,10 +130,12 @@ namespace OoiMRR
                     
                     System.Diagnostics.Debug.WriteLine($"TagTrain 数据库路径: {TagTrain.Services.DataManager.GetDatabasePath()}");
                     IsTagTrainAvailable = true;
+                    FileLogger.Log("TagTrain initialized successfully.");
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
                     IsTagTrainAvailable = false;
+                    FileLogger.LogException("TagTrain initialization failed", ex);
                     // 不阻止程序启动，只是记录错误
                 }
                 
@@ -134,8 +153,10 @@ namespace OoiMRR
                 });
 
                 // 启动主窗口
+                FileLogger.Log("Starting MainWindow...");
                 var mainWindow = new MainWindow();
                 mainWindow.Show();
+                FileLogger.Log("MainWindow.Show called.");
             }
             catch (Exception ex)
             {

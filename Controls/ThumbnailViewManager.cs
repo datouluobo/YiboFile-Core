@@ -357,6 +357,17 @@ namespace OoiMRR.Controls
         /// <summary>
         /// 取消所有正在进行的加载任务
         /// </summary>
+        /// <summary>
+        /// 停止所有正在进行的加载任务
+        /// </summary>
+        public void Stop()
+        {
+            CancelLoading();
+        }
+
+        /// <summary>
+        /// 取消所有正在进行的加载任务
+        /// </summary>
         private void CancelLoading()
         {
             if (_cancellationTokenSource != null)

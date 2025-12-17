@@ -23,7 +23,7 @@ namespace OoiMRR.Controls
         public event RoutedEventHandler AddFavoriteClick;
         public event RoutedEventHandler AddTagToFileClick;
         public event RoutedEventHandler LibraryManageClick;
-        public event RoutedEventHandler LibraryRefreshClick;
+        // public event RoutedEventHandler LibraryRefreshClick; // Removed unused event
         public event RoutedEventHandler TagClickModeClick;
         public event RoutedEventHandler TagCategoryManageClick;
         public event Action<string, bool> TagBrowsePanelTagClicked;

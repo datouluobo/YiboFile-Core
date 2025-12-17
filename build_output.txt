@@ -1,0 +1,23 @@
+  正在确定要还原的项目…
+F:\Download\GitHub\OoiMRR\OoiMRR.csproj : warning NU1903: 包 "Magick.NET-Q16-AnyCPU" 14.9.1 具有已知的 高 严重性漏洞，https://github.com/advisories/GHSA-6hjr-v6g4-3fm8 [F:\Download\GitHub\OoiMRR\OoiMRR.sln]
+F:\Download\GitHub\OoiMRR\OoiMRR.csproj : warning NU1902: 包 "Magick.NET-Q16-AnyCPU" 14.9.1 具有已知的 中 严重性漏洞，https://github.com/advisories/GHSA-q3hc-j9x5-mp9m [F:\Download\GitHub\OoiMRR\OoiMRR.sln]
+  所有项目均是最新的，无法还原。
+F:\Download\GitHub\OoiMRR\OoiMRR.csproj : warning NU1903: 包 "Magick.NET-Q16-AnyCPU" 14.9.1 具有已知的 高 严重性漏洞，https://github.com/advisories/GHSA-6hjr-v6g4-3fm8
+F:\Download\GitHub\OoiMRR\OoiMRR.csproj : warning NU1902: 包 "Magick.NET-Q16-AnyCPU" 14.9.1 具有已知的 中 严重性漏洞，https://github.com/advisories/GHSA-q3hc-j9x5-mp9m
+F:\Download\GitHub\OoiMRR\OoiMRR_33cib0f1_wpftmp.csproj : warning NU1903: 包 "Magick.NET-Q16-AnyCPU" 14.9.1 具有已知的 高 严重性漏洞，https://github.com/advisories/GHSA-6hjr-v6g4-3fm8
+F:\Download\GitHub\OoiMRR\OoiMRR_33cib0f1_wpftmp.csproj : warning NU1902: 包 "Magick.NET-Q16-AnyCPU" 14.9.1 具有已知的 中 严重性漏洞，https://github.com/advisories/GHSA-q3hc-j9x5-mp9m
+F:\Download\GitHub\OoiMRR\MainWindow.xaml.cs(6401,1): error CS1038: 应输入 #endregion 指令 [F:\Download\GitHub\OoiMRR\OoiMRR_33cib0f1_wpftmp.csproj]
+
+生成失败。
+
+F:\Download\GitHub\OoiMRR\OoiMRR.csproj : warning NU1903: 包 "Magick.NET-Q16-AnyCPU" 14.9.1 具有已知的 高 严重性漏洞，https://github.com/advisories/GHSA-6hjr-v6g4-3fm8 [F:\Download\GitHub\OoiMRR\OoiMRR.sln]
+F:\Download\GitHub\OoiMRR\OoiMRR.csproj : warning NU1902: 包 "Magick.NET-Q16-AnyCPU" 14.9.1 具有已知的 中 严重性漏洞，https://github.com/advisories/GHSA-q3hc-j9x5-mp9m [F:\Download\GitHub\OoiMRR\OoiMRR.sln]
+F:\Download\GitHub\OoiMRR\OoiMRR.csproj : warning NU1903: 包 "Magick.NET-Q16-AnyCPU" 14.9.1 具有已知的 高 严重性漏洞，https://github.com/advisories/GHSA-6hjr-v6g4-3fm8
+F:\Download\GitHub\OoiMRR\OoiMRR.csproj : warning NU1902: 包 "Magick.NET-Q16-AnyCPU" 14.9.1 具有已知的 中 严重性漏洞，https://github.com/advisories/GHSA-q3hc-j9x5-mp9m
+F:\Download\GitHub\OoiMRR\OoiMRR_33cib0f1_wpftmp.csproj : warning NU1903: 包 "Magick.NET-Q16-AnyCPU" 14.9.1 具有已知的 高 严重性漏洞，https://github.com/advisories/GHSA-6hjr-v6g4-3fm8
+F:\Download\GitHub\OoiMRR\OoiMRR_33cib0f1_wpftmp.csproj : warning NU1902: 包 "Magick.NET-Q16-AnyCPU" 14.9.1 具有已知的 中 严重性漏洞，https://github.com/advisories/GHSA-q3hc-j9x5-mp9m
+F:\Download\GitHub\OoiMRR\MainWindow.xaml.cs(6401,1): error CS1038: 应输入 #endregion 指令 [F:\Download\GitHub\OoiMRR\OoiMRR_33cib0f1_wpftmp.csproj]
+    6 个警告
+    1 个错误
+
+已用时间 00:00:01.86
