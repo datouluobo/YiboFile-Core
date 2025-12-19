@@ -11,7 +11,7 @@ using System.Windows.Threading;
 using OoiMRR;
 using OoiMRR.Controls;
 using OoiMRR.Services;
-using OoiMRR.Services.ColumnHeader;
+using OoiMRR.Services.ColumnManagement;
 using OoiMRR.Services.FileList;
 
 namespace OoiMRR.ViewModels
@@ -26,7 +26,7 @@ namespace OoiMRR.ViewModels
         private readonly Window _ownerWindow;
         private readonly Dispatcher _dispatcher;
         private readonly FileListService _fileListService;
-        private readonly ColumnHeaderService _columnHeaderService;
+        private readonly ColumnService _columnService;
         private readonly FileMetadataEnricher _metadataEnricher;
         private readonly FolderSizeCalculator _folderSizeCalculator;
         private readonly Action _refreshAction;
@@ -73,7 +73,7 @@ namespace OoiMRR.ViewModels
             FileBrowserControl fileBrowser,
             Window ownerWindow,
             Action refreshAction = null,
-            ColumnHeaderService columnHeaderService = null,
+            ColumnService columnService = null,
             FileMetadataEnricher metadataEnricher = null,
             FolderSizeCalculator folderSizeCalculator = null)
         {
@@ -81,7 +81,7 @@ namespace OoiMRR.ViewModels
             _ownerWindow = ownerWindow ?? throw new ArgumentNullException(nameof(ownerWindow));
             _dispatcher = ownerWindow.Dispatcher;
             _fileListService = new FileListService(_dispatcher);
-            _columnHeaderService = columnHeaderService;
+            _columnService = columnService;
             _metadataEnricher = metadataEnricher ?? new FileMetadataEnricher();
             _folderSizeCalculator = folderSizeCalculator ?? new FolderSizeCalculator();
             _refreshAction = refreshAction;
@@ -307,7 +307,7 @@ namespace OoiMRR.ViewModels
         }
 
         /// <summary>
-        /// 通过 ColumnHeaderService 统一排序入口。
+        /// 通过 ColumnService 统一排序入口。
         /// </summary>
         public void ApplySort(string column, bool ascending)
         {
@@ -338,9 +338,9 @@ namespace OoiMRR.ViewModels
                 return files ?? new List<FileSystemItem>();
             }
 
-            if (_columnHeaderService != null)
+            if (_columnService != null)
             {
-                return _columnHeaderService.SortFiles(files, LastSortColumn, SortAscending);
+                return _columnService.SortFiles(files, LastSortColumn, SortAscending);
             }
 
             return LegacySort(files, LastSortColumn, SortAscending);

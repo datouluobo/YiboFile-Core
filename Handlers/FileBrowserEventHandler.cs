@@ -49,6 +49,7 @@ namespace OoiMRR.Handlers
         private readonly Action<MouseButtonEventArgs> _filesListViewMouseLeftButtonUp;
         private readonly Action<MouseButtonEventArgs> _filesListViewPreviewMouseDown;
         private readonly Action<MouseButtonEventArgs> _filesListViewPreviewMouseDoubleClickForBlank;
+        private readonly Action<MouseEventArgs> _filesListViewPreviewMouseMove;
         private readonly Func<ColumnDefinition> _getColLeft;
 
         public FileBrowserEventHandler(
@@ -81,6 +82,7 @@ namespace OoiMRR.Handlers
             Action<MouseButtonEventArgs> filesListViewMouseLeftButtonUp,
             Action<MouseButtonEventArgs> filesListViewPreviewMouseDown,
             Action<MouseButtonEventArgs> filesListViewPreviewMouseDoubleClickForBlank,
+            Action<MouseEventArgs> filesListViewPreviewMouseMove,
             Func<ColumnDefinition> getColLeft)
         {
             _fileBrowser = fileBrowser ?? throw new ArgumentNullException(nameof(fileBrowser));
@@ -112,6 +114,7 @@ namespace OoiMRR.Handlers
             _filesListViewMouseLeftButtonUp = filesListViewMouseLeftButtonUp ?? throw new ArgumentNullException(nameof(filesListViewMouseLeftButtonUp));
             _filesListViewPreviewMouseDown = filesListViewPreviewMouseDown ?? throw new ArgumentNullException(nameof(filesListViewPreviewMouseDown));
             _filesListViewPreviewMouseDoubleClickForBlank = filesListViewPreviewMouseDoubleClickForBlank ?? throw new ArgumentNullException(nameof(filesListViewPreviewMouseDoubleClickForBlank));
+            _filesListViewPreviewMouseMove = filesListViewPreviewMouseMove ?? throw new ArgumentNullException(nameof(filesListViewPreviewMouseMove));
             _getColLeft = getColLeft ?? throw new ArgumentNullException(nameof(getColLeft));
         }
 
@@ -139,6 +142,7 @@ namespace OoiMRR.Handlers
             _fileBrowser.FilesMouseLeftButtonUp += FileBrowser_FilesMouseLeftButtonUp;
             _fileBrowser.FilesPreviewMouseDown += FileBrowser_FilesPreviewMouseDown;
             _fileBrowser.FilesPreviewMouseDoubleClickForBlank += FileBrowser_FilesPreviewMouseDoubleClickForBlank;
+            _fileBrowser.FilesPreviewMouseMove += FileBrowser_FilesPreviewMouseMove;
         }
 
         public void FileBrowser_PathChanged(object sender, string path)
@@ -375,6 +379,11 @@ namespace OoiMRR.Handlers
         public void FileBrowser_FilesPreviewMouseDoubleClickForBlank(object sender, MouseButtonEventArgs e)
         {
             _filesListViewPreviewMouseDoubleClickForBlank(e);
+        }
+
+        public void FileBrowser_FilesPreviewMouseMove(object sender, MouseEventArgs e)
+        {
+            _filesListViewPreviewMouseMove(e);
         }
 
         // 文件浏览控件的事件转发

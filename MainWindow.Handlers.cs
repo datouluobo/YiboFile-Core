@@ -22,6 +22,7 @@ using OoiMRR.Services.TagTrain;
 using OoiMRR.Services.ColumnManagement;
 using OoiMRR.Services.Config;
 using TagTrain.UI;
+using System.Windows.Media;
 
 namespace OoiMRR
 {
@@ -42,15 +43,15 @@ namespace OoiMRR
                 LoadCurrentDirectory,
                 () => // ClearFilter
                 {
-                     _currentTagFilter = null;
-                     FileBrowser.IsAddressReadOnly = false;
-                     FileBrowser.SetTagBreadcrumb(null);
-                     LoadCurrentDirectory();
-                     // Also hide empty state
-                     HideEmptyStateMessage();
-                }, 
+                    _currentTagFilter = null;
+                    FileBrowser.IsAddressReadOnly = false;
+                    FileBrowser.SetTagBreadcrumb(null);
+                    LoadCurrentDirectory();
+                    // Also hide empty state
+                    HideEmptyStateMessage();
+                },
                 HideEmptyStateMessage,
-                GridViewColumnHeaderClickedHandler, // Action<GridViewColumnHeader>
+                (header) => GridViewColumnHeader_Click(header, null), // Action<GridViewColumnHeader> -> Wrapped
                 FileBrowser_FilesSizeChanged, // Action<SizeChangedEventArgs>
                 FileBrowser_GridSplitterDragDelta, // Action<DragDeltaEventArgs>
                 () => _currentPath,
@@ -61,13 +62,14 @@ namespace OoiMRR
                 (files) => _currentFiles = files,
                 () => _searchOptions,
                 FilesListView_SelectionChanged,
-                FilesListView_MouseDoubleClick,
+                (e) => FilesListView_MouseDoubleClick(FileBrowser?.FilesList, e), // Wrapped
                 FilesListView_PreviewMouseDoubleClick,
                 FilesListView_PreviewKeyDown,
-                FilesListView_PreviewMouseLeftButtonDown,
-                FilesListView_MouseLeftButtonUp,
-                FilesListView_PreviewMouseDown,
-                FilesListView_PreviewMouseDoubleClickForBlank,
+                (e) => FilesListView_PreviewMouseLeftButtonDown(FileBrowser?.FilesList, e), // Wrapped
+                (e) => FilesListView_MouseLeftButtonUp(FileBrowser?.FilesList, e), // Wrapped
+                (e) => FilesListView_PreviewMouseDown(FileBrowser?.FilesList, e), // Wrapped
+                (e) => FilesListView_PreviewMouseDoubleClickForBlank(FileBrowser?.FilesList, e), // Wrapped
+                (e) => { }, // FilesListView_PreviewMouseMove handled by DragDropManager directly
                 () => ColLeft // Func<ColumnDefinition>
             );
             _fileBrowserEventHandler.Initialize();
@@ -80,36 +82,36 @@ namespace OoiMRR
                 LoadCurrentDirectory,
                 () => // ClearFilter
                 {
-                     _currentTagFilter = null;
-                     FileBrowser.IsAddressReadOnly = false;
-                     FileBrowser.SetTagBreadcrumb(null);
-                     LoadCurrentDirectory();
-                     HideEmptyStateMessage();
+                    _currentTagFilter = null;
+                    FileBrowser.IsAddressReadOnly = false;
+                    FileBrowser.SetTagBreadcrumb(null);
+                    LoadCurrentDirectory();
+                    HideEmptyStateMessage();
                 },
                 () => Close(),
                 () => _settingsOverlayController?.Show(),
-                () => MessageBox.Show("关于窗口功能待修复", "关于", MessageBoxButton.OK, MessageBoxImage.Information), // new AboutWindow { Owner = this }.ShowDialog(),
+                () => MessageBox.Show("关于窗口功能待修复", "关于", MessageBoxButton.OK, MessageBoxImage.Information),
                 EditNotes_Click_Logic, // Action editNotes
                 BatchAddTags_Click_Logic, // Action batchAddTags
                 () => _tagTrainEventHandler?.TagTrainTrainingStatus_Click(null, null), // showTagStatistics
                 ImportLibrary_Click_Logic, // importLibrary
                 ExportLibrary_Click_Logic, // exportLibrary
-                () => {}, // addFileToLibrary - Implement logic if needed
+                () => { }, // addFileToLibrary - Implement logic if needed
                 () => // Copy
                 {
-                     if (FileBrowser?.FilesSelectedItems != null)
-                     {
-                         var paths = FileBrowser.FilesSelectedItems.Cast<FileSystemItem>().Select(i => i.Path).ToList();
-                         FileClipboardManager.SetCopyPaths(paths);
-                     }
+                    if (FileBrowser?.FilesSelectedItems != null)
+                    {
+                        var paths = FileBrowser.FilesSelectedItems.Cast<FileSystemItem>().Select(i => i.Path).ToList();
+                        FileClipboardManager.SetCopyPaths(paths);
+                    }
                 },
                 () => // Cut
                 {
-                     if (FileBrowser?.FilesSelectedItems != null)
-                     {
-                         var paths = FileBrowser.FilesSelectedItems.Cast<FileSystemItem>().Select(i => i.Path).ToList();
-                         FileClipboardManager.SetCutPaths(paths);
-                     }
+                    if (FileBrowser?.FilesSelectedItems != null)
+                    {
+                        var paths = FileBrowser.FilesSelectedItems.Cast<FileSystemItem>().Select(i => i.Path).ToList();
+                        FileClipboardManager.SetCutPaths(paths);
+                    }
                 },
                 () => // Paste
                 {
@@ -138,12 +140,8 @@ namespace OoiMRR
                         context = new PathOperationContext(_currentPath, FileBrowser, this, RefreshFileList);
                     }
                     var op = new DeleteOperation(context);
-                    // Usually DeleteOperation gets selection from context/FileBrowser internally if null passed?
-                    // But here we pass null. Let's assume operation handles it.
-                    // Wait, looking at DeleteOperation previously viewed: Execute(List<FileSystemItem> items).
-                    // We need to pass items!
                     var items = FileBrowser?.FilesSelectedItems?.Cast<FileSystemItem>().ToList();
-                    op.Execute(items); 
+                    op.Execute(items);
                 },
                 () => // Rename
                 {
@@ -156,13 +154,11 @@ namespace OoiMRR
                     {
                         context = new PathOperationContext(_currentPath, FileBrowser, this, RefreshFileList);
                     }
-                     var op = new RenameOperation(context, this);
-                     // Rename usually needs specific item.
-                     // The logic should probably get selected item.
-                     var item = FileBrowser?.FilesSelectedItem as FileSystemItem;
-                     if (item != null) op.Execute(item); 
+                    var op = new RenameOperation(context, this);
+                    var item = FileBrowser?.FilesSelectedItem as FileSystemItem;
+                    if (item != null) op.Execute(item);
                 },
-                () => {}, // ShowProperties - Implement if needed
+                () => { }, // ShowProperties - Implement if needed
                 NavigateToPath,
                 SwitchNavigationMode,
                 () => _currentPath,
@@ -171,19 +167,19 @@ namespace OoiMRR
                 (files) => _currentFiles = files,
                 () => this,
                 (lib) => _tabService.OpenLibraryTab(lib),
-                (lib) => {}, // HighlightMatchingLibrary
+                (lib) => { }, // HighlightMatchingLibrary
                 () => _libraryService.LoadLibraries(), // LoadLibraries
                 () => LibrariesListBox, // Func<ListBox>
                 () => LibraryContextMenu, // Func<ContextMenu>
                 (ext) => // CreateNewFileWithExtension
                 {
-                     IFileOperationContext context = new PathOperationContext(_currentPath, FileBrowser, this, RefreshFileList);
-                     var op = new NewFileOperation(context, this);
-                     op.Execute(ext);
+                    IFileOperationContext context = new PathOperationContext(_currentPath, FileBrowser, this, RefreshFileList);
+                    var op = new NewFileOperation(context, this);
+                    op.Execute(ext);
                 },
                 (name) => // CreateNewFolder
                 {
-                     // This is handled inside MenuEventHandler's NewFolder_Click usually
+                    // This is handled inside MenuEventHandler's NewFolder_Click usually
                 },
                  () => _configService?.Config,
                  (cfg) => _configService?.ApplyConfig(cfg),
@@ -219,8 +215,8 @@ namespace OoiMRR
                 () => QuickAccessListBox,
                 _navigationCoordinator,
                 (fav) => _navigationCoordinator.HandleFavoriteNavigation(fav, NavigationCoordinator.ClickType.LeftClick),
-                (drivePath) => _navigationCoordinator.HandlePathNavigation(drivePath, NavigationCoordinator.NavigationSource.Drive, NavigationCoordinator.ClickType.LeftClick), // drivePath is string
-                (path) => _navigationCoordinator.HandlePathNavigation(path, NavigationCoordinator.NavigationSource.QuickAccess, NavigationCoordinator.ClickType.LeftClick) // Map to HandlePathNavigation
+                (drivePath) => _navigationCoordinator.HandlePathNavigation(drivePath, NavigationCoordinator.NavigationSource.Drive, NavigationCoordinator.ClickType.LeftClick),
+                (path) => _navigationCoordinator.HandlePathNavigation(path, NavigationCoordinator.NavigationSource.QuickAccess, NavigationCoordinator.ClickType.LeftClick)
             );
 
             // 初始化 TagTrainEventHandler
@@ -231,60 +227,674 @@ namespace OoiMRR
                  this,
                  Dispatcher,
                  () => TagBrowsePanel.Mode == TagPanel.DisplayMode.Browse ? TagTrainEventHandler.TagClickMode.Browse : TagTrainEventHandler.TagClickMode.Edit,
-                 (mode) => {
+                 (mode) =>
+                 {
                      if (TagBrowsePanel != null) TagBrowsePanel.Mode = mode == TagTrainEventHandler.TagClickMode.Browse ? TagPanel.DisplayMode.Browse : TagPanel.DisplayMode.Edit;
                  },
-                 () => _tagTrainIsTraining, // Use instance field
-                 (val) => {}, // setTagTrainIsTraining
+                 () => _tagTrainIsTraining,
+                 (val) => { }, // setTagTrainIsTraining
                  () => null, // cancellationTokenSource getter
-                 (token) => {}, // cancellationTokenSource setter
+                 (token) => { }, // cancellationTokenSource setter
                  () => _currentTagFilter,
                  () => TagBrowsePanel?.LoadExistingTags(),
-                 () => {}, // updateTagTrainModelStatus
+                 () => { }, // updateTagTrainModelStatus
                  () => { _ = LoadFilesAsync(); },
-                 (tag) => {
+                 (tag) =>
+                 {
                      _currentTagFilter = tag;
                      _isUpdatingTagSelection = true;
                      RefreshFileList();
                      _isUpdatingTagSelection = false;
                  },
-                 (paths) => {
+                 (paths) =>
+                 {
                      if (FileBrowser?.FilesList != null)
                      {
                          // Implementation of restoring selection
                      }
                  }
             );
+
+            // Initialize Drag & Drop
+            InitializeDragDrop();
         }
 
-        // Helper methods for event handlers
-        private void GridViewColumnHeaderClickedHandler(GridViewColumnHeader header)
+        internal void FilesListView_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
-             _columnService?.HandleColumnHeaderClick(header, _currentFiles, (files) => 
-             {
-                 // Update files source
-                 _currentFiles = files; // Should update field too?
-                 if (FileBrowser != null)
-                 {
-                     FileBrowser.FilesItemsSource = files;
-                 }
-             },
-             FileBrowser?.FilesList?.View as GridView); 
+            // 如果双击发生在列头或分隔线，拦截
+            var src = e.OriginalSource as DependencyObject;
+            if (src != null)
+            {
+                if (FindAncestor<GridViewColumnHeader>(src) != null ||
+                    FindAncestor<System.Windows.Controls.Primitives.Thumb>(src) != null)
+                {
+                    e.Handled = true;
+                    return;
+                }
+            }
+            // 备用处理（如果 Preview 事件没有被处理）
+            HandleDoubleClick(e);
         }
+
+        private void HandleDoubleClick(MouseButtonEventArgs e)
+        {
+            // 获取双击位置对应的项目
+            if (FileBrowser?.FilesList == null) return;
+            var hitResult = VisualTreeHelper.HitTest(FileBrowser.FilesList, e.GetPosition(FileBrowser.FilesList));
+            if (hitResult == null) return;
+
+            // 向上查找 ListViewItem
+            DependencyObject current = hitResult.VisualHit;
+            while (current != null && current != FileBrowser.FilesList)
+            {
+                if (current is System.Windows.Controls.ListViewItem item)
+                {
+                    if (item.Content is FileSystemItem selectedItem)
+                    {
+                        if (selectedItem.IsDirectory)
+                        {
+                            // 如果是库模式，切换到路径模式并导航
+                            if (_currentLibrary != null)
+                            {
+                                // 切换到路径模式
+                                _currentLibrary = null;
+                                SwitchNavigationMode("Path");
+                            }
+
+                            // 使用统一导航协调器处理文件列表双击导航
+                            var clickType = NavigationCoordinator.GetClickType(e);
+                            _navigationCoordinator.HandlePathNavigation(selectedItem.Path, NavigationCoordinator.NavigationSource.FileList, clickType);
+                            e.Handled = true;
+                            return;
+                        }
+                        else
+                        {
+                            // 打开文件
+                            try
+                            {
+                                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                                {
+                                    FileName = selectedItem.Path,
+                                    UseShellExecute = true
+                                });
+                                e.Handled = true;
+                                return;
+                            }
+                            catch (Exception ex)
+                            {
+                                MessageBox.Show($"无法打开文件: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                            }
+                        }
+                    }
+                }
+                current = VisualTreeHelper.GetParent(current);
+            }
+
+            // 备用：使用选中项
+            if (FileBrowser?.FilesSelectedItem is FileSystemItem backupItem)
+            {
+                System.Diagnostics.Debug.WriteLine($"[双击备用] 使用选中项: {backupItem.Name}");
+                if (backupItem.IsDirectory)
+                {
+                    if (Directory.Exists(backupItem.Path))
+                    {
+                        if (_currentLibrary != null)
+                        {
+                            _currentLibrary = null;
+                            SwitchNavigationMode("Path");
+                        }
+                        NavigateToPath(backupItem.Path);
+                        e.Handled = true;
+                    }
+                }
+                else
+                {
+                    try
+                    {
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = backupItem.Path,
+                            UseShellExecute = true
+                        });
+                        e.Handled = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"无法打开文件: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
+            }
+        }
+
+        internal void FilesListView_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            // 记录鼠标按下位置，用于区分点击和拖动
+            var listView = sender as ListView;
+            if (listView == null)
+            {
+                _isMouseDownOnListView = false;
+                return;
+            }
+
+            // 支持双击列头分隔线（Thumb）自动适配列宽
+            if (e.ClickCount == 2)
+            {
+                var src = e.OriginalSource as DependencyObject;
+                if (src != null)
+                {
+                    var header = FindAncestor<GridViewColumnHeader>(src);
+                    var thumb = FindAncestor<System.Windows.Controls.Primitives.Thumb>(src);
+                    if (header != null && thumb != null && header.Column != null)
+                    {
+                        AutoSizeGridViewColumn(header.Column);
+                        e.Handled = true;
+                        return;
+                    }
+                }
+            }
+
+            System.Windows.Point hitPoint = e.GetPosition(listView);
+            var hitResult = VisualTreeHelper.HitTest(listView, hitPoint);
+
+            if (hitResult != null)
+            {
+                DependencyObject current = hitResult.VisualHit;
+                int depth = 0;
+                while (current != null && current != listView && depth < 10)
+                {
+                    string typeName = current.GetType().Name;
+
+                    // 检查是否是列头相关元素
+                    if (current is GridViewColumnHeader)
+                    {
+                        _isMouseDownOnListView = false;
+                        _isMouseDownOnColumnHeader = true;
+                        return;
+                    }
+
+                    // 检查是否是 Thumb（调整大小的拖拽句柄）
+                    if (current.GetType().Name.Contains("Thumb") || current.GetType().Name == "Thumb")
+                    {
+                        _isMouseDownOnListView = false;
+                        _isMouseDownOnColumnHeader = true;
+                        return;
+                    }
+
+                    // 检查父元素是否是 GridViewColumnHeader
+                    var parent = VisualTreeHelper.GetParent(current);
+                    if (parent is GridViewColumnHeader)
+                    {
+                        _isMouseDownOnListView = false;
+                        _isMouseDownOnColumnHeader = true;
+                        return;
+                    }
+
+                    current = parent;
+                    depth++;
+                }
+
+                // 额外检查：如果点击位置在列头行的 Y 坐标范围内，也不处理
+                if (listView.View is GridView gridView && gridView.Columns.Count > 0)
+                {
+                    // 获取列头行的高度
+                    if (hitPoint.Y < 30) // 列头通常高度约为 25-30 像素
+                    {
+                        _isMouseDownOnListView = false;
+                        _isMouseDownOnColumnHeader = true;
+                        // 不设置 e.Handled，让列头的排序和调整宽度功能正常工作
+                        return;
+                    }
+                }
+            }
+
+            // 不是在列头区域，记录按下位置
+            _mouseDownPoint = e.GetPosition(listView);
+            _isMouseDownOnListView = true;
+            _isMouseDownOnColumnHeader = false; // 清除列头标志
+
+            // 检查是否点击在空白区域（不是 ListViewItem）
+            bool isListViewItem = false;
+
+            if (hitResult != null)
+            {
+                DependencyObject current = hitResult.VisualHit;
+
+                // 向上查找，检查是否点击在 ListViewItem 上
+                while (current != null && current != listView)
+                {
+                    if (current is System.Windows.Controls.ListViewItem)
+                    {
+                        isListViewItem = true;
+                        break;
+                    }
+                    current = VisualTreeHelper.GetParent(current);
+                }
+            }
+
+            // 如果点击在空白区域（hitResult 为 null 或不是 ListViewItem），清除选择
+            if (!isListViewItem && e.ChangedButton == MouseButton.Left)
+            {
+                listView.SelectedItem = null;
+                listView.SelectedItems.Clear();
+                // SelectionChanged 事件会自动触发，调用 ClearPreviewAndInfo()
+            }
+        }
+
+        internal void FilesListView_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            // 只处理中键点击（打开新标签页），Ctrl+左键用于多选，不在这里处理
+            if (e.ChangedButton != MouseButton.Middle) return;
+
+            // 如果 sender 为 null，尝试从 FileBrowser 获取 ListView
+            var listView = sender as ListView;
+            if (listView == null)
+            {
+                listView = FileBrowser?.FilesList;
+            }
+            if (listView == null) return;
+
+            // 获取点击位置对应的项目
+            var hitResult = VisualTreeHelper.HitTest(listView, e.GetPosition(listView));
+            if (hitResult == null) return;
+
+            // 向上查找 ListViewItem
+            DependencyObject current = hitResult.VisualHit;
+            while (current != null && current != listView)
+            {
+                if (current is System.Windows.Controls.ListViewItem item)
+                {
+                    if (item.Content is FileSystemItem selectedItem)
+                    {
+                        if (selectedItem.IsDirectory)
+                        {
+                            // 中键点击：在新标签页打开文件夹
+                            _navigationCoordinator.HandlePathNavigation(selectedItem.Path, NavigationCoordinator.NavigationSource.FileList, NavigationCoordinator.ClickType.MiddleClick);
+                            e.Handled = true;
+                            return;
+                        }
+                    }
+                    break;
+                }
+                current = VisualTreeHelper.GetParent(current);
+            }
+        }
+
+        internal void FilesListView_PreviewMouseMove(object sender, MouseEventArgs e)
+        {
+            // Logic moved to DragDropManager
+        }
+
+        internal void FilesListView_PreviewMouseDoubleClickForBlank(object sender, MouseButtonEventArgs e)
+        {
+            // 双击空白区域：返回上一级
+            // 只有在路径模式下才生效
+            if (_currentLibrary == null && !string.IsNullOrEmpty(_currentPath))
+            {
+                try
+                {
+                    string parentPath = Path.GetDirectoryName(_currentPath);
+                    if (!string.IsNullOrEmpty(parentPath) && Directory.Exists(parentPath))
+                    {
+                        _navigationCoordinator.HandlePathNavigation(parentPath, NavigationCoordinator.NavigationSource.FileList, NavigationCoordinator.ClickType.LeftClick);
+                        e.Handled = true;
+                    }
+                }
+                catch { }
+            }
+        }
+
+        private string ExtractPathFromListBoxItem(ListBox listBox, System.Windows.Point position)
+        {
+            var hitResult = VisualTreeHelper.HitTest(listBox, position);
+            if (hitResult == null) return null;
+
+            DependencyObject current = hitResult.VisualHit;
+            while (current != null && current != listBox)
+            {
+                if (current is ListBoxItem item && item.DataContext != null)
+                {
+                    var pathProperty = item.DataContext.GetType().GetProperty("Path");
+                    if (pathProperty != null)
+                    {
+                        return pathProperty.GetValue(item.DataContext) as string;
+                    }
+                }
+                current = VisualTreeHelper.GetParent(current);
+            }
+            return null;
+        }
+
+        private Favorite ExtractFavoriteFromListBoxItem(ListBox listBox, System.Windows.Point position)
+        {
+            var hitResult = VisualTreeHelper.HitTest(listBox, position);
+            if (hitResult == null) return null;
+
+            DependencyObject current = hitResult.VisualHit;
+            while (current != null && current != listBox)
+            {
+                if (current is ListBoxItem item && item.DataContext != null)
+                {
+                    var favoriteProperty = item.DataContext.GetType().GetProperty("Favorite");
+                    if (favoriteProperty != null)
+                    {
+                        return favoriteProperty.GetValue(item.DataContext) as Favorite;
+                    }
+                }
+                current = VisualTreeHelper.GetParent(current);
+            }
+            return null;
+        }
+
+        private void DrivesListBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            var listBox = sender as ListBox;
+            if (listBox == null) return;
+
+            var clickType = NavigationCoordinator.GetClickType(e);
+            if (clickType == NavigationCoordinator.ClickType.LeftClick) return; // 左键由SelectionChanged处理
+
+            var path = ExtractPathFromListBoxItem(listBox, e.GetPosition(listBox));
+            if (!string.IsNullOrEmpty(path))
+            {
+                _navigationService.LastLeftNavSource = "Drive";
+                _navigationCoordinator.HandlePathNavigation(path, NavigationCoordinator.NavigationSource.Drive, clickType);
+                e.Handled = true;
+            }
+        }
+
+        private void QuickAccessListBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            var listBox = sender as ListBox;
+            if (listBox == null) return;
+
+            var clickType = NavigationCoordinator.GetClickType(e);
+            if (clickType == NavigationCoordinator.ClickType.LeftClick) return; // 左键由SelectionChanged处理
+
+            var path = ExtractPathFromListBoxItem(listBox, e.GetPosition(listBox));
+            if (!string.IsNullOrEmpty(path))
+            {
+                _navigationService.LastLeftNavSource = "QuickAccess";
+                _navigationCoordinator.HandlePathNavigation(path, NavigationCoordinator.NavigationSource.QuickAccess, clickType);
+                e.Handled = true;
+            }
+        }
+
+        private void FavoritesListBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            var listBox = sender as ListBox;
+            if (listBox == null) return;
+
+            var clickType = NavigationCoordinator.GetClickType(e);
+            if (clickType == NavigationCoordinator.ClickType.LeftClick) return; // 左键由SelectionChanged处理
+
+            var favorite = ExtractFavoriteFromListBoxItem(listBox, e.GetPosition(listBox));
+            if (favorite != null)
+            {
+                _navigationService.LastLeftNavSource = "Favorites";
+                _navigationCoordinator.HandleFavoriteNavigation(favorite, clickType);
+                e.Handled = true;
+            }
+        }
+
+        internal void FilesListView_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            // 如果按下时在列头区域，无论抬起位置在哪里，都不处理清除选中
+            if (_isMouseDownOnColumnHeader)
+            {
+                _isMouseDownOnColumnHeader = false;
+                _isMouseDownOnListView = false;
+                return;
+            }
+
+            // 只有在按下和抬起都在 ListView 上，且没有明显移动时，才处理点击空白区域
+            if (!_isMouseDownOnListView)
+                return;
+
+            var listView = sender as ListView;
+            if (listView == null)
+            {
+                _isMouseDownOnListView = false;
+                return;
+            }
+
+            // 首先检查事件的原始源，看是否是列头相关元素
+            var originalSource = e.OriginalSource as DependencyObject;
+            DependencyObject checkSource = originalSource;
+            while (checkSource != null)
+            {
+                if (checkSource is GridViewColumnHeader)
+                {
+                    _isMouseDownOnListView = false;
+                    return;
+                }
+                if (checkSource.GetType().Name.Contains("Thumb") || checkSource.GetType().Name == "Thumb")
+                {
+                    _isMouseDownOnListView = false;
+                    return;
+                }
+                checkSource = VisualTreeHelper.GetParent(checkSource);
+            }
+
+            System.Windows.Point mouseUpPoint = e.GetPosition(listView);
+
+            // 计算鼠标移动距离
+            double distance = Math.Sqrt(Math.Pow(mouseUpPoint.X - _mouseDownPoint.X, 2) +
+                                      Math.Pow(mouseUpPoint.Y - _mouseDownPoint.Y, 2));
+
+            // 如果移动距离超过阈值，说明是拖动而不是点击，不处理
+            if (distance > SystemParameters.MinimumHorizontalDragDistance)
+            {
+                _isMouseDownOnListView = false;
+                return;
+            }
+
+            // 额外检查：如果抬起位置在列头区域，也不处理
+            if (mouseUpPoint.Y < 30)
+            {
+                _isMouseDownOnListView = false;
+                return;
+            }
+
+            // 检测点击位置是否是空白区域
+            System.Windows.Point hitPoint = e.GetPosition(listView);
+            var hitResult = VisualTreeHelper.HitTest(listView, hitPoint);
+
+            if (hitResult != null)
+            {
+                // 向上查找，看是否点击在 ListViewItem 上
+                DependencyObject current = hitResult.VisualHit;
+                while (current != null && current != listView)
+                {
+                    if (current is ListViewItem)
+                    {
+                        // 点击在 ListViewItem 上，不处理（让默认行为处理）
+                        _isMouseDownOnListView = false;
+                        return;
+                    }
+                    current = VisualTreeHelper.GetParent(current);
+                }
+
+                // 如果到达 ListView 都没有找到 ListViewItem，说明点击的是空白区域
+                // 再次检查是否点击在列头相关区域
+                current = hitResult.VisualHit;
+                while (current != null)
+                {
+                    if (current is GridViewColumnHeader)
+                    {
+                        _isMouseDownOnListView = false;
+                        return;
+                    }
+                    current = VisualTreeHelper.GetParent(current);
+                }
+
+                // 点击的是空白区域，清除文件列表选中（但保留库的选择状态）
+                if (listView.SelectedItems.Count > 0)
+                {
+                    listView.SelectedItems.Clear();
+                }
+
+                // 在库模式下，确保库的选择状态保持正确显示
+                if (_currentLibrary != null && LibrariesListBox != null)
+                {
+                    // 延迟执行，确保UI更新完成
+                    this.Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        // 确保库列表中的选择状态正确
+                        if (LibrariesListBox.SelectedItem != _currentLibrary)
+                        {
+                            LibrariesListBox.SelectedItem = _currentLibrary;
+                        }
+                        // 确保库的高亮显示正确
+                        HighlightMatchingLibrary(_currentLibrary);
+                    }), System.Windows.Threading.DispatcherPriority.Loaded);
+                }
+            }
+
+            _isMouseDownOnListView = false;
+            _isMouseDownOnColumnHeader = false; // 清除列头标志
+        }
+
+        private void LibrariesListBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            var listBox = sender as ListBox;
+            if (listBox == null) return;
+
+            var clickType = NavigationCoordinator.GetClickType(e);
+            if (clickType == NavigationCoordinator.ClickType.LeftClick) return; // 左键由SelectionChanged处理
+
+            var hitResult = VisualTreeHelper.HitTest(listBox, e.GetPosition(listBox));
+            if (hitResult == null) return;
+
+            DependencyObject current = hitResult.VisualHit;
+            while (current != null && current != listBox)
+            {
+                if (current is ListBoxItem item && item.DataContext is Library library)
+                {
+                    e.Handled = true;
+                    var updatedLibrary = DatabaseManager.GetLibrary(library.Id);
+                    if (updatedLibrary != null)
+                    {
+                        _navigationCoordinator.HandleLibraryNavigation(updatedLibrary, clickType);
+                    }
+                    return;
+                }
+                current = VisualTreeHelper.GetParent(current);
+            }
+        }
+
+        private void LibrariesListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (LibrariesListBox.SelectedItem is Library selectedLibrary)
+            {
+                // 重新从数据库加载库信息，确保路径信息是最新的
+                var updatedLibrary = DatabaseManager.GetLibrary(selectedLibrary.Id);
+                if (updatedLibrary != null)
+                {
+                    // 使用统一导航协调器处理库导航（左键点击）
+                    _navigationCoordinator.HandleLibraryNavigation(updatedLibrary, NavigationCoordinator.ClickType.LeftClick);
+
+                    // 高亮当前选中的库（作为匹配当前库）- 在加载文件后执行，确保库列表已更新
+                    HighlightMatchingLibrary(updatedLibrary);
+                }
+                else
+                {
+                    _currentLibrary = null;
+                    if (_configService != null)
+                    {
+                        _configService.Config.LastLibraryId = 0;
+                        _configService.SaveCurrentConfig();
+                    }
+                    _currentFiles.Clear();
+                    if (FileBrowser != null)
+                        FileBrowser.FilesItemsSource = null;
+                    if (FileBrowser != null)
+                        FileBrowser.AddressText = "";
+                }
+            }
+            else
+            {
+                _currentLibrary = null;
+                if (_configService != null)
+                {
+                    _configService.Config.LastLibraryId = 0;
+                    _configService.SaveCurrentConfig();
+                }
+                _currentFiles.Clear();
+                if (FileBrowser != null)
+                {
+                    FileBrowser.FilesItemsSource = null;
+                    FileBrowser.AddressText = "";
+                }
+
+                // 清除所有库的高亮
+                _navigationService.ClearItemHighlights();
+            }
+        }
+
+        private void LibrariesListBox_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+        {
+            // 根据是否有选中项来启用/禁用菜单项
+            bool hasSelection = LibrariesListBox.SelectedItem != null;
+
+            if (LibraryContextMenu != null)
+            {
+                var renameItem = LibraryContextMenu.Items.OfType<MenuItem>().FirstOrDefault(m => m.Name == "LibraryRenameMenuItem");
+                var deleteItem = LibraryContextMenu.Items.OfType<MenuItem>().FirstOrDefault(m => m.Name == "LibraryDeleteMenuItem");
+                var manageItem = LibraryContextMenu.Items.OfType<MenuItem>().FirstOrDefault(m => m.Name == "LibraryManageMenuItem");
+                var openItem = LibraryContextMenu.Items.OfType<MenuItem>().FirstOrDefault(m => m.Name == "LibraryOpenInExplorerMenuItem");
+
+                if (renameItem != null) renameItem.IsEnabled = hasSelection;
+                if (deleteItem != null) deleteItem.IsEnabled = hasSelection;
+                if (manageItem != null) manageItem.IsEnabled = hasSelection;
+                if (openItem != null) openItem.IsEnabled = hasSelection;
+            }
+        }
+
+        private DateTime _lastColumnClickTime = DateTime.MinValue;
+        private string _lastClickedColumn = null;
+
+        internal void GridViewColumnHeader_Click(object sender, RoutedEventArgs e)
+        {
+            var header = sender as GridViewColumnHeader;
+            if (header == null || FileBrowser == null) return;
+
+            // 防抖：忽略200ms内的重复点击
+            var now = DateTime.Now;
+            var columnTag = header.Tag?.ToString();
+            if ((now - _lastColumnClickTime).TotalMilliseconds < 200 && columnTag == _lastClickedColumn)
+            {
+                return;
+            }
+            _lastColumnClickTime = now;
+            _lastClickedColumn = columnTag;
+
+            _columnService?.HandleColumnHeaderClick(
+                header,
+                _currentFiles,
+                (sortedFiles) =>
+                {
+                    _currentFiles = sortedFiles;
+                    FileBrowser.FilesItemsSource = _currentFiles;
+                },
+                FileBrowser.FilesGrid
+            );
+        }
+
+        // ==================== Existing but separate ====================
 
         private void FileBrowser_FilesSizeChanged(SizeChangedEventArgs e)
         {
-             _columnService?.AdjustListViewColumnWidths(FileBrowser);
+            _columnService?.AdjustListViewColumnWidths(FileBrowser);
         }
 
         private void FileBrowser_GridSplitterDragDelta(DragDeltaEventArgs e)
         {
-             if (ColLeft != null)
-             {
-                 double newWidth = ColLeft.Width.Value + e.HorizontalChange;
-                 if (newWidth < 150) newWidth = 150; // Minimum width
-                 ColLeft.Width = new GridLength(newWidth);
-             }
+            if (ColLeft != null)
+            {
+                double newWidth = ColLeft.Width.Value + e.HorizontalChange;
+                if (newWidth < 150) newWidth = 150; // Minimum width
+                ColLeft.Width = new GridLength(newWidth);
+            }
         }
 
         private void FilesListView_SelectionChanged(SelectionChangedEventArgs e)
@@ -311,120 +921,50 @@ namespace OoiMRR
             }
         }
 
-        private void FilesListView_MouseDoubleClick(MouseButtonEventArgs e)
+        private void FilesListView_PreviewMouseDoubleClick(MouseButtonEventArgs e)
         {
-            // Logic for opening item
-            if (FileBrowser?.FilesSelectedItem is FileSystemItem item)
+            // Placeholder preserved from previous file
+        }
+
+        private void FilesListView_PreviewKeyDown(KeyEventArgs e)
+        {
+            // Placeholder preserved from previous file
+        }
+
+
+
+        // Helpers for MenuEventHandler
+        private void EditNotes_Click_Logic() => _fileNotesUIHandler?.ToggleNotesPanel();
+
+        private void BatchAddTags_Click_Logic()
+        {
+            if (!App.IsTagTrainAvailable) return;
+            _tagUIHandler?.ShowBatchTaggingDialog(_currentFiles);
+        }
+
+        private void ImportLibrary_Click_Logic()
+        {
+            using (var dialog = new System.Windows.Forms.FolderBrowserDialog())
             {
-                if (item.IsDirectory)
+                if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
                 {
-                    NavigateToPath(item.Path);
-                }
-                else
-                {
-                    // Open file
-                    try
-                    {
-                        Process.Start(new ProcessStartInfo
-                        {
-                            FileName = item.Path,
-                            UseShellExecute = true
-                        });
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show($"无法打开文件: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                    }
+                    _libraryService.ImportLibrary(dialog.SelectedPath);
+                    _libraryService.LoadLibraries();
                 }
             }
         }
 
-         private void FilesListView_PreviewMouseDoubleClick(MouseButtonEventArgs e) 
-         {
-             // Prevent default behavior if needed, or handle specific cases
-         }
+        private void ExportLibrary_Click_Logic()
+        {
+            if (_currentLibrary == null) return;
+        }
 
-         private void FilesListView_PreviewKeyDown(KeyEventArgs e) 
-         {
-             // Handle keyboard navigation if special handling needed
-         }
-
-         private void FilesListView_PreviewMouseLeftButtonDown(MouseButtonEventArgs e) 
-         {
-             // Drag start logic potentially
-             if (e.OriginalSource is DependencyObject source)
-             {
-                 // Drag logic usually handled by DragDropManager or similar
-             }
-         }
-
-         private void FilesListView_MouseLeftButtonUp(MouseButtonEventArgs e) 
-         {
-             // Drag end logic
-         }
-
-         private void FilesListView_PreviewMouseDown(MouseButtonEventArgs e) 
-         {
-             // Focus handling
-         }
-
-         private void FilesListView_PreviewMouseDoubleClickForBlank(MouseButtonEventArgs e) 
-         {
-             // Double click on blank area -> Go up?
-             if (e.ChangedButton == MouseButton.Left)
-             {
-                 // Go up logic
-                 var parent = Directory.GetParent(_currentPath);
-                 if (parent != null)
-                 {
-                     NavigateToPath(parent.FullName);
-                 }
-             }
-         }
-
-         private void EditNotes_Click_Logic() 
-         {
-             _fileNotesUIHandler?.ToggleNotesPanel();
-         }
-
-         private void BatchAddTags_Click_Logic() 
-         {
-             if (!App.IsTagTrainAvailable) return;
-             _tagUIHandler?.ShowBatchTaggingDialog(_currentFiles); // This will open dialog for selection
-         }
-
-         private void ImportLibrary_Click_Logic() 
-         {
-            var dialog = new System.Windows.Forms.FolderBrowserDialog();
-            if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+        private void Back_Click_Logic()
+        {
+            if (_navigationService != null && _navigationService.CanNavigateBack)
             {
-                 // Import library
-                 _libraryService.ImportLibrary(dialog.SelectedPath);
-                 _libraryService.LoadLibraries(); // Refresh
+                _navigationService.NavigateBack();
             }
-         }
-         
-         private void ExportLibrary_Click_Logic() 
-         {
-             if (_currentLibrary == null) return;
-             // Logic to export
-         }
-         
-         private void Back_Click_Logic() 
-         {
-             if (_navigationService != null && _navigationService.CanNavigateBack) 
-             {
-                 _navigationService.NavigateBack();
-             }
-         }
-         
-
-
-         // Required for MenuEventHandler
-         private void CreateNewFolderLogic(string name) 
-         { 
-             // Logic handled by event handler itself usually via NewFolderOperation
-         }
-
+        }
     }
 }

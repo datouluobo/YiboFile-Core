@@ -47,7 +47,7 @@ namespace OoiMRR.Services.Search
         public List<FileSystemItem> BuildItemsFromPaths(IEnumerable<string> paths)
         {
             var list = new List<FileSystemItem>();
-            
+
             if (paths == null)
                 return list;
 
@@ -81,7 +81,7 @@ namespace OoiMRR.Services.Search
         private FileSystemItem CreateFileSystemItem(string filePath)
         {
             bool isDirectory = Directory.Exists(filePath);
-            
+
             var item = new FileSystemItem
             {
                 Name = Path.GetFileName(filePath),
@@ -96,6 +96,8 @@ namespace OoiMRR.Services.Search
                 item.Size = "";
                 item.ModifiedDate = Directory.GetLastWriteTime(filePath).ToString("yyyy-MM-dd HH:mm");
                 item.CreatedTime = FileSystemItem.FormatTimeAgo(Directory.GetCreationTime(filePath));
+                item.ModifiedDateTime = Directory.GetLastWriteTime(filePath);
+                item.CreatedDateTime = Directory.GetCreationTime(filePath);
             }
             else
             {
@@ -105,6 +107,9 @@ namespace OoiMRR.Services.Search
                     item.Size = _formatFileSize(fileInfo.Length);
                     item.ModifiedDate = File.GetLastWriteTime(filePath).ToString("yyyy-MM-dd HH:mm");
                     item.CreatedTime = FileSystemItem.FormatTimeAgo(fileInfo.CreationTime);
+                    item.SizeBytes = fileInfo.Length;
+                    item.ModifiedDateTime = fileInfo.LastWriteTime;
+                    item.CreatedDateTime = fileInfo.CreationTime;
                 }
                 catch
                 {
@@ -187,7 +192,7 @@ namespace OoiMRR.Services.Search
                 return paths ?? Enumerable.Empty<string>();
 
             var scores = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-            
+
             foreach (var path in paths)
             {
                 if (!File.Exists(path) && !Directory.Exists(path))
@@ -195,14 +200,14 @@ namespace OoiMRR.Services.Search
 
                 int score = 0;
                 var name = Path.GetFileName(path);
-                
+
                 // 完全匹配文件名：最高分
                 if (string.Equals(name, keyword, StringComparison.OrdinalIgnoreCase))
                     score += 100;
                 // 文件名包含关键词：高分
                 else if (!string.IsNullOrEmpty(keyword) && name.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) >= 0)
                     score += 80;
-                
+
                 // 路径包含关键词：中分
                 if (!string.IsNullOrEmpty(keyword) && path.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) >= 0)
                     score += 70;

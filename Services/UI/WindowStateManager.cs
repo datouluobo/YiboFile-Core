@@ -62,7 +62,7 @@ namespace OoiMRR.Services
                 var logPath = @"f:\Download\GitHub\OoiMRR\.cursor\debug.log";
                 try { System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(logPath)); System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "A", location = "WindowStateManager.cs:51", message = "SaveAllState开始", data = new { windowLoaded = _uiHelper?.Window?.IsLoaded ?? false }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
                 // #endregion
-                
+
                 var window = _uiHelper.Window;
                 if (window != null && window.IsLoaded)
                 {
@@ -74,14 +74,14 @@ namespace OoiMRR.Services
                 SaveSplitterPositions();
                 SaveNavigationState();
                 SaveTabsState();
-                
+
                 // #region agent log
                 try { System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "A", location = "WindowStateManager.cs:68", message = "SaveAllState保存前_config状态", data = new { windowWidth = _config.WindowWidth, windowHeight = _config.WindowHeight, windowTop = _config.WindowTop, windowLeft = _config.WindowLeft, isMaximized = _config.IsMaximized, colLeftWidth = _config.ColLeftWidth, colCenterWidth = _config.ColCenterWidth, openTabsCount = _config.OpenTabs?.Count ?? 0, activeTabKey = _config.ActiveTabKey }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
                 // #endregion
-                
+
                 // 保存配置
                 ConfigManager.Save(_config);
-                
+
                 // #region agent log
                 try { System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "A", location = "WindowStateManager.cs:72", message = "SaveAllState完成", data = new { }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
                 // #endregion
@@ -105,7 +105,7 @@ namespace OoiMRR.Services
             var logPath = @"f:\Download\GitHub\OoiMRR\.cursor\debug.log";
             try { System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(logPath)); System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "A", location = "WindowStateManager.cs:80", message = "SaveWindowState开始", data = new { windowIsNull = _uiHelper?.Window == null }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
             // #endregion
-            
+
             var window = _uiHelper.Window;
             if (window == null) return;
 
@@ -113,11 +113,11 @@ namespace OoiMRR.Services
             bool isPseudoMaximized = _uiHelper.IsPseudoMaximized;
             bool isSystemMaximized = window.WindowState == WindowState.Maximized;
             _config.IsMaximized = isPseudoMaximized || isSystemMaximized;
-            
+
             // #region agent log
             try { System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "A", location = "WindowStateManager.cs:88", message = "SaveWindowState窗口属性", data = new { isLoaded = window.IsLoaded, isMaximized = _config.IsMaximized, windowWidth = window.Width, windowHeight = window.Height, windowTop = window.Top, windowLeft = window.Left }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
             // #endregion
-            
+
             // 如果窗口已加载，保存实际尺寸和位置
             if (window.IsLoaded)
             {
@@ -126,7 +126,7 @@ namespace OoiMRR.Services
                     // 非最大化状态：保存实际尺寸和位置
                     _config.WindowWidth = window.Width;
                     _config.WindowHeight = window.Height;
-                    
+
                     // 确保位置值有效（不是NaN或无效值）
                     if (!double.IsNaN(window.Top) && !double.IsInfinity(window.Top) && window.Top >= 0)
                     {
@@ -136,7 +136,7 @@ namespace OoiMRR.Services
                     {
                         _config.WindowTop = 0; // 如果无效，使用默认值0
                     }
-                    
+
                     if (!double.IsNaN(window.Left) && !double.IsInfinity(window.Left) && window.Left >= 0)
                     {
                         _config.WindowLeft = window.Left;
@@ -145,14 +145,14 @@ namespace OoiMRR.Services
                     {
                         _config.WindowLeft = 0; // 如果无效，使用默认值0
                     }
-                    
+
                     // 同时更新 RestoreBounds，以便下次最大化时使用
                     _uiHelper.RestoreBounds = new Rect(_config.WindowLeft, _config.WindowTop, _config.WindowWidth, _config.WindowHeight);
-                    
+
                     // #region agent log
                     try { System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "A", location = "WindowStateManager.cs:100", message = "SaveWindowState保存非最大化状态", data = new { savedWidth = _config.WindowWidth, savedHeight = _config.WindowHeight, savedTop = _config.WindowTop, savedLeft = _config.WindowLeft, windowTop = window.Top, windowLeft = window.Left }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
                     // #endregion
-                    
+
                     System.Diagnostics.Debug.WriteLine($"[WindowStateManager] 保存窗口状态: {window.Width}x{window.Height} @ ({window.Left}, {window.Top})");
                 }
                 else
@@ -174,7 +174,7 @@ namespace OoiMRR.Services
                     // #region agent log
                     try { System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "A", location = "WindowStateManager.cs:107", message = "SaveWindowState最大化状态RestoreBounds", data = new { restoreBoundsWidth = restoreBounds.Width, restoreBoundsHeight = restoreBounds.Height, restoreBoundsTop = restoreBounds.Top, restoreBoundsLeft = restoreBounds.Left }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
                     // #endregion
-                    
+
                     if (restoreBounds.Width > 0 && restoreBounds.Height > 0)
                     {
                         _config.WindowWidth = restoreBounds.Width;
@@ -205,7 +205,7 @@ namespace OoiMRR.Services
                 // #region agent log
                 try { System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "A", location = "WindowStateManager.cs:133", message = "SaveWindowState窗口未加载", data = new { }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
                 // #endregion
-                
+
                 // 窗口未加载，使用当前配置值或默认值
                 if (!_config.IsMaximized && _config.WindowWidth <= 0)
                 {
@@ -224,13 +224,13 @@ namespace OoiMRR.Services
             var logPath = @"f:\Download\GitHub\OoiMRR\.cursor\debug.log";
             try { System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(logPath)); System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "B", location = "WindowStateManager.cs:147", message = "SaveSplitterPositions开始", data = new { rootGridIsNull = _uiHelper?.RootGrid == null, rootGridIsLoaded = _uiHelper?.RootGrid?.IsLoaded ?? false, isInitialized = _isInitialized, isApplyingConfig = _configService?.IsApplyingConfig ?? false }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
             // #endregion
-            
+
             // 双重保护：启动阶段不保存分割线位置
             if (!_isInitialized || (_configService != null && _configService.IsApplyingConfig))
             {
                 return;
             }
-            
+
             if (_uiHelper.RootGrid == null || !_uiHelper.RootGrid.IsLoaded) return;
 
             var leftCol = _uiHelper.RootGrid.ColumnDefinitions[0];
@@ -262,7 +262,7 @@ namespace OoiMRR.Services
             // #endregion
 
             // 保存有效的宽度值（必须大于最小宽度）
-            if (leftWidth > 0 && leftWidth >= leftCol.MinWidth) 
+            if (leftWidth > 0 && leftWidth >= leftCol.MinWidth)
             {
                 _config.LeftPanelWidth = leftWidth;
                 _config.ColLeftWidth = leftWidth; // 同时更新新字段名
@@ -271,7 +271,7 @@ namespace OoiMRR.Services
                 // #endregion
                 System.Diagnostics.Debug.WriteLine($"[WindowStateManager] 保存左侧列宽度: {leftWidth}");
             }
-            if (middleWidth > 0 && middleWidth >= middleCol.MinWidth) 
+            if (middleWidth > 0 && middleWidth >= middleCol.MinWidth)
             {
                 _config.MiddlePanelWidth = middleWidth;
                 _config.ColCenterWidth = middleWidth; // 同时更新新字段名
@@ -359,7 +359,7 @@ namespace OoiMRR.Services
             var logPath2 = @"f:\Download\GitHub\OoiMRR\.cursor\debug.log";
             try { System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(logPath2)); System.IO.File.AppendAllText(logPath2, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "C", location = "WindowStateManager.cs:278", message = "SaveTabsState开始", data = new { tabServiceIsNull = _tabService == null }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
             // #endregion
-            
+
             if (_tabService == null) return;
 
             var allTabs = _tabService.Tabs;
@@ -377,7 +377,7 @@ namespace OoiMRR.Services
             // #endregion
 
             _config.OpenTabs = orderedTabs.Select(tab => GetTabKey(tab)).ToList();
-            
+
             var activeTab = _tabService.ActiveTab;
             if (activeTab != null)
             {
@@ -387,7 +387,7 @@ namespace OoiMRR.Services
             {
                 _config.ActiveTabKey = string.Empty;
             }
-            
+
             // #region agent log
             try { System.IO.File.AppendAllText(logPath2, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "C", location = "WindowStateManager.cs:296", message = "SaveTabsState保存后", data = new { openTabsCount = _config.OpenTabs?.Count ?? 0, openTabs = _config.OpenTabs ?? new List<string>(), activeTabKey = _config.ActiveTabKey }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
             // #endregion
@@ -588,7 +588,7 @@ namespace OoiMRR.Services
                     var library = DatabaseManager.GetLibrary(libraryId);
                     if (library != null)
                     {
-                        _tabService.OpenLibraryTab(library, true);
+                        _tabService.OpenLibraryTab(library, false); // 允许复用已存在的标签页
                     }
                 }
             }
@@ -602,7 +602,7 @@ namespace OoiMRR.Services
                     if (!string.IsNullOrEmpty(tagName))
                     {
                         var tag = new OoiMRR.Tag { Id = tagId, Name = tagName };
-                        _tabService.OpenTagTab(tag, true);
+                        _tabService.OpenTagTab(tag, false); // 允许复用已存在的标签页
                     }
                 }
             }

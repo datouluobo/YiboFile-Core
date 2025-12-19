@@ -32,6 +32,7 @@ namespace OoiMRR.Controls
         public new event MouseButtonEventHandler PreviewMouseLeftButtonDown;
         public new event MouseButtonEventHandler MouseLeftButtonUp;
         public new event MouseButtonEventHandler PreviewMouseDown;
+        public new event MouseEventHandler PreviewMouseMove;
         public event RoutedEventHandler GridViewColumnHeaderClick;
         public new event SizeChangedEventHandler SizeChanged;
         public event RoutedEventHandler LoadMoreClick;
@@ -39,7 +40,7 @@ namespace OoiMRR.Controls
         public FileListControl()
         {
             InitializeComponent();
-            
+
             // 订阅文件列表的事件
             if (FilesListView != null)
             {
@@ -50,8 +51,9 @@ namespace OoiMRR.Controls
                 FilesListView.PreviewMouseLeftButtonDown += (s, e) => PreviewMouseLeftButtonDown?.Invoke(s, e);
                 FilesListView.MouseLeftButtonUp += (s, e) => MouseLeftButtonUp?.Invoke(s, e);
                 FilesListView.PreviewMouseDown += (s, e) => PreviewMouseDown?.Invoke(s, e);
+                FilesListView.PreviewMouseMove += (s, e) => PreviewMouseMove?.Invoke(s, e);
                 FilesListView.SizeChanged += (s, e) => SizeChanged?.Invoke(s, e);
-                
+
                 // 订阅列标题点击事件
                 if (FilesGridView != null)
                 {
@@ -70,14 +72,14 @@ namespace OoiMRR.Controls
             {
                 LoadMoreBtn.Click += (s, e) => LoadMoreClick?.Invoke(s, e);
             }
-            
+
             // 初始化详细信息视图
             ApplyViewMode();
-            
+
             // 初始化缩略图管理器
             if (FilesListView != null)
             {
-                 _thumbnailManager = new ThumbnailViewManager(FilesListView, 100);
+                _thumbnailManager = new ThumbnailViewManager(FilesListView, 100);
             }
         }
 
@@ -89,29 +91,29 @@ namespace OoiMRR.Controls
         private void ApplyViewMode()
         {
             if (FilesListView == null) return;
-            
+
             if (_currentViewMode == "Thumbnail")
             {
                 // 缩略图视图
                 FilesListView.View = null; // 清除 GridView
                 FilesListView.ItemTemplate = (DataTemplate)FindResource("ThumbnailTemplate");
-                
+
                 // 使用 WrapPanel 进行布局
                 var factory = new FrameworkElementFactory(typeof(WrapPanel));
                 factory.SetValue(WrapPanel.OrientationProperty, Orientation.Horizontal);
                 factory.SetValue(WrapPanel.WidthProperty, new Binding("ActualWidth") { Source = FilesListView });
                 // factory.SetValue(WrapPanel.ItemWidthProperty, 130.0);
                 // factory.SetValue(WrapPanel.ItemHeightProperty, 150.0);
-                
+
                 // 注意：VirtualizingStackPanel 不支持 Wrap 布局，所以这里简单使用 WrapPanel
                 // 如果需要虚拟化缩略图，需要更复杂的实现（如 VirtualizingWrapPanel）
                 // 暂时使用普通 WrapPanel，依靠分页或虚拟化容器（如果 ItemsPanelTemplate 支持）
                 // 原生 ListView 默认 ItemsPanel 是 VirtualizingStackPanel，不支持 Wrap。
                 // 必须替换 ItemsPanel
                 FilesListView.ItemsPanel = new ItemsPanelTemplate(factory);
-                
+
                 ScrollViewer.SetHorizontalScrollBarVisibility(FilesListView, ScrollBarVisibility.Disabled);
-                
+
                 // 启动缩略图加载
                 _thumbnailManager?.LoadThumbnailsAsync();
             }
@@ -123,12 +125,12 @@ namespace OoiMRR.Controls
                 FilesListView.ItemsPanel = itemsPanel;
                 if (FilesGridView != null) FilesListView.View = FilesGridView;
                 ScrollViewer.SetHorizontalScrollBarVisibility(FilesListView, ScrollBarVisibility.Auto);
-                
+
                 // 停止缩略图加载（性能优化）
                 _thumbnailManager?.Stop();
             }
         }
-        
+
         public void SetViewMode(string mode)
         {
             if (_currentViewMode != mode)
@@ -143,7 +145,7 @@ namespace OoiMRR.Controls
         public ListView FilesList => FilesListView;
         public GridView FilesGrid => FilesGridView;
         public TextBlock EmptyStateTextControl => EmptyStateText;
-        
+
         // 缩略图管理器
         private ThumbnailViewManager _thumbnailManager;
         private string _currentViewMode = "List"; // Default to List
@@ -203,7 +205,7 @@ namespace OoiMRR.Controls
                 return FilesListView?.SelectedItem;
             }
         }
-        
+
         public System.Collections.IList SelectedItems
         {
             get
@@ -215,14 +217,14 @@ namespace OoiMRR.Controls
                 return FilesListView?.SelectedItems;
             }
         }
-        
+
         /// <summary>
         /// 处理分组ListView的选择变化
         /// </summary>
         private void GroupedListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (!_isGroupedMode) return;
-            
+
             // 如果未按下Ctrl/Shift，清除其他分组的选中，避免“点选变多选”
             if (Keyboard.Modifiers == ModifierKeys.None && sender is ListView sourceListView)
             {
@@ -251,23 +253,26 @@ namespace OoiMRR.Controls
                     }
                 }
             }
-            
+
             // 触发选择变化事件
             SelectionChanged?.Invoke(sender, e);
         }
-        
+
+
         // 分组显示相关
         private bool _isGroupedMode = false;
         private ObservableCollection<SearchResultGroupViewModel> _groupedResults;
         private List<object> _groupedSelectedItems = new List<object>();
         private List<ListView> _groupedListViews = new List<ListView>();
+#pragma warning disable CS0414 // 字段已赋值但从未使用（实际在条件检查中使用）
         private bool _headerClickSubscribed = false;
         private bool _headerWidthSubscribed = false;
         private bool _groupedThumbHooked = false;
         private bool _groupedHeaderContextHooked = false;
+#pragma warning restore CS0414
 
         public bool IsGroupedMode => _isGroupedMode;
-        
+
         /// <summary>
         /// 设置分组搜索结果
         /// </summary>
@@ -278,23 +283,27 @@ namespace OoiMRR.Controls
                 SwitchToNormalView();
                 return;
             }
-            
+
             _isGroupedMode = true;
             _groupedSelectedItems.Clear();
             _groupedListViews.Clear();
             _groupedResults = new ObservableCollection<SearchResultGroupViewModel>();
-            
+
             // 按优先级顺序显示：备注 > 文件夹 > 文件 > 其他
-            var displayOrder = new[] 
-            { 
-                SearchResultType.Notes, 
-                SearchResultType.Folder, 
+            var displayOrder = new[]
+            {
+                SearchResultType.Notes,
+                SearchResultType.Folder,
                 SearchResultType.File,
                 SearchResultType.Tag,
                 SearchResultType.Date,
-                SearchResultType.Other 
+                SearchResultType.Other
             };
-            
+
+            // 临时方案：扁平化结果并设置到FilesItemsSource
+            // TODO: 恢复分组显示UI（GroupedResultsViewer等控件）
+            var flattenedResults = new List<FileSystemItem>();
+
             foreach (var type in displayOrder)
             {
                 if (groupedItems.ContainsKey(type) && groupedItems[type].Count > 0)
@@ -306,11 +315,19 @@ namespace OoiMRR.Controls
                         Items = new ObservableCollection<FileSystemItem>(groupedItems[type])
                     };
                     _groupedResults.Add(group);
+
+                    // 添加到扁平化列表
+                    flattenedResults.AddRange(groupedItems[type]);
                 }
             }
-            
-            // 切换到分组显示模式
-            SwitchToGroupedView();
+
+            // 临时：直接设置到普通列表视图
+            System.Diagnostics.Debug.WriteLine($"[SetGroupedSearchResults] 扁平化后总数: {flattenedResults.Count}");
+            FilesItemsSource = new ObservableCollection<FileSystemItem>(flattenedResults);
+            SwitchToNormalView(); // 使用普通视图而不是分组视图
+
+            // 切换到分组显示模式（目前被注释，因为UI控件不存在）
+            // SwitchToGroupedView();
 
             // 确保视觉树生成后立即订阅（避免首次点击前未注册SelectionChanged）
             // Dispatcher.BeginInvoke(new Action(() =>
@@ -318,7 +335,7 @@ namespace OoiMRR.Controls
             //    FindAndSubscribeListViews(GroupedResultsList);
             // }), System.Windows.Threading.DispatcherPriority.Loaded);
         }
-        
+
         private string GetGroupName(SearchResultType type)
         {
             return type switch
@@ -331,13 +348,13 @@ namespace OoiMRR.Controls
                 _ => "其他"
             };
         }
-        
+
         private void SwitchToGroupedView()
         {
             if (FilesListView != null)
                 FilesListView.Visibility = Visibility.Collapsed;
-            
-            // Commented out for debugging
+
+            // 分组显示UI控件不存在，暂时注释
             /*
             if (GroupedResultsViewer != null)
             {
@@ -345,7 +362,7 @@ namespace OoiMRR.Controls
                 if (GroupedResultsList != null)
                 {
                     GroupedResultsList.ItemsSource = _groupedResults;
-                    
+
                     // 订阅Loaded事件，为每个ListView添加SelectionChanged事件处理
                     GroupedResultsList.Loaded -= GroupedResultsList_Loaded;
                     GroupedResultsList.Loaded += GroupedResultsList_Loaded;
@@ -362,7 +379,7 @@ namespace OoiMRR.Controls
             }
             */
         }
-        
+
         /// <summary>
         /// 当分组列表加载完成后，为每个ListView订阅选择事件
         /// </summary>
@@ -373,7 +390,7 @@ namespace OoiMRR.Controls
             // 查找所有ListView并订阅SelectionChanged事件
             // FindAndSubscribeListViews(GroupedResultsList);
         }
-        
+
         /// <summary>
         /// 在视觉树中查找所有ListView并订阅事件，同步列宽
         /// </summary>
@@ -666,20 +683,20 @@ namespace OoiMRR.Controls
             if (maxWidth < 50) maxWidth = 50;
             column.Width = Math.Ceiling(maxWidth);
         }
-        
+
         private void SwitchToNormalView()
         {
             _isGroupedMode = false;
             _groupedSelectedItems.Clear();
             _groupedListViews.Clear();
-            
+
             if (FilesListView != null)
                 FilesListView.Visibility = Visibility.Visible;
-            
+
             // if (GroupedResultsViewer != null)
             //    GroupedResultsViewer.Visibility = Visibility.Collapsed;
         }
-        
+
         /// <summary>
         /// 分组标题点击事件（折叠/展开）
         /// </summary>
@@ -691,7 +708,7 @@ namespace OoiMRR.Controls
                 e.Handled = true;
             }
         }
-        
+
         /// <summary>
         /// 文件列表数据源（兼容性方法）
         /// </summary>
@@ -704,10 +721,12 @@ namespace OoiMRR.Controls
                 {
                     SwitchToNormalView();
                 }
-                
+
                 if (FilesListView != null)
                 {
                     FilesListView.ItemsSource = value;
+                    // 强制刷新ListView，确保排序后UI更新
+                    FilesListView.Items.Refresh();
                 }
             }
         }

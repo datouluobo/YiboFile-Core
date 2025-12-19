@@ -22,17 +22,17 @@ namespace OoiMRR
                 _navigationModeService.SwitchNavigationMode(mode);
             }
         }
-        
+
         private void NavPathBtn_Click(object sender, RoutedEventArgs e)
         {
             SwitchNavigationMode("Path");
         }
-        
+
         private void NavLibraryBtn_Click(object sender, RoutedEventArgs e)
         {
             SwitchNavigationMode("Library");
         }
-        
+
         private void NavTagBtn_Click(object sender, RoutedEventArgs e)
         {
             // 只有在 TagTrain 可用时才切换到标签模式
@@ -55,7 +55,7 @@ namespace OoiMRR
                 CheckAndRefreshSearchTab(activeTab.Path);
                 return;
             }
-            
+
             // 根据当前导航模式刷新文件列表
             if (NavTagContent != null && NavTagContent.Visibility == Visibility.Visible)
             {
@@ -103,7 +103,7 @@ namespace OoiMRR
                         }
                     }
                 }
-                
+
                 // 其他模式：清空列表
                 _currentFiles.Clear();
                 if (FileBrowser != null)
@@ -138,10 +138,10 @@ namespace OoiMRR
 
                 // 设置文件系统监控
                 _fileSystemWatcherService.SetupFileWatcher(_currentPath);
-                
+
                 // 高亮匹配当前路径的列表项
                 HighlightMatchingItems(_currentPath);
-                
+
                 // 隐藏空状态提示
                 HideEmptyStateMessage();
             }
@@ -157,11 +157,11 @@ namespace OoiMRR
                 {
                     errorMessage += ex.Message;
                 }
-                
+
                 System.Diagnostics.Debug.WriteLine(errorMessage);
                 // 不弹窗，只显示空状态
                 // MessageBox.Show(errorMessage, "权限错误", MessageBoxButton.OK, MessageBoxImage.Warning);
-                
+
                 // 清空文件列表
                 _currentFiles.Clear();
                 if (FileBrowser != null)
@@ -204,7 +204,7 @@ namespace OoiMRR
         {
             _navigationService.HighlightMatchingLibrary(currentLibrary);
         }
-        
+
         /// <summary>
         /// 高亮匹配当前路径的列表项（驱动器、快速访问、收藏）
         /// </summary>
@@ -212,7 +212,7 @@ namespace OoiMRR
         {
             _navigationService.HighlightMatchingItems(currentPath);
         }
-        
+
         /// <summary>
         /// 清除所有列表项的高亮状态
         /// </summary>
@@ -229,40 +229,36 @@ namespace OoiMRR
 
         internal void NavigateToPath(string path)
         {
-            if (Directory.Exists(path))
+            if (!Directory.Exists(path)) return;
+
+            var activeTab = _tabService.ActiveTab;
+
+            System.Diagnostics.Debug.WriteLine($"[NavigateToPath] 导航到: {path}, 当前标签页: {activeTab?.Type}");
+
+            // 规则1：同类型标签页直接更新
+            if (activeTab != null && activeTab.Type == Services.Tabs.TabType.Path)
             {
-                // 更新或创建标签页
-                var activeTab = _tabService.ActiveTab;
-                if (activeTab != null && activeTab.Type == Services.Tabs.TabType.Path && activeTab.Path == path)
-                {
-                    // 已经是当前标签页的路径，直接导航
-                    NavigateToPathInternal(path);
-                }
-                else
-                {
-                    // 查找是否已有该路径的标签页
-                    var existingTab = _tabService.FindTabByPath(path);
-                    if (existingTab != null)
-                    {
-                        SwitchToTab(existingTab);
-                    }
-                    else
-                    {
-                        // 更新当前标签页路径或创建新标签页
-                        if (activeTab != null && activeTab.Type == Services.Tabs.TabType.Path)
-                        {
-                            // 如果当前标签页是路径类型，更新它
-                            activeTab.Path = path;
-                            _tabService?.UpdateTabTitle(activeTab, path);
-                            NavigateToPathInternal(path);
-                        }
-                        else
-                        {
-                            // 创建新标签页
-                            CreateTab(path);
-                        }
-                    }
-                }
+                System.Diagnostics.Debug.WriteLine($"[NavigateToPath] 更新Path标签页");
+                activeTab.Path = path;
+                _tabService?.UpdateTabTitle(activeTab, path);
+                NavigateToPathInternal(path);
+                return;
+            }
+
+            // 规则2：查找最近访问的相同Path标签页（使用配置时间窗口）
+            var recentTab = _tabService.FindRecentPathTab(path);
+
+            if (recentTab != null)
+            {
+                // 找到了最近访问的标签页，切换到它
+                System.Diagnostics.Debug.WriteLine($"[NavigateToPath] 切换到最近访问的Path标签页");
+                _tabService.SwitchToTab(recentTab);
+            }
+            else
+            {
+                // 没有找到或不够新鲜，创建新标签页
+                System.Diagnostics.Debug.WriteLine($"[NavigateToPath] 创建新Path标签页");
+                CreateTab(path);
             }
         }
 
@@ -278,11 +274,11 @@ namespace OoiMRR
             // 如果进入的是文件夹，计算并更新其大小缓存（驱动器根目录跳过，避免耗时）
             if (!isDriveRoot)
             {
-                 Task.Run(() => _folderSizeCalculationService.CalculateAndUpdateFolderSizeAsync(path));
+                Task.Run(() => _folderSizeCalculationService.CalculateAndUpdateFolderSizeAsync(path));
             }
 
             _currentPath = path;
-            
+
             // 确保导航服务状态同步
             if (_navigationService != null)
             {
@@ -298,13 +294,13 @@ namespace OoiMRR
         private async Task LoadFilesAsync()
         {
             // 使用信号量防止重复加载
-            // 使用 0 ms 等待，如果获取不到立即跳过，避免堆积请求
-            if (!_loadFilesSemaphore.Wait(0))
+            // 等待200ms以允许上一个加载任务完成，避免标签页切换时文件列表为空
+            if (!_loadFilesSemaphore.Wait(200))
             {
-                System.Diagnostics.Debug.WriteLine("LoadFiles: 已有加载任务在进行，跳过此次调用");
+                System.Diagnostics.Debug.WriteLine("LoadFiles: 已有加载任务在进行（等待200ms后仍未完成），跳过此次调用");
                 return;
             }
-            
+
             CancellationTokenSource cts = null;
 
             try
@@ -314,15 +310,15 @@ namespace OoiMRR
 
                 // 创建超时控制
                 cts = new CancellationTokenSource(TimeSpan.FromSeconds(5)); // 5秒超时
-                
+
                 // 使用 FileListService 异步加载文件
                 // 直接使用返回的 items 更新 UI，不再依赖 FilesLoaded 事件
                 // 添加 try-catch 捕获可能的超时或取消
                 List<FileSystemItem> items = null;
-                try 
+                try
                 {
                     items = await _fileListService.LoadFileSystemItemsAsync(
-                        _currentPath, 
+                        _currentPath,
                         OrderTagNames,
                         cts.Token);
                 }
@@ -334,8 +330,8 @@ namespace OoiMRR
 
                 if (items == null)
                 {
-                     // 如果超时或返回空，尝试至少显示个空列表，避免一直 Loading
-                     items = new List<FileSystemItem>();
+                    // 如果超时或返回空，尝试至少显示个空列表，避免一直 Loading
+                    items = new List<FileSystemItem>();
                 }
                 else
                 {
@@ -346,11 +342,11 @@ namespace OoiMRR
                         {
                             _currentFiles.Clear();
                             _currentFiles.AddRange(items);
-                            
+
                             // 应用排序
                             if (_columnService != null)
                             {
-                                try 
+                                try
                                 {
                                     _currentFiles = _columnService.SortFiles(_currentFiles);
                                 }
@@ -373,7 +369,7 @@ namespace OoiMRR
                                     System.Diagnostics.Debug.WriteLine($"Stack: {argEx.StackTrace}");
                                     // 尝试重建集合以规避可能的 CollectionView 内部错误
                                     var freshList = new List<FileSystemItem>(items);
-                                    FileBrowser.FilesItemsSource = freshList; 
+                                    FileBrowser.FilesItemsSource = freshList;
                                 }
                             }
                         }
@@ -432,7 +428,7 @@ namespace OoiMRR
                 {
                     _currentFiles.Clear();
                     _currentFiles.AddRange(items);
-                    
+
                     // 应用排序
                     if (_columnService != null)
                     {
@@ -441,7 +437,7 @@ namespace OoiMRR
 
                     if (FileBrowser != null)
                         FileBrowser.FilesItemsSource = _currentFiles;
-                        
+
                     // 重置加载标志并释放信号量
                     _isLoadingFiles = false;
                     _loadFilesSemaphore.Release();
@@ -498,7 +494,7 @@ namespace OoiMRR
                             existingItem.Notes = enrichedItem.Notes;
                         }
                     }
-                    
+
                     var collectionView = System.Windows.Data.CollectionViewSource.GetDefaultView(FileBrowser?.FilesItemsSource);
                     collectionView?.Refresh();
                 }
@@ -516,7 +512,7 @@ namespace OoiMRR
         {
             // 记录文件系统变化事件（用于调试）
             System.Diagnostics.Debug.WriteLine($"[MainWindow] 文件系统变化: {e.ChangeType} - {e.Name}");
-            
+
             // 事件已由 FileSystemWatcherService 处理防抖，这里可以记录日志或做其他处理
             // 防抖后的刷新请求会通过 RefreshRequested 事件触发
         }
@@ -583,7 +579,7 @@ namespace OoiMRR
                 }
             }), System.Windows.Threading.DispatcherPriority.Normal);
         }
-        
+
         #endregion
     }
 }

@@ -17,7 +17,7 @@ namespace OoiMRR.Controls
     public partial class FileBrowserControl : UserControl
     {
         private readonly Dictionary<GridViewColumn, double> _columnDefaultWidths = new Dictionary<GridViewColumn, double>();
-        
+
         // 事件定义（保持向后兼容）
         public event SelectionChangedEventHandler FilesSelectionChanged;
         public event MouseButtonEventHandler FilesMouseDoubleClick;
@@ -30,12 +30,13 @@ namespace OoiMRR.Controls
         public event SizeChangedEventHandler FilesSizeChanged;
 #pragma warning disable CS0067 // Event is never used (used in XAML)
         public event MouseButtonEventHandler FilesPreviewMouseDoubleClickForBlank;
+        public event MouseEventHandler FilesPreviewMouseMove;
 #pragma warning restore CS0067
 
         public FileBrowserControl()
         {
             InitializeComponent();
-            
+
             // 订阅地址栏控件的事件
             if (AddressBarControl != null)
             {
@@ -43,21 +44,30 @@ namespace OoiMRR.Controls
                 AddressBarControl.BreadcrumbClicked += AddressBarControl_BreadcrumbClicked;
                 AddressBarControl.BreadcrumbMiddleClicked += AddressBarControl_BreadcrumbMiddleClicked;
             }
-            
+
             // 订阅文件列表控件的事件（转发到外部事件）
             if (FileList != null)
             {
                 FileList.SelectionChanged += (s, e) => FilesSelectionChanged?.Invoke(s, e);
                 FileList.MouseDoubleClick += (s, e) => FilesMouseDoubleClick?.Invoke(s, e);
-                FileList.PreviewMouseDoubleClick += (s, e) => FilesPreviewMouseDoubleClick?.Invoke(s, e);
+                FileList.PreviewMouseDoubleClick += (s, e) =>
+                {
+                    FilesPreviewMouseDoubleClick?.Invoke(s, e);
+                    // Check for blank area double click
+                    if (!IsMouseOverItem(s as ListView, e.GetPosition(s as IInputElement)))
+                    {
+                        FilesPreviewMouseDoubleClickForBlank?.Invoke(s, e);
+                    }
+                };
                 FileList.PreviewKeyDown += (s, e) => FilesPreviewKeyDown?.Invoke(s, e);
                 FileList.PreviewMouseLeftButtonDown += (s, e) => FilesPreviewMouseLeftButtonDown?.Invoke(s, e);
                 FileList.MouseLeftButtonUp += (s, e) => FilesMouseLeftButtonUp?.Invoke(s, e);
                 FileList.PreviewMouseDown += (s, e) => FilesPreviewMouseDown?.Invoke(s, e);
+                FileList.PreviewMouseMove += (s, e) => FilesPreviewMouseMove?.Invoke(s, e);
                 FileList.SizeChanged += (s, e) => FilesSizeChanged?.Invoke(s, e);
                 FileList.GridViewColumnHeaderClick += (s, e) => GridViewColumnHeaderClick?.Invoke(s, e);
                 FileList.LoadMoreClick += (s, e) => LoadMoreBtn_Click(s, e);
-                
+
                 // 订阅列标题点击事件（用于记录默认列宽）
                 if (FileList.FilesGrid != null)
                 {
@@ -75,7 +85,7 @@ namespace OoiMRR.Controls
                 }
             }
         }
-        
+
 
         // 公共属性（保持向后兼容）
         public AddressBarControl AddressBar => AddressBarControl;
@@ -141,16 +151,17 @@ namespace OoiMRR.Controls
         // 文件列表相关方法
         public System.Collections.IEnumerable FilesItemsSource
         {
-            get => FileList?.ItemsSource;
+            get => FileList?.FilesItemsSource;
             set
             {
                 if (FileList != null)
                 {
-                    FileList.ItemsSource = value;
+                    // 使用FilesItemsSource属性，它会自动调用Items.Refresh()
+                    FileList.FilesItemsSource = value;
                 }
             }
         }
-        
+
         /// <summary>
         /// 设置分组搜索结果
         /// </summary>
@@ -206,7 +217,7 @@ namespace OoiMRR.Controls
         public event RoutedEventHandler SearchClicked;
         public event RoutedEventHandler FilterClicked;
         public event RoutedEventHandler LoadMoreClicked;
-        
+
         // 文件操作事件
         public event RoutedEventHandler FileCopy;
         public event RoutedEventHandler FileCut;
@@ -232,7 +243,7 @@ namespace OoiMRR.Controls
             // 中键打开新标签，触发专门的事件
             BreadcrumbMiddleClicked?.Invoke(this, path);
         }
-        
+
         private void NavBackBtn_Click(object sender, RoutedEventArgs e)
         {
             NavigationBack?.Invoke(sender, e);
@@ -347,71 +358,71 @@ namespace OoiMRR.Controls
         private void SetupFileContextMenu()
         {
             if (FileList?.FilesList == null) return;
-            
+
             var cm = new ContextMenu();
-            
+
             // 复制
             var copyItem = new MenuItem { Header = "复制", Name = "CopyItem" };
             copyItem.Click += (s, e) => FileCopy?.Invoke(s, e);
             cm.Items.Add(copyItem);
-            
+
             // 剪切
             var cutItem = new MenuItem { Header = "剪切", Name = "CutItem" };
             cutItem.Click += (s, e) => FileCut?.Invoke(s, e);
             cm.Items.Add(cutItem);
-            
+
             // 粘贴
             var pasteItem = new MenuItem { Header = "粘贴", Name = "PasteItem" };
             pasteItem.Click += (s, e) => FilePaste?.Invoke(s, e);
             cm.Items.Add(pasteItem);
-            
+
             var separator1 = new Separator { Name = "Separator1" };
             cm.Items.Add(separator1);
-            
+
             // 删除
             var deleteItem = new MenuItem { Header = "删除", Name = "DeleteItem" };
             deleteItem.Click += (s, e) => FileDelete?.Invoke(s, e);
             cm.Items.Add(deleteItem);
-            
+
             // 重命名
             var renameItem = new MenuItem { Header = "重命名", Name = "RenameItem" };
             renameItem.Click += (s, e) => FileRename?.Invoke(s, e);
             cm.Items.Add(renameItem);
-            
+
             var separator2 = new Separator { Name = "Separator2" };
             cm.Items.Add(separator2);
-            
+
             // 刷新
             var refreshItem = new MenuItem { Header = "刷新", Name = "RefreshItem" };
             refreshItem.Click += (s, e) => FileRefresh?.Invoke(s, e);
             cm.Items.Add(refreshItem);
-            
+
             // 属性
             var propertiesItem = new MenuItem { Header = "属性", Name = "PropertiesItem" };
             propertiesItem.Click += (s, e) => FileProperties?.Invoke(s, e);
             cm.Items.Add(propertiesItem);
-            
+
             // 在菜单打开时动态更新菜单项可见性
             cm.Opened += (s, e) =>
             {
                 bool hasSelection = FileList?.SelectedItems != null && FileList.SelectedItems.Count > 0;
-                
+
                 // 需要选中项的操作
                 copyItem.Visibility = hasSelection ? Visibility.Visible : Visibility.Collapsed;
                 cutItem.Visibility = hasSelection ? Visibility.Visible : Visibility.Collapsed;
                 deleteItem.Visibility = hasSelection ? Visibility.Visible : Visibility.Collapsed;
                 renameItem.Visibility = hasSelection && FileList.SelectedItems.Count == 1 ? Visibility.Visible : Visibility.Collapsed;
                 propertiesItem.Visibility = hasSelection && FileList.SelectedItems.Count == 1 ? Visibility.Visible : Visibility.Collapsed;
-                
+
                 // 始终可用的操作
                 pasteItem.Visibility = Visibility.Visible;
                 refreshItem.Visibility = Visibility.Visible;
-                
+
                 // 更新分隔符可见性
                 separator1.Visibility = (hasSelection || pasteItem.Visibility == Visibility.Visible) ? Visibility.Visible : Visibility.Collapsed;
                 separator2.Visibility = (hasSelection || refreshItem.Visibility == Visibility.Visible || propertiesItem.Visibility == Visibility.Visible) ? Visibility.Visible : Visibility.Collapsed;
             };
-            
+
             FileList.FilesList.ContextMenu = cm;
         }
         private void ViewModeBtn_Click(object sender, RoutedEventArgs e)
@@ -420,6 +431,21 @@ namespace OoiMRR.Controls
             {
                 FileList?.SetViewMode(mode);
             }
+        }
+
+        private bool IsMouseOverItem(ListView listView, Point point)
+        {
+            if (listView == null) return false;
+            var hit = VisualTreeHelper.HitTest(listView, point);
+            if (hit == null) return false;
+
+            var current = hit.VisualHit;
+            while (current != null && current != listView)
+            {
+                if (current is ListViewItem) return true;
+                current = VisualTreeHelper.GetParent(current);
+            }
+            return false;
         }
     }
 }

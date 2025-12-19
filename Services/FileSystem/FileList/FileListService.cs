@@ -662,7 +662,9 @@ namespace OoiMRR.Services.FileList
                             ModifiedDate = dirInfo.LastWriteTime.ToString("yyyy-MM-dd HH:mm"),
                             CreatedTime = FileSystemItem.FormatTimeAgo(dirInfo.CreationTime),
                             IsDirectory = true,
-                            SourcePath = path // 标记来源路径
+                            SourcePath = path, // 标记来源路径
+                            ModifiedDateTime = dirInfo.LastWriteTime,
+                            CreatedDateTime = dirInfo.CreationTime
                         });
                     }
                     catch (UnauthorizedAccessException)
@@ -712,7 +714,10 @@ namespace OoiMRR.Services.FileList
                             ModifiedDate = fileInfo.LastWriteTime.ToString("yyyy-MM-dd HH:mm"),
                             CreatedTime = FileSystemItem.FormatTimeAgo(fileInfo.CreationTime),
                             IsDirectory = false,
-                            SourcePath = path // 标记来源路径
+                            SourcePath = path, // 标记来源路径
+                            SizeBytes = fileInfo.Length,
+                            ModifiedDateTime = fileInfo.LastWriteTime,
+                            CreatedDateTime = fileInfo.CreationTime
                         });
                     }
                     catch (UnauthorizedAccessException)

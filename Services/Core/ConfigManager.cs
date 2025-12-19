@@ -18,15 +18,15 @@ namespace OoiMRR
         public double WindowTop { get; set; } = double.NaN;
         public double WindowLeft { get; set; } = double.NaN;
         public bool IsMaximized { get; set; } = true;
-        
+
         // 主布局列宽度（列1和列2）
         public double ColLeftWidth { get; set; } = 220; // 列1（左侧导航区）宽度
         public double ColCenterWidth { get; set; } = 0; // 列2（中间文件浏览器）宽度，0表示使用Star模式
-        
+
         // 兼容旧版本的属性名
         public double LeftPanelWidth { get => ColLeftWidth; set => ColLeftWidth = value; }
         public double MiddlePanelWidth { get => ColCenterWidth; set => ColCenterWidth = value; }
-        
+
         // 列头宽度
         public double ColNameWidth { get; set; } = 200;
         public double ColSizeWidth { get; set; } = 100;
@@ -35,7 +35,7 @@ namespace OoiMRR
         public double ColCreatedTimeWidth { get; set; } = 50;
         public double ColTagsWidth { get; set; } = 150;
         public double ColNotesWidth { get; set; } = 200;
-        
+
         // 列头顺序
         public string ColumnOrder { get; set; } = "Name,Size,Type,ModifiedDate,CreatedTime,Tags,Notes";
 
@@ -47,16 +47,21 @@ namespace OoiMRR
         public System.Collections.Generic.Dictionary<string, string> TabTitleOverrides { get; set; } = new System.Collections.Generic.Dictionary<string, string>();
         public System.Collections.Generic.List<string> PinnedTabs { get; set; } = new System.Collections.Generic.List<string>();
         public double PinnedTabWidth { get; set; } = 90;
-        
+
         // 标签页状态保存（所有打开的标签页和活动标签页）
         public System.Collections.Generic.List<string> OpenTabs { get; set; } = new System.Collections.Generic.List<string>(); // 所有打开的标签页键值列表（按顺序）
         public string ActiveTabKey { get; set; } = string.Empty; // 活动标签页的键值
-        
+
         // 字体设置
         public double UIFontSize { get; set; } = 16; // 界面字体大小（默认16）
         public double TagFontSize { get; set; } = 16; // Tag字体大小（默认16）
         public double TagBoxWidth { get; set; } = 0; // Tag框宽度（0表示自动计算，>0表示固定宽度）
         public double TagWidth { get; set; } = 120; // Tag框宽度（默认120）
+
+        // 标签页复用策略配置
+        public int ReuseTabTimeWindow { get; set; } = 10; // 复用标签页的时间窗口（秒），默认10秒
+        public bool AlwaysReuseTab { get; set; } = false; // 总是复用标签页（忽略时间窗口）
+        public bool NeverReuseTab { get; set; } = false; // 从不复用标签页（总是创建新的）
     }
 
     public class AllSettingsConfig
@@ -76,7 +81,7 @@ namespace OoiMRR
 
         private static readonly string DefaultBaseDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "AppData");
         private static readonly string LegacyBaseDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "OoiMRR");
-        
+
         private static string _baseDirectory;
 
         public static string GetConfigDirectory()
@@ -326,7 +331,7 @@ namespace OoiMRR
                 var json = JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true });
                 var configPath = GetConfigFilePath();
                 File.WriteAllText(configPath, json);
-                
+
                 // #region agent log
                 try { System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "D", location = "ConfigManager.cs:322", message = "ConfigManager.Save完成", data = new { configPath = configPath, jsonLength = json.Length, savedWindowWidth = config.WindowWidth, savedWindowHeight = config.WindowHeight, savedColLeftWidth = config.ColLeftWidth, savedColCenterWidth = config.ColCenterWidth, savedOpenTabsCount = config.OpenTabs?.Count ?? 0 }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
                 // #endregion
@@ -477,13 +482,13 @@ namespace OoiMRR
             }
 
             // 尝试关闭所有数据库连接以释放文件锁
-            try 
+            try
             {
                 DatabaseManager.Shutdown();
                 TagTrain.Services.DataManager.Shutdown();
                 // 给一点时间让文件系统释放锁
                 System.Threading.Thread.Sleep(200);
-            } 
+            }
             catch { }
 
             using var archive = ZipFile.OpenRead(sourceZip);

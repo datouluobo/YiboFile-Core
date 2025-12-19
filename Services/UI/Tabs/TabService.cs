@@ -48,6 +48,11 @@ namespace OoiMRR.Services.Tabs
         public Func<string, Task> RefreshSearchTab { get; init; }
         public Func<string, object> FindResource { get; init; }
         public Func<bool> IsTagTrainAvailable { get; init; }
+
+        /// <summary>
+        /// 获取当前导航模式（"Path", "Library", "Tag"）
+        /// </summary>
+        public Func<string> GetCurrentNavigationMode { get; init; }
     }
 
     /// <summary>
@@ -169,7 +174,7 @@ namespace OoiMRR.Services.Tabs
                 case TabType.Path:
                     return _tabs.FirstOrDefault(t => t.Type == TabType.Path && t.Path == identifier);
                 case TabType.Library:
-                    return _tabs.FirstOrDefault(t => t.Type == TabType.Library && 
+                    return _tabs.FirstOrDefault(t => t.Type == TabType.Library &&
                         (t.Library?.Name == identifier || t.Path == identifier));
                 case TabType.Tag:
                     if (int.TryParse(identifier, out int tagId))
@@ -206,6 +211,56 @@ namespace OoiMRR.Services.Tabs
             return _tabs.FirstOrDefault(t => t.Type == TabType.Path && t.Path == path);
         }
 
+        /// <summary>
+        /// 智能查找最近访问的标签页
+        /// 如果只有一个匹配的标签页，总是返回（唯一匹配）
+        /// 如果有多个匹配的标签页，根据配置和时间窗口判断
+        /// </summary>
+        private PathTab FindRecentTab(Func<PathTab, bool> predicate, TimeSpan timeWindow)
+        {
+            var matchingTabs = _tabs.Where(predicate).ToList();
+            if (matchingTabs.Count == 0) return null;
+
+            // 唯一匹配：总是返回（不管时间窗口）
+            if (matchingTabs.Count == 1)
+            {
+                System.Diagnostics.Debug.WriteLine($"[FindRecentTab] 唯一匹配，总是返回");
+                return matchingTabs[0];
+            }
+
+            // 配置选项：从不复用
+            var config = _config;
+            if (config?.NeverReuseTab == true)
+            {
+                System.Diagnostics.Debug.WriteLine($"[FindRecentTab] 配置为从不复用，返回null");
+                return null;
+            }
+
+            // 配置选项：总是复用（返回第一个）
+            if (config?.AlwaysReuseTab == true)
+            {
+                System.Diagnostics.Debug.WriteLine($"[FindRecentTab] 配置为总是复用，返回第一个");
+                return matchingTabs[0];
+            }
+
+            // 多个匹配的标签页，检查是否有最近访问的
+            var now = DateTime.Now;
+            var recentTab = matchingTabs.FirstOrDefault(t => now - t.LastAccessTime < timeWindow);
+
+            System.Diagnostics.Debug.WriteLine($"[FindRecentTab] 找到{matchingTabs.Count}个匹配标签页，最近访问的: {recentTab != null}");
+
+            return recentTab;
+        }
+
+        /// <summary>
+        /// 查找最近访问的Path标签页（公共方法供MainWindow使用）
+        /// </summary>
+        public PathTab FindRecentPathTab(string path, TimeSpan? timeWindow = null)
+        {
+            var window = timeWindow ?? TimeSpan.FromSeconds(_config?.ReuseTabTimeWindow ?? 10);
+            return FindRecentTab(t => t.Type == TabType.Path && t.Path == path, window);
+        }
+
         #endregion
 
         #region 标签页管理
@@ -229,7 +284,7 @@ namespace OoiMRR.Services.Tabs
         public bool RemoveTab(PathTab tab)
         {
             if (tab == null) return false;
-            
+
             bool removed = _tabs.Remove(tab);
             if (removed)
             {
@@ -395,10 +450,10 @@ namespace OoiMRR.Services.Tabs
             if (tab == null) return;
 
             var key = GetTabKey(tab);
-            
+
             // 应用标题覆盖
-            if (_config.TabTitleOverrides != null && 
-                _config.TabTitleOverrides.TryGetValue(key, out var overrideTitle) && 
+            if (_config.TabTitleOverrides != null &&
+                _config.TabTitleOverrides.TryGetValue(key, out var overrideTitle) &&
                 !string.IsNullOrWhiteSpace(overrideTitle))
             {
                 tab.OverrideTitle = overrideTitle;
@@ -421,12 +476,12 @@ namespace OoiMRR.Services.Tabs
             tab.IsPinned = !tab.IsPinned;
             var key = GetTabKey(tab);
 
-            if (_config.PinnedTabs == null) 
+            if (_config.PinnedTabs == null)
                 _config.PinnedTabs = new List<string>();
 
             if (tab.IsPinned)
             {
-                if (!_config.PinnedTabs.Contains(key)) 
+                if (!_config.PinnedTabs.Contains(key))
                     _config.PinnedTabs.Insert(0, key);
             }
             else
@@ -446,17 +501,17 @@ namespace OoiMRR.Services.Tabs
             if (tab == null) return;
 
             var key = GetTabKey(tab);
-            
+
             if (string.IsNullOrWhiteSpace(overrideTitle))
             {
                 tab.OverrideTitle = null;
-                if (_config.TabTitleOverrides != null) 
+                if (_config.TabTitleOverrides != null)
                     _config.TabTitleOverrides.Remove(key);
             }
             else
             {
                 tab.OverrideTitle = overrideTitle;
-                if (_config.TabTitleOverrides == null) 
+                if (_config.TabTitleOverrides == null)
                     _config.TabTitleOverrides = new Dictionary<string, string>();
                 _config.TabTitleOverrides[key] = overrideTitle;
             }
@@ -654,8 +709,12 @@ namespace OoiMRR.Services.Tabs
             EnsureUi();
             if (library == null) return;
 
+            System.Diagnostics.Debug.WriteLine($"[OpenLibraryTab] library={library.Name}, forceNewTab={forceNewTab}, 当前标签页={_activeTab?.Type}");
+
+            // 1. 强制创建新标签页（中键/Ctrl+左键）
             if (forceNewTab)
             {
+                System.Diagnostics.Debug.WriteLine($"[OpenLibraryTab] 强制创建新Library标签页");
                 var tab = new PathTab
                 {
                     Type = TabType.Library,
@@ -667,25 +726,39 @@ namespace OoiMRR.Services.Tabs
                 return;
             }
 
-            var existingTab = FindTabByLibraryId(library.Id);
-            if (existingTab != null)
+            // 2. 优先查找：是否已存在该Library的标签页
+            var window = TimeSpan.FromSeconds(_config?.ReuseTabTimeWindow ?? 10);
+            var recentTab = FindRecentTab(
+                t => t.Type == TabType.Library && t.Library?.Id == library.Id,
+                window
+            );
+
+            if (recentTab != null)
             {
-                SwitchToTab(existingTab);
+                // 找到了标签页，切换到它
+                System.Diagnostics.Debug.WriteLine($"[OpenLibraryTab] 找到已存在的Library标签页，切换");
+                SwitchToTab(recentTab);
                 return;
             }
 
-            var activeTab = _activeTab;
-            if (activeTab != null && activeTab.Type == TabType.Library)
+            // 3. 导航行为：在Library模式下且当前是Library标签页 → 更新当前标签页
+            var currentMode = _ui?.GetCurrentNavigationMode?.Invoke() ?? "Path";
+            System.Diagnostics.Debug.WriteLine($"[OpenLibraryTab] 当前导航模式: {currentMode}, 当前标签页类型: {_activeTab?.Type}");
+
+            if (currentMode == "Library" && _activeTab != null && _activeTab.Type == TabType.Library)
             {
-                activeTab.Library = library;
-                activeTab.Path = library.Name;
-                activeTab.Title = library.Name;
-                if (activeTab.TitleTextBlock != null) activeTab.TitleTextBlock.Text = library.Name;
-                if (activeTab.TabButton != null) activeTab.TabButton.ToolTip = library.Name;
-                SwitchToTab(activeTab);
+                System.Diagnostics.Debug.WriteLine($"[OpenLibraryTab] Library模式导航：更新当前Library标签页");
+                _activeTab.Library = library;
+                _activeTab.Path = library.Name;
+                _activeTab.Title = library.Name;
+                if (_activeTab.TitleTextBlock != null) _activeTab.TitleTextBlock.Text = library.Name;
+                if (_activeTab.TabButton != null) _activeTab.TabButton.ToolTip = library.Name;
+                SwitchToTab(_activeTab);
                 return;
             }
 
+            // 4. 其他情况：创建新标签页
+            System.Diagnostics.Debug.WriteLine($"[OpenLibraryTab] 创建新Library标签页");
             var newTab = new PathTab
             {
                 Type = TabType.Library,
@@ -702,8 +775,12 @@ namespace OoiMRR.Services.Tabs
             EnsureUi();
             if (tag == null || string.IsNullOrWhiteSpace(tag.Name)) return;
 
+            System.Diagnostics.Debug.WriteLine($"[OpenTagTab] tag={tag.Name}, forceNewTab={forceNewTab}, 当前标签页={_activeTab?.Type}");
+
+            // 1. 强制创建新标签页（中键/Ctrl+左键）
             if (forceNewTab)
             {
+                System.Diagnostics.Debug.WriteLine($"[OpenTagTab] 强制创建新Tag标签页");
                 var tab = new PathTab
                 {
                     Type = TabType.Tag,
@@ -716,26 +793,38 @@ namespace OoiMRR.Services.Tabs
                 return;
             }
 
-            var existingTab = FindTabByTagId(tag.Id);
-            if (existingTab != null)
+            // 2. 优先查找：是否已存在该Tag的标签页
+            var window = TimeSpan.FromSeconds(_config?.ReuseTabTimeWindow ?? 10);
+            var recentTab = FindRecentTab(
+                t => t.Type == TabType.Tag && t.TagId == tag.Id,
+                window
+            );
+
+            if (recentTab != null)
             {
-                SwitchToTab(existingTab);
+                // 找到了标签页，切换到它
+                System.Diagnostics.Debug.WriteLine($"[OpenTagTab] 找到已存在的Tag标签页，切换");
+                SwitchToTab(recentTab);
                 return;
             }
 
-            var activeTab = _activeTab;
-            if (activeTab != null && activeTab.Type == TabType.Tag)
+            // 3. 导航行为：在Tag模式下且当前是Tag标签页 → 更新当前标签页
+            var currentMode = _ui?.GetCurrentNavigationMode?.Invoke() ?? "Path";
+            if (currentMode == "Tag" && _activeTab != null && _activeTab.Type == TabType.Tag)
             {
-                activeTab.TagId = tag.Id;
-                activeTab.TagName = tag.Name;
-                activeTab.Path = $"tag://{tag.Id}";
-                activeTab.Title = tag.Name;
-                if (activeTab.TitleTextBlock != null) activeTab.TitleTextBlock.Text = tag.Name;
-                if (activeTab.TabButton != null) activeTab.TabButton.ToolTip = tag.Name;
-                SwitchToTab(activeTab);
+                System.Diagnostics.Debug.WriteLine($"[OpenTagTab] Tag模式导航：更新当前Tag标签页");
+                _activeTab.TagId = tag.Id;
+                _activeTab.TagName = tag.Name;
+                _activeTab.Path = $"tag://{tag.Id}";
+                _activeTab.Title = tag.Name;
+                if (_activeTab.TitleTextBlock != null) _activeTab.TitleTextBlock.Text = tag.Name;
+                if (_activeTab.TabButton != null) _activeTab.TabButton.ToolTip = tag.Name;
+                SwitchToTab(_activeTab);
                 return;
             }
 
+            // 4. 其他情况：创建新标签页
+            System.Diagnostics.Debug.WriteLine($"[OpenTagTab] 创建新Tag标签页");
             var newTab = new PathTab
             {
                 Type = TabType.Tag,
@@ -753,11 +842,28 @@ namespace OoiMRR.Services.Tabs
             EnsureUi();
             if (tab == null) return;
 
+            System.Diagnostics.Debug.WriteLine($"[SwitchToTab] 切换到标签页: Type={tab.Type}, Path={tab.Path ?? "null"}, Library={tab.Library?.Name ?? "null"}, Tag={tab.TagName ?? "null"}");
+            var beforeCount = (_ui.FileBrowser?.FilesItemsSource as System.Collections.IList)?.Count ?? 0;
+            System.Diagnostics.Debug.WriteLine($"[SwitchToTab] 切换前文件数: {beforeCount}");
+
+            // 更新最后访问时间
+            tab.LastAccessTime = DateTime.Now;
+
             SetActiveTab(tab);
             UpdateTabStyles();
 
+            // 清空文件列表，防止显示上一个标签页的内容
+            // 各个分支的加载方法会重新设置文件列表
+            if (_ui.FileBrowser != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SwitchToTab] 清空文件列表");
+                _ui.FileBrowser.FilesItemsSource = null;
+                _ui.GetCurrentFiles?.Invoke()?.Clear(); // 清空 _currentFiles
+            }
+
             if (tab.Type == TabType.Library)
             {
+                System.Diagnostics.Debug.WriteLine($"[SwitchToTab] 处理Library标签页: {tab.Library?.Name}");
                 if (tab.Library != null)
                 {
                     _ui.SetCurrentLibrary?.Invoke(tab.Library);
@@ -768,25 +874,34 @@ namespace OoiMRR.Services.Tabs
                         cfg.LastLibraryId = tab.Library.Id;
                         ConfigManager.Save(cfg);
                     }
-                    if (_ui.FileBrowser != null) _ui.FileBrowser.NavUpEnabled = false;
+                    if (_ui.FileBrowser != null)
+                    {
+                        _ui.FileBrowser.NavUpEnabled = false;
+                        _ui.FileBrowser.IsAddressReadOnly = false;  // 允许在库标签页中进行搜索
+                    }
+                    System.Diagnostics.Debug.WriteLine($"[SwitchToTab] 调用LoadLibraryFiles");
                     _ui.LoadLibraryFiles?.Invoke(tab.Library);
+                    System.Diagnostics.Debug.WriteLine($"[SwitchToTab] Library标签页处理完成");
                 }
                 return;
             }
 
             if (tab.Type == TabType.Tag)
             {
+                System.Diagnostics.Debug.WriteLine($"[SwitchToTab] 处理Tag标签页: {tab.TagName} (ID: {tab.TagId})");
                 _ui.SetCurrentLibrary?.Invoke(null);
                 _ui.SetCurrentPath?.Invoke(null);
                 _ui.SetCurrentTagFilter?.Invoke(new OoiMRR.Tag { Id = tab.TagId, Name = tab.TagName });
                 if (_ui.FileBrowser != null)
                 {
                     _ui.FileBrowser.AddressText = "";
-                    _ui.FileBrowser.IsAddressReadOnly = true;
+                    _ui.FileBrowser.IsAddressReadOnly = false;  // 允许在 Tag 标签页中进行搜索
                     _ui.FileBrowser.SetTagBreadcrumb(tab.TagName);
                     _ui.FileBrowser.NavUpEnabled = false;
                 }
+                System.Diagnostics.Debug.WriteLine($"[SwitchToTab] 调用FilterByTag");
                 _ui.FilterByTag?.Invoke(new OoiMRR.Tag { Id = tab.TagId, Name = tab.TagName });
+                System.Diagnostics.Debug.WriteLine($"[SwitchToTab] Tag标签页处理完成");
                 return;
             }
 
@@ -794,6 +909,7 @@ namespace OoiMRR.Services.Tabs
 
             if (tab.Path != null && tab.Path.StartsWith("search://"))
             {
+                System.Diagnostics.Debug.WriteLine($"[SwitchToTab] 处理Search标签页: {tab.Path}");
                 // 从路径提取关键词并规范化（确保即使路径被污染也能正确处理）
                 var rawKeyword = tab.Path.Substring("search://".Length);
                 var normalizedKeyword = SearchService.NormalizeKeyword(rawKeyword);
@@ -806,7 +922,10 @@ namespace OoiMRR.Services.Tabs
                     _ui.FileBrowser.SetSearchBreadcrumb(normalizedKeyword);
                     _ui.FileBrowser.NavUpEnabled = false;
                 }
-                _ = _ui.RefreshSearchTab?.Invoke(tab.Path);
+                System.Diagnostics.Debug.WriteLine($"[SwitchToTab] Search标签页UI设置完成，RefreshSearchTab已注释");
+                // 暂时注释掉RefreshSearchTab，避免在创建新标签页时清空已设置的文件列表
+                // TODO: 改进缓存逻辑，确保在创建标签页之前缓存已设置
+                // _ = _ui.RefreshSearchTab?.Invoke(tab.Path);
                 return;
             }
 
@@ -835,11 +954,14 @@ namespace OoiMRR.Services.Tabs
             _ui.SetCurrentPath?.Invoke(tab.Path);
             _ui.SetNavigationCurrentPath?.Invoke(tab.Path);
 
+            System.Diagnostics.Debug.WriteLine($"[SwitchToTab] 处理Path标签页: {tab.Path}");
             try
             {
+                System.Diagnostics.Debug.WriteLine($"[SwitchToTab] 调用NavigateToPathInternal");
                 _ui.NavigateToPathInternal?.Invoke(tab.Path);
                 if (_ui.FileBrowser != null) _ui.FileBrowser.NavUpEnabled = true;
                 _ui.UpdateNavigationButtonsState?.Invoke();
+                System.Diagnostics.Debug.WriteLine($"[SwitchToTab] Path标签页处理完成");
             }
             catch (UnauthorizedAccessException ex)
             {
@@ -1050,6 +1172,57 @@ namespace OoiMRR.Services.Tabs
             }
         }
 
+        /// <summary>
+        /// 根据标签页类型和路径获取类型图标
+        /// </summary>
+        private string GetTabTypePrefix(PathTab tab)
+        {
+            if (tab.Type == TabType.Path)
+            {
+                if (!string.IsNullOrEmpty(tab.Path))
+                {
+                    if (tab.Path.StartsWith("search://")) return "🔍";
+                    if (tab.Path.StartsWith("lib://")) return "📚";
+                    if (tab.Path.StartsWith("tag://")) return "🏷️";
+                }
+                return "📁";
+            }
+            else if (tab.Type == TabType.Library) return "📚";
+            else if (tab.Type == TabType.Tag) return "🏷️";
+
+            return "📁";
+        }
+
+        /// <summary>
+        /// 根据类型前缀获取 Badge 颜色（图标模式不使用）
+        /// </summary>
+        private (SolidColorBrush bg, SolidColorBrush fg) GetTabTypeBadgeColors(string prefix)
+        {
+            // 图标模式下不需要背景色，返回透明
+            return (Brushes.Transparent, Brushes.Black);
+        }
+
+        /// <summary>
+        /// 创建类型标识图标（无背景，纯图标）
+        /// </summary>
+        private TextBlock CreateTypeIcon(PathTab tab)
+        {
+            string icon = GetTabTypePrefix(tab);
+
+            var iconText = new TextBlock
+            {
+                Text = icon,
+                FontSize = 14,
+                FontFamily = new FontFamily("Segoe UI Emoji, Segoe UI Symbol"),
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Margin = new Thickness(0, 0, 4, 0),
+                Opacity = 1.0  // 默认显示
+            };
+
+            return iconText;
+        }
+
         private void CreateTabInternal(PathTab tab)
         {
             EnsureUi();
@@ -1060,6 +1233,9 @@ namespace OoiMRR.Services.Tabs
                 Orientation = Orientation.Horizontal,
                 Margin = new Thickness(0, 0, 2, 0)
             };
+
+            // 创建类型图标
+            var typeIcon = CreateTypeIcon(tab);
 
             var titleText = new TextBlock
             {
@@ -1082,7 +1258,7 @@ namespace OoiMRR.Services.Tabs
                 VerticalAlignment = VerticalAlignment.Center,
                 TextAlignment = TextAlignment.Center,
                 Tag = tab,
-                Opacity = 0.0,
+                Opacity = 0.0,  // 默认隐藏
                 Cursor = Cursors.Hand
             };
 
@@ -1095,8 +1271,8 @@ namespace OoiMRR.Services.Tabs
                 Cursor = Cursors.Hand,
                 Child = closeButtonText,
                 VerticalAlignment = VerticalAlignment.Center,
-                HorizontalAlignment = HorizontalAlignment.Right,
-                Margin = new Thickness(4, 0, 0, 0)
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Margin = new Thickness(0)
             };
 
             closeButton.MouseLeftButtonDown += (s, e) =>
@@ -1132,17 +1308,28 @@ namespace OoiMRR.Services.Tabs
                 }
             };
 
+            // 创建整合容器：图标和关闭按钮在同一位置
+            var iconCloseContainer = new Grid
+            {
+                Width = 24,
+                Height = 24,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, 4, 0)
+            };
+            iconCloseContainer.Children.Add(typeIcon);
+            iconCloseContainer.Children.Add(closeButton);
+
             var buttonContent = new Grid
             {
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 VerticalAlignment = VerticalAlignment.Stretch
             };
-            buttonContent.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             buttonContent.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            Grid.SetColumn(titleText, 0);
-            Grid.SetColumn(closeButton, 1);
+            buttonContent.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            Grid.SetColumn(iconCloseContainer, 0);
+            Grid.SetColumn(titleText, 1);
+            buttonContent.Children.Add(iconCloseContainer);
             buttonContent.Children.Add(titleText);
-            buttonContent.Children.Add(closeButton);
 
             var button = new Button
             {
@@ -1202,8 +1389,8 @@ namespace OoiMRR.Services.Tabs
                     // 如果没有移动超过阈值，不设置 e.Handled，让 Click 事件正常触发
                 }
             };
-            button.PreviewMouseLeftButtonUp += (s, e) => 
-            { 
+            button.PreviewMouseLeftButtonUp += (s, e) =>
+            {
                 // 检查是否点击在关闭按钮上
                 if (e.OriginalSource is Border border && border.Tag == tab)
                 {
@@ -1212,7 +1399,7 @@ namespace OoiMRR.Services.Tabs
                     _isDragging = false;
                     return;
                 }
-                
+
                 // 只有在真正进行拖拽时才阻止点击处理
                 bool shouldPreventClick = false;
                 if (_draggingTab == tab && _isDragging)
@@ -1226,7 +1413,7 @@ namespace OoiMRR.Services.Tabs
                     var pos = e.GetPosition(null);
                     var deltaX = Math.Abs(pos.X - _tabDragStartPoint.X);
                     var deltaY = Math.Abs(pos.Y - _tabDragStartPoint.Y);
-                    
+
                     // 直接调用SwitchToTab，不再依赖Click事件
                     if (deltaX <= 4 && deltaY <= 4) // 确保是点击而不是拖拽
                     {
@@ -1234,7 +1421,7 @@ namespace OoiMRR.Services.Tabs
                         e.Handled = true; // 标记已处理，避免触发其他事件
                     }
                 }
-                
+
                 if (shouldPreventClick)
                 {
                     // 拖拽操作，阻止点击处理
@@ -1314,6 +1501,8 @@ namespace OoiMRR.Services.Tabs
 
             button.MouseEnter += (s, e) =>
             {
+                // 图标淡出，关闭按钮淡入
+                typeIcon.BeginAnimation(UIElement.OpacityProperty, fadeOutAnimation);
                 closeButtonText.BeginAnimation(UIElement.OpacityProperty, fadeInAnimation);
             };
 
@@ -1323,12 +1512,15 @@ namespace OoiMRR.Services.Tabs
                 var mousePos = Mouse.GetPosition(btn);
                 if (mousePos.X < 0 || mousePos.Y < 0 || mousePos.X > btn.ActualWidth || mousePos.Y > btn.ActualHeight)
                 {
+                    // 图标淡入，关闭按钮淡出
+                    typeIcon.BeginAnimation(UIElement.OpacityProperty, fadeInAnimation);
                     closeButtonText.BeginAnimation(UIElement.OpacityProperty, fadeOutAnimation);
                 }
             };
 
             closeButton.MouseEnter += (s, e) =>
             {
+                // 保持关闭按钮淡入状态
                 closeButtonText.BeginAnimation(UIElement.OpacityProperty, fadeInAnimation);
             };
 
@@ -1338,6 +1530,8 @@ namespace OoiMRR.Services.Tabs
                 var mousePos = Mouse.GetPosition(btn);
                 if (mousePos.X < 0 || mousePos.Y < 0 || mousePos.X > btn.ActualWidth || mousePos.Y > btn.ActualHeight)
                 {
+                    // 图标淡入，关闭按钮淡出
+                    typeIcon.BeginAnimation(UIElement.OpacityProperty, fadeInAnimation);
                     closeButtonText.BeginAnimation(UIElement.OpacityProperty, fadeOutAnimation);
                 }
             };

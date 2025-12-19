@@ -76,12 +76,12 @@ namespace OoiMRR.Services.Tag
                 // 后续可以在TagTrain面板中高亮选中的标签
 
                 // 从 TagTrain 获取该标签的文件路径
-                var taggedPaths = App.IsTagTrainAvailable 
+                var taggedPaths = App.IsTagTrainAvailable
                     ? (OoiMRRIntegration.GetFilePathsByTag(tag.Id) ?? new List<string>())
                     : new List<string>();
-                
+
                 System.Diagnostics.Debug.WriteLine($"FilterByTag: 获取到 {taggedPaths.Count} 个文件路径");
-                
+
                 var tagFiles = new List<FileSystemItem>();
                 var fileListService = _context.GetFileListService();
 
@@ -104,7 +104,10 @@ namespace OoiMRR.Services.Tag
                             ModifiedDate = isDirectory ?
                                 Directory.GetLastWriteTime(path).ToString("yyyy-MM-dd HH:mm") :
                                 File.GetLastWriteTime(path).ToString("yyyy-MM-dd HH:mm"),
-                            Notes = ""
+                            Notes = "",
+                            SizeBytes = isDirectory ? -1 : new System.IO.FileInfo(path).Length,
+                            ModifiedDateTime = isDirectory ? Directory.GetLastWriteTime(path) : File.GetLastWriteTime(path),
+                            CreatedDateTime = isDirectory ? Directory.GetCreationTime(path) : File.GetCreationTime(path)
                         };
 
                         // 从 TagTrain 获取文件的标签
@@ -141,7 +144,7 @@ namespace OoiMRR.Services.Tag
                 }
 
                 System.Diagnostics.Debug.WriteLine($"FilterByTag: 处理完成，共 {tagFiles.Count} 个文件");
-                
+
                 // 确保在UI线程更新
                 if (!_context.Dispatcher.CheckAccess())
                 {
@@ -151,7 +154,7 @@ namespace OoiMRR.Services.Tag
                 {
                     _context.UpdateTagFilesUI(tag, tagFiles);
                 }
-                
+
                 System.Diagnostics.Debug.WriteLine("FilterByTag: 完成");
             }
             catch (Exception ex)
@@ -174,18 +177,18 @@ namespace OoiMRR.Services.Tag
                 MessageBox.Show("TagTrain 不可用，无法创建标签。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
-            
+
             var dialog = new TagDialog();
             if (dialog.ShowDialog() == true)
             {
                 try
                 {
                     System.Diagnostics.Debug.WriteLine($"NewTag_Click: 开始创建标签: {dialog.TagName}");
-                    
+
                     // 使用 TagTrain 创建标签
                     var tagId = OoiMRRIntegration.GetOrCreateTagId(dialog.TagName);
                     System.Diagnostics.Debug.WriteLine($"NewTag_Click: 返回的标签ID: {tagId}");
-                    
+
                     if (tagId > 0)
                     {
                         System.Diagnostics.Debug.WriteLine($"NewTag_Click: 标签创建成功，重新加载标签列表");
@@ -219,7 +222,7 @@ namespace OoiMRR.Services.Tag
                 MessageBox.Show("TagTrain 不可用，无法打开标签训练工具。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
-            
+
             // 打开 TagTrain 训练窗口（作为独立窗口打开）
             try
             {
@@ -247,7 +250,7 @@ namespace OoiMRR.Services.Tag
                 MessageBox.Show("TagTrain 不可用，无法添加标签。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
-            
+
             OpenTagDialogForSelectedItems();
         }
 
@@ -337,7 +340,7 @@ namespace OoiMRR.Services.Tag
                 var firstTagIds = OoiMRRIntegration.GetFileTagIds(items[0].Path);
                 if (firstTagIds == null || firstTagIds.Count == 0)
                     return new List<int>();
-                    
+
                 var initial = firstTagIds.ToHashSet();
                 foreach (var item in items.Skip(1))
                 {
@@ -413,7 +416,7 @@ namespace OoiMRR.Services.Tag
         public void ShowBatchTaggingDialog(List<FileSystemItem> files)
         {
             // 确保文件浏览器选中的是这些文件，或者直接使用传入的文件列表
-             OpenTagDialogForSelectedItems();
+            OpenTagDialogForSelectedItems();
         }
     }
 }

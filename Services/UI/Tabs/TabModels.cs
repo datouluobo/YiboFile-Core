@@ -1,3 +1,4 @@
+using System;
 using System.Windows;
 using System.Windows.Controls;
 using OoiMRR;
@@ -31,6 +32,11 @@ namespace OoiMRR.Services.Tabs
         public StackPanel TabContainer { get; set; }
         public TextBlock TitleTextBlock { get; set; }
         public string OverrideTitle { get; set; }
+
+        /// <summary>
+        /// 最后访问时间 - 用于智能标签页复用策略
+        /// </summary>
+        public DateTime LastAccessTime { get; set; } = DateTime.Now;
     }
 }
 

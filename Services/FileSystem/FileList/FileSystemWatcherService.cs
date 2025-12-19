@@ -54,8 +54,8 @@ namespace OoiMRR.Services.FileList
         /// 设置文件系统监控
         /// </summary>
         /// <param name="path">要监控的路径，null表示停止监控</param>
-        /// <param name="debounceIntervalMs">防抖间隔（毫秒），默认3000</param>
-        public void SetupFileWatcher(string path, int debounceIntervalMs = 3000)
+        /// <param name="debounceIntervalMs">防抖间隔（毫秒），默认800</param>
+        public void SetupFileWatcher(string path, int debounceIntervalMs = 800)
         {
             lock (_lock)
             {
@@ -128,8 +128,8 @@ namespace OoiMRR.Services.FileList
         {
             lock (_lock)
             {
-                return _fileWatcher != null && 
-                       _fileWatcher.EnableRaisingEvents && 
+                return _fileWatcher != null &&
+                       _fileWatcher.EnableRaisingEvents &&
                        string.Equals(_watchedPath, path, StringComparison.OrdinalIgnoreCase);
             }
         }
