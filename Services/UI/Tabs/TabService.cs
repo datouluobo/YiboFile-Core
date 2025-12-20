@@ -922,10 +922,8 @@ namespace OoiMRR.Services.Tabs
                     _ui.FileBrowser.SetSearchBreadcrumb(normalizedKeyword);
                     _ui.FileBrowser.NavUpEnabled = false;
                 }
-                System.Diagnostics.Debug.WriteLine($"[SwitchToTab] Search标签页UI设置完成，RefreshSearchTab已注释");
-                // 暂时注释掉RefreshSearchTab，避免在创建新标签页时清空已设置的文件列表
-                // TODO: 改进缓存逻辑，确保在创建标签页之前缓存已设置
-                // _ = _ui.RefreshSearchTab?.Invoke(tab.Path);
+                // 从缓存恢复搜索结果
+                _ = _ui.RefreshSearchTab?.Invoke(tab.Path);
                 return;
             }
 

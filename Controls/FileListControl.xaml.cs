@@ -300,10 +300,6 @@ namespace OoiMRR.Controls
                 SearchResultType.Other
             };
 
-            // 临时方案：扁平化结果并设置到FilesItemsSource
-            // TODO: 恢复分组显示UI（GroupedResultsViewer等控件）
-            var flattenedResults = new List<FileSystemItem>();
-
             foreach (var type in displayOrder)
             {
                 if (groupedItems.ContainsKey(type) && groupedItems[type].Count > 0)
@@ -315,25 +311,17 @@ namespace OoiMRR.Controls
                         Items = new ObservableCollection<FileSystemItem>(groupedItems[type])
                     };
                     _groupedResults.Add(group);
-
-                    // 添加到扁平化列表
-                    flattenedResults.AddRange(groupedItems[type]);
                 }
             }
 
-            // 临时：直接设置到普通列表视图
-            System.Diagnostics.Debug.WriteLine($"[SetGroupedSearchResults] 扁平化后总数: {flattenedResults.Count}");
-            FilesItemsSource = new ObservableCollection<FileSystemItem>(flattenedResults);
-            SwitchToNormalView(); // 使用普通视图而不是分组视图
+            // 切换到分组显示模式
+            SwitchToGroupedView();
 
-            // 切换到分组显示模式（目前被注释，因为UI控件不存在）
-            // SwitchToGroupedView();
-
-            // 确保视觉树生成后立即订阅（避免首次点击前未注册SelectionChanged）
-            // Dispatcher.BeginInvoke(new Action(() =>
-            // {
-            //    FindAndSubscribeListViews(GroupedResultsList);
-            // }), System.Windows.Threading.DispatcherPriority.Loaded);
+            // 确保视觉树生成后立即订阅
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                FindAndSubscribeListViews(GroupedResultsList);
+            }), System.Windows.Threading.DispatcherPriority.Loaded);
         }
 
         private string GetGroupName(SearchResultType type)
@@ -354,8 +342,6 @@ namespace OoiMRR.Controls
             if (FilesListView != null)
                 FilesListView.Visibility = Visibility.Collapsed;
 
-            // 分组显示UI控件不存在，暂时注释
-            /*
             if (GroupedResultsViewer != null)
             {
                 GroupedResultsViewer.Visibility = Visibility.Visible;
@@ -377,7 +363,6 @@ namespace OoiMRR.Controls
                 HookGroupedHeaderThumbs();
                 HookGroupedHeaderContextMenu();
             }
-            */
         }
 
         /// <summary>
@@ -693,8 +678,8 @@ namespace OoiMRR.Controls
             if (FilesListView != null)
                 FilesListView.Visibility = Visibility.Visible;
 
-            // if (GroupedResultsViewer != null)
-            //    GroupedResultsViewer.Visibility = Visibility.Collapsed;
+            if (GroupedResultsViewer != null)
+                GroupedResultsViewer.Visibility = Visibility.Collapsed;
         }
 
         /// <summary>
@@ -767,9 +752,8 @@ namespace OoiMRR.Controls
                 tb.Measure(new System.Windows.Size(double.PositiveInfinity, double.PositiveInfinity));
                 return tb.DesiredSize.Width;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine($"MeasureTextWidth Failed: {ex.Message}");
                 return 50; // Fallback
             }
         }

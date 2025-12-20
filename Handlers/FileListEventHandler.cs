@@ -397,14 +397,14 @@ namespace OoiMRR.Handlers
                 // 检查是否按了 Ctrl 或 Shift（用于多选）
                 bool isMultiSelect = (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control ||
                                      (Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift;
-                
+
                 if (!isMultiSelect)
                 {
                     listView.SelectedItem = null;
                     listView.SelectedItems.Clear();
                 }
             }
-            
+
             // 重要：不要阻止 Ctrl+左键的默认多选行为
             // ListView 默认支持 Ctrl+左键多选，我们不应该设置 e.Handled = true
         }

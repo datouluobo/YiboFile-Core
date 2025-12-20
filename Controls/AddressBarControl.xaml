@@ -20,6 +20,7 @@
                  VerticalAlignment="Stretch"
                  Height="30"
                  Padding="5,3"
+                 MaxLength="100"
                  AcceptsReturn="False"
                  AcceptsTab="False">
             <TextBox.CommandBindings>
@@ -37,10 +38,27 @@
                 Cursor="Hand"
                 Height="30"
                 VerticalAlignment="Stretch">
-            <WrapPanel Name="BreadcrumbPanel"
-                       Orientation="Horizontal"
-                       VerticalAlignment="Center"
-                       Margin="5,3"/>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                
+                <!-- 左侧：path前缀和省略号（或完整路径） -->
+                <TextBlock Name="BreadcrumbText"
+                          Grid.Column="0"
+                          VerticalAlignment="Center"
+                          Padding="5,3"
+                          ToolTipService.ShowOnDisabled="True"/>
+                
+                <!-- 右侧：路径尾部（仅长路径时使用，右对齐） -->
+                <TextBlock Name="BreadcrumbTail"
+                          Grid.Column="1"
+                          VerticalAlignment="Center"
+                          Padding="5,3"
+                          HorizontalAlignment="Right"
+                          Visibility="Collapsed"/>
+            </Grid>
         </Border>
     </Grid>
 </UserControl>

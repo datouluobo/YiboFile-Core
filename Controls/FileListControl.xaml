@@ -141,8 +141,7 @@
                     </ListView.View>
                 </ListView>
                 
-                <!-- 分组列表视图 (Commented out for debugging ArgumentException) -->
-                <!--
+                <!-- 分组列表视图 -->
                 <Grid x:Name="GroupedResultsViewer" Visibility="Collapsed">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -314,7 +313,6 @@
                         </ItemsControl>
                     </ScrollViewer>
                 </Grid>
-                -->
                 
                 <!-- 加载更多按钮 -->
                 <Button x:Name="LoadMoreBtn" Content="加载更多" Width="88" Height="28"

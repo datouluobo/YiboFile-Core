@@ -20,7 +20,6 @@ namespace OoiMRR.Controls
         private string _currentPath = "";
         private bool _isEditMode = false;
         private string _breadcrumbCustomText = null;
-        private bool _ctrlLeftClickHandled = false;
 
         public AddressBarControl()
         {
@@ -49,12 +48,12 @@ namespace OoiMRR.Controls
             get => AddressTextBox.IsReadOnly;
             set => AddressTextBox.IsReadOnly = value;
         }
-        
+
         /// <summary>
         /// 是否处于编辑模式
         /// </summary>
         public bool IsEditMode => _isEditMode;
-        
+
         /// <summary>
         /// 地址栏文本框是否有焦点
         /// </summary>
@@ -62,52 +61,51 @@ namespace OoiMRR.Controls
 
         public void UpdateBreadcrumb(string path)
         {
-            if (BreadcrumbPanel == null)
+            if (BreadcrumbText == null)
                 return;
 
             _currentPath = path ?? "";
-            BreadcrumbPanel.Children.Clear();
+            BreadcrumbText.Inlines.Clear();
+
+            // 清理并隐藏右侧TextBlock（短路径时不用）
+            if (BreadcrumbTail != null)
+            {
+                BreadcrumbTail.Inlines.Clear();
+                BreadcrumbTail.Visibility = Visibility.Collapsed;
+            }
 
             if (string.IsNullOrEmpty(path))
                 return;
 
-            var parentWindowForPrefix = Window.GetWindow(this);
-            var bgPrefix = parentWindowForPrefix?.TryFindResource("HighlightBrush") as System.Windows.Media.SolidColorBrush;
-            var bdPrefix = parentWindowForPrefix?.TryFindResource("HighlightBorderBrush") as System.Windows.Media.SolidColorBrush;
-            var fgPrefix = parentWindowForPrefix?.TryFindResource("HighlightForegroundBrush") as System.Windows.Media.SolidColorBrush;
+            // 设置完整路径为 ToolTip
+            BreadcrumbText.ToolTip = path;
 
-            var prefixBadge = new Border
+            // 获取前景色
+            var parentWindow = Window.GetWindow(this);
+            var defaultBrush = parentWindow?.TryFindResource("ForegroundBrush") as System.Windows.Media.SolidColorBrush
+                ?? System.Windows.Media.Brushes.Black;
+            var hoverBrush = parentWindow?.TryFindResource("HighlightBrush") as System.Windows.Media.SolidColorBrush
+                ?? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 120, 215));
+
+            // 添加 "path" 标签
+            var prefixRun = new System.Windows.Documents.Run("path ")
             {
-                Background = bgPrefix ?? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 165, 0)),
-                BorderBrush = bdPrefix ?? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 140, 0)),
-                BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(4),
-                Padding = new Thickness(8, 2, 8, 2),
-                Margin = new Thickness(0, 0, 6, 0)
+                Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 165, 0)),
+                FontWeight = FontWeights.SemiBold
             };
+            BreadcrumbText.Inlines.Add(prefixRun);
 
-            var prefixText = new TextBlock
-            {
-                Text = "path",
-                Foreground = fgPrefix ?? System.Windows.Media.Brushes.Black,
-                FontWeight = FontWeights.SemiBold,
-                FontSize = 12,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            prefixBadge.Child = prefixText;
-            BreadcrumbPanel.Children.Add(prefixBadge);
-
-            // 处理Windows路径（C:\ 或 UNC路径）
+            // 处理路径分段
             string rootPath = "";
             string[] parts;
-            
+
             if (path.Length >= 2 && path[1] == ':')
             {
                 // Windows绝对路径，如 C:\Users\...
                 rootPath = path.Substring(0, 2); // "C:"
                 var remainingPath = path.Substring(2).TrimStart(Path.DirectorySeparatorChar);
-                parts = string.IsNullOrEmpty(remainingPath) 
-                    ? new[] { rootPath } 
+                parts = string.IsNullOrEmpty(remainingPath)
+                    ? new[] { rootPath }
                     : new[] { rootPath }.Concat(remainingPath.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries)).ToArray();
             }
             else if (path.StartsWith("\\\\"))
@@ -115,7 +113,7 @@ namespace OoiMRR.Controls
                 // UNC路径，如 \\server\share\...
                 var uncParts = path.Substring(2).Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
                 rootPath = "\\\\" + (uncParts.Length > 0 ? uncParts[0] : "");
-                parts = uncParts.Length > 1 
+                parts = uncParts.Length > 1
                     ? new[] { rootPath }.Concat(uncParts.Skip(1)).ToArray()
                     : new[] { rootPath };
             }
@@ -125,18 +123,41 @@ namespace OoiMRR.Controls
                 parts = path.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
             }
 
+            // 判断是否为长路径
+            bool isLongPath = parts.Length > 10;
+
+            if (isLongPath && BreadcrumbTail != null)
+            {
+                // 长路径：左侧只显示"path"，右侧显示"... 最后3段"（右对齐）
+
+                // 显示右侧TextBlock并填充最后3段
+                BreadcrumbTail.Visibility = Visibility.Visible;
+                BreadcrumbTail.ToolTip = path;
+
+                var tailParts = parts.Skip(parts.Length - 6).ToArray();
+                AddPathSegments(BreadcrumbTail, tailParts, path, defaultBrush, hoverBrush);
+            }
+            else
+            {
+                // 短路径：在左侧显示完整路径
+                AddPathSegments(BreadcrumbText, parts, path, defaultBrush, hoverBrush);
+            }
+        }
+
+        private void AddPathSegments(TextBlock targetTextBlock, string[] parts, string fullPath,
+            System.Windows.Media.SolidColorBrush defaultBrush, System.Windows.Media.SolidColorBrush hoverBrush)
+        {
             var currentPath = "";
 
             for (int i = 0; i < parts.Length; i++)
             {
+                // 构建完整路径
                 if (i == 0 && parts[i].Length == 2 && parts[i][1] == ':')
                 {
-                    // Windows驱动器，如 C:
                     currentPath = parts[i] + Path.DirectorySeparatorChar;
                 }
                 else if (i == 0 && parts[i].StartsWith("\\\\"))
                 {
-                    // UNC根
                     currentPath = parts[i];
                 }
                 else
@@ -144,106 +165,70 @@ namespace OoiMRR.Controls
                     currentPath = Path.Combine(currentPath, parts[i]);
                 }
 
-                var button = new Button
+                // 创建可点击的 Run
+                var run = new System.Windows.Documents.Run(parts[i])
                 {
-                    Content = parts[i],
-                    Margin = new Thickness(2, 2, 2, 2),
-                    Padding = new Thickness(4, 2, 4, 2),
-                    Background = System.Windows.Media.Brushes.Transparent,
-                    BorderThickness = new Thickness(0),
+                    Foreground = defaultBrush,
                     Cursor = Cursors.Hand
                 };
 
+                var pathToNavigate = currentPath;
+
                 // 鼠标悬停效果
-                button.MouseEnter += (s, e) => 
+                run.MouseEnter += (s, e) =>
                 {
-                    button.Background = new System.Windows.Media.SolidColorBrush(
-                        System.Windows.Media.Color.FromArgb(30, 0, 0, 0));
+                    run.Foreground = hoverBrush;
                 };
-                button.MouseLeave += (s, e) => 
+                run.MouseLeave += (s, e) =>
                 {
-                    button.Background = System.Windows.Media.Brushes.Transparent;
+                    run.Foreground = defaultBrush;
                 };
 
-                // 尝试从父窗口获取样式
-                try
+                // 点击事件
+                run.MouseDown += (s, e) =>
                 {
-                    var parentWindow = Window.GetWindow(this);
-                    if (parentWindow != null)
+                    if (e.ChangedButton == MouseButton.Left)
                     {
-                        var style = parentWindow.TryFindResource("BreadcrumbButtonStyle") as Style;
-                        if (style != null)
+                        if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
                         {
-                            button.Style = style;
+                            e.Handled = true;
+                            BreadcrumbMiddleClicked?.Invoke(this, pathToNavigate);
+                        }
+                        else
+                        {
+                            e.Handled = true;
+                            BreadcrumbClicked?.Invoke(this, pathToNavigate);
                         }
                     }
-                }
-                catch { }
-
-                var pathToNavigate = currentPath;
-                button.PreviewMouseDown += (s, e) =>
-                {
-                    // 检测Ctrl+左键或中键，强制打开新标签页
-                    if (e.ChangedButton == MouseButton.Middle)
+                    else if (e.ChangedButton == MouseButton.Middle)
                     {
                         e.Handled = true;
                         BreadcrumbMiddleClicked?.Invoke(this, pathToNavigate);
                     }
-                    else if (e.ChangedButton == MouseButton.Left && 
-                             (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
-                    {
-                        e.Handled = true;
-                        _ctrlLeftClickHandled = true; // 标记已处理
-                        BreadcrumbMiddleClicked?.Invoke(this, pathToNavigate);
-                        // 延迟重置标志，确保Click事件不会重复处理
-                        Dispatcher.BeginInvoke(new System.Action(() =>
-                        {
-                            _ctrlLeftClickHandled = false;
-                        }), System.Windows.Threading.DispatcherPriority.Input);
-                    }
-                    else
-                    {
-                        _ctrlLeftClickHandled = false;
-                    }
-                };
-                button.Click += (s, e) => 
-                {
-                    // 如果已经在PreviewMouseDown中处理了Ctrl+左键，不再处理Click事件
-                    if (_ctrlLeftClickHandled)
-                    {
-                        e.Handled = true;
-                        return;
-                    }
-                    e.Handled = true; // 阻止事件冒泡到容器
-                    BreadcrumbClicked?.Invoke(this, pathToNavigate);
                 };
 
-                BreadcrumbPanel.Children.Add(button);
+                targetTextBlock.Inlines.Add(run);
 
+                // 添加分隔符（使用反斜杠）
                 if (i < parts.Length - 1)
                 {
-                    var separator = new TextBlock
+                    var separator = new System.Windows.Documents.Run(" \\ ")
                     {
-                        Text = " › ",
-                        Margin = new Thickness(4, 0, 4, 0),
-                        Foreground = System.Windows.Media.Brushes.Gray,
-                        VerticalAlignment = VerticalAlignment.Center
+                        Foreground = System.Windows.Media.Brushes.Gray
                     };
-                    BreadcrumbPanel.Children.Add(separator);
+                    targetTextBlock.Inlines.Add(separator);
                 }
             }
         }
 
         public void UpdateBreadcrumbText(string text)
         {
-            if (BreadcrumbPanel == null)
+            if (BreadcrumbText == null)
                 return;
 
-            BreadcrumbPanel.Children.Clear();
-            BreadcrumbPanel.Children.Add(new TextBlock
+            BreadcrumbText.Inlines.Clear();
+            BreadcrumbText.Inlines.Add(new System.Windows.Documents.Run(text)
             {
-                Text = text,
-                Margin = new Thickness(2, 2, 2, 2),
                 Foreground = System.Windows.Media.Brushes.Blue
             });
         }
@@ -257,10 +242,10 @@ namespace OoiMRR.Controls
         public void SetTagBreadcrumb(string tagName)
         {
             _breadcrumbCustomText = null;
-            if (BreadcrumbPanel == null)
+            if (BreadcrumbText == null)
                 return;
 
-            BreadcrumbPanel.Children.Clear();
+            BreadcrumbText.Inlines.Clear();
 
             var container = new StackPanel
             {
@@ -307,7 +292,7 @@ namespace OoiMRR.Controls
                 badgeText.Foreground = System.Windows.Media.Brushes.Black;
             }
             badge.Child = badgeText;
-            
+
             // 让tag按钮可以点击，点击后返回到标签浏览模式
             badge.Cursor = Cursors.Hand;
             badge.MouseLeftButtonDown += (s, e) =>
@@ -344,111 +329,60 @@ namespace OoiMRR.Controls
 
             container.Children.Add(badge);
             container.Children.Add(nameText);
-            BreadcrumbPanel.Children.Add(container);
+            // Note: Tag breadcrumb uses inline Runs now
+            var prefixRun = new System.Windows.Documents.Run("tag ")
+            {
+                Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 165, 0)),
+                FontWeight = FontWeights.SemiBold
+            };
+            var tagRun = new System.Windows.Documents.Run(tagName ?? "")
+            {
+                Foreground = System.Windows.Media.Brushes.Black
+            };
+            BreadcrumbText.Inlines.Add(prefixRun);
+            BreadcrumbText.Inlines.Add(tagRun);
         }
 
         public void SetSearchBreadcrumb(string keyword)
         {
             _breadcrumbCustomText = null;
-            if (BreadcrumbPanel == null)
+            if (BreadcrumbText == null)
                 return;
 
-            BreadcrumbPanel.Children.Clear();
+            BreadcrumbText.Inlines.Clear();
 
-            var container = new StackPanel
+            var prefixRun = new System.Windows.Documents.Run("search ")
             {
-                Orientation = Orientation.Horizontal,
-                Margin = new Thickness(2, 2, 2, 2)
+                Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 165, 0)),
+                FontWeight = FontWeights.SemiBold
             };
-
-            var parentWindow = Window.GetWindow(this);
-            var bg = parentWindow?.TryFindResource("HighlightBrush") as System.Windows.Media.SolidColorBrush;
-            var bd = parentWindow?.TryFindResource("HighlightBorderBrush") as System.Windows.Media.SolidColorBrush;
-            var fg = parentWindow?.TryFindResource("HighlightForegroundBrush") as System.Windows.Media.SolidColorBrush;
-
-            var badge = new Border
+            var keywordRun = new System.Windows.Documents.Run(keyword ?? "")
             {
-                Background = bg ?? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 165, 0)),
-                BorderBrush = bd ?? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 140, 0)),
-                BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(4),
-                Padding = new Thickness(8, 2, 8, 2),
-                Margin = new Thickness(0, 0, 6, 0)
+                Foreground = System.Windows.Media.Brushes.Black
             };
-
-            var badgeText = new TextBlock
-            {
-                Text = "search",
-                Foreground = fg ?? System.Windows.Media.Brushes.Black,
-                FontWeight = FontWeights.SemiBold,
-                FontSize = 12,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            badge.Child = badgeText;
-
-            var nameText = new TextBlock
-            {
-                Text = keyword ?? "",
-                FontSize = 12,
-                VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(4, 0, 0, 0)
-            };
-
-            container.Children.Add(badge);
-            container.Children.Add(nameText);
-            BreadcrumbPanel.Children.Add(container);
+            BreadcrumbText.Inlines.Add(prefixRun);
+            BreadcrumbText.Inlines.Add(keywordRun);
         }
 
         public void SetLibraryBreadcrumb(string libraryName)
         {
             _breadcrumbCustomText = null;
-            if (BreadcrumbPanel == null)
+            if (BreadcrumbText == null)
                 return;
 
-            BreadcrumbPanel.Children.Clear();
+            BreadcrumbText.Inlines.Clear();
 
-            var container = new StackPanel
+            var prefixRun = new System.Windows.Documents.Run("library ")
             {
-                Orientation = Orientation.Horizontal,
-                Margin = new Thickness(2, 2, 2, 2)
+                Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 165, 0)),
+                FontWeight = FontWeights.SemiBold
             };
-
-            var parentWindow = Window.GetWindow(this);
-            var bg = parentWindow?.TryFindResource("HighlightBrush") as System.Windows.Media.SolidColorBrush;
-            var bd = parentWindow?.TryFindResource("HighlightBorderBrush") as System.Windows.Media.SolidColorBrush;
-            var fg = parentWindow?.TryFindResource("HighlightForegroundBrush") as System.Windows.Media.SolidColorBrush;
-
-            var badge = new Border
+            var libraryRun = new System.Windows.Documents.Run(libraryName ?? "")
             {
-                Background = bg ?? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 165, 0)),
-                BorderBrush = bd ?? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 140, 0)),
-                BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(4),
-                Padding = new Thickness(8, 2, 8, 2),
-                Margin = new Thickness(0, 0, 6, 0)
+                Foreground = System.Windows.Media.Brushes.Black
             };
-
-            var badgeText = new TextBlock
-            {
-                Text = "library",
-                Foreground = fg ?? System.Windows.Media.Brushes.Black,
-                FontWeight = FontWeights.SemiBold,
-                FontSize = 12,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            badge.Child = badgeText;
-
-            var nameText = new TextBlock
-            {
-                Text = libraryName ?? "",
-                FontSize = 12,
-                VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(4, 0, 0, 0)
-            };
-
-            container.Children.Add(badge);
-            container.Children.Add(nameText);
-            BreadcrumbPanel.Children.Add(container);
+            BreadcrumbText.Inlines.Add(prefixRun);
+            BreadcrumbText.Inlines.Add(libraryRun);
         }
 
         public void ClearBreadcrumbCustomText()
@@ -476,7 +410,7 @@ namespace OoiMRR.Controls
             e.Handled = true;
         }
 
-        private void SwitchToEditMode()
+        public void SwitchToEditMode()
         {
             if (_isEditMode) return;
 
@@ -484,7 +418,7 @@ namespace OoiMRR.Controls
             AddressTextBox.Text = _currentPath;
             AddressTextBox.Visibility = Visibility.Visible;
             BreadcrumbContainer.Visibility = Visibility.Collapsed;
-            
+
             // 延迟设置焦点，确保UI更新完成
             Dispatcher.BeginInvoke(new System.Action(() =>
             {
@@ -494,7 +428,7 @@ namespace OoiMRR.Controls
             }), System.Windows.Threading.DispatcherPriority.Input);
         }
 
-        private void SwitchToBreadcrumbMode()
+        public void SwitchToBreadcrumbMode()
         {
             if (!_isEditMode) return;
 
@@ -518,7 +452,7 @@ namespace OoiMRR.Controls
             {
                 var path = AddressTextBox.Text.Trim();
                 System.Diagnostics.Debug.WriteLine($"[AddressBarControl] 回车键按下，输入内容: '{path}'");
-                
+
                 if (!string.IsNullOrEmpty(path))
                 {
                     _currentPath = path;
@@ -542,7 +476,7 @@ namespace OoiMRR.Controls
             }
             // KeyDown 中不处理快捷键，让 PreviewKeyDown 处理，避免重复
         }
-        
+
         // 极速剪贴板操作（无延迟，直接操作）
         private static string FastGetClipboardText()
         {
@@ -555,7 +489,7 @@ namespace OoiMRR.Controls
                 return null;
             }
         }
-        
+
         private static void FastSetClipboardText(string text)
         {
             try
@@ -564,17 +498,17 @@ namespace OoiMRR.Controls
             }
             catch { }
         }
-        
+
         private void AddressTextBox_PreviewKeyDown(object sender, KeyEventArgs e)
         {
             // 处理键盘快捷键（仅在地址栏编辑模式下）
             if (!_isEditMode)
                 return;
-            
+
             // 确保 TextBox 有焦点
             if (!AddressTextBox.IsFocused && !AddressTextBox.IsKeyboardFocused)
                 return;
-            
+
             if (Keyboard.Modifiers == ModifierKeys.Control)
             {
                 switch (e.Key)
@@ -583,25 +517,25 @@ namespace OoiMRR.Controls
                         AddressTextBox.SelectAll();
                         e.Handled = true;
                         break;
-                        
+
                     case Key.C: // Ctrl+C 复制
-                        var textToCopy = AddressTextBox.SelectionLength > 0 
-                            ? AddressTextBox.SelectedText 
+                        var textToCopy = AddressTextBox.SelectionLength > 0
+                            ? AddressTextBox.SelectedText
                             : AddressTextBox.Text;
                         FastSetClipboardText(textToCopy);
                         e.Handled = true;
                         break;
-                        
+
                     case Key.X: // Ctrl+X 剪切
                         if (AddressTextBox.SelectionLength > 0)
                         {
                             var textToCut = AddressTextBox.SelectedText;
                             var selectionStart = AddressTextBox.SelectionStart;
                             var selectionLength = AddressTextBox.SelectionLength;
-                            
+
                             // 先设置剪贴板
                             FastSetClipboardText(textToCut);
-                            
+
                             // 直接操作 Text 属性来删除选中文本
                             var currentText = AddressTextBox.Text;
                             var newText = currentText.Remove(selectionStart, selectionLength);
@@ -610,7 +544,7 @@ namespace OoiMRR.Controls
                         }
                         e.Handled = true;
                         break;
-                        
+
                     case Key.V: // Ctrl+V 粘贴
                         var textToPaste = FastGetClipboardText();
                         if (textToPaste != null)
@@ -645,7 +579,7 @@ namespace OoiMRR.Controls
                 e.Handled = true;
             }
         }
-        
+
         private void AddressTextBox_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
         {
             // 右键点击时，如果文本框没有焦点，先获得焦点
@@ -655,12 +589,12 @@ namespace OoiMRR.Controls
                 e.Handled = true;
             }
         }
-        
+
         private void AddressTextBox_ContextMenuOpening(object sender, ContextMenuEventArgs e)
         {
             // 创建自定义右键菜单
             var contextMenu = new ContextMenu();
-            
+
             // 撤销
             var undoItem = new MenuItem
             {
@@ -669,9 +603,9 @@ namespace OoiMRR.Controls
                 CommandTarget = AddressTextBox
             };
             contextMenu.Items.Add(undoItem);
-            
+
             contextMenu.Items.Add(new Separator());
-            
+
             // 剪切
             var cutItem = new MenuItem
             {
@@ -680,7 +614,7 @@ namespace OoiMRR.Controls
                 CommandTarget = AddressTextBox
             };
             contextMenu.Items.Add(cutItem);
-            
+
             // 复制
             var copyItem = new MenuItem
             {
@@ -689,7 +623,7 @@ namespace OoiMRR.Controls
                 CommandTarget = AddressTextBox
             };
             contextMenu.Items.Add(copyItem);
-            
+
             // 粘贴
             var pasteItem = new MenuItem
             {
@@ -698,9 +632,9 @@ namespace OoiMRR.Controls
                 CommandTarget = AddressTextBox
             };
             contextMenu.Items.Add(pasteItem);
-            
+
             contextMenu.Items.Add(new Separator());
-            
+
             // 全选
             var selectAllItem = new MenuItem
             {
@@ -709,24 +643,24 @@ namespace OoiMRR.Controls
                 CommandTarget = AddressTextBox
             };
             contextMenu.Items.Add(selectAllItem);
-            
+
             AddressTextBox.ContextMenu = contextMenu;
         }
-        
+
         // 命令处理
         private void CopyCommand_Executed(object sender, ExecutedRoutedEventArgs e)
         {
-            var textToCopy = AddressTextBox.SelectionLength > 0 
-                ? AddressTextBox.SelectedText 
+            var textToCopy = AddressTextBox.SelectionLength > 0
+                ? AddressTextBox.SelectedText
                 : AddressTextBox.Text;
             FastSetClipboardText(textToCopy);
         }
-        
+
         private void CopyCommand_CanExecute(object sender, CanExecuteRoutedEventArgs e)
         {
             e.CanExecute = AddressTextBox != null && !string.IsNullOrEmpty(AddressTextBox.Text);
         }
-        
+
         private void CutCommand_Executed(object sender, ExecutedRoutedEventArgs e)
         {
             if (AddressTextBox.SelectionLength > 0)
@@ -734,21 +668,21 @@ namespace OoiMRR.Controls
                 var textToCut = AddressTextBox.SelectedText;
                 var selectionStart = AddressTextBox.SelectionStart;
                 var selectionLength = AddressTextBox.SelectionLength;
-                
+
                 FastSetClipboardText(textToCut);
-                
+
                 var currentText = AddressTextBox.Text;
                 var newText = currentText.Remove(selectionStart, selectionLength);
                 AddressTextBox.Text = newText;
                 AddressTextBox.CaretIndex = selectionStart;
             }
         }
-        
+
         private void CutCommand_CanExecute(object sender, CanExecuteRoutedEventArgs e)
         {
             e.CanExecute = AddressTextBox != null && AddressTextBox.SelectionLength > 0;
         }
-        
+
         private void PasteCommand_Executed(object sender, ExecutedRoutedEventArgs e)
         {
             var textToPaste = FastGetClipboardText();
@@ -771,12 +705,12 @@ namespace OoiMRR.Controls
                 }
             }
         }
-        
+
         private void PasteCommand_CanExecute(object sender, CanExecuteRoutedEventArgs e)
         {
             e.CanExecute = Clipboard.ContainsText();
         }
-        
+
         private void SelectAllCommand_Executed(object sender, ExecutedRoutedEventArgs e)
         {
             AddressTextBox.SelectAll();

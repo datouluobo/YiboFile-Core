@@ -157,6 +157,18 @@ namespace OoiMRR.Handlers
                 }
             }
 
+            // Alt+D: 进入地址栏编辑模式
+            // 注意:Alt+字母时,e.Key是System,需要检查e.SystemKey
+            if ((e.Key == Key.D || e.SystemKey == Key.D) && Keyboard.Modifiers == ModifierKeys.Alt)
+            {
+                if (_fileBrowser?.AddressBar != null && !_fileBrowser.AddressBar.IsAddressTextBoxFocused)
+                {
+                    _fileBrowser.AddressBar.SwitchToEditMode();
+                    e.Handled = true;
+                    return;
+                }
+            }
+
             // Ctrl+C: 复制（如果文件列表有焦点）
             if (e.Key == Key.C && Keyboard.Modifiers == ModifierKeys.Control)
             {

@@ -273,28 +273,28 @@ namespace OoiMRR.Handlers
             {
                 var cm = new ContextMenu();
                 var searchOptions = _getSearchOptions();
-                
+
                 void AddType(string text, FileTypeFilter type)
                 {
                     var mi = new MenuItem { Header = text, IsCheckable = true, IsChecked = searchOptions.Type == type };
                     mi.Click += (s, ev) => { searchOptions.Type = type; };
                     cm.Items.Add(mi);
                 }
-                
+
                 AddType("全部", FileTypeFilter.All);
                 AddType("图片", FileTypeFilter.Images);
                 AddType("视频", FileTypeFilter.Videos);
                 AddType("文档", FileTypeFilter.Documents);
                 AddType("文件夹", FileTypeFilter.Folders);
-                
+
                 var rangeCurrent = new MenuItem { Header = "当前磁盘", IsCheckable = true, IsChecked = searchOptions.PathRange == PathRangeFilter.CurrentDrive };
                 rangeCurrent.Click += (s, ev) => { searchOptions.PathRange = PathRangeFilter.CurrentDrive; };
                 cm.Items.Add(rangeCurrent);
-                
+
                 var rangeAll = new MenuItem { Header = "全部磁盘", IsCheckable = true, IsChecked = searchOptions.PathRange == PathRangeFilter.AllDrives };
                 rangeAll.Click += (s, ev) => { searchOptions.PathRange = PathRangeFilter.AllDrives; };
                 cm.Items.Add(rangeAll);
-                
+
                 cm.IsOpen = true;
             }
             catch { }
@@ -324,7 +324,7 @@ namespace OoiMRR.Handlers
                     var currentFiles = _getCurrentFiles();
                     currentFiles.AddRange(moreResult.Items);
                     _setCurrentFiles(currentFiles);
-                    
+
                     if (_fileBrowser != null)
                     {
                         _fileBrowser.FilesItemsSource = null;
@@ -389,6 +389,37 @@ namespace OoiMRR.Handlers
         // 文件浏览控件的事件转发
         public void FileBrowser_FilesSelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            // 控制备注区可编辑状态
+            var selectedCount = _fileBrowser?.FilesSelectedItems?.Count ?? 0;
+            var mainWindow = Application.Current.MainWindow;
+
+            if (mainWindow != null)
+            {
+                var mainWindowType = mainWindow.GetType();
+                var rightPanelField = mainWindowType.GetField("RightPanel",
+                    System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+                if (rightPanelField != null)
+                {
+                    var rightPanel = rightPanelField.GetValue(mainWindow);
+                    if (rightPanel != null)
+                    {
+                        var rightPanelType = rightPanel.GetType();
+                        var notesTextBoxField = rightPanelType.GetField("NotesTextBox",
+                            System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+                        if (notesTextBoxField != null)
+                        {
+                            var notesTextBox = notesTextBoxField.GetValue(rightPanel) as System.Windows.Controls.TextBox;
+                            if (notesTextBox != null)
+                            {
+                                notesTextBox.IsEnabled = (selectedCount == 1);
+                            }
+                        }
+                    }
+                }
+            }
+
             _filesListViewSelectionChanged(e);
         }
 
