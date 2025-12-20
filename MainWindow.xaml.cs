@@ -489,10 +489,7 @@ namespace OoiMRR
 
         #region 库功能
 
-        internal void LoadLibraries()
-        {
-            _libraryService.LoadLibraries();
-        }
+
 
         // 菜单事件桥接方法 - 已迁移到 MenuEventHandler
         private void AddLibrary_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.AddLibrary_Click(sender, e);
@@ -507,40 +504,6 @@ namespace OoiMRR
         private void LibraryOpenInExplorer_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.LibraryOpenInExplorer_Click(sender, e);
         private void LibraryRefresh_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.LibraryRefresh_Click(sender, e);
 
-
-
-        internal void LoadLibraryFiles(Library library)
-        {
-            // 使用信号量防止重复加载
-            // 等待200ms以允许上一个加载任务完成，避免标签页切换时文件列表为空
-            if (!_loadFilesSemaphore.Wait(200))
-            {
-                System.Diagnostics.Debug.WriteLine("LoadLibraryFiles: 已有加载任务在进行（等待200ms后仍未完成），跳过此次调用");
-                return;
-            }
-
-            try
-            {
-                // 设置加载标志
-                _isLoadingFiles = true;
-
-                _currentFiles.Clear();
-                _currentPath = null; // 标记当前在库模式下
-                if (FileBrowser != null) FileBrowser.NavUpEnabled = false;
-
-                // 使用库服务加载文件
-                _libraryService.LoadLibraryFiles(library,
-                    (path) => DatabaseManager.GetFolderSize(path),
-                    (bytes) => _fileListService.FormatFileSize(bytes));
-            }
-            catch (Exception ex)
-            {
-                // 确保释放锁
-                _isLoadingFiles = false;
-                _loadFilesSemaphore.Release();
-                MessageBox.Show($"加载库文件失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
 
         /// <summary>
         /// 显示合并的库文件（所有路径的文件合并显示）
