@@ -268,7 +268,7 @@ namespace OoiMRR.Services.Navigation
                     if (!string.IsNullOrEmpty(itemPath) && string.Equals(itemPath, path, StringComparison.OrdinalIgnoreCase))
                     {
                         System.Diagnostics.Debug.WriteLine($"[HighlightMatchingItems] 找到匹配的收藏项！高亮");
-                        UIHelper.SetItemHighlight("Favorite", item, true);
+                        UIHelper.SetItemHighlight("Favorites", item, true);
                         break;
                     }
                 }
