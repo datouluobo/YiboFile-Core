@@ -19,11 +19,8 @@ namespace OoiMRR
 
         private void DrivesListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (DrivesListBox?.SelectedItem != null)
-            {
-                // 清除其他导航区域的选择
-                ClearOtherNavigationSelections("Drives");
-            }
+            // 清除其他导航区域的选择（无论当前选择是否为null）
+            ClearOtherNavigationSelections("Drives");
         }
 
         #endregion
