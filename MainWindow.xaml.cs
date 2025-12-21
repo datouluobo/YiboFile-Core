@@ -473,19 +473,7 @@ namespace OoiMRR
 
 
 
-        #region 备注功能
 
-        internal void NotesTextBox_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            _fileNotesUIHandler?.NotesTextBox_TextChanged(sender, e);
-        }
-
-        internal async void NotesAutoSaved_Handler(object sender, RoutedEventArgs e)
-        {
-            _fileNotesUIHandler?.NotesAutoSaved_Handler(sender, e);
-        }
-
-        #endregion
 
         #region 库功能
 
@@ -723,35 +711,9 @@ namespace OoiMRR
 
 
 
-        #region 快速访问
 
-        internal void LoadQuickAccess()
-        {
-            if (QuickAccessListBox == null) return;
-            _quickAccessService.LoadQuickAccess(QuickAccessListBox);
-        }
 
-        private void QuickAccessListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            // 事件处理已由QuickAccessService内部处理，此方法保留以兼容现有代码
-        }
 
-        #endregion
-
-        #region 驱动器功能
-
-        internal void LoadDrives()
-        {
-            if (DrivesListBox == null) return;
-            _quickAccessService.LoadDrives(DrivesListBox, _fileListService.FormatFileSize);
-        }
-
-        private void DrivesListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            // 事件处理已由QuickAccessService内部处理，此方法保留以兼容现有代码
-        }
-
-        #endregion
 
         #region 菜单事件
 
