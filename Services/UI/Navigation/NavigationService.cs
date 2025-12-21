@@ -209,8 +209,13 @@ namespace OoiMRR.Services.Navigation
         /// <param name="path">要匹配的路径</param>
         public void HighlightMatchingItems(string path)
         {
+            System.Diagnostics.Debug.WriteLine($"[HighlightMatchingItems] 开始高亮匹配: {path}");
+
             if (UIHelper == null || string.IsNullOrEmpty(path))
+            {
+                System.Diagnostics.Debug.WriteLine($"[HighlightMatchingItems] UIHelper或path为空，返回");
                 return;
+            }
 
             // 清除所有高亮
             ClearItemHighlights();
@@ -219,6 +224,8 @@ namespace OoiMRR.Services.Navigation
             var drives = UIHelper.GetDrivesListItems()?.Cast<object>().ToList();
             var quickAccess = UIHelper.GetQuickAccessListItems()?.Cast<object>().ToList();
             var favorites = UIHelper.GetFavoritesListItems()?.Cast<object>().ToList();
+
+            System.Diagnostics.Debug.WriteLine($"[HighlightMatchingItems] Drives={drives?.Count ?? 0}, QuickAccess={quickAccess?.Count ?? 0}, Favorites={favorites?.Count ?? 0}");
 
             // 检查驱动器 - 使用完全匹配，而不是前缀匹配
             if (drives != null)
@@ -253,15 +260,23 @@ namespace OoiMRR.Services.Navigation
             // 检查收藏
             if (favorites != null)
             {
+                System.Diagnostics.Debug.WriteLine($"[HighlightMatchingItems] 开始检查收藏，共{favorites.Count}项");
                 foreach (var item in favorites)
                 {
                     var itemPath = GetItemPath(item);
+                    System.Diagnostics.Debug.WriteLine($"[HighlightMatchingItems] 收藏项路径: {itemPath}, 目标路径: {path}");
                     if (!string.IsNullOrEmpty(itemPath) && string.Equals(itemPath, path, StringComparison.OrdinalIgnoreCase))
                     {
+                        System.Diagnostics.Debug.WriteLine($"[HighlightMatchingItems] 找到匹配的收藏项！高亮");
                         UIHelper.SetItemHighlight("Favorite", item, true);
                         break;
                     }
                 }
+                System.Diagnostics.Debug.WriteLine($"[HighlightMatchingItems] 收藏检查完成");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[HighlightMatchingItems] favorites为null");
             }
         }
 

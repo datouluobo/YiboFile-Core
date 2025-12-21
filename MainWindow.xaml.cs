@@ -1803,9 +1803,12 @@ namespace OoiMRR
 
             if (listBox == null || item == null) return;
 
+            System.Diagnostics.Debug.WriteLine($"[SetItemHighlight] listType={listType}, item={item?.GetType().Name}, highlight={highlight}");
+
             try
             {
                 var container = listBox.ItemContainerGenerator.ContainerFromItem(item) as ListBoxItem;
+                System.Diagnostics.Debug.WriteLine($"[SetItemHighlight] container={container}, status={listBox.ItemContainerGenerator.Status}");
                 if (container != null)
                 {
                     if (highlight)
