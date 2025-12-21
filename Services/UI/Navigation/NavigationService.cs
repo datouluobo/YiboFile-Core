@@ -287,7 +287,7 @@ namespace OoiMRR.Services.Navigation
         {
             UIHelper?.ClearListBoxHighlights("Drive");
             UIHelper?.ClearListBoxHighlights("QuickAccess");
-            UIHelper?.ClearListBoxHighlights("Favorite");
+            UIHelper?.ClearListBoxHighlights("Favorites");
             UIHelper?.ClearListBoxHighlights("Library");
         }
 
