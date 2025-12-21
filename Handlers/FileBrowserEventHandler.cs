@@ -11,6 +11,7 @@ using OoiMRR.Services;
 using OoiMRR.Services.Navigation;
 using OoiMRR.Services.Search;
 using OoiMRR.Services.Tabs;
+using System.Windows.Media;
 
 namespace OoiMRR.Handlers
 {
@@ -450,12 +451,56 @@ namespace OoiMRR.Handlers
 
         public void FileBrowser_FilesPreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
+            // 如果点击了文件列表且地址栏处于编辑模式，退出编辑模式
+            if (_fileBrowser?.AddressBar != null && _fileBrowser.AddressBar.IsAddressTextBoxFocused)
+            {
+                _fileBrowser.AddressBar.SwitchToBreadcrumbMode();
+            }
+
             _filesListViewPreviewMouseDown(e);
         }
 
         public void FileBrowser_Loaded(object sender, RoutedEventArgs e)
         {
             // 初始化完成，无需额外处理
+        }
+        public void HandleGlobalMouseDown(MouseButtonEventArgs e)
+        {
+            // 如果地址栏处于编辑模式
+            if (_fileBrowser?.AddressBar != null && _fileBrowser.AddressBar.IsEditMode)
+            {
+                // 检查点击目标是否在地址栏内
+                var source = e.OriginalSource as DependencyObject;
+                bool isAddressBar = false;
+
+                // 向上查找看是否是 AddressBarControl 的子元素
+                var current = source;
+                while (current != null)
+                {
+                    if (current == _fileBrowser.AddressBar)
+                    {
+                        isAddressBar = true;
+                        break;
+                    }
+                    current = VisualTreeHelper.GetParent(current);
+                }
+
+                // 如果点击在地址栏外部，退出编辑模式
+                if (!isAddressBar)
+                {
+                    // 使用 _getCurrentPath 获取当前正在显示的实际路径，确保地址栏显示正确
+                    if (_getCurrentPath != null)
+                    {
+                        var currentPath = _getCurrentPath();
+                        // 仅当路径不为空时重置，避免异常清空
+                        if (!string.IsNullOrEmpty(currentPath))
+                        {
+                            _fileBrowser.AddressBar.AddressText = currentPath;
+                        }
+                    }
+                    _fileBrowser.AddressBar.SwitchToBreadcrumbMode();
+                }
+            }
         }
     }
 }

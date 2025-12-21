@@ -26,7 +26,7 @@ namespace OoiMRR.Services.TagTrain
         private readonly FileBrowserControl _fileBrowser;
         private readonly Window _ownerWindow;
         private readonly System.Windows.Threading.Dispatcher _dispatcher;
-        
+
         // 回调函数
         private readonly Func<TagClickMode> _getTagClickMode;
         private readonly Action<TagClickMode> _setTagClickMode;
@@ -40,10 +40,11 @@ namespace OoiMRR.Services.TagTrain
         private readonly Action _loadFiles;
         private readonly Action<TagType> _filterByTag;
         private readonly Action<List<string>> _restoreSelectionByPaths;
-        
+
         // 标签点击模式
         public enum TagClickMode { Browse, Edit }
-        
+        public TagClickMode CurrentMode => _getTagClickMode();
+
         public TagTrainEventHandler(
             TagPanel tagBrowsePanel,
             TagPanel tagEditPanel,
@@ -81,31 +82,31 @@ namespace OoiMRR.Services.TagTrain
             _filterByTag = filterByTag ?? throw new ArgumentNullException(nameof(filterByTag));
             _restoreSelectionByPaths = restoreSelectionByPaths ?? throw new ArgumentNullException(nameof(restoreSelectionByPaths));
         }
-        
+
         // ========== TagTrain 训练面板事件处理方法 ==========
-        
+
         public void TagTrainTagSortComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             // 重新加载标签列表（应用新的排序方式）
             _loadTagTrainExistingTags();
         }
-        
+
         public void TagTrainTagInputTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             // TODO: 实现标签输入自动补完功能
         }
-        
+
         public void TagTrainTagInputTextBox_KeyDown(object sender, KeyEventArgs e)
         {
             // TODO: 实现标签输入键盘导航功能
         }
-        
+
         public void TagClickModeBtn_Click(object sender, RoutedEventArgs e)
         {
             var currentMode = _getTagClickMode();
             var newMode = currentMode == TagClickMode.Browse ? TagClickMode.Edit : TagClickMode.Browse;
             _setTagClickMode(newMode);
-            
+
             try
             {
                 if (sender is Button btn)
@@ -115,10 +116,10 @@ namespace OoiMRR.Services.TagTrain
                         ? "切换到编辑模式：显示完整TagTrain训练面板"
                         : "切换到浏览模式：只显示标签列表";
                 }
-                
+
                 // 切换浏览/编辑模式的显示
                 SwitchTagMode();
-                
+
                 // 根据模式调整相关按钮显示/隐藏
                 ApplyTagClickModeVisibility();
             }
@@ -127,7 +128,7 @@ namespace OoiMRR.Services.TagTrain
                 System.Diagnostics.Debug.WriteLine($"TagClickModeBtn_Click error: {ex.Message}");
             }
         }
-        
+
         // 切换标签浏览/编辑模式
         private void SwitchTagMode()
         {
@@ -141,9 +142,9 @@ namespace OoiMRR.Services.TagTrain
                         _tagBrowsePanel.Visibility = Visibility.Visible;
                         _tagEditPanel.Visibility = Visibility.Collapsed;
                         // 加载浏览模式的标签列表
-                    if (_tagBrowsePanel.Mode != TagPanel.DisplayMode.Browse)
-                    {
-                        _tagBrowsePanel.Mode = TagPanel.DisplayMode.Browse;
+                        if (_tagBrowsePanel.Mode != TagPanel.DisplayMode.Browse)
+                        {
+                            _tagBrowsePanel.Mode = TagPanel.DisplayMode.Browse;
                         }
                         _tagBrowsePanel.LoadExistingTags();
                     }
@@ -165,19 +166,19 @@ namespace OoiMRR.Services.TagTrain
                 System.Diagnostics.Debug.WriteLine($"SwitchTagMode error: {ex.Message}");
             }
         }
-        
+
         // 分组管理按钮点击
         public void TagCategoryManageBtn_Click(object sender, RoutedEventArgs e)
         {
             OpenCategoryManagement();
         }
-        
+
         // 浏览模式头部的分组管理按钮
         public void TagBrowseCategoryManagement_Click(object sender, RoutedEventArgs e)
         {
             OpenCategoryManagement();
         }
-        
+
         // 打开分组管理窗口（统一方法）
         public void OpenCategoryManagement()
         {
@@ -188,13 +189,13 @@ namespace OoiMRR.Services.TagTrain
                     MessageBox.Show("TagTrain 不可用，无法打开分组管理。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
-                
+
                 var window = new CategoryManagementWindow
                 {
                     Owner = _ownerWindow
                 };
                 window.ShowDialog();
-                
+
                 // 刷新标签列表
                 var mode = _getTagClickMode();
                 if (mode == TagClickMode.Browse && _tagBrowsePanel != null)
@@ -211,7 +212,7 @@ namespace OoiMRR.Services.TagTrain
                 MessageBox.Show($"打开分组管理失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-        
+
         // 修改标签名称
         public void EditTagName(int tagId, string oldTagName)
         {
@@ -227,7 +228,7 @@ namespace OoiMRR.Services.TagTrain
                         return;
                     }
                 }
-                
+
                 // 创建输入对话框
                 var inputDialog = new Window
                 {
@@ -339,7 +340,7 @@ namespace OoiMRR.Services.TagTrain
                     {
                         // 更新标签名称
                         bool success = DataManager.UpdateTagName(oldTagName, newTagName);
-                        
+
                         if (success)
                         {
                             // 刷新标签列表
@@ -352,19 +353,19 @@ namespace OoiMRR.Services.TagTrain
                             {
                                 _loadTagTrainExistingTags();
                             }
-                            
-                            MessageBox.Show($"标签名称已从 \"{oldTagName}\" 修改为 \"{newTagName}\"。\n所有训练数据已保留。", 
+
+                            MessageBox.Show($"标签名称已从 \"{oldTagName}\" 修改为 \"{newTagName}\"。\n所有训练数据已保留。",
                                 "修改成功", MessageBoxButton.OK, MessageBoxImage.Information);
                         }
                         else
                         {
-                            MessageBox.Show($"修改失败：新标签名称 \"{newTagName}\" 已存在或旧标签不存在。", 
+                            MessageBox.Show($"修改失败：新标签名称 \"{newTagName}\" 已存在或旧标签不存在。",
                                 "修改失败", MessageBoxButton.OK, MessageBoxImage.Warning);
                         }
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show($"修改标签名称时发生错误：{ex.Message}", 
+                        MessageBox.Show($"修改标签名称时发生错误：{ex.Message}",
                             "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                     }
                 }
@@ -374,7 +375,7 @@ namespace OoiMRR.Services.TagTrain
                 MessageBox.Show($"打开修改对话框失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-        
+
         // 删除标签（根据ID）
         public void DeleteTagById(int tagId, string tagName)
         {
@@ -389,7 +390,7 @@ namespace OoiMRR.Services.TagTrain
                         tagName = $"标签{tagId}";
                     }
                 }
-                
+
                 var result = MessageBox.Show(
                     $"确定要删除标签 \"{tagName}\" 吗？\n这将删除所有使用该标签的训练数据。",
                     "确认删除", MessageBoxButton.YesNo, MessageBoxImage.Question);
@@ -399,7 +400,7 @@ namespace OoiMRR.Services.TagTrain
                     try
                     {
                         DataManager.DeleteTag(tagId);
-                        
+
                         // 刷新标签列表
                         var mode = _getTagClickMode();
                         if (mode == TagClickMode.Browse)
@@ -410,7 +411,7 @@ namespace OoiMRR.Services.TagTrain
                         {
                             _loadTagTrainExistingTags();
                         }
-                        
+
                         MessageBox.Show($"标签 \"{tagName}\" 已删除。", "删除成功", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                     catch (Exception ex)
@@ -424,7 +425,7 @@ namespace OoiMRR.Services.TagTrain
                 MessageBox.Show($"删除标签时发生错误: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-        
+
         // 根据浏览/编辑模式控制某些按钮的显示/隐藏
         private void ApplyTagClickModeVisibility()
         {
@@ -437,32 +438,32 @@ namespace OoiMRR.Services.TagTrain
             }
             catch { }
         }
-        
+
         public void TagTrainTagInputTextBox_PreviewKeyDown(object sender, KeyEventArgs e)
         {
             // TODO: 实现标签输入预览按键处理
         }
-        
+
         public void TagTrainTagInputTextBox_GotFocus(object sender, RoutedEventArgs e)
         {
             // TODO: 实现标签输入框获得焦点时的处理
         }
-        
+
         public void TagTrainTagInputTextBox_LostFocus(object sender, RoutedEventArgs e)
         {
             // TODO: 实现标签输入框失去焦点时的处理
         }
-        
+
         public void TagTrainTagAutocompleteListBox_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
             // TODO: 实现自动补完列表双击选择功能
         }
-        
+
         public void TagTrainTagAutocompleteListBox_KeyDown(object sender, KeyEventArgs e)
         {
             // TODO: 实现自动补完列表键盘导航功能
         }
-        
+
         public void TagTrainConfirmTag_Click(object sender, RoutedEventArgs e)
         {
             if (!App.IsTagTrainAvailable) return;
@@ -476,26 +477,26 @@ namespace OoiMRR.Services.TagTrain
                     .Where(s => !string.IsNullOrWhiteSpace(s))
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .ToList();
-                
+
                 if (tagNames.Count == 0)
                 {
                     MessageBox.Show("请输入至少一个标签名称。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
-                
+
                 var selectedItems = _fileBrowser?.FilesSelectedItems?.Cast<FileSystemItem>().ToList() ?? new List<FileSystemItem>();
                 if (selectedItems.Count == 0)
                 {
                     MessageBox.Show("请先选择要打标签的图片文件。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
-                
+
                 var imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".webp", ".tiff", ".tif" };
                 foreach (var name in tagNames)
                 {
                     var tagId = OoiMRRIntegration.GetOrCreateTagId(name);
                     if (tagId <= 0) continue;
-                    
+
                     foreach (var it in selectedItems)
                     {
                         if (!it.IsDirectory && imageExtensions.Contains(System.IO.Path.GetExtension(it.Path).ToLowerInvariant()))
@@ -504,7 +505,7 @@ namespace OoiMRR.Services.TagTrain
                         }
                     }
                 }
-                
+
                 // 刷新界面
                 _loadTagTrainExistingTags();
                 var currentTagFilter = _getCurrentTagFilter();
@@ -518,7 +519,7 @@ namespace OoiMRR.Services.TagTrain
                     _loadFiles();
                     _restoreSelectionByPaths(selectedBefore);
                 }
-                
+
                 if (_tagEditPanel?.TagInputTextBox != null)
                     _tagEditPanel.TagInputTextBox.Text = "";
             }
@@ -527,7 +528,7 @@ namespace OoiMRR.Services.TagTrain
                 MessageBox.Show($"确认标签失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-        
+
         public void TagTrainConfirmAIPrediction_Click(object sender, RoutedEventArgs e)
         {
             if (!App.IsTagTrainAvailable) return;
@@ -540,13 +541,13 @@ namespace OoiMRR.Services.TagTrain
                     MessageBox.Show("请先选择图片后再确认AI预测。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
-                
+
                 var imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".webp", ".tiff", ".tif" };
                 foreach (var it in selectedItems)
                 {
                     if (it.IsDirectory) continue;
                     if (!imageExtensions.Contains(System.IO.Path.GetExtension(it.Path).ToLowerInvariant())) continue;
-                    
+
                     var predictions = OoiMRRIntegration.PredictTagsForImage(it.Path) ?? new List<TagPredictionResult>();
                     // 选取 Top3 且置信度 >= 0.5
                     foreach (var p in predictions
@@ -557,7 +558,7 @@ namespace OoiMRR.Services.TagTrain
                         OoiMRRIntegration.AddTagToFile(it.Path, p.TagId);
                     }
                 }
-                
+
                 _loadTagTrainExistingTags();
                 var currentTagFilter = _getCurrentTagFilter();
                 if (currentTagFilter != null)
@@ -576,14 +577,14 @@ namespace OoiMRR.Services.TagTrain
                 MessageBox.Show($"确认AI预测失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-        
+
         public void TagTrainSkip_Click(object sender, RoutedEventArgs e)
         {
             try
             {
                 if (_tagEditPanel?.TagInputTextBox != null)
                     _tagEditPanel.TagInputTextBox.Text = "";
-                
+
                 // 选中下一个文件项（如果存在）
                 if (_fileBrowser?.FilesList != null && _fileBrowser.FilesList.Items.Count > 0)
                 {
@@ -598,7 +599,7 @@ namespace OoiMRR.Services.TagTrain
             }
             catch { }
         }
-        
+
         public void TagTrainStartTraining_Click(object sender, RoutedEventArgs e)
         {
             if (!App.IsTagTrainAvailable) return;
@@ -608,19 +609,19 @@ namespace OoiMRR.Services.TagTrain
                 TagTrainCancelTraining_Click(sender, e);
                 return;
             }
-            
+
             var cancellation = new CancellationTokenSource();
             _setTagTrainTrainingCancellation(cancellation);
             var progress = new Progress<TrainingProgress>(UpdateTagTrainTrainingProgress);
             _setTagTrainIsTraining(true);
-            
+
             if (_tagEditPanel?.TrainingProgressGrid != null) _tagEditPanel.TrainingProgressGrid.Visibility = Visibility.Visible;
             if (_tagEditPanel?.TrainingProgressBar != null) _tagEditPanel.TrainingProgressBar.Value = 0;
             if (_tagEditPanel?.TrainingStageText != null) _tagEditPanel.TrainingStageText.Text = "";
             if (_tagEditPanel?.TrainingProgressText != null) _tagEditPanel.TrainingProgressText.Text = "";
             if (_tagEditPanel?.StartTrainingBtn != null) _tagEditPanel.StartTrainingBtn.Content = "⏹️ 停止训练";
             if (_tagEditPanel?.RetrainModelBtn != null) _tagEditPanel.RetrainModelBtn.IsEnabled = false;
-            
+
             Task.Run(() =>
             {
                 try
@@ -632,7 +633,7 @@ namespace OoiMRR.Services.TagTrain
                         if (_tagEditPanel?.TrainingProgressGrid != null) _tagEditPanel.TrainingProgressGrid.Visibility = Visibility.Collapsed;
                         if (_tagEditPanel?.StartTrainingBtn != null) _tagEditPanel.StartTrainingBtn.Content = "▶️ 开始训练";
                         if (_tagEditPanel?.RetrainModelBtn != null) _tagEditPanel.RetrainModelBtn.IsEnabled = true;
-                        
+
                         if (!(result.Success == false && (result.Message ?? "").Contains("已取消")))
                         {
                             if (result.Success)
@@ -640,7 +641,7 @@ namespace OoiMRR.Services.TagTrain
                             else
                                 DialogService.Error($"训练失败：{result.Message}", "错误", _ownerWindow);
                         }
-                        
+
                         _updateTagTrainModelStatus();
                     });
                 }
@@ -658,7 +659,7 @@ namespace OoiMRR.Services.TagTrain
                 }
             });
         }
-        
+
         public void TagTrainPause_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -670,7 +671,7 @@ namespace OoiMRR.Services.TagTrain
             }
             catch { }
         }
-        
+
         public void TagTrainRetrainModel_Click(object sender, RoutedEventArgs e)
         {
             if (!App.IsTagTrainAvailable) return;
@@ -679,19 +680,19 @@ namespace OoiMRR.Services.TagTrain
                 MessageBox.Show("已有训练正在进行，请先取消或等待完成。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
-            
+
             var cancellation = new CancellationTokenSource();
             _setTagTrainTrainingCancellation(cancellation);
             var progress = new Progress<TrainingProgress>(UpdateTagTrainTrainingProgress);
             _setTagTrainIsTraining(true);
-            
+
             if (_tagEditPanel?.TrainingProgressGrid != null) _tagEditPanel.TrainingProgressGrid.Visibility = Visibility.Visible;
             if (_tagEditPanel?.TrainingProgressBar != null) _tagEditPanel.TrainingProgressBar.Value = 0;
             if (_tagEditPanel?.TrainingStageText != null) _tagEditPanel.TrainingStageText.Text = "";
             if (_tagEditPanel?.TrainingProgressText != null) _tagEditPanel.TrainingProgressText.Text = "";
             if (_tagEditPanel?.StartTrainingBtn != null) _tagEditPanel.StartTrainingBtn.IsEnabled = false;
             if (_tagEditPanel?.RetrainModelBtn != null) _tagEditPanel.RetrainModelBtn.IsEnabled = false;
-            
+
             Task.Run(() =>
             {
                 try
@@ -705,7 +706,7 @@ namespace OoiMRR.Services.TagTrain
                         if (_tagEditPanel?.RetrainModelBtn != null) _tagEditPanel.RetrainModelBtn.IsEnabled = true;
                         if (!(result.Success == false && (result.Message ?? "").Contains("已取消")))
                         {
-                            MessageBox.Show(result.Success ? "重新训练完成" : $"重新训练失败：{result.Message}", 
+                            MessageBox.Show(result.Success ? "重新训练完成" : $"重新训练失败：{result.Message}",
                                 result.Success ? "成功" : "错误",
                                 MessageBoxButton.OK, result.Success ? MessageBoxImage.Information : MessageBoxImage.Error);
                         }
@@ -726,7 +727,7 @@ namespace OoiMRR.Services.TagTrain
                 }
             });
         }
-        
+
         public void TagTrainCancelTraining_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -747,12 +748,12 @@ namespace OoiMRR.Services.TagTrain
             }
             catch { }
         }
-        
+
         public void TagTrainBatchOperation_Click(object sender, RoutedEventArgs e)
         {
             MessageBox.Show("批量操作功能暂未实现。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
         }
-        
+
         public void TagTrainTrainingStatus_Click(object sender, RoutedEventArgs e)
         {
             if (!App.IsTagTrainAvailable) return;
@@ -768,7 +769,7 @@ namespace OoiMRR.Services.TagTrain
                 MessageBox.Show($"获取训练情况失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-        
+
         public void TagTrainConsolidateTags_Click(object sender, RoutedEventArgs e)
         {
             if (!App.IsTagTrainAvailable) return;
@@ -785,7 +786,7 @@ namespace OoiMRR.Services.TagTrain
                 MessageBox.Show($"清理重复标签失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-        
+
         private void UpdateTagTrainTrainingProgress(TrainingProgress progress)
         {
             try
@@ -800,7 +801,7 @@ namespace OoiMRR.Services.TagTrain
             }
             catch { }
         }
-        
+
         public void TagTrainConfig_Click(object sender, RoutedEventArgs e)
         {
             // TODO: 实现设置功能（可以打开TagTrain的设置窗口）
@@ -812,7 +813,7 @@ namespace OoiMRR.Services.TagTrain
                     try { SettingsManager.ClearCache(); } catch { }
                     var configWindow = new ConfigWindow();
                     var result = configWindow.ShowDialog();
-                    
+
                     // 保存设置后自动刷新左侧标签，无需重启
                     if (result == true)
                     {
@@ -821,19 +822,19 @@ namespace OoiMRR.Services.TagTrain
                         {
                             SettingsManager.ClearCache();
                             DataManager.ClearDatabasePathCache();
-                            
+
                             // 同步保存到 OoiMRR 自己的配置，便于下次启动前置设置
                             var cfg = ConfigManager.Load();
                             var storageDir = SettingsManager.GetDataStorageDirectory();
                             cfg.TagTrainDataDirectory = storageDir;
-                            
+
                             // 关键：把 DataStorageDirectory 写入默认 settings.txt，
                             // 让下次 LoadSettings 能从默认文件定位到新的目录
                             SettingsManager.SetDataStorageDirectory(storageDir);
                             ConfigManager.Save(cfg);
                         }
                         catch { }
-                        
+
                         // 重新加载状态与标签
                         _updateTagTrainModelStatus();
                         _loadTagTrainExistingTags();

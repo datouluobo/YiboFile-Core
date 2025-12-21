@@ -26,6 +26,8 @@ namespace OoiMRR.Services.FileNotes
             _fileBrowser = fileBrowser ?? throw new ArgumentNullException(nameof(fileBrowser));
         }
 
+        private bool _isUpdatingNotes = false;
+
         /// <summary>
         /// 加载文件备注
         /// </summary>
@@ -33,15 +35,23 @@ namespace OoiMRR.Services.FileNotes
         public void LoadFileNotes(FileSystemItem item)
         {
             if (_rightPanel?.NotesTextBox == null) return;
-            
-            if (item != null)
+
+            _isUpdatingNotes = true;
+            try
             {
-                var notes = FileNotesService.GetFileNotes(item.Path);
-                _rightPanel.NotesTextBox.Text = notes;
+                if (item != null)
+                {
+                    var notes = FileNotesService.GetFileNotes(item.Path);
+                    _rightPanel.NotesTextBox.Text = notes;
+                }
+                else
+                {
+                    _rightPanel.NotesTextBox.Text = "";
+                }
             }
-            else
+            finally
             {
-                _rightPanel.NotesTextBox.Text = "";
+                _isUpdatingNotes = false;
             }
         }
 
@@ -53,7 +63,7 @@ namespace OoiMRR.Services.FileNotes
         public void NotesTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             // 备注文本变化时，实时更新列表中显示的备注
-            if (_rightPanel?.NotesTextBox == null) return;
+            if (_rightPanel?.NotesTextBox == null || _isUpdatingNotes) return;
             if (_fileBrowser?.FilesSelectedItem is FileSystemItem selectedItem)
             {
                 var notesText = _rightPanel.NotesTextBox.Text;
@@ -67,7 +77,7 @@ namespace OoiMRR.Services.FileNotes
                 {
                     selectedItem.Notes = "";
                 }
-                
+
                 // 刷新显示
                 if (_fileBrowser?.FilesList != null)
                     _fileBrowser.FilesList.Items.Refresh();
@@ -82,14 +92,14 @@ namespace OoiMRR.Services.FileNotes
         public async void NotesAutoSaved_Handler(object sender, RoutedEventArgs e)
         {
             if (_rightPanel?.NotesTextBox == null) return;
-            
+
             try
             {
                 if (_fileBrowser?.FilesSelectedItem is FileSystemItem selectedItem)
                 {
                     // 异步保存，提升性能
                     await FileNotesService.SetFileNotesAsync(selectedItem.Path, _rightPanel.NotesTextBox.Text);
-                    
+
                     // 确保备注显示已更新
                     var notesText = _rightPanel.NotesTextBox.Text;
                     if (!string.IsNullOrEmpty(notesText))
@@ -101,7 +111,7 @@ namespace OoiMRR.Services.FileNotes
                     {
                         selectedItem.Notes = "";
                     }
-                    
+
                     // 刷新显示
                     if (_fileBrowser?.FilesList != null)
                         _fileBrowser.FilesList.Items.Refresh();
@@ -122,12 +132,12 @@ namespace OoiMRR.Services.FileNotes
                 // Or maybe RightPanelControl itself has a method.
                 // If this is just a stub for now:
                 // MessageBox.Show("Notes panel toggle logic to be implemented");
-                
+
                 // Better implementation if proper fields available:
-                 if (_rightPanel.Visibility == Visibility.Visible)
-                     _rightPanel.Visibility = Visibility.Collapsed;
-                 else
-                     _rightPanel.Visibility = Visibility.Visible;
+                if (_rightPanel.Visibility == Visibility.Visible)
+                    _rightPanel.Visibility = Visibility.Collapsed;
+                else
+                    _rightPanel.Visibility = Visibility.Visible;
             }
         }
     }

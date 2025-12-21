@@ -87,6 +87,7 @@ namespace OoiMRR
         internal Handlers.MenuEventHandler _menuEventHandler;
         internal Handlers.KeyboardEventHandler _keyboardEventHandler;
         internal Handlers.MouseEventHandler _mouseEventHandler;
+        private SelectionEventHandler _selectionEventHandler;
         internal Services.TagTrain.TagTrainEventHandler _tagTrainEventHandler;
 
         // 加载锁定，防止重复加载导致卡死
@@ -293,36 +294,6 @@ namespace OoiMRR
             }
         }
 
-        // FileBrowser 事件桥接方法 - 已迁移到 FileBrowserEventHandler
-        private void FileBrowser_PathChanged(object sender, string path) => _fileBrowserEventHandler?.FileBrowser_PathChanged(sender, path);
-        private void FileBrowser_BreadcrumbMiddleClicked(object sender, string path) => _fileBrowserEventHandler?.FileBrowser_BreadcrumbMiddleClicked(sender, path);
-        private void FileBrowser_BreadcrumbClicked(object sender, string path) => _fileBrowserEventHandler?.FileBrowser_BreadcrumbClicked(sender, path);
-        private void FileBrowser_FilesSelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            // 如果事件处理器未初始化，直接调用选择变化处理方法
-            if (_fileBrowserEventHandler != null)
-            {
-                _fileBrowserEventHandler.FileBrowser_FilesSelectionChanged(sender, e);
-            }
-            else
-            {
-                // 直接处理选择变化，确保预览、备注、文件信息功能可用
-                FilesListView_SelectionChanged(sender, e);
-            }
-        }
-        private void FileBrowser_FilesMouseDoubleClick(object sender, MouseButtonEventArgs e) => _fileBrowserEventHandler?.FileBrowser_FilesMouseDoubleClick(sender, e);
-        private void FileBrowser_FilesPreviewMouseDoubleClick(object sender, MouseButtonEventArgs e) => _fileBrowserEventHandler?.FileBrowser_FilesPreviewMouseDoubleClick(sender, e);
-        private void FileBrowser_FilesPreviewKeyDown(object sender, KeyEventArgs e) => _fileBrowserEventHandler?.FileBrowser_FilesPreviewKeyDown(sender, e);
-        private void FileBrowser_FilesPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e) => _fileBrowserEventHandler?.FileBrowser_FilesPreviewMouseLeftButtonDown(sender, e);
-        private void FileBrowser_FilesMouseLeftButtonUp(object sender, MouseButtonEventArgs e) => _fileBrowserEventHandler?.FileBrowser_FilesMouseLeftButtonUp(sender, e);
-        private void FileBrowser_FilesPreviewMouseDown(object sender, MouseButtonEventArgs e) => _fileBrowserEventHandler?.FileBrowser_FilesPreviewMouseDown(sender, e);
-        private void FileBrowser_GridViewColumnHeaderClick(object sender, RoutedEventArgs e) => _fileBrowserEventHandler?.FileBrowser_GridViewColumnHeaderClick(sender, e);
-        private void FileBrowser_FilesSizeChanged(object sender, SizeChangedEventArgs e) => _fileBrowserEventHandler?.FileBrowser_FilesSizeChanged(sender, e);
-        private void FileBrowser_FilesPreviewMouseDoubleClickForBlank(object sender, MouseButtonEventArgs e) => _fileBrowserEventHandler?.FileBrowser_FilesPreviewMouseDoubleClickForBlank(sender, e);
-        private void FileBrowser_SearchClicked(object sender, RoutedEventArgs e) => _fileBrowserEventHandler?.FileBrowser_SearchClicked(sender, e);
-        private void FileBrowser_FilterClicked(object sender, RoutedEventArgs e) => _fileBrowserEventHandler?.FileBrowser_FilterClicked(sender, e);
-        private void FileBrowser_LoadMoreClicked(object sender, RoutedEventArgs e) => _fileBrowserEventHandler?.FileBrowser_LoadMoreClicked(sender, e);
-        private void FileBrowser_Loaded(object sender, RoutedEventArgs e) => _fileBrowserEventHandler?.FileBrowser_Loaded(sender, e);
 
         // 菜单事件桥接方法 - 已迁移到 MenuEventHandler
         internal void Refresh_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.Refresh_Click(sender, e);
@@ -340,70 +311,12 @@ namespace OoiMRR
             HideEmptyStateMessage();
         }
 
-        internal void FilesListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void FilesListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            var rawSelectedItem = FileBrowser?.FilesSelectedItem;
-            System.Diagnostics.Debug.WriteLine($"[MainWindow] FilesListView_SelectionChanged: Raw SelectedItem: {rawSelectedItem}, Type: {rawSelectedItem?.GetType().Name}");
+            if (FileBrowser == null || FileBrowser.FilesList == null) return;
+            var selectedItems = FileBrowser.FilesList.SelectedItems;
 
-            if (rawSelectedItem is FileSystemItem selectedItem)
-            {
-                System.Diagnostics.Debug.WriteLine($"[MainWindow] FilesListView_SelectionChanged: Selected {selectedItem.Name}");
-                _fileInfoService?.ShowFileInfo(selectedItem);
-                LoadFilePreview(selectedItem);
-                _fileNotesUIHandler?.LoadFileNotes(selectedItem);
-
-                // 标签页：对图片执行AI预测并渲染到预测面板
-                try
-                {
-                    if (NavTagContent != null && NavTagContent.Visibility == Visibility.Visible)
-                    {
-                        var ext = System.IO.Path.GetExtension(selectedItem.Path)?.ToLowerInvariant();
-                        var imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".webp", ".tiff", ".tif" };
-                        if (!selectedItem.IsDirectory && !string.IsNullOrEmpty(ext) && imageExtensions.Contains(ext))
-                        {
-                            // 预测占位
-                            if (TagEditPanel != null)
-                            {
-                                TagEditPanel.PredictionPanel.Children.Clear();
-                                TagEditPanel.NoPredictionText.Visibility = Visibility.Visible;
-                                TagEditPanel.NoPredictionText.Text = "预测中...";
-                            }
-
-                            Task.Run(() =>
-                            {
-                                var preds = OoiMRRIntegration.PredictTagsForImage(selectedItem.Path) ?? new List<TagTrain.Services.TagPredictionResult>();
-                                Dispatcher.BeginInvoke(new Action(() =>
-                                {
-                                    RenderPredictionResults(preds);
-                                }), System.Windows.Threading.DispatcherPriority.Background);
-                            });
-                        }
-                        else
-                        {
-                            RenderPredictionResults(new List<TagTrain.Services.TagPredictionResult>());
-                        }
-                    }
-                }
-                catch { }
-
-                // 如果选中的是文件夹且大小未计算，立即计算
-                if (selectedItem.IsDirectory)
-                {
-                    // 检查大小是否已计算（Size为空、"-"、"计算中..."或null表示未计算）
-                    if (string.IsNullOrEmpty(selectedItem.Size) ||
-                        selectedItem.Size == "-" ||
-                        selectedItem.Size == "计算中...")
-                    {
-                        // 立即计算该文件夹的大小
-                        CalculateFolderSizeImmediately(selectedItem.Path);
-                    }
-                }
-            }
-            else
-            {
-                // 没有选择文件时，清除预览区和文件信息
-                ClearPreviewAndInfo();
-            }
+            _selectionEventHandler?.HandleSelectionChanged(selectedItems);
         }
 
 
@@ -461,9 +374,7 @@ namespace OoiMRR
 
 
 
-        // 键盘事件桥接方法 - 已迁移到 KeyboardEventHandler
-        private void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e) => _keyboardEventHandler?.MainWindow_PreviewKeyDown(sender, e);
-        private void MainWindow_KeyDown(object sender, KeyEventArgs e) => _keyboardEventHandler?.MainWindow_KeyDown(sender, e);
+
 
 
 
@@ -841,249 +752,7 @@ namespace OoiMRR
 
         #region 键盘快捷键和文件操作
 
-        internal void FilesListView_PreviewKeyDown(object sender, KeyEventArgs e)
-        {
-            var listView = sender as ListView;
-            if (listView == null)
-                return;
 
-            // Ctrl+A - 全选
-            if (e.Key == Key.A && Keyboard.Modifiers == ModifierKeys.Control)
-            {
-                listView.SelectAll();
-                e.Handled = true;
-                return;
-            }
-
-            // Ctrl+C - 复制
-            if (e.Key == Key.C && Keyboard.Modifiers == ModifierKeys.Control)
-            {
-                Copy_Click(null, null);
-                e.Handled = true;
-                return;
-            }
-
-            // Ctrl+V - 粘贴
-            if (e.Key == Key.V && Keyboard.Modifiers == ModifierKeys.Control)
-            {
-                Paste_Click(null, null);
-                e.Handled = true;
-                return;
-            }
-
-            // Ctrl+X - 剪切
-            if (e.Key == Key.X && Keyboard.Modifiers == ModifierKeys.Control)
-            {
-                Cut_Click(null, null);
-                e.Handled = true;
-                return;
-            }
-
-            // Delete - 删除
-            if (e.Key == Key.Delete)
-            {
-                Delete_Click(null, null);
-                e.Handled = true;
-                return;
-            }
-
-            // F2 - 重命名
-            if (e.Key == Key.F2)
-            {
-                Rename_Click(null, null);
-                e.Handled = true;
-                return;
-            }
-
-            // F5 - 刷新
-            if (e.Key == Key.F5)
-            {
-                Refresh_Click(null, null);
-                e.Handled = true;
-                return;
-            }
-
-            // Alt+Enter - 属性
-            if (e.Key == Key.Enter && Keyboard.Modifiers == ModifierKeys.Alt)
-            {
-                ShowProperties_Click(null, null);
-                e.Handled = true;
-                return;
-            }
-
-            // Backspace - 返回上一级
-            if (e.Key == Key.Back)
-            {
-                NavigateBack_Click(null, null);
-                e.Handled = true;
-                return;
-            }
-
-            // 处理方向键，防止焦点跑到分割器
-            if (e.Key == Key.Up || e.Key == Key.Down || e.Key == Key.Left || e.Key == Key.Right || e.Key == Key.Home || e.Key == Key.End)
-            {
-                if (listView.Items.Count == 0)
-                    return;
-
-                int currentIndex = listView.SelectedIndex;
-                var wrapPanel = FindDescendant<WrapPanel>(listView);
-                bool isTilesView = listView.View == null && wrapPanel != null;
-                int columns = 1;
-                if (isTilesView)
-                {
-                    double itemWidth = wrapPanel.ItemWidth > 0 ? wrapPanel.ItemWidth : (wrapPanel.Children.Count > 0 ? ((FrameworkElement)wrapPanel.Children[0]).ActualWidth : 160);
-                    double viewportWidth = wrapPanel.ActualWidth > 0 ? wrapPanel.ActualWidth : listView.ActualWidth;
-                    columns = Math.Max(1, (int)Math.Floor(viewportWidth / Math.Max(1, itemWidth)));
-                }
-
-                if (e.Key == Key.Down)
-                {
-                    if (isTilesView)
-                    {
-                        int next = currentIndex + columns;
-                        if (next < listView.Items.Count)
-                        {
-                            listView.SelectedIndex = next;
-                            listView.ScrollIntoView(listView.SelectedItem);
-                        }
-                        else
-                        {
-                            listView.SelectedIndex = listView.Items.Count - 1;
-                            listView.ScrollIntoView(listView.SelectedItem);
-                        }
-                    }
-                    else
-                    {
-                        if (currentIndex < listView.Items.Count - 1)
-                        {
-                            listView.SelectedIndex = currentIndex + 1;
-                            listView.ScrollIntoView(listView.SelectedItem);
-                        }
-                    }
-                    e.Handled = true;
-                }
-                else if (e.Key == Key.Up)
-                {
-                    if (isTilesView)
-                    {
-                        int prev = currentIndex - columns;
-                        if (prev >= 0)
-                        {
-                            listView.SelectedIndex = prev;
-                            listView.ScrollIntoView(listView.SelectedItem);
-                        }
-                        else
-                        {
-                            listView.SelectedIndex = 0;
-                            listView.ScrollIntoView(listView.SelectedItem);
-                        }
-                    }
-                    else
-                    {
-                        if (currentIndex > 0)
-                        {
-                            listView.SelectedIndex = currentIndex - 1;
-                            listView.ScrollIntoView(listView.SelectedItem);
-                        }
-                    }
-                    e.Handled = true;
-                }
-                else if (e.Key == Key.Home)
-                {
-                    listView.SelectedIndex = 0;
-                    listView.ScrollIntoView(listView.SelectedItem);
-                    e.Handled = true;
-                }
-                else if (e.Key == Key.End)
-                {
-                    listView.SelectedIndex = listView.Items.Count - 1;
-                    listView.ScrollIntoView(listView.SelectedItem);
-                    e.Handled = true;
-                }
-                else if (e.Key == Key.Left)
-                {
-                    if (isTilesView)
-                    {
-                        if (currentIndex > 0)
-                        {
-                            listView.SelectedIndex = currentIndex - 1;
-                            listView.ScrollIntoView(listView.SelectedItem);
-                        }
-                    }
-                    else
-                    {
-                        // 返回上一级
-                        NavigateBack_Click(null, null);
-                    }
-                    e.Handled = true;
-                }
-                else if (e.Key == Key.Right)
-                {
-                    if (isTilesView)
-                    {
-                        if (currentIndex < listView.Items.Count - 1)
-                        {
-                            listView.SelectedIndex = currentIndex + 1;
-                            listView.ScrollIntoView(listView.SelectedItem);
-                        }
-                    }
-                    else
-                    {
-                        // 如果是文件夹，进入
-                        if (listView.SelectedItem is FileSystemItem selectedItem && selectedItem.IsDirectory)
-                        {
-                            // 如果是库模式，切换到路径模式并导航
-                            if (_currentLibrary != null)
-                            {
-                                // 切换到路径模式
-                                _currentLibrary = null;
-                                SwitchNavigationMode("Path");
-                            }
-
-                            // 使用统一导航协调器处理Enter键导航（左键点击）
-                            _navigationCoordinator.HandlePathNavigation(selectedItem.Path, NavigationCoordinator.NavigationSource.FileList, NavigationCoordinator.ClickType.LeftClick);
-                        }
-                    }
-                    e.Handled = true;
-                }
-            }
-            // 处理 Enter 键打开文件/文件夹
-            else if (e.Key == Key.Enter && Keyboard.Modifiers == ModifierKeys.None)
-            {
-                if (FileBrowser?.FilesSelectedItem is FileSystemItem selectedItem)
-                {
-                    if (selectedItem.IsDirectory)
-                    {
-                        // 如果是库模式，切换到路径模式并导航
-                        if (_currentLibrary != null)
-                        {
-                            // 切换到路径模式
-                            _currentLibrary = null;
-                            SwitchNavigationMode("Path");
-                        }
-
-                        // 使用统一导航协调器处理Enter键导航（左键点击）
-                        _navigationCoordinator.HandlePathNavigation(selectedItem.Path, NavigationCoordinator.NavigationSource.FileList, NavigationCoordinator.ClickType.LeftClick);
-                    }
-                    else
-                    {
-                        try
-                        {
-                            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                            {
-                                FileName = selectedItem.Path,
-                                UseShellExecute = true
-                            });
-                        }
-                        catch (Exception ex)
-                        {
-                            MessageBox.Show($"无法打开文件: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                        }
-                    }
-                }
-                e.Handled = true;
-            }
-        }
 
         // 文件操作事件桥接方法 - 已迁移到 MenuEventHandler
         private void Copy_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.Copy_Click(sender, e);

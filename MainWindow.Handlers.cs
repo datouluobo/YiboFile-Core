@@ -11,6 +11,7 @@ using System.Windows.Threading;
 using System.Diagnostics;
 using System.IO;
 using OoiMRR.Handlers;
+using HandlerMouseEventHandler = OoiMRR.Handlers.MouseEventHandler;
 using OoiMRR.Services;
 using OoiMRR.Services.FileNotes;
 using OoiMRR.Services.FileOperations;
@@ -73,6 +74,18 @@ namespace OoiMRR
                 () => ColLeft // Func<ColumnDefinition>
             );
             _fileBrowserEventHandler.Initialize();
+
+            _selectionEventHandler = new SelectionEventHandler(
+                this,
+                _previewService, // Was _filePreviewService, but InitializeServices uses _previewService
+                _fileNotesUIHandler,
+                _tagTrainEventHandler,
+                item => _fileInfoService?.ShowFileInfo(item), // Was UpdateFileInfoPanel(item)
+                () => ClearPreviewAndInfo(),
+                results => RenderPredictionResults(results),
+                _fileListService,
+                () => _currentFiles
+            );
 
             // 初始化 MenuEventHandler
             _menuEventHandler = new MenuEventHandler(
@@ -207,7 +220,7 @@ namespace OoiMRR
             );
 
             // 初始化 MouseEventHandler
-            _mouseEventHandler = new OoiMRR.Handlers.MouseEventHandler(
+            _mouseEventHandler = new HandlerMouseEventHandler(
                 () => WindowMaximize_Click(null, null),
                 () => DragMove(),
                 () => FavoritesListBox,

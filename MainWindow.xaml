@@ -115,20 +115,13 @@
         <controls:NavigationPanelControl Grid.Row="2" Grid.Column="0" Grid.RowSpan="2" x:Name="NavigationPanelControl"/>
 
         <!-- ========== 列2：文件显示区 ========== -->
-        <controls:FileBrowserControl Grid.Row="2" Grid.Column="2" Grid.RowSpan="2"
-                                     x:Name="FileBrowser"
-                                     FilesSelectionChanged="FileBrowser_FilesSelectionChanged"
-                                     FilesMouseDoubleClick="FileBrowser_FilesMouseDoubleClick"
-                                     FilesPreviewMouseDoubleClick="FileBrowser_FilesPreviewMouseDoubleClick"
-                                     FilesPreviewKeyDown="FileBrowser_FilesPreviewKeyDown"
-                                     FilesPreviewMouseLeftButtonDown="FileBrowser_FilesPreviewMouseLeftButtonDown"
-                                     FilesMouseLeftButtonUp="FileBrowser_FilesMouseLeftButtonUp"
-                                     FilesPreviewMouseDown="FileBrowser_FilesPreviewMouseDown"
-                                     GridViewColumnHeaderClick="FileBrowser_GridViewColumnHeaderClick"
-                                     FilesSizeChanged="FileBrowser_FilesSizeChanged"
-                                     FilesPreviewMouseDoubleClickForBlank="FileBrowser_FilesPreviewMouseDoubleClickForBlank"
-                                     PathChanged="FileBrowser_PathChanged"
-                                     BreadcrumbClicked="FileBrowser_BreadcrumbClicked"/>
+        <controls:FileBrowserControl x:Name="FileBrowser"
+                                     Grid.Column="2" 
+                                     Grid.Row="1" 
+                                     Grid.RowSpan="3"
+                                     HorizontalAlignment="Stretch" 
+                                     VerticalAlignment="Stretch"
+                                     Margin="0,0,0,0"/>
 
         <!-- ========== 列3：预览/备注区 ========== -->
         <local:RightPanelControl Grid.Row="0" Grid.Column="4" Grid.RowSpan="4"

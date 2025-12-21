@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using OoiMRR.Services;
 using OoiMRR.Services.FileNotes;
 using OoiMRR.Services.Search;
@@ -23,6 +24,11 @@ namespace OoiMRR
 {
     public partial class MainWindow
     {
+        private void MainWindow_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            _fileBrowserEventHandler?.HandleGlobalMouseDown(e);
+        }
+
         private void InitializeServices()
         {
             // 初始化统一导航协调器
@@ -93,6 +99,9 @@ namespace OoiMRR
 
         private void InitializeEvents()
         {
+            // 全局鼠标事件
+            this.PreviewMouseDown += MainWindow_PreviewMouseDown;
+
             // 订阅 RightPanel 事件
             if (RightPanel != null)
             {
