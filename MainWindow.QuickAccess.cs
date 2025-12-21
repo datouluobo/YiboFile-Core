@@ -19,7 +19,11 @@ namespace OoiMRR
 
         private void QuickAccessListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            // 事件处理已由QuickAccessService内部处理，此方法保留以兼容现有代码
+            if (QuickAccessListBox?.SelectedItem != null)
+            {
+                // 清除其他导航区域的选择
+                ClearOtherNavigationSelections("QuickAccess");
+            }
         }
 
         #endregion

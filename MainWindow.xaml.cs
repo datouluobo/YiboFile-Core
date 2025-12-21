@@ -728,6 +728,10 @@ namespace OoiMRR
         private void FavoritesListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (FavoritesListBox.SelectedItem == null) return;
+
+            // 清除其他导航区域的选择
+            ClearOtherNavigationSelections("Favorites");
+
             if (_draggedFavorite != null) return; // 如果正在拖拽，不处理单击
             if (_suppressFavoriteSelectionNavigation) return; // 右键上下文菜单打开时不导航
 
@@ -2023,6 +2027,26 @@ namespace OoiMRR
         void IConfigUIHelper.UpdateWindowStateUI()
         {
             UpdateWindowStateUI();
+        }
+
+        /// <summary>
+        /// 清除其他导航区域的选择状态，确保同时只有一个区域显示选中
+        /// </summary>
+        /// <param name="exceptSource">不清除哪个源 ("Drives", "QuickAccess", "Favorites")</param>
+        private void ClearOtherNavigationSelections(string exceptSource)
+        {
+            if (exceptSource != "Drives" && DrivesListBox != null)
+            {
+                DrivesListBox.SelectedItem = null;
+            }
+            if (exceptSource != "QuickAccess" && QuickAccessListBox != null)
+            {
+                QuickAccessListBox.SelectedItem = null;
+            }
+            if (exceptSource != "Favorites" && FavoritesListBox != null)
+            {
+                FavoritesListBox.SelectedItem = null;
+            }
         }
     }
 
