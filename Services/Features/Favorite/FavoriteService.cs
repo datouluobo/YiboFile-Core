@@ -352,6 +352,7 @@ namespace OoiMRR.Services.Favorite
                         if (favorite != null)
                         {
                             DatabaseManager.RemoveFavorite(favorite.Path);
+                            LoadFavorites(listBox);
                             FavoritesLoaded?.Invoke(this, EventArgs.Empty);
                         }
                     }
