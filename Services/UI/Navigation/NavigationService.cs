@@ -220,13 +220,15 @@ namespace OoiMRR.Services.Navigation
             var quickAccess = UIHelper.GetQuickAccessListItems()?.Cast<object>().ToList();
             var favorites = UIHelper.GetFavoritesListItems()?.Cast<object>().ToList();
 
-            // 检查驱动器
+            // 检查驱动器 - 使用完全匹配，而不是前缀匹配
             if (drives != null)
             {
                 foreach (var drive in drives)
                 {
                     var drivePath = GetItemPath(drive);
-                    if (!string.IsNullOrEmpty(drivePath) && path.StartsWith(drivePath, StringComparison.OrdinalIgnoreCase))
+                    // 修改：只有路径完全匹配驱动器根目录时才高亮（例如 "E:\" 匹配 "E:\\"）
+                    // 移除了 StartsWith 以避免子文件夹也高亮父驱动器
+                    if (!string.IsNullOrEmpty(drivePath) && string.Equals(drivePath.TrimEnd('\\'), path.TrimEnd('\\'), StringComparison.OrdinalIgnoreCase))
                     {
                         UIHelper.SetItemHighlight("Drive", drive, true);
                         break;
