@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -226,6 +227,7 @@ namespace OoiMRR.Controls
         public event RoutedEventHandler FileRename;
         public event RoutedEventHandler FileRefresh;
         public event RoutedEventHandler FileProperties;
+        public event RoutedEventHandler FileAddTag;
 
         // 地址栏事件处理
         private void AddressBarControl_PathChanged(object sender, string path)
@@ -392,6 +394,17 @@ namespace OoiMRR.Controls
             var separator2 = new Separator { Name = "Separator2" };
             cm.Items.Add(separator2);
 
+            // 添加标签 (仅当TagTrain可用时显示)
+            if (App.IsTagTrainAvailable)
+            {
+                var addTagItem = new MenuItem { Header = "添加标签", Name = "AddTagItem" };
+                addTagItem.Click += (s, e) => FileAddTag?.Invoke(s, e);
+                cm.Items.Add(addTagItem);
+            }
+
+            var separator3 = new Separator { Name = "Separator3" };
+            cm.Items.Add(separator3);
+
             // 刷新
             var refreshItem = new MenuItem { Header = "刷新", Name = "RefreshItem" };
             refreshItem.Click += (s, e) => FileRefresh?.Invoke(s, e);
@@ -413,6 +426,18 @@ namespace OoiMRR.Controls
                 deleteItem.Visibility = hasSelection ? Visibility.Visible : Visibility.Collapsed;
                 renameItem.Visibility = hasSelection && FileList.SelectedItems.Count == 1 ? Visibility.Visible : Visibility.Collapsed;
                 propertiesItem.Visibility = hasSelection && FileList.SelectedItems.Count == 1 ? Visibility.Visible : Visibility.Collapsed;
+
+                // 添加标签项可见性
+                if (App.IsTagTrainAvailable)
+                {
+                    var addTagItem = cm.Items.Cast<object>()
+                        .OfType<MenuItem>()
+                        .FirstOrDefault(m => m.Name == "AddTagItem");
+                    if (addTagItem != null)
+                    {
+                        addTagItem.Visibility = hasSelection ? Visibility.Visible : Visibility.Collapsed;
+                    }
+                }
 
                 // 始终可用的操作
                 pasteItem.Visibility = Visibility.Visible;

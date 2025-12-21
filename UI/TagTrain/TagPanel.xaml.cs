@@ -53,6 +53,10 @@ namespace TagTrain.UI
         public event Action TagsRefreshed;
         // 事件：需要打开分组管理
         public event Action CategoryManagementRequested;
+        // 事件：确认标签（用于添加标签到文件）
+        public event Action ConfirmTagRequested;
+        // 事件：确认AI预测
+        public event Action ConfirmAIPredictionRequested;
 
         /// <summary>
         /// 显示模式属性
@@ -135,7 +139,8 @@ namespace TagTrain.UI
         /// </summary>
         public async void LoadExistingTags()
         {
-            if (ExistingTagsPanel == null) return;
+            // 允许在面板隐藏时也加载数据，这样切换回来时就能看到更新
+            // if (ExistingTagsPanel == null) return;
 
             var dispatcher = Dispatcher ?? Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
 
@@ -152,14 +157,17 @@ namespace TagTrain.UI
                 var tagSortMode = _tagSortMode;
                 var tagsPerRow = _tagsPerRow;
 
-                var data = await Task.Run(() => 
+                var data = await Task.Run(() =>
                 {
-                    try {
-                         var snapshot = BuildTagLoadSnapshot(predictionsSnapshot);
-                         return snapshot;
-                    } catch (Exception ex) {
-                         OoiMRR.Services.Core.FileLogger.LogException($"[TagPanel] BuildTagLoadSnapshot 异常", ex);
-                         throw;
+                    try
+                    {
+                        var snapshot = BuildTagLoadSnapshot(predictionsSnapshot);
+                        return snapshot;
+                    }
+                    catch (Exception ex)
+                    {
+                        OoiMRR.Services.Core.FileLogger.LogException($"[TagPanel] BuildTagLoadSnapshot 异常", ex);
+                        throw;
                     }
                 });
 
@@ -238,7 +246,7 @@ namespace TagTrain.UI
 
                     var config = ConfigManager.Load();
                     double itemWidth;
-                    
+
                     if (config.TagBoxWidth > 0)
                     {
                         itemWidth = config.TagBoxWidth;
@@ -323,7 +331,7 @@ namespace TagTrain.UI
 
                                 double tagFontSize = config.TagFontSize > 0 ? config.TagFontSize : 16;
                                 double categoryFontSize = tagFontSize + 1;
-                                
+
                                 var expander = new Expander
                                 {
                                     Header = $"📁 {category.Name} ({categoryTags.Count})",
@@ -356,7 +364,7 @@ namespace TagTrain.UI
                         {
                             double tagFontSize = config.TagFontSize > 0 ? config.TagFontSize : 16;
                             double categoryFontSize = tagFontSize + 1;
-                            
+
                             var ungroupedExpander = new Expander
                             {
                                 Header = $"📋 未分组 ({ungroupedTags.Count})",
@@ -422,17 +430,17 @@ namespace TagTrain.UI
                     }
                 }
             }
-            
 
-            
+
+
             var tagNames = DataManager.GetAllTagNames();
-            
+
             var trainingData = DataManager.LoadAllTrainingData();
-            
+
             var manualDataCount = trainingData?.Count(t => t.IsManual) ?? 0;
 
             var categories = DataManager.GetAllCategories().OrderBy(c => c.SortOrder).ThenBy(c => c.Name).ToList();
-            
+
             var categoryMap = DataManager.GetTagCategoryMap();
 
             return new TagLoadSnapshot
@@ -519,14 +527,14 @@ namespace TagTrain.UI
                         TagClicked?.Invoke(tagName, true);
                         e.Handled = true;
                     }
-                    else if (e.ChangedButton == MouseButton.Left && 
+                    else if (e.ChangedButton == MouseButton.Left &&
                              (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
                     {
                         TagClicked?.Invoke(tagName, true);
                         e.Handled = true;
                     }
                 };
-                
+
                 // 浏览模式：触发TagClicked事件（普通左键点击）
                 border.MouseLeftButtonDown += (s, e) =>
                 {
@@ -537,7 +545,7 @@ namespace TagTrain.UI
                         e.Handled = true;
                         return;
                     }
-                    
+
                     TagClicked?.Invoke(tagName, false);
                     e.Handled = true;
                 };
@@ -701,7 +709,7 @@ namespace TagTrain.UI
             // 获取配置的Tag字体大小
             var config = ConfigManager.Load();
             double tagFontSize = config.TagFontSize > 0 ? config.TagFontSize : 16;
-            
+
             stackPanel.Children.Add(new TextBlock
             {
                 Text = tagName,
@@ -739,7 +747,7 @@ namespace TagTrain.UI
                     IsHitTestVisible = false
                 });
             }
-            
+
             // 设置 border 的 Padding 和 MinHeight
             border.Padding = new Thickness(6, 4, 6, 4);
             border.MinHeight = tagFontSize + 8;
@@ -932,8 +940,14 @@ namespace TagTrain.UI
         private void TagInputTextBox_LostFocus(object sender, RoutedEventArgs e) { }
         private void TagAutocompleteListBox_MouseDoubleClick(object sender, MouseButtonEventArgs e) { }
         private void TagAutocompleteListBox_KeyDown(object sender, KeyEventArgs e) { }
-        private void ConfirmTag_Click(object sender, RoutedEventArgs e) { }
-        private void ConfirmAIPrediction_Click(object sender, RoutedEventArgs e) { }
+        private void ConfirmTag_Click(object sender, RoutedEventArgs e)
+        {
+            ConfirmTagRequested?.Invoke();
+        }
+        private void ConfirmAIPrediction_Click(object sender, RoutedEventArgs e)
+        {
+            ConfirmAIPredictionRequested?.Invoke();
+        }
         private void Skip_Click(object sender, RoutedEventArgs e) { }
         private void StartTraining_Click(object sender, RoutedEventArgs e) { }
         private void RetrainModel_Click(object sender, RoutedEventArgs e) { }

@@ -91,9 +91,7 @@
                                              DeleteClicked="Delete_Click"
                                              RefreshClicked="Refresh_Click"
                                              NewTagClicked="NewTag_Click"
-                                             ManageTagsClicked="ManageTags_Click"
-                                             BatchAddTagsClicked="BatchAddTags_Click"
-                                             TagStatisticsClicked="TagStatistics_Click"/>
+                                             ManageTagsClicked="ManageTags_Click"/>
                 </Grid>
                 
             </Grid>

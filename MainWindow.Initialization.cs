@@ -102,6 +102,14 @@ namespace OoiMRR
                 RightPanel.PreviewMiddleClickRequested += RightPanel_PreviewMiddleClickRequested;
             }
 
+            // 订阅 FileBrowser 导航事件
+            if (FileBrowser != null)
+            {
+                FileBrowser.NavigationBack += NavigateBack_Click;
+                FileBrowser.NavigationForward += NavigateForward_Click;
+                FileBrowser.NavigationUp += NavigateUp_Click;
+            }
+
             // 订阅 NavigationService 事件
             _navigationService.NavigateRequested += OnNavigationServiceNavigateRequested;
 
@@ -302,6 +310,12 @@ namespace OoiMRR
                 NavigationPanelControl.TagCategoryManageClick += TagCategoryManageBtn_Click;
                 NavigationPanelControl.TagBrowsePanelTagClicked += TagBrowsePanel_TagClicked;
                 NavigationPanelControl.TagEditPanelTagClicked += TagEditPanel_TagClicked;
+            }
+
+            // 订阅 FileBrowser 事件
+            if (FileBrowser != null)
+            {
+                FileBrowser.FileAddTag += AddTagToFile_Click;
             }
 
             // 使用 MainWindowInitializer 进行初始化
