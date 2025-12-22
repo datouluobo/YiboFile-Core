@@ -18,6 +18,8 @@ using OoiMRR.Services.Preview;
 using OoiMRR.Services.ColumnManagement;
 using OoiMRR.Services.Config;
 using OoiMRR.Services.Tag;
+using OoiMRR.Helpers;
+using OoiMRR.Handlers;
 using OoiMRR.Models.UI;
 
 namespace OoiMRR
