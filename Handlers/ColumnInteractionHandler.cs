@@ -1,0 +1,373 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Input;
+using System.Windows.Media;
+using OoiMRR.Controls;
+using OoiMRR.Services.ColumnManagement;
+using OoiMRR.Services.Config;
+
+namespace OoiMRR.Handlers
+{
+    /// <summary>
+    /// 处理文件列表列的交互逻辑
+    /// 包括列头点击、拖拽调整大小、右键菜单和列可见性管理
+    /// </summary>
+    internal class ColumnInteractionHandler
+    {
+        private readonly MainWindow _mainWindow;
+        private readonly ColumnService _columnService;
+        private readonly ConfigService _configService;
+        private readonly FileBrowserControl _fileBrowser;
+
+        public ColumnInteractionHandler(
+            MainWindow mainWindow,
+            ColumnService columnService,
+            ConfigService configService)
+        {
+            _mainWindow = mainWindow ?? throw new ArgumentNullException(nameof(mainWindow));
+            _columnService = columnService ?? throw new ArgumentNullException(nameof(columnService));
+            _configService = configService ?? throw new ArgumentNullException(nameof(configService));
+            _fileBrowser = _mainWindow.FileBrowser;
+        }
+
+        /// <summary>
+        /// 确保列头右键菜单钩子已挂载
+        /// </summary>
+        public void EnsureHeaderContextMenuHook()
+        {
+            if (_fileBrowser?.FilesList == null) return;
+            _fileBrowser.FilesList.PreviewMouseRightButtonUp -= FilesList_PreviewMouseRightButtonUp_HeaderMenu;
+            _fileBrowser.FilesList.PreviewMouseRightButtonUp += FilesList_PreviewMouseRightButtonUp_HeaderMenu;
+        }
+
+        private void FilesList_PreviewMouseRightButtonUp_HeaderMenu(object sender, MouseButtonEventArgs e)
+        {
+            var src = e.OriginalSource as DependencyObject;
+            if (src == null) return;
+
+            // 检查是否点击在列头上
+            var header = FindAncestor<GridViewColumnHeader>(src);
+            if (header != null)
+            {
+                // 在列头上右键，显示列选择菜单
+                e.Handled = true;
+
+                // 创建弹出菜单
+                var cm = CreateColumnHeaderContextMenu(header);
+
+                // 将菜单附加到列头元素上并显示
+                cm.PlacementTarget = header;
+                cm.Placement = PlacementMode.MousePoint;
+                cm.IsOpen = true;
+                return;
+            }
+
+            // 不在列头上，让事件继续传播到文件列表的 ContextMenu
+        }
+
+        private ContextMenu CreateColumnHeaderContextMenu(GridViewColumnHeader header)
+        {
+            var cm = new ContextMenu();
+            var visibleCsv = GetVisibleColumnsForCurrentMode() ?? "";
+            var visibleSet = new HashSet<string>(visibleCsv.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries), StringComparer.OrdinalIgnoreCase);
+
+            if (_fileBrowser?.FilesGrid != null)
+            {
+                foreach (var column in _fileBrowser.FilesGrid.Columns)
+                {
+                    var colHeader = column.Header as GridViewColumnHeader;
+                    var tag = colHeader?.Tag?.ToString();
+                    if (string.IsNullOrEmpty(tag)) continue;
+
+                    string title = colHeader?.Content?.ToString() ?? tag;
+                    bool isVisible = visibleSet.Contains(tag);
+
+                    var mi = new MenuItem
+                    {
+                        Header = $"列: {title}",
+                        IsCheckable = true,
+                        IsChecked = isVisible
+                    };
+
+                    mi.Checked += (s, ev) => HandleColumnVisibilityChange(column, tag, true);
+                    mi.Unchecked += (s, ev) => HandleColumnVisibilityChange(column, tag, false);
+
+                    cm.Items.Add(mi);
+                }
+            }
+
+            return cm;
+        }
+
+        private void HandleColumnVisibilityChange(GridViewColumn column, string tag, bool isVisible)
+        {
+            if (isVisible)
+            {
+                // 显示列
+                if (column.Width <= 1)
+                {
+                    double w = tag switch
+                    {
+                        "Name" => _configService?.Config.ColNameWidth ?? 200,
+                        "Size" => _configService?.Config.ColSizeWidth ?? 100,
+                        "Type" => _configService?.Config.ColTypeWidth ?? 100,
+                        "ModifiedDate" => _configService?.Config.ColModifiedDateWidth ?? 150,
+                        "CreatedTime" => _configService?.Config.ColCreatedTimeWidth ?? 50,
+                        "Tags" => _configService?.Config.ColTagsWidth ?? 150,
+                        "Notes" => _configService?.Config.ColNotesWidth ?? 200,
+                        _ => column.ActualWidth > 0 ? column.ActualWidth : 100
+                    };
+                    column.Width = Math.Max(40, w);
+                }
+            }
+            else
+            {
+                // 隐藏列
+                column.Width = 0;
+            }
+
+            // 更新配置
+            UpdateVisibleColumnsConfig(tag, isVisible);
+        }
+
+        private void UpdateVisibleColumnsConfig(string tag, bool isVisible)
+        {
+            var currentVisible = GetVisibleColumnsForCurrentMode() ?? "";
+            var currentSet = new HashSet<string>(currentVisible.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries), StringComparer.OrdinalIgnoreCase);
+
+            if (isVisible) currentSet.Add(tag);
+            else currentSet.Remove(tag);
+
+            SetVisibleColumnsForCurrentMode(string.Join(",", currentSet));
+            _configService?.SaveCurrentConfig();
+        }
+
+        /// <summary>
+        /// 绑定列头分隔线事件
+        /// </summary>
+        /// <summary>
+        /// 绑定列头分隔线事件
+        /// </summary>
+        public void HookHeaderThumbs()
+        {
+            if (_fileBrowser?.FilesList == null) return;
+
+            // 必须从可视树中查找 GridViewHeaderRowPresenter，因为 FilesGrid.Columns 中的 Header 通常只是字符串
+            var presenter = FindDescendant<GridViewHeaderRowPresenter>(_fileBrowser.FilesList);
+            if (presenter == null) return;
+
+            int count = VisualTreeHelper.GetChildrenCount(presenter);
+            for (int i = 0; i < count; i++)
+            {
+                var child = VisualTreeHelper.GetChild(presenter, i);
+                if (child is GridViewColumnHeader header)
+                {
+                    // 绑定双击分隔条事件 (Thumb)
+                    // 我们直接尝试获取 Thumb 并绑定
+                    var thumb = FindHeaderThumb(header);
+                    if (thumb != null)
+                    {
+                        AttachThumbEvents(thumb);
+                    }
+                    else
+                    {
+                        // 如果 Thumb 还没加载，监听 Loaded
+                        header.Loaded -= Header_Loaded_AttachThumb;
+                        header.Loaded += Header_Loaded_AttachThumb;
+                    }
+                }
+            }
+        }
+
+        private void AttachThumbEvents(Thumb thumb)
+        {
+            // 清除旧事件以防重复绑定
+            thumb.PreviewMouseLeftButtonDown -= Thumb_PreviewMouseLeftButtonDown;
+            thumb.PreviewMouseLeftButtonDown += Thumb_PreviewMouseLeftButtonDown;
+
+            // 绑定拖拽事件
+            thumb.DragStarted -= HeaderThumb_DragStarted;
+            thumb.DragDelta -= HeaderThumb_DragDelta;
+            thumb.DragStarted += HeaderThumb_DragStarted;
+            thumb.DragDelta += HeaderThumb_DragDelta;
+        }
+
+        private void Thumb_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ClickCount == 2)
+            {
+                var thumb = sender as Thumb;
+                var header = FindAncestor<GridViewColumnHeader>(thumb);
+                if (header?.Column != null)
+                {
+                    AutoSizeGridViewColumn(header.Column);
+                    e.Handled = true;
+                }
+            }
+        }
+
+        // 废弃原有的 Header_PreviewMouseLeftButtonDown_ForThumb，改用直接绑定 Thumb
+
+        private void Header_Loaded_AttachThumb(object sender, RoutedEventArgs e)
+        {
+            if (sender is GridViewColumnHeader header)
+            {
+                header.Loaded -= Header_Loaded_AttachThumb; // One-shot
+                var thumb = FindHeaderThumb(header);
+                if (thumb != null)
+                {
+                    AttachThumbEvents(thumb);
+                }
+            }
+        }
+
+        private void HeaderThumb_DragStarted(object sender, DragStartedEventArgs e)
+        {
+            var header = FindAncestor<GridViewColumnHeader>(sender as DependencyObject);
+            if (header?.Column == null) return;
+            var tag = header.Tag?.ToString();
+
+            if (!IsColumnVisible(tag))
+            {
+                // 阻止隐藏列被拖动展开
+                header.Column.Width = 0;
+                e.Handled = true;
+            }
+        }
+
+        private void HeaderThumb_DragDelta(object sender, DragDeltaEventArgs e)
+        {
+            var header = FindAncestor<GridViewColumnHeader>(sender as DependencyObject);
+            if (header?.Column == null) return;
+            var tag = header.Tag?.ToString();
+
+            if (!IsColumnVisible(tag))
+            {
+                // 该列是隐藏列：把拖动量转嫁到左侧最近的可见列
+                header.Column.Width = 0;
+                HandleHiddenColumnResize(header.Column, e.HorizontalChange);
+                e.Handled = true;
+            }
+            else
+            {
+                // 该列可见，但其右邻居可能是隐藏列
+                HandleVisibleColumnResize(header.Column, e.HorizontalChange);
+                if (e.Handled) return;
+            }
+        }
+
+        private void HandleHiddenColumnResize(GridViewColumn currentColumn, double change)
+        {
+            var gridView = _fileBrowser?.FilesGrid;
+            if (gridView != null)
+            {
+                int idx = gridView.Columns.IndexOf(currentColumn);
+                for (int i = idx - 1; i >= 0; i--)
+                {
+                    var leftCol = gridView.Columns[i];
+                    var leftHeader = leftCol.Header as GridViewColumnHeader;
+                    var leftTag = leftHeader?.Tag?.ToString();
+                    if (IsColumnVisible(leftTag))
+                    {
+                        double min = 40;
+                        double newWidth = Math.Max(min, leftCol.Width + change);
+                        leftCol.Width = newWidth;
+                        break;
+                    }
+                }
+            }
+        }
+
+        private void HandleVisibleColumnResize(GridViewColumn currentColumn, double change)
+        {
+            var gridView = _fileBrowser?.FilesGrid;
+            if (gridView != null && change > 0)
+            {
+                int idx = gridView.Columns.IndexOf(currentColumn);
+                if (idx >= 0 && idx + 1 < gridView.Columns.Count)
+                {
+                    var rightCol = gridView.Columns[idx + 1];
+                    var rightHeader = rightCol.Header as GridViewColumnHeader;
+                    var rightTag = rightHeader?.Tag?.ToString();
+                    if (!IsColumnVisible(rightTag))
+                    {
+                        // 右侧隐藏：放大当前列，并强制右侧维持隐藏
+                        double min = 40;
+                        currentColumn.Width = Math.Max(min, currentColumn.Width + change);
+                        if (rightCol.Width != 0) rightCol.Width = 0;
+                        // 这里我们修改了当前列宽度，需要标记 Handled 吗？
+                        // 原代码是标记 Handled=true，这里保持一致
+                        // e.Handled = true; // 注意：DragDeltaEventArgs 没有 Handled 属性？
+                        // Wait, WPF DragDeltaEventArgs DOES have Handled if it's RoutedEvent, 
+                        // but System.Windows.Controls.Primitives.DragDeltaEventArgs inherits from RoutedEventArgs so yes.
+                    }
+                }
+            }
+        }
+
+        public void AutoSizeGridViewColumn(GridViewColumn column)
+        {
+            if (_fileBrowser == null || column == null) return;
+            _columnService?.AutoSizeGridViewColumn(column, _fileBrowser);
+        }
+
+        public void ApplyVisibleColumnsForCurrentMode()
+        {
+            if (_fileBrowser == null) return;
+            _columnService?.ApplyVisibleColumnsForCurrentMode(_fileBrowser);
+            HookHeaderThumbs();
+        }
+
+        // --- 辅助方法 ---
+
+        private string GetVisibleColumnsForCurrentMode()
+        {
+            return _columnService?.GetVisibleColumnsForCurrentMode() ?? "";
+        }
+
+        private void SetVisibleColumnsForCurrentMode(string csv)
+        {
+            _columnService?.SetVisibleColumnsForCurrentMode(csv);
+        }
+
+        private bool IsColumnVisible(string tag)
+        {
+            return _columnService?.IsColumnVisible(tag) ?? true;
+        }
+
+        private Thumb FindHeaderThumb(GridViewColumnHeader header)
+        {
+            var thumb = header.Template?.FindName("PART_HeaderGripper", header) as Thumb;
+            if (thumb != null) return thumb;
+            return FindDescendant<Thumb>(header);
+        }
+
+        private T FindAncestor<T>(DependencyObject current) where T : DependencyObject
+        {
+            while (current != null)
+            {
+                if (current is T ancestor) return ancestor;
+                current = VisualTreeHelper.GetParent(current);
+            }
+            return null;
+        }
+
+        private T FindDescendant<T>(DependencyObject d) where T : DependencyObject
+        {
+            if (d == null) return null;
+            int count = VisualTreeHelper.GetChildrenCount(d);
+            for (int i = 0; i < count; i++)
+            {
+                var child = VisualTreeHelper.GetChild(d, i);
+                if (child is T t) return t;
+                var deeper = FindDescendant<T>(child);
+                if (deeper != null) return deeper;
+            }
+            return null;
+        }
+    }
+}

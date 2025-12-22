@@ -54,17 +54,10 @@ namespace OoiMRR.Controls
                 FilesListView.PreviewMouseMove += (s, e) => PreviewMouseMove?.Invoke(s, e);
                 FilesListView.SizeChanged += (s, e) => SizeChanged?.Invoke(s, e);
 
-                // 订阅列标题点击事件
-                if (FilesGridView != null)
-                {
-                    foreach (GridViewColumn column in FilesGridView.Columns)
-                    {
-                        if (column.Header is GridViewColumnHeader header)
-                        {
-                            header.Click += (s, e) => GridViewColumnHeaderClick?.Invoke(s, e);
-                        }
-                    }
-                }
+                FilesListView.PreviewMouseMove += (s, e) => PreviewMouseMove?.Invoke(s, e);
+                FilesListView.SizeChanged += (s, e) => SizeChanged?.Invoke(s, e);
+
+                // 旧的列标题订阅代码已移除，现在使用 Style 中的 EventSetter 处理
             }
 
             // 订阅加载更多按钮事件
@@ -468,6 +461,14 @@ namespace OoiMRR.Controls
             {
                 GridViewColumnHeaderClick?.Invoke(header, e);
                 e.Handled = true;
+            }
+        }
+
+        private void ColumnHeader_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is GridViewColumnHeader header)
+            {
+                GridViewColumnHeaderClick?.Invoke(header, e);
             }
         }
 

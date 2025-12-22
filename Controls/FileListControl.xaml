@@ -32,6 +32,57 @@
                 </Grid>
             </Border>
         </DataTemplate>
+
+        <!-- 自定义列头样式：增大分隔线点击热区 -->
+        <Style x:Key="FileListColumnHeaderStyle" TargetType="{x:Type GridViewColumnHeader}">
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Foreground" Value="#666666"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+            <Setter Property="BorderBrush" Value="#E0E0E0"/>
+            <!-- 绑定 Tag 属性到内容的 Tag (假定内容是 FrameworkElement) -->
+            <Setter Property="Tag" Value="{Binding Content.Tag, RelativeSource={RelativeSource Self}}"/>
+            <EventSetter Event="Click" Handler="ColumnHeader_Click"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type GridViewColumnHeader}">
+                        <Grid>
+                            <Border BorderThickness="{TemplateBinding BorderThickness}" 
+                                    BorderBrush="{TemplateBinding BorderBrush}" 
+                                    Background="{TemplateBinding Background}">
+                                <ContentPresenter Margin="{TemplateBinding Padding}" 
+                                                  HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                  VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                  RecognizesAccessKey="True"
+                                                  SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                            </Border>
+                            <!-- Gripper: 宽度8px的透明热区，右对齐，在列头内部 -->
+                            <Thumb x:Name="PART_HeaderGripper" 
+                                   HorizontalAlignment="Right" 
+                                   Margin="0" 
+                                   Width="8"
+                                   Cursor="SizeWE">
+                                <Thumb.Template>
+                                    <ControlTemplate TargetType="Thumb">
+                                        <Border Background="Transparent"/>
+                                    </ControlTemplate>
+                                </Thumb.Template>
+                            </Thumb>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#F5F5F5"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#E0E0E0"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </UserControl.Resources>
     <Grid>
         <!-- 文件列表 -->
@@ -92,49 +143,47 @@
                         </Style>
                     </ListView.ItemContainerStyle>
                     <ListView.View>
-                        <GridView x:Name="FilesGridView">
+                        <GridView x:Name="FilesGridView" ColumnHeaderContainerStyle="{StaticResource FileListColumnHeaderStyle}">
                             <GridViewColumn Width="200" DisplayMemberBinding="{Binding Name}">
                                 <GridViewColumn.Header>
-                                    <GridViewColumnHeader Content="名称" Tag="Name"/>
+                                    <TextBlock Text="名称" Tag="Name"/>
                                 </GridViewColumn.Header>
                             </GridViewColumn>
                             <GridViewColumn x:Name="ColSize" Width="100" DisplayMemberBinding="{Binding Size}">
                                 <GridViewColumn.Header>
-                                    <GridViewColumnHeader Content="大小" Tag="Size"/>
+                                    <TextBlock Text="大小" Tag="Size"/>
                                 </GridViewColumn.Header>
                             </GridViewColumn>
                             <GridViewColumn x:Name="ColType" Width="100" DisplayMemberBinding="{Binding Type}">
                                 <GridViewColumn.Header>
-                                    <GridViewColumnHeader Content="类型" Tag="Type"/>
+                                    <TextBlock Text="类型" Tag="Type"/>
                                 </GridViewColumn.Header>
                             </GridViewColumn>
                             <GridViewColumn Width="150" DisplayMemberBinding="{Binding ModifiedDate}">
                                 <GridViewColumn.Header>
-                                    <GridViewColumnHeader Content="修改日期" Tag="ModifiedDate"/>
+                                    <TextBlock Text="修改日期" Tag="ModifiedDate"/>
                                 </GridViewColumn.Header>
                             </GridViewColumn>
                             <GridViewColumn Width="50">
                                 <GridViewColumn.Header>
-                                    <GridViewColumnHeader Content="创建" Tag="CreatedTime"/>
+                                    <TextBlock Text="创建" Tag="CreatedTime"/>
                                 </GridViewColumn.Header>
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>
-                                        <TextBlock>
-                                            <TextBlock.Text>
-                                                <Binding Path="CreatedTime"/>
-                                            </TextBlock.Text>
-                                        </TextBlock>
+                                        <Border Background="{Binding CreatedTimeBrush}" Margin="-6,0" Padding="0,2" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+                                            <TextBlock Text="{Binding CreatedTime}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="Black"/>
+                                        </Border>
                                     </DataTemplate>
                                 </GridViewColumn.CellTemplate>
                             </GridViewColumn>
                             <GridViewColumn Width="150" DisplayMemberBinding="{Binding Tags}">
                                 <GridViewColumn.Header>
-                                    <GridViewColumnHeader Content="标签" Tag="Tags"/>
+                                    <TextBlock Text="标签" Tag="Tags"/>
                                 </GridViewColumn.Header>
                             </GridViewColumn>
                             <GridViewColumn Width="200" DisplayMemberBinding="{Binding Notes}">
                                 <GridViewColumn.Header>
-                                    <GridViewColumnHeader Content="备注" Tag="Notes"/>
+                                    <TextBlock Text="备注" Tag="Notes"/>
                                 </GridViewColumn.Header>
                             </GridViewColumn>
                         </GridView>
@@ -154,40 +203,40 @@
                             BorderThickness="0,0,0,1">
                         <ListView x:Name="GroupedHeaderListView" BorderThickness="0" Background="Transparent">
                             <ListView.View>
-                                <GridView>
+                                <GridView ColumnHeaderContainerStyle="{StaticResource FileListColumnHeaderStyle}">
                                     <GridViewColumn x:Name="ColHeaderName" Width="200">
                                         <GridViewColumn.Header>
-                                            <GridViewColumnHeader Content="名称" Tag="Name"/>
+                                            <TextBlock Text="名称" Tag="Name"/>
                                         </GridViewColumn.Header>
                                     </GridViewColumn>
                                     <GridViewColumn x:Name="ColHeaderSize" Width="100">
                                         <GridViewColumn.Header>
-                                            <GridViewColumnHeader Content="大小" Tag="Size"/>
+                                            <TextBlock Text="大小" Tag="Size"/>
                                         </GridViewColumn.Header>
                                     </GridViewColumn>
                                     <GridViewColumn x:Name="ColHeaderType" Width="100">
                                         <GridViewColumn.Header>
-                                            <GridViewColumnHeader Content="类型" Tag="Type"/>
+                                            <TextBlock Text="类型" Tag="Type"/>
                                         </GridViewColumn.Header>
                                     </GridViewColumn>
                                     <GridViewColumn x:Name="ColHeaderModifiedDate" Width="150">
                                         <GridViewColumn.Header>
-                                            <GridViewColumnHeader Content="修改日期" Tag="ModifiedDate"/>
+                                            <TextBlock Text="修改日期" Tag="ModifiedDate"/>
                                         </GridViewColumn.Header>
                                     </GridViewColumn>
                                     <GridViewColumn x:Name="ColHeaderCreatedTime" Width="50">
                                         <GridViewColumn.Header>
-                                            <GridViewColumnHeader Content="创建" Tag="CreatedTime"/>
+                                            <TextBlock Text="创建" Tag="CreatedTime"/>
                                         </GridViewColumn.Header>
                                     </GridViewColumn>
                                     <GridViewColumn x:Name="ColHeaderTags" Width="150">
                                         <GridViewColumn.Header>
-                                            <GridViewColumnHeader Content="标签" Tag="Tags"/>
+                                            <TextBlock Text="标签" Tag="Tags"/>
                                         </GridViewColumn.Header>
                                     </GridViewColumn>
                                     <GridViewColumn x:Name="ColHeaderNotes" Width="200">
                                         <GridViewColumn.Header>
-                                            <GridViewColumnHeader Content="备注" Tag="Notes"/>
+                                            <TextBlock Text="备注" Tag="Notes"/>
                                         </GridViewColumn.Header>
                                     </GridViewColumn>
                                 </GridView>
@@ -281,18 +330,9 @@
                                                         <GridViewColumn Width="{Binding ElementName=ColHeaderCreatedTime, Path=Width}">
                                                             <GridViewColumn.CellTemplate>
                                                                 <DataTemplate>
-                                                                    <TextBlock Text="{Binding CreatedTime}">
-                                                                        <TextBlock.Style>
-                                                                            <Style TargetType="TextBlock">
-                                                                                <Setter Property="Foreground" Value="Black"/>
-                                                                                <Style.Triggers>
-                                                                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListViewItem}, Path=IsSelected}" Value="True">
-                                                                                        <Setter Property="Foreground" Value="White"/>
-                                                                                    </DataTrigger>
-                                                                                </Style.Triggers>
-                                                                            </Style>
-                                                                        </TextBlock.Style>
-                                                                    </TextBlock>
+                                                                    <Border Background="{Binding CreatedTimeBrush}" Margin="-6,0" Padding="0,2" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+                                                                        <TextBlock Text="{Binding CreatedTime}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="Black"/>
+                                                                    </Border>
                                                                 </DataTemplate>
                                                             </GridViewColumn.CellTemplate>
                                                         </GridViewColumn>

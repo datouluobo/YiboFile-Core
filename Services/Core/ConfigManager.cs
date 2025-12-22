@@ -22,6 +22,8 @@ namespace OoiMRR
         // 主布局列宽度（列1和列2）
         public double ColLeftWidth { get; set; } = 220; // 列1（左侧导航区）宽度
         public double ColCenterWidth { get; set; } = 0; // 列2（中间文件浏览器）宽度，0表示使用Star模式
+        // 新增：列3（右侧预览区）宽度 - 默认360
+        public double ColRightWidth { get; set; } = 360;
 
         // 兼容旧版本的属性名
         public double LeftPanelWidth { get => ColLeftWidth; set => ColLeftWidth = value; }
@@ -57,6 +59,14 @@ namespace OoiMRR
         public double TagFontSize { get; set; } = 16; // Tag字体大小（默认16）
         public double TagBoxWidth { get; set; } = 0; // Tag框宽度（0表示自动计算，>0表示固定宽度）
         public double TagWidth { get; set; } = 120; // Tag框宽度（默认120）
+
+        // 新增：持久化状态字段
+        public bool IsRightPanelVisible { get; set; } = true; // 右侧面板可见性
+        public double RightPanelNotesHeight { get; set; } = 200; // 右侧备注区高度
+        public double CenterPanelInfoHeight { get; set; } = 180; // 中间底部详情区高度
+        public string FileViewMode { get; set; } = "List"; // 视图模式：List 或 Thumbnail
+        public string SortColumn { get; set; } = "Name"; // 排序字段
+        public string SortDirection { get; set; } = "Ascending"; // 排序方向
 
         // 标签页复用策略配置
         public int ReuseTabTimeWindow { get; set; } = 10; // 复用标签页的时间窗口（秒），默认10秒
@@ -310,6 +320,7 @@ namespace OoiMRR
             if (config.WindowWidth <= 0) config.WindowWidth = 1200;
             if (config.WindowHeight <= 0) config.WindowHeight = 800;
             if (config.ColLeftWidth <= 0) config.ColLeftWidth = 220;
+            if (config.ColRightWidth <= 0) config.ColRightWidth = 360;
         }
 
         public static void Save(AppConfig config)

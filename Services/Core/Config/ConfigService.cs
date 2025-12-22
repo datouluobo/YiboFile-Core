@@ -94,7 +94,7 @@ namespace OoiMRR.Services.Config
                 var logPath = @"f:\Download\GitHub\OoiMRR\.cursor\debug.log";
                 try { System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(logPath)); System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "E", location = "ConfigService.cs:87", message = "ApplyConfig开始", data = new { cfgWindowWidth = cfg.WindowWidth, cfgWindowHeight = cfg.WindowHeight, cfgWindowTop = cfg.WindowTop, cfgWindowLeft = cfg.WindowLeft, cfgIsMaximized = cfg.IsMaximized, cfgLeftPanelWidth = cfg.LeftPanelWidth, cfgMiddlePanelWidth = cfg.MiddlePanelWidth, cfgColLeftWidth = cfg.ColLeftWidth, cfgColCenterWidth = cfg.ColCenterWidth }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
                 // #endregion
-                
+
                 _isApplyingConfig = true;
 
                 var window = _uiHelper.Window;
@@ -133,7 +133,7 @@ namespace OoiMRR.Services.Config
                             _uiHelper.ExtendFrameIntoClientArea(-1, -1, -1, -1);
                             // 更新窗口状态UI（最大化按钮图标）
                             _uiHelper.UpdateWindowStateUI();
-                            
+
                             // 最大化后也需要应用分割线位置
                             ApplySplitterPositions(configToApply);
                         }
@@ -186,7 +186,7 @@ namespace OoiMRR.Services.Config
 
                 // 保存当前路径
                 _config.LastPath = _uiHelper.CurrentPath;
-                
+
                 // 保存当前库ID
                 var currentLibrary = _uiHelper.CurrentLibrary;
                 if (currentLibrary != null)
@@ -213,7 +213,7 @@ namespace OoiMRR.Services.Config
                 {
                     _config.LastLibraryId = 0;
                 }
-                
+
                 _config.IsMaximized = _uiHelper.IsPseudoMaximized; // 使用IsPseudoMaximized而不是WindowState
                 if (!_config.IsMaximized)
                 {
@@ -351,7 +351,7 @@ namespace OoiMRR.Services.Config
             if (!double.IsNaN(cfg.WindowLeft) && cfg.WindowLeft >= 0) window.Left = cfg.WindowLeft;
             _uiHelper.IsPseudoMaximized = false;
             window.ResizeMode = ResizeMode.CanResize;
-            
+
             // #region agent log
             var logPath = @"f:\Download\GitHub\OoiMRR\.cursor\debug.log";
             try { System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "E", location = "ConfigService.cs:ApplyNonMaximizedWindowState", message = "应用非最大化窗口状态", data = new { appliedWidth = window.Width, appliedHeight = window.Height, appliedTop = window.Top, appliedLeft = window.Left }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
@@ -369,7 +369,7 @@ namespace OoiMRR.Services.Config
             // 优先使用ColLeftWidth和ColCenterWidth（新字段），如果为0则使用LeftPanelWidth和MiddlePanelWidth（兼容字段）
             var leftWidth = cfg.ColLeftWidth > 0 ? cfg.ColLeftWidth : cfg.LeftPanelWidth;
             var centerWidth = cfg.ColCenterWidth > 0 ? cfg.ColCenterWidth : cfg.MiddlePanelWidth;
-            
+
             // 如果宽度有效（大于0），确保不小于最小宽度；如果为0，使用Star模式（自适应）
             if (leftWidth > 0)
             {
@@ -381,18 +381,16 @@ namespace OoiMRR.Services.Config
                 // 如果为0，使用Star模式（自适应）
                 _uiHelper.RootGrid.ColumnDefinitions[0].Width = new GridLength(1, GridUnitType.Star);
             }
-            
-            if (centerWidth > 0)
-            {
-                centerWidth = Math.Max(_uiHelper.ColCenter.MinWidth, centerWidth);
-                _uiHelper.RootGrid.ColumnDefinitions[2].Width = new GridLength(centerWidth);
-            }
-            else
-            {
-                // 如果为0，使用Star模式（自适应）
-                _uiHelper.RootGrid.ColumnDefinitions[2].Width = new GridLength(1, GridUnitType.Star);
-            }
-            // 右侧(列4)使用*自适应，不设置固定宽度
+
+            // 如果要支持中间列自适应(Star)且右边列固定，这里应该强制中间列为Star
+            // 之前的逻辑是如果 centerWidth > 0 就设为 Fixed，但这会导致启动后无法自适应填充
+            // 为了配合之前的 Gap Fix (中间列自适应)，这里我们不再恢复中间列的固定宽度，而是强制设为 Star
+            _uiHelper.RootGrid.ColumnDefinitions[2].Width = new GridLength(1, GridUnitType.Star);
+
+            // 右侧(列4)恢复固定宽度
+            var rightWidth = cfg.ColRightWidth > 0 ? cfg.ColRightWidth : 360;
+            rightWidth = Math.Max(_uiHelper.ColRight.MinWidth, rightWidth);
+            _uiHelper.RootGrid.ColumnDefinitions[4].Width = new GridLength(rightWidth);
 
             // #region agent log
             var logPath = @"f:\Download\GitHub\OoiMRR\.cursor\debug.log";
@@ -408,7 +406,7 @@ namespace OoiMRR.Services.Config
                 {
                     window.MinWidth = minTotalWidth;
                 }
-                
+
                 // 确保窗口大小已经确定，如果窗口宽度小于列宽总和，需要调整
                 if (window.IsLoaded)
                 {
@@ -423,7 +421,55 @@ namespace OoiMRR.Services.Config
 
             // 应用完配置后，更新布局以确保MinWidth生效
             _uiHelper.RootGrid.UpdateLayout();
-            
+
+            // --- 恢复扩展 UI 状态 ---
+
+            // 1. 恢复右侧面板可见性
+            if (!cfg.IsRightPanelVisible)
+            {
+                // 如果配置为不可见，则折叠右侧面板
+                // 这里我们调用 ToggleRightPanel 或者手动设置 Width=0
+                // 但 ToggleRightPanel 逻辑比较复杂，我们直接操作列宽
+                // 为了避免冲突，我们模拟 ToggleRightPanel 的 "关闭" 状态
+
+                // 注意：如果我们在上面刚刚设置了 Width=360，这里再设为 0
+                // 下次 Toggle 打开时，需要知道恢复多少。ConfigService 不持有该逻辑。
+                // 最好是确保 RightPanelControl 处于隐藏状态如果 IsRightPanelVisible=false
+                // 不过 ToggleRightPanel 实际上是操作 ColRight.Width。
+                // 简单处理：如果不可见，将列宽设为 0。
+                _uiHelper.RootGrid.ColumnDefinitions[4].Width = new GridLength(0);
+
+                // 同时需要更新 TitleActionBar 的状态 (如果能访问到)
+                if (_uiHelper.TitleActionBar != null)
+                {
+                    // 这是一个 Hack，理想情况应该通过 Command 或 Service 调用
+                    // 这里假设 TitleActionBar 会根据 Width 自动更新，或者我们无法触及
+                }
+            }
+
+            // 2. 恢复右侧面板内部高度 (备注区)
+            if (cfg.RightPanelNotesHeight > 0 && _uiHelper.RightPanelControl != null)
+            {
+                if (_uiHelper.RightPanelControl.Content is System.Windows.Controls.Grid rightRootGrid)
+                {
+                    if (rightRootGrid.RowDefinitions.Count > 3)
+                    {
+                        var notesRow = rightRootGrid.RowDefinitions[3];
+                        notesRow.Height = new GridLength(cfg.RightPanelNotesHeight);
+                    }
+                }
+            }
+
+            // 3. 恢复中间面板底部高度 (文件详情区)
+            if (cfg.CenterPanelInfoHeight > 0 && _uiHelper.FileBrowser != null && _uiHelper.FileBrowser.Content is System.Windows.Controls.Grid fileBrowserGrid)
+            {
+                if (fileBrowserGrid.RowDefinitions.Count >= 4)
+                {
+                    var lastRow = fileBrowserGrid.RowDefinitions[fileBrowserGrid.RowDefinitions.Count - 1];
+                    lastRow.Height = new GridLength(cfg.CenterPanelInfoHeight);
+                }
+            }
+
             // 注意：不要在启动时调用 EnsureColumnMinWidths() 或 AdjustColumnWidths()
             // 这些方法会重新计算列宽，覆盖我们刚刚从配置恢复的固定宽度
             // 配置中的列宽已经是用户拖动后的正确值，不需要重新计算

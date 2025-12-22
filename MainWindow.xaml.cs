@@ -87,6 +87,8 @@ namespace OoiMRR
         internal Handlers.MenuEventHandler _menuEventHandler;
         internal Handlers.KeyboardEventHandler _keyboardEventHandler;
         internal Handlers.MouseEventHandler _mouseEventHandler;
+        internal Handlers.ColumnInteractionHandler _columnInteractionHandler;
+        internal Handlers.WindowLifecycleHandler _windowLifecycleHandler;
         private SelectionEventHandler _selectionEventHandler;
         internal Services.TagTrain.TagTrainEventHandler _tagTrainEventHandler;
 
@@ -94,7 +96,6 @@ namespace OoiMRR
         // TODO: 过渡代码 - 这些字段在事件处理器中仍在使用，后续考虑通过服务状态管理
         private bool _isLoadingFiles = false;
         private System.Threading.SemaphoreSlim _loadFilesSemaphore = new System.Threading.SemaphoreSlim(1, 1);
-        private System.Threading.CancellationTokenSource _currentFolderSizeCTS;
 
         // 定时器管理
         // 定时器管理
@@ -205,14 +206,35 @@ namespace OoiMRR
         void Services.Navigation.INavigationModeUIHelper.EnsureHeaderContextMenuHook() => EnsureHeaderContextMenuHook();
         void Services.Navigation.INavigationModeUIHelper.RefreshFileList() => RefreshFileList();
 
+        // IConfigUIHelper 实现 (部分属性已经是隐式实现，这里补充显式实现或新增属性)
+        Controls.FileBrowserControl Services.Config.IConfigUIHelper.FileBrowser => FileBrowser;
+        RightPanelControl Services.Config.IConfigUIHelper.RightPanelControl => RightPanel;
+
         public MainWindow()
         {
             InitializeComponent();
 
+            // 订阅渲染完成事件，确保在窗口初次显示时强制修正布局
+            // 这对于解决启动时右侧空白间隙至关重要，因为此时 ActualWidth 才有效
+            this.ContentRendered += (s, e) =>
+            {
+                _windowLifecycleHandler?.AdjustColumnWidths();
+            };
+
             InitializeServices();
+
+            // Step 1: Initialize services and config (Service Initialization Phase)
+            var initializer = new Services.MainWindowInitializer(this);
+            initializer.InitializeConfigServices();
+
+            // Step 2: Initialize Handlers (now they have access to _configService)
+            InitializeHandlers();
+
+            // Step 3: Initialize Events (UI interactions)
             InitializeEvents();
 
-            InitializeHandlers();
+            // Step 4: Apply Initial State (Logic/UI Update Phase)
+            initializer.ApplyInitialState();
         }
 
 
@@ -225,6 +247,14 @@ namespace OoiMRR
         private void GridSplitter_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
         {
             System.Diagnostics.Debug.WriteLine("[GridSplitter] DragCompleted 触发，开始保存");
+
+            // 关键修复：拖拽结束后，强制将中间列恢复为 Star，以消除右侧可能出现的空白间隙
+            // 分割器拖拽会导致列宽变为固定值，如果总宽度小于窗口宽度就会产生空白
+            if (ColCenter != null && !ColCenter.Width.IsStar)
+            {
+                ColCenter.Width = new GridLength(1, GridUnitType.Star);
+            }
+
             // 拖拽结束后，立即保存（不延迟）
             if (_windowStateManager != null && this.IsLoaded)
             {
@@ -260,6 +290,42 @@ namespace OoiMRR
                 ClearFilter();
                 LoadCurrentDirectory();
                 UpdateNavigationButtonsState();
+            }
+        }
+
+        private void FileBrowser_ViewModeChanged(object sender, string mode)
+        {
+            if (_configService != null)
+            {
+                _configService.Config.FileViewMode = mode;
+                _configService.SaveCurrentConfig();
+            }
+        }
+
+        private void RightPanel_NotesHeightChanged(object sender, double height)
+        {
+            if (_configService != null)
+            {
+                _configService.Config.RightPanelNotesHeight = height;
+                _configService.SaveCurrentConfig();
+            }
+        }
+
+        private void FileBrowser_InfoHeightChanged(object sender, double height)
+        {
+            if (_configService != null)
+            {
+                _configService.Config.CenterPanelInfoHeight = height;
+                _configService.SaveCurrentConfig();
+            }
+        }
+
+        private void MainWindow_Unloaded(object sender, RoutedEventArgs e)
+        {
+            string parentPath = _navigationService.NavigateUp();
+            if (!string.IsNullOrEmpty(parentPath))
+            {
+                NavigateToPath(parentPath);
             }
         }
 
@@ -399,45 +465,7 @@ namespace OoiMRR
 
 
 
-        /// <summary>
-        /// 立即计算指定文件夹的大小（用户选中时触发）
-        /// </summary>
-        private void CalculateFolderSizeImmediately(string folderPath)
-        {
-            if (string.IsNullOrEmpty(folderPath))
-                return;
 
-            // 取消之前的计算任务
-            if (_currentFolderSizeCTS != null)
-            {
-                _currentFolderSizeCTS.Cancel();
-                _currentFolderSizeCTS.Dispose();
-            }
-            _currentFolderSizeCTS = new System.Threading.CancellationTokenSource();
-            var token = _currentFolderSizeCTS.Token;
-
-            // 先更新UI显示"计算中..."，给用户即时反馈
-            Dispatcher.BeginInvoke(new Action(() =>
-            {
-                if (token.IsCancellationRequested) return;
-
-                var item = _currentFiles.FirstOrDefault(f => f.Path == folderPath);
-                if (item != null && (string.IsNullOrEmpty(item.Size) || item.Size == "-" || item.Size == "计算中..."))
-                {
-                    item.Size = "计算中...";
-                    // 仅刷新该项，避免刷新整个列表导致闪烁（如果有机制的话，这里还是刷新全部）
-                    // 优化：如果可能，只更新单个Item的UI，但Binding通常需要NotifyPropertyChanged
-                    // 这里FileSystemItem实现了INotifyPropertyChanged吗？假设它绑定机制有效。
-                    // 刷新CollectionView虽然开销大，但为了确保"计算中..."立即显示
-                    // var collectionView = System.Windows.Data.CollectionViewSource.GetDefaultView(FileBrowser?.FilesItemsSource);
-                    // collectionView?.Refresh();
-
-                    // 使用 FileListService 计算文件夹大小
-                    // 计算完成后会通过 FolderSizeCalculated 事件更新UI
-                    _ = _fileListService.CalculateFolderSizeAsync(item, token);
-                }
-            }), System.Windows.Threading.DispatcherPriority.Normal);
-        }
 
         #endregion
 
@@ -459,6 +487,20 @@ namespace OoiMRR
             return null;
         }
 
+        private T FindDescendant<T>(DependencyObject d) where T : DependencyObject
+        {
+            if (d == null) return null;
+            int count = VisualTreeHelper.GetChildrenCount(d);
+            for (int i = 0; i < count; i++)
+            {
+                var child = VisualTreeHelper.GetChild(d, i);
+                if (child is T t) return t;
+                var deeper = FindDescendant<T>(child);
+                if (deeper != null) return deeper;
+            }
+            return null;
+        }
+
 
 
 
@@ -466,104 +508,13 @@ namespace OoiMRR
         // 根据内容自动调整列宽（用于双击列分隔条）
         private void AutoSizeGridViewColumn(GridViewColumn column)
         {
-            if (FileBrowser == null || column == null) return;
-            _columnService?.AutoSizeGridViewColumn(column, FileBrowser);
+            _columnInteractionHandler?.AutoSizeGridViewColumn(column);
         }
 
         // 右键列头 -> 列显示设置
         internal void EnsureHeaderContextMenuHook()
         {
-            if (FileBrowser?.FilesList == null) return;
-            FileBrowser.FilesList.PreviewMouseRightButtonUp -= FilesList_PreviewMouseRightButtonUp_HeaderMenu;
-            FileBrowser.FilesList.PreviewMouseRightButtonUp += FilesList_PreviewMouseRightButtonUp_HeaderMenu;
-        }
-
-        private void FilesList_PreviewMouseRightButtonUp_HeaderMenu(object sender, MouseButtonEventArgs e)
-        {
-            var src = e.OriginalSource as DependencyObject;
-            if (src == null) return;
-
-            // 检查是否点击在列头上
-            var header = FindAncestor<GridViewColumnHeader>(src);
-            if (header != null)
-            {
-                // 在列头上右键，显示列选择菜单（弹出选项菜单，与列3一致）
-                e.Handled = true;
-
-                // 创建弹出菜单
-                var cm = new ContextMenu();
-                var visibleCsv = GetVisibleColumnsForCurrentMode() ?? "";
-                var visibleSet = new HashSet<string>(visibleCsv.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries), StringComparer.OrdinalIgnoreCase);
-
-                if (FileBrowser?.FilesGrid != null)
-                {
-                    foreach (var column in FileBrowser.FilesGrid.Columns)
-                    {
-                        var colHeader = column.Header as GridViewColumnHeader;
-                        var tag = colHeader?.Tag?.ToString();
-                        if (string.IsNullOrEmpty(tag)) continue;
-
-                        string title = colHeader?.Content?.ToString() ?? tag;
-                        bool isVisible = visibleSet.Contains(tag);
-
-                        var mi = new MenuItem
-                        {
-                            Header = $"列: {title}",
-                            IsCheckable = true,
-                            IsChecked = isVisible
-                        };
-
-                        mi.Checked += (s, ev) =>
-                        {
-                            // 显示列
-                            if (column.Width <= 1)
-                            {
-                                double w = tag switch
-                                {
-                                    "Name" => _configService?.Config.ColNameWidth ?? 200,
-                                    "Size" => _configService?.Config.ColSizeWidth ?? 100,
-                                    "Type" => _configService?.Config.ColTypeWidth ?? 100,
-                                    "ModifiedDate" => _configService?.Config.ColModifiedDateWidth ?? 150,
-                                    "CreatedTime" => _configService?.Config.ColCreatedTimeWidth ?? 50,
-                                    "Tags" => _configService?.Config.ColTagsWidth ?? 150,
-                                    "Notes" => _configService?.Config.ColNotesWidth ?? 200,
-                                    _ => column.ActualWidth > 0 ? column.ActualWidth : 100
-                                };
-                                column.Width = Math.Max(40, w);
-                            }
-                            // 更新配置
-                            var currentVisible = GetVisibleColumnsForCurrentMode() ?? "";
-                            var currentSet = new HashSet<string>(currentVisible.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries), StringComparer.OrdinalIgnoreCase);
-                            currentSet.Add(tag);
-                            SetVisibleColumnsForCurrentMode(string.Join(",", currentSet));
-                            _configService?.SaveCurrentConfig();
-                        };
-
-                        mi.Unchecked += (s, ev) =>
-                        {
-                            // 隐藏列
-                            column.Width = 0;
-                            // 更新配置
-                            var currentVisible = GetVisibleColumnsForCurrentMode() ?? "";
-                            var currentSet = new HashSet<string>(currentVisible.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries), StringComparer.OrdinalIgnoreCase);
-                            currentSet.Remove(tag);
-                            SetVisibleColumnsForCurrentMode(string.Join(",", currentSet));
-                            _configService?.SaveCurrentConfig();
-                        };
-
-                        cm.Items.Add(mi);
-                    }
-                }
-
-                // 将菜单附加到列头元素上并显示
-                cm.PlacementTarget = header;
-                cm.Placement = System.Windows.Controls.Primitives.PlacementMode.MousePoint;
-                cm.IsOpen = true;
-                return;
-            }
-
-            // 不在列头上，不处理，让文件列表的右键菜单显示
-            // 不设置 e.Handled，让事件继续传播到文件列表的 ContextMenu
+            _columnInteractionHandler?.EnsureHeaderContextMenuHook();
         }
 
         internal string GetCurrentModeKey()
@@ -583,169 +534,20 @@ namespace OoiMRR
 
         internal void ApplyVisibleColumnsForCurrentMode()
         {
-            if (FileBrowser == null) return;
-            _columnService?.ApplyVisibleColumnsForCurrentMode(FileBrowser);
-            HookHeaderThumbs();
+            _columnInteractionHandler?.ApplyVisibleColumnsForCurrentMode();
         }
 
         // 绑定列头分隔线双击
         internal void HookHeaderThumbs()
         {
-            if (FileBrowser?.FilesGrid == null) return;
-            foreach (var column in FileBrowser.FilesGrid.Columns)
-            {
-                if (column.Header is GridViewColumnHeader header)
-                {
-                    header.PreviewMouseLeftButtonDown -= Header_PreviewMouseLeftButtonDown_ForThumb;
-                    header.PreviewMouseLeftButtonDown += Header_PreviewMouseLeftButtonDown_ForThumb;
-
-                    // 确保模板应用后再挂载Thumb事件
-                    header.Loaded -= Header_Loaded_AttachThumb;
-                    header.Loaded += Header_Loaded_AttachThumb;
-                }
-            }
+            _columnInteractionHandler?.HookHeaderThumbs();
         }
 
-        private void Header_PreviewMouseLeftButtonDown_ForThumb(object sender, MouseButtonEventArgs e)
-        {
-            if (e.ClickCount != 2) return;
-            if (sender is GridViewColumnHeader header)
-            {
-                // Header 级别也拦截（无论Thumb是否已处理）
-                if (header.Column != null)
-                {
-                    AutoSizeGridViewColumn(header.Column);
-                    e.Handled = true;
-                }
-            }
-        }
-
-        // 使用 AddHandler 捕获的分隔线双击
+        // 使用 AddHandler 捕获的分隔线双击 - Logic moved to ColumnInteractionHandler internal hook
         internal void FilesList_HeaderThumbDoubleClick(object sender, MouseButtonEventArgs e)
         {
-            if (e.ClickCount != 2) return;
-            var src = e.OriginalSource as DependencyObject;
-            if (src == null) return;
-            var header = FindAncestor<GridViewColumnHeader>(src);
-            var thumb = FindAncestor<System.Windows.Controls.Primitives.Thumb>(src);
-            if (header != null && thumb != null && header.Column != null)
-            {
-                AutoSizeGridViewColumn(header.Column);
-                e.Handled = true;
-            }
-        }
-
-        private void Header_Loaded_AttachThumb(object sender, RoutedEventArgs e)
-        {
-            if (sender is GridViewColumnHeader header)
-            {
-                var thumb = FindHeaderThumb(header);
-                if (thumb != null)
-                {
-                    thumb.DragStarted -= HeaderThumb_DragStarted;
-                    thumb.DragDelta -= HeaderThumb_DragDelta;
-                    thumb.DragStarted += HeaderThumb_DragStarted;
-                    thumb.DragDelta += HeaderThumb_DragDelta;
-                }
-            }
-        }
-
-        private void HeaderThumb_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
-        {
-            var header = FindAncestor<GridViewColumnHeader>(sender as DependencyObject);
-            if (header?.Column == null) return;
-            var tag = header.Tag?.ToString();
-            if (!IsColumnVisible(tag))
-            {
-                // 阻止隐藏列被拖动展开
-                header.Column.Width = 0;
-                e.Handled = true;
-            }
-        }
-
-        private void HeaderThumb_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
-        {
-            var header = FindAncestor<GridViewColumnHeader>(sender as DependencyObject);
-            if (header?.Column == null) return;
-            var tag = header.Tag?.ToString();
-            if (!IsColumnVisible(tag))
-            {
-                // 该列是隐藏列：把拖动量转嫁到左侧最近的可见列，避免用户感觉被阻塞
-                header.Column.Width = 0; // 自身保持隐藏
-
-                // 在列集合中找到当前列索引
-                var gridView = FileBrowser?.FilesGrid;
-                if (gridView != null)
-                {
-                    int idx = gridView.Columns.IndexOf(header.Column);
-                    // 向左寻找最近的可见列
-                    for (int i = idx - 1; i >= 0; i--)
-                    {
-                        var leftCol = gridView.Columns[i];
-                        var leftHeader = leftCol.Header as GridViewColumnHeader;
-                        var leftTag = leftHeader?.Tag?.ToString();
-                        if (IsColumnVisible(leftTag))
-                        {
-                            double min = 40; // 最小宽度保护
-                            double newWidth = Math.Max(min, leftCol.Width + e.HorizontalChange);
-                            leftCol.Width = newWidth;
-                            e.Handled = true;
-                            break;
-                        }
-                    }
-                }
-            }
-            else
-            {
-                // 该列可见，但其右邻居可能是隐藏列：当向右拖动时，把扩展量施加到当前列，同时保持右邻居为0
-                var gridView = FileBrowser?.FilesGrid;
-                if (gridView != null && e.HorizontalChange > 0)
-                {
-                    int idx = gridView.Columns.IndexOf(header.Column);
-                    if (idx >= 0 && idx + 1 < gridView.Columns.Count)
-                    {
-                        var rightCol = gridView.Columns[idx + 1];
-                        var rightHeader = rightCol.Header as GridViewColumnHeader;
-                        var rightTag = rightHeader?.Tag?.ToString();
-                        if (!IsColumnVisible(rightTag))
-                        {
-                            // 右侧隐藏：放大当前列，并强制右侧维持隐藏
-                            double min = 40;
-                            header.Column.Width = Math.Max(min, header.Column.Width + e.HorizontalChange);
-                            if (rightCol.Width != 0) rightCol.Width = 0;
-                            e.Handled = true;
-                        }
-                    }
-                }
-            }
-        }
-
-        private bool IsColumnVisible(string tag)
-        {
-            return _columnService?.IsColumnVisible(tag) ?? true;
-        }
-
-        private System.Windows.Controls.Primitives.Thumb FindHeaderThumb(GridViewColumnHeader header)
-        {
-            // 先尝试按模板名
-            var thumb = header.Template?.FindName("PART_HeaderGripper", header) as System.Windows.Controls.Primitives.Thumb;
-            if (thumb != null) return thumb;
-            // 否则在视觉树中查找
-            return FindDescendant<System.Windows.Controls.Primitives.Thumb>(header);
-        }
-
-        private T FindDescendant<T>(DependencyObject d) where T : DependencyObject
-        {
-            if (d == null) return null;
-            int count = VisualTreeHelper.GetChildrenCount(d);
-            for (int i = 0; i < count; i++)
-            {
-                var child = VisualTreeHelper.GetChild(d, i);
-                if (child is T t) return t;
-                var deeper = FindDescendant<T>(child);
-                if (deeper != null) return deeper;
-            }
-            return null;
+            // _columnInteractionHandler?.HandleHeaderThumbDoubleClick(sender, e);
+            // Functionality replaced by direct event attachment in HookHeaderThumbs
         }
 
 
@@ -1143,14 +945,22 @@ namespace OoiMRR
 
         bool IConfigUIHelper.IsPseudoMaximized
         {
-            get => _isPseudoMaximized;
-            set => _isPseudoMaximized = value;
+            get => _windowLifecycleHandler?.IsPseudoMaximized ?? false;
+            set
+            {
+                if (_windowLifecycleHandler != null)
+                    _windowLifecycleHandler.IsPseudoMaximized = value;
+            }
         }
 
         Rect IConfigUIHelper.RestoreBounds
         {
-            get => _restoreBounds;
-            set => _restoreBounds = value;
+            get => _windowLifecycleHandler?.RestoreBounds ?? Rect.Empty;
+            set
+            {
+                if (_windowLifecycleHandler != null)
+                    _windowLifecycleHandler.RestoreBounds = value;
+            }
         }
 
         Rect IConfigUIHelper.GetCurrentMonitorWorkAreaDIPs()
@@ -1172,9 +982,7 @@ namespace OoiMRR
 
         void IConfigUIHelper.ExtendFrameIntoClientArea(int left, int right, int top, int bottom)
         {
-            var hwnd = new WindowInteropHelper(this).Handle;
-            var margins = new NativeMethods.MARGINS { cxLeftWidth = left, cxRightWidth = right, cyTopHeight = top, cyBottomHeight = bottom };
-            NativeMethods.DwmExtendFrameIntoClientArea(hwnd, ref margins);
+            _windowLifecycleHandler?.ExtendFrameIntoClientArea(left, right, top, bottom);
         }
 
         void IConfigUIHelper.UpdateWindowStateUI()

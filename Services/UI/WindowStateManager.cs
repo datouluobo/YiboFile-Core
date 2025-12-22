@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Windows;
+using OoiMRR;
+using OoiMRR.Controls;
 using OoiMRR.Services.Config;
 using OoiMRR.Services.Tabs;
 using OoiMRR.Services.Navigation;
@@ -279,6 +281,91 @@ namespace OoiMRR.Services
                 try { System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "B", location = "WindowStateManager.cs:204", message = "SaveSplitterPositions保存中间宽度", data = new { savedMiddleWidth = _config.ColCenterWidth }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
                 // #endregion
                 System.Diagnostics.Debug.WriteLine($"[WindowStateManager] 保存中间列宽度: {middleWidth}");
+            }
+
+            // 新增：保存右侧列宽度
+            var rightCol = _uiHelper.RootGrid.ColumnDefinitions[4];
+            double rightWidth = rightCol.ActualWidth;
+            if (rightWidth > 0 && rightWidth >= rightCol.MinWidth)
+            {
+                _config.ColRightWidth = rightWidth;
+                System.Diagnostics.Debug.WriteLine($"[WindowStateManager] 保存右侧列宽度: {rightWidth}");
+            }
+
+            // --- 新增：保存扩展 UI 状态 ---
+
+            // 1. 保存右侧面板可见性 (Width > 0 并不完全代表可见性，这里主要看 Visible 属性)
+            // 假设 ColRightWidth > 0 且 Visibility 为 Visible
+            // 由于 ColRight 总是存在的，我们检查 RightPanelControl 是否实际显示（或者看 Column 的 Width 是否为 0）
+            // 目前右面板通过 Width=0 在视觉上隐藏，ToggleRightPanel 逻辑也是改宽度的。
+            // 但如果用了 ToggleRightPanel，它会设置 WeekStar/Fixed。
+            // 简单起见，如果 ColRight.ActualWidth < 10，认为它是隐藏的。
+            _config.IsRightPanelVisible = _uiHelper.ColRight.ActualWidth > 10;
+
+            // 2. 保存右侧面板内部高度 (备注区)
+            // 需要访问 RightPanelControl -> Grid -> RowDefinitions[3]
+            if (_uiHelper.RightPanelControl != null)
+            {
+                var content = _uiHelper.RightPanelControl.Content as System.Windows.Controls.Grid; // UserControl Content is usually Grid
+                                                                                                   // RightPanelControl XAML root is Grid.
+                                                                                                   // But _uiHelper.RightPanelControl IS the OoiMRR.RightPanelControl (UserControl).
+                                                                                                   // We need checking its Structure. 
+                                                                                                   // The UserControl Content property holds the root Grid.
+                if (_uiHelper.RightPanelControl.Content is System.Windows.Controls.Grid rightRootGrid)
+                {
+                    if (rightRootGrid.RowDefinitions.Count > 3)
+                    {
+                        var notesRow = rightRootGrid.RowDefinitions[3]; // Row 3 is Notes
+                        if (notesRow.Height.IsAbsolute)
+                        {
+                            _config.RightPanelNotesHeight = notesRow.Height.Value;
+                        }
+                    }
+                }
+            }
+
+            // 3. 保存中间面板底部高度 (文件详情区)
+            // 需要访问 FileBrowserControl -> Grid -> RowDefinitions[3]
+            if (_uiHelper.FileBrowser?.Content is System.Windows.Controls.Grid fileBrowserGrid)
+            {
+                if (fileBrowserGrid.RowDefinitions.Count > 3)
+                {
+                    var infoRow = fileBrowserGrid.RowDefinitions[3]; // Row 3 is GridSplitter (Row 4 is Info actually? Wait, let me check XAML)
+                                                                     // FileBrowserControl.xaml:
+                                                                     // Row 0: Address
+                                                                     // Row 1: TabManager
+                                                                     // Row 2: FileList (*)
+                                                                     // Row 3: Splitter
+                                                                     // Row 4: Info Panel
+                                                                     // Wait, XAML says: RowDefinition Height="180" for Row 3? 
+                                                                     // Let's re-read FileBrowserControl.xaml quickly from memory or just check definitions. 
+                                                                     // Row 3 is 180 MinHeight=120?
+                                                                     // Re-checking XAML: 
+                                                                     // Row 0: Auto
+                                                                     // Row 1: Auto
+                                                                     // Row 2: *
+                                                                     // Row 3: 180 MinHeight 120
+                                                                     // Inside Grid:
+                                                                     // GridSplitter Grid.Row="3" (Wait, Splitter usually shares row or is in separate row?)
+                                                                     // Line 194: GridSplitter Grid.Row="3" ...
+                                                                     // Line 198: Border Grid.Row="4" ...
+                                                                     // This implies Row 3 is the SPLITTER row??
+                                                                     // But RowDefinition for Row 3 has Height 180?
+                                                                     // Ah, typical XAML mistake or I misread.
+                                                                     // Let's assume Row 3 is the Info Pane ROW definition idx 3. The GridSplitter might be in Row 2 or 3.
+                                                                     // Actually, let's look safely: usually the last row definition with fixed/pixel height is the info panel.
+                                                                     // Safest is to save the last RowDefinition height if it's absolute.
+
+                    if (fileBrowserGrid.RowDefinitions.Count >= 4)
+                    {
+                        // 假设最后一行是详情区
+                        var lastRow = fileBrowserGrid.RowDefinitions[fileBrowserGrid.RowDefinitions.Count - 1];
+                        if (lastRow.Height.IsAbsolute)
+                        {
+                            _config.CenterPanelInfoHeight = lastRow.Height.Value;
+                        }
+                    }
+                }
             }
         }
 

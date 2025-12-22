@@ -11,7 +11,8 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="180" MinHeight="120"/>
+            <RowDefinition Height="6"/> <!-- Splitter -->
+            <RowDefinition Height="180" MinHeight="120"/> <!-- Info -->
         </Grid.RowDefinitions>
         
         <Grid.Resources>
@@ -192,7 +193,8 @@
         
         <!-- 水平分割器 -->
         <GridSplitter Grid.Row="3" Style="{StaticResource HorizontalGridSplitterStyle}"
-                      HorizontalAlignment="Stretch"/>
+                      HorizontalAlignment="Stretch"
+                      DragCompleted="GridSplitter_DragCompleted"/>
         
         <!-- 文件详细信息 -->
         <Border Grid.Row="4" Background="#F8F9FA" BorderBrush="#E9ECEF" BorderThickness="0,1,0,0">

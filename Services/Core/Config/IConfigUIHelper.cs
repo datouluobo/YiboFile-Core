@@ -42,6 +42,16 @@ namespace OoiMRR.Services.Config
         TitleActionBar TitleActionBar { get; }
 
         /// <summary>
+        /// 获取右侧面板控件
+        /// </summary>
+        RightPanelControl RightPanelControl { get; }
+
+        /// <summary>
+        /// 获取文件浏览器控件
+        /// </summary>
+        FileBrowserControl FileBrowser { get; }
+
+        /// <summary>
         /// 获取当前路径
         /// </summary>
         string CurrentPath { get; set; }

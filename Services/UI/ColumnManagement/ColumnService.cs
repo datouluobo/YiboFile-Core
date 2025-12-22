@@ -39,6 +39,16 @@ namespace OoiMRR.Services.ColumnManagement
             _config = config ?? throw new ArgumentNullException(nameof(config));
             _getCurrentModeKey = getCurrentModeKey ?? throw new ArgumentNullException(nameof(getCurrentModeKey));
             _saveConfig = saveConfig;
+
+            // Initialize sort state from config
+            if (!string.IsNullOrEmpty(_config.SortColumn))
+            {
+                _lastSortColumn = _config.SortColumn;
+            }
+            if (!string.IsNullOrEmpty(_config.SortDirection))
+            {
+                _sortAscending = _config.SortDirection == "Ascending";
+            }
         }
 
         #region 排序功能
@@ -78,6 +88,11 @@ namespace OoiMRR.Services.ColumnManagement
                 _lastSortColumn = columnName;
                 _sortAscending = true;
             }
+
+            // 更新配置并保存
+            _config.SortColumn = _lastSortColumn;
+            _config.SortDirection = _sortAscending ? "Ascending" : "Descending";
+            _saveConfig?.Invoke();
 
             // 应用排序
             var sortedFiles = SortFiles(files);

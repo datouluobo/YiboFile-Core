@@ -65,7 +65,7 @@ namespace OoiMRR.Services
                 if (visible)
                 {
                     mw.ColRight.MinWidth = Math.Max(mw.ColRight.MinWidth, 360);
-                    mw.ColRight.Width = new GridLength(1, GridUnitType.Star);
+                    mw.ColRight.Width = new GridLength(Math.Max(360, mw.ColRight.MinWidth));
                 }
                 else
                 {

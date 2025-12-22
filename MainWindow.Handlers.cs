@@ -87,6 +87,14 @@ namespace OoiMRR
                 () => _currentFiles
             );
 
+            // 初始化 ColumnInteractionHandler
+            _columnInteractionHandler = new Handlers.ColumnInteractionHandler(this, _columnService, _configService);
+            _columnInteractionHandler.EnsureHeaderContextMenuHook();
+            _columnInteractionHandler.HookHeaderThumbs(); // 挂载列头拖拽事件
+
+            // 初始化 WindowLifecycleHandler
+            _windowLifecycleHandler = new Handlers.WindowLifecycleHandler(this, _windowStateManager, _configService, _columnService);
+
             // 初始化 MenuEventHandler
             _menuEventHandler = new MenuEventHandler(
                 FileBrowser,

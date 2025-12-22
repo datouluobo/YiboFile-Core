@@ -450,11 +450,25 @@ namespace OoiMRR.Controls
 
             FileList.FilesList.ContextMenu = cm;
         }
+        // 视图模式变更事件
+        public event EventHandler<string> ViewModeChanged;
+
+        public event EventHandler<double> InfoHeightChanged;
+
+        private void GridSplitter_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
+        {
+            if (this.Content is Grid rootGrid && rootGrid.RowDefinitions.Count > 4)
+            {
+                var height = rootGrid.RowDefinitions[4].Height.Value;
+                InfoHeightChanged?.Invoke(this, height);
+            }
+        }
         private void ViewModeBtn_Click(object sender, RoutedEventArgs e)
         {
             if (sender is RadioButton btn && btn.Tag is string mode)
             {
                 FileList?.SetViewMode(mode);
+                ViewModeChanged?.Invoke(this, mode);
             }
         }
 

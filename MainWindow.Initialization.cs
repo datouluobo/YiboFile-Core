@@ -109,14 +109,17 @@ namespace OoiMRR
                 RightPanel.NotesAutoSaved += NotesAutoSaved_Handler;
                 RightPanel.PreviewOpenFileRequested += RightPanel_PreviewOpenFileRequested;
                 RightPanel.PreviewMiddleClickRequested += RightPanel_PreviewMiddleClickRequested;
+                RightPanel.NotesHeightChanged += RightPanel_NotesHeightChanged;
             }
 
             // 订阅 FileBrowser 导航事件
             if (FileBrowser != null)
             {
+                FileBrowser.InfoHeightChanged += FileBrowser_InfoHeightChanged;
                 FileBrowser.NavigationBack += NavigateBack_Click;
                 FileBrowser.NavigationForward += NavigateForward_Click;
                 FileBrowser.NavigationUp += NavigateUp_Click;
+                FileBrowser.ViewModeChanged += FileBrowser_ViewModeChanged;
             }
 
             // 订阅 NavigationService 事件
@@ -327,9 +330,7 @@ namespace OoiMRR
                 FileBrowser.FileAddTag += AddTagToFile_Click;
             }
 
-            // 使用 MainWindowInitializer 进行初始化
-            var initializer = new Services.MainWindowInitializer(this);
-            initializer.InitializeApplication();
+            // InitializeApplication call moved to MainWindow constructor to ensure correct initialization order
             this.Activated += (s, e) =>
             {
                 var activeTab = _tabService.ActiveTab;

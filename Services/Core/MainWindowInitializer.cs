@@ -26,11 +26,24 @@ namespace OoiMRR.Services
         /// 初始化应用程序
         /// 加载配置、初始化服务等
         /// </summary>
+        /// <summary>
+        /// 初始化应用程序
+        /// 加载配置、初始化服务等
+        /// </summary>
         public void InitializeApplication()
+        {
+            InitializeConfigServices();
+            ApplyInitialState();
+        }
+
+        /// <summary>
+        /// 第一阶段：初始化配置和服务（必须在 InitializeHandlers 之前调用）
+        /// </summary>
+        public void InitializeConfigServices()
         {
             try
             {
-                FileLogger.Log("InitializeApplication started.");
+                FileLogger.Log("InitializeConfigServices started.");
                 // 加载配置（Load 方法内部会自动执行迁移）
                 var config = ConfigManager.Load();
                 FileLogger.Log("Configuration loaded.");
@@ -43,18 +56,6 @@ namespace OoiMRR.Services
                 else
                 {
                     _mainWindow._configService.Config = config;
-                }
-
-                // 应用配置
-                try
-                {
-                    _mainWindow._configService.ApplyConfig(config);
-                    FileLogger.Log("Configuration applied.");
-                }
-                catch (Exception ex)
-                {
-                    FileLogger.LogException("ApplyConfig", ex);
-                    System.Diagnostics.Debug.WriteLine($"ApplyConfig failed: {ex.Message}");
                 }
 
                 // 更新 TabService 的配置
@@ -74,12 +75,12 @@ namespace OoiMRR.Services
                 // 初始化窗口状态管理器（需要在RestoreLastState之前创建）
                 if (_mainWindow._configService != null && _mainWindow._tabService != null)
                 {
-                    try 
+                    try
                     {
                         _mainWindow._windowStateManager = new WindowStateManager(
-                            _mainWindow, 
-                            _mainWindow._tabService, 
-                            _mainWindow._configService, 
+                            _mainWindow,
+                            _mainWindow._tabService,
+                            _mainWindow._configService,
                             config,
                             _mainWindow._navigationService,
                             _mainWindow._navigationModeService
@@ -124,7 +125,7 @@ namespace OoiMRR.Services
                             _mainWindow._settingsOverlayController = new Settings.SettingsOverlayController(
                                 settingsOverlay,
                                 settingsPanel,
-                                (config) => _mainWindow._configService?.ApplyConfig(config)
+                                (cfg) => _mainWindow._configService?.ApplyConfig(cfg)
                             );
                         }
                     }
@@ -134,6 +135,36 @@ namespace OoiMRR.Services
                         System.Diagnostics.Debug.WriteLine($"SettingsOverlayController init failed: {ex.Message}");
                     }
                 }
+            }
+            catch (Exception ex)
+            {
+                FileLogger.LogException("InitializeConfigServices FATAL", ex);
+                System.Diagnostics.Debug.WriteLine($"InitializeConfigServices fatal error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 第二阶段：应用初始状态（必须在 InitializeHandlers 和 InitializeEvents 之后调用）
+        /// </summary>
+        public void ApplyInitialState()
+        {
+            try
+            {
+                FileLogger.Log("ApplyInitialState started.");
+                // 获取当前配置
+                var config = _mainWindow._configService?.Config ?? ConfigManager.Load();
+
+                // 应用配置
+                try
+                {
+                    _mainWindow._configService?.ApplyConfig(config);
+                    FileLogger.Log("Configuration applied.");
+                }
+                catch (Exception ex)
+                {
+                    FileLogger.LogException("ApplyConfig", ex);
+                    System.Diagnostics.Debug.WriteLine($"ApplyConfig failed: {ex.Message}");
+                }
 
                 // 加载初始数据
                 FileLogger.Log("Loading initial data...");
@@ -142,13 +173,20 @@ namespace OoiMRR.Services
 
                 // 恢复最后的状态
                 RestoreLastState(config);
-                FileLogger.Log("InitializeApplication completed.");
+
+                // 关键修复：初始化完成后，强制调整列宽逻辑
+                // 这会确保中间列被恢复为 Star (自适应) 宽度，防止启动时出现右侧空白间隙（因为配置中保存的是固定像素宽度）
+                _mainWindow.Dispatcher.Invoke(() =>
+                {
+                    _mainWindow._windowLifecycleHandler?.AdjustColumnWidths();
+                }, System.Windows.Threading.DispatcherPriority.Loaded);
+
+                FileLogger.Log("ApplyInitialState completed.");
             }
             catch (Exception ex)
             {
-                // 捕获最外层异常，防止应用程序启动崩溃
-                FileLogger.LogException("InitializeApplication FATAL", ex);
-                System.Diagnostics.Debug.WriteLine($"InitializeApplication fatal error: {ex.Message}");
+                FileLogger.LogException("ApplyInitialState FATAL", ex);
+                System.Diagnostics.Debug.WriteLine($"ApplyInitialState fatal error: {ex.Message}");
             }
         }
 
@@ -172,10 +210,10 @@ namespace OoiMRR.Services
             {
                 try
                 {
-                    var favoriteServiceField = typeof(MainWindow).GetField("_favoriteService", 
+                    var favoriteServiceField = typeof(MainWindow).GetField("_favoriteService",
                         System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
                     var favoriteService = favoriteServiceField?.GetValue(_mainWindow);
-                    favoriteService?.GetType().GetMethod("LoadFavorites")?.Invoke(favoriteService, 
+                    favoriteService?.GetType().GetMethod("LoadFavorites")?.Invoke(favoriteService,
                         new[] { _mainWindow.FavoritesListBox });
                 }
                 catch (Exception ex)
@@ -189,10 +227,10 @@ namespace OoiMRR.Services
             {
                 try
                 {
-                    var quickAccessServiceField = typeof(MainWindow).GetField("_quickAccessService", 
+                    var quickAccessServiceField = typeof(MainWindow).GetField("_quickAccessService",
                         System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
                     var quickAccessService = quickAccessServiceField?.GetValue(_mainWindow);
-                    quickAccessService?.GetType().GetMethod("LoadQuickAccess")?.Invoke(quickAccessService, 
+                    quickAccessService?.GetType().GetMethod("LoadQuickAccess")?.Invoke(quickAccessService,
                         new[] { _mainWindow.QuickAccessListBox });
                 }
                 catch (Exception ex)

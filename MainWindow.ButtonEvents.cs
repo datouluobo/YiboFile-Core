@@ -203,268 +203,71 @@ namespace OoiMRR
 
         private void WindowMinimize_Click(object sender, RoutedEventArgs e)
         {
-            this.WindowState = WindowState.Minimized;
+            _windowLifecycleHandler?.HandleMinimize();
         }
 
-        private bool _isPseudoMaximized = false;
-        private Rect _restoreBounds;
+
 
         internal void WindowMaximize_Click(object sender, RoutedEventArgs e)
         {
-            // 使用系统最大化并限制到工作区，确保铺满且不遮挡任务栏
-            if (_isPseudoMaximized)
-            {
-                // 还原到最后一次记录值
-                this.WindowState = WindowState.Normal;
-                this.Left = _restoreBounds.Left;
-                this.Top = _restoreBounds.Top;
-                this.Width = _restoreBounds.Width;
-                this.Height = _restoreBounds.Height;
-                _isPseudoMaximized = false;
-                this.ResizeMode = ResizeMode.CanResize;
-
-                // 恢复窗口边框
-                var hwnd = new WindowInteropHelper(this).Handle;
-                var margins = new NativeMethods.MARGINS();
-                NativeMethods.DwmExtendFrameIntoClientArea(hwnd, ref margins);
-            }
-            else
-            {
-                // 记录还原尺寸
-                _restoreBounds = new Rect(this.Left, this.Top, this.Width, this.Height);
-                var wa = GetCurrentMonitorWorkAreaDIPs();
-                // 最大化时，使用工作区尺寸，不遮挡任务栏
-                this.WindowState = WindowState.Normal;
-                this.Left = wa.Left;
-                this.Top = wa.Top;
-                this.Width = wa.Width;
-                this.Height = wa.Height;
-                _isPseudoMaximized = true;
-                this.ResizeMode = ResizeMode.NoResize;
-
-                // 移除窗口边框，将客户区扩展到整个窗口
-                var hwnd = new WindowInteropHelper(this).Handle;
-                var margins = new NativeMethods.MARGINS { cxLeftWidth = 0, cxRightWidth = 0, cyTopHeight = 0, cyBottomHeight = 0 };
-                NativeMethods.DwmExtendFrameIntoClientArea(hwnd, ref margins);
-            }
-            UpdateWindowStateUI();
+            _windowLifecycleHandler?.HandleMaximize();
         }
 
         private void WindowClose_Click(object sender, RoutedEventArgs e)
         {
-            this.Close();
+            _windowLifecycleHandler?.HandleClose();
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            // 窗口关闭前统一保存所有状态（窗口大小/位置、分割线、导航、标签页）
-            try
-            {
-                _windowStateManager?.SaveAllState();
-
-                // 停止并刷新配置服务的定时器（如果有），确保配置落盘
-                _configService?.StopAllTimers();
-                _configService?.SaveCurrentConfig();
-            }
-            catch
-            {
-                // 关闭阶段不再向外抛异常，避免影响程序退出
-            }
+            _windowLifecycleHandler?.HandleClosing(e);
         }
 
         private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
         {
-            // 调整列宽适应新窗口大小
-            AdjustColumnWidths();
-
-            // 窗口大小变化时不立即保存，避免覆盖分割线拖拽的保存
-            // 保存会在下次用户操作时进行
+            _windowLifecycleHandler?.HandleSizeChanged(e);
         }
 
         private void Window_LocationChanged(object sender, EventArgs e)
         {
-            // 保存窗口位置
-            if (_windowStateManager != null && this.IsLoaded)
-            {
-                _windowStateManager.SaveAllState();
-            }
+            _windowLifecycleHandler?.HandleLocationChanged(e);
         }
 
         internal void ListView_SizeChanged(object sender, SizeChangedEventArgs e)
         {
-            AdjustListViewColumnWidths();
+            _windowLifecycleHandler?.HandleListViewSizeChanged(e);
         }
 
         private void AdjustListViewColumnWidths()
         {
-            if (FileBrowser == null || _isSplitterDragging) return;
-            _columnService?.AdjustListViewColumnWidths(FileBrowser);
+            _windowLifecycleHandler?.HandleListViewSizeChanged(null);
         }
         /// <summary>
         /// 调整列宽以适应窗口大小变化
         /// </summary>
         internal void AdjustColumnWidths()
         {
-            if (RootGrid == null) return;
-
-            double total = RootGrid.ActualWidth - 12; // 减去分割器宽度
-            double left = ColLeft.ActualWidth;
-            double center = ColCenter.ActualWidth;
-            double sum = left + center;
-
-            // 如果空间不足，压缩列宽
-            if (total < sum)
-            {
-                double scale = total / sum;
-                ColLeft.Width = new GridLength(Math.Max(ColLeft.MinWidth, left * scale));
-                ColCenter.Width = new GridLength(Math.Max(ColCenter.MinWidth, center * scale));
-            }
+            _windowLifecycleHandler?.AdjustColumnWidths();
         }
 
         private void EnsureColumnMinWidths()
         {
-            // 强制检查并应用所有列的最小宽度约束
-            if (RootGrid == null) return;
-
-            // 简化逻辑，不需要强制转换
-
-            // 获取当前实际宽度
-            double leftActual = ColLeft.ActualWidth;
-            double centerActual = ColCenter.ActualWidth;
-            double rightActual = ColRight.ActualWidth;
-
-            double minLeft = ColLeft.MinWidth;
-            double minCenter = ColCenter.MinWidth;
-            double minRight = ColRight.MinWidth;
-
-            bool needAdjust = false;
-
-            // 检查列2（中间列）是否小于最小宽度
-            if (centerActual < minCenter)
-            {
-                ColCenter.Width = new GridLength(minCenter);
-                needAdjust = true;
-            }
-
-            // 检查列3（右侧面板）是否小于最小宽度
-            if (rightActual < minRight)
-            {
-                // 计算可用空间
-                double totalWidth = RootGrid.ActualWidth - 12; // 减去两个分割器宽度
-                double availableWidth = totalWidth - minLeft - (centerActual >= minCenter ? centerActual : minCenter);
-
-                // 确保右侧面板至少达到最小宽度
-                if (availableWidth >= minRight)
-                {
-                    ColRight.Width = new GridLength(minRight);
-                    needAdjust = true;
-                }
-                else
-                {
-                    // 空间不足，需要重新分配
-                    AdjustColumnWidths();
-                    return;
-                }
-            }
-
-            // 检查列1（左侧列）
-            if (leftActual < minLeft)
-            {
-                ColLeft.Width = new GridLength(minLeft);
-                needAdjust = true;
-            }
-
-            // 如果需要调整，触发布局更新
-            if (needAdjust)
-            {
-                this.UpdateLayout();
-            }
+            _windowLifecycleHandler?.EnsureColumnMinWidths();
         }
 
         public void UpdateWindowStateUI()
         {
-            bool isMax = _isPseudoMaximized;
-
-            // 更新主窗口右上角按钮图标
-            if (TitleBarMaxRestoreButton != null)
-            {
-                // Segoe MDL2 Assets: Maximize E922, Restore E923
-                TitleBarMaxRestoreButton.Content = isMax ? "\uE923" : "\uE922";
-                TitleBarMaxRestoreButton.ToolTip = isMax ? "还原" : "最大化";
-            }
+            _windowLifecycleHandler?.UpdateWindowStateUI();
         }
 
         private Rect GetCurrentMonitorWorkAreaDIPs()
         {
-            var hwnd = new WindowInteropHelper(this).Handle;
-            IntPtr monitor = NativeMethods.MonitorFromWindow(hwnd, NativeMethods.MONITOR_DEFAULTTONEAREST);
-            var mi = new NativeMethods.MONITORINFO();
-            mi.cbSize = Marshal.SizeOf(mi);
-            if (NativeMethods.GetMonitorInfo(monitor, ref mi))
-            {
-                // 使用WPF提供的从设备像素到DIPs的转换，避免缩放误差
-                var source = HwndSource.FromHwnd(hwnd);
-                var m = source?.CompositionTarget?.TransformFromDevice ?? Matrix.Identity;
-                // 使用rcWork以排除任务栏区域
-                var tl = m.Transform(new System.Windows.Point(mi.rcWork.Left, mi.rcWork.Top));
-                var br = m.Transform(new System.Windows.Point(mi.rcWork.Right, mi.rcWork.Bottom));
-                return new Rect(tl.X, tl.Y, br.X - tl.X, br.Y - tl.Y);
-            }
-            // 回退到工作区尺寸
-            var wa = SystemParameters.WorkArea;
-            return new Rect(wa.Left, wa.Top, wa.Width, wa.Height);
+            if (_windowLifecycleHandler != null)
+                return _windowLifecycleHandler.GetCurrentMonitorWorkAreaDIPs();
+            return SystemParameters.WorkArea;
         }
 
-        private static class NativeMethods
-        {
-            public const uint MONITOR_DEFAULTTONEAREST = 0x00000002;
-            public const int SWP_NOSIZE = 0x0001;
-            public const int SWP_NOMOVE = 0x0002;
-            public const int SWP_NOZORDER = 0x0004;
-            public const int SWP_FRAMECHANGED = 0x0020;
-
-            [DllImport("user32.dll")]
-            public static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint dwFlags);
-
-            [DllImport("user32.dll", CharSet = CharSet.Auto)]
-            public static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
-
-            [DllImport("user32.dll")]
-            public static extern int GetSystemMetrics(int nIndex);
-
-            [DllImport("user32.dll", SetLastError = true)]
-            public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
-
-            [DllImport("dwmapi.dll")]
-            public static extern int DwmExtendFrameIntoClientArea(IntPtr hwnd, ref MARGINS pMarInset);
-
-            [StructLayout(LayoutKind.Sequential)]
-            public struct RECT
-            {
-                public int Left;
-                public int Top;
-                public int Right;
-                public int Bottom;
-            }
-
-            [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
-            public struct MONITORINFO
-            {
-                public int cbSize;
-                public RECT rcMonitor;
-                public RECT rcWork;
-                public int dwFlags;
-            }
-
-            [StructLayout(LayoutKind.Sequential)]
-            public struct MARGINS
-            {
-                public int cxLeftWidth;
-                public int cxRightWidth;
-                public int cyTopHeight;
-                public int cyBottomHeight;
-            }
-        }
+        // NativeMethods has been moved to WindowLifecycleHandler
         internal void UpdateActionButtonsPosition()
         {
             // TitleActionBar已经自动处理按钮布局，不再需要手动调整位置
@@ -528,70 +331,13 @@ namespace OoiMRR
         // 顶部标题栏鼠标按下：支持拖动窗口和双击最大化/还原
         private void TitleBar_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-            if (e.ChangedButton != System.Windows.Input.MouseButton.Left)
-                return;
-
-            bool isMaximized = _isPseudoMaximized || this.WindowState == WindowState.Maximized;
-
-            // 双击：最大化/还原
-            if (e.ClickCount == 2)
-            {
-                WindowMaximize_Click(sender, new RoutedEventArgs());
-                return;
-            }
-
-            // 单击：仅在非最大化时允许拖动窗口
-            if (e.ClickCount == 1 && !isMaximized)
-            {
-                try
-                {
-                    this.DragMove();
-                }
-                catch
-                {
-                    // 忽略拖动过程中的异常（例如在最大化状态下快速拖动）
-                }
-            }
+            _windowLifecycleHandler?.HandleTitleBarMouseDown(e);
         }
 
         // 右上角按钮容器的鼠标事件：非按钮区域也要支持拖动窗口
         private void WindowControlButtonsContainer_PreviewMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-            if (e.ChangedButton != System.Windows.Input.MouseButton.Left)
-                return;
-
-            bool isMaximized = _isPseudoMaximized || this.WindowState == WindowState.Maximized;
-
-            var element = sender as System.Windows.UIElement;
-            if (element == null) return;
-
-            // 命中测试：如果点击的是按钮，则让按钮自己处理
-            var hit = System.Windows.Media.VisualTreeHelper.HitTest(element, e.GetPosition(element));
-            if (hit != null)
-            {
-                var current = hit.VisualHit;
-                while (current != null && current != element)
-                {
-                    if (current is System.Windows.Controls.Button)
-                    {
-                        // 点击在按钮上，不做拖动处理
-                        return;
-                    }
-                    current = System.Windows.Media.VisualTreeHelper.GetParent(current);
-                }
-            }
-
-            // 非按钮区域：仅在非最大化时允许拖动窗口
-            if (!isMaximized)
-            {
-                try
-                {
-                    this.DragMove();
-                }
-                catch
-                {
-                }
-            }
+            _windowLifecycleHandler?.HandleControlButtonsMouseDown(e, sender);
         }
 
         private static IEnumerable<T> FindVisualChildren<T>(DependencyObject depObj) where T : DependencyObject

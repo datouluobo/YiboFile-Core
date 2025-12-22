@@ -21,7 +21,8 @@
         
         <!-- 水平分割器 -->
         <GridSplitter Grid.Row="2" Style="{StaticResource HorizontalGridSplitterStyle}"
-                      HorizontalAlignment="Stretch"/>
+                      HorizontalAlignment="Stretch"
+                      DragCompleted="GridSplitter_DragCompleted"/>
         
         <!-- 行1：预览区 - 保持原有预览功能，图片时使用TagTrain样式 -->
         <Border Grid.Row="1" Background="#FFFFFF" BorderBrush="#E9ECEF" BorderThickness="0,1,0,1">
@@ -91,7 +92,7 @@
         
         <!-- 行3：备注区 -->
         <Border Grid.Row="3" Background="#F8F9FA" BorderBrush="#E9ECEF" BorderThickness="0,1,0,0">
-            <TextBox Name="NotesTextBox" Margin="8,4,8,4" 
+            <TextBox Name="NotesTextBox" Padding="8,4,8,4" 
                      AcceptsReturn="True" 
                      TextWrapping="Wrap"
                      VerticalScrollBarVisibility="Auto"

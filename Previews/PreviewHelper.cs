@@ -17,7 +17,7 @@ namespace OoiMRR.Previews
         /// 编辑模式背景色（浅蓝色）
         /// </summary>
         public static readonly Brush EditModeBackground = new SolidColorBrush(Color.FromRgb(230, 240, 255));
-        
+
         /// <summary>
         /// 只读模式背景色（白色）
         /// </summary>
@@ -138,15 +138,41 @@ namespace OoiMRR.Previews
                 Background = new SolidColorBrush(Color.FromRgb(245, 245, 245)),
                 Padding = new Thickness(15, 10, 15, 10),
                 BorderBrush = new SolidColorBrush(Color.FromRgb(230, 230, 230)),
-                BorderThickness = new Thickness(0, 0, 0, 1)
+                BorderThickness = new Thickness(0, 0, 0, 1),
+                HorizontalAlignment = HorizontalAlignment.Stretch // 确保充满宽度
             };
 
-            // 使用Grid布局：左侧标题，右侧按钮区域
-            var titleGrid = new Grid();
-            titleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            titleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            // 使用 DockPanel 布局：确保按钮靠右，标题靠左占满剩余
+            var dockPanel = new DockPanel { LastChildFill = true };
 
-            // 左侧标题区域
+            // 1. 右侧按钮区域（先添加，Dock.Right）
+            if (actionButtons != null && actionButtons.Any())
+            {
+                var buttonPanel = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+
+                foreach (var button in actionButtons)
+                {
+                    // 统一按钮样式
+                    if (button.Margin.Left == 0 && button.Margin.Right == 0) // 避免覆盖已有Margin
+                    {
+                        button.Margin = new Thickness(5, 0, 0, 0);
+                    }
+                    button.Padding = new Thickness(12, 6, 12, 6);
+                    button.FontSize = 13;
+                    button.Cursor = System.Windows.Input.Cursors.Hand;
+                    buttonPanel.Children.Add(button);
+                }
+
+                DockPanel.SetDock(buttonPanel, Dock.Right);
+                dockPanel.Children.Add(buttonPanel);
+            }
+
+            // 2. 左侧标题区域（LastChildFill=True，自动填充剩余空间）
             var titleStack = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
@@ -168,42 +194,17 @@ namespace OoiMRR.Previews
                 FontSize = 14,
                 FontWeight = FontWeights.SemiBold,
                 VerticalAlignment = VerticalAlignment.Center,
-                FontFamily = new FontFamily("Segoe UI")
+                FontFamily = new FontFamily("Segoe UI"),
+                TextTrimming = TextTrimming.CharacterEllipsis, // 长文本自动省略
+                TextWrapping = TextWrapping.NoWrap
             };
 
             titleStack.Children.Add(titleIcon);
             titleStack.Children.Add(titleText);
-            Grid.SetColumn(titleStack, 0);
-            titleGrid.Children.Add(titleStack);
 
-            // 右侧按钮区域（右对齐）
-            if (actionButtons != null && actionButtons.Any())
-            {
-                var buttonPanel = new StackPanel
-                {
-                    Orientation = Orientation.Horizontal,
-                    HorizontalAlignment = HorizontalAlignment.Right,
-                    VerticalAlignment = VerticalAlignment.Center
-                };
+            dockPanel.Children.Add(titleStack);
 
-                foreach (var button in actionButtons)
-                {
-                    // 统一按钮样式
-                    if (button.Margin == new Thickness(0))
-                    {
-                        button.Margin = new Thickness(5, 0, 0, 0);
-                    }
-                    button.Padding = new Thickness(12, 6, 12, 6);
-                    button.FontSize = 13;
-                    button.Cursor = System.Windows.Input.Cursors.Hand;
-                    buttonPanel.Children.Add(button);
-                }
-
-                Grid.SetColumn(buttonPanel, 1);
-                titleGrid.Children.Add(buttonPanel);
-            }
-
-            titlePanel.Child = titleGrid;
+            titlePanel.Child = dockPanel;
             return titlePanel;
         }
 
@@ -251,7 +252,7 @@ namespace OoiMRR.Previews
             {
                 Content = isEditMode ? saveText : editText,
                 Padding = new Thickness(12, 6, 12, 6),
-                Background = isEditMode 
+                Background = isEditMode
                     ? new SolidColorBrush(Color.FromRgb(76, 175, 80))  // 保存时绿色
                     : new SolidColorBrush(Color.FromRgb(33, 150, 243)), // 编辑时蓝色
                 Foreground = Brushes.White,

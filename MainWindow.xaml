@@ -34,7 +34,7 @@
             <ColumnDefinition Width="6"/>
             <ColumnDefinition x:Name="ColCenter" Width="*" MinWidth="250"/>
             <ColumnDefinition Width="6"/>
-            <ColumnDefinition x:Name="ColRight" Width="*" MinWidth="360"/>
+            <ColumnDefinition x:Name="ColRight" Width="360" MinWidth="360"/>
         </Grid.ColumnDefinitions>
         
         <!-- 布局：标题栏行 + 标签页行 + 内容行 -->
@@ -104,11 +104,11 @@
         <!-- 垂直分割器（从Row 2开始，跨越2行：Row 2和Row 3） -->
         <GridSplitter Grid.Row="2" Grid.Column="1" Grid.RowSpan="2"
                       Style="{StaticResource VerticalGridSplitterStyle}"
-                      DragDelta="GridSplitter_DragDelta"
+                      ShowsPreview="True"
                       DragCompleted="GridSplitter_DragCompleted"/>
         <GridSplitter Grid.Row="2" Grid.Column="3" Grid.RowSpan="2"
                       Style="{StaticResource VerticalGridSplitterStyle}"
-                      DragDelta="GridSplitter_DragDelta"
+                      ShowsPreview="True"
                       DragCompleted="GridSplitter_DragCompleted"/>
 
         <!-- ========== 列1：导航区（独立控件） ========== -->
