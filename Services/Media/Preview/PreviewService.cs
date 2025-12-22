@@ -62,6 +62,22 @@ namespace OoiMRR.Services.Preview
         {
             if (_rightPanel?.PreviewGrid == null) return;
 
+            System.Diagnostics.Debug.WriteLine($"[PreviewService] LoadFilePreview called for {item.Path}");
+            System.Diagnostics.Debug.WriteLine($"[PreviewService] _rightPanel Hash: {_rightPanel.GetHashCode()}");
+            System.Diagnostics.Debug.WriteLine($"[PreviewService] _rightPanel.PreviewGrid Hash: {_rightPanel.PreviewGrid.GetHashCode()}");
+
+            _dispatcher.Invoke(() =>
+            {
+                var mainWindow = Application.Current.MainWindow;
+                var mainWindowPanel = mainWindow?.FindName("RightPanel") as RightPanelControl;
+                System.Diagnostics.Debug.WriteLine($"[PreviewService] MainWindow Hash: {mainWindow?.GetHashCode() ?? 0}");
+                System.Diagnostics.Debug.WriteLine($"[PreviewService] MainWindow.RightPanel Hash: {mainWindowPanel?.GetHashCode() ?? 0}");
+                if (mainWindowPanel != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[PreviewService] MainWindow.RightPanel.PreviewGrid Hash: {mainWindowPanel.PreviewGrid?.GetHashCode() ?? 0}");
+                }
+            });
+
             // 先清理之前的预览资源（特别是视频的MediaElement）
             CleanupPreviousPreview();
 
@@ -72,6 +88,9 @@ namespace OoiMRR.Services.Preview
             var markdownExtensions = new[] { ".md", ".markdown" };
             if (!item.IsDirectory && !string.IsNullOrEmpty(fileExtension) && markdownExtensions.Contains(fileExtension))
             {
+                // 清理PreviewGrid中的其他预览元素
+                ClearPreviewGridForEditor();
+
                 // 显示Markdown编辑器
                 var markdownEditor = new OoiMRR.Controls.MarkdownEditorControl();
                 markdownEditor.LoadMarkdown(item.Path);
@@ -85,16 +104,39 @@ namespace OoiMRR.Services.Preview
                 return;
             }
 
-            // 2. 检查是否是可编辑的文本文件
+            // 2. 检查是否是 HTML/XML 等其他 Web 格式文件（保留编辑器功能）
+            var webExtensions = new[] { ".html", ".htm", ".xml", ".xaml" };
+            if (!item.IsDirectory && !string.IsNullOrEmpty(fileExtension) && webExtensions.Contains(fileExtension))
+            {
+                // 清理PreviewGrid中的其他预览元素
+                ClearPreviewGridForEditor();
+
+                // 显示 HTML 编辑器 (支持分屏预览)
+                var htmlEditor = new OoiMRR.Controls.HtmlEditorControl();
+                htmlEditor.LoadFile(item.Path);
+                _rightPanel.PreviewGrid.Children.Add(htmlEditor);
+
+                // 隐藏默认预览文本
+                if (_rightPanel.DefaultPreviewText != null)
+                {
+                    _rightPanel.DefaultPreviewText.Visibility = Visibility.Collapsed;
+                }
+                return;
+            }
+
+            // 4. 检查其他可编辑的文本文件
             var editableTextExtensions = new[]
             {
                 ".txt", ".cs", ".cpp", ".h", ".hpp", ".c", ".py", ".js", ".ts",
-                ".html", ".htm", ".css", ".xml", ".json", ".sql", ".php",
+                ".css", ".json", ".sql", ".php",
                 ".java", ".go", ".rs", ".rb", ".sh", ".bat", ".ps1", ".yaml", ".yml",
                 ".config", ".ini", ".log"
             };
             if (!item.IsDirectory && !string.IsNullOrEmpty(fileExtension) && editableTextExtensions.Contains(fileExtension))
             {
+                // 清理PreviewGrid中的其他预览元素
+                ClearPreviewGridForEditor();
+
                 // 显示文本编辑器
                 var textEditor = new OoiMRR.Controls.TextEditorControl();
                 textEditor.LoadFile(item.Path);
@@ -108,8 +150,8 @@ namespace OoiMRR.Services.Preview
                 return;
             }
 
-            // 3. 检查是否是图片文件，如果是则使用TagTrain样式的图片预览
-            var imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".webp", ".tiff", ".tif" };
+            // 5. 检查是否是图片文件（排除GIF以支持动画），如果是则使用TagTrain样式的图片预览
+            var imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".bmp", ".webp", ".tiff", ".tif" };
 
             if (!item.IsDirectory && !string.IsNullOrEmpty(fileExtension) && imageExtensions.Contains(fileExtension))
             {
@@ -130,11 +172,13 @@ namespace OoiMRR.Services.Preview
             {
                 _rightPanel.ImagePreviewBorder.Visibility = Visibility.Collapsed;
                 Panel.SetZIndex(_rightPanel.ImagePreviewBorder, 0);
+                System.Diagnostics.Debug.WriteLine("[PreviewService] ImagePreviewBorder已隐藏");
             }
 
             // 清理PreviewGrid中的其他预览元素（保留DefaultPreviewText和ImagePreviewBorder）
             if (_rightPanel.PreviewGrid != null)
             {
+                System.Diagnostics.Debug.WriteLine($"[PreviewService] 清理前PreviewGrid.Children数: {_rightPanel.PreviewGrid.Children.Count}");
                 for (int i = _rightPanel.PreviewGrid.Children.Count - 1; i >= 0; i--)
                 {
                     var child = _rightPanel.PreviewGrid.Children[i];
@@ -142,8 +186,10 @@ namespace OoiMRR.Services.Preview
                     if (child != _rightPanel.DefaultPreviewText && child != _rightPanel.ImagePreviewBorder)
                     {
                         _rightPanel.PreviewGrid.Children.RemoveAt(i);
+                        System.Diagnostics.Debug.WriteLine($"[PreviewService] 移除了元素: {child.GetType().Name}");
                     }
                 }
+                System.Diagnostics.Debug.WriteLine($"[PreviewService] 清理后PreviewGrid.Children数: {_rightPanel.PreviewGrid.Children.Count}");
             }
 
             try
@@ -168,11 +214,16 @@ namespace OoiMRR.Services.Preview
 
                 // PreviewFactory 会自动处理文件夹和文件
                 var previewElement = OoiMRR.Previews.PreviewFactory.CreatePreview(item.Path);
+                System.Diagnostics.Debug.WriteLine($"[PreviewService] PreviewFactory返回元素: {previewElement?.GetType().Name ?? "null"}");
+
                 if (previewElement != null)
                 {
-                    // 确保预览元素在ImagePreviewBorder之上
-                    Panel.SetZIndex(previewElement, 1);
+                    System.Diagnostics.Debug.WriteLine($"[PreviewService] 准备添加到PreviewGrid, 当前Children数: {_rightPanel.PreviewGrid.Children.Count}");
+                    // 确保预览元素在ImagePreviewBorder之上 - 使用更高的ZIndex
+                    Panel.SetZIndex(previewElement, 10);
                     _rightPanel.PreviewGrid.Children.Add(previewElement);
+                    System.Diagnostics.Debug.WriteLine($"[PreviewService] 已添加到PreviewGrid, 新Children数: {_rightPanel.PreviewGrid.Children.Count}");
+                    System.Diagnostics.Debug.WriteLine($"[PreviewService] 预览元素ZIndex: {Panel.GetZIndex(previewElement)}");
 
                     // 隐藏默认预览文本
                     var defaultText = _rightPanel.PreviewGrid.Children.OfType<TextBlock>()
@@ -180,6 +231,7 @@ namespace OoiMRR.Services.Preview
                     if (defaultText != null)
                     {
                         defaultText.Visibility = Visibility.Collapsed;
+                        System.Diagnostics.Debug.WriteLine("[PreviewService] DefaultPreviewText已隐藏");
                     }
                 }
                 else
@@ -443,6 +495,25 @@ namespace OoiMRR.Services.Preview
                     {
                         yield return childOfChild;
                     }
+                }
+            }
+        }
+
+        /// <summary>
+        /// 清理PreviewGrid中的预览元素，为编辑器做准备
+        /// </summary>
+        private void ClearPreviewGridForEditor()
+        {
+            if (_rightPanel?.PreviewGrid == null) return;
+
+            // 清理PreviewGrid中的其他预览元素（保留DefaultPreviewText和ImagePreviewBorder）
+            for (int i = _rightPanel.PreviewGrid.Children.Count - 1; i >= 0; i--)
+            {
+                var child = _rightPanel.PreviewGrid.Children[i];
+                // 保留DefaultPreviewText和ImagePreviewBorder，清除其他元素
+                if (child != _rightPanel.DefaultPreviewText && child != _rightPanel.ImagePreviewBorder)
+                {
+                    _rightPanel.PreviewGrid.Children.RemoveAt(i);
                 }
             }
         }

@@ -673,7 +673,7 @@ namespace OoiMRR.Services.Tabs
             catch { }
         }
 
-        public void CreatePathTab(string path, bool forceNewTab = false, bool skipValidation = false)
+        public void CreatePathTab(string path, bool forceNewTab = false, bool skipValidation = false, bool activate = true)
         {
             EnsureUi();
             if (!_ui.FileBrowser?.TabsPanelControl?.IsLoaded ?? true) return;
@@ -689,7 +689,7 @@ namespace OoiMRR.Services.Tabs
                 var existingTab = FindTabByPath(path);
                 if (existingTab != null)
                 {
-                    SwitchToTab(existingTab);
+                    if (activate) SwitchToTab(existingTab);
                     return;
                 }
             }
@@ -701,10 +701,10 @@ namespace OoiMRR.Services.Tabs
                 Title = GetPathDisplayTitle(path)
             };
 
-            CreateTabInternal(newTab);
+            CreateTabInternal(newTab, activate);
         }
 
-        public void OpenLibraryTab(Library library, bool forceNewTab = false)
+        public void OpenLibraryTab(Library library, bool forceNewTab = false, bool activate = true)
         {
             EnsureUi();
             if (library == null) return;
@@ -722,7 +722,7 @@ namespace OoiMRR.Services.Tabs
                     Title = library.Name,
                     Library = library
                 };
-                CreateTabInternal(tab);
+                CreateTabInternal(tab, activate);
                 return;
             }
 
@@ -737,7 +737,8 @@ namespace OoiMRR.Services.Tabs
             {
                 // 找到了标签页，切换到它
                 System.Diagnostics.Debug.WriteLine($"[OpenLibraryTab] 找到已存在的Library标签页，切换");
-                SwitchToTab(recentTab);
+                System.Diagnostics.Debug.WriteLine($"[OpenLibraryTab] 找到已存在的Library标签页，切换");
+                if (activate) SwitchToTab(recentTab);
                 return;
             }
 
@@ -753,7 +754,7 @@ namespace OoiMRR.Services.Tabs
                 _activeTab.Title = library.Name;
                 if (_activeTab.TitleTextBlock != null) _activeTab.TitleTextBlock.Text = library.Name;
                 if (_activeTab.TabButton != null) _activeTab.TabButton.ToolTip = library.Name;
-                SwitchToTab(_activeTab);
+                if (activate) SwitchToTab(_activeTab);
                 return;
             }
 
@@ -767,10 +768,10 @@ namespace OoiMRR.Services.Tabs
                 Library = library
             };
 
-            CreateTabInternal(newTab);
+            CreateTabInternal(newTab, activate);
         }
 
-        public void OpenTagTab(OoiMRR.Tag tag, bool forceNewTab = false)
+        public void OpenTagTab(OoiMRR.Tag tag, bool forceNewTab = false, bool activate = true)
         {
             EnsureUi();
             if (tag == null || string.IsNullOrWhiteSpace(tag.Name)) return;
@@ -789,7 +790,7 @@ namespace OoiMRR.Services.Tabs
                     TagId = tag.Id,
                     TagName = tag.Name
                 };
-                CreateTabInternal(tab);
+                CreateTabInternal(tab, activate);
                 return;
             }
 
@@ -804,7 +805,8 @@ namespace OoiMRR.Services.Tabs
             {
                 // 找到了标签页，切换到它
                 System.Diagnostics.Debug.WriteLine($"[OpenTagTab] 找到已存在的Tag标签页，切换");
-                SwitchToTab(recentTab);
+                System.Diagnostics.Debug.WriteLine($"[OpenTagTab] 找到已存在的Tag标签页，切换");
+                if (activate) SwitchToTab(recentTab);
                 return;
             }
 
@@ -819,7 +821,7 @@ namespace OoiMRR.Services.Tabs
                 _activeTab.Title = tag.Name;
                 if (_activeTab.TitleTextBlock != null) _activeTab.TitleTextBlock.Text = tag.Name;
                 if (_activeTab.TabButton != null) _activeTab.TabButton.ToolTip = tag.Name;
-                SwitchToTab(_activeTab);
+                if (activate) SwitchToTab(_activeTab);
                 return;
             }
 
@@ -834,7 +836,7 @@ namespace OoiMRR.Services.Tabs
                 TagName = tag.Name
             };
 
-            CreateTabInternal(newTab);
+            CreateTabInternal(newTab, activate);
         }
 
         public void SwitchToTab(PathTab tab)
@@ -993,7 +995,7 @@ namespace OoiMRR.Services.Tabs
                     var existingTab = FindTabByPath(path);
                     if (existingTab == null)
                     {
-                        CreatePathTab(path);
+                        CreatePathTab(path, activate: false);
                     }
                 }
                 catch (Exception ex)
@@ -1221,7 +1223,7 @@ namespace OoiMRR.Services.Tabs
             return iconText;
         }
 
-        private void CreateTabInternal(PathTab tab)
+        private void CreateTabInternal(PathTab tab, bool activate = true)
         {
             EnsureUi();
             if (_ui.FileBrowser == null || _ui.FileBrowser.TabsPanelControl == null) return;
@@ -1554,7 +1556,7 @@ namespace OoiMRR.Services.Tabs
             ApplyPinVisual(tab);
             ReorderTabs();
 
-            SwitchToTab(tab);
+            if (activate) SwitchToTab(tab);
         }
 
         private void TabsPanel_DragOver(object sender, DragEventArgs e)

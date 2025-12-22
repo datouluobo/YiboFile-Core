@@ -161,8 +161,9 @@ namespace OoiMRR.Previews
                                 };
                             }
                             catch (Exception)
-            {// 回退到NavigateToString
-                                webView.NavigateToString(html);}
+                            {// 回退到NavigateToString
+                                webView.NavigateToString(html);
+                            }
                         }
                         else
                         {
@@ -205,10 +206,10 @@ namespace OoiMRR.Previews
                 VerticalAlignment = VerticalAlignment.Center,
                 HorizontalAlignment = HorizontalAlignment.Center
             };
-            loadingPanel.Children.Add(new TextBlock 
-            { 
-                Text = "⏳ 正在检测文档预览...", 
-                FontSize = 14, 
+            loadingPanel.Children.Add(new TextBlock
+            {
+                Text = "⏳ 正在检测文档预览...",
+                FontSize = 14,
                 Foreground = Brushes.Gray,
                 HorizontalAlignment = HorizontalAlignment.Center
             });
@@ -296,7 +297,7 @@ namespace OoiMRR.Previews
                                 convertButton.Content = "🔄 转换为DOCX格式";
                             }
                         };
-                        
+
                         // 添加按钮到顶部
                         Grid.SetRow(convertButton, 0);
                         grid.Children.Add(convertButton);
@@ -378,12 +379,12 @@ namespace OoiMRR.Previews
                 {
                     Application.Current.Dispatcher.Invoke(() =>
                     {
-                         mainContainer.Children.Remove(loadingPanel);
-                         var errorUI = CreateDocPreviewWithConvertButton(filePath, $"DOC 预览检测失败: {ex.Message}");
-                         // 替换 mainContainer 内容为 errorUI 的内容（或者简单地添加）
-                         // 这里简单起见，我们只能替换内容
-                         Grid.SetRow(errorUI, 1);
-                         mainContainer.Children.Add(errorUI); 
+                        mainContainer.Children.Remove(loadingPanel);
+                        var errorUI = CreateDocPreviewWithConvertButton(filePath, $"DOC 预览检测失败: {ex.Message}");
+                        // 替换 mainContainer 内容为 errorUI 的内容（或者简单地添加）
+                        // 这里简单起见，我们只能替换内容
+                        Grid.SetRow(errorUI, 1);
+                        mainContainer.Children.Add(errorUI);
                     });
                 }
             });
@@ -672,13 +673,13 @@ namespace OoiMRR.Previews
 
                     // 转换为 file:// URI
                     var uri = new Uri(filePath).AbsoluteUri;
-                                        // 直接导航到PDF文件
+                    // 直接导航到PDF文件
                     webView.CoreWebView2.Navigate(uri);
                 }
             }
             catch (Exception ex)
             {
-                                // 如果加载失败，显示错误信息
+                // 如果加载失败，显示错误信息
                 await webView.Dispatcher.InvokeAsync(async () =>
                 {
                     try
@@ -752,7 +753,13 @@ namespace OoiMRR.Previews
             try
             {
                 // 使用Grid布局：标题栏 + 内容区域
-                var grid = new Grid();
+                var grid = new Grid
+                {
+                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                    VerticalAlignment = VerticalAlignment.Stretch,
+                    Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 255, 255)), // 白色背景
+                    Name = "RtfPreviewGrid"
+                };
                 grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
                 grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
@@ -771,13 +778,25 @@ namespace OoiMRR.Previews
                     HorizontalScrollBarVisibility = ScrollBarVisibility.Auto
                 };
 
-                using (var stream = File.OpenRead(filePath))
+                // 读取RTF内容到MemoryStream，避免文件流过早关闭
+                byte[] rtfBytes = File.ReadAllBytes(filePath);
+                using (var memStream = new MemoryStream(rtfBytes))
                 {
-                    rtfBox.Selection.Load(stream, DataFormats.Rtf);
+                    var textRange = new TextRange(rtfBox.Document.ContentStart, rtfBox.Document.ContentEnd);
+                    textRange.Load(memStream, DataFormats.Rtf);
                 }
 
                 Grid.SetRow(rtfBox, 1);
                 grid.Children.Add(rtfBox);
+
+                // 检查内容是否加载成功
+                TextRange checkRange = new TextRange(rtfBox.Document.ContentStart, rtfBox.Document.ContentEnd);
+                if (string.IsNullOrWhiteSpace(checkRange.Text))
+                {
+                    // 尝试作为纯文本加载
+                    rtfBox.Document.Blocks.Clear();
+                    rtfBox.AppendText(File.ReadAllText(filePath));
+                }
 
                 return grid;
             }
@@ -898,7 +917,7 @@ namespace OoiMRR.Previews
                         if (htmlFiles.Any())
                         {
                             needExtract = false;
-                                                    }
+                        }
                         else
                         {
                             // 缓存不完整，删除并重新解压
@@ -925,7 +944,7 @@ namespace OoiMRR.Previews
                                 try
                                 {
                                     var arguments = $"x \"{filePath}\" -o\"{tempDir}\" -y";
-                                                                        var processInfo = new ProcessStartInfo
+                                    var processInfo = new ProcessStartInfo
                                     {
                                         FileName = sevenZipPath,
                                         Arguments = arguments,
@@ -951,27 +970,27 @@ namespace OoiMRR.Previews
                                             if (Directory.Exists(tempDir) && Directory.GetFiles(tempDir, "*", SearchOption.AllDirectories).Length > 0)
                                             {
                                                 extracted = true;
-                                                                                            }
+                                            }
                                             else
                                             {
                                                 lastError = $"7-Zip 退出代码: {process.ExitCode}. {error}";
-                                                                                            }
+                                            }
                                         }
                                     }
                                 }
                                 catch (Exception ex)
                                 {
                                     lastError = ex.Message;
-                                                                    }
+                                }
                             }
                             else
                             {
-                                                            }
+                            }
 
                             // 2. 如果 7-Zip 失败，尝试使用 hh.exe 解压
                             if (!extracted)
                             {
-                                                                extracted = await TryExtractWithHhExe(filePath, tempDir);
+                                extracted = await TryExtractWithHhExe(filePath, tempDir);
 
                                 if (!extracted)
                                 {
@@ -997,7 +1016,7 @@ namespace OoiMRR.Previews
                         }
                         else
                         {
-                                                    }
+                        }
 
                         // 3. 验证解压结果
                         if (!Directory.Exists(tempDir) || Directory.GetFiles(tempDir, "*", SearchOption.AllDirectories).Length == 0)
@@ -1040,8 +1059,9 @@ namespace OoiMRR.Previews
                     }
                 }
             }
-            catch{
-                            }
+            catch
+            {
+            }
         }
 
         private string FindSevenZipPath()
@@ -1066,10 +1086,10 @@ namespace OoiMRR.Previews
             // 调试信息：记录找到的 7-Zip 路径
             if (foundPath != null)
             {
-                            }
+            }
             else
             {
-                            }
+            }
 
             return foundPath;
         }
@@ -1100,7 +1120,7 @@ namespace OoiMRR.Previews
                             var defaultPath = Path.Combine(directory, defaultPage);
                             if (File.Exists(defaultPath))
                             {
-                                                                return defaultPath;
+                                return defaultPath;
                             }
 
                             // 尝试添加 .html 扩展名
@@ -1110,14 +1130,15 @@ namespace OoiMRR.Previews
                                 defaultPath = Path.Combine(directory, defaultPage + ".html");
                                 if (File.Exists(defaultPath))
                                 {
-                                                                        return defaultPath;
+                                    return defaultPath;
                                 }
                             }
                         }
                     }
                 }
-                catch{
-                                    }
+                catch
+                {
+                }
             }
 
             // 方法 2: 查找常见的入口文件名（按优先级）
@@ -1129,7 +1150,7 @@ namespace OoiMRR.Previews
                 var path = Path.Combine(directory, htmlFile);
                 if (File.Exists(path))
                 {
-                                        return path;
+                    return path;
                 }
             }
 
@@ -1159,7 +1180,7 @@ namespace OoiMRR.Previews
                 }).ThenBy(f => Path.GetFileName(f)); // 相同优先级按文件名排序
 
                 var selected = sortedFiles.First();
-                                return selected;
+                return selected;
             }
 
             // 方法 4: 查找所有 HTML 文件（包括子目录），智能排序
@@ -1189,10 +1210,10 @@ namespace OoiMRR.Previews
                 }).ThenBy(f => Path.GetFileName(f));
 
                 var selected = sortedFiles.First();
-                                return selected;
+                return selected;
             }
 
-                        return null;
+            return null;
         }
 
         private void BuildChmTreeView(TreeView treeView, string tempDir, WebView2 webView)
@@ -1206,8 +1227,9 @@ namespace OoiMRR.Previews
                 // 直接列出所有 HTML 页面
                 BuildSimpleTreeFromHtmlFiles(treeView, tempDir, webView);
             }
-            catch{
-                            }
+            catch
+            {
+            }
         }
 
 
@@ -1240,8 +1262,9 @@ namespace OoiMRR.Previews
                     treeView.Items.Add(item);
                 }
             }
-            catch{
-                            }
+            catch
+            {
+            }
         }
 
         private void LoadHtmlInWebView(WebView2 webView, string baseDir, string relativePath)
@@ -1255,8 +1278,9 @@ namespace OoiMRR.Previews
                     webView.CoreWebView2?.Navigate(uri);
                 }
             }
-            catch{
-                            }
+            catch
+            {
+            }
         }
 
         /// <summary>
@@ -1307,7 +1331,7 @@ namespace OoiMRR.Previews
 
                 // 提取图片映射（关系ID -> 图片数据）
                 var imageMap = ExtractImages(mainPart);
-                                // 遍历文档元素
+                // 遍历文档元素
                 foreach (var element in body.Elements())
                 {
                     ProcessElement(element, sb, imageMap, mainPart);
@@ -1514,17 +1538,17 @@ namespace OoiMRR.Previews
                     // 处理图片
                     foreach (var drawing in run.Elements<DocumentFormat.OpenXml.Wordprocessing.Drawing>())
                     {
-                                                var imageData = ExtractImageFromDrawing(drawing, imageMap, mainPart);
+                        var imageData = ExtractImageFromDrawing(drawing, imageMap, mainPart);
                         if (!string.IsNullOrEmpty(imageData))
                         {
                             // 确保Base64数据正确（截取前50个字符用于调试）
                             var preview = imageData.Length > 50 ? imageData.Substring(0, 50) + "..." : imageData;
-                                                        paraSb.Append($"<img src=\"{imageData}\" alt=\"图片\" style=\"max-width: 100%; height: auto; display: block; margin: 12px auto;\" />");
+                            paraSb.Append($"<img src=\"{imageData}\" alt=\"图片\" style=\"max-width: 100%; height: auto; display: block; margin: 12px auto;\" />");
                             hasContent = true;
                         }
                         else
                         {
-                                                    }
+                        }
                     }
                 }
 
@@ -1577,7 +1601,7 @@ namespace OoiMRR.Previews
         {
             if (drawing == null)
             {
-                                return null;
+                return null;
             }
 
             if (imageMap == null || imageMap.Count == 0)
@@ -1592,10 +1616,10 @@ namespace OoiMRR.Previews
                 var xml = drawing.OuterXml;
                 if (string.IsNullOrEmpty(xml))
                 {
-                                        return null;
+                    return null;
                 }
 
-                                var doc = XDocument.Parse(xml);
+                var doc = XDocument.Parse(xml);
 
                 // 查找图片关系ID - 搜索所有命名空间
                 XNamespace a = "http://schemas.openxmlformats.org/drawingml/2006/main";
@@ -1623,7 +1647,7 @@ namespace OoiMRR.Previews
                     // 尝试直接匹配
                     if (imageMap.ContainsKey(embedId))
                     {
-                                                return imageMap[embedId];
+                        return imageMap[embedId];
                     }
 
                     // 尝试不区分大小写匹配
@@ -1631,7 +1655,7 @@ namespace OoiMRR.Previews
                         string.Equals(k, embedId, StringComparison.OrdinalIgnoreCase));
                     if (matchedKey != null)
                     {
-                                                return imageMap[matchedKey];
+                        return imageMap[matchedKey];
                     }
 
                     // 尝试匹配rId格式（如果embedId不是rId格式）
@@ -1644,7 +1668,7 @@ namespace OoiMRR.Previews
                             var rIdFormat = $"rId{numericPart}";
                             if (imageMap.ContainsKey(rIdFormat))
                             {
-                                                                return imageMap[rIdFormat];
+                                return imageMap[rIdFormat];
                             }
                         }
                     }
@@ -1665,17 +1689,18 @@ namespace OoiMRR.Previews
                     foreach (var embed in embedAttrs)
                     {
                         var embedId = embed.Value;
-                                                if (!string.IsNullOrEmpty(embedId) && imageMap.ContainsKey(embedId))
+                        if (!string.IsNullOrEmpty(embedId) && imageMap.ContainsKey(embedId))
                         {
-                                                        return imageMap[embedId];
+                            return imageMap[embedId];
                         }
                     }
                 }
 
                 System.Diagnostics.Debug.WriteLine($"未找到匹配的图片。可用ID列表: {string.Join(", ", imageMap.Keys)}");
             }
-            catch{
-                            }
+            catch
+            {
+            }
 
             return null;
         }
@@ -1852,14 +1877,14 @@ namespace OoiMRR.Previews
             var hhPath = FindHhExePath();
             if (string.IsNullOrEmpty(hhPath))
             {
-                                return false;
+                return false;
             }
 
             try
             {
                 // hh.exe -decompile <outputDir> <chmPath>
                 var arguments = $"-decompile \"{outputDir}\" \"{chmPath}\"";
-                                var processInfo = new ProcessStartInfo
+                var processInfo = new ProcessStartInfo
                 {
                     FileName = hhPath,
                     Arguments = arguments,
@@ -1922,7 +1947,7 @@ namespace OoiMRR.Previews
             var foundPath = Array.Find(paths, File.Exists);
             if (foundPath != null)
             {
-                            }
+            }
             return foundPath;
         }
 

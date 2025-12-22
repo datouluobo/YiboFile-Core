@@ -606,6 +606,18 @@ namespace OoiMRR.Services
                         {
                             _tabService.SwitchToTab(activeTab);
                         }
+                        else if (_tabService.Tabs != null && _tabService.Tabs.Count > 0)
+                        {
+                            // 如果找不到活动标签页，但有其他标签页，切换到第一个
+                            var firstTab = _tabService.Tabs.First();
+                            _tabService.SwitchToTab(firstTab);
+                        }
+                    }
+                    else if (_tabService.Tabs != null && _tabService.Tabs.Count > 0)
+                    {
+                        // 如果没有保存活动标签页，但恢复了标签页，切换到第一个
+                        var firstTab = _tabService.Tabs.First();
+                        _tabService.SwitchToTab(firstTab);
                     }
                 }
                 else
@@ -652,18 +664,18 @@ namespace OoiMRR.Services
                     // 搜索标签页会在切换到该标签页时自动刷新（通过MainWindow的CheckAndRefreshSearchTab）
                     if (path.StartsWith("search://"))
                     {
-                        _tabService.CreatePathTab(path, true, skipValidation: true);
+                        _tabService.CreatePathTab(path, true, skipValidation: true, activate: false);
                     }
                     else if (System.IO.Path.IsPathRooted(path) || (path.Length >= 2 && path[1] == ':'))
                     {
                         // 对于有效路径格式（绝对路径或驱动器路径），即使暂时不存在也尝试恢复（跳过验证）
                         // 这样可以恢复网络路径、USB设备等可能暂时不可用的路径
-                        _tabService.CreatePathTab(path, true, skipValidation: true);
+                        _tabService.CreatePathTab(path, true, skipValidation: true, activate: false);
                     }
                     else if (Directory.Exists(path))
                     {
                         // 对于相对路径，只有在存在时才恢复
-                        _tabService.CreatePathTab(path, true, skipValidation: false);
+                        _tabService.CreatePathTab(path, true, skipValidation: false, activate: false);
                     }
                 }
             }
@@ -675,7 +687,7 @@ namespace OoiMRR.Services
                     var library = DatabaseManager.GetLibrary(libraryId);
                     if (library != null)
                     {
-                        _tabService.OpenLibraryTab(library, false); // 允许复用已存在的标签页
+                        _tabService.OpenLibraryTab(library, false, activate: false); // 允许复用已存在的标签页
                     }
                 }
             }
@@ -689,7 +701,7 @@ namespace OoiMRR.Services
                     if (!string.IsNullOrEmpty(tagName))
                     {
                         var tag = new OoiMRR.Tag { Id = tagId, Name = tagName };
-                        _tabService.OpenTagTab(tag, false); // 允许复用已存在的标签页
+                        _tabService.OpenTagTab(tag, false, activate: false); // 允许复用已存在的标签页
                     }
                 }
             }

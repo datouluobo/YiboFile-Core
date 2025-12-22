@@ -1,4 +1,4 @@
-<UserControl x:Class="OoiMRR.Controls.MarkdownEditorControl"
+<UserControl x:Class="OoiMRR.Controls.HtmlEditorControl"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:avalonedit="clr-namespace:ICSharpCode.AvalonEdit;assembly=ICSharpCode.AvalonEdit">
@@ -44,8 +44,8 @@
                 <ColumnDefinition x:Name="PreviewColumn" Width="*"/>
             </Grid.ColumnDefinitions>
             
-            <!-- 左侧：Markdown 编辑器 -->
-            <avalonedit:TextEditor x:Name="MarkdownEditor" Grid.Column="0"
+            <!-- 左侧：代码编辑器 -->
+            <avalonedit:TextEditor x:Name="CodeEditor" Grid.Column="0"
                                    FontFamily="Consolas"
                                    FontSize="14"
                                    ShowLineNumbers="True"

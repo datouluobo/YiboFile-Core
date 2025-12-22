@@ -49,7 +49,9 @@ namespace OoiMRR.Services.Navigation
         /// <summary>
         /// 切换导航模式
         /// </summary>
-        public void SwitchNavigationMode(string mode)
+        /// <param name="mode">导航模式</param>
+        /// <param name="skipRefresh">是否跳过刷新文件列表（启动时恢复状态使用）</param>
+        public void SwitchNavigationMode(string mode, bool skipRefresh = false)
         {
             if (string.IsNullOrEmpty(mode)) return;
 
@@ -69,13 +71,13 @@ namespace OoiMRR.Services.Navigation
             switch (mode)
             {
                 case "Path":
-                    HandlePathMode();
+                    HandlePathMode(skipRefresh);
                     break;
                 case "Library":
-                    HandleLibraryMode();
+                    HandleLibraryMode(skipRefresh);
                     break;
                 case "Tag":
-                    HandleTagMode();
+                    HandleTagMode(skipRefresh);
                     break;
             }
 
@@ -91,7 +93,11 @@ namespace OoiMRR.Services.Navigation
             _uiHelper.EnsureHeaderContextMenuHook();
 
             // 更新文件列表（导航操作本身也会加载文件，这里作为备用刷新）
-            _uiHelper.RefreshFileList();
+            // 启动时恢复状态时跳过此步骤，避免与标签页恢复冲突
+            if (!skipRefresh)
+            {
+                _uiHelper.RefreshFileList();
+            }
         }
 
         /// <summary>
@@ -149,7 +155,8 @@ namespace OoiMRR.Services.Navigation
         /// <summary>
         /// 处理路径模式切换
         /// </summary>
-        private void HandlePathMode()
+        /// <param name="skipRefresh">是否跳过刷新操作（启动时恢复状态使用）</param>
+        private void HandlePathMode(bool skipRefresh = false)
         {
             // 隐藏标签页面底部按钮
             if (_uiHelper.TagBottomButtons != null)
@@ -169,46 +176,51 @@ namespace OoiMRR.Services.Navigation
             }
 
             // 从库切换到路径时，查找或创建标签页
-            _uiHelper.Dispatcher.BeginInvoke(new Action(() =>
+            // 启动时恢复状态时跳过，避免与标签页恢复冲突
+            if (!skipRefresh)
             {
-                if (_uiHelper.FileBrowser == null || _uiHelper.FileBrowser.TabsPanelControl == null) return;
+                _uiHelper.Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    if (_uiHelper.FileBrowser == null || _uiHelper.FileBrowser.TabsPanelControl == null) return;
 
-                if (string.IsNullOrEmpty(_uiHelper.CurrentPath))
-                {
-                    // 查找第一个使用路径的标签页
-                    PathTab matchingTab = _tabService.Tabs.FirstOrDefault();
-                    if (matchingTab != null && Directory.Exists(matchingTab.Path))
+                    if (string.IsNullOrEmpty(_uiHelper.CurrentPath))
                     {
-                        _uiHelper.CurrentPath = matchingTab.Path;
-                        _uiHelper.SwitchToTab(matchingTab);
+                        // 查找第一个使用路径的标签页
+                        PathTab matchingTab = _tabService.Tabs.FirstOrDefault();
+                        if (matchingTab != null && Directory.Exists(matchingTab.Path))
+                        {
+                            _uiHelper.CurrentPath = matchingTab.Path;
+                            _uiHelper.SwitchToTab(matchingTab);
+                        }
+                        else
+                        {
+                            // 如果没有标签页，创建新标签页，默认路径为桌面
+                            _uiHelper.CurrentPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+                            _uiHelper.CreateTab(_uiHelper.CurrentPath);
+                        }
                     }
                     else
                     {
-                        // 如果没有标签页，创建新标签页，默认路径为桌面
-                        _uiHelper.CurrentPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-                        _uiHelper.CreateTab(_uiHelper.CurrentPath);
+                        // 如果已有路径，查找或创建对应的标签页
+                        PathTab existingTab = _tabService.FindTabByPath(_uiHelper.CurrentPath);
+                        if (existingTab != null)
+                        {
+                            _uiHelper.SwitchToTab(existingTab);
+                        }
+                        else
+                        {
+                            _uiHelper.CreateTab(_uiHelper.CurrentPath);
+                        }
                     }
-                }
-                else
-                {
-                    // 如果已有路径，查找或创建对应的标签页
-                    PathTab existingTab = _tabService.FindTabByPath(_uiHelper.CurrentPath);
-                    if (existingTab != null)
-                    {
-                        _uiHelper.SwitchToTab(existingTab);
-                    }
-                    else
-                    {
-                        _uiHelper.CreateTab(_uiHelper.CurrentPath);
-                    }
-                }
-            }), System.Windows.Threading.DispatcherPriority.Loaded);
+                }), System.Windows.Threading.DispatcherPriority.Loaded);
+            }
         }
 
         /// <summary>
         /// 处理库模式切换
         /// </summary>
-        private void HandleLibraryMode()
+        /// <param name="skipRefresh">是否跳过刷新操作（启动时恢复状态使用）</param>
+        private void HandleLibraryMode(bool skipRefresh = false)
         {
             // 隐藏标签页面底部按钮
             if (_uiHelper.TagBottomButtons != null)
@@ -229,35 +241,40 @@ namespace OoiMRR.Services.Navigation
             }
 
             // 切换到库模式时，恢复最后选中的库
-            _uiHelper.Dispatcher.BeginInvoke(new Action(() =>
+            // 启动时恢复状态时跳过，避免与标签页恢复冲突
+            if (!skipRefresh)
             {
-                if (_uiHelper.CurrentLibrary == null && _configService?.Config.LastLibraryId > 0)
+                _uiHelper.Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    var lastLibrary = DatabaseManager.GetLibrary(_configService.Config.LastLibraryId);
-                    if (lastLibrary != null)
+                    if (_uiHelper.CurrentLibrary == null && _configService?.Config.LastLibraryId > 0)
                     {
-                        _uiHelper.CurrentLibrary = lastLibrary;
-                        // 使用辅助方法确保选中状态正确显示
-                        _uiHelper.EnsureSelectedItemVisible(_uiHelper.LibrariesListBox, lastLibrary);
-                        // 高亮当前库
-                        _uiHelper.HighlightMatchingLibrary(lastLibrary);
-                        // 确保文件列表被加载
-                        _uiHelper.LoadLibraryFiles(lastLibrary);
+                        var lastLibrary = DatabaseManager.GetLibrary(_configService.Config.LastLibraryId);
+                        if (lastLibrary != null)
+                        {
+                            _uiHelper.CurrentLibrary = lastLibrary;
+                            // 使用辅助方法确保选中状态正确显示
+                            _uiHelper.EnsureSelectedItemVisible(_uiHelper.LibrariesListBox, lastLibrary);
+                            // 高亮当前库
+                            _uiHelper.HighlightMatchingLibrary(lastLibrary);
+                            // 确保文件列表被加载
+                            _uiHelper.LoadLibraryFiles(lastLibrary);
+                        }
                     }
-                }
-                else if (_uiHelper.CurrentLibrary != null)
-                {
-                    // 如果已有当前库，高亮它
-                    _uiHelper.HighlightMatchingLibrary(_uiHelper.CurrentLibrary);
-                }
-                _uiHelper.InitializeLibraryDragDrop();
-            }), System.Windows.Threading.DispatcherPriority.Loaded);
+                    else if (_uiHelper.CurrentLibrary != null)
+                    {
+                        // 如果已有当前库，高亮它
+                        _uiHelper.HighlightMatchingLibrary(_uiHelper.CurrentLibrary);
+                    }
+                    _uiHelper.InitializeLibraryDragDrop();
+                }), System.Windows.Threading.DispatcherPriority.Loaded);
+            }
         }
 
         /// <summary>
         /// 处理标签模式切换
         /// </summary>
-        private void HandleTagMode()
+        /// <param name="skipRefresh">是否跳过刷新操作（启动时恢复状态使用）</param>
+        private void HandleTagMode(bool skipRefresh = false)
         {
             // 只有在 TagTrain 可用时才显示标签页面
             if (App.IsTagTrainAvailable)

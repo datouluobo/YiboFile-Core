@@ -260,10 +260,10 @@ namespace OoiMRR.Services
 
             try
             {
-                // 恢复导航模式
+                // 恢复导航模式（启动时跳过刷新，避免与标签页恢复冲突）
                 if (!string.IsNullOrEmpty(config.LastNavigationMode))
                 {
-                    _mainWindow._navigationModeService?.SwitchNavigationMode(config.LastNavigationMode);
+                    _mainWindow._navigationModeService?.SwitchNavigationMode(config.LastNavigationMode, skipRefresh: true);
                 }
 
                 // 使用WindowStateManager恢复标签页状态（包括降级处理）

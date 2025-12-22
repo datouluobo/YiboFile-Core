@@ -25,7 +25,7 @@
                       DragCompleted="GridSplitter_DragCompleted"/>
         
         <!-- 行1：预览区 - 保持原有预览功能，图片时使用TagTrain样式 -->
-        <Border Grid.Row="1" Background="#FFFFFF" BorderBrush="#E9ECEF" BorderThickness="0,1,0,1">
+        <Border Grid.Row="1" Background="Transparent" BorderBrush="#E9ECEF" BorderThickness="0,1,0,1">
             <Grid Name="PreviewGrid" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ClipToBounds="True">
                 <!-- 原有的预览区域（用于非图片文件） -->
                 <TextBlock Text="选择一个文件进行预览" 

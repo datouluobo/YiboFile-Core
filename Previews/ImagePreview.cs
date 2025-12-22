@@ -25,7 +25,7 @@ namespace OoiMRR.Previews
                 {
                     return PreviewHelper.CreateErrorPreview($"图片文件不存在: {filePath}");
                 }
-                
+
                 // 确保使用绝对路径
                 if (!Path.IsPathRooted(filePath))
                 {
@@ -34,10 +34,16 @@ namespace OoiMRR.Previews
 
                 var extension = Path.GetExtension(filePath)?.ToLower();
 
-                // 特殊处理 SVG 格式
+                // 特殊处理 SVG 格式 - 使用WebBrowser直接渲染
                 if (extension == ".svg")
                 {
-                    return CreateSvgPreview(filePath);
+                    return SvgPreview.CreatePreview(filePath);
+                }
+
+                // 特殊处理 GIF 格式（支持动画）
+                if (extension == ".gif")
+                {
+                    return OptimizedGifPreview.CreatePreview(filePath);
                 }
 
                 // 特殊处理 PSD 格式
@@ -46,7 +52,7 @@ namespace OoiMRR.Previews
                     return CreatePsdPreview(filePath);
                 }
 
-                // 处理其他图像格式（bmp, jpeg, jpg, png, gif, tif, tiff, ico）
+                // 处理其他图像格式（bmp, jpeg, jpg, png, tif, tiff, ico）
                 return CreateBitmapPreview(filePath);
             }
             catch (Exception ex)
@@ -61,7 +67,7 @@ namespace OoiMRR.Previews
         private UIElement CreateBitmapPreview(string filePath)
         {
             BitmapImage bitmap;
-            
+
             // 优先尝试使用UriSource（性能更好），如果失败则使用StreamSource
             try
             {
@@ -94,14 +100,14 @@ namespace OoiMRR.Previews
             Grid.SetRow(titlePanel, 0);
             grid.Children.Add(titlePanel);
 
-            var image = new Image 
-            { 
-                Source = bitmap, 
+            var image = new Image
+            {
+                Source = bitmap,
                 Stretch = Stretch.Uniform,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center
             };
-            
+
             // 添加ScrollViewer以支持大图片
             var scrollViewer = new ScrollViewer
             {
@@ -111,7 +117,168 @@ namespace OoiMRR.Previews
             };
             Grid.SetRow(scrollViewer, 1);
             grid.Children.Add(scrollViewer);
-            
+
+            return grid;
+        }
+
+        /// <summary>
+        /// 创建 SVG 预览（使用 WebBrowser 直接渲染）
+        /// </summary>
+        private UIElement CreateSvgWebBrowserPreview(string filePath)
+        {
+            // 创建主容器
+            var grid = new Grid();
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+
+            // 标题栏
+            var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath) };
+            var titlePanel = PreviewHelper.CreateTitlePanel("🖼️", $"SVG 矢量图: {Path.GetFileName(filePath)}", buttons);
+            Grid.SetRow(titlePanel, 0);
+            grid.Children.Add(titlePanel);
+
+            try
+            {
+                // 创建WebBrowser并加载SVG
+                var webBrowser = new System.Windows.Controls.WebBrowser();
+
+                // 读取SVG文件内容
+                string svgContent = File.ReadAllText(filePath);
+                webBrowser.NavigateToString(svgContent);
+
+                Grid.SetRow(webBrowser, 1);
+                grid.Children.Add(webBrowser);
+            }
+            catch (Exception ex)
+            {
+                var errorText = new TextBlock
+                {
+                    Text = $"无法加载 SVG: {ex.Message}",
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Foreground = Brushes.Red,
+                    FontSize = 14
+                };
+                Grid.SetRow(errorText, 1);
+                grid.Children.Add(errorText);
+            }
+
+            return grid;
+        }
+
+        /// <summary>
+        /// 创建 GIF 动画预览（使用 GifBitmapDecoder 手动播放帧）
+        /// </summary>
+        private UIElement CreateGifPreview(string filePath)
+        {
+            // 创建主容器
+            var grid = new Grid();
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+
+            // 标题栏
+            var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath) };
+            var titlePanel = PreviewHelper.CreateTitlePanel("🎞️", $"GIF 动画: {Path.GetFileName(filePath)}", buttons);
+            Grid.SetRow(titlePanel, 0);
+            grid.Children.Add(titlePanel);
+
+            try
+            {
+                // 使用Image控件显示GIF
+                var image = new Image
+                {
+                    Stretch = Stretch.Uniform,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+
+                // 加载GIF并启动动画
+                using (var stream = File.OpenRead(filePath))
+                {
+                    var decoder = new GifBitmapDecoder(stream, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.OnLoad);
+
+                    if (decoder.Frames.Count > 0)
+                    {
+                        // 如果只有一帧，直接显示
+                        if (decoder.Frames.Count == 1)
+                        {
+                            image.Source = decoder.Frames[0];
+                        }
+                        else
+                        {
+                            // 多帧动画 - 启动动画控制器
+                            var frames = new List<BitmapFrame>();
+                            var delays = new List<int>();
+
+                            foreach (var frame in decoder.Frames)
+                            {
+                                frames.Add(frame);
+
+                                // 尝试读取帧延迟（毫秒）
+                                int delay = 100; // 默认延迟
+                                try
+                                {
+                                    var metadata = frame.Metadata as BitmapMetadata;
+                                    if (metadata != null && metadata.ContainsQuery("/grctlext/Delay"))
+                                    {
+                                        var delayValue = metadata.GetQuery("/grctlext/Delay");
+                                        if (delayValue is ushort delayUShort)
+                                        {
+                                            delay = delayUShort * 10; // GIF延迟单位是1/100秒
+                                            if (delay < 10) delay = 100; // 最小延迟
+                                        }
+                                    }
+                                }
+                                catch { }
+
+                                delays.Add(delay);
+                            }
+
+                            // 设置第一帧
+                            image.Source = frames[0];
+
+                            // 创建动画控制器 - 使用Background优先级避免阻塞UI
+                            int currentFrame = 0;
+                            var timer = new System.Windows.Threading.DispatcherTimer(System.Windows.Threading.DispatcherPriority.Background);
+                            timer.Interval = TimeSpan.FromMilliseconds(delays[0]);
+                            timer.Tick += (s, e) =>
+                            {
+                                currentFrame = (currentFrame + 1) % frames.Count;
+                                image.Source = frames[currentFrame];
+                                timer.Interval = TimeSpan.FromMilliseconds(delays[currentFrame]);
+                            };
+                            timer.Start();
+
+                            // 当控件卸载时停止timer
+                            grid.Unloaded += (s, e) => timer.Stop();
+                        }
+                    }
+                }
+
+                // 添加ScrollViewer
+                var scrollViewer = new ScrollViewer
+                {
+                    HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+                    VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                    Content = image
+                };
+                Grid.SetRow(scrollViewer, 1);
+                grid.Children.Add(scrollViewer);
+            }
+            catch (Exception ex)
+            {
+                var errorText = new TextBlock
+                {
+                    Text = $"无法加载 GIF: {ex.Message}",
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Foreground = Brushes.Red,
+                    FontSize = 14
+                };
+                Grid.SetRow(errorText, 1);
+                grid.Children.Add(errorText);
+            }
+
             return grid;
         }
 
@@ -151,7 +318,7 @@ namespace OoiMRR.Previews
                 VerticalAlignment = VerticalAlignment.Center,
                 Visibility = Visibility.Collapsed
             };
-            
+
             // 添加ScrollViewer
             var scrollViewer = new ScrollViewer
             {
@@ -177,9 +344,9 @@ namespace OoiMRR.Previews
                         {
                             magickImage.Resize(new MagickGeometry((uint)maxDim, (uint)maxDim) { IgnoreAspectRatio = false });
                         }
-                        
+
                         var bytes = magickImage.ToByteArray(MagickFormat.Png);
-                        
+
                         bitmap = new BitmapImage();
                         bitmap.BeginInit();
                         bitmap.StreamSource = new MemoryStream(bytes);
@@ -246,7 +413,7 @@ namespace OoiMRR.Previews
                 VerticalAlignment = VerticalAlignment.Center,
                 Visibility = Visibility.Collapsed
             };
-            
+
             // 添加ScrollViewer
             var scrollViewer = new ScrollViewer
             {
@@ -272,9 +439,9 @@ namespace OoiMRR.Previews
                         {
                             magickImage.Resize(new MagickGeometry((uint)maxDim, (uint)maxDim) { IgnoreAspectRatio = false });
                         }
-                        
+
                         var bytes = magickImage.ToByteArray(MagickFormat.Png);
-                        
+
                         bitmap = new BitmapImage();
                         bitmap.BeginInit();
                         bitmap.StreamSource = new MemoryStream(bytes);

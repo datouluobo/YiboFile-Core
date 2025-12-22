@@ -13,7 +13,7 @@ namespace OoiMRR.Previews
         /// 文件列表刷新请求回调
         /// </summary>
         public static Action OnFileListRefreshRequested { get; set; }
-        
+
         /// <summary>
         /// 在新标签页中打开文件夹回调
         /// </summary>
@@ -38,18 +38,18 @@ namespace OoiMRR.Previews
                 }
 
                 var extension = Path.GetExtension(filePath)?.ToLower();
-                
+
                 if (string.IsNullOrEmpty(extension))
                 {
                     return PreviewHelper.CreateNoPreview(filePath);
                 }
-                
+
                 // 特殊处理快捷方式文件
                 if (extension == ".lnk")
                 {
                     return new LnkPreview().CreatePreview(filePath);
                 }
-                
+
                 // 注意：GetFileTypeInfo需要完整的文件路径，它会内部处理扩展名
                 var fileTypeInfo = FileTypeManager.GetFileTypeInfo(filePath);
 
@@ -90,6 +90,7 @@ namespace OoiMRR.Previews
                 ".docx" => new DocumentPreview(),
                 ".doc" => new DocumentPreview(),
                 ".pdf" => new DocumentPreview(),
+                ".rtf" => new DocumentPreview(),
                 ".xlsx" => new ExcelPreview(),
                 ".xlsm" => new ExcelPreview(),
                 ".xls" => new ExcelPreview(),

@@ -66,6 +66,45 @@ namespace OoiMRR.Controls
             // 按钮事件
             SaveButton.Click += SaveButton_Click;
             RefreshButton.Click += (s, e) => UpdatePreview();
+
+            // 视图模式切换事件
+            EditOnlyMode.Checked += ViewMode_Changed;
+            PreviewOnlyMode.Checked += ViewMode_Changed;
+            SplitViewMode.Checked += ViewMode_Changed;
+
+            // 初始应用当前选中模式的布局
+            ViewMode_Changed(null, null);
+        }
+
+        private void ViewMode_Changed(object sender, RoutedEventArgs e)
+        {
+            if (EditOnlyMode.IsChecked == true)
+            {
+                // 只显示编辑器
+                EditorColumn.Width = new GridLength(1, GridUnitType.Star);
+                SplitterColumn.Width = new GridLength(0);
+                PreviewColumn.Width = new GridLength(0);
+                ViewSplitter.Visibility = Visibility.Collapsed;
+                if (SaveButton != null) SaveButton.Visibility = Visibility.Visible;
+            }
+            else if (PreviewOnlyMode.IsChecked == true)
+            {
+                // 只显示预览
+                EditorColumn.Width = new GridLength(0);
+                SplitterColumn.Width = new GridLength(0);
+                PreviewColumn.Width = new GridLength(1, GridUnitType.Star);
+                ViewSplitter.Visibility = Visibility.Collapsed;
+                if (SaveButton != null) SaveButton.Visibility = Visibility.Collapsed;
+            }
+            else if (SplitViewMode.IsChecked == true)
+            {
+                // 分屏显示
+                EditorColumn.Width = new GridLength(1, GridUnitType.Star);
+                SplitterColumn.Width = new GridLength(5);
+                PreviewColumn.Width = new GridLength(1, GridUnitType.Star);
+                ViewSplitter.Visibility = Visibility.Visible;
+                if (SaveButton != null) SaveButton.Visibility = Visibility.Visible;
+            }
         }
 
         public void LoadMarkdown(string filePath)
