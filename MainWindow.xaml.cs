@@ -89,6 +89,7 @@ namespace OoiMRR
         internal Handlers.MouseEventHandler _mouseEventHandler;
         internal Handlers.ColumnInteractionHandler _columnInteractionHandler;
         internal Handlers.WindowLifecycleHandler _windowLifecycleHandler;
+        internal Handlers.FileOperationHandler _fileOperationHandler;
         private SelectionEventHandler _selectionEventHandler;
         internal Services.TagTrain.TagTrainEventHandler _tagTrainEventHandler;
 
@@ -556,134 +557,34 @@ namespace OoiMRR
 
 
 
-        // 文件操作事件桥接方法 - 已迁移到 MenuEventHandler
+        // 文件操作桥接方法 - 已迁移到 FileOperationHandler
         private void Copy_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.Copy_Click(sender, e);
         private void Cut_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.Cut_Click(sender, e);
 
         /// <summary>
         /// 获取当前操作上下文
         /// </summary>
-        private IFileOperationContext GetCurrentOperationContext()
-        {
-            if (_currentLibrary != null)
-            {
-                return new LibraryOperationContext(_currentLibrary, FileBrowser, this, () => LoadLibraryFiles(_currentLibrary));
-            }
-            else if (_currentTagFilter != null)
-            {
-                return new TagOperationContext(_currentTagFilter, FileBrowser, this, () => FilterByTag(_currentTagFilter));
-            }
-            else
-            {
-                return new PathOperationContext(_currentPath, FileBrowser, this, LoadCurrentDirectory);
-            }
-        }
+        private IFileOperationContext GetCurrentOperationContext() => _fileOperationHandler?.GetCurrentOperationContext();
 
         /// <summary>
         /// 执行复制操作
         /// </summary>
-        internal void PerformCopyOperation()
-        {
-            try
-            {
-                var selectedItems = FileBrowser?.FilesSelectedItems?.Cast<FileSystemItem>().ToList() ?? new List<FileSystemItem>();
-                if (selectedItems.Count == 0)
-                {
-                    return;
-                }
-
-                var paths = selectedItems.Select(item => item.Path).ToList();
-                FileClipboardManager.SetCopyPaths(paths);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"复制操作失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
+        internal void PerformCopyOperation() => _fileOperationHandler?.PerformCopyOperation();
 
         /// <summary>
         /// 执行剪切操作
         /// </summary>
-        internal void PerformCutOperation()
-        {
-            try
-            {
-                var selectedItems = FileBrowser?.FilesSelectedItems?.Cast<FileSystemItem>().ToList() ?? new List<FileSystemItem>();
-                if (selectedItems.Count == 0)
-                {
-                    return;
-                }
-
-                var paths = selectedItems.Select(item => item.Path).ToList();
-                FileClipboardManager.SetCutPaths(paths);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"剪切操作失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
+        internal void PerformCutOperation() => _fileOperationHandler?.PerformCutOperation();
 
         /// <summary>
         /// 执行粘贴操作
         /// </summary>
-        internal void PerformPasteOperation()
-        {
-            try
-            {
-                var copiedPaths = FileClipboardManager.GetCopiedPaths();
-                if (copiedPaths == null || copiedPaths.Count == 0)
-                {
-                    return;
-                }
-
-                var context = GetCurrentOperationContext();
-                if (context == null)
-                {
-                    return;
-                }
-
-                var isCut = FileClipboardManager.IsCutOperation;
-                var pasteOperation = new PasteOperation(context);
-                pasteOperation.Execute(copiedPaths, isCut);
-
-                if (isCut)
-                {
-                    FileClipboardManager.ClearCutOperation();
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"粘贴操作失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
+        internal void PerformPasteOperation() => _fileOperationHandler?.PerformPasteOperation();
 
         /// <summary>
         /// 执行删除操作
         /// </summary>
-        internal async void PerformDeleteOperation()
-        {
-            try
-            {
-                var selectedItems = FileBrowser?.FilesSelectedItems?.Cast<FileSystemItem>().ToList() ?? new List<FileSystemItem>();
-                if (selectedItems.Count == 0)
-                {
-                    return;
-                }
-
-                var context = GetCurrentOperationContext();
-                if (context == null)
-                {
-                    return;
-                }
-
-                var deleteOperation = new DeleteOperation(context);
-                await deleteOperation.ExecuteAsync(selectedItems);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"删除操作失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
+        internal async void PerformDeleteOperation() => await (_fileOperationHandler?.PerformDeleteOperationAsync() ?? Task.CompletedTask);
 
         private void Paste_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.Paste_Click(sender, e);
         internal void Delete_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.Delete_Click(sender, e);

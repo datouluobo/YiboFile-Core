@@ -95,6 +95,9 @@ namespace OoiMRR
             // 初始化 WindowLifecycleHandler
             _windowLifecycleHandler = new Handlers.WindowLifecycleHandler(this, _windowStateManager, _configService, _columnService);
 
+            // 初始化 FileOperationHandler
+            _fileOperationHandler = new Handlers.FileOperationHandler(this);
+
             // 初始化 MenuEventHandler
             _menuEventHandler = new MenuEventHandler(
                 FileBrowser,
