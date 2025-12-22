@@ -503,9 +503,6 @@ namespace OoiMRR
         }
 
 
-
-
-
         // 根据内容自动调整列宽（用于双击列分隔条）
         private void AutoSizeGridViewColumn(GridViewColumn column)
         {
@@ -543,15 +540,6 @@ namespace OoiMRR
         {
             _columnInteractionHandler?.HookHeaderThumbs();
         }
-
-        // 使用 AddHandler 捕获的分隔线双击 - Logic moved to ColumnInteractionHandler internal hook
-        internal void FilesList_HeaderThumbDoubleClick(object sender, MouseButtonEventArgs e)
-        {
-            // _columnInteractionHandler?.HandleHeaderThumbDoubleClick(sender, e);
-            // Functionality replaced by direct event attachment in HookHeaderThumbs
-        }
-
-
 
         #region 键盘快捷键和文件操作
 
