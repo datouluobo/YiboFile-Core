@@ -486,57 +486,5 @@ namespace OoiMRR.Controls
             }
             return false;
         }
-
-        #region Text Editor Integration
-
-        /// <summary>
-        /// 显示文本编辑器并加载文件
-        /// </summary>
-        public void ShowTextEditor(string filePath)
-        {
-            try
-            {
-                TextEditorTab.Visibility = Visibility.Visible;
-                MarkdownEditorTab.Visibility = Visibility.Collapsed;
-                TextEditorTab.IsSelected = true;
-
-                TextEditorControl.LoadFile(filePath);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"显示文本编辑器失败: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// 显示 Markdown 编辑器并加载文件
-        /// </summary>
-        public void ShowMarkdownEditor(string filePath)
-        {
-            try
-            {
-                MarkdownEditorTab.Visibility = Visibility.Visible;
-                TextEditorTab.Visibility = Visibility.Collapsed;
-                MarkdownEditorTab.IsSelected = true;
-
-                MarkdownEditorControl.LoadMarkdown(filePath);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"显示Markdown编辑器失败: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// 隐藏所有编辑器，显示文件信息
-        /// </summary>
-        public void ShowFileInfo()
-        {
-            TextEditorTab.Visibility = Visibility.Collapsed;
-            MarkdownEditorTab.Visibility = Visibility.Collapsed;
-            FileInfoTab.IsSelected = true;
-        }
-
-        #endregion
     }
 }

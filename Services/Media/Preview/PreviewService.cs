@@ -73,7 +73,15 @@ namespace OoiMRR.Services.Preview
             if (!item.IsDirectory && !string.IsNullOrEmpty(fileExtension) && markdownExtensions.Contains(fileExtension))
             {
                 // 显示Markdown编辑器
-                _fileBrowser?.ShowMarkdownEditor(item.Path);
+                var markdownEditor = new OoiMRR.Controls.MarkdownEditorControl();
+                markdownEditor.LoadMarkdown(item.Path);
+                _rightPanel.PreviewGrid.Children.Add(markdownEditor);
+
+                // 隐藏默认预览文本
+                if (_rightPanel.DefaultPreviewText != null)
+                {
+                    _rightPanel.DefaultPreviewText.Visibility = Visibility.Collapsed;
+                }
                 return;
             }
 
@@ -88,7 +96,15 @@ namespace OoiMRR.Services.Preview
             if (!item.IsDirectory && !string.IsNullOrEmpty(fileExtension) && editableTextExtensions.Contains(fileExtension))
             {
                 // 显示文本编辑器
-                _fileBrowser?.ShowTextEditor(item.Path);
+                var textEditor = new OoiMRR.Controls.TextEditorControl();
+                textEditor.LoadFile(item.Path);
+                _rightPanel.PreviewGrid.Children.Add(textEditor);
+
+                // 隐藏默认预览文本
+                if (_rightPanel.DefaultPreviewText != null)
+                {
+                    _rightPanel.DefaultPreviewText.Visibility = Visibility.Collapsed;
+                }
                 return;
             }
 
