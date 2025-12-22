@@ -19,8 +19,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="AvalonEdit" Version="6.3.0.90" />
     <PackageReference Include="DocumentFormat.OpenXml" Version="3.3.0" />
     <PackageReference Include="Magick.NET-Q16-AnyCPU" Version="14.10.0" />
+    <PackageReference Include="Markdig" Version="0.35.0" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.0" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3537.50" />
     <PackageReference Include="System.Drawing.Common" Version="10.0.0" />
@@ -72,9 +74,7 @@
     </ItemGroup>
     <WriteLinesToFile File="$(BatchFilePath)" Lines="@(BatchLines)" Overwrite="true" Encoding="UTF-8" />
     <!-- 创建快捷方式指向批处理文件（仅在exe存在时执行） -->
-    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -Command &quot;$outputPath = [System.IO.Path]::GetFullPath('$(OutputPath)'); $shortcutPath = Join-Path $outputPath 'TagTrain.lnk'; $batchPath = Join-Path $outputPath 'TagTrain.bat'; $exePath = Join-Path $outputPath '$(ExeFileName)'; if (Test-Path $exePath) { $WshShell = New-Object -ComObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut($shortcutPath); $Shortcut.TargetPath = $batchPath; $Shortcut.WorkingDirectory = $outputPath; $Shortcut.Description = 'TagTrain - 图片标签训练系统'; $iconLocation = $exePath + ',0'; $Shortcut.IconLocation = $iconLocation; $Shortcut.Save() }&quot;" 
-          ContinueOnError="true" 
-          IgnoreExitCode="true" />
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -Command &quot;$outputPath = [System.IO.Path]::GetFullPath('$(OutputPath)'); $shortcutPath = Join-Path $outputPath 'TagTrain.lnk'; $batchPath = Join-Path $outputPath 'TagTrain.bat'; $exePath = Join-Path $outputPath '$(ExeFileName)'; if (Test-Path $exePath) { $WshShell = New-Object -ComObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut($shortcutPath); $Shortcut.TargetPath = $batchPath; $Shortcut.WorkingDirectory = $outputPath; $Shortcut.Description = 'TagTrain - 图片标签训练系统'; $iconLocation = $exePath + ',0'; $Shortcut.IconLocation = $iconLocation; $Shortcut.Save() }&quot;" ContinueOnError="true" IgnoreExitCode="true" />
   </Target>
   
   </Project>
