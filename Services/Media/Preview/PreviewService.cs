@@ -65,9 +65,35 @@ namespace OoiMRR.Services.Preview
             // 先清理之前的预览资源（特别是视频的MediaElement）
             CleanupPreviousPreview();
 
-            // 检查是否是图片文件，如果是则使用TagTrain样式的图片预览
-            var imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".webp", ".tiff", ".tif" };
+            // 获取文件扩展名
             var fileExtension = Path.GetExtension(item.Path)?.ToLowerInvariant();
+
+            // 1. 检查是否是Markdown文件
+            var markdownExtensions = new[] { ".md", ".markdown" };
+            if (!item.IsDirectory && !string.IsNullOrEmpty(fileExtension) && markdownExtensions.Contains(fileExtension))
+            {
+                // 显示Markdown编辑器
+                _fileBrowser?.ShowMarkdownEditor(item.Path);
+                return;
+            }
+
+            // 2. 检查是否是可编辑的文本文件
+            var editableTextExtensions = new[]
+            {
+                ".txt", ".cs", ".cpp", ".h", ".hpp", ".c", ".py", ".js", ".ts",
+                ".html", ".htm", ".css", ".xml", ".json", ".sql", ".php",
+                ".java", ".go", ".rs", ".rb", ".sh", ".bat", ".ps1", ".yaml", ".yml",
+                ".config", ".ini", ".log"
+            };
+            if (!item.IsDirectory && !string.IsNullOrEmpty(fileExtension) && editableTextExtensions.Contains(fileExtension))
+            {
+                // 显示文本编辑器
+                _fileBrowser?.ShowTextEditor(item.Path);
+                return;
+            }
+
+            // 3. 检查是否是图片文件，如果是则使用TagTrain样式的图片预览
+            var imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".webp", ".tiff", ".tif" };
 
             if (!item.IsDirectory && !string.IsNullOrEmpty(fileExtension) && imageExtensions.Contains(fileExtension))
             {
