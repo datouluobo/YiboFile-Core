@@ -64,8 +64,8 @@ namespace OoiMRR
                 () => _searchOptions,
                 FilesListView_SelectionChanged,
                 (e) => FilesListView_MouseDoubleClick(FileBrowser?.FilesList, e), // Wrapped
-                FilesListView_PreviewMouseDoubleClick,
-                FilesListView_PreviewKeyDown,
+                (e) => { }, // PreviewMouseDoubleClick - not used
+                (e) => { }, // PreviewKeyDown - handled by KeyboardEventHandler
                 (e) => FilesListView_PreviewMouseLeftButtonDown(FileBrowser?.FilesList, e), // Wrapped
                 (e) => FilesListView_MouseLeftButtonUp(FileBrowser?.FilesList, e), // Wrapped
                 (e) => FilesListView_PreviewMouseDown(FileBrowser?.FilesList, e), // Wrapped
@@ -543,11 +543,6 @@ namespace OoiMRR
             }
         }
 
-        internal void FilesListView_PreviewMouseMove(object sender, MouseEventArgs e)
-        {
-            // Logic moved to DragDropManager
-        }
-
         internal void FilesListView_PreviewMouseDoubleClickForBlank(object sender, MouseButtonEventArgs e)
         {
             // 双击空白区域：返回上一级
@@ -850,18 +845,6 @@ namespace OoiMRR
                 _tagUIHandler?.UpdateTagSelectionState(FileBrowser?.FilesSelectedItems?.Cast<FileSystemItem>().ToList());
             }
         }
-
-        private void FilesListView_PreviewMouseDoubleClick(MouseButtonEventArgs e)
-        {
-            // Placeholder preserved from previous file
-        }
-
-        private void FilesListView_PreviewKeyDown(KeyEventArgs e)
-        {
-            // Placeholder preserved from previous file
-        }
-
-
 
         // Helpers for MenuEventHandler
         private void EditNotes_Click_Logic() => _fileNotesUIHandler?.ToggleNotesPanel();
