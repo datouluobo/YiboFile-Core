@@ -196,12 +196,27 @@
                       HorizontalAlignment="Stretch"
                       DragCompleted="GridSplitter_DragCompleted"/>
         
-        <!-- 文件详细信息 -->
-        <Border Grid.Row="4" Background="#F8F9FA" BorderBrush="#E9ECEF" BorderThickness="0,1,0,0">
-            <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="8,4">
-                <StackPanel x:Name="FileInfoPanel" Margin="4"/>
-            </ScrollViewer>
-        </Border>
+        <!-- 底部面板：TabControl for 文件信息/文本编辑/Markdown编辑 -->
+        <TabControl Grid.Row="4" x:Name="BottomTabControl" Background="#F8F9FA">
+            <!-- Tab 1: 文件信息 -->
+            <TabItem x:Name="FileInfoTab" Header="文件信息">
+                <Border Background="#F8F9FA" BorderBrush="#E9ECEF" BorderThickness="0,1,0,0">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="8,4">
+                        <StackPanel x:Name="FileInfoPanel" Margin="4"/>
+                    </ScrollViewer>
+                </Border>
+            </TabItem>
+            
+            <!-- Tab 2: 文本编辑器 -->
+            <TabItem x:Name="TextEditorTab" Header="文本编辑" Visibility="Collapsed">
+                <controls:TextEditorControl x:Name="TextEditorControl"/>
+            </TabItem>
+            
+            <!-- Tab 3: Markdown 编辑器 -->
+            <TabItem x:Name="MarkdownEditorTab" Header="Markdown" Visibility="Collapsed">
+                <controls:MarkdownEditorControl x:Name="MarkdownEditorControl"/>
+            </TabItem>
+        </TabControl>
     </Grid>
 </UserControl>
 
