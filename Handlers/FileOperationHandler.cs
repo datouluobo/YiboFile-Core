@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using OoiMRR.Services.FileOperations;
+using System.Collections.Specialized;
 
 namespace OoiMRR.Handlers
 {
@@ -91,40 +92,6 @@ namespace OoiMRR.Handlers
             catch (Exception ex)
             {
                 MessageBox.Show($"剪切操作失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        /// <summary>
-        /// 执行粘贴操作
-        /// </summary>
-        public void PerformPasteOperation()
-        {
-            try
-            {
-                var copiedPaths = FileClipboardManager.GetCopiedPaths();
-                if (copiedPaths == null || copiedPaths.Count == 0)
-                {
-                    return;
-                }
-
-                var context = GetCurrentOperationContext();
-                if (context == null)
-                {
-                    return;
-                }
-
-                var isCut = FileClipboardManager.IsCutOperation;
-                var pasteOperation = new PasteOperation(context);
-                pasteOperation.Execute(copiedPaths, isCut);
-
-                if (isCut)
-                {
-                    FileClipboardManager.ClearCutOperation();
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"粘贴操作失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

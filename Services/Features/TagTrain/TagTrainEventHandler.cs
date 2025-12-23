@@ -125,7 +125,6 @@ namespace OoiMRR.Services.TagTrain
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"TagClickModeBtn_Click error: {ex.Message}");
             }
         }
 
@@ -163,7 +162,6 @@ namespace OoiMRR.Services.TagTrain
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"SwitchTagMode error: {ex.Message}");
             }
         }
 

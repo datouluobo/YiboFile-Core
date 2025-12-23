@@ -45,8 +45,6 @@ namespace OoiMRR.Services.FileInfo
         public void ShowFileInfo(FileSystemItem item)
         {
             if (_fileBrowser?.FileInfoPanelControl == null) return;
-
-            System.Diagnostics.Debug.WriteLine($"[FileInfoService] ShowFileInfo called for item: {item?.Name}");
             _fileBrowser.FileInfoPanelControl.Children.Clear();
 
             if (item.IsDirectory)

@@ -285,7 +285,6 @@ namespace TagTrain.UI
                         }
                         else
                         {
-                            System.Diagnostics.Debug.WriteLine($"未找到匹配的TagId {sample.TagId}，预测的TagId: {string.Join(", ", predictions.Select(p => p.TagId))}");
                         }
                     }
                     catch (Exception)

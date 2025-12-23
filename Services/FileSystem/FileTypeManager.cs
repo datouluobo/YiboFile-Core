@@ -26,10 +26,12 @@ namespace OoiMRR
             { ".tif", new FileTypeInfo { Category = "图片", CanPreview = true, PreviewType = PreviewType.Image } },
             { ".ico", new FileTypeInfo { Category = "图片", CanPreview = true, PreviewType = PreviewType.Image } },
             { ".webp", new FileTypeInfo { Category = "图片", CanPreview = true, PreviewType = PreviewType.Image } },
-            { ".heic", new FileTypeInfo { Category = "图片", CanPreview = false, PreviewType = PreviewType.Image } },
-            { ".heif", new FileTypeInfo { Category = "图片", CanPreview = false, PreviewType = PreviewType.Image } },
             { ".svg", new FileTypeInfo { Category = "图片", CanPreview = true, PreviewType = PreviewType.Image } },
             { ".psd", new FileTypeInfo { Category = "图片", CanPreview = true, PreviewType = PreviewType.Image } },
+            { ".tga", new FileTypeInfo { Category = "图片", CanPreview = true, PreviewType = PreviewType.Image } },
+            { ".blp", new FileTypeInfo { Category = "图片", CanPreview = true, PreviewType = PreviewType.Image } },
+            { ".heic", new FileTypeInfo { Category = "图片", CanPreview = true, PreviewType = PreviewType.Image } },
+            { ".heif", new FileTypeInfo { Category = "图片", CanPreview = true, PreviewType = PreviewType.Image } },
             { ".ai", new FileTypeInfo { Category = "图片", CanPreview = false, PreviewType = PreviewType.None } },
 
             // 文本文件

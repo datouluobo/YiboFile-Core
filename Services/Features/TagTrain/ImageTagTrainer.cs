@@ -136,9 +136,6 @@ namespace TagTrain.Services
                 {
                     keyToTagId[i] = sortedTagIds[i];
                 }
-
-                System.Diagnostics.Debug.WriteLine($"Key到TagId映射: {string.Join(", ", keyToTagId.Select(kv => $"Key{kv.Key}=TagId{kv.Value}"))}");
-
                 // 返回Top 10预测结果，使用正确的 TagId 映射
                 // 注意：先取Top 10，再过滤低置信度，这样可以确保即使置信度较低也能看到预测结果
                 var results = prediction.Scores

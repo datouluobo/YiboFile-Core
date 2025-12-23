@@ -63,13 +63,11 @@ namespace OoiMRR.Services.Tag
         {
             if (tag == null)
             {
-                System.Diagnostics.Debug.WriteLine("FilterByTag: tag 为 null");
                 return;
             }
 
             try
             {
-                System.Diagnostics.Debug.WriteLine($"FilterByTag: 开始过滤标签: {tag.Name} (Id: {tag.Id})");
                 _context.SetCurrentTagFilter(tag);
 
                 // TagsListBox已移除，标签选择现在由TagTrain面板处理
@@ -79,9 +77,6 @@ namespace OoiMRR.Services.Tag
                 var taggedPaths = App.IsTagTrainAvailable
                     ? (OoiMRRIntegration.GetFilePathsByTag(tag.Id) ?? new List<string>())
                     : new List<string>();
-
-                System.Diagnostics.Debug.WriteLine($"FilterByTag: 获取到 {taggedPaths.Count} 个文件路径");
-
                 var tagFiles = new List<FileSystemItem>();
                 var fileListService = _context.GetFileListService();
 
@@ -142,9 +137,6 @@ namespace OoiMRR.Services.Tag
                     catch (UnauthorizedAccessException) { }
                     catch (IOException) { }
                 }
-
-                System.Diagnostics.Debug.WriteLine($"FilterByTag: 处理完成，共 {tagFiles.Count} 个文件");
-
                 // 确保在UI线程更新
                 if (!_context.Dispatcher.CheckAccess())
                 {
@@ -154,13 +146,9 @@ namespace OoiMRR.Services.Tag
                 {
                     _context.UpdateTagFilesUI(tag, tagFiles);
                 }
-
-                System.Diagnostics.Debug.WriteLine("FilterByTag: 完成");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"FilterByTag: 发生错误: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"FilterByTag: 堆栈跟踪: {ex.StackTrace}");
                 MessageBox.Show($"过滤标签时发生错误: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -183,28 +171,20 @@ namespace OoiMRR.Services.Tag
             {
                 try
                 {
-                    System.Diagnostics.Debug.WriteLine($"NewTag_Click: 开始创建标签: {dialog.TagName}");
-
                     // 使用 TagTrain 创建标签
                     var tagId = OoiMRRIntegration.GetOrCreateTagId(dialog.TagName);
-                    System.Diagnostics.Debug.WriteLine($"NewTag_Click: 返回的标签ID: {tagId}");
-
                     if (tagId > 0)
                     {
-                        System.Diagnostics.Debug.WriteLine($"NewTag_Click: 标签创建成功，重新加载标签列表");
                         _context.LoadTags();
                         MessageBox.Show($"标签 \"{dialog.TagName}\" 创建成功！", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine($"NewTag_Click: 标签创建失败，tagId = {tagId}");
                         MessageBox.Show("创建标签失败", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                     }
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"NewTag_Click: 创建标签异常: {ex.Message}");
-                    System.Diagnostics.Debug.WriteLine($"NewTag_Click: 堆栈跟踪: {ex.StackTrace}");
                     MessageBox.Show($"创建标签失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
@@ -357,7 +337,6 @@ namespace OoiMRR.Services.Tag
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"获取共享标签失败: {ex.Message}");
                 return new List<int>();
             }
         }

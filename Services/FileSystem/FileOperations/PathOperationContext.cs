@@ -45,7 +45,15 @@ namespace OoiMRR.Services.FileOperations
 
         public void RefreshAfterOperation()
         {
-            _refreshCallback?.Invoke();
+            // 确保在UI线程上刷新
+            if (Application.Current?.Dispatcher?.CheckAccess() == false)
+            {
+                Application.Current.Dispatcher.Invoke(_refreshCallback);
+            }
+            else
+            {
+                _refreshCallback?.Invoke();
+            }
         }
 
         public List<FileSystemItem> GetSelectedItems()
@@ -68,6 +76,12 @@ namespace OoiMRR.Services.FileOperations
 
         public bool ShowConfirm(string message, string title)
         {
+            // 确保在UI线程上显示对话框
+            if (Application.Current?.Dispatcher?.CheckAccess() == false)
+            {
+                return (bool)Application.Current.Dispatcher.Invoke(() =>
+                    ConfirmDialog.Show(message, title, ConfirmDialog.DialogType.Warning, _ownerWindow));
+            }
             return ConfirmDialog.Show(message, title, ConfirmDialog.DialogType.Warning, _ownerWindow);
         }
     }

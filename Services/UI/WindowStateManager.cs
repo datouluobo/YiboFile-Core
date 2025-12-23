@@ -91,7 +91,6 @@ namespace OoiMRR.Services
             catch (Exception ex)
             {
                 // 静默处理错误，避免影响程序关闭
-                System.Diagnostics.Debug.WriteLine($"保存窗口状态失败: {ex.Message}");
                 // #region agent log
                 try { var logPathErr = @"f:\Download\GitHub\OoiMRR\.cursor\debug.log"; System.IO.File.AppendAllText(logPathErr, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "A", location = "WindowStateManager.cs:77", message = "SaveAllState异常", data = new { error = ex.Message, stackTrace = ex.StackTrace }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
                 // #endregion
@@ -154,8 +153,6 @@ namespace OoiMRR.Services
                     // #region agent log
                     try { System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "A", location = "WindowStateManager.cs:100", message = "SaveWindowState保存非最大化状态", data = new { savedWidth = _config.WindowWidth, savedHeight = _config.WindowHeight, savedTop = _config.WindowTop, savedLeft = _config.WindowLeft, windowTop = window.Top, windowLeft = window.Left }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
                     // #endregion
-
-                    System.Diagnostics.Debug.WriteLine($"[WindowStateManager] 保存窗口状态: {window.Width}x{window.Height} @ ({window.Left}, {window.Top})");
                 }
                 else
                 {
@@ -183,21 +180,18 @@ namespace OoiMRR.Services
                         _config.WindowHeight = restoreBounds.Height;
                         _config.WindowTop = restoreBounds.Top;
                         _config.WindowLeft = restoreBounds.Left;
-                        System.Diagnostics.Debug.WriteLine($"[WindowStateManager] 保存窗口状态(最大化): 还原尺寸 {restoreBounds.Width}x{restoreBounds.Height} @ ({restoreBounds.Left}, {restoreBounds.Top})");
                     }
                     else
                     {
                         // 如果RestoreBounds无效，尝试使用配置中的值
                         if (_config.WindowWidth > 0 && _config.WindowHeight > 0)
                         {
-                            System.Diagnostics.Debug.WriteLine($"[WindowStateManager] 使用配置中的窗口尺寸: {_config.WindowWidth}x{_config.WindowHeight}");
                         }
                         else
                         {
                             // 使用默认值
                             _config.WindowWidth = 1200;
                             _config.WindowHeight = 800;
-                            System.Diagnostics.Debug.WriteLine($"[WindowStateManager] 使用默认窗口尺寸: 1200x800");
                         }
                     }
                 }
@@ -271,7 +265,6 @@ namespace OoiMRR.Services
                 // #region agent log
                 try { System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "B", location = "WindowStateManager.cs:197", message = "SaveSplitterPositions保存左侧宽度", data = new { savedLeftWidth = _config.ColLeftWidth }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
                 // #endregion
-                System.Diagnostics.Debug.WriteLine($"[WindowStateManager] 保存左侧列宽度: {leftWidth}");
             }
             if (middleWidth > 0 && middleWidth >= middleCol.MinWidth)
             {
@@ -280,7 +273,6 @@ namespace OoiMRR.Services
                 // #region agent log
                 try { System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "B", location = "WindowStateManager.cs:204", message = "SaveSplitterPositions保存中间宽度", data = new { savedMiddleWidth = _config.ColCenterWidth }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
                 // #endregion
-                System.Diagnostics.Debug.WriteLine($"[WindowStateManager] 保存中间列宽度: {middleWidth}");
             }
 
             // 新增：保存右侧列宽度
@@ -289,7 +281,6 @@ namespace OoiMRR.Services
             if (rightWidth > 0 && rightWidth >= rightCol.MinWidth)
             {
                 _config.ColRightWidth = rightWidth;
-                System.Diagnostics.Debug.WriteLine($"[WindowStateManager] 保存右侧列宽度: {rightWidth}");
             }
 
             // --- 新增：保存扩展 UI 状态 ---
@@ -517,7 +508,6 @@ namespace OoiMRR.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"恢复窗口状态失败: {ex.Message}");
             }
         }
 
@@ -594,7 +584,6 @@ namespace OoiMRR.Services
                         catch (Exception ex)
                         {
                             // 单个标签页恢复失败不影响其他标签页
-                            System.Diagnostics.Debug.WriteLine($"恢复标签页失败 {tabKey}: {ex.Message}");
                         }
                     }
 
@@ -632,7 +621,6 @@ namespace OoiMRR.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"恢复标签页状态失败: {ex.Message}");
             }
         }
 

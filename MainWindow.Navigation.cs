@@ -157,8 +157,6 @@ namespace OoiMRR
                 {
                     errorMessage += ex.Message;
                 }
-
-                System.Diagnostics.Debug.WriteLine(errorMessage);
                 // 不弹窗，只显示空状态
                 // MessageBox.Show(errorMessage, "权限错误", MessageBoxButton.OK, MessageBoxImage.Warning);
 
@@ -232,13 +230,9 @@ namespace OoiMRR
             if (!Directory.Exists(path)) return;
 
             var activeTab = _tabService.ActiveTab;
-
-            System.Diagnostics.Debug.WriteLine($"[NavigateToPath] 导航到: {path}, 当前标签页: {activeTab?.Type}");
-
             // 规则1：同类型标签页直接更新
             if (activeTab != null && activeTab.Type == Services.Tabs.TabType.Path)
             {
-                System.Diagnostics.Debug.WriteLine($"[NavigateToPath] 更新Path标签页");
                 activeTab.Path = path;
                 _tabService?.UpdateTabTitle(activeTab, path);
                 NavigateToPathInternal(path);
@@ -251,13 +245,11 @@ namespace OoiMRR
             if (recentTab != null)
             {
                 // 找到了最近访问的标签页，切换到它
-                System.Diagnostics.Debug.WriteLine($"[NavigateToPath] 切换到最近访问的Path标签页");
                 _tabService.SwitchToTab(recentTab);
             }
             else
             {
                 // 没有找到或不够新鲜，创建新标签页
-                System.Diagnostics.Debug.WriteLine($"[NavigateToPath] 创建新Path标签页");
                 CreateTab(path);
             }
         }
@@ -297,7 +289,6 @@ namespace OoiMRR
             // 等待200ms以允许上一个加载任务完成，避免标签页切换时文件列表为空
             if (!_loadFilesSemaphore.Wait(200))
             {
-                System.Diagnostics.Debug.WriteLine("LoadFiles: 已有加载任务在进行（等待200ms后仍未完成），跳过此次调用");
                 return;
             }
 
@@ -324,7 +315,6 @@ namespace OoiMRR
                 }
                 catch (OperationCanceledException)
                 {
-                    System.Diagnostics.Debug.WriteLine($"LoadFilesAsync: 操作已超时或被取消 ({_currentPath})");
                     // 超时后，items 保持为 null
                 }
 
@@ -352,7 +342,6 @@ namespace OoiMRR
                                 }
                                 catch (Exception ex)
                                 {
-                                    System.Diagnostics.Debug.WriteLine($"排序失败: {ex.Message}");
                                     // 排序失败不应该导致整个加载失败，忽略排序错误
                                 }
                             }
@@ -365,8 +354,6 @@ namespace OoiMRR
                                 }
                                 catch (ArgumentException argEx)
                                 {
-                                    System.Diagnostics.Debug.WriteLine($"FileBrowser 绑定失败 (ArgumentException): {argEx.Message}");
-                                    System.Diagnostics.Debug.WriteLine($"Stack: {argEx.StackTrace}");
                                     // 尝试重建集合以规避可能的 CollectionView 内部错误
                                     var freshList = new List<FileSystemItem>(items);
                                     FileBrowser.FilesItemsSource = freshList;
@@ -375,7 +362,6 @@ namespace OoiMRR
                         }
                         catch (Exception innerEx)
                         {
-                            System.Diagnostics.Debug.WriteLine($"UI 更新失败: {innerEx.Message}");
                         }
                         finally
                         {
@@ -387,7 +373,6 @@ namespace OoiMRR
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"LoadFilesAsync 失败: {ex.Message}");
             }
             finally
             {
@@ -444,7 +429,6 @@ namespace OoiMRR
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"处理文件加载完成事件失败: {ex.Message}");
                     _isLoadingFiles = false;
                     _loadFilesSemaphore.Release();
                 }
@@ -470,7 +454,6 @@ namespace OoiMRR
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"处理文件夹大小计算完成事件失败: {ex.Message}");
                 }
             }), System.Windows.Threading.DispatcherPriority.Background);
         }
@@ -500,7 +483,6 @@ namespace OoiMRR
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"处理元数据加载完成事件失败: {ex.Message}");
                 }
             }), System.Windows.Threading.DispatcherPriority.Background);
         }
@@ -511,8 +493,6 @@ namespace OoiMRR
         private void OnFileSystemWatcherServiceFileSystemChanged(object sender, FileSystemEventArgs e)
         {
             // 记录文件系统变化事件（用于调试）
-            System.Diagnostics.Debug.WriteLine($"[MainWindow] 文件系统变化: {e.ChangeType} - {e.Name}");
-
             // 事件已由 FileSystemWatcherService 处理防抖，这里可以记录日志或做其他处理
             // 防抖后的刷新请求会通过 RefreshRequested 事件触发
         }
@@ -525,12 +505,10 @@ namespace OoiMRR
             // 检查是否正在加载，避免重复加载
             if (!_isLoadingFiles)
             {
-                System.Diagnostics.Debug.WriteLine("[MainWindow] 收到刷新请求，开始刷新文件列表...");
                 RefreshFileList();
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine("[MainWindow] 正在加载中，跳过刷新请求");
             }
         }
 
@@ -569,7 +547,6 @@ namespace OoiMRR
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"处理错误事件失败: {ex.Message}");
                 }
                 finally
                 {

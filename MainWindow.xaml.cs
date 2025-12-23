@@ -247,8 +247,6 @@ namespace OoiMRR
 
         private void GridSplitter_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine("[GridSplitter] DragCompleted 触发，开始保存");
-
             // 关键修复：拖拽结束后，强制将中间列恢复为 Star，以消除右侧可能出现的空白间隙
             // 分割器拖拽会导致列宽变为固定值，如果总宽度小于窗口宽度就会产生空白
             if (ColCenter != null && !ColCenter.Width.IsStar)
@@ -261,7 +259,6 @@ namespace OoiMRR
             {
                 // 强制更新布局
                 RootGrid?.UpdateLayout();
-                System.Diagnostics.Debug.WriteLine("[GridSplitter] 布局已更新，保存状态");
                 _windowStateManager.SaveAllState();
             }
         }
@@ -563,11 +560,6 @@ namespace OoiMRR
         /// 执行剪切操作
         /// </summary>
         internal void PerformCutOperation() => _fileOperationHandler?.PerformCutOperation();
-
-        /// <summary>
-        /// 执行粘贴操作
-        /// </summary>
-        internal void PerformPasteOperation() => _fileOperationHandler?.PerformPasteOperation();
 
         /// <summary>
         /// 执行删除操作

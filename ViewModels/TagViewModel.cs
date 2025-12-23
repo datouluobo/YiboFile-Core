@@ -124,13 +124,11 @@ namespace OoiMRR.ViewModels
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"无法读取文件 {filePath}: {ex.Message}");
                     }
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"获取标签文件失败: {ex.Message}");
             }
 
             return files;

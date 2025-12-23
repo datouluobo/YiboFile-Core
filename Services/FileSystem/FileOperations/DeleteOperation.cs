@@ -48,6 +48,7 @@ namespace OoiMRR.Services.FileOperations
                 ? $"确定要删除 \"{items[0].Name}\" 吗？"
                 : $"确定要删除这 {itemCount} 个项目吗？";
 
+            // 确认对话框必须在调用线程（UI线程）上显示
             if (!_context.ShowConfirm(message, "确认删除"))
             {
                 return;
@@ -81,8 +82,11 @@ namespace OoiMRR.Services.FileOperations
                 }
             });
 
+            // 刷新操作需要在UI线程上（通过ConfigureAwait确保）
+            // 注意：_context.RefreshAfterOperation() 内部应该使用 Dispatcher
             _context.RefreshAfterOperation();
 
+            // 错误消息也需要在UI线程上显示
             if (failedItems.Count > 0)
             {
                 _context.ShowMessage(

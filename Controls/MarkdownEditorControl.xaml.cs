@@ -237,7 +237,6 @@ namespace OoiMRR.Controls
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"更新预览失败: {ex.Message}");
             }
         }
 

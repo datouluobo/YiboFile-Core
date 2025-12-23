@@ -126,7 +126,19 @@ namespace OoiMRR
                     if (FileBrowser?.FilesSelectedItems != null)
                     {
                         var paths = FileBrowser.FilesSelectedItems.Cast<FileSystemItem>().Select(i => i.Path).ToList();
-                        FileClipboardManager.SetCopyPaths(paths);
+                        if (paths.Count > 0)
+                        {
+                            // 使用 DataObject 同时存储文件路径和 DropEffect，避免多次 SetData 互相覆盖
+                            var data = new System.Windows.DataObject();
+                            var fileDropList = new System.Collections.Specialized.StringCollection();
+                            fileDropList.AddRange(paths.ToArray());
+                            data.SetFileDropList(fileDropList);
+
+                            // 清除剪切标记（使用DataFormats.PreferredDropEffect）
+                            data.SetData("Preferred DropEffect", new System.IO.MemoryStream(BitConverter.GetBytes((int)System.Windows.DragDropEffects.Copy)));
+
+                            SetClipboardDataObjectWithRetry(data);
+                        }
                     }
                 },
                 () => // Cut
@@ -134,38 +146,69 @@ namespace OoiMRR
                     if (FileBrowser?.FilesSelectedItems != null)
                     {
                         var paths = FileBrowser.FilesSelectedItems.Cast<FileSystemItem>().Select(i => i.Path).ToList();
-                        FileClipboardManager.SetCutPaths(paths);
+                        if (paths.Count > 0)
+                        {
+                            // 使用 DataObject 同时存储文件路径和 DropEffect
+                            var data = new System.Windows.DataObject();
+                            var fileDropList = new System.Collections.Specialized.StringCollection();
+                            fileDropList.AddRange(paths.ToArray());
+                            data.SetFileDropList(fileDropList);
+
+                            // 设置剪切标记（与Windows资源管理器兼容）
+                            var dropEffect = new byte[] { 2, 0, 0, 0 }; // DROPEFFECT_MOVE = 2
+                            var ms = new System.IO.MemoryStream(dropEffect);
+                            data.SetData("Preferred DropEffect", ms);
+
+                            SetClipboardDataObjectWithRetry(data);
+                        }
                     }
                 },
                 () => // Paste
                 {
-                    IFileOperationContext context = null;
-                    if (_currentLibrary != null)
+                    try
                     {
-                        context = new LibraryOperationContext(_currentLibrary, FileBrowser, this, RefreshFileList);
+                        IFileOperationContext context = null;
+                        if (_currentLibrary != null)
+                        {
+                            context = new LibraryOperationContext(_currentLibrary, FileBrowser, this, RefreshFileList);
+                        }
+                        else
+                        {
+                            context = new PathOperationContext(_currentPath, FileBrowser, this, RefreshFileList);
+                            System.Diagnostics.Debug.WriteLine($"[Paste] 使用PathOperationContext, 路径: {_currentPath}");
+                        }
+                        var op = new PasteOperation(context);
+                        System.Diagnostics.Debug.WriteLine("[Paste] 开始执行粘贴操作");
+                        op.Execute(null, false); // 传递null，让PasteOperation自己从Windows剪贴板读取
+                        System.Diagnostics.Debug.WriteLine("[Paste] 粘贴操作完成");
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        context = new PathOperationContext(_currentPath, FileBrowser, this, RefreshFileList);
+                        System.Diagnostics.Debug.WriteLine($"[Paste] 错误: {ex.Message}");
+                        MessageBox.Show($"粘贴失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                     }
-                    var op = new PasteOperation(context);
-                    op.Execute(FileClipboardManager.GetCopiedPaths(), FileClipboardManager.IsCutOperation);
-                    if (FileClipboardManager.IsCutOperation) FileClipboardManager.ClearCutOperation();
                 },
-                () => // Delete
+                async () => // Delete
                 {
-                    IFileOperationContext context = null;
-                    if (_currentLibrary != null)
+                    try
                     {
-                        context = new LibraryOperationContext(_currentLibrary, FileBrowser, this, RefreshFileList);
+                        IFileOperationContext context = null;
+                        if (_currentLibrary != null)
+                        {
+                            context = new LibraryOperationContext(_currentLibrary, FileBrowser, this, RefreshFileList);
+                        }
+                        else
+                        {
+                            context = new PathOperationContext(_currentPath, FileBrowser, this, RefreshFileList);
+                        }
+                        var op = new DeleteOperation(context);
+                        var items = FileBrowser?.FilesSelectedItems?.Cast<FileSystemItem>().ToList();
+                        await op.ExecuteAsync(items);
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        context = new PathOperationContext(_currentPath, FileBrowser, this, RefreshFileList);
+                        MessageBox.Show($"删除操作失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                     }
-                    var op = new DeleteOperation(context);
-                    var items = FileBrowser?.FilesSelectedItems?.Cast<FileSystemItem>().ToList();
-                    op.Execute(items);
                 },
                 () => // Rename
                 {
@@ -357,7 +400,6 @@ namespace OoiMRR
             // 备用：使用选中项
             if (FileBrowser?.FilesSelectedItem is FileSystemItem backupItem)
             {
-                System.Diagnostics.Debug.WriteLine($"[双击备用] 使用选中项: {backupItem.Name}");
                 if (backupItem.IsDirectory)
                 {
                     if (Directory.Exists(backupItem.Path))
@@ -862,6 +904,35 @@ namespace OoiMRR
             if (_navigationService != null && _navigationService.CanNavigateBack)
             {
                 _navigationService.NavigateBack();
+            }
+        }
+
+        private void SetClipboardDataObjectWithRetry(System.Windows.DataObject data)
+        {
+            const int MaxRetries = 50;
+            const int DelayMs = 100;
+
+            for (int i = 0; i < MaxRetries; i++)
+            {
+                try
+                {
+                    System.Windows.Clipboard.SetDataObject(data, true);
+                    return;
+                }
+                catch (System.Runtime.InteropServices.COMException ex)
+                {
+                    // CLIPBRD_E_CANT_OPEN = 0x800401D0
+                    const uint CLIPBRD_E_CANT_OPEN = 0x800401D0;
+                    if ((uint)ex.ErrorCode != CLIPBRD_E_CANT_OPEN)
+                    {
+                        throw;
+                    }
+                    if (i == MaxRetries - 1)
+                    {
+                        System.Windows.MessageBox.Show("Unable to access the clipboard. Another application might be blocking it.", "Clipboard Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                    }
+                    System.Threading.Thread.Sleep(DelayMs);
+                }
             }
         }
     }

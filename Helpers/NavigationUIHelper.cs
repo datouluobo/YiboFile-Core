@@ -141,7 +141,6 @@ namespace OoiMRR.Helpers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"设置列表项高亮失败: {ex.Message}");
             }
         }
 

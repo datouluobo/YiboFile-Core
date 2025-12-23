@@ -323,7 +323,6 @@ namespace OoiMRR
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"UpdateSeparatorPosition error: {ex.Message}");
             }
         }
 

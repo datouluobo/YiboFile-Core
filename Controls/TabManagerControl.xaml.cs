@@ -626,12 +626,9 @@ namespace OoiMRR.Controls
 
         private void TabsPanel_DragOver(object sender, DragEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine($"[TabsPanel_DragOver] 事件触发");
-
             // 1. 处理标签页重排序
             if (e.Data.GetDataPresent("OoiMRR_TabKey"))
             {
-                System.Diagnostics.Debug.WriteLine("[TabsPanel_DragOver] 检测到标签页拖拽");
                 e.Effects = DragDropEffects.Move;
                 e.Handled = true;
                 return;
@@ -640,17 +637,13 @@ namespace OoiMRR.Controls
             // 2. 处理文件拖拽
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
             {
-                System.Diagnostics.Debug.WriteLine("[TabsPanel_DragOver] 检测到文件拖拽");
                 var tab = GetTabAtPosition(e.GetPosition(TabsPanel));
-                System.Diagnostics.Debug.WriteLine($"[TabsPanel_DragOver] GetTabAtPosition 返回: {tab?.Title ?? "null"}");
-
                 // 只允许拖放到真实的文件系统路径，排除 search://、lib://、tag:// 等虚拟路径
                 if (tab != null && tab.Type == TabType.Path && !string.IsNullOrEmpty(tab.Identifier) &&
                     !tab.Identifier.StartsWith("search://") &&
                     !tab.Identifier.StartsWith("lib://") &&
                     !tab.Identifier.StartsWith("tag://"))
                 {
-                    System.Diagnostics.Debug.WriteLine($"[TabsPanel_DragOver] 允许拖放到标签页: {tab.Title}");
                     e.Effects = (e.KeyStates & DragDropKeyStates.ControlKey) == DragDropKeyStates.ControlKey
                         ? DragDropEffects.Copy
                         : DragDropEffects.Move;
@@ -660,12 +653,10 @@ namespace OoiMRR.Controls
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine($"[TabsPanel_DragOver] 标签页不符合拖放条件");
                 }
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine("[TabsPanel_DragOver] 未检测到文件拖拽数据");
             }
 
             e.Effects = DragDropEffects.None;
@@ -674,14 +665,11 @@ namespace OoiMRR.Controls
 
         private void TabsPanel_Drop(object sender, DragEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine($"[TabsPanel_Drop] 事件触发");
-
             try
             {
                 // 1. 处理标签页重排序
                 if (e.Data.GetDataPresent("OoiMRR_TabKey"))
                 {
-                    System.Diagnostics.Debug.WriteLine("[TabsPanel_Drop] 处理标签页重排序");
                     HandleTabReorderDrop(e);
                     return;
                 }
@@ -689,10 +677,7 @@ namespace OoiMRR.Controls
                 // 2. 处理文件拖拽
                 if (e.Data.GetDataPresent(DataFormats.FileDrop))
                 {
-                    System.Diagnostics.Debug.WriteLine("[TabsPanel_Drop] 检测到文件拖放");
                     var tab = GetTabAtPosition(e.GetPosition(TabsPanel));
-                    System.Diagnostics.Debug.WriteLine($"[TabsPanel_Drop] 目标标签页: {tab?.Title ?? "null"}");
-
                     // 只允许拖放到真实的文件系统路径，排除虚拟路径
                     if (tab != null && tab.Type == TabType.Path && !string.IsNullOrEmpty(tab.Identifier) &&
                         !tab.Identifier.StartsWith("search://") &&
@@ -700,16 +685,10 @@ namespace OoiMRR.Controls
                         !tab.Identifier.StartsWith("tag://"))
                     {
                         var files = e.Data.GetData(DataFormats.FileDrop) as string[];
-                        System.Diagnostics.Debug.WriteLine($"[TabsPanel_Drop] 文件数量: {files?.Length ?? 0}");
-
                         if (files != null && files.Length > 0)
                         {
                             bool isCopy = (e.KeyStates & DragDropKeyStates.ControlKey) == DragDropKeyStates.ControlKey;
-                            System.Diagnostics.Debug.WriteLine($"[TabsPanel_Drop] 操作类型: {(isCopy ? "复制" : "移动")}");
-                            System.Diagnostics.Debug.WriteLine($"[TabsPanel_Drop] 目标路径: {tab.Identifier}");
-
                             FileDropped?.Invoke(files, tab.Identifier, isCopy);
-                            System.Diagnostics.Debug.WriteLine("[TabsPanel_Drop] FileDropped 事件已触发");
                         }
                     }
                     e.Handled = true;
@@ -717,7 +696,6 @@ namespace OoiMRR.Controls
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[TabsPanel_Drop] 异常: {ex.Message}");
             }
         }
 
@@ -728,36 +706,23 @@ namespace OoiMRR.Controls
         {
             if (TabsPanel == null)
             {
-                System.Diagnostics.Debug.WriteLine("[GetTabAtPosition] TabsPanel is null");
                 return null;
             }
-
-            System.Diagnostics.Debug.WriteLine($"[GetTabAtPosition] 检查位置: ({point.X}, {point.Y})");
-            System.Diagnostics.Debug.WriteLine($"[GetTabAtPosition] TabsPanel.Children.Count = {TabsPanel.Children.Count}");
-
             // 使用 HitTest 来查找鼠标下的元素
             HitTestResult hitResult = VisualTreeHelper.HitTest(TabsPanel, point);
             if (hitResult == null)
             {
-                System.Diagnostics.Debug.WriteLine("[GetTabAtPosition] HitTest 返回 null");
                 return null;
             }
-
-            System.Diagnostics.Debug.WriteLine($"[GetTabAtPosition] HitTest 命中: {hitResult.VisualHit?.GetType().Name}");
-
             // 从命中的元素向上查找，直到找到 Button
             DependencyObject current = hitResult.VisualHit;
             int level = 0;
             while (current != null && current != TabsPanel)
             {
                 string typeName = current.GetType().Name;
-                System.Diagnostics.Debug.WriteLine($"[GetTabAtPosition] Level {level}: {typeName}");
-
                 // 检查是否是 Button，标签按钮的 Tag 是 PathTab
                 if (current is Button button && button.Tag is Services.Tabs.PathTab pathTab)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[GetTabAtPosition] 找到 PathTab: {pathTab.Title}");
-
                     // 从 PathTab 创建 TabInfo 返回（需要类型转换）
                     var tabInfo = new TabInfo
                     {
@@ -765,22 +730,16 @@ namespace OoiMRR.Controls
                         Identifier = pathTab.Path,
                         Title = pathTab.Title
                     };
-
-                    System.Diagnostics.Debug.WriteLine($"[GetTabAtPosition] 返回标签页: {tabInfo.Title}");
                     return tabInfo;
                 }
 
                 // 方法2: 检查是否是 StackPanel (tabContainer)，然后在其中查找 Button
                 if (current is StackPanel stackPanel)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[GetTabAtPosition] 找到 StackPanel，子元素数量: {stackPanel.Children.Count}");
                     foreach (var child in stackPanel.Children)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[GetTabAtPosition]   子元素: {child.GetType().Name}");
                         if (child is Button btn && btn.Tag is Services.Tabs.PathTab pathTab2)
                         {
-                            System.Diagnostics.Debug.WriteLine($"[GetTabAtPosition] 从 StackPanel 找到 PathTab: {pathTab2.Title}");
-
                             // 从 PathTab 创建 TabInfo 返回（需要类型转换）
                             var tabInfo = new TabInfo
                             {
@@ -797,8 +756,6 @@ namespace OoiMRR.Controls
                 current = VisualTreeHelper.GetParent(current);
                 level++;
             }
-
-            System.Diagnostics.Debug.WriteLine($"[GetTabAtPosition] 未找到匹配的标签页，遍历了 {level} 层");
             return null;
         }
 

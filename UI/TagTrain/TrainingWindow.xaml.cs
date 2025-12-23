@@ -1241,8 +1241,6 @@ namespace TagTrain.UI
             var allTagNames = _tagCache.Values.Distinct().ToList();
             
             // 调试信息
-            System.Diagnostics.Debug.WriteLine($"[Autocomplete] 输入: '{input}', 总标签数: {allTagNames.Count}, 标签列表: {string.Join(", ", allTagNames.Take(10))}");
-            
             // 获取已输入的标签（避免重复建议）
             var existingTags = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var child in TagInputPanel.Children)
@@ -1305,8 +1303,6 @@ namespace TagTrain.UI
                     
                     // 强制刷新 Popup
                     TagAutocompletePopup.UpdateLayout();
-                    
-                    System.Diagnostics.Debug.WriteLine($"[Autocomplete] 显示 {matches.Count} 个补完建议: {string.Join(", ", matches.Take(5))}, Popup.IsOpen={TagAutocompletePopup.IsOpen}, PlacementTarget={TagAutocompletePopup.PlacementTarget != null}");
                 }), System.Windows.Threading.DispatcherPriority.Render);
             }
             else
@@ -1366,7 +1362,6 @@ namespace TagTrain.UI
                             TagAutocompleteListBox.UpdateLayout();
                             
                             e.Handled = true;
-                            System.Diagnostics.Debug.WriteLine($"[Autocomplete] 方向键导航: {e.Key}, 新索引: {newIndex}, 选中项: {(newIndex >= 0 && newIndex < currentItems.Count ? currentItems[newIndex] : "无")}");
                         }
                     }
                 }
@@ -2367,8 +2362,6 @@ namespace TagTrain.UI
                     var samples = DataManager.LoadAllTrainingData();
                     
                     // 添加调试信息
-                                        System.Diagnostics.Debug.WriteLine($"模型保存路径: {_trainer.GetModelPath()}");
-                    
                     var trainingResult = _trainer.TrainModel(samples, progress, _trainingCancellation.Token);
                     
                     // 回到UI线程更新界面

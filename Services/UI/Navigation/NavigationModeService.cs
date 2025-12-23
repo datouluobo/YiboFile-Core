@@ -297,8 +297,6 @@ namespace OoiMRR.Services.Navigation
                 // 延迟初始化，确保所有UI元素都已渲染
                 _uiHelper.Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    System.Diagnostics.Debug.WriteLine("SwitchNavigationMode(Tag): 开始初始化TagTrain面板");
-
                     // 确保NavTagContent已可见
                     if (_uiHelper.NavTagContent != null && _uiHelper.NavTagContent.Visibility != Visibility.Visible)
                     {
@@ -322,7 +320,6 @@ namespace OoiMRR.Services.Navigation
                     {
                         // 初始化TagTrain面板（用于编辑模式）
                         _uiHelper.InitializeTagTrainPanel();
-                        System.Diagnostics.Debug.WriteLine("SwitchNavigationMode(Tag): TagTrain面板初始化完成");
                     }), System.Windows.Threading.DispatcherPriority.Loaded);
                 }), System.Windows.Threading.DispatcherPriority.Loaded);
 

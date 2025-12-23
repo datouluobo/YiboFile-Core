@@ -287,7 +287,6 @@ namespace OoiMRR.ViewModels
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"无法设置文件监视器: {ex.Message}");
             }
         }
 

@@ -114,7 +114,6 @@ namespace OoiMRR.Services.FileList
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[FileSystemWatcherService] 无法设置文件监视器: {ex.Message}");
                 }
             }
         }
@@ -155,11 +154,9 @@ namespace OoiMRR.Services.FileList
                     {
                         _refreshDebounceTimer.Stop();
                         _refreshDebounceTimer.Start();
-                        System.Diagnostics.Debug.WriteLine($"[FileSystemWatcherService] 防抖定时器已重置 (变化类型: {e.ChangeType}, 文件: {e.Name})");
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine("[FileSystemWatcherService] 警告: 防抖定时器为 null，无法启动防抖");
                     }
                 }
             }), DispatcherPriority.SystemIdle);
@@ -180,17 +177,13 @@ namespace OoiMRR.Services.FileList
                 // 触发刷新请求事件（由外部处理实际的刷新逻辑）
                 if (string.IsNullOrEmpty(_watchedPath))
                 {
-                    System.Diagnostics.Debug.WriteLine("[FileSystemWatcherService] 防抖定时器触发，但监控路径为空，跳过刷新");
                     return;
                 }
 
                 if (!Directory.Exists(_watchedPath))
                 {
-                    System.Diagnostics.Debug.WriteLine($"[FileSystemWatcherService] 防抖定时器触发，但路径不存在: {_watchedPath}，跳过刷新");
                     return;
                 }
-
-                System.Diagnostics.Debug.WriteLine($"[FileSystemWatcherService] 防抖定时器触发，请求刷新文件列表 (路径: {_watchedPath})");
                 RefreshRequested?.Invoke(this, EventArgs.Empty);
             }
         }

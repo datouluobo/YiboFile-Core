@@ -169,10 +169,18 @@ namespace OoiMRR.Handlers
                 }
             }
 
-            // Ctrl+C: 复制（如果文件列表有焦点）
+            // Ctrl+C: 复制（排除文本框）
             if (e.Key == Key.C && Keyboard.Modifiers == ModifierKeys.Control)
             {
-                if (_fileBrowser?.FilesList != null && _fileBrowser.FilesList.IsFocused)
+                var focusedElement = Keyboard.FocusedElement;
+                // 只在文本框中才跳过，其他情况都执行复制
+                if (focusedElement is System.Windows.Controls.TextBox ||
+                    focusedElement is System.Windows.Controls.RichTextBox)
+                {
+                    return; // 让文本框处理自己的复制
+                }
+
+                if (_fileBrowser?.FilesSelectedItems != null && _fileBrowser.FilesSelectedItems.Count > 0)
                 {
                     _copyClick();
                     e.Handled = true;
@@ -180,21 +188,34 @@ namespace OoiMRR.Handlers
                 }
             }
 
-            // Ctrl+V: 粘贴（如果文件列表有焦点）
+            // Ctrl+V: 粘贴（排除文本框）
             if (e.Key == Key.V && Keyboard.Modifiers == ModifierKeys.Control)
             {
-                if (_fileBrowser?.FilesList != null && _fileBrowser.FilesList.IsFocused)
+                var focusedElement = Keyboard.FocusedElement;
+                // 只在文本框中才跳过，其他情况都执行粘贴
+                if (focusedElement is System.Windows.Controls.TextBox ||
+                    focusedElement is System.Windows.Controls.RichTextBox)
                 {
-                    _pasteClick();
-                    e.Handled = true;
-                    return;
+                    return; // 让文本框处理自己的粘贴
                 }
+
+                _pasteClick();
+                e.Handled = true;
+                return;
             }
 
-            // Ctrl+X: 剪切（如果文件列表有焦点）
+            // Ctrl+X: 剪切（排除文本框）
             if (e.Key == Key.X && Keyboard.Modifiers == ModifierKeys.Control)
             {
-                if (_fileBrowser?.FilesList != null && _fileBrowser.FilesList.IsFocused)
+                var focusedElement = Keyboard.FocusedElement;
+                // 只在文本框中才跳过，其他情况都执行剪切
+                if (focusedElement is System.Windows.Controls.TextBox ||
+                    focusedElement is System.Windows.Controls.RichTextBox)
+                {
+                    return; // 让文本框处理自己的剪切
+                }
+
+                if (_fileBrowser?.FilesSelectedItems != null && _fileBrowser.FilesSelectedItems.Count > 0)
                 {
                     _cutClick();
                     e.Handled = true;

@@ -224,7 +224,6 @@ namespace OoiMRR.Services.Tabs
             // 唯一匹配：总是返回（不管时间窗口）
             if (matchingTabs.Count == 1)
             {
-                System.Diagnostics.Debug.WriteLine($"[FindRecentTab] 唯一匹配，总是返回");
                 return matchingTabs[0];
             }
 
@@ -232,23 +231,18 @@ namespace OoiMRR.Services.Tabs
             var config = _config;
             if (config?.NeverReuseTab == true)
             {
-                System.Diagnostics.Debug.WriteLine($"[FindRecentTab] 配置为从不复用，返回null");
                 return null;
             }
 
             // 配置选项：总是复用（返回第一个）
             if (config?.AlwaysReuseTab == true)
             {
-                System.Diagnostics.Debug.WriteLine($"[FindRecentTab] 配置为总是复用，返回第一个");
                 return matchingTabs[0];
             }
 
             // 多个匹配的标签页，检查是否有最近访问的
             var now = DateTime.Now;
             var recentTab = matchingTabs.FirstOrDefault(t => now - t.LastAccessTime < timeWindow);
-
-            System.Diagnostics.Debug.WriteLine($"[FindRecentTab] 找到{matchingTabs.Count}个匹配标签页，最近访问的: {recentTab != null}");
-
             return recentTab;
         }
 
@@ -708,13 +702,9 @@ namespace OoiMRR.Services.Tabs
         {
             EnsureUi();
             if (library == null) return;
-
-            System.Diagnostics.Debug.WriteLine($"[OpenLibraryTab] library={library.Name}, forceNewTab={forceNewTab}, 当前标签页={_activeTab?.Type}");
-
             // 1. 强制创建新标签页（中键/Ctrl+左键）
             if (forceNewTab)
             {
-                System.Diagnostics.Debug.WriteLine($"[OpenLibraryTab] 强制创建新Library标签页");
                 var tab = new PathTab
                 {
                     Type = TabType.Library,
@@ -736,19 +726,14 @@ namespace OoiMRR.Services.Tabs
             if (recentTab != null)
             {
                 // 找到了标签页，切换到它
-                System.Diagnostics.Debug.WriteLine($"[OpenLibraryTab] 找到已存在的Library标签页，切换");
-                System.Diagnostics.Debug.WriteLine($"[OpenLibraryTab] 找到已存在的Library标签页，切换");
                 if (activate) SwitchToTab(recentTab);
                 return;
             }
 
             // 3. 导航行为：在Library模式下且当前是Library标签页 → 更新当前标签页
             var currentMode = _ui?.GetCurrentNavigationMode?.Invoke() ?? "Path";
-            System.Diagnostics.Debug.WriteLine($"[OpenLibraryTab] 当前导航模式: {currentMode}, 当前标签页类型: {_activeTab?.Type}");
-
             if (currentMode == "Library" && _activeTab != null && _activeTab.Type == TabType.Library)
             {
-                System.Diagnostics.Debug.WriteLine($"[OpenLibraryTab] Library模式导航：更新当前Library标签页");
                 _activeTab.Library = library;
                 _activeTab.Path = library.Name;
                 _activeTab.Title = library.Name;
@@ -759,7 +744,6 @@ namespace OoiMRR.Services.Tabs
             }
 
             // 4. 其他情况：创建新标签页
-            System.Diagnostics.Debug.WriteLine($"[OpenLibraryTab] 创建新Library标签页");
             var newTab = new PathTab
             {
                 Type = TabType.Library,
@@ -775,13 +759,9 @@ namespace OoiMRR.Services.Tabs
         {
             EnsureUi();
             if (tag == null || string.IsNullOrWhiteSpace(tag.Name)) return;
-
-            System.Diagnostics.Debug.WriteLine($"[OpenTagTab] tag={tag.Name}, forceNewTab={forceNewTab}, 当前标签页={_activeTab?.Type}");
-
             // 1. 强制创建新标签页（中键/Ctrl+左键）
             if (forceNewTab)
             {
-                System.Diagnostics.Debug.WriteLine($"[OpenTagTab] 强制创建新Tag标签页");
                 var tab = new PathTab
                 {
                     Type = TabType.Tag,
@@ -804,8 +784,6 @@ namespace OoiMRR.Services.Tabs
             if (recentTab != null)
             {
                 // 找到了标签页，切换到它
-                System.Diagnostics.Debug.WriteLine($"[OpenTagTab] 找到已存在的Tag标签页，切换");
-                System.Diagnostics.Debug.WriteLine($"[OpenTagTab] 找到已存在的Tag标签页，切换");
                 if (activate) SwitchToTab(recentTab);
                 return;
             }
@@ -814,7 +792,6 @@ namespace OoiMRR.Services.Tabs
             var currentMode = _ui?.GetCurrentNavigationMode?.Invoke() ?? "Path";
             if (currentMode == "Tag" && _activeTab != null && _activeTab.Type == TabType.Tag)
             {
-                System.Diagnostics.Debug.WriteLine($"[OpenTagTab] Tag模式导航：更新当前Tag标签页");
                 _activeTab.TagId = tag.Id;
                 _activeTab.TagName = tag.Name;
                 _activeTab.Path = $"tag://{tag.Id}";
@@ -826,7 +803,6 @@ namespace OoiMRR.Services.Tabs
             }
 
             // 4. 其他情况：创建新标签页
-            System.Diagnostics.Debug.WriteLine($"[OpenTagTab] 创建新Tag标签页");
             var newTab = new PathTab
             {
                 Type = TabType.Tag,
@@ -843,11 +819,7 @@ namespace OoiMRR.Services.Tabs
         {
             EnsureUi();
             if (tab == null) return;
-
-            System.Diagnostics.Debug.WriteLine($"[SwitchToTab] 切换到标签页: Type={tab.Type}, Path={tab.Path ?? "null"}, Library={tab.Library?.Name ?? "null"}, Tag={tab.TagName ?? "null"}");
             var beforeCount = (_ui.FileBrowser?.FilesItemsSource as System.Collections.IList)?.Count ?? 0;
-            System.Diagnostics.Debug.WriteLine($"[SwitchToTab] 切换前文件数: {beforeCount}");
-
             // 更新最后访问时间
             tab.LastAccessTime = DateTime.Now;
 
@@ -858,14 +830,12 @@ namespace OoiMRR.Services.Tabs
             // 各个分支的加载方法会重新设置文件列表
             if (_ui.FileBrowser != null)
             {
-                System.Diagnostics.Debug.WriteLine($"[SwitchToTab] 清空文件列表");
                 _ui.FileBrowser.FilesItemsSource = null;
                 _ui.GetCurrentFiles?.Invoke()?.Clear(); // 清空 _currentFiles
             }
 
             if (tab.Type == TabType.Library)
             {
-                System.Diagnostics.Debug.WriteLine($"[SwitchToTab] 处理Library标签页: {tab.Library?.Name}");
                 if (tab.Library != null)
                 {
                     _ui.SetCurrentLibrary?.Invoke(tab.Library);
@@ -881,16 +851,13 @@ namespace OoiMRR.Services.Tabs
                         _ui.FileBrowser.NavUpEnabled = false;
                         _ui.FileBrowser.IsAddressReadOnly = false;  // 允许在库标签页中进行搜索
                     }
-                    System.Diagnostics.Debug.WriteLine($"[SwitchToTab] 调用LoadLibraryFiles");
                     _ui.LoadLibraryFiles?.Invoke(tab.Library);
-                    System.Diagnostics.Debug.WriteLine($"[SwitchToTab] Library标签页处理完成");
                 }
                 return;
             }
 
             if (tab.Type == TabType.Tag)
             {
-                System.Diagnostics.Debug.WriteLine($"[SwitchToTab] 处理Tag标签页: {tab.TagName} (ID: {tab.TagId})");
                 _ui.SetCurrentLibrary?.Invoke(null);
                 _ui.SetCurrentPath?.Invoke(null);
                 _ui.SetCurrentTagFilter?.Invoke(new OoiMRR.Tag { Id = tab.TagId, Name = tab.TagName });
@@ -901,9 +868,7 @@ namespace OoiMRR.Services.Tabs
                     _ui.FileBrowser.SetTagBreadcrumb(tab.TagName);
                     _ui.FileBrowser.NavUpEnabled = false;
                 }
-                System.Diagnostics.Debug.WriteLine($"[SwitchToTab] 调用FilterByTag");
                 _ui.FilterByTag?.Invoke(new OoiMRR.Tag { Id = tab.TagId, Name = tab.TagName });
-                System.Diagnostics.Debug.WriteLine($"[SwitchToTab] Tag标签页处理完成");
                 return;
             }
 
@@ -911,7 +876,6 @@ namespace OoiMRR.Services.Tabs
 
             if (tab.Path != null && tab.Path.StartsWith("search://"))
             {
-                System.Diagnostics.Debug.WriteLine($"[SwitchToTab] 处理Search标签页: {tab.Path}");
                 // 从路径提取关键词并规范化（确保即使路径被污染也能正确处理）
                 var rawKeyword = tab.Path.Substring("search://".Length);
                 var normalizedKeyword = SearchService.NormalizeKeyword(rawKeyword);
@@ -953,15 +917,11 @@ namespace OoiMRR.Services.Tabs
 
             _ui.SetCurrentPath?.Invoke(tab.Path);
             _ui.SetNavigationCurrentPath?.Invoke(tab.Path);
-
-            System.Diagnostics.Debug.WriteLine($"[SwitchToTab] 处理Path标签页: {tab.Path}");
             try
             {
-                System.Diagnostics.Debug.WriteLine($"[SwitchToTab] 调用NavigateToPathInternal");
                 _ui.NavigateToPathInternal?.Invoke(tab.Path);
                 if (_ui.FileBrowser != null) _ui.FileBrowser.NavUpEnabled = true;
                 _ui.UpdateNavigationButtonsState?.Invoke();
-                System.Diagnostics.Debug.WriteLine($"[SwitchToTab] Path标签页处理完成");
             }
             catch (UnauthorizedAccessException ex)
             {

@@ -35,7 +35,6 @@ namespace OoiMRR.Controls
                             BinaryFolder = bundledFFmpegDir,
                             TemporaryFilesFolder = Path.GetTempPath()
                         });
-                        System.Diagnostics.Debug.WriteLine($"FFmpeg 已配置：打包文件夹 ({bundledFFmpegDir})");
                         return true;
                     }
                 }
@@ -99,7 +98,6 @@ namespace OoiMRR.Controls
                 
                 if (!File.Exists(ffprobePath))
                 {
-                    System.Diagnostics.Debug.WriteLine($"FFmpegHelper: ffprobe.exe 不存在: {ffprobePath} (仅找到 ffmpeg.exe，跳过此目录)");
                     return false;
                 }
 
@@ -123,7 +121,6 @@ namespace OoiMRR.Controls
                         
                         if (!ffmpegOk)
                         {
-                            System.Diagnostics.Debug.WriteLine($"FFmpegHelper: ffmpeg.exe 测试失败 (退出码: {process.ExitCode})");
                             return false;
                         }
                     }
@@ -153,7 +150,6 @@ namespace OoiMRR.Controls
                         
                         if (!ffprobeOk)
                         {
-                            System.Diagnostics.Debug.WriteLine($"FFmpegHelper: ffprobe.exe 测试失败 (退出码: {process.ExitCode})");
                             return false;
                         }
                     }

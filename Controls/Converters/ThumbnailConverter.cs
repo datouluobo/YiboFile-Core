@@ -699,13 +699,9 @@ namespace OoiMRR.Controls.Converters
             {
                 if (_videoThumbnailCache.TryGetValue(cacheKey, out var cached))
                 {
-                    System.Diagnostics.Debug.WriteLine($"FFmpeg: 使用缓存缩略图: {Path.GetFileName(videoPath)}");
                     return cached;
                 }
             }
-
-            System.Diagnostics.Debug.WriteLine($"FFmpeg: 开始提取缩略图: {Path.GetFileName(videoPath)}, 目标大小: {targetSize}x{targetSize}, 文件大小: {fileInfo.Length} 字节");
-
             try
             {
                 // 创建临时输出文件
@@ -792,12 +788,10 @@ namespace OoiMRR.Controls.Converters
 
                     if (!fileExists)
                     {
-                        System.Diagnostics.Debug.WriteLine($"FFmpeg: 错误 - 临时文件未生成或为空: {tempImagePath} (等待了 {waitedMs}ms)");
                         // 检查临时文件目录是否有权限
                         try
                         {
                             string tempDir = Path.GetDirectoryName(tempImagePath);
-                            System.Diagnostics.Debug.WriteLine($"FFmpeg: 临时目录: {tempDir}, 存在: {Directory.Exists(tempDir)}, 可写: {IsDirectoryWritable(tempDir)}");
                         }
                         catch { }
                         return null;
@@ -807,7 +801,6 @@ namespace OoiMRR.Controls.Converters
                     var tempFileInfo = new FileInfo(tempImagePath);
                     if (tempFileInfo.Length == 0)
                     {
-                        System.Diagnostics.Debug.WriteLine($"FFmpeg: 错误 - 临时文件为空 (0 字节): {tempImagePath}");
                         return null;
                     }
 
@@ -820,9 +813,6 @@ namespace OoiMRR.Controls.Converters
                     bitmap.DecodePixelWidth = targetSize;
                     bitmap.EndInit();
                     bitmap.Freeze();
-
-                    System.Diagnostics.Debug.WriteLine($"FFmpeg: BitmapImage 创建成功, 尺寸: {bitmap.PixelWidth}x{bitmap.PixelHeight} (保持宽高比)");
-
                     // 添加到缓存
                     lock (_cacheLock)
                     {
@@ -834,8 +824,6 @@ namespace OoiMRR.Controls.Converters
                         }
                         _videoThumbnailCache[cacheKey] = bitmap;
                     }
-
-                    System.Diagnostics.Debug.WriteLine($"FFmpeg: 缩略图提取成功并已缓存: {Path.GetFileName(videoPath)}");
                     return bitmap;
                 }
                 finally
@@ -846,7 +834,6 @@ namespace OoiMRR.Controls.Converters
                         if (File.Exists(tempImagePath))
                         {
                             File.Delete(tempImagePath);
-                            System.Diagnostics.Debug.WriteLine($"FFmpeg: 临时文件已清理: {Path.GetFileName(tempImagePath)}");
                         }
 
                     }
@@ -857,10 +844,8 @@ namespace OoiMRR.Controls.Converters
             catch (Exception ex)
             {
                 // 详细记录错误信息
-                                                                System.Diagnostics.Debug.WriteLine($"FFmpeg: 错误类型: {ex.GetType().Name}");
                                 if (ex.InnerException != null)
                 {
-                    System.Diagnostics.Debug.WriteLine($"FFmpeg: 内部异常: {ex.InnerException.GetType().Name}: {ex.InnerException.Message}");
                 }
                                                 return null;
             }
@@ -903,13 +888,11 @@ namespace OoiMRR.Controls.Converters
                     bool ffmpegAvailable = OoiMRR.Controls.FFmpegHelper.InitializeFFmpeg();
                     if (ffmpegAvailable)
                     {
-                        System.Diagnostics.Debug.WriteLine("FFmpeg 按需初始化成功");
                     }
                     _ffmpegInitialized = true; // 标记为已尝试初始化，避免重复尝试
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"FFmpeg 按需初始化失败: {ex.Message}");
                     _ffmpegInitialized = true; // 标记为已尝试，避免重复尝试
                 }
             }
@@ -1008,7 +991,6 @@ namespace OoiMRR.Controls.Converters
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"FFmpeg: 运行命令时发生异常: {ex.GetType().Name}: {ex.Message}");
                 stderr = ex.Message;
                 return false;
             }

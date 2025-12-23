@@ -78,7 +78,6 @@ namespace OoiMRR.Services
                     {
                         dirToDelete.Delete(true);
                         totalSize -= dirSize;
-                        System.Diagnostics.Debug.WriteLine($"删除旧缓存以释放空间: {dirToDelete.Name} ({dirSize / 1024 / 1024}MB)");
                     }
                     catch
                     {

@@ -148,7 +148,6 @@ namespace OoiMRR.Services.FileList
             {
                 if (!Directory.Exists(path))
                 {
-                    System.Diagnostics.Debug.WriteLine($"[FileListService] 路径不存在: {path}");
                     continue;
                 }
 
@@ -166,7 +165,6 @@ namespace OoiMRR.Services.FileList
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[FileListService] 加载路径失败 {path}: {ex.Message}");
                 }
             }
 
@@ -312,7 +310,6 @@ namespace OoiMRR.Services.FileList
                     errorMessage += $"\n{ex.Message}";
                 }
                 ErrorOccurred?.Invoke(this, errorMessage);
-                System.Diagnostics.Debug.WriteLine($"[FileListService] {errorMessage}");
                 return new List<FileSystemItem>();
             }
             finally
@@ -388,7 +385,6 @@ namespace OoiMRR.Services.FileList
             catch (OperationCanceledException) { }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[FileListService] 计算文件夹大小失败 {item.Path}: {ex.Message}");
             }
             finally
             {
@@ -436,7 +432,6 @@ namespace OoiMRR.Services.FileList
             catch (OperationCanceledException) { }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[FileListService] 元数据加载失败: {ex.Message}");
             }
         }
 
@@ -535,19 +530,16 @@ namespace OoiMRR.Services.FileList
                     }
                     catch (UnauthorizedAccessException)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[FileListService] 无权限访问文件夹: {dirPath}");
                         continue;
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[FileListService] 处理文件夹失败 {dirPath}: {ex.Message}");
                         continue;
                     }
                 }
             }
             catch (UnauthorizedAccessException)
             {
-                System.Diagnostics.Debug.WriteLine($"[FileListService] 无权限访问路径: {path}");
             }
             catch (OperationCanceledException)
             {
@@ -555,7 +547,6 @@ namespace OoiMRR.Services.FileList
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[FileListService] 获取文件夹列表失败 {path}: {ex.Message}");
             }
 
             return directories;
@@ -597,19 +588,16 @@ namespace OoiMRR.Services.FileList
                     }
                     catch (UnauthorizedAccessException)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[FileListService] 无权限访问文件: {filePath}");
                         continue;
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[FileListService] 处理文件失败 {filePath}: {ex.Message}");
                         continue;
                     }
                 }
             }
             catch (UnauthorizedAccessException)
             {
-                System.Diagnostics.Debug.WriteLine($"[FileListService] 无权限访问路径: {path}");
             }
             catch (OperationCanceledException)
             {
@@ -617,7 +605,6 @@ namespace OoiMRR.Services.FileList
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[FileListService] 获取文件列表失败 {path}: {ex.Message}");
             }
 
             return files;
@@ -675,23 +662,19 @@ namespace OoiMRR.Services.FileList
                     }
                     catch (UnauthorizedAccessException)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[FileListService] 无权限访问文件夹: {dirPath}");
                         continue;
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[FileListService] 处理文件夹失败 {dirPath}: {ex.Message}");
                         continue;
                     }
                 }
             }
             catch (UnauthorizedAccessException)
             {
-                System.Diagnostics.Debug.WriteLine($"[FileListService] 无权限访问路径: {path}");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[FileListService] 获取文件夹列表失败 {path}: {ex.Message}");
             }
 
             return directories;
@@ -728,23 +711,19 @@ namespace OoiMRR.Services.FileList
                     }
                     catch (UnauthorizedAccessException)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[FileListService] 无权限访问文件: {filePath}");
                         continue;
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[FileListService] 处理文件失败 {filePath}: {ex.Message}");
                         continue;
                     }
                 }
             }
             catch (UnauthorizedAccessException)
             {
-                System.Diagnostics.Debug.WriteLine($"[FileListService] 无权限访问路径: {path}");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[FileListService] 获取文件列表失败 {path}: {ex.Message}");
             }
 
             return files;

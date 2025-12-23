@@ -74,7 +74,6 @@ namespace OoiMRR.Services.Search
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[SearchCacheService] 更新缓存失败: {ex.Message}");
             }
         }
 

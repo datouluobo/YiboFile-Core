@@ -30,8 +30,6 @@ namespace OoiMRR
 
         private void App_DispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine($"[GlobalException] Type: {e.Exception.GetType().Name}, Message: {e.Exception.Message}");
-            System.Diagnostics.Debug.WriteLine($"[GlobalException] StackTrace: {e.Exception.StackTrace}");
             // e.Handled = true; // Uncomment if we want to suppress crash, but we want to see it for now (or maybe just log)
         }
 
@@ -117,8 +115,6 @@ namespace OoiMRR
                         }
                     }
                     tagTrainDataDir = Path.GetFullPath(tagTrainDataDir);
-                    System.Diagnostics.Debug.WriteLine($"TagTrain 数据目录路径(来自设置): {tagTrainDataDir}");
-                    
                     // 确保目录存在（只创建，不覆盖设置）
                     if (!Directory.Exists(tagTrainDataDir))
                     {
@@ -127,8 +123,6 @@ namespace OoiMRR
                     
                     // 只初始化数据库，不加载模型（延迟加载）
                     TagTrain.Services.DataManager.InitializeDatabase();
-                    
-                    System.Diagnostics.Debug.WriteLine($"TagTrain 数据库路径: {TagTrain.Services.DataManager.GetDatabasePath()}");
                     IsTagTrainAvailable = true;
                     FileLogger.Log("TagTrain initialized successfully.");
                 }

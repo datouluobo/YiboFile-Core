@@ -61,20 +61,12 @@ namespace OoiMRR.Services.Preview
         public void LoadFilePreview(FileSystemItem item)
         {
             if (_rightPanel?.PreviewGrid == null) return;
-
-            System.Diagnostics.Debug.WriteLine($"[PreviewService] LoadFilePreview called for {item.Path}");
-            System.Diagnostics.Debug.WriteLine($"[PreviewService] _rightPanel Hash: {_rightPanel.GetHashCode()}");
-            System.Diagnostics.Debug.WriteLine($"[PreviewService] _rightPanel.PreviewGrid Hash: {_rightPanel.PreviewGrid.GetHashCode()}");
-
             _dispatcher.Invoke(() =>
             {
                 var mainWindow = Application.Current.MainWindow;
                 var mainWindowPanel = mainWindow?.FindName("RightPanel") as RightPanelControl;
-                System.Diagnostics.Debug.WriteLine($"[PreviewService] MainWindow Hash: {mainWindow?.GetHashCode() ?? 0}");
-                System.Diagnostics.Debug.WriteLine($"[PreviewService] MainWindow.RightPanel Hash: {mainWindowPanel?.GetHashCode() ?? 0}");
                 if (mainWindowPanel != null)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[PreviewService] MainWindow.RightPanel.PreviewGrid Hash: {mainWindowPanel.PreviewGrid?.GetHashCode() ?? 0}");
                 }
             });
 
@@ -172,13 +164,11 @@ namespace OoiMRR.Services.Preview
             {
                 _rightPanel.ImagePreviewBorder.Visibility = Visibility.Collapsed;
                 Panel.SetZIndex(_rightPanel.ImagePreviewBorder, 0);
-                System.Diagnostics.Debug.WriteLine("[PreviewService] ImagePreviewBorder已隐藏");
             }
 
             // 清理PreviewGrid中的其他预览元素（保留DefaultPreviewText和ImagePreviewBorder）
             if (_rightPanel.PreviewGrid != null)
             {
-                System.Diagnostics.Debug.WriteLine($"[PreviewService] 清理前PreviewGrid.Children数: {_rightPanel.PreviewGrid.Children.Count}");
                 for (int i = _rightPanel.PreviewGrid.Children.Count - 1; i >= 0; i--)
                 {
                     var child = _rightPanel.PreviewGrid.Children[i];
@@ -186,10 +176,8 @@ namespace OoiMRR.Services.Preview
                     if (child != _rightPanel.DefaultPreviewText && child != _rightPanel.ImagePreviewBorder)
                     {
                         _rightPanel.PreviewGrid.Children.RemoveAt(i);
-                        System.Diagnostics.Debug.WriteLine($"[PreviewService] 移除了元素: {child.GetType().Name}");
                     }
                 }
-                System.Diagnostics.Debug.WriteLine($"[PreviewService] 清理后PreviewGrid.Children数: {_rightPanel.PreviewGrid.Children.Count}");
             }
 
             try
@@ -214,24 +202,17 @@ namespace OoiMRR.Services.Preview
 
                 // PreviewFactory 会自动处理文件夹和文件
                 var previewElement = OoiMRR.Previews.PreviewFactory.CreatePreview(item.Path);
-                System.Diagnostics.Debug.WriteLine($"[PreviewService] PreviewFactory返回元素: {previewElement?.GetType().Name ?? "null"}");
-
                 if (previewElement != null)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[PreviewService] 准备添加到PreviewGrid, 当前Children数: {_rightPanel.PreviewGrid.Children.Count}");
                     // 确保预览元素在ImagePreviewBorder之上 - 使用更高的ZIndex
                     Panel.SetZIndex(previewElement, 10);
                     _rightPanel.PreviewGrid.Children.Add(previewElement);
-                    System.Diagnostics.Debug.WriteLine($"[PreviewService] 已添加到PreviewGrid, 新Children数: {_rightPanel.PreviewGrid.Children.Count}");
-                    System.Diagnostics.Debug.WriteLine($"[PreviewService] 预览元素ZIndex: {Panel.GetZIndex(previewElement)}");
-
                     // 隐藏默认预览文本
                     var defaultText = _rightPanel.PreviewGrid.Children.OfType<TextBlock>()
                         .FirstOrDefault(tb => tb.Name == "DefaultPreviewText");
                     if (defaultText != null)
                     {
                         defaultText.Visibility = Visibility.Collapsed;
-                        System.Diagnostics.Debug.WriteLine("[PreviewService] DefaultPreviewText已隐藏");
                     }
                 }
                 else
@@ -419,19 +400,16 @@ namespace OoiMRR.Services.Preview
                             {
                                 if (!string.IsNullOrEmpty(folderPath) && Directory.Exists(folderPath))
                                 {
-                                    System.Diagnostics.Debug.WriteLine($"Opening folder in new tab: {folderPath}");
                                     // 在新标签页中打开文件夹
                                     _createTabCallback?.Invoke(folderPath);
                                 }
                                 else
                                 {
-                                    System.Diagnostics.Debug.WriteLine($"Folder path does not exist: {folderPath}");
                                     MessageBox.Show($"文件夹路径不存在: {folderPath}", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
                                 }
                             }
                             catch (Exception ex)
                             {
-                                System.Diagnostics.Debug.WriteLine($"Error opening folder: {ex.Message}");
                                 MessageBox.Show($"无法打开文件夹: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                             }
                         };

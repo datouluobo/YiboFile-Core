@@ -140,8 +140,6 @@ namespace OoiMRR.Previews
                                 var tempHtmlFile = Path.Combine(Path.GetTempPath(), $"docx_preview_{Guid.NewGuid()}.html");
                                 File.WriteAllText(tempHtmlFile, html, Encoding.UTF8);
                                 var fileUri = new Uri(tempHtmlFile).ToString();
-                                System.Diagnostics.Debug.WriteLine($"HTML太大 ({html.Length} 字节)，保存到临时文件: {tempHtmlFile}");
-
                                 await webView.EnsureCoreWebView2Async();
                                 webView.CoreWebView2.Navigate(fileUri);
 
@@ -1433,7 +1431,6 @@ namespace OoiMRR.Previews
 
                                 if (memoryStream.Length > 50 * 1024 * 1024) // 限制50MB
                                 {
-                                    System.Diagnostics.Debug.WriteLine($"图片太大 ({memoryStream.Length} 字节)，跳过");
                                     continue;
                                 }
 
@@ -1606,7 +1603,6 @@ namespace OoiMRR.Previews
 
             if (imageMap == null || imageMap.Count == 0)
             {
-                System.Diagnostics.Debug.WriteLine($"图片映射表为空或没有图片 (Count: {imageMap?.Count ?? 0})");
                 return null;
             }
 
@@ -1627,23 +1623,15 @@ namespace OoiMRR.Previews
                 XNamespace pic = "http://schemas.openxmlformats.org/drawingml/2006/picture";
 
                 // 输出所有可用的关系ID
-                System.Diagnostics.Debug.WriteLine($"可用的图片关系ID: {string.Join(", ", imageMap.Keys)}");
-
                 // 方法1: 查找所有embed属性（最直接的方法）
                 var allEmbedAttrs = doc.Descendants()
                     .SelectMany(e => e.Attributes())
                     .Where(attr => attr.Name.LocalName == "embed");
-
-                System.Diagnostics.Debug.WriteLine($"找到 {allEmbedAttrs.Count()} 个embed属性");
-
                 foreach (var embed in allEmbedAttrs)
                 {
                     var embedId = embed.Value?.Trim();
                     if (string.IsNullOrEmpty(embedId))
                         continue;
-
-                    System.Diagnostics.Debug.WriteLine($"检查embed ID: '{embedId}', 命名空间: {embed.Name.NamespaceName}, 是否在映射表中: {imageMap.ContainsKey(embedId)}");
-
                     // 尝试直接匹配
                     if (imageMap.ContainsKey(embedId))
                     {
@@ -1677,9 +1665,6 @@ namespace OoiMRR.Previews
                 // 方法2: 查找带命名空间的blip元素
                 var blipElements = doc.Descendants()
                     .Where(e => e.Name.LocalName == "blip");
-
-                System.Diagnostics.Debug.WriteLine($"找到 {blipElements.Count()} 个blip元素");
-
                 foreach (var blip in blipElements)
                 {
                     // 查找embed属性（可能在不同的命名空间）
@@ -1695,8 +1680,6 @@ namespace OoiMRR.Previews
                         }
                     }
                 }
-
-                System.Diagnostics.Debug.WriteLine($"未找到匹配的图片。可用ID列表: {string.Join(", ", imageMap.Keys)}");
             }
             catch
             {

@@ -276,15 +276,12 @@ namespace OoiMRR
 
             _navigationCoordinator.PathNavigateRequested += (path, forceNewTab) =>
             {
-                System.Diagnostics.Debug.WriteLine($"[PathNavigateRequested] path={path}, forceNewTab={forceNewTab}");
                 if (forceNewTab)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[PathNavigateRequested] 创建新标签页");
                     CreateTab(path, true);
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine($"[PathNavigateRequested] 调用NavigateToPath");
                     NavigateToPath(path);
                 }
             };

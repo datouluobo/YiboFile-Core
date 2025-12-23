@@ -48,7 +48,6 @@ namespace OoiMRR
         {
             if (!App.IsTagTrainAvailable)
             {
-                System.Diagnostics.Debug.WriteLine("InitializeTagTrainPanel: TagTrain 不可用");
                 return;
             }
 
@@ -74,7 +73,6 @@ namespace OoiMRR
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"InitializeTagTrainPanel: 初始化失败: {ex.Message}");
             }
         }
 
@@ -120,7 +118,6 @@ namespace OoiMRR
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"TagBrowsePanel_TagClicked error: {ex.Message}");
             }
         }
 
@@ -466,7 +463,6 @@ namespace OoiMRR
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"UpdateTagFilesUI: 发生错误: {ex.Message}");
             }
         }
 
@@ -495,7 +491,6 @@ namespace OoiMRR
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"UpdateTagPageFilesUI: 发生错误: {ex.Message}");
             }
         }
 

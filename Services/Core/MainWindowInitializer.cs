@@ -68,7 +68,6 @@ namespace OoiMRR.Services
                     catch (Exception ex)
                     {
                         FileLogger.LogException("UpdateConfig", ex);
-                        System.Diagnostics.Debug.WriteLine($"UpdateConfig failed: {ex.Message}");
                     }
                 }
 
@@ -90,7 +89,6 @@ namespace OoiMRR.Services
                     catch (Exception ex)
                     {
                         FileLogger.LogException("WindowStateManager init", ex);
-                        System.Diagnostics.Debug.WriteLine($"WindowStateManager init failed: {ex.Message}");
                     }
                 }
 
@@ -109,7 +107,6 @@ namespace OoiMRR.Services
                     catch (Exception ex)
                     {
                         FileLogger.LogException("NavigationModeService init", ex);
-                        System.Diagnostics.Debug.WriteLine($"NavigationModeService init failed: {ex.Message}");
                     }
                 }
 
@@ -132,14 +129,12 @@ namespace OoiMRR.Services
                     catch (Exception ex)
                     {
                         FileLogger.LogException("SettingsOverlayController init", ex);
-                        System.Diagnostics.Debug.WriteLine($"SettingsOverlayController init failed: {ex.Message}");
                     }
                 }
             }
             catch (Exception ex)
             {
                 FileLogger.LogException("InitializeConfigServices FATAL", ex);
-                System.Diagnostics.Debug.WriteLine($"InitializeConfigServices fatal error: {ex.Message}");
             }
         }
 
@@ -163,7 +158,6 @@ namespace OoiMRR.Services
                 catch (Exception ex)
                 {
                     FileLogger.LogException("ApplyConfig", ex);
-                    System.Diagnostics.Debug.WriteLine($"ApplyConfig failed: {ex.Message}");
                 }
 
                 // 加载初始数据
@@ -186,7 +180,6 @@ namespace OoiMRR.Services
             catch (Exception ex)
             {
                 FileLogger.LogException("ApplyInitialState FATAL", ex);
-                System.Diagnostics.Debug.WriteLine($"ApplyInitialState fatal error: {ex.Message}");
             }
         }
 
@@ -202,7 +195,6 @@ namespace OoiMRR.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"LoadLibraries failed: {ex.Message}");
             }
 
             // 加载收藏列表  
@@ -218,7 +210,6 @@ namespace OoiMRR.Services
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"LoadFavorites failed: {ex.Message}");
                 }
             }
 
@@ -235,7 +226,6 @@ namespace OoiMRR.Services
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"LoadQuickAccess failed: {ex.Message}");
                 }
             }
 
@@ -246,7 +236,6 @@ namespace OoiMRR.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"LoadDrives failed: {ex.Message}");
             }
         }
 
@@ -274,7 +263,6 @@ namespace OoiMRR.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"RestoreLastState failed: {ex.Message}");
             }
         }
     }

@@ -150,13 +150,8 @@ namespace OoiMRR.Handlers
         {
             if (string.IsNullOrEmpty(path))
                 return;
-
-            System.Diagnostics.Debug.WriteLine($"[FileBrowser_PathChanged] 收到路径变化: {path}");
-
             // 检查是否为有效路径
             bool isPath = Directory.Exists(path) || File.Exists(path);
-            System.Diagnostics.Debug.WriteLine($"[FileBrowser_PathChanged] 是否为有效路径: {isPath}");
-
             if (isPath)
             {
                 // 使用统一导航协调器处理路径导航（左键点击）
@@ -169,12 +164,10 @@ namespace OoiMRR.Handlers
             var normalizedKeyword = SearchService.NormalizeKeyword(path);
             if (!string.IsNullOrEmpty(normalizedKeyword))
             {
-                System.Diagnostics.Debug.WriteLine($"[FileBrowser_PathChanged] 执行搜索，关键词: {normalizedKeyword}");
                 _performSearch(normalizedKeyword);
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine($"[FileBrowser_PathChanged] 关键词为空，不执行搜索");
             }
         }
 
@@ -336,7 +329,6 @@ namespace OoiMRR.Handlers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"加载更多搜索结果失败: {ex.Message}");
             }
         }
 

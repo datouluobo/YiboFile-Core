@@ -161,18 +161,14 @@ namespace OoiMRR.Controls.Settings
             try
             {
                 var config = ConfigManager.Load();
-                System.Diagnostics.Debug.WriteLine($"[FileListSettings] LoadSettings: Tags={config.ColTagsWidth}, Notes={config.ColNotesWidth}");
-
                 if (_tagsWidthTextBox != null)
                 {
                     _tagsWidthTextBox.Text = ((int)config.ColTagsWidth).ToString();
-                    System.Diagnostics.Debug.WriteLine($"[FileListSettings] Set Tags TextBox to {_tagsWidthTextBox.Text}");
                 }
 
                 if (_notesWidthTextBox != null)
                 {
                     _notesWidthTextBox.Text = ((int)config.ColNotesWidth).ToString();
-                    System.Diagnostics.Debug.WriteLine($"[FileListSettings] Set Notes TextBox to {_notesWidthTextBox.Text}");
                 }
             }
             finally
@@ -261,16 +257,12 @@ namespace OoiMRR.Controls.Settings
 
         private void ApplyTagsWidth(double width)
         {
-            System.Diagnostics.Debug.WriteLine($"[FileListSettings] ApplyTagsWidth: width={width}");
             var config = ConfigManager.Load();
-            System.Diagnostics.Debug.WriteLine($"[FileListSettings] Before save: Tags={config.ColTagsWidth}, Notes={config.ColNotesWidth}");
             config.ColTagsWidth = width;
             ConfigManager.Save(config);
 
             // 验证保存
             var verifyConfig = ConfigManager.Load();
-            System.Diagnostics.Debug.WriteLine($"[FileListSettings] After save: Tags={verifyConfig.ColTagsWidth}, Notes={verifyConfig.ColNotesWidth}");
-
             // 直接刷新 FileListControl 的列宽度
             RefreshFileListColumns();
 
@@ -335,16 +327,12 @@ namespace OoiMRR.Controls.Settings
 
         private void ApplyNotesWidth(double width)
         {
-            System.Diagnostics.Debug.WriteLine($"[FileListSettings] ApplyNotesWidth: width={width}");
             var config = ConfigManager.Load();
-            System.Diagnostics.Debug.WriteLine($"[FileListSettings] Before save: Tags={config.ColTagsWidth}, Notes={config.ColNotesWidth}");
             config.ColNotesWidth = width;
             ConfigManager.Save(config);
 
             // 验证保存
             var verifyConfig = ConfigManager.Load();
-            System.Diagnostics.Debug.WriteLine($"[FileListSettings] After save: Tags={verifyConfig.ColTagsWidth}, Notes={verifyConfig.ColNotesWidth}");
-
             // 直接刷新 FileListControl 的列宽度
             RefreshFileListColumns();
 
@@ -362,7 +350,6 @@ namespace OoiMRR.Controls.Settings
                 var mainWindow = Application.Current.MainWindow as MainWindow;
                 if (mainWindow == null)
                 {
-                    System.Diagnostics.Debug.WriteLine("RefreshFileListColumns: MainWindow not found");
                     return;
                 }
 
@@ -370,7 +357,6 @@ namespace OoiMRR.Controls.Settings
                 var fileBrowser = mainWindow.FindName("FileBrowser") as FileBrowserControl;
                 if (fileBrowser == null)
                 {
-                    System.Diagnostics.Debug.WriteLine("RefreshFileListColumns: FileBrowser not found");
                     return;
                 }
 
@@ -378,17 +364,12 @@ namespace OoiMRR.Controls.Settings
                 var fileListControl = fileBrowser.GetFileListControl();
                 if (fileListControl == null)
                 {
-                    System.Diagnostics.Debug.WriteLine("RefreshFileListColumns: FileListControl not found");
                     return;
                 }
-
-                System.Diagnostics.Debug.WriteLine("RefreshFileListColumns: Calling LoadColumnWidths()");
                 fileListControl.LoadColumnWidths();
-                System.Diagnostics.Debug.WriteLine("RefreshFileListColumns: LoadColumnWidths() completed");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"RefreshFileListColumns error: {ex.Message}");
             }
         }
     }

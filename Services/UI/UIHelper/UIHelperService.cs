@@ -106,13 +106,11 @@ namespace OoiMRR.Services.UIHelper
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"刷新选中项视觉状态失败: {ex.Message}");
                     }
                 }), DispatcherPriority.Loaded);
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"确保选中项可见失败: {ex.Message}");
             }
         }
 
@@ -164,13 +162,11 @@ namespace OoiMRR.Services.UIHelper
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"刷新选中项视觉状态失败: {ex.Message}");
                     }
                 }), DispatcherPriority.Loaded);
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"确保选中项可见失败: {ex.Message}");
             }
         }
 

@@ -56,20 +56,14 @@ namespace OoiMRR
                 if (FileBrowser != null && FileBrowser.FilesList != null)
                 {
                     _dragDropManager.InitializeFileListDragDrop(FileBrowser.FilesList);
-                    System.Diagnostics.Debug.WriteLine("DragDropManager initialized for FileList.");
-
-
                     // Enable tab drag and drop
-                    System.Diagnostics.Debug.WriteLine($"FileBrowser.TabManagerControl is null? {FileBrowser.TabManagerControl == null}");
                     if (FileBrowser.TabManagerControl != null)
                     {
                         FileBrowser.TabManagerControl.FileDropped += (files, target, isCopy) =>
                             _dragDropManager.PerformFileOperation(files, target, isCopy);
-                        System.Diagnostics.Debug.WriteLine("DragDropManager initialized for Tabs.");
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine("WARNING: TabManagerControl is null, cannot initialize tab drag-drop!");
                     }
                 }
 
@@ -79,7 +73,6 @@ namespace OoiMRR
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Failed to initialize DragDropManager: {ex.Message}");
             }
         }
 

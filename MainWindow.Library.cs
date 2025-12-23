@@ -35,7 +35,6 @@ namespace OoiMRR
             // 等待200ms以允许上一个加载任务完成，避免标签页切换时文件列表为空
             if (!_loadFilesSemaphore.Wait(200))
             {
-                System.Diagnostics.Debug.WriteLine("LoadLibraryFiles: 已有加载任务在进行（等待200ms后仍未完成），跳过此次调用");
                 return;
             }
 
@@ -222,17 +221,11 @@ namespace OoiMRR
 
             _currentFiles.Clear();
             _currentFiles.AddRange(items ?? new List<FileSystemItem>());
-
-            System.Diagnostics.Debug.WriteLine($"[加载库文件] 合并后共有 {_currentFiles.Count} 项");
-
             // 应用排序
             if (_columnService != null)
             {
                 _currentFiles = _columnService.SortFiles(_currentFiles);
             }
-
-            System.Diagnostics.Debug.WriteLine($"[加载库文件] 设置 ItemsSource，文件数量: {_currentFiles.Count}");
-
             // 确保UI控件存在
             if (FileBrowser != null)
             {
@@ -261,9 +254,6 @@ namespace OoiMRR
                 // 允许在库标签页中进行搜索，不设置为只读
                 FileBrowser.SetLibraryBreadcrumb(library.Name);
             }
-
-            System.Diagnostics.Debug.WriteLine($"[加载库文件] 完成，ItemsSource 已设置");
-
             // 取消之前的文件夹大小计算任务
             _folderSizeCalculationService?.Cancel();
 

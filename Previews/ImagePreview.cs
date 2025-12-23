@@ -17,6 +17,17 @@ namespace OoiMRR.Previews
     /// </summary>
     public class ImagePreview : IPreviewProvider
     {
+        // 需要ImageMagick处理的格式
+        private static readonly HashSet<string> _imageMagickFormats = new()
+        {
+            ".tga",   // Targa游戏纹理
+            ".blp",   // Blizzard游戏纹理
+            ".heic",  // iOS高效图像
+            ".heif",  // iOS高效图像
+            ".ai",    // Adobe Illustrator
+            ".psd",   // Photoshop
+            ".svg"    // SVG矢量图
+        };
         public UIElement CreatePreview(string filePath)
         {
             try
@@ -46,13 +57,13 @@ namespace OoiMRR.Previews
                     return OptimizedGifPreview.CreatePreview(filePath);
                 }
 
-                // 特殊处理 PSD 格式
-                if (extension == ".psd")
+                // ImageMagick处理的格式（TGA/BLP/HEIC/HEIF/AI/PSD）
+                if (_imageMagickFormats.Contains(extension))
                 {
-                    return CreatePsdPreview(filePath);
+                    return CreateMagickPreview(filePath, extension);
                 }
 
-                // 处理其他图像格式（bmp, jpeg, jpg, png, tif, tiff, ico）
+                // WPF原生支持的格式（bmp, jpeg, jpg, png, tif, tiff, ico）
                 return CreateBitmapPreview(filePath);
             }
             catch (Exception ex)
@@ -338,7 +349,6 @@ namespace OoiMRR.Previews
                     BitmapImage bitmap = null;
                     using (var magickImage = new MagickImage(filePath))
                     {
-                        System.Diagnostics.Debug.WriteLine($"SVG: {Path.GetFileName(filePath)} {magickImage.Width}x{magickImage.Height}");
                         var maxDim = 2048;
                         if (magickImage.Width > maxDim || magickImage.Height > maxDim)
                         {
@@ -375,6 +385,161 @@ namespace OoiMRR.Previews
             });
 
             return grid;
+        }
+
+        /// <summary>
+        /// 使用ImageMagick创建预览（TGA/BLP/HEIC/HEIF/AI/PSD）
+        /// </summary>
+        private UIElement CreateMagickPreview(string filePath, string extension)
+        {
+            var grid = new Grid();
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+
+            // 标题栏
+            var formatName = GetFormatDisplayName(extension);
+            var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath) };
+            var titlePanel = PreviewHelper.CreateTitlePanel("🖼️", $"{formatName}: {Path.GetFileName(filePath)}", buttons);
+            Grid.SetRow(titlePanel, 0);
+            grid.Children.Add(titlePanel);
+
+            // 加载指示器
+            var loadingText = new TextBlock
+            {
+                Text = $"正在加载 {formatName}...",
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Foreground = Brushes.Gray,
+                FontSize = 14
+            };
+            Grid.SetRow(loadingText, 1);
+            grid.Children.Add(loadingText);
+
+            // 图片控件
+            var image = new Image
+            {
+                Stretch = Stretch.Uniform,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Visibility = Visibility.Collapsed
+            };
+
+            var scrollViewer = new ScrollViewer
+            {
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                Content = image,
+                Visibility = Visibility.Collapsed
+            };
+            Grid.SetRow(scrollViewer, 1);
+            grid.Children.Add(scrollViewer);
+
+            // 异步加载
+            System.Threading.Tasks.Task.Run(() =>
+            {
+                try
+                {
+                    var bitmap = DecodeWithImageMagick(filePath);
+
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        image.Source = bitmap;
+                        image.Visibility = Visibility.Visible;
+                        scrollViewer.Visibility = Visibility.Visible;
+                        loadingText.Visibility = Visibility.Collapsed;
+                    });
+                }
+                catch (MagickException ex)
+                {
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        HandleMagickError(loadingText, ex, extension, filePath);
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        loadingText.Text = $"加载失败: {ex.Message}";
+                        loadingText.Foreground = Brushes.Red;
+                    });
+                }
+            });
+
+            return grid;
+        }
+
+        /// <summary>
+        /// 使用ImageMagick解码图像
+        /// </summary>
+        private BitmapSource DecodeWithImageMagick(string filePath)
+        {
+            using var magickImage = new MagickImage(filePath);
+
+            // 限制尺寸避免内存问题
+            const int maxDim = 2048;
+            if (magickImage.Width > maxDim || magickImage.Height > maxDim)
+            {
+                magickImage.Resize(new MagickGeometry((uint)maxDim, (uint)maxDim)
+                {
+                    IgnoreAspectRatio = false
+                });
+            }
+
+            // 转换为PNG
+            var bytes = magickImage.ToByteArray(MagickFormat.Png);
+
+            var bitmap = new BitmapImage();
+            bitmap.BeginInit();
+            bitmap.StreamSource = new MemoryStream(bytes);
+            bitmap.CacheOption = BitmapCacheOption.OnLoad;
+            bitmap.EndInit();
+            bitmap.Freeze();
+
+            return bitmap;
+        }
+
+        /// <summary>
+        /// 获取格式显示名称
+        /// </summary>
+        private string GetFormatDisplayName(string extension)
+        {
+            return extension switch
+            {
+                ".tga" => "TGA 图像",
+                ".blp" => "BLP 纹理",
+                ".heic" => "HEIC 图片",
+                ".heif" => "HEIF 图片",
+                ".ai" => "AI 矢量图",
+                ".psd" => "Photoshop 文件",
+                ".svg" => "SVG 矢量图",
+                _ => "图片文件"
+            };
+        }
+
+        /// <summary>
+        /// 处理ImageMagick错误
+        /// </summary>
+        private void HandleMagickError(TextBlock loadingText, MagickException ex, string extension, string filePath)
+        {
+            // HEIC/HEIF缺少解码器
+            if (ex.Message.Contains("delegate") && (extension == ".heic" || extension == ".heif"))
+            {
+                loadingText.Text = "❌ 缺少HEIF解码器\n\n" +
+                                  "请从 Microsoft Store 安装 \"HEIF图像扩展\"\n" +
+                                  "或使用其他应用打开此文件";
+                loadingText.FontSize = 13;
+            }
+            else if (ex.Message.Contains("no decode delegate"))
+            {
+                loadingText.Text = $"❌ 不支持此{extension}文件\n\n{ex.Message}";
+            }
+            else
+            {
+                loadingText.Text = $"解码失败: {ex.Message}";
+            }
+
+            loadingText.Foreground = Brushes.Red;
         }
 
         /// <summary>
@@ -433,7 +598,6 @@ namespace OoiMRR.Previews
                     BitmapImage bitmap = null;
                     using (var magickImage = new MagickImage(filePath))
                     {
-                        System.Diagnostics.Debug.WriteLine($"PSD: {Path.GetFileName(filePath)} {magickImage.Width}x{magickImage.Height}");
                         var maxDim = 2048;
                         if (magickImage.Width > maxDim || magickImage.Height > maxDim)
                         {

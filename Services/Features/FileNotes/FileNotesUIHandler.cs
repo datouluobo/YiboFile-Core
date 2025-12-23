@@ -119,7 +119,6 @@ namespace OoiMRR.Services.FileNotes
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"保存备注失败: {ex.Message}");
             }
         }
         public void ToggleNotesPanel()

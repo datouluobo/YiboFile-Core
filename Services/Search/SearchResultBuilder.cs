@@ -66,7 +66,6 @@ namespace OoiMRR.Services.Search
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[SearchResultBuilder] 处理文件 {filePath} 时出错: {ex.Message}");
                 }
             }
 
@@ -159,7 +158,6 @@ namespace OoiMRR.Services.Search
                         var firstLine = notes.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
                             .FirstOrDefault() ?? "";
                         item.Notes = firstLine.Length > 100 ? firstLine.Substring(0, 100) + "..." : firstLine;
-                        System.Diagnostics.Debug.WriteLine($"搜索结果项 '{item.Path}' 的备注已设置: '{item.Notes}'");
                     }
                     else
                     {
@@ -169,7 +167,6 @@ namespace OoiMRR.Services.Search
                 catch (Exception ex)
                 {
                     item.Notes = "";
-                    System.Diagnostics.Debug.WriteLine($"获取备注失败 '{item.Path}': {ex.Message}");
                 }
             }
             else

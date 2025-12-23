@@ -236,17 +236,13 @@ namespace OoiMRR.Services
             // 使用信号量防止重复加载
             if (!_loadFilesSemaphore.Wait(0))
             {
-                System.Diagnostics.Debug.WriteLine("LoadLibraryFiles: 已有加载任务在进行，跳过此次调用");
                 return;
             }
 
             try
             {
-                System.Diagnostics.Debug.WriteLine($"[加载库文件] 开始加载库: {library.Name}");
-
                 if (library.Paths == null || library.Paths.Count == 0)
                 {
-                    System.Diagnostics.Debug.WriteLine("[加载库文件] 库没有位置，显示提示");
                     _loadFilesSemaphore.Release();
 
                     // 触发空库事件
@@ -279,8 +275,6 @@ namespace OoiMRR.Services
                 {
                     try
                     {
-                        System.Diagnostics.Debug.WriteLine($"[加载库文件] 库有 {library.Paths.Count} 个位置");
-
                         // 使用 FileListService 从多个路径加载文件
                         var allItems = _fileListService.LoadFileSystemItemsFromMultiplePaths(
                             library.Paths,
