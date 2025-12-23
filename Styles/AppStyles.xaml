@@ -60,25 +60,18 @@
         <Setter Property="Width" Value="6"/>
         <Setter Property="HorizontalAlignment" Value="Stretch"/>
         <Setter Property="VerticalAlignment" Value="Stretch"/>
-        <Setter Property="ResizeBehavior" Value="PreviousAndNext"/>
+        <Setter Property="Background" Value="Transparent"/>
         <Setter Property="Cursor" Value="SizeWE"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="GridSplitter">
-                    <Grid>
-                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"/>
-                        <Border x:Name="HoverVisual" Background="#F8F9FA" BorderBrush="#DEE2E6" BorderThickness="0,1,0,1" Margin="0" Opacity="0">
-                            <Rectangle Fill="#DEE2E6" Width="1" HorizontalAlignment="Center" VerticalAlignment="Stretch"/>
-                        </Border>
+                    <Grid Background="Transparent">
+                        <!-- 中央分割线 -->
+                        <Rectangle Width="1" 
+                                   Fill="#DEE2E6"
+                                   HorizontalAlignment="Center" 
+                                   VerticalAlignment="Stretch"/>
                     </Grid>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="HoverVisual" Property="Opacity" Value="1"/>
-                        </Trigger>
-                        <Trigger Property="IsDragging" Value="True">
-                            <Setter TargetName="HoverVisual" Property="Opacity" Value="1"/>
-                        </Trigger>
-                    </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>

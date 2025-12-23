@@ -98,6 +98,11 @@ namespace OoiMRR.Controls
         public StackPanel FileInfoPanelControl => FileInfoPanel;
         public TextBlock EmptyStateTextControl => FileList?.EmptyStateTextControl;
 
+        /// <summary>
+        /// 获取 FileListControl 实例（供设置面板调用）
+        /// </summary>
+        public FileListControl GetFileListControl() => FileList;
+
         // 地址栏相关方法
         public string AddressText
         {

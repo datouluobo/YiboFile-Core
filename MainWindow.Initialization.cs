@@ -31,6 +31,19 @@ namespace OoiMRR
             _fileBrowserEventHandler?.HandleGlobalMouseDown(e);
         }
 
+        // 响应式布局现在由 FileListControl 内部的 ListView.SizeChanged 处理
+        // 此方法已废弃
+        /*
+        private void RootGrid_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            // 将 ColCenter 的实际宽度传递给 FileListControl 进行响应式布局
+            if (FileBrowser?.FileList != null && ColCenter != null)
+            {
+                FileBrowser.FileList.ApplyResponsiveLayout(ColCenter.ActualWidth);
+            }
+        }
+        */
+
         private void InitializeServices()
         {
             // 初始化统一导航协调器
@@ -47,6 +60,10 @@ namespace OoiMRR
             _favoriteService = new FavoriteService(this.Dispatcher);
             _quickAccessService = new QuickAccessService(this.Dispatcher);
             _fileListService = new FileListService(this.Dispatcher);
+
+            // 将 FileListService 传递给 FileListControl
+            FileBrowser?.FileList?.SetFileListService(_fileListService);
+
             _fileSystemWatcherService = new FileSystemWatcherService(this.Dispatcher);
             _folderSizeCalculationService = new FolderSizeCalculationService();
 
@@ -103,6 +120,14 @@ namespace OoiMRR
         {
             // 全局鼠标事件
             this.PreviewMouseDown += MainWindow_PreviewMouseDown;
+
+            // 响应式布局现在由 FileListControl 内部处理，不再需要此事件
+            /*
+            if (RootGrid != null)
+            {
+                RootGrid.SizeChanged += RootGrid_SizeChanged;
+            }
+            */
 
             // 订阅 RightPanel 事件
             if (RightPanel != null)

@@ -51,7 +51,10 @@ namespace OoiMRR.Services.Settings
                 return;
             }
 
-            _panel.SaveAllSettings();
+            // 注释掉SaveAllSettings，因为各个设置面板已经在修改时实时保存（如ApplyNotesWidth）
+            // 如果在这里保存，会导致当前面板保存整个config对象，覆盖其他面板已保存的值
+            // _panel.SaveAllSettings();
+
             ApplyLatestConfig();
             _overlay.Visibility = Visibility.Collapsed;
         }

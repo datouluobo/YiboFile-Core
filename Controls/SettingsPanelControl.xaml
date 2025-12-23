@@ -60,6 +60,7 @@
                             </Style>
                         </ListBox.ItemContainerStyle>
                         <ListBoxItem Tag="General">通用</ListBoxItem>
+                        <ListBoxItem Tag="FileList">文件列表</ListBoxItem>
                         <ListBoxItem Tag="Path">路径</ListBoxItem>
                         <ListBoxItem Tag="Library">库</ListBoxItem>
                         <ListBoxItem Tag="Tag">标签</ListBoxItem>

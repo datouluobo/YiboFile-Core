@@ -9,7 +9,7 @@ namespace OoiMRR.Controls
     {
         public event EventHandler CloseRequested;
         public event EventHandler SettingsChanged;
-        
+
         private UserControl _currentSettingsPanel;
         private string _currentCategory = "General";
         private bool _isInitialized = false;
@@ -17,7 +17,7 @@ namespace OoiMRR.Controls
         public SettingsPanelControl()
         {
             InitializeComponent();
-            
+
             // 延迟加载，确保所有控件都已初始化
             this.Loaded += SettingsPanelControl_Loaded;
         }
@@ -26,10 +26,10 @@ namespace OoiMRR.Controls
         {
             // 移除事件，避免重复加载
             this.Loaded -= SettingsPanelControl_Loaded;
-            
+
             // 标记为已初始化
             _isInitialized = true;
-            
+
             // 现在可以安全地加载分类
             if (ContentPanel != null && CategoryListBox != null)
             {
@@ -50,7 +50,7 @@ namespace OoiMRR.Controls
         {
             // 避免在初始化过程中触发
             if (!_isInitialized || ContentPanel == null) return;
-            
+
             if (CategoryListBox.SelectedItem is ListBoxItem selectedItem)
             {
                 var category = selectedItem.Tag?.ToString() ?? "General";
@@ -61,9 +61,9 @@ namespace OoiMRR.Controls
         private void LoadCategory(string category)
         {
             if (ContentPanel == null) return;
-            
+
             _currentCategory = category;
-            
+
             ContentPanel.Children.Clear();
             if (_currentSettingsPanel != null)
             {
@@ -78,6 +78,7 @@ namespace OoiMRR.Controls
             UserControl panel = category switch
             {
                 "General" => new Settings.GeneralSettingsPanel(),
+                "FileList" => new Settings.FileListSettingsPanel(),
                 "Path" => new Settings.PathSettingsPanel(),
                 "Library" => new Settings.LibrarySettingsPanel(),
                 "Tag" => new Settings.TagSettingsPanel(),
@@ -86,16 +87,18 @@ namespace OoiMRR.Controls
             };
 
             _currentSettingsPanel = panel;
-            
+
             // 订阅新面板的设置改变事件
             if (panel is ISettingsPanel settingsPanel)
             {
                 settingsPanel.SettingsChanged += OnSettingsPanelChanged;
+                // 加载新面板的设置（在切换分类时）
+                settingsPanel.LoadSettings();
             }
-            
+
             ContentPanel.Children.Add(panel);
         }
-        
+
         private void OnSettingsPanelChanged(object sender, EventArgs e)
         {
             SettingsChanged?.Invoke(this, EventArgs.Empty);

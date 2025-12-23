@@ -28,6 +28,12 @@ namespace OoiMRR.Services.FileList
         #region 加载状态字段
 
         private bool _isLoadingFiles = false;
+
+        /// <summary>
+        /// 是否显示完整文件名（包括扩展名）
+        /// 当空间不足隐藏类型列时设置为 true
+        /// </summary>
+        public bool ShowFullFileName { get; set; } = false;
         private readonly object _loadingLock = new object();
 
         #endregion
@@ -514,11 +520,11 @@ namespace OoiMRR.Services.FileList
 
                         directories.Add(new FileSystemItem
                         {
-                            Name = Path.GetFileName(dirPath),
+                            Name = new DirectoryInfo(dirPath).Name,
                             Path = dirInfo.FullName,
                             Type = "文件夹",
                             Size = sizeDisplay,
-                            ModifiedDate = dirInfo.LastWriteTime.ToString("yyyy-MM-dd HH:mm"),
+                            ModifiedDate = dirInfo.LastWriteTime.ToString("yyyy-MM-dd"),
                             CreatedTime = FileSystemItem.FormatTimeAgo(dirInfo.CreationTime),
                             IsDirectory = true,
                             SourcePath = path, // 标记来源路径
@@ -576,11 +582,11 @@ namespace OoiMRR.Services.FileList
                         var fileInfo = new System.IO.FileInfo(filePath);
                         files.Add(new FileSystemItem
                         {
-                            Name = Path.GetFileName(filePath),
+                            Name = ShowFullFileName ? Path.GetFileName(filePath) : Path.GetFileNameWithoutExtension(filePath),
                             Path = fileInfo.FullName,
-                            Type = FileTypeManager.GetFileCategory(fileInfo.FullName),
+                            Type = !string.IsNullOrEmpty(fileInfo.Extension) ? fileInfo.Extension : "文件",
                             Size = formatFileSize(fileInfo.Length),
-                            ModifiedDate = fileInfo.LastWriteTime.ToString("yyyy-MM-dd HH:mm"),
+                            ModifiedDate = fileInfo.LastWriteTime.ToString("yyyy-MM-dd"),
                             CreatedTime = FileSystemItem.FormatTimeAgo(fileInfo.CreationTime),
                             IsDirectory = false,
                             SourcePath = path, // 标记来源路径
@@ -655,11 +661,11 @@ namespace OoiMRR.Services.FileList
 
                         directories.Add(new FileSystemItem
                         {
-                            Name = Path.GetFileName(dirPath),
+                            Name = new DirectoryInfo(dirPath).Name,
                             Path = dirInfo.FullName,
                             Type = "文件夹",
                             Size = sizeDisplay,
-                            ModifiedDate = dirInfo.LastWriteTime.ToString("yyyy-MM-dd HH:mm"),
+                            ModifiedDate = dirInfo.LastWriteTime.ToString("yyyy-MM-dd"),
                             CreatedTime = FileSystemItem.FormatTimeAgo(dirInfo.CreationTime),
                             IsDirectory = true,
                             SourcePath = path, // 标记来源路径
@@ -707,11 +713,11 @@ namespace OoiMRR.Services.FileList
                         var fileInfo = new System.IO.FileInfo(filePath);
                         files.Add(new FileSystemItem
                         {
-                            Name = Path.GetFileName(filePath),
+                            Name = Path.GetFileNameWithoutExtension(filePath),
                             Path = fileInfo.FullName,
-                            Type = FileTypeManager.GetFileCategory(fileInfo.FullName),
+                            Type = !string.IsNullOrEmpty(fileInfo.Extension) ? fileInfo.Extension : "文件",
                             Size = formatFileSize(fileInfo.Length),
-                            ModifiedDate = fileInfo.LastWriteTime.ToString("yyyy-MM-dd HH:mm"),
+                            ModifiedDate = fileInfo.LastWriteTime.ToString("yyyy-MM-dd"),
                             CreatedTime = FileSystemItem.FormatTimeAgo(fileInfo.CreationTime),
                             IsDirectory = false,
                             SourcePath = path, // 标记来源路径

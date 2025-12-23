@@ -254,10 +254,12 @@ namespace OoiMRR.Services.ColumnManagement
                     _config.ColCreatedTimeWidth = width;
                     break;
                 case "Tags":
-                    _config.ColTagsWidth = width;
+                    // Tags列宽度由设置面板管理
+                    // _config.ColTagsWidth = width;
                     break;
                 case "Notes":
-                    _config.ColNotesWidth = width;
+                    // Notes列宽度由设置面板管理
+                    // _config.ColNotesWidth = width;
                     break;
             }
         }
@@ -441,10 +443,12 @@ namespace OoiMRR.Services.ColumnManagement
                                     _config.ColCreatedTimeWidth = width;
                                     break;
                                 case "Tags":
-                                    _config.ColTagsWidth = width;
+                                    // Tags列宽度由设置面板管理，不在这里保存以防覆盖用户设置
+                                    // _config.ColTagsWidth = width;
                                     break;
                                 case "Notes":
-                                    _config.ColNotesWidth = width;
+                                    // Notes列宽度由设置面板管理，不在这里保存以防覆盖用户设置
+                                    // _config.ColNotesWidth = width;
                                     break;
                             }
                         }

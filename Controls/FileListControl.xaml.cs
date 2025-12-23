@@ -14,6 +14,7 @@ using System.ComponentModel;
 using OoiMRR.Controls.Converters;
 using OoiMRR.ViewModels;
 using OoiMRR.Services.Search;
+using OoiMRR.Services.ColumnManagement;
 
 namespace OoiMRR.Controls
 {
@@ -23,6 +24,12 @@ namespace OoiMRR.Controls
     /// </summary>
     public partial class FileListControl : UserControl
     {
+        private ThumbnailViewManager _thumbnailManager;
+        private Services.FileList.FileListService _fileListService;
+
+        // 配置缓存
+        private double _cachedTagsWidth = 150;
+        private double _cachedNotesWidth = 200;
 
         // 事件定义
         public event SelectionChangedEventHandler SelectionChanged;
@@ -52,10 +59,17 @@ namespace OoiMRR.Controls
                 FilesListView.MouseLeftButtonUp += (s, e) => MouseLeftButtonUp?.Invoke(s, e);
                 FilesListView.PreviewMouseDown += (s, e) => PreviewMouseDown?.Invoke(s, e);
                 FilesListView.PreviewMouseMove += (s, e) => PreviewMouseMove?.Invoke(s, e);
-                FilesListView.SizeChanged += (s, e) => SizeChanged?.Invoke(s, e);
 
-                FilesListView.PreviewMouseMove += (s, e) => PreviewMouseMove?.Invoke(s, e);
-                FilesListView.SizeChanged += (s, e) => SizeChanged?.Invoke(s, e);
+                // 订阅 SizeChanged 事件，手动调整名称列宽度
+                FilesListView.SizeChanged += (s, e) =>
+                {
+                    SizeChanged?.Invoke(s, e);
+
+                    if (e.WidthChanged)
+                    {
+                        AdjustNameColumnWidth();
+                    }
+                };
 
                 // 旧的列标题订阅代码已移除，现在使用 Style 中的 EventSetter 处理
             }
@@ -74,6 +88,26 @@ namespace OoiMRR.Controls
             {
                 _thumbnailManager = new ThumbnailViewManager(FilesListView, 100);
             }
+
+            // Load column widths from config
+            LoadColumnWidths();
+
+            // 加载并缓存配置
+            var config = ConfigManager.Load();
+            _cachedTagsWidth = config.ColTagsWidth;
+            _cachedNotesWidth = config.ColNotesWidth;
+
+            // 延迟调整名称列宽度并禁用横向滚动条
+            this.Loaded += (s, e) =>
+            {
+                // 禁用横向滚动条
+                if (FilesListView != null)
+                {
+                    ScrollViewer.SetHorizontalScrollBarVisibility(FilesListView, ScrollBarVisibility.Disabled);
+                }
+
+                AdjustNameColumnWidth();
+            };
         }
 
         private void LoadMoreBtn_Click(object sender, RoutedEventArgs e)
@@ -140,7 +174,6 @@ namespace OoiMRR.Controls
         public TextBlock EmptyStateTextControl => EmptyStateText;
 
         // 缩略图管理器
-        private ThumbnailViewManager _thumbnailManager;
         private string _currentViewMode = "List"; // Default to List
 
         // 分组列头控件（由XAML自动生成字段）
@@ -758,6 +791,174 @@ namespace OoiMRR.Controls
                 return 50; // Fallback
             }
         }
+
+        /// <summary>
+        /// Load column widths from config
+        /// </summary>
+        public void LoadColumnWidths()
+        {
+            try
+            {
+                var config = ConfigManager.Load();
+
+                // Find Tags and Notes columns using FindName
+                var colTags = FindName("ColTags") as GridViewColumn;
+                var colNotes = FindName("ColNotes") as GridViewColumn;
+
+                // Apply Tags and Notes column widths
+                if (colTags != null && config.ColTagsWidth > 0)
+                {
+                    colTags.Width = config.ColTagsWidth;
+                }
+
+                if (colNotes != null && config.ColNotesWidth > 0)
+                {
+                    colNotes.Width = config.ColNotesWidth;
+                }
+
+                // Also apply to grouped view header if it exists
+                if (GroupedHeaderListView?.View is GridView headerGrid)
+                {
+                    // Find ColHeaderTags and ColHeaderNotes by Tag
+                    var colHeaderTags = headerGrid.Columns.FirstOrDefault(c =>
+                        c.Header is TextBlock tb && tb.Tag?.ToString() == "Tags");
+                    if (colHeaderTags != null && config.ColTagsWidth > 0)
+                    {
+                        colHeaderTags.Width = config.ColTagsWidth;
+                    }
+
+                    var colHeaderNotes = headerGrid.Columns.FirstOrDefault(c =>
+                        c.Header is TextBlock tb && tb.Tag?.ToString() == "Notes");
+                    if (colHeaderNotes != null && config.ColNotesWidth > 0)
+                    {
+                        colHeaderNotes.Width = config.ColNotesWidth;
+                    }
+                }
+
+                // 重新调整名称列宽度以适应新的列宽度
+                AdjustNameColumnWidth();
+            }
+            catch
+            {
+                // Ignore errors, use default widths
+            }
+        }
+
+        /// <summary>
+        /// Apply column widths (called when settings change)
+        /// </summary>
+        public void ApplyColumnWidths()
+        {
+            LoadColumnWidths();
+        }
+
+        #region 响应式布局
+
+        /// <summary>
+        /// 设置 FileListService 引用（用于控制文件名显示）
+        /// </summary>
+        public void SetFileListService(Services.FileList.FileListService fileListService)
+        {
+            _fileListService = fileListService;
+        }
+
+
+
+        /// <summary>
+        /// 设置列的可见性
+        /// </summary>
+        private void SetColumnVisibility(string columnName, bool isVisible)
+        {
+            var column = FindName(columnName) as GridViewColumn;
+            if (column != null)
+            {
+                if (isVisible)
+                {
+                    // 显示列：恢复宽度
+                    if (column == FindName("ColType"))
+                        column.Width = 60;
+                    else if (column == FindName("ColSize"))
+                        column.Width = 90;
+                    else if (column == FindName("ColModifiedDate"))
+                        column.Width = 100;
+                    else if (column == FindName("ColCreatedTime"))
+                        column.Width = 60;
+                }
+                else
+                {
+                    // 隐藏列：设置宽度为0
+                    column.Width = 0;
+                }
+            }
+        }
+
+        /// <summary>
+        /// 刷新文件列表显示
+        /// </summary>
+        private void RefreshFileList()
+        {
+            // 强制刷新 ListView
+            if (FilesListView != null && FilesListView.Items != null)
+            {
+                FilesListView.Items.Refresh();
+            }
+        }
+
+        /// <summary>
+        /// 调整名称列宽度以填满剩余空间
+        /// </summary>
+        private void AdjustNameColumnWidth()
+        {
+            try
+            {
+                if (FilesListView == null || !FilesListView.IsLoaded) return;
+
+                var colName = FindName("ColName") as GridViewColumn;
+                var colType = FindName("ColType") as GridViewColumn;
+                var colSize = FindName("ColSize") as GridViewColumn;
+                var colModifiedDate = FindName("ColModifiedDate") as GridViewColumn;
+                var colCreatedTime = FindName("ColCreatedTime") as GridViewColumn;
+                var colTags = FindName("ColTags") as GridViewColumn;
+                var colNotes = FindName("ColNotes") as GridViewColumn;
+
+                if (colName == null) return;
+
+                // 直接从列获取实际宽度（而不是使用缓存）
+                double otherColumnsWidth = 0;
+
+                if (colType != null && colType.Width > 0)
+                    otherColumnsWidth += colType.Width;
+                if (colSize != null && colSize.Width > 0)
+                    otherColumnsWidth += colSize.Width;
+                if (colModifiedDate != null && colModifiedDate.Width > 0)
+                    otherColumnsWidth += colModifiedDate.Width;
+                if (colCreatedTime != null && colCreatedTime.Width > 0)
+                    otherColumnsWidth += colCreatedTime.Width;
+
+                // 标签和备注列使用实际宽度（这样设置修改后立即生效）
+                if (colTags != null && !double.IsNaN(colTags.Width))
+                    otherColumnsWidth += colTags.Width;
+                if (colNotes != null && !double.IsNaN(colNotes.Width))
+                    otherColumnsWidth += colNotes.Width;
+
+                // 计算名称列应该的宽度
+                double availableWidth = FilesListView.ActualWidth;
+                double scrollBarWidth = System.Windows.SystemParameters.VerticalScrollBarWidth;
+                // 减去滚动条宽度和额外边距（20px）确保不出现横向滚动条
+                double nameColumnWidth = availableWidth - otherColumnsWidth - scrollBarWidth - 20;
+
+                // 设置最小宽度
+                if (nameColumnWidth < 120) nameColumnWidth = 120;
+
+                colName.Width = nameColumnWidth;
+            }
+            catch
+            {
+                // 忽略错误
+            }
+        }
+
+        #endregion
     }
 }
 
