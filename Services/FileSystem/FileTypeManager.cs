@@ -49,6 +49,7 @@ namespace OoiMRR
             { ".yaml", new FileTypeInfo { Category = "配置", CanPreview = true, PreviewType = PreviewType.Text } },
             { ".yml", new FileTypeInfo { Category = "配置", CanPreview = true, PreviewType = PreviewType.Text } },
             { ".toml", new FileTypeInfo { Category = "配置", CanPreview = true, PreviewType = PreviewType.Text } },
+            { ".toc", new FileTypeInfo { Category = "配置", CanPreview = true, PreviewType = PreviewType.Text } },
             
             // 数据文件
             { ".xml", new FileTypeInfo { Category = "数据", CanPreview = true, PreviewType = PreviewType.Text } },

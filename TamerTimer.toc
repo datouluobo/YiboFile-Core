@@ -1,0 +1,28 @@
+## Interface: 110005
+## Title: TamerTimer
+## Version: 1.0.0
+## Author: YourName
+## Notes: 稀有宠物刷新计时器，帮助你追踪魔兽世界中稀有宠物的刷新时间
+## DefaultState: enabled
+## SavedVariables: TamerTimerDB
+## SavedVariablesPerCharacter: TamerTimerCharDB
+## RequiredDeps: 
+## OptionalDeps: Ace3, LibStub, CallbackHandler-1.0
+## X-Category: Pets & Mounts
+## X-Website: https://github.com/YourRepo/TamerTimer
+## X-Feedback: https://github.com/YourRepo/TamerTimer/issues
+
+# Core files
+Core\Init.lua
+Core\Database.lua
+Core\Config.lua
+
+# UI files
+UI\MainFrame.xml
+UI\TimerList.lua
+UI\Minimap.lua
+
+# Module files
+Modules\PetTracker.lua
+Modules\Notifications.lua
+Modules\DataSync.lua

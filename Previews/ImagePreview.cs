@@ -476,8 +476,8 @@ namespace OoiMRR.Previews
         {
             using var magickImage = new MagickImage(filePath);
 
-            // 限制尺寸避免内存问题
-            const int maxDim = 2048;
+            // 限制尺寸避免内存问题，与DecodePixelWidth=800保持一致
+            const int maxDim = 800;
             if (magickImage.Width > maxDim || magickImage.Height > maxDim)
             {
                 magickImage.Resize(new MagickGeometry((uint)maxDim, (uint)maxDim)

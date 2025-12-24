@@ -17,6 +17,14 @@ namespace OoiMRR.Previews
         {
             try
             {
+                var extension = Path.GetExtension(filePath)?.ToLower();
+
+                // 特殊处理TOC文件（魔兽世界插件配置）
+                if (extension == ".toc")
+                {
+                    return TocPreview.CreatePreview(filePath);
+                }
+
                 string content = null;
                 var encodings = new List<Encoding>
                 {
@@ -172,22 +180,22 @@ namespace OoiMRR.Previews
 
                                 // 保存文件
                                 File.WriteAllText(filePath, textBox.Text, encoding);
-                                
+
                                 // 更新原始内容
                                 originalContent = textBox.Text;
-                                
+
                                 // 切换为只读模式
                                 textBox.IsReadOnly = true;
                                 textBox.Background = PreviewHelper.ReadOnlyBackground;
                                 isEditMode = false;
-                                
+
                                 // 更新按钮
                                 if (editButton != null)
                                 {
                                     editButton.Content = "✏️ 编辑";
                                     editButton.Background = new SolidColorBrush(Color.FromRgb(33, 150, 243));
                                 }
-                                
+
                                 MessageBox.Show("文件已保存", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
                             }
                             catch (Exception ex)
@@ -201,7 +209,7 @@ namespace OoiMRR.Previews
                             textBox.IsReadOnly = false;
                             textBox.Background = PreviewHelper.EditModeBackground; // 浅蓝色背景表示可编辑
                             isEditMode = true;
-                            
+
                             // 更新按钮
                             if (editButton != null)
                             {
