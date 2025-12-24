@@ -784,17 +784,19 @@ namespace OoiMRR.Previews
                     textRange.Load(memStream, DataFormats.Rtf);
                 }
 
+
                 Grid.SetRow(rtfBox, 1);
                 grid.Children.Add(rtfBox);
 
                 // 检查内容是否加载成功
-                TextRange checkRange = new TextRange(rtfBox.Document.ContentStart, rtfBox.Document.ContentEnd);
-                if (string.IsNullOrWhiteSpace(checkRange.Text))
-                {
-                    // 尝试作为纯文本加载
-                    rtfBox.Document.Blocks.Clear();
-                    rtfBox.AppendText(File.ReadAllText(filePath));
-                }
+                //TextRange checkRange = new TextRange(rtfBox.Document.ContentStart, rtfBox.Document.ContentEnd);
+                //if (string.IsNullOrWhiteSpace(checkRange.Text))
+                //{
+                //    // 不要作为纯文本加载，这会显示原始RTF代码
+                //    // rtfBox.Document.Blocks.Clear();
+                //    // rtfBox.AppendText(File.ReadAllText(filePath));
+                //}
+
 
                 return grid;
             }

@@ -53,11 +53,24 @@ namespace OoiMRR.Previews
                 Grid.SetRow(titlePanel, 0);
                 grid.Children.Add(titlePanel);
 
+                // 加载指示器
+                var loadingText = new TextBlock
+                {
+                    Text = "正在加载PowerPoint文档...",
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Foreground = System.Windows.Media.Brushes.Gray,
+                    FontSize = 14
+                };
+                Grid.SetRow(loadingText, 1);
+                grid.Children.Add(loadingText);
+
                 var webView = new WebView2
                 {
                     VerticalAlignment = VerticalAlignment.Stretch,
                     HorizontalAlignment = HorizontalAlignment.Stretch,
-                    MinHeight = 400
+                    MinHeight = 400,
+                    Visibility = Visibility.Collapsed
                 };
                 Grid.SetRow(webView, 1);
                 grid.Children.Add(webView);
@@ -78,7 +91,7 @@ namespace OoiMRR.Previews
                             }
                             catch (Exception ex)
                             {
-                                                                return $"<html><body style='font-family:Segoe UI;color:#c00;padding:16px'>预览失败: {WebUtility.HtmlEncode(ex.Message)}</body></html>";
+                                return $"<html><body style='font-family:Segoe UI;color:#c00;padding:16px'>预览失败: {WebUtility.HtmlEncode(ex.Message)}<br><br>详细信息: {WebUtility.HtmlEncode(ex.StackTrace)}</body></html>";
                             }
                         });
 
@@ -109,16 +122,21 @@ namespace OoiMRR.Previews
                                 };
                             }
                             catch (Exception)
-            {webView.NavigateToString(html);}
+                            { webView.NavigateToString(html); }
                         }
                         else
                         {
                             webView.NavigateToString(html);
                         }
+
+                        // 显示WebView，隐藏加载提示
+                        webView.Visibility = Visibility.Visible;
+                        loadingText.Visibility = Visibility.Collapsed;
                     }
                     catch (Exception ex)
                     {
-                        webView.NavigateToString($"<html><body style='font-family:Segoe UI;color:#c00;padding:16px'>预览失败: {WebUtility.HtmlEncode(ex.Message)}</body></html>");
+                        loadingText.Text = $"加载失败: {ex.Message}";
+                        loadingText.Foreground = System.Windows.Media.Brushes.Red;
                     }
                 };
 
@@ -160,7 +178,7 @@ namespace OoiMRR.Previews
                     {
                         var imageMap = ExtractImagesFromSlidePart(slidePart);
                         allImageMap[slideId.RelationshipId] = imageMap;
-                                            }
+                    }
                 }
 
                 // 处理每张幻灯片
@@ -188,7 +206,7 @@ namespace OoiMRR.Previews
                     }
                     catch (Exception ex)
                     {
-                                                slides.Add(new SlideContent { Content = $"解析错误: {ex.Message}" });
+                        slides.Add(new SlideContent { Content = $"解析错误: {ex.Message}" });
                     }
                 }
 
@@ -271,18 +289,18 @@ namespace OoiMRR.Previews
                             relationshipId = slidePart.GetIdOfPart(imagePart);
                         }
                         catch (Exception)
-            {continue;}
+                        { continue; }
 
                         if (string.IsNullOrEmpty(relationshipId))
                         {
-                                                        continue;
+                            continue;
                         }
 
                         using (var stream = imagePart.GetStream())
                         {
                             if (stream == null)
                             {
-                                                                continue;
+                                continue;
                             }
 
                             using (var memoryStream = new MemoryStream())
@@ -291,7 +309,7 @@ namespace OoiMRR.Previews
 
                                 if (memoryStream.Length == 0 || memoryStream.Length > 50 * 1024 * 1024) // 限制50MB
                                 {
-                                                                        continue;
+                                    continue;
                                 }
 
                                 byte[] imageBytes = memoryStream.ToArray();
@@ -311,7 +329,7 @@ namespace OoiMRR.Previews
                                     else if (extension == ".png")
                                         mimeType = "image/png";
 
-                                                                    }
+                                }
                                 catch
                                 {
                                     // 使用默认PNG类型
@@ -339,16 +357,18 @@ namespace OoiMRR.Previews
                                 }
 
                                 imageCount++;
-                                                            }
+                            }
                         }
                     }
-                    catch{
-                                            }
+                    catch
+                    {
+                    }
                 }
 
-                            }
-            catch{
-                            }
+            }
+            catch
+            {
+            }
 
             return imageMap;
         }
@@ -536,7 +556,10 @@ namespace OoiMRR.Previews
                 grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
                 grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
-                // 转换按钮
+                // 检测PowerPoint是否安装
+                bool hasPowerPoint = IsPowerPointInstalled();
+
+                // 转换按钮（如果有PowerPoint）
                 var convertButton = new Button
                 {
                     Content = "🔄 转换为PPTX格式",
@@ -545,7 +568,8 @@ namespace OoiMRR.Previews
                     Foreground = Brushes.White,
                     BorderThickness = new Thickness(0),
                     Cursor = System.Windows.Input.Cursors.Hand,
-                    FontSize = 13
+                    FontSize = 13,
+                    IsEnabled = hasPowerPoint
                 };
 
                 convertButton.Click += async (s, e) =>
@@ -576,6 +600,11 @@ namespace OoiMRR.Previews
                             if (success)
                             {
                                 convertButton.Content = "✅ 转换成功";
+                                MessageBox.Show(
+                                    $"文件已成功转换为PPTX格式：\n{outputPath}",
+                                    "转换成功",
+                                    MessageBoxButton.OK,
+                                    MessageBoxImage.Information);
                             }
                             else
                             {
@@ -619,7 +648,7 @@ namespace OoiMRR.Previews
                     Orientation = Orientation.Vertical,
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Center,
-                    Margin = new Thickness(20)
+                    Margin = new Thickness(40)
                 };
 
                 var warningIcon = new TextBlock
@@ -630,19 +659,97 @@ namespace OoiMRR.Previews
                     Margin = new Thickness(0, 10, 0, 20)
                 };
 
+                var titleText = new TextBlock
+                {
+                    Text = "PPT 格式说明",
+                    FontSize = 18,
+                    FontWeight = FontWeights.Bold,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    Margin = new Thickness(0, 0, 0, 15)
+                };
+
                 var infoText = new TextBlock
                 {
-                    Text = "该文件为旧的 PPT 格式（Microsoft PowerPoint 97-2003）\n\n由于 PPT 文件使用二进制格式，无法直接预览内容。\n建议将文件转换为 PPTX 格式以获得更好的预览体验。",
-                    FontSize = 12,
+                    Text = "该文件为旧的 PPT 格式（Microsoft PowerPoint 97-2003）\n\n" +
+                           "由于 PPT 使用二进制格式，无法直接预览内容。",
+                    FontSize = 13,
                     HorizontalAlignment = HorizontalAlignment.Center,
                     TextWrapping = TextWrapping.Wrap,
                     TextAlignment = TextAlignment.Center,
                     Foreground = new SolidColorBrush(Color.FromRgb(102, 102, 102)),
-                    LineHeight = 24
+                    LineHeight = 22,
+                    Margin = new Thickness(0, 0, 0, 20)
                 };
 
                 contentPanel.Children.Add(warningIcon);
+                contentPanel.Children.Add(titleText);
                 contentPanel.Children.Add(infoText);
+
+                // 推荐方案
+                var solutionsPanel = new StackPanel
+                {
+                    Orientation = Orientation.Vertical,
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    Margin = new Thickness(20, 0, 20, 0)
+                };
+
+                var solutionsTitle = new TextBlock
+                {
+                    Text = "💡 推荐方案：",
+                    FontSize = 14,
+                    FontWeight = FontWeights.Bold,
+                    Margin = new Thickness(0, 0, 0, 10)
+                };
+                solutionsPanel.Children.Add(solutionsTitle);
+
+                if (hasPowerPoint)
+                {
+                    // 方案1：自动转换
+                    var solution1 = new TextBlock
+                    {
+                        Text = "✅ 自动转换：点击上方\"转换为PPTX格式\"按钮",
+                        FontSize = 12,
+                        Margin = new Thickness(0, 5, 0, 5),
+                        TextWrapping = TextWrapping.Wrap
+                    };
+                    solutionsPanel.Children.Add(solution1);
+                }
+                else
+                {
+                    // 无PowerPoint的情况
+                    var noPptWarning = new TextBlock
+                    {
+                        Text = "❌ 未检测到 Microsoft PowerPoint，无法自动转换",
+                        FontSize = 12,
+                        Foreground = new SolidColorBrush(Color.FromRgb(255, 152, 0)),
+                        FontWeight = FontWeights.Bold,
+                        Margin = new Thickness(0, 5, 0, 10),
+                        TextWrapping = TextWrapping.Wrap
+                    };
+                    solutionsPanel.Children.Add(noPptWarning);
+                }
+
+                // 方案2：手动转换
+                var solution2 = new TextBlock
+                {
+                    Text = "🔧 手动转换：在 PowerPoint 中打开，选择\"另存为\" → PPTX 格式",
+                    FontSize = 12,
+                    Margin = new Thickness(0, 5, 0, 5),
+                    TextWrapping = TextWrapping.Wrap
+                };
+                solutionsPanel.Children.Add(solution2);
+
+                // 方案3：在线预览
+                var solution3 = new TextBlock
+                {
+                    Text = "🌐 在线预览：上传到 OneDrive 后使用 Office Online 打开",
+                    FontSize = 12,
+                    Margin = new Thickness(0, 5, 0, 5),
+                    TextWrapping = TextWrapping.Wrap
+                };
+                solutionsPanel.Children.Add(solution3);
+
+                contentPanel.Children.Add(solutionsPanel);
 
                 Grid.SetRow(contentPanel, 1);
                 grid.Children.Add(contentPanel);
@@ -652,6 +759,22 @@ namespace OoiMRR.Previews
             catch (Exception ex)
             {
                 return PreviewHelper.CreateErrorPreview($"无法读取PPT文档: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 检测是否安装了 Microsoft PowerPoint
+        /// </summary>
+        private bool IsPowerPointInstalled()
+        {
+            try
+            {
+                Type pptType = Type.GetTypeFromProgID("PowerPoint.Application");
+                return pptType != null;
+            }
+            catch
+            {
+                return false;
             }
         }
 

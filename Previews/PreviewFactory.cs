@@ -88,12 +88,16 @@ namespace OoiMRR.Previews
             return extension switch
             {
                 ".docx" => new DocumentPreview(),
+                ".docm" => new DocumentPreview(),
                 ".doc" => new DocumentPreview(),
                 ".pdf" => new DocumentPreview(),
                 ".rtf" => new DocumentPreview(),
                 ".xlsx" => new ExcelPreview(),
                 ".xlsm" => new ExcelPreview(),
                 ".xls" => new ExcelPreview(),
+                ".pptx" => new PowerPointPreview(),
+                ".pptm" => new PowerPointPreview(),
+                ".ppt" => new PowerPointPreview(),
                 ".dwg" => new CadPreview(),
                 ".dxf" => new CadPreview(),
                 _ => null

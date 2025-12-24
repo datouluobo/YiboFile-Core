@@ -351,6 +351,39 @@ namespace OoiMRR
             // 订阅 FileBrowser 事件
             if (FileBrowser != null)
             {
+                // 右键菜单文件操作事件
+                FileBrowser.FileCopy += (s, e) => _menuEventHandler?.Copy_Click(s, e);
+                FileBrowser.FileCut += (s, e) => _menuEventHandler?.Cut_Click(s, e);
+                FileBrowser.FilePaste += (s, e) => _menuEventHandler?.Paste_Click(s, e);
+                FileBrowser.FileDelete += async (s, e) =>
+                {
+                    try
+                    {
+                        IFileOperationContext context = null;
+                        if (_currentLibrary != null)
+                        {
+                            context = new LibraryOperationContext(_currentLibrary, FileBrowser, this, RefreshFileList);
+                        }
+                        else
+                        {
+                            context = new PathOperationContext(_currentPath, FileBrowser, this, RefreshFileList);
+                        }
+                        var op = new DeleteOperation(context);
+                        var items = FileBrowser?.FilesSelectedItems?.Cast<FileSystemItem>().ToList();
+                        await op.ExecuteAsync(items);
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"删除操作失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                };
+                FileBrowser.FileRename += (s, e) => _menuEventHandler?.Rename_Click(s, e);
+                FileBrowser.FileRefresh += (s, e) => RefreshFileList();
+                FileBrowser.FileProperties += (s, e) =>
+                {
+                    // 属性功能可以后续实现
+                    MessageBox.Show("属性功能开发中", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                };
                 FileBrowser.FileAddTag += AddTagToFile_Click;
             }
 

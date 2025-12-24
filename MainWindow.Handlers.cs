@@ -909,8 +909,8 @@ namespace OoiMRR
 
         private void SetClipboardDataObjectWithRetry(System.Windows.DataObject data)
         {
-            const int MaxRetries = 50;
-            const int DelayMs = 100;
+            const int MaxRetries = 10;    // 从50减少到10
+            const int DelayMs = 50;        // 从100ms减少到50ms
 
             for (int i = 0; i < MaxRetries; i++)
             {
@@ -929,7 +929,8 @@ namespace OoiMRR
                     }
                     if (i == MaxRetries - 1)
                     {
-                        System.Windows.MessageBox.Show("Unable to access the clipboard. Another application might be blocking it.", "Clipboard Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                        System.Windows.MessageBox.Show("剪贴板被占用，请稍后再试。", "复制失败", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                        return;
                     }
                     System.Threading.Thread.Sleep(DelayMs);
                 }
