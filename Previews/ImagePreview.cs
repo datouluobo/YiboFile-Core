@@ -7,6 +7,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Input;
 using ImageMagick;
 
 namespace OoiMRR.Previews
@@ -75,7 +76,77 @@ namespace OoiMRR.Previews
         /// <summary>
         /// 创建位图预览（bmp, jpeg, jpg, png, gif, tif, tiff, ico）
         /// </summary>
+        /// <summary>
+        /// 创建位图预览 (BMP/JPEG/PNG/ICO/TIFF等)
+        /// </summary>
         private UIElement CreateBitmapPreview(string filePath)
+        {
+            // 加载位图
+            BitmapImage bitmap = new BitmapImage();
+            bitmap.BeginInit();
+            bitmap.UriSource = new Uri(filePath, UriKind.Absolute);
+            bitmap.CacheOption = BitmapCacheOption.OnLoad;
+            bitmap.EndInit();
+
+            // 创建主容器
+            var grid = new Grid();
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 标题栏
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 工具栏
+            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // 图片区
+
+            // 标题栏
+            var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath) };
+            var titlePanel = PreviewHelper.CreateTitlePanel("🖼️", $"图片文件: {Path.GetFileName(filePath)}", buttons);
+            Grid.SetRow(titlePanel, 0);
+            grid.Children.Add(titlePanel);
+
+            // Transform配置
+            var scaleTransform = new ScaleTransform(1.0, 1.0);
+            var rotateTransform = new RotateTransform(0);
+            var transformGroup = new TransformGroup();
+            transformGroup.Children.Add(scaleTransform);
+            transformGroup.Children.Add(rotateTransform);
+
+            // 创建Image
+            var image = new Image
+            {
+                Source = bitmap,
+                Stretch = Stretch.Uniform, // 默认适应窗口
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                RenderTransform = transformGroup,
+                RenderTransformOrigin = new Point(0.5, 0.5)
+            };
+
+            // ScrollViewer
+            var scrollViewer = new ScrollViewer
+            {
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                Content = image
+            };
+            Grid.SetRow(scrollViewer, 2);
+            grid.Children.Add(scrollViewer);
+
+            // 创建工具栏
+            var toolbar = ImageToolbarHelper.CreateToolbar(new ImageToolbarHelper.ToolbarConfig
+            {
+                TargetImage = image,
+                ScaleTransform = scaleTransform,
+                RotateTransform = rotateTransform,
+                TitlePanel = titlePanel,
+                ParentGrid = grid
+            });
+            Grid.SetRow(toolbar, 1);
+            grid.Children.Add(toolbar);
+
+            return grid;
+        }
+
+        /// <summary>
+        /// 创建位图预览 - 旧版本（待删除）
+        /// </summary>
+        private UIElement CreateBitmapPreview_Old(string filePath)
         {
             BitmapImage bitmap;
 
@@ -86,7 +157,6 @@ namespace OoiMRR.Previews
                 bitmap.BeginInit();
                 bitmap.UriSource = new Uri(filePath, UriKind.Absolute);
                 bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                bitmap.DecodePixelWidth = 800; // 提高显示质量
                 bitmap.EndInit();
             }
             catch
@@ -96,14 +166,14 @@ namespace OoiMRR.Previews
                 bitmap.BeginInit();
                 bitmap.StreamSource = new FileStream(filePath, FileMode.Open, FileAccess.Read);
                 bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                bitmap.DecodePixelWidth = 800; // 提高显示质量
                 bitmap.EndInit();
             }
 
             // 创建主容器
             var grid = new Grid();
-            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 标题栏
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 工具栏
+            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // 图片区
 
             // 标题栏
             var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath) };
@@ -111,23 +181,232 @@ namespace OoiMRR.Previews
             Grid.SetRow(titlePanel, 0);
             grid.Children.Add(titlePanel);
 
+            // 工具栏
+            var toolbar = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Background = (Brush)Application.Current.FindResource("PreviewPanelBackgroundBrush"),
+                Margin = new Thickness(0, 5, 0, 5),
+                HorizontalAlignment = HorizontalAlignment.Center
+            };
+            Grid.SetRow(toolbar, 1);
+
+            // Transform配置
+            var scaleTransform = new ScaleTransform(1.0, 1.0);
+            var rotateTransform = new RotateTransform(0);
+            var transformGroup = new TransformGroup();
+            transformGroup.Children.Add(scaleTransform);
+            transformGroup.Children.Add(rotateTransform);
+
+            double currentScale = 1.0;
+            double currentRotation = 0;
+            bool isFitToWindow = true;
+
+            // 创建Image
             var image = new Image
             {
                 Source = bitmap,
-                Stretch = Stretch.Uniform,
+                Stretch = Stretch.Uniform, // 默认适应窗口
                 HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center
+                VerticalAlignment = VerticalAlignment.Center,
+                RenderTransform = transformGroup,
+                RenderTransformOrigin = new Point(0.5, 0.5)
             };
 
-            // 添加ScrollViewer以支持大图片
+            // ScrollViewer
             var scrollViewer = new ScrollViewer
             {
                 HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
                 VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
                 Content = image
             };
-            Grid.SetRow(scrollViewer, 1);
+            Grid.SetRow(scrollViewer, 2);
             grid.Children.Add(scrollViewer);
+
+            // 按钮样式
+            var buttonStyle = Application.Current.TryFindResource("ModernButtonStyle") as Style;
+
+            // 放大按钮
+            var zoomInBtn = new Button
+            {
+                Content = "🔍+ 放大",
+                Margin = new Thickness(5),
+                Padding = new Thickness(10, 5, 10, 5),
+                Style = buttonStyle,
+                ToolTip = "放大 (Ctrl+Plus)"
+            };
+            zoomInBtn.Click += (s, e) =>
+            {
+                if (isFitToWindow)
+                {
+                    image.Stretch = Stretch.None;
+                    isFitToWindow = false;
+                }
+                currentScale *= 1.2;
+                scaleTransform.ScaleX = currentScale;
+                scaleTransform.ScaleY = currentScale;
+            };
+            toolbar.Children.Add(zoomInBtn);
+
+            // 缩小按钮
+            var zoomOutBtn = new Button
+            {
+                Content = "🔍- 缩小",
+                Margin = new Thickness(5),
+                Padding = new Thickness(10, 5, 10, 5),
+                Style = buttonStyle,
+                ToolTip = "缩小 (Ctrl+Minus)"
+            };
+            zoomOutBtn.Click += (s, e) =>
+            {
+                if (isFitToWindow)
+                {
+                    image.Stretch = Stretch.None;
+                    isFitToWindow = false;
+                }
+                currentScale /= 1.2;
+                if (currentScale < 0.1) currentScale = 0.1;
+                scaleTransform.ScaleX = currentScale;
+                scaleTransform.ScaleY = currentScale;
+            };
+            toolbar.Children.Add(zoomOutBtn);
+
+            // 100%按钮
+            var resetBtn = new Button
+            {
+                Content = "1:1 原始",
+                Margin = new Thickness(5),
+                Padding = new Thickness(10, 5, 10, 5),
+                Style = buttonStyle,
+                ToolTip = "原始大小 (Ctrl+0)"
+            };
+            resetBtn.Click += (s, e) =>
+            {
+                image.Stretch = Stretch.None;
+                currentScale = 1.0;
+                scaleTransform.ScaleX = 1.0;
+                scaleTransform.ScaleY = 1.0;
+                isFitToWindow = false;
+            };
+            toolbar.Children.Add(resetBtn);
+
+            // 适应窗口按钮
+            var fitBtn = new Button
+            {
+                Content = "⊡ 适应",
+                Margin = new Thickness(5),
+                Padding = new Thickness(10, 5, 10, 5),
+                Style = buttonStyle,
+                ToolTip = "适应窗口 (Ctrl+F)"
+            };
+            fitBtn.Click += (s, e) =>
+            {
+                image.Stretch = Stretch.Uniform;
+                currentScale = 1.0;
+                scaleTransform.ScaleX = 1.0;
+                scaleTransform.ScaleY = 1.0;
+                isFitToWindow = true;
+            };
+            toolbar.Children.Add(fitBtn);
+
+            // 旋转按钮
+            var rotateBtn = new Button
+            {
+                Content = "🔄 旋转",
+                Margin = new Thickness(5),
+                Padding = new Thickness(10, 5, 10, 5),
+                Style = buttonStyle,
+                ToolTip = "顺时针旋转90° (R)"
+            };
+            rotateBtn.Click += (s, e) =>
+            {
+                currentRotation = (currentRotation + 90) % 360;
+                rotateTransform.Angle = currentRotation;
+            };
+            toolbar.Children.Add(rotateBtn);
+
+            // 全屏按钮
+            bool isFullscreen = false;
+            var fullscreenBtn = new Button
+            {
+                Content = "⛶ 全屏",
+                Margin = new Thickness(5),
+                Padding = new Thickness(10, 5, 10, 5),
+                Style = buttonStyle,
+                ToolTip = "全屏查看 (F11)"
+            };
+            fullscreenBtn.Click += (s, e) =>
+            {
+                var window = Window.GetWindow(grid);
+                if (window == null) return;
+
+                isFullscreen = !isFullscreen;
+                if (isFullscreen)
+                {
+                    titlePanel.Visibility = Visibility.Collapsed;
+                    toolbar.Visibility = Visibility.Collapsed;
+                    window.WindowStyle = WindowStyle.None;
+                    window.WindowState = WindowState.Maximized;
+                    window.Topmost = true;
+                    fullscreenBtn.Content = "⛶ 退出";
+                }
+                else
+                {
+                    titlePanel.Visibility = Visibility.Visible;
+                    toolbar.Visibility = Visibility.Visible;
+                    window.WindowStyle = WindowStyle.SingleBorderWindow;
+                    window.WindowState = WindowState.Normal;
+                    window.Topmost = false;
+                    fullscreenBtn.Content = "⛶ 全屏";
+                }
+            };
+            toolbar.Children.Add(fullscreenBtn);
+
+            grid.Children.Add(toolbar);
+
+            // 快捷键支持
+            grid.Focusable = true;
+            grid.PreviewKeyDown += (s, e) =>
+            {
+                if (Keyboard.Modifiers == ModifierKeys.Control)
+                {
+                    if (e.Key == Key.OemPlus || e.Key == Key.Add)
+                    {
+                        zoomInBtn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                        e.Handled = true;
+                    }
+                    else if (e.Key == Key.OemMinus || e.Key == Key.Subtract)
+                    {
+                        zoomOutBtn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                        e.Handled = true;
+                    }
+                    else if (e.Key == Key.D0 || e.Key == Key.NumPad0)
+                    {
+                        resetBtn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                        e.Handled = true;
+                    }
+                    else if (e.Key == Key.F)
+                    {
+                        fitBtn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                        e.Handled = true;
+                    }
+                }
+                else if (e.Key == Key.R)
+                {
+                    rotateBtn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    e.Handled = true;
+                }
+                else if (e.Key == Key.F11)
+                {
+                    fullscreenBtn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    e.Handled = true;
+                }
+                else if (e.Key == Key.Escape && isFullscreen)
+                {
+                    fullscreenBtn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    e.Handled = true;
+                }
+            };
 
             return grid;
         }
@@ -273,7 +552,7 @@ namespace OoiMRR.Previews
                     VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
                     Content = image
                 };
-                Grid.SetRow(scrollViewer, 1);
+                Grid.SetRow(scrollViewer, 2);
                 grid.Children.Add(scrollViewer);
             }
             catch (Exception ex)
@@ -318,7 +597,7 @@ namespace OoiMRR.Previews
                 Foreground = System.Windows.Media.Brushes.Gray,
                 FontSize = 14
             };
-            Grid.SetRow(loadingText, 1);
+            Grid.SetRow(loadingText, 2);
             grid.Children.Add(loadingText);
 
             // 图片控件（初始隐藏）
@@ -338,7 +617,7 @@ namespace OoiMRR.Previews
                 Content = image,
                 Visibility = Visibility.Collapsed
             };
-            Grid.SetRow(scrollViewer, 1);
+            Grid.SetRow(scrollViewer, 2);
             grid.Children.Add(scrollViewer);
 
             // 异步加载
@@ -393,8 +672,9 @@ namespace OoiMRR.Previews
         private UIElement CreateMagickPreview(string filePath, string extension)
         {
             var grid = new Grid();
-            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 标题栏
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 工具栏
+            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // 图片区
 
             // 标题栏
             var formatName = GetFormatDisplayName(extension);
@@ -402,6 +682,13 @@ namespace OoiMRR.Previews
             var titlePanel = PreviewHelper.CreateTitlePanel("🖼️", $"{formatName}: {Path.GetFileName(filePath)}", buttons);
             Grid.SetRow(titlePanel, 0);
             grid.Children.Add(titlePanel);
+
+            // Transform配置
+            var scaleTransform = new ScaleTransform(1.0, 1.0);
+            var rotateTransform = new RotateTransform(0);
+            var transformGroup = new TransformGroup();
+            transformGroup.Children.Add(scaleTransform);
+            transformGroup.Children.Add(rotateTransform);
 
             // 加载指示器
             var loadingText = new TextBlock
@@ -412,7 +699,7 @@ namespace OoiMRR.Previews
                 Foreground = Brushes.Gray,
                 FontSize = 14
             };
-            Grid.SetRow(loadingText, 1);
+            Grid.SetRow(loadingText, 2);
             grid.Children.Add(loadingText);
 
             // 图片控件
@@ -421,7 +708,9 @@ namespace OoiMRR.Previews
                 Stretch = Stretch.Uniform,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
-                Visibility = Visibility.Collapsed
+                Visibility = Visibility.Collapsed,
+                RenderTransform = transformGroup,
+                RenderTransformOrigin = new Point(0.5, 0.5)
             };
 
             var scrollViewer = new ScrollViewer
@@ -431,8 +720,21 @@ namespace OoiMRR.Previews
                 Content = image,
                 Visibility = Visibility.Collapsed
             };
-            Grid.SetRow(scrollViewer, 1);
+            Grid.SetRow(scrollViewer, 2);
             grid.Children.Add(scrollViewer);
+
+            // 创建工具栏
+            var toolbar = ImageToolbarHelper.CreateToolbar(new ImageToolbarHelper.ToolbarConfig
+            {
+                TargetImage = image,
+                ScaleTransform = scaleTransform,
+                RotateTransform = rotateTransform,
+                TitlePanel = titlePanel,
+                ParentGrid = grid
+            });
+            toolbar.Visibility = Visibility.Collapsed;
+            Grid.SetRow(toolbar, 1);
+            grid.Children.Add(toolbar);
 
             // 异步加载
             System.Threading.Tasks.Task.Run(() =>
@@ -446,6 +748,7 @@ namespace OoiMRR.Previews
                         image.Source = bitmap;
                         image.Visibility = Visibility.Visible;
                         scrollViewer.Visibility = Visibility.Visible;
+                        toolbar.Visibility = Visibility.Visible;
                         loadingText.Visibility = Visibility.Collapsed;
                     });
                 }
@@ -567,7 +870,7 @@ namespace OoiMRR.Previews
                 Foreground = System.Windows.Media.Brushes.Gray,
                 FontSize = 14
             };
-            Grid.SetRow(loadingText, 1);
+            Grid.SetRow(loadingText, 2);
             grid.Children.Add(loadingText);
 
             // 图片控件（初始隐藏）
@@ -587,7 +890,7 @@ namespace OoiMRR.Previews
                 Content = image,
                 Visibility = Visibility.Collapsed
             };
-            Grid.SetRow(scrollViewer, 1);
+            Grid.SetRow(scrollViewer, 2);
             grid.Children.Add(scrollViewer);
 
             // 异步加载

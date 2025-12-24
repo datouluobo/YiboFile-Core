@@ -142,21 +142,7 @@ namespace OoiMRR.Services.Preview
                 return;
             }
 
-            // 5. 检查是否是图片文件（排除GIF以支持动画），如果是则使用TagTrain样式的图片预览
-            var imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".bmp", ".webp", ".tiff", ".tif" };
-
-            if (!item.IsDirectory && !string.IsNullOrEmpty(fileExtension) && imageExtensions.Contains(fileExtension))
-            {
-                // 先清除图片预览状态，确保干净的状态
-                _rightPanel.ClearImagePreview();
-
-                // 使用TagTrain样式的图片预览
-                // DisplayImagePreview 内部会清理其他预览元素，保留 ImagePreviewBorder 和 DefaultPreviewText
-                _rightPanel.DisplayImagePreview(item.Path);
-                return;
-            }
-
-            // 对于非图片文件，先清除图片预览，然后使用原有的预览方式（通过PreviewGrid）
+            // 对于所有文件（包括图片），先清除图片预览，然后使用PreviewFactory统一路由
             _rightPanel.ClearImagePreview();
 
             // 确保ImagePreviewBorder不会遮挡预览内容

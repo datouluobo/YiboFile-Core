@@ -22,14 +22,22 @@ namespace OoiMRR.Previews
                 Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 255, 255)), // 白色背景
                 Name = "SvgPreviewGrid"
             };
-            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 标题栏
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 工具栏
+            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // 内容区
 
             // 标题栏
             var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath) };
             var titlePanel = PreviewHelper.CreateTitlePanel("🖼️", $"SVG 矢量图: {Path.GetFileName(filePath)}", buttons);
             Grid.SetRow(titlePanel, 0);
             grid.Children.Add(titlePanel);
+
+            // Transform配置
+            var scaleTransform = new ScaleTransform(1.0, 1.0);
+            var rotateTransform = new RotateTransform(0);
+            var transformGroup = new TransformGroup();
+            transformGroup.Children.Add(scaleTransform);
+            transformGroup.Children.Add(rotateTransform);
 
             try
             {
@@ -55,8 +63,28 @@ namespace OoiMRR.Previews
 </html>";
                 webBrowser.NavigateToString(htmlContent);
 
-                Grid.SetRow(webBrowser, 1);
-                grid.Children.Add(webBrowser);
+                // 为容器添加Transform
+                var browserContainer = new Border
+                {
+                    Child = webBrowser,
+                    RenderTransform = transformGroup,
+                    RenderTransformOrigin = new Point(0.5, 0.5)
+                };
+
+                Grid.SetRow(browserContainer, 2);
+                grid.Children.Add(browserContainer);
+
+                // 创建工具栏
+                var toolbar = ImageToolbarHelper.CreateToolbar(new ImageToolbarHelper.ToolbarConfig
+                {
+                    TargetImage = null, // SVG不需要Image
+                    ScaleTransform = scaleTransform,
+                    RotateTransform = rotateTransform,
+                    TitlePanel = titlePanel,
+                    ParentGrid = grid
+                });
+                Grid.SetRow(toolbar, 1);
+                grid.Children.Add(toolbar);
             }
             catch (Exception ex)
             {
@@ -68,7 +96,7 @@ namespace OoiMRR.Previews
                     Foreground = Brushes.Red,
                     FontSize = 14
                 };
-                Grid.SetRow(errorText, 1);
+                Grid.SetRow(errorText, 2);
                 grid.Children.Add(errorText);
             }
 

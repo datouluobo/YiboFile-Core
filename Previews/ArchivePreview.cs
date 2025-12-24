@@ -20,7 +20,7 @@ namespace OoiMRR.Previews
         public UIElement CreatePreview(string filePath)
         {
             var extension = Path.GetExtension(filePath).ToLower();
-            
+
             // ZIP文件可以使用.NET内置支持读取文件列表
             if (extension == ".zip")
             {
@@ -62,7 +62,7 @@ namespace OoiMRR.Previews
                 mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // 文件列表（填充剩余空间）
 
                 // 标题栏
-                var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath, "🔓 打开压缩包") };
+                var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath) };
                 var titlePanel = PreviewHelper.CreateTitlePanel("📦", $"ZIP 压缩包: {Path.GetFileName(filePath)}", buttons);
                 Grid.SetRow(titlePanel, 0);
                 mainGrid.Children.Add(titlePanel);
@@ -77,7 +77,7 @@ namespace OoiMRR.Previews
                 {
                     // 注册编码提供程序以支持 GBK 等编码
                     Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-                    
+
                     // 尝试使用 GBK 编码打开 ZIP 文件（适用于中文 Windows 创建的 ZIP）
                     ZipArchive archive = null;
                     try
@@ -152,7 +152,7 @@ namespace OoiMRR.Previews
                     };
 
                     var gridView = new GridView();
-                    
+
                     gridView.Columns.Add(new GridViewColumn
                     {
                         Header = "文件名",
@@ -224,7 +224,7 @@ namespace OoiMRR.Previews
                 mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // 文件列表（填充剩余空间）
 
                 // 标题栏
-                var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath, "🔓 打开压缩包") };
+                var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath) };
                 var titlePanel = PreviewHelper.CreateTitlePanel("📦", $"7Z 压缩包: {Path.GetFileName(filePath)}", buttons);
                 Grid.SetRow(titlePanel, 0);
                 mainGrid.Children.Add(titlePanel);
@@ -321,7 +321,7 @@ namespace OoiMRR.Previews
                             var testOutput = encoding.GetString(outputBytes);
                             // 计算编码质量分数（无效字符越少越好）
                             int score = CountInvalidChars(testOutput);
-                            
+
                             // 检查是否包含7z输出特征（Path =, Size = 等）
                             if (testOutput.Contains("Path = ") && testOutput.Contains("Size = "))
                             {
@@ -397,7 +397,7 @@ namespace OoiMRR.Previews
                     };
 
                     var gridView = new GridView();
-                    
+
                     gridView.Columns.Add(new GridViewColumn
                     {
                         Header = "文件名",
@@ -461,7 +461,7 @@ namespace OoiMRR.Previews
             foreach (var line in lines)
             {
                 var trimmedLine = line.Trim();
-                
+
                 if (string.IsNullOrEmpty(trimmedLine))
                 {
                     // 空行表示一个文件条目结束
@@ -576,7 +576,7 @@ namespace OoiMRR.Previews
                 mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // 文件列表（填充剩余空间）
 
                 // 标题栏
-                var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath, "🔓 打开压缩包") };
+                var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath) };
                 var titlePanel = PreviewHelper.CreateTitlePanel("📦", $"RAR 压缩包: {Path.GetFileName(filePath)}", buttons);
                 Grid.SetRow(titlePanel, 0);
                 mainGrid.Children.Add(titlePanel);
@@ -673,7 +673,7 @@ namespace OoiMRR.Previews
                             var testOutput = encoding.GetString(outputBytes);
                             // 计算编码质量分数（无效字符越少越好）
                             int score = CountInvalidChars(testOutput);
-                            
+
                             // 检查是否包含7z输出特征（Path =, Size = 等）
                             if (testOutput.Contains("Path = ") && testOutput.Contains("Size = "))
                             {
@@ -749,7 +749,7 @@ namespace OoiMRR.Previews
                     };
 
                     var gridView = new GridView();
-                    
+
                     gridView.Columns.Add(new GridViewColumn
                     {
                         Header = "文件名",
@@ -830,7 +830,7 @@ namespace OoiMRR.Previews
                 Margin = new Thickness(10)
             });
 
-            var button = PreviewHelper.CreateOpenButton(filePath, "使用默认程序打开");
+            var button = PreviewHelper.CreateOpenButton(filePath);
             button.Margin = new Thickness(10);
             panel.Children.Add(button);
 

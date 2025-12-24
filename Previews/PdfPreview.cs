@@ -34,7 +34,7 @@ namespace OoiMRR.Previews
                 // 标题栏
                 var buttons = new List<Button>
                 {
-                    PreviewHelper.CreateOpenButton(filePath, "📂 外部打开")
+                    PreviewHelper.CreateOpenButton(filePath)
                 };
                 var title = PreviewHelper.CreateTitlePanel("📄",
                     $"PDF文档: {Path.GetFileName(filePath)}",
@@ -128,7 +128,7 @@ namespace OoiMRR.Previews
                     // 转换为file:// URI格式
                     // 处理路径中的空格和特殊字符
                     var uri = new Uri(filePath).AbsoluteUri;
-                                        // 导航到PDF文件
+                    // 导航到PDF文件
                     webView.CoreWebView2.Navigate(uri);
 
                     // 监听导航完成事件
@@ -136,14 +136,14 @@ namespace OoiMRR.Previews
                     {
                         if (!e.IsSuccess)
                         {
-                                                        ShowErrorInWebView(webView, $"PDF加载失败: {e.WebErrorStatus}");
+                            ShowErrorInWebView(webView, $"PDF加载失败: {e.WebErrorStatus}");
                         }
                     };
                 }
             }
             catch (Exception ex)
             {
-                                // 隐藏加载状态
+                // 隐藏加载状态
                 await webView.Dispatcher.InvokeAsync(() =>
                 {
                     if (loadingPanel != null)
@@ -266,8 +266,9 @@ namespace OoiMRR.Previews
 
                 webView.CoreWebView2?.NavigateToString(errorHtml);
             }
-            catch{
-                            }
+            catch
+            {
+            }
         }
 
         private UIElement CreateErrorPreview(string message, string filePath = null)

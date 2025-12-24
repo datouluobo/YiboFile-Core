@@ -18,12 +18,12 @@ namespace OoiMRR.Previews
         public UIElement CreatePreview(string filePath)
         {
             var extension = Path.GetExtension(filePath).ToLower();
-            
+
             if (extension == ".dwg" || extension == ".dxf")
             {
                 return CreateCadPreview(filePath);
             }
-            
+
             return PreviewHelper.CreateErrorPreview("不支持的 CAD 文件格式");
         }
 
@@ -37,7 +37,7 @@ namespace OoiMRR.Previews
 
                 var ext = Path.GetExtension(filePath).ToLower();
                 var buttons = new List<Button>();
-                
+
                 // 如果是 DWG 文件，添加"转换为DXF格式"按钮
                 if (ext == ".dwg")
                 {
@@ -55,16 +55,16 @@ namespace OoiMRR.Previews
                     convertButton.Click += (s, e) => ConvertDwgToDxf(filePath, convertButton);
                     buttons.Add(convertButton);
                 }
-                
+
                 buttons.Add(PreviewHelper.CreateOpenButton(filePath));
-                
+
                 var titlePanel = PreviewHelper.CreateTitlePanel("📐", $"CAD 文件: {Path.GetFileName(filePath)}", buttons);
                 Grid.SetRow(titlePanel, 0);
                 grid.Children.Add(titlePanel);
-                
+
                 // Main content container
                 var main = new Grid { Margin = new Thickness(0) };
-                
+
                 // Loading indicator
                 var loadingPanel = new StackPanel
                 {
@@ -91,8 +91,8 @@ namespace OoiMRR.Previews
                 main.Children.Add(loadingPanel);
 
                 // WebView2 for SVG rendering
-                var webView = new WebView2 
-                { 
+                var webView = new WebView2
+                {
                     Visibility = Visibility.Collapsed,
                     DefaultBackgroundColor = System.Drawing.Color.White
                 };
@@ -131,28 +131,28 @@ namespace OoiMRR.Previews
                         ShowOdaDownloadUI(webView, loadingPanel, filePath);
                         return;
                     }
-                    
+
                     loadingText.Text = "正在转换 DWG 到 DXF...";
-                    
-                    var convertTask = Task.Run(async () => 
+
+                    var convertTask = Task.Run(async () =>
                     {
                         return await OoiMRR.Services.DwgConverter.ConvertToDxfAsync(filePath);
                     });
 
-                    if (await Task.WhenAny(convertTask, Task.Delay(TimeSpan.FromSeconds(30))) == convertTask)
+                    if (await Task.WhenAny(convertTask, Task.Delay(TimeSpan.FromSeconds(60))) == convertTask)
                     {
                         dxfFilePath = convertTask.Result;
                     }
                     else
                     {
-                        throw new TimeoutException("DWG转换超时，请检查 ODA File Converter 是否安装正确");
+                        throw new TimeoutException("DWG文件转换超时（60秒）。文件可能较大或格式复杂，建议使用AutoCAD等专业软件打开。");
                     }
                 }
 
                 // 2. Convert DXF to SVG
                 loadingText.Text = "正在解析图纸...";
-                
-                var svgContent = await Task.Run(() => 
+
+                var svgContent = await Task.Run(() =>
                 {
                     return OoiMRR.Rendering.DxfSvgConverter.ConvertToSvg(dxfFilePath);
                 });
@@ -218,7 +218,7 @@ namespace OoiMRR.Previews
 </html>";
 
                 webView.NavigateToString(htmlContent);
-                
+
                 loadingPanel.Visibility = Visibility.Collapsed;
                 webView.Visibility = Visibility.Visible;
             }
@@ -237,7 +237,7 @@ namespace OoiMRR.Previews
         {
             var fileName = Path.GetFileName(filePath);
             var fileSize = PreviewHelper.FormatFileSize(new FileInfo(filePath).Length);
-            
+
             var html = $@"
 <!DOCTYPE html>
 <html>
@@ -444,7 +444,7 @@ namespace OoiMRR.Previews
                 {
                     // 获取缓存的 DXF 文件路径
                     var cachedDxfPath = OoiMRR.Services.DwgConverter.GetConvertedDxfPath(dwgFilePath);
-                    
+
                     // 如果缓存不存在，先转换
                     if (!File.Exists(cachedDxfPath))
                     {
@@ -508,7 +508,7 @@ namespace OoiMRR.Previews
                 convertButton.Content = "🔄 转换为DXF格式";
             }
         }
-        
+
     }
 }
 

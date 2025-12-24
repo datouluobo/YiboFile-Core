@@ -623,7 +623,7 @@ namespace OoiMRR.Previews
                 grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
                 // 标题栏
-                var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath, "📂 外部程序打开") };
+                var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath) };
                 var title = PreviewHelper.CreateTitlePanel("📄", $"PDF 文档: {Path.GetFileName(filePath)}", buttons);
                 Grid.SetRow(title, 0);
                 grid.Children.Add(title);
@@ -821,7 +821,7 @@ namespace OoiMRR.Previews
                 mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
                 // 标题
-                var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath, "🌐 使用系统查看器打开") };
+                var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath) };
                 var title = PreviewHelper.CreateTitlePanel("📖", $"CHM 帮助文件: {Path.GetFileName(filePath)}", buttons);
                 Grid.SetRow(title, 0);
                 mainGrid.Children.Add(title);

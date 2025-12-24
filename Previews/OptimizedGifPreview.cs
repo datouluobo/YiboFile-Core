@@ -16,14 +16,22 @@ namespace OoiMRR.Previews
         {
             // 创建主容器
             var grid = new Grid();
-            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 标题栏
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 工具栏
+            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // 内容区
 
             // 标题栏
             var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath) };
             var titlePanel = PreviewHelper.CreateTitlePanel("🎞️", $"GIF 动画: {System.IO.Path.GetFileName(filePath)}", buttons);
             Grid.SetRow(titlePanel, 0);
             grid.Children.Add(titlePanel);
+
+            // Transform配置
+            var scaleTransform = new ScaleTransform(1.0, 1.0);
+            var rotateTransform = new RotateTransform(0);
+            var transformGroup = new TransformGroup();
+            transformGroup.Children.Add(scaleTransform);
+            transformGroup.Children.Add(rotateTransform);
 
             try
             {
@@ -32,7 +40,9 @@ namespace OoiMRR.Previews
                 {
                     Stretch = Stretch.Uniform,
                     HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center
+                    VerticalAlignment = VerticalAlignment.Center,
+                    RenderTransform = transformGroup,
+                    RenderTransformOrigin = new Point(0.5, 0.5)
                 };
 
                 // 设置动画源
@@ -53,8 +63,20 @@ namespace OoiMRR.Previews
                     VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
                     Content = image
                 };
-                Grid.SetRow(scrollViewer, 1);
+                Grid.SetRow(scrollViewer, 2);
                 grid.Children.Add(scrollViewer);
+
+                // 创建工具栏
+                var toolbar = ImageToolbarHelper.CreateToolbar(new ImageToolbarHelper.ToolbarConfig
+                {
+                    TargetImage = image,
+                    ScaleTransform = scaleTransform,
+                    RotateTransform = rotateTransform,
+                    TitlePanel = titlePanel,
+                    ParentGrid = grid
+                });
+                Grid.SetRow(toolbar, 1);
+                grid.Children.Add(toolbar);
             }
             catch (Exception ex)
             {
@@ -66,7 +88,7 @@ namespace OoiMRR.Previews
                     Foreground = Brushes.Red,
                     FontSize = 14
                 };
-                Grid.SetRow(errorText, 1);
+                Grid.SetRow(errorText, 2);
                 grid.Children.Add(errorText);
             }
 

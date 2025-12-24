@@ -42,7 +42,7 @@ namespace OoiMRR.Previews
                 Exception lastException = null;
                 bool isValidXml = false;
                 string tempContent = null;
-                
+
                 foreach (var encoding in encodings)
                 {
                     try
@@ -79,7 +79,7 @@ namespace OoiMRR.Previews
                     }
                     return PreviewHelper.CreateErrorPreview("无法读取XML文件内容");
                 }
-                
+
                 // 如果之前没有验证成功，再次验证XML格式
                 if (!isValidXml)
                 {
@@ -106,7 +106,7 @@ namespace OoiMRR.Previews
                 };
                 Grid.SetRow(contentGrid, 1);
                 grid.Children.Add(contentGrid);
-                
+
                 // 用于跟踪当前视图（0=渲染，1=源码）
                 // 如果XML无效，默认显示源码视图
                 int currentViewIndex = isValidXml ? 0 : 1;
@@ -121,16 +121,16 @@ namespace OoiMRR.Previews
 
                 // 标题栏 - 添加渲染/源码切换按钮和编辑按钮
                 var buttons = new List<Button>();
-                
+
                 // 如果XML无效，不显示渲染切换按钮，只显示编辑按钮
                 if (isValidXml)
                 {
                     toggleButton = PreviewHelper.CreateHtmlViewToggleButton(
-                        () => 
+                        () =>
                         {
                             // 切换视图：如果当前是渲染(0)，切换到源码(1)；如果当前是源码(1)，切换到渲染(0)
                             currentViewIndex = currentViewIndex == 0 ? 1 : 0;
-                            
+
                             // 显示/隐藏对应的视图
                             if (currentViewIndex == 0)
                             {
@@ -172,7 +172,7 @@ namespace OoiMRR.Previews
                     );
                     buttons.Add(toggleButton);
                 }
-                
+
                 // 编辑/保存按钮
                 editButton = PreviewHelper.CreateEditButton(
                     () =>
@@ -186,7 +186,7 @@ namespace OoiMRR.Previews
                                 if (sourceTextBoxRef != null)
                                 {
                                     xmlContent = sourceTextBoxRef.Text;
-                                    
+
                                     // 验证XML格式
                                     try
                                     {
@@ -221,13 +221,13 @@ namespace OoiMRR.Previews
                                 // 保存文件
                                 File.WriteAllText(filePath, xmlContent, encoding);
                                 originalXmlContent = xmlContent;
-                                
+
                                 // 更新渲染视图
                                 if (webViewRef != null)
                                 {
                                     LoadXmlToWebView(webViewRef, filePath, xmlContent);
                                 }
-                                
+
                                 // 切换为只读模式
                                 if (sourceTextBoxRef != null)
                                 {
@@ -235,14 +235,14 @@ namespace OoiMRR.Previews
                                     sourceTextBoxRef.Background = PreviewHelper.ReadOnlyBackground;
                                 }
                                 isEditMode = false;
-                                
+
                                 // 更新按钮
                                 if (editButton != null)
                                 {
                                     editButton.Content = "✏️ 编辑";
                                     editButton.Background = new SolidColorBrush(Color.FromRgb(33, 150, 243));
                                 }
-                                
+
                                 MessageBox.Show("文件已保存", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
                             }
                             catch (Exception ex)
@@ -266,14 +266,14 @@ namespace OoiMRR.Previews
                             {
                                 toggleButton.Content = "🎨 渲染";
                             }
-                            
+
                             if (sourceTextBoxRef != null)
                             {
                                 sourceTextBoxRef.IsReadOnly = false;
                                 sourceTextBoxRef.Background = PreviewHelper.EditModeBackground; // 浅蓝色背景表示可编辑
                             }
                             isEditMode = true;
-                            
+
                             // 更新按钮
                             if (editButton != null)
                             {
@@ -285,7 +285,8 @@ namespace OoiMRR.Previews
                     false
                 );
                 buttons.Add(editButton);
-                
+                buttons.Add(PreviewHelper.CreateOpenButton(filePath));
+
                 var titlePanel = PreviewHelper.CreateTitlePanel("📋", $"XML 文件: {Path.GetFileName(filePath)}", buttons);
                 Grid.SetRow(titlePanel, 0);
                 grid.Children.Add(titlePanel);
@@ -310,7 +311,7 @@ namespace OoiMRR.Previews
                         }
                         catch (Exception ex)
                         {
-                                                        try
+                            try
                             {
                                 await webViewRef.EnsureCoreWebView2Async();
                                 webViewRef.NavigateToString($"<html><body style='font-family:Segoe UI;color:#c00;padding:16px'>渲染失败: {WebUtility.HtmlEncode(ex.Message)}</body></html>");
@@ -382,10 +383,10 @@ namespace OoiMRR.Previews
             {
                 // 格式化XML
                 string formattedXml = FormatXml(xmlContent);
-                
+
                 // 生成带样式的HTML
                 string html = GenerateStyledHtml(formattedXml);
-                
+
                 // 使用data URI加载HTML内容
                 var htmlBytes = Encoding.UTF8.GetBytes(html);
                 var base64 = Convert.ToBase64String(htmlBytes);
@@ -416,7 +417,7 @@ namespace OoiMRR.Previews
         {
             // 转义XML内容中的特殊字符
             string escapedXml = WebUtility.HtmlEncode(xmlContent);
-            
+
             // 简单的语法高亮（通过正则表达式）
             escapedXml = System.Text.RegularExpressions.Regex.Replace(
                 escapedXml,
@@ -429,17 +430,17 @@ namespace OoiMRR.Previews
                     string attrs = match.Groups[4].Value;   // attributes
                     string selfClose = match.Groups[5].Value; // / or empty
                     string suffix = match.Groups[6].Value;  // &gt;
-                    
+
                     // 高亮标签名
                     string highlightedTag = $"{prefix}{slash}<span style='color:#881280;font-weight:bold'>{tagName}</span>{attrs}{selfClose}{suffix}";
-                    
+
                     // 高亮属性
                     highlightedTag = System.Text.RegularExpressions.Regex.Replace(
                         highlightedTag,
                         @"(\w+)(=)(&quot;[^&]*?&quot;)",
                         m => $"<span style='color:#994500'>{m.Groups[1].Value}</span>{m.Groups[2].Value}<span style='color:#1A1AA6'>{m.Groups[3].Value}</span>",
                         System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-                    
+
                     return highlightedTag;
                 },
                 System.Text.RegularExpressions.RegexOptions.IgnoreCase);

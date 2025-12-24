@@ -227,6 +227,7 @@ namespace OoiMRR.Previews
                     false
                 );
                 buttons.Add(editButton);
+                buttons.Add(PreviewHelper.CreateOpenButton(filePath));
 
                 var titlePanel = PreviewHelper.CreateTitlePanel("🌐", $"HTML 文件: {Path.GetFileName(filePath)}", buttons);
                 Grid.SetRow(titlePanel, 0);
@@ -287,8 +288,9 @@ namespace OoiMRR.Previews
                                     ";
                                     await coreWebView2.ExecuteScriptAsync(script);
                                 }
-                                catch{
-                                                                    }
+                                catch
+                                {
+                                }
                             };
                         }
 
@@ -299,7 +301,7 @@ namespace OoiMRR.Previews
                     }
                     catch (Exception ex)
                     {
-                                                // 如果加载失败，回退到 NavigateToString 并显示错误信息
+                        // 如果加载失败，回退到 NavigateToString 并显示错误信息
                         try
                         {
                             await webViewRef.EnsureCoreWebView2Async();

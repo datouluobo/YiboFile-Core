@@ -222,7 +222,7 @@ namespace OoiMRR.Previews
                 );
 
                 // 标题栏
-                var buttons = new List<Button> { editButton };
+                var buttons = new List<Button> { editButton, PreviewHelper.CreateOpenButton(filePath) };
                 var titlePanel = PreviewHelper.CreateTitlePanel("📄", $"文本文件: {Path.GetFileName(filePath)}", buttons);
                 Grid.SetRow(titlePanel, 0);
                 grid.Children.Add(titlePanel);
