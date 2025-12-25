@@ -1,19 +1,22 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using Microsoft.Web.WebView2.Wpf;
+using Microsoft.Web.WebView2.Core;
+using System.Collections.Generic;
 
 namespace OoiMRR.Previews
 {
     /// <summary>
-    /// PDF文件预览提供者
+    /// PDF文件预览提供者 - 使用PDF.js实现完整的阅读器功能
     /// </summary>
     public class PdfPreview : IPreviewProvider
     {
+        private const string PDF_VIEWER_HTML = "Resources/PdfViewer.html";
+
         public UIElement CreatePreview(string filePath)
         {
             try
@@ -23,7 +26,7 @@ namespace OoiMRR.Previews
                     return CreateErrorPreview($"PDF文件不存在: {filePath}");
                 }
 
-                // 主容器：Grid布局 - 标题栏 + 内容区域
+                // 主容器：Grid布局 - 标题栏 + PDF查看器
                 var mainGrid = new Grid
                 {
                     Background = Brushes.White
@@ -47,7 +50,7 @@ namespace OoiMRR.Previews
                 {
                     HorizontalAlignment = HorizontalAlignment.Stretch,
                     VerticalAlignment = VerticalAlignment.Stretch,
-                    MinHeight = 400
+                    Background = new SolidColorBrush(Color.FromRgb(82, 86, 89))
                 };
 
                 var webView = new WebView2
@@ -56,37 +59,12 @@ namespace OoiMRR.Previews
                     VerticalAlignment = VerticalAlignment.Stretch
                 };
 
-                // 加载状态指示器
-                var loadingPanel = new StackPanel
-                {
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    Background = Brushes.White,
-                    Visibility = Visibility.Visible
-                };
-                loadingPanel.Children.Add(new TextBlock
-                {
-                    Text = "⏳",
-                    FontSize = 48,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    Margin = new Thickness(0, 0, 0, 10)
-                });
-                loadingPanel.Children.Add(new TextBlock
-                {
-                    Text = "正在加载PDF...",
-                    FontSize = 14,
-                    Foreground = Brushes.Gray,
-                    HorizontalAlignment = HorizontalAlignment.Center
-                });
-
-                webViewContainer.Children.Add(loadingPanel);
                 webViewContainer.Children.Add(webView);
-
                 Grid.SetRow(webViewContainer, 1);
                 mainGrid.Children.Add(webViewContainer);
 
-                // 异步加载PDF
-                _ = LoadPdfAsync(webView, filePath, loadingPanel);
+                // 异步加载PDF查看器
+                _ = InitializePdfViewerAsync(webView, filePath, title);
 
                 return mainGrid;
             }
@@ -96,8 +74,10 @@ namespace OoiMRR.Previews
             }
         }
 
-
-        private async Task LoadPdfAsync(WebView2 webView, string filePath, UIElement loadingPanel)
+        /// <summary>
+        /// 初始化PDF查看器
+        /// </summary>
+        private async Task InitializePdfViewerAsync(WebView2 webView, string pdfFilePath, UIElement titlePanel)
         {
             try
             {
@@ -111,166 +91,134 @@ namespace OoiMRR.Previews
                     webView.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = false;
                     webView.CoreWebView2.Settings.AreHostObjectsAllowed = false;
                     webView.CoreWebView2.Settings.AreDevToolsEnabled = false;
+                    webView.CoreWebView2.Settings.IsWebMessageEnabled = true;
 
-                    // 隐藏加载状态
-                    await webView.Dispatcher.InvokeAsync(() =>
-                    {
-                        if (loadingPanel != null)
-                            loadingPanel.Visibility = Visibility.Collapsed;
-                    });
+                    // 获取HTML查看器路径
+                    string htmlViewerPath = GetPdfViewerHtmlPath();
 
-                    // 确保使用绝对路径
-                    if (!Path.IsPathRooted(filePath))
+                    if (!File.Exists(htmlViewerPath))
                     {
-                        filePath = Path.GetFullPath(filePath);
+                        throw new FileNotFoundException($"PDF查看器HTML文件不存在: {htmlViewerPath}");
                     }
 
-                    // 转换为file:// URI格式
-                    // 处理路径中的空格和特殊字符
-                    var uri = new Uri(filePath).AbsoluteUri;
-                    // 导航到PDF文件
-                    webView.CoreWebView2.Navigate(uri);
+                    // 导航到HTML查看器
+                    var htmlUri = new Uri(htmlViewerPath).AbsoluteUri;
+                    webView.CoreWebView2.Navigate(htmlUri);
 
-                    // 监听导航完成事件
-                    webView.CoreWebView2.NavigationCompleted += (sender, e) =>
+                    // 等待页面加载完成后注入PDF路径
+                    webView.CoreWebView2.NavigationCompleted += async (sender, e) =>
                     {
-                        if (!e.IsSuccess)
+                        if (e.IsSuccess)
                         {
-                            ShowErrorInWebView(webView, $"PDF加载失败: {e.WebErrorStatus}");
+                            try
+                            {
+                                // 确保使用绝对路径
+                                string absolutePdfPath = Path.IsPathRooted(pdfFilePath) 
+                                    ? pdfFilePath 
+                                    : Path.GetFullPath(pdfFilePath);
+
+                                // 转换为file:// URI并处理特殊字符
+                                var pdfUri = new Uri(absolutePdfPath).AbsoluteUri;
+
+                                // 调用JavaScript函数加载PDF
+                                await webView.CoreWebView2.ExecuteScriptAsync(
+                                    $"window.loadPdfFromPath('{pdfUri.Replace("'", "\\'")}');");
+                            }
+                            catch (Exception ex)
+                            {
+                                await ShowErrorInWebView(webView, $"加载PDF失败: {ex.Message}");
+                            }
                         }
+                        else
+                        {
+                            await ShowErrorInWebView(webView, $"HTML查看器加载失败: {e.WebErrorStatus}");
+                        }
+                    };
+
+                    // 监听来自JavaScript的消息(可选,用于调试或状态同步)
+                    webView.CoreWebView2.WebMessageReceived += (sender, e) =>
+                    {
+                        try
+                        {
+                            string message = e.TryGetWebMessageAsString();
+                            System.Diagnostics.Debug.WriteLine($"PDF Viewer Message: {message}");
+                        }
+                        catch { }
                     };
                 }
             }
             catch (Exception ex)
             {
-                // 隐藏加载状态
-                await webView.Dispatcher.InvokeAsync(() =>
-                {
-                    if (loadingPanel != null)
-                        loadingPanel.Visibility = Visibility.Collapsed;
-                });
-
-                // 显示错误页面
-                ShowErrorInWebView(webView, ex.Message, filePath);
+                await ShowErrorInWebView(webView, $"初始化失败: {ex.Message}");
             }
         }
 
-        private void ShowErrorInWebView(WebView2 webView, string errorMessage, string filePath = null)
+        /// <summary>
+        /// 获取PDF查看器HTML文件的完整路径
+        /// </summary>
+        private string GetPdfViewerHtmlPath()
+        {
+            // 首先尝试相对于应用程序目录的路径
+            string appDir = AppDomain.CurrentDomain.BaseDirectory;
+            string htmlPath = Path.Combine(appDir, PDF_VIEWER_HTML);
+
+            if (File.Exists(htmlPath))
+            {
+                return htmlPath;
+            }
+
+            // 如果不存在,尝试相对于当前工作目录
+            htmlPath = Path.Combine(Directory.GetCurrentDirectory(), PDF_VIEWER_HTML);
+
+            if (File.Exists(htmlPath))
+            {
+                return htmlPath;
+            }
+
+            // 如果还是不存在,尝试向上查找项目根目录
+            string currentDir = appDir;
+            for (int i = 0; i < 5; i++) // 最多向上查找5级
+            {
+                htmlPath = Path.Combine(currentDir, PDF_VIEWER_HTML);
+                if (File.Exists(htmlPath))
+                {
+                    return htmlPath;
+                }
+
+                var parentDir = Directory.GetParent(currentDir);
+                if (parentDir == null) break;
+                currentDir = parentDir.FullName;
+            }
+
+            // 如果都找不到,返回默认路径(会在后续检查中报错)
+            return Path.Combine(appDir, PDF_VIEWER_HTML);
+        }
+
+        /// <summary>
+        /// 在WebView中显示错误信息
+        /// </summary>
+        private async Task ShowErrorInWebView(WebView2 webView, string errorMessage)
         {
             try
             {
                 var escapedMessage = System.Security.SecurityElement.Escape(errorMessage);
-                var errorHtml = string.Format(@"
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset='utf-8'>
-    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-    <title>PDF加载错误</title>
-    <style>
-        * {{
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }}
-        body {{
-            font-family: 'Segoe UI', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }}
-        .container {{
-            background: white;
-            border-radius: 16px;
-            padding: 40px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            max-width: 600px;
-            width: 100%;
-            text-align: center;
-        }}
-        .error-icon {{
-            font-size: 72px;
-            margin-bottom: 20px;
-            animation: bounce 2s infinite;
-        }}
-        @keyframes bounce {{
-            0%, 100% {{ transform: translateY(0); }}
-            50% {{ transform: translateY(-10px); }}
-        }}
-        h1 {{
-            color: #d32f2f;
-            margin: 20px 0;
-            font-size: 28px;
-            font-weight: 600;
-        }}
-        .error-message {{
-            color: #d32f2f;
-            margin: 20px 0;
-            font-size: 14px;
-            line-height: 1.8;
-            background: #ffebee;
-            padding: 15px;
-            border-radius: 8px;
-            border-left: 4px solid #d32f2f;
-            text-align: left;
-            word-break: break-word;
-        }}
-        .info-list {{
-            text-align: left;
-            margin: 20px 0;
-            padding: 0 20px;
-        }}
-        .info-list li {{
-            color: #666;
-            margin: 10px 0;
-            font-size: 14px;
-            line-height: 1.6;
-        }}
-        .info-list li::before {{
-            content: '✓ ';
-            color: #4caf50;
-            font-weight: bold;
-            margin-right: 8px;
-        }}
-        .suggestion {{
-            color: #2196F3;
-            margin-top: 25px;
-            padding: 15px;
-            background: #e3f2fd;
-            border-radius: 8px;
-            font-size: 14px;
-            line-height: 1.6;
-        }}
-    </style>
-</head>
-<body>
-    <div class='container'>
-        <div class='error-icon'>📄❌</div>
-        <h1>PDF加载失败</h1>
-        <div class='error-message'>{0}</div>
-        <ul class='info-list'>
-            <li>检查PDF文件是否完整且未损坏</li>
-            <li>确认文件路径不包含特殊字符</li>
-            <li>验证文件权限是否允许读取</li>
-            <li>尝试使用外部程序打开PDF文件</li>
-        </ul>
-        <div class='suggestion'>
-            💡 <strong>建议：</strong>您可以使用工具栏上的外部打开按钮使用系统默认PDF阅读器打开此文件。
-        </div>
-    </div>
-</body>
-</html>", escapedMessage);
-
-                webView.CoreWebView2?.NavigateToString(errorHtml);
+                var errorScript = $@"
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('error-message').textContent = '{escapedMessage.Replace("'", "\\'")}';
+                    document.getElementById('error').style.display = 'block';
+                ";
+                
+                await webView.CoreWebView2.ExecuteScriptAsync(errorScript);
             }
-            catch
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"显示错误失败: {ex.Message}");
             }
         }
 
+        /// <summary>
+        /// 创建错误预览UI
+        /// </summary>
         private UIElement CreateErrorPreview(string message, string filePath = null)
         {
             var panel = new StackPanel
@@ -280,7 +228,7 @@ namespace OoiMRR.Previews
             };
 
             var buttons = new List<Button>();
-            if (!string.IsNullOrEmpty(filePath))
+            if (!string.IsNullOrEmpty(filePath) && File.Exists(filePath))
             {
                 buttons.Add(PreviewHelper.CreateOpenButton(filePath));
             }
@@ -309,6 +257,66 @@ namespace OoiMRR.Previews
 
             errorBorder.Child = errorText;
             panel.Children.Add(errorBorder);
+
+            // 添加建议信息
+            var suggestionBorder = new Border
+            {
+                Background = new SolidColorBrush(Color.FromRgb(227, 242, 253)),
+                BorderBrush = new SolidColorBrush(Color.FromRgb(33, 150, 243)),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(8),
+                Padding = new Thickness(20),
+                Margin = new Thickness(10)
+            };
+
+            var suggestionPanel = new StackPanel();
+            suggestionPanel.Children.Add(new TextBlock
+            {
+                Text = "💡 可能的解决方案:",
+                FontWeight = FontWeights.Bold,
+                FontSize = 14,
+                Foreground = new SolidColorBrush(Color.FromRgb(33, 150, 243)),
+                Margin = new Thickness(0, 0, 0, 10)
+            });
+
+            var suggestions = new[]
+            {
+                "确认PDF文件完整且未损坏",
+                "检查文件路径是否包含特殊字符",
+                "验证文件权限是否允许读取",
+                "确保Resources/PdfViewer.html文件存在",
+                "尝试使用外部PDF阅读器打开"
+            };
+
+            foreach (var suggestion in suggestions)
+            {
+                var bulletPanel = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    Margin = new Thickness(0, 3, 0, 3)
+                };
+
+                bulletPanel.Children.Add(new TextBlock
+                {
+                    Text = "✓ ",
+                    Foreground = new SolidColorBrush(Color.FromRgb(76, 175, 80)),
+                    FontWeight = FontWeights.Bold,
+                    Margin = new Thickness(0, 0, 5, 0)
+                });
+
+                bulletPanel.Children.Add(new TextBlock
+                {
+                    Text = suggestion,
+                    Foreground = Brushes.Gray,
+                    FontSize = 12,
+                    TextWrapping = TextWrapping.Wrap
+                });
+
+                suggestionPanel.Children.Add(bulletPanel);
+            }
+
+            suggestionBorder.Child = suggestionPanel;
+            panel.Children.Add(suggestionBorder);
 
             return panel;
         }

@@ -59,6 +59,11 @@
     <None Include="Dependencies\7-Zip\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <!-- 自动复制 Resources 文件夹到输出目录 -->
+  <ItemGroup>
+    <None Include="Resources\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <!-- 创建 TagTrain 快捷方式（使用相对路径） -->
   <Target Name="CreateTagTrainShortcut" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug' OR '$(Configuration)' == 'Release'">
     <PropertyGroup>
