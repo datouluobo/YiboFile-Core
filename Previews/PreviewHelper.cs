@@ -5,6 +5,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Input;
 
 namespace OoiMRR.Previews
 {
@@ -54,26 +55,54 @@ namespace OoiMRR.Previews
         }
 
         /// <summary>
-        /// 创建错误预览
+        /// 创建统一的加载遮罩层
         /// </summary>
-        public static UIElement CreateErrorPreview(string errorMessage)
+        public static Grid CreateLoadingPanel(string message = "加载中...")
         {
-            return new TextBlock
+            var grid = new Grid
             {
-                Text = errorMessage,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center,
-                Foreground = Brushes.Red,
-                FontSize = 14,
-                TextWrapping = TextWrapping.Wrap,
-                Margin = new Thickness(20)
+                Background = Brushes.White,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch,
+                Visibility = Visibility.Visible,
+                Name = "LoadingPanel" // 方便查找
             };
+
+            var stackPanel = new StackPanel
+            {
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Center
+            };
+
+            // 如果项目中有预定义的 Loading 动画控件可以使用，暂时使用 ProgressBar 模拟
+            var progressBar = new ProgressBar
+            {
+                IsIndeterminate = true,
+                Width = 150,
+                Height = 4,
+                Margin = new Thickness(0, 0, 0, 15),
+                Foreground = new SolidColorBrush(Color.FromRgb(33, 150, 243)) // 蓝色
+            };
+
+            var textBlock = new TextBlock
+            {
+                Text = message,
+                FontSize = 14,
+                Foreground = Brushes.Gray,
+                HorizontalAlignment = HorizontalAlignment.Center
+            };
+
+            stackPanel.Children.Add(progressBar);
+            stackPanel.Children.Add(textBlock);
+            grid.Children.Add(stackPanel);
+
+            return grid;
         }
 
         /// <summary>
-        /// 创建不支持预览的UI
+        /// 创建通用信息面板（用于错误、空状态、不支持预览等）
         /// </summary>
-        public static UIElement CreateNoPreview(string filePath)
+        private static UIElement CreateGenericMessagePanel(string icon, string mainText, string subText = null, Brush color = null)
         {
             var panel = new StackPanel
             {
@@ -84,31 +113,65 @@ namespace OoiMRR.Previews
 
             panel.Children.Add(new TextBlock
             {
-                Text = "❓ 不支持预览",
-                FontSize = 24,
+                Text = icon,
+                FontSize = 48, // 更大的图标
                 HorizontalAlignment = HorizontalAlignment.Center,
-                Margin = new Thickness(10)
+                Margin = new Thickness(0, 0, 0, 20),
+                Foreground = color ?? Brushes.Gray,
+                FontFamily = new FontFamily("Segoe UI Emoji, Segoe UI Symbol")
             });
 
             panel.Children.Add(new TextBlock
             {
-                Text = Path.GetFileName(filePath),
-                FontSize = 14,
+                Text = mainText,
+                FontSize = 18,
+                FontWeight = FontWeights.Medium,
                 HorizontalAlignment = HorizontalAlignment.Center,
-                TextWrapping = TextWrapping.Wrap,
-                Margin = new Thickness(10)
+                Foreground = new SolidColorBrush(Color.FromRgb(50, 50, 50)),
+                Margin = new Thickness(10, 0, 10, 10),
+                TextWrapping = TextWrapping.Wrap
             });
 
-            panel.Children.Add(new TextBlock
+            if (!string.IsNullOrEmpty(subText))
             {
-                Text = $"文件类型: {FileTypeManager.GetFileCategory(filePath)}",
-                FontSize = 12,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                Foreground = Brushes.Gray,
-                Margin = new Thickness(10)
-            });
+                panel.Children.Add(new TextBlock
+                {
+                    Text = subText,
+                    FontSize = 13,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    Foreground = Brushes.Gray,
+                    Margin = new Thickness(20, 0, 20, 0),
+                    TextWrapping = TextWrapping.Wrap,
+                    TextAlignment = TextAlignment.Center
+                });
+            }
 
             return panel;
+        }
+
+        /// <summary>
+        /// 创建统一的错误提示
+        /// </summary>
+        public static UIElement CreateErrorPreview(string errorMessage)
+        {
+            return CreateGenericMessagePanel("❌", "发生错误", errorMessage, Brushes.Red);
+        }
+
+        /// <summary>
+        /// 创建空状态提示（如空文件夹、空压缩包）
+        /// </summary>
+        public static UIElement CreateEmptyPreview(string message = "没有内容")
+        {
+            return CreateGenericMessagePanel("📭", message);
+        }
+
+        /// <summary>
+        /// 创建不支持预览的UI
+        /// </summary>
+        public static UIElement CreateNoPreview(string filePath)
+        {
+            string category = FileTypeManager.GetFileCategory(filePath);
+            return CreateGenericMessagePanel("❓", "不支持预览", $"{Path.GetFileName(filePath)}\n类型: {category}");
         }
 
         /// <summary>
@@ -211,7 +274,7 @@ namespace OoiMRR.Previews
         /// <summary>
         /// 创建打开文件按钮（保留用于特殊场景）
         /// </summary>
-        public static Button CreateOpenButton(string filePath, string buttonText = "📂 外部程序打开")
+        public static Button CreateOpenButton(string filePath, string buttonText = "📂 打开")
         {
             var openButton = new Button
             {
@@ -391,6 +454,136 @@ namespace OoiMRR.Previews
             };
 
             return button;
+        }
+
+        /// <summary>
+        /// 创建统一的转换按钮
+        /// </summary>
+        public static Button CreateConvertButton(string content, RoutedEventHandler onClick)
+        {
+            var button = new Button
+            {
+                Content = content,
+                Padding = new Thickness(12, 6, 12, 6),
+                Background = new SolidColorBrush(Color.FromRgb(76, 175, 80)),
+                Foreground = Brushes.White,
+                BorderThickness = new Thickness(0),
+                Cursor = Cursors.Hand,
+                FontSize = 13,
+                Margin = new Thickness(0, 0, 5, 0)
+            };
+            button.Click += onClick;
+            return button;
+        }
+
+        /// <summary>
+        /// 创建统一的旧格式/不支持预览提示面板（如 PPT/XLS）
+        /// </summary>
+        public static StackPanel CreateLegacyFormatPanel(string formatName, string description, bool canConvert, string convertButtonName)
+        {
+            var contentPanel = new StackPanel
+            {
+                Orientation = Orientation.Vertical,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(40)
+            };
+
+            var warningIcon = new TextBlock
+            {
+                Text = "⚠️",
+                FontSize = 48,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Margin = new Thickness(0, 10, 0, 20)
+            };
+
+            var titleText = new TextBlock
+            {
+                Text = $"{formatName} 格式说明",
+                FontSize = 18,
+                FontWeight = FontWeights.Bold,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Margin = new Thickness(0, 0, 0, 15)
+            };
+
+            var infoText = new TextBlock
+            {
+                Text = description,
+                FontSize = 13,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                TextWrapping = TextWrapping.Wrap,
+                TextAlignment = TextAlignment.Center,
+                Foreground = new SolidColorBrush(Color.FromRgb(102, 102, 102)),
+                LineHeight = 22,
+                Margin = new Thickness(0, 0, 0, 20)
+            };
+
+            contentPanel.Children.Add(warningIcon);
+            contentPanel.Children.Add(titleText);
+            contentPanel.Children.Add(infoText);
+
+            // 推荐方案
+            var solutionsPanel = new StackPanel
+            {
+                Orientation = Orientation.Vertical,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                Margin = new Thickness(20, 0, 20, 0)
+            };
+
+            var solutionsTitle = new TextBlock
+            {
+                Text = "💡 推荐方案：",
+                FontSize = 14,
+                FontWeight = FontWeights.Bold,
+                Margin = new Thickness(0, 0, 0, 10)
+            };
+            solutionsPanel.Children.Add(solutionsTitle);
+
+            if (canConvert)
+            {
+                // 方案1：自动转换
+                solutionsPanel.Children.Add(new TextBlock
+                {
+                    Text = $"✅ 自动转换：点击上方\"{convertButtonName}\"按钮",
+                    FontSize = 12,
+                    Margin = new Thickness(0, 5, 0, 5),
+                    TextWrapping = TextWrapping.Wrap
+                });
+            }
+            else
+            {
+                // 无转换器的情况
+                solutionsPanel.Children.Add(new TextBlock
+                {
+                    Text = "❌ 未检测到转换工具，无法自动转换",
+                    FontSize = 12,
+                    Foreground = new SolidColorBrush(Color.FromRgb(255, 152, 0)),
+                    FontWeight = FontWeights.Bold,
+                    Margin = new Thickness(0, 5, 0, 10),
+                    TextWrapping = TextWrapping.Wrap
+                });
+            }
+
+            // 方案2：手动转换
+            solutionsPanel.Children.Add(new TextBlock
+            {
+                Text = $"🔧 手动转换：在 Office 中打开，选择\"另存为\" → 新格式 (如 .xlsx/.pptx/.docx)",
+                FontSize = 12,
+                Margin = new Thickness(0, 5, 0, 5),
+                TextWrapping = TextWrapping.Wrap
+            });
+
+            // 方案3：在线预览
+            solutionsPanel.Children.Add(new TextBlock
+            {
+                Text = "🌐 在线预览：上传到 OneDrive 后使用 Office Online 打开",
+                FontSize = 12,
+                Margin = new Thickness(0, 5, 0, 5),
+                TextWrapping = TextWrapping.Wrap
+            });
+
+            contentPanel.Children.Add(solutionsPanel);
+            return contentPanel;
         }
     }
 }

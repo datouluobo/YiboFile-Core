@@ -184,121 +184,87 @@ namespace OoiMRR.Previews
 
         private UIElement CreateDocPreview(string filePath)
         {
-            // 创建一个容器，初始显示加载中
             var mainContainer = new Grid();
             mainContainer.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             mainContainer.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
-            // 标题栏 (总是显示)
-            var buttons = new List<Button>
-            {
-                PreviewHelper.CreateOpenButton(filePath)
-            };
-            var titlePanel = PreviewHelper.CreateTitlePanel("📄", $"DOC 文档: {Path.GetFileName(filePath)}", buttons);
+            // 初始标题栏
+            var titlePanel = PreviewHelper.CreateTitlePanel("📄", $"DOC 文档: {Path.GetFileName(filePath)}", new List<Button> { PreviewHelper.CreateOpenButton(filePath) });
             Grid.SetRow(titlePanel, 0);
             mainContainer.Children.Add(titlePanel);
 
-            // 加载面板
-            var loadingPanel = new StackPanel
-            {
-                VerticalAlignment = VerticalAlignment.Center,
-                HorizontalAlignment = HorizontalAlignment.Center
-            };
-            loadingPanel.Children.Add(new TextBlock
-            {
-                Text = "⏳ 正在检测文档预览...",
-                FontSize = 14,
-                Foreground = Brushes.Gray,
-                HorizontalAlignment = HorizontalAlignment.Center
-            });
+            // 加载提示
+            var loadingPanel = PreviewHelper.CreateLoadingPanel("⏳ 正在检测文档预览...");
             Grid.SetRow(loadingPanel, 1);
             mainContainer.Children.Add(loadingPanel);
 
-            // 异步检查是否可以转换预览
+            // 异步检查和转换
             Task.Run(() =>
             {
                 try
                 {
                     var tempDocx = Path.Combine(Path.GetTempPath(), Path.GetFileNameWithoutExtension(filePath) + ".docx");
                     string errorMsg;
-                    // 同步调用，但在 Task.Run 中
                     bool canPreview = ConvertDocToDocx(filePath, tempDocx, out errorMsg);
+                    bool hasWord = errorMsg == null || !errorMsg.Contains("未检测到");
 
                     Application.Current.Dispatcher.Invoke(() =>
                     {
-                        // 移除加载面板
                         mainContainer.Children.Remove(loadingPanel);
-
-                        var grid = new Grid();
-                        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 转换按钮行
-                        grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // 内容行
-                        Grid.SetRow(grid, 1);
-                        mainContainer.Children.Add(grid);
+                        mainContainer.Children.Remove(titlePanel);
 
                         // 转换按钮
-                        var convertButton = new Button
-                        {
-                            Content = "🔄 转换为DOCX格式",
-                            Padding = new Thickness(12, 6, 12, 6),
-                            Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(76, 175, 80)),
-                            Foreground = Brushes.White,
-                            BorderThickness = new Thickness(0),
-                            Cursor = Cursors.Hand,
-                            FontSize = 13,
-                            Margin = new Thickness(10, 5, 10, 5)
-                        };
-
-                        convertButton.Click += async (s, e) =>
-                        {
-                            try
+                        var convertButton = PreviewHelper.CreateConvertButton(
+                            "🔄 转换为DOCX格式",
+                            async (s, e) =>
                             {
-                                convertButton.IsEnabled = false;
-                                convertButton.Content = "⏳ 转换中...";
-
+                                var btn = s as Button;
                                 try
                                 {
+                                    btn.IsEnabled = false;
+                                    btn.Content = "⏳ 转换中...";
+
                                     string directory = Path.GetDirectoryName(filePath);
                                     string baseName = Path.GetFileNameWithoutExtension(filePath);
                                     string outputPath = Path.Combine(directory, baseName + ".docx");
                                     outputPath = GetUniqueFilePath(outputPath);
 
-                                    string errorMessage = null;
-                                    bool success = await Task.Run(() =>
-                                    {
-                                        bool result = ConvertDocToDocx(filePath, outputPath, out errorMessage);
-                                        return result;
-                                    });
+                                    string convertError = null;
+                                    bool success = await Task.Run(() => ConvertDocToDocx(filePath, outputPath, out convertError));
 
                                     if (success)
                                     {
-                                        convertButton.Content = "✅ 转换成功";
+                                        btn.Content = "✅ 转换成功";
+                                        MessageBox.Show($"文件已成功转换为DOCX格式：\n{outputPath}", "转换成功", MessageBoxButton.OK, MessageBoxImage.Information);
                                     }
                                     else
                                     {
-                                        string errorTitle = errorMessage?.Contains("未检测到") == true ? "需要 Microsoft Word" : "转换错误";
-                                        MessageBox.Show(errorMessage ?? "转换失败", errorTitle, MessageBoxButton.OK, MessageBoxImage.Error);
-                                        convertButton.IsEnabled = true;
-                                        convertButton.Content = "🔄 转换为DOCX格式";
+                                        string errorTitle = convertError?.Contains("未检测到") == true ? "需要 Microsoft Word" : "转换错误";
+                                        MessageBox.Show(convertError ?? "转换失败", errorTitle, MessageBoxButton.OK, MessageBoxImage.Error);
+                                        btn.IsEnabled = true;
+                                        btn.Content = "🔄 转换为DOCX格式";
                                     }
                                 }
                                 catch (Exception ex)
                                 {
                                     MessageBox.Show($"转换失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                                    convertButton.IsEnabled = true;
-                                    convertButton.Content = "🔄 转换为DOCX格式";
+                                    btn.IsEnabled = true;
+                                    btn.Content = "🔄 转换为DOCX格式";
                                 }
                             }
-                            catch (Exception ex)
-                            {
-                                MessageBox.Show($"转换失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                                convertButton.IsEnabled = true;
-                                convertButton.Content = "🔄 转换为DOCX格式";
-                            }
-                        };
+                        );
 
-                        // 添加按钮到顶部
-                        Grid.SetRow(convertButton, 0);
-                        grid.Children.Add(convertButton);
+                        if (!hasWord)
+                        {
+                            convertButton.IsEnabled = false;
+                            convertButton.ToolTip = "未检测到 Microsoft Word";
+                        }
+
+                        // 新标题栏
+                        var buttons = new List<Button> { convertButton, PreviewHelper.CreateOpenButton(filePath) };
+                        var newTitle = PreviewHelper.CreateTitlePanel("📄", $"DOC 文档: {Path.GetFileName(filePath)}", buttons);
+                        Grid.SetRow(newTitle, 0);
+                        mainContainer.Children.Add(newTitle);
 
                         if (canPreview)
                         {
@@ -309,7 +275,7 @@ namespace OoiMRR.Previews
                                 MinHeight = 400
                             };
                             Grid.SetRow(webView, 1);
-                            grid.Children.Add(webView);
+                            mainContainer.Children.Add(webView);
 
                             webView.Loaded += async (s, e) =>
                             {
@@ -346,7 +312,7 @@ namespace OoiMRR.Previews
                                 }
                             };
 
-                            // 延迟删除临时文件
+                            // 清理临时文件
                             Task.Delay(5000).ContinueWith(_ =>
                             {
                                 try { if (File.Exists(tempDocx)) File.Delete(tempDocx); } catch { }
@@ -354,22 +320,14 @@ namespace OoiMRR.Previews
                         }
                         else
                         {
-                            // 无法预览（例如没有Word），显示错误信息
-                            var errorPanel = new StackPanel
-                            {
-                                Background = Brushes.White,
-                                Margin = new Thickness(15, 10, 15, 5)
-                            };
-                            var errorText = new TextBlock
-                            {
-                                Text = "DOC 预览需要安装 Microsoft Word 或兼容组件，或者转换为 DOCX 格式。",
-                                TextWrapping = TextWrapping.Wrap,
-                                Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(220, 53, 69)),
-                                LineHeight = 24
-                            };
-                            errorPanel.Children.Add(errorText);
-                            Grid.SetRow(errorPanel, 1);
-                            grid.Children.Add(errorPanel);
+                            var infoPanel = PreviewHelper.CreateLegacyFormatPanel(
+                                "DOC",
+                                "该文件为旧的 Word 格式（.doc）。\n需安装 Microsoft Word 才能预览或转换。",
+                                hasWord,
+                                "转换为DOCX格式"
+                            );
+                            Grid.SetRow(infoPanel, 1);
+                            mainContainer.Children.Add(infoPanel);
                         }
                     });
                 }
@@ -378,11 +336,11 @@ namespace OoiMRR.Previews
                     Application.Current.Dispatcher.Invoke(() =>
                     {
                         mainContainer.Children.Remove(loadingPanel);
-                        var errorUI = CreateDocPreviewWithConvertButton(filePath, $"DOC 预览检测失败: {ex.Message}");
-                        // 替换 mainContainer 内容为 errorUI 的内容（或者简单地添加）
-                        // 这里简单起见，我们只能替换内容
-                        Grid.SetRow(errorUI, 1);
-                        mainContainer.Children.Add(errorUI);
+                        mainContainer.Children.Remove(titlePanel);
+
+                        var errorPanel = PreviewHelper.CreateErrorPreview($"DOC 预览检测失败: {ex.Message}");
+                        Grid.SetRow(errorPanel, 1);
+                        mainContainer.Children.Add(errorPanel);
                     });
                 }
             });
@@ -390,114 +348,7 @@ namespace OoiMRR.Previews
             return mainContainer;
         }
 
-        private UIElement CreateDocPreviewWithConvertButton(string filePath, string message)
-        {
-            var panel = new StackPanel
-            {
-                Background = Brushes.White,
-                Margin = new Thickness(10)
-            };
 
-            // 转换按钮
-            var convertButton = new Button
-            {
-                Content = "🔄 转换为DOCX格式",
-                Padding = new Thickness(12, 6, 12, 6),
-                Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(76, 175, 80)),
-                Foreground = Brushes.White,
-                BorderThickness = new Thickness(0),
-                Cursor = Cursors.Hand,
-                FontSize = 13
-            };
-
-            convertButton.Click += async (s, e) =>
-            {
-                try
-                {
-                    convertButton.IsEnabled = false;
-                    convertButton.Content = "⏳ 转换中...";
-
-                    try
-                    {
-                        // 生成输出路径（同目录，同名）
-                        string directory = Path.GetDirectoryName(filePath);
-                        string baseName = Path.GetFileNameWithoutExtension(filePath);
-                        string outputPath = Path.Combine(directory, baseName + ".docx");
-
-                        // 如果文件已存在，添加序号
-                        outputPath = GetUniqueFilePath(outputPath);
-
-                        // 在后台线程执行转换
-                        string errorMsg = null;
-                        bool success = await Task.Run(() =>
-                        {
-                            bool result = ConvertDocToDocx(filePath, outputPath, out errorMsg);
-                            return result;
-                        });
-
-                        if (success)
-                        {
-                            convertButton.Content = "✅ 转换成功";
-                        }
-                        else
-                        {
-                            string errorTitle = errorMsg?.Contains("未检测到") == true ? "需要 Microsoft Word" : "转换错误";
-                            MessageBox.Show(
-                                errorMsg ?? "转换失败",
-                                errorTitle,
-                                MessageBoxButton.OK,
-                                MessageBoxImage.Error);
-                            convertButton.IsEnabled = true;
-                            convertButton.Content = "🔄 转换为DOCX格式";
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show($"转换失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                        convertButton.IsEnabled = true;
-                        convertButton.Content = "🔄 转换为DOCX格式";
-                    }
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"转换失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                    convertButton.IsEnabled = true;
-                    convertButton.Content = "🔄 转换为DOCX格式";
-                }
-            };
-
-            var buttons = new List<Button>
-            {
-                convertButton,
-                PreviewHelper.CreateOpenButton(filePath)
-            };
-            var title = PreviewHelper.CreateTitlePanel("📄", $"DOC 文档: {Path.GetFileName(filePath)}", buttons);
-            panel.Children.Add(title);
-
-            var errorPanel = new System.Windows.Controls.Border
-            {
-                Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(248, 249, 250)),
-                BorderBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(220, 53, 69)),
-                BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(8),
-                Padding = new Thickness(20),
-                Margin = new Thickness(15, 10, 15, 5)
-            };
-
-            var textBlock = new TextBlock
-            {
-                Text = message,
-                Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(220, 53, 69)),
-                HorizontalAlignment = HorizontalAlignment.Left,
-                FontSize = 14,
-                TextWrapping = TextWrapping.Wrap,
-                LineHeight = 24
-            };
-            errorPanel.Child = textBlock;
-            panel.Children.Add(errorPanel);
-
-            return panel;
-        }
 
         /// <summary>
         /// 生成唯一文件名（如果文件已存在，添加序号）
@@ -813,7 +664,7 @@ namespace OoiMRR.Previews
                 var mainGrid = new Grid
                 {
                     Background = Brushes.White,
-                    Margin = new Thickness(10)
+                    // 移除外边距，改为统一的布局
                 };
 
                 // 定义列：标题行、内容行
@@ -826,10 +677,15 @@ namespace OoiMRR.Previews
                 Grid.SetRow(title, 0);
                 mainGrid.Children.Add(title);
 
-                // 内容区域：左侧目录树 + 右侧 WebView2
+                // 内容容器
+                var contentContainer = new Grid();
+                Grid.SetRow(contentContainer, 1);
+                mainGrid.Children.Add(contentContainer);
+
+                // 1. 实际内容区域
                 var contentGrid = new Grid
                 {
-                    Margin = new Thickness(10, 0, 10, 10)
+                    Margin = new Thickness(0) // 贴边显示
                 };
 
                 // 定义列：目录树（250px） + 分割线（5px） + WebView2（剩余空间）
@@ -841,7 +697,7 @@ namespace OoiMRR.Previews
                 var treeView = new TreeView
                 {
                     Background = Brushes.White,
-                    BorderThickness = new Thickness(1),
+                    BorderThickness = new Thickness(0, 0, 1, 0), // 只有右边框
                     BorderBrush = Brushes.LightGray,
                     Padding = new Thickness(5)
                 };
@@ -868,11 +724,14 @@ namespace OoiMRR.Previews
                 Grid.SetColumn(webView, 2);
                 contentGrid.Children.Add(webView);
 
-                Grid.SetRow(contentGrid, 1);
-                mainGrid.Children.Add(contentGrid);
+                contentContainer.Children.Add(contentGrid);
 
-                // 异步初始化并加载 CHM（传递目录树引用）
-                _ = LoadChmInWebViewAsync(webView, filePath, treeView);
+                // 2. 加载遮罩 (默认显示)
+                var loadingPanel = PreviewHelper.CreateLoadingPanel("正在解析 CHM 文件...");
+                contentContainer.Children.Add(loadingPanel);
+
+                // 异步初始化并加载 CHM（传递目录树引用 和 loadingPanel）
+                _ = LoadChmInWebViewAsync(webView, filePath, treeView, loadingPanel);
 
                 return mainGrid;
             }
@@ -882,7 +741,7 @@ namespace OoiMRR.Previews
             }
         }
 
-        private async Task LoadChmInWebViewAsync(WebView2 webView, string filePath, TreeView treeView)
+        private async Task LoadChmInWebViewAsync(WebView2 webView, string filePath, TreeView treeView, UIElement loadingPanel)
         {
             try
             {
@@ -998,6 +857,7 @@ namespace OoiMRR.Previews
                                     if (string.IsNullOrEmpty(sevenZipPath))
                                     {
                                         webView.CoreWebView2.NavigateToString(GenerateChmErrorHtml(ChmErrorType.SevenZipNotFound, "未找到 7-Zip 工具", filePath));
+                                        Application.Current.Dispatcher.Invoke(() => loadingPanel.Visibility = Visibility.Collapsed);
                                         return;
                                     }
 
@@ -1010,6 +870,7 @@ namespace OoiMRR.Previews
 
                                     // 清理空目录
                                     try { Directory.Delete(tempDir, true); } catch { }
+                                    Application.Current.Dispatcher.Invoke(() => loadingPanel.Visibility = Visibility.Collapsed);
                                     return;
                                 }
                             }
@@ -1022,6 +883,9 @@ namespace OoiMRR.Previews
                         if (!Directory.Exists(tempDir) || Directory.GetFiles(tempDir, "*", SearchOption.AllDirectories).Length == 0)
                         {
                             webView.CoreWebView2.NavigateToString(GenerateChmErrorHtml(ChmErrorType.NoHtmlFilesFound, "解压后未找到文件", filePath));
+                            // 清理空目录
+                            try { Directory.Delete(tempDir, true); } catch { }
+                            Application.Current.Dispatcher.Invoke(() => loadingPanel.Visibility = Visibility.Collapsed);
                             return;
                         }
 
@@ -1029,6 +893,7 @@ namespace OoiMRR.Previews
                         await webView.Dispatcher.InvokeAsync(() =>
                         {
                             BuildChmTreeView(treeView, tempDir, webView);
+                            loadingPanel.Visibility = Visibility.Collapsed;
                         });
 
                         // 5. 查找主 HTML 文件
@@ -1036,6 +901,7 @@ namespace OoiMRR.Previews
                         if (string.IsNullOrEmpty(mainHtmlFile))
                         {
                             webView.CoreWebView2.NavigateToString(GenerateChmErrorHtml(ChmErrorType.NoHtmlFilesFound, "无法找到 CHM 主页面文件", filePath));
+                            Application.Current.Dispatcher.Invoke(() => loadingPanel.Visibility = Visibility.Collapsed);
                             return;
                         }
 
@@ -1056,6 +922,7 @@ namespace OoiMRR.Previews
                         catch { }
 
                         webView.CoreWebView2.NavigateToString(GenerateChmErrorHtml(ChmErrorType.Unknown, ex.Message, filePath));
+                        Application.Current.Dispatcher.Invoke(() => loadingPanel.Visibility = Visibility.Collapsed);
                     }
                 }
             }
@@ -1224,11 +1091,137 @@ namespace OoiMRR.Previews
             try
             {
                 treeView.Items.Clear();
-                // 直接列出所有 HTML 页面
-                BuildSimpleTreeFromHtmlFiles(treeView, tempDir, webView);
+
+                // 尝试查找并解析 .hhc 文件（CHM目录文件）
+                var hhcFile = FindHhcFile(tempDir);
+
+                if (!string.IsNullOrEmpty(hhcFile) && File.Exists(hhcFile))
+                {
+                    // 从 .hhc 文件构建真实的CHM目录结构
+                    BuildTreeFromHhc(treeView, hhcFile, tempDir, webView);
+                }
+                else
+                {
+                    // 退化模式：直接列出所有 HTML 页面
+                    BuildSimpleTreeFromHtmlFiles(treeView, tempDir, webView);
+                }
             }
             catch
             {
+                // 出错时使用简单模式
+                BuildSimpleTreeFromHtmlFiles(treeView, tempDir, webView);
+            }
+        }
+
+        /// <summary>
+        /// 查找CHM目录文件(.hhc)
+        /// </summary>
+        private string FindHhcFile(string directory)
+        {
+            try
+            {
+                // 查找所有.hhc文件
+                var hhcFiles = Directory.GetFiles(directory, "*.hhc", SearchOption.AllDirectories);
+
+                if (hhcFiles.Length > 0)
+                {
+                    // 优先选择根目录的.hhc文件
+                    var rootHhc = hhcFiles.FirstOrDefault(f =>
+                        Path.GetDirectoryName(f).Equals(directory, StringComparison.OrdinalIgnoreCase));
+
+                    return rootHhc ?? hhcFiles[0];
+                }
+            }
+            catch { }
+
+            return null;
+        }
+
+        /// <summary>
+        /// 从.hhc文件构建目录树
+        /// </summary>
+        private void BuildTreeFromHhc(TreeView treeView, string hhcFile, string baseDir, WebView2 webView)
+        {
+            try
+            {
+                // 读取HHC文件内容
+                // CHM文件通常使用ANSI编码(中文环境为GBK), Encoding.Default在.NET Core中可能是UTF-8
+                // 需要注册编码提供程序以支持GBK
+                string htmlContent;
+                try
+                {
+                    Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+                    htmlContent = File.ReadAllText(hhcFile, Encoding.GetEncoding("GB18030"));
+                }
+                catch
+                {
+                    // 如果失败，回退到默认编码
+                    htmlContent = File.ReadAllText(hhcFile, Encoding.Default);
+                }
+
+                // 简化的HHC解析：查找所有<OBJECT>标签
+                var matches = System.Text.RegularExpressions.Regex.Matches(
+                    htmlContent,
+                    @"<OBJECT[^>]*>.*?</OBJECT>",
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase |
+                    System.Text.RegularExpressions.RegexOptions.Singleline);
+
+                foreach (System.Text.RegularExpressions.Match match in matches)
+                {
+                    var objectContent = match.Value;
+
+                    // 提取 Name 参数（标题）
+                    var nameMatch = System.Text.RegularExpressions.Regex.Match(
+                        objectContent,
+                        @"<param\s+name=""Name""\s+value=""([^""]+)""",
+                        System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+                    // 提取 Local 参数（HTML文件路径）
+                    var localMatch = System.Text.RegularExpressions.Regex.Match(
+                        objectContent,
+                        @"<param\s+name=""Local""\s+value=""([^""]+)""",
+                        System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+                    if (nameMatch.Success)
+                    {
+                        var title = System.Net.WebUtility.HtmlDecode(nameMatch.Groups[1].Value);
+                        var localPath = localMatch.Success ? localMatch.Groups[1].Value : null;
+
+                        // 创建TreeViewItem
+                        var item = new TreeViewItem
+                        {
+                            Header = title,
+                            Tag = localPath
+                        };
+
+                        // 如果有对应的HTML文件，添加点击事件
+                        if (!string.IsNullOrEmpty(localPath))
+                        {
+                            item.MouseDoubleClick += (s, e) =>
+                            {
+                                if (e.Source == item) // 确保事件来自当前项
+                                {
+                                    LoadHtmlInWebView(webView, baseDir, localPath);
+                                    e.Handled = true;
+                                }
+                            };
+                        }
+
+                        // 添加到树中
+                        treeView.Items.Add(item);
+                    }
+                }
+
+                // 如果没有解析到任何项，退化到简单模式
+                if (treeView.Items.Count == 0)
+                {
+                    BuildSimpleTreeFromHtmlFiles(treeView, baseDir, webView);
+                }
+            }
+            catch
+            {
+                // 解析失败，使用简单模式
+                BuildSimpleTreeFromHtmlFiles(treeView, baseDir, webView);
             }
         }
 

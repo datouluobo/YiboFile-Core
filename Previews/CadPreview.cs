@@ -41,18 +41,10 @@ namespace OoiMRR.Previews
                 // 如果是 DWG 文件，添加"转换为DXF格式"按钮
                 if (ext == ".dwg")
                 {
-                    var convertButton = new Button
-                    {
-                        Content = "🔄 转换为DXF格式",
-                        Padding = new Thickness(12, 6, 12, 6),
-                        Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(76, 175, 80)),
-                        Foreground = Brushes.White,
-                        BorderThickness = new Thickness(0),
-                        Cursor = System.Windows.Input.Cursors.Hand,
-                        FontSize = 13,
-                        Margin = new Thickness(0, 0, 8, 0)
-                    };
-                    convertButton.Click += (s, e) => ConvertDwgToDxf(filePath, convertButton);
+                    var convertButton = PreviewHelper.CreateConvertButton(
+                        "🔄 转换为DXF格式",
+                        (s, e) => ConvertDwgToDxf(filePath, s as Button)
+                    );
                     buttons.Add(convertButton);
                 }
 

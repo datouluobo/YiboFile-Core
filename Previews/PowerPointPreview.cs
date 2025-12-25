@@ -550,34 +550,25 @@ namespace OoiMRR.Previews
 
         private UIElement CreatePptPreview(string filePath)
         {
-            try
+            var panel = new StackPanel
             {
-                var grid = new Grid();
-                grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+                Orientation = Orientation.Vertical,
+                Background = Brushes.White
+            };
 
-                // 检测PowerPoint是否安装
-                bool hasPowerPoint = IsPowerPointInstalled();
+            // 检测PowerPoint是否安装
+            bool hasPowerPoint = IsPowerPointInstalled();
 
-                // 转换按钮（如果有PowerPoint）
-                var convertButton = new Button
+            // 转换按钮
+            var convertButton = PreviewHelper.CreateConvertButton(
+                "🔄 转换为PPTX格式",
+                async (s, e) =>
                 {
-                    Content = "🔄 转换为PPTX格式",
-                    Padding = new Thickness(12, 6, 12, 6),
-                    Background = new SolidColorBrush(Color.FromRgb(76, 175, 80)),
-                    Foreground = Brushes.White,
-                    BorderThickness = new Thickness(0),
-                    Cursor = System.Windows.Input.Cursors.Hand,
-                    FontSize = 13,
-                    IsEnabled = hasPowerPoint
-                };
-
-                convertButton.Click += async (s, e) =>
-                {
+                    var btn = s as Button;
                     try
                     {
-                        convertButton.IsEnabled = false;
-                        convertButton.Content = "⏳ 转换中...";
+                        btn.IsEnabled = false;
+                        btn.Content = "⏳ 转换中...";
 
                         try
                         {
@@ -599,7 +590,7 @@ namespace OoiMRR.Previews
 
                             if (success)
                             {
-                                convertButton.Content = "✅ 转换成功";
+                                btn.Content = "✅ 转换成功";
                                 MessageBox.Show(
                                     $"文件已成功转换为PPTX格式：\n{outputPath}",
                                     "转换成功",
@@ -614,152 +605,52 @@ namespace OoiMRR.Previews
                                     errorTitle,
                                     MessageBoxButton.OK,
                                     MessageBoxImage.Error);
-                                convertButton.IsEnabled = true;
-                                convertButton.Content = "🔄 转换为PPTX格式";
+                                btn.IsEnabled = true;
+                                btn.Content = "🔄 转换为PPTX格式";
                             }
                         }
                         catch (Exception ex)
                         {
                             MessageBox.Show($"转换失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                            convertButton.IsEnabled = true;
-                            convertButton.Content = "🔄 转换为PPTX格式";
+                            btn.IsEnabled = true;
+                            btn.Content = "🔄 转换为PPTX格式";
                         }
                     }
                     catch (Exception ex)
                     {
                         MessageBox.Show($"转换失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                        convertButton.IsEnabled = true;
-                        convertButton.Content = "🔄 转换为PPTX格式";
+                        btn.IsEnabled = true;
+                        btn.Content = "🔄 转换为PPTX格式";
                     }
-                };
-
-                var buttons = new List<Button>
-                {
-                    convertButton,
-                    PreviewHelper.CreateOpenButton(filePath)
-                };
-                var titlePanel = PreviewHelper.CreateTitlePanel("📊", $"PowerPoint 演示文稿（旧格式）: {System.IO.Path.GetFileName(filePath)}", buttons);
-                Grid.SetRow(titlePanel, 0);
-                grid.Children.Add(titlePanel);
-
-                // 内容区域
-                var contentPanel = new StackPanel
-                {
-                    Orientation = Orientation.Vertical,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    Margin = new Thickness(40)
-                };
-
-                var warningIcon = new TextBlock
-                {
-                    Text = "⚠️",
-                    FontSize = 48,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    Margin = new Thickness(0, 10, 0, 20)
-                };
-
-                var titleText = new TextBlock
-                {
-                    Text = "PPT 格式说明",
-                    FontSize = 18,
-                    FontWeight = FontWeights.Bold,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    Margin = new Thickness(0, 0, 0, 15)
-                };
-
-                var infoText = new TextBlock
-                {
-                    Text = "该文件为旧的 PPT 格式（Microsoft PowerPoint 97-2003）\n\n" +
-                           "由于 PPT 使用二进制格式，无法直接预览内容。",
-                    FontSize = 13,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    TextWrapping = TextWrapping.Wrap,
-                    TextAlignment = TextAlignment.Center,
-                    Foreground = new SolidColorBrush(Color.FromRgb(102, 102, 102)),
-                    LineHeight = 22,
-                    Margin = new Thickness(0, 0, 0, 20)
-                };
-
-                contentPanel.Children.Add(warningIcon);
-                contentPanel.Children.Add(titleText);
-                contentPanel.Children.Add(infoText);
-
-                // 推荐方案
-                var solutionsPanel = new StackPanel
-                {
-                    Orientation = Orientation.Vertical,
-                    HorizontalAlignment = HorizontalAlignment.Left,
-                    Margin = new Thickness(20, 0, 20, 0)
-                };
-
-                var solutionsTitle = new TextBlock
-                {
-                    Text = "💡 推荐方案：",
-                    FontSize = 14,
-                    FontWeight = FontWeights.Bold,
-                    Margin = new Thickness(0, 0, 0, 10)
-                };
-                solutionsPanel.Children.Add(solutionsTitle);
-
-                if (hasPowerPoint)
-                {
-                    // 方案1：自动转换
-                    var solution1 = new TextBlock
-                    {
-                        Text = "✅ 自动转换：点击上方\"转换为PPTX格式\"按钮",
-                        FontSize = 12,
-                        Margin = new Thickness(0, 5, 0, 5),
-                        TextWrapping = TextWrapping.Wrap
-                    };
-                    solutionsPanel.Children.Add(solution1);
                 }
-                else
-                {
-                    // 无PowerPoint的情况
-                    var noPptWarning = new TextBlock
-                    {
-                        Text = "❌ 未检测到 Microsoft PowerPoint，无法自动转换",
-                        FontSize = 12,
-                        Foreground = new SolidColorBrush(Color.FromRgb(255, 152, 0)),
-                        FontWeight = FontWeights.Bold,
-                        Margin = new Thickness(0, 5, 0, 10),
-                        TextWrapping = TextWrapping.Wrap
-                    };
-                    solutionsPanel.Children.Add(noPptWarning);
-                }
+            );
 
-                // 方案2：手动转换
-                var solution2 = new TextBlock
-                {
-                    Text = "🔧 手动转换：在 PowerPoint 中打开，选择\"另存为\" → PPTX 格式",
-                    FontSize = 12,
-                    Margin = new Thickness(0, 5, 0, 5),
-                    TextWrapping = TextWrapping.Wrap
-                };
-                solutionsPanel.Children.Add(solution2);
-
-                // 方案3：在线预览
-                var solution3 = new TextBlock
-                {
-                    Text = "🌐 在线预览：上传到 OneDrive 后使用 Office Online 打开",
-                    FontSize = 12,
-                    Margin = new Thickness(0, 5, 0, 5),
-                    TextWrapping = TextWrapping.Wrap
-                };
-                solutionsPanel.Children.Add(solution3);
-
-                contentPanel.Children.Add(solutionsPanel);
-
-                Grid.SetRow(contentPanel, 1);
-                grid.Children.Add(contentPanel);
-
-                return grid;
-            }
-            catch (Exception ex)
+            // 如果没有安装PowerPoint，禁用转换按钮
+            if (!hasPowerPoint)
             {
-                return PreviewHelper.CreateErrorPreview($"无法读取PPT文档: {ex.Message}");
+                convertButton.IsEnabled = false;
+                convertButton.ToolTip = "未检测到 Microsoft PowerPoint，无法使用自动转换功能";
             }
+
+            var titleButtons = new List<Button>
+            {
+                convertButton,
+                PreviewHelper.CreateOpenButton(filePath)
+            };
+            var titlePanel = PreviewHelper.CreateTitlePanel("📊", $"PowerPoint 演示文稿（旧格式）: {System.IO.Path.GetFileName(filePath)}", titleButtons);
+            panel.Children.Add(titlePanel);
+
+            // 添加统一的旧格式提示面板
+            var infoPanel = PreviewHelper.CreateLegacyFormatPanel(
+                "PPT",
+                "该文件为旧的 PPT 格式（Microsoft PowerPoint 97-2003）\n" +
+                "由于 PPT 使用二进制格式，无法直接预览内容。",
+                hasPowerPoint,
+                "转换为PPTX格式"
+            );
+            panel.Children.Add(infoPanel);
+
+            return panel;
         }
 
         /// <summary>

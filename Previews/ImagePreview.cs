@@ -148,9 +148,15 @@ namespace OoiMRR.Previews
         /// <summary>
         /// 使用ImageMagick创建预览（TGA/BLP/HEIC/HEIF/AI/PSD）
         /// </summary>
+        /// <summary>
+        /// 使用ImageMagick创建预览（TGA/BLP/HEIC/HEIF/AI/PSD）
+        /// </summary>
         private UIElement CreateMagickPreview(string filePath, string extension)
         {
-            var grid = new Grid();
+            var grid = new Grid
+            {
+                Background = Brushes.White // 统一背景色
+            };
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 标题栏
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 工具栏
             grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // 图片区
@@ -169,25 +175,12 @@ namespace OoiMRR.Previews
             transformGroup.Children.Add(scaleTransform);
             transformGroup.Children.Add(rotateTransform);
 
-            // 加载指示器
-            var loadingText = new TextBlock
-            {
-                Text = $"正在加载 {formatName}...",
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center,
-                Foreground = Brushes.Gray,
-                FontSize = 14
-            };
-            Grid.SetRow(loadingText, 2);
-            grid.Children.Add(loadingText);
-
-            // 图片控件
+            // 图片控件 (初始隐藏)
             var image = new Image
             {
                 Stretch = Stretch.Uniform,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
-                Visibility = Visibility.Collapsed,
                 RenderTransform = transformGroup,
                 RenderTransformOrigin = new Point(0.5, 0.5)
             };
@@ -202,7 +195,7 @@ namespace OoiMRR.Previews
             Grid.SetRow(scrollViewer, 2);
             grid.Children.Add(scrollViewer);
 
-            // 创建工具栏
+            // 创建工具栏 (初始隐藏)
             var toolbar = ImageToolbarHelper.CreateToolbar(new ImageToolbarHelper.ToolbarConfig
             {
                 TargetImage = image,
@@ -215,6 +208,17 @@ namespace OoiMRR.Previews
             Grid.SetRow(toolbar, 1);
             grid.Children.Add(toolbar);
 
+            // 加载指示器 (默认显示，跨行覆盖)
+            var loadingPanel = PreviewHelper.CreateLoadingPanel($"正在解析 {formatName}...");
+            Grid.SetRow(loadingPanel, 1);
+            Grid.SetRowSpan(loadingPanel, 2); // 覆盖工具栏和内容区
+            grid.Children.Add(loadingPanel);
+
+            // 错误容器 (用于显示错误信息)
+            var errorContainer = new Grid { Visibility = Visibility.Collapsed };
+            Grid.SetRow(errorContainer, 2);
+            grid.Children.Add(errorContainer);
+
             // 异步加载
             System.Threading.Tasks.Task.Run(() =>
             {
@@ -225,25 +229,31 @@ namespace OoiMRR.Previews
                     Application.Current.Dispatcher.Invoke(() =>
                     {
                         image.Source = bitmap;
-                        image.Visibility = Visibility.Visible;
+                        // 显示内容
                         scrollViewer.Visibility = Visibility.Visible;
                         toolbar.Visibility = Visibility.Visible;
-                        loadingText.Visibility = Visibility.Collapsed;
+                        // 隐藏加载
+                        loadingPanel.Visibility = Visibility.Collapsed;
                     });
                 }
                 catch (MagickException ex)
                 {
                     Application.Current.Dispatcher.Invoke(() =>
                     {
-                        HandleMagickError(loadingText, ex, extension, filePath);
+                        loadingPanel.Visibility = Visibility.Collapsed;
+                        errorContainer.Visibility = Visibility.Visible;
+                        errorContainer.Children.Clear();
+                        errorContainer.Children.Add(CreateMagickErrorPanel(ex, extension, filePath));
                     });
                 }
                 catch (Exception ex)
                 {
                     Application.Current.Dispatcher.Invoke(() =>
                     {
-                        loadingText.Text = $"加载失败: {ex.Message}";
-                        loadingText.Foreground = Brushes.Red;
+                        loadingPanel.Visibility = Visibility.Collapsed;
+                        errorContainer.Visibility = Visibility.Visible;
+                        errorContainer.Children.Clear();
+                        errorContainer.Children.Add(PreviewHelper.CreateErrorPreview($"加载失败: {ex.Message}"));
                     });
                 }
             });
@@ -302,26 +312,24 @@ namespace OoiMRR.Previews
         /// <summary>
         /// 处理ImageMagick错误
         /// </summary>
-        private void HandleMagickError(TextBlock loadingText, MagickException ex, string extension, string filePath)
+        /// <summary>
+        /// 创建ImageMagick错误面板
+        /// </summary>
+        private UIElement CreateMagickErrorPanel(MagickException ex, string extension, string filePath)
         {
             // HEIC/HEIF缺少解码器
             if (ex.Message.Contains("delegate") && (extension == ".heic" || extension == ".heif"))
             {
-                loadingText.Text = "❌ 缺少HEIF解码器\n\n" +
-                                  "请从 Microsoft Store 安装 \"HEIF图像扩展\"\n" +
-                                  "或使用其他应用打开此文件";
-                loadingText.FontSize = 13;
+                return PreviewHelper.CreateErrorPreview("缺少 HEIF 解码器\n请从 Microsoft Store 安装 \"HEIF图像扩展\" 或使用外部程序打开");
             }
             else if (ex.Message.Contains("no decode delegate"))
             {
-                loadingText.Text = $"❌ 不支持此{extension}文件\n\n{ex.Message}";
+                return PreviewHelper.CreateNoPreview(filePath); // 使用"不支持预览"的统一UI
             }
             else
             {
-                loadingText.Text = $"解码失败: {ex.Message}";
+                return PreviewHelper.CreateErrorPreview($"解码失败: {ex.Message}");
             }
-
-            loadingText.Foreground = Brushes.Red;
         }
 
     }

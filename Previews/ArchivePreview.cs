@@ -112,15 +112,9 @@ namespace OoiMRR.Previews
                 }
                 catch (Exception ex)
                 {
-                    var errorText = new TextBlock
-                    {
-                        Text = $"无法读取压缩包: {ex.Message}",
-                        Foreground = Brushes.Red,
-                        Margin = new Thickness(10),
-                        TextWrapping = TextWrapping.Wrap
-                    };
-                    Grid.SetRow(errorText, 2);
-                    mainGrid.Children.Add(errorText);
+                    var errorPanel = PreviewHelper.CreateErrorPreview($"无法读取压缩包: {ex.Message}");
+                    Grid.SetRow(errorPanel as UIElement, 2);
+                    mainGrid.Children.Add(errorPanel as UIElement);
                     return mainGrid;
                 }
 
@@ -183,16 +177,9 @@ namespace OoiMRR.Previews
                 }
                 else
                 {
-                    var emptyText = new TextBlock
-                    {
-                        Text = "压缩包为空",
-                        HorizontalAlignment = HorizontalAlignment.Center,
-                        VerticalAlignment = VerticalAlignment.Center,
-                        Foreground = Brushes.Gray,
-                        Margin = new Thickness(10, 20, 10, 10)
-                    };
-                    Grid.SetRow(emptyText, 2);
-                    mainGrid.Children.Add(emptyText);
+                    var emptyPanel = PreviewHelper.CreateEmptyPreview("压缩包为空");
+                    Grid.SetRow(emptyPanel as UIElement, 2);
+                    mainGrid.Children.Add(emptyPanel as UIElement);
                 }
 
                 return mainGrid;
@@ -241,15 +228,9 @@ namespace OoiMRR.Previews
                     var sevenZipPath = FindSevenZipPath();
                     if (string.IsNullOrEmpty(sevenZipPath))
                     {
-                        var errorText = new TextBlock
-                        {
-                            Text = "无法找到 7-Zip 工具。请确保已安装 7-Zip 或将其放置在 Dependencies\\7-Zip 目录中。",
-                            Foreground = Brushes.Red,
-                            Margin = new Thickness(10),
-                            TextWrapping = TextWrapping.Wrap
-                        };
-                        Grid.SetRow(errorText, 2);
-                        mainGrid.Children.Add(errorText);
+                        var errorPanel = PreviewHelper.CreateErrorPreview("无法找到 7-Zip 工具\n请确保已安装 7-Zip 或将其放置在 Dependencies\\7-Zip 目录中。");
+                        Grid.SetRow(errorPanel as UIElement, 2);
+                        mainGrid.Children.Add(errorPanel as UIElement);
                         return mainGrid;
                     }
 
@@ -357,15 +338,9 @@ namespace OoiMRR.Previews
                 }
                 catch (Exception ex)
                 {
-                    var errorText = new TextBlock
-                    {
-                        Text = $"无法读取压缩包: {ex.Message}",
-                        Foreground = Brushes.Red,
-                        Margin = new Thickness(10),
-                        TextWrapping = TextWrapping.Wrap
-                    };
-                    Grid.SetRow(errorText, 2);
-                    mainGrid.Children.Add(errorText);
+                    var errorPanel = PreviewHelper.CreateErrorPreview($"无法读取压缩包: {ex.Message}");
+                    Grid.SetRow(errorPanel as UIElement, 2);
+                    mainGrid.Children.Add(errorPanel as UIElement);
                     return mainGrid;
                 }
 
@@ -428,16 +403,9 @@ namespace OoiMRR.Previews
                 }
                 else
                 {
-                    var emptyText = new TextBlock
-                    {
-                        Text = "压缩包为空",
-                        HorizontalAlignment = HorizontalAlignment.Center,
-                        VerticalAlignment = VerticalAlignment.Center,
-                        Foreground = Brushes.Gray,
-                        Margin = new Thickness(10, 20, 10, 10)
-                    };
-                    Grid.SetRow(emptyText, 2);
-                    mainGrid.Children.Add(emptyText);
+                    var emptyPanel = PreviewHelper.CreateEmptyPreview("压缩包为空");
+                    Grid.SetRow(emptyPanel as UIElement, 2);
+                    mainGrid.Children.Add(emptyPanel as UIElement);
                 }
 
                 return mainGrid;
@@ -780,16 +748,9 @@ namespace OoiMRR.Previews
                 }
                 else
                 {
-                    var emptyText = new TextBlock
-                    {
-                        Text = "压缩包为空",
-                        HorizontalAlignment = HorizontalAlignment.Center,
-                        VerticalAlignment = VerticalAlignment.Center,
-                        Foreground = Brushes.Gray,
-                        Margin = new Thickness(10, 20, 10, 10)
-                    };
-                    Grid.SetRow(emptyText, 2);
-                    mainGrid.Children.Add(emptyText);
+                    var emptyPanel = PreviewHelper.CreateEmptyPreview("压缩包为空");
+                    Grid.SetRow(emptyPanel as UIElement, 2);
+                    mainGrid.Children.Add(emptyPanel as UIElement);
                 }
 
                 return mainGrid;

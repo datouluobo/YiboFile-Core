@@ -90,8 +90,9 @@ namespace OoiMRR.Previews
                 ".docx" => new DocumentPreview(),
                 ".docm" => new DocumentPreview(),
                 ".doc" => new DocumentPreview(),
-                ".pdf" => new DocumentPreview(),
+                ".pdf" => new PdfPreview(),  // 使用专门的PdfPreview
                 ".rtf" => new DocumentPreview(),
+                ".chm" => new DocumentPreview(),  // CHM帮助文件
                 ".xlsx" => new ExcelPreview(),
                 ".xlsm" => new ExcelPreview(),
                 ".xls" => new ExcelPreview(),

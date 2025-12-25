@@ -101,9 +101,24 @@ namespace OoiMRR.Previews
                         throw new FileNotFoundException($"PDF查看器HTML文件不存在: {htmlViewerPath}");
                     }
 
-                    // 导航到HTML查看器
-                    var htmlUri = new Uri(htmlViewerPath).AbsoluteUri;
-                    webView.CoreWebView2.Navigate(htmlUri);
+                    // 设置虚拟主机映射 - 解决file://协议跨文件访问限制
+                    // 将Resources目录映射到虚拟域名,以便HTML能访问PDF.js库和PDF文件
+                    string resourcesDir = Path.GetDirectoryName(htmlViewerPath);
+                    webView.CoreWebView2.SetVirtualHostNameToFolderMapping(
+                        "pdfviewer.local",
+                        resourcesDir,
+                        Microsoft.Web.WebView2.Core.CoreWebView2HostResourceAccessKind.Allow);
+
+                    // 同样映射PDF文件所在目录
+                    string pdfDir = Path.GetDirectoryName(pdfFilePath);
+                    webView.CoreWebView2.SetVirtualHostNameToFolderMapping(
+                        "pdffiles.local",
+                        pdfDir,
+                        Microsoft.Web.WebView2.Core.CoreWebView2HostResourceAccessKind.Allow);
+
+                    // 使用虚拟主机URL导航到HTML查看器
+                    string htmlFileName = Path.GetFileName(htmlViewerPath);
+                    webView.CoreWebView2.Navigate($"https://pdfviewer.local/{htmlFileName}");
 
                     // 等待页面加载完成后注入PDF路径
                     webView.CoreWebView2.NavigationCompleted += async (sender, e) =>
@@ -112,17 +127,13 @@ namespace OoiMRR.Previews
                         {
                             try
                             {
-                                // 确保使用绝对路径
-                                string absolutePdfPath = Path.IsPathRooted(pdfFilePath) 
-                                    ? pdfFilePath 
-                                    : Path.GetFullPath(pdfFilePath);
-
-                                // 转换为file:// URI并处理特殊字符
-                                var pdfUri = new Uri(absolutePdfPath).AbsoluteUri;
+                                // 使用虚拟主机URL加载PDF
+                                string pdfFileName = Path.GetFileName(pdfFilePath);
+                                string pdfUrl = $"https://pdffiles.local/{pdfFileName}";
 
                                 // 调用JavaScript函数加载PDF
                                 await webView.CoreWebView2.ExecuteScriptAsync(
-                                    $"window.loadPdfFromPath('{pdfUri.Replace("'", "\\'")}');");
+                                    $"window.loadPdfFromPath('{pdfUrl.Replace("'", "\\'")}');");
                             }
                             catch (Exception ex)
                             {
@@ -207,7 +218,7 @@ namespace OoiMRR.Previews
                     document.getElementById('error-message').textContent = '{escapedMessage.Replace("'", "\\'")}';
                     document.getElementById('error').style.display = 'block';
                 ";
-                
+
                 await webView.CoreWebView2.ExecuteScriptAsync(errorScript);
             }
             catch (Exception ex)

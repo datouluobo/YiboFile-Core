@@ -162,7 +162,9 @@ namespace OoiMRR
             { ".pdf", new FileTypeInfo { Category = "文档", CanPreview = true, PreviewType = PreviewType.Document } },
             { ".doc", new FileTypeInfo { Category = "文档", CanPreview = true, PreviewType = PreviewType.Document } },
             { ".docx", new FileTypeInfo { Category = "文档", CanPreview = true, PreviewType = PreviewType.Document } },
+            { ".docm", new FileTypeInfo { Category = "文档", CanPreview = true, PreviewType = PreviewType.Document } },
             { ".rtf", new FileTypeInfo { Category = "文档", CanPreview = true, PreviewType = PreviewType.Document } },
+            { ".chm", new FileTypeInfo { Category = "帮助", CanPreview = true, PreviewType = PreviewType.Document } },  // CHM帮助文件
             { ".odt", new FileTypeInfo { Category = "文档", CanPreview = false, PreviewType = PreviewType.Document } },
             { ".xls", new FileTypeInfo { Category = "表格", CanPreview = true, PreviewType = PreviewType.Document } },
             { ".xlsx", new FileTypeInfo { Category = "表格", CanPreview = true, PreviewType = PreviewType.Document } },
