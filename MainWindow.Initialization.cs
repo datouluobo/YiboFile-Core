@@ -21,6 +21,7 @@ using OoiMRR.Services.Tag;
 using OoiMRR.Helpers;
 using OoiMRR.Handlers;
 using OoiMRR.Models.UI;
+using System.ComponentModel;
 
 namespace OoiMRR
 {
@@ -30,6 +31,9 @@ namespace OoiMRR
         {
             _fileBrowserEventHandler?.HandleGlobalMouseDown(e);
         }
+
+        // ... existing codes ...
+
 
         // 响应式布局现在由 FileListControl 内部的 ListView.SizeChanged 处理
         // 此方法已废弃
@@ -396,6 +400,15 @@ namespace OoiMRR
                     CheckAndRefreshSearchTab(activeTab.Path);
                 }
             };
+
+            this.Activated += (s, e) =>
+            {
+                var activeTab = _tabService.ActiveTab;
+                if (activeTab != null && activeTab.Path != null && activeTab.Path.StartsWith("search://"))
+                {
+                    CheckAndRefreshSearchTab(activeTab.Path);
+                }
+            };
         }
 
         private void AttachTabServiceUiContext()
@@ -404,6 +417,7 @@ namespace OoiMRR
             var context = new TabUiContext
             {
                 FileBrowser = FileBrowser,
+                TabManager = TabManager,
 
                 Dispatcher = this.Dispatcher,
                 OwnerWindow = this,

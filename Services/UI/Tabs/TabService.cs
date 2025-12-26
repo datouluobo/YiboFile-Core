@@ -24,6 +24,7 @@ namespace OoiMRR.Services.Tabs
     public class TabUiContext
     {
         public FileBrowserControl FileBrowser { get; init; }
+        public TabManagerControl TabManager { get; init; }
         public Dispatcher Dispatcher { get; init; }
         public Window OwnerWindow { get; init; }
         public Func<AppConfig> GetConfig { get; init; }
@@ -656,7 +657,7 @@ namespace OoiMRR.Services.Tabs
             EnsureUi();
             try
             {
-                var panel = _ui.FileBrowser?.TabsPanelControl;
+                var panel = _ui.TabManager?.TabsPanelControl;
                 if (panel == null) return;
                 panel.AllowDrop = true;
                 panel.DragOver -= TabsPanel_DragOver;
@@ -670,7 +671,7 @@ namespace OoiMRR.Services.Tabs
         public void CreatePathTab(string path, bool forceNewTab = false, bool skipValidation = false, bool activate = true)
         {
             EnsureUi();
-            if (!_ui.FileBrowser?.TabsPanelControl?.IsLoaded ?? true) return;
+            if (!_ui.TabManager?.TabsPanelControl?.IsLoaded ?? true) return;
 
             if (!skipValidation && !ValidatePath(path, out string errorMessage))
             {
@@ -937,7 +938,7 @@ namespace OoiMRR.Services.Tabs
         {
             EnsureUi();
             if (library == null || library.Paths == null || library.Paths.Count == 0) return;
-            if (_ui.FileBrowser == null || _ui.FileBrowser.TabsPanelControl == null) return;
+            if (_ui.TabManager == null || _ui.TabManager.TabsPanelControl == null) return;
 
             var validPaths = GetValidLibraryPaths(library);
             if (validPaths.Count == 0) return;
@@ -974,7 +975,7 @@ namespace OoiMRR.Services.Tabs
         public void ClearTabsInLibraryMode()
         {
             EnsureUi();
-            if (_ui.FileBrowser == null || _ui.FileBrowser.TabsPanelControl == null) return;
+            if (_ui.TabManager == null || _ui.TabManager.TabsPanelControl == null) return;
 
             var tabsToRemove = _tabs.ToList();
             foreach (var tab in tabsToRemove)
@@ -997,7 +998,7 @@ namespace OoiMRR.Services.Tabs
             EnsureUi();
             if (tab == null || tab.TabButton == null) return;
             if (!CanCloseTab(tab, _ui.GetCurrentLibrary?.Invoke() != null)) return;
-            if (_ui.FileBrowser == null || _ui.FileBrowser.TabsPanelControl == null) return;
+            if (_ui.TabManager == null || _ui.TabManager.TabsPanelControl == null) return;
 
             RemoveTab(tab);
 
@@ -1005,9 +1006,9 @@ namespace OoiMRR.Services.Tabs
             if (container != null)
             {
                 container.Children.Clear();
-                _ui.FileBrowser.TabsPanelControl.Children.Remove(container);
-                _ui.FileBrowser.TabsPanelControl.UpdateLayout();
-                _ui.FileBrowser.TabsBorderControl?.UpdateLayout();
+                _ui.TabManager.TabsPanelControl.Children.Remove(container);
+                _ui.TabManager.TabsPanelControl.UpdateLayout();
+                _ui.TabManager.TabsBorderControl?.UpdateLayout();
             }
 
             tab.TabButton = null;
@@ -1072,15 +1073,15 @@ namespace OoiMRR.Services.Tabs
         public void ReorderTabs()
         {
             EnsureUi();
-            if (_ui.FileBrowser == null || _ui.FileBrowser.TabsPanelControl == null) return;
+            if (_ui.TabManager == null || _ui.TabManager.TabsPanelControl == null) return;
             var ordered = GetTabsInOrder();
-            _ui.FileBrowser.TabsPanelControl.Children.Clear();
+            _ui.TabManager.TabsPanelControl.Children.Clear();
             foreach (var t in ordered)
             {
-                if (t.TabContainer != null) _ui.FileBrowser.TabsPanelControl.Children.Add(t.TabContainer);
+                if (t.TabContainer != null) _ui.TabManager.TabsPanelControl.Children.Add(t.TabContainer);
             }
-            _ui.FileBrowser.TabsPanelControl.UpdateLayout();
-            _ui.FileBrowser.TabsBorderControl?.UpdateLayout();
+            _ui.TabManager.TabsPanelControl.UpdateLayout();
+            _ui.TabManager.TabsBorderControl?.UpdateLayout();
         }
 
         public void RenameDisplayTitle(PathTab tab)
@@ -1186,7 +1187,7 @@ namespace OoiMRR.Services.Tabs
         private void CreateTabInternal(PathTab tab, bool activate = true)
         {
             EnsureUi();
-            if (_ui.FileBrowser == null || _ui.FileBrowser.TabsPanelControl == null) return;
+            if (_ui.TabManager == null || _ui.TabManager.TabsPanelControl == null) return;
 
             var tabContainer = new StackPanel
             {
@@ -1505,9 +1506,9 @@ namespace OoiMRR.Services.Tabs
 
             AddTab(tab);
 
-            if (_ui.FileBrowser?.TabsPanelControl != null)
+            if (_ui.TabManager?.TabsPanelControl != null)
             {
-                _ui.FileBrowser.TabsPanelControl.Children.Add(tabContainer);
+                _ui.TabManager.TabsPanelControl.Children.Add(tabContainer);
                 // 确保拖拽功能已初始化
                 InitializeTabsDragDrop();
             }
@@ -1536,11 +1537,11 @@ namespace OoiMRR.Services.Tabs
             {
                 if (!e.Data.GetDataPresent("OoiMRR_TabKey")) return;
                 var key = e.Data.GetData("OoiMRR_TabKey") as string;
-                if (string.IsNullOrEmpty(key) || _ui.FileBrowser?.TabsPanelControl == null) return;
+                if (string.IsNullOrEmpty(key) || _ui.TabManager?.TabsPanelControl == null) return;
                 var tab = _tabs.FirstOrDefault(t => GetTabKey(t) == key);
                 if (tab == null) return;
 
-                var panel = _ui.FileBrowser.TabsPanelControl;
+                var panel = _ui.TabManager.TabsPanelControl;
                 var mousePos = e.GetPosition(panel);
                 var children = panel.Children.OfType<StackPanel>().ToList();
                 int targetIndex = 0;

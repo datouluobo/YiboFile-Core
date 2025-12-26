@@ -1,0 +1,10 @@
+F:\Download\GitHub\OoiMRR\Services\UI\WindowStateManager.cs(114,48): error CS1061: “IConfigUIHelper”未包含“IsPseudoMaximized”的定义，并且找不到可接受第一个“IConfigUIHelper”类型参数的可访问扩展方法“IsPseudoMaximized”(是否缺少 using 指令或程序集引用?) [F:\Download\GitHub\OoiMRR\OoiMRR_vphfubxo_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\Services\UI\WindowStateManager.cs(151,31): error CS1061: “IConfigUIHelper”未包含“RestoreBounds”的定义，并且找不到可接受第一个“IConfigUIHelper”类型参数的可访问扩展方法“RestoreBounds”(是否缺少 using 指令或程序集引用?) [F:\Download\GitHub\OoiMRR\OoiMRR_vphfubxo_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\Services\UI\WindowStateManager.cs(164,51): error CS1061: “IConfigUIHelper”未包含“RestoreBounds”的定义，并且找不到可接受第一个“IConfigUIHelper”类型参数的可访问扩展方法“RestoreBounds”(是否缺少 using 指令或程序集引用?) [F:\Download\GitHub\OoiMRR\OoiMRR_vphfubxo_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\Services\UI\WindowStateManager.cs(171,35): error CS1061: “IConfigUIHelper”未包含“RestoreBounds”的定义，并且找不到可接受第一个“IConfigUIHelper”类型参数的可访问扩展方法“RestoreBounds”(是否缺少 using 指令或程序集引用?) [F:\Download\GitHub\OoiMRR\OoiMRR_vphfubxo_wpftmp.csproj]
+
+生成失败。
+    62 个警告
+    4 个错误
+
+已用时间 00:00:02.75

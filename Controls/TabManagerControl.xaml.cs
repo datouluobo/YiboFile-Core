@@ -234,7 +234,26 @@ namespace OoiMRR.Controls
                 Margin = new Thickness(0, 0, 2, 0)
             };
 
-            // 创建标签文本
+            // 1. 创建图标 (独立于标题，始终保持 Normal 字重)
+            string iconCode = "\xE838"; // 默认 Folder/Path
+            switch (tab.Type)
+            {
+                case TabType.Library: iconCode = "\xE8F1"; break;
+                case TabType.Tag: iconCode = "\xE8EC"; break;
+            }
+
+            var iconText = new TextBlock
+            {
+                Text = iconCode,
+                FontFamily = new FontFamily("Segoe MDL2 Assets"),
+                FontSize = 14,
+                FontWeight = FontWeights.Normal, // 关键：始终 Normal
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Margin = new Thickness(0, 0, 8, 0)
+            };
+
+            // 2. 创建标题文本
             var titleText = new TextBlock
             {
                 Text = GetEffectiveTitle(tab),
@@ -243,16 +262,16 @@ namespace OoiMRR.Controls
                 TextAlignment = TextAlignment.Left,
                 TextTrimming = TextTrimming.CharacterEllipsis,
                 TextWrapping = TextWrapping.NoWrap,
-                Margin = new Thickness(0, 0, 8, 0)
+                Margin = new Thickness(0, 0, 4, 0) // 减少右侧间距，因为有关闭按钮
             };
 
-            // 创建关闭按钮
+            // 3. 创建关闭按钮
             var closeButtonText = new TextBlock
             {
-                Text = "×",
-                FontSize = 18,
-                FontWeight = FontWeights.Bold,
-                FontFamily = new FontFamily("Segoe UI Symbol"),
+                Text = "\xE711",
+                FontSize = 12,
+                FontWeight = FontWeights.Normal,
+                FontFamily = new FontFamily("Segoe MDL2 Assets"),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
                 TextAlignment = TextAlignment.Center,
@@ -271,7 +290,7 @@ namespace OoiMRR.Controls
                 Child = closeButtonText,
                 VerticalAlignment = VerticalAlignment.Center,
                 HorizontalAlignment = HorizontalAlignment.Right,
-                Margin = new Thickness(4, 0, 0, 0)
+                Margin = new Thickness(0) // 移除左边距，由Grid控制
             };
 
             closeButton.MouseLeftButtonDown += (s, e) =>
@@ -282,17 +301,26 @@ namespace OoiMRR.Controls
                     CloseTab(tabToClose);
                 }
             };
+            // 绑定悬停事件到关闭按钮容器本身，或者复用Button的逻辑
+            // 此处保持原样，Button的MouseEnter会处理整体Opacity
 
-            // 创建按钮内容
+            // 4. 组装内容 Grid
             var buttonContent = new Grid
             {
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 VerticalAlignment = VerticalAlignment.Stretch
             };
+
+            // 定义3列: [Icon] [Title] [Close]
+            buttonContent.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             buttonContent.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             buttonContent.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            Grid.SetColumn(titleText, 0);
-            Grid.SetColumn(closeButton, 1);
+
+            Grid.SetColumn(iconText, 0);
+            Grid.SetColumn(titleText, 1);
+            Grid.SetColumn(closeButton, 2);
+
+            buttonContent.Children.Add(iconText);
             buttonContent.Children.Add(titleText);
             buttonContent.Children.Add(closeButton);
 
@@ -300,9 +328,7 @@ namespace OoiMRR.Controls
             var button = new Button
             {
                 Content = buttonContent,
-                Tag = tab,
-                Padding = new Thickness(12, 6, 12, 6),
-                Margin = new Thickness(0)
+                Tag = tab
             };
 
             // 应用样式（如果存在）
@@ -349,6 +375,16 @@ namespace OoiMRR.Controls
             };
 
             button.PreviewMouseLeftButtonUp += (s, e) => { _draggingTab = null; };
+
+            // 悬停显示关闭按钮
+            button.MouseEnter += (s, e) =>
+            {
+                if (tab.CloseButton != null) tab.CloseButton.Opacity = 1.0;
+            };
+            button.MouseLeave += (s, e) =>
+            {
+                if (tab.CloseButton != null) tab.CloseButton.Opacity = 0.0;
+            };
 
             // 中键关闭
             button.PreviewMouseDown += (s, e) =>
@@ -588,24 +624,24 @@ namespace OoiMRR.Controls
         /// </summary>
         private void UpdateTabStyles()
         {
+            if (_parentWindow == null) return;
+
+            var tabStyle = _parentWindow.TryFindResource("TabButtonStyle") as Style;
+            var activeTabStyle = _parentWindow.TryFindResource("ActiveTabButtonStyle") as Style;
+
             foreach (var tab in _tabs)
             {
                 if (tab.TabButton == null) continue;
+
                 if (tab == _activeTab)
                 {
-                    // 活动标签页样式
-                    tab.TabButton.Background = new SolidColorBrush(Color.FromRgb(0x0D, 0x6E, 0xFD));
-                    tab.TabButton.Foreground = Brushes.White;
-                    if (tab.CloseButton != null && tab.CloseButton.Child is TextBlock closeText)
-                        closeText.Foreground = Brushes.White;
+                    if (activeTabStyle != null)
+                        tab.TabButton.Style = activeTabStyle;
                 }
                 else
                 {
-                    // 非活动标签页样式
-                    tab.TabButton.Background = new SolidColorBrush(Color.FromRgb(0xE9, 0xEC, 0xEF));
-                    tab.TabButton.Foreground = new SolidColorBrush(Color.FromRgb(0x21, 0x25, 0x29));
-                    if (tab.CloseButton != null && tab.CloseButton.Child is TextBlock closeText)
-                        closeText.Foreground = new SolidColorBrush(Color.FromRgb(0x6C, 0x75, 0x7D));
+                    if (tabStyle != null)
+                        tab.TabButton.Style = tabStyle;
                 }
             }
         }

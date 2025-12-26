@@ -92,11 +92,18 @@ namespace OoiMRR.Controls
         public AddressBarControl AddressBar => AddressBarControl;
         public ListView FilesList => FileList?.FilesList;
         public GridView FilesGrid => FileList?.FilesGrid;
-        public TabManagerControl TabManagerControl => TabManager;
-        public StackPanel TabsPanelControl => TabManager?.TabsPanelControl; // 返回TabManagerControl内部的TabsPanel
-        public Border TabsBorderControl => TabManager?.TabsBorderControl; // 返回TabManagerControl内部的TabsBorder
+
+        // TabManager moved to MainWindow
+        // public TabManagerControl TabManagerControl => TabManager;
+        // public StackPanel TabsPanelControl => TabManager?.TabsPanelControl;
+        // public Border TabsBorderControl => TabManager?.TabsBorderControl;
+
         public StackPanel FileInfoPanelControl => FileInfoPanel;
         public TextBlock EmptyStateTextControl => FileList?.EmptyStateTextControl;
+
+        // TitleActionBar 现在在 FileBrowserControl 中，提供公共访问
+        public TitleActionBar ActionBar => TitleActionBar;
+
 
         /// <summary>
         /// 获取 FileListControl 实例（供设置面板调用）
@@ -191,14 +198,13 @@ namespace OoiMRR.Controls
             get => FileList?.SelectedItems;
         }
 
-        // 标签页相关方法（委托给TabManagerControl）
+        // 标签页相关方法（已移动到MainWindow）
         public bool TabsVisible
         {
-            get => TabManager?.IsVisible ?? false;
+            get => false; // TabManager?.IsVisible ?? false;
             set
             {
-                if (TabManager != null)
-                    TabManager.IsVisible = value;
+                // Move logic to MainWindow if needed
             }
         }
 

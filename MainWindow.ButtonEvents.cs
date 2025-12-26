@@ -260,12 +260,7 @@ namespace OoiMRR
             _windowLifecycleHandler?.UpdateWindowStateUI();
         }
 
-        private Rect GetCurrentMonitorWorkAreaDIPs()
-        {
-            if (_windowLifecycleHandler != null)
-                return _windowLifecycleHandler.GetCurrentMonitorWorkAreaDIPs();
-            return SystemParameters.WorkArea;
-        }
+
 
         // NativeMethods has been moved to WindowLifecycleHandler
         internal void UpdateActionButtonsPosition()
@@ -328,10 +323,7 @@ namespace OoiMRR
 
         // 鼠标事件桥接方法 - 已迁移到 MouseEventHandler
         // 顶部标题栏鼠标按下：支持拖动窗口和双击最大化/还原
-        private void TitleBar_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
-        {
-            _windowLifecycleHandler?.HandleTitleBarMouseDown(e);
-        }
+
 
         // 右上角按钮容器的鼠标事件：非按钮区域也要支持拖动窗口
         private void WindowControlButtonsContainer_PreviewMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)

@@ -116,12 +116,13 @@
     </UserControl.Resources>
     <Grid>
         <!-- 文件列表 -->
-        <Border Background="#FFFFFF" BorderBrush="#E9ECEF" BorderThickness="0,1,0,0">
+        <Border Background="#FFFFFF">
             <Grid>
                 <!-- 普通列表视图 -->
                 <ListView x:Name="FilesListView" 
                       SelectionMode="Extended"
-                      Background="#FFFFFF">
+                      Background="#FFFFFF"
+                      BorderThickness="0">
                     <ListView.ItemContainerStyle>
                         <Style TargetType="ListViewItem">
                             <Setter Property="Background" Value="#FFFFFF"/>

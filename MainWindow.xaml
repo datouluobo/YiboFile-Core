@@ -10,16 +10,24 @@
         MinHeight="600"
         MinWidth="800"
         WindowState="Normal"
-        WindowStyle="None"
+        WindowStyle="SingleBorderWindow"
         AllowsTransparency="False"
         ResizeMode="CanResize"
         UseLayoutRounding="True"
-        Background="#FFFFFF"
+        Background="{DynamicResource AppBackgroundBrush}"
         PreviewKeyDown="MainWindow_PreviewKeyDown"
         Closing="Window_Closing"
         SizeChanged="Window_SizeChanged"
         LocationChanged="Window_LocationChanged">
     
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="36" 
+                      ResizeBorderThickness="4" 
+                      GlassFrameThickness="1" 
+                      CornerRadius="0" 
+                      UseAeroCaptionButtons="False"/>
+    </WindowChrome.WindowChrome>
+
     <Window.Resources>
         <local:TimeUnitConverter x:Key="TimeUnitConverter"/>
     </Window.Resources>
@@ -27,88 +35,103 @@
     <!-- 主容器：包含标题栏和窗口内容 -->
     <Grid Name="MainContainer">
         <!-- 窗口内容容器 -->
-    <Grid Name="RootGrid" Background="#FFFFFF" Margin="0,0,0,0">
+    <Grid Name="RootGrid" Background="{DynamicResource AppBackgroundBrush}">
+        <Grid.Style>
+            <Style TargetType="Grid">
+                <Setter Property="Margin" Value="0"/>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding WindowState, RelativeSource={RelativeSource AncestorType=Window}}" Value="Maximized">
+                        <Setter Property="Margin" Value="8"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </Grid.Style>
         <!-- 左中右3列布局 -->
         <Grid.ColumnDefinitions>
             <ColumnDefinition x:Name="ColLeft" Width="220" MinWidth="220"/>
-            <ColumnDefinition Width="6"/>
+            <ColumnDefinition Width="12"/>
             <ColumnDefinition x:Name="ColCenter" Width="*" MinWidth="250"/>
-            <ColumnDefinition Width="6"/>
+            <ColumnDefinition Width="12"/>
             <ColumnDefinition x:Name="ColRight" Width="360" MinWidth="360"/>
         </Grid.ColumnDefinitions>
         
         <!-- 布局：标题栏行 + 标签页行 + 内容行 -->
         <Grid.RowDefinitions>
-            <RowDefinition Height="36"/>
+            <RowDefinition Height="50"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
         
-        <!-- 标题栏：包含列1导航按钮和列2操作按钮，支持拖拽 -->
+        <!-- 标题栏背景 -->
         <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="5"
-                Background="#F8F9FA" BorderBrush="#E9ECEF" BorderThickness="0,0,0,1"
-                MouseDown="TitleBar_MouseDown"
-                Panel.ZIndex="1000">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                
-                <!-- 列1：导航按钮和操作按钮（左侧） -->
-                <Grid Name="NavButtonsContainer" Grid.Column="0" VerticalAlignment="Center" Margin="8,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Name="NavButtonsColumn" Width="220"/>
-                        <ColumnDefinition Width="8"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    
-                    <!-- 导航按钮区域：3个按钮平均分配列1宽度 -->
-                    <UniformGrid Grid.Column="0" Rows="1" Columns="3">
-                        <Button Name="NavPathBtn" Content="路径" Click="NavPathBtn_Click" Margin="2,0" Height="36"
-                                Style="{StaticResource ModernButtonStyle}"/>
-                        <Button Name="NavLibraryBtn" Content="库" Click="NavLibraryBtn_Click" Margin="2,0" Height="36"
-                                Style="{StaticResource ModernButtonStyle}"/>
-                        <Button Name="NavTagBtn" Content="标签" Click="NavTagBtn_Click" Margin="2,0" Height="36"
-                                Style="{StaticResource ModernButtonStyle}"/>
-                    </UniformGrid>
-                    
-                    <!-- 分隔符 -->
-                    <Separator Name="TitleBarSeparator" Grid.Column="1" Margin="12,0" VerticalAlignment="Center" Height="24" Width="1"/>
-                    
-                    <!-- 操作按钮栏 -->
-                    <controls:TitleActionBar Grid.Column="2"
-                                             x:Name="TitleActionBar"
-                                             VerticalAlignment="Center"
-                                             Margin="8,0,0,0"
-                                             Mode="Path"
-                                             NewFolderClicked="NewFolder_Click"
-                                             NewFileClicked="NewFile_Click"
-                                             CopyClicked="Copy_Click"
-                                             PasteClicked="Paste_Click"
-                                             DeleteClicked="Delete_Click"
-                                             RefreshClicked="Refresh_Click"
-                                             NewTagClicked="NewTag_Click"
-                                             ManageTagsClicked="ManageTags_Click"/>
-                </Grid>
-                
-            </Grid>
-        </Border>
+                Background="{DynamicResource TitleBarBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1"
+                Panel.ZIndex="1000"/>
+        
+        <!-- 导航按钮：位于列0 (随列0宽度自动调整) -->
+        <Grid Name="NavButtonsContainer" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Margin="0" WindowChrome.IsHitTestVisibleInChrome="True" Panel.ZIndex="1001">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            
+            <!-- 导航按钮区域：固定宽度，左对齐 -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="8,0">
+                <Button Name="NavPathBtn" Click="NavPathBtn_Click" Margin="2,0" Height="32" Width="60"
+                        Style="{StaticResource ActiveNavigationButtonStyle}" Tag="Selected"> <!-- 默认选中路径 -->
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <TextBlock Text="&#xE838;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="路径" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Name="NavLibraryBtn" Click="NavLibraryBtn_Click" Margin="2,0" Height="32" Width="60"
+                        Style="{StaticResource ActiveNavigationButtonStyle}">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <TextBlock Text="&#xE8F1;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="库" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Name="NavTagBtn" Click="NavTagBtn_Click" Margin="2,0" Height="32" Width="60"
+                        Style="{StaticResource ActiveNavigationButtonStyle}">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <TextBlock Text="&#xE8EC;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="标签" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+            
+            <!-- 分隔符 (隐藏保留) -->
+            <Separator Name="TitleBarSeparator" Visibility="Collapsed" Grid.Column="0" HorizontalAlignment="Right" VerticalAlignment="Center" Height="24" Width="1"/>
+        </Grid>
+
+        <!-- 标签页管理器：从列1(Splitter)开始，跨越剩余列 -->
+        <controls:TabManagerControl Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="4"
+                                    x:Name="TabManager" 
+                                    Margin="0,0,200,0"
+                                    VerticalAlignment="Center"
+                                    WindowChrome.IsHitTestVisibleInChrome="True"
+                                    Panel.ZIndex="1001"/>
+
+
 
         <!-- ========== 标签页管理器 ========== -->
-        <controls:TabManagerControl Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="5"
-                                    x:Name="TabManager" />
+
 
         <!-- 垂直分割器（从Row 2开始，跨越2行：Row 2和Row 3） -->
-        <GridSplitter Grid.Row="2" Grid.Column="1" Grid.RowSpan="2"
-                      Style="{StaticResource VerticalGridSplitterStyle}"
+        <!-- 左侧导航与中间文件列表之间的分割器 -->
+        <controls:CollapsibleGridSplitter x:Name="SplitterLeft" Grid.Row="2" Grid.Column="1" Grid.RowSpan="2"
+                      Style="{StaticResource VerticalCollapsibleGridSplitterStyle}"
+                      CollapseMode="Previous"
                       ShowsPreview="True"
+                      Panel.ZIndex="2000"
                       DragCompleted="GridSplitter_DragCompleted"/>
-        <GridSplitter Grid.Row="2" Grid.Column="3" Grid.RowSpan="2"
-                      Style="{StaticResource VerticalGridSplitterStyle}"
+        
+        <!-- 中间文件列表与右侧预览之间的分割器 -->
+        <controls:CollapsibleGridSplitter x:Name="SplitterRight" Grid.Row="2" Grid.Column="3" Grid.RowSpan="2"
+                      Style="{StaticResource VerticalCollapsibleGridSplitterStyle}"
+                      CollapseMode="Both"
                       ShowsPreview="True"
+                      Panel.ZIndex="2000"
+                      AutoFillNeighbor="True"
                       DragCompleted="GridSplitter_DragCompleted"/>
 
         <!-- ========== 列1：导航区（独立控件） ========== -->
@@ -133,7 +156,7 @@
         <Grid Name="SettingsOverlay"
               Grid.Row="2" Grid.RowSpan="2"
               Grid.Column="2" Grid.ColumnSpan="3"
-              Background="#F0F0F0"
+              Background="{DynamicResource AppBackgroundBrush}"
               Panel.ZIndex="5000"
               Visibility="Collapsed">
             <controls:SettingsPanelControl x:Name="SettingsPanel"/>
@@ -148,6 +171,7 @@
               Width="200" Height="36"
               Panel.ZIndex="10000"
               Margin="0,0,0,0"
+              WindowChrome.IsHitTestVisibleInChrome="True"
               PreviewMouseDown="WindowControlButtonsContainer_PreviewMouseDown">
             <!-- 按钮区域：固定在右上角 -->
             <StackPanel Orientation="Horizontal"
@@ -167,15 +191,15 @@
                             <Setter Property="Background" Value="Transparent"/>
                             <Setter Property="BorderBrush" Value="Transparent"/>
                             <Setter Property="BorderThickness" Value="0"/>
-                            <Setter Property="Foreground" Value="Black"/>
+                            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
                             <Setter Property="HorizontalContentAlignment" Value="Center"/>
                             <Setter Property="VerticalContentAlignment" Value="Center"/>
                             <Style.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="#E5E5E5"/>
+                                    <Setter Property="Background" Value="{DynamicResource ControlHoverBackgroundBrush}"/>
                                 </Trigger>
                                 <Trigger Property="IsPressed" Value="True">
-                                    <Setter Property="Background" Value="#CCCCCC"/>
+                                    <Setter Property="Background" Value="{DynamicResource ControlPressedBackgroundBrush}"/>
                                 </Trigger>
                             </Style.Triggers>
                         </Style>
@@ -194,15 +218,15 @@
                             <Setter Property="Background" Value="Transparent"/>
                             <Setter Property="BorderBrush" Value="Transparent"/>
                             <Setter Property="BorderThickness" Value="0"/>
-                            <Setter Property="Foreground" Value="Black"/>
+                            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
                             <Setter Property="HorizontalContentAlignment" Value="Center"/>
                             <Setter Property="VerticalContentAlignment" Value="Center"/>
                             <Style.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="#E5E5E5"/>
+                                    <Setter Property="Background" Value="{DynamicResource ControlHoverBackgroundBrush}"/>
                                 </Trigger>
                                 <Trigger Property="IsPressed" Value="True">
-                                    <Setter Property="Background" Value="#CCCCCC"/>
+                                    <Setter Property="Background" Value="{DynamicResource ControlPressedBackgroundBrush}"/>
                                 </Trigger>
                             </Style.Triggers>
                         </Style>
@@ -221,15 +245,15 @@
                             <Setter Property="Background" Value="Transparent"/>
                             <Setter Property="BorderBrush" Value="Transparent"/>
                             <Setter Property="BorderThickness" Value="0"/>
-                            <Setter Property="Foreground" Value="Black"/>
+                            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
                             <Setter Property="HorizontalContentAlignment" Value="Center"/>
                             <Setter Property="VerticalContentAlignment" Value="Center"/>
                             <Style.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="#E5E5E5"/>
+                                    <Setter Property="Background" Value="{DynamicResource ControlHoverBackgroundBrush}"/>
                                 </Trigger>
                                 <Trigger Property="IsPressed" Value="True">
-                                    <Setter Property="Background" Value="#CCCCCC"/>
+                                    <Setter Property="Background" Value="{DynamicResource ControlPressedBackgroundBrush}"/>
                                 </Trigger>
                             </Style.Triggers>
                         </Style>
@@ -247,15 +271,15 @@
                             <Setter Property="Background" Value="Transparent"/>
                             <Setter Property="BorderBrush" Value="Transparent"/>
                             <Setter Property="BorderThickness" Value="0"/>
-                            <Setter Property="Foreground" Value="Black"/>
+                            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
                             <Setter Property="HorizontalContentAlignment" Value="Center"/>
                             <Setter Property="VerticalContentAlignment" Value="Center"/>
                             <Style.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="#E5E5E5"/>
+                                    <Setter Property="Background" Value="{DynamicResource ControlHoverBackgroundBrush}"/>
                                 </Trigger>
                                 <Trigger Property="IsPressed" Value="True">
-                                    <Setter Property="Background" Value="#CCCCCC"/>
+                                    <Setter Property="Background" Value="{DynamicResource ControlPressedBackgroundBrush}"/>
                                 </Trigger>
                             </Style.Triggers>
                         </Style>
@@ -273,16 +297,16 @@
                             <Setter Property="Background" Value="Transparent"/>
                             <Setter Property="BorderBrush" Value="Transparent"/>
                             <Setter Property="BorderThickness" Value="0"/>
-                            <Setter Property="Foreground" Value="Black"/>
+                            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
                             <Setter Property="HorizontalContentAlignment" Value="Center"/>
                             <Setter Property="VerticalContentAlignment" Value="Center"/>
                             <Style.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="#E81123"/>
+                                    <Setter Property="Background" Value="{DynamicResource CloseButtonHoverBackgroundBrush}"/>
                                     <Setter Property="Foreground" Value="White"/>
                                 </Trigger>
                                 <Trigger Property="IsPressed" Value="True">
-                                    <Setter Property="Background" Value="#C50E1F"/>
+                                    <Setter Property="Background" Value="{DynamicResource CloseButtonPressedBackgroundBrush}"/>
                                     <Setter Property="Foreground" Value="White"/>
                                 </Trigger>
                             </Style.Triggers>

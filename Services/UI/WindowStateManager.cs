@@ -110,10 +110,8 @@ namespace OoiMRR.Services
             var window = _uiHelper.Window;
             if (window == null) return;
 
-            // 保存最大化状态：同时考虑伪最大化和系统最大化
-            bool isPseudoMaximized = _uiHelper.IsPseudoMaximized;
-            bool isSystemMaximized = window.WindowState == WindowState.Maximized;
-            _config.IsMaximized = isPseudoMaximized || isSystemMaximized;
+            // 保存最大化状态
+            _config.IsMaximized = window.WindowState == WindowState.Maximized;
 
             // #region agent log
             try { System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "A", location = "WindowStateManager.cs:88", message = "SaveWindowState窗口属性", data = new { isLoaded = window.IsLoaded, isMaximized = _config.IsMaximized, windowWidth = window.Width, windowHeight = window.Height, windowTop = window.Top, windowLeft = window.Left }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
@@ -129,7 +127,7 @@ namespace OoiMRR.Services
                     _config.WindowHeight = window.Height;
 
                     // 确保位置值有效（不是NaN或无效值）
-                    if (!double.IsNaN(window.Top) && !double.IsInfinity(window.Top) && window.Top >= 0)
+                    if (!double.IsNaN(window.Top) && !double.IsInfinity(window.Top) && window.Top >= -10000) // loose check
                     {
                         _config.WindowTop = window.Top;
                     }
@@ -138,7 +136,7 @@ namespace OoiMRR.Services
                         _config.WindowTop = 0; // 如果无效，使用默认值0
                     }
 
-                    if (!double.IsNaN(window.Left) && !double.IsInfinity(window.Left) && window.Left >= 0)
+                    if (!double.IsNaN(window.Left) && !double.IsInfinity(window.Left) && window.Left >= -10000)
                     {
                         _config.WindowLeft = window.Left;
                     }
@@ -147,9 +145,6 @@ namespace OoiMRR.Services
                         _config.WindowLeft = 0; // 如果无效，使用默认值0
                     }
 
-                    // 同时更新 RestoreBounds，以便下次最大化时使用
-                    _uiHelper.RestoreBounds = new Rect(_config.WindowLeft, _config.WindowTop, _config.WindowWidth, _config.WindowHeight);
-
                     // #region agent log
                     try { System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "A", location = "WindowStateManager.cs:100", message = "SaveWindowState保存非最大化状态", data = new { savedWidth = _config.WindowWidth, savedHeight = _config.WindowHeight, savedTop = _config.WindowTop, savedLeft = _config.WindowLeft, windowTop = window.Top, windowLeft = window.Left }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
                     // #endregion
@@ -157,19 +152,8 @@ namespace OoiMRR.Services
                 else
                 {
                     // 最大化状态：保存还原尺寸
-                    Rect restoreBounds;
-                    if (isPseudoMaximized)
-                    {
-                        // 伪最大化：从 UIHelper.RestoreBounds 获取
-                        restoreBounds = _uiHelper.RestoreBounds;
-                    }
-                    else
-                    {
-                        // 系统最大化：从 Window.RestoreBounds 获取
-                        restoreBounds = window.RestoreBounds;
-                        // 同步到 UIHelper 的 RestoreBounds，便于下次伪最大化切换使用
-                        _uiHelper.RestoreBounds = restoreBounds;
-                    }
+                    Rect restoreBounds = window.RestoreBounds;
+
                     // #region agent log
                     try { System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "A", location = "WindowStateManager.cs:107", message = "SaveWindowState最大化状态RestoreBounds", data = new { restoreBoundsWidth = restoreBounds.Width, restoreBoundsHeight = restoreBounds.Height, restoreBoundsTop = restoreBounds.Top, restoreBoundsLeft = restoreBounds.Left }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
                     // #endregion

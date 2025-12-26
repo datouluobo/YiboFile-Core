@@ -181,7 +181,7 @@ namespace OoiMRR.Services.Navigation
             {
                 _uiHelper.Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    if (_uiHelper.FileBrowser == null || _uiHelper.FileBrowser.TabsPanelControl == null) return;
+                    if (_uiHelper.FileBrowser == null) return;
 
                     if (string.IsNullOrEmpty(_uiHelper.CurrentPath))
                     {

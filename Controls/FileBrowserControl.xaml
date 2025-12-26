@@ -8,37 +8,45 @@
              d:DesignHeight="600" d:DesignWidth="800">
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="6"/> <!-- Splitter -->
-            <RowDefinition Height="180" MinHeight="120"/> <!-- Info -->
+            <RowDefinition Height="Auto"/>  <!-- Row 0: 地址栏 -->
+            <RowDefinition Height="Auto"/>  <!-- Row 1: 工具栏行 -->
+            <RowDefinition Height="*"/>     <!-- Row 2: 文件列表 -->
+            <RowDefinition Height="12"/>     <!-- Row 3: Splitter -->
+            <RowDefinition Height="180" MinHeight="120"/> <!-- Row 4: Info Panel -->
         </Grid.RowDefinitions>
         
         <Grid.Resources>
+            <!-- 统一使用 AppStyles 中的 ModernToolbarButtonStyle -->
+            <Style x:Key="ToolbarButtonStyle" TargetType="Button" BasedOn="{StaticResource ModernToolbarButtonStyle}"/>
+            
             <Style x:Key="ToolbarRadioButtonStyle" TargetType="RadioButton">
-                <Setter Property="Background" Value="#E3F2FD"/>
-                <Setter Property="BorderBrush" Value="#BBDEFB"/>
-                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="Height" Value="32"/>
+                <Setter Property="Width" Value="32"/>
+                <Setter Property="Padding" Value="6,0"/>
+                <Setter Property="Margin" Value="1,0"/>
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderBrush" Value="Transparent"/>
+                <Setter Property="BorderThickness" Value="0"/>
                 <Setter Property="Cursor" Value="Hand"/>
-                <Setter Property="Margin" Value="0,0,4,0"/>
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="RadioButton">
-                            <Border Background="{TemplateBinding Background}" 
+                            <Border x:Name="border"
+                                    Background="{TemplateBinding Background}" 
                                     BorderBrush="{TemplateBinding BorderBrush}" 
                                     BorderThickness="{TemplateBinding BorderThickness}"
-                                    CornerRadius="2">
+                                    CornerRadius="4">
                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="#BBDEFB"/>
+                                    <Setter Property="Background" Value="{DynamicResource ButtonHoverBackgroundBrush}"/>
                                 </Trigger>
                                 <Trigger Property="IsChecked" Value="True">
-                                    <Setter Property="Background" Value="#2196F3"/>
-                                    <Setter Property="Foreground" Value="White"/>
-                                    <Setter Property="BorderBrush" Value="#1976D2"/>
+                                    <Setter Property="Background" Value="{DynamicResource ButtonHoverBackgroundBrush}"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                                    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                    <Setter Property="BorderThickness" Value="1"/>
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
@@ -47,161 +55,76 @@
             </Style>
         </Grid.Resources>
 
-        <!-- 地址栏 -->
-        <Border Grid.Row="0" Background="#F8F9FA" Margin="0,2,0,4">
-            <Grid Margin="8">
+        <!-- Row 0: 地址栏（纯地址输入） -->
+        <Border Grid.Row="0" Background="Transparent" Margin="0,4,0,4">
+            <controls:AddressBarControl x:Name="AddressBarControl" Margin="8,0"/>
+        </Border>
+        
+        <!-- Row 1: 工具栏行（导航 + 操作 + 视图 + 搜索） -->
+        <Border Grid.Row="1" Background="Transparent" Margin="0,0,0,4">
+            <Grid Margin="8,2">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>  <!-- 导航按钮 -->
+                    <ColumnDefinition Width="8"/>     <!-- 间距 -->
+                    <ColumnDefinition Width="Auto"/>  <!-- TitleActionBar -->
+                    <ColumnDefinition Width="*"/>     <!-- 填充 -->
+                    <ColumnDefinition Width="Auto"/>  <!-- 视图切换 -->
+                    <ColumnDefinition Width="8"/>     <!-- 间距 -->
+                    <ColumnDefinition Width="Auto"/>  <!-- 搜索/筛选 -->
                 </Grid.ColumnDefinitions>
                 
-                <!-- 导航按钮（← → ↑） -->
-                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
-                    <Button Name="NavBackBtn" Content="←" Width="28" Height="28" Click="NavBackBtn_Click" 
-                            Background="#E3F2FD" BorderBrush="#BBDEFB" BorderThickness="1" 
-                            Cursor="Hand" Margin="0,0,6,0"
-                            ToolTip="后退">
-                        <Button.Style>
-                            <Style TargetType="Button">
-                                <Setter Property="Background" Value="#E3F2FD"/>
-                                <Setter Property="BorderBrush" Value="#BBDEFB"/>
-                                <Setter Property="BorderThickness" Value="1"/>
-                                <Setter Property="Cursor" Value="Hand"/>
-                                <Style.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter Property="Background" Value="#BBDEFB"/>
-                                    </Trigger>
-                                    <Trigger Property="IsPressed" Value="True">
-                                        <Setter Property="Background" Value="#90CAF9"/>
-                                    </Trigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                    </Button>
-                    <Button Name="NavForwardBtn" Content="→" Width="28" Height="28" Click="NavForwardBtn_Click" 
-                            Background="#E3F2FD" BorderBrush="#BBDEFB" BorderThickness="1" 
-                            Cursor="Hand" Margin="0,0,6,0"
-                            ToolTip="前进">
-                        <Button.Style>
-                            <Style TargetType="Button">
-                                <Setter Property="Background" Value="#E3F2FD"/>
-                                <Setter Property="BorderBrush" Value="#BBDEFB"/>
-                                <Setter Property="BorderThickness" Value="1"/>
-                                <Setter Property="Cursor" Value="Hand"/>
-                                <Style.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter Property="Background" Value="#BBDEFB"/>
-                                    </Trigger>
-                                    <Trigger Property="IsPressed" Value="True">
-                                        <Setter Property="Background" Value="#90CAF9"/>
-                                    </Trigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                    </Button>
-                    <Button Name="NavUpBtn" Content="↑" Width="28" Height="28" Click="NavUpBtn_Click" 
-                            Background="#E3F2FD" BorderBrush="#BBDEFB" BorderThickness="1" 
-                            Cursor="Hand"
-                            ToolTip="向上">
-                        <Button.Style>
-                            <Style TargetType="Button">
-                                <Setter Property="Background" Value="#E3F2FD"/>
-                                <Setter Property="BorderBrush" Value="#BBDEFB"/>
-                                <Setter Property="BorderThickness" Value="1"/>
-                                <Setter Property="Cursor" Value="Hand"/>
-                                <Style.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter Property="Background" Value="#BBDEFB"/>
-                                    </Trigger>
-                                    <Trigger Property="IsPressed" Value="True">
-                                        <Setter Property="Background" Value="#90CAF9"/>
-                                    </Trigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                    </Button>
+                <!-- 导航按钮 (←→↑) -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <Button Name="NavBackBtn" FontFamily="Segoe MDL2 Assets" Content="&#xE72B;" FontSize="14" Click="NavBackBtn_Click" ToolTip="后退" Style="{StaticResource ModernToolbarButtonStyle}"/>
+                    <Button Name="NavForwardBtn" FontFamily="Segoe MDL2 Assets" Content="&#xE72A;" FontSize="14" Click="NavForwardBtn_Click" ToolTip="前进" Style="{StaticResource ModernToolbarButtonStyle}"/>
+                    <Button Name="NavUpBtn" FontFamily="Segoe MDL2 Assets" Content="&#xE74A;" FontSize="14" Click="NavUpBtn_Click" ToolTip="向上" Style="{StaticResource ModernToolbarButtonStyle}"/>
                 </StackPanel>
                 
-                <controls:AddressBarControl Grid.Column="1" x:Name="AddressBarControl"/>
+                <!-- TitleActionBar (操作按钮) -->
+                <controls:TitleActionBar Grid.Column="2" x:Name="TitleActionBar" Mode="Path"/>
                 
-                <!-- 搜索 / 筛选按钮组 -->
-                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                    <!-- 视图切换按钮 -->
-                    <StackPanel Orientation="Horizontal" Margin="0,0,8,0">
-                        <RadioButton Name="ViewListBtn" Content="☰" Width="28" Height="28" 
+                <!-- 视图切换按钮 -->
+                <StackPanel Grid.Column="4" Orientation="Horizontal">
+                    <RadioButton Name="ViewListBtn" Content="&#xE8FD;" FontFamily="Segoe MDL2 Assets" FontSize="14"
                                 ToolTip="列表视图" Click="ViewModeBtn_Click" 
                                 Style="{StaticResource ToolbarRadioButtonStyle}"
                                 IsChecked="True" Tag="List"/>
-                        <RadioButton Name="ViewThumbBtn" Content="▤" Width="28" Height="28" 
+                    <RadioButton Name="ViewThumbBtn" Content="&#xE8B9;" FontFamily="Segoe MDL2 Assets" FontSize="14" 
                                 ToolTip="缩略图视图" Click="ViewModeBtn_Click" 
                                 Style="{StaticResource ToolbarRadioButtonStyle}"
                                 Tag="Thumbnail"/>
-                    </StackPanel>
-
-                    <Button Name="SearchBtn" Content="🔍" Width="32" Height="28" 
-                            Click="SearchBtn_Click" Margin="8,0,0,0"
-                            Background="#E3F2FD" BorderBrush="#BBDEFB" BorderThickness="1" 
-                            Cursor="Hand" ToolTip="搜索">
-                        <Button.Style>
-                            <Style TargetType="Button">
-                                <Setter Property="Background" Value="#E3F2FD"/>
-                                <Setter Property="BorderBrush" Value="#BBDEFB"/>
-                                <Setter Property="BorderThickness" Value="1"/>
-                                <Setter Property="Cursor" Value="Hand"/>
-                                <Style.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter Property="Background" Value="#BBDEFB"/>
-                                    </Trigger>
-                                    <Trigger Property="IsPressed" Value="True">
-                                        <Setter Property="Background" Value="#90CAF9"/>
-                                    </Trigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                    </Button>
-                    <Button Name="FilterBtn" Content="⚙" Width="32" Height="28" 
-                            Click="FilterBtn_Click" Margin="6,0,0,0"
-                            Background="#E3F2FD" BorderBrush="#BBDEFB" BorderThickness="1" 
-                            Cursor="Hand" ToolTip="筛选">
-                        <Button.Style>
-                            <Style TargetType="Button">
-                                <Setter Property="Background" Value="#E3F2FD"/>
-                                <Setter Property="BorderBrush" Value="#BBDEFB"/>
-                                <Setter Property="BorderThickness" Value="1"/>
-                                <Setter Property="Cursor" Value="Hand"/>
-                                <Style.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter Property="Background" Value="#BBDEFB"/>
-                                    </Trigger>
-                                    <Trigger Property="IsPressed" Value="True">
-                                        <Setter Property="Background" Value="#90CAF9"/>
-                                    </Trigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                    </Button>
+                </StackPanel>
+                
+                <!-- 搜索/筛选按钮 -->
+                <StackPanel Grid.Column="6" Orientation="Horizontal">
+                    <Button Name="SearchBtn" Content="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                            Click="SearchBtn_Click" Margin="0,0,6,0"
+                            Style="{StaticResource ModernToolbarButtonStyle}" ToolTip="搜索"/>
+                    <Button Name="FilterBtn" Content="&#xE713;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                            Click="FilterBtn_Click"
+                            Style="{StaticResource ModernToolbarButtonStyle}" ToolTip="设置"/>
                 </StackPanel>
             </Grid>
         </Border>
         
-        <!-- 标签页管理 -->
-        <controls:TabManagerControl Grid.Row="1" x:Name="TabManager"/>
-        
-        <!-- 文件列表 -->
+        <!-- Row 2: 文件列表 -->
         <controls:FileListControl Grid.Row="2" x:Name="FileList"/>
         
-        <!-- 水平分割器 -->
-        <GridSplitter Grid.Row="3" Style="{StaticResource HorizontalGridSplitterStyle}"
+        <!-- Row 3: 水平分割器（文件列表与信息面板之间） -->
+        <controls:CollapsibleGridSplitter Grid.Row="3" 
+                      Style="{StaticResource HorizontalCollapsibleGridSplitterStyle}"
+                      CollapseMode="Both"
                       HorizontalAlignment="Stretch"
+                      Panel.ZIndex="999"
+                      AutoFillNeighbor="True"
                       DragCompleted="GridSplitter_DragCompleted"/>
         
-        <!-- 文件详细信息 -->
-        <Border Grid.Row="4" Background="#F8F9FA" BorderBrush="#E9ECEF" BorderThickness="0,1,0,0">
+        <!-- Row 4: 文件详细信息 -->
+        <Border Grid.Row="4" Background="#F8F9FA" BorderBrush="#E9ECEF" BorderThickness="0">
             <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="8,4">
+                <!-- 文件信息面板 -->
                 <StackPanel x:Name="FileInfoPanel" Margin="4"/>
             </ScrollViewer>
         </Border>
     </Grid>
 </UserControl>
-

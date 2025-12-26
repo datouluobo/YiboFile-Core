@@ -102,59 +102,21 @@ namespace OoiMRR.Services.Config
 
                 if (cfg.IsMaximized)
                 {
-                    // 使用伪最大化而不是WindowState.Maximized，避免系统边距
-                    // RestoreBounds应该使用保存的位置和尺寸，如果无效则使用默认值
-                    double restoreWidth = cfg.WindowWidth > 0 ? cfg.WindowWidth : 1200;
-                    double restoreHeight = cfg.WindowHeight > 0 ? cfg.WindowHeight : 800;
-                    double restoreTop = !double.IsNaN(cfg.WindowTop) && cfg.WindowTop >= 0 ? cfg.WindowTop : 0;
-                    double restoreLeft = !double.IsNaN(cfg.WindowLeft) && cfg.WindowLeft >= 0 ? cfg.WindowLeft : 0;
-
-                    _uiHelper.RestoreBounds = new Rect(restoreLeft, restoreTop, restoreWidth, restoreHeight);
-
-                    // 设置初始状态
-                    _uiHelper.IsPseudoMaximized = true;
-                    window.ResizeMode = ResizeMode.NoResize;
-
-                    // 保存配置引用，供Loaded事件使用
-                    var configToApply = cfg;
-
-                    // 在窗口加载完成后应用最大化和分割线位置
-                    window.Loaded += (s, e) =>
-                    {
-                        if (_uiHelper.IsPseudoMaximized)
-                        {
-                            var wa = _uiHelper.GetCurrentMonitorWorkAreaDIPs();
-                            window.WindowState = WindowState.Normal;
-                            window.Left = wa.Left;
-                            window.Top = wa.Top;
-                            window.Width = wa.Width;
-                            window.Height = wa.Height;
-                            window.UpdateLayout();
-                            _uiHelper.ExtendFrameIntoClientArea(-1, -1, -1, -1);
-                            // 更新窗口状态UI（最大化按钮图标）
-                            _uiHelper.UpdateWindowStateUI();
-
-                            // 最大化后也需要应用分割线位置
-                            ApplySplitterPositions(configToApply);
-                        }
-                    };
+                    window.WindowState = WindowState.Maximized;
+                    _uiHelper.UpdateWindowStateUI();
                 }
                 else
                 {
-                    // 非最大化状态：等待窗口加载完成后应用配置
-                    if (window.IsLoaded)
-                    {
-                        ApplyNonMaximizedWindowState(window, cfg);
-                        ApplySplitterPositions(cfg);
-                    }
-                    else
-                    {
-                        window.Loaded += (s, e) =>
-                        {
-                            ApplyNonMaximizedWindowState(window, cfg);
-                            ApplySplitterPositions(cfg);
-                        };
-                    }
+                    ApplyNonMaximizedWindowState(window, cfg);
+                }
+
+                if (window.IsLoaded)
+                {
+                    ApplySplitterPositions(cfg);
+                }
+                else
+                {
+                    window.Loaded += (s, e) => ApplySplitterPositions(cfg);
                 }
 
                 ConfigApplied?.Invoke(this, cfg);
@@ -214,7 +176,7 @@ namespace OoiMRR.Services.Config
                     _config.LastLibraryId = 0;
                 }
 
-                _config.IsMaximized = _uiHelper.IsPseudoMaximized; // 使用IsPseudoMaximized而不是WindowState
+                _config.IsMaximized = window.WindowState == WindowState.Maximized;
                 if (!_config.IsMaximized)
                 {
                     _config.WindowWidth = window.Width;
@@ -349,7 +311,7 @@ namespace OoiMRR.Services.Config
             if (cfg.WindowHeight > 0) window.Height = cfg.WindowHeight;
             if (!double.IsNaN(cfg.WindowTop) && cfg.WindowTop >= 0) window.Top = cfg.WindowTop;
             if (!double.IsNaN(cfg.WindowLeft) && cfg.WindowLeft >= 0) window.Left = cfg.WindowLeft;
-            _uiHelper.IsPseudoMaximized = false;
+
             window.ResizeMode = ResizeMode.CanResize;
 
             // #region agent log

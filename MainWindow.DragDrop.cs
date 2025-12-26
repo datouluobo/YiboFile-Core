@@ -57,9 +57,9 @@ namespace OoiMRR
                 {
                     _dragDropManager.InitializeFileListDragDrop(FileBrowser.FilesList);
                     // Enable tab drag and drop
-                    if (FileBrowser.TabManagerControl != null)
+                    if (TabManager != null)
                     {
-                        FileBrowser.TabManagerControl.FileDropped += (files, target, isCopy) =>
+                        TabManager.FileDropped += (files, target, isCopy) =>
                             _dragDropManager.PerformFileOperation(files, target, isCopy);
                     }
                     else

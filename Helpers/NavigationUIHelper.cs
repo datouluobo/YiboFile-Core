@@ -73,17 +73,7 @@ namespace OoiMRR.Helpers
                         if (container.Tag as string == "Match")
                             return;
 
-                        // 匹配当前路径/库：无论是否选中，都显示黄色（优先级最高）
-                        var yellowBg = _mainWindow.FindResource("HighlightBrush") as SolidColorBrush;
-                        var blackFg = _mainWindow.FindResource("HighlightForegroundBrush") as SolidColorBrush;
-                        var orangeBorder = _mainWindow.FindResource("HighlightBorderBrush") as SolidColorBrush;
-
-                        container.ClearValue(ListBoxItem.BackgroundProperty);
-                        container.ClearValue(ListBoxItem.ForegroundProperty);
-                        container.ClearValue(ListBoxItem.BorderBrushProperty);
-                        container.SetValue(ListBoxItem.BackgroundProperty, yellowBg);
-                        container.SetValue(ListBoxItem.ForegroundProperty, blackFg);
-                        container.SetValue(ListBoxItem.BorderBrushProperty, orangeBorder);
+                        // 只设置 Tag，让样式触发器处理视觉效果
                         container.Tag = "Match";
                     }
                     else
@@ -93,9 +83,6 @@ namespace OoiMRR.Helpers
                         if (tag == "Match")
                         {
                             container.Tag = null;
-                            container.ClearValue(ListBoxItem.BackgroundProperty);
-                            container.ClearValue(ListBoxItem.ForegroundProperty);
-                            container.ClearValue(ListBoxItem.BorderBrushProperty);
                         }
                     }
                 }
@@ -112,16 +99,6 @@ namespace OoiMRR.Helpers
                                 if (retryContainer.Tag as string == "Match")
                                     return;
 
-                                var yellowBg = _mainWindow.FindResource("HighlightBrush") as SolidColorBrush;
-                                var blackFg = _mainWindow.FindResource("HighlightForegroundBrush") as SolidColorBrush;
-                                var orangeBorder = _mainWindow.FindResource("HighlightBorderBrush") as SolidColorBrush;
-
-                                retryContainer.ClearValue(ListBoxItem.BackgroundProperty);
-                                retryContainer.ClearValue(ListBoxItem.ForegroundProperty);
-                                retryContainer.ClearValue(ListBoxItem.BorderBrushProperty);
-                                retryContainer.SetValue(ListBoxItem.BackgroundProperty, yellowBg);
-                                retryContainer.SetValue(ListBoxItem.ForegroundProperty, blackFg);
-                                retryContainer.SetValue(ListBoxItem.BorderBrushProperty, orangeBorder);
                                 retryContainer.Tag = "Match";
                             }
                             else
@@ -130,9 +107,6 @@ namespace OoiMRR.Helpers
                                 if (tag == "Match")
                                 {
                                     retryContainer.Tag = null;
-                                    retryContainer.ClearValue(ListBoxItem.BackgroundProperty);
-                                    retryContainer.ClearValue(ListBoxItem.ForegroundProperty);
-                                    retryContainer.ClearValue(ListBoxItem.BorderBrushProperty);
                                 }
                             }
                         }

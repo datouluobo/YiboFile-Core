@@ -16,11 +16,23 @@ namespace OoiMRR
     {
         internal void SwitchNavigationMode(string mode)
         {
+            // 更新按钮选中状态
+            UpdateNavigationButtonsState(mode);
+
             // 使用 NavigationModeService 处理导航模式切换
             if (_navigationModeService != null)
             {
                 _navigationModeService.SwitchNavigationMode(mode);
             }
+        }
+
+        private void UpdateNavigationButtonsState(string mode)
+        {
+            if (NavPathBtn == null || NavLibraryBtn == null || NavTagBtn == null) return;
+
+            NavPathBtn.Tag = mode == "Path" ? "Selected" : null;
+            NavLibraryBtn.Tag = mode == "Library" ? "Selected" : null;
+            NavTagBtn.Tag = mode == "Tag" ? "Selected" : null;
         }
 
         private void NavPathBtn_Click(object sender, RoutedEventArgs e)

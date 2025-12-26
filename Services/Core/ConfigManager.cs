@@ -18,6 +18,7 @@ namespace OoiMRR
         public double WindowTop { get; set; } = double.NaN;
         public double WindowLeft { get; set; } = double.NaN;
         public bool IsMaximized { get; set; } = true;
+        public string Theme { get; set; } = "Light"; // Light, Dark
 
         // 主布局列宽度（列1和列2）
         public double ColLeftWidth { get; set; } = 220; // 列1（左侧导航区）宽度

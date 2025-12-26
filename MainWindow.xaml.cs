@@ -265,6 +265,8 @@ namespace OoiMRR
 
 
 
+
+
         #region 事件处理
 
         internal void NavigateBack_Click(object sender, RoutedEventArgs e)
@@ -601,7 +603,7 @@ namespace OoiMRR
 
         ColumnDefinition IConfigUIHelper.ColRight => this.ColRight;
 
-        Controls.TitleActionBar IConfigUIHelper.TitleActionBar => this.TitleActionBar;
+        Controls.TitleActionBar IConfigUIHelper.TitleActionBar => this.FileBrowser?.ActionBar;
 
         string IConfigUIHelper.CurrentPath
         {
@@ -611,30 +613,9 @@ namespace OoiMRR
 
         object IConfigUIHelper.CurrentLibrary => _currentLibrary;
 
-        bool IConfigUIHelper.IsPseudoMaximized
-        {
-            get => _windowLifecycleHandler?.IsPseudoMaximized ?? false;
-            set
-            {
-                if (_windowLifecycleHandler != null)
-                    _windowLifecycleHandler.IsPseudoMaximized = value;
-            }
-        }
 
-        Rect IConfigUIHelper.RestoreBounds
-        {
-            get => _windowLifecycleHandler?.RestoreBounds ?? Rect.Empty;
-            set
-            {
-                if (_windowLifecycleHandler != null)
-                    _windowLifecycleHandler.RestoreBounds = value;
-            }
-        }
 
-        Rect IConfigUIHelper.GetCurrentMonitorWorkAreaDIPs()
-        {
-            return GetCurrentMonitorWorkAreaDIPs();
-        }
+
 
         void IConfigUIHelper.AdjustColumnWidths()
         {
@@ -648,10 +629,7 @@ namespace OoiMRR
 
         System.Windows.Threading.Dispatcher IConfigUIHelper.Dispatcher => this.Dispatcher;
 
-        void IConfigUIHelper.ExtendFrameIntoClientArea(int left, int right, int top, int bottom)
-        {
-            _windowLifecycleHandler?.ExtendFrameIntoClientArea(left, right, top, bottom);
-        }
+
 
         void IConfigUIHelper.UpdateWindowStateUI()
         {

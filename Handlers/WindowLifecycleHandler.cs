@@ -19,20 +19,7 @@ namespace OoiMRR.Handlers
         private readonly Services.Config.ConfigService _configService;
         private readonly Services.ColumnManagement.ColumnService _columnService;
 
-        private bool _isPseudoMaximized = false;
-        private Rect _restoreBounds;
-
-        public bool IsPseudoMaximized
-        {
-            get => _isPseudoMaximized;
-            set => _isPseudoMaximized = value;
-        }
-
-        public Rect RestoreBounds
-        {
-            get => _restoreBounds;
-            set => _restoreBounds = value;
-        }
+        // Legacy fields removed: _isPseudoMaximized, _restoreBounds
 
         public WindowLifecycleHandler(MainWindow mainWindow, WindowStateManager windowStateManager, ConfigService configService, ColumnService columnService)
         {
@@ -193,41 +180,13 @@ namespace OoiMRR.Handlers
 
         public void HandleMaximize()
         {
-            // 使用系统最大化并限制到工作区，确保铺满且不遮挡任务栏
-            if (_isPseudoMaximized)
+            if (_mainWindow.WindowState == WindowState.Maximized)
             {
-                // 还原到最后一次记录值
                 _mainWindow.WindowState = WindowState.Normal;
-                _mainWindow.Left = _restoreBounds.Left;
-                _mainWindow.Top = _restoreBounds.Top;
-                _mainWindow.Width = _restoreBounds.Width;
-                _mainWindow.Height = _restoreBounds.Height;
-                _isPseudoMaximized = false;
-                _mainWindow.ResizeMode = ResizeMode.CanResize;
-
-                // 恢复窗口边框
-                var hwnd = new WindowInteropHelper(_mainWindow).Handle;
-                var margins = new NativeMethods.MARGINS();
-                NativeMethods.DwmExtendFrameIntoClientArea(hwnd, ref margins);
             }
             else
             {
-                // 记录还原尺寸
-                _restoreBounds = new Rect(_mainWindow.Left, _mainWindow.Top, _mainWindow.Width, _mainWindow.Height);
-                var wa = GetCurrentMonitorWorkAreaDIPs();
-                // 最大化时，使用工作区尺寸，不遮挡任务栏
-                _mainWindow.WindowState = WindowState.Normal;
-                _mainWindow.Left = wa.Left;
-                _mainWindow.Top = wa.Top;
-                _mainWindow.Width = wa.Width;
-                _mainWindow.Height = wa.Height;
-                _isPseudoMaximized = true;
-                _mainWindow.ResizeMode = ResizeMode.NoResize;
-
-                // 移除窗口边框，将客户区扩展到整个窗口
-                var hwnd = new WindowInteropHelper(_mainWindow).Handle;
-                var margins = new NativeMethods.MARGINS { cxLeftWidth = 0, cxRightWidth = 0, cyTopHeight = 0, cyBottomHeight = 0 };
-                NativeMethods.DwmExtendFrameIntoClientArea(hwnd, ref margins);
+                _mainWindow.WindowState = WindowState.Maximized;
             }
             UpdateWindowStateUI();
         }
@@ -237,40 +196,14 @@ namespace OoiMRR.Handlers
             _mainWindow.Close();
         }
 
-        public void HandleTitleBarMouseDown(MouseButtonEventArgs e)
-        {
-            if (e.ChangedButton != MouseButton.Left)
-                return;
-
-            bool isMaximized = _isPseudoMaximized || _mainWindow.WindowState == WindowState.Maximized;
-
-            // 双击：最大化/还原
-            if (e.ClickCount == 2)
-            {
-                HandleMaximize();
-                return;
-            }
-
-            // 单击：仅在非最大化时允许拖动窗口
-            if (e.ClickCount == 1 && !isMaximized)
-            {
-                try
-                {
-                    _mainWindow.DragMove();
-                }
-                catch
-                {
-                    // 忽略拖动过程中的异常
-                }
-            }
-        }
+        // HandleTitleBarMouseDown removed as it is handled by WindowChrome
 
         public void HandleControlButtonsMouseDown(MouseButtonEventArgs e, object sender)
         {
             if (e.ChangedButton != MouseButton.Left)
                 return;
 
-            bool isMaximized = _isPseudoMaximized || _mainWindow.WindowState == WindowState.Maximized;
+            bool isMaximized = _mainWindow.WindowState == WindowState.Maximized;
 
             var element = sender as UIElement;
             if (element == null) return;
@@ -306,7 +239,7 @@ namespace OoiMRR.Handlers
 
         public void UpdateWindowStateUI()
         {
-            bool isMax = _isPseudoMaximized;
+            bool isMax = _mainWindow.WindowState == WindowState.Maximized;
 
             // 更新主窗口右上角按钮图标
             if (_mainWindow.TitleBarMaxRestoreButton != null)
@@ -317,33 +250,9 @@ namespace OoiMRR.Handlers
             }
         }
 
-        public Rect GetCurrentMonitorWorkAreaDIPs()
-        {
-            var hwnd = new WindowInteropHelper(_mainWindow).Handle;
-            IntPtr monitor = NativeMethods.MonitorFromWindow(hwnd, NativeMethods.MONITOR_DEFAULTTONEAREST);
-            var mi = new NativeMethods.MONITORINFO();
-            mi.cbSize = Marshal.SizeOf(mi);
-            if (NativeMethods.GetMonitorInfo(monitor, ref mi))
-            {
-                // 使用WPF提供的从设备像素到DIPs的转换，避免缩放误差
-                var source = HwndSource.FromHwnd(hwnd);
-                var m = source?.CompositionTarget?.TransformFromDevice ?? Matrix.Identity;
-                // 使用rcWork以排除任务栏区域
-                var tl = m.Transform(new System.Windows.Point(mi.rcWork.Left, mi.rcWork.Top));
-                var br = m.Transform(new System.Windows.Point(mi.rcWork.Right, mi.rcWork.Bottom));
-                return new Rect(tl.X, tl.Y, br.X - tl.X, br.Y - tl.Y);
-            }
-            // 回退到工作区尺寸
-            var wa = SystemParameters.WorkArea;
-            return new Rect(wa.Left, wa.Top, wa.Width, wa.Height);
-        }
 
-        public void ExtendFrameIntoClientArea(int left, int right, int top, int bottom)
-        {
-            var hwnd = new WindowInteropHelper(_mainWindow).Handle;
-            var margins = new NativeMethods.MARGINS { cxLeftWidth = left, cxRightWidth = right, cyTopHeight = top, cyBottomHeight = bottom };
-            NativeMethods.DwmExtendFrameIntoClientArea(hwnd, ref margins);
-        }
+
+
 
         internal static class NativeMethods
         {

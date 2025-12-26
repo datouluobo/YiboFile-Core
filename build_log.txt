@@ -1,19 +1,11 @@
   正在确定要还原的项目…
   所有项目均是最新的，无法还原。
-F:\Download\GitHub\OoiMRR\MainWindow.DragDrop.cs(24,40): error CS1729: “DragDropManager”不包含采用 1 个参数的构造函数 [F:\Download\GitHub\OoiMRR\OoiMRR_axzuvwme_wpftmp.csproj]
-F:\Download\GitHub\OoiMRR\Controls\FileListControl.xaml.cs(265,22): warning CS0414: 字段“FileListControl._headerWidthSubscribed”已被赋值，但从未使用过它的值 [F:\Download\GitHub\OoiMRR\OoiMRR_axzuvwme_wpftmp.csproj]
-F:\Download\GitHub\OoiMRR\Controls\FileListControl.xaml.cs(264,22): warning CS0414: 字段“FileListControl._headerClickSubscribed”已被赋值，但从未使用过它的值 [F:\Download\GitHub\OoiMRR\OoiMRR_axzuvwme_wpftmp.csproj]
-F:\Download\GitHub\OoiMRR\Controls\FileListControl.xaml.cs(266,22): warning CS0414: 字段“FileListControl._groupedThumbHooked”已被赋值，但从未使用过它的值 [F:\Download\GitHub\OoiMRR\OoiMRR_axzuvwme_wpftmp.csproj]
-F:\Download\GitHub\OoiMRR\Controls\FileListControl.xaml.cs(267,22): warning CS0414: 字段“FileListControl._groupedHeaderContextHooked”已被赋值，但从未使用过它的值 [F:\Download\GitHub\OoiMRR\OoiMRR_axzuvwme_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\Styles\AppStyles.xaml(582,27): error MC3000: “The 'ResourceDictionary' start tag on line 1 position 2 does not match the end tag of 'Trigger'. Line 582, position 27.”XML 无效。 [F:\Download\GitHub\OoiMRR\OoiMRR.csproj]
 
 生成失败。
 
-F:\Download\GitHub\OoiMRR\Controls\FileListControl.xaml.cs(265,22): warning CS0414: 字段“FileListControl._headerWidthSubscribed”已被赋值，但从未使用过它的值 [F:\Download\GitHub\OoiMRR\OoiMRR_axzuvwme_wpftmp.csproj]
-F:\Download\GitHub\OoiMRR\Controls\FileListControl.xaml.cs(264,22): warning CS0414: 字段“FileListControl._headerClickSubscribed”已被赋值，但从未使用过它的值 [F:\Download\GitHub\OoiMRR\OoiMRR_axzuvwme_wpftmp.csproj]
-F:\Download\GitHub\OoiMRR\Controls\FileListControl.xaml.cs(266,22): warning CS0414: 字段“FileListControl._groupedThumbHooked”已被赋值，但从未使用过它的值 [F:\Download\GitHub\OoiMRR\OoiMRR_axzuvwme_wpftmp.csproj]
-F:\Download\GitHub\OoiMRR\Controls\FileListControl.xaml.cs(267,22): warning CS0414: 字段“FileListControl._groupedHeaderContextHooked”已被赋值，但从未使用过它的值 [F:\Download\GitHub\OoiMRR\OoiMRR_axzuvwme_wpftmp.csproj]
-F:\Download\GitHub\OoiMRR\MainWindow.DragDrop.cs(24,40): error CS1729: “DragDropManager”不包含采用 1 个参数的构造函数 [F:\Download\GitHub\OoiMRR\OoiMRR_axzuvwme_wpftmp.csproj]
-    4 个警告
+F:\Download\GitHub\OoiMRR\Styles\AppStyles.xaml(582,27): error MC3000: “The 'ResourceDictionary' start tag on line 1 position 2 does not match the end tag of 'Trigger'. Line 582, position 27.”XML 无效。 [F:\Download\GitHub\OoiMRR\OoiMRR.csproj]
+    0 个警告
     1 个错误
 
-已用时间 00:00:05.37
+已用时间 00:00:01.41

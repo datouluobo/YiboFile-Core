@@ -61,20 +61,7 @@ namespace OoiMRR.Services.Config
         /// </summary>
         object CurrentLibrary { get; }
 
-        /// <summary>
-        /// 获取或设置伪最大化状态
-        /// </summary>
-        bool IsPseudoMaximized { get; set; }
 
-        /// <summary>
-        /// 获取或设置还原边界
-        /// </summary>
-        Rect RestoreBounds { get; set; }
-
-        /// <summary>
-        /// 获取当前显示器工作区域（DIP）
-        /// </summary>
-        Rect GetCurrentMonitorWorkAreaDIPs();
 
         /// <summary>
         /// 调整列宽度
@@ -91,11 +78,7 @@ namespace OoiMRR.Services.Config
         /// </summary>
         System.Windows.Threading.Dispatcher Dispatcher { get; }
 
-        /// <summary>
-        /// 扩展窗口边框到客户区
-        /// </summary>
-        /// <param name="margins">边距（-1表示移除边框，0表示正常边框）</param>
-        void ExtendFrameIntoClientArea(int left, int right, int top, int bottom);
+
 
         /// <summary>
         /// 更新窗口状态UI（最大化/还原按钮图标）

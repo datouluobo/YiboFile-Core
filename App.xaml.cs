@@ -17,7 +17,7 @@ namespace OoiMRR
     {
         private static Mutex _mutex = null;
         private const string MutexName = "OoiMRR_SingleInstance_Mutex";
-        
+
         /// <summary>
         /// TagTrain 是否可用
         /// </summary>
@@ -42,24 +42,24 @@ namespace OoiMRR
                 {
                     // TagTrain 模式：跳过单实例检查，直接打开 TrainingWindow
                     base.OnStartup(e);
-                    
+
                     // 初始化 TagTrain
                     InitializeTagTrain();
-                    
+
                     // 打开 TagTrain 主窗口
                     var trainingWindow = new TagTrain.UI.TrainingWindow();
                     trainingWindow.Show();
-                    
+
                     // 设置为主窗口，确保关闭时程序退出
                     MainWindow = trainingWindow;
                     return;
                 }
-                
+
                 // 原有的 OoiMRR 启动逻辑
                 // 检查是否已有实例运行
                 bool createdNew;
                 _mutex = new Mutex(true, MutexName, out createdNew);
-                
+
                 if (!createdNew)
                 {
                     // 已有实例在运行
@@ -71,14 +71,27 @@ namespace OoiMRR
                 FileLogger.Log("Application passing single instance check.");
 
                 base.OnStartup(e);
-                
+
                 // FFmpeg 和 Everything 改为按需加载，不再在启动时初始化
                 // 这样可以减少启动时间和内存占用
-                
+
                 // 初始化数据库
                 FileLogger.Log("Initializing DatabaseManager...");
                 DatabaseManager.Initialize();
-                
+
+                // 应用保存的主题设置
+                try
+                {
+                    var config = ConfigManager.Load();
+                    var themeName = config?.Theme ?? "Light";
+                    ThemeService.SetTheme(themeName == "Dark" ? AppTheme.Dark : AppTheme.Light);
+                    FileLogger.Log($"Theme applied: {themeName}");
+                }
+                catch (Exception ex)
+                {
+                    FileLogger.LogException("Failed to apply theme", ex);
+                }
+
                 // TagTrain 改为延迟加载，不再在启动时初始化模型
                 // 只确保数据目录存在，模型在实际使用时再加载
                 try
@@ -87,7 +100,7 @@ namespace OoiMRR
                     // 优先使用 OoiMRR 自己保存的 TT 数据目录（持久化），避免默认落到 OoiMRR\\bin\\data
                     var appConfig = ConfigManager.Load();
                     var tagTrainDataDir = appConfig?.TagTrainDataDirectory;
-                    
+
                     if (!string.IsNullOrWhiteSpace(tagTrainDataDir) && Directory.Exists(tagTrainDataDir))
                     {
                         // 显式设置，确保 TT 使用该路径
@@ -96,7 +109,7 @@ namespace OoiMRR
                         TagTrain.Services.SettingsManager.ClearCache();
                         TagTrain.Services.DataManager.ClearDatabasePathCache();
                     }
-                    
+
                     // 读取（可能是刚刚设置的）数据目录
                     tagTrainDataDir = TagTrain.Services.SettingsManager.GetDataStorageDirectory();
                     if (string.IsNullOrWhiteSpace(tagTrainDataDir))
@@ -120,7 +133,7 @@ namespace OoiMRR
                     {
                         Directory.CreateDirectory(tagTrainDataDir);
                     }
-                    
+
                     // 只初始化数据库，不加载模型（延迟加载）
                     TagTrain.Services.DataManager.InitializeDatabase();
                     IsTagTrainAvailable = true;
@@ -132,7 +145,7 @@ namespace OoiMRR
                     FileLogger.LogException("TagTrain initialization failed", ex);
                     // 不阻止程序启动，只是记录错误
                 }
-                
+
                 // 清理过期的 CHM 缓存
                 Task.Run(() =>
                 {
@@ -143,7 +156,7 @@ namespace OoiMRR
                     }
                     catch (Exception)
                     {
-                                            }
+                    }
                 });
 
                 // 启动主窗口
@@ -161,9 +174,9 @@ namespace OoiMRR
                     errorMsg += $"\n\n内部异常: {ex.InnerException.Message}";
                 }
                 errorMsg += $"\n\n堆栈跟踪:\n{ex.StackTrace}";
-                
+
                 MessageBox.Show(errorMsg, "启动错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                
+
                 // 写入日志文件
                 try
                 {
@@ -171,7 +184,7 @@ namespace OoiMRR
                     System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] 启动错误:\n{errorMsg}\n\n");
                 }
                 catch { }
-                
+
                 Shutdown();
             }
         }
@@ -195,13 +208,13 @@ namespace OoiMRR
                     {
                     }
                 }
-                
+
                 // 迁移旧配置文件到统一配置
                 TagTrain.Services.SettingsManager.MigrateOldSettings();
-                
+
                 // 初始化数据库
                 TagTrain.Services.DataManager.InitializeDatabase();
-                
+
                 IsTagTrainAvailable = true;
             }
             catch
@@ -219,7 +232,7 @@ namespace OoiMRR
                 _mutex.Dispose();
                 _mutex = null;
             }
-            
+
             base.OnExit(e);
         }
     }
