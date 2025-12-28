@@ -404,25 +404,44 @@
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="Margin" Value="1,0"/>
-        <Setter Property="Padding" Value="12,0"/>
+        <Setter Property="Padding" Value="1,0"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Border x:Name="border"
-                            Background="{TemplateBinding Background}" 
-                            BorderBrush="{TemplateBinding BorderBrush}" 
-                            BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="6"> <!-- Full Rounded Corners -->
-                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
-                    </Border>
+                    <Grid>
+                        <!-- Main Tab Container -->
+                        <Border x:Name="border"
+                                Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6"> <!-- Full Rounded Corners -->
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        
+                        <!-- Separator Line (Plan A) -->
+                        <Rectangle x:Name="Separator"
+                                   HorizontalAlignment="Right"
+                                   VerticalAlignment="Center"
+                                   Width="1" Height="16"
+                                   Fill="#D1D5DB"
+                                   Margin="0,0,-1,0" 
+                                   Visibility="Visible"/>
+                    </Grid>
+                    
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Background" Value="{DynamicResource ButtonHoverBackgroundBrush}"/>
+                            <Setter Property="Background" Value="{DynamicResource ButtonHoverBackgroundBrush}" TargetName="border"/>
                         </Trigger>
                         <!-- Selected State (Tag='Selected') -->
                         <Trigger Property="Tag" Value="Selected">
-                             <Setter Property="Background" Value="#DEE2E6"/> <!-- Deeper background for selected -->
+                             <Setter Property="Background" Value="#DEE2E6" TargetName="border"/> <!-- Deeper background for selected -->
                              <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                             <Setter Property="Visibility" Value="Collapsed" TargetName="Separator"/> <!-- Hide separator when selected -->
+                        </Trigger>
+                        
+                        <!-- Hide separator on hover too, for cleaner look -->
+                        <Trigger Property="IsMouseOver" Value="True">
+                             <Setter Property="Visibility" Value="Collapsed" TargetName="Separator"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

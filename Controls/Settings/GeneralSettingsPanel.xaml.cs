@@ -27,6 +27,8 @@ namespace OoiMRR.Controls.Settings
         private TextBox _tagBoxWidthTextBox;
         private Button _tagBoxWidthUpButton;
         private Button _tagBoxWidthDownButton;
+        private RadioButton _tabWidthFixedRadio;
+        private RadioButton _tabWidthDynamicRadio;
 
         private bool _isLoadingSettings = false;
 
@@ -100,6 +102,38 @@ namespace OoiMRR.Controls.Settings
             _startMaximizedCheckBox.Checked += (s, e) => OnSettingChanged();
             _startMaximizedCheckBox.Unchecked += (s, e) => OnSettingChanged();
             stackPanel.Children.Add(_startMaximizedCheckBox);
+
+            // 标签页宽度模式
+            var tabWidthModeLabel = new TextBlock
+            {
+                Text = "标签页宽度模式:",
+                FontSize = 14,
+                Margin = new Thickness(0, 8, 0, 8)
+            };
+            stackPanel.Children.Add(tabWidthModeLabel);
+
+            _tabWidthFixedRadio = new RadioButton
+            {
+                Content = "固定宽度（所有标签统一宽度）",
+                GroupName = "TabWidthMode",
+                FontSize = 14,
+                MinHeight = 32,
+                Margin = new Thickness(20, 0, 0, 4),
+                IsChecked = true
+            };
+            _tabWidthFixedRadio.Checked += (s, e) => OnSettingChanged();
+            stackPanel.Children.Add(_tabWidthFixedRadio);
+
+            _tabWidthDynamicRadio = new RadioButton
+            {
+                Content = "动态宽度（根据文本长度自适应）",
+                GroupName = "TabWidthMode",
+                FontSize = 14,
+                MinHeight = 32,
+                Margin = new Thickness(20, 0, 0, 24)
+            };
+            _tabWidthDynamicRadio.Checked += (s, e) => OnSettingChanged();
+            stackPanel.Children.Add(_tabWidthDynamicRadio);
 
             // 字体设置
             var fontTitle = new TextBlock
@@ -585,6 +619,19 @@ namespace OoiMRR.Controls.Settings
                     _tagBoxWidthTextBox.Text = ((int)config.TagBoxWidth).ToString();
                 }
 
+                // Load tab width mode
+                if (_tabWidthFixedRadio != null && _tabWidthDynamicRadio != null)
+                {
+                    if (config.TabWidthMode == TabWidthMode.DynamicWidth)
+                    {
+                        _tabWidthDynamicRadio.IsChecked = true;
+                    }
+                    else
+                    {
+                        _tabWidthFixedRadio.IsChecked = true;
+                    }
+                }
+
                 if (_baseDirectoryTextBox != null)
                     _baseDirectoryTextBox.Text = ConfigManager.GetBaseDirectory();
             }
@@ -612,6 +659,16 @@ namespace OoiMRR.Controls.Settings
             if (_themeComboBox != null && _themeComboBox.SelectedItem is ComboBoxItem selectedItem && selectedItem.Tag is string theme)
             {
                 config.Theme = theme;
+            }
+
+            // Save tab width mode
+            if (_tabWidthDynamicRadio != null && _tabWidthDynamicRadio.IsChecked == true)
+            {
+                config.TabWidthMode = TabWidthMode.DynamicWidth;
+            }
+            else
+            {
+                config.TabWidthMode = TabWidthMode.FixedWidth;
             }
 
             // 字体大小在 ApplyFontSize 中已保存，这里不需要再保存

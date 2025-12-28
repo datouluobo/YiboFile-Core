@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -101,6 +102,11 @@ namespace OoiMRR.Services.Tabs
         private PathTab _draggingTab = null;
         private bool _isDragging = false; // 标记是否真的在进行拖拽操作
 
+        // Tab width compression constants
+        private const double MIN_TAB_WIDTH = 40.0;
+        private const double PREFERRED_TAB_WIDTH = 160.0; // Natural width when space available
+        private const double MAX_TAB_WIDTH = 300.0;
+
         #endregion
 
         #region 属性
@@ -139,6 +145,9 @@ namespace OoiMRR.Services.Tabs
         public void UpdateConfig(AppConfig config)
         {
             _config = config ?? throw new ArgumentNullException(nameof(config));
+
+            // Trigger tab width recalculation with new config
+            UpdateTabWidths();
         }
 
         #endregion
@@ -385,7 +394,22 @@ namespace OoiMRR.Services.Tabs
         public string GetEffectiveTitle(PathTab tab)
         {
             if (tab == null) return string.Empty;
-            return string.IsNullOrWhiteSpace(tab.OverrideTitle) ? tab.Title : tab.OverrideTitle;
+            var title = string.IsNullOrWhiteSpace(tab.OverrideTitle) ? tab.Title : tab.OverrideTitle;
+
+            // Simplify drive root display (e.g. "C: (Windows)" -> "C:")
+            if (tab.Type == TabType.Path && !string.IsNullOrEmpty(title) && title.Length > 3)
+            {
+                // Check if it's a drive root format like "C: (...)"
+                if (title[1] == ':' && (title.Contains(" (") || title.Contains(" (")))
+                {
+                    // Double-check if it starts with drive letter
+                    if (char.IsLetter(title[0]))
+                    {
+                        return title.Substring(0, 2);
+                    }
+                }
+            }
+            return title;
         }
 
         /// <summary>
@@ -1033,6 +1057,7 @@ namespace OoiMRR.Services.Tabs
             else
             {
                 UpdateTabStyles();
+                UpdateTabWidths(); // Recompress after tab removal
             }
         }
 
@@ -1063,7 +1088,7 @@ namespace OoiMRR.Services.Tabs
             }
             else
             {
-                tab.TabButton.Width = double.NaN;
+                // Width is controlled by UpdateTabWidths() for unpinned tabs
                 tab.TitleTextBlock.Text = effectiveTitle;
                 tab.TabButton.ToolTip = effectiveTitle;
                 tab.TabButton.MinWidth = 0;
@@ -1297,9 +1322,11 @@ namespace OoiMRR.Services.Tabs
                 Content = buttonContent,
                 Style = (Style)_ui.FindResource?.Invoke("TabButtonStyle"),
                 Tag = tab,
-                Padding = new Thickness(12, 6, 12, 6),
                 Margin = new Thickness(0)
             };
+
+            // Allow clicking on the tab button while the container acts as a title bar
+            System.Windows.Shell.WindowChrome.SetIsHitTestVisibleInChrome(button, true);
 
             button.PreviewMouseLeftButtonDown += (s, e) =>
             {
@@ -1517,6 +1544,20 @@ namespace OoiMRR.Services.Tabs
             ApplyPinVisual(tab);
             ReorderTabs();
 
+            // Update tab widths for compression
+            _ui.Dispatcher?.InvokeAsync(() =>
+            {
+                UpdateTabWidths();
+
+                // Scroll to right end if overflowing
+                var border = _ui.TabManager?.TabsBorderControl;
+                var scrollViewer = FindScrollViewer(border);
+                if (scrollViewer != null && scrollViewer.ExtentWidth > scrollViewer.ViewportWidth)
+                {
+                    scrollViewer.ScrollToRightEnd();
+                }
+            }, DispatcherPriority.Loaded);
+
             if (activate) SwitchToTab(tab);
         }
 
@@ -1636,6 +1677,192 @@ namespace OoiMRR.Services.Tabs
                 {
                     CreatePathTab(desktopPath);
                 }
+            }
+        }
+
+        #endregion
+
+        #region Tab Width Compression
+
+        /// <summary>
+        /// Initialize size changed handler for tab compression
+        /// </summary>
+        public void InitializeTabSizeHandler()
+        {
+            EnsureUi();
+            try
+            {
+                var border = _ui.TabManager?.TabsBorderControl;
+                if (border != null)
+                {
+                    border.SizeChanged -= TabsBorder_SizeChanged;
+                    border.SizeChanged += TabsBorder_SizeChanged;
+                }
+            }
+            catch { }
+        }
+
+        private void TabsBorder_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            UpdateTabWidths();
+
+            // Scroll to right end if overflowing
+            var border = _ui.TabManager?.TabsBorderControl;
+            var scrollViewer = FindScrollViewer(border);
+            if (scrollViewer != null && scrollViewer.ExtentWidth > scrollViewer.ViewportWidth)
+            {
+                scrollViewer.ScrollToRightEnd();
+            }
+        }
+
+        private ScrollViewer FindScrollViewer(DependencyObject parent)
+        {
+            if (parent == null) return null;
+
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+                if (child is ScrollViewer sv) return sv;
+                var result = FindScrollViewer(child);
+                if (result != null) return result;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Update tab widths based on available space (compression logic)
+        /// </summary>
+        private void UpdateTabWidths()
+        {
+            EnsureUi();
+            if (_tabs.Count == 0) return;
+            if (_ui.TabManager?.TabsBorderControl == null) return;
+
+            var border = _ui.TabManager.TabsBorderControl;
+            double totalWidth = border.ActualWidth;
+            if (totalWidth <= 0) return;
+
+            // Separate pinned and unpinned tabs
+            var pinnedTabs = _tabs.Where(t => t.IsPinned).ToList();
+            var unpinnedTabs = _tabs.Where(t => !t.IsPinned).ToList();
+
+            // Calculate pinned tabs total  width
+            double pinnedTotalWidth = 0;
+            double pinnedTabWidth = GetPinnedTabWidth();
+            foreach (var p in pinnedTabs)
+            {
+                if (p.TabButton != null)
+                {
+                    p.TabButton.Width = double.NaN;
+                    p.TabButton.MinWidth = pinnedTabWidth;
+                }
+                pinnedTotalWidth += pinnedTabWidth + 2; // + Margin
+            }
+
+            // Calculate available width for unpinned tabs
+            double availableForUnpinned = totalWidth - pinnedTotalWidth - 8; // Minimal padding
+
+
+            if (unpinnedTabs.Count > 0 && availableForUnpinned > 0)
+            {
+                var mode = _config?.TabWidthMode ?? TabWidthMode.FixedWidth;
+
+                if (mode == TabWidthMode.DynamicWidth)
+                {
+                    UpdateTabWidthsDynamic(unpinnedTabs, availableForUnpinned);
+                }
+                else
+                {
+                    UpdateTabWidthsFixed(unpinnedTabs, availableForUnpinned);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Fixed width mode: all tabs same width
+        /// </summary>
+        private void UpdateTabWidthsFixed(List<PathTab> unpinnedTabs, double availableForUnpinned)
+        {
+            double preferredTotalWidth = unpinnedTabs.Count * PREFERRED_TAB_WIDTH;
+
+            double targetWidth;
+            if (preferredTotalWidth <= availableForUnpinned)
+            {
+                targetWidth = Math.Min(PREFERRED_TAB_WIDTH, MAX_TAB_WIDTH);
+            }
+            else
+            {
+                double calculatedWidth = availableForUnpinned / unpinnedTabs.Count;
+                targetWidth = Math.Max(MIN_TAB_WIDTH, Math.Min(MAX_TAB_WIDTH, calculatedWidth));
+            }
+
+            foreach (var t in unpinnedTabs)
+            {
+                if (t.TabButton != null)
+                {
+                    t.TabButton.Width = targetWidth;
+                    t.TabButton.MinWidth = 0;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Dynamic width mode: adapt to text length
+        /// </summary>
+        private void UpdateTabWidthsDynamic(List<PathTab> unpinnedTabs, double availableForUnpinned)
+        {
+            var tabWidths = new List<(PathTab tab, double width)>();
+            double totalNaturalWidth = 0;
+
+            foreach (var tab in unpinnedTabs)
+            {
+                var title = GetEffectiveTitle(tab);
+                var measuredWidth = MeasureTextWidth(title);
+                var naturalWidth = Math.Max(MIN_TAB_WIDTH, Math.Min(MAX_TAB_WIDTH, measuredWidth));
+                tabWidths.Add((tab, naturalWidth));
+                totalNaturalWidth += naturalWidth;
+            }
+
+            double scaleFactor = 1.0;
+            if (totalNaturalWidth > availableForUnpinned)
+            {
+                scaleFactor = availableForUnpinned / totalNaturalWidth;
+            }
+
+            foreach (var (tab, naturalWidth) in tabWidths)
+            {
+                if (tab.TabButton != null)
+                {
+                    double finalWidth = Math.Max(MIN_TAB_WIDTH, naturalWidth * scaleFactor);
+                    tab.TabButton.Width = finalWidth;
+                    tab.TabButton.MinWidth = 0;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Measure text width for dynamic sizing
+        /// </summary>
+        private double MeasureTextWidth(string text, double fontSize = 12, string fontFamily = "Segoe UI")
+        {
+            if (string.IsNullOrEmpty(text)) return MIN_TAB_WIDTH;
+
+            try
+            {
+                var formattedText = new FormattedText(
+                    text,
+                    CultureInfo.CurrentCulture,
+                    FlowDirection.LeftToRight,
+                    new Typeface(fontFamily),
+                    fontSize,
+                    Brushes.Black,
+                    VisualTreeHelper.GetDpi(Application.Current.MainWindow).PixelsPerDip
+                );
+                return formattedText.Width + 40; // Icon/close (24px) + spacing (4px) + padding (2px) + buffer (10px)
+            }
+            catch
+            {
+                return PREFERRED_TAB_WIDTH;
             }
         }
 

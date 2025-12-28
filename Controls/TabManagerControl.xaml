@@ -8,7 +8,8 @@
     <Border x:Name="TabsBorder" Background="#F8F9FA" BorderBrush="#E9ECEF" BorderThickness="0" Visibility="Visible">
         <Grid Margin="8,4">
             <!-- 标签页区域 -->
-            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+            <ScrollViewer x:Name="TabScrollViewer" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" 
+                          PanningMode="HorizontalOnly">
                 <StackPanel x:Name="TabsPanel" Orientation="Horizontal"/>
             </ScrollViewer>
         </Grid>

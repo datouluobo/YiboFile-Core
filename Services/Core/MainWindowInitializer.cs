@@ -131,6 +131,25 @@ namespace OoiMRR.Services
                         FileLogger.LogException("SettingsOverlayController init", ex);
                     }
                 }
+
+                // Subscribe to ConfigApplied event to update TabService when config changes
+                if (_mainWindow._configService != null)
+                {
+                    _mainWindow._configService.ConfigApplied += (sender, cfg) =>
+                    {
+                        try
+                        {
+                            if (_mainWindow._tabService != null && cfg != null)
+                            {
+                                _mainWindow._tabService.UpdateConfig(cfg);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            FileLogger.LogException("ConfigApplied->TabService.UpdateConfig", ex);
+                        }
+                    };
+                }
             }
             catch (Exception ex)
             {

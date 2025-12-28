@@ -4,9 +4,19 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace OoiMRR
 {
+    /// <summary>
+    /// 标签页宽度模式
+    /// </summary>
+    public enum TabWidthMode
+    {
+        FixedWidth,      // 固定宽度：所有标签统一宽度
+        DynamicWidth     // 动态宽度：根据文本长度自适应
+    }
+
     public class AppConfig
     {
         public string LastPath { get; set; } = string.Empty;
@@ -73,6 +83,9 @@ namespace OoiMRR
         public int ReuseTabTimeWindow { get; set; } = 10; // 复用标签页的时间窗口（秒），默认10秒
         public bool AlwaysReuseTab { get; set; } = false; // 总是复用标签页（忽略时间窗口）
         public bool NeverReuseTab { get; set; } = false; // 从不复用标签页（总是创建新的）
+
+        // 标签页宽度模式
+        public TabWidthMode TabWidthMode { get; set; } = TabWidthMode.FixedWidth;
     }
 
     public class AllSettingsConfig
@@ -268,7 +281,12 @@ namespace OoiMRR
                 if (File.Exists(path))
                 {
                     var json = File.ReadAllText(path);
-                    var cfg = JsonSerializer.Deserialize<AppConfig>(json);
+                    var options = new JsonSerializerOptions
+                    {
+                        Converters = { new JsonStringEnumConverter() },
+                        PropertyNameCaseInsensitive = true
+                    };
+                    var cfg = JsonSerializer.Deserialize<AppConfig>(json, options);
                     if (cfg != null)
                     {
                         // 迁移配置：清理旧字段，确保新字段有值
@@ -340,7 +358,12 @@ namespace OoiMRR
 
                 var baseDir = GetBaseDirectory();
                 Directory.CreateDirectory(baseDir);
-                var json = JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true });
+                var options = new JsonSerializerOptions
+                {
+                    WriteIndented = true,
+                    Converters = { new JsonStringEnumConverter() }
+                };
+                var json = JsonSerializer.Serialize(config, options);
                 var configPath = GetConfigFilePath();
                 File.WriteAllText(configPath, json);
 

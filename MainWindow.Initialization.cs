@@ -96,6 +96,7 @@ namespace OoiMRR
             );
 
             AttachTabServiceUiContext();
+            _tabService.InitializeTabSizeHandler(); // Enable tab width compression
 
             // 初始化 UI 辅助服务（需要在 InitializeComponent 之后，因为需要 FileBrowser）
             _uiHelperService = new Services.UIHelper.UIHelperService(FileBrowser, this.Dispatcher);

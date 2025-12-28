@@ -1,5 +1,5 @@
 using System;
-using OoiMRR.Controls;
+using OoiMRR.Services.Tabs;
 using TagType = OoiMRR.Tag;
 
 namespace OoiMRR.Services
@@ -34,29 +34,24 @@ namespace OoiMRR.Services
                 CurrentTagFilter = null;
             }
 
-            public void SetFromTab(TabManagerControl.TabInfo tab)
+            public void SetFromTab(PathTab tab)
             {
                 Clear();
                 switch (tab.Type)
                 {
-                    case TabManagerControl.TabType.Path:
+                    case TabType.Path:
                         Mode = NavigationMode.Path;
-                        CurrentPath = tab.Identifier;
+                        CurrentPath = tab.Path;
                         break;
-                    case TabManagerControl.TabType.Library:
+                    case TabType.Library:
                         Mode = NavigationMode.Library;
-                        CurrentLibrary = tab.Data as Library;
+                        CurrentLibrary = tab.Library;
                         break;
-                    case TabManagerControl.TabType.Tag:
+                    case TabType.Tag:
                         Mode = NavigationMode.Tag;
-                        if (tab.Data is TagType tag)
+                        if (tab.TagId > 0 && !string.IsNullOrEmpty(tab.TagName))
                         {
-                            CurrentTagFilter = tag;
-                        }
-                        else if (!string.IsNullOrEmpty(tab.Identifier) && int.TryParse(tab.Identifier, out int tagId))
-                        {
-                            // 如果没有Tag对象，尝试从ID创建
-                            CurrentTagFilter = new TagType { Id = tagId, Name = tab.Title };
+                            CurrentTagFilter = new TagType { Id = tab.TagId, Name = tab.TagName };
                         }
                         break;
                 }
@@ -89,7 +84,7 @@ namespace OoiMRR.Services
         /// <summary>
         /// 从标签页更新状态
         /// </summary>
-        public void UpdateFromTab(TabManagerControl.TabInfo tab)
+        public void UpdateFromTab(PathTab tab)
         {
             if (tab == null)
             {

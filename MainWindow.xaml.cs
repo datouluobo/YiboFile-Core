@@ -236,6 +236,39 @@ namespace OoiMRR
 
             // Step 4: Apply Initial State (Logic/UI Update Phase)
             initializer.ApplyInitialState();
+
+            // Hook up dynamic tab margin adjustment
+            if (WindowButtonsStackPanel != null)
+            {
+                WindowButtonsStackPanel.SizeChanged += (s, e) => UpdateTabManagerMargin();
+            }
+
+            // Robust event hooking
+            this.Loaded += (s, e) => UpdateTabManagerMargin();
+            this.StateChanged += (s, e) => UpdateTabManagerMargin();
+            this.SizeChanged += (s, e) => UpdateTabManagerMargin();
+
+            // Initial update
+            UpdateTabManagerMargin();
+        }
+
+        private void UpdateTabManagerMargin()
+        {
+            this.Dispatcher.InvokeAsync(UpdateTabManagerMarginLogic, System.Windows.Threading.DispatcherPriority.Loaded);
+        }
+
+        private void UpdateTabManagerMarginLogic()
+        {
+            if (TabManager != null && WindowButtonsStackPanel != null)
+            {
+                // Ensure tabs don't overlap with window control buttons
+                // Add a small buffer (e.g. 10px) to the buttons' actual width
+                double rightMargin = WindowButtonsStackPanel.ActualWidth + 15;
+
+                // Keep the other margins as defined in XAML (0,0,0,0) - wait, XAML had 0,0,250,0
+                // We overwrite the Right margin dynamically.
+                TabManager.Margin = new Thickness(0, 0, rightMargin, 0);
+            }
         }
 
 
