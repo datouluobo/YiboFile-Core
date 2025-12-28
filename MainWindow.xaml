@@ -21,7 +21,7 @@
         LocationChanged="Window_LocationChanged">
     
     <WindowChrome.WindowChrome>
-        <WindowChrome CaptionHeight="36" 
+        <WindowChrome CaptionHeight="50" 
                       ResizeBorderThickness="4" 
                       GlassFrameThickness="1" 
                       CornerRadius="0" 
@@ -57,15 +57,17 @@
         
         <!-- 布局：标题栏行 + 标签页行 + 内容行 -->
         <Grid.RowDefinitions>
-            <RowDefinition Height="50"/>
+            <RowDefinition Height="51"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
         
-        <!-- 标题栏背景 -->
+        <!-- 标题栏背景（包含底部边框） -->
         <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="5"
-                Background="{DynamicResource TitleBarBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1"
+                Background="{DynamicResource TitleBarBackgroundBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,0,1"
                 Panel.ZIndex="1000"/>
         
         <!-- 导航按钮：位于列0 (随列0宽度自动调整) -->
@@ -106,7 +108,7 @@
         <!-- 标签页管理器：从列1(Splitter)开始，跨越剩余列 -->
         <controls:TabManagerControl Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="4"
                                     x:Name="TabManager" 
-                                    Margin="0,0,200,0"
+                                    Margin="0,0,250,0"
                                     VerticalAlignment="Center"
                                     WindowChrome.IsHitTestVisibleInChrome="True"
                                     Panel.ZIndex="1001"/>
@@ -161,26 +163,22 @@
               Visibility="Collapsed">
             <controls:SettingsPanelControl x:Name="SettingsPanel"/>
         </Grid>
-        </Grid>
-        
-        <!-- 右上角窗口控制按钮：独立的Grid确保可交互，不拦截其他事件 -->
+            <!-- 右上角窗口控制按钮：移动到 RootGrid 内部以保持 Margin 一致性 -->
         <Grid Name="WindowControlButtonsContainer" 
               Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="5"
-              HorizontalAlignment="Right" VerticalAlignment="Top"
-              Background="Transparent"
-              Width="200" Height="36"
+              HorizontalAlignment="Right" VerticalAlignment="Stretch"
               Panel.ZIndex="10000"
-              Margin="0,0,0,0"
               WindowChrome.IsHitTestVisibleInChrome="True"
               PreviewMouseDown="WindowControlButtonsContainer_PreviewMouseDown">
-            <!-- 按钮区域：固定在右上角 -->
+            
+            <!-- 按钮区域：垂直拉伸填满标题栏 -->
             <StackPanel Orientation="Horizontal"
-                       HorizontalAlignment="Right" VerticalAlignment="Center"
-                       Background="Transparent"
-                       Height="36">
+                       HorizontalAlignment="Right" VerticalAlignment="Stretch"
+                       Margin="0,0,0,0">
+                
                 <!-- 设置按钮 -->
                 <Button x:Name="TitleBarSettingsButton" Content="&#xE713;" 
-                        Width="40" Height="36" 
+                        Width="46"
                         Click="Settings_Click" 
                         ToolTip="设置" FontSize="16" FontFamily="Segoe MDL2 Assets"
                         Background="Transparent" BorderThickness="0" Cursor="Hand">
@@ -207,7 +205,7 @@
                 </Button>
                 <!-- 关于按钮 -->
                 <Button x:Name="TitleBarAboutButton" Content="&#xE946;" 
-                        Width="40" Height="36" 
+                        Width="46"
                         Click="About_Click" 
                         ToolTip="关于" FontSize="16" FontFamily="Segoe MDL2 Assets"
                         Background="Transparent" BorderThickness="0" Cursor="Hand">
@@ -234,7 +232,7 @@
                 </Button>
                 <!-- 最小化按钮 -->
                 <Button x:Name="TitleBarMinimizeButton" Content="&#xE921;" 
-                        Width="40" Height="36" 
+                        Width="46"
                         Click="WindowMinimize_Click" 
                         ToolTip="最小化" FontSize="16" FontFamily="Segoe MDL2 Assets"
                         Background="Transparent" BorderThickness="0" Cursor="Hand">
@@ -260,7 +258,7 @@
                     </Button.Style>
                 </Button>
                 <Button x:Name="TitleBarMaxRestoreButton" Content="&#xE922;" 
-                        Width="40" Height="36" 
+                        Width="46"
                         Click="WindowMaximize_Click" 
                         ToolTip="最大化" FontSize="16" FontFamily="Segoe MDL2 Assets"
                         Background="Transparent" BorderThickness="0" Cursor="Hand">
@@ -286,7 +284,7 @@
                     </Button.Style>
                 </Button>
                 <Button x:Name="TitleBarCloseButton" Content="&#xE8BB;" 
-                        Width="40" Height="36" 
+                        Width="46"
                         Click="WindowClose_Click" 
                         ToolTip="关闭" FontSize="16" FontFamily="Segoe MDL2 Assets"
                         Background="Transparent" BorderThickness="0" Cursor="Hand">
@@ -315,5 +313,9 @@
                 </Button>
             </StackPanel>
         </Grid>
+
+    </Grid>
+        
+
     </Grid>
 </Window>
