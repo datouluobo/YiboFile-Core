@@ -143,7 +143,12 @@ namespace OoiMRR.Handlers
             else currentSet.Remove(tag);
 
             SetVisibleColumnsForCurrentMode(string.Join(",", currentSet));
-            _configService?.SaveCurrentConfig();
+
+            // ❌ 不要调用SaveCurrentConfig！会用旧配置覆盖ConfigurationService保存的新配置
+            // _configService?.SaveCurrentConfig();
+
+            // ✅ 列可见性由ColumnService管理，它会通过ConfigurationService保存
+            // 这里不需要额外保存，ColumnService会在需要时保存
         }
 
         /// <summary>

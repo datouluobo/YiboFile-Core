@@ -92,8 +92,8 @@ namespace OoiMRR.Controls
             if (panel is ISettingsPanel settingsPanel)
             {
                 settingsPanel.SettingsChanged += OnSettingsPanelChanged;
-                // 加载新面板的设置（在切换分类时）
-                settingsPanel.LoadSettings();
+                // 移除LoadSettings调用 - Panel在构造函数中已经调用了LoadSettings
+                // 每次切换tab时重新Load会覆盖用户未保存的修改！
             }
 
             ContentPanel.Children.Add(panel);

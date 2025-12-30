@@ -81,8 +81,46 @@ namespace OoiMRR.Services
                 try { System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "A", location = "WindowStateManager.cs:68", message = "SaveAllState保存前_config状态", data = new { windowWidth = _config.WindowWidth, windowHeight = _config.WindowHeight, windowTop = _config.WindowTop, windowLeft = _config.WindowLeft, isMaximized = _config.IsMaximized, colLeftWidth = _config.ColLeftWidth, colCenterWidth = _config.ColCenterWidth, openTabsCount = _config.OpenTabs?.Count ?? 0, activeTabKey = _config.ActiveTabKey }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
                 // #endregion
 
-                // 保存配置
-                ConfigManager.Save(_config);
+                // 🔥 CRITICAL: 只复制窗口状态字段，不要复制UI设置字段！
+                // UI设置(UIFontSize, TagFontSize, ColTagsWidth等)由ConfigurationService管理
+                // 如果在这里复制，会用启动时的旧_config覆盖用户刚保存的设置！
+
+                // ✅ 使用ConfigurationService统一更新，避免覆盖用户设置
+                OoiMRR.Services.Config.ConfigurationService.Instance.Update(latestConfig =>
+                {
+                    // 窗口尺寸和位置
+                    latestConfig.WindowWidth = _config.WindowWidth;
+                    latestConfig.WindowHeight = _config.WindowHeight;
+                    latestConfig.WindowTop = _config.WindowTop;
+                    latestConfig.WindowLeft = _config.WindowLeft;
+                    latestConfig.IsMaximized = _config.IsMaximized;
+
+                    // 主布局列宽（左中右三列）- 这些是窗口布局，不是UI设置
+                    latestConfig.ColLeftWidth = _config.ColLeftWidth;
+                    latestConfig.ColCenterWidth = _config.ColCenterWidth;
+                    latestConfig.ColRightWidth = _config.ColRightWidth;
+                    latestConfig.LeftPanelWidth = _config.LeftPanelWidth;
+                    latestConfig.MiddlePanelWidth = _config.MiddlePanelWidth;
+
+                    // ❌ ColTagsWidth/ColNotesWidth不要复制 - UI设置由ConfigurationService管理
+
+                    // 面板状态
+                    latestConfig.IsRightPanelVisible = _config.IsRightPanelVisible;
+                    latestConfig.RightPanelNotesHeight = _config.RightPanelNotesHeight;
+                    latestConfig.CenterPanelInfoHeight = _config.CenterPanelInfoHeight;
+
+                    // 导航状态
+                    latestConfig.LastPath = _config.LastPath;
+                    latestConfig.LastNavigationMode = _config.LastNavigationMode;
+                    latestConfig.LastLibraryId = _config.LastLibraryId;
+
+                    // 标签页状态
+                    latestConfig.OpenTabs = _config.OpenTabs;
+                    latestConfig.ActiveTabKey = _config.ActiveTabKey;
+                });
+
+                // ✅ 不再需要手动Save - ConfigurationService.Update会触发去抖保存
+                // 程序关闭时WindowLifecycleHandler会调用SaveNow()确保落盘
 
                 // #region agent log
                 try { System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "A", location = "WindowStateManager.cs:72", message = "SaveAllState完成", data = new { }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }

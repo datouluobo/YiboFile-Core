@@ -2,7 +2,8 @@ using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using OoiMRR; // 添加对 MainWindow 的引用
+using OoiMRR;
+using OoiMRR.Services.Config;
 
 namespace OoiMRR.Controls.Settings
 {
@@ -22,7 +23,7 @@ namespace OoiMRR.Controls.Settings
         public FileListSettingsPanel()
         {
             InitializeComponent();
-            // LoadSettings 由 SettingsOverlayController.Show() 调用，不在构造函数中调用
+            LoadSettings();
         }
 
         private void InitializeComponent()
@@ -160,7 +161,9 @@ namespace OoiMRR.Controls.Settings
             _isLoadingSettings = true;
             try
             {
-                var config = ConfigManager.Load();
+                // 使用统一配置服务获取配置快照
+                var config = ConfigurationService.Instance.GetSnapshot();
+
                 if (_tagsWidthTextBox != null)
                 {
                     _tagsWidthTextBox.Text = ((int)config.ColTagsWidth).ToString();
@@ -179,19 +182,19 @@ namespace OoiMRR.Controls.Settings
 
         public void SaveSettings()
         {
-            var config = ConfigManager.Load();
-
-            if (_tagsWidthTextBox != null && int.TryParse(_tagsWidthTextBox.Text, out int tagsWidth))
+            // 使用统一配置服务批量更新列宽设置
+            ConfigurationService.Instance.Update(config =>
             {
-                config.ColTagsWidth = tagsWidth;
-            }
+                if (_tagsWidthTextBox != null && int.TryParse(_tagsWidthTextBox.Text, out int tagsWidth))
+                {
+                    config.ColTagsWidth = tagsWidth;
+                }
 
-            if (_notesWidthTextBox != null && int.TryParse(_notesWidthTextBox.Text, out int notesWidth))
-            {
-                config.ColNotesWidth = notesWidth;
-            }
-
-            ConfigManager.Save(config);
+                if (_notesWidthTextBox != null && int.TryParse(_notesWidthTextBox.Text, out int notesWidth))
+                {
+                    config.ColNotesWidth = notesWidth;
+                }
+            });
         }
 
         private void NumericTextBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
@@ -203,35 +206,37 @@ namespace OoiMRR.Controls.Settings
         {
             if (_isLoadingSettings) return;
 
-            // 仅验证范围，不保存
-            if (int.TryParse(_tagsWidthTextBox.Text, out int value))
-            {
-                if (value < 50) value = 50;
-                if (value > 500) value = 500;
+            var textBox = sender as TextBox;
+            if (textBox == null) return;
 
-                if (_tagsWidthTextBox.Text != value.ToString())
-                {
-                    _isLoadingSettings = true; // 防止递归
-                    var selectionStart = _tagsWidthTextBox.SelectionStart;
-                    _tagsWidthTextBox.Text = value.ToString();
-                    _tagsWidthTextBox.SelectionStart = Math.Min(selectionStart, _tagsWidthTextBox.Text.Length);
-                    _isLoadingSettings = false;
-                }
+            // 只验证是否是有效数字，不限制范围（允许中间输入状态）
+            if (int.TryParse(textBox.Text, out int value))
+            {
+                // 实时更新预览（可选）
+                // 这里可以添加实时预览逻辑
             }
         }
 
         private void TagsWidthTextBox_LostFocus(object sender, RoutedEventArgs e)
         {
-            if (int.TryParse(_tagsWidthTextBox.Text, out int value) && value >= 50 && value <= 500)
+            var textBox = sender as TextBox;
+            if (textBox == null) return;
+
+            if (int.TryParse(textBox.Text, out int value))
             {
-                // 只在失去焦点时保存和应用
-                ApplyTagsWidth(value);
+                // 限制范围（失去焦点时）
+                if (value < 50) value = 50;
+                if (value > 500) value = 500;
+
+                // 更新文本框为有效值
+                textBox.Text = value.ToString();
+                ApplyTagsWidth(value); // Apply the corrected value
             }
             else
             {
-                // 恢复有效值
-                var config = ConfigManager.Load();
-                _tagsWidthTextBox.Text = ((int)config.ColTagsWidth).ToString();
+                // 无效输入，恢复默认值
+                textBox.Text = "150";
+                ApplyTagsWidth(150); // Apply default value
             }
         }
 
@@ -257,12 +262,9 @@ namespace OoiMRR.Controls.Settings
 
         private void ApplyTagsWidth(double width)
         {
-            var config = ConfigManager.Load();
-            config.ColTagsWidth = width;
-            ConfigManager.Save(config);
+            // 使用统一配置服务更新
+            ConfigurationService.Instance.Set(cfg => cfg.ColTagsWidth, width);
 
-            // 验证保存
-            var verifyConfig = ConfigManager.Load();
             // 直接刷新 FileListControl 的列宽度
             RefreshFileListColumns();
 
@@ -273,35 +275,36 @@ namespace OoiMRR.Controls.Settings
         {
             if (_isLoadingSettings) return;
 
-            // 仅验证范围，不保存
-            if (int.TryParse(_notesWidthTextBox.Text, out int value))
-            {
-                if (value < 100) value = 100;
-                if (value > 800) value = 800;
+            var textBox = sender as TextBox;
+            if (textBox == null) return;
 
-                if (_notesWidthTextBox.Text != value.ToString())
-                {
-                    _isLoadingSettings = true; // 防止递归
-                    var selectionStart = _notesWidthTextBox.SelectionStart;
-                    _notesWidthTextBox.Text = value.ToString();
-                    _notesWidthTextBox.SelectionStart = Math.Min(selectionStart, _notesWidthTextBox.Text.Length);
-                    _isLoadingSettings = false;
-                }
+            // 只验证是否是有效数字，不限制范围
+            if (int.TryParse(textBox.Text, out int value))
+            {
+                // 实时更新预览（可选）
             }
         }
 
         private void NotesWidthTextBox_LostFocus(object sender, RoutedEventArgs e)
         {
-            if (int.TryParse(_notesWidthTextBox.Text, out int value) && value >= 100 && value <= 800)
+            var textBox = sender as TextBox;
+            if (textBox == null) return;
+
+            if (int.TryParse(textBox.Text, out int value))
             {
-                // 只在失去焦点时保存和应用
-                ApplyNotesWidth(value);
+                // 限制范围（失去焦点时）
+                if (value < 100) value = 100;
+                if (value > 800) value = 800;
+
+                // 更新文本框为有效值
+                textBox.Text = value.ToString();
+                ApplyNotesWidth(value); // Apply the corrected value
             }
             else
             {
-                // 恢复有效值
-                var config = ConfigManager.Load();
-                _notesWidthTextBox.Text = ((int)config.ColNotesWidth).ToString();
+                // 无效输入，恢复默认值
+                textBox.Text = "200";
+                ApplyNotesWidth(200); // Apply default value
             }
         }
 
@@ -327,12 +330,9 @@ namespace OoiMRR.Controls.Settings
 
         private void ApplyNotesWidth(double width)
         {
-            var config = ConfigManager.Load();
-            config.ColNotesWidth = width;
-            ConfigManager.Save(config);
+            // 使用统一配置服务更新
+            ConfigurationService.Instance.Set(cfg => cfg.ColNotesWidth, width);
 
-            // 验证保存
-            var verifyConfig = ConfigManager.Load();
             // 直接刷新 FileListControl 的列宽度
             RefreshFileListColumns();
 

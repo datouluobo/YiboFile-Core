@@ -7,6 +7,7 @@ using Microsoft.Win32;
 using OoiMRR.Controls;
 using Forms = System.Windows.Forms;
 using OoiMRR.Services;
+using OoiMRR.Services.Config;
 
 namespace OoiMRR.Controls.Settings
 {
@@ -29,6 +30,10 @@ namespace OoiMRR.Controls.Settings
         private Button _tagBoxWidthDownButton;
         private RadioButton _tabWidthFixedRadio;
         private RadioButton _tabWidthDynamicRadio;
+        private TextBox _pinnedTabWidthTextBox;
+        private Button _pinnedTabWidthUpButton;
+        private Button _pinnedTabWidthDownButton;
+        private TextBlock _pinnedTabWidthLabel;
 
         private bool _isLoadingSettings = false;
 
@@ -112,17 +117,86 @@ namespace OoiMRR.Controls.Settings
             };
             stackPanel.Children.Add(tabWidthModeLabel);
 
+            // 固定宽度选项（包含宽度输入框）
+            var fixedWidthPanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Margin = new Thickness(20, 0, 0, 4)
+            };
+
             _tabWidthFixedRadio = new RadioButton
             {
                 Content = "固定宽度（所有标签统一宽度）",
                 GroupName = "TabWidthMode",
                 FontSize = 14,
                 MinHeight = 32,
-                Margin = new Thickness(20, 0, 0, 4),
+                VerticalAlignment = VerticalAlignment.Center,
                 IsChecked = true
             };
-            _tabWidthFixedRadio.Checked += (s, e) => OnSettingChanged();
-            stackPanel.Children.Add(_tabWidthFixedRadio);
+            _tabWidthFixedRadio.Checked += TabWidthFixedRadio_Checked;
+            _tabWidthFixedRadio.Unchecked += TabWidthFixedRadio_Unchecked;
+            fixedWidthPanel.Children.Add(_tabWidthFixedRadio);
+
+            // 宽度标签（带范围提示）
+            _pinnedTabWidthLabel = new TextBlock
+            {
+                Text = "宽度(50-300):",
+                FontSize = 14,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(20, 0, 8, 0)
+            };
+            fixedWidthPanel.Children.Add(_pinnedTabWidthLabel);
+
+            // 宽度输入框
+            _pinnedTabWidthTextBox = new TextBox
+            {
+                FontSize = 14,
+                Width = 60,
+                Height = 36,  // 增加高度与单选按钮对齐
+                VerticalContentAlignment = VerticalAlignment.Center,
+                TextAlignment = TextAlignment.Center,
+                Padding = new Thickness(5, 0, 5, 0),
+                Margin = new Thickness(0, 0, 8, 0)
+            };
+            _pinnedTabWidthTextBox.TextChanged += PinnedTabWidthTextBox_TextChanged;
+            _pinnedTabWidthTextBox.LostFocus += PinnedTabWidthTextBox_LostFocus;
+            _pinnedTabWidthTextBox.PreviewTextInput += FontSizeTextBox_PreviewTextInput;
+            _pinnedTabWidthTextBox.KeyDown += NumericTextBox_KeyDown;
+            fixedWidthPanel.Children.Add(_pinnedTabWidthTextBox);
+
+            // 上下按钮
+            var pinnedWidthButtonPanel = new StackPanel
+            {
+                Orientation = Orientation.Vertical,
+                Margin = new Thickness(0, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            _pinnedTabWidthUpButton = new Button
+            {
+                Content = "▲",
+                Width = 24,
+                Height = 16,
+                FontSize = 10,
+                Padding = new Thickness(0),
+                Margin = new Thickness(0, 0, 0, 2)
+            };
+            _pinnedTabWidthUpButton.Click += PinnedTabWidthUpButton_Click;
+            pinnedWidthButtonPanel.Children.Add(_pinnedTabWidthUpButton);
+
+            _pinnedTabWidthDownButton = new Button
+            {
+                Content = "▼",
+                Width = 24,
+                Height = 16,
+                FontSize = 10,
+                Padding = new Thickness(0)
+            };
+            _pinnedTabWidthDownButton.Click += PinnedTabWidthDownButton_Click;
+            pinnedWidthButtonPanel.Children.Add(_pinnedTabWidthDownButton);
+
+            fixedWidthPanel.Children.Add(pinnedWidthButtonPanel);
+            stackPanel.Children.Add(fixedWidthPanel);
 
             _tabWidthDynamicRadio = new RadioButton
             {
@@ -132,7 +206,7 @@ namespace OoiMRR.Controls.Settings
                 MinHeight = 32,
                 Margin = new Thickness(20, 0, 0, 24)
             };
-            _tabWidthDynamicRadio.Checked += (s, e) => OnSettingChanged();
+            _tabWidthDynamicRadio.Checked += TabWidthDynamicRadio_Checked;
             stackPanel.Children.Add(_tabWidthDynamicRadio);
 
             // 字体设置
@@ -176,6 +250,7 @@ namespace OoiMRR.Controls.Settings
             _uiFontSizeTextBox.TextChanged += FontSizeTextBox_TextChanged;
             _uiFontSizeTextBox.LostFocus += FontSizeTextBox_LostFocus;
             _uiFontSizeTextBox.PreviewTextInput += FontSizeTextBox_PreviewTextInput;
+            _uiFontSizeTextBox.KeyDown += NumericTextBox_KeyDown;
             Grid.SetColumn(_uiFontSizeTextBox, 1);
             fontGrid.Children.Add(_uiFontSizeTextBox);
 
@@ -246,6 +321,7 @@ namespace OoiMRR.Controls.Settings
             _tagFontSizeTextBox.TextChanged += TagFontSizeTextBox_TextChanged;
             _tagFontSizeTextBox.LostFocus += TagFontSizeTextBox_LostFocus;
             _tagFontSizeTextBox.PreviewTextInput += FontSizeTextBox_PreviewTextInput;
+            _tagFontSizeTextBox.KeyDown += NumericTextBox_KeyDown;
             Grid.SetColumn(_tagFontSizeTextBox, 1);
             tagFontGrid.Children.Add(_tagFontSizeTextBox);
 
@@ -316,6 +392,7 @@ namespace OoiMRR.Controls.Settings
             _tagBoxWidthTextBox.TextChanged += TagBoxWidthTextBox_TextChanged;
             _tagBoxWidthTextBox.LostFocus += TagBoxWidthTextBox_LostFocus;
             _tagBoxWidthTextBox.PreviewTextInput += FontSizeTextBox_PreviewTextInput;
+            _tagBoxWidthTextBox.KeyDown += NumericTextBox_KeyDown;
             Grid.SetColumn(_tagBoxWidthTextBox, 1);
             tagBoxWidthGrid.Children.Add(_tagBoxWidthTextBox);
 
@@ -586,7 +663,8 @@ namespace OoiMRR.Controls.Settings
             _isLoadingSettings = true;
             try
             {
-                var config = ConfigManager.Load();
+                // 使用统一配置服务获取配置快照
+                var config = ConfigurationService.Instance.GetSnapshot();
 
                 if (_startMaximizedCheckBox != null)
                     _startMaximizedCheckBox.IsChecked = config.IsMaximized;
@@ -602,6 +680,19 @@ namespace OoiMRR.Controls.Settings
                             break;
                         }
                     }
+                }
+                // 加载固定标签页宽度
+                if (_pinnedTabWidthTextBox != null)
+                {
+                    int width = (int)(config.PinnedTabWidth > 0 ? config.PinnedTabWidth : 120);
+                    _pinnedTabWidthTextBox.Text = width.ToString();
+
+                    // 根据当前模式设置启用/禁用状态
+                    bool isFixedMode = (config.TabWidthMode != TabWidthMode.DynamicWidth);
+                    _pinnedTabWidthLabel.Opacity = isFixedMode ? 1.0 : 0.5;
+                    _pinnedTabWidthTextBox.IsEnabled = isFixedMode;
+                    _pinnedTabWidthUpButton.IsEnabled = isFixedMode;
+                    _pinnedTabWidthDownButton.IsEnabled = isFixedMode;
                 }
 
                 if (_uiFontSizeTextBox != null)
@@ -651,29 +742,33 @@ namespace OoiMRR.Controls.Settings
 
         public void SaveSettings()
         {
-            var config = ConfigManager.Load();
-
-            if (_startMaximizedCheckBox != null)
-                config.IsMaximized = _startMaximizedCheckBox.IsChecked ?? true;
-
-            if (_themeComboBox != null && _themeComboBox.SelectedItem is ComboBoxItem selectedItem && selectedItem.Tag is string theme)
+            // 使用统一配置服务批量更新所有设置
+            // 注意：字体大小已在ApplyFontSize中实时保存，这里只保存非实时的设置
+            ConfigurationService.Instance.Update(config =>
             {
-                config.Theme = theme;
-            }
+                // 启动时最大化
+                if (_startMaximizedCheckBox != null)
+                    config.IsMaximized = _startMaximizedCheckBox.IsChecked ?? true;
 
-            // Save tab width mode
-            if (_tabWidthDynamicRadio != null && _tabWidthDynamicRadio.IsChecked == true)
-            {
-                config.TabWidthMode = TabWidthMode.DynamicWidth;
-            }
-            else
-            {
-                config.TabWidthMode = TabWidthMode.FixedWidth;
-            }
+                // 主题
+                if (_themeComboBox != null && _themeComboBox.SelectedItem is ComboBoxItem selectedItem && selectedItem.Tag is string theme)
+                {
+                    config.Theme = theme;
+                }
 
-            // 字体大小在 ApplyFontSize 中已保存，这里不需要再保存
+                // 标签页宽度模式
+                if (_tabWidthDynamicRadio != null && _tabWidthDynamicRadio.IsChecked == true)
+                {
+                    config.TabWidthMode = TabWidthMode.DynamicWidth;
+                }
+                else
+                {
+                    config.TabWidthMode = TabWidthMode.FixedWidth;
+                }
 
-            ConfigManager.Save(config);
+                // 字体大小已在ApplyFontSize/ApplyTagFontSize/ApplyTagBoxWidth中实时保存
+                // 这里不需要重复保存，避免从UI读取可能不一致的值
+            });
         }
 
         private void FontSizeTextBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
@@ -689,21 +784,10 @@ namespace OoiMRR.Controls.Settings
             var textBox = sender as TextBox;
             if (textBox == null) return;
 
+            // 只验证是否是有效数字，不限制范围（允许中间输入状态）
             if (int.TryParse(textBox.Text, out int value))
             {
-                // 限制范围
-                if (value < 10) value = 10;
-                if (value > 48) value = 48;
-
-                // 如果值被修正，更新文本框
-                if (textBox.Text != value.ToString())
-                {
-                    var selectionStart = textBox.SelectionStart;
-                    textBox.Text = value.ToString();
-                    textBox.SelectionStart = Math.Min(selectionStart, textBox.Text.Length);
-                }
-
-                // 应用字体
+                // 应用字体（即时预览）
                 ApplyFontSize(value);
             }
         }
@@ -713,13 +797,26 @@ namespace OoiMRR.Controls.Settings
             var textBox = sender as TextBox;
             if (textBox == null) return;
 
-            // 如果输入无效，恢复为当前配置值
-            if (!int.TryParse(textBox.Text, out int value) || value < 10 || value > 48)
+            if (int.TryParse(textBox.Text, out int value))
             {
-                var config = ConfigManager.Load();
-                textBox.Text = ((int)config.UIFontSize).ToString();
+                // 限制范围（失去焦点时）
+                if (value < 10) value = 10;
+                if (value > 48) value = 48;
+
+                // 更新文本框为有效值
+                textBox.Text = value.ToString();
+
+                // 应用字体
+                ApplyFontSize(value);
+            }
+            else
+            {
+                // 无效输入，恢复默认值
+                textBox.Text = "15";
+                ApplyFontSize(15);
             }
         }
+
 
         private void FontSizeUpButton_Click(object sender, RoutedEventArgs e)
         {
@@ -743,10 +840,8 @@ namespace OoiMRR.Controls.Settings
 
         private void ApplyFontSize(double fontSize)
         {
-            // 保存配置
-            var config = ConfigManager.Load();
-            config.UIFontSize = fontSize;
-            ConfigManager.Save(config);
+            // 使用统一配置服务更新
+            ConfigurationService.Instance.Set(cfg => cfg.UIFontSize, fontSize);
 
             // 触发设置变更事件，让MainWindow应用字体
             SettingsChanged?.Invoke(this, EventArgs.Empty);
@@ -765,21 +860,10 @@ namespace OoiMRR.Controls.Settings
             var textBox = sender as TextBox;
             if (textBox == null) return;
 
+            // 只验证是否是有效数字，不限制范围
             if (int.TryParse(textBox.Text, out int value))
             {
-                // 限制范围
-                if (value < 10) value = 10;
-                if (value > 48) value = 48;
-
-                // 如果值被修正，更新文本框
-                if (textBox.Text != value.ToString())
-                {
-                    var selectionStart = textBox.SelectionStart;
-                    textBox.Text = value.ToString();
-                    textBox.SelectionStart = Math.Min(selectionStart, textBox.Text.Length);
-                }
-
-                // 应用字体
+                // 应用字体（即时预览）
                 ApplyTagFontSize(value);
             }
         }
@@ -789,13 +873,28 @@ namespace OoiMRR.Controls.Settings
             var textBox = sender as TextBox;
             if (textBox == null) return;
 
-            // 如果输入无效，恢复为当前配置值
-            if (!int.TryParse(textBox.Text, out int value) || value < 10 || value > 48)
+            if (int.TryParse(textBox.Text, out int value))
             {
-                var config = ConfigManager.Load();
-                textBox.Text = ((int)config.TagFontSize).ToString();
+                // 限制范围（失去焦点时）
+                if (value < 10) value = 10;
+                if (value > 48) value = 48;
+
+                // 更新文本框为有效值
+                textBox.Text = value.ToString();
+
+                // 应用字体
+                ApplyTagFontSize(value);
+            }
+            else
+            {
+                // 无效输入，恢复默认值
+                textBox.Text = "16";
+                ApplyTagFontSize(16);
             }
         }
+
+
+
 
         private void TagFontSizeUpButton_Click(object sender, RoutedEventArgs e)
         {
@@ -817,12 +916,27 @@ namespace OoiMRR.Controls.Settings
             }
         }
 
+        // 通用数值输入框回车确认处理
+        private void NumericTextBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key == System.Windows.Input.Key.Enter)
+            {
+                // 按回车键时，移动焦点触发LostFocus事件
+                var textBox = sender as TextBox;
+                if (textBox != null)
+                {
+                    // 移动焦点到父容器，触发LostFocus
+                    textBox.MoveFocus(new System.Windows.Input.TraversalRequest(
+                        System.Windows.Input.FocusNavigationDirection.Next));
+                    e.Handled = true;
+                }
+            }
+        }
+
         private void ApplyTagFontSize(double fontSize)
         {
-            // 保存配置
-            var config = ConfigManager.Load();
-            config.TagFontSize = fontSize;
-            ConfigManager.Save(config);
+            // 使用统一配置服务更新
+            ConfigurationService.Instance.Set(cfg => cfg.TagFontSize, fontSize);
 
             // 触发设置变更事件，让MainWindow应用字体
             SettingsChanged?.Invoke(this, EventArgs.Empty);
@@ -881,18 +995,121 @@ namespace OoiMRR.Controls.Settings
         {
             if (int.TryParse(_tagBoxWidthTextBox.Text, out int value))
             {
-                value = Math.Max(0, value - 5);
+                value = Math.Max(50, value - 10);
                 _tagBoxWidthTextBox.Text = value.ToString();
-                ApplyTagBoxWidth(value);
             }
         }
 
+        #region 固定标签页宽度
+
+        private void PinnedTabWidthTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (_isLoadingSettings) return;
+
+            var textBox = sender as TextBox;
+            if (textBox == null) return;
+
+            // 实时验证并应用宽度（用于预览）
+            if (int.TryParse(textBox.Text, out int value))
+            {
+                // 实时预览：放宽范围限制以便输入时立即生效
+                // 即使输入较小的值(如20)也立即应用，让用户有直观反馈
+                // 最终的有效性检查由LostFocus处理
+                if (value >= 10 && value <= 500)
+                {
+                    // 实时更新标签页宽度（不保存到配置）
+                    ConfigurationService.Instance.Set(cfg => cfg.PinnedTabWidth, value);
+                    SettingsChanged?.Invoke(this, EventArgs.Empty);
+                }
+            }
+        }
+
+        private void PinnedTabWidthTextBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            var textBox = sender as TextBox;
+            if (textBox == null) return;
+
+            if (int.TryParse(textBox.Text, out int value))
+            {
+                // 限制范围（50-300）
+                if (value < 50) value = 50;
+                if (value > 300) value = 300;
+
+                // 更新文本框为有效值
+                textBox.Text = value.ToString();
+
+                // 保存到配置
+                ConfigurationService.Instance.Set(cfg => cfg.PinnedTabWidth, value);
+
+                // 触发事件，让主窗口更新标签页
+                SettingsChanged?.Invoke(this, EventArgs.Empty);
+            }
+            else
+            {
+                // 无效输入，恢复默认值
+                textBox.Text = "120";
+                ConfigurationService.Instance.Set(cfg => cfg.PinnedTabWidth, 120);
+                SettingsChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+
+        private void PinnedTabWidthUpButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (int.TryParse(_pinnedTabWidthTextBox.Text, out int value))
+            {
+                value = Math.Min(300, value + 10);
+                _pinnedTabWidthTextBox.Text = value.ToString();
+            }
+        }
+
+        private void PinnedTabWidthDownButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (int.TryParse(_pinnedTabWidthTextBox.Text, out int value))
+            {
+                value = Math.Max(50, value - 10);
+                _pinnedTabWidthTextBox.Text = value.ToString();
+            }
+        }
+
+        private void TabWidthFixedRadio_Checked(object sender, RoutedEventArgs e)
+        {
+            // 启用宽度输入
+            if (_pinnedTabWidthLabel != null)
+                _pinnedTabWidthLabel.Opacity = 1.0;
+            if (_pinnedTabWidthTextBox != null)
+                _pinnedTabWidthTextBox.IsEnabled = true;
+            if (_pinnedTabWidthUpButton != null)
+                _pinnedTabWidthUpButton.IsEnabled = true;
+            if (_pinnedTabWidthDownButton != null)
+                _pinnedTabWidthDownButton.IsEnabled = true;
+
+            OnSettingChanged();
+        }
+
+        private void TabWidthFixedRadio_Unchecked(object sender, RoutedEventArgs e)
+        {
+            // 禁用宽度输入并变灰
+            if (_pinnedTabWidthLabel != null)
+                _pinnedTabWidthLabel.Opacity = 0.5;
+            if (_pinnedTabWidthTextBox != null)
+                _pinnedTabWidthTextBox.IsEnabled = false;
+            if (_pinnedTabWidthUpButton != null)
+                _pinnedTabWidthUpButton.IsEnabled = false;
+            if (_pinnedTabWidthDownButton != null)
+                _pinnedTabWidthDownButton.IsEnabled = false;
+        }
+
+        private void TabWidthDynamicRadio_Checked(object sender, RoutedEventArgs e)
+        {
+            OnSettingChanged();
+        }
+
+        #endregion
+
         private void ApplyTagBoxWidth(double width)
         {
-            // 保存配置
-            var config = ConfigManager.Load();
-            config.TagBoxWidth = width;
-            ConfigManager.Save(config);
+            // 使用统一配置服务更新
+            ConfigurationService.Instance.Set(cfg => cfg.TagBoxWidth, width);
 
             // 触发设置变更事件，让MainWindow应用宽度
             SettingsChanged?.Invoke(this, EventArgs.Empty);

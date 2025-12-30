@@ -85,7 +85,11 @@ namespace OoiMRR.Services.Navigation
             if (_configService != null)
             {
                 _configService.Config.LastNavigationMode = mode;
-                _configService.SaveCurrentConfig();
+                // ❌ 不要调用SaveCurrentConfig！会用旧配置覆盖ConfigurationService保存的新配置
+                // _configService.SaveCurrentConfig();
+
+                // ✅ 使用ConfigurationService保存
+                ConfigurationService.Instance.Set(cfg => cfg.LastNavigationMode, mode);
             }
 
             // 应用可见列设置并确保右键菜单绑定

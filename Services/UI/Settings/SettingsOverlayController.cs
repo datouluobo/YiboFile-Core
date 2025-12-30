@@ -2,6 +2,7 @@ using System;
 using System.Windows;
 using System.Windows.Controls;
 using OoiMRR.Controls;
+using OoiMRR.Services.Config;
 
 namespace OoiMRR.Services.Settings
 {
@@ -51,11 +52,15 @@ namespace OoiMRR.Services.Settings
                 return;
             }
 
-            // 注释掉SaveAllSettings，因为各个设置面板已经在修改时实时保存（如ApplyNotesWidth）
-            // 如果在这里保存，会导致当前面板保存整个config对象，覆盖其他面板已保存的值
-            // _panel.SaveAllSettings();
+            _panel.SaveAllSettings();
 
-            ApplyLatestConfig();
+            // 强制立即保存配置，跳过去抖等待
+            // 确保设置在关闭面板时立即写入磁盘
+            ConfigurationService.Instance.SaveNow();
+
+            // 移除ApplyLatestConfig - 刚保存的设置不应该被立即重新加载
+            // 实时预览已经通过SettingsChanged事件在修改时应用了
+
             _overlay.Visibility = Visibility.Collapsed;
         }
 
@@ -85,7 +90,9 @@ namespace OoiMRR.Services.Settings
         {
             if (_applyConfig == null) return;
 
-            var config = ConfigManager.Load();
+            // 使用ConfigurationService获取即时的内存配置快照，而不是读取磁盘上的文件
+            // 这样可以确保未保存到磁盘的实时预览修改也能被应用
+            var config = ConfigurationService.Instance.GetSnapshot();
             _applyConfig.Invoke(config);
         }
     }

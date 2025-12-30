@@ -13,6 +13,7 @@ using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using OoiMRR.Controls;
 using OoiMRR.Services.Search;
+using OoiMRR.Services.Config;
 using OoiMRR;
 using System.Text.Json;
 using Tag = OoiMRR.Tag;
@@ -160,6 +161,29 @@ namespace OoiMRR.Services.Tabs
         public void AttachUiContext(TabUiContext context)
         {
             _ui = context ?? throw new ArgumentNullException(nameof(context));
+
+            // 监听配置变更以实时更新标签页宽度
+            ConfigurationService.Instance.SettingChanged -= OnConfigurationChanged; // 防止重复订阅
+            ConfigurationService.Instance.SettingChanged += OnConfigurationChanged;
+        }
+
+        private void OnConfigurationChanged(object sender, string settingName)
+        {
+            if (settingName == nameof(AppConfig.PinnedTabWidth) ||
+                settingName == nameof(AppConfig.TabWidthMode) ||
+                settingName == nameof(AppConfig.TagBoxWidth))
+            {
+                // 在UI线程更新标签页宽度
+                Application.Current?.Dispatcher.Invoke(() =>
+                {
+                    if (_ui != null)
+                    {
+                        // 更新内部配置引用
+                        _config = ConfigurationService.Instance.GetSnapshot();
+                        UpdateTabWidths();
+                    }
+                });
+            }
         }
 
         private void EnsureUi()
@@ -508,7 +532,8 @@ namespace OoiMRR.Services.Tabs
                 _config.PinnedTabs.Remove(key);
             }
 
-            ConfigManager.Save(_config);
+            // 使用ConfigurationService保存固定标签配置
+            ConfigurationService.Instance.Set(cfg => cfg.PinnedTabs, _config.PinnedTabs);
             TabPinStateChanged?.Invoke(this, tab);
         }
 
@@ -535,7 +560,8 @@ namespace OoiMRR.Services.Tabs
                 _config.TabTitleOverrides[key] = overrideTitle;
             }
 
-            ConfigManager.Save(_config);
+            // 使用ConfigurationService保存标题覆盖配置
+            ConfigurationService.Instance.Set(cfg => cfg.TabTitleOverrides, _config.TabTitleOverrides);
             TabTitleChanged?.Invoke(this, tab);
         }
 
@@ -544,7 +570,7 @@ namespace OoiMRR.Services.Tabs
         /// </summary>
         public double GetPinnedTabWidth()
         {
-            return _config.PinnedTabWidth > 0 ? _config.PinnedTabWidth : 90;
+            return _config.PinnedTabWidth > 0 ? _config.PinnedTabWidth : 120;
         }
 
         #endregion
@@ -655,7 +681,10 @@ namespace OoiMRR.Services.Tabs
                 targetIndex = Math.Min(targetIndex, pinnedCount);
                 pinned.Insert(targetIndex, draggedTab);
                 _config.PinnedTabs = pinned.Select(t => GetTabKey(t)).ToList();
-                ConfigManager.Save(_config);
+
+                // 使用ConfigurationService保存拖拽后的固定标签顺序
+                ConfigurationService.Instance.Set(cfg => cfg.PinnedTabs, _config.PinnedTabs);
+
                 _tabs.Clear();
                 _tabs.AddRange(pinned.Concat(unpinned));
             }
@@ -868,8 +897,8 @@ namespace OoiMRR.Services.Tabs
                     var cfg = _ui.GetConfig?.Invoke();
                     if (cfg != null)
                     {
-                        cfg.LastLibraryId = tab.Library.Id;
-                        ConfigManager.Save(cfg);
+                        // 使用ConfigurationService保存最后访问的库ID
+                        ConfigurationService.Instance.Set(c => c.LastLibraryId, tab.Library.Id);
                     }
                     if (_ui.FileBrowser != null)
                     {
@@ -1339,8 +1368,8 @@ namespace OoiMRR.Services.Tabs
                 _tabDragStartPoint = e.GetPosition(null);
                 _draggingTab = tab;
                 _isDragging = false; // 重置拖拽标志
-                // 不在这里捕获鼠标，也不设置 e.Handled，让后续事件可以正常触发
-                // 确保没有鼠标捕获
+                                     // 不在这里捕获鼠标，也不设置 e.Handled，让后续事件可以正常触发
+                                     // 确保没有鼠标捕获
                 if (button.IsMouseCaptured)
                 {
                     button.ReleaseMouseCapture();
@@ -1753,8 +1782,10 @@ namespace OoiMRR.Services.Tabs
             {
                 if (p.TabButton != null)
                 {
-                    p.TabButton.Width = double.NaN;
-                    p.TabButton.MinWidth = pinnedTabWidth;
+                    // 强制设置宽度，而不是使用MinWidth + Auto
+                    // 这样可以确保标签页能够随设置变小，而不会被内容撑大
+                    p.TabButton.Width = pinnedTabWidth;
+                    p.TabButton.MinWidth = 0;
                 }
                 pinnedTotalWidth += pinnedTabWidth + 2; // + Margin
             }
@@ -1783,23 +1814,30 @@ namespace OoiMRR.Services.Tabs
         /// </summary>
         private void UpdateTabWidthsFixed(List<PathTab> unpinnedTabs, double availableForUnpinned)
         {
-            double preferredTotalWidth = unpinnedTabs.Count * PREFERRED_TAB_WIDTH;
+            // 使用配置的宽度（尽管属性名叫PinnedTabWidth，但在固定宽度模式下它适用于所有标签）
+            double userSettingWidth = GetPinnedTabWidth();
+            double preferredTotalWidth = unpinnedTabs.Count * userSettingWidth;
 
             double targetWidth;
             if (preferredTotalWidth <= availableForUnpinned)
             {
-                targetWidth = Math.Min(PREFERRED_TAB_WIDTH, MAX_TAB_WIDTH);
+                // 空间足够时，使用设定宽度
+                targetWidth = userSettingWidth;
             }
             else
             {
+                // 空间不足时，进行压缩，但不能小于最小值
                 double calculatedWidth = availableForUnpinned / unpinnedTabs.Count;
-                targetWidth = Math.Max(MIN_TAB_WIDTH, Math.Min(MAX_TAB_WIDTH, calculatedWidth));
+                // 确保不大于设定宽度，且不小于最小值（除非设定值本身就更小）
+                double actualMin = Math.Min(userSettingWidth, MIN_TAB_WIDTH);
+                targetWidth = Math.Max(actualMin, Math.Min(userSettingWidth, calculatedWidth));
             }
 
             foreach (var t in unpinnedTabs)
             {
                 if (t.TabButton != null)
                 {
+                    // 强制设置宽度
                     t.TabButton.Width = targetWidth;
                     t.TabButton.MinWidth = 0;
                 }

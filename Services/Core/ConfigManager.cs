@@ -5,6 +5,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Windows;
 
 namespace OoiMRR
 {
@@ -59,7 +60,7 @@ namespace OoiMRR
 
         public System.Collections.Generic.Dictionary<string, string> TabTitleOverrides { get; set; } = new System.Collections.Generic.Dictionary<string, string>();
         public System.Collections.Generic.List<string> PinnedTabs { get; set; } = new System.Collections.Generic.List<string>();
-        public double PinnedTabWidth { get; set; } = 90;
+        public double PinnedTabWidth { get; set; } = 120;
 
         // 标签页状态保存（所有打开的标签页和活动标签页）
         public System.Collections.Generic.List<string> OpenTabs { get; set; } = new System.Collections.Generic.List<string>(); // 所有打开的标签页键值列表（按顺序）
@@ -353,7 +354,6 @@ namespace OoiMRR
                 try { System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(logPath)); System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "D", location = "ConfigManager.cs:310", message = "ConfigManager.Save开始", data = new { windowWidth = config.WindowWidth, windowHeight = config.WindowHeight, windowTop = config.WindowTop, windowLeft = config.WindowLeft, isMaximized = config.IsMaximized, colLeftWidth = config.ColLeftWidth, colCenterWidth = config.ColCenterWidth, openTabsCount = config.OpenTabs?.Count ?? 0, activeTabKey = config.ActiveTabKey }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
                 // #endregion
 
-                // 迁移配置：确保新字段正确
                 MigrateConfig(config);
 
                 var baseDir = GetBaseDirectory();

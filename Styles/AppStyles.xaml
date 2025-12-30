@@ -566,12 +566,13 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
-                            <TextBlock Grid.Row="0"
-                                       Text="{TemplateBinding Header}" 
-                                       FontWeight="SemiBold" 
-                                       FontSize="13" 
-                                       Margin="4,1,4,1"
-                                       Foreground="{DynamicResource TextSecondaryBrush}"/>
+                            <ContentPresenter Grid.Row="0"
+                                              ContentSource="Header"
+                                              Margin="4,1,4,1"
+                                              TextElement.FontWeight="SemiBold" 
+                                              TextElement.FontSize="13" 
+                                              TextElement.Foreground="{DynamicResource TextSecondaryBrush}"
+                                              HorizontalAlignment="Stretch"/>
                             <ContentPresenter Grid.Row="1"
                                               Margin="{TemplateBinding Padding}" 
                                               HorizontalAlignment="Stretch"

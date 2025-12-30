@@ -43,7 +43,15 @@
                 </GroupBox>
                 
                 <!-- 收藏 -->
-                <GroupBox Grid.Row="2" Header="收藏" Style="{StaticResource ModernGroupBoxStyle}">
+                <GroupBox Grid.Row="2" Style="{StaticResource ModernGroupBoxStyle}">
+                    <GroupBox.Header>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="收藏" VerticalAlignment="Center"/>
+                            <Button Content="➕" Name="AddFavoriteButton" Width="18" Height="18" FontSize="12"
+                                    Margin="8,0,0,0" Padding="0" VerticalAlignment="Center"
+                                    ToolTip="添加收藏" Background="Transparent" BorderThickness="0"/>
+                        </StackPanel>
+                    </GroupBox.Header>
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <ListBox Name="FavoritesListBox" 
                                  Margin="2"
@@ -105,8 +113,6 @@
                 
                 <!-- 左侧：添加收藏/标签按钮 -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Left" Margin="8,8">
-                    <Button Content="❤️" Name="AddFavoriteButton" Width="32" Height="32"
-                            Style="{StaticResource ModernButtonStyle}" ToolTip="添加收藏" Margin="0,0,4,0"/>
                     <Button Content="📌" Name="AddTagToFileButton" Width="32" Height="32"
                             Style="{StaticResource ModernButtonStyle}" ToolTip="添加标签" Margin="0,0,4,0"/>
                 </StackPanel>

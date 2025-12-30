@@ -34,11 +34,23 @@ namespace OoiMRR.Handlers
             // 窗口关闭前统一保存所有状态（窗口大小/位置、分割线、导航、标签页）
             try
             {
+                // 第1次SaveNow: 强制保存ConfigurationService中用户设置（跳过去抖）
+                OoiMRR.Services.Config.ConfigurationService.Instance.SaveNow();
+
+                // 保存窗口状态 - 注意：这会调用ConfigurationService.Update()，触发500ms去抖！
                 _windowStateManager?.SaveAllState();
+
+                // 第2次SaveNow: 强制保存窗口状态（SaveAllState触发的去抖还没完成）
+                // 这是关键！确保窗口状态立即写入磁盘
+                OoiMRR.Services.Config.ConfigurationService.Instance.SaveNow();
 
                 // 停止并刷新配置服务的定时器（如果有），确保配置落盘
                 _configService?.StopAllTimers();
-                _configService?.SaveCurrentConfig();
+
+                // 🔥 BUG FIX: 不要调用SaveCurrentConfig！
+                // ConfigService保存的是启动时加载的旧_config，会覆盖ConfigurationService刚保存的新配置！
+                // ConfigurationService和WindowStateManager已经负责保存所有设置，不需要重复保存
+                // _configService?.SaveCurrentConfig();  // ❌ 注释掉，避免覆盖
             }
             catch
             {
