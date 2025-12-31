@@ -29,7 +29,7 @@
                       DragCompleted="GridSplitter_DragCompleted"/>
         
         <!-- 行1：预览区 - 保持原有预览功能，图片时使用TagTrain样式 -->
-        <Border Grid.Row="1" Background="Transparent" BorderBrush="#E9ECEF" BorderThickness="0,0,0,1">
+        <Border Grid.Row="1" Background="Transparent" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1">
             <Grid Name="PreviewGrid" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ClipToBounds="True">
                 <!-- 原有的预览区域（用于非图片文件） -->
                 <TextBlock Text="选择一个文件进行预览" 
@@ -38,8 +38,8 @@
                            Foreground="Gray" FontSize="14" Name="DefaultPreviewText"/>
                 
                 <!-- TagTrain样式的图片预览（叠加层，仅在显示图片时可见） -->
-                <Border BorderBrush="#E9ECEF" BorderThickness="1" 
-                        Background="#F5F5F5" CornerRadius="5" ClipToBounds="True" 
+                <Border BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="1" 
+                        Background="{DynamicResource BackgroundTertiaryBrush}" CornerRadius="5" ClipToBounds="True" 
                         Name="ImagePreviewBorder" Visibility="Collapsed">
                     <Grid ClipToBounds="True">
                         <Image Name="ImagePreviewDisplay" 
@@ -63,13 +63,13 @@
                                         Padding="10,5" Margin="0,0,5,0" 
                                         Click="PrevImageBtn_Click" 
                                         Visibility="Collapsed"
-                                        Background="#E0E0E0" BorderBrush="#CCCCCC"
+                                        Background="{DynamicResource BorderDefaultBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}"
                                         Cursor="Hand"/>
                                 <Button Name="NextImageBtn" Content="下一张 ▶" 
                                         Padding="10,5" 
                                         Click="NextImageBtn_Click" 
                                         Visibility="Collapsed"
-                                        Background="#E0E0E0" BorderBrush="#CCCCCC"
+                                        Background="{DynamicResource BorderDefaultBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}"
                                         Cursor="Hand"/>
                             </StackPanel>
                             
@@ -77,7 +77,7 @@
                             <TextBlock Name="ImageIndexText" 
                                        Text="第 1/10 张" 
                                        HorizontalAlignment="Center"
-                                       FontSize="12" Foreground="#666666"
+                                       FontSize="12" Foreground="{DynamicResource ForegroundSecondaryBrush}"
                                        Cursor="Hand" 
                                        MouseLeftButtonDown="ImageIndexText_MouseLeftButtonDown"
                                        ToolTip="点击跳转到指定图片"
@@ -95,7 +95,7 @@
         </Border>
         
         <!-- 行3：备注区 -->
-        <Border Grid.Row="3" Background="#F8F9FA" BorderBrush="#E9ECEF" BorderThickness="0">
+        <Border Grid.Row="3" Background="{DynamicResource BackgroundSecondaryBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0">
             <TextBox Name="NotesTextBox" Padding="8,4,8,4" 
                      AcceptsReturn="True" 
                      TextWrapping="Wrap"
@@ -103,7 +103,7 @@
                      HorizontalAlignment="Stretch"
                      VerticalAlignment="Stretch"
                      TextChanged="NotesTextBox_TextChanged"
-                     Background="#FFFFFF" BorderBrush="Transparent" BorderThickness="0"/>
+                     Background="{DynamicResource AppBackgroundBrush}" BorderBrush="Transparent" BorderThickness="0"/>
         </Border>
     </Grid>
 </UserControl>

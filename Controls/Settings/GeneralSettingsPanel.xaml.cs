@@ -1121,8 +1121,8 @@ namespace OoiMRR.Controls.Settings
 
             if (_themeComboBox.SelectedItem is ComboBoxItem selectedItem && selectedItem.Tag is string theme)
             {
-                // 立即应用主题
-                ThemeService.SetTheme(theme == "Dark" ? AppTheme.Dark : AppTheme.Light);
+                // 立即应用主题（启用动画）
+                OoiMRR.Services.Theming.ThemeManager.SetTheme(theme, animate: true);
 
                 // 保存设置
                 OnSettingChanged();

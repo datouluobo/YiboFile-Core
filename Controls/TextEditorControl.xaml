@@ -9,7 +9,7 @@
         </Grid.RowDefinitions>
         
         <!-- Toolbar -->
-        <Border Grid.Row="0" Background="#F0F0F0" Padding="5">
+        <Border Grid.Row="0" Background="{DynamicResource BackgroundTertiaryBrush}" Padding="5">
             <StackPanel Orientation="Horizontal">
                 <Button x:Name="SaveButton" Content="保存" 
                         Width="60" Margin="5,0"/>

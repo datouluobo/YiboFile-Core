@@ -9,7 +9,7 @@
         </Grid.RowDefinitions>
         
         <!-- 工具栏 -->
-        <Border Grid.Row="0" Background="#F0F0F0" Padding="10,5">
+        <Border Grid.Row="0" Background="{DynamicResource BackgroundTertiaryBrush}" Padding="10,5">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -60,7 +60,7 @@
             
             <!-- 右侧：预览 -->
             <Border x:Name="PreviewBorder" Grid.Column="2" 
-                    BorderBrush="#CCCCCC" BorderThickness="1,0,0,0">
+                    BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="1,0,0,0">
                 <WebBrowser x:Name="PreviewBrowser"/>
             </Border>
         </Grid>

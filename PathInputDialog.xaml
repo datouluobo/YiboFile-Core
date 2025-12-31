@@ -10,12 +10,12 @@
         Background="Transparent"
         ResizeMode="NoResize">
     
-    <Border Background="White" 
+    <Border Background="{DynamicResource DialogBackgroundBrush}" 
             CornerRadius="12" 
             BorderThickness="1" 
-            BorderBrush="#E0E0E0">
+            BorderBrush="{DynamicResource BorderDefaultBrush}">
         <Border.Effect>
-            <DropShadowEffect Color="#000000" 
+            <DropShadowEffect Color="{DynamicResource ForegroundPrimaryBrush}" 
                             BlurRadius="20" 
                             ShadowDepth="0" 
                             Opacity="0.2"/>
@@ -42,7 +42,7 @@
                      FontSize="13"
                      Padding="10,8"
                      BorderThickness="1"
-                     BorderBrush="#CCCCCC"
+                     BorderBrush="{DynamicResource BorderDefaultBrush}"
                      Margin="0,0,0,20">
                 <TextBox.Style>
                     <Style TargetType="TextBox">

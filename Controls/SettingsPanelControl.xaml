@@ -11,7 +11,7 @@
         </Grid.ColumnDefinitions>
         
         <!-- 左侧导航栏 -->
-        <Border Grid.Column="0" Background="#F8F9FA" BorderBrush="#E9ECEF" BorderThickness="0,0,1,0">
+        <Border Grid.Column="0" Background="{DynamicResource BackgroundSecondaryBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,1,0">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -20,12 +20,12 @@
                 </Grid.RowDefinitions>
                 
                 <!-- 标题栏 -->
-                <Border Grid.Row="0" Background="#FFFFFF" BorderBrush="#E9ECEF" BorderThickness="0,0,0,1" Padding="12,12">
+                <Border Grid.Row="0" Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="12,12">
                     <TextBlock Text="设置" FontSize="18" FontWeight="Bold" VerticalAlignment="Center"/>
                 </Border>
                 
                 <!-- 搜索框 -->
-                <Border Grid.Row="1" Background="#FFFFFF" Padding="10" BorderBrush="#E9ECEF" BorderThickness="0,0,0,1">
+                <Border Grid.Row="1" Background="{DynamicResource PanelBackgroundBrush}" Padding="10" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
                     <TextBox Name="SearchTextBox" 
                              TextChanged="SearchTextBox_TextChanged"
                              FontSize="14" Padding="10,6"
@@ -75,7 +75,7 @@
         <Border Grid.Column="1" Background="#E9ECEF"/>
         
         <!-- 右侧内容区 -->
-        <Border Grid.Column="2" Background="#FFFFFF">
+        <Border Grid.Column="2" Background="{DynamicResource AppBackgroundBrush}">
             <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="20">
                 <StackPanel Name="ContentPanel">
                     <!-- 设置内容将动态加载到这里 -->

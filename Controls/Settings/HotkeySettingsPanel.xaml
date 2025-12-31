@@ -12,13 +12,13 @@
         <!-- 标题区 -->
         <StackPanel Grid.Row="0" Margin="0,0,0,20">
             <TextBlock Text="快捷键管理" FontSize="28" FontWeight="Bold" Foreground="#333333"/>
-            <TextBlock Text="查看和自定义应用程序快捷键" FontSize="14" Foreground="#666666" Margin="0,8,0,0"/>
+            <TextBlock Text="查看和自定义应用程序快捷键" FontSize="14" Foreground="{DynamicResource ForegroundSecondaryBrush}" Margin="0,8,0,0"/>
         </StackPanel>
         
         <!-- 操作按钮区 -->
         <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,15">
             <Button Name="ResetButton" Content="恢复默认" Click="ResetButton_Click"
-                    Padding="16,8" MinWidth="100" Background="#F8F9FA" BorderBrush="#DEE2E6" Cursor="Hand">
+                    Padding="16,8" MinWidth="100" Background="{DynamicResource BackgroundSecondaryBrush}" BorderBrush="{DynamicResource BorderSubtleBrush}" Cursor="Hand">
                 <Button.Style>
                     <Style TargetType="Button">
                         <Setter Property="Template">
@@ -46,7 +46,7 @@
         </StackPanel>
         
         <!-- 快捷键列表 -->
-        <Border Grid.Row="2" BorderBrush="#E9ECEF" BorderThickness="1" CornerRadius="6" Background="White">
+        <Border Grid.Row="2" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="6" Background="{DynamicResource CardBackgroundBrush}">
             <DataGrid Name="HotkeyGrid" 
                       AutoGenerateColumns="False"
                       CanUserAddRows="False"
@@ -145,8 +145,8 @@
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <Button Content="编辑" Click="EditHotkey_Click" Tag="{Binding}"
-                                        Padding="12,6" Background="Transparent" BorderBrush="#DEE2E6" 
-                                        Foreground="#0066CC" Cursor="Hand" FontSize="12">
+                                        Padding="12,6" Background="Transparent" BorderBrush="{DynamicResource BorderSubtleBrush}" 
+                                        Foreground="{DynamicResource AccentDefaultBrush}" Cursor="Hand" FontSize="12">
                                     <Button.Style>
                                         <Style TargetType="Button">
                                             <Setter Property="Template">
@@ -182,6 +182,6 @@
         
         <!-- 底部说明 -->
         <TextBlock Grid.Row="3" Text="点击编辑按钮可自定义快捷键。修改会立即保存。" 
-                   FontSize="12" Foreground="#999999" Margin="0,15,0,0"/>
+                   FontSize="12" Foreground="{DynamicResource ForegroundSecondaryBrush}" Margin="0,15,0,0"/>
     </Grid>
 </UserControl>

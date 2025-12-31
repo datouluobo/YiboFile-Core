@@ -18,7 +18,7 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     
-                    <Border Grid.Row="0" Margin="4" Background="#F8F9FA" BorderBrush="#E9ECEF" BorderThickness="1" CornerRadius="4">
+                    <Border Grid.Row="0" Margin="4" Background="{DynamicResource BackgroundSecondaryBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="4">
                         <!-- 缩略图 Image，初始为空，Source由ThumbnailViewManager异步加载 -->
                         <Image Source="{Binding Icon}" Stretch="Uniform" Margin="4"/>
                     </Border>
@@ -116,16 +116,16 @@
     </UserControl.Resources>
     <Grid>
         <!-- 文件列表 -->
-        <Border Background="#FFFFFF">
+        <Border Background="{DynamicResource AppBackgroundBrush}">
             <Grid>
                 <!-- 普通列表视图 -->
                 <ListView x:Name="FilesListView" 
                       SelectionMode="Extended"
-                      Background="#FFFFFF"
+                      Background="{DynamicResource AppBackgroundBrush}"
                       BorderThickness="0">
                     <ListView.ItemContainerStyle>
                         <Style TargetType="ListViewItem">
-                            <Setter Property="Background" Value="#FFFFFF"/>
+                            <Setter Property="Background" Value="{DynamicResource AppBackgroundBrush}"/>
                             <Setter Property="BorderBrush" Value="Transparent"/>
                             <Setter Property="BorderThickness" Value="0"/>
                             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
@@ -240,8 +240,8 @@
                     </Grid.RowDefinitions>
                     
                     <Border Grid.Row="0" 
-                            Background="#F5F5F5" 
-                            BorderBrush="#E0E0E0" 
+                            Background="{DynamicResource BackgroundTertiaryBrush}" 
+                            BorderBrush="{DynamicResource BorderDefaultBrush}" 
                             BorderThickness="0,0,0,1">
                         <ListView x:Name="GroupedHeaderListView" BorderThickness="0" Background="Transparent">
                             <ListView.View>
@@ -319,7 +319,7 @@
                                                                Text="{Binding ExpandIcon}" 
                                                                FontSize="16"
                                                                FontWeight="Bold"
-                                                               Foreground="#666666"
+                                                               Foreground="{DynamicResource ForegroundSecondaryBrush}"
                                                                Margin="0,0,12,0"
                                                                VerticalAlignment="Center"/>
                                                     
@@ -330,7 +330,7 @@
                                                                    VerticalAlignment="Center"/>
                                                         <TextBlock Text="{Binding ItemCount, StringFormat=' ({0})'}" 
                                                                    FontSize="12"
-                                                                   Foreground="#666666"
+                                                                   Foreground="{DynamicResource ForegroundSecondaryBrush}"
                                                                    Margin="8,0,0,0"
                                                                    VerticalAlignment="Center"/>
                                                     </StackPanel>
@@ -344,7 +344,7 @@
                                                       Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVisibilityConverter}}">
                                                 <ListView.ItemContainerStyle>
                                                     <Style TargetType="ListViewItem">
-                                                        <Setter Property="Background" Value="#FFFFFF"/>
+                                                        <Setter Property="Background" Value="{DynamicResource AppBackgroundBrush}"/>
                                                         <Setter Property="BorderBrush" Value="Transparent"/>
                                                         <Setter Property="BorderThickness" Value="0"/>
                                                         <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
@@ -416,7 +416,7 @@
                 <TextBlock x:Name="EmptyStateText" 
                            Text="暂无文件"
                            FontSize="16"
-                           Foreground="#999999"
+                           Foreground="{DynamicResource ForegroundSecondaryBrush}"
                            HorizontalAlignment="Center"
                            VerticalAlignment="Center"
                            Visibility="Collapsed"/>

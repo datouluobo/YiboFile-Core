@@ -86,7 +86,7 @@ namespace OoiMRR
                 {
                     var config = ConfigManager.Load();
                     var themeName = config?.Theme ?? "Light";
-                    ThemeService.SetTheme(themeName == "Dark" ? AppTheme.Dark : AppTheme.Light);
+                    OoiMRR.Services.Theming.ThemeManager.SetTheme(themeName, animate: false);
                     FileLogger.Log($"Theme applied: {themeName}");
                 }
                 catch (Exception ex)

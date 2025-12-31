@@ -6,7 +6,7 @@
         Width="480"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
-        Background="#FFFFFF">
+        Background="{DynamicResource DialogBackgroundBrush}">
     <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -78,7 +78,7 @@
         <TextBlock Grid.Row="5" 
                   TextWrapping="Wrap" 
                   FontSize="11" 
-                  Foreground="#666666"
+                  Foreground="{DynamicResource ForegroundSecondaryBrush}"
                   Margin="0,0,0,15">
             <Run Text="搜索结果将分为两层显示："/>
             <LineBreak/>

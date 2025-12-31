@@ -98,7 +98,7 @@
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
     </UserControl.Resources>
 
-    <Grid Background="#F8F9FA">
+    <Grid Background="{DynamicResource BackgroundSecondaryBrush}">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto"/> <!-- Title -->
             <ColumnDefinition Width="Auto"/> <!-- Separator -->
@@ -106,7 +106,7 @@
             <ColumnDefinition Width="Auto"/> <!-- Actions -->
         </Grid.ColumnDefinitions>
         
-        <Border Grid.ColumnSpan="4" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" VerticalAlignment="Bottom"/>
+        <Border Grid.ColumnSpan="4" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1" VerticalAlignment="Bottom"/>
 
         <!-- Title Area -->
         <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0">

@@ -102,7 +102,7 @@
                                   HorizontalOffset="0"
                                   VerticalOffset="2"
                                   Focusable="False">
-                                <Border BorderBrush="#CCCCCC" BorderThickness="1" 
+                                <Border BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="1" 
                                        Background="White" CornerRadius="4"
                                        MinWidth="150">
                                     <ListBox Name="TagAutocompleteListBox"

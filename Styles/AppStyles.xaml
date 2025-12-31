@@ -107,7 +107,7 @@
                         <Grid ClipToBounds="False">
                             <!-- Divider line - always centered, color changes on hover -->
                             <Border x:Name="PART_DividerLine" 
-                                    Background="#E0E0E0"
+                                    Background="{DynamicResource BorderDefaultBrush}"
                                     Panel.ZIndex="-1"/>
                             
                             <!-- Button container - naturally centered, no negative margins -->
@@ -815,7 +815,7 @@
                                         Minimum="0"
                                         Maximum="1"
                                         Value="{Binding UsagePercentage}"
-                                        Background="#E0E0E0"
+                                        Background="{DynamicResource BorderDefaultBrush}"
                                         BorderThickness="0">
                                 <ProgressBar.Style>
                                     <Style TargetType="ProgressBar">

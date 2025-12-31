@@ -18,15 +18,15 @@
         </Grid.RowDefinitions>
 
         <!-- 顶部信息栏 -->
-        <Border Grid.Row="0" BorderBrush="#E0E0E0" BorderThickness="1" Background="#F9F9F9" 
+        <Border Grid.Row="0" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="1" Background="#F9F9F9" 
                CornerRadius="3" Padding="10,5" Margin="0,0,0,10">
             <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="📊 统计: " FontWeight="Bold" FontSize="12" VerticalAlignment="Center"/>
                     <TextBlock Name="StatsText" Text="总样本: 0 | 手动标注: 0 | 唯一图片: 0 | 唯一标签: 0" 
-                              FontSize="12" VerticalAlignment="Center" Foreground="#666666" Margin="5,0,0,0"/>
+                              FontSize="12" VerticalAlignment="Center" Foreground="{DynamicResource ForegroundSecondaryBrush}" Margin="5,0,0,0"/>
                     <TextBlock Text=" | 目录图片: " FontWeight="Bold" FontSize="12" VerticalAlignment="Center" Margin="15,0,0,0"/>
-                    <TextBlock Name="DirectoryImageCountText" Text="计算中..." FontSize="12" VerticalAlignment="Center" Margin="5,0,0,0" Foreground="#666666"/>
+                    <TextBlock Name="DirectoryImageCountText" Text="计算中..." FontSize="12" VerticalAlignment="Center" Margin="5,0,0,0" Foreground="{DynamicResource ForegroundSecondaryBrush}"/>
                     <TextBlock Text=" | 训练进度: " FontWeight="Bold" FontSize="12" VerticalAlignment="Center" Margin="15,0,0,0"/>
                     <TextBlock Name="ProgressText" Text="0/0" FontSize="12" VerticalAlignment="Center" Margin="5,0,0,0"/>
                     <TextBlock Text=" | 准确率: " FontWeight="Bold" FontSize="12" VerticalAlignment="Center" Margin="15,0,0,0"/>
@@ -52,7 +52,7 @@
 
             <!-- 分割器 -->
             <GridSplitter Name="MainGridSplitter" Grid.Column="1" Width="5" HorizontalAlignment="Stretch" 
-                         VerticalAlignment="Stretch" Background="#E0E0E0" 
+                         VerticalAlignment="Stretch" Background="{DynamicResource BorderDefaultBrush}" 
                          ShowsPreview="True" ResizeBehavior="PreviousAndNext"
                          Opacity="0" 
                          MouseEnter="MainGridSplitter_MouseEnter" 
@@ -60,8 +60,8 @@
                          MouseMove="MainGridSplitter_MouseMove"/>
 
             <!-- 右侧：图片显示区域 -->
-            <Border Grid.Column="2" BorderBrush="#CCCCCC" BorderThickness="2" 
-                    Background="#F5F5F5" CornerRadius="5">
+            <Border Grid.Column="2" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="2" 
+                    Background="{DynamicResource BackgroundTertiaryBrush}" CornerRadius="5">
                 <Grid ClipToBounds="True">
                     <Image Name="ImageDisplay" 
                            Stretch="Uniform" 
