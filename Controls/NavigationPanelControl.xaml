@@ -26,9 +26,10 @@
                                  BorderThickness="0"
                                  Background="Transparent"
                                  SelectionMode="Single"
-                                 ItemContainerStyle="{StaticResource NavListBoxItemStyle}"/>
+                                 ItemContainerStyle="{StaticResource DriveListBoxItemStyle}"/>
                     </ScrollViewer>
                 </GroupBox>
+
                 
                 <!-- 快速访问 -->
                 <GroupBox Grid.Row="1" Header="快速访问" Margin="0,0,0,8" Style="{StaticResource ModernGroupBoxStyle}">

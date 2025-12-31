@@ -15,6 +15,24 @@ namespace OoiMRR.Services.QuickAccess
     /// </summary>
     public class QuickAccessService
     {
+        #region 数据类
+
+        /// <summary>
+        /// 驱动器项数据
+        /// </summary>
+        public class DriveItemData
+        {
+            public string DisplayName { get; set; }      // 显示名称,如 "C: (系统)"
+            public string Path { get; set; }             // 路径,如 "C:\"
+            public string ToolTip { get; set; }          // 工具提示
+            public long TotalSize { get; set; }          // 总容量(字节)
+            public long UsedSize { get; set; }           // 已用容量(字节)
+            public double UsagePercentage { get; set; }  // 使用率 0.0-1.0
+            public string UsageText { get; set; }        // 使用量文本,如 "125 GB / 500 GB"
+        }
+
+        #endregion
+
         #region 事件定义
 
         /// <summary>
@@ -95,15 +113,24 @@ namespace OoiMRR.Services.QuickAccess
                 try
                 {
                     var drives = DriveInfo.GetDrives().Where(d => d.IsReady).ToList();
-                    var driveItems = drives.Select(drive => new
+                    var driveItems = drives.Select(drive =>
                     {
-                        DisplayName = $"{drive.Name} ({drive.VolumeLabel})",
-                        Path = drive.Name,
-                        ToolTip = $"总空间: {formatFileSize(drive.TotalSize)}\n可用空间: {formatFileSize(drive.AvailableFreeSpace)}"
+                        long usedSize = drive.TotalSize - drive.AvailableFreeSpace;
+                        double usagePercentage = drive.TotalSize > 0 ? (double)usedSize / drive.TotalSize : 0;
+
+                        return new DriveItemData
+                        {
+                            DisplayName = $"{drive.Name} ({drive.VolumeLabel})",
+                            Path = drive.Name,
+                            ToolTip = $"总空间: {formatFileSize(drive.TotalSize)}\n可用空间: {formatFileSize(drive.AvailableFreeSpace)}",
+                            TotalSize = drive.TotalSize,
+                            UsedSize = usedSize,
+                            UsagePercentage = usagePercentage,
+                            UsageText = $"{formatFileSize(usedSize)} / {formatFileSize(drive.TotalSize)}"
+                        };
                     }).ToList();
 
                     drivesListBox.ItemsSource = driveItems;
-                    drivesListBox.DisplayMemberPath = "DisplayName";
 
                     // 设置选择事件
                     drivesListBox.SelectionChanged -= DrivesListBox_SelectionChanged;
