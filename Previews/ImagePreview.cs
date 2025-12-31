@@ -9,6 +9,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Input;
 using ImageMagick;
+using OoiMRR.Controls;
 
 namespace OoiMRR.Previews
 {
@@ -29,6 +30,7 @@ namespace OoiMRR.Previews
             ".psd",   // Photoshop
             ".svg"    // SVG矢量图
         };
+
         public UIElement CreatePreview(string filePath)
         {
             try
@@ -76,9 +78,6 @@ namespace OoiMRR.Previews
         /// <summary>
         /// 创建位图预览（bmp, jpeg, jpg, png, gif, tif, tiff, ico）
         /// </summary>
-        /// <summary>
-        /// 创建位图预览 (BMP/JPEG/PNG/ICO/TIFF等)
-        /// </summary>
         private UIElement CreateBitmapPreview(string filePath)
         {
             // 加载位图
@@ -90,15 +89,25 @@ namespace OoiMRR.Previews
 
             // 创建主容器
             var grid = new Grid();
-            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 标题栏
-            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 工具栏
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 标题栏 (unified toolbar)
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 工具栏 (image tools)
             grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // 图片区
 
-            // 标题栏
-            var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath) };
-            var titlePanel = PreviewHelper.CreateTitlePanel("🖼️", $"图片文件: {Path.GetFileName(filePath)}", buttons);
-            Grid.SetRow(titlePanel, 0);
-            grid.Children.Add(titlePanel);
+            // 统一工具栏
+            var mainToolbar = new TextPreviewToolbar
+            {
+                FileName = Path.GetFileName(filePath),
+                FileIcon = "🖼️",
+                ShowSearch = false,
+                ShowWordWrap = false,
+                ShowEncoding = false,
+                ShowViewToggle = false,
+                ShowFormat = false
+            };
+            mainToolbar.OpenExternalRequested += (s, e) => PreviewHelper.OpenInDefaultApp(filePath);
+
+            Grid.SetRow(mainToolbar, 0);
+            grid.Children.Add(mainToolbar);
 
             // Transform配置
             var scaleTransform = new ScaleTransform(1.0, 1.0);
@@ -128,26 +137,21 @@ namespace OoiMRR.Previews
             Grid.SetRow(scrollViewer, 2);
             grid.Children.Add(scrollViewer);
 
-            // 创建工具栏
-            var toolbar = ImageToolbarHelper.CreateToolbar(new ImageToolbarHelper.ToolbarConfig
+            // 创建图片工具栏
+            var imageToolbar = ImageToolbarHelper.CreateToolbar(new ImageToolbarHelper.ToolbarConfig
             {
                 TargetImage = image,
                 ScaleTransform = scaleTransform,
                 RotateTransform = rotateTransform,
-                TitlePanel = titlePanel,
+                TitlePanel = mainToolbar, // Refactored to accept UIElement
                 ParentGrid = grid
             });
-            Grid.SetRow(toolbar, 1);
-            grid.Children.Add(toolbar);
+            Grid.SetRow(imageToolbar, 1);
+            grid.Children.Add(imageToolbar);
 
             return grid;
         }
 
-        /// <summary>
-
-        /// <summary>
-        /// 使用ImageMagick创建预览（TGA/BLP/HEIC/HEIF/AI/PSD）
-        /// </summary>
         /// <summary>
         /// 使用ImageMagick创建预览（TGA/BLP/HEIC/HEIF/AI/PSD）
         /// </summary>
@@ -157,16 +161,27 @@ namespace OoiMRR.Previews
             {
                 Background = Brushes.White // 统一背景色
             };
-            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 标题栏
-            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 工具栏
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 标题栏 (unified toolbar)
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 工具栏 (image tools)
             grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // 图片区
 
             // 标题栏
             var formatName = GetFormatDisplayName(extension);
-            var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath) };
-            var titlePanel = PreviewHelper.CreateTitlePanel("🖼️", $"{formatName}: {Path.GetFileName(filePath)}", buttons);
-            Grid.SetRow(titlePanel, 0);
-            grid.Children.Add(titlePanel);
+
+            var mainToolbar = new TextPreviewToolbar
+            {
+                FileName = $"{formatName}: {Path.GetFileName(filePath)}",
+                FileIcon = "🖼️",
+                ShowSearch = false,
+                ShowWordWrap = false,
+                ShowEncoding = false,
+                ShowViewToggle = false,
+                ShowFormat = false
+            };
+            mainToolbar.OpenExternalRequested += (s, e) => PreviewHelper.OpenInDefaultApp(filePath);
+
+            Grid.SetRow(mainToolbar, 0);
+            grid.Children.Add(mainToolbar);
 
             // Transform配置
             var scaleTransform = new ScaleTransform(1.0, 1.0);
@@ -196,17 +211,17 @@ namespace OoiMRR.Previews
             grid.Children.Add(scrollViewer);
 
             // 创建工具栏 (初始隐藏)
-            var toolbar = ImageToolbarHelper.CreateToolbar(new ImageToolbarHelper.ToolbarConfig
+            var imageToolbar = ImageToolbarHelper.CreateToolbar(new ImageToolbarHelper.ToolbarConfig
             {
                 TargetImage = image,
                 ScaleTransform = scaleTransform,
                 RotateTransform = rotateTransform,
-                TitlePanel = titlePanel,
+                TitlePanel = mainToolbar,
                 ParentGrid = grid
             });
-            toolbar.Visibility = Visibility.Collapsed;
-            Grid.SetRow(toolbar, 1);
-            grid.Children.Add(toolbar);
+            imageToolbar.Visibility = Visibility.Collapsed;
+            Grid.SetRow(imageToolbar, 1);
+            grid.Children.Add(imageToolbar);
 
             // 加载指示器 (默认显示，跨行覆盖)
             var loadingPanel = PreviewHelper.CreateLoadingPanel($"正在解析 {formatName}...");
@@ -231,7 +246,7 @@ namespace OoiMRR.Previews
                         image.Source = bitmap;
                         // 显示内容
                         scrollViewer.Visibility = Visibility.Visible;
-                        toolbar.Visibility = Visibility.Visible;
+                        imageToolbar.Visibility = Visibility.Visible;
                         // 隐藏加载
                         loadingPanel.Visibility = Visibility.Collapsed;
                     });
@@ -310,9 +325,6 @@ namespace OoiMRR.Previews
         }
 
         /// <summary>
-        /// 处理ImageMagick错误
-        /// </summary>
-        /// <summary>
         /// 创建ImageMagick错误面板
         /// </summary>
         private UIElement CreateMagickErrorPanel(MagickException ex, string extension, string filePath)
@@ -334,4 +346,3 @@ namespace OoiMRR.Previews
 
     }
 }
-

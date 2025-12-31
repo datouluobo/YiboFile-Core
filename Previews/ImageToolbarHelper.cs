@@ -19,7 +19,7 @@ namespace OoiMRR.Previews
             public Image TargetImage { get; set; }
             public ScaleTransform ScaleTransform { get; set; }
             public RotateTransform RotateTransform { get; set; }
-            public Border TitlePanel { get; set; }
+            public UIElement TitlePanel { get; set; }
             public Grid ParentGrid { get; set; }
             public Action<bool> OnFitToWindowChanged { get; set; }
         }

@@ -7,6 +7,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Runtime.InteropServices;
+using OoiMRR.Controls;
 
 namespace OoiMRR.Previews
 {
@@ -20,7 +21,7 @@ namespace OoiMRR.Previews
             try
             {
                 string targetPath = GetShortcutTarget(filePath);
-                
+
                 if (string.IsNullOrEmpty(targetPath))
                 {
                     return PreviewHelper.CreateErrorPreview("无法读取快捷方式目标");
@@ -75,7 +76,7 @@ namespace OoiMRR.Previews
                             try
                             {
                                 string newTargetPath = targetPathText.Text.Trim();
-                                
+
                                 if (string.IsNullOrEmpty(newTargetPath))
                                 {
                                     MessageBox.Show("目标路径不能为空", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -87,22 +88,22 @@ namespace OoiMRR.Previews
                                 {
                                     targetPath = newTargetPath;
                                     originalTargetPath = newTargetPath;
-                                    
+
                                     // 切换为只读模式
                                     targetPathText.IsReadOnly = true;
                                     targetPathText.Background = Brushes.Transparent; // LNK预览保持透明背景
                                     isEditMode = false;
-                                    
+
                                     // 更新按钮
                                     if (editButton != null)
                                     {
                                         editButton.Content = "✏️ 编辑";
                                         editButton.Background = new SolidColorBrush(Color.FromRgb(33, 150, 243));
                                     }
-                                    
+
                                     // 刷新预览内容
                                     RefreshPreviewContent(infoPanel, targetPath);
-                                    
+
                                     MessageBox.Show("快捷方式已保存", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
                                 }
                                 else
@@ -121,7 +122,7 @@ namespace OoiMRR.Previews
                             targetPathText.IsReadOnly = false;
                             targetPathText.Background = PreviewHelper.EditModeBackground; // 浅蓝色背景表示可编辑
                             isEditMode = true;
-                            
+
                             // 更新按钮
                             if (editButton != null)
                             {
@@ -133,32 +134,49 @@ namespace OoiMRR.Previews
                     false
                 );
 
-                // 标题区域 - 添加按钮
-                var buttons = new List<Button>();
-                buttons.Add(editButton);
-                
+                // 统一工具栏
+                var toolbar = new TextPreviewToolbar
+                {
+                    FileName = System.IO.Path.GetFileName(filePath),
+                    FileIcon = "🔗",
+                    ShowSearch = false,
+                    ShowWordWrap = false,
+                    ShowEncoding = false,
+                    ShowViewToggle = false,
+                    ShowFormat = false
+                };
+                toolbar.OpenExternalRequested += (s, e) => PreviewHelper.OpenInDefaultApp(filePath);
+
+                // 自定义动作按钮
+                var actionData = new StackPanel { Orientation = Orientation.Horizontal };
+
+                // 添加编辑按钮
+                editButton.Margin = new Thickness(0, 0, 5, 0);
+                actionData.Children.Add(editButton);
+
                 // 检查目标是否存在，如果存在则添加打开文件夹按钮
-                // 即使目标文件不存在，只要目标所在的目录存在，也显示"打开文件夹"按钮
                 if (!string.IsNullOrEmpty(targetPath))
                 {
                     bool targetExistsCheck = Directory.Exists(targetPath) || File.Exists(targetPath);
                     bool isDirectoryCheck = Directory.Exists(targetPath);
-                    
+
                     // 确定文件夹路径
                     string folderPath = isDirectoryCheck ? targetPath : Path.GetDirectoryName(targetPath);
-                    
+
                     // 如果目标存在，或者目标所在的目录存在，都显示"打开文件夹"按钮
                     if (targetExistsCheck || (!string.IsNullOrEmpty(folderPath) && Directory.Exists(folderPath)))
                     {
                         if (!string.IsNullOrEmpty(folderPath) && Directory.Exists(folderPath))
                         {
-                            buttons.Add(PreviewHelper.CreateOpenFolderButton(folderPath));
+                            var openFolderBtn = PreviewHelper.CreateOpenFolderButton(folderPath);
+                            openFolderBtn.Margin = new Thickness(0, 0, 5, 0);
+                            actionData.Children.Add(openFolderBtn);
                         }
                     }
                 }
-                
-                var titlePanel = PreviewHelper.CreateTitlePanel("🔗", $"快捷方式: {Path.GetFileName(filePath)}", buttons);
-                mainPanel.Children.Add(titlePanel);
+
+                toolbar.CustomActionContent = actionData;
+                mainPanel.Children.Add(toolbar);
 
                 // 设置自定义右键菜单，只包含复制（去掉剪切和粘贴）
                 var contextMenu = new ContextMenu();
@@ -209,7 +227,7 @@ namespace OoiMRR.Previews
                 // 使用WScript.Shell COM对象读取快捷方式目标
                 Type shellType = Type.GetTypeFromProgID("WScript.Shell");
                 shell = Activator.CreateInstance(shellType);
-                object shortcut = shellType.InvokeMember("CreateShortcut", 
+                object shortcut = shellType.InvokeMember("CreateShortcut",
                     System.Reflection.BindingFlags.InvokeMethod, null, shell, new object[] { lnkPath });
                 string target = (string)shortcut.GetType().InvokeMember("TargetPath",
                     System.Reflection.BindingFlags.GetProperty, null, shortcut, null);
@@ -265,17 +283,17 @@ namespace OoiMRR.Previews
                 // 使用WScript.Shell COM对象设置快捷方式目标
                 Type shellType = Type.GetTypeFromProgID("WScript.Shell");
                 shell = Activator.CreateInstance(shellType);
-                shortcut = shellType.InvokeMember("CreateShortcut", 
+                shortcut = shellType.InvokeMember("CreateShortcut",
                     System.Reflection.BindingFlags.InvokeMethod, null, shell, new object[] { lnkPath });
-                
+
                 // 设置目标路径
                 shortcut.GetType().InvokeMember("TargetPath",
                     System.Reflection.BindingFlags.SetProperty, null, shortcut, new object[] { targetPath });
-                
+
                 // 保存快捷方式
                 shortcut.GetType().InvokeMember("Save",
                     System.Reflection.BindingFlags.InvokeMethod, null, shortcut, null);
-                
+
                 return true;
             }
             catch (COMException)
@@ -312,16 +330,16 @@ namespace OoiMRR.Previews
             {
                 IShellLink link = (IShellLink)new ShellLink();
                 IPersistFile file = (IPersistFile)link;
-                
+
                 // 加载现有快捷方式
                 file.Load(lnkPath, 0);
-                
+
                 // 设置新的目标路径
                 link.SetPath(targetPath);
-                
+
                 // 保存快捷方式
                 file.Save(lnkPath, true);
-                
+
                 return true;
             }
             catch (COMException)
@@ -351,7 +369,7 @@ namespace OoiMRR.Previews
                 // 检查目标所在的目录是否存在
                 string folderPath = Path.GetDirectoryName(targetPath);
                 bool folderExists = !string.IsNullOrEmpty(folderPath) && Directory.Exists(folderPath);
-                
+
                 if (folderExists)
                 {
                     // 如果目标所在的目录存在，不显示错误，只显示提示信息

@@ -6,6 +6,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using OoiMRR.Controls;
 
 namespace OoiMRR.Previews
 {
@@ -63,7 +64,7 @@ namespace OoiMRR.Previews
                 };
 
                 var gridView = new GridView();
-                
+
                 // 与左侧完全一致的列定义
                 var colName = new GridViewColumn
                 {
@@ -155,10 +156,21 @@ namespace OoiMRR.Previews
                 grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
                 // 标题栏
-                var buttons = new List<Button> { PreviewHelper.CreateOpenFolderButton(folderPath) };
-                var titlePanel = PreviewHelper.CreateTitlePanel("📁", $"文件夹: {Path.GetFileName(folderPath)}", buttons);
-                Grid.SetRow(titlePanel, 0);
-                grid.Children.Add(titlePanel);
+                // 统一工具栏
+                var toolbar = new TextPreviewToolbar
+                {
+                    FileName = Path.GetFileName(folderPath),
+                    FileIcon = "📁",
+                    ShowSearch = false,
+                    ShowWordWrap = false,
+                    ShowEncoding = false,
+                    ShowViewToggle = false,
+                    ShowFormat = false
+                };
+                toolbar.OpenExternalRequested += (s, e) => PreviewHelper.OpenFolderInExplorer(folderPath);
+
+                Grid.SetRow(toolbar, 0);
+                grid.Children.Add(toolbar);
 
                 if (items.Count == 0)
                 {
@@ -189,22 +201,22 @@ namespace OoiMRR.Previews
         private string FormatTimeAgo(DateTime createdTime)
         {
             var timeSpan = DateTime.Now - createdTime;
-            
+
             if (timeSpan.TotalSeconds < 60)
                 return $"{(int)timeSpan.TotalSeconds}s";
-            
+
             if (timeSpan.TotalMinutes < 60)
                 return $"{(int)timeSpan.TotalMinutes}m";
-            
+
             if (timeSpan.TotalHours < 24)
                 return $"{(int)timeSpan.TotalHours}h";
-            
+
             if (timeSpan.TotalDays < 30)
                 return $"{(int)timeSpan.TotalDays}d";
-            
+
             if (timeSpan.TotalDays < 365)
                 return $"{(int)(timeSpan.TotalDays / 30)}mo";
-            
+
             return $"{(int)(timeSpan.TotalDays / 365)}y";
         }
 

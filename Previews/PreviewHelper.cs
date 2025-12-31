@@ -306,6 +306,54 @@ namespace OoiMRR.Previews
             return openButton;
         }
 
+
+        /// <summary>
+        /// 使用系统默认程序打开文件
+        /// </summary>
+        public static void OpenInDefaultApp(string filePath)
+        {
+            try
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = filePath,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"无法打开文件: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        /// <summary>
+        /// 打开文件夹（优先在新标签页打开，否则使用资源管理器）
+        /// </summary>
+        public static void OpenFolderInExplorer(string folderPath)
+        {
+            try
+            {
+                // 使用回调在本程序的新标签页中打开文件夹
+                if (PreviewFactory.OnOpenFolderInNewTab != null)
+                {
+                    PreviewFactory.OnOpenFolderInNewTab(folderPath);
+                }
+                else
+                {
+                    // 如果回调未设置，回退到使用系统默认文件管理器
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = folderPath,
+                        UseShellExecute = true
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"无法打开文件夹: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         /// <summary>
         /// 创建编辑按钮（用于可编辑的文件类型）
         /// </summary>

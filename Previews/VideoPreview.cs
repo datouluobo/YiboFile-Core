@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using System.Text.RegularExpressions;
 using System.Security.Cryptography;
 using FFMpegCore;
+using OoiMRR.Controls;
 
 namespace OoiMRR.Previews
 {
@@ -36,13 +37,24 @@ namespace OoiMRR.Previews
                 mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
                 mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-                // 标题区域
-                var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath) };
-                
+                // 统一工具栏
+                var toolbar = new TextPreviewToolbar
+                {
+                    FileName = Path.GetFileName(filePath),
+                    FileIcon = "🎬",
+                    ShowSearch = false,
+                    ShowWordWrap = false,
+                    ShowEncoding = false,
+                    ShowViewToggle = false,
+                    ShowFormat = false
+                };
+
+                toolbar.OpenExternalRequested += (s, e) => PreviewHelper.OpenInDefaultApp(filePath);
+
                 // 检查文件格式
                 var ext = Path.GetExtension(filePath)?.ToLower();
                 bool isRealMediaFormat = ext == ".rmvb" || ext == ".rm";
-                
+
                 // 如果是rmvb/rm格式，添加转码按钮
                 if (isRealMediaFormat)
                 {
@@ -70,13 +82,13 @@ namespace OoiMRR.Previews
                                 string directory = Path.GetDirectoryName(filePath);
                                 string baseName = Path.GetFileNameWithoutExtension(filePath);
                                 string outputPath = Path.Combine(directory, baseName + ".mp4");
-                                
+
                                 // 如果文件已存在，添加序号
                                 outputPath = GetUniqueFilePath(outputPath);
-                                
+
                                 // 在后台线程执行转换
                                 string errorMessage = null;
-                                bool success = await Task.Run(() => 
+                                bool success = await Task.Run(() =>
                                 {
                                     // 先检查是否有缓存文件
                                     string cachePath = GetCachedTranscodePath(filePath);
@@ -145,10 +157,11 @@ namespace OoiMRR.Previews
                         }
                     };
 
-                    buttons.Insert(0, convertButton); // 插入到最前面
+                    toolbar.CustomActionContent = convertButton;
                 }
-                
-                var titlePanel = PreviewHelper.CreateTitlePanel("🎬", $"视频文件: {Path.GetFileName(filePath)}", buttons);
+
+                // 将 toolbar 赋值给 titlePanel 变量，保持与后续代码兼容（全屏切换逻辑）
+                var titlePanel = toolbar;
                 Grid.SetRow(titlePanel, 0);
                 mainGrid.Children.Add(titlePanel);
 
@@ -159,7 +172,7 @@ namespace OoiMRR.Previews
                     VerticalAlignment = VerticalAlignment.Center,
                     HorizontalAlignment = HorizontalAlignment.Center
                 };
-                
+
                 // 创建 MediaElement 播放视频
                 var mediaElement = new MediaElement
                 {
@@ -170,10 +183,10 @@ namespace OoiMRR.Previews
                     HorizontalAlignment = HorizontalAlignment.Center,
                     Volume = 0.5 // 默认音量50%
                 };
-                
+
                 // 保存临时文件路径（用于清理）
                 string tempMp4Path = null;
-                
+
                 // 添加清理机制：当预览被卸载时停止播放并清理资源
                 mainGrid.Unloaded += (s, e) =>
                 {
@@ -183,13 +196,13 @@ namespace OoiMRR.Previews
                         mediaElement.Stop();
                         mediaElement.Close();
                         mediaElement.Source = null;
-                        
+
                         // 注意：不删除缓存文件，因为它是可重用的
                         // 缓存文件会在文件被修改后自动失效（因为缓存文件名基于文件修改时间）
                     }
                     catch { }
                 };
-                
+
                 // 先显示加载提示，避免UI卡住
                 var loadingText = new TextBlock
                 {
@@ -200,10 +213,10 @@ namespace OoiMRR.Previews
                     Foreground = Brushes.Gray
                 };
                 videoContainer.Child = loadingText;
-                
+
                 Grid.SetRow(videoContainer, 1);
                 mainGrid.Children.Add(videoContainer);
-                
+
                 // 异步加载视频，避免阻塞UI线程
                 Task.Run(() =>
                 {
@@ -216,7 +229,7 @@ namespace OoiMRR.Previews
                                 // RealMedia格式（rmvb/rm）使用临时后台转码
                                 // 先检查缓存文件是否存在
                                 string cachePath = GetCachedTranscodePath(filePath);
-                                
+
                                 if (File.Exists(cachePath))
                                 {
                                     // 缓存文件存在，直接使用
@@ -254,7 +267,7 @@ namespace OoiMRR.Previews
                                         VerticalAlignment = VerticalAlignment.Center,
                                         Margin = new Thickness(30)
                                     };
-                                    
+
                                     var progressText = new TextBlock
                                     {
                                         Text = "正在转码视频以支持预览...",
@@ -263,7 +276,7 @@ namespace OoiMRR.Previews
                                         Margin = new Thickness(0, 0, 0, 10)
                                     };
                                     transcodePanel.Children.Add(progressText);
-                                    
+
                                     var progressBar = new ProgressBar
                                     {
                                         Width = 400,
@@ -274,7 +287,7 @@ namespace OoiMRR.Previews
                                         HorizontalAlignment = HorizontalAlignment.Center
                                     };
                                     transcodePanel.Children.Add(progressBar);
-                                    
+
                                     var progressPercent = new TextBlock
                                     {
                                         Text = "0%",
@@ -284,9 +297,9 @@ namespace OoiMRR.Previews
                                         Foreground = Brushes.Gray
                                     };
                                     transcodePanel.Children.Add(progressPercent);
-                                    
+
                                     videoContainer.Child = transcodePanel;
-                                    
+
                                     // 后台转码（在Task.Run内部定义tempMp4Path，避免闭包问题）
                                     Task.Run(() =>
                                     {
@@ -294,7 +307,7 @@ namespace OoiMRR.Previews
                                         {
                                             // 使用缓存路径作为临时MP4文件
                                             tempMp4Path = cachePath;
-                                            
+
                                             // 执行转码（带进度回调）
                                             bool success = ConvertVideoToMp4WithProgress(filePath, tempMp4Path, (progress) =>
                                             {
@@ -304,7 +317,7 @@ namespace OoiMRR.Previews
                                                     progressPercent.Text = $"{progress:F1}%";
                                                 });
                                             }, out string errorMsg);
-                                            
+
                                             if (success && File.Exists(tempMp4Path))
                                             {
                                                 // 转码成功，加载到MediaElement
@@ -314,7 +327,7 @@ namespace OoiMRR.Previews
                                                     {
                                                         mediaElement.Source = new Uri(tempMp4Path);
                                                         videoContainer.Child = mediaElement;
-                                                        
+
                                                         // 视频播放结束后不删除缓存文件（保留供下次使用）
                                                     }
                                                     catch (Exception ex)
@@ -392,11 +405,11 @@ namespace OoiMRR.Previews
                         }
                     }));
                 });
-                
+
                 // 当前旋转角度（用于手动旋转）
                 double currentRotationAngle = 0;
 
-                
+
 
                 // 进度条和时间显示区域
                 var progressPanel = new Grid
@@ -614,7 +627,7 @@ namespace OoiMRR.Previews
                         progressSlider.Maximum = duration.TotalSeconds;
                     }
                 };
-                
+
                 // 处理媒体加载失败的情况
                 mediaElement.MediaFailed += (s, e) =>
                 {
@@ -711,9 +724,9 @@ namespace OoiMRR.Previews
                     {
                         var position = mediaElement.Position;
                         var duration = mediaElement.NaturalDuration.TimeSpan;
-                        
+
                         currentTimeText.Text = $"{(int)position.TotalMinutes:D2}:{position.Seconds:D2}";
-                        
+
                         if (duration.TotalSeconds > 0)
                         {
                             progressSlider.Value = position.TotalSeconds;
@@ -781,7 +794,7 @@ namespace OoiMRR.Previews
                 {
                     // 每次点击顺时针旋转90度
                     currentRotationAngle = (currentRotationAngle + 90) % 360;
-                    
+
                     // 应用旋转Transform
                     var transformGroup = new TransformGroup();
                     transformGroup.Children.Add(new RotateTransform(currentRotationAngle));
@@ -860,14 +873,14 @@ namespace OoiMRR.Previews
                 return PreviewHelper.CreateErrorPreview($"无法加载视频: {ex.Message}");
             }
         }
-        
+
         /// <summary>
         /// 将视频文件转换为MP4格式
         /// </summary>
         private bool ConvertVideoToMp4(string inputPath, string outputPath, out string errorMessage)
         {
             errorMessage = null;
-            
+
             try
             {
                 string ffmpegPath = GetFFmpegPath();
@@ -879,9 +892,9 @@ namespace OoiMRR.Previews
 
                 // FFmpeg转码命令：使用H.264编码，保持原始质量
                 string arguments = $"-i \"{inputPath}\" -c:v libx264 -preset medium -crf 23 -c:a aac -b:a 128k -y \"{outputPath}\"";
-                
+
                 bool success = RunFFmpegCommand(ffmpegPath, arguments, out string stdout, out string stderr);
-                
+
                 if (!success)
                 {
                     errorMessage = $"转换失败: {stderr}\n\n请确保：\n1. FFmpeg 已正确安装\n2. 文件未被其他程序占用\n3. 有足够的磁盘空间";
@@ -896,14 +909,14 @@ namespace OoiMRR.Previews
                 return false;
             }
         }
-        
+
         /// <summary>
         /// 转码视频并报告进度
         /// </summary>
         private bool ConvertVideoToMp4WithProgress(string inputPath, string outputPath, Action<double> progressCallback, out string errorMessage)
         {
             errorMessage = null;
-            
+
             try
             {
                 string ffmpegPath = GetFFmpegPath();
@@ -923,7 +936,7 @@ namespace OoiMRR.Previews
 
                 // FFmpeg转码命令，使用进度输出
                 string arguments = $"-i \"{inputPath}\" -c:v libx264 -preset medium -crf 23 -c:a aac -b:a 128k -progress pipe:1 -y \"{outputPath}\"";
-                
+
                 var processStartInfo = new ProcessStartInfo
                 {
                     FileName = ffmpegPath,
@@ -935,7 +948,7 @@ namespace OoiMRR.Previews
                     StandardOutputEncoding = Encoding.UTF8,
                     StandardErrorEncoding = Encoding.UTF8
                 };
-                
+
                 using (var process = Process.Start(processStartInfo))
                 {
                     if (process == null)
@@ -943,7 +956,7 @@ namespace OoiMRR.Previews
                         errorMessage = "无法启动FFmpeg进程";
                         return false;
                     }
-                    
+
                     // 解析进度输出
                     process.ErrorDataReceived += (sender, e) =>
                     {
@@ -957,7 +970,7 @@ namespace OoiMRR.Previews
                                 double minutes = double.Parse(match.Groups[2].Value);
                                 double seconds = double.Parse(match.Groups[3].Value);
                                 double currentTime = hours * 3600 + minutes * 60 + seconds;
-                                
+
                                 if (duration > 0)
                                 {
                                     double progress = (currentTime / duration) * 100;
@@ -966,24 +979,24 @@ namespace OoiMRR.Previews
                             }
                         }
                     };
-                    
+
                     process.BeginErrorReadLine();
-                    
+
                     bool finished = process.WaitForExit(300000); // 最多5分钟
-                    
+
                     if (!finished)
                     {
                         process.Kill();
                         errorMessage = "转码超时";
                         return false;
                     }
-                    
+
                     if (process.ExitCode != 0)
                     {
                         errorMessage = "转码失败";
                         return false;
                     }
-                    
+
                     return File.Exists(outputPath);
                 }
             }
@@ -993,7 +1006,7 @@ namespace OoiMRR.Previews
                 return false;
             }
         }
-        
+
         /// <summary>
         /// 获取视频时长（秒）
         /// </summary>
@@ -1004,9 +1017,9 @@ namespace OoiMRR.Previews
                 string ffprobePath = GetFFprobePath();
                 if (string.IsNullOrEmpty(ffprobePath))
                     return 0;
-                
+
                 string arguments = $"-v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 \"{videoPath}\"";
-                
+
                 var processStartInfo = new ProcessStartInfo
                 {
                     FileName = ffprobePath,
@@ -1016,28 +1029,28 @@ namespace OoiMRR.Previews
                     RedirectStandardOutput = true,
                     StandardOutputEncoding = Encoding.UTF8
                 };
-                
+
                 using (var process = Process.Start(processStartInfo))
                 {
                     if (process == null)
                         return 0;
-                    
+
                     string output = process.StandardOutput.ReadToEnd();
                     if (!process.WaitForExit(5000))
                     {
                         process.Kill();
                         return 0;
                     }
-                    
+
                     if (double.TryParse(output.Trim(), out double duration))
                         return duration;
                 }
             }
             catch { }
-            
+
             return 0;
         }
-        
+
         /// <summary>
         /// 获取FFmpeg可执行文件路径
         /// </summary>
@@ -1054,7 +1067,7 @@ namespace OoiMRR.Previews
                         return ffmpegPath;
                     }
                 }
-                
+
                 // 回退：从系统PATH查找
                 return "ffmpeg";
             }
@@ -1063,7 +1076,7 @@ namespace OoiMRR.Previews
                 return "ffmpeg";
             }
         }
-        
+
         /// <summary>
         /// 获取FFprobe可执行文件路径
         /// </summary>
@@ -1080,7 +1093,7 @@ namespace OoiMRR.Previews
                         return ffprobePath;
                     }
                 }
-                
+
                 // 回退：从系统PATH查找
                 return "ffprobe";
             }
@@ -1089,7 +1102,7 @@ namespace OoiMRR.Previews
                 return "ffprobe";
             }
         }
-        
+
         /// <summary>
         /// 运行FFmpeg命令并捕获输出
         /// </summary>
@@ -1097,7 +1110,7 @@ namespace OoiMRR.Previews
         {
             stdout = string.Empty;
             stderr = string.Empty;
-            
+
             try
             {
                 var processStartInfo = new ProcessStartInfo
@@ -1111,46 +1124,46 @@ namespace OoiMRR.Previews
                     StandardOutputEncoding = Encoding.UTF8,
                     StandardErrorEncoding = Encoding.UTF8
                 };
-                
+
                 using (var process = Process.Start(processStartInfo))
                 {
                     if (process == null)
                     {
                         return false;
                     }
-                    
+
                     // 异步读取输出
                     var stdoutBuilder = new StringBuilder();
                     var stderrBuilder = new StringBuilder();
-                    
+
                     process.OutputDataReceived += (sender, e) =>
                     {
                         if (!string.IsNullOrEmpty(e.Data))
                             stdoutBuilder.AppendLine(e.Data);
                     };
-                    
+
                     process.ErrorDataReceived += (sender, e) =>
                     {
                         if (!string.IsNullOrEmpty(e.Data))
                             stderrBuilder.AppendLine(e.Data);
                     };
-                    
+
                     process.BeginOutputReadLine();
                     process.BeginErrorReadLine();
-                    
+
                     // 等待进程完成（最多10分钟，转码可能需要较长时间）
                     bool finished = process.WaitForExit(600000);
-                    
+
                     if (!finished)
                     {
                         process.Kill();
                         process.WaitForExit(5000);
                         return false;
                     }
-                    
+
                     stdout = stdoutBuilder.ToString().Trim();
                     stderr = stderrBuilder.ToString().Trim();
-                    
+
                     return process.ExitCode == 0;
                 }
             }
@@ -1160,7 +1173,7 @@ namespace OoiMRR.Previews
                 return false;
             }
         }
-        
+
         /// <summary>
         /// 获取转码缓存文件路径（基于文件路径和修改时间）
         /// </summary>
@@ -1172,20 +1185,20 @@ namespace OoiMRR.Previews
                 var fileInfo = new FileInfo(filePath);
                 if (!fileInfo.Exists)
                     return null;
-                
+
                 // 使用文件路径和修改时间生成哈希值
                 string hashInput = $"{filePath}_{fileInfo.LastWriteTime.Ticks}";
                 byte[] hashBytes = SHA256.Create().ComputeHash(Encoding.UTF8.GetBytes(hashInput));
                 string hashStr = BitConverter.ToString(hashBytes).Replace("-", "");
                 string hash = hashStr.Length >= 16 ? hashStr.Substring(0, 16) : hashStr;
-                
+
                 // 生成缓存文件名
                 string cacheDir = Path.Combine(Path.GetTempPath(), "OoiMRR_VideoCache");
                 if (!Directory.Exists(cacheDir))
                 {
                     Directory.CreateDirectory(cacheDir);
                 }
-                
+
                 return Path.Combine(cacheDir, $"preview_{hash}.mp4");
             }
             catch
@@ -1193,7 +1206,7 @@ namespace OoiMRR.Previews
                 return null;
             }
         }
-        
+
         /// <summary>
         /// 获取唯一文件路径（如果文件已存在，添加序号）
         /// </summary>

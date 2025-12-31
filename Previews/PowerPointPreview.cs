@@ -14,6 +14,7 @@ using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Drawing;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices;
+using OoiMRR.Controls;
 
 namespace OoiMRR.Previews
 {
@@ -48,10 +49,21 @@ namespace OoiMRR.Previews
                 grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
                 grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
-                var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath) };
-                var titlePanel = PreviewHelper.CreateTitlePanel("📊", $"PowerPoint 演示文稿: {System.IO.Path.GetFileName(filePath)}", buttons);
-                Grid.SetRow(titlePanel, 0);
-                grid.Children.Add(titlePanel);
+                // 统一工具栏
+                var toolbar = new TextPreviewToolbar
+                {
+                    FileName = System.IO.Path.GetFileName(filePath),
+                    FileIcon = "📊",
+                    ShowSearch = false,
+                    ShowWordWrap = false,
+                    ShowEncoding = false,
+                    ShowViewToggle = false,
+                    ShowFormat = false
+                };
+                toolbar.OpenExternalRequested += (s, e) => PreviewHelper.OpenInDefaultApp(filePath);
+
+                Grid.SetRow(toolbar, 0);
+                grid.Children.Add(toolbar);
 
                 // 加载指示器
                 var loadingText = new TextBlock
@@ -632,13 +644,22 @@ namespace OoiMRR.Previews
                 convertButton.ToolTip = "未检测到 Microsoft PowerPoint，无法使用自动转换功能";
             }
 
-            var titleButtons = new List<Button>
+            // 统一工具栏
+            var toolbar = new TextPreviewToolbar
             {
-                convertButton,
-                PreviewHelper.CreateOpenButton(filePath)
+                FileName = System.IO.Path.GetFileName(filePath),
+                FileIcon = "📊",
+                ShowSearch = false,
+                ShowWordWrap = false,
+                ShowEncoding = false,
+                ShowViewToggle = false,
+                ShowFormat = false
             };
-            var titlePanel = PreviewHelper.CreateTitlePanel("📊", $"PowerPoint 演示文稿（旧格式）: {System.IO.Path.GetFileName(filePath)}", titleButtons);
-            panel.Children.Add(titlePanel);
+            toolbar.OpenExternalRequested += (s, e) => PreviewHelper.OpenInDefaultApp(filePath);
+
+            // 将转换按钮放入工具栏
+            toolbar.CustomActionContent = convertButton;
+            panel.Children.Add(toolbar);
 
             // 添加统一的旧格式提示面板
             var infoPanel = PreviewHelper.CreateLegacyFormatPanel(

@@ -5,6 +5,7 @@ using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using OoiMRR.Controls;
 
 namespace OoiMRR.Previews
 {
@@ -13,6 +14,12 @@ namespace OoiMRR.Previews
     /// </summary>
     public class TextPreview : IPreviewProvider
     {
+        private TextBox _textBox;
+        private TextPreviewToolbar _toolbar;
+        private List<int> _searchMatches = new List<int>();
+        private int _currentMatchIndex = -1;
+        private string _lastSearchText = string.Empty;
+
         public UIElement CreatePreview(string filePath)
         {
             try
@@ -109,11 +116,9 @@ namespace OoiMRR.Previews
                 }
 
                 var maxLength = 2000;
-                bool isTruncated = false;
                 if (content.Length > maxLength)
                 {
                     content = content.Substring(0, maxLength) + "\n\n... (文件内容过长，仅显示前2000个字符)";
-                    isTruncated = true;
                 }
 
                 // 创建主容器
@@ -121,9 +126,23 @@ namespace OoiMRR.Previews
                 grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
                 grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
+                // 创建工具栏
+                _toolbar = new TextPreviewToolbar
+                {
+                    FileName = Path.GetFileName(filePath),
+                    FileIcon = "📄",
+                    ShowSearch = true,
+                    ShowWordWrap = true,
+                    ShowEncoding = true,
+                    ShowViewToggle = false, // 纯文本不需要切换视图
+                    IsWordWrapEnabled = true
+                };
+
+                // 初始化工具栏状态
+                _toolbar.SetSelectedEncoding(currentEncodingName);
+
                 // 使用可编辑的 TextBox
-                bool isWrapEnabled = true;
-                var textBox = new TextBox
+                _textBox = new TextBox
                 {
                     Text = content,
                     TextWrapping = TextWrapping.Wrap,
@@ -142,149 +161,17 @@ namespace OoiMRR.Previews
                 bool isEditMode = false;
                 string originalContent = content;
 
-                // 先声明按钮变量
-                Button editButton = null;
-                Button wrapButton = null;
-                ComboBox encodingComboBox = null;
-
-                // 编辑/保存按钮
-                editButton = PreviewHelper.CreateEditButton(
-                    () =>
-                    {
-                        if (isEditMode)
-                        {
-                            // 保存模式
-                            try
-                            {
-                                // 确定编码（优先使用UTF-8）
-                                Encoding encoding = Encoding.UTF8;
-                                try
-                                {
-                                    // 尝试检测原始编码
-                                    var originalBytes = File.ReadAllBytes(filePath);
-                                    if (originalBytes.Length > 0)
-                                    {
-                                        // 简单检测：如果前3个字节是UTF-8 BOM
-                                        if (originalBytes.Length >= 3 && originalBytes[0] == 0xEF && originalBytes[1] == 0xBB && originalBytes[2] == 0xBF)
-                                        {
-                                            encoding = new UTF8Encoding(true);
-                                        }
-                                        else
-                                        {
-                                            // 尝试用UTF-8解码，如果失败则使用默认编码
-                                            try
-                                            {
-                                                Encoding.UTF8.GetString(originalBytes);
-                                                encoding = Encoding.UTF8;
-                                            }
-                                            catch
-                                            {
-                                                encoding = Encoding.Default;
-                                            }
-                                        }
-                                    }
-                                }
-                                catch { }
-
-                                // 使用当前选择的编码保存文件
-                                File.WriteAllText(filePath, textBox.Text, currentEncoding);
-
-                                // 更新原始内容
-                                originalContent = textBox.Text;
-
-                                // 切换为只读模式
-                                textBox.IsReadOnly = true;
-                                textBox.Background = PreviewHelper.ReadOnlyBackground;
-                                isEditMode = false;
-
-                                // 更新按钮
-                                if (editButton != null)
-                                {
-                                    editButton.Content = "✏️ 编辑";
-                                    editButton.Background = new SolidColorBrush(Color.FromRgb(33, 150, 243));
-                                }
-
-                                MessageBox.Show("文件已保存", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
-                            }
-                            catch (Exception ex)
-                            {
-                                MessageBox.Show($"保存失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                            }
-                        }
-                        else
-                        {
-                            // 编辑模式
-                            textBox.IsReadOnly = false;
-                            textBox.Background = PreviewHelper.EditModeBackground; // 浅蓝色背景表示可编辑
-                            isEditMode = true;
-
-                            // 更新按钮
-                            if (editButton != null)
-                            {
-                                editButton.Content = "💾 保存";
-                                editButton.Background = new SolidColorBrush(Color.FromRgb(76, 175, 80));
-                            }
-                        }
-                    },
-                    false
-                );
-
-                // 创建自动换行切换按钮
-                wrapButton = new Button
+                // 绑定工具栏事件
+                _toolbar.WordWrapChanged += (s, enabled) =>
                 {
-                    Content = "📃 自动换行",
-                    Padding = new Thickness(12, 6, 12, 6),
-                    Background = new SolidColorBrush(Color.FromRgb(156, 39, 176)),
-                    Foreground = Brushes.White,
-                    BorderThickness = new Thickness(0),
-                    Cursor = System.Windows.Input.Cursors.Hand,
-                    FontSize = 13
+                    _textBox.TextWrapping = enabled ? TextWrapping.Wrap : TextWrapping.NoWrap;
                 };
 
-                wrapButton.Click += (s, e) =>
+                _toolbar.EncodingChanged += (s, encodingName) =>
                 {
-                    isWrapEnabled = !isWrapEnabled;
-                    textBox.TextWrapping = isWrapEnabled ? TextWrapping.Wrap : TextWrapping.NoWrap;
-                    wrapButton.Content = isWrapEnabled ? "📃 自动换行" : "📄 不换行";
-                };
-
-                // 创建编码选择ComboBox
-                encodingComboBox = new ComboBox
-                {
-                    Width = 120,
-                    FontSize = 12,
-                    Margin = new Thickness(5, 0, 0, 0),
-                    VerticalAlignment = VerticalAlignment.Center
-                };
-
-                // 添加常用编码选项
-                var encodingOptions = new[]
-                {
-                    "UTF-8",
-                    "UTF-8 (BOM)",
-                    "GBK",
-                    "GB2312",
-                    "GB18030",
-                    "UTF-16 LE",
-                    "UTF-16 BE",
-                    "ASCII",
-                    "系统默认"
-                };
-
-                foreach (var option in encodingOptions)
-                {
-                    encodingComboBox.Items.Add(option);
-                }
-
-                encodingComboBox.SelectedItem = currentEncodingName;
-
-                encodingComboBox.SelectionChanged += (s, e) =>
-                {
-                    if (encodingComboBox.SelectedItem == null) return;
-
                     try
                     {
-                        var selectedEncoding = GetEncodingFromName(encodingComboBox.SelectedItem.ToString());
+                        var selectedEncoding = GetEncodingFromName(encodingName);
                         if (selectedEncoding == null) return;
 
                         // 重新读取文件
@@ -307,16 +194,16 @@ namespace OoiMRR.Previews
 
                         string newContent = selectedEncoding.GetString(bytes);
 
-                        var maxLength = 2000;
                         if (newContent.Length > maxLength)
                         {
                             newContent = newContent.Substring(0, maxLength) + "\n\n... (文件内容过长,仅显示前2000个字符)";
                         }
 
-                        textBox.Text = newContent;
+                        _textBox.Text = newContent;
                         originalContent = newContent;
                         currentEncoding = selectedEncoding;
-                        currentEncodingName = GetEncodingDisplayName(selectedEncoding);
+                        // 重置搜索
+                        PerformSearch(_lastSearchText);
                     }
                     catch (Exception ex)
                     {
@@ -324,96 +211,102 @@ namespace OoiMRR.Previews
                     }
                 };
 
-                // 标题栏 - 创建自定义布局以包含ComboBox
-                var titlePanel = new Border
+                _toolbar.CopyRequested += (s, e) =>
                 {
-                    Background = new SolidColorBrush(Color.FromRgb(245, 245, 245)),
-                    Padding = new Thickness(15, 10, 15, 10),
-                    BorderBrush = new SolidColorBrush(Color.FromRgb(230, 230, 230)),
-                    BorderThickness = new Thickness(0, 0, 0, 1),
-                    HorizontalAlignment = HorizontalAlignment.Stretch
-                };
-
-                var dockPanel = new DockPanel { LastChildFill = true };
-
-                // 右侧按钮区域
-                var buttonPanel = new StackPanel
-                {
-                    Orientation = Orientation.Horizontal,
-                    HorizontalAlignment = HorizontalAlignment.Right,
-                    VerticalAlignment = VerticalAlignment.Center
-                };
-
-                buttonPanel.Children.Add(editButton);
-                buttonPanel.Children.Add(wrapButton);
-                buttonPanel.Children.Add(encodingComboBox);
-                buttonPanel.Children.Add(PreviewHelper.CreateOpenButton(filePath));
-
-                DockPanel.SetDock(buttonPanel, Dock.Right);
-                dockPanel.Children.Add(buttonPanel);
-
-                // 左侧标题
-                var titleStack = new StackPanel
-                {
-                    Orientation = Orientation.Horizontal,
-                    VerticalAlignment = VerticalAlignment.Center
-                };
-
-                titleStack.Children.Add(new TextBlock
-                {
-                    Text = "📄",
-                    FontSize = 18,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    Margin = new Thickness(0, 0, 10, 0),
-                    FontFamily = new FontFamily("Segoe UI Emoji, Segoe UI Symbol")
-                });
-
-                titleStack.Children.Add(new TextBlock
-                {
-                    Text = $"文本文件: {Path.GetFileName(filePath)}",
-                    FontSize = 14,
-                    FontWeight = FontWeights.SemiBold,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    FontFamily = new FontFamily("Segoe UI"),
-                    TextTrimming = TextTrimming.CharacterEllipsis,
-                    TextWrapping = TextWrapping.NoWrap
-                });
-
-                dockPanel.Children.Add(titleStack);
-                titlePanel.Child = dockPanel;
-
-                Grid.SetRow(titlePanel, 0);
-                grid.Children.Add(titlePanel);
-
-                // 设置自定义右键菜单，只包含复制（去掉剪切和粘贴）
-                var contextMenu = new ContextMenu();
-                var copyItem = new MenuItem
-                {
-                    Header = "复制",
-                    InputGestureText = "Ctrl+C"
-                };
-                copyItem.Click += (s, e) =>
-                {
-                    if (!string.IsNullOrEmpty(textBox.SelectedText))
+                    if (!string.IsNullOrEmpty(_textBox.SelectedText))
                     {
-                        Clipboard.SetText(textBox.SelectedText);
+                        Clipboard.SetText(_textBox.SelectedText);
                     }
                     else
                     {
-                        Clipboard.SetText(textBox.Text);
+                        Clipboard.SetText(_textBox.Text);
                     }
                 };
-                contextMenu.Items.Add(copyItem);
-                textBox.ContextMenu = contextMenu;
 
-                // 如果是截断的内容，确保可以滚动
-                if (isTruncated)
+                _toolbar.EditRequested += (s, e) =>
                 {
-                    textBox.TextWrapping = TextWrapping.Wrap;
-                }
+                    if (isEditMode)
+                    {
+                        // 保存模式
+                        try
+                        {
+                            // 确定编码
+                            Encoding encoding = Encoding.UTF8;
+                            try
+                            {
+                                var originalBytes = File.ReadAllBytes(filePath);
+                                if (originalBytes.Length >= 3 && originalBytes[0] == 0xEF && originalBytes[1] == 0xBB && originalBytes[2] == 0xBF)
+                                {
+                                    encoding = new UTF8Encoding(true);
+                                }
+                                else
+                                {
+                                    // 尝试保持当前编码
+                                    encoding = currentEncoding ?? Encoding.UTF8;
+                                }
+                            }
+                            catch { }
 
-                Grid.SetRow(textBox, 1);
-                grid.Children.Add(textBox);
+                            // 保存文件
+                            File.WriteAllText(filePath, _textBox.Text, encoding);
+
+                            // 更新原始内容
+                            originalContent = _textBox.Text;
+
+                            // 切换为只读模式
+                            _textBox.IsReadOnly = true;
+                            _textBox.Background = Brushes.White;
+                            isEditMode = false;
+                            _toolbar.SetEditMode(false);
+
+                            MessageBox.Show("文件已保存", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"保存失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        }
+                    }
+                    else
+                    {
+                        // 编辑模式
+                        _textBox.IsReadOnly = false;
+                        _textBox.Background = new SolidColorBrush(Color.FromRgb(240, 248, 255)); // 浅蓝色背景
+                        isEditMode = true;
+                        _toolbar.SetEditMode(true);
+                    }
+                };
+
+                _toolbar.OpenExternalRequested += (s, e) =>
+                {
+                    PreviewHelper.OpenInDefaultApp(filePath);
+                };
+
+                // 搜索功能实现
+                _toolbar.SearchRequested += (s, text) => PerformSearch(text);
+                _toolbar.SearchNextRequested += (s, e) => NavigateMatch(true);
+                _toolbar.SearchPrevRequested += (s, e) => NavigateMatch(false);
+
+
+                Grid.SetRow(_toolbar, 0);
+                grid.Children.Add(_toolbar);
+
+                // 设置右键菜单
+                var contextMenu = new ContextMenu();
+                var copyItem = new MenuItem { Header = "复制", InputGestureText = "Ctrl+C" };
+                copyItem.Click += (s, e) => _toolbar.GetType().GetMethod("CopyButton_Click", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)?.Invoke(_toolbar, new object[] { null, null });
+                // 既然我们在Toolbar里实现了复制逻辑，这里其实直接调用Toolbar的逻辑或者重新实现简单逻辑皆可
+                // 简单起见，重新实现:
+                copyItem.Click -= (s, e) => _toolbar.GetType().GetMethod("CopyButton_Click", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)?.Invoke(_toolbar, new object[] { null, null });
+                copyItem.Click += (s, e) =>
+                {
+                    if (!string.IsNullOrEmpty(_textBox.SelectedText)) Clipboard.SetText(_textBox.SelectedText);
+                    else Clipboard.SetText(_textBox.Text);
+                };
+                contextMenu.Items.Add(copyItem);
+                _textBox.ContextMenu = contextMenu;
+
+                Grid.SetRow(_textBox, 1);
+                grid.Children.Add(_textBox);
 
                 return grid;
             }
@@ -421,6 +314,69 @@ namespace OoiMRR.Previews
             {
                 return PreviewHelper.CreateErrorPreview($"无法读取文本文件: {ex.Message}");
             }
+        }
+
+        private void PerformSearch(string text)
+        {
+            _lastSearchText = text;
+            _searchMatches.Clear();
+            _currentMatchIndex = -1;
+
+            if (string.IsNullOrEmpty(text) || _textBox == null)
+            {
+                _toolbar.SetMatchCount(0, 0);
+                return;
+            }
+
+            string content = _textBox.Text;
+            int index = 0;
+            while ((index = content.IndexOf(text, index, StringComparison.OrdinalIgnoreCase)) != -1)
+            {
+                _searchMatches.Add(index);
+                index += text.Length;
+            }
+
+            if (_searchMatches.Count > 0)
+            {
+                _currentMatchIndex = 0;
+                HighlightMatch(0);
+            }
+
+            _toolbar.SetMatchCount(_searchMatches.Count > 0 ? 1 : 0, _searchMatches.Count);
+        }
+
+        private void NavigateMatch(bool next)
+        {
+            if (_searchMatches.Count == 0) return;
+
+            if (next)
+            {
+                _currentMatchIndex++;
+                if (_currentMatchIndex >= _searchMatches.Count) _currentMatchIndex = 0; // 循环
+            }
+            else
+            {
+                _currentMatchIndex--;
+                if (_currentMatchIndex < 0) _currentMatchIndex = _searchMatches.Count - 1; // 循环
+            }
+
+            HighlightMatch(_currentMatchIndex);
+            _toolbar.SetMatchCount(_currentMatchIndex + 1, _searchMatches.Count);
+        }
+
+        private void HighlightMatch(int matchIndex)
+        {
+            if (matchIndex < 0 || matchIndex >= _searchMatches.Count) return;
+
+            int start = _searchMatches[matchIndex];
+            int length = _lastSearchText.Length;
+
+            _textBox.Focus();
+            _textBox.Select(start, length);
+
+            // 滚动到可见区域
+            var lineIndex = _textBox.GetLineIndexFromCharacterIndex(start);
+            _textBox.ScrollToLine(lineIndex);
         }
 
         /// <summary>

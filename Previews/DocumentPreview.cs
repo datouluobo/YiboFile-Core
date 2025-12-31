@@ -20,6 +20,7 @@ using System.Text.RegularExpressions;
 using System.Windows.Controls.Primitives;
 using System.Runtime.InteropServices;
 using System.Xml.Linq;
+using OoiMRR.Controls;
 
 namespace OoiMRR.Previews
 {
@@ -89,10 +90,21 @@ namespace OoiMRR.Previews
                 grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
                 grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
-                var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath) };
-                var titlePanel = PreviewHelper.CreateTitlePanel("📄", $"Word 文档: {Path.GetFileName(filePath)}", buttons);
-                Grid.SetRow(titlePanel, 0);
-                grid.Children.Add(titlePanel);
+                // 统一工具栏
+                var toolbar = new TextPreviewToolbar
+                {
+                    FileName = Path.GetFileName(filePath),
+                    FileIcon = "📄",
+                    ShowSearch = false,
+                    ShowWordWrap = false,
+                    ShowEncoding = false,
+                    ShowViewToggle = false,
+                    ShowFormat = false
+                };
+                toolbar.OpenExternalRequested += (s, e) => PreviewHelper.OpenInDefaultApp(filePath);
+
+                Grid.SetRow(toolbar, 0);
+                grid.Children.Add(toolbar);
 
                 var webView = new WebView2
                 {
@@ -189,9 +201,21 @@ namespace OoiMRR.Previews
             mainContainer.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
             // 初始标题栏
-            var titlePanel = PreviewHelper.CreateTitlePanel("📄", $"DOC 文档: {Path.GetFileName(filePath)}", new List<Button> { PreviewHelper.CreateOpenButton(filePath) });
-            Grid.SetRow(titlePanel, 0);
-            mainContainer.Children.Add(titlePanel);
+            // 统一工具栏
+            var toolbar = new TextPreviewToolbar
+            {
+                FileName = Path.GetFileName(filePath),
+                FileIcon = "📄",
+                ShowSearch = false,
+                ShowWordWrap = false,
+                ShowEncoding = false,
+                ShowViewToggle = false,
+                ShowFormat = false
+            };
+            toolbar.OpenExternalRequested += (s, e) => PreviewHelper.OpenInDefaultApp(filePath);
+
+            Grid.SetRow(toolbar, 0);
+            mainContainer.Children.Add(toolbar);
 
             // 加载提示
             var loadingPanel = PreviewHelper.CreateLoadingPanel("⏳ 正在检测文档预览...");
@@ -211,7 +235,6 @@ namespace OoiMRR.Previews
                     Application.Current.Dispatcher.Invoke(() =>
                     {
                         mainContainer.Children.Remove(loadingPanel);
-                        mainContainer.Children.Remove(titlePanel);
 
                         // 转换按钮
                         var convertButton = PreviewHelper.CreateConvertButton(
@@ -260,11 +283,8 @@ namespace OoiMRR.Previews
                             convertButton.ToolTip = "未检测到 Microsoft Word";
                         }
 
-                        // 新标题栏
-                        var buttons = new List<Button> { convertButton, PreviewHelper.CreateOpenButton(filePath) };
-                        var newTitle = PreviewHelper.CreateTitlePanel("📄", $"DOC 文档: {Path.GetFileName(filePath)}", buttons);
-                        Grid.SetRow(newTitle, 0);
-                        mainContainer.Children.Add(newTitle);
+                        // 更新工具栏的操作内容
+                        toolbar.CustomActionContent = convertButton;
 
                         if (canPreview)
                         {
@@ -336,7 +356,18 @@ namespace OoiMRR.Previews
                     Application.Current.Dispatcher.Invoke(() =>
                     {
                         mainContainer.Children.Remove(loadingPanel);
-                        mainContainer.Children.Remove(titlePanel);
+                        mainContainer.Children.Remove(toolbar); // 错误时移除工具栏，显示纯错误面板? 或者保留?
+                        // 原始逻辑不仅 remove loadingPanel 还 remove titlePanel?
+                        // 原始逻辑 line 339: mainContainer.Children.Remove(titlePanel);
+                        // 如果出错，下面会添加 CreateErrorPreview 到 Row 1.
+                        // 但是 toolbar 在 Row 0.
+                        // 如果我不移除 toolbar，那么 Row 0 是 toolbar， Row 1 是 error panel. 
+                        // 这样其实更好。
+                        // 但是 PreviewHelper.CreateErrorPreview 返回的是一个Grid，通常包含了 reset/retry button etc? 
+                        // 不，CreateErrorPreview 只是个 StackPanel showing text.
+                        // 所以保留 toolbar 是合理的。
+                        // 但为了保持原样，我先注释掉 remove toolbar.
+                        // mainContainer.Children.Remove(toolbar);
 
                         var errorPanel = PreviewHelper.CreateErrorPreview($"DOC 预览检测失败: {ex.Message}");
                         Grid.SetRow(errorPanel, 1);
@@ -474,10 +505,21 @@ namespace OoiMRR.Previews
                 grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
                 // 标题栏
-                var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath) };
-                var title = PreviewHelper.CreateTitlePanel("📄", $"PDF 文档: {Path.GetFileName(filePath)}", buttons);
-                Grid.SetRow(title, 0);
-                grid.Children.Add(title);
+                // 统一工具栏
+                var toolbar = new TextPreviewToolbar
+                {
+                    FileName = Path.GetFileName(filePath),
+                    FileIcon = "📄",
+                    ShowSearch = false,
+                    ShowWordWrap = false,
+                    ShowEncoding = false,
+                    ShowViewToggle = false,
+                    ShowFormat = false
+                };
+                toolbar.OpenExternalRequested += (s, e) => PreviewHelper.OpenInDefaultApp(filePath);
+
+                Grid.SetRow(toolbar, 0);
+                grid.Children.Add(toolbar);
 
                 // WebView2 用于显示PDF
                 var webView = new WebView2
@@ -612,10 +654,21 @@ namespace OoiMRR.Previews
                 grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
                 grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
-                var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath) };
-                var title = PreviewHelper.CreateTitlePanel("📄", $"RTF 文档: {Path.GetFileName(filePath)}", buttons);
-                Grid.SetRow(title, 0);
-                grid.Children.Add(title);
+                // 统一工具栏
+                var toolbar = new TextPreviewToolbar
+                {
+                    FileName = Path.GetFileName(filePath),
+                    FileIcon = "📄",
+                    ShowSearch = false,
+                    ShowWordWrap = false,
+                    ShowEncoding = false,
+                    ShowViewToggle = false,
+                    ShowFormat = false
+                };
+                toolbar.OpenExternalRequested += (s, e) => PreviewHelper.OpenInDefaultApp(filePath);
+
+                Grid.SetRow(toolbar, 0);
+                grid.Children.Add(toolbar);
 
                 var rtfBox = new RichTextBox
                 {
@@ -672,10 +725,21 @@ namespace OoiMRR.Previews
                 mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
                 // 标题
-                var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath) };
-                var title = PreviewHelper.CreateTitlePanel("📖", $"CHM 帮助文件: {Path.GetFileName(filePath)}", buttons);
-                Grid.SetRow(title, 0);
-                mainGrid.Children.Add(title);
+                // 统一工具栏
+                var toolbar = new TextPreviewToolbar
+                {
+                    FileName = Path.GetFileName(filePath),
+                    FileIcon = "📖",
+                    ShowSearch = false,
+                    ShowWordWrap = false,
+                    ShowEncoding = false,
+                    ShowViewToggle = false,
+                    ShowFormat = false
+                };
+                toolbar.OpenExternalRequested += (s, e) => PreviewHelper.OpenInDefaultApp(filePath);
+
+                Grid.SetRow(toolbar, 0);
+                mainGrid.Children.Add(toolbar);
 
                 // 内容容器
                 var contentContainer = new Grid();

@@ -7,6 +7,7 @@ using System.Windows.Media;
 using Microsoft.Web.WebView2.Wpf;
 using Microsoft.Web.WebView2.Core;
 using System.Collections.Generic;
+using OoiMRR.Controls;
 
 namespace OoiMRR.Previews
 {
@@ -34,16 +35,22 @@ namespace OoiMRR.Previews
                 mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 标题栏
                 mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // PDF内容
 
-                // 标题栏
-                var buttons = new List<Button>
+                // 统一工具栏
+                var toolbar = new TextPreviewToolbar
                 {
-                    PreviewHelper.CreateOpenButton(filePath)
+                    FileName = Path.GetFileName(filePath),
+                    FileIcon = "📄",
+                    ShowSearch = false,
+                    ShowWordWrap = false,
+                    ShowEncoding = false,
+                    ShowViewToggle = false,
+                    ShowFormat = false
                 };
-                var title = PreviewHelper.CreateTitlePanel("📄",
-                    $"PDF文档: {Path.GetFileName(filePath)}",
-                    buttons);
-                Grid.SetRow(title, 0);
-                mainGrid.Children.Add(title);
+
+                toolbar.OpenExternalRequested += (s, e) => PreviewHelper.OpenInDefaultApp(filePath);
+
+                Grid.SetRow(toolbar, 0);
+                mainGrid.Children.Add(toolbar);
 
                 // PDF显示区域 - WebView2
                 var webViewContainer = new Grid
@@ -64,7 +71,7 @@ namespace OoiMRR.Previews
                 mainGrid.Children.Add(webViewContainer);
 
                 // 异步加载PDF查看器
-                _ = InitializePdfViewerAsync(webView, filePath, title);
+                _ = InitializePdfViewerAsync(webView, filePath, toolbar);
 
                 return mainGrid;
             }
@@ -238,14 +245,24 @@ namespace OoiMRR.Previews
                 Margin = new Thickness(10)
             };
 
-            var buttons = new List<Button>();
+            // 统一工具栏
+            var toolbar = new TextPreviewToolbar
+            {
+                FileName = string.IsNullOrEmpty(filePath) ? "错误" : Path.GetFileName(filePath),
+                FileIcon = "❌",
+                ShowSearch = false,
+                ShowWordWrap = false,
+                ShowEncoding = false,
+                ShowViewToggle = false,
+                ShowFormat = false
+            };
+
             if (!string.IsNullOrEmpty(filePath) && File.Exists(filePath))
             {
-                buttons.Add(PreviewHelper.CreateOpenButton(filePath));
+                toolbar.OpenExternalRequested += (s, e) => PreviewHelper.OpenInDefaultApp(filePath);
             }
 
-            var title = PreviewHelper.CreateTitlePanel("❌", "PDF预览错误", buttons);
-            panel.Children.Add(title);
+            panel.Children.Add(toolbar);
 
             var errorBorder = new Border
             {

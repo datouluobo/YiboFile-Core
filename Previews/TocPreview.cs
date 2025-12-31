@@ -7,6 +7,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
+using OoiMRR.Controls;
 
 namespace OoiMRR.Previews
 {
@@ -29,30 +30,38 @@ namespace OoiMRR.Previews
                     HorizontalAlignment = HorizontalAlignment.Stretch,
                     VerticalAlignment = VerticalAlignment.Stretch
                 };
-                mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 标题栏
-                mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 视图模式栏
+                mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 标题栏 (含视图切换)
                 mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 元数据信息栏
                 mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // 内容区
 
-                // 标题栏
-                var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath) };
-                var titlePanel = PreviewHelper.CreateTitlePanel("📦", $"WoW 插件配置: {Path.GetFileName(filePath)}", buttons);
-                Grid.SetRow(titlePanel, 0);
-                mainGrid.Children.Add(titlePanel);
+                // 统一工具栏
+                var toolbar = new TextPreviewToolbar
+                {
+                    FileName = Path.GetFileName(filePath),
+                    FileIcon = "📦",
+                    ShowSearch = false,
+                    ShowWordWrap = false,
+                    ShowEncoding = false,
+                    ShowViewToggle = false,
+                    ShowFormat = false
+                };
+                toolbar.OpenExternalRequested += (s, e) => PreviewHelper.OpenInDefaultApp(filePath);
 
-                // 创建视图模式切换栏
+                // 创建视图模式切换栏并放入工具栏
                 var viewModePanel = CreateViewModePanel(tocData, filePath, mainGrid);
-                Grid.SetRow(viewModePanel, 1);
-                mainGrid.Children.Add(viewModePanel);
+                toolbar.CustomActionContent = viewModePanel;
+
+                Grid.SetRow(toolbar, 0);
+                mainGrid.Children.Add(toolbar);
 
                 // 元数据信息栏（默认显示）
                 var infoPanel = CreateInfoPanel(tocData);
-                Grid.SetRow(infoPanel, 2);
+                Grid.SetRow(infoPanel, 1);
                 mainGrid.Children.Add(infoPanel);
 
                 // 默认显示预览模式（源码内容）
                 var sourcePanel = CreateSourcePanel(filePath);
-                Grid.SetRow(sourcePanel, 3);
+                Grid.SetRow(sourcePanel, 2);
                 mainGrid.Children.Add(sourcePanel);
 
                 return mainGrid;
@@ -71,8 +80,8 @@ namespace OoiMRR.Previews
             var panel = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
-                Background = new SolidColorBrush(Color.FromRgb(250, 250, 250)),
-                Margin = new Thickness(10, 5, 10, 5)  // StackPanel使用Margin而非Padding
+                // Background = new SolidColorBrush(Color.FromRgb(250, 250, 250)),
+                Margin = new Thickness(0)  // 放入工具栏无需边距
             };
 
             // 标签
@@ -123,7 +132,7 @@ namespace OoiMRR.Previews
                     parentGrid.Children.Remove(currentEditView);
 
                 var sourcePanel = CreateSourcePanel(filePath);
-                Grid.SetRow(sourcePanel, 3);
+                Grid.SetRow(sourcePanel, 2);
                 parentGrid.Children.Add(sourcePanel);
                 currentContentView = sourcePanel;
             };
@@ -137,7 +146,7 @@ namespace OoiMRR.Previews
                     parentGrid.Children.Remove(currentEditView);
 
                 var editPanel = CreateEditPanel(filePath);
-                Grid.SetRow(editPanel, 3);
+                Grid.SetRow(editPanel, 2);
                 parentGrid.Children.Add(editPanel);
                 currentEditView = editPanel;
             };
@@ -151,7 +160,7 @@ namespace OoiMRR.Previews
                     parentGrid.Children.Remove(currentEditView);
 
                 var splitPanel = CreateSplitPanel(filePath);
-                Grid.SetRow(splitPanel, 3);
+                Grid.SetRow(splitPanel, 2);
                 parentGrid.Children.Add(splitPanel);
                 currentContentView = splitPanel;
             };

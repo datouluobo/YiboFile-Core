@@ -9,6 +9,7 @@ using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using OoiMRR.Controls;
 
 namespace OoiMRR.Previews
 {
@@ -62,10 +63,21 @@ namespace OoiMRR.Previews
                 mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // 文件列表（填充剩余空间）
 
                 // 标题栏
-                var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath) };
-                var titlePanel = PreviewHelper.CreateTitlePanel("📦", $"ZIP 压缩包: {Path.GetFileName(filePath)}", buttons);
-                Grid.SetRow(titlePanel, 0);
-                mainGrid.Children.Add(titlePanel);
+                // 统一工具栏
+                var toolbar = new TextPreviewToolbar
+                {
+                    FileName = Path.GetFileName(filePath),
+                    FileIcon = "📦",
+                    ShowSearch = false,
+                    ShowWordWrap = false,
+                    ShowEncoding = false,
+                    ShowViewToggle = false,
+                    ShowFormat = false
+                };
+                toolbar.OpenExternalRequested += (s, e) => PreviewHelper.OpenInDefaultApp(filePath);
+
+                Grid.SetRow(toolbar, 0);
+                mainGrid.Children.Add(toolbar);
 
                 // 读取ZIP文件列表
                 var fileList = new List<(string name, long size)>();
@@ -211,10 +223,21 @@ namespace OoiMRR.Previews
                 mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // 文件列表（填充剩余空间）
 
                 // 标题栏
-                var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath) };
-                var titlePanel = PreviewHelper.CreateTitlePanel("📦", $"7Z 压缩包: {Path.GetFileName(filePath)}", buttons);
-                Grid.SetRow(titlePanel, 0);
-                mainGrid.Children.Add(titlePanel);
+                // 统一工具栏
+                var toolbar = new TextPreviewToolbar
+                {
+                    FileName = Path.GetFileName(filePath),
+                    FileIcon = "📦",
+                    ShowSearch = false,
+                    ShowWordWrap = false,
+                    ShowEncoding = false,
+                    ShowViewToggle = false,
+                    ShowFormat = false
+                };
+                toolbar.OpenExternalRequested += (s, e) => PreviewHelper.OpenInDefaultApp(filePath);
+
+                Grid.SetRow(toolbar, 0);
+                mainGrid.Children.Add(toolbar);
 
                 // 读取7Z文件列表
                 var fileList = new List<(string name, long size)>();
@@ -544,10 +567,21 @@ namespace OoiMRR.Previews
                 mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // 文件列表（填充剩余空间）
 
                 // 标题栏
-                var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath) };
-                var titlePanel = PreviewHelper.CreateTitlePanel("📦", $"RAR 压缩包: {Path.GetFileName(filePath)}", buttons);
-                Grid.SetRow(titlePanel, 0);
-                mainGrid.Children.Add(titlePanel);
+                // 统一工具栏
+                var toolbar = new TextPreviewToolbar
+                {
+                    FileName = Path.GetFileName(filePath),
+                    FileIcon = "📦",
+                    ShowSearch = false,
+                    ShowWordWrap = false,
+                    ShowEncoding = false,
+                    ShowViewToggle = false,
+                    ShowFormat = false
+                };
+                toolbar.OpenExternalRequested += (s, e) => PreviewHelper.OpenInDefaultApp(filePath);
+
+                Grid.SetRow(toolbar, 0);
+                mainGrid.Children.Add(toolbar);
 
                 // 读取RAR文件列表（使用7-Zip工具，因为7-Zip支持RAR格式）
                 var fileList = new List<(string name, long size)>();

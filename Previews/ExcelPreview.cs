@@ -12,6 +12,7 @@ using System.Windows.Media;
 using Microsoft.Web.WebView2.Wpf;
 using System.Xml.Linq;
 using System.Runtime.InteropServices;
+using OoiMRR.Controls;
 
 namespace OoiMRR.Previews
 {
@@ -19,203 +20,212 @@ namespace OoiMRR.Previews
     {
         public UIElement CreatePreview(string filePath)
         {
-            var ext = Path.GetExtension(filePath).ToLower();
-            if (ext == ".xls")
+            try
             {
-                var panel = new StackPanel
+                var ext = Path.GetExtension(filePath).ToLower();
+
+                // Common Toolbar Setup
+                var toolbar = new TextPreviewToolbar
                 {
-                    Orientation = Orientation.Vertical,
-                    Background = Brushes.White
+                    FileName = Path.GetFileName(filePath),
+                    FileIcon = "📊",
+                    ShowSearch = false,
+                    ShowWordWrap = false,
+                    ShowEncoding = false,
+                    ShowViewToggle = false,
+                    ShowFormat = false
                 };
 
-                // 检测Excel是否安装
-                bool hasExcel = IsExcelInstalled();
+                toolbar.OpenExternalRequested += (s, e) => PreviewHelper.OpenInDefaultApp(filePath);
 
-                // 转换按钮
-                var convertButton = PreviewHelper.CreateConvertButton(
-                    "🔄 转换为XLSX格式",
-                    async (s, e) =>
+                if (ext == ".xls")
+                {
+                    var panel = new StackPanel
                     {
-                        var btn = s as Button;
-                        try
-                        {
-                            btn.IsEnabled = false;
-                            btn.Content = "⏳ 转换中...";
+                        Orientation = Orientation.Vertical,
+                        Background = Brushes.White
+                    };
 
+                    // Has Excel Check
+                    bool hasExcel = IsExcelInstalled();
+
+                    // Convert Button
+                    var convertButton = PreviewHelper.CreateConvertButton(
+                        "🔄 转换为XLSX格式",
+                        async (s, e) =>
+                        {
+                            var btn = s as Button;
                             try
                             {
-                                // 生成输出路径（同目录，同名）
-                                string directory = Path.GetDirectoryName(filePath);
-                                string baseName = Path.GetFileNameWithoutExtension(filePath);
-                                string outputPath = Path.Combine(directory, baseName + ".xlsx");
+                                btn.IsEnabled = false;
+                                btn.Content = "⏳ 转换中...";
 
-                                // 如果文件已存在，添加序号
-                                outputPath = GetUniqueFilePath(outputPath);
-
-                                // 在后台线程执行转换
-                                string errorMsg = null;
-                                bool success = await System.Threading.Tasks.Task.Run(() =>
+                                await System.Threading.Tasks.Task.Run(() =>
                                 {
-                                    bool result = ConvertXlsToXlsx(filePath, outputPath, out errorMsg);
-                                    return result;
+                                    try
+                                    {
+                                        string directory = Path.GetDirectoryName(filePath);
+                                        string baseName = Path.GetFileNameWithoutExtension(filePath);
+                                        string outputPath = Path.Combine(directory, baseName + ".xlsx");
+                                        outputPath = GetUniqueFilePath(outputPath);
+
+                                        string errorMsg = null;
+                                        if (ConvertXlsToXlsx(filePath, outputPath, out errorMsg))
+                                        {
+                                            Application.Current.Dispatcher.Invoke(() =>
+                                            {
+                                                btn.Content = "✅ 转换成功";
+                                                MessageBox.Show($"文件已成功转换为XLSX格式：\n{outputPath}", "转换成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                                            });
+                                        }
+                                        else
+                                        {
+                                            Application.Current.Dispatcher.Invoke(() =>
+                                            {
+                                                string errorTitle = errorMsg?.Contains("未检测到") == true ? "需要 Microsoft Excel" : "转换错误";
+                                                MessageBox.Show(errorMsg ?? "转换失败", errorTitle, MessageBoxButton.OK, MessageBoxImage.Error);
+                                                btn.IsEnabled = true;
+                                                btn.Content = "🔄 转换为XLSX格式";
+                                            });
+                                        }
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Application.Current.Dispatcher.Invoke(() =>
+                                        {
+                                            MessageBox.Show($"转换失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                                            btn.IsEnabled = true;
+                                            btn.Content = "🔄 转换为XLSX格式";
+                                        });
+                                    }
                                 });
-
-                                if (success)
-                                {
-                                    btn.Content = "✅ 转换成功";
-                                    MessageBox.Show(
-                                        $"文件已成功转换为XLSX格式：\n{outputPath}",
-                                        "转换成功",
-                                        MessageBoxButton.OK,
-                                        MessageBoxImage.Information);
-                                }
-                                else
-                                {
-                                    string errorTitle = errorMsg?.Contains("未检测到") == true ? "需要 Microsoft Excel" : "转换错误";
-                                    System.Windows.MessageBox.Show(
-                                        errorMsg ?? "转换失败",
-                                        errorTitle,
-                                        MessageBoxButton.OK,
-                                        MessageBoxImage.Error);
-                                    btn.IsEnabled = true;
-                                    btn.Content = "🔄 转换为XLSX格式";
-                                }
                             }
                             catch (Exception ex)
                             {
-                                System.Windows.MessageBox.Show($"转换失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                                MessageBox.Show($"转换失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                                 btn.IsEnabled = true;
                                 btn.Content = "🔄 转换为XLSX格式";
                             }
                         }
-                        catch (Exception ex)
-                        {
-                            System.Windows.MessageBox.Show($"转换失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                            btn.IsEnabled = true;
-                            btn.Content = "🔄 转换为XLSX格式";
-                        }
-                    }
-                );
+                    );
 
-                // 如果没有安装Excel，禁用转换按钮
-                if (!hasExcel)
-                {
-                    convertButton.IsEnabled = false;
-                    convertButton.ToolTip = "未检测到 Microsoft Excel，无法使用自动转换功能";
-                }
-
-                var titleButtons = new List<Button>
-                {
-                    convertButton,
-                    PreviewHelper.CreateOpenButton(filePath)
-                };
-                var title = PreviewHelper.CreateTitlePanel("📊", $"Excel 旧格式: {Path.GetFileName(filePath)}", titleButtons);
-                panel.Children.Add(title);
-
-                // 添加统一的旧格式提示面板
-                var infoPanel = PreviewHelper.CreateLegacyFormatPanel(
-                    "Excel",
-                    "该文件为旧的 Excel 格式（Microsoft Excel 97-2003）\n" +
-                    "由于 XLS 使用二进制格式，无法直接预览内容。",
-                    hasExcel,
-                    "转换为XLSX格式"
-                );
-                panel.Children.Add(infoPanel);
-
-                return panel;
-            }
-
-            try
-            {
-                var grid = new Grid();
-                grid.RowDefinitions.Add(new RowDefinition
-                {
-                    Height = GridLength.Auto
-                }); // 标题栏
-                grid.RowDefinitions.Add(new RowDefinition
-                {
-                    Height = GridLength.Auto
-                }); // 工作表标签栏
-                grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // WebView内容
-
-                var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath) };
-                var titlePanel = PreviewHelper.CreateTitlePanel("📊", $"Excel 表格: {Path.GetFileName(filePath)}", buttons);
-                Grid.SetRow(titlePanel, 0);
-                grid.Children.Add(titlePanel);
-
-                // 获取所有工作表
-                var sheets = GetAllSheetNames(filePath);
-                if (sheets == null || sheets.Count == 0)
-                {
-                    sheets = new List<(string Name, string Id)> { ("Sheet1", "sheet1") };
-                }
-
-                // 工作表标签栏
-                var tabBorder = new Border
-                {
-                    Background = new SolidColorBrush(Color.FromRgb(245, 245, 245)),
-                    BorderBrush = new SolidColorBrush(Color.FromRgb(230, 230, 230)),
-                    BorderThickness = new Thickness(0, 0, 0, 1),
-                    Padding = new Thickness(10, 5, 10, 5)
-                };
-
-                var tabPanel = new StackPanel
-                {
-                    Orientation = Orientation.Horizontal
-                };
-
-                tabBorder.Child = tabPanel;
-
-                var webView = new WebView2 { VerticalAlignment = VerticalAlignment.Stretch, HorizontalAlignment = HorizontalAlignment.Stretch };
-                Grid.SetRow(webView, 2);
-                grid.Children.Add(webView);
-
-                // 当前选中的工作表
-                string currentSheetId = sheets[0].Id;
-
-                // 创建工作表标签按钮
-                foreach (var (sheetName, sheetId) in sheets)
-                {
-                    var tabButton = new Button
+                    // If no Excel, disable
+                    if (!hasExcel)
                     {
-                        Content = sheetName,
-                        Padding = new Thickness(12, 6, 12, 6),
-                        Margin = new Thickness(0, 0, 5, 0),
-                        FontSize = 13,
-                        Cursor = Cursors.Hand
+                        convertButton.IsEnabled = false;
+                        convertButton.ToolTip = "未检测到 Microsoft Excel，无法使用自动转换功能";
+                    }
+
+                    // Add Custom Button to Toolbar
+                    toolbar.CustomActionContent = convertButton;
+
+                    panel.Children.Add(toolbar);
+
+                    // Legacy Info Panel
+                    var infoPanel = PreviewHelper.CreateLegacyFormatPanel(
+                        "Excel",
+                        "该文件为旧的 Excel 格式（Microsoft Excel 97-2003）\n" +
+                        "由于 XLS 使用二进制格式，无法直接预览内容。",
+                        hasExcel,
+                        "转换为XLSX格式"
+                    );
+                    panel.Children.Add(infoPanel);
+
+                    return panel;
+                }
+                else
+                {
+                    // .xlsx preview with WebView2
+                    var grid = new Grid();
+                    grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Toolbar
+                    grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Sheets
+                    grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // Content
+
+                    Grid.SetRow(toolbar, 0);
+                    grid.Children.Add(toolbar);
+
+                    // Get Sheets
+                    var sheets = GetAllSheetNames(filePath);
+                    if (sheets == null || sheets.Count == 0)
+                    {
+                        sheets = new List<(string Name, string Id)> { ("Sheet1", "sheet1") };
+                    }
+
+                    // Tab bar for sheets
+                    var tabBorder = new Border
+                    {
+                        Background = new SolidColorBrush(Color.FromRgb(245, 245, 245)),
+                        BorderBrush = new SolidColorBrush(Color.FromRgb(230, 230, 230)),
+                        BorderThickness = new Thickness(0, 0, 0, 1),
+                        Padding = new Thickness(10, 5, 10, 5)
                     };
 
-                    // 设置第一个按钮为选中状态
-                    if (sheetId == currentSheetId)
-                    {
-                        tabButton.Background = new SolidColorBrush(Color.FromRgb(33, 150, 243));
-                        tabButton.Foreground = Brushes.White;
-                    }
-                    else
-                    {
-                        tabButton.Background = new SolidColorBrush(Color.FromRgb(250, 250, 250));
-                        tabButton.Foreground = Brushes.Black;
-                    }
+                    var tabPanel = new StackPanel { Orientation = Orientation.Horizontal };
+                    tabBorder.Child = tabPanel;
 
-                    tabButton.Click += async (s, e) =>
+                    var webView = new WebView2 { VerticalAlignment = VerticalAlignment.Stretch, HorizontalAlignment = HorizontalAlignment.Stretch };
+                    Grid.SetRow(webView, 2);
+                    grid.Children.Add(webView);
+
+                    string currentSheetId = sheets[0].Id;
+
+                    foreach (var (sheetName, sheetId) in sheets)
                     {
-                        // 更新所有按钮样式
-                        foreach (Button btn in tabPanel.Children)
+                        var tabButton = new Button
                         {
-                            btn.Background = new SolidColorBrush(Color.FromRgb(250, 250, 250));
-                            btn.Foreground = Brushes.Black;
+                            Content = sheetName,
+                            Padding = new Thickness(12, 6, 12, 6),
+                            Margin = new Thickness(0, 0, 5, 0),
+                            FontSize = 13,
+                            Cursor = Cursors.Hand
+                        };
+
+                        if (sheetId == currentSheetId)
+                        {
+                            tabButton.Background = new SolidColorBrush(Color.FromRgb(33, 150, 243));
+                            tabButton.Foreground = Brushes.White;
+                        }
+                        else
+                        {
+                            tabButton.Background = new SolidColorBrush(Color.FromRgb(250, 250, 250));
+                            tabButton.Foreground = Brushes.Black;
                         }
 
-                        // 设置当前按钮为选中状态
-                        tabButton.Background = new SolidColorBrush(Color.FromRgb(33, 150, 243));
-                        tabButton.Foreground = Brushes.White;
+                        tabButton.Click += async (s, e) =>
+                        {
+                            foreach (Button btn in tabPanel.Children)
+                            {
+                                btn.Background = new SolidColorBrush(Color.FromRgb(250, 250, 250));
+                                btn.Foreground = Brushes.Black;
+                            }
+                            tabButton.Background = new SolidColorBrush(Color.FromRgb(33, 150, 243));
+                            tabButton.Foreground = Brushes.White;
 
-                        // 加载对应的工作表
-                        currentSheetId = sheetId;
+                            currentSheetId = sheetId;
+                            try
+                            {
+                                await webView.EnsureCoreWebView2Async();
+                                var html = GenerateHtmlFromXlsx(filePath, sheetId);
+                                webView.NavigateToString(html);
+                            }
+                            catch (Exception ex)
+                            {
+                                webView.NavigateToString($"<html><body style='font-family:Segoe UI;color:#c00;padding:16px'>预览失败: {WebUtility.HtmlEncode(ex.Message)}</body></html>");
+                            }
+                        };
+
+                        tabPanel.Children.Add(tabButton);
+                    }
+
+                    Grid.SetRow(tabBorder, 1);
+                    grid.Children.Add(tabBorder);
+
+                    webView.Loaded += async (s, e) =>
+                    {
                         try
                         {
                             await webView.EnsureCoreWebView2Async();
-                            var html = GenerateHtmlFromXlsx(filePath, sheetId);
+                            var html = GenerateHtmlFromXlsx(filePath, currentSheetId);
                             webView.NavigateToString(html);
                         }
                         catch (Exception ex)
@@ -224,33 +234,16 @@ namespace OoiMRR.Previews
                         }
                     };
 
-                    tabPanel.Children.Add(tabButton);
+                    return grid;
                 }
-
-                Grid.SetRow(tabBorder, 1);
-                grid.Children.Add(tabBorder);
-
-                webView.Loaded += async (s, e) =>
-                {
-                    try
-                    {
-                        await webView.EnsureCoreWebView2Async();
-                        var html = GenerateHtmlFromXlsx(filePath, currentSheetId);
-                        webView.NavigateToString(html);
-                    }
-                    catch (Exception ex)
-                    {
-                        webView.NavigateToString($"<html><body style='font-family:Segoe UI;color:#c00;padding:16px'>预览失败: {WebUtility.HtmlEncode(ex.Message)}</body></html>");
-                    }
-                };
-
-                return grid;
             }
             catch (Exception ex)
             {
                 return PreviewHelper.CreateErrorPreview($"无法加载Excel: {ex.Message}");
             }
         }
+
+        // ... Keep existing helper methods (GetAllSheetNames, GenerateHtmlFromXlsx, FindWorksheetById, GetSheetNameById, ParseSharedStrings, ParseSheetRows, ColRefToIndex, IndexToCol, GetUniqueFilePath, ConvertXlsToXlsx, IsExcelInstalled) ...
 
         /// <summary>
         /// 获取所有工作表名称和ID
@@ -276,7 +269,6 @@ namespace OoiMRR.Previews
                     var sheetId = sheet.Attribute("sheetId")?.Value;
                     var rId = sheet.Attribute(System.Xml.Linq.XName.Get("id", "http://schemas.openxmlformats.org/officeDocument/2006/relationships"))?.Value;
 
-                    // 从关系ID获取工作表文件名（如 rId="rId1" -> sheet1.xml）
                     if (!string.IsNullOrEmpty(rId))
                     {
                         var relationships = zip.GetEntry("xl/_rels/workbook.xml.rels");
@@ -292,7 +284,6 @@ namespace OoiMRR.Previews
                                 var target = rel.Attribute("Target")?.Value;
                                 if (!string.IsNullOrEmpty(target))
                                 {
-                                    // target 通常是 "worksheets/sheet1.xml"，需要提取 sheet1
                                     var fileName = Path.GetFileNameWithoutExtension(target);
                                     sheets.Add((name ?? "Sheet1", fileName));
                                     continue;
@@ -301,7 +292,6 @@ namespace OoiMRR.Previews
                         }
                     }
 
-                    // 回退方案：使用sheetId（如果可用）
                     if (!string.IsNullOrEmpty(sheetId) && int.TryParse(sheetId, out var id))
                     {
                         sheets.Add((name ?? "Sheet1", $"sheet{id}"));
@@ -362,11 +352,9 @@ namespace OoiMRR.Previews
 
         private static ZipArchiveEntry FindWorksheetById(ZipArchive zip, string sheetId)
         {
-            // 尝试直接路径
             var e = zip.GetEntry($"xl/worksheets/{sheetId}.xml");
             if (e != null) return e;
 
-            // 回退：查找第一个工作表
             var any = zip.Entries.FirstOrDefault(x => x.FullName.StartsWith("xl/worksheets/") && x.FullName.EndsWith(".xml"));
             if (any == null) throw new InvalidOperationException("未找到工作表");
             return any;
@@ -380,7 +368,6 @@ namespace OoiMRR.Previews
             var doc = XDocument.Load(s);
             var ns = doc.Root?.Name.Namespace;
 
-            // 尝试通过关系ID查找
             var relEntry = zip.GetEntry("xl/_rels/workbook.xml.rels");
             if (relEntry != null)
             {
@@ -401,7 +388,6 @@ namespace OoiMRR.Previews
                 }
             }
 
-            // 回退：查找第一个工作表
             var firstSheet = doc.Descendants(ns + "sheet").FirstOrDefault();
             return firstSheet?.Attribute("name")?.Value;
         }
@@ -487,9 +473,6 @@ namespace OoiMRR.Previews
             return sb.ToString();
         }
 
-        /// <summary>
-        /// 生成唯一文件名（如果文件已存在，添加序号）
-        /// </summary>
         private string GetUniqueFilePath(string filePath)
         {
             if (!File.Exists(filePath))
@@ -513,16 +496,12 @@ namespace OoiMRR.Previews
             return newFilePath;
         }
 
-        /// <summary>
-        /// 将 XLS 文件转换为 XLSX 文件
-        /// </summary>
         private bool ConvertXlsToXlsx(string xlsPath, string xlsxPath, out string errorMessage)
         {
             errorMessage = null;
 
             try
             {
-                // 尝试使用 Excel COM 自动化
                 Type excelType = Type.GetTypeFromProgID("Excel.Application");
                 if (excelType == null)
                 {
@@ -533,22 +512,18 @@ namespace OoiMRR.Previews
                 dynamic excelApp = Activator.CreateInstance(excelType);
                 try
                 {
-                    // 尝试设置Visible=false，如果失败则忽略（某些版本不允许隐藏）
                     try
                     {
                         excelApp.Visible = false;
                     }
                     catch
                     {
-                        // 某些版本的Excel不允许隐藏窗口，忽略此错误
                     }
 
-                    excelApp.DisplayAlerts = false; // 禁用警告提示
+                    excelApp.DisplayAlerts = false;
 
                     dynamic workbook = excelApp.Workbooks.Open(xlsPath, ReadOnly: true);
 
-                    // 保存为 XLSX 格式
-                    // xlOpenXMLWorkbook = 51
                     workbook.SaveAs(xlsxPath, 51);
                     workbook.Close(false);
 
@@ -562,11 +537,9 @@ namespace OoiMRR.Previews
                     }
                     catch (COMException)
                     {
-                        // 忽略退出时的 COM 异常
                     }
                     catch
                     {
-                        // 忽略退出时的错误
                     }
                     try
                     {
@@ -574,11 +547,9 @@ namespace OoiMRR.Previews
                     }
                     catch (COMException)
                     {
-                        // 忽略释放时的 COM 异常
                     }
                     catch
                     {
-                        // 忽略释放时的错误
                     }
                 }
             }
@@ -588,9 +559,7 @@ namespace OoiMRR.Previews
                 return false;
             }
         }
-        /// <summary>
-        /// 检测是否安装了 Microsoft Excel
-        /// </summary>
+
         private bool IsExcelInstalled()
         {
             try

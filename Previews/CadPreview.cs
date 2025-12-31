@@ -7,6 +7,7 @@ using System.Windows.Media;
 using Microsoft.Web.WebView2.Wpf;
 using System.Diagnostics;
 using System.Threading.Tasks;
+using OoiMRR.Controls;
 
 namespace OoiMRR.Previews
 {
@@ -36,7 +37,19 @@ namespace OoiMRR.Previews
                 grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
                 var ext = Path.GetExtension(filePath).ToLower();
-                var buttons = new List<Button>();
+
+                // 统一工具栏
+                var toolbar = new TextPreviewToolbar
+                {
+                    FileName = Path.GetFileName(filePath),
+                    FileIcon = "📐",
+                    ShowSearch = false,
+                    ShowWordWrap = false,
+                    ShowEncoding = false,
+                    ShowViewToggle = false,
+                    ShowFormat = false
+                };
+                toolbar.OpenExternalRequested += (s, e) => PreviewHelper.OpenInDefaultApp(filePath);
 
                 // 如果是 DWG 文件，添加"转换为DXF格式"按钮
                 if (ext == ".dwg")
@@ -45,14 +58,11 @@ namespace OoiMRR.Previews
                         "🔄 转换为DXF格式",
                         (s, e) => ConvertDwgToDxf(filePath, s as Button)
                     );
-                    buttons.Add(convertButton);
+                    toolbar.CustomActionContent = convertButton;
                 }
 
-                buttons.Add(PreviewHelper.CreateOpenButton(filePath));
-
-                var titlePanel = PreviewHelper.CreateTitlePanel("📐", $"CAD 文件: {Path.GetFileName(filePath)}", buttons);
-                Grid.SetRow(titlePanel, 0);
-                grid.Children.Add(titlePanel);
+                Grid.SetRow(toolbar, 0);
+                grid.Children.Add(toolbar);
 
                 // Main content container
                 var main = new Grid { Margin = new Thickness(0) };

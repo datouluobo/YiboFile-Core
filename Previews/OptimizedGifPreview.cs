@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Collections.Generic;
+using OoiMRR.Controls;
 
 namespace OoiMRR.Previews
 {
@@ -20,11 +21,21 @@ namespace OoiMRR.Previews
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 工具栏
             grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // 内容区
 
-            // 标题栏
-            var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath) };
-            var titlePanel = PreviewHelper.CreateTitlePanel("🎞️", $"GIF 动画: {System.IO.Path.GetFileName(filePath)}", buttons);
-            Grid.SetRow(titlePanel, 0);
-            grid.Children.Add(titlePanel);
+            // 统一工具栏
+            var mainToolbar = new TextPreviewToolbar
+            {
+                FileName = System.IO.Path.GetFileName(filePath),
+                FileIcon = "🎞️",
+                ShowSearch = false,
+                ShowWordWrap = false,
+                ShowEncoding = false,
+                ShowViewToggle = false,
+                ShowFormat = false
+            };
+            mainToolbar.OpenExternalRequested += (s, e) => PreviewHelper.OpenInDefaultApp(filePath);
+
+            Grid.SetRow(mainToolbar, 0);
+            grid.Children.Add(mainToolbar);
 
             // Transform配置
             var scaleTransform = new ScaleTransform(1.0, 1.0);
@@ -72,7 +83,7 @@ namespace OoiMRR.Previews
                     TargetImage = image,
                     ScaleTransform = scaleTransform,
                     RotateTransform = rotateTransform,
-                    TitlePanel = titlePanel,
+                    TitlePanel = mainToolbar,
                     ParentGrid = grid
                 });
                 Grid.SetRow(toolbar, 1);

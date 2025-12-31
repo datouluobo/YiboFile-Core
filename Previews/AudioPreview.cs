@@ -6,6 +6,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Runtime.InteropServices;
+using OoiMRR.Controls;
 
 namespace OoiMRR.Previews
 {
@@ -32,10 +33,21 @@ namespace OoiMRR.Previews
                 mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
                 // 标题区域
-                var buttons = new List<Button> { PreviewHelper.CreateOpenButton(filePath) };
-                var titlePanel = PreviewHelper.CreateTitlePanel("🎵", $"音频文件: {Path.GetFileName(filePath)}", buttons);
-                Grid.SetRow(titlePanel, 0);
-                mainGrid.Children.Add(titlePanel);
+                // 统一工具栏
+                var toolbar = new TextPreviewToolbar
+                {
+                    FileName = Path.GetFileName(filePath),
+                    FileIcon = "🎵",
+                    ShowSearch = false,
+                    ShowWordWrap = false,
+                    ShowEncoding = false,
+                    ShowViewToggle = false,
+                    ShowFormat = false
+                };
+                toolbar.OpenExternalRequested += (s, e) => PreviewHelper.OpenInDefaultApp(filePath);
+
+                Grid.SetRow(toolbar, 0);
+                mainGrid.Children.Add(toolbar);
 
                 // 文件信息区域
                 var infoPanel = new StackPanel
@@ -73,7 +85,7 @@ namespace OoiMRR.Previews
                 {
                     return PreviewHelper.CreateErrorPreview($"音频文件不存在: {filePath}");
                 }
-                
+
                 // 确保使用绝对路径
                 if (!Path.IsPathRooted(filePath))
                 {
@@ -100,7 +112,7 @@ namespace OoiMRR.Previews
                 string midiAlias = null;
                 long midiLengthMs = 0;
                 bool midiReady = false;
-                
+
                 // 设置MediaElement的Source（MediaElement只支持Uri，不支持文件流）
                 // 注意：需要在添加到Grid之后再设置Source，确保MediaElement已加载
                 // MediaElement可能不支持某些格式（如FLAC），但不影响显示预览界面
@@ -271,10 +283,10 @@ namespace OoiMRR.Previews
                     }
                     else
                     {
-                        totalTimeText.Text = $"{(int)(midiLengthMs/60000):D2}:{(int)((midiLengthMs/1000)%60):D2}";
-                        progressSlider.Maximum = midiLengthMs > 0 ? midiLengthMs/1000.0 : 100;
+                        totalTimeText.Text = $"{(int)(midiLengthMs / 60000):D2}:{(int)((midiLengthMs / 1000) % 60):D2}";
+                        progressSlider.Maximum = midiLengthMs > 0 ? midiLengthMs / 1000.0 : 100;
                     }
-                    
+
                     // 媒体加载失败事件
                     if (!isMidi)
                     {
@@ -306,11 +318,11 @@ namespace OoiMRR.Previews
                 buttonStyle.Setters.Add(new Setter(Button.ForegroundProperty, Brushes.White));
                 buttonStyle.Setters.Add(new Setter(Button.BorderThicknessProperty, new Thickness(0)));
                 buttonStyle.Setters.Add(new Setter(Button.CursorProperty, System.Windows.Input.Cursors.Hand));
-                
+
                 var playHoverTrigger = new Trigger { Property = Button.IsMouseOverProperty, Value = true };
                 playHoverTrigger.Setters.Add(new Setter(Button.BackgroundProperty, new SolidColorBrush(Color.FromRgb(0, 102, 204))));
                 buttonStyle.Triggers.Add(playHoverTrigger);
-                
+
                 playPauseButton.Style = buttonStyle;
                 playPauseButton.Background = new SolidColorBrush(Color.FromRgb(33, 150, 243));
 
@@ -336,7 +348,7 @@ namespace OoiMRR.Previews
                     stopButton.IsEnabled = false;
                     volumeSlider.IsEnabled = false;
                     progressSlider.IsEnabled = false;
-                    
+
                     // 添加提示信息
                     var formatWarning = new TextBlock
                     {
@@ -477,8 +489,8 @@ namespace OoiMRR.Previews
                                 MciSendString($"status {midiAlias} position", posBuf, posBuf.Capacity, IntPtr.Zero);
                                 if (int.TryParse(posBuf.ToString(), out var ms))
                                 {
-                                    currentTimeText.Text = $"{(int)(ms/60000):D2}:{(int)((ms/1000)%60):D2}";
-                                    progressSlider.Value = ms/1000.0;
+                                    currentTimeText.Text = $"{(int)(ms / 60000):D2}:{(int)((ms / 1000) % 60):D2}";
+                                    progressSlider.Value = ms / 1000.0;
                                     if (isPlaying && midiLengthMs > 0 && ms >= midiLengthMs)
                                     {
                                         MciSendString($"seek {midiAlias} to 0", null, 0, IntPtr.Zero);
@@ -541,7 +553,7 @@ namespace OoiMRR.Previews
                             playPauseButton.Content = "▶️ 播放";
                             isPlaying = false;
                         }
-                        
+
                         System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
                         {
                             FileName = filePath,
