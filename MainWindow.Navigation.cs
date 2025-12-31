@@ -364,7 +364,7 @@ namespace OoiMRR
                                 {
                                     FileBrowser.FilesItemsSource = _currentFiles;
                                 }
-                                catch (ArgumentException argEx)
+                                catch (ArgumentException)
                                 {
                                     // 尝试重建集合以规避可能的 CollectionView 内部错误
                                     var freshList = new List<FileSystemItem>(items);
@@ -372,7 +372,7 @@ namespace OoiMRR
                                 }
                             }
                         }
-                        catch (Exception innerEx)
+                        catch (Exception)
                         {
                         }
                         finally

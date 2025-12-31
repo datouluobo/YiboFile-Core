@@ -237,18 +237,26 @@ namespace OoiMRR
             // Step 4: Apply Initial State (Logic/UI Update Phase)
             initializer.ApplyInitialState();
 
+            // 订阅标签页管理器的新建标签页事件
+            TabManager.NewTabRequested += (s, e) =>
+            {
+                // 创建空白标签页
+                CreateTab(Environment.GetFolderPath(Environment.SpecialFolder.Desktop));
+            };
+
             // Hook up dynamic tab margin adjustment
             if (WindowButtonsStackPanel != null)
             {
+                // 订阅窗口按钮栏size变化以调整TabManager的Margin
                 WindowButtonsStackPanel.SizeChanged += (s, e) => UpdateTabManagerMargin();
             }
 
-            // Robust event hooking
+            // 初始化时和窗口状态/大小变化时更新TabManager的Margin
             this.Loaded += (s, e) => UpdateTabManagerMargin();
             this.StateChanged += (s, e) => UpdateTabManagerMargin();
             this.SizeChanged += (s, e) => UpdateTabManagerMargin();
 
-            // Initial update
+            // 立即更新一次
             UpdateTabManagerMargin();
         }
 

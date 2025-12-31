@@ -93,7 +93,7 @@ namespace OoiMRR.Services.FileNotes
                 {
                     SyncFileNotesFts();
                 }
-                catch (Exception syncEx)
+                catch (Exception)
                 {
                 }
 

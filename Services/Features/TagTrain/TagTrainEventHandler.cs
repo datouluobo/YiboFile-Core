@@ -160,7 +160,7 @@ namespace OoiMRR.Services.TagTrain
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
         }

@@ -450,6 +450,19 @@ namespace OoiMRR
                 GetCurrentNavigationMode = () => _configService?.Config?.LastNavigationMode ?? "Path"
             };
             _tabService.AttachUiContext(context);
+
+            // 订阅新建标签页事件
+            TabManager.NewTabRequested += (s, e) =>
+            {
+                try
+                {
+                    _tabService?.CreateBlankTab();
+                }
+                catch
+                {
+                    // 忽略错误
+                }
+            };
         }
     }
 }

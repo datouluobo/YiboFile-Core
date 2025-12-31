@@ -152,10 +152,10 @@
                                  HorizontalAlignment="Stretch"
                                  VerticalAlignment="Stretch"/>
 
-        <!-- 设置覆盖层：覆盖列2和列3 -->
+        <!-- 设置覆盖层:覆盖所有内容列,不包括标题栏 -->
         <Grid Name="SettingsOverlay"
-              Grid.Row="2" Grid.RowSpan="2"
-              Grid.Column="2" Grid.ColumnSpan="3"
+              Grid.Row="1" Grid.RowSpan="3"
+              Grid.Column="0" Grid.ColumnSpan="5"
               Background="{DynamicResource AppBackgroundBrush}"
               Panel.ZIndex="5000"
               Visibility="Collapsed">

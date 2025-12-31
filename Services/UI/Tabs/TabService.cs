@@ -749,7 +749,18 @@ namespace OoiMRR.Services.Tabs
                 Title = GetPathDisplayTitle(path)
             };
 
+
             CreateTabInternal(newTab, activate);
+        }
+
+        /// <summary>
+        /// 创建空白标签页(默认打开桌面路径)
+        /// </summary>
+        public PathTab CreateBlankTab()
+        {
+            var desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+            CreatePathTab(desktopPath, forceNewTab: true);
+            return ActiveTab as PathTab;
         }
 
         public void OpenLibraryTab(Library library, bool forceNewTab = false, bool activate = true)
@@ -1060,6 +1071,7 @@ namespace OoiMRR.Services.Tabs
             {
                 container.Children.Clear();
                 _ui.TabManager.TabsPanelControl.Children.Remove(container);
+                _ui.TabManager.EnsureNewTabButtonLast();
                 _ui.TabManager.TabsPanelControl.UpdateLayout();
                 _ui.TabManager.TabsBorderControl?.UpdateLayout();
             }
@@ -1132,8 +1144,13 @@ namespace OoiMRR.Services.Tabs
             _ui.TabManager.TabsPanelControl.Children.Clear();
             foreach (var t in ordered)
             {
-                if (t.TabContainer != null) _ui.TabManager.TabsPanelControl.Children.Add(t.TabContainer);
+                if (t.TabContainer != null)
+                {
+                    _ui.TabManager.TabsPanelControl.Children.Add(t.TabContainer);
+                }
             }
+            // 确保+按钮在最后
+            _ui.TabManager.EnsureNewTabButtonLast();
             _ui.TabManager.TabsPanelControl.UpdateLayout();
             _ui.TabManager.TabsBorderControl?.UpdateLayout();
         }
@@ -1565,6 +1582,7 @@ namespace OoiMRR.Services.Tabs
             if (_ui.TabManager?.TabsPanelControl != null)
             {
                 _ui.TabManager.TabsPanelControl.Children.Add(tabContainer);
+                _ui.TabManager.EnsureNewTabButtonLast();
                 // 确保拖拽功能已初始化
                 InitializeTabsDragDrop();
             }

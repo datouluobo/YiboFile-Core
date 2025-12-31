@@ -224,13 +224,13 @@ namespace OoiMRR.Services.QuickAccess
                                         return;
                                     }
                                 }
-                                catch (UnauthorizedAccessException ex)
+                                catch (UnauthorizedAccessException)
                                 {
                                     // MessageBox.Show($"无法访问路径: {path}\n\n{ex.Message}", "权限错误", MessageBoxButton.OK, MessageBoxImage.Warning);
                                     e.Handled = true;
                                     return;
                                 }
-                                catch (Exception ex)
+                                catch (Exception)
                                 {
                                     // MessageBox.Show($"无法打开路径: {path}\n\n{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
                                     e.Handled = true;
