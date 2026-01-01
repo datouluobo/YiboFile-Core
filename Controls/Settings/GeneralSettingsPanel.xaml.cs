@@ -15,7 +15,6 @@ namespace OoiMRR.Controls.Settings
     {
         public event EventHandler SettingsChanged;
 
-        private ComboBox _themeComboBox;
         private CheckBox _rememberWindowPositionCheckBox;
         private CheckBox _startMaximizedCheckBox;
         private TextBox _baseDirectoryTextBox;
@@ -57,23 +56,15 @@ namespace OoiMRR.Controls.Settings
             };
             stackPanel.Children.Add(appearanceTitle);
 
-            var themePanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 24) };
-            var themeLabel = new TextBlock
+            var appearanceHint = new TextBlock
             {
-                Text = "主题模式:",
-                FontSize = 14,
-                VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(0, 0, 12, 0),
-                MinWidth = 140
+                Text = "提示：主题、颜色、透明度等外观设置已移至\"外观\"设置面板。",
+                FontSize = 12,
+                Margin = new Thickness(0, 0, 0, 24),
+                TextWrapping = TextWrapping.Wrap
             };
-            themePanel.Children.Add(themeLabel);
-
-            _themeComboBox = new ComboBox { Width = 200, Height = 32, FontSize = 14, VerticalContentAlignment = VerticalAlignment.Center, Padding = new Thickness(10, 0, 0, 0) };
-            _themeComboBox.Items.Add(new ComboBoxItem { Content = "浅色模式 (Light)", Tag = "Light" });
-            _themeComboBox.Items.Add(new ComboBoxItem { Content = "深色模式 (Dark)", Tag = "Dark" });
-            _themeComboBox.SelectionChanged += ThemeComboBox_SelectionChanged;
-            themePanel.Children.Add(_themeComboBox);
-            stackPanel.Children.Add(themePanel);
+            appearanceHint.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
+            stackPanel.Children.Add(appearanceHint);
 
             // 窗口设置
             var windowTitle = new TextBlock
@@ -669,18 +660,6 @@ namespace OoiMRR.Controls.Settings
                 if (_startMaximizedCheckBox != null)
                     _startMaximizedCheckBox.IsChecked = config.IsMaximized;
 
-                if (_themeComboBox != null)
-                {
-                    string theme = config.Theme ?? "Light";
-                    foreach (ComboBoxItem item in _themeComboBox.Items)
-                    {
-                        if ((item.Tag as string) == theme)
-                        {
-                            _themeComboBox.SelectedItem = item;
-                            break;
-                        }
-                    }
-                }
                 // 加载固定标签页宽度
                 if (_pinnedTabWidthTextBox != null)
                 {
@@ -749,12 +728,6 @@ namespace OoiMRR.Controls.Settings
                 // 启动时最大化
                 if (_startMaximizedCheckBox != null)
                     config.IsMaximized = _startMaximizedCheckBox.IsChecked ?? true;
-
-                // 主题
-                if (_themeComboBox != null && _themeComboBox.SelectedItem is ComboBoxItem selectedItem && selectedItem.Tag is string theme)
-                {
-                    config.Theme = theme;
-                }
 
                 // 标签页宽度模式
                 if (_tabWidthDynamicRadio != null && _tabWidthDynamicRadio.IsChecked == true)
@@ -1113,20 +1086,6 @@ namespace OoiMRR.Controls.Settings
 
             // 触发设置变更事件，让MainWindow应用宽度
             SettingsChanged?.Invoke(this, EventArgs.Empty);
-        }
-
-        private void ThemeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (_isLoadingSettings) return;
-
-            if (_themeComboBox.SelectedItem is ComboBoxItem selectedItem && selectedItem.Tag is string theme)
-            {
-                // 立即应用主题（启用动画）
-                OoiMRR.Services.Theming.ThemeManager.SetTheme(theme, animate: true);
-
-                // 保存设置
-                OnSettingChanged();
-            }
         }
 
         private void BrowseBaseDirectory_Click(object sender, RoutedEventArgs e)

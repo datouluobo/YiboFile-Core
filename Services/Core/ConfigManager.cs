@@ -29,7 +29,12 @@ namespace OoiMRR
         public double WindowTop { get; set; } = double.NaN;
         public double WindowLeft { get; set; } = double.NaN;
         public bool IsMaximized { get; set; } = true;
-        public string Theme { get; set; } = "Light"; // Light, Dark
+        public string Theme { get; set; } = "Light"; // Light, Dark (保留兼容性)
+
+        // 外观设置
+        public string ThemeMode { get; set; } = "FollowSystem"; // Light, Dark, FollowSystem
+        public double WindowOpacity { get; set; } = 1.0; // 窗口透明度 (0.5-1.0)
+        public bool AnimationsEnabled { get; set; } = true; // 动画效果启用
 
         // 主布局列宽度（列1和列2）
         public double ColLeftWidth { get; set; } = 220; // 列1（左侧导航区）宽度

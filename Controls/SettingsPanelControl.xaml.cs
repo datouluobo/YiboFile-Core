@@ -78,6 +78,7 @@ namespace OoiMRR.Controls
             UserControl panel = category switch
             {
                 "General" => new Settings.GeneralSettingsPanel(),
+                "Appearance" => new Settings.AppearanceSettingsPanel(),
                 "FileList" => new Settings.FileListSettingsPanel(),
                 "Path" => new Settings.PathSettingsPanel(),
                 "Library" => new Settings.LibrarySettingsPanel(),
