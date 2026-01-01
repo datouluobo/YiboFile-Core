@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Media.Animation;
+using Microsoft.Win32; // SystemEvents 和 Registry
 
 namespace OoiMRR.Services.Theming
 {
@@ -14,6 +15,12 @@ namespace OoiMRR.Services.Theming
     {
         private static readonly Dictionary<string, ThemeMetadata> _themes = new();
         private static ThemeMetadata _currentTheme;
+        private static bool _isFollowingSystemTheme = false;
+
+        /// <summary>
+        /// 动画效果启用状态（从配置读取）
+        /// </summary>
+        public static bool AnimationsEnabled { get; set; } = true;
 
         /// <summary>
         /// 主题变更事件
@@ -112,7 +119,10 @@ namespace OoiMRR.Services.Theming
 
             var newTheme = _themes[themeId];
 
-            if (animate && _currentTheme != null)
+            // 考虑全局动画设置
+            bool shouldAnimate = animate && AnimationsEnabled;
+
+            if (shouldAnimate && _currentTheme != null)
             {
                 AnimateThemeTransition(() => ApplyTheme(newTheme));
             }
@@ -206,6 +216,118 @@ namespace OoiMRR.Services.Theming
             var newThemeId = _currentTheme.Id == "Light" ? "Dark" : "Light";
             SetTheme(newThemeId, animate: true);
         }
+
+        #region 系统主题跟随
+
+        /// <summary>
+        /// 启用系统主题跟随
+        /// </summary>
+        public static void EnableSystemThemeFollowing()
+        {
+            if (_isFollowingSystemTheme)
+            {
+                System.Diagnostics.Debug.WriteLine("System theme following is already enabled.");
+                return;
+            }
+
+            _isFollowingSystemTheme = true;
+
+            // 立即应用当前系统主题
+            try
+            {
+                var systemTheme = DetectSystemTheme();
+                SetTheme(systemTheme, animate: false);
+                System.Diagnostics.Debug.WriteLine($"System theme following enabled. Current system theme: {systemTheme}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to apply system theme: {ex.Message}");
+            }
+
+            // 监听系统主题变化
+            SystemEvents.UserPreferenceChanged += OnSystemPreferenceChanged;
+        }
+
+        /// <summary>
+        /// 禁用系统主题跟随
+        /// </summary>
+        public static void DisableSystemThemeFollowing()
+        {
+            if (!_isFollowingSystemTheme)
+            {
+                return;
+            }
+
+            _isFollowingSystemTheme = false;
+            SystemEvents.UserPreferenceChanged -= OnSystemPreferenceChanged;
+            System.Diagnostics.Debug.WriteLine("System theme following disabled.");
+        }
+
+        /// <summary>
+        /// 系统偏好设置变化事件处理
+        /// </summary>
+        private static void OnSystemPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
+        {
+            // 只响应主题相关的变化
+            if (e.Category == UserPreferenceCategory.General)
+            {
+                try
+                {
+                    var newTheme = DetectSystemTheme();
+                    var currentThemeId = _currentTheme?.Id;
+
+                    if (newTheme != currentThemeId)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"System theme changed: {currentThemeId} -> {newTheme}");
+
+                        // 在UI线程上切换主题
+                        Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                        {
+                            SetTheme(newTheme, animate: true);
+                        }));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error handling system theme change: {ex.Message}");
+                }
+            }
+        }
+
+        /// <summary>
+        /// 检测Windows系统主题
+        /// </summary>
+        /// <returns>主题ID（"Light" 或 "Dark"）</returns>
+        public static string DetectSystemTheme()
+        {
+            try
+            {
+                using (var key = Registry.CurrentUser.OpenSubKey(
+                    @"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"))
+                {
+                    if (key != null)
+                    {
+                        var value = key.GetValue("AppsUseLightTheme");
+                        if (value is int intValue)
+                        {
+                            // 0 = Dark, 1 = Light
+                            var theme = intValue == 0 ? "Dark" : "Light";
+                            System.Diagnostics.Debug.WriteLine($"Detected system theme: {theme} (value: {intValue})");
+                            return theme;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to detect system theme: {ex.Message}");
+            }
+
+            // 默认返回浅色主题
+            return "Light";
+        }
+
+        #endregion
     }
 
     /// <summary>

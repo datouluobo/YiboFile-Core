@@ -85,9 +85,23 @@ namespace OoiMRR
                 try
                 {
                     var config = ConfigManager.Load();
-                    var themeName = config?.Theme ?? "Light";
-                    OoiMRR.Services.Theming.ThemeManager.SetTheme(themeName, animate: false);
-                    FileLogger.Log($"Theme applied: {themeName}");
+                    var themeMode = config?.ThemeMode ?? "FollowSystem";
+
+                    // 设置动画启用状态
+                    OoiMRR.Services.Theming.ThemeManager.AnimationsEnabled = config?.AnimationsEnabled ?? true;
+
+                    // 根据主题模式应用主题
+                    if (themeMode == "FollowSystem")
+                    {
+                        OoiMRR.Services.Theming.ThemeManager.EnableSystemThemeFollowing();
+                        FileLogger.Log("System theme following enabled.");
+                    }
+                    else
+                    {
+                        // 使用显式指定的主题
+                        OoiMRR.Services.Theming.ThemeManager.SetTheme(themeMode, animate: false);
+                        FileLogger.Log($"Theme applied: {themeMode}");
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -166,6 +180,21 @@ namespace OoiMRR
                 var mainWindow = new MainWindow();
                 mainWindow.Show();
                 FileLogger.Log("MainWindow.Show called.");
+
+                // 应用窗口透明度设置
+                try
+                {
+                    var config = ConfigManager.Load();
+                    if (config?.WindowOpacity > 0 && config.WindowOpacity <= 1.0)
+                    {
+                        mainWindow.Opacity = config.WindowOpacity;
+                        FileLogger.Log($"Window opacity applied: {config.WindowOpacity}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    FileLogger.LogException("Failed to apply window opacity", ex);
+                }
             }
             catch (Exception ex)
             {
@@ -227,6 +256,16 @@ namespace OoiMRR
 
         protected override void OnExit(ExitEventArgs e)
         {
+            // 取消系统主题监听
+            try
+            {
+                OoiMRR.Services.Theming.ThemeManager.DisableSystemThemeFollowing();
+            }
+            catch (Exception ex)
+            {
+                FileLogger.LogException("Failed to disable system theme following", ex);
+            }
+
             // 释放Mutex - 只在我们拥有它时才释放
             if (_mutex != null && _mutexOwned)
             {

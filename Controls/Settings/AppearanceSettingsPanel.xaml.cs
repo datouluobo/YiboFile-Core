@@ -106,7 +106,18 @@ namespace OoiMRR.Controls.Settings
             };
             stackPanel.Children.Add(previewTitle);
 
-            var previewGrid = new Grid { Margin = new Thickness(0, 0, 0, 24) };
+            // 颜色预览容器 - 使用卡片样式
+            var previewContainer = new Border
+            {
+                CornerRadius = new CornerRadius(8),
+                Padding = new Thickness(16),
+                Margin = new Thickness(0, 0, 0, 24),
+                BorderThickness = new Thickness(1)
+            };
+            previewContainer.SetResourceReference(Border.BackgroundProperty, "BackgroundSecondaryBrush");
+            previewContainer.SetResourceReference(Border.BorderBrushProperty, "BorderDefaultBrush");
+
+            var previewGrid = new Grid();
             previewGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             previewGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             previewGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -122,7 +133,8 @@ namespace OoiMRR.Controls.Settings
             previewGrid.Children.Add(_previewSurfaceColor);
             previewGrid.Children.Add(_previewTextColor);
 
-            stackPanel.Children.Add(previewGrid);
+            previewContainer.Child = previewGrid;
+            stackPanel.Children.Add(previewContainer);
 
             // ========================================
             // 窗口透明度
@@ -225,27 +237,39 @@ namespace OoiMRR.Controls.Settings
         {
             var container = new StackPanel
             {
-                Margin = new Thickness(0, 0, column < 3 ? 8 : 0, 0)
+                Margin = new Thickness(0, 0, column < 3 ? 12 : 0, 0)
             };
 
             var colorLabel = new TextBlock
             {
                 Text = label,
                 FontSize = 12,
-                Margin = new Thickness(0, 0, 0, 4),
-                HorizontalAlignment = HorizontalAlignment.Center
+                Margin = new Thickness(0, 0, 0, 8),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                FontWeight = FontWeights.Medium
             };
             colorLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
             container.Children.Add(colorLabel);
 
             var colorBorder = new Border
             {
-                Height = 60,
-                CornerRadius = new CornerRadius(4),
-                BorderThickness = new Thickness(1)
+                Height = 80,  // 增大高度
+                CornerRadius = new CornerRadius(6),  // 更圆润的圆角
+                BorderThickness = new Thickness(2)
             };
             colorBorder.SetResourceReference(Border.BackgroundProperty, resourceKey);
             colorBorder.SetResourceReference(Border.BorderBrushProperty, "BorderDefaultBrush");
+
+            // 添加悬停效果
+            colorBorder.MouseEnter += (s, e) =>
+            {
+                colorBorder.BorderThickness = new Thickness(3);
+            };
+            colorBorder.MouseLeave += (s, e) =>
+            {
+                colorBorder.BorderThickness = new Thickness(2);
+            };
+
             container.Children.Add(colorBorder);
 
             var wrapper = new Border { Child = container };
