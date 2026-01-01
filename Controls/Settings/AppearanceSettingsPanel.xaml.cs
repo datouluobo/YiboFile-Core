@@ -11,6 +11,7 @@ using OoiMRR.Models;
 using OoiMRR.Services.Config;
 using OoiMRR.Services.Theming;
 using OoiMRR.Windows;
+using System.Windows.Controls.Primitives;
 
 namespace OoiMRR.Controls.Settings
 {
@@ -30,6 +31,80 @@ namespace OoiMRR.Controls.Settings
         private Border _previewTextColor;
 
         private bool _isLoadingSettings = false;
+
+        // 详细颜色编辑相关
+        private Popup _colorPickerPopup;
+        private ColorPickerControl _colorPicker;
+        private string _editingColorKey;
+        private Dictionary<string, Border> _colorBlockMap = new Dictionary<string, Border>();
+
+        // 颜色分组定义 (与ThemeColorEditorWindow保持一致)
+        private static readonly Dictionary<string, List<(string Key, string Name)>> ColorGroups = new Dictionary<string, List<(string, string)>>
+        {
+            {
+                "背景色", new List<(string, string)>
+                {
+                    ("BackgroundPrimaryBrush", "主背景"),
+                    ("BackgroundSecondaryBrush", "次背景/面板"),
+                    ("BackgroundTertiaryBrush", "三级背景/卡片"),
+                    ("BackgroundElevatedBrush", "对话框/浮动"),
+                    ("AppBackgroundBrush", "应用背景")
+                }
+            },
+            {
+                "文本色", new List<(string, string)>
+                {
+                    ("ForegroundPrimaryBrush", "主要文本"),
+                    ("ForegroundSecondaryBrush", "次要文本"),
+                    ("ForegroundDisabledBrush", "禁用文本"),
+                    ("ForegroundOnAccentBrush", "强调色上的文本")
+                }
+            },
+            {
+                "强调色/交互", new List<(string, string)>
+                {
+                    ("AccentDefaultBrush", "主强调色"),
+                    ("AccentHoverBrush", "悬停"),
+                    ("AccentPressedBrush", "按下"),
+                    ("AccentSelectedBrush", "选中"),
+                    ("AccentLightBrush", "浅强调色背景")
+                }
+            },
+            {
+                "边框色", new List<(string, string)>
+                {
+                    ("BorderDefaultBrush", "默认边框"),
+                    ("BorderSubtleBrush", "淡边框"),
+                    ("BorderFocusBrush", "聚焦边框")
+                }
+            },
+            {
+                "控件状态", new List<(string, string)>
+                {
+                    ("ControlDefaultBrush", "控件默认"),
+                    ("ControlHoverBrush", "控件悬停"),
+                    ("ControlPressedBrush", "控件按下"),
+                    ("ControlDisabledBrush", "控件禁用")
+                }
+            },
+            {
+                "语义颜色", new List<(string, string)>
+                {
+                    ("SuccessBrush", "成功"),
+                    ("WarningBrush", "警告"),
+                    ("ErrorBrush", "错误"),
+                    ("InfoBrush", "信息")
+                }
+            },
+            {
+                "特殊用途", new List<(string, string)>
+                {
+                    ("ShadowBrush", "阴影"),
+                    ("OverlayBrush", "遮罩"),
+                    ("DividerBrush", "分隔线")
+                }
+            }
+        };
 
         public AppearanceSettingsPanel()
         {
@@ -171,64 +246,56 @@ namespace OoiMRR.Controls.Settings
             stackPanel.Children.Add(customThemeButtonsGrid);
 
             // ========================================
-            // 快速强调色选择
+            // 详细颜色调节 (替代原快速强调色)
             // ========================================
             var accentTitle = new TextBlock
             {
-                Text = "强调色",
+                Text = "主题颜色详情调节",
                 FontSize = 16,
                 FontWeight = FontWeights.SemiBold,
                 Margin = new Thickness(0, 0, 0, 12)
             };
             stackPanel.Children.Add(accentTitle);
 
-            var accentPanel = new WrapPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 24) };
-
-            // 7种常用颜色
-            var commonColors = new[]
+            var accentHint = new TextBlock
             {
-                ("#FF6F00", "日落橙"), // Sunset
-                ("#0078D7", "深海蓝"), // Ocean
-                ("#28A745", "森林绿"), // Forest
-                ("#6F42C1", "罗兰紫"), // Purple
-                ("#DC3545", "赤红"),
-                ("#00B7C3", "青色"),
-                ("#E83E8C", "粉红")
+                Text = "点击下方颜色块直接修改对应颜色。修改将自动创建并应用“我的自定义主题”。",
+                FontSize = 12,
+                Margin = new Thickness(0, 0, 0, 16),
+                TextWrapping = TextWrapping.Wrap
             };
+            accentHint.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
+            stackPanel.Children.Add(accentHint);
 
-            foreach (var (colorHex, name) in commonColors)
+            // 构建分组UI
+            foreach (var group in ColorGroups)
             {
-                var colorButton = new Button
+                // 分组标题
+                var groupHeader = new TextBlock
                 {
-                    Width = 32,
-                    Height = 32,
-                    Margin = new Thickness(0, 0, 12, 0),
-                    ToolTip = name,
-                    Cursor = Cursors.Hand
+                    Text = group.Key,
+                    FontSize = 13,
+                    FontWeight = FontWeights.Medium,
+                    Margin = new Thickness(4, 8, 0, 8),
+                    Opacity = 0.8
                 };
+                groupHeader.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundPrimaryBrush");
+                stackPanel.Children.Add(groupHeader);
 
-                // 圆形按钮样式
-                var template = new ControlTemplate(typeof(Button));
-                var factory = new FrameworkElementFactory(typeof(Border));
-                factory.SetValue(Border.CornerRadiusProperty, new CornerRadius(16));
-                factory.SetValue(Border.BackgroundProperty, new SolidColorBrush((Color)ColorConverter.ConvertFromString(colorHex)));
-                factory.SetValue(Border.BorderThicknessProperty, new Thickness(1));
-                factory.SetValue(Border.BorderBrushProperty, new SolidColorBrush(Colors.Transparent)); // 默认无边框
-                factory.Name = "border";
-                template.VisualTree = factory;
+                // 颜色块容器
+                var wrapPanel = new WrapPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 12) };
 
-                // 触发器：鼠标悬停和按下效果
-                var triggerMouseOver = new Trigger { Property = IsMouseOverProperty, Value = true };
-                triggerMouseOver.Setters.Add(new Setter(OpacityProperty, 0.8));
-                template.Triggers.Add(triggerMouseOver);
+                foreach (var (key, name) in group.Value)
+                {
+                    var colorBlockContainer = CreateColorBlockUi(key, name);
+                    wrapPanel.Children.Add(colorBlockContainer);
+                }
 
-                colorButton.Template = template;
-                colorButton.Click += (s, e) => ApplyAccentColor(colorHex);
-
-                accentPanel.Children.Add(colorButton);
+                stackPanel.Children.Add(wrapPanel);
             }
 
-            stackPanel.Children.Add(accentPanel);
+            // 初始化Popup
+            InitializeColorPickerPopup();
 
             // ========================================
             // 恢复默认按钮
@@ -458,6 +525,9 @@ namespace OoiMRR.Controls.Settings
 
                 // 加载动画设置
                 _animationsEnabledCheckBox.IsChecked = config.AnimationsEnabled;
+
+                // 刷新颜色块状态
+                RefreshColorBlocks();
             }
             finally
             {
@@ -927,6 +997,163 @@ namespace OoiMRR.Controls.Settings
                 // 插入到'创建自定义主题'分隔线之前，或者直接添加到最后
                 _themeComboBox.Items.Add(newItem);
                 _themeComboBox.SelectedItem = newItem;
+            }
+        }
+
+        /// <summary>
+        /// 创建单个颜色调节块UI
+        /// </summary>
+        private FrameworkElement CreateColorBlockUi(string key, string name)
+        {
+            var container = new StackPanel { Orientation = Orientation.Vertical, Margin = new Thickness(0, 0, 12, 8), Width = 70 };
+
+            var border = new Border
+            {
+                Width = 48,
+                Height = 32,
+                CornerRadius = new CornerRadius(4),
+                BorderThickness = new Thickness(1),
+                Cursor = Cursors.Hand,
+                Background = Brushes.Transparent, // 初始透明，LoadSettings会更新
+                Tag = key // 存储key
+            };
+            border.SetResourceReference(Border.BorderBrushProperty, "BorderDefaultBrush");
+
+            // 点击事件
+            border.MouseLeftButtonUp += (s, e) =>
+            {
+                _editingColorKey = key;
+                OpenColorPicker(border);
+            };
+
+            // 存储引用以便后续更新
+            _colorBlockMap[key] = border;
+
+            var label = new TextBlock
+            {
+                Text = name,
+                FontSize = 10,
+                TextAlignment = TextAlignment.Center,
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 4, 0, 0),
+                Height = 28
+            };
+            label.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
+
+            container.Children.Add(border);
+            container.Children.Add(label);
+
+            return container;
+        }
+
+        private void InitializeColorPickerPopup()
+        {
+            _colorPicker = new ColorPickerControl { Width = 280, Height = 350 };
+            _colorPicker.ColorChanged += OnColorPickerChanged;
+
+            var border = new Border
+            {
+                Child = _colorPicker,
+                CornerRadius = new CornerRadius(8),
+                Background = Brushes.White,
+                Effect = new System.Windows.Media.Effects.DropShadowEffect { BlurRadius = 10, ShadowDepth = 2, Opacity = 0.3 }
+            };
+
+            _colorPickerPopup = new Popup
+            {
+                Child = border,
+                StaysOpen = false,
+                Placement = PlacementMode.Bottom,
+                PopupAnimation = PopupAnimation.Fade,
+                AllowsTransparency = true
+            };
+        }
+
+        private void OpenColorPicker(Border targetBlock)
+        {
+            if (_colorPickerPopup == null || _colorPicker == null) return;
+
+            // 获取当前颜色
+            if (targetBlock.Background is SolidColorBrush brush)
+            {
+                _colorPicker.SelectedColor = brush.Color;
+            }
+
+            _colorPickerPopup.PlacementTarget = targetBlock;
+            _colorPickerPopup.IsOpen = true;
+        }
+
+        private void OnColorPickerChanged(object sender, Color newColor)
+        {
+            if (string.IsNullOrEmpty(_editingColorKey)) return;
+
+            UpdateSingleColor(_editingColorKey, newColor);
+
+            // 更新UI以即时反馈
+            if (_colorBlockMap.TryGetValue(_editingColorKey, out var block))
+            {
+                block.Background = new SolidColorBrush(newColor);
+            }
+        }
+
+        private void UpdateSingleColor(string key, Color color)
+        {
+            try
+            {
+                // 1. 确定基准主题
+                var currentId = ConfigurationService.Instance.GetSnapshot().ThemeMode;
+                string baseTheme = "Light";
+
+                if (currentId == "Dark" || currentId == "Sunset" || currentId == "Ocean" || currentId == "Purple" || currentId == "Night")
+                    baseTheme = "Dark";
+                else if (currentId != "FollowSystem" && currentId != "QuickCustomTheme")
+                    baseTheme = "Light";
+                // 如果当前已经是自定义主题，baseTheme其实不重要， CreateFromCurrent会处理
+
+                // 2. 创建或更新 "QuickCustomTheme"
+                // 始终使用 CreateFromCurrent 以捕获当前所有修改过的资源值
+                var theme = CustomThemeManager.CreateFromCurrent("我的自定义主题", baseTheme);
+                theme.Id = "QuickCustomTheme";
+
+                // 3. 应用新颜色
+                var hexColor = $"#{color.R:X2}{color.G:X2}{color.B:X2}";
+                theme.Colors[key] = hexColor;
+
+                // 4. 保存并应用
+                CustomThemeManager.Save(theme);
+                CustomThemeManager.Apply(theme);
+
+                // 5. 更新配置
+                UpdateThemeComboBoxSelection(theme);
+                ConfigurationService.Instance.Update(config => config.ThemeMode = theme.Id);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Apply color failed: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 刷新所有颜色块的显示以匹配当前资源
+        /// </summary>
+        private void RefreshColorBlocks()
+        {
+            foreach (var kvp in _colorBlockMap)
+            {
+                var key = kvp.Key;
+                var border = kvp.Value;
+
+                // 尝试从Application.Resources获取资源
+                // 注意：FindResource可能会找到Theme字典里的值，也可能是覆盖的值
+                // 我们直接使用 Application.Current.FindResource
+                try
+                {
+                    if (Application.Current.TryFindResource(key) is SolidColorBrush brush)
+                    {
+                        border.Background = brush;
+                    }
+                }
+                catch { }
             }
         }
 
