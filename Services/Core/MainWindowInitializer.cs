@@ -117,11 +117,13 @@ namespace OoiMRR.Services
                     {
                         var settingsOverlay = _mainWindow.FindName("SettingsOverlay") as System.Windows.Controls.Grid;
                         var settingsPanel = _mainWindow.FindName("SettingsPanel") as Controls.SettingsPanelControl;
+                        var rightPanel = _mainWindow.FindName("RightPanel") as System.Windows.UIElement;
                         if (settingsOverlay != null && settingsPanel != null)
                         {
                             _mainWindow._settingsOverlayController = new Settings.SettingsOverlayController(
                                 settingsOverlay,
                                 settingsPanel,
+                                rightPanel,
                                 (cfg) => _mainWindow._configService?.ApplyConfig(cfg)
                             );
                         }

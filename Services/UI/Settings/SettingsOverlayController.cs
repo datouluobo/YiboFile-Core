@@ -13,13 +13,16 @@ namespace OoiMRR.Services.Settings
     {
         private readonly Grid _overlay;
         private readonly SettingsPanelControl _panel;
+        private readonly UIElement _rightPanel;
         private readonly Action<AppConfig> _applyConfig;
         private bool _isInitialized;
+        private Visibility _previousRightPanelVisibility;
 
-        public SettingsOverlayController(Grid overlay, SettingsPanelControl panel, Action<AppConfig> applyConfig)
+        public SettingsOverlayController(Grid overlay, SettingsPanelControl panel, UIElement rightPanel, Action<AppConfig> applyConfig)
         {
             _overlay = overlay ?? throw new ArgumentNullException(nameof(overlay));
             _panel = panel ?? throw new ArgumentNullException(nameof(panel));
+            _rightPanel = rightPanel; // 可以为null
             _applyConfig = applyConfig;
 
             AttachEvents();
@@ -40,6 +43,14 @@ namespace OoiMRR.Services.Settings
         public void Show()
         {
             _panel.LoadAllSettings();
+
+            // 隐藏右侧面板
+            if (_rightPanel != null)
+            {
+                _previousRightPanelVisibility = _rightPanel.Visibility;
+                _rightPanel.Visibility = Visibility.Collapsed;
+            }
+
             _overlay.Visibility = Visibility.Visible;
             _isInitialized = true;
         }
@@ -62,6 +73,12 @@ namespace OoiMRR.Services.Settings
             // 实时预览已经通过SettingsChanged事件在修改时应用了
 
             _overlay.Visibility = Visibility.Collapsed;
+
+            // 恢复右侧面板
+            if (_rightPanel != null)
+            {
+                _rightPanel.Visibility = _previousRightPanelVisibility;
+            }
         }
 
         public void Dispose()
