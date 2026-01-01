@@ -225,6 +225,76 @@ namespace OoiMRR.Services.Theming
         }
 
         /// <summary>
+        /// 根据ID获取自定义主题
+        /// </summary>
+        public static CustomTheme GetTheme(string themeId)
+        {
+            // 1. 尝试从缓存获取
+            if (_cachedThemes != null)
+            {
+                var cached = _cachedThemes.FirstOrDefault(t => t.Id == themeId);
+                if (cached != null) return cached;
+            }
+
+            // 2. 尝试从磁盘加载
+            try
+            {
+                var fileName = $"{themeId}.json";
+                var filePath = Path.Combine(CustomThemesDirectory, fileName);
+
+                if (File.Exists(filePath))
+                {
+                    var json = File.ReadAllText(filePath);
+                    var theme = JsonSerializer.Deserialize<CustomTheme>(json);
+                    if (ValidateTheme(theme))
+                    {
+                        // 确保缓存已初始化
+                        if (_cachedThemes == null) _cachedThemes = new List<CustomTheme>();
+                        if (!_cachedThemes.Any(t => t.Id == theme.Id))
+                        {
+                            _cachedThemes.Add(theme);
+                        }
+                        return theme;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[CustomThemeManager] Failed to get theme {themeId}: {ex.Message}");
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// 清除所有自定义颜色覆盖（恢复使用ResourceDictionary定义的值）
+        /// </summary>
+        public static void ClearOverrides()
+        {
+            try
+            {
+                var appResources = Application.Current.Resources;
+                var keys = GetCoreColorKeys();
+
+                foreach (var key in keys)
+                {
+                    if (appResources.Contains(key))
+                    {
+                        // 只有通过索引器赋值的本地值才能被Remove移除以恢复DynamicResource的查找链
+                        // 注意：如果ResourceDictionary里也有这个key，Remove只会移除本地覆盖的值
+                        appResources.Remove(key);
+                    }
+                }
+
+                System.Diagnostics.Debug.WriteLine("[CustomThemeManager] Cleared all resource overrides.");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[CustomThemeManager] Failed to clear overrides: {ex.Message}");
+            }
+        }
+
+        /// <summary>
         /// 验证主题数据
         /// </summary>
         private static bool ValidateTheme(CustomTheme theme)
@@ -255,7 +325,7 @@ namespace OoiMRR.Services.Theming
         /// <summary>
         /// 获取28个核心颜色键
         /// </summary>
-        private static List<string> GetCoreColorKeys()
+        public static List<string> GetCoreColorKeys()
         {
             return new List<string>
             {

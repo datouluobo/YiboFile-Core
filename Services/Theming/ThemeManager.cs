@@ -6,6 +6,8 @@ using System.Windows;
 using System.Windows.Media.Animation;
 using Microsoft.Win32; // SystemEvents 和 Registry
 
+using OoiMRR.Models;
+
 namespace OoiMRR.Services.Theming
 {
     /// <summary>
@@ -39,7 +41,7 @@ namespace OoiMRR.Services.Theming
         {
             try
             {
-                // 尝试获取Them es目录下所有主题文件
+                // 尝试获取Themes目录下所有主题文件
                 var themesPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Themes");
 
                 // 自动扫描所有.xaml文件
@@ -161,29 +163,79 @@ namespace OoiMRR.Services.Theming
 
         /// <summary>
         /// 设置主题（支持动画）
+        /// 根据ID自动判断是内置主题还是自定义主题
         /// </summary>
         /// <param name="themeId">主题ID</param>
         /// <param name="animate">是否使用动画过渡</param>
         public static void SetTheme(string themeId, bool animate = true)
         {
-            if (!_themes.ContainsKey(themeId))
+            // 1. 尝试内置主题
+            if (_themes.ContainsKey(themeId))
             {
-                throw new ArgumentException($"Theme '{themeId}' not found.");
+                // 在应用内置主题前，必须清除可能的自定义颜色覆盖
+                // 确保从自定义主题切回内置主题时能恢复原样
+                CustomThemeManager.ClearOverrides();
+
+                var newTheme = _themes[themeId];
+
+                // 考虑全局动画设置
+                bool shouldAnimate = animate && AnimationsEnabled;
+
+                if (shouldAnimate && _currentTheme != null)
+                {
+                    AnimateThemeTransition(() => ApplyTheme(newTheme));
+                }
+                else
+                {
+                    ApplyTheme(newTheme);
+                }
+                return;
             }
 
-            var newTheme = _themes[themeId];
-
-            // 考虑全局动画设置
-            bool shouldAnimate = animate && AnimationsEnabled;
-
-            if (shouldAnimate && _currentTheme != null)
+            // 2. 尝试自定义主题
+            // 委托给CustomThemeManager处理
+            var customTheme = CustomThemeManager.GetTheme(themeId);
+            if (customTheme != null)
             {
-                AnimateThemeTransition(() => ApplyTheme(newTheme));
+                // 先应用基础主题（无动画），确保底层资源正确（如不可定制的画笔）
+                // 递归调用自身会进入上面的内置主题分支，从而触发 ClearOverrides 和 ApplyTheme
+                // 这为您提供了一个干净的底板，然后再应用自定义覆盖
+                if (_themes.ContainsKey(customTheme.BaseTheme))
+                {
+                    SetTheme(customTheme.BaseTheme, animate: false);
+                }
+
+                // 应用自定义颜色覆盖 (直接修改 Application.Resources)
+                CustomThemeManager.Apply(customTheme);
+
+                // 构造一个临时的 Metadata 以更新 CurrentTheme
+                var oldTheme = _currentTheme;
+                var customThemeMetadata = new ThemeMetadata
+                {
+                    Id = customTheme.Id,
+                    DisplayName = customTheme.Name,
+                    Description = "用户自定义主题",
+                    IsBuiltIn = false,
+                    Source = null, // 自定义主题没有单一的Source文件
+                    CreatedAt = customTheme.CreatedAt,
+                    // 预览颜色可以从customTheme.Colors中提取，这里简化处理
+                    PreviewColors = new ThemePreviewColors
+                    {
+                        Primary = customTheme.Colors.ContainsKey("AccentDefaultBrush") ? customTheme.Colors["AccentDefaultBrush"] : "#000000",
+                        Background = customTheme.Colors.ContainsKey("BackgroundPrimaryBrush") ? customTheme.Colors["BackgroundPrimaryBrush"] : "#FFFFFF",
+                        Surface = customTheme.Colors.ContainsKey("BackgroundSecondaryBrush") ? customTheme.Colors["BackgroundSecondaryBrush"] : "#F5F5F5",
+                        TextPrimary = customTheme.Colors.ContainsKey("ForegroundPrimaryBrush") ? customTheme.Colors["ForegroundPrimaryBrush"] : "#000000"
+                    }
+                };
+
+                _currentTheme = customThemeMetadata;
+                ThemeChanged?.Invoke(null, new ThemeChangedEventArgs(oldTheme, customThemeMetadata));
+
+                System.Diagnostics.Debug.WriteLine($"Custom theme applied: {customTheme.Name} ({customTheme.Id})");
+                return;
             }
-            else
-            {
-                ApplyTheme(newTheme);
-            }
+
+            throw new ArgumentException($"Theme '{themeId}' not found.");
         }
 
         /// <summary>
