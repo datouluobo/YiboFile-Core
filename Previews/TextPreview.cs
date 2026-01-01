@@ -156,7 +156,7 @@ namespace OoiMRR.Previews
                     AcceptsReturn = true,
                     AcceptsTab = true
                 };
-                _textBox.SetResourceReference(TextBox.BackgroundProperty, "PreviewPanelBackgroundBrush");
+                _textBox.SetResourceReference(TextBox.BackgroundProperty, "BackgroundPrimaryBrush");
                 _textBox.SetResourceReference(TextBox.ForegroundProperty, "ForegroundPrimaryBrush");
 
                 bool isEditMode = false;
@@ -256,7 +256,7 @@ namespace OoiMRR.Previews
 
                             // 切换为只读模式
                             _textBox.IsReadOnly = true;
-                            _textBox.SetResourceReference(TextBox.BackgroundProperty, "PreviewPanelBackgroundBrush");
+                            _textBox.SetResourceReference(TextBox.BackgroundProperty, "BackgroundPrimaryBrush");
                             isEditMode = false;
                             _toolbar.SetEditMode(false);
 

@@ -99,7 +99,7 @@
     <!-- 预览组件别名 -->
     <SolidColorBrush x:Key="PreviewTitleBackgroundBrush" Color="#FFF8F0"/>
     <SolidColorBrush x:Key="PreviewTitleForegroundBrush" Color="#BF360C"/>
-    <SolidColorBrush x:Key="PreviewPanelBackgroundBrush" Color="#FAFAFA"/>
+    <SolidColorBrush x:Key="PreviewPanelBackgroundBrush" Color="#FFF8F0"/>
     <SolidColorBrush x:Key="PreviewTextPrimaryBrush" Color="#BF360C"/>
 
     <!-- 状态色别名 -->
