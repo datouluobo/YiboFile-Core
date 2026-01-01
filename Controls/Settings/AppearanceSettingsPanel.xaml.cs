@@ -171,6 +171,82 @@ namespace OoiMRR.Controls.Settings
             stackPanel.Children.Add(customThemeButtonsGrid);
 
             // ========================================
+            // 快速强调色选择
+            // ========================================
+            var accentTitle = new TextBlock
+            {
+                Text = "强调色",
+                FontSize = 16,
+                FontWeight = FontWeights.SemiBold,
+                Margin = new Thickness(0, 0, 0, 12)
+            };
+            stackPanel.Children.Add(accentTitle);
+
+            var accentPanel = new WrapPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 24) };
+
+            // 7种常用颜色
+            var commonColors = new[]
+            {
+                ("#FF6F00", "日落橙"), // Sunset
+                ("#0078D7", "深海蓝"), // Ocean
+                ("#28A745", "森林绿"), // Forest
+                ("#6F42C1", "罗兰紫"), // Purple
+                ("#DC3545", "赤红"),
+                ("#00B7C3", "青色"),
+                ("#E83E8C", "粉红")
+            };
+
+            foreach (var (colorHex, name) in commonColors)
+            {
+                var colorButton = new Button
+                {
+                    Width = 32,
+                    Height = 32,
+                    Margin = new Thickness(0, 0, 12, 0),
+                    ToolTip = name,
+                    Cursor = Cursors.Hand
+                };
+
+                // 圆形按钮样式
+                var template = new ControlTemplate(typeof(Button));
+                var factory = new FrameworkElementFactory(typeof(Border));
+                factory.SetValue(Border.CornerRadiusProperty, new CornerRadius(16));
+                factory.SetValue(Border.BackgroundProperty, new SolidColorBrush((Color)ColorConverter.ConvertFromString(colorHex)));
+                factory.SetValue(Border.BorderThicknessProperty, new Thickness(1));
+                factory.SetValue(Border.BorderBrushProperty, new SolidColorBrush(Colors.Transparent)); // 默认无边框
+                factory.Name = "border";
+                template.VisualTree = factory;
+
+                // 触发器：鼠标悬停和按下效果
+                var triggerMouseOver = new Trigger { Property = IsMouseOverProperty, Value = true };
+                triggerMouseOver.Setters.Add(new Setter(OpacityProperty, 0.8));
+                template.Triggers.Add(triggerMouseOver);
+
+                colorButton.Template = template;
+                colorButton.Click += (s, e) => ApplyAccentColor(colorHex);
+
+                accentPanel.Children.Add(colorButton);
+            }
+
+            stackPanel.Children.Add(accentPanel);
+
+            // ========================================
+            // 恢复默认按钮
+            // ========================================
+            var resetPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 24) };
+            var resetButton = new Button
+            {
+                Content = "↺ 恢复默认主题",
+                Padding = new Thickness(12, 6, 12, 6),
+                ToolTip = "将主题重置为默认状态，清除所有自定义修改"
+            };
+            resetButton.SetResourceReference(Button.BackgroundProperty, "ControlDefaultBrush"); // 使用较弱的背景色
+            resetButton.Click += ResetTheme_Click;
+
+            resetPanel.Children.Add(resetButton);
+            stackPanel.Children.Add(resetPanel);
+
+            // ========================================
             // 主题颜色预览
             // ========================================
             var previewTitle = new TextBlock
@@ -743,6 +819,142 @@ namespace OoiMRR.Controls.Settings
             }
 
             SaveSettings();
+        }
+
+        private void ApplyAccentColor(string hexColor)
+        {
+            try
+            {
+                // 1. 确定基准主题 (如果是Light/Dark等内置主题，以此为基准；如果是已有自定义主题，以此为基准)
+                // 简化逻辑：总是基于当前正在运行的主题颜色创建/更新一个名为 "我的自定义主题" 的配置
+
+                var currentId = ConfigurationService.Instance.GetSnapshot().ThemeMode;
+                string baseTheme = "Light";
+
+                if (currentId == "Dark" || currentId == "Sunset" || currentId == "Ocean" || currentId == "Purple" || currentId == "Night")
+                    baseTheme = "Dark";
+                else if (currentId != "FollowSystem")
+                    baseTheme = "Light"; // 默认为Light
+
+                // 2. 创建一个基于当前视觉状态的自定义主题
+                // 我们使用 "QuickCustom" 作为专用ID来存储这种快速修改
+                var theme = CustomThemeManager.CreateFromCurrent("我的自定义主题", baseTheme);
+                theme.Id = "QuickCustomTheme";
+
+                // 3. 覆盖强调色相关的所有画笔
+                // 简单的算法：悬停变亮，按下变暗
+                var baseColor = (Color)ColorConverter.ConvertFromString(hexColor);
+
+                theme.Colors["AccentDefaultBrush"] = hexColor;
+                theme.Colors["AccentHoverBrush"] = ChangeColorBrightness(baseColor, 0.2f); // 亮20%
+                theme.Colors["AccentPressedBrush"] = ChangeColorBrightness(baseColor, -0.2f); // 暗20%
+                theme.Colors["AccentSelectedBrush"] = hexColor;
+                theme.Colors["ControlFocusBrush"] = hexColor;
+                theme.Colors["BorderFocusBrush"] = hexColor;
+                theme.Colors["ForegroundOnAccentBrush"] = "#FFFFFF"; // 假设强调色总是深色，配白字
+
+                // 4. 保存并应用
+                CustomThemeManager.Save(theme);
+                CustomThemeManager.Apply(theme);
+
+                // 5. 更新配置为使用该自定义主题
+                // 我们需要确保ComboBox选中它（如果不在列表中，需添加）
+                UpdateThemeComboBoxSelection(theme);
+
+                // 保存设置
+                ConfigurationService.Instance.Update(config => config.ThemeMode = theme.Id);
+
+                // 提示用户
+                // MessageBox.Show("强调色已更新！", "提示", MessageBoxButton.OK, MessageBoxImage.Information); 
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"应用颜色失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void ResetTheme_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // 1. 恢复到跟随系统，或者默认为Light
+                var defaultTheme = "FollowSystem";
+
+                // 2. 更新配置
+                ConfigurationService.Instance.Update(config => config.ThemeMode = defaultTheme);
+
+                // 3. 触发主题切换逻辑 (LoadSettings会处理ComboBox选中，SelectionChanged会触发ThemeManager)
+                LoadSettings();
+
+                // 4. 强制刷新ComboBox选定项的事件以应用主题
+                if (_themeComboBox.SelectedItem is ThemeComboBoxItem item && item.ThemeId == defaultTheme)
+                {
+                    ThemeManager.EnableSystemThemeFollowing(); // 显式调用以防ComboBox没触发
+                }
+
+                MessageBox.Show("主题已恢复默认设置。", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"重置失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void UpdateThemeComboBoxSelection(CustomTheme customTheme)
+        {
+            // 检查ComboBox中是否已有该项
+            bool found = false;
+            foreach (ThemeComboBoxItem item in _themeComboBox.Items)
+            {
+                if (item.ThemeId == customTheme.Id)
+                {
+                    _themeComboBox.SelectedItem = item;
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found)
+            {
+                // 如果是新创建的自定义主题，添加到列表
+                var newItem = new ThemeComboBoxItem
+                {
+                    DisplayName = "🎨 " + customTheme.Name,
+                    ThemeId = customTheme.Id,
+                    Description = "用户自定义主题"
+                };
+
+                // 插入到'创建自定义主题'分隔线之前，或者直接添加到最后
+                _themeComboBox.Items.Add(newItem);
+                _themeComboBox.SelectedItem = newItem;
+            }
+        }
+
+        /// <summary>
+        /// 调整颜色亮度
+        /// factor: >0 变亮, <0 变暗
+        /// </summary>
+        private string ChangeColorBrightness(Color color, float factor)
+        {
+            float r = (float)color.R;
+            float g = (float)color.G;
+            float b = (float)color.B;
+
+            if (factor < 0)
+            {
+                factor = 1 + factor;
+                r *= factor;
+                g *= factor;
+                b *= factor;
+            }
+            else
+            {
+                r = (255 - r) * factor + r;
+                g = (255 - g) * factor + g;
+                b = (255 - b) * factor + b;
+            }
+
+            return $"#{((byte)r):X2}{((byte)g):X2}{((byte)b):X2}";
         }
     }
 
