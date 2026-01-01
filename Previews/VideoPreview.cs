@@ -414,7 +414,7 @@ namespace OoiMRR.Previews
                 // 进度条和时间显示区域
                 var progressPanel = new Grid
                 {
-                    Background = (Brush)Application.Current.FindResource("BackgroundPrimaryBrush"),
+                    Background = (Brush)Application.Current.FindResource("AppBackgroundBrush"),
                     Margin = new Thickness(0, 5, 0, 0)
                 };
 
@@ -465,7 +465,7 @@ namespace OoiMRR.Previews
                 var controlPanel = new Grid
                 {
                     HorizontalAlignment = HorizontalAlignment.Stretch,
-                    Background = (Brush)Application.Current.FindResource("BackgroundPrimaryBrush"),
+                    Background = (Brush)Application.Current.FindResource("AppBackgroundBrush"),
                     Margin = new Thickness(0, 5, 0, 5)
                 };
                 controlPanel.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
