@@ -74,10 +74,10 @@ namespace OoiMRR.Services.Settings
 
             _overlay.Visibility = Visibility.Collapsed;
 
-            // 恢复右侧面板
+            // 恢复右侧面板为可见，让预览功能自己决定是否显示内容
             if (_rightPanel != null)
             {
-                _rightPanel.Visibility = _previousRightPanelVisibility;
+                _rightPanel.Visibility = Visibility.Visible;
             }
         }
 
