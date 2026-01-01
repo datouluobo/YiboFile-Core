@@ -18,8 +18,7 @@ namespace OoiMRR.Controls.Settings
     {
         public event EventHandler SettingsChanged;
 
-        private Dictionary<string, RadioButton> _themeRadios = new Dictionary<string, RadioButton>();
-        private RadioButton _themeFollowSystemRadio;
+        private ComboBox _themeComboBox;
         private Slider _opacitySlider;
         private TextBlock _opacityValueText;
         private CheckBox _animationsEnabledCheckBox;
@@ -64,36 +63,64 @@ namespace OoiMRR.Controls.Settings
             themeDescription.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
             stackPanel.Children.Add(themeDescription);
 
-            // 动态加载所有可用主题
-            var availableThemes = ThemeManager.GetAvailableThemes().ToList();
-            foreach (var theme in availableThemes.OrderBy(t => t.Id))
+            // 主题选择ComboBox
+            var themeSelectionLabel = new TextBlock
             {
-                var radio = new RadioButton
-                {
-                    Content = $"{theme.DisplayName} ({theme.Id})",
-                    GroupName = "ThemeMode",
-                    FontSize = 14,
-                    MinHeight = 32,
-                    Margin = new Thickness(0, 0, 0, 8),
-                    Tag = theme.Id
-                };
-                radio.Checked += ThemeRadio_Checked;
-                _themeRadios[theme.Id] = radio;
-                stackPanel.Children.Add(radio);
-            }
+                Text = "选择主题：",
+                FontSize = 14,
+                FontWeight = FontWeights.Medium,
+                Margin = new Thickness(0, 0, 0, 8)
+            };
+            themeSelectionLabel.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundPrimaryBrush");
+            stackPanel.Children.Add(themeSelectionLabel);
+
+            _themeComboBox = new ComboBox
+            {
+                MinHeight = 36,
+                FontSize = 14,
+                Margin = new Thickness(0, 0, 0, 24)
+            };
+            _themeComboBox.SetResourceReference(ComboBox.BackgroundProperty, "BackgroundElevatedBrush");
+            _themeComboBox.SetResourceReference(ComboBox.ForegroundProperty, "ForegroundPrimaryBrush");
+            _themeComboBox.SetResourceReference(ComboBox.BorderBrushProperty, "BorderDefaultBrush");
 
             // 添加"跟随系统"选项
-            _themeFollowSystemRadio = new RadioButton
+            _themeComboBox.Items.Add(new ThemeComboBoxItem
             {
-                Content = "跟随系统",
-                GroupName = "ThemeMode",
-                FontSize = 14,
-                MinHeight = 32,
-                Margin = new Thickness(0, 0, 0, 24),
-                Tag = "FollowSystem"
-            };
-            _themeFollowSystemRadio.Checked += ThemeRadio_Checked;
-            stackPanel.Children.Add(_themeFollowSystemRadio);
+                DisplayName = "🔄 跟随系统",
+                ThemeId = "FollowSystem",
+                Description = "自动跟随Windows系统主题设置"
+            });
+
+            // 添加分隔线（使用特殊标记）
+            _themeComboBox.Items.Add(new ThemeComboBoxItem
+            {
+                DisplayName = "──────────",
+                ThemeId = "Separator",
+                Description = "",
+                IsEnabled = false
+            });
+
+            // 动态加载所有可用主题
+            var availableThemes = ThemeManager.GetAvailableThemes()
+                .OrderBy(t => t.Id)
+                .ToList();
+
+            foreach (var theme in availableThemes)
+            {
+                // 选择emoji图标
+                string emoji = GetThemeEmoji(theme.Id);
+
+                _themeComboBox.Items.Add(new ThemeComboBoxItem
+                {
+                    DisplayName = $"{emoji} {theme.DisplayName}",
+                    ThemeId = theme.Id,
+                    Description = theme.Description
+                });
+            }
+
+            _themeComboBox.SelectionChanged += ThemeComboBox_SelectionChanged;
+            stackPanel.Children.Add(_themeComboBox);
 
             // ========================================
             // 自定义主题管理
@@ -329,17 +356,15 @@ namespace OoiMRR.Controls.Settings
 
                 // 加载主题模式
                 var themeMode = config.ThemeMode ?? "FollowSystem";
-                if (themeMode == "FollowSystem")
+
+                // 在ComboBox中查找匹配的主题
+                foreach (ThemeComboBoxItem item in _themeComboBox.Items)
                 {
-                    _themeFollowSystemRadio.IsChecked = true;
-                }
-                else if (_themeRadios.ContainsKey(themeMode))
-                {
-                    _themeRadios[themeMode].IsChecked = true;
-                }
-                else if (_themeRadios.ContainsKey("Light"))
-                {
-                    _themeRadios["Light"].IsChecked = true;
+                    if (item.ThemeId == themeMode)
+                    {
+                        _themeComboBox.SelectedItem = item;
+                        break;
+                    }
                 }
 
                 // 加载窗口透明度
@@ -361,15 +386,13 @@ namespace OoiMRR.Controls.Settings
             ConfigurationService.Instance.Update(config =>
             {
                 // 保存主题模式
-                if (_themeFollowSystemRadio.IsChecked == true)
+                if (_themeComboBox.SelectedItem is ThemeComboBoxItem selectedItem)
                 {
-                    config.ThemeMode = "FollowSystem";
+                    config.ThemeMode = selectedItem.ThemeId;
                 }
                 else
                 {
-                    // 找到被选中的主题
-                    var selectedTheme = _themeRadios.FirstOrDefault(kv => kv.Value.IsChecked == true);
-                    config.ThemeMode = selectedTheme.Key ?? "Light";
+                    config.ThemeMode = "FollowSystem";
                 }
 
                 // 保存窗口透明度
@@ -378,31 +401,6 @@ namespace OoiMRR.Controls.Settings
                 // 保存动画设置
                 config.AnimationsEnabled = _animationsEnabledCheckBox.IsChecked ?? true;
             });
-        }
-
-        private void ThemeRadio_Checked(object sender, RoutedEventArgs e)
-        {
-            if (_isLoadingSettings) return;
-
-            var radioButton = sender as RadioButton;
-            if (radioButton == null || radioButton.Tag == null) return;
-
-            var themeId = radioButton.Tag as string;
-
-            if (themeId == "FollowSystem")
-            {
-                // 跟随系统主题
-                ThemeManager.EnableSystemThemeFollowing();
-            }
-            else
-            {
-                // 应用指定主题
-                ThemeManager.DisableSystemThemeFollowing();
-                ThemeManager.SetTheme(themeId, animate: _animationsEnabledCheckBox?.IsChecked ?? true);
-            }
-
-            SaveSettings();
-            SettingsChanged?.Invoke(this, EventArgs.Empty);
         }
 
         private void OpacitySlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -688,6 +686,67 @@ namespace OoiMRR.Controls.Settings
 
             card.Child = grid;
             return card;
+        }
+
+        /// <summary>
+        /// 根据主题ID获取对应的emoji图标
+        /// </summary>
+        private string GetThemeEmoji(string themeId)
+        {
+            return themeId switch
+            {
+                "Light" => "☀️",
+                "Dark" => "🌙",
+                "Ocean" => "🌊",
+                "Forest" => "🌲",
+                "Sunset" => "🌅",
+                "Purple" => "💜",
+                "Nordic" => "🏔️",
+                _ => "🎨"
+            };
+        }
+
+        /// <summary>
+        /// 主题ComboBox选择变化事件
+        /// </summary>
+        private void ThemeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isLoadingSettings) return;
+            if (_themeComboBox.SelectedItem is not ThemeComboBoxItem selectedItem) return;
+            if (selectedItem.ThemeId == "Separator")
+            {
+                // 如果选中了分隔线，恢复之前的选择
+                e.Handled = true;
+                return;
+            }
+
+            if (selectedItem.ThemeId == "FollowSystem")
+            {
+                ThemeManager.EnableSystemThemeFollowing();
+            }
+            else
+            {
+                ThemeManager.DisableSystemThemeFollowing();
+                ThemeManager.SetTheme(selectedItem.ThemeId, animate: _animationsEnabledCheckBox?.IsChecked ?? true);
+            }
+
+            SaveSettings();
+        }
+    }
+
+    /// <summary>
+    /// 主题ComboBox项
+    /// </summary>
+    public class ThemeComboBoxItem
+    {
+        public string DisplayName { get; set; }
+        public string ThemeId { get; set; }
+        public string Description { get; set; }
+        public bool IsEnabled { get; set; } = true;
+
+        public override string ToString()
+        {
+            return DisplayName;
         }
     }
 }
