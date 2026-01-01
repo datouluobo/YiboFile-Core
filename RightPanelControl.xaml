@@ -29,7 +29,7 @@
                       DragCompleted="GridSplitter_DragCompleted"/>
         
         <!-- 行1：预览区 - 保持原有预览功能，图片时使用TagTrain样式 -->
-        <Border Grid.Row="1" Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1">
+        <Border Grid.Row="1" Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1">
             <Grid Name="PreviewGrid" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ClipToBounds="True">
                 <!-- 原有的预览区域（用于非图片文件） -->
                 <TextBlock Text="选择一个文件进行预览" 
@@ -95,7 +95,7 @@
         </Border>
         
         <!-- 行3：备注区 -->
-        <Border Grid.Row="3" Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0">
+        <Border Grid.Row="3" Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0">
             <TextBox Name="NotesTextBox" Padding="8,4,8,4" 
                      AcceptsReturn="True" 
                      TextWrapping="Wrap"
@@ -103,7 +103,7 @@
                      HorizontalAlignment="Stretch"
                      VerticalAlignment="Stretch"
                      TextChanged="NotesTextBox_TextChanged"
-                     Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="Transparent" BorderThickness="0"/>
+                     Background="{DynamicResource AppBackgroundBrush}" BorderBrush="Transparent" BorderThickness="0"/>
         </Border>
     </Grid>
 </UserControl>
