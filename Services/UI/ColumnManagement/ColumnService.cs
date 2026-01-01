@@ -7,6 +7,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using OoiMRR.Controls;
 using System.Windows.Controls.Primitives;
+using OoiMRR.Services.UI.ColumnManagement;
 
 namespace OoiMRR.Services.ColumnManagement
 {
@@ -200,26 +201,43 @@ namespace OoiMRR.Services.ColumnManagement
         {
             if (gridView == null) return;
 
-            // 清除所有列头的排序指示器
+            // 清除所有列头的排序指示器（附加属性）
             foreach (var column in gridView.Columns)
             {
                 var header = column.Header as GridViewColumnHeader;
-                if (header != null && header.Tag != null)
+                if (header != null)
                 {
-                    var content = header.Content.ToString();
-                    // 移除现有的排序符号
-                    content = content.Replace(" ▲", "").Replace(" ▼", "");
-                    header.Content = content;
+                    //清除附加属性
+                    ColumnHeaderSortHelper.SetSortDirection(header, null);
+
+                    // 保留对旧逻辑的兼容：移除文本符号
+                    if (header.Content != null)
+                    {
+                        var content = header.Content.ToString();
+                        content = content.Replace(" ▲", "").Replace(" ▼", "");
+                        header.Content = content;
+                    }
                 }
             }
 
-            // 为当前列添加排序指示器
+            // 为当前列设置排序指示器
             if (clickedHeader != null)
             {
-                var content = clickedHeader.Content.ToString();
-                content = content.Replace(" ▲", "").Replace(" ▼", "");
-                var newContent = content + (_sortAscending ? " ▲" : " ▼");
-                clickedHeader.Content = newContent;
+                // 设置附加属性用于XAML绑定
+                string sortDirection = _sortAscending ? "Ascending" : "Descending";
+                ColumnHeaderSortHelper.SetSortDirection(clickedHeader, sortDirection);
+
+                // 保留对旧逻辑的兼容（文本符号，如果用户喜欢可以保留）
+                // 注释掉以使用纯视觉箭头
+                /*
+                if (clickedHeader.Content != null)
+                {
+                    var content = clickedHeader.Content.ToString();
+                    content = content.Replace(" ▲", "").Replace(" ▼", "");
+                    var newContent = content + (_sortAscending ? " ▲" : " ▼");
+                    clickedHeader.Content = newContent;
+                }
+                */
             }
         }
 
