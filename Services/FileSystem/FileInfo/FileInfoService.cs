@@ -196,8 +196,15 @@ namespace OoiMRR.Services.FileInfo
         private StackPanel CreateInfoPanel(string label, string value)
         {
             var panel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 2) };
-            panel.Children.Add(new TextBlock { Text = $"{label}: ", FontWeight = FontWeights.Bold, Width = 80 });
-            panel.Children.Add(new TextBlock { Text = value, TextWrapping = TextWrapping.Wrap });
+
+            var labelText = new TextBlock { Text = $"{label}: ", FontWeight = FontWeights.Bold, Width = 80 };
+            labelText.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundPrimaryBrush");
+            panel.Children.Add(labelText);
+
+            var valueText = new TextBlock { Text = value, TextWrapping = TextWrapping.Wrap };
+            valueText.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundSecondaryBrush");
+            panel.Children.Add(valueText);
+
             return panel;
         }
 
@@ -209,8 +216,15 @@ namespace OoiMRR.Services.FileInfo
         private StackPanel CreateErrorPanel(string errorMessage)
         {
             var errorPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 2) };
-            errorPanel.Children.Add(new TextBlock { Text = "错误: ", FontWeight = FontWeights.Bold, Width = 80 });
-            errorPanel.Children.Add(new TextBlock { Text = errorMessage, TextWrapping = TextWrapping.Wrap, Foreground = System.Windows.Media.Brushes.Red });
+
+            var errorLabel = new TextBlock { Text = "错误: ", FontWeight = FontWeights.Bold, Width = 80 };
+            errorLabel.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundPrimaryBrush");
+            errorPanel.Children.Add(errorLabel);
+
+            var errorText = new TextBlock { Text = errorMessage, TextWrapping = TextWrapping.Wrap };
+            errorText.SetResourceReference(TextBlock.ForegroundProperty, "ErrorBrush");
+            errorPanel.Children.Add(errorText);
+
             return errorPanel;
         }
 
