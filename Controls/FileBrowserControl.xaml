@@ -120,7 +120,7 @@
                       DragCompleted="GridSplitter_DragCompleted"/>
         
         <!-- Row 4: 文件详细信息 -->
-        <Border Grid.Row="4" Background="{DynamicResource BackgroundSecondaryBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0">
+        <Border Grid.Row="4" Background="{DynamicResource BackgroundPrimaryBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,1,0,0">
             <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="8,4">
                 <!-- 文件信息面板 -->
                 <StackPanel x:Name="FileInfoPanel" Margin="4"/>

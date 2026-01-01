@@ -151,12 +151,13 @@ namespace OoiMRR.Previews
                     FontFamily = new FontFamily("Consolas"),
                     FontSize = 12,
                     BorderThickness = new Thickness(0),
-                    Background = Brushes.White,
                     VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
                     HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
                     AcceptsReturn = true,
                     AcceptsTab = true
                 };
+                _textBox.SetResourceReference(TextBox.BackgroundProperty, "PreviewPanelBackgroundBrush");
+                _textBox.SetResourceReference(TextBox.ForegroundProperty, "ForegroundPrimaryBrush");
 
                 bool isEditMode = false;
                 string originalContent = content;
@@ -255,7 +256,7 @@ namespace OoiMRR.Previews
 
                             // 切换为只读模式
                             _textBox.IsReadOnly = true;
-                            _textBox.Background = Brushes.White;
+                            _textBox.SetResourceReference(TextBox.BackgroundProperty, "PreviewPanelBackgroundBrush");
                             isEditMode = false;
                             _toolbar.SetEditMode(false);
 
@@ -270,7 +271,7 @@ namespace OoiMRR.Previews
                     {
                         // 编辑模式
                         _textBox.IsReadOnly = false;
-                        _textBox.Background = new SolidColorBrush(Color.FromRgb(240, 248, 255)); // 浅蓝色背景
+                        _textBox.SetResourceReference(TextBox.BackgroundProperty, "AccentLightBrush"); // 使用强调色的浅色背景
                         isEditMode = true;
                         _toolbar.SetEditMode(true);
                     }
