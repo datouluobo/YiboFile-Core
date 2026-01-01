@@ -18,8 +18,7 @@ namespace OoiMRR.Controls.Settings
     {
         public event EventHandler SettingsChanged;
 
-        private RadioButton _themeLightRadio;
-        private RadioButton _themeDarkRadio;
+        private Dictionary<string, RadioButton> _themeRadios = new Dictionary<string, RadioButton>();
         private RadioButton _themeFollowSystemRadio;
         private Slider _opacitySlider;
         private TextBlock _opacityValueText;
@@ -65,36 +64,33 @@ namespace OoiMRR.Controls.Settings
             themeDescription.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
             stackPanel.Children.Add(themeDescription);
 
-            // 主题选项
-            _themeLightRadio = new RadioButton
+            // 动态加载所有可用主题
+            var availableThemes = ThemeManager.GetAvailableThemes().ToList();
+            foreach (var theme in availableThemes.OrderBy(t => t.Id))
             {
-                Content = "浅色模式 (Light)",
-                GroupName = "ThemeMode",
-                FontSize = 14,
-                MinHeight = 32,
-                Margin = new Thickness(0, 0, 0, 8)
-            };
-            _themeLightRadio.Checked += ThemeRadio_Checked;
-            stackPanel.Children.Add(_themeLightRadio);
+                var radio = new RadioButton
+                {
+                    Content = $"{theme.DisplayName} ({theme.Id})",
+                    GroupName = "ThemeMode",
+                    FontSize = 14,
+                    MinHeight = 32,
+                    Margin = new Thickness(0, 0, 0, 8),
+                    Tag = theme.Id
+                };
+                radio.Checked += ThemeRadio_Checked;
+                _themeRadios[theme.Id] = radio;
+                stackPanel.Children.Add(radio);
+            }
 
-            _themeDarkRadio = new RadioButton
-            {
-                Content = "深色模式 (Dark)",
-                GroupName = "ThemeMode",
-                FontSize = 14,
-                MinHeight = 32,
-                Margin = new Thickness(0, 0, 0, 8)
-            };
-            _themeDarkRadio.Checked += ThemeRadio_Checked;
-            stackPanel.Children.Add(_themeDarkRadio);
-
+            // 添加"跟随系统"选项
             _themeFollowSystemRadio = new RadioButton
             {
                 Content = "跟随系统",
                 GroupName = "ThemeMode",
                 FontSize = 14,
                 MinHeight = 32,
-                Margin = new Thickness(0, 0, 0, 24)
+                Margin = new Thickness(0, 0, 0, 24),
+                Tag = "FollowSystem"
             };
             _themeFollowSystemRadio.Checked += ThemeRadio_Checked;
             stackPanel.Children.Add(_themeFollowSystemRadio);
@@ -333,12 +329,18 @@ namespace OoiMRR.Controls.Settings
 
                 // 加载主题模式
                 var themeMode = config.ThemeMode ?? "FollowSystem";
-                if (themeMode == "Light")
-                    _themeLightRadio.IsChecked = true;
-                else if (themeMode == "Dark")
-                    _themeDarkRadio.IsChecked = true;
-                else
+                if (themeMode == "FollowSystem")
+                {
                     _themeFollowSystemRadio.IsChecked = true;
+                }
+                else if (_themeRadios.ContainsKey(themeMode))
+                {
+                    _themeRadios[themeMode].IsChecked = true;
+                }
+                else if (_themeRadios.ContainsKey("Light"))
+                {
+                    _themeRadios["Light"].IsChecked = true;
+                }
 
                 // 加载窗口透明度
                 _opacitySlider.Value = config.WindowOpacity > 0 ? config.WindowOpacity : 1.0;
@@ -359,12 +361,16 @@ namespace OoiMRR.Controls.Settings
             ConfigurationService.Instance.Update(config =>
             {
                 // 保存主题模式
-                if (_themeLightRadio.IsChecked == true)
-                    config.ThemeMode = "Light";
-                else if (_themeDarkRadio.IsChecked == true)
-                    config.ThemeMode = "Dark";
-                else
+                if (_themeFollowSystemRadio.IsChecked == true)
+                {
                     config.ThemeMode = "FollowSystem";
+                }
+                else
+                {
+                    // 找到被选中的主题
+                    var selectedTheme = _themeRadios.FirstOrDefault(kv => kv.Value.IsChecked == true);
+                    config.ThemeMode = selectedTheme.Key ?? "Light";
+                }
 
                 // 保存窗口透明度
                 config.WindowOpacity = _opacitySlider.Value;
@@ -378,20 +384,21 @@ namespace OoiMRR.Controls.Settings
         {
             if (_isLoadingSettings) return;
 
-            // 立即应用主题
-            if (_themeLightRadio.IsChecked == true)
+            var radioButton = sender as RadioButton;
+            if (radioButton == null || radioButton.Tag == null) return;
+
+            var themeId = radioButton.Tag as string;
+
+            if (themeId == "FollowSystem")
             {
-                ThemeManager.SetTheme("Light", animate: _animationsEnabledCheckBox.IsChecked ?? true);
+                // 跟随系统主题
+                ThemeManager.EnableSystemThemeFollowing();
             }
-            else if (_themeDarkRadio.IsChecked == true)
+            else
             {
-                ThemeManager.SetTheme("Dark", animate: _animationsEnabledCheckBox.IsChecked ?? true);
-            }
-            else if (_themeFollowSystemRadio.IsChecked == true)
-            {
-                // 应用系统主题
-                var systemTheme = DetectSystemTheme();
-                ThemeManager.SetTheme(systemTheme, animate: _animationsEnabledCheckBox.IsChecked ?? true);
+                // 应用指定主题
+                ThemeManager.DisableSystemThemeFollowing();
+                ThemeManager.SetTheme(themeId, animate: _animationsEnabledCheckBox?.IsChecked ?? true);
             }
 
             SaveSettings();

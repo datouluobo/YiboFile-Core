@@ -37,19 +37,73 @@ namespace OoiMRR.Services.Theming
         /// </summary>
         private static void DiscoverThemes()
         {
-            // 扫描内置主题
-            var builtInThemes = new[] { "Light", "Dark" };
-            foreach (var themeId in builtInThemes)
+            try
             {
-                var uri = new Uri($"pack://application:,,,/Themes/{themeId}.xaml", UriKind.Absolute);
-                var metadata = LoadThemeMetadata(uri, themeId);
-                if (metadata != null)
+                // 尝试获取Them es目录下所有主题文件
+                var themesPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Themes");
+
+                // 自动扫描所有.xaml文件
+                string[] themeFiles = null;
+                if (Directory.Exists(themesPath))
                 {
-                    _themes[themeId] = metadata;
+                    themeFiles = Directory.GetFiles(themesPath, "*.xaml");
+                }
+                else
+                {
+                    // 如果目录不存在，回退到已知主题列表
+                    themeFiles = new[] { "Light", "Dark", "Ocean", "Forest", "Sunset", "Purple", "Nordic" }
+                        .Select(id => $"Themes\\{id}.xaml").ToArray();
+                }
+
+                foreach (var filePath in themeFiles)
+                {
+                    try
+                    {
+                        var fileName = Path.GetFileNameWithoutExtension(filePath);
+                        var uri = new Uri($"pack://application:,,,/Themes/{fileName}.xaml", UriKind.Absolute);
+                        var metadata = LoadThemeMetadata(uri, fileName);
+                        if (metadata != null)
+                        {
+                            _themes[fileName] = metadata;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Failed to load theme {filePath}: {ex.Message}");
+                    }
+                }
+
+                // 确保至少有Light和Dark主题
+                if (!_themes.ContainsKey("Light"))
+                {
+                    var uri = new Uri("pack://application:,,,/Themes/Light.xaml", UriKind.Absolute);
+                    var metadata = LoadThemeMetadata(uri, "Light");
+                    if (metadata != null) _themes["Light"] = metadata;
+                }
+                if (!_themes.ContainsKey("Dark"))
+                {
+                    var uri = new Uri("pack://application:,,,/Themes/Dark.xaml", UriKind.Absolute);
+                    var metadata = LoadThemeMetadata(uri, "Dark");
+                    if (metadata != null) _themes["Dark"] = metadata;
                 }
             }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Theme discovery failed: {ex.Message}");
 
-            // TODO: 扫描自定义主题目录（未来扩展）
+                // 最小化回退：只加载Light和Dark
+                var fallbackThemes = new[] { "Light", "Dark" };
+                foreach (var themeId in fallbackThemes)
+                {
+                    try
+                    {
+                        var uri = new Uri($"pack://application:,,,/Themes/{themeId}.xaml", UriKind.Absolute);
+                        var metadata = LoadThemeMetadata(uri, themeId);
+                        if (metadata != null) _themes[themeId] = metadata;
+                    }
+                    catch { }
+                }
+            }
         }
 
         /// <summary>
