@@ -78,6 +78,8 @@ namespace OoiMRR.Controls.Settings
             {
                 MinHeight = 36,
                 FontSize = 14,
+                MaxWidth = 400,
+                HorizontalAlignment = HorizontalAlignment.Left,
                 Margin = new Thickness(0, 0, 0, 24)
             };
             _themeComboBox.SetResourceReference(ComboBox.BackgroundProperty, "BackgroundElevatedBrush");
@@ -144,7 +146,9 @@ namespace OoiMRR.Controls.Settings
             {
                 Content = "➕ 创建自定义主题",
                 Padding = new Thickness(16, 8, 16, 8),
-                FontSize = 13
+                MaxWidth = 200,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                Margin = new Thickness(0, 0, 0, 12)
             };
             createCustomThemeButton.SetResourceReference(Button.BackgroundProperty, "AccentDefaultBrush");
             createCustomThemeButton.SetResourceReference(Button.ForegroundProperty, "ForegroundOnAccentBrush");
@@ -156,7 +160,9 @@ namespace OoiMRR.Controls.Settings
             {
                 Content = "🔧 管理自定义主题",
                 Padding = new Thickness(16, 8, 16, 8),
-                FontSize = 13
+                MaxWidth = 200,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                Margin = new Thickness(0, 0, 0, 24)
             };
             manageCustomThemeButton.Click += ManageCustomThemes_Click;
             Grid.SetColumn(manageCustomThemeButton, 2);
@@ -182,7 +188,9 @@ namespace OoiMRR.Controls.Settings
                 CornerRadius = new CornerRadius(8),
                 Padding = new Thickness(16),
                 Margin = new Thickness(0, 0, 0, 24),
-                BorderThickness = new Thickness(1)
+                BorderThickness = new Thickness(1),
+                MaxWidth = 600, // Added MaxWidth
+                HorizontalAlignment = HorizontalAlignment.Left // Added HorizontalAlignment
             };
             previewContainer.SetResourceReference(Border.BackgroundProperty, "BackgroundSecondaryBrush");
             previewContainer.SetResourceReference(Border.BorderBrushProperty, "BorderDefaultBrush");
@@ -218,7 +226,7 @@ namespace OoiMRR.Controls.Settings
             };
             stackPanel.Children.Add(opacityTitle);
 
-            var opacityGrid = new Grid { Margin = new Thickness(0, 0, 0, 24) };
+            var opacityGrid = new Grid { Margin = new Thickness(0, 0, 0, 24), MaxWidth = 600, HorizontalAlignment = HorizontalAlignment.Left };
             opacityGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             opacityGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             opacityGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -274,8 +282,10 @@ namespace OoiMRR.Controls.Settings
 
             _animationsEnabledCheckBox = new CheckBox
             {
-                Content = "启用界面动画效果（主题切换、窗口过渡等）",
+                Content = "启用界面动画效果",
                 FontSize = 14,
+                MaxWidth = 300,
+                HorizontalAlignment = HorizontalAlignment.Left,
                 MinHeight = 32,
                 Margin = new Thickness(0, 0, 0, 8),
                 IsChecked = true
@@ -561,7 +571,9 @@ namespace OoiMRR.Controls.Settings
                 Margin = new Thickness(0, 0, 0, 12),
                 Padding = new Thickness(16, 16, 16, 16),
                 CornerRadius = new CornerRadius(8),
-                BorderThickness = new Thickness(1)
+                BorderThickness = new Thickness(1),
+                MaxWidth = 600,
+                HorizontalAlignment = HorizontalAlignment.Left
             };
             card.SetResourceReference(Border.BackgroundProperty, "BackgroundSecondaryBrush");
             card.SetResourceReference(Border.BorderBrushProperty, "BorderDefaultBrush");
