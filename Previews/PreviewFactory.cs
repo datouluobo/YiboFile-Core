@@ -50,6 +50,12 @@ namespace OoiMRR.Previews
                     return new LnkPreview().CreatePreview(filePath);
                 }
 
+                // Web页面预览 (WebView2)
+                if (extension == ".html" || extension == ".htm")
+                {
+                    return new HtmlPreview().CreatePreview(filePath);
+                }
+
                 // 注意：GetFileTypeInfo需要完整的文件路径，它会内部处理扩展名
                 var fileTypeInfo = FileTypeManager.GetFileTypeInfo(filePath);
 

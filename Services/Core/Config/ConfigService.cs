@@ -110,6 +110,12 @@ namespace OoiMRR.Services.Config
                     ApplyNonMaximizedWindowState(window, cfg);
                 }
 
+                // Apply Window Opacity
+                if (cfg.WindowOpacity > 0)
+                {
+                    window.Opacity = cfg.WindowOpacity;
+                }
+
                 if (window.IsLoaded)
                 {
                     ApplySplitterPositions(cfg);

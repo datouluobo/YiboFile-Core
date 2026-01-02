@@ -26,6 +26,7 @@
     <SolidColorBrush x:Key="BackgroundSecondaryBrush" Color="#F8F9FA"/>    <!-- 次背景/面板 -->
     <SolidColorBrush x:Key="BackgroundTertiaryBrush" Color="#F5F5F5"/>     <!-- 三级背景/卡片 -->
     <SolidColorBrush x:Key="BackgroundElevatedBrush" Color="#FFFFFF"/>     <!-- 对话框/浮动 -->
+    <SolidColorBrush x:Key="TitleBarBackgroundBrush" Color="#F8F9FA"/>     <!-- 标题栏背景 (与次背景一致) -->
     
     <!-- 2. 文本类 (4个) -->
     <SolidColorBrush x:Key="ForegroundPrimaryBrush" Color="#212529"/>      <!-- 主要文本 -->
@@ -39,6 +40,8 @@
     <SolidColorBrush x:Key="BorderFocusBrush" Color="#007BFF"/>            <!-- 聚焦边框 -->
     
     <!-- 4. 强调色/交互 (5个) -->
+    <Color x:Key="AccentColor">#007BFF</Color>
+    <Color x:Key="AccentHoverColor">#0056B3</Color>
     <SolidColorBrush x:Key="AccentDefaultBrush" Color="#007BFF"/>          <!-- 主强调色 -->
     <SolidColorBrush x:Key="AccentHoverBrush" Color="#0056B3"/>            <!-- 悬停 -->
     <SolidColorBrush x:Key="AccentPressedBrush" Color="#004085"/>          <!-- 按下 -->
@@ -62,6 +65,8 @@
     <SolidColorBrush x:Key="OverlayBrush" Color="#66000000"/>              <!-- 遮罩 -->
     <SolidColorBrush x:Key="OverlayLightBrush" Color="#33000000"/>         <!-- 浅遮罩 -->
     <SolidColorBrush x:Key="DisabledBrush" Color="#C0C0C0"/>               <!-- 通用禁用色 -->
+    <SolidColorBrush x:Key="DividerBrush" Color="#E0E0E0"/>                <!-- 分隔线 -->
+    <SolidColorBrush x:Key="ShadowBrush" Color="#1A000000"/>               <!-- 阴影 -->
     
     <!-- ========================================
          向后兼容别名
@@ -91,6 +96,7 @@
     <SolidColorBrush x:Key="ButtonBackgroundBrush" Color="#E3F2FD"/>
     <SolidColorBrush x:Key="ButtonBorderBrush" Color="#E0E0E0"/>
     <SolidColorBrush x:Key="ButtonHoverBackgroundBrush" Color="#BBDEFB"/>
+    <SolidColorBrush x:Key="ButtonPressedBackgroundBrush" Color="#90CAF9"/>
     
     <!-- 输入框别名 -->
     <SolidColorBrush x:Key="InputBackgroundBrush" Color="#FFFFFF"/>

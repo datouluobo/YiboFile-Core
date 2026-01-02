@@ -114,11 +114,18 @@ namespace OoiMRR.Controls.Settings
 
         private void InitializeComponent()
         {
-            var stackPanel = new StackPanel { Margin = new Thickness(0) };
+            // Root Grid for 2-column layout
+            var rootGrid = new Grid();
+            rootGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Left: Settings
+            rootGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(32) });                  // Spacer
+            rootGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1.2, GridUnitType.Star) }); // Right: Color Palette
 
             // ========================================
-            // 主题选择区域
+            // LEFT COLUMN: General Settings
             // ========================================
+            var leftPanel = new StackPanel { Margin = new Thickness(0, 0, 0, 24) };
+
+            // 1. Theme Selection
             var themeTitle = new TextBlock
             {
                 Text = "主题设置",
@@ -126,7 +133,7 @@ namespace OoiMRR.Controls.Settings
                 FontWeight = FontWeights.Bold,
                 Margin = new Thickness(0, 0, 0, 16)
             };
-            stackPanel.Children.Add(themeTitle);
+            leftPanel.Children.Add(themeTitle);
 
             var themeDescription = new TextBlock
             {
@@ -136,9 +143,8 @@ namespace OoiMRR.Controls.Settings
                 TextWrapping = TextWrapping.Wrap
             };
             themeDescription.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
-            stackPanel.Children.Add(themeDescription);
+            leftPanel.Children.Add(themeDescription);
 
-            // 主题选择ComboBox
             var themeSelectionLabel = new TextBlock
             {
                 Text = "选择主题：",
@@ -147,47 +153,37 @@ namespace OoiMRR.Controls.Settings
                 Margin = new Thickness(0, 0, 0, 8)
             };
             themeSelectionLabel.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundPrimaryBrush");
-            stackPanel.Children.Add(themeSelectionLabel);
+            leftPanel.Children.Add(themeSelectionLabel);
 
             _themeComboBox = new ComboBox
             {
                 MinHeight = 36,
                 FontSize = 14,
-                MaxWidth = 400,
-                HorizontalAlignment = HorizontalAlignment.Left,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
                 Margin = new Thickness(0, 0, 0, 24)
             };
             _themeComboBox.SetResourceReference(ComboBox.BackgroundProperty, "BackgroundElevatedBrush");
             _themeComboBox.SetResourceReference(ComboBox.ForegroundProperty, "ForegroundPrimaryBrush");
             _themeComboBox.SetResourceReference(ComboBox.BorderBrushProperty, "BorderDefaultBrush");
 
-            // 添加"跟随系统"选项
+            // Add Items
             _themeComboBox.Items.Add(new ThemeComboBoxItem
             {
                 DisplayName = "🔄 跟随系统",
                 ThemeId = "FollowSystem",
                 Description = "自动跟随Windows系统主题设置"
             });
-
-            // 添加分隔线（使用特殊标记）
             _themeComboBox.Items.Add(new ThemeComboBoxItem
             {
                 DisplayName = "──────────",
                 ThemeId = "Separator",
-                Description = "",
                 IsEnabled = false
             });
 
-            // 动态加载所有可用主题
-            var availableThemes = ThemeManager.GetAvailableThemes()
-                .OrderBy(t => t.Id)
-                .ToList();
-
+            var availableThemes = ThemeManager.GetAvailableThemes().OrderBy(t => t.Id).ToList();
             foreach (var theme in availableThemes)
             {
-                // 选择emoji图标
                 string emoji = GetThemeEmoji(theme.Id);
-
                 _themeComboBox.Items.Add(new ThemeComboBoxItem
                 {
                     DisplayName = $"{emoji} {theme.DisplayName}",
@@ -195,35 +191,30 @@ namespace OoiMRR.Controls.Settings
                     Description = theme.Description
                 });
             }
-
             _themeComboBox.SelectionChanged += ThemeComboBox_SelectionChanged;
-            stackPanel.Children.Add(_themeComboBox);
+            leftPanel.Children.Add(_themeComboBox);
 
-            // ========================================
-            // 自定义主题管理
-            // ========================================
+            // 2. Custom Theme Buttons
             var customThemeTitle = new TextBlock
             {
                 Text = "自定义主题",
                 FontSize = 16,
                 FontWeight = FontWeights.SemiBold,
-                Margin = new Thickness(0, 16, 0, 12)
+                Margin = new Thickness(0, 8, 0, 12)
             };
-            stackPanel.Children.Add(customThemeTitle);
+            leftPanel.Children.Add(customThemeTitle);
 
-            // 自定义主题按钮容器
             var customThemeButtonsGrid = new Grid { Margin = new Thickness(0, 0, 0, 24) };
-            customThemeButtonsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            customThemeButtonsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(8) });
-            customThemeButtonsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            customThemeButtonsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            customThemeButtonsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(12) });
+            customThemeButtonsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
             var createCustomThemeButton = new Button
             {
-                Content = "➕ 创建自定义主题",
+                Content = "➕ 创建",
                 Padding = new Thickness(16, 8, 16, 8),
-                MaxWidth = 200,
-                HorizontalAlignment = HorizontalAlignment.Left,
-                Margin = new Thickness(0, 0, 0, 12)
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Margin = new Thickness(0, 0, 0, 0)
             };
             createCustomThemeButton.SetResourceReference(Button.BackgroundProperty, "AccentDefaultBrush");
             createCustomThemeButton.SetResourceReference(Button.ForegroundProperty, "ForegroundOnAccentBrush");
@@ -233,89 +224,18 @@ namespace OoiMRR.Controls.Settings
 
             var manageCustomThemeButton = new Button
             {
-                Content = "🔧 管理自定义主题",
+                Content = "🔧 管理",
                 Padding = new Thickness(16, 8, 16, 8),
-                MaxWidth = 200,
-                HorizontalAlignment = HorizontalAlignment.Left,
-                Margin = new Thickness(0, 0, 0, 24)
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Margin = new Thickness(0, 0, 0, 0)
             };
             manageCustomThemeButton.Click += ManageCustomThemes_Click;
             Grid.SetColumn(manageCustomThemeButton, 2);
             customThemeButtonsGrid.Children.Add(manageCustomThemeButton);
 
-            stackPanel.Children.Add(customThemeButtonsGrid);
+            leftPanel.Children.Add(customThemeButtonsGrid);
 
-            // ========================================
-            // 详细颜色调节 (替代原快速强调色)
-            // ========================================
-            var accentTitle = new TextBlock
-            {
-                Text = "主题颜色详情调节",
-                FontSize = 16,
-                FontWeight = FontWeights.SemiBold,
-                Margin = new Thickness(0, 0, 0, 12)
-            };
-            stackPanel.Children.Add(accentTitle);
-
-            var accentHint = new TextBlock
-            {
-                Text = "点击下方颜色块直接修改对应颜色。修改将自动创建并应用“我的自定义主题”。",
-                FontSize = 12,
-                Margin = new Thickness(0, 0, 0, 16),
-                TextWrapping = TextWrapping.Wrap
-            };
-            accentHint.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
-            stackPanel.Children.Add(accentHint);
-
-            // 构建分组UI
-            foreach (var group in ColorGroups)
-            {
-                // 分组标题
-                var groupHeader = new TextBlock
-                {
-                    Text = group.Key,
-                    FontSize = 13,
-                    FontWeight = FontWeights.Medium,
-                    Margin = new Thickness(4, 8, 0, 8),
-                    Opacity = 0.8
-                };
-                groupHeader.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundPrimaryBrush");
-                stackPanel.Children.Add(groupHeader);
-
-                // 颜色块容器
-                var wrapPanel = new WrapPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 12) };
-
-                foreach (var (key, name) in group.Value)
-                {
-                    var colorBlockContainer = CreateColorBlockUi(key, name);
-                    wrapPanel.Children.Add(colorBlockContainer);
-                }
-
-                stackPanel.Children.Add(wrapPanel);
-            }
-
-            // 初始化Popup
-            InitializeColorPickerPopup();
-
-            // ========================================
-            // 恢复默认按钮
-            // ========================================
-            var resetPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 24) };
-            var resetButton = new Button
-            {
-                Content = "↺ 恢复默认主题",
-                Padding = new Thickness(12, 6, 12, 6),
-                ToolTip = "将主题重置为默认状态，清除所有自定义修改"
-            };
-            resetButton.SetResourceReference(Button.BackgroundProperty, "ControlDefaultBrush"); // 使用较弱的背景色
-            resetButton.Click += ResetTheme_Click;
-
-            resetPanel.Children.Add(resetButton);
-            stackPanel.Children.Add(resetPanel);
-
-            // ========================================
-            // 主题颜色预览
-            // ========================================
+            // 3. Theme Colors Preview
             var previewTitle = new TextBlock
             {
                 Text = "主题颜色预览",
@@ -323,17 +243,15 @@ namespace OoiMRR.Controls.Settings
                 FontWeight = FontWeights.SemiBold,
                 Margin = new Thickness(0, 0, 0, 12)
             };
-            stackPanel.Children.Add(previewTitle);
+            leftPanel.Children.Add(previewTitle);
 
-            // 颜色预览容器 - 使用卡片样式
             var previewContainer = new Border
             {
                 CornerRadius = new CornerRadius(8),
                 Padding = new Thickness(16),
                 Margin = new Thickness(0, 0, 0, 24),
                 BorderThickness = new Thickness(1),
-                MaxWidth = 600, // Added MaxWidth
-                HorizontalAlignment = HorizontalAlignment.Left // Added HorizontalAlignment
+                HorizontalAlignment = HorizontalAlignment.Stretch
             };
             previewContainer.SetResourceReference(Border.BackgroundProperty, "BackgroundSecondaryBrush");
             previewContainer.SetResourceReference(Border.BorderBrushProperty, "BorderDefaultBrush");
@@ -355,28 +273,27 @@ namespace OoiMRR.Controls.Settings
             previewGrid.Children.Add(_previewTextColor);
 
             previewContainer.Child = previewGrid;
-            stackPanel.Children.Add(previewContainer);
+            leftPanel.Children.Add(previewContainer);
 
-            // ========================================
-            // 窗口透明度
-            // ========================================
+            // 4. Opacity & Animation
             var opacityTitle = new TextBlock
             {
-                Text = "窗口透明度",
+                Text = "界面效果",
                 FontSize = 18,
                 FontWeight = FontWeights.Bold,
-                Margin = new Thickness(0, 24, 0, 16)
+                Margin = new Thickness(0, 12, 0, 16)
             };
-            stackPanel.Children.Add(opacityTitle);
+            leftPanel.Children.Add(opacityTitle);
 
-            var opacityGrid = new Grid { Margin = new Thickness(0, 0, 0, 24), MaxWidth = 600, HorizontalAlignment = HorizontalAlignment.Left };
+            // Opacity
+            var opacityGrid = new Grid { Margin = new Thickness(0, 0, 0, 16) };
             opacityGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             opacityGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             opacityGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
             var opacityLabel = new TextBlock
             {
-                Text = "透明度:",
+                Text = "窗口透明度:",
                 FontSize = 14,
                 VerticalAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(0, 0, 12, 0),
@@ -403,54 +320,120 @@ namespace OoiMRR.Controls.Settings
             {
                 FontSize = 14,
                 VerticalAlignment = VerticalAlignment.Center,
-                MinWidth = 60,
+                MinWidth = 50,
+                TextAlignment = TextAlignment.Right,
                 Text = "100%"
             };
             Grid.SetColumn(_opacityValueText, 2);
             opacityGrid.Children.Add(_opacityValueText);
+            leftPanel.Children.Add(opacityGrid);
 
-            stackPanel.Children.Add(opacityGrid);
-
-            // ========================================
-            // 动画效果
-            // ========================================
-            var animationTitle = new TextBlock
-            {
-                Text = "动画效果",
-                FontSize = 18,
-                FontWeight = FontWeights.Bold,
-                Margin = new Thickness(0, 24, 0, 16)
-            };
-            stackPanel.Children.Add(animationTitle);
-
+            // Animation
             _animationsEnabledCheckBox = new CheckBox
             {
                 Content = "启用界面动画效果",
                 FontSize = 14,
-                MaxWidth = 300,
-                HorizontalAlignment = HorizontalAlignment.Left,
                 MinHeight = 32,
-                Margin = new Thickness(0, 0, 0, 8),
+                Margin = new Thickness(0, 0, 0, 4),
                 IsChecked = true
             };
             _animationsEnabledCheckBox.Checked += AnimationsCheckBox_Changed;
             _animationsEnabledCheckBox.Unchecked += AnimationsCheckBox_Changed;
-            stackPanel.Children.Add(_animationsEnabledCheckBox);
+            leftPanel.Children.Add(_animationsEnabledCheckBox);
 
             var animationHint = new TextBlock
             {
                 Text = "禁用动画可以提高性能，适合低配置设备。",
                 FontSize = 12,
-                Margin = new Thickness(20, 0, 0, 24),
+                Margin = new Thickness(24, 0, 0, 24),
                 TextWrapping = TextWrapping.Wrap
             };
             animationHint.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
-            stackPanel.Children.Add(animationHint);
+            leftPanel.Children.Add(animationHint);
 
+            // Reset Button
+            var resetButton = new Button
+            {
+                Content = "↺ 恢复默认主题",
+                Padding = new Thickness(12, 8, 12, 8),
+                HorizontalAlignment = HorizontalAlignment.Left,
+                Margin = new Thickness(0, 12, 0, 0)
+            };
+            resetButton.SetResourceReference(Button.BackgroundProperty, "ControlDefaultBrush");
+            resetButton.Click += ResetTheme_Click;
+            leftPanel.Children.Add(resetButton);
+
+
+            // ========================================
+            // RIGHT COLUMN: Detailed Color Tuning
+            // ========================================
+            var rightPanel = new StackPanel { Margin = new Thickness(0, 0, 0, 24) };
+
+            var accentTitle = new TextBlock
+            {
+                Text = "主题颜色详情调节",
+                FontSize = 16,
+                FontWeight = FontWeights.SemiBold,
+                Margin = new Thickness(0, 0, 0, 12)
+            };
+            rightPanel.Children.Add(accentTitle);
+
+            var accentHint = new TextBlock
+            {
+                Text = "点击下方颜色块直接修改。修改将自动创建并应用“我的自定义主题”。",
+                FontSize = 12,
+                Margin = new Thickness(0, 0, 0, 24),
+                TextWrapping = TextWrapping.Wrap
+            };
+            accentHint.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
+            rightPanel.Children.Add(accentHint);
+
+            // Build Groups
+            foreach (var group in ColorGroups)
+            {
+                // Group Header
+                var groupHeader = new TextBlock
+                {
+                    Text = group.Key,
+                    FontSize = 13,
+                    FontWeight = FontWeights.Medium,
+                    Margin = new Thickness(4, 0, 0, 8),
+                    Opacity = 0.8
+                };
+                groupHeader.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundPrimaryBrush");
+                rightPanel.Children.Add(groupHeader);
+
+                // Colors Container
+                var wrapPanel = new WrapPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 20) };
+
+                foreach (var (key, name) in group.Value)
+                {
+                    var colorBlockContainer = CreateColorBlockUi(key, name);
+                    wrapPanel.Children.Add(colorBlockContainer);
+                }
+
+                rightPanel.Children.Add(wrapPanel);
+            }
+
+            // Initialize Popup
+            InitializeColorPickerPopup();
+
+
+            // ========================================
+            // Add to Grid
+            // ========================================
+            Grid.SetColumn(leftPanel, 0);
+            rootGrid.Children.Add(leftPanel);
+
+            Grid.SetColumn(rightPanel, 2);
+            rootGrid.Children.Add(rightPanel);
+
+            // Wrap in ScrollViewer
             var scrollViewer = new ScrollViewer
             {
                 VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-                Content = stackPanel
+                Padding = new Thickness(24, 24, 36, 24), // More padding on right
+                Content = rootGrid
             };
 
             Content = scrollViewer;
@@ -527,7 +510,7 @@ namespace OoiMRR.Controls.Settings
                 _animationsEnabledCheckBox.IsChecked = config.AnimationsEnabled;
 
                 // 刷新颜色块状态
-                RefreshColorBlocks();
+                // RefreshColorBlocks(); -> No longer needed with DynamicResource
             }
             finally
             {
@@ -1014,9 +997,11 @@ namespace OoiMRR.Controls.Settings
                 CornerRadius = new CornerRadius(4),
                 BorderThickness = new Thickness(1),
                 Cursor = Cursors.Hand,
-                Background = Brushes.Transparent, // 初始透明，LoadSettings会更新
+                // Background = Brushes.Transparent, // Removed
                 Tag = key // 存储key
             };
+            // Use DynamicResource for auto-updates!
+            border.SetResourceReference(Border.BackgroundProperty, key);
             border.SetResourceReference(Border.BorderBrushProperty, "BorderDefaultBrush");
 
             // 点击事件
@@ -1089,11 +1074,7 @@ namespace OoiMRR.Controls.Settings
 
             UpdateSingleColor(_editingColorKey, newColor);
 
-            // 更新UI以即时反馈
-            if (_colorBlockMap.TryGetValue(_editingColorKey, out var block))
-            {
-                block.Background = new SolidColorBrush(newColor);
-            }
+            // UI update handled by DynamicResource
         }
 
         private void UpdateSingleColor(string key, Color color)
@@ -1126,6 +1107,8 @@ namespace OoiMRR.Controls.Settings
                 // 5. 更新配置
                 UpdateThemeComboBoxSelection(theme);
                 ConfigurationService.Instance.Update(config => config.ThemeMode = theme.Id);
+
+                // UI update is handled automatically by DynamicResource bindings on the border
             }
             catch (Exception ex)
             {
@@ -1136,26 +1119,7 @@ namespace OoiMRR.Controls.Settings
         /// <summary>
         /// 刷新所有颜色块的显示以匹配当前资源
         /// </summary>
-        private void RefreshColorBlocks()
-        {
-            foreach (var kvp in _colorBlockMap)
-            {
-                var key = kvp.Key;
-                var border = kvp.Value;
-
-                // 尝试从Application.Resources获取资源
-                // 注意：FindResource可能会找到Theme字典里的值，也可能是覆盖的值
-                // 我们直接使用 Application.Current.FindResource
-                try
-                {
-                    if (Application.Current.TryFindResource(key) is SolidColorBrush brush)
-                    {
-                        border.Background = brush;
-                    }
-                }
-                catch { }
-            }
-        }
+        // Removed RefreshColorBlocks as it is replaced by DynamicResource binding
 
         /// <summary>
         /// 调整颜色亮度

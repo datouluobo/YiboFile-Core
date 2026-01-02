@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              mc:Ignorable="d" 
              d:DesignHeight="40" d:DesignWidth="800">
-    <Border x:Name="TabsBorder" Background="{DynamicResource BackgroundSecondaryBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0" Visibility="Visible" WindowChrome.IsHitTestVisibleInChrome="True">
+    <Border x:Name="TabsBorder" Background="Transparent" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0" Visibility="Visible" WindowChrome.IsHitTestVisibleInChrome="True">
         <Grid Margin="8,4">
             <!-- 标签页滚动区域 -->
             <ScrollViewer x:Name="TabScrollViewer" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" 

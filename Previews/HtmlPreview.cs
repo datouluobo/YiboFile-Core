@@ -111,9 +111,9 @@ namespace OoiMRR.Previews
                                         if (!viewport) {
                                             viewport = document.createElement('meta');
                                             viewport.name = 'viewport';
+                                            viewport.content = 'width=device-width, initial-scale=1.0';
                                             document.head.appendChild(viewport);
                                         }
-                                        viewport.content = 'width=1400, initial-scale=1.0, minimum-scale=0.1, maximum-scale=3.0, user-scalable=yes';
                                     })();
                                 ";
                                 await webView.CoreWebView2.ExecuteScriptAsync(script);

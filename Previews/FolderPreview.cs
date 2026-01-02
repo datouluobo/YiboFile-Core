@@ -59,11 +59,13 @@ namespace OoiMRR.Previews
                 // 创建与左侧一样的ListView
                 var listView = new ListView
                 {
-                    ItemsSource = items,
-                    Background = Brushes.White
+                    ItemsSource = items
                 };
+                listView.SetResourceReference(Control.BackgroundProperty, "AppBackgroundBrush");
+                listView.ItemContainerStyle = Application.Current.FindResource("FileListItemStyle") as Style;
 
                 var gridView = new GridView();
+                gridView.ColumnHeaderContainerStyle = Application.Current.FindResource("FileListColumnHeaderStyle") as Style;
 
                 // 与左侧完全一致的列定义
                 var colName = new GridViewColumn
@@ -78,7 +80,8 @@ namespace OoiMRR.Previews
                 {
                     Header = "大小",
                     Width = 100,
-                    DisplayMemberBinding = new System.Windows.Data.Binding("Size")
+                    DisplayMemberBinding = new System.Windows.Data.Binding("Size"),
+                    HeaderContainerStyle = Application.Current.FindResource("NonResizableFileColumnHeaderStyle") as Style
                 };
                 gridView.Columns.Add(colSize);
 
@@ -86,7 +89,8 @@ namespace OoiMRR.Previews
                 {
                     Header = "类型",
                     Width = 100,
-                    DisplayMemberBinding = new System.Windows.Data.Binding("Type")
+                    DisplayMemberBinding = new System.Windows.Data.Binding("Type"),
+                    HeaderContainerStyle = Application.Current.FindResource("NonResizableFileColumnHeaderStyle") as Style
                 };
                 gridView.Columns.Add(colType);
 
@@ -94,7 +98,8 @@ namespace OoiMRR.Previews
                 {
                     Header = "修改日期",
                     Width = 150,
-                    DisplayMemberBinding = new System.Windows.Data.Binding("ModifiedDate")
+                    DisplayMemberBinding = new System.Windows.Data.Binding("ModifiedDate"),
+                    HeaderContainerStyle = Application.Current.FindResource("NonResizableFileColumnHeaderStyle") as Style
                 };
                 gridView.Columns.Add(colModified);
 
@@ -102,7 +107,8 @@ namespace OoiMRR.Previews
                 {
                     Header = "创建",
                     Width = 50,
-                    DisplayMemberBinding = new System.Windows.Data.Binding("CreatedTime")
+                    DisplayMemberBinding = new System.Windows.Data.Binding("CreatedTime"),
+                    HeaderContainerStyle = Application.Current.FindResource("NonResizableFileColumnHeaderStyle") as Style
                 };
                 gridView.Columns.Add(colCreated);
 

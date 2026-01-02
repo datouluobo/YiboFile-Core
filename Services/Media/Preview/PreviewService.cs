@@ -96,25 +96,7 @@ namespace OoiMRR.Services.Preview
                 return;
             }
 
-            // 2. 检查是否是 HTML/XML 等其他 Web 格式文件（保留编辑器功能）
-            var webExtensions = new[] { ".html", ".htm", ".xml", ".xaml" };
-            if (!item.IsDirectory && !string.IsNullOrEmpty(fileExtension) && webExtensions.Contains(fileExtension))
-            {
-                // 清理PreviewGrid中的其他预览元素
-                ClearPreviewGridForEditor();
 
-                // 显示 HTML 编辑器 (支持分屏预览)
-                var htmlEditor = new OoiMRR.Controls.HtmlEditorControl();
-                htmlEditor.LoadFile(item.Path);
-                _rightPanel.PreviewGrid.Children.Add(htmlEditor);
-
-                // 隐藏默认预览文本
-                if (_rightPanel.DefaultPreviewText != null)
-                {
-                    _rightPanel.DefaultPreviewText.Visibility = Visibility.Collapsed;
-                }
-                return;
-            }
 
             // 4. 检查其他可编辑的文本文件
             var editableTextExtensions = new[]

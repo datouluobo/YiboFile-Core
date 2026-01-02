@@ -79,10 +79,9 @@
 
         <Style x:Key="ToolbarSeparator" TargetType="Separator">
             <Setter Property="Width" Value="1"/>
-            <Setter Property="Height" Value="20"/>
-            <Setter Property="Margin" Value="6,0"/>
+            <Setter Property="Margin" Value="6,6,6,0"/>
             <Setter Property="Background" Value="#DDD"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Stretch"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Separator">
@@ -98,7 +97,7 @@
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
     </UserControl.Resources>
 
-    <Grid Background="{DynamicResource BackgroundSecondaryBrush}">
+    <Grid Background="{DynamicResource TitleBarBackgroundBrush}" MinHeight="40">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto"/> <!-- Title -->
             <ColumnDefinition Width="Auto"/> <!-- Separator -->
@@ -109,7 +108,7 @@
         <Border Grid.ColumnSpan="4" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1" VerticalAlignment="Bottom"/>
 
         <!-- Title Area -->
-        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0">
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="16,1,0,0">
             <TextBlock Text="{Binding FileIcon, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                        FontSize="16" 
                        VerticalAlignment="Center" 
@@ -133,16 +132,16 @@
                 x:Name="SearchPanel" 
                 VerticalAlignment="Center" 
                 HorizontalAlignment="Left"
-                Margin="0,0,10,0"
+                Margin="0,0,12,0"
                 Visibility="{Binding ShowSearch, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}">
-            <Border Background="White" BorderBrush="#DDD" BorderThickness="1" CornerRadius="4" Padding="4,2">
+            <Border Background="White" BorderBrush="#DDD" BorderThickness="1" CornerRadius="4" Padding="4,4">
                 <StackPanel Orientation="Horizontal">
                     <TextBox x:Name="SearchBox" 
-                             Width="180" 
+                             Width="200" 
                              BorderThickness="0" 
                              VerticalAlignment="Center"
                              VerticalContentAlignment="Center"
-                             FontSize="12"
+                             FontSize="13"
                              Background="Transparent"
                              KeyDown="SearchBox_KeyDown"
                              TextChanged="SearchBox_TextChanged">
@@ -151,7 +150,7 @@
                                 <Style.Resources>
                                     <VisualBrush x:Key="CueBannerBrush" AlignmentX="Left" AlignmentY="Center" Stretch="None">
                                         <VisualBrush.Visual>
-                                            <Label Content="搜索..." Foreground="#AAA" Padding="2,0,0,0" FontSize="12" FontFamily="Segoe UI" FontStyle="Italic"/>
+                                            <Label Content="搜索..." Foreground="#AAA" Padding="2,0,0,0" FontSize="13" FontFamily="Segoe UI" FontStyle="Italic"/>
                                         </VisualBrush.Visual>
                                     </VisualBrush>
                                 </Style.Resources>
@@ -171,7 +170,7 @@
                     
                     <TextBlock x:Name="MatchCountText" 
                                Text="0/0" 
-                               FontSize="11" 
+                               FontSize="12" 
                                Foreground="#888" 
                                VerticalAlignment="Center" 
                                Margin="4,0"
@@ -180,7 +179,7 @@
                     
                     <Button x:Name="PrevMatchButton"
                             Content="▲" 
-                            Width="20" Height="20"
+                            Width="24" Height="24"
                             Padding="0"
                             Background="Transparent"
                             BorderThickness="0"
@@ -190,7 +189,7 @@
 
                     <Button x:Name="NextMatchButton"
                             Content="▼" 
-                            Width="20" Height="20"
+                            Width="24" Height="24"
                             Padding="0"
                             Background="Transparent"
                             BorderThickness="0"
@@ -202,7 +201,7 @@
         </Border>
 
         <!-- Action Buttons -->
-        <StackPanel Grid.Column="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="10,0">
+        <StackPanel Grid.Column="3" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Stretch" Margin="12,0">
             <!-- Custom Actions -->
             <ContentPresenter Content="{Binding CustomActionContent, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                               VerticalAlignment="Center" 
@@ -233,10 +232,10 @@
 
             <!-- Encoding -->
             <ComboBox x:Name="EncodingCombo" 
-                      Width="100" 
-                      Height="26"
+                      Width="110" 
+                      Height="28"
                       FontSize="12"
-                      Margin="4,0"
+                      Margin="6,0"
                       VerticalAlignment="Center"
                       SelectionChanged="EncodingCombo_SelectionChanged"
                       Visibility="{Binding ShowEncoding, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
