@@ -148,8 +148,9 @@ namespace OoiMRR.Controls
         {
             if (string.IsNullOrEmpty(_currentFilePath))
             {
-                MessageBox.Show("没有可保存的文件", "提示",
-                    MessageBoxButton.OK, MessageBoxImage.Information);
+                // MessageBox.Show("没有可保存的文件", "提示",
+                //    MessageBoxButton.OK, MessageBoxImage.Information);
+                Services.Core.NotificationService.ShowInfo("没有可保存的文件");
                 return;
             }
 
@@ -157,13 +158,15 @@ namespace OoiMRR.Controls
             {
                 TextEditor.Save(_currentFilePath);
                 _isModified = false;
-                MessageBox.Show("保存成功", "提示",
-                    MessageBoxButton.OK, MessageBoxImage.Information);
+                // MessageBox.Show("保存成功", "提示",
+                //    MessageBoxButton.OK, MessageBoxImage.Information);
+                Services.Core.NotificationService.ShowSuccess("保存成功");
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"保存失败: {ex.Message}", "错误",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                // MessageBox.Show($"保存失败: {ex.Message}", "错误",
+                //    MessageBoxButton.OK, MessageBoxImage.Error);
+                Services.Core.NotificationService.ShowError($"保存失败: {ex.Message}");
             }
         }
 

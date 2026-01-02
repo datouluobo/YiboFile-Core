@@ -107,8 +107,9 @@ namespace OoiMRR.Controls
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"加载文件失败: {ex.Message}", "错误",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                // MessageBox.Show($"加载文件失败: {ex.Message}", "错误",
+                //    MessageBoxButton.OK, MessageBoxImage.Error);
+                Services.Core.NotificationService.ShowError($"加载文件失败: {ex.Message}");
             }
         }
 
@@ -157,11 +158,13 @@ namespace OoiMRR.Controls
             {
                 CodeEditor.Save(_currentFilePath);
                 _isModified = false;
-                MessageBox.Show("保存成功", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                // MessageBox.Show("保存成功", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                Services.Core.NotificationService.ShowSuccess("保存成功");
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"保存失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                // MessageBox.Show($"保存失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                Services.Core.NotificationService.ShowError($"保存失败: {ex.Message}");
             }
         }
 

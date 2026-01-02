@@ -228,6 +228,9 @@ namespace OoiMRR
             var initializer = new Services.MainWindowInitializer(this);
             initializer.InitializeConfigServices();
 
+            // Initialize Notification Service
+            Services.Core.NotificationService.Instance.Initialize(NotificationContainer);
+
             // Step 2: Initialize Handlers (now they have access to _configService)
             InitializeHandlers();
 

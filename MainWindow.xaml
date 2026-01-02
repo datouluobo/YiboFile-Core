@@ -314,6 +314,13 @@
             </StackPanel>
         </Grid>
 
+        <!-- 通知容器: 位于底部中央，覆盖在最上层 -->
+        <StackPanel x:Name="NotificationContainer"
+                    Grid.Row="1" Grid.RowSpan="3" Grid.Column="0" Grid.ColumnSpan="5"
+                    VerticalAlignment="Bottom" HorizontalAlignment="Center"
+                    Margin="0,0,0,20"
+                    Panel.ZIndex="9000"/>
+
     </Grid>
         
 

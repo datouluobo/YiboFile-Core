@@ -196,11 +196,13 @@ namespace OoiMRR.Previews
 
                             if (webView.CoreWebView2 != null) webView.Reload();
 
-                            MessageBox.Show("文件已保存", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                            // MessageBox.Show("文件已保存", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                            Services.Core.NotificationService.ShowSuccess("文件已保存");
                         }
                         catch (Exception ex)
                         {
-                            MessageBox.Show($"保存失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                            // MessageBox.Show($"保存失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                            Services.Core.NotificationService.ShowError($"保存失败: {ex.Message}");
                         }
                     }
                     else
