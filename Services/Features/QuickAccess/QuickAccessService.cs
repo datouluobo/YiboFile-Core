@@ -29,6 +29,7 @@ namespace OoiMRR.Services.QuickAccess
             public long UsedSize { get; set; }           // 已用容量(字节)
             public double UsagePercentage { get; set; }  // 使用率 0.0-1.0
             public string UsageText { get; set; }        // 使用量文本,如 "125 GB / 500 GB"
+            public string IconKey { get; set; } = "Icon_Drive"; // Default to Drive icon
         }
 
         #endregion
@@ -67,29 +68,47 @@ namespace OoiMRR.Services.QuickAccess
         /// <summary>
         /// 加载快速访问列表
         /// </summary>
+        /// <summary>
+        /// 快速访问项数据
+        /// </summary>
+        public class QuickAccessItem
+        {
+            public string DisplayName { get; set; }
+            public string Path { get; set; }
+            public string IconKey { get; set; }
+        }
+
+        /// <summary>
+        /// 加载快速访问列表
+        /// </summary>
         public void LoadQuickAccess(ListBox quickAccessListBox)
         {
             if (quickAccessListBox == null) return;
 
             _dispatcher.Invoke(() =>
             {
-                var quickAccessPaths = new[]
+                var quickAccessPaths = new List<(string Path, string Name, string IconKey)>
                 {
-                    (Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "🖥️ 桌面"),
-                    (Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "📄 文档"),
-                    (Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "🖼️ 图片"),
-                    (Environment.GetFolderPath(Environment.SpecialFolder.MyMusic), "🎵 音乐"),
-                    (Environment.GetFolderPath(Environment.SpecialFolder.MyVideos), "🎬 视频"),
-                    (Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "👤 用户")
+                    (Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "桌面", "Icon_Desktop"),
+                    (Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "文档", "Icon_Document"),
+                    (Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "图片", "Icon_Image"),
+                    (Environment.GetFolderPath(Environment.SpecialFolder.MyMusic), "音乐", "Icon_Music"),
+                    (Environment.GetFolderPath(Environment.SpecialFolder.MyVideos), "视频", "Icon_Video"),
+                    (Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "用户", "Icon_User")
                 };
 
                 var accessItems = quickAccessPaths
-                    .Where(item => Directory.Exists(item.Item1))
-                    .Select(item => new { DisplayName = item.Item2, Path = item.Item1 })
+                    .Where(item => Directory.Exists(item.Path))
+                    .Select(item => new QuickAccessItem
+                    {
+                        DisplayName = item.Name,
+                        Path = item.Path,
+                        IconKey = item.IconKey
+                    })
                     .ToList();
 
                 quickAccessListBox.ItemsSource = accessItems;
-                quickAccessListBox.DisplayMemberPath = "DisplayName";
+                // quickAccessListBox.DisplayMemberPath = "DisplayName"; // Removed, using ItemTemplate in XAML
 
                 // 设置选择事件
                 quickAccessListBox.SelectionChanged -= QuickAccessListBox_SelectionChanged;

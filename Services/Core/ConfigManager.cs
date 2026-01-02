@@ -35,6 +35,7 @@ namespace OoiMRR
         public string ThemeMode { get; set; } = "FollowSystem"; // Light, Dark, FollowSystem
         public double WindowOpacity { get; set; } = 1.0; // 窗口透明度 (0.5-1.0)
         public bool AnimationsEnabled { get; set; } = true; // 动画效果启用
+        public string IconStyle { get; set; } = "Emoji"; // 图标风格 (Emoji, Remix, Fluent)
 
         // 主布局列宽度（列1和列2）
         public double ColLeftWidth { get; set; } = 220; // 列1（左侧导航区）宽度

@@ -75,9 +75,9 @@
                 
                 <!-- 导航按钮 (←→↑) -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal">
-                    <Button Name="NavBackBtn" FontFamily="Segoe MDL2 Assets" Content="&#xE72B;" FontSize="14" Click="NavBackBtn_Click" ToolTip="后退" Style="{StaticResource ModernToolbarButtonStyle}"/>
-                    <Button Name="NavForwardBtn" FontFamily="Segoe MDL2 Assets" Content="&#xE72A;" FontSize="14" Click="NavForwardBtn_Click" ToolTip="前进" Style="{StaticResource ModernToolbarButtonStyle}"/>
-                    <Button Name="NavUpBtn" FontFamily="Segoe MDL2 Assets" Content="&#xE74A;" FontSize="14" Click="NavUpBtn_Click" ToolTip="向上" Style="{StaticResource ModernToolbarButtonStyle}"/>
+                    <Button Name="NavBackBtn" FontFamily="{DynamicResource IconFontFamily}" Content="{DynamicResource Icon_Back}" FontSize="14" Click="NavBackBtn_Click" ToolTip="后退" Style="{StaticResource ModernToolbarButtonStyle}"/>
+                    <Button Name="NavForwardBtn" FontFamily="{DynamicResource IconFontFamily}" Content="{DynamicResource Icon_Forward}" FontSize="14" Click="NavForwardBtn_Click" ToolTip="前进" Style="{StaticResource ModernToolbarButtonStyle}"/>
+                    <Button Name="NavUpBtn" FontFamily="{DynamicResource IconFontFamily}" Content="{DynamicResource Icon_Up}" FontSize="14" Click="NavUpBtn_Click" ToolTip="向上" Style="{StaticResource ModernToolbarButtonStyle}"/>
                 </StackPanel>
                 
                 <!-- TitleActionBar (操作按钮) -->
@@ -85,11 +85,11 @@
                 
                 <!-- 视图切换按钮 -->
                 <StackPanel Grid.Column="4" Orientation="Horizontal">
-                    <RadioButton Name="ViewListBtn" Content="&#xE8FD;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                    <RadioButton Name="ViewListBtn" Content="{DynamicResource Icon_ViewList}" FontFamily="{DynamicResource IconFontFamily}" FontSize="14"
                                 ToolTip="列表视图" Click="ViewModeBtn_Click" 
                                 Style="{StaticResource ToolbarRadioButtonStyle}"
                                 IsChecked="True" Tag="List"/>
-                    <RadioButton Name="ViewThumbBtn" Content="&#xE8B9;" FontFamily="Segoe MDL2 Assets" FontSize="14" 
+                    <RadioButton Name="ViewThumbBtn" Content="{DynamicResource Icon_ViewThumb}" FontFamily="{DynamicResource IconFontFamily}" FontSize="14" 
                                 ToolTip="缩略图视图" Click="ViewModeBtn_Click" 
                                 Style="{StaticResource ToolbarRadioButtonStyle}"
                                 Tag="Thumbnail"/>
@@ -97,10 +97,10 @@
                 
                 <!-- 搜索/筛选按钮 -->
                 <StackPanel Grid.Column="6" Orientation="Horizontal">
-                    <Button Name="SearchBtn" Content="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                    <Button Name="SearchBtn" Content="{DynamicResource Icon_Search}" FontFamily="{DynamicResource IconFontFamily}" FontSize="14"
                             Click="SearchBtn_Click" Margin="0,0,6,0"
                             Style="{StaticResource ModernToolbarButtonStyle}" ToolTip="搜索"/>
-                    <Button Name="FilterBtn" Content="&#xE713;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                    <Button Name="FilterBtn" Content="{DynamicResource Icon_Filter}" FontFamily="{DynamicResource IconFontFamily}" FontSize="14"
                             Click="FilterBtn_Click"
                             Style="{StaticResource ModernToolbarButtonStyle}" ToolTip="设置"/>
                 </StackPanel>

@@ -323,6 +323,38 @@ namespace OoiMRR.Services.Theming
             SetTheme(newThemeId, animate: true);
         }
 
+        /// <summary>
+        /// 切换图标风格
+        /// </summary>
+        /// <param name="styleName">E.g., "Emoji", "Remix", "Fluent"</param>
+        public static void ChangeIconStyle(string styleName)
+        {
+            try
+            {
+                // Use Relative URI to ensure consistent BAML loading behavior with App.xaml
+                var uri = new Uri($"/Resources/Icons/Icons.{styleName}.xaml", UriKind.Relative);
+                var newDict = new ResourceDictionary { Source = uri };
+
+                var appDictionaries = Application.Current.Resources.MergedDictionaries;
+
+                // 查找并替换旧的图标资源字典
+                // 我们通过查找是否包含 "IconFontFamily" 键来识别图标字典
+                var existingDict = appDictionaries.FirstOrDefault(d => d.Contains("IconFontFamily"));
+
+                if (existingDict != null)
+                {
+                    appDictionaries.Remove(existingDict);
+                }
+
+                appDictionaries.Add(newDict);
+                System.Diagnostics.Debug.WriteLine($"Icon style changed to: {styleName}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to change icon style to {styleName}: {ex.Message}");
+            }
+        }
+
         #region 系统主题跟随
 
         /// <summary>

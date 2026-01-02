@@ -75,20 +75,20 @@ namespace OoiMRR.Controls
             switch (type)
             {
                 case NotificationType.Success:
-                    IconText.Text = "✓"; // Checkmark
+                    IconText.Text = (string)FindResource("Icon_Success");
                     IconText.Foreground = new SolidColorBrush(Color.FromRgb(40, 167, 69)); // Green
                     break;
                 case NotificationType.Warning:
-                    IconText.Text = "⚠️"; // Warning
+                    IconText.Text = (string)FindResource("Icon_Warning");
                     IconText.Foreground = new SolidColorBrush(Color.FromRgb(255, 193, 7)); // Amber
                     break;
                 case NotificationType.Error:
-                    IconText.Text = "✕"; // Cross
+                    IconText.Text = (string)FindResource("Icon_Error");
                     IconText.Foreground = new SolidColorBrush(Color.FromRgb(220, 53, 69)); // Red
                     break;
                 case NotificationType.Info:
                 default:
-                    IconText.Text = "ℹ"; // Info
+                    IconText.Text = (string)FindResource("Icon_Info");
                     IconText.SetResourceReference(TextBlock.ForegroundProperty, "AccentBrush");
                     break;
             }

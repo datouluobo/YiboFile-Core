@@ -1,4 +1,4 @@
-鐢熸垚鍚姩鏃堕棿涓?2026-01-02 18:57:19銆?
+鐢熸垚鍚姩鏃堕棿涓?2026-01-02 18:58:27銆?
      1>椤圭洰鈥淔:\Download\GitHub\OoiMRR\OoiMRR.sln鈥濆湪鑺傜偣 1 涓?Restore 涓洰鏍?銆?
      1>ValidateSolutionConfiguration:
          姝ｅ湪鐢熸垚瑙ｅ喅鏂规閰嶇疆鈥淒ebug|Any CPU鈥濄€?
@@ -16,7 +16,7 @@
          姝ｅ湪鐢熸垚 MSBuild 鏂囦欢 F:\Download\GitHub\OoiMRR\obj\OoiMRR.csproj.nuget.g.props銆?
          姝ｅ湪鐢熸垚 MSBuild 鏂囦欢 F:\Download\GitHub\OoiMRR\obj\OoiMRR.csproj.nuget.g.targets銆?
          灏嗚祫浜ф枃浠跺啓鍏ョ鐩樸€傝矾寰? F:\Download\GitHub\OoiMRR\obj\project.assets.json
-         宸茶繕鍘?F:\Download\GitHub\OoiMRR\OoiMRR.csproj (鐢ㄦ椂 690 姣)銆?
+         宸茶繕鍘?F:\Download\GitHub\OoiMRR\OoiMRR.csproj (鐢ㄦ椂 528 姣)銆?
          
          浣跨敤鐨?NuGet 閰嶇疆鏂囦欢:
              C:\Users\Administrator\AppData\Roaming\NuGet\NuGet.Config
@@ -34,7 +34,7 @@
    1:2>椤圭洰鈥淔:\Download\GitHub\OoiMRR\OoiMRR.sln鈥?1:2)姝ｅ湪鑺傜偣 1 涓婄敓鎴愨€淔:\Download\GitHub\OoiMRR\OoiMRR.csproj鈥?2:6) (榛樿鐩爣)銆?
      2>F:\Download\GitHub\OoiMRR\OoiMRR.csproj : warning NU1902: 鍖?"Magick.NET-Q16-AnyCPU" 14.10.0 鍏锋湁宸茬煡鐨?涓?涓ラ噸鎬ф紡娲烇紝https://github.com/advisories/GHSA-7rvh-xqp3-pr8j
      2>F:\Download\GitHub\OoiMRR\OoiMRR.csproj : warning NU1902: 鍖?"Magick.NET-Q16-AnyCPU" 14.10.0 鍏锋湁宸茬煡鐨?涓?涓ラ噸鎬ф紡娲烇紝https://github.com/advisories/GHSA-p27m-hp98-6637
-     2>C:\Program Files\dotnet\sdk\10.0.101\Sdks\Microsoft.NET.Sdk.WindowsDesktop\targets\Microsoft.WinFX.targets(211,9): error MC1000: 鏈煡鐨勭敓鎴愰敊璇€淎ccess to the path 'F:\Download\GitHub\OoiMRR\obj\Debug\net8.0-windows\win-x64\Windows\ColumnChooserWindow.g.cs' is denied.鈥?[F:\Download\GitHub\OoiMRR\OoiMRR.csproj]
+     2>F:\Download\GitHub\OoiMRR\Controls\HtmlEditorControl.xaml(68,3): error MC1000: 鏈煡鐨勭敓鎴愰敊璇€淭he process cannot access the file 'F:\Download\GitHub\OoiMRR\obj\Debug\net8.0-windows\win-x64\Controls\HtmlEditorControl.g.cs' because it is being used by another process. 琛?68 浣嶇疆 3.鈥?[F:\Download\GitHub\OoiMRR\OoiMRR.csproj]
      2>宸插畬鎴愮敓鎴愰」鐩€淔:\Download\GitHub\OoiMRR\OoiMRR.csproj鈥?榛樿鐩爣)鐨勬搷浣?- 澶辫触銆?
      1>宸插畬鎴愮敓鎴愰」鐩€淔:\Download\GitHub\OoiMRR\OoiMRR.sln鈥?榛樿鐩爣)鐨勬搷浣?- 澶辫触銆?
 
@@ -56,9 +56,9 @@
        鈥淔:\Download\GitHub\OoiMRR\OoiMRR.sln鈥?榛樿鐩爣) (1:2) ->
        鈥淔:\Download\GitHub\OoiMRR\OoiMRR.csproj鈥?榛樿鐩爣) (2:6) ->
        (MarkupCompilePass1 鐩爣) -> 
-         C:\Program Files\dotnet\sdk\10.0.101\Sdks\Microsoft.NET.Sdk.WindowsDesktop\targets\Microsoft.WinFX.targets(211,9): error MC1000: 鏈煡鐨勭敓鎴愰敊璇€淎ccess to the path 'F:\Download\GitHub\OoiMRR\obj\Debug\net8.0-windows\win-x64\Windows\ColumnChooserWindow.g.cs' is denied.鈥?[F:\Download\GitHub\OoiMRR\OoiMRR.csproj]
+         F:\Download\GitHub\OoiMRR\Controls\HtmlEditorControl.xaml(68,3): error MC1000: 鏈煡鐨勭敓鎴愰敊璇€淭he process cannot access the file 'F:\Download\GitHub\OoiMRR\obj\Debug\net8.0-windows\win-x64\Controls\HtmlEditorControl.g.cs' because it is being used by another process. 琛?68 浣嶇疆 3.鈥?[F:\Download\GitHub\OoiMRR\OoiMRR.csproj]
 
     4 涓鍛?
     1 涓敊璇?
 
-宸茬敤鏃堕棿 00:00:02.04
+宸茬敤鏃堕棿 00:00:02.88

@@ -59,18 +59,28 @@
                             <!-- 导航按钮 -->
                             <StackPanel Grid.Row="0" Orientation="Horizontal" 
                                         HorizontalAlignment="Center" Margin="0,0,0,5">
-                                <Button Name="PrevImageBtn" Content="◀ 上一张" 
+                                <Button Name="PrevImageBtn" 
                                         Padding="10,5" Margin="0,0,5,0" 
                                         Click="PrevImageBtn_Click" 
                                         Visibility="Collapsed"
                                         Background="{DynamicResource BorderDefaultBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}"
-                                        Cursor="Hand"/>
-                                <Button Name="NextImageBtn" Content="下一张 ▶" 
+                                        Cursor="Hand">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{DynamicResource Icon_Back}" FontFamily="{DynamicResource IconFontFamily}" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                        <TextBlock Text="上一张" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Name="NextImageBtn" 
                                         Padding="10,5" 
                                         Click="NextImageBtn_Click" 
                                         Visibility="Collapsed"
                                         Background="{DynamicResource BorderDefaultBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}"
-                                        Cursor="Hand"/>
+                                        Cursor="Hand">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="下一张" VerticalAlignment="Center"/>
+                                        <TextBlock Text="{DynamicResource Icon_Forward}" FontFamily="{DynamicResource IconFontFamily}" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
                             </StackPanel>
                             
                             <!-- 图片索引显示 -->

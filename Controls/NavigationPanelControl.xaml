@@ -2,7 +2,11 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:tagTrain="clr-namespace:TagTrain.UI"
+             xmlns:helpers="clr-namespace:OoiMRR.Helpers"
              Background="{DynamicResource PanelBackgroundBrush}">
+    <UserControl.Resources>
+        <helpers:ResourceKeyConverter x:Key="ResourceKeyConverter"/>
+    </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
@@ -26,7 +30,20 @@
                                  BorderThickness="0"
                                  Background="Transparent"
                                  SelectionMode="Single"
-                                 ItemContainerStyle="{StaticResource DriveListBoxItemStyle}"/>
+                                 ItemContainerStyle="{StaticResource DriveListBoxItemStyle}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding IconKey, Converter={StaticResource ResourceKeyConverter}}" 
+                                                   FontFamily="{DynamicResource IconFontFamily}" 
+                                                   Margin="0,0,8,0" 
+                                                   VerticalAlignment="Center"
+                                                   FontSize="14"/>
+                                        <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
                     </ScrollViewer>
                 </GroupBox>
 
@@ -39,7 +56,20 @@
                                  BorderThickness="0"
                                  Background="Transparent"
                                  SelectionMode="Single"
-                                 ItemContainerStyle="{StaticResource NavListBoxItemStyle}"/>
+                                 ItemContainerStyle="{StaticResource NavListBoxItemStyle}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding IconKey, Converter={StaticResource ResourceKeyConverter}}" 
+                                                   FontFamily="{DynamicResource IconFontFamily}" 
+                                                   Margin="0,0,8,0" 
+                                                   VerticalAlignment="Center"
+                                                   FontSize="16"/>
+                                        <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
                     </ScrollViewer>
                 </GroupBox>
                 
@@ -48,7 +78,7 @@
                     <GroupBox.Header>
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="收藏" VerticalAlignment="Center"/>
-                            <Button Content="➕" Name="AddFavoriteButton" Width="18" Height="18" FontSize="12"
+                            <Button Content="{DynamicResource Icon_Add}" FontFamily="{DynamicResource IconFontFamily}" Name="AddFavoriteButton" Width="18" Height="18" FontSize="12"
                                     Margin="8,0,0,0" Padding="0" VerticalAlignment="Center"
                                     ToolTip="添加收藏" Background="Transparent" BorderThickness="0"/>
                         </StackPanel>
@@ -59,7 +89,20 @@
                                  BorderThickness="0"
                                  Background="Transparent"
                                  SelectionMode="Single"
-                                 ItemContainerStyle="{StaticResource NavListBoxItemStyle}"/>
+                                 ItemContainerStyle="{StaticResource NavListBoxItemStyle}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding IconKey, Converter={StaticResource ResourceKeyConverter}}" 
+                                                   FontFamily="{DynamicResource IconFontFamily}" 
+                                                   Margin="0,0,8,0" 
+                                                   VerticalAlignment="Center"
+                                                   FontSize="16"/>
+                                        <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
                     </ScrollViewer>
                 </GroupBox>
             </Grid>
@@ -114,7 +157,7 @@
                 
                 <!-- 左侧：添加收藏/标签按钮 -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Left" Margin="8,8">
-                    <Button Content="📌" Name="AddTagToFileButton" Width="32" Height="32"
+                    <Button Content="{DynamicResource Icon_Nav_Tag}" FontFamily="{DynamicResource IconFontFamily}" Name="AddTagToFileButton" Width="32" Height="32"
                             Style="{StaticResource ModernButtonStyle}" ToolTip="添加标签" Margin="0,0,4,0"/>
                 </StackPanel>
                 
@@ -123,7 +166,8 @@
                     <!-- 库管理按钮 -->
                     <StackPanel Orientation="Horizontal" Name="LibraryBottomButtons" Visibility="Collapsed">
                         <Button Name="LibraryManageBtn"
-                               Content="⚙️"
+                               Content="{DynamicResource Icon_Settings}"
+                               FontFamily="{DynamicResource IconFontFamily}"
                                Width="32"
                                Height="32"
                                Style="{StaticResource ModernButtonStyle}"
@@ -134,13 +178,15 @@
                     <!-- 标签页面按钮 -->
                     <StackPanel Orientation="Horizontal" Visibility="Collapsed" Name="TagBottomButtons">
                         <Button Name="TagClickModeBtn"
-                               Content="👁"
+                               Content="{DynamicResource Icon_OpenExternal}"
+                               FontFamily="{DynamicResource IconFontFamily}"
                                Width="32" Height="32"
                                Style="{StaticResource ModernButtonStyle}"
                                ToolTip="切换浏览/编辑模式"
                                Margin="4,0"/>
                         <Button Name="TagCategoryManageBtn"
-                               Content="📁"
+                               Content="{DynamicResource Icon_Nav_Library}"
+                               FontFamily="{DynamicResource IconFontFamily}"
                                Width="32" Height="32"
                                Style="{StaticResource ModernButtonStyle}"
                                ToolTip="分组管理"

@@ -257,7 +257,8 @@ namespace OoiMRR.Handlers
             if (_mainWindow.TitleBarMaxRestoreButton != null)
             {
                 // Segoe MDL2 Assets: Maximize E922, Restore E923
-                _mainWindow.TitleBarMaxRestoreButton.Content = isMax ? "\uE923" : "\uE922";
+                // Refactored to use DynamicResource for multi-icon support
+                _mainWindow.TitleBarMaxRestoreButton.SetResourceReference(Button.ContentProperty, isMax ? "Icon_Window_Restore" : "Icon_Window_Maximize");
                 _mainWindow.TitleBarMaxRestoreButton.ToolTip = isMax ? "还原" : "最大化";
             }
         }

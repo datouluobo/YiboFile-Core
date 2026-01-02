@@ -38,22 +38,8 @@ namespace OoiMRR.Controls
         /// </summary>
         private void CreateAndAddNewTabButton()
         {
-            // 使用 Path 图标
-            var path = new System.Windows.Shapes.Path
-            {
-                Data = Geometry.Parse("M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"),
-                Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#5F6368")),
-                Stretch = Stretch.Uniform,
-                Width = 12,
-                Height = 12,
-                VerticalAlignment = VerticalAlignment.Center,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                IsHitTestVisible = false // 确保鼠标事件穿透到Button
-            };
-
             _newTabButton = new Button
             {
-                Content = path,
                 Width = 32,
                 Height = 32,
                 Margin = new Thickness(2, 0, 2, 0),
@@ -62,6 +48,18 @@ namespace OoiMRR.Controls
                 Cursor = Cursors.Hand,
                 VerticalAlignment = VerticalAlignment.Center
             };
+
+            // Create TextBlock for Icon
+            var iconBlock = new TextBlock
+            {
+                FontSize = 16,
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Center
+            };
+            iconBlock.SetResourceReference(TextBlock.TextProperty, "Icon_Add");
+            iconBlock.SetResourceReference(TextBlock.FontFamilyProperty, "IconFontFamily");
+
+            _newTabButton.Content = iconBlock;
 
             // 设置样式
             var style = new Style(typeof(Button));

@@ -11,32 +11,32 @@
         <StackPanel x:Name="PathPanel" Orientation="Horizontal" VerticalAlignment="Center">
             <Button Click="OnNewFolderClicked" ToolTip="新建文件夹" Margin="0,0,4,0">
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="&#xE8F4;" FontSize="14" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="{DynamicResource Icon_NewFolder}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" Margin="0,0,6,0" VerticalAlignment="Center"/>
                     <TextBlock Text="新建文件夹" VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>
             <Button Click="OnNewFileClicked" ToolTip="新建文件">
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="&#xE7C3;" FontSize="14" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="{DynamicResource Icon_NewFile}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" Margin="0,0,6,0" VerticalAlignment="Center"/>
                     <TextBlock Text="新建文件" VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>
             <Separator Margin="8,4" Height="20" VerticalAlignment="Center"/>
             <Button Click="OnCopyClicked" ToolTip="复制" Margin="0,0,4,0">
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="&#xE8C8;" FontSize="14" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="{DynamicResource Icon_Copy}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" Margin="0,0,6,0" VerticalAlignment="Center"/>
                     <TextBlock Text="复制" VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>
             <Button Click="OnPasteClicked" ToolTip="粘贴" Margin="0,0,4,0">
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="&#xE77F;" FontSize="14" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="{DynamicResource Icon_Format}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" Margin="0,0,6,0" VerticalAlignment="Center"/>
                     <TextBlock Text="粘贴" VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>
             <Button Click="OnDeleteClicked" ToolTip="删除">
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="&#xE74D;" FontSize="14" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="{DynamicResource Icon_Delete_Outline}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" Margin="0,0,6,0" VerticalAlignment="Center"/>
                     <TextBlock Text="删除" VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>
@@ -48,13 +48,13 @@
             <Separator Margin="8,4" Height="20" VerticalAlignment="Center"/>
             <Button Click="OnCopyClicked" ToolTip="复制">
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="&#xE8C8;" FontSize="14" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="{DynamicResource Icon_Copy}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" Margin="0,0,6,0" VerticalAlignment="Center"/>
                     <TextBlock Text="复制" VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>
             <Button Click="OnPasteClicked" ToolTip="粘贴">
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="&#xE77F;" FontSize="14" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="{DynamicResource Icon_Format}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" Margin="0,0,6,0" VerticalAlignment="Center"/>
                     <TextBlock Text="粘贴" VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>
@@ -66,7 +66,7 @@
                     </Style>
                 </Button.Style>
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="&#xE74D;" FontSize="14" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="{DynamicResource Icon_Delete_Outline}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" Margin="0,0,6,0" VerticalAlignment="Center"/>
                     <TextBlock Text="删除" VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>
@@ -78,7 +78,7 @@
                     </Style>
                 </Button.Style>
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="&#xE72C;" FontSize="14" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="{DynamicResource Icon_Refresh}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" Margin="0,0,6,0" VerticalAlignment="Center"/>
                     <TextBlock Text="刷新" VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>
@@ -138,7 +138,7 @@
                     </Style>
                 </Button.Style>
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="&#xE8C8;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="{DynamicResource Icon_Copy}" FontFamily="{DynamicResource IconFontFamily}" Margin="0,0,6,0" VerticalAlignment="Center"/>
                     <TextBlock Text="复制" VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>
@@ -149,7 +149,7 @@
                     </Style>
                 </Button.Style>
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="&#xE77F;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="{DynamicResource Icon_Format}" FontFamily="{DynamicResource IconFontFamily}" Margin="0,0,6,0" VerticalAlignment="Center"/>
                     <TextBlock Text="粘贴" VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>
@@ -160,7 +160,7 @@
                     </Style>
                 </Button.Style>
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="{DynamicResource Icon_Delete_Outline}" FontFamily="{DynamicResource IconFontFamily}" Margin="0,0,6,0" VerticalAlignment="Center"/>
                     <TextBlock Text="删除" VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>

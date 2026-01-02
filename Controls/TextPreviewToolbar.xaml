@@ -178,7 +178,8 @@
                                TextAlignment="Center"/>
                     
                     <Button x:Name="PrevMatchButton"
-                            Content="▲" 
+                            Content="{DynamicResource Icon_ChevronUp}"
+                            FontFamily="{DynamicResource IconFontFamily}"
                             Width="24" Height="24"
                             Padding="0"
                             Background="Transparent"
@@ -188,7 +189,8 @@
                             ToolTip="上一个 (Shift+Enter)"/>
 
                     <Button x:Name="NextMatchButton"
-                            Content="▼" 
+                            Content="{DynamicResource Icon_ChevronDown}"
+                            FontFamily="{DynamicResource IconFontFamily}"
                             Width="24" Height="24"
                             Padding="0"
                             Background="Transparent"
@@ -209,21 +211,27 @@
 
             <!-- View Toggle (Source/Render) -->
             <Button x:Name="ViewToggleButton" 
-                    Content="🎨 渲染" 
+                    Content="{DynamicResource Icon_Render}"
+                    ToolTip="渲染/源码切换" 
+                    FontFamily="{DynamicResource IconFontFamily}"
                     Style="{StaticResource ToolbarButtonStyle}"
                     Visibility="{Binding ShowViewToggle, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"
                     Click="ViewToggleButton_Click"/>
             
             <!-- Format XML/JSON -->
             <Button x:Name="FormatButton" 
-                    Content="✨ 格式化" 
+                    Content="{DynamicResource Icon_Format}"
+                    ToolTip="格式化代码" 
+                    FontFamily="{DynamicResource IconFontFamily}"
                     Style="{StaticResource ToolbarButtonStyle}"
                     Visibility="{Binding ShowFormat, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"
                     Click="FormatButton_Click"/>
 
             <!-- Word Wrap -->
             <ToggleButton x:Name="WrapButton" 
-                          Content="📃 自动换行" 
+                          Content="{DynamicResource Icon_Wrap}"
+                          ToolTip="自动换行" 
+                          FontFamily="{DynamicResource IconFontFamily}"
                           Style="{StaticResource ToolbarToggleButtonStyle}"
                           Checked="WrapButton_CheckedChanged"
                           Unchecked="WrapButton_CheckedChanged"
@@ -244,21 +252,26 @@
 
             <!-- Copy -->
             <Button x:Name="CopyButton" 
-                    Content="📋 复制" 
+                    Content="{DynamicResource Icon_Copy}"
+                    ToolTip="复制全文" 
+                    FontFamily="{DynamicResource IconFontFamily}"
                     Style="{StaticResource ToolbarButtonStyle}"
                     Click="CopyButton_Click"/>
 
             <!-- Edit/Save -->
             <Button x:Name="EditButton" 
-                    Content="✏️ 编辑" 
+                    Content="{DynamicResource Icon_Edit}"
+                    ToolTip="编辑模式" 
+                    FontFamily="{DynamicResource IconFontFamily}"
                     Style="{StaticResource ToolbarButtonStyle}"
                     Click="EditButton_Click"/>
 
             <!-- Open External -->
             <Button x:Name="OpenExternalButton" 
-                    Content="📂 打开" 
+                    Content="{DynamicResource Icon_OpenExternal}"
+                    ToolTip="用外部程序打开" 
+                    FontFamily="{DynamicResource IconFontFamily}"
                     Style="{StaticResource ToolbarButtonStyle}"
-                    ToolTip="用外部程序打开"
                     Click="OpenExternalButton_Click"/>
         </StackPanel>
     </Grid>

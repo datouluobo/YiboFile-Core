@@ -215,6 +215,12 @@ namespace OoiMRR
         {
             InitializeComponent();
 
+
+
+
+
+
+
             // 订阅渲染完成事件，确保在窗口初次显示时强制修正布局
             // 这对于解决启动时右侧空白间隙至关重要，因为此时 ActualWidth 才有效
             this.ContentRendered += (s, e) =>

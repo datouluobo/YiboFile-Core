@@ -20,6 +20,7 @@ namespace OoiMRR.Controls.Settings
         public event EventHandler SettingsChanged;
 
         private ComboBox _themeComboBox;
+        private ComboBox _iconStyleComboBox; // New
         private Slider _opacitySlider;
         private TextBlock _opacityValueText;
         private CheckBox _animationsEnabledCheckBox;
@@ -157,7 +158,9 @@ namespace OoiMRR.Controls.Settings
 
             _themeComboBox = new ComboBox
             {
-                MinHeight = 36,
+                MinHeight = 40,
+                Padding = new Thickness(12, 0, 12, 0),
+                VerticalContentAlignment = VerticalAlignment.Center,
                 FontSize = 14,
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 Margin = new Thickness(0, 0, 0, 24)
@@ -193,6 +196,47 @@ namespace OoiMRR.Controls.Settings
             }
             _themeComboBox.SelectionChanged += ThemeComboBox_SelectionChanged;
             leftPanel.Children.Add(_themeComboBox);
+
+            // 1.5 Icon Style Selection
+            var iconSelectionLabel = new TextBlock
+            {
+                Text = "图标风格：",
+                FontSize = 14,
+                FontWeight = FontWeights.Medium,
+                Margin = new Thickness(0, 0, 0, 8)
+            };
+            iconSelectionLabel.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundPrimaryBrush");
+            leftPanel.Children.Add(iconSelectionLabel);
+
+            _iconStyleComboBox = new ComboBox
+            {
+                MinHeight = 40,
+                Padding = new Thickness(12, 0, 12, 0),
+                VerticalContentAlignment = VerticalAlignment.Center,
+                FontSize = 14,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Margin = new Thickness(0, 0, 0, 24)
+            };
+            _iconStyleComboBox.SetResourceReference(ComboBox.BackgroundProperty, "BackgroundElevatedBrush");
+            _iconStyleComboBox.SetResourceReference(ComboBox.ForegroundProperty, "ForegroundPrimaryBrush");
+            _iconStyleComboBox.SetResourceReference(ComboBox.BorderBrushProperty, "BorderDefaultBrush");
+
+            _iconStyleComboBox.Items.Add(new ComboBoxItem { Content = "🌈 系统 Emoji (默认)", Tag = "Emoji" });
+            _iconStyleComboBox.Items.Add(new ComboBoxItem { Content = "✒️ Remix Icon (现代)", Tag = "Remix" });
+            _iconStyleComboBox.Items.Add(new ComboBoxItem { Content = "💠 Fluent Icons (Win11)", Tag = "Fluent" });
+            _iconStyleComboBox.Items.Add(new ComboBoxItem { Content = "✨ Material Design (Google)", Tag = "Material" });
+
+            _iconStyleComboBox.SelectionChanged += (s, e) =>
+            {
+                if (_isLoadingSettings) return;
+                if (_iconStyleComboBox.SelectedItem is ComboBoxItem item && item.Tag is string style)
+                {
+                    ThemeManager.ChangeIconStyle(style);
+                    // TODO: Save to config
+                    SaveSettings();
+                }
+            };
+            leftPanel.Children.Add(_iconStyleComboBox);
 
             // 2. Custom Theme Buttons
             var customThemeTitle = new TextBlock
@@ -503,6 +547,17 @@ namespace OoiMRR.Controls.Settings
                     }
                 }
 
+                // Load Icon Style
+                var iconStyle = config.IconStyle ?? "Emoji";
+                foreach (ComboBoxItem item in _iconStyleComboBox.Items)
+                {
+                    if (item.Tag as string == iconStyle)
+                    {
+                        _iconStyleComboBox.SelectedItem = item;
+                        break;
+                    }
+                }
+
                 // 加载窗口透明度
                 _opacitySlider.Value = config.WindowOpacity > 0 ? config.WindowOpacity : 1.0;
 
@@ -539,6 +594,12 @@ namespace OoiMRR.Controls.Settings
 
                 // 保存动画设置
                 config.AnimationsEnabled = _animationsEnabledCheckBox.IsChecked ?? true;
+
+                // Save Icon Style
+                if (_iconStyleComboBox.SelectedItem is ComboBoxItem iconItem && iconItem.Tag is string style)
+                {
+                    config.IconStyle = style;
+                }
             });
         }
 

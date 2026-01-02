@@ -80,21 +80,21 @@
                 <Button Name="NavPathBtn" Click="NavPathBtn_Click" Margin="2,0" Height="32" Width="60"
                         Style="{StaticResource ActiveNavigationButtonStyle}" Tag="Selected"> <!-- 默认选中路径 -->
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                        <TextBlock Text="&#xE838;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="{DynamicResource Icon_Nav_Path}" FontFamily="{DynamicResource IconFontFamily}" Margin="0,0,6,0" VerticalAlignment="Center"/>
                         <TextBlock Text="路径" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
                 <Button Name="NavLibraryBtn" Click="NavLibraryBtn_Click" Margin="2,0" Height="32" Width="60"
                         Style="{StaticResource ActiveNavigationButtonStyle}">
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                        <TextBlock Text="&#xE8F1;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="{DynamicResource Icon_Nav_Library}" FontFamily="{DynamicResource IconFontFamily}" Margin="0,0,6,0" VerticalAlignment="Center"/>
                         <TextBlock Text="库" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
                 <Button Name="NavTagBtn" Click="NavTagBtn_Click" Margin="2,0" Height="32" Width="60"
                         Style="{StaticResource ActiveNavigationButtonStyle}">
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                        <TextBlock Text="&#xE8EC;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="{DynamicResource Icon_Nav_Tag}" FontFamily="{DynamicResource IconFontFamily}" Margin="0,0,6,0" VerticalAlignment="Center"/>
                         <TextBlock Text="标签" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
@@ -177,10 +177,10 @@
                        WindowChrome.IsHitTestVisibleInChrome="True">
                 
                 <!-- 设置按钮 -->
-                <Button x:Name="TitleBarSettingsButton" Content="&#xE713;" 
+                <Button x:Name="TitleBarSettingsButton" Content="{DynamicResource Icon_Window_Settings}" 
                         Width="46"
                         Click="Settings_Click" 
-                        ToolTip="设置" FontSize="16" FontFamily="Segoe MDL2 Assets"
+                        ToolTip="设置" FontSize="{DynamicResource WindowControlIconSize}" FontFamily="{DynamicResource IconFontFamily}"
                         Background="Transparent" BorderThickness="0" Cursor="Hand">
                     <Button.Style>
                         <Style TargetType="Button">
@@ -204,10 +204,10 @@
                     </Button.Style>
                 </Button>
                 <!-- 关于按钮 -->
-                <Button x:Name="TitleBarAboutButton" Content="&#xE946;" 
+                <Button x:Name="TitleBarAboutButton" Content="{DynamicResource Icon_Window_About}" 
                         Width="46"
                         Click="About_Click" 
-                        ToolTip="关于" FontSize="16" FontFamily="Segoe MDL2 Assets"
+                        ToolTip="关于" FontSize="{DynamicResource WindowControlIconSize}" FontFamily="{DynamicResource IconFontFamily}"
                         Background="Transparent" BorderThickness="0" Cursor="Hand">
                     <Button.Style>
                         <Style TargetType="Button">
@@ -231,10 +231,10 @@
                     </Button.Style>
                 </Button>
                 <!-- 最小化按钮 -->
-                <Button x:Name="TitleBarMinimizeButton" Content="&#xE921;" 
+                <Button x:Name="TitleBarMinimizeButton" Content="{DynamicResource Icon_Window_Minimize}" 
                         Width="46"
                         Click="WindowMinimize_Click" 
-                        ToolTip="最小化" FontSize="16" FontFamily="Segoe MDL2 Assets"
+                        ToolTip="最小化" FontSize="{DynamicResource WindowControlIconSize}" FontFamily="{DynamicResource IconFontFamily}"
                         Background="Transparent" BorderThickness="0" Cursor="Hand">
                     <Button.Style>
                         <Style TargetType="Button">
@@ -257,10 +257,10 @@
                         </Style>
                     </Button.Style>
                 </Button>
-                <Button x:Name="TitleBarMaxRestoreButton" Content="&#xE922;" 
+                <Button x:Name="TitleBarMaxRestoreButton" Content="{DynamicResource Icon_Window_Maximize}" 
                         Width="46"
                         Click="WindowMaximize_Click" 
-                        ToolTip="最大化" FontSize="16" FontFamily="Segoe MDL2 Assets"
+                        ToolTip="最大化" FontSize="{DynamicResource WindowControlIconSize}" FontFamily="{DynamicResource IconFontFamily}"
                         Background="Transparent" BorderThickness="0" Cursor="Hand">
                     <Button.Style>
                         <Style TargetType="Button">
@@ -283,10 +283,10 @@
                         </Style>
                     </Button.Style>
                 </Button>
-                <Button x:Name="TitleBarCloseButton" Content="&#xE8BB;" 
+                <Button x:Name="TitleBarCloseButton" Content="{DynamicResource Icon_Window_Close}" 
                         Width="46"
                         Click="WindowClose_Click" 
-                        ToolTip="关闭" FontSize="16" FontFamily="Segoe MDL2 Assets"
+                        ToolTip="关闭" FontSize="{DynamicResource WindowControlIconSize}" FontFamily="{DynamicResource IconFontFamily}"
                         Background="Transparent" BorderThickness="0" Cursor="Hand">
                     <Button.Style>
                         <Style TargetType="Button">

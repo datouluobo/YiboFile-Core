@@ -62,6 +62,17 @@ namespace OoiMRR.Services.Favorite
         #region 公共方法
 
         /// <summary>
+        /// 收藏项显示数据
+        /// </summary>
+        public class FavoriteItem
+        {
+            public OoiMRR.Favorite Favorite { get; set; }
+            public string IconKey { get; set; }
+            public string DisplayName { get; set; }
+            public string Path { get; set; }
+        }
+
+        /// <summary>
         /// 加载收藏列表
         /// </summary>
         public void LoadFavorites(ListBox favoritesListBox)
@@ -91,7 +102,7 @@ namespace OoiMRR.Services.Favorite
                     // 创建显示项列表
                     var displayItems = favorites.Select(favorite =>
                     {
-                        string icon = favorite.IsDirectory ? "📁" : "📄";
+                        string iconKey = favorite.IsDirectory ? "Icon_Folder" : "Icon_Document";
                         string displayName = favorite.DisplayName ?? Path.GetFileName(favorite.Path);
                         if (string.IsNullOrEmpty(displayName))
                         {
@@ -120,40 +131,21 @@ namespace OoiMRR.Services.Favorite
                             }
                         }
 
-                        return new
+                        return new FavoriteItem
                         {
                             Favorite = favorite,
-                            Icon = icon,
+                            IconKey = iconKey,
                             DisplayName = displayName,
                             Path = favorite.Path
                         };
                     }).ToList();
 
                     favoritesListBox.ItemsSource = displayItems;
-                    favoritesListBox.DisplayMemberPath = null; // 使用模板显示
+                    favoritesListBox.DisplayMemberPath = null; // 使用XAML模板
 
-                    // 设置数据模板
-                    if (favoritesListBox.ItemTemplate == null)
-                    {
-                        var template = new DataTemplate();
-                        var stackPanelFactory = new FrameworkElementFactory(typeof(StackPanel));
-                        stackPanelFactory.SetValue(StackPanel.OrientationProperty, Orientation.Horizontal);
+                    // 移除代码生成的DataTemplate，使用XAML定义的模板
+                    // if (favoritesListBox.ItemTemplate == null) ... 
 
-                        var iconFactory = new FrameworkElementFactory(typeof(TextBlock));
-                        iconFactory.SetBinding(TextBlock.TextProperty, new Binding("Icon"));
-                        iconFactory.SetValue(TextBlock.MarginProperty, new Thickness(0, 0, 5, 0));
-                        iconFactory.SetValue(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center);
-
-                        var nameFactory = new FrameworkElementFactory(typeof(TextBlock));
-                        nameFactory.SetBinding(TextBlock.TextProperty, new Binding("DisplayName"));
-                        nameFactory.SetValue(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center);
-                        nameFactory.SetValue(TextBlock.TextTrimmingProperty, TextTrimming.CharacterEllipsis);
-
-                        stackPanelFactory.AppendChild(iconFactory);
-                        stackPanelFactory.AppendChild(nameFactory);
-                        template.VisualTree = stackPanelFactory;
-                        favoritesListBox.ItemTemplate = template;
-                    }
 
                     // 设置选择事件（单击进入）
                     favoritesListBox.SelectionChanged -= FavoritesListBox_SelectionChanged;
