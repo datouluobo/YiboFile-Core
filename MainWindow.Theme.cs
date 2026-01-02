@@ -1,0 +1,44 @@
+using System;
+using System.Windows;
+
+namespace OoiMRR
+{
+    public partial class MainWindow
+    {
+        /// <summary>
+        /// 初始化主题切换事件
+        /// </summary>
+        private void InitializeThemeEvents()
+        {
+            // 订阅主题切换事件,刷新导航面板图标
+            Services.Theming.ThemeManager.ThemeChanged += (s, e) =>
+            {
+                RefreshNavigationIcons();
+            };
+        }
+
+        /// <summary>
+        /// 刷新导航面板的图标(用于主题切换)
+        /// </summary>
+        private void RefreshNavigationIcons()
+        {
+            this.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                try
+                {
+                    // 重新加载快速访问、驱动器和收藏列表以刷新图标
+                    if (QuickAccessListBox != null)
+                        _quickAccessService?.LoadQuickAccess(QuickAccessListBox);
+                    if (DrivesListBox != null)
+                        _quickAccessService?.LoadDrives(DrivesListBox, _fileListService.FormatFileSize);
+                    if (FavoritesListBox != null)
+                        _favoriteService?.LoadFavorites(FavoritesListBox);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"刷新导航图标时出错: {ex.Message}");
+                }
+            }), System.Windows.Threading.DispatcherPriority.Loaded);
+        }
+    }
+}

@@ -1,0 +1,18 @@
+  姝ｅ湪纭畾瑕佽繕鍘熺殑椤圭洰鈥?
+F:\Download\GitHub\OoiMRR\OoiMRR.csproj : warning NU1902: 鍖?"Magick.NET-Q16-AnyCPU" 14.10.0 鍏锋湁宸茬煡鐨?涓?涓ラ噸鎬ф紡娲烇紝https://github.com/advisories/GHSA-7rvh-xqp3-pr8j [F:\Download\GitHub\OoiMRR\OoiMRR.sln]
+F:\Download\GitHub\OoiMRR\OoiMRR.csproj : warning NU1902: 鍖?"Magick.NET-Q16-AnyCPU" 14.10.0 鍏锋湁宸茬煡鐨?涓?涓ラ噸鎬ф紡娲烇紝https://github.com/advisories/GHSA-p27m-hp98-6637 [F:\Download\GitHub\OoiMRR\OoiMRR.sln]
+  鎵€鏈夐」鐩潎鏄渶鏂扮殑锛屾棤娉曡繕鍘熴€?
+F:\Download\GitHub\OoiMRR\OoiMRR.csproj : warning NU1902: 鍖?"Magick.NET-Q16-AnyCPU" 14.10.0 鍏锋湁宸茬煡鐨?涓?涓ラ噸鎬ф紡娲烇紝https://github.com/advisories/GHSA-7rvh-xqp3-pr8j
+F:\Download\GitHub\OoiMRR\OoiMRR.csproj : warning NU1902: 鍖?"Magick.NET-Q16-AnyCPU" 14.10.0 鍏锋湁宸茬煡鐨?涓?涓ラ噸鎬ф紡娲烇紝https://github.com/advisories/GHSA-p27m-hp98-6637
+  OoiMRR -> F:\Download\GitHub\OoiMRR\bin\Debug\net8.0-windows\win-x64\OoiMRR.dll
+
+宸叉垚鍔熺敓鎴愩€?
+
+F:\Download\GitHub\OoiMRR\OoiMRR.csproj : warning NU1902: 鍖?"Magick.NET-Q16-AnyCPU" 14.10.0 鍏锋湁宸茬煡鐨?涓?涓ラ噸鎬ф紡娲烇紝https://github.com/advisories/GHSA-7rvh-xqp3-pr8j [F:\Download\GitHub\OoiMRR\OoiMRR.sln]
+F:\Download\GitHub\OoiMRR\OoiMRR.csproj : warning NU1902: 鍖?"Magick.NET-Q16-AnyCPU" 14.10.0 鍏锋湁宸茬煡鐨?涓?涓ラ噸鎬ф紡娲烇紝https://github.com/advisories/GHSA-p27m-hp98-6637 [F:\Download\GitHub\OoiMRR\OoiMRR.sln]
+F:\Download\GitHub\OoiMRR\OoiMRR.csproj : warning NU1902: 鍖?"Magick.NET-Q16-AnyCPU" 14.10.0 鍏锋湁宸茬煡鐨?涓?涓ラ噸鎬ф紡娲烇紝https://github.com/advisories/GHSA-7rvh-xqp3-pr8j
+F:\Download\GitHub\OoiMRR\OoiMRR.csproj : warning NU1902: 鍖?"Magick.NET-Q16-AnyCPU" 14.10.0 鍏锋湁宸茬煡鐨?涓?涓ラ噸鎬ф紡娲烇紝https://github.com/advisories/GHSA-p27m-hp98-6637
+    4 涓鍛?
+    0 涓敊璇?
+
+宸茬敤鏃堕棿 00:00:02.98

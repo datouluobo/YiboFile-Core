@@ -222,9 +222,9 @@ namespace OoiMRR.Controls.Settings
             _iconStyleComboBox.SetResourceReference(ComboBox.BorderBrushProperty, "BorderDefaultBrush");
 
             _iconStyleComboBox.Items.Add(new ComboBoxItem { Content = "🌈 系统 Emoji (默认)", Tag = "Emoji" });
-            _iconStyleComboBox.Items.Add(new ComboBoxItem { Content = "✒️ Remix Icon (现代)", Tag = "Remix" });
-            _iconStyleComboBox.Items.Add(new ComboBoxItem { Content = "💠 Fluent Icons (Win11)", Tag = "Fluent" });
-            _iconStyleComboBox.Items.Add(new ComboBoxItem { Content = "✨ Material Design (Google)", Tag = "Material" });
+            _iconStyleComboBox.Items.Add(new ComboBoxItem { Content = "✒️ Remix Icon (现代) [实验性]", Tag = "Remix" });
+            _iconStyleComboBox.Items.Add(new ComboBoxItem { Content = "💠 Fluent Icons (Win11) [实验性]", Tag = "Fluent" });
+            _iconStyleComboBox.Items.Add(new ComboBoxItem { Content = "✨ Material Design (Google) [实验性]", Tag = "Material" });
 
             _iconStyleComboBox.SelectionChanged += (s, e) =>
             {

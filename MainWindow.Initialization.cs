@@ -410,6 +410,9 @@ namespace OoiMRR
                     CheckAndRefreshSearchTab(activeTab.Path);
                 }
             };
+
+            // 初始化主题切换事件
+            InitializeThemeEvents();
         }
 
         private void AttachTabServiceUiContext()
