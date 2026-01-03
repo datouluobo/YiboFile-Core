@@ -57,6 +57,11 @@
     <sys:String x:Key="Icon_Window_Restore">&#xE923;</sys:String>
     <sys:String x:Key="Icon_Window_Close">&#xE8BB;</sys:String>
     
+    <!-- Layout Mode Icons -->
+    <sys:String x:Key="Icon_Layout_Focus">&#xE7C8;</sys:String>      <!-- SingleColumn -->
+    <sys:String x:Key="Icon_Layout_Work">&#xF0E2;</sys:String>       <!-- DockLeft -->
+    <sys:String x:Key="Icon_Layout_Full">&#xE89E;</sys:String>       <!-- ViewAll -->
+    
     <!-- Toast / Status Icons -->
     <sys:String x:Key="Icon_Success">&#xE73E;</sys:String>
     <sys:String x:Key="Icon_Error">&#xE711;</sys:String>

@@ -57,6 +57,11 @@
     <sys:String x:Key="Icon_Window_Restore">&#xEB7B;</sys:String>  <!-- ri-checkbox-multiple-blank-line -->
     <sys:String x:Key="Icon_Window_Close">&#xEB99;</sys:String>    <!-- ri-close-line -->
     
+    <!-- Layout Mode Icons -->
+    <sys:String x:Key="Icon_Layout_Focus">&#xEFC3;</sys:String>     <!-- ri-layout-column-line (single) -->
+    <sys:String x:Key="Icon_Layout_Work">&#xEFC7;</sys:String>      <!-- ri-layout-left-line (two columns) -->
+    <sys:String x:Key="Icon_Layout_Full">&#xEFC1;</sys:String>      <!-- ri-layout-3-line (three columns) -->
+    
     <!-- Toast / Status Icons -->
     <sys:String x:Key="Icon_Success">&#xEB7F;</sys:String>    <!-- ri-check-line -->
     <sys:String x:Key="Icon_Error">&#xEB99;</sys:String>      <!-- ri-close-line -->

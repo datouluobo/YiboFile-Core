@@ -31,6 +31,7 @@ namespace OoiMRR.Handlers
         private readonly Action<string> _switchNavigationMode;
         private readonly Func<bool> _isLibraryMode;
         private readonly Action _navigateBack;
+        private readonly Action<int> _switchLayoutMode;
 
         public KeyboardEventHandler(
             FileBrowserControl fileBrowser,
@@ -48,7 +49,8 @@ namespace OoiMRR.Handlers
             Action<string> navigateToPath,
             Action<string> switchNavigationMode,
             Func<bool> isLibraryMode,
-            Action navigateBack)
+            Action navigateBack,
+            Action<int> switchLayoutMode = null)
         {
             _fileBrowser = fileBrowser ?? throw new ArgumentNullException(nameof(fileBrowser));
             _tabService = tabService ?? throw new ArgumentNullException(nameof(tabService));
@@ -66,6 +68,7 @@ namespace OoiMRR.Handlers
             _switchNavigationMode = switchNavigationMode ?? throw new ArgumentNullException(nameof(switchNavigationMode));
             _isLibraryMode = isLibraryMode ?? throw new ArgumentNullException(nameof(isLibraryMode));
             _navigateBack = navigateBack ?? throw new ArgumentNullException(nameof(navigateBack));
+            _switchLayoutMode = switchLayoutMode; // 可选参数
         }
 
         public void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -141,6 +144,30 @@ namespace OoiMRR.Handlers
             if (e.Key == Key.F5)
             {
                 _refreshClick();
+                e.Handled = true;
+                return;
+            }
+
+            // Ctrl+Shift+F: 专注模式
+            if (e.Key == Key.F && Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift))
+            {
+                _switchLayoutMode?.Invoke(0); // 专注模式 = 0
+                e.Handled = true;
+                return;
+            }
+
+            // Ctrl+Shift+W: 工作模式
+            if (e.Key == Key.W && Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift))
+            {
+                _switchLayoutMode?.Invoke(1); // 工作模式 = 1
+                e.Handled = true;
+                return;
+            }
+
+            // Ctrl+Shift+A: 完整模式
+            if (e.Key == Key.A && Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift))
+            {
+                _switchLayoutMode?.Invoke(2); // 完整模式 = 2
                 e.Handled = true;
                 return;
             }

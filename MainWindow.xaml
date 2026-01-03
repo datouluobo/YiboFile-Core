@@ -176,6 +176,116 @@
                        Background="Transparent"
                        WindowChrome.IsHitTestVisibleInChrome="True">
                 
+                <!-- 布局模式切换按钮组 -->
+                <Border Width="1" Height="24" 
+                        Background="{DynamicResource BorderSubtleBrush}"
+                        Margin="4,0" VerticalAlignment="Center"/>
+                
+                    <!-- 专注模式：全屏中间 -->
+                    <Button x:Name="LayoutFocusBtn" Width="46"
+                            Content="{DynamicResource Icon_Layout_Focus}"
+                            ToolTip="专注模式 (Ctrl+Shift+F)&#x0a;折叠左右，最大化文件列表"
+                            Click="LayoutFocus_Click"
+                            Background="Transparent" BorderThickness="0" Cursor="Hand"
+                            FontSize="16" FontFamily="{DynamicResource IconFontFamily}">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Padding" Value="0"/>
+                                <Setter Property="Margin" Value="0"/>
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="BorderBrush" Value="Transparent"/>
+                                <Setter Property="BorderThickness" Value="0"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                                <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                                <Setter Property="VerticalContentAlignment" Value="Center"/>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource ControlHoverBackgroundBrush}"/>
+                                    </Trigger>
+                                    <Trigger Property="IsPressed" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource ControlPressedBackgroundBrush}"/>
+                                    </Trigger>
+                                    <Trigger Property="Tag" Value="Active">
+                                        <Setter Property="Background" Value="{DynamicResource AccentDefaultBrush}"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource ForegroundOnAccentBrush}"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    
+                    <!-- 工作模式：左+中间 -->
+                    <Button x:Name="LayoutWorkBtn" Width="46"
+                            Content="{DynamicResource Icon_Layout_Work}"
+                            ToolTip="工作模式 (Ctrl+Shift+W)&#x0a;左导航+文件列表"
+                            Click="LayoutWork_Click"
+                            Background="Transparent" BorderThickness="0" Cursor="Hand"
+                            FontSize="16" FontFamily="{DynamicResource IconFontFamily}">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Padding" Value="0"/>
+                                <Setter Property="Margin" Value="0"/>
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="BorderBrush" Value="Transparent"/>
+                                <Setter Property="BorderThickness" Value="0"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                                <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                                <Setter Property="VerticalContentAlignment" Value="Center"/>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource ControlHoverBackgroundBrush}"/>
+                                    </Trigger>
+                                    <Trigger Property="IsPressed" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource ControlPressedBackgroundBrush}"/>
+                                    </Trigger>
+                                    <Trigger Property="Tag" Value="Active">
+                                        <Setter Property="Background" Value="{DynamicResource AccentDefaultBrush}"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource ForegroundOnAccentBrush}"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    
+                    <!-- 完整模式：全部显示 -->
+                    <Button x:Name="LayoutFullBtn" Width="46"
+                            Content="{DynamicResource Icon_Layout_Full}"
+                            ToolTip="完整模式 (Ctrl+Shift+A)&#x0a;三栏完整布局"
+                            Click="LayoutFull_Click"
+                            Background="Transparent" BorderThickness="0" Cursor="Hand"
+                            FontSize="16" FontFamily="{DynamicResource IconFontFamily}"
+                            Tag="Active">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Padding" Value="0"/>
+                                <Setter Property="Margin" Value="0"/>
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="BorderBrush" Value="Transparent"/>
+                                <Setter Property="BorderThickness" Value="0"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                                <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                                <Setter Property="VerticalContentAlignment" Value="Center"/>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource ControlHoverBackgroundBrush}"/>
+                                    </Trigger>
+                                    <Trigger Property="IsPressed" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource ControlPressedBackgroundBrush}"/>
+                                    </Trigger>
+                                    <Trigger Property="Tag" Value="Active">
+                                        <Setter Property="Background" Value="{DynamicResource AccentDefaultBrush}"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource ForegroundOnAccentBrush}"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                
+                <!-- 分隔线 -->
+                <Border Width="1" Height="24" 
+                        Background="{DynamicResource BorderSubtleBrush}"
+                        Margin="4,0" VerticalAlignment="Center"/>
+                
                 <!-- 设置按钮 -->
                 <Button x:Name="TitleBarSettingsButton" Content="{DynamicResource Icon_Window_Settings}" 
                         Width="46"

@@ -57,6 +57,11 @@
     <sys:String x:Key="Icon_Window_Restore">🔳</sys:String>     <!-- Restore -->
     <sys:String x:Key="Icon_Window_Close">❌</sys:String>       <!-- Cross -->
     
+    <!-- Layout Mode Icons -->
+    <sys:String x:Key="Icon_Layout_Focus">▬</sys:String>      <!-- Wide -->
+    <sys:String x:Key="Icon_Layout_Work">▦</sys:String>       <!-- Two Columns -->
+    <sys:String x:Key="Icon_Layout_Full">▦▦</sys:String>      <!-- Three Columns -->
+    
     <!-- Toast / Status Icons -->
     <sys:String x:Key="Icon_Success">✓</sys:String>
     <sys:String x:Key="Icon_Error">✕</sys:String>

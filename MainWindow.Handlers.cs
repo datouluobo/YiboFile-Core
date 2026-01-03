@@ -270,7 +270,8 @@ namespace OoiMRR
                 NavigateToPath,
                 SwitchNavigationMode,
                 () => _currentLibrary != null,
-                Back_Click_Logic // navigateBack
+                Back_Click_Logic, // navigateBack
+                SwitchLayoutModeByIndex  // 添加布局切换回调
             );
 
             // 初始化 MouseEventHandler

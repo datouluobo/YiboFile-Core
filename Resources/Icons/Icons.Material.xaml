@@ -58,6 +58,11 @@
     <sys:String x:Key="Icon_Window_Restore">&#xE3C9;</sys:String>  <!-- filter_none (placeholder for restore) -->
     <sys:String x:Key="Icon_Window_Close">&#xE5CD;</sys:String>    <!-- close -->
     
+    <!-- Layout Mode Icons -->
+    <sys:String x:Key="Icon_Layout_Focus">&#xE8EF;</sys:String>     <!-- view_week (single column) -->
+    <sys:String x:Key="Icon_Layout_Work">&#xE8EC;</sys:String>      <!-- view_day (two columns) -->
+    <sys:String x:Key="Icon_Layout_Full">&#xE8A9;</sys:String>      <!-- view_quilt (three columns) -->
+    
     <!-- Toast / Status Icons -->
     <sys:String x:Key="Icon_Success">&#xE876;</sys:String>    <!-- check -->
     <sys:String x:Key="Icon_Error">&#xE5CD;</sys:String>      <!-- close -->
