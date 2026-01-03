@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -163,7 +163,7 @@ namespace OoiMRR.Services.FileList
                         }
                     }
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                 }
             }
@@ -383,7 +383,7 @@ namespace OoiMRR.Services.FileList
                 }, DispatcherPriority.Background);
             }
             catch (OperationCanceledException) { }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
             finally
@@ -430,7 +430,7 @@ namespace OoiMRR.Services.FileList
                     });
             }
             catch (OperationCanceledException) { }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
         }
@@ -532,7 +532,7 @@ namespace OoiMRR.Services.FileList
                     {
                         continue;
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
                         continue;
                     }
@@ -545,7 +545,7 @@ namespace OoiMRR.Services.FileList
             {
                 throw;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
 
@@ -590,7 +590,7 @@ namespace OoiMRR.Services.FileList
                     {
                         continue;
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
                         continue;
                     }
@@ -603,7 +603,7 @@ namespace OoiMRR.Services.FileList
             {
                 throw;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
 
@@ -664,7 +664,7 @@ namespace OoiMRR.Services.FileList
                     {
                         continue;
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
                         continue;
                     }
@@ -673,7 +673,7 @@ namespace OoiMRR.Services.FileList
             catch (UnauthorizedAccessException)
             {
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
 
@@ -713,7 +713,7 @@ namespace OoiMRR.Services.FileList
                     {
                         continue;
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
                         continue;
                     }
@@ -722,7 +722,7 @@ namespace OoiMRR.Services.FileList
             catch (UnauthorizedAccessException)
             {
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
 

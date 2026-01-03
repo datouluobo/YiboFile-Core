@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -316,7 +316,7 @@ namespace OoiMRR
 
                 TitleBarSeparator.Margin = new Thickness(targetSeparatorLeftMargin, 0, 0, 0);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
         }

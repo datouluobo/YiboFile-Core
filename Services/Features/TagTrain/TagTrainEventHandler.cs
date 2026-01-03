@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -123,7 +123,7 @@ namespace OoiMRR.Services.TagTrain
                 // 根据模式调整相关按钮显示/隐藏
                 ApplyTagClickModeVisibility();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
         }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -72,7 +72,7 @@ namespace OoiMRR.Services.Search
                     HasMore = hasMore
                 };
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
         }

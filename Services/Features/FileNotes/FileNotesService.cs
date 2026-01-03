@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -49,7 +49,7 @@ namespace OoiMRR.Services.FileNotes
                 insertFts.Parameters.AddWithValue("@notes", notes);
                 insertFts.ExecuteNonQuery();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 throw;
             }
@@ -123,7 +123,7 @@ namespace OoiMRR.Services.FileNotes
                         }
                     }
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                 }
 
@@ -154,7 +154,7 @@ namespace OoiMRR.Services.FileNotes
                 var distinctResults = results.Distinct().ToList();
                 return distinctResults;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // 记录异常但不抛出，返回空列表
             }
@@ -267,7 +267,7 @@ namespace OoiMRR.Services.FileNotes
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 throw;
             }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
@@ -56,22 +56,14 @@ namespace OoiMRR
                 if (FileBrowser != null && FileBrowser.FilesList != null)
                 {
                     _dragDropManager.InitializeFileListDragDrop(FileBrowser.FilesList);
-                    // Enable tab drag and drop
-                    if (TabManager != null)
-                    {
-                        TabManager.FileDropped += (files, target, isCopy) =>
-                            _dragDropManager.PerformFileOperation(files, target, isCopy);
-                    }
-                    else
-                    {
-                    }
+                    // Note: TabManager drag-drop is now handled internally or not needed
                 }
 
                 // TODO: Re-implement other drop targets (Libraries, Drivers, QuickAccess) if needed.
                 // For now we focus on the core file list.
                 InitializeLibraryDragDrop();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
         }

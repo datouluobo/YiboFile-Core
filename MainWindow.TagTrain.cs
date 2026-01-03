@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
@@ -71,7 +71,7 @@ namespace OoiMRR
                     TagEditPanel.ConfirmAIPredictionRequested += TagTrainConfirmAIPrediction_Click;
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
         }
@@ -116,7 +116,7 @@ namespace OoiMRR
                     _navigationCoordinator.HandleTagNavigation(tag, clickType);
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
         }
@@ -461,7 +461,7 @@ namespace OoiMRR
                     HideEmptyStateMessage();
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
         }
@@ -489,7 +489,7 @@ namespace OoiMRR
 
                 HideEmptyStateMessage();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
         }

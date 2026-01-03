@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Windows;
 using System.Windows.Controls;
@@ -113,7 +113,7 @@ namespace OoiMRR.Helpers
                     }), System.Windows.Threading.DispatcherPriority.Background);
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
         }

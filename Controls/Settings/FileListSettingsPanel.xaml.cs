@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -368,7 +368,7 @@ namespace OoiMRR.Controls.Settings
                 }
                 fileListControl.LoadColumnWidths();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
         }

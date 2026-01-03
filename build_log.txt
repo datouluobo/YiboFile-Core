@@ -1,11 +1,13 @@
-  正在确定要还原的项目…
-  所有项目均是最新的，无法还原。
-F:\Download\GitHub\OoiMRR\Styles\AppStyles.xaml(582,27): error MC3000: “The 'ResourceDictionary' start tag on line 1 position 2 does not match the end tag of 'Trigger'. Line 582, position 27.”XML 无效。 [F:\Download\GitHub\OoiMRR\OoiMRR.csproj]
+  姝ｅ湪纭畾瑕佽繕鍘熺殑椤圭洰鈥?
+  鎵€鏈夐」鐩潎鏄渶鏂扮殑锛屾棤娉曡繕鍘熴€?
+f:\Download\GitHub\OoiMRR\Previews\DocumentPreview.cs(622,68): error CS0103: 褰撳墠涓婁笅鏂囦腑涓嶅瓨鍦ㄥ悕绉扳€渆x鈥?[f:\Download\GitHub\OoiMRR\OoiMRR_00b3wzcz_wpftmp.csproj]
+f:\Download\GitHub\OoiMRR\Services\Config\ConfigurationService.cs(36,40): warning CS0414: 瀛楁鈥淐onfigurationService._perfLogPath鈥濆凡琚祴鍊硷紝浣嗕粠鏈娇鐢ㄨ繃瀹冪殑鍊?[f:\Download\GitHub\OoiMRR\OoiMRR_00b3wzcz_wpftmp.csproj]
 
-生成失败。
+鐢熸垚澶辫触銆?
 
-F:\Download\GitHub\OoiMRR\Styles\AppStyles.xaml(582,27): error MC3000: “The 'ResourceDictionary' start tag on line 1 position 2 does not match the end tag of 'Trigger'. Line 582, position 27.”XML 无效。 [F:\Download\GitHub\OoiMRR\OoiMRR.csproj]
-    0 个警告
-    1 个错误
+f:\Download\GitHub\OoiMRR\Services\Config\ConfigurationService.cs(36,40): warning CS0414: 瀛楁鈥淐onfigurationService._perfLogPath鈥濆凡琚祴鍊硷紝浣嗕粠鏈娇鐢ㄨ繃瀹冪殑鍊?[f:\Download\GitHub\OoiMRR\OoiMRR_00b3wzcz_wpftmp.csproj]
+f:\Download\GitHub\OoiMRR\Previews\DocumentPreview.cs(622,68): error CS0103: 褰撳墠涓婁笅鏂囦腑涓嶅瓨鍦ㄥ悕绉扳€渆x鈥?[f:\Download\GitHub\OoiMRR\OoiMRR_00b3wzcz_wpftmp.csproj]
+    1 涓鍛?
+    1 涓敊璇?
 
-已用时间 00:00:01.41
+宸茬敤鏃堕棿 00:00:02.12

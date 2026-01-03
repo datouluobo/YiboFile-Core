@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -64,7 +64,7 @@ namespace OoiMRR.Services.Search
                         list.Add(item);
                     }
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                 }
             }
@@ -164,7 +164,7 @@ namespace OoiMRR.Services.Search
                         item.Notes = "";
                     }
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     item.Notes = "";
                 }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -104,12 +104,12 @@ namespace OoiMRR.Services.UIHelper
                             }), DispatcherPriority.Loaded);
                         }
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
                     }
                 }), DispatcherPriority.Loaded);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
         }
@@ -160,12 +160,12 @@ namespace OoiMRR.Services.UIHelper
                             }), DispatcherPriority.Loaded);
                         }
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
                     }
                 }), DispatcherPriority.Loaded);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
         }

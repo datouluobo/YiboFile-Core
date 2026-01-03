@@ -18,11 +18,6 @@ namespace OoiMRR.Controls
         private Button _newTabButton;
 
         /// <summary>
-        /// 文件拖放事件
-        /// </summary>
-        public event Action<string[], string, bool> FileDropped;
-
-        /// <summary>
         /// 新建标签页请求事件
         /// </summary>
         public event EventHandler NewTabRequested;

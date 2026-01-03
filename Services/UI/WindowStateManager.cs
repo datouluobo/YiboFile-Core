@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -528,7 +528,7 @@ namespace OoiMRR.Services
                 RestoreSplitterPositions();
                 // 导航状态和标签页状态在 MainWindowInitializer 中恢复
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
         }
@@ -603,7 +603,7 @@ namespace OoiMRR.Services
                         {
                             RestoreTabFromKey(tabKey);
                         }
-                        catch (Exception ex)
+                        catch (Exception)
                         {
                             // 单个标签页恢复失败不影响其他标签页
                         }
@@ -641,7 +641,7 @@ namespace OoiMRR.Services
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
         }

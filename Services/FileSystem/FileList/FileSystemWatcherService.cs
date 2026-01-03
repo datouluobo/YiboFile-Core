@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Windows.Threading;
 using OoiMRR.Services.FileList;
@@ -112,7 +112,7 @@ namespace OoiMRR.Services.FileList
 
                     _fileWatcher.EnableRaisingEvents = true;
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                 }
             }

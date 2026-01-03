@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -285,7 +285,7 @@ namespace OoiMRR.ViewModels
 
                 _fileWatcher.EnableRaisingEvents = true;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
         }

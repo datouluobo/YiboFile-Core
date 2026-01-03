@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using OoiMRR.Services.Config;
 using OoiMRR.Services.Core;
 using OoiMRR;
@@ -214,7 +214,7 @@ namespace OoiMRR.Services
             {
                 _mainWindow._libraryService?.LoadLibraries();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
 
@@ -229,7 +229,7 @@ namespace OoiMRR.Services
                     favoriteService?.GetType().GetMethod("LoadFavorites")?.Invoke(favoriteService,
                         new[] { _mainWindow.FavoritesListBox });
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                 }
             }
@@ -245,7 +245,7 @@ namespace OoiMRR.Services
                     quickAccessService?.GetType().GetMethod("LoadQuickAccess")?.Invoke(quickAccessService,
                         new[] { _mainWindow.QuickAccessListBox });
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                 }
             }
@@ -255,7 +255,7 @@ namespace OoiMRR.Services
             {
                 _mainWindow.LoadDrives();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
         }
@@ -282,7 +282,7 @@ namespace OoiMRR.Services
                     _mainWindow._windowStateManager.RestoreTabsState();
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
         }

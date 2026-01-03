@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -117,7 +117,7 @@ namespace OoiMRR.Services.FileNotes
                         _fileBrowser.FilesList.Items.Refresh();
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
         }

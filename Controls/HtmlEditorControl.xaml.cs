@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -145,7 +145,7 @@ namespace OoiMRR.Controls
 
                 PreviewBrowser.NavigateToString(content);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
         }

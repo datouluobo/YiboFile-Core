@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -352,7 +352,7 @@ namespace OoiMRR
                                 {
                                     _currentFiles = _columnService.SortFiles(_currentFiles);
                                 }
-                                catch (Exception ex)
+                                catch (Exception)
                                 {
                                     // 排序失败不应该导致整个加载失败，忽略排序错误
                                 }
@@ -383,7 +383,7 @@ namespace OoiMRR
                     }), System.Windows.Threading.DispatcherPriority.Background);
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
             finally
@@ -439,7 +439,7 @@ namespace OoiMRR
                     _isLoadingFiles = false;
                     _loadFilesSemaphore.Release();
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     _isLoadingFiles = false;
                     _loadFilesSemaphore.Release();
@@ -464,7 +464,7 @@ namespace OoiMRR
                         collectionView?.Refresh();
                     }
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                 }
             }), System.Windows.Threading.DispatcherPriority.Background);
@@ -493,7 +493,7 @@ namespace OoiMRR
                     var collectionView = System.Windows.Data.CollectionViewSource.GetDefaultView(FileBrowser?.FilesItemsSource);
                     collectionView?.Refresh();
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                 }
             }), System.Windows.Threading.DispatcherPriority.Background);
@@ -557,7 +557,7 @@ namespace OoiMRR
                         ShowEmptyStateMessage($"加载失败：\n{errorMessage}");
                     }
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                 }
                 finally

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -891,7 +891,7 @@ namespace OoiMRR.Controls.Converters
                     }
                     _ffmpegInitialized = true; // 标记为已尝试初始化，避免重复尝试
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     _ffmpegInitialized = true; // 标记为已尝试，避免重复尝试
                 }

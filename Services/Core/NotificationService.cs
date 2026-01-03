@@ -15,7 +15,6 @@ namespace OoiMRR.Services.Core
     {
         private static NotificationService _instance;
         private Panel _notificationContainer;
-        private readonly DispatcherTimer _queueTimer; // For more complex queuing if needed future
 
         public static NotificationService Instance => _instance ??= new NotificationService();
 

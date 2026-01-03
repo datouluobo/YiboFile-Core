@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -335,7 +335,7 @@ namespace OoiMRR.Services.Tag
 
                 return initial.ToList();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return new List<int>();
             }
