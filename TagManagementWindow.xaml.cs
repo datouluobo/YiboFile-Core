@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using System.Windows;
 using OoiMRR.Services;
 using TagTrain.Services;
+using OoiMRR.Services.Core;
+using OoiMRR.Controls;
 
 namespace OoiMRR
 {
@@ -54,8 +56,9 @@ namespace OoiMRR
                 ManualSamplesText.Text = $"手动标注: {stats.ManualSamples}";
                 UniqueImagesText.Text = $"唯一图片: {stats.UniqueImages}";
             }
-            catch{
-                            }
+            catch
+            {
+            }
         }
 
         private void CheckModelStatus()
@@ -111,6 +114,7 @@ namespace OoiMRR
                         {
                             TagsListBox.SelectedItem = newTag;
                         }
+                        NotificationService.Show($"标签 \"{name}\" 创建成功", NotificationType.Success);
                     }
                     else
                     {
@@ -151,6 +155,7 @@ namespace OoiMRR
                             {
                                 TagsListBox.SelectedItem = renamedTag;
                             }
+                            NotificationService.Show("标签重命名成功", NotificationType.Success);
                         }
                         else
                         {
@@ -188,6 +193,7 @@ namespace OoiMRR
                             LoadTags();
                             LoadStatistics();
                             TagsListBox.SelectedItem = null;
+                            NotificationService.Show("标签已删除", NotificationType.Success);
                         }
                         else
                         {

@@ -37,16 +37,19 @@ namespace OoiMRR
 
         private void NavPathBtn_Click(object sender, RoutedEventArgs e)
         {
+            CloseOverlays();
             SwitchNavigationMode("Path");
         }
 
         private void NavLibraryBtn_Click(object sender, RoutedEventArgs e)
         {
+            CloseOverlays();
             SwitchNavigationMode("Library");
         }
 
         private void NavTagBtn_Click(object sender, RoutedEventArgs e)
         {
+            CloseOverlays();
             // 只有在 TagTrain 可用时才切换到标签模式
             if (App.IsTagTrainAvailable)
             {

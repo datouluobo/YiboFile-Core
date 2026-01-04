@@ -12,6 +12,7 @@ using OoiMRR.Services.Navigation;
 using OoiMRR.Services.FileList;
 using OoiMRR.Models.UI;
 using OoiMRR.Services.Config;
+using OoiMRR.Controls;
 
 namespace OoiMRR
 {
@@ -123,7 +124,11 @@ namespace OoiMRR
             // 刷新收藏列表
             LoadFavorites();
 
-            // 不再显示提示框，静默完成
+            // 显示通知
+            if (successCount > 0)
+                NotificationService.Show($"成功添加 {successCount} 个项目到收藏", NotificationType.Success);
+            else if (skipCount > 0)
+                NotificationService.Show($"{skipCount} 个项目已存在于收藏中", NotificationType.Info);
         }
 
         #endregion

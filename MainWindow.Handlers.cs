@@ -29,8 +29,26 @@ namespace OoiMRR
 {
     public partial class MainWindow
     {
+        internal void CloseOverlays()
+        {
+            if (SettingsOverlay != null && SettingsOverlay.Visibility == Visibility.Visible)
+            {
+                SettingsOverlay.Visibility = Visibility.Collapsed;
+            }
+            if (AboutOverlay != null && AboutOverlay.Visibility == Visibility.Visible)
+            {
+                AboutOverlay.Visibility = Visibility.Collapsed;
+            }
+        }
+
         private void InitializeHandlers()
         {
+            // 订阅 TabManager 的关闭覆盖层请求
+            if (TabManager != null)
+            {
+                TabManager.CloseOverlayRequested += (s, e) => CloseOverlays();
+            }
+
             // 初始化 FileBrowserEventHandler
             _fileBrowserEventHandler = new FileBrowserEventHandler(
                 FileBrowser,
@@ -114,8 +132,32 @@ namespace OoiMRR
                     HideEmptyStateMessage();
                 },
                 () => Close(),
-                () => _settingsOverlayController?.Show(),
-                () => MessageBox.Show("关于窗口功能待修复", "关于", MessageBoxButton.OK, MessageBoxImage.Information),
+                () => // settings
+                {
+                    if (SettingsOverlay == null) return;
+                    if (SettingsOverlay.Visibility == Visibility.Visible)
+                    {
+                        SettingsOverlay.Visibility = Visibility.Collapsed;
+                    }
+                    else
+                    {
+                        CloseOverlays(); // Close About if open
+                        _settingsOverlayController?.Show();
+                    }
+                },
+                () => // about
+                {
+                    if (AboutOverlay == null) return;
+                    if (AboutOverlay.Visibility == Visibility.Visible)
+                    {
+                        AboutOverlay.Visibility = Visibility.Collapsed;
+                    }
+                    else
+                    {
+                        CloseOverlays(); // Close Settings if open
+                        AboutOverlay.Visibility = Visibility.Visible;
+                    }
+                },
                 EditNotes_Click_Logic, // Action editNotes
                 BatchAddTags_Click_Logic, // Action batchAddTags
                 () => _tagTrainEventHandler?.TagTrainTrainingStatus_Click(null, null), // showTagStatistics
@@ -326,6 +368,13 @@ namespace OoiMRR
 
             // Initialize Drag & Drop
             InitializeDragDrop();
+            if (AboutPanel != null)
+            {
+                AboutPanel.CloseRequested += (s, e) =>
+                {
+                    if (AboutOverlay != null) AboutOverlay.Visibility = Visibility.Collapsed;
+                };
+            }
         }
 
         internal void FilesListView_MouseDoubleClick(object sender, MouseButtonEventArgs e)
@@ -648,6 +697,35 @@ namespace OoiMRR
                 current = VisualTreeHelper.GetParent(current);
             }
             return null;
+        }
+
+        private void TitleBar_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            // 如果是在全屏覆盖层打开的情况下点击标题栏空白处，关闭覆盖层
+            if (SettingsOverlay != null && SettingsOverlay.Visibility == Visibility.Visible)
+            {
+                SettingsOverlay.Visibility = Visibility.Collapsed;
+            }
+            if (AboutOverlay != null && AboutOverlay.Visibility == Visibility.Visible)
+            {
+                AboutOverlay.Visibility = Visibility.Collapsed;
+            }
+
+            // 双击最大化/还原
+            if (e.ClickCount == 2 && e.ChangedButton == MouseButton.Left)
+            {
+                if (WindowState == WindowState.Maximized)
+                    WindowState = WindowState.Normal;
+                else
+                    WindowState = WindowState.Maximized;
+                return;
+            }
+
+            // 支持通过拖动标题栏移动窗口
+            if (e.ChangedButton == MouseButton.Left)
+            {
+                try { this.DragMove(); } catch { }
+            }
         }
 
         private void DrivesListBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)

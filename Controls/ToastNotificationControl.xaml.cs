@@ -76,20 +76,20 @@ namespace OoiMRR.Controls
             {
                 case NotificationType.Success:
                     IconText.Text = (string)FindResource("Icon_Success");
-                    IconText.Foreground = new SolidColorBrush(Color.FromRgb(40, 167, 69)); // Green
+                    IconText.SetResourceReference(TextBlock.ForegroundProperty, "StatusSuccessBrush");
                     break;
                 case NotificationType.Warning:
                     IconText.Text = (string)FindResource("Icon_Warning");
-                    IconText.Foreground = new SolidColorBrush(Color.FromRgb(255, 193, 7)); // Amber
+                    IconText.SetResourceReference(TextBlock.ForegroundProperty, "StatusWarningBrush");
                     break;
                 case NotificationType.Error:
                     IconText.Text = (string)FindResource("Icon_Error");
-                    IconText.Foreground = new SolidColorBrush(Color.FromRgb(220, 53, 69)); // Red
+                    IconText.SetResourceReference(TextBlock.ForegroundProperty, "StatusErrorBrush");
                     break;
                 case NotificationType.Info:
                 default:
                     IconText.Text = (string)FindResource("Icon_Info");
-                    IconText.SetResourceReference(TextBlock.ForegroundProperty, "AccentBrush");
+                    IconText.SetResourceReference(TextBlock.ForegroundProperty, "StatusInfoBrush");
                     break;
             }
         }

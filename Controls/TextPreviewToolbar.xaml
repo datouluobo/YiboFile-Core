@@ -15,7 +15,7 @@
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="Foreground" Value="#333"/>
+            <Setter Property="Foreground" Value="{DynamicResource ForegroundPrimaryBrush}"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -27,10 +27,10 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#E0E0E0"/>
+                                <Setter Property="Background" Value="{DynamicResource ControlHoverBrush}"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter Property="Background" Value="#D0D0D0"/>
+                                <Setter Property="Background" Value="{DynamicResource ControlPressedBrush}"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Opacity" Value="0.5"/>
@@ -49,7 +49,7 @@
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="Foreground" Value="#333"/>
+            <Setter Property="Foreground" Value="{DynamicResource ForegroundPrimaryBrush}"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ToggleButton">
@@ -62,11 +62,11 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#E0E0E0" TargetName="border"/>
+                                <Setter Property="Background" Value="{DynamicResource ControlHoverBrush}" TargetName="border"/>
                             </Trigger>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter Property="Background" Value="#E3F2FD" TargetName="border"/>
-                                <Setter Property="Foreground" Value="#1976D2"/>
+                                <Setter Property="Background" Value="{DynamicResource AccentLightBrush}" TargetName="border"/>
+                                <Setter Property="Foreground" Value="{DynamicResource AccentDefaultBrush}"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Opacity" Value="0.5"/>
@@ -80,7 +80,7 @@
         <Style x:Key="ToolbarSeparator" TargetType="Separator">
             <Setter Property="Width" Value="1"/>
             <Setter Property="Margin" Value="6,6,6,0"/>
-            <Setter Property="Background" Value="#DDD"/>
+            <Setter Property="Background" Value="{DynamicResource DividerBrush}"/>
             <Setter Property="VerticalAlignment" Value="Stretch"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -134,7 +134,7 @@
                 HorizontalAlignment="Left"
                 Margin="0,0,12,0"
                 Visibility="{Binding ShowSearch, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}">
-            <Border Background="White" BorderBrush="#DDD" BorderThickness="1" CornerRadius="4" Padding="4,4">
+            <Border Background="{DynamicResource InputBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="4" Padding="4,4">
                 <StackPanel Orientation="Horizontal">
                     <TextBox x:Name="SearchBox" 
                              Width="200" 
@@ -150,7 +150,7 @@
                                 <Style.Resources>
                                     <VisualBrush x:Key="CueBannerBrush" AlignmentX="Left" AlignmentY="Center" Stretch="None">
                                         <VisualBrush.Visual>
-                                            <Label Content="搜索..." Foreground="#AAA" Padding="2,0,0,0" FontSize="13" FontFamily="Segoe UI" FontStyle="Italic"/>
+                                            <Label Content="搜索..." Foreground="{DynamicResource ForegroundDisabledBrush}" Padding="2,0,0,0" FontSize="13" FontFamily="Segoe UI" FontStyle="Italic"/>
                                         </VisualBrush.Visual>
                                     </VisualBrush>
                                 </Style.Resources>
@@ -166,12 +166,12 @@
                         </TextBox.Style>
                     </TextBox>
                     
-                    <Border Width="1" Background="#EEE" Margin="4,2"/>
+                    <Border Width="1" Background="{DynamicResource DividerBrush}" Margin="4,2"/>
                     
                     <TextBlock x:Name="MatchCountText" 
                                Text="0/0" 
                                FontSize="12" 
-                               Foreground="#888" 
+                               Foreground="{DynamicResource ForegroundSecondaryBrush}" 
                                VerticalAlignment="Center" 
                                Margin="4,0"
                                MinWidth="30"

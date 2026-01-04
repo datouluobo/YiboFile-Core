@@ -70,9 +70,12 @@ namespace OoiMRR.Handlers
         public void HandleLocationChanged(EventArgs e)
         {
             // 保存窗口位置
+            // Fix: 仅保存窗口位置和状态，不要调用 SaveAllState。
+            // SaveAllState 会重新计算列宽和面板可见性，在窗口最大化/还原的过渡动画期间，
+            // ActualWidth 可能不稳定（例如未触发布局更新），导致 IsRightPanelVisible 错误地被保存为 false。
             if (_windowStateManager != null && _mainWindow.IsLoaded)
             {
-                _windowStateManager.SaveAllState();
+                _windowStateManager.SaveWindowState();
             }
         }
 
@@ -102,10 +105,36 @@ namespace OoiMRR.Handlers
 
             if (total > minTotal)
             {
-                // 空间充足，确保中间列为 Star，使其占满剩余空间
+                // 空间充足，确保中间列为 Star
                 if (!_mainWindow.ColCenter.Width.IsStar)
                 {
                     _mainWindow.ColCenter.Width = new GridLength(1, GridUnitType.Star);
+                }
+
+                // Fix: 即使总空间大于最小总宽度，也可能小于当前设定的"列宽之和" (例如用户把左右拉得很宽)
+                // 这会导致 Grid 内容超出窗口区域，从而导致右上角按钮被裁剪。
+                // 必须检查并压缩 Left/Right 以适应新窗口。
+
+                double currentLeft = _mainWindow.ColLeft.Width.IsAbsolute ? _mainWindow.ColLeft.Width.Value : _mainWindow.ColLeft.ActualWidth;
+                double currentRight = _mainWindow.ColRight.Width.IsAbsolute ? _mainWindow.ColRight.Width.Value : _mainWindow.ColRight.ActualWidth;
+
+                // 给中间列保留最小宽度
+                double maxAvailableForSides = total - _mainWindow.ColCenter.MinWidth;
+                double currentSidesSum = currentLeft + currentRight;
+
+                if (currentSidesSum > maxAvailableForSides && currentSidesSum > 0)
+                {
+                    // 需要压缩左右列
+                    double scale = maxAvailableForSides / currentSidesSum;
+
+                    double newLeft = Math.Max(_mainWindow.ColLeft.MinWidth, currentLeft * scale);
+                    double newRight = Math.Max(_mainWindow.ColRight.MinWidth, currentRight * scale);
+
+                    // 如果因为 MinWidth 限制导致仍超出，可能需要再次调整(简单起见这里假设 minTotal 检查已保证有解)
+                    // 为防万一，再次检查 total > minTotal，上面的 minTotal 已经包含了 Center.Min
+
+                    _mainWindow.ColLeft.Width = new GridLength(newLeft);
+                    _mainWindow.ColRight.Width = new GridLength(newRight);
                 }
             }
             else

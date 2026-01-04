@@ -45,6 +45,8 @@ namespace OoiMRR
         /// </summary>
         private void SwitchLayoutMode(LayoutMode mode)
         {
+            CloseOverlays(); // Ensure overlays are closed when switching layout
+
             if (_currentLayoutMode == mode) return;
 
             _currentLayoutMode = mode;

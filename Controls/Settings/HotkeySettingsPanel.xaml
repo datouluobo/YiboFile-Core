@@ -11,7 +11,7 @@
         
         <!-- 标题区 -->
         <StackPanel Grid.Row="0" Margin="0,0,0,20">
-            <TextBlock Text="快捷键管理" FontSize="28" FontWeight="Bold" Foreground="#333333"/>
+            <TextBlock Text="快捷键管理" FontSize="28" FontWeight="Bold" Foreground="{DynamicResource ForegroundPrimaryBrush}"/>
             <TextBlock Text="查看和自定义应用程序快捷键" FontSize="14" Foreground="{DynamicResource ForegroundSecondaryBrush}" Margin="0,8,0,0"/>
         </StackPanel>
         
@@ -34,10 +34,10 @@
                         </Setter>
                         <Style.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#E9ECEF"/>
+                                <Setter Property="Background" Value="{DynamicResource ControlHoverBrush}"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter Property="Background" Value="#DEE2E6"/>
+                                <Setter Property="Background" Value="{DynamicResource ControlPressedBrush}"/>
                             </Trigger>
                         </Style.Triggers>
                     </Style>
@@ -64,13 +64,13 @@
                 <DataGrid.Resources>
                     <!-- 表头样式 -->
                     <Style TargetType="DataGridColumnHeader">
-                        <Setter Property="Background" Value="#F8F9FA"/>
-                        <Setter Property="Foreground" Value="#495057"/>
+                        <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}"/>
+                        <Setter Property="Foreground" Value="{DynamicResource ForegroundPrimaryBrush}"/>
                         <Setter Property="FontWeight" Value="SemiBold"/>
                         <Setter Property="FontSize" Value="13"/>
                         <Setter Property="Padding" Value="16,12"/>
                         <Setter Property="BorderThickness" Value="0,0,0,1"/>
-                        <Setter Property="BorderBrush" Value="#DEE2E6"/>
+                        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
                         <Setter Property="HorizontalContentAlignment" Value="Left"/>
                     </Style>
                     
@@ -79,7 +79,7 @@
                         <Setter Property="BorderThickness" Value="0"/>
                         <Setter Property="Padding" Value="16,10"/>
                         <Setter Property="Background" Value="Transparent"/>
-                        <Setter Property="Foreground" Value="#495057"/>
+                        <Setter Property="Foreground" Value="{DynamicResource ForegroundPrimaryBrush}"/>
                         <Setter Property="Template">
                             <Setter.Value>
                                 <ControlTemplate TargetType="DataGridCell">
@@ -93,24 +93,24 @@
                         </Setter>
                         <Style.Triggers>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter Property="Background" Value="#E7F3FF"/>
-                                <Setter Property="Foreground" Value="#0066CC"/>
+                                <Setter Property="Background" Value="{DynamicResource AccentLightBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource AccentDefaultBrush}"/>
                             </Trigger>
                         </Style.Triggers>
                     </Style>
                     
                     <!-- 行样式 -->
                     <Style TargetType="DataGridRow">
-                        <Setter Property="Background" Value="White"/>
+                        <Setter Property="Background" Value="{DynamicResource AppBackgroundBrush}"/>
                         <Style.Triggers>
                             <Trigger Property="AlternationIndex" Value="1">
-                                <Setter Property="Background" Value="#F8F9FA"/>
+                                <Setter Property="Background" Value="{DynamicResource BackgroundSecondaryBrush}"/>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#F0F7FF"/>
+                                <Setter Property="Background" Value="{DynamicResource ControlHoverBrush}"/>
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter Property="Background" Value="#E7F3FF"/>
+                                <Setter Property="Background" Value="{DynamicResource AccentLightBrush}"/>
                             </Trigger>
                         </Style.Triggers>
                     </Style>
@@ -133,7 +133,7 @@
                             <Style TargetType="TextBlock">
                                 <Setter Property="FontSize" Value="13"/>
                                 <Setter Property="FontFamily" Value="Consolas"/>
-                                <Setter Property="Foreground" Value="#0066CC"/>
+                                <Setter Property="Foreground" Value="{DynamicResource AccentDefaultBrush}"/>
                                 <Setter Property="FontWeight" Value="Medium"/>
                                 <Setter Property="VerticalAlignment" Value="Center"/>
                             </Style>
@@ -163,11 +163,11 @@
                                             </Setter>
                                             <Style.Triggers>
                                                 <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter Property="Background" Value="#E7F3FF"/>
-                                                    <Setter Property="BorderBrush" Value="#0066CC"/>
+                                                    <Setter Property="Background" Value="{DynamicResource AccentLightBrush}"/>
+                                                    <Setter Property="BorderBrush" Value="{DynamicResource AccentDefaultBrush}"/>
                                                 </Trigger>
                                                 <Trigger Property="IsPressed" Value="True">
-                                                    <Setter Property="Background" Value="#CCE5FF"/>
+                                                    <Setter Property="Background" Value="{DynamicResource AccentPressedBrush}"/>
                                                 </Trigger>
                                             </Style.Triggers>
                                         </Style>

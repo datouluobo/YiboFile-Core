@@ -4,6 +4,8 @@ using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Forms;
+using OoiMRR.Controls;
+using OoiMRR.Services.Core;
 
 namespace OoiMRR
 {
@@ -38,16 +40,16 @@ namespace OoiMRR
             bool hasSelection = LibrariesListBox.SelectedItem != null;
             RenameLibraryBtn.IsEnabled = hasSelection;
             DeleteLibraryBtn.IsEnabled = hasSelection;
-            
+
             // 更新上/下移按钮状态
             int selectedIndex = LibrariesListBox.SelectedIndex;
             int itemCount = LibrariesListBox.Items.Count;
             MoveUpBtn.IsEnabled = hasSelection && selectedIndex > 0;
             MoveDownBtn.IsEnabled = hasSelection && selectedIndex < itemCount - 1;
-            
+
             // 更新库位置按钮状态
             AddPathBtn.IsEnabled = hasSelection;
-            
+
             if (hasSelection && LibrariesListBox.SelectedItem is Library selectedLibrary)
             {
                 LoadLibraryPaths(selectedLibrary.Id);
@@ -103,16 +105,16 @@ namespace OoiMRR
                 {
                     // 清空输入框
                     NewLibraryNameTextBox.Text = "";
-                    
+
                     LoadLibraries();
-                    
+
                     // 选中新创建的库
                     var newLibrary = _libraries.FirstOrDefault(l => l.Id == libraryId);
                     if (newLibrary != null)
                     {
                         LibrariesListBox.SelectedItem = newLibrary;
                     }
-                    
+
                     // 使用文件夹选择对话框添加初始位置（可选）
                     if (DialogService.Ask("是否现在添加库的位置？\n\n您可以稍后在库位置列表中添加位置。", "添加位置", this))
                     {
@@ -201,6 +203,7 @@ namespace OoiMRR
                     DatabaseManager.DeleteLibrary(selectedLibrary.Id);
                     LoadLibraries();
                     PathsListBox.ItemsSource = null;
+                    NotificationService.Show($"已删除库 \"{selectedLibrary.Name}\"", NotificationType.Success);
                 }
                 catch (Exception ex)
                 {
@@ -218,7 +221,7 @@ namespace OoiMRR
                 {
                     dialog.Description = "选择要添加到库的文件夹:";
                     dialog.ShowNewFolderButton = false;
-                    
+
                     // 如果库已有位置，从第一个位置开始浏览
                     if (selectedLibrary.Paths != null && selectedLibrary.Paths.Count > 0)
                     {
@@ -236,7 +239,7 @@ namespace OoiMRR
                     if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
                     {
                         var path = dialog.SelectedPath;
-                        
+
                         // 检查是否已存在
                         var existingPaths = DatabaseManager.GetLibraryPaths(selectedLibrary.Id);
                         if (existingPaths.Any(p => p.Path.Equals(path, StringComparison.OrdinalIgnoreCase)))
@@ -249,6 +252,7 @@ namespace OoiMRR
                         {
                             DatabaseManager.AddLibraryPath(selectedLibrary.Id, path);
                             LoadLibraryPaths(selectedLibrary.Id);
+                            NotificationService.Show("库位置添加成功", NotificationType.Success);
                         }
                         catch (Exception ex)
                         {
@@ -296,6 +300,7 @@ namespace OoiMRR
                     {
                         DatabaseManager.RemoveLibraryPath(selectedPath.LibraryId, selectedPath.Path);
                         LoadLibraryPaths(selectedPath.LibraryId);
+                        NotificationService.Show("库位置已移除", NotificationType.Success);
                     }
                     catch (Exception ex)
                     {
@@ -325,10 +330,10 @@ namespace OoiMRR
         private void MoveLibrary(int direction)
         {
             if (LibrariesListBox.SelectedItem == null) return;
-            
+
             int selectedIndex = LibrariesListBox.SelectedIndex;
             int newIndex = selectedIndex + direction;
-            
+
             if (newIndex < 0 || newIndex >= _libraries.Count) return;
 
             try
@@ -346,7 +351,7 @@ namespace OoiMRR
 
                 // 重新加载并恢复选中
                 LoadLibraries();
-                
+
                 if (newIndex >= 0 && newIndex < LibrariesListBox.Items.Count)
                 {
                     LibrariesListBox.SelectedIndex = newIndex;

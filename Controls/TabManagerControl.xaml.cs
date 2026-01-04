@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Shell;
 using OoiMRR;
 
 namespace OoiMRR.Controls
@@ -29,6 +30,16 @@ namespace OoiMRR.Controls
         }
 
         /// <summary>
+        /// 关闭覆盖层请求事件
+        /// </summary>
+        public event EventHandler CloseOverlayRequested;
+
+        public void RaiseCloseOverlayRequested()
+        {
+            CloseOverlayRequested?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>
         /// 创建并添加新建标签页按钮到TabsPanel末尾
         /// </summary>
         private void CreateAndAddNewTabButton()
@@ -43,6 +54,8 @@ namespace OoiMRR.Controls
                 Cursor = Cursors.Hand,
                 VerticalAlignment = VerticalAlignment.Center
             };
+            // 确保按钮在该区域可点击 (WindowChrome)
+            _newTabButton.SetValue(WindowChrome.IsHitTestVisibleInChromeProperty, true);
 
             // Create TextBlock for Icon
             var iconBlock = new TextBlock
@@ -80,12 +93,12 @@ namespace OoiMRR.Controls
 
             // Trigger: 悬停效果
             var mouseOverTrigger = new Trigger { Property = Button.IsMouseOverProperty, Value = true };
-            mouseOverTrigger.Setters.Add(new Setter(Button.BackgroundProperty, new SolidColorBrush((Color)ColorConverter.ConvertFromString("#DADCE0"))));
+            mouseOverTrigger.Setters.Add(new Setter(Button.BackgroundProperty, new DynamicResourceExtension("ControlHoverBrush")));
             style.Triggers.Add(mouseOverTrigger);
 
             // Trigger: 按下效果
             var pressedTrigger = new Trigger { Property = Button.IsPressedProperty, Value = true };
-            pressedTrigger.Setters.Add(new Setter(Button.BackgroundProperty, new SolidColorBrush((Color)ColorConverter.ConvertFromString("#D2D4D7"))));
+            pressedTrigger.Setters.Add(new Setter(Button.BackgroundProperty, new DynamicResourceExtension("ControlPressedBrush")));
             style.Triggers.Add(pressedTrigger);
 
             _newTabButton.Style = style;
@@ -118,6 +131,7 @@ namespace OoiMRR.Controls
         /// </summary>
         private void NewTabButton_Click(object sender, RoutedEventArgs e)
         {
+            CloseOverlayRequested?.Invoke(this, EventArgs.Empty);
             NewTabRequested?.Invoke(this, EventArgs.Empty);
         }
 

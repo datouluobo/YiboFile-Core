@@ -7,6 +7,8 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
+using OoiMRR.Services.Core;
+using OoiMRR.Controls;
 
 namespace OoiMRR.Services.Favorite
 {
@@ -209,6 +211,9 @@ namespace OoiMRR.Services.Favorite
 
             // 触发重新加载事件
             FavoritesLoaded?.Invoke(this, EventArgs.Empty);
+
+            if (successCount > 0)
+                NotificationService.Show($"成功添加 {successCount} 个项目到收藏", NotificationType.Success);
         }
 
         #endregion
@@ -244,6 +249,7 @@ namespace OoiMRR.Services.Favorite
                 {
                     DatabaseManager.RemoveFavorite(favorite.Path);
                     FavoritesLoaded?.Invoke(this, EventArgs.Empty);
+                    NotificationService.Show("已移除无效收藏", NotificationType.Success);
                 }
             }
 
@@ -343,9 +349,16 @@ namespace OoiMRR.Services.Favorite
                         var favorite = favoriteProperty.GetValue(selectedItem) as OoiMRR.Favorite;
                         if (favorite != null)
                         {
+                            FavoriteService obj = this; // Capture 'this' explicitly if needed, assuming we are inside instance method of FavoriteService
+                                                        // Actually context menu creation is inside FavoriteService instance method.
+
+                            // Re-read context:
+                            // private ContextMenu CreateFavoritesContextMenu(ListBox listBox) Is inside FavoriteService class.
+
                             DatabaseManager.RemoveFavorite(favorite.Path);
                             LoadFavorites(listBox);
                             FavoritesLoaded?.Invoke(this, EventArgs.Empty);
+                            NotificationService.Show("已取消收藏", NotificationType.Success);
                         }
                     }
                 }

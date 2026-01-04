@@ -15,7 +15,7 @@
             BorderThickness="1" 
             BorderBrush="{DynamicResource BorderDefaultBrush}">
         <Border.Effect>
-            <DropShadowEffect Color="{DynamicResource ForegroundPrimaryBrush}" 
+            <DropShadowEffect Color="{DynamicResource ForegroundPrimaryColor}" 
                             BlurRadius="20" 
                             ShadowDepth="0" 
                             Opacity="0.2"/>

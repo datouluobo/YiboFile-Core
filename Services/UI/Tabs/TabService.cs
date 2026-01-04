@@ -1457,6 +1457,7 @@ namespace OoiMRR.Services.Tabs
                     // 直接调用SwitchToTab，不再依赖Click事件
                     if (deltaX <= 4 && deltaY <= 4) // 确保是点击而不是拖拽
                     {
+                        _ui.TabManager?.RaiseCloseOverlayRequested();
                         SwitchToTab(tab);
                         e.Handled = true; // 标记已处理，避免触发其他事件
                     }
@@ -1638,8 +1639,9 @@ namespace OoiMRR.Services.Tabs
                 var panel = _ui.TabManager.TabsPanelControl;
                 var mousePos = e.GetPosition(panel);
                 var children = panel.Children.OfType<StackPanel>().ToList();
+                int childrenCount = children.Count;
                 int targetIndex = 0;
-                for (int i = 0; i < children.Count; i++)
+                for (int i = 0; i < childrenCount; i++)
                 {
                     var child = children[i] as FrameworkElement;
                     if (child == null) continue;

@@ -29,6 +29,7 @@
     <SolidColorBrush x:Key="TitleBarBackgroundBrush" Color="#F8F9FA"/>     <!-- 标题栏背景 (与次背景一致) -->
     
     <!-- 2. 文本类 (4个) -->
+    <Color x:Key="ForegroundPrimaryColor">#212529</Color>
     <SolidColorBrush x:Key="ForegroundPrimaryBrush" Color="#212529"/>      <!-- 主要文本 -->
     <SolidColorBrush x:Key="ForegroundSecondaryBrush" Color="#666666"/>    <!-- 次要文本 -->
     <SolidColorBrush x:Key="ForegroundDisabledBrush" Color="#ADB5BD"/>     <!-- 禁用文本 -->

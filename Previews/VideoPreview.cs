@@ -190,6 +190,9 @@ namespace OoiMRR.Previews
                 // 添加清理机制：当预览被卸载时停止播放并清理资源
                 mainGrid.Unloaded += (s, e) =>
                 {
+                    // 暂时注释掉Unloaded清理，因为窗口由于Restore等操作可能会导致临时的Unloaded触发
+                    // 这会导致预览丢失。资源的最终清理交由 PreviewService.CleanupPreviousPreview 处理
+                    /*
                     try
                     {
                         // 停止播放
@@ -201,6 +204,7 @@ namespace OoiMRR.Previews
                         // 缓存文件会在文件被修改后自动失效（因为缓存文件名基于文件修改时间）
                     }
                     catch { }
+                    */
                 };
 
                 // 先显示加载提示，避免UI卡住

@@ -138,7 +138,7 @@ namespace OoiMRR.Services
         /// <summary>
         /// 保存窗口状态（大小、位置、最大化状态）
         /// </summary>
-        private void SaveWindowState()
+        public void SaveWindowState()
         {
             // #region agent log
             var logPath = @"f:\Download\GitHub\OoiMRR\.cursor\debug.log";
