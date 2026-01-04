@@ -48,6 +48,7 @@ namespace OoiMRR
             if (_currentLayoutMode == mode) return;
 
             _currentLayoutMode = mode;
+            _currentLayoutMode = mode;
 
             // 更新按钮激活状态
             LayoutFocusBtn.Tag = mode == LayoutMode.Focus ? "Active" : null;
@@ -57,7 +58,12 @@ namespace OoiMRR
             // 应用布局
             ApplyLayout(mode);
 
-            // TODO: 实现配置持久化
+            // 保存配置
+            if (_configService?.Config != null)
+            {
+                _configService.Config.LayoutMode = mode.ToString();
+                _configService.SaveCurrentConfig();
+            }
         }
 
         /// <summary>
@@ -161,12 +167,36 @@ namespace OoiMRR
         #region 布局模式恢复
 
         /// <summary>
-        /// 恢复保存的布局模式（暂未实现持久化）
+        /// 恢复保存的布局模式
         /// </summary>
         private void RestoreLayoutMode()
         {
-            // TODO: 实现配置持久化后再恢复
-            // 当前默认使用完整模式
+            if (_configService?.Config != null)
+            {
+                if (Enum.TryParse<LayoutMode>(_configService.Config.LayoutMode, out var mode))
+                {
+                    SwitchLayoutMode(mode);
+                }
+                else
+                {
+                    // 默认完整模式
+                    SwitchLayoutMode(LayoutMode.Full);
+                }
+            }
+        }
+
+        #endregion
+
+        #region 布局初始化
+
+        /// <summary>
+        /// 初始化布局模式（恢复上次的布局配置）
+        ///在 MainWindow 初始化时调用
+        /// </summary>
+        internal void InitializeLayoutMode()
+        {
+            // 初始恢复配置
+            RestoreLayoutMode();
         }
 
         #endregion

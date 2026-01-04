@@ -102,11 +102,7 @@ namespace OoiMRR.Services.Tabs
         private Point _tabDragStartPoint;
         private PathTab _draggingTab = null;
         private bool _isDragging = false; // 标记是否真的在进行拖拽操作
-
-        // Tab width compression constants
-        private const double MIN_TAB_WIDTH = 40.0;
-        private const double PREFERRED_TAB_WIDTH = 160.0; // Natural width when space available
-        private const double MAX_TAB_WIDTH = 300.0;
+        private TabWidthCalculator _widthCalculator;
 
         #endregion
 
@@ -134,6 +130,11 @@ namespace OoiMRR.Services.Tabs
         public TabService(AppConfig config)
         {
             _config = config ?? throw new ArgumentNullException(nameof(config));
+            _widthCalculator = new TabWidthCalculator(
+                _config,
+                tab => GetEffectiveTitle(tab),
+                () => GetPinnedTabWidth()
+            );
         }
 
         #endregion
@@ -146,6 +147,11 @@ namespace OoiMRR.Services.Tabs
         public void UpdateConfig(AppConfig config)
         {
             _config = config ?? throw new ArgumentNullException(nameof(config));
+            _widthCalculator = new TabWidthCalculator(
+                _config,
+                tab => GetEffectiveTitle(tab),
+                () => GetPinnedTabWidth()
+            );
 
             // Trigger tab width recalculation with new config
             UpdateTabWidths();
@@ -1786,140 +1792,7 @@ namespace OoiMRR.Services.Tabs
             if (_ui.TabManager?.TabsBorderControl == null) return;
 
             var border = _ui.TabManager.TabsBorderControl;
-            double totalWidth = border.ActualWidth;
-            if (totalWidth <= 0) return;
-
-            // Separate pinned and unpinned tabs
-            var pinnedTabs = _tabs.Where(t => t.IsPinned).ToList();
-            var unpinnedTabs = _tabs.Where(t => !t.IsPinned).ToList();
-
-            // Calculate pinned tabs total  width
-            double pinnedTotalWidth = 0;
-            double pinnedTabWidth = GetPinnedTabWidth();
-            foreach (var p in pinnedTabs)
-            {
-                if (p.TabButton != null)
-                {
-                    // 强制设置宽度，而不是使用MinWidth + Auto
-                    // 这样可以确保标签页能够随设置变小，而不会被内容撑大
-                    p.TabButton.Width = pinnedTabWidth;
-                    p.TabButton.MinWidth = 0;
-                }
-                pinnedTotalWidth += pinnedTabWidth + 2; // + Margin
-            }
-
-            // Calculate available width for unpinned tabs
-            double availableForUnpinned = totalWidth - pinnedTotalWidth - 8; // Minimal padding
-
-
-            if (unpinnedTabs.Count > 0 && availableForUnpinned > 0)
-            {
-                var mode = _config?.TabWidthMode ?? TabWidthMode.FixedWidth;
-
-                if (mode == TabWidthMode.DynamicWidth)
-                {
-                    UpdateTabWidthsDynamic(unpinnedTabs, availableForUnpinned);
-                }
-                else
-                {
-                    UpdateTabWidthsFixed(unpinnedTabs, availableForUnpinned);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Fixed width mode: all tabs same width
-        /// </summary>
-        private void UpdateTabWidthsFixed(List<PathTab> unpinnedTabs, double availableForUnpinned)
-        {
-            // 使用配置的宽度（尽管属性名叫PinnedTabWidth，但在固定宽度模式下它适用于所有标签）
-            double userSettingWidth = GetPinnedTabWidth();
-            double preferredTotalWidth = unpinnedTabs.Count * userSettingWidth;
-
-            double targetWidth;
-            if (preferredTotalWidth <= availableForUnpinned)
-            {
-                // 空间足够时，使用设定宽度
-                targetWidth = userSettingWidth;
-            }
-            else
-            {
-                // 空间不足时，进行压缩，但不能小于最小值
-                double calculatedWidth = availableForUnpinned / unpinnedTabs.Count;
-                // 确保不大于设定宽度，且不小于最小值（除非设定值本身就更小）
-                double actualMin = Math.Min(userSettingWidth, MIN_TAB_WIDTH);
-                targetWidth = Math.Max(actualMin, Math.Min(userSettingWidth, calculatedWidth));
-            }
-
-            foreach (var t in unpinnedTabs)
-            {
-                if (t.TabButton != null)
-                {
-                    // 强制设置宽度
-                    t.TabButton.Width = targetWidth;
-                    t.TabButton.MinWidth = 0;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Dynamic width mode: adapt to text length
-        /// </summary>
-        private void UpdateTabWidthsDynamic(List<PathTab> unpinnedTabs, double availableForUnpinned)
-        {
-            var tabWidths = new List<(PathTab tab, double width)>();
-            double totalNaturalWidth = 0;
-
-            foreach (var tab in unpinnedTabs)
-            {
-                var title = GetEffectiveTitle(tab);
-                var measuredWidth = MeasureTextWidth(title);
-                var naturalWidth = Math.Max(MIN_TAB_WIDTH, Math.Min(MAX_TAB_WIDTH, measuredWidth));
-                tabWidths.Add((tab, naturalWidth));
-                totalNaturalWidth += naturalWidth;
-            }
-
-            double scaleFactor = 1.0;
-            if (totalNaturalWidth > availableForUnpinned)
-            {
-                scaleFactor = availableForUnpinned / totalNaturalWidth;
-            }
-
-            foreach (var (tab, naturalWidth) in tabWidths)
-            {
-                if (tab.TabButton != null)
-                {
-                    double finalWidth = Math.Max(MIN_TAB_WIDTH, naturalWidth * scaleFactor);
-                    tab.TabButton.Width = finalWidth;
-                    tab.TabButton.MinWidth = 0;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Measure text width for dynamic sizing
-        /// </summary>
-        private double MeasureTextWidth(string text, double fontSize = 12, string fontFamily = "Segoe UI")
-        {
-            if (string.IsNullOrEmpty(text)) return MIN_TAB_WIDTH;
-
-            try
-            {
-                var formattedText = new FormattedText(
-                    text,
-                    CultureInfo.CurrentCulture,
-                    FlowDirection.LeftToRight,
-                    new Typeface(fontFamily),
-                    fontSize,
-                    Brushes.Black,
-                    VisualTreeHelper.GetDpi(Application.Current.MainWindow).PixelsPerDip
-                );
-                return formattedText.Width + 40; // Icon/close (24px) + spacing (4px) + padding (2px) + buffer (10px)
-            }
-            catch
-            {
-                return PREFERRED_TAB_WIDTH;
-            }
+            _widthCalculator.UpdateTabWidths(border, _tabs);
         }
 
         #endregion

@@ -33,25 +33,11 @@ namespace OoiMRR.Previews
         {
             var extension = Path.GetExtension(filePath).ToLower();
 
-            if (extension == ".docx")
+            // 使用工厂模式的处理器
+            var handler = DocumentHandlers.DocumentPreviewFactory.GetHandler(extension);
+            if (handler != null)
             {
-                return CreateDocxPreview(filePath);
-            }
-            else if (extension == ".doc")
-            {
-                return CreateDocPreview(filePath);
-            }
-            else if (extension == ".pdf")
-            {
-                return CreatePdfPreview(filePath);
-            }
-            else if (extension == ".rtf")
-            {
-                return CreateRtfPreview(filePath);
-            }
-            else if (extension == ".chm")
-            {
-                return CreateChmPreview(filePath);
+                return handler.CreatePreview(filePath);
             }
 
             // 未知文档类型

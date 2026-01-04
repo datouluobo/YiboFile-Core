@@ -262,6 +262,7 @@ namespace OoiMRR
 
             // 初始化时和窗口状态/大小变化时更新TabManager的Margin
             this.Loaded += (s, e) => UpdateTabManagerMargin();
+            this.Loaded += (s, e) => InitializeLayoutMode(); // 初始化布局(仅恢复)
             this.StateChanged += (s, e) => UpdateTabManagerMargin();
             this.SizeChanged += (s, e) => UpdateTabManagerMargin();
 

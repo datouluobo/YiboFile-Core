@@ -11,6 +11,15 @@ namespace OoiMRR.Controls
     /// </summary>
     public class CollapsibleGridSplitter : GridSplitter
     {
+        #region Events
+
+        /// <summary>
+        /// 当折叠状态发生改变时触发
+        /// </summary>
+        public event EventHandler<RoutedEventArgs> CollapsedStateChanged;
+
+        #endregion
+
         #region Dependency Properties
 
         /// <summary>
@@ -186,7 +195,10 @@ namespace OoiMRR.Controls
         private static void OnIsCollapsedChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             if (d is CollapsibleGridSplitter splitter)
+            {
                 splitter.UpdateButtonVisibility();
+                splitter.CollapsedStateChanged?.Invoke(splitter, new RoutedEventArgs());
+            }
         }
 
         #endregion
