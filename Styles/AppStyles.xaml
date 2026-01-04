@@ -1237,9 +1237,27 @@
                             CornerRadius="6" 
                             Padding="{TemplateBinding Padding}" 
                             SnapsToDevicePixels="true">
-                        <GridViewRowPresenter VerticalAlignment="{TemplateBinding VerticalContentAlignment}" 
-                                              SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                        <Grid>
+                            <!-- GridView模式：默认显示 -->
+                            <GridViewRowPresenter x:Name="PART_GridViewRowPresenter"
+                                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}" 
+                                                SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                                                
+                            <!-- 缩略图模式：默认隐藏 -->
+                            <ContentPresenter x:Name="PART_ContentPresenter"
+                                            HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                            VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                            SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
+                                            Visibility="Collapsed"/>
+                        </Grid>
                     </Border>
+                    <ControlTemplate.Triggers>
+                        <!-- 当没有 GridView 列时（即缩略图模式），切换显示 ContentPresenter -->
+                        <Trigger Property="GridView.ColumnCollection" Value="{x:Null}">
+                            <Setter TargetName="PART_GridViewRowPresenter" Property="Visibility" Value="Collapsed"/>
+                            <Setter TargetName="PART_ContentPresenter" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>

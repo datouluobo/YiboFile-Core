@@ -1,8 +1,10 @@
 using System;
+using System.ComponentModel;
+using System.Windows.Media.Imaging;
 
 namespace OoiMRR
 {
-    public class FileSystemItem
+    public class FileSystemItem : INotifyPropertyChanged
     {
         public string Name { get; set; }
         public string Path { get; set; }
@@ -35,6 +37,32 @@ namespace OoiMRR
         /// </summary>
         public OoiMRR.Services.Search.SearchResultType? SearchResultType { get; set; }
 
+        // 缩略图属性（用于缩略图视图）
+        private BitmapSource _thumbnail;
+
+        /// <summary>
+        /// 文件缩略图（支持属性变更通知）
+        /// </summary>
+        public BitmapSource Thumbnail
+        {
+            get => _thumbnail;
+            set
+            {
+                if (_thumbnail != value)
+                {
+                    _thumbnail = value;
+                    OnPropertyChanged(nameof(Thumbnail));
+                }
+            }
+        }
+
+        // Icon属性保持向后兼容（绑定到Thumbnail）
+        public BitmapSource Icon
+        {
+            get => _thumbnail;
+            set => Thumbnail = value;
+        }
+
         /// <summary>
         /// 格式化相对时间
         /// </summary>
@@ -47,7 +75,7 @@ namespace OoiMRR
             if (span.TotalSeconds < 60) return $"{Math.Max(0, (int)span.TotalSeconds)} 秒";
             if (span.TotalMinutes < 60) return $"{(int)span.TotalMinutes}'";
             if (span.TotalHours < 24) return $"{(int)span.TotalHours} 时";
-            if (span.TotalDays < 65) return $"{(int)span.TotalDays} 天"; // 保持“天”直到约2个月
+            if (span.TotalDays < 65) return $"{(int)span.TotalDays} 天"; // 保持"天"直到约2个月
             if (span.TotalDays < 365) return $"{(int)(span.TotalDays / 30)} 月";
             return $"{(int)(span.TotalDays / 365)} 年";
         }
@@ -68,6 +96,14 @@ namespace OoiMRR
                 if (span.TotalDays < 365) return "#BBDEFB";   // Blue 100 (月)
                 return "#E1BEE7";                             // Purple 100 (年)
             }
+        }
+
+        // INotifyPropertyChanged 实现
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        protected virtual void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
 }

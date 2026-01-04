@@ -8,6 +8,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Media.Effects;
 using System.Windows.Data;
 using System.ComponentModel;
@@ -15,6 +16,7 @@ using OoiMRR.Controls.Converters;
 using OoiMRR.ViewModels;
 using OoiMRR.Services.Search;
 using OoiMRR.Services.ColumnManagement;
+using OoiMRR.Services.UI;
 
 namespace OoiMRR.Controls
 {
@@ -24,7 +26,7 @@ namespace OoiMRR.Controls
     /// </summary>
     public partial class FileListControl : UserControl
     {
-        private ThumbnailViewManager _thumbnailManager;
+        private ThumbnailService _thumbnailService;
         private Services.FileList.FileListService _fileListService;
 
         // 配置缓存
@@ -83,11 +85,8 @@ namespace OoiMRR.Controls
             // 初始化详细信息视图
             ApplyViewMode();
 
-            // 初始化缩略图管理器
-            if (FilesListView != null)
-            {
-                _thumbnailManager = new ThumbnailViewManager(FilesListView, 100);
-            }
+            // 初始化缩略图服务
+            _thumbnailService = new ThumbnailService();
 
             // Load column widths from config
             LoadColumnWidths();
@@ -125,36 +124,27 @@ namespace OoiMRR.Controls
                 FilesListView.View = null; // 清除 GridView
                 FilesListView.ItemTemplate = (DataTemplate)FindResource("ThumbnailTemplate");
 
-                // 使用 WrapPanel 进行布局
-                var factory = new FrameworkElementFactory(typeof(WrapPanel));
-                factory.SetValue(WrapPanel.OrientationProperty, Orientation.Horizontal);
-                factory.SetValue(WrapPanel.WidthProperty, new Binding("ActualWidth") { Source = FilesListView });
-                // factory.SetValue(WrapPanel.ItemWidthProperty, 130.0);
-                // factory.SetValue(WrapPanel.ItemHeightProperty, 150.0);
-
-                // 注意：VirtualizingStackPanel 不支持 Wrap 布局，所以这里简单使用 WrapPanel
-                // 如果需要虚拟化缩略图，需要更复杂的实现（如 VirtualizingWrapPanel）
-                // 暂时使用普通 WrapPanel，依靠分页或虚拟化容器（如果 ItemsPanelTemplate 支持）
-                // 原生 ListView 默认 ItemsPanel 是 VirtualizingStackPanel，不支持 Wrap。
-                // 必须替换 ItemsPanel
-                FilesListView.ItemsPanel = new ItemsPanelTemplate(factory);
+                // 使用预定义的 WrapPanel 模板
+                FilesListView.ItemsPanel = (ItemsPanelTemplate)FindResource("WrapPanelTemplate");
 
                 ScrollViewer.SetHorizontalScrollBarVisibility(FilesListView, ScrollBarVisibility.Disabled);
 
-                // 启动缩略图加载
-                _thumbnailManager?.LoadThumbnailsAsync();
+                // 启动缩略图加载（使用新的ThumbnailService）
+                if (FilesListView.ItemsSource != null)
+                {
+                    _thumbnailService?.LoadThumbnailsAsync(FilesListView.ItemsSource, 100);
+                }
             }
             else
             {
                 // 详细信息视图：使用 GridView（已在XAML定义）
                 FilesListView.ItemTemplate = null;
-                var itemsPanel = new ItemsPanelTemplate(new FrameworkElementFactory(typeof(VirtualizingStackPanel)));
-                FilesListView.ItemsPanel = itemsPanel;
+                FilesListView.ItemsPanel = (ItemsPanelTemplate)FindResource("StackPanelTemplate");
                 if (FilesGridView != null) FilesListView.View = FilesGridView;
                 ScrollViewer.SetHorizontalScrollBarVisibility(FilesListView, ScrollBarVisibility.Auto);
 
                 // 停止缩略图加载（性能优化）
-                _thumbnailManager?.Stop();
+                _thumbnailService?.Stop();
             }
         }
 
@@ -188,6 +178,12 @@ namespace OoiMRR.Controls
                 if (FilesListView != null)
                 {
                     FilesListView.ItemsSource = value;
+
+                    // 如果当前是缩略图模式，且有新数据，触发缩略图加载
+                    if (_currentViewMode == "Thumbnail" && value != null)
+                    {
+                        _thumbnailService?.LoadThumbnailsAsync(value, 100);
+                    }
                 }
             }
         }
@@ -746,6 +742,12 @@ namespace OoiMRR.Controls
                     FilesListView.ItemsSource = value;
                     // 强制刷新ListView，确保排序后UI更新
                     FilesListView.Items.Refresh();
+
+                    // 如果当前是缩略图模式，且有新数据，触发缩略图加载
+                    if (_currentViewMode == "Thumbnail" && value != null)
+                    {
+                        _thumbnailService?.LoadThumbnailsAsync(value, 100);
+                    }
                 }
             }
         }
