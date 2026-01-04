@@ -370,6 +370,9 @@ namespace OoiMRR
                                     var freshList = new List<FileSystemItem>(items);
                                     FileBrowser.FilesItemsSource = freshList;
                                 }
+
+                                // 主动触发空选状态下的信息面板更新（修复首次进入目录不显示信息的问题）
+                                _selectionEventHandler?.HandleNoSelection();
                             }
                         }
                         catch (Exception)

@@ -84,7 +84,8 @@ namespace OoiMRR
                 () => ClearPreviewAndInfo(),
                 results => RenderPredictionResults(results),
                 _fileListService,
-                () => _currentFiles
+                () => _currentFiles,
+                () => _currentPath
             );
 
             // 初始化 ColumnInteractionHandler
@@ -543,7 +544,9 @@ namespace OoiMRR
             {
                 listView.SelectedItem = null;
                 listView.SelectedItems.Clear();
-                // SelectionChanged 事件会自动触发，调用 ClearPreviewAndInfo()
+
+                // 显式调用 HandleNoSelection，确保信息面板更新（即使 SelectionChanged 未按预期触发）
+                _selectionEventHandler?.HandleNoSelection();
             }
         }
 

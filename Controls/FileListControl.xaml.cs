@@ -46,6 +46,49 @@ namespace OoiMRR.Controls
         public new event SizeChangedEventHandler SizeChanged;
         public event RoutedEventHandler LoadMoreClick;
 
+        #region 缩略图尺寸控制
+        // 依赖属性：缩略图大小 (默认100)
+        public static readonly DependencyProperty ThumbnailSizeProperty =
+            DependencyProperty.Register("ThumbnailSize", typeof(double), typeof(FileListControl),
+                new PropertyMetadata(100.0, OnThumbnailSizeChanged));
+
+        public double ThumbnailSize
+        {
+            get { return (double)GetValue(ThumbnailSizeProperty); }
+            set { SetValue(ThumbnailSizeProperty, value); }
+        }
+
+        // 依赖属性：Item项宽度 (自动计算: Size + 20)
+        public static readonly DependencyProperty ItemWidthProperty =
+            DependencyProperty.Register("ItemWidth", typeof(double), typeof(FileListControl), new PropertyMetadata(120.0));
+
+        public double ItemWidth
+        {
+            get { return (double)GetValue(ItemWidthProperty); }
+            private set { SetValue(ItemWidthProperty, value); }
+        }
+
+        // 依赖属性：Item项高度 (自动计算: Size + 40)
+        public static readonly DependencyProperty ItemHeightProperty =
+            DependencyProperty.Register("ItemHeight", typeof(double), typeof(FileListControl), new PropertyMetadata(140.0));
+
+        public double ItemHeight
+        {
+            get { return (double)GetValue(ItemHeightProperty); }
+            private set { SetValue(ItemHeightProperty, value); }
+        }
+
+        private static void OnThumbnailSizeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is FileListControl control)
+            {
+                double size = (double)e.NewValue;
+                control.ItemWidth = size + 20;
+                control.ItemHeight = size + 40;
+            }
+        }
+        #endregion
+
         public FileListControl()
         {
             InitializeComponent();
@@ -74,6 +117,7 @@ namespace OoiMRR.Controls
                 };
 
                 // 旧的列标题订阅代码已移除，现在使用 Style 中的 EventSetter 处理
+                FilesListView.PreviewMouseWheel += FilesListView_PreviewMouseWheel;
             }
 
             // 订阅加载更多按钮事件
@@ -130,9 +174,11 @@ namespace OoiMRR.Controls
                 ScrollViewer.SetHorizontalScrollBarVisibility(FilesListView, ScrollBarVisibility.Disabled);
 
                 // 启动缩略图加载（使用新的ThumbnailService）
+                // 启动缩略图加载（使用新的ThumbnailService）
                 if (FilesListView.ItemsSource != null)
                 {
-                    _thumbnailService?.LoadThumbnailsAsync(FilesListView.ItemsSource, 100);
+                    // 使用默认高清尺寸(256)加载，以便支持缩放
+                    _thumbnailService?.LoadThumbnailsAsync(FilesListView.ItemsSource);
                 }
             }
             else
@@ -145,6 +191,24 @@ namespace OoiMRR.Controls
 
                 // 停止缩略图加载（性能优化）
                 _thumbnailService?.Stop();
+            }
+        }
+
+        private void FilesListView_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            // 仅在缩略图模式下且按住Ctrl键时处理
+            if (_currentViewMode == "Thumbnail" && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+            {
+                e.Handled = true; // 阻止 ScrollViewer 滚动
+
+                double delta = e.Delta > 0 ? 10 : -10; // 每次增减10
+                double newSize = ThumbnailSize + delta;
+
+                // 限制范围: 64 (中等图标) - 256 (超大图标)
+                if (newSize < 64) newSize = 64;
+                if (newSize > 256) newSize = 256;
+
+                ThumbnailSize = newSize;
             }
         }
 
@@ -182,7 +246,7 @@ namespace OoiMRR.Controls
                     // 如果当前是缩略图模式，且有新数据，触发缩略图加载
                     if (_currentViewMode == "Thumbnail" && value != null)
                     {
-                        _thumbnailService?.LoadThumbnailsAsync(value, 100);
+                        _thumbnailService?.LoadThumbnailsAsync(value);
                     }
                 }
             }
@@ -746,7 +810,7 @@ namespace OoiMRR.Controls
                     // 如果当前是缩略图模式，且有新数据，触发缩略图加载
                     if (_currentViewMode == "Thumbnail" && value != null)
                     {
-                        _thumbnailService?.LoadThumbnailsAsync(value, 100);
+                        _thumbnailService?.LoadThumbnailsAsync(value);
                     }
                 }
             }

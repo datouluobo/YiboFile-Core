@@ -26,8 +26,8 @@ namespace OoiMRR.Services.UI
         /// 为文件列表异步加载缩略图
         /// </summary>
         /// <param name="items">文件列表</param>
-        /// <param name="thumbnailSize">缩略图大小</param>
-        public void LoadThumbnailsAsync(IEnumerable items, int thumbnailSize = 100)
+        /// <param name="thumbnailSize">缩略图大小 (默认256以支持高清缩放)</param>
+        public void LoadThumbnailsAsync(IEnumerable items, int thumbnailSize = 256)
         {
             // 取消之前的加载任务
             _cancellationTokenSource?.Cancel();

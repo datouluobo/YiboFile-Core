@@ -26,6 +26,7 @@ namespace OoiMRR.Handlers
         private readonly Action<List<TagTrain.Services.TagPredictionResult>> _renderPredictionResults;
         private readonly OoiMRR.Services.FileList.FileListService _fileListService;
         private readonly Func<List<FileSystemItem>> _getCurrentFiles;
+        private readonly Func<string> _getCurrentPath;
         private System.Threading.CancellationTokenSource _folderSizeCts;
 
         public SelectionEventHandler(
@@ -37,7 +38,8 @@ namespace OoiMRR.Handlers
             Action clearPreviewAndInfo,
             Action<List<TagTrain.Services.TagPredictionResult>> renderPredictionResults,
             OoiMRR.Services.FileList.FileListService fileListService,
-            Func<List<FileSystemItem>> getCurrentFiles)
+            Func<List<FileSystemItem>> getCurrentFiles,
+            Func<string> getCurrentPath)
         {
             _mainWindow = mainWindow ?? throw new ArgumentNullException(nameof(mainWindow));
             _filePreviewService = filePreviewService ?? throw new ArgumentNullException(nameof(filePreviewService));
@@ -48,6 +50,7 @@ namespace OoiMRR.Handlers
             _renderPredictionResults = renderPredictionResults ?? throw new ArgumentNullException(nameof(renderPredictionResults));
             _fileListService = fileListService ?? throw new ArgumentNullException(nameof(_fileListService));
             _getCurrentFiles = getCurrentFiles ?? throw new ArgumentNullException(nameof(getCurrentFiles));
+            _getCurrentPath = getCurrentPath ?? throw new ArgumentNullException(nameof(getCurrentPath));
         }
 
         public void HandleSelectionChanged(System.Collections.IList selectedItems)
@@ -131,7 +134,50 @@ namespace OoiMRR.Handlers
             }
             else
             {
-                // 8. 没有选择文件时，清除预览区和文件信息
+                HandleNoSelection();
+            }
+        }
+
+        public void HandleNoSelection()
+        {
+            // 8. 没有选择文件时：
+            // 清除预览区
+            _filePreviewService?.ClearPreview();
+            // 清除预测结果
+            _renderPredictionResults(new List<TagTrain.Services.TagPredictionResult>());
+            // 清除备注
+            try { _fileNotesUIHandler?.LoadFileNotes(null); } catch { }
+
+            // 显示当前文件夹信息
+            try
+            {
+                string currentPath = _getCurrentPath();
+                if (!string.IsNullOrEmpty(currentPath) && System.IO.Directory.Exists(currentPath))
+                {
+                    var dirInfo = new System.IO.DirectoryInfo(currentPath);
+                    var item = new FileSystemItem
+                    {
+                        Name = dirInfo.Name,
+                        Path = dirInfo.FullName,
+                        Type = "文件夹",
+                        IsDirectory = true,
+                        ModifiedDateTime = dirInfo.LastWriteTime,
+                        ModifiedDate = dirInfo.LastWriteTime.ToString("yyyy/M/d HH:mm"),
+                        CreatedDateTime = dirInfo.CreationTime,
+                        CreatedTime = dirInfo.CreationTime.ToString("yyyy/M/d HH:mm"),
+                        Size = "-", // 将在 ShowDirectoryInfo 中计算
+                        Tags = "" // 文件夹没有标签? 或者需要获取标签? 目前暂留空
+                    };
+                    _updateFileInfoPanel(item);
+                }
+                else
+                {
+                    // 如果路径无效（例如搜索结果页面），则清除信息面板
+                    _clearPreviewAndInfo();
+                }
+            }
+            catch
+            {
                 _clearPreviewAndInfo();
             }
         }
