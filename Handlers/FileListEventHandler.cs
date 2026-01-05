@@ -10,7 +10,7 @@ using System.Windows.Media;
 using OoiMRR.Controls;
 using OoiMRR.Services;
 using OoiMRR.Services.Navigation;
-using TagTrain.UI;
+// using TagTrain.UI; // Phase 2
 
 namespace OoiMRR.Handlers
 {
@@ -27,7 +27,7 @@ namespace OoiMRR.Handlers
         private readonly Action<FileSystemItem> _loadFileNotes;
         private readonly Action<string> _calculateFolderSizeImmediately;
         private readonly Action _clearPreviewAndInfo;
-        private readonly Action<List<TagTrain.Services.TagPredictionResult>> _renderPredictionResults;
+        private readonly Action<object> _renderPredictionResults; // Phase 2: was List<TagTrain.Services.TagPredictionResult>
         private readonly Func<bool> _isLibraryMode;
         private readonly Action<string> _switchNavigationMode;
         private readonly Action<string> _navigateToPath;
@@ -56,7 +56,7 @@ namespace OoiMRR.Handlers
             Action<FileSystemItem> loadFileNotes,
             Action<string> calculateFolderSizeImmediately,
             Action clearPreviewAndInfo,
-            Action<List<TagTrain.Services.TagPredictionResult>> renderPredictionResults,
+            Action<object> renderPredictionResults, // Phase 2: was List<TagTrain.Services.TagPredictionResult>
             Func<bool> isLibraryMode,
             Action<string> switchNavigationMode,
             Action<string> navigateToPath,
@@ -123,40 +123,8 @@ namespace OoiMRR.Handlers
                 _loadFilePreview(selectedItem);
                 _loadFileNotes(selectedItem);
 
-                // 标签页：对图片执行AI预测并渲染到预测面板
-                try
-                {
-                    var navTagContent = _getNavTagContent?.Invoke(null);
-                    if (navTagContent != null && navTagContent is FrameworkElement navTag && navTag.Visibility == Visibility.Visible)
-                    {
-                        var ext = System.IO.Path.GetExtension(selectedItem.Path)?.ToLowerInvariant();
-                        var imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".webp", ".tiff", ".tif" };
-                        if (!selectedItem.IsDirectory && !string.IsNullOrEmpty(ext) && imageExtensions.Contains(ext))
-                        {
-                            var tagEditPanel = _getTagEditPanel?.Invoke(null);
-                            if (tagEditPanel != null && tagEditPanel is TagPanel panel)
-                            {
-                                panel.PredictionPanel.Children.Clear();
-                                panel.NoPredictionText.Visibility = Visibility.Visible;
-                                panel.NoPredictionText.Text = "预测中...";
-                            }
-
-                            Task.Run(() =>
-                            {
-                                var preds = OoiMRRIntegration.PredictTagsForImage(selectedItem.Path) ?? new List<TagTrain.Services.TagPredictionResult>();
-                                Application.Current.Dispatcher.BeginInvoke(new Action(() =>
-                                {
-                                    _renderPredictionResults(preds);
-                                }), System.Windows.Threading.DispatcherPriority.Background);
-                            });
-                        }
-                        else
-                        {
-                            _renderPredictionResults(new List<TagTrain.Services.TagPredictionResult>());
-                        }
-                    }
-                }
-                catch { }
+                // 标签页AI预测已移除 - Phase 2将重新实现
+                // try { ... } catch { }
 
                 // 如果选中的是文件夹且大小未计算，立即计算
                 if (selectedItem.IsDirectory)

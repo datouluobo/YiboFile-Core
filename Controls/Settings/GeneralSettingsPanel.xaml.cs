@@ -1125,9 +1125,10 @@ namespace OoiMRR.Controls.Settings
             {
                 try
                 {
-                    TagTrain.Services.SettingsManager.ClearCache();
-                    TagTrain.Services.SettingsManager.SetDataStorageDirectory(ConfigManager.GetBaseDirectory());
-                    TagTrain.Services.SettingsManager.ClearCache();
+                    // TagTrain SettingsManager removed - Phase 2
+                    // TagTrain.Services.SettingsManager.ClearCache();
+                    // TagTrain.Services.SettingsManager.SetDataStorageDirectory(ConfigManager.GetBaseDirectory());
+                    // TagTrain.Services.SettingsManager.ClearCache();
                 }
                 catch { }
             }

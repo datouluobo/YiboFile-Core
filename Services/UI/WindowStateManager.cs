@@ -403,9 +403,9 @@ namespace OoiMRR.Services
                             case TabType.Library:
                                 _config.LastNavigationMode = "Library";
                                 break;
-                            case TabType.Tag:
-                                _config.LastNavigationMode = "Tag";
-                                break;
+                            // case TabType.Tag: // Phase 2
+                            //     _config.LastNavigationMode = "Tag";
+                            //     break;
                             default:
                                 _config.LastNavigationMode = "Path";
                                 break;
@@ -506,8 +506,8 @@ namespace OoiMRR.Services
                     return "path:" + (tab.Path ?? string.Empty);
                 case TabType.Library:
                     return "library:" + (tab.Library?.Id.ToString() ?? "");
-                case TabType.Tag:
-                    return "tag:" + tab.TagId.ToString();
+                // case TabType.Tag: // Phase 2
+                //     return "tag:" + tab.TagId.ToString();
                 default:
                     return "unknown:" + (tab.Title ?? "");
             }
@@ -701,20 +701,13 @@ namespace OoiMRR.Services
                     }
                 }
             }
-            else if (tabKey.StartsWith("tag:"))
-            {
-                var tagIdStr = tabKey.Substring("tag:".Length);
-                if (int.TryParse(tagIdStr, out int tagId))
-                {
-                    // 使用OoiMRRIntegration获取标签名称
-                    var tagName = OoiMRRIntegration.GetTagName(tagId);
-                    if (!string.IsNullOrEmpty(tagName))
-                    {
-                        var tag = new OoiMRR.Tag { Id = tagId, Name = tagName };
-                        _tabService.OpenTagTab(tag, false, activate: false); // 允许复用已存在的标签页
-                    }
-                }
-            }
+            // Tag标签页恢复已移除 - Phase 2将重新实现
+            // var tagName = OoiMRRIntegration.GetTagName(tagId);
+            // if (!string.IsNullOrEmpty(tagName))
+            // {
+            //     var tag = new OoiMRR.Tag { Id = tagId, Name = tagName };
+            //     _tabService.OpenTagTab(tag, false, activate: false);
+            // }
         }
 
         /// <summary>

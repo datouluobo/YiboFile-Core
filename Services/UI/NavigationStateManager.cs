@@ -47,13 +47,14 @@ namespace OoiMRR.Services
                         Mode = NavigationMode.Library;
                         CurrentLibrary = tab.Library;
                         break;
-                    case TabType.Tag:
-                        Mode = NavigationMode.Tag;
-                        if (tab.TagId > 0 && !string.IsNullOrEmpty(tab.TagName))
-                        {
-                            CurrentTagFilter = new TagType { Id = tab.TagId, Name = tab.TagName };
-                        }
-                        break;
+                        // Tag mode removed - Phase 2
+                        // case TabType.Tag:
+                        //     Mode = NavigationMode.Tag;
+                        //     if (tab.TagId > 0 && !string.IsNullOrEmpty(tab.TagName))
+                        //     {
+                        //         CurrentTagFilter = new TagType { Id = tab.TagId, Name = tab.TagName };
+                        //     }
+                        //     break;
                 }
             }
 

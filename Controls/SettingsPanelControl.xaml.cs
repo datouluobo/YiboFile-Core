@@ -83,7 +83,8 @@ namespace OoiMRR.Controls
                 "Path" => new Settings.PathSettingsPanel(),
                 "Library" => new Settings.LibrarySettingsPanel(),
                 "Tag" => new Settings.TagSettingsPanel(),
-                "TagTrain" => new Settings.TagTrainSettingsPanel(),
+                // "TagTrain" => new Settings.TagTrainSettingsPanel(), // Phase 2
+                "TagTrain" => new Settings.GeneralSettingsPanel(), // Placeholder
                 "Hotkeys" => new Settings.HotkeySettingsPanel(),
                 _ => new Settings.GeneralSettingsPanel()
             };

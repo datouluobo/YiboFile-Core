@@ -33,10 +33,10 @@ namespace OoiMRR
                     {
                         if (_currentLibrary != null)
                             LoadLibraryFiles(_currentLibrary);
-                        else if (_currentTagFilter != null)
-                            FilterByTag(_currentTagFilter);
-                        else
-                            LoadCurrentDirectory();
+                        // else if (_currentTagFilter != null)
+                        //     FilterByTag(_currentTagFilter); // Phase 2
+                        // else
+                        //     LoadCurrentDirectory();
                     }
                     catch { }
                 };

@@ -19,10 +19,8 @@ using OoiMRR.Services.Navigation;
 using OoiMRR.Services.Search;
 using OoiMRR.Services.Tabs;
 using OoiMRR.Services.Settings;
-using OoiMRR.Services.TagTrain;
-using OoiMRR.Services.ColumnManagement;
-using OoiMRR.Services.Config;
-using TagTrain.UI;
+// using OoiMRR.Services.TagTrain; // Phase 2
+// using TagTrain.UI; // Phase 2
 using System.Windows.Media;
 
 namespace OoiMRR
@@ -97,10 +95,10 @@ namespace OoiMRR
                 this,
                 _previewService, // Was _filePreviewService, but InitializeServices uses _previewService
                 _fileNotesUIHandler,
-                _tagTrainEventHandler,
+                null, // _tagTrainEventHandler - Phase 2
                 item => _fileInfoService?.ShowFileInfo(item), // Was UpdateFileInfoPanel(item)
                 () => ClearPreviewAndInfo(),
-                results => RenderPredictionResults(results),
+                results => { }, // RenderPredictionResults removed - Phase 2
                 _fileListService,
                 () => _currentFiles,
                 () => _currentPath
@@ -160,7 +158,7 @@ namespace OoiMRR
                 },
                 EditNotes_Click_Logic, // Action editNotes
                 BatchAddTags_Click_Logic, // Action batchAddTags
-                () => _tagTrainEventHandler?.TagTrainTrainingStatus_Click(null, null), // showTagStatistics
+                () => { }, // showTagStatistics - Phase 2
                 ImportLibrary_Click_Logic, // importLibrary
                 ExportLibrary_Click_Logic, // exportLibrary
                 () => { }, // addFileToLibrary - Implement logic if needed
@@ -330,41 +328,7 @@ namespace OoiMRR
                 (path) => _navigationCoordinator.HandlePathNavigation(path, NavigationCoordinator.NavigationSource.QuickAccess, NavigationCoordinator.ClickType.LeftClick)
             );
 
-            // 初始化 TagTrainEventHandler
-            _tagTrainEventHandler = new TagTrainEventHandler(
-                 TagBrowsePanel,
-                 TagEditPanel,
-                 FileBrowser,
-                 this,
-                 Dispatcher,
-                 () => TagBrowsePanel.Mode == TagPanel.DisplayMode.Browse ? TagTrainEventHandler.TagClickMode.Browse : TagTrainEventHandler.TagClickMode.Edit,
-                 (mode) =>
-                 {
-                     if (TagBrowsePanel != null) TagBrowsePanel.Mode = mode == TagTrainEventHandler.TagClickMode.Browse ? TagPanel.DisplayMode.Browse : TagPanel.DisplayMode.Edit;
-                 },
-                 () => _tagTrainIsTraining,
-                 (val) => { }, // setTagTrainIsTraining
-                 () => null, // cancellationTokenSource getter
-                 (token) => { }, // cancellationTokenSource setter
-                 () => _currentTagFilter,
-                 () => TagBrowsePanel?.LoadExistingTags(),
-                 () => { }, // updateTagTrainModelStatus
-                 () => { _ = LoadFilesAsync(); },
-                 (tag) =>
-                 {
-                     _currentTagFilter = tag;
-                     _isUpdatingTagSelection = true;
-                     RefreshFileList();
-                     _isUpdatingTagSelection = false;
-                 },
-                 (paths) =>
-                 {
-                     if (FileBrowser?.FilesList != null)
-                     {
-                         // Implementation of restoring selection
-                     }
-                 }
-            );
+            // TagTrainEventHandler 初始化已移除 - Phase 2将重新实现
 
             // Initialize Drag & Drop
             InitializeDragDrop();
@@ -966,7 +930,7 @@ namespace OoiMRR
             // 2. Update Tag Selection
             if (!_isUpdatingTagSelection && App.IsTagTrainAvailable)
             {
-                _tagUIHandler?.UpdateTagSelectionState(FileBrowser?.FilesSelectedItems?.Cast<FileSystemItem>().ToList());
+                // _tagUIHandler?.UpdateTagSelectionState(FileBrowser?.FilesSelectedItems?.Cast<FileSystemItem>().ToList()); // Phase 2
             }
         }
 
@@ -975,8 +939,9 @@ namespace OoiMRR
 
         private void BatchAddTags_Click_Logic()
         {
-            if (!App.IsTagTrainAvailable) return;
-            _tagUIHandler?.ShowBatchTaggingDialog(_currentFiles);
+            // Phase 2将重新实现
+            // if (!App.IsTagTrainAvailable) return;
+            // _tagUIHandler?.ShowBatchTaggingDialog(_currentFiles);
         }
 
 

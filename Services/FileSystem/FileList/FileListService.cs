@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Threading;
 using OoiMRR.Services.FileNotes;
+using OoiMRR.Services.FileSystem;
 
 namespace OoiMRR.Services.FileList
 {
@@ -33,7 +34,7 @@ namespace OoiMRR.Services.FileList
         /// 是否显示完整文件名（包括扩展名）
         /// 当空间不足隐藏类型列时设置为 true
         /// </summary>
-        public bool ShowFullFileName { get; set; } = false;
+        public bool ShowFullFileName { get; set; } = false; // 列表模式默认不显示扩展名
         private readonly object _loadingLock = new object();
 
         #endregion
@@ -187,6 +188,32 @@ namespace OoiMRR.Services.FileList
                 len = len / 1024;
             }
             return $"{len:0.##} {sizes[order]}";
+        }
+
+        /// <summary>
+        /// 获取文件的显示名称
+        /// 对于只有扩展名的文件（如.gitconfig），总是显示完整文件名
+        /// </summary>
+        /// <param name="filePath">文件路径</param>
+        /// <param name="showFullFileName">是否显示完整文件名（用于缩略图模式）</param>
+        /// <returns>文件显示名称</returns>
+        private string GetDisplayFileName(string filePath, bool showFullFileName)
+        {
+            string fileName = Path.GetFileName(filePath);
+
+            // 如果要求显示完整文件名（缩略图模式），直接返回
+            if (showFullFileName)
+                return fileName;
+
+            // 尝试去掉扩展名
+            string nameWithoutExt = Path.GetFileNameWithoutExtension(filePath);
+
+            // 如果去掉扩展名后为空（如.gitconfig），返回完整文件名
+            if (string.IsNullOrEmpty(nameWithoutExt))
+                return fileName;
+
+            // 否则返回不含扩展名的文件名
+            return nameWithoutExt;
         }
 
         /// <summary>
@@ -485,28 +512,51 @@ namespace OoiMRR.Services.FileList
             var directories = new List<FileSystemItem>();
             try
             {
-                var dirPaths = await Task.Run(() => Directory.GetDirectories(path), cancellationToken);
+                string[] dirPaths;
+                try
+                {
+                    dirPaths = await Task.Run(() => Directory.GetDirectories(path), cancellationToken);
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    // 如果没有权限读取当前文件夹的子文件夹列表，直接返回空列表
+                    return directories;
+                }
+
                 foreach (var dirPath in dirPaths)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
                     try
                     {
+                        string actualPath = dirPath;
+                        string displayName = Path.GetFileName(dirPath);
+
+                        // 检测并解析符号链接/Junction Points
+                        if (SymbolicLinkHelper.IsSymbolicLink(dirPath))
+                        {
+                            string targetPath = SymbolicLinkHelper.GetSymbolicLinkTarget(dirPath);
+                            if (!string.IsNullOrEmpty(targetPath) && targetPath != dirPath)
+                            {
+                                actualPath = targetPath;
+                            }
+                        }
+
                         // 检查文件夹是否存在（如果不存在，清理数据库缓存）
-                        if (!Directory.Exists(dirPath))
+                        if (!Directory.Exists(actualPath))
                         {
                             DatabaseManager.RemoveFolderSize(dirPath);
                             continue;
                         }
 
-                        var dirInfo = new DirectoryInfo(dirPath);
+                        var dirInfo = new DirectoryInfo(actualPath);
 
                         // 从数据库读取文件夹大小缓存
                         string sizeDisplay = "计算中...";
-                        long? cachedSize = null; // Decalre outside scope
+                        long? cachedSize = null;
                         if (getFolderSizeCache != null)
                         {
-                            cachedSize = await Task.Run(() => getFolderSizeCache(dirPath), cancellationToken);
+                            cachedSize = await Task.Run(() => getFolderSizeCache(actualPath), cancellationToken);
                             if (cachedSize.HasValue)
                             {
                                 sizeDisplay = formatFileSize(cachedSize.Value);
@@ -515,8 +565,8 @@ namespace OoiMRR.Services.FileList
 
                         directories.Add(new FileSystemItem
                         {
-                            Name = new DirectoryInfo(dirPath).Name,
-                            Path = dirInfo.FullName,
+                            Name = displayName,
+                            Path = actualPath,
                             Type = "文件夹",
                             Size = sizeDisplay,
                             ModifiedDate = dirInfo.LastWriteTime.ToString("yyyy-MM-dd"),
@@ -573,7 +623,8 @@ namespace OoiMRR.Services.FileList
                         var fileInfo = new System.IO.FileInfo(filePath);
                         files.Add(new FileSystemItem
                         {
-                            Name = ShowFullFileName ? Path.GetFileName(filePath) : Path.GetFileNameWithoutExtension(filePath),
+                            // 对于只有扩展名的文件（如.gitconfig），总是显示完整文件名
+                            Name = GetDisplayFileName(filePath, ShowFullFileName),
                             Path = fileInfo.FullName,
                             Type = !string.IsNullOrEmpty(fileInfo.Extension) ? fileInfo.Extension : "文件",
                             Size = formatFileSize(fileInfo.Length),
@@ -626,20 +677,33 @@ namespace OoiMRR.Services.FileList
                 {
                     try
                     {
+                        string actualPath = dirPath;
+                        string displayName = Path.GetFileName(dirPath);
+
+                        // 检测并解析符号链接/Junction Points
+                        if (SymbolicLinkHelper.IsSymbolicLink(dirPath))
+                        {
+                            string targetPath = SymbolicLinkHelper.GetSymbolicLinkTarget(dirPath);
+                            if (!string.IsNullOrEmpty(targetPath) && targetPath != dirPath)
+                            {
+                                actualPath = targetPath;
+                            }
+                        }
+
                         // 检查文件夹是否存在（如果不存在，清理数据库缓存）
-                        if (!Directory.Exists(dirPath))
+                        if (!Directory.Exists(actualPath))
                         {
                             DatabaseManager.RemoveFolderSize(dirPath);
                             continue;
                         }
 
-                        var dirInfo = new DirectoryInfo(dirPath);
+                        var dirInfo = new DirectoryInfo(actualPath);
 
                         // 从数据库读取文件夹大小缓存
                         string sizeDisplay = "计算中...";
                         if (getFolderSizeCache != null)
                         {
-                            var cachedSize = getFolderSizeCache(dirPath);
+                            var cachedSize = getFolderSizeCache(actualPath);
                             if (cachedSize.HasValue)
                             {
                                 sizeDisplay = formatFileSize(cachedSize.Value);
@@ -648,8 +712,8 @@ namespace OoiMRR.Services.FileList
 
                         directories.Add(new FileSystemItem
                         {
-                            Name = new DirectoryInfo(dirPath).Name,
-                            Path = dirInfo.FullName,
+                            Name = displayName,
+                            Path = actualPath,
                             Type = "文件夹",
                             Size = sizeDisplay,
                             ModifiedDate = dirInfo.LastWriteTime.ToString("yyyy-MM-dd"),
@@ -696,7 +760,8 @@ namespace OoiMRR.Services.FileList
                         var fileInfo = new System.IO.FileInfo(filePath);
                         files.Add(new FileSystemItem
                         {
-                            Name = Path.GetFileNameWithoutExtension(filePath),
+                            // 对于只有扩展名的文件（如.gitconfig），总是显示完整文件名
+                            Name = GetDisplayFileName(filePath, ShowFullFileName),
                             Path = fileInfo.FullName,
                             Type = !string.IsNullOrEmpty(fileInfo.Extension) ? fileInfo.Extension : "文件",
                             Size = formatFileSize(fileInfo.Length),

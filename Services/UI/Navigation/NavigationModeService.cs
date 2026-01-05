@@ -6,7 +6,7 @@ using System.Windows.Controls;
 using OoiMRR.Services.Tabs;
 using OoiMRR.Services.Config;
 using OoiMRR.Services.Navigation;
-using TagTrain.UI;
+// using TagTrain.UI; // Phase 2将重新实现
 
 namespace OoiMRR.Services.Navigation
 {
@@ -76,9 +76,9 @@ namespace OoiMRR.Services.Navigation
                 case "Library":
                     HandleLibraryMode(skipRefresh);
                     break;
-                case "Tag":
-                    HandleTagMode(skipRefresh);
-                    break;
+                    // case "Tag": // Phase 2将重新实现
+                    //     HandleTagMode(skipRefresh);
+                    //     break;
             }
 
             // 保存当前模式
@@ -126,10 +126,11 @@ namespace OoiMRR.Services.Navigation
                 {
                     _uiHelper.NavLibraryButton.Style = normalStyle;
                 }
-                if (_uiHelper.NavTagButton != null && normalStyle != null)
-                {
-                    _uiHelper.NavTagButton.Style = normalStyle;
-                }
+                // NavTagButton removed - Phase 2
+                // if (_uiHelper.NavTagButton != null && normalStyle != null)
+                // {
+                //     _uiHelper.NavTagButton.Style = normalStyle;
+                // }
 
                 // 设置当前模式的按钮为橙色样式
                 switch (activeMode)
@@ -146,12 +147,12 @@ namespace OoiMRR.Services.Navigation
                             _uiHelper.NavLibraryButton.Style = activeStyle;
                         }
                         break;
-                    case "Tag":
-                        if (_uiHelper.NavTagButton != null && activeStyle != null)
-                        {
-                            _uiHelper.NavTagButton.Style = activeStyle;
-                        }
-                        break;
+                        // case "Tag": // Phase 2将重新实现
+                        //     if (_uiHelper.NavTagButton != null && activeStyle != null)
+                        //     {
+                        //         _uiHelper.NavTagButton.Style = activeStyle;
+                        //     }
+                        //     break;
                 }
             }), System.Windows.Threading.DispatcherPriority.Normal);
         }
@@ -275,73 +276,13 @@ namespace OoiMRR.Services.Navigation
         }
 
         /// <summary>
-        /// 处理标签模式切换
+        /// 处理标签模式切换（Phase 2将重新实现）
         /// </summary>
         /// <param name="skipRefresh">是否跳过刷新操作（启动时恢复状态使用）</param>
         private void HandleTagMode(bool skipRefresh = false)
         {
-            // 只有在 TagTrain 可用时才显示标签页面
-            if (App.IsTagTrainAvailable)
-            {
-                // 显示标签页面底部按钮
-                if (_uiHelper.TagBottomButtons != null)
-                {
-                    _uiHelper.TagBottomButtons.Visibility = Visibility.Visible;
-                }
-
-                // 默认使用浏览模式
-                _uiHelper.TagClickMode = TagClickMode.Browse;
-                var tagClickModeBtn = _uiHelper.NavigationPanelControl?.TagBottomButtonsControl?.FindName("TagClickModeBtn") as Button;
-                if (tagClickModeBtn != null)
-                {
-                    tagClickModeBtn.Content = "👁";
-                    tagClickModeBtn.ToolTip = "切换到编辑模式：显示完整TagTrain训练面板";
-                }
-
-                // 延迟初始化，确保所有UI元素都已渲染
-                _uiHelper.Dispatcher.BeginInvoke(new Action(() =>
-                {
-                    // 确保NavTagContent已可见
-                    if (_uiHelper.NavTagContent != null && _uiHelper.NavTagContent.Visibility != Visibility.Visible)
-                    {
-                        _uiHelper.NavTagContent.Visibility = Visibility.Visible;
-                    }
-
-                    // 切换到浏览模式
-                    if (_uiHelper.TagBrowsePanel != null && _uiHelper.TagEditPanel != null)
-                    {
-                        _uiHelper.TagBrowsePanel.Visibility = Visibility.Visible;
-                        _uiHelper.TagEditPanel.Visibility = Visibility.Collapsed;
-                        if (_uiHelper.TagBrowsePanel.Mode != TagPanel.DisplayMode.Browse)
-                        {
-                            _uiHelper.TagBrowsePanel.Mode = TagPanel.DisplayMode.Browse;
-                        }
-                        _uiHelper.TagBrowsePanel.LoadExistingTags();
-                    }
-
-                    // 延迟初始化，确保所有UI元素都已渲染
-                    _uiHelper.Dispatcher.BeginInvoke(new Action(() =>
-                    {
-                        // 初始化TagTrain面板（用于编辑模式）
-                        _uiHelper.InitializeTagTrainPanel();
-                    }), System.Windows.Threading.DispatcherPriority.Loaded);
-                }), System.Windows.Threading.DispatcherPriority.Loaded);
-
-                if (_uiHelper.FileBrowser != null)
-                {
-                    _uiHelper.FileBrowser.TabsVisible = true; // 标签模式也显示标签页
-
-                    // 初始化地址栏（标签浏览模式）- 显示tag按钮
-                    _uiHelper.FileBrowser.AddressText = "";
-                    _uiHelper.FileBrowser.IsAddressReadOnly = true;
-                    _uiHelper.FileBrowser.SetTagBreadcrumb("标签");
-                }
-            }
-            else
-            {
-                // TagTrain 不可用，切换到路径模式
-                SwitchNavigationMode("Path");
-            }
+            // 标签功能已移除，切换到路径模式
+            SwitchNavigationMode("Path", skipRefresh);
         }
 
         #endregion

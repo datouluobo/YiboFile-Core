@@ -3,7 +3,6 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:OoiMRR"
         xmlns:controls="clr-namespace:OoiMRR.Controls"
-        xmlns:tagTrain="clr-namespace:TagTrain.UI"
         Title="OoiMRR - 文件资源管理器" 
         Height="800" 
         Width="1200"
@@ -91,6 +90,7 @@
                         <TextBlock Text="库" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
+                <!-- NavTagBtn Phase 2将重新引入
                 <Button Name="NavTagBtn" Click="NavTagBtn_Click" Margin="2,0" Height="32" Width="60"
                         Style="{StaticResource ActiveNavigationButtonStyle}">
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
@@ -98,6 +98,7 @@
                         <TextBlock Text="标签" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
+                -->
             </StackPanel>
             
             <!-- 分隔符 (隐藏保留) -->

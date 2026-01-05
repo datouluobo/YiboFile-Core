@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using TagTrain.UI;
+// using TagTrain.UI; // Phase 2
 
 namespace OoiMRR.Controls
 {
@@ -26,10 +26,11 @@ namespace OoiMRR.Controls
         // public event RoutedEventHandler LibraryRefreshClick; // Removed unused event
         public event RoutedEventHandler TagClickModeClick;
         public event RoutedEventHandler TagCategoryManageClick;
-        public event Action<string, bool> TagBrowsePanelTagClicked;
-        public event Action TagBrowsePanelCategoryManagementRequested;
-        public event Action<string, bool> TagEditPanelTagClicked;
-        public event Action TagEditPanelCategoryManagementRequested;
+        // Tag events removed - Phase 2
+        // public event Action<string, bool> TagBrowsePanelTagClicked;
+        // public event Action TagBrowsePanelCategoryManagementRequested;
+        // public event Action<string, bool> TagEditPanelTagClicked; // Phase 2
+        // public event Action TagEditPanelCategoryManagementRequested; // Phase 2
         public event RoutedEventHandler LibraryContextMenuClick;
 
         public NavigationPanelControl()
@@ -119,19 +120,14 @@ namespace OoiMRR.Controls
             }
 
             // TagPanel 事件
-            var tagBrowsePanel = TagBrowsePanelControl;
-            if (tagBrowsePanel != null)
-            {
-                tagBrowsePanel.TagClicked += (tagName, forceNewTab) => TagBrowsePanelTagClicked?.Invoke(tagName, forceNewTab);
-                tagBrowsePanel.CategoryManagementRequested += () => TagBrowsePanelCategoryManagementRequested?.Invoke();
-            }
+            // Tag panel initialization removed - Phase 2
+            // var tagBrowsePanel = TagBrowsePanelControl;
+            // if (tagBrowsePanel != null)
+            // {...}
 
-            var tagEditPanel = TagEditPanelControl;
-            if (tagEditPanel != null)
-            {
-                tagEditPanel.TagClicked += (tagName, forceNewTab) => TagEditPanelTagClicked?.Invoke(tagName, forceNewTab);
-                tagEditPanel.CategoryManagementRequested += () => TagEditPanelCategoryManagementRequested?.Invoke();
-            }
+            // Tag edit panel initialization removed - Phase 2
+            // var tagEditPanel = TagEditPanelControl;
+            // if (tagEditPanel != null) {...}
         }
 
         // 公共属性访问器（通过FindName获取，避免命名冲突）
@@ -143,8 +139,9 @@ namespace OoiMRR.Controls
         public Grid NavPathContentControl => FindName("NavPathContent") as Grid;
         public Grid NavLibraryContentControl => FindName("NavLibraryContent") as Grid;
         public Grid NavTagContentControl => FindName("NavTagContent") as Grid;
-        public TagPanel TagBrowsePanelControl => FindName("TagBrowsePanel") as TagPanel;
-        public TagPanel TagEditPanelControl => FindName("TagEditPanel") as TagPanel;
+        // TagBrowsePanelControl removed - Phase 2
+        // public TagPanel TagBrowsePanelControl => FindName("TagBrowsePanel") as TagPanel;
+        // public TagPanel TagEditPanelControl => FindName("TagEditPanel") as TagPanel; // Phase 2
         public StackPanel LibraryBottomButtonsControl => FindName("LibraryBottomButtons") as StackPanel;
         public StackPanel TagBottomButtonsControl => FindName("TagBottomButtons") as StackPanel;
     }

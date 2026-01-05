@@ -1,7 +1,6 @@
 <UserControl x:Class="OoiMRR.Controls.NavigationPanelControl"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:tagTrain="clr-namespace:TagTrain.UI"
              xmlns:helpers="clr-namespace:OoiMRR.Helpers"
              Background="{DynamicResource PanelBackgroundBrush}">
     <UserControl.Resources>
@@ -137,13 +136,9 @@
                 </ScrollViewer>
             </Grid>
             
-            <!-- 标签导航内容：支持浏览/编辑模式切换 -->
+            <!-- 标签导航内容：Phase 2将重新实现 -->
             <Grid Name="NavTagContent" Margin="8" Visibility="Collapsed">
-                <!-- 浏览模式：只显示标签列表（使用TagPanel） -->
-                <tagTrain:TagPanel x:Name="TagBrowsePanel" Mode="Browse" Visibility="Visible"/>
-                
-                <!-- 编辑模式：完整TagTrain训练面板（使用TagPanel） -->
-                <tagTrain:TagPanel x:Name="TagEditPanel" Mode="Edit" Visibility="Collapsed"/>
+                <!-- TagPanel controls removed -->
             </Grid>
         </Grid>
         

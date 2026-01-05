@@ -17,7 +17,7 @@ using OoiMRR.Services.Tabs;
 using OoiMRR.Services.Preview;
 using OoiMRR.Services.ColumnManagement;
 using OoiMRR.Services.Config;
-using OoiMRR.Services.Tag;
+// using OoiMRR.Services.Tag; // Phase 2将重新实现
 using OoiMRR.Helpers;
 using OoiMRR.Handlers;
 using OoiMRR.Models.UI;
@@ -80,8 +80,8 @@ namespace OoiMRR
             _searchCacheService = new SearchCacheService();
             var searchResultBuilder = new SearchResultBuilder(
                 formatFileSize: size => _fileListService.FormatFileSize(size),
-                getFileTagIds: path => App.IsTagTrainAvailable ? OoiMRRIntegration.GetFileTagIds(path) : null,
-                getTagName: tagId => App.IsTagTrainAvailable ? OoiMRRIntegration.GetTagName(tagId) : null,
+                getFileTagIds: path => null, // Phase 2将重新实现
+                getTagName: tagId => null, // Phase 2将重新实现
                 getFileNotes: path => FileNotesService.GetFileNotes(path)
             );
             _searchService = new SearchService(searchFilterService, _searchCacheService, searchResultBuilder);
@@ -107,9 +107,9 @@ namespace OoiMRR
             // 初始化备注UI处理器（需要在 InitializeComponent 之后，因为需要 RightPanel 和 FileBrowser）
             _fileNotesUIHandler = new Services.FileNotes.FileNotesUIHandler(RightPanel, FileBrowser);
 
-            // 初始化标签UI处理器（需要创建上下文）
-            var tagUIHandlerContext = new TagUIHandlerContextImpl(this);
-            _tagUIHandler = new Services.Tag.TagUIHandler(tagUIHandlerContext);
+            // tagUIHandler 初始化已注释 - Phase 2将重新实现
+            // var tagUIHandlerContext = new TagUIHandlerContextImpl(this);
+            // _tagUIHandler = new Services.Tag.TagUIHandler(tagUIHandlerContext);
 
             // 初始化预览服务（需要在 InitializeComponent 之后，因为需要 RightPanel 和 FileBrowser）
             _previewService = new Services.Preview.PreviewService(
@@ -344,13 +344,14 @@ namespace OoiMRR
                 NavigationPanelControl.LibrariesListBoxSelectionChanged += LibrariesListBox_SelectionChanged;
                 NavigationPanelControl.LibrariesListBoxContextMenuOpening += LibrariesListBox_ContextMenuOpening;
                 NavigationPanelControl.AddFavoriteClick += AddFavorite_Click;
-                NavigationPanelControl.AddTagToFileClick += AddTagToFile_Click;
+                // NavigationPanelControl.AddTagToFileClick += AddTagToFile_Click; // Phase 2
                 NavigationPanelControl.LibraryManageClick += ManageLibraries_Click;
-                // NavigationPanelControl.LibraryRefreshClick += LibraryRefresh_Click;
-                NavigationPanelControl.TagClickModeClick += TagClickModeBtn_Click;
-                NavigationPanelControl.TagCategoryManageClick += TagCategoryManageBtn_Click;
-                NavigationPanelControl.TagBrowsePanelTagClicked += TagBrowsePanel_TagClicked;
-                NavigationPanelControl.TagEditPanelTagClicked += TagEditPanel_TagClicked;
+                // NavigationPanelControl.LibraryRefreshClick
+                // Tag panel event subscriptions removed - Phase 2
+                // NavigationPanelControl.TagClickModeClick += TagClickModeBtn_Click;
+                // NavigationPanelControl.TagCategoryManageClick += TagCategoryManageBtn_Click;
+                // NavigationPanelControl.TagBrowsePanelTagClicked += TagBrowsePanel_TagClicked;
+                // NavigationPanelControl.TagEditPanelTagClicked += TagEditPanel_TagClicked;
             }
 
             // 订阅 FileBrowser 事件
@@ -389,7 +390,7 @@ namespace OoiMRR
                     // 属性功能可以后续实现
                     MessageBox.Show("属性功能开发中", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
                 };
-                FileBrowser.FileAddTag += AddTagToFile_Click;
+                // FileBrowser.FileAddTag += AddTagToFile_Click; // Phase 2
             }
 
             // InitializeApplication call moved to MainWindow constructor to ensure correct initialization order
@@ -434,7 +435,7 @@ namespace OoiMRR
                 SetNavigationCurrentPath = path => _navigationService.CurrentPath = path,
                 GetCurrentTagFilter = () => _currentTagFilter,
                 SetCurrentTagFilter = tag => _currentTagFilter = tag,
-                FilterByTag = FilterByTag,
+                // FilterByTag = FilterByTag, // Phase 2
                 LoadLibraryFiles = lib => LoadLibraryFiles(lib),
                 NavigateToPathInternal = NavigateToPathInternal,
                 UpdateNavigationButtonsState = UpdateNavigationButtonsState,

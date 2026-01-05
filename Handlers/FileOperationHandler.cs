@@ -33,14 +33,15 @@ namespace OoiMRR.Handlers
                     _mainWindow,
                     () => _mainWindow.LoadLibraryFiles(_mainWindow._currentLibrary));
             }
-            else if (_mainWindow._currentTagFilter != null)
-            {
-                return new TagOperationContext(
-                    _mainWindow._currentTagFilter,
-                    _mainWindow.FileBrowser,
-                    _mainWindow,
-                    () => _mainWindow.FilterByTag(_mainWindow._currentTagFilter));
-            }
+            // TagOperationContext removed - Phase 2
+            // else if (_mainWindow._currentTagFilter != null)
+            // {
+            //     return new TagOperationContext(
+            //         _mainWindow._currentTagFilter,
+            //         _mainWindow.FileBrowser,
+            //         _mainWindow,
+            //         () => _mainWindow.FilterByTag(_mainWindow._currentTagFilter));
+            // }
             else
             {
                 return new PathOperationContext(

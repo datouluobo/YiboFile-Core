@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using OoiMRR.Services;
 using OoiMRR.Services.Core;
-using TagTrain.Services;
+// using TagTrain.Services; // Phase 2将重新实现标签功能
 using OoiMRR.Controls;
 
 namespace OoiMRR
@@ -20,9 +20,9 @@ namespace OoiMRR
         private const string MutexName = "OoiMRR_SingleInstance_Mutex";
 
         /// <summary>
-        /// TagTrain 是否可用
+        /// 标签功能是否可用（Phase 2将实现）
         /// </summary>
-        public static bool IsTagTrainAvailable { get; private set; } = false;
+        public static bool IsTagTrainAvailable => false;
 
         public App()
         {
@@ -38,23 +38,7 @@ namespace OoiMRR
         {
             try
             {
-                // 检查启动参数：如果是 --tagtrain，直接打开 TagTrain 窗口
-                if (e.Args.Length > 0 && e.Args[0] == "--tagtrain")
-                {
-                    // TagTrain 模式：跳过单实例检查，直接打开 TrainingWindow
-                    base.OnStartup(e);
-
-                    // 初始化 TagTrain
-                    InitializeTagTrain();
-
-                    // 打开 TagTrain 主窗口
-                    var trainingWindow = new TagTrain.UI.TrainingWindow();
-                    trainingWindow.Show();
-
-                    // 设置为主窗口，确保关闭时程序退出
-                    MainWindow = trainingWindow;
-                    return;
-                }
+                // 移除了 --tagtrain 启动参数支持（Phase 2将重新实现）
 
                 // 原有的 OoiMRR 启动逻辑
                 // 检查是否已有实例运行
@@ -108,59 +92,8 @@ namespace OoiMRR
                     FileLogger.LogException("Failed to apply theme", ex);
                 }
 
-                // TagTrain 改为延迟加载，不再在启动时初始化模型
-                // 只确保数据目录存在，模型在实际使用时再加载
-                try
-                {
-                    FileLogger.Log("Configuring TagTrain storage...");
-                    // 优先使用 OoiMRR 自己保存的 TT 数据目录（持久化），避免默认落到 OoiMRR\\bin\\data
-                    var appConfig = ConfigManager.Load();
-                    var tagTrainDataDir = appConfig?.TagTrainDataDirectory;
-
-                    if (!string.IsNullOrWhiteSpace(tagTrainDataDir) && Directory.Exists(tagTrainDataDir))
-                    {
-                        // 显式设置，确保 TT 使用该路径
-                        SettingsManager.SetDataStorageDirectory(tagTrainDataDir);
-                        // 清除缓存，确保使用新设置的路径
-                        TagTrain.Services.SettingsManager.ClearCache();
-                        TagTrain.Services.DataManager.ClearDatabasePathCache();
-                    }
-
-                    // 读取（可能是刚刚设置的）数据目录
-                    tagTrainDataDir = TagTrain.Services.SettingsManager.GetDataStorageDirectory();
-                    if (string.IsNullOrWhiteSpace(tagTrainDataDir))
-                    {
-                        // 设置为空时兜底一次（不写回设置）
-                        var ooiMRRBinDir = AppDomain.CurrentDomain.BaseDirectory;
-                        var ooiMRRProjectDir = Path.GetFullPath(Path.Combine(ooiMRRBinDir, "..", "..", ".."));
-                        var githubDir = Path.GetDirectoryName(ooiMRRProjectDir);
-                        tagTrainDataDir = Path.Combine(githubDir ?? ooiMRRProjectDir, "TagTrain", "data");
-                        // 设置默认路径后也要清除缓存
-                        if (!string.IsNullOrWhiteSpace(tagTrainDataDir))
-                        {
-                            TagTrain.Services.SettingsManager.SetDataStorageDirectory(tagTrainDataDir);
-                            TagTrain.Services.SettingsManager.ClearCache();
-                            TagTrain.Services.DataManager.ClearDatabasePathCache();
-                        }
-                    }
-                    tagTrainDataDir = Path.GetFullPath(tagTrainDataDir);
-                    // 确保目录存在（只创建，不覆盖设置）
-                    if (!Directory.Exists(tagTrainDataDir))
-                    {
-                        Directory.CreateDirectory(tagTrainDataDir);
-                    }
-
-                    // 只初始化数据库，不加载模型（延迟加载）
-                    TagTrain.Services.DataManager.InitializeDatabase();
-                    IsTagTrainAvailable = true;
-                    FileLogger.Log("TagTrain initialized successfully.");
-                }
-                catch (Exception ex)
-                {
-                    IsTagTrainAvailable = false;
-                    FileLogger.LogException("TagTrain initialization failed", ex);
-                    // 不阻止程序启动，只是记录错误
-                }
+                // 标签功能已移除，将在 Phase 2 重新实现
+                FileLogger.Log("Tag features disabled, will be reimplemented in Phase 2.");
 
                 // 清理过期的 CHM 缓存
                 Task.Run(() =>
@@ -220,39 +153,7 @@ namespace OoiMRR
             }
         }
 
-        /// <summary>
-        /// 初始化 TagTrain（提取为独立方法，供启动参数模式使用）
-        /// </summary>
-        private void InitializeTagTrain()
-        {
-            try
-            {
-                // 确保默认数据目录存在（程序目录下的 data 目录）
-                var defaultDataDir = TagTrain.Services.SettingsManager.GetDataStorageDirectory();
-                if (!Directory.Exists(defaultDataDir))
-                {
-                    try
-                    {
-                        Directory.CreateDirectory(defaultDataDir);
-                    }
-                    catch (Exception)
-                    {
-                    }
-                }
-
-                // 迁移旧配置文件到统一配置
-                TagTrain.Services.SettingsManager.MigrateOldSettings();
-
-                // 初始化数据库
-                TagTrain.Services.DataManager.InitializeDatabase();
-
-                IsTagTrainAvailable = true;
-            }
-            catch
-            {
-                IsTagTrainAvailable = false;
-            }
-        }
+        // InitializeTagTrain 方法已移除，将在 Phase 2 重新实现
 
         protected override void OnExit(ExitEventArgs e)
         {

@@ -527,7 +527,7 @@ namespace OoiMRR
             try
             {
                 DatabaseManager.Shutdown();
-                TagTrain.Services.DataManager.Shutdown();
+                // TagTrain.Services.DataManager.Shutdown(); // Phase 2
                 // 给一点时间让文件系统释放锁
                 System.Threading.Thread.Sleep(200);
             }

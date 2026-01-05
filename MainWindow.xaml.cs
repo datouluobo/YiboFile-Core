@@ -35,7 +35,7 @@ using OoiMRR.Handlers;
 using System.Threading;
 using System.Text.Json;
 using System.Text;
-using TagTrain.UI;
+// using TagTrain.UI; // Phase 2将重新实现
 using OoiMRR.Models.UI;
 
 namespace OoiMRR
@@ -80,7 +80,7 @@ namespace OoiMRR
         internal Services.WindowStateManager _windowStateManager;
         private Services.FileInfo.FileInfoService _fileInfoService;
         private Services.FileNotes.FileNotesUIHandler _fileNotesUIHandler;
-        private Services.Tag.TagUIHandler _tagUIHandler;
+        // private Services.Tag.TagUIHandler _tagUIHandler; // Phase 2将重新实现
 
         // 事件处理器
         internal Handlers.FileBrowserEventHandler _fileBrowserEventHandler;
@@ -91,7 +91,7 @@ namespace OoiMRR
         internal Handlers.WindowLifecycleHandler _windowLifecycleHandler;
         internal Handlers.FileOperationHandler _fileOperationHandler;
         private SelectionEventHandler _selectionEventHandler;
-        internal Services.TagTrain.TagTrainEventHandler _tagTrainEventHandler;
+        // internal Services.TagTrain.TagTrainEventHandler _tagTrainEventHandler; // Phase 2将重新实现
 
         // 加载锁定，防止重复加载导致卡死
         // TODO: 过渡代码 - 这些字段在事件处理器中仍在使用，后续考虑通过服务状态管理
@@ -105,52 +105,22 @@ namespace OoiMRR
         internal bool _isSplitterDragging = false; // 标记是否正在拖拽分割器
         internal Services.Search.SearchOptions _searchOptions = new Services.Search.SearchOptions();
 
-        // 统一的标签显示排序：当前过滤标签优先，其余按名称升序
-        internal List<string> OrderTagNames(List<int> tagIds)
-        {
-            try
-            {
-                var pairs = tagIds
-                    .Select(id => new { Id = id, Name = OoiMRRIntegration.GetTagName(id) })
-                    .Where(p => !string.IsNullOrWhiteSpace(p.Name))
-                    .ToList();
-
-                var comparer = StringComparer.CurrentCultureIgnoreCase;
-                int currentId = _currentTagFilter?.Id ?? int.MinValue;
-
-                var ordered = pairs
-                    .OrderBy(p => p.Id == currentId ? 0 : 1)   // 当前筛选的标签放最前
-                    .ThenBy(p => p.Name, comparer)
-                    .Select(p => p.Name)
-                    .ToList();
-
-                return ordered;
-            }
-            catch
-            {
-                // 回退到按名称排序
-                return tagIds
-                    .Select(id => OoiMRRIntegration.GetTagName(id))
-                    .Where(name => !string.IsNullOrWhiteSpace(name))
-                    .OrderBy(name => name, StringComparer.CurrentCultureIgnoreCase)
-                    .ToList();
-            }
-        }
+        // OrderTagNames 方法已注释 - Phase 2将重新实现
+        // internal List<string> OrderTagNames(List<int> tagIds)
+        // {
+        //     return new List<string>(); // 返回空列表
+        // }
 
         // TagTrain 训练状态
         internal CancellationTokenSource _tagTrainTrainingCancellation = null;
         internal bool _tagTrainIsTraining = false;
 
-        // 标签点击模式
-        internal enum TagClickMode { Browse, Edit }
-        internal TagClickMode _tagClickMode = TagClickMode.Browse;
-
-        // INavigationModeUIHelper 实现
-        Services.Navigation.TagClickMode Services.Navigation.INavigationModeUIHelper.TagClickMode
-        {
-            get => (Services.Navigation.TagClickMode)_tagClickMode;
-            set => _tagClickMode = (TagClickMode)value;
-        }
+        // TagClickMode 移除 - Phase 2将重新实现
+        // Services.Navigation.TagClickMode Services.Navigation.INavigationModeUIHelper.TagClickMode
+        // {
+        //     get => (Services.Navigation.TagClickMode)_tagClickMode;
+        //     set => _tagClickMode = (TagClickMode)value;
+        // }
 
 
         private List<DraggableButton> _currentActionButtons = new List<DraggableButton>();
@@ -165,8 +135,8 @@ namespace OoiMRR
         internal Grid NavPathContent => NavigationPanelControl?.NavPathContentControl;
         internal Grid NavLibraryContent => NavigationPanelControl?.NavLibraryContentControl;
         internal Grid NavTagContent => NavigationPanelControl?.NavTagContentControl;
-        internal TagPanel TagBrowsePanel => NavigationPanelControl?.TagBrowsePanelControl;
-        internal TagPanel TagEditPanel => NavigationPanelControl?.TagEditPanelControl;
+        // internal TagPanel TagBrowsePanel => NavigationPanelControl?.TagBrowsePanelControl; // Phase 2
+        // internal TagPanel TagEditPanel => NavigationPanelControl?.TagEditPanelControl; // Phase 2
         private StackPanel TagBottomButtons => NavigationPanelControl?.TagBottomButtonsControl;
         private StackPanel LibraryBottomButtons => NavigationPanelControl?.LibraryBottomButtonsControl;
         internal ContextMenu LibraryContextMenu => NavigationPanelControl?.LibraryContextMenuControl;
@@ -186,17 +156,17 @@ namespace OoiMRR
         StackPanel Services.Navigation.INavigationModeUIHelper.TagBottomButtons => TagBottomButtons;
         StackPanel Services.Navigation.INavigationModeUIHelper.LibraryBottomButtons => LibraryBottomButtons;
         Grid Services.Navigation.INavigationModeUIHelper.NavTagContent => NavTagContent;
-        TagTrain.UI.TagPanel Services.Navigation.INavigationModeUIHelper.TagBrowsePanel => TagBrowsePanel;
-        TagTrain.UI.TagPanel Services.Navigation.INavigationModeUIHelper.TagEditPanel => TagEditPanel;
+        // TagTrain.UI.TagPanel Services.Navigation.INavigationModeUIHelper.TagBrowsePanel => TagBrowsePanel; // Phase 2
+        // TagTrain.UI.TagPanel Services.Navigation.INavigationModeUIHelper.TagEditPanel => TagEditPanel; // Phase 2
         Controls.FileBrowserControl Services.Navigation.INavigationModeUIHelper.FileBrowser => FileBrowser;
         ListBox Services.Navigation.INavigationModeUIHelper.LibrariesListBox => LibrariesListBox;
         Controls.NavigationPanelControl Services.Navigation.INavigationModeUIHelper.NavigationPanelControl => NavigationPanelControl;
         System.Windows.Controls.Button Services.Navigation.INavigationModeUIHelper.NavPathButton => NavPathBtn;
         System.Windows.Controls.Button Services.Navigation.INavigationModeUIHelper.NavLibraryButton => NavLibraryBtn;
-        System.Windows.Controls.Button Services.Navigation.INavigationModeUIHelper.NavTagButton => NavTagBtn;
+        // System.Windows.Controls.Button Services.Navigation.INavigationModeUIHelper.NavTagButton => NavTagBtn; // Phase 2
 
         // INavigationModeUIHelper 方法实现
-        void Services.Navigation.INavigationModeUIHelper.InitializeTagTrainPanel() => InitializeTagTrainPanel();
+        // void Services.Navigation.INavigationModeUIHelper.InitializeTagTrainPanel() => InitializeTagTrainPanel(); // Phase 2
         void Services.Navigation.INavigationModeUIHelper.SwitchToTab(Services.Tabs.PathTab tab) => SwitchToTab(tab);
         void Services.Navigation.INavigationModeUIHelper.CreateTab(string path) => CreateTab(path);
         void Services.Navigation.INavigationModeUIHelper.HighlightMatchingLibrary(Library library) => HighlightMatchingLibrary(library);
@@ -346,6 +316,14 @@ namespace OoiMRR
 
         private void FileBrowser_ViewModeChanged(object sender, string mode)
         {
+            // 根据视图模式设置文件名显示方式
+            if (_fileListService != null)
+            {
+                // 缩略图模式：显示完整文件名（包括扩展名）
+                // 列表模式：不显示扩展名（有单独的“类型”列）
+                _fileListService.ShowFullFileName = (mode == "Thumbnail");
+            }
+
             if (_configService != null)
             {
                 _configService.Config.FileViewMode = mode;

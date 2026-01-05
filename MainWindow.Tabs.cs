@@ -24,7 +24,7 @@ namespace OoiMRR
         {
             _tabService?.CreatePathTab(path, forceNewTab);
         }
-        
+
         /// <summary>
         /// 在标签页中打开库
         /// </summary>
@@ -32,10 +32,10 @@ namespace OoiMRR
         {
             _tabService?.OpenLibraryTab(library, forceNewTab);
         }
-        
+
         private void OpenTagInTab(Tag tag, bool forceNewTab = false)
         {
-            _tabService?.OpenTagTab(tag, forceNewTab);
+            // _tabService?.OpenTagTab(tag, forceNewTab); // Phase 2
         }
 
         /// <summary>
@@ -51,27 +51,27 @@ namespace OoiMRR
             try
             {
                 if (string.IsNullOrEmpty(searchTabPath)) return;
-                
+
                 var keyword = searchTabPath.Substring("search://".Length);
                 if (string.IsNullOrEmpty(keyword)) return;
-                
+
                 var cacheKey = searchTabPath;
                 var cache = _searchCacheService.GetCache(cacheKey);
-                
+
                 if (cache == null || !_searchCacheService.IsCacheValid(cacheKey))
                 {
                     // 无缓存或缓存过期，触发刷新
                     await RefreshActiveSearchTab(keyword);
                     return;
                 }
-                
+
                 // 缓存有效则直接使用
                 _currentFiles = new List<FileSystemItem>(cache.Items);
-                
+
                 // 从缓存恢复时，如果结果项已有 SearchResultType，则构建分组显示
                 // 否则使用普通列表显示
                 var groupedItems = SearchResultGrouper.BuildGroupedFromCachedResults(_currentFiles);
-                
+
                 if (FileBrowser != null)
                 {
                     if (groupedItems != null && groupedItems.Count > 0)
@@ -98,9 +98,9 @@ namespace OoiMRR
             {
                 // 规范化关键词（确保使用规范化后的关键词）
                 var normalizedKeyword = SearchService.NormalizeKeyword(keyword);
-                
+
                 FileBrowser?.ShowEmptyState("正在刷新...");
-                
+
                 // 使用 SearchService 刷新搜索（重新执行完整搜索，包含备注搜索以支持分组显示）
                 var searchResult = await _searchService.PerformSearchAsync(
                     keyword: normalizedKeyword,
@@ -110,12 +110,12 @@ namespace OoiMRR
                     searchNotes: true,
                     getNotesFromDb: keywordParam => FileNotesService.SearchFilesByNotes(keywordParam)
                 );
-                
+
                 if (searchResult != null && searchResult.Items != null)
                 {
                     _currentFiles = searchResult.Items;
                     var groupedItems = searchResult.GroupedItems;
-                    
+
                     if (FileBrowser != null)
                     {
                         // 使用分组显示

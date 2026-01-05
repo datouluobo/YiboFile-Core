@@ -28,11 +28,11 @@ namespace OoiMRR
 
         private void UpdateNavigationButtonsState(string mode)
         {
-            if (NavPathBtn == null || NavLibraryBtn == null || NavTagBtn == null) return;
+            if (NavPathBtn == null || NavLibraryBtn == null) return; // NavTagBtn removed - Phase 2
 
             NavPathBtn.Tag = mode == "Path" ? "Selected" : null;
             NavLibraryBtn.Tag = mode == "Library" ? "Selected" : null;
-            NavTagBtn.Tag = mode == "Tag" ? "Selected" : null;
+            // NavTagBtn.Tag = mode == "Tag" ? "Selected" : null; // Phase 2
         }
 
         private void NavPathBtn_Click(object sender, RoutedEventArgs e)
@@ -50,15 +50,15 @@ namespace OoiMRR
         private void NavTagBtn_Click(object sender, RoutedEventArgs e)
         {
             CloseOverlays();
-            // 只有在 TagTrain 可用时才切换到标签模式
-            if (App.IsTagTrainAvailable)
-            {
-                SwitchNavigationMode("Tag");
-            }
-            else
-            {
-                MessageBox.Show("TagTrain 不可用，无法使用标签功能。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
+            // Tag模式已移除 - Phase 2将重新实现
+            // if (App.IsTagTrainAvailable)
+            // {
+            //     SwitchNavigationMode("Tag");
+            // }
+            // else
+            // {
+            //     MessageBox.Show("Tag功能将在v2.5版本推出，敬请期待！", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            // }
         }
 
         internal void RefreshFileList()
@@ -77,7 +77,7 @@ namespace OoiMRR
                 // 标签模式：使用TagTrain面板，如果有选中的标签，显示该标签的文件；否则清空文件列表
                 if (_currentTagFilter != null)
                 {
-                    FilterByTag(_currentTagFilter);
+                    // FilterByTag(_currentTagFilter); // Phase 2
                 }
                 else
                 {
@@ -325,7 +325,7 @@ namespace OoiMRR
                 {
                     items = await _fileListService.LoadFileSystemItemsAsync(
                         _currentPath,
-                        OrderTagNames,
+                        null, // OrderTagNames - Phase 2将重新实现
                         cts.Token);
                 }
                 catch (OperationCanceledException)

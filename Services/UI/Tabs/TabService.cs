@@ -216,12 +216,13 @@ namespace OoiMRR.Services.Tabs
                 case TabType.Library:
                     return _tabs.FirstOrDefault(t => t.Type == TabType.Library &&
                         (t.Library?.Name == identifier || t.Path == identifier));
-                case TabType.Tag:
-                    if (int.TryParse(identifier, out int tagId))
-                    {
-                        return _tabs.FirstOrDefault(t => t.Type == TabType.Tag && t.TagId == tagId);
-                    }
-                    return _tabs.FirstOrDefault(t => t.Type == TabType.Tag && t.TagName == identifier);
+                // Tag feature removed - Phase 2
+                // case TabType.Tag:
+                //     if (int.TryParse(identifier, out int tagId))
+                //     {
+                //         return _tabs.FirstOrDefault(t => t.Type == TabType.Tag && t.TagId == tagId);
+                //     }
+                //     return _tabs.FirstOrDefault(t => t.Type == TabType.Tag && t.TagName == identifier);
                 default:
                     return null;
             }
@@ -240,7 +241,9 @@ namespace OoiMRR.Services.Tabs
         /// </summary>
         public PathTab FindTabByTagId(int tagId)
         {
-            return _tabs.FirstOrDefault(t => t.Type == TabType.Tag && t.TagId == tagId);
+            // Tag feature removed - Phase 2
+            // return _tabs.FirstOrDefault(t => t.Type == TabType.Tag && t.TagId == tagId);
+            return null;
         }
 
         /// <summary>
@@ -411,8 +414,8 @@ namespace OoiMRR.Services.Tabs
                     return "path:" + (tab.Path ?? string.Empty);
                 case TabType.Library:
                     return "library:" + (tab.Library?.Id.ToString() ?? "");
-                case TabType.Tag:
-                    return "tag:" + tab.TagId.ToString();
+                // case TabType.Tag: // Phase 2
+                //     return "tag:" + tab.TagId.ToString();
                 default:
                     return "unknown:" + (tab.Title ?? "");
             }
@@ -826,65 +829,8 @@ namespace OoiMRR.Services.Tabs
             CreateTabInternal(newTab, activate);
         }
 
-        public void OpenTagTab(OoiMRR.Tag tag, bool forceNewTab = false, bool activate = true)
-        {
-            EnsureUi();
-            if (tag == null || string.IsNullOrWhiteSpace(tag.Name)) return;
-            // 1. 强制创建新标签页（中键/Ctrl+左键）
-            if (forceNewTab)
-            {
-                var tab = new PathTab
-                {
-                    Type = TabType.Tag,
-                    Path = $"tag://{tag.Id}",
-                    Title = tag.Name,
-                    TagId = tag.Id,
-                    TagName = tag.Name
-                };
-                CreateTabInternal(tab, activate);
-                return;
-            }
-
-            // 2. 优先查找：是否已存在该Tag的标签页
-            var window = TimeSpan.FromSeconds(_config?.ReuseTabTimeWindow ?? 10);
-            var recentTab = FindRecentTab(
-                t => t.Type == TabType.Tag && t.TagId == tag.Id,
-                window
-            );
-
-            if (recentTab != null)
-            {
-                // 找到了标签页，切换到它
-                if (activate) SwitchToTab(recentTab);
-                return;
-            }
-
-            // 3. 导航行为：在Tag模式下且当前是Tag标签页 → 更新当前标签页
-            var currentMode = _ui?.GetCurrentNavigationMode?.Invoke() ?? "Path";
-            if (currentMode == "Tag" && _activeTab != null && _activeTab.Type == TabType.Tag)
-            {
-                _activeTab.TagId = tag.Id;
-                _activeTab.TagName = tag.Name;
-                _activeTab.Path = $"tag://{tag.Id}";
-                _activeTab.Title = tag.Name;
-                if (_activeTab.TitleTextBlock != null) _activeTab.TitleTextBlock.Text = tag.Name;
-                if (_activeTab.TabButton != null) _activeTab.TabButton.ToolTip = tag.Name;
-                if (activate) SwitchToTab(_activeTab);
-                return;
-            }
-
-            // 4. 其他情况：创建新标签页
-            var newTab = new PathTab
-            {
-                Type = TabType.Tag,
-                Path = $"tag://{tag.Id}",
-                Title = tag.Name,
-                TagId = tag.Id,
-                TagName = tag.Name
-            };
-
-            CreateTabInternal(newTab, activate);
-        }
+        // OpenTagTab removed - Phase 2
+        // public void OpenTagTab(OoiMRR.Tag tag, bool forceNewTab = false, bool activate = true) { ... }
 
         public void SwitchToTab(PathTab tab)
         {
@@ -927,21 +873,8 @@ namespace OoiMRR.Services.Tabs
                 return;
             }
 
-            if (tab.Type == TabType.Tag)
-            {
-                _ui.SetCurrentLibrary?.Invoke(null);
-                _ui.SetCurrentPath?.Invoke(null);
-                _ui.SetCurrentTagFilter?.Invoke(new OoiMRR.Tag { Id = tab.TagId, Name = tab.TagName });
-                if (_ui.FileBrowser != null)
-                {
-                    _ui.FileBrowser.AddressText = "";
-                    _ui.FileBrowser.IsAddressReadOnly = false;  // 允许在 Tag 标签页中进行搜索
-                    _ui.FileBrowser.SetTagBreadcrumb(tab.TagName);
-                    _ui.FileBrowser.NavUpEnabled = false;
-                }
-                _ui.FilterByTag?.Invoke(new OoiMRR.Tag { Id = tab.TagId, Name = tab.TagName });
-                return;
-            }
+            // Tag tab logic removed - Phase 2
+            // if (tab.Type == TabType.Tag) { ... }
 
             _ui.SetCurrentLibrary?.Invoke(null);
 
@@ -1226,7 +1159,7 @@ namespace OoiMRR.Services.Tabs
                 return "📁";
             }
             else if (tab.Type == TabType.Library) return "📚";
-            else if (tab.Type == TabType.Tag) return "🏷️";
+            // else if (tab.Type == TabType.Tag) return "🏷️"; // Phase 2
 
             return "📁";
         }

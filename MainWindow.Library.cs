@@ -269,24 +269,8 @@ namespace OoiMRR
                         await semaphore.WaitAsync();
                         try
                         {
-                            // 从 TagTrain 获取文件的标签
-                            if (App.IsTagTrainAvailable)
-                            {
-                                var fileTagIds = OoiMRRIntegration.GetFileTagIds(item.Path);
-                                if (fileTagIds != null && fileTagIds.Count > 0)
-                                {
-                                    var fileTagNames = OrderTagNames(fileTagIds);
-                                    item.Tags = string.Join(", ", fileTagNames);
-                                }
-                                else
-                                {
-                                    item.Tags = "";
-                                }
-                            }
-                            else
-                            {
-                                item.Tags = "";
-                            }
+                            // Tag加载已移除 - Phase 2将重新实现
+                            item.Tags = "";
 
                             var notes = FileNotesService.GetFileNotes(item.Path);
                             if (notes != null && notes.Length > 0)

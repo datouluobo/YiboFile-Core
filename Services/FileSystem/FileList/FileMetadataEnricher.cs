@@ -91,19 +91,8 @@ namespace OoiMRR.Services.FileList
 
         private string BuildTags(string path, Func<List<int>, List<string>> orderTagNames)
         {
-            if (!App.IsTagTrainAvailable || string.IsNullOrWhiteSpace(path))
-            {
-                return string.Empty;
-            }
-
-            var tagIds = OoiMRRIntegration.GetFileTagIds(path);
-            if (tagIds == null || tagIds.Count == 0)
-            {
-                return string.Empty;
-            }
-
-            var ordered = orderTagNames?.Invoke(tagIds) ?? DefaultOrderTags(tagIds);
-            return string.Join(", ", ordered);
+            // Tag加载已移除 - Phase 2将重新实现
+            return string.Empty;
         }
 
         private string BuildNotes(string path)
@@ -121,14 +110,11 @@ namespace OoiMRR.Services.FileList
             return firstLine.Length > 100 ? firstLine[..100] + "..." : firstLine;
         }
 
-        private List<string> DefaultOrderTags(List<int> tagIds)
-        {
-            return tagIds
-                .Select(OoiMRRIntegration.GetTagName)
-                .Where(name => !string.IsNullOrWhiteSpace(name))
-                .OrderBy(name => name, StringComparer.CurrentCultureIgnoreCase)
-                .ToList();
-        }
+        // DefaultOrderTags 已移除 - Phase 2将重新实现
+        // private List<string> DefaultOrderTags(List<int> tagIds)
+        // {
+        //     return new List<string>();
+        // }
     }
 }
 

@@ -1,13 +1,35 @@
   姝ｅ湪纭畾瑕佽繕鍘熺殑椤圭洰鈥?
   鎵€鏈夐」鐩潎鏄渶鏂扮殑锛屾棤娉曡繕鍘熴€?
-f:\Download\GitHub\OoiMRR\Previews\DocumentPreview.cs(622,68): error CS0103: 褰撳墠涓婁笅鏂囦腑涓嶅瓨鍦ㄥ悕绉扳€渆x鈥?[f:\Download\GitHub\OoiMRR\OoiMRR_00b3wzcz_wpftmp.csproj]
-f:\Download\GitHub\OoiMRR\Services\Config\ConfigurationService.cs(36,40): warning CS0414: 瀛楁鈥淐onfigurationService._perfLogPath鈥濆凡琚祴鍊硷紝浣嗕粠鏈娇鐢ㄨ繃瀹冪殑鍊?[f:\Download\GitHub\OoiMRR\OoiMRR_00b3wzcz_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\Controls\NavigationPanelControl.xaml.cs(6,7): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淭agTrain鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [F:\Download\GitHub\OoiMRR\OoiMRR_kqrmaiwd_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\Handlers\TagUIHandlerContextImpl.cs(4,23): error CS0234: 鍛藉悕绌洪棿鈥淥oiMRR.Services鈥濅腑涓嶅瓨鍦ㄧ被鍨嬫垨鍛藉悕绌洪棿鍚嶁€淭ag鈥?鏄惁缂哄皯绋嬪簭闆嗗紩鐢?) [F:\Download\GitHub\OoiMRR\OoiMRR_kqrmaiwd_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\obj\Debug\net8.0-windows\win-x64\Controls\NavigationPanelControl.g.cs(34,7): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淭agTrain鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [F:\Download\GitHub\OoiMRR\OoiMRR_kqrmaiwd_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\obj\Debug\net8.0-windows\win-x64\MainWindow.g.cs(35,7): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淭agTrain鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [F:\Download\GitHub\OoiMRR\OoiMRR_kqrmaiwd_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\Handlers\FileListEventHandler.cs(30,38): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淭agTrain鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [F:\Download\GitHub\OoiMRR\OoiMRR_kqrmaiwd_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\Handlers\FileListEventHandler.cs(59,25): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淭agTrain鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [F:\Download\GitHub\OoiMRR\OoiMRR_kqrmaiwd_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\Handlers\SelectionEventHandler.cs(26,38): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淭agTrain鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [F:\Download\GitHub\OoiMRR\OoiMRR_kqrmaiwd_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\Handlers\SelectionEventHandler.cs(39,25): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淭agTrain鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [F:\Download\GitHub\OoiMRR\OoiMRR_kqrmaiwd_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\Handlers\TagUIHandlerContextImpl.cs(12,46): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淚TagUIHandlerContext鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [F:\Download\GitHub\OoiMRR\OoiMRR_kqrmaiwd_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\Controls\NavigationPanelControl.xaml.cs(146,16): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淭agPanel鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [F:\Download\GitHub\OoiMRR\OoiMRR_kqrmaiwd_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\Controls\NavigationPanelControl.xaml.cs(147,16): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淭agPanel鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [F:\Download\GitHub\OoiMRR\OoiMRR_kqrmaiwd_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\Controls\NavigationPanelControl.xaml(144,18): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淭agTrain鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [F:\Download\GitHub\OoiMRR\OoiMRR_kqrmaiwd_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\Controls\NavigationPanelControl.xaml(147,18): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淭agTrain鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [F:\Download\GitHub\OoiMRR\OoiMRR_kqrmaiwd_wpftmp.csproj]
 
 鐢熸垚澶辫触銆?
 
-f:\Download\GitHub\OoiMRR\Services\Config\ConfigurationService.cs(36,40): warning CS0414: 瀛楁鈥淐onfigurationService._perfLogPath鈥濆凡琚祴鍊硷紝浣嗕粠鏈娇鐢ㄨ繃瀹冪殑鍊?[f:\Download\GitHub\OoiMRR\OoiMRR_00b3wzcz_wpftmp.csproj]
-f:\Download\GitHub\OoiMRR\Previews\DocumentPreview.cs(622,68): error CS0103: 褰撳墠涓婁笅鏂囦腑涓嶅瓨鍦ㄥ悕绉扳€渆x鈥?[f:\Download\GitHub\OoiMRR\OoiMRR_00b3wzcz_wpftmp.csproj]
-    1 涓鍛?
-    1 涓敊璇?
+F:\Download\GitHub\OoiMRR\Controls\NavigationPanelControl.xaml.cs(6,7): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淭agTrain鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [F:\Download\GitHub\OoiMRR\OoiMRR_kqrmaiwd_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\Handlers\TagUIHandlerContextImpl.cs(4,23): error CS0234: 鍛藉悕绌洪棿鈥淥oiMRR.Services鈥濅腑涓嶅瓨鍦ㄧ被鍨嬫垨鍛藉悕绌洪棿鍚嶁€淭ag鈥?鏄惁缂哄皯绋嬪簭闆嗗紩鐢?) [F:\Download\GitHub\OoiMRR\OoiMRR_kqrmaiwd_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\obj\Debug\net8.0-windows\win-x64\Controls\NavigationPanelControl.g.cs(34,7): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淭agTrain鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [F:\Download\GitHub\OoiMRR\OoiMRR_kqrmaiwd_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\obj\Debug\net8.0-windows\win-x64\MainWindow.g.cs(35,7): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淭agTrain鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [F:\Download\GitHub\OoiMRR\OoiMRR_kqrmaiwd_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\Handlers\FileListEventHandler.cs(30,38): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淭agTrain鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [F:\Download\GitHub\OoiMRR\OoiMRR_kqrmaiwd_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\Handlers\FileListEventHandler.cs(59,25): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淭agTrain鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [F:\Download\GitHub\OoiMRR\OoiMRR_kqrmaiwd_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\Handlers\SelectionEventHandler.cs(26,38): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淭agTrain鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [F:\Download\GitHub\OoiMRR\OoiMRR_kqrmaiwd_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\Handlers\SelectionEventHandler.cs(39,25): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淭agTrain鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [F:\Download\GitHub\OoiMRR\OoiMRR_kqrmaiwd_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\Handlers\TagUIHandlerContextImpl.cs(12,46): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淚TagUIHandlerContext鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [F:\Download\GitHub\OoiMRR\OoiMRR_kqrmaiwd_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\Controls\NavigationPanelControl.xaml.cs(146,16): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淭agPanel鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [F:\Download\GitHub\OoiMRR\OoiMRR_kqrmaiwd_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\Controls\NavigationPanelControl.xaml.cs(147,16): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淭agPanel鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [F:\Download\GitHub\OoiMRR\OoiMRR_kqrmaiwd_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\Controls\NavigationPanelControl.xaml(144,18): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淭agTrain鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [F:\Download\GitHub\OoiMRR\OoiMRR_kqrmaiwd_wpftmp.csproj]
+F:\Download\GitHub\OoiMRR\Controls\NavigationPanelControl.xaml(147,18): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淭agTrain鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [F:\Download\GitHub\OoiMRR\OoiMRR_kqrmaiwd_wpftmp.csproj]
+    0 涓鍛?
+    13 涓敊璇?
 
-宸茬敤鏃堕棿 00:00:02.12
+宸茬敤鏃堕棿 00:00:02.02
