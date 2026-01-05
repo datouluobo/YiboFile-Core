@@ -28,11 +28,11 @@ namespace OoiMRR
 
         private void UpdateNavigationButtonsState(string mode)
         {
-            if (NavPathBtn == null || NavLibraryBtn == null) return; // NavTagBtn removed - Phase 2
+            if (NavPathBtn == null || NavLibraryBtn == null) return;
 
             NavPathBtn.Tag = mode == "Path" ? "Selected" : null;
             NavLibraryBtn.Tag = mode == "Library" ? "Selected" : null;
-            // NavTagBtn.Tag = mode == "Tag" ? "Selected" : null; // Phase 2
+
         }
 
         private void NavPathBtn_Click(object sender, RoutedEventArgs e)
@@ -47,19 +47,7 @@ namespace OoiMRR
             SwitchNavigationMode("Library");
         }
 
-        private void NavTagBtn_Click(object sender, RoutedEventArgs e)
-        {
-            CloseOverlays();
-            // Tag模式已移除 - Phase 2将重新实现
-            // if (App.IsTagTrainAvailable)
-            // {
-            //     SwitchNavigationMode("Tag");
-            // }
-            // else
-            // {
-            //     MessageBox.Show("Tag功能将在v2.5版本推出，敬请期待！", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-            // }
-        }
+
 
         internal void RefreshFileList()
         {
@@ -72,25 +60,10 @@ namespace OoiMRR
             }
 
             // 根据当前导航模式刷新文件列表
-            if (NavTagContent != null && NavTagContent.Visibility == Visibility.Visible)
-            {
-                // 标签模式：使用TagTrain面板，如果有选中的标签，显示该标签的文件；否则清空文件列表
-                if (_currentTagFilter != null)
-                {
-                    // FilterByTag(_currentTagFilter); // Phase 2
-                }
-                else
-                {
-                    // 没有选中标签，清空文件列表
-                    _currentFiles.Clear();
-                    if (FileBrowser != null)
-                    {
-                        FileBrowser.FilesItemsSource = null;
-                    }
-                    HideEmptyStateMessage();
-                }
-            }
-            else if (_currentLibrary != null)
+            // 标签模式逻辑已移除
+
+            // 检查是否在库模式
+            if (_currentLibrary != null)
             {
                 // 库模式：刷新库文件
                 LoadLibraryFiles(_currentLibrary);

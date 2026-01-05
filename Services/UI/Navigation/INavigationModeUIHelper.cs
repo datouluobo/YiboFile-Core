@@ -1,7 +1,7 @@
 using System;
 using System.Windows;
 using System.Windows.Controls;
-// using TagTrain.UI; // Phase 2将重新实现
+
 
 namespace OoiMRR.Services.Navigation
 {
@@ -26,12 +26,12 @@ namespace OoiMRR.Services.Navigation
         /// </summary>
         string CurrentPath { get; set; }
 
-        // TagClickMode TagClickMode { get; set; } // Phase 2将重新实现
+
 
         /// <summary>
         /// 获取标签底部按钮面板
         /// </summary>
-        StackPanel TagBottomButtons { get; }
+
 
         /// <summary>
         /// 获取库底部按钮面板
@@ -41,11 +41,9 @@ namespace OoiMRR.Services.Navigation
         /// <summary>
         /// 获取标签导航内容区域
         /// </summary>
-        Grid NavTagContent { get; }
 
-        // TagPanel TagBrowsePanel { get; } // Phase 2将重新实现
 
-        // TagPanel TagEditPanel { get; } // Phase 2将重新实现
+
 
         /// <summary>
         /// 获取文件浏览器控件
@@ -57,7 +55,7 @@ namespace OoiMRR.Services.Navigation
         /// </summary>
         ListBox LibrariesListBox { get; }
 
-        // void InitializeTagTrainPanel(); // Phase 2将重新实现
+
 
         /// <summary>
         /// 切换到指定标签页
@@ -122,14 +120,12 @@ namespace OoiMRR.Services.Navigation
         /// <summary>
         /// 获取标签导航按钮
         /// </summary>
-        // System.Windows.Controls.Button NavTagButton { get; } // Phase 2
+
+        //     Browse,
+        //     Edit
+        // }
     }
 
-    // TagClickMode enum - Phase 2将重新实现
-    // public enum TagClickMode
-    // {
-    //     Browse,
-    //     Edit
-    // }
+
 }
 

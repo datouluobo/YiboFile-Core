@@ -33,10 +33,7 @@ namespace OoiMRR
             _tabService?.OpenLibraryTab(library, forceNewTab);
         }
 
-        private void OpenTagInTab(Tag tag, bool forceNewTab = false)
-        {
-            // _tabService?.OpenTagTab(tag, forceNewTab); // Phase 2
-        }
+
 
         /// <summary>
         /// 切换到指定标签页（统一处理库和路径）

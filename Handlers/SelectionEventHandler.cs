@@ -8,7 +8,7 @@ using OoiMRR.Models.UI;
 using OoiMRR.Services;
 using OoiMRR.Services.FileNotes; // Corrected namespace
 using OoiMRR.Services.FileOperations;
-// using OoiMRR.Services.TagTrain; // Phase 2
+
 
 namespace OoiMRR.Handlers
 {
@@ -20,10 +20,10 @@ namespace OoiMRR.Handlers
         private readonly MainWindow _mainWindow;
         private readonly OoiMRR.Services.Preview.PreviewService _filePreviewService;
         private readonly FileNotesUIHandler _fileNotesUIHandler;
-        // private readonly TagTrainEventHandler _tagTrainEventHandler; // Phase 2
+
         private readonly Action<FileSystemItem> _updateFileInfoPanel;
         private readonly Action _clearPreviewAndInfo;
-        private readonly Action<object> _renderPredictionResults; // Phase 2: was List<TagTrain.Services.TagPredictionResult>
+
         private readonly OoiMRR.Services.FileList.FileListService _fileListService;
         private readonly Func<List<FileSystemItem>> _getCurrentFiles;
         private readonly Func<string> _getCurrentPath;
@@ -33,10 +33,10 @@ namespace OoiMRR.Handlers
             MainWindow mainWindow,
             OoiMRR.Services.Preview.PreviewService filePreviewService,
             FileNotesUIHandler fileNotesUIHandler,
-            object tagTrainEventHandler, // Phase 2参数，暂时改为object避免编译错误
+
             Action<FileSystemItem> updateFileInfoPanel,
             Action clearPreviewAndInfo,
-            Action<object> renderPredictionResults, // Phase 2: was List<TagTrain.Services.TagPredictionResult>
+
             OoiMRR.Services.FileList.FileListService fileListService,
             Func<List<FileSystemItem>> getCurrentFiles,
             Func<string> getCurrentPath)
@@ -44,10 +44,10 @@ namespace OoiMRR.Handlers
             _mainWindow = mainWindow ?? throw new ArgumentNullException(nameof(mainWindow));
             _filePreviewService = filePreviewService ?? throw new ArgumentNullException(nameof(filePreviewService));
             _fileNotesUIHandler = fileNotesUIHandler ?? throw new ArgumentNullException(nameof(fileNotesUIHandler));
-            // _tagTrainEventHandler = tagTrainEventHandler; // Phase 2
+
             _updateFileInfoPanel = updateFileInfoPanel ?? throw new ArgumentNullException(nameof(updateFileInfoPanel));
             _clearPreviewAndInfo = clearPreviewAndInfo ?? throw new ArgumentNullException(nameof(clearPreviewAndInfo));
-            _renderPredictionResults = renderPredictionResults ?? throw new ArgumentNullException(nameof(renderPredictionResults));
+
             _fileListService = fileListService ?? throw new ArgumentNullException(nameof(_fileListService));
             _getCurrentFiles = getCurrentFiles ?? throw new ArgumentNullException(nameof(getCurrentFiles));
             _getCurrentPath = getCurrentPath ?? throw new ArgumentNullException(nameof(getCurrentPath));
@@ -86,10 +86,7 @@ namespace OoiMRR.Handlers
                     }
                     catch { }
 
-                    // AI标签预测已移除 - Phase 2将重新实现
-                    // bool isTagNavMode = _mainWindow.NavTagContent != null && _mainWindow.NavTagContent.Visibility == Visibility.Visible;
-                    // bool isTagEditMode = _tagTrainEventHandler != null && _tagTrainEventHandler.CurrentMode == TagTrainEventHandler.TagClickMode.Edit;
-                    // ...
+
 
                     // 7. 文件夹大小计算
                     if (selectedItem.IsDirectory)
@@ -117,7 +114,7 @@ namespace OoiMRR.Handlers
             // 清除预览区
             _filePreviewService?.ClearPreview();
             // 清除预测结果
-            _renderPredictionResults(null); // Phase 2: was new List<TagTrain.Services.TagPredictionResult>()
+
             // 清除备注
             try { _fileNotesUIHandler?.LoadFileNotes(null); } catch { }
 

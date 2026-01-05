@@ -17,7 +17,7 @@ using OoiMRR.Services.Tabs;
 using OoiMRR.Services.Preview;
 using OoiMRR.Services.ColumnManagement;
 using OoiMRR.Services.Config;
-// using OoiMRR.Services.Tag; // Phase 2将重新实现
+
 using OoiMRR.Helpers;
 using OoiMRR.Handlers;
 using OoiMRR.Models.UI;
@@ -80,8 +80,8 @@ namespace OoiMRR
             _searchCacheService = new SearchCacheService();
             var searchResultBuilder = new SearchResultBuilder(
                 formatFileSize: size => _fileListService.FormatFileSize(size),
-                getFileTagIds: path => null, // Phase 2将重新实现
-                getTagName: tagId => null, // Phase 2将重新实现
+                getFileTagIds: path => null,
+                getTagName: tagId => null,
                 getFileNotes: path => FileNotesService.GetFileNotes(path)
             );
             _searchService = new SearchService(searchFilterService, _searchCacheService, searchResultBuilder);
@@ -294,9 +294,10 @@ namespace OoiMRR
             {
                 OpenLibraryInTab(library, forceNewTab);
             };
+            // Phase 2: Tag Navigation
             _navigationCoordinator.TagNavigateRequested += (tag, forceNewTab) =>
             {
-                OpenTagInTab(tag, forceNewTab);
+                // OpenTagInTab(tag, forceNewTab);
             };
             _navigationCoordinator.FileOpenRequested += (filePath) =>
             {

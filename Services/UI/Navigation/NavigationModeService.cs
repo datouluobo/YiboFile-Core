@@ -6,7 +6,7 @@ using System.Windows.Controls;
 using OoiMRR.Services.Tabs;
 using OoiMRR.Services.Config;
 using OoiMRR.Services.Navigation;
-// using TagTrain.UI; // Phase 2将重新实现
+
 
 namespace OoiMRR.Services.Navigation
 {
@@ -76,9 +76,7 @@ namespace OoiMRR.Services.Navigation
                 case "Library":
                     HandleLibraryMode(skipRefresh);
                     break;
-                    // case "Tag": // Phase 2将重新实现
-                    //     HandleTagMode(skipRefresh);
-                    //     break;
+
             }
 
             // 保存当前模式
@@ -126,11 +124,7 @@ namespace OoiMRR.Services.Navigation
                 {
                     _uiHelper.NavLibraryButton.Style = normalStyle;
                 }
-                // NavTagButton removed - Phase 2
-                // if (_uiHelper.NavTagButton != null && normalStyle != null)
-                // {
-                //     _uiHelper.NavTagButton.Style = normalStyle;
-                // }
+
 
                 // 设置当前模式的按钮为橙色样式
                 switch (activeMode)
@@ -147,12 +141,7 @@ namespace OoiMRR.Services.Navigation
                             _uiHelper.NavLibraryButton.Style = activeStyle;
                         }
                         break;
-                        // case "Tag": // Phase 2将重新实现
-                        //     if (_uiHelper.NavTagButton != null && activeStyle != null)
-                        //     {
-                        //         _uiHelper.NavTagButton.Style = activeStyle;
-                        //     }
-                        //     break;
+
                 }
             }), System.Windows.Threading.DispatcherPriority.Normal);
         }
@@ -164,10 +153,7 @@ namespace OoiMRR.Services.Navigation
         private void HandlePathMode(bool skipRefresh = false)
         {
             // 隐藏标签页面底部按钮
-            if (_uiHelper.TagBottomButtons != null)
-            {
-                _uiHelper.TagBottomButtons.Visibility = Visibility.Collapsed;
-            }
+            // Tag Bottom Buttons hidden - Phase 2
 
             // 隐藏库管理按钮
             if (_uiHelper.LibraryBottomButtons != null)
@@ -228,10 +214,7 @@ namespace OoiMRR.Services.Navigation
         private void HandleLibraryMode(bool skipRefresh = false)
         {
             // 隐藏标签页面底部按钮
-            if (_uiHelper.TagBottomButtons != null)
-            {
-                _uiHelper.TagBottomButtons.Visibility = Visibility.Collapsed;
-            }
+            // Tag Bottom Buttons hidden - Phase 2
 
             // 显示库管理按钮
             if (_uiHelper.LibraryBottomButtons != null)

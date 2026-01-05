@@ -27,7 +27,7 @@ namespace OoiMRR.Services.Abstractions
         /// <summary>
         /// Filter files by tag.
         /// </summary>
-            // void FilterByTag(global::OoiMRR.Tag tag); // Phase 2
+
     }
 
     /// <summary>

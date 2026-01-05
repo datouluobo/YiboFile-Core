@@ -95,10 +95,8 @@ namespace OoiMRR
                 this,
                 _previewService, // Was _filePreviewService, but InitializeServices uses _previewService
                 _fileNotesUIHandler,
-                null, // _tagTrainEventHandler - Phase 2
                 item => _fileInfoService?.ShowFileInfo(item), // Was UpdateFileInfoPanel(item)
                 () => ClearPreviewAndInfo(),
-                results => { }, // RenderPredictionResults removed - Phase 2
                 _fileListService,
                 () => _currentFiles,
                 () => _currentPath
@@ -157,7 +155,7 @@ namespace OoiMRR
                     }
                 },
                 EditNotes_Click_Logic, // Action editNotes
-                BatchAddTags_Click_Logic, // Action batchAddTags
+                () => { }, // BatchAddTags_Click_Logic - Phase 2
                 () => { }, // showTagStatistics - Phase 2
                 ImportLibrary_Click_Logic, // importLibrary
                 ExportLibrary_Click_Logic, // exportLibrary
@@ -927,22 +925,14 @@ namespace OoiMRR
                 ClearPreviewAndInfo();
             }
 
-            // 2. Update Tag Selection
-            if (!_isUpdatingTagSelection && App.IsTagTrainAvailable)
-            {
-                // _tagUIHandler?.UpdateTagSelectionState(FileBrowser?.FilesSelectedItems?.Cast<FileSystemItem>().ToList()); // Phase 2
-            }
+
+
         }
 
         // Helpers for MenuEventHandler
         private void EditNotes_Click_Logic() => _fileNotesUIHandler?.ToggleNotesPanel();
 
-        private void BatchAddTags_Click_Logic()
-        {
-            // Phase 2将重新实现
-            // if (!App.IsTagTrainAvailable) return;
-            // _tagUIHandler?.ShowBatchTaggingDialog(_currentFiles);
-        }
+
 
 
 

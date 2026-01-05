@@ -82,7 +82,7 @@ namespace OoiMRR.Controls
                 "FileList" => new Settings.FileListSettingsPanel(),
                 "Path" => new Settings.PathSettingsPanel(),
                 "Library" => new Settings.LibrarySettingsPanel(),
-                "Tag" => new Settings.TagSettingsPanel(),
+                "Tag" => new Settings.GeneralSettingsPanel(), // Placeholder for Phase 2
                 // "TagTrain" => new Settings.TagTrainSettingsPanel(), // Phase 2
                 "TagTrain" => new Settings.GeneralSettingsPanel(), // Placeholder
                 "Hotkeys" => new Settings.HotkeySettingsPanel(),

@@ -403,9 +403,7 @@ namespace OoiMRR.Services
                             case TabType.Library:
                                 _config.LastNavigationMode = "Library";
                                 break;
-                            // case TabType.Tag: // Phase 2
-                            //     _config.LastNavigationMode = "Tag";
-                            //     break;
+
                             default:
                                 _config.LastNavigationMode = "Path";
                                 break;
@@ -506,8 +504,7 @@ namespace OoiMRR.Services
                     return "path:" + (tab.Path ?? string.Empty);
                 case TabType.Library:
                     return "library:" + (tab.Library?.Id.ToString() ?? "");
-                // case TabType.Tag: // Phase 2
-                //     return "tag:" + tab.TagId.ToString();
+
                 default:
                     return "unknown:" + (tab.Title ?? "");
             }

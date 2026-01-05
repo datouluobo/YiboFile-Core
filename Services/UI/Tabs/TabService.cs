@@ -1154,12 +1154,12 @@ namespace OoiMRR.Services.Tabs
                 {
                     if (tab.Path.StartsWith("search://")) return "🔍";
                     if (tab.Path.StartsWith("lib://")) return "📚";
-                    if (tab.Path.StartsWith("tag://")) return "🏷️";
+
                 }
                 return "📁";
             }
             else if (tab.Type == TabType.Library) return "📚";
-            // else if (tab.Type == TabType.Tag) return "🏷️"; // Phase 2
+
 
             return "📁";
         }

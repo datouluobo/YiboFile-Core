@@ -10,7 +10,7 @@ using System.Windows.Media;
 using OoiMRR.Controls;
 using OoiMRR.Services;
 using OoiMRR.Services.Navigation;
-// using TagTrain.UI; // Phase 2
+
 
 namespace OoiMRR.Handlers
 {
@@ -27,7 +27,7 @@ namespace OoiMRR.Handlers
         private readonly Action<FileSystemItem> _loadFileNotes;
         private readonly Action<string> _calculateFolderSizeImmediately;
         private readonly Action _clearPreviewAndInfo;
-        private readonly Action<object> _renderPredictionResults; // Phase 2: was List<TagTrain.Services.TagPredictionResult>
+
         private readonly Func<bool> _isLibraryMode;
         private readonly Action<string> _switchNavigationMode;
         private readonly Action<string> _navigateToPath;
@@ -41,8 +41,7 @@ namespace OoiMRR.Handlers
         private readonly Action _renameClick;
         private readonly Action _refreshClick;
         private readonly Action _showPropertiesClick;
-        private readonly Func<object, object> _getTagEditPanel;
-        private readonly Func<object, object> _getNavTagContent;
+
 
         private System.Windows.Point _mouseDownPoint;
         private bool _isMouseDownOnListView = false;
@@ -56,7 +55,7 @@ namespace OoiMRR.Handlers
             Action<FileSystemItem> loadFileNotes,
             Action<string> calculateFolderSizeImmediately,
             Action clearPreviewAndInfo,
-            Action<object> renderPredictionResults, // Phase 2: was List<TagTrain.Services.TagPredictionResult>
+
             Func<bool> isLibraryMode,
             Action<string> switchNavigationMode,
             Action<string> navigateToPath,
@@ -69,9 +68,8 @@ namespace OoiMRR.Handlers
             Action deleteClick,
             Action renameClick,
             Action refreshClick,
-            Action showPropertiesClick,
-            Func<object, object> getTagEditPanel,
-            Func<object, object> getNavTagContent)
+            Action showPropertiesClick)
+
         {
             _fileBrowser = fileBrowser ?? throw new ArgumentNullException(nameof(fileBrowser));
             _navigationCoordinator = navigationCoordinator ?? throw new ArgumentNullException(nameof(navigationCoordinator));
@@ -80,7 +78,7 @@ namespace OoiMRR.Handlers
             _loadFileNotes = loadFileNotes ?? throw new ArgumentNullException(nameof(loadFileNotes));
             _calculateFolderSizeImmediately = calculateFolderSizeImmediately ?? throw new ArgumentNullException(nameof(calculateFolderSizeImmediately));
             _clearPreviewAndInfo = clearPreviewAndInfo ?? throw new ArgumentNullException(nameof(clearPreviewAndInfo));
-            _renderPredictionResults = renderPredictionResults ?? throw new ArgumentNullException(nameof(renderPredictionResults));
+
             _isLibraryMode = isLibraryMode ?? throw new ArgumentNullException(nameof(isLibraryMode));
             _switchNavigationMode = switchNavigationMode ?? throw new ArgumentNullException(nameof(switchNavigationMode));
             _navigateToPath = navigateToPath ?? throw new ArgumentNullException(nameof(navigateToPath));
@@ -94,8 +92,7 @@ namespace OoiMRR.Handlers
             _renameClick = renameClick ?? throw new ArgumentNullException(nameof(renameClick));
             _refreshClick = refreshClick ?? throw new ArgumentNullException(nameof(refreshClick));
             _showPropertiesClick = showPropertiesClick ?? throw new ArgumentNullException(nameof(showPropertiesClick));
-            _getTagEditPanel = getTagEditPanel;
-            _getNavTagContent = getNavTagContent;
+
         }
 
         /// <summary>

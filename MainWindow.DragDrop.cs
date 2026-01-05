@@ -33,8 +33,7 @@ namespace OoiMRR
                     {
                         if (_currentLibrary != null)
                             LoadLibraryFiles(_currentLibrary);
-                        // else if (_currentTagFilter != null)
-                        //     FilterByTag(_currentTagFilter); // Phase 2
+
                         // else
                         //     LoadCurrentDirectory();
                     }
@@ -45,7 +44,7 @@ namespace OoiMRR
                 {
                     // Return current path for background drops
                     // Only valid if not in Library or Tag mode (unless we support dropping into Library roots?)
-                    if (_currentLibrary == null && _currentTagFilter == null)
+                    if (_currentLibrary == null)
                     {
                         return _currentPath;
                     }
