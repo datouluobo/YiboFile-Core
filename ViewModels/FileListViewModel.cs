@@ -13,6 +13,7 @@ using OoiMRR.Controls;
 using OoiMRR.Services;
 using OoiMRR.Services.ColumnManagement;
 using OoiMRR.Services.FileList;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace OoiMRR.ViewModels
 {
@@ -80,7 +81,10 @@ namespace OoiMRR.ViewModels
             _fileBrowser = fileBrowser ?? throw new ArgumentNullException(nameof(fileBrowser));
             _ownerWindow = ownerWindow ?? throw new ArgumentNullException(nameof(ownerWindow));
             _dispatcher = ownerWindow.Dispatcher;
-            _fileListService = new FileListService(_dispatcher);
+
+            var errorService = App.ServiceProvider.GetRequiredService<OoiMRR.Services.Core.Error.ErrorService>();
+            _fileListService = new FileListService(_dispatcher, errorService);
+
             _columnService = columnService;
             _metadataEnricher = metadataEnricher ?? new FileMetadataEnricher();
             _folderSizeCalculator = folderSizeCalculator ?? new FolderSizeCalculator();

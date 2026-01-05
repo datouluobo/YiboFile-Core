@@ -31,18 +31,8 @@ namespace OoiMRR
         /// </summary>
         internal void LoadLibraryFiles(Library library)
         {
-            // 使用信号量防止重复加载
-            // 等待200ms以允许上一个加载任务完成，避免标签页切换时文件列表为空
-            if (!_loadFilesSemaphore.Wait(200))
-            {
-                return;
-            }
-
             try
             {
-                // 设置加载标志
-                _isLoadingFiles = true;
-
                 _currentFiles.Clear();
                 _currentPath = null; // 标记当前在库模式下
                 if (FileBrowser != null) FileBrowser.NavUpEnabled = false;
@@ -54,9 +44,6 @@ namespace OoiMRR
             }
             catch (Exception ex)
             {
-                // 确保释放锁
-                _isLoadingFiles = false;
-                _loadFilesSemaphore.Release();
                 MessageBox.Show($"加载库文件失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }

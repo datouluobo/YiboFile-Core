@@ -14,6 +14,7 @@ namespace OoiMRR.Services.Config
 
         private AppConfig _config;
         private IConfigUIHelper _uiHelper;
+        private readonly OoiMRR.Services.Core.Error.ErrorService _errorService;
         private bool _isApplyingConfig = false;
         private DispatcherTimer _saveTimer;
         private DispatcherTimer _columnWidthSaveTimer;
@@ -71,10 +72,13 @@ namespace OoiMRR.Services.Config
         /// <summary>
         /// 初始化配置服务
         /// </summary>
-        public ConfigService(AppConfig config, IConfigUIHelper uiHelper)
+        /// <summary>
+        /// 初始化配置服务
+        /// </summary>
+        public ConfigService(AppConfig config, OoiMRR.Services.Core.Error.ErrorService errorService)
         {
             _config = config ?? throw new ArgumentNullException(nameof(config));
-            _uiHelper = uiHelper ?? throw new ArgumentNullException(nameof(uiHelper));
+            _errorService = errorService ?? throw new ArgumentNullException(nameof(errorService));
         }
 
         #endregion
@@ -129,9 +133,7 @@ namespace OoiMRR.Services.Config
             }
             catch (Exception ex)
             {
-                // #region agent log
-                try { var logPath2 = @"f:\Download\GitHub\OoiMRR\.cursor\debug.log"; System.IO.File.AppendAllText(logPath2, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "E", location = "ConfigService.cs:158", message = "ApplyConfig异常", data = new { error = ex.Message, stackTrace = ex.StackTrace }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
-                // #endregion
+                _errorService.ReportError("应用配置失败", OoiMRR.Services.Core.Error.ErrorSeverity.Error, ex);
             }
             finally
             {
@@ -198,7 +200,10 @@ namespace OoiMRR.Services.Config
                 ConfigManager.Save(_config);
                 ConfigSaved?.Invoke(this, _config);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                _errorService.ReportError("保存配置失败", OoiMRR.Services.Core.Error.ErrorSeverity.Warning, ex);
+            }
         }
 
         /// <summary>

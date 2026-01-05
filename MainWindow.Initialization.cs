@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using Microsoft.Extensions.DependencyInjection;
 using OoiMRR.Services;
 using OoiMRR.Services.FileNotes;
 using OoiMRR.Services.Search;
@@ -60,31 +61,32 @@ namespace OoiMRR
             var uiHelper = new NavigationUIHelper(this);
             _navigationService.UIHelper = uiHelper;
 
-            _libraryService = new LibraryService(this.Dispatcher);
-            _favoriteService = new FavoriteService(this.Dispatcher);
-            _quickAccessService = new QuickAccessService(this.Dispatcher);
-            _fileListService = new FileListService(this.Dispatcher);
+            _libraryService = App.ServiceProvider.GetRequiredService<LibraryService>();
+            _favoriteService = App.ServiceProvider.GetRequiredService<FavoriteService>();
+            _quickAccessService = App.ServiceProvider.GetRequiredService<QuickAccessService>();
+            _fileListService = App.ServiceProvider.GetRequiredService<FileListService>();
 
             // 将 FileListService 传递给 FileListControl
             FileBrowser?.FileList?.SetFileListService(_fileListService);
 
-            _fileSystemWatcherService = new FileSystemWatcherService(this.Dispatcher);
-            _folderSizeCalculationService = new FolderSizeCalculationService();
+            _fileSystemWatcherService = App.ServiceProvider.GetRequiredService<FileSystemWatcherService>();
+            _folderSizeCalculationService = App.ServiceProvider.GetRequiredService<FolderSizeCalculationService>();
 
             // 初始化标签页服务（需要配置，在加载配置后更新）
             // 注意：_config 将在 InitializeApplication 中加载，这里先创建空配置
             _tabService = new TabService(new AppConfig());
 
             // 初始化搜索服务
-            var searchFilterService = new SearchFilterService();
-            _searchCacheService = new SearchCacheService();
-            var searchResultBuilder = new SearchResultBuilder(
-                formatFileSize: size => _fileListService.FormatFileSize(size),
-                getFileTagIds: path => null,
-                getTagName: tagId => null,
-                getFileNotes: path => FileNotesService.GetFileNotes(path)
-            );
-            _searchService = new SearchService(searchFilterService, _searchCacheService, searchResultBuilder);
+            // 注意：SearchResultBuilder 已在 DI 中注册但需要 FileListService 的依赖，这里通过 DI 获取 SearchService
+            // 虽然 SearchResultBuilder 是 Transient 的，但 SearchService 是 Transient (or Singleton? App.xaml.cs says Transient)，
+            // 且 SearchService 依赖 SearchFilterService (Singleton) 和 SearchCacheService (Singleton) 和 SearchResultBuilder (Transient)
+            // 我们在 App.xaml.cs 中已经注册了 SearchService 及其依赖
+            _searchCacheService = App.ServiceProvider.GetRequiredService<SearchCacheService>();
+            _searchService = App.ServiceProvider.GetRequiredService<SearchService>();
+
+            // 保存 ConfigService 引用并注入 UIHelper
+            _configService = App.ServiceProvider.GetRequiredService<ConfigService>();
+            _configService.UIHelper = this;
 
             // 初始化列管理服务
             // 注意：_config 将在 InitializeApplication 中加载，这里先创建空配置
@@ -119,6 +121,31 @@ namespace OoiMRR
                 LoadCurrentDirectory,
                 path => CreateTab(path, true)
             );
+
+            // 订阅全局错误事件
+            var errorService = App.ServiceProvider.GetRequiredService<OoiMRR.Services.Core.Error.ErrorService>();
+            errorService.ErrorOccurred += (s, e) =>
+            {
+                // 确保在UI线程执行
+                this.Dispatcher.Invoke(() =>
+                {
+                    if (e.Severity == OoiMRR.Services.Core.Error.ErrorSeverity.Critical)
+                    {
+                        MessageBox.Show(this, e.Message, "严重错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                    else
+                    {
+                        var notificationType = e.Severity switch
+                        {
+                            OoiMRR.Services.Core.Error.ErrorSeverity.Warning => OoiMRR.Controls.NotificationType.Warning,
+                            OoiMRR.Services.Core.Error.ErrorSeverity.Error => OoiMRR.Controls.NotificationType.Error,
+                            _ => OoiMRR.Controls.NotificationType.Info
+                        };
+
+                        Services.Core.NotificationService.Show(e.Message, notificationType);
+                    }
+                });
+            };
         }
 
         private void InitializeEvents()
@@ -207,8 +234,6 @@ namespace OoiMRR
 
             _libraryService.LibraryFilesLoaded += (s, e) =>
             {
-                _isLoadingFiles = false;
-                _loadFilesSemaphore.Release();
 
                 if (e.IsEmpty)
                 {

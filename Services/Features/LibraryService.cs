@@ -50,10 +50,10 @@ namespace OoiMRR.Services
 
         #region 构造函数
 
-        public LibraryService(Dispatcher dispatcher = null)
+        public LibraryService(Dispatcher dispatcher, OoiMRR.Services.Core.Error.ErrorService errorService)
         {
             _dispatcher = dispatcher ?? Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
-            _fileListService = new FileListService(_dispatcher);
+            _fileListService = new FileListService(_dispatcher, errorService);
         }
 
         #endregion

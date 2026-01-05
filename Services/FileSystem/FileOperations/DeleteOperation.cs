@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using OoiMRR.Services.FileOperations.Undo;
 
 namespace OoiMRR.Services.FileOperations
 {
@@ -12,10 +13,12 @@ namespace OoiMRR.Services.FileOperations
     public class DeleteOperation
     {
         private readonly IFileOperationContext _context;
+        private readonly UndoService _undoService;
 
-        public DeleteOperation(IFileOperationContext context)
+        public DeleteOperation(IFileOperationContext context, UndoService undoService = null)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
+            _undoService = undoService;
         }
 
         /// <summary>
@@ -55,6 +58,7 @@ namespace OoiMRR.Services.FileOperations
             }
 
             var failedItems = new List<string>();
+            var undoActions = new List<DeleteUndoAction>();
 
             // 在后台线程中执行删除操作，避免阻塞UI
             await Task.Run(() =>
@@ -63,13 +67,36 @@ namespace OoiMRR.Services.FileOperations
                 {
                     try
                     {
-                        if (item.IsDirectory)
+                        if (_undoService != null)
                         {
-                            Directory.Delete(item.Path, true);
+                            // 使用可撤销删除（移动到备份目录）
+                            var undoAction = new DeleteUndoAction(item.Path, item.IsDirectory);
+                            if (undoAction.Execute())
+                            {
+                                lock (undoActions)
+                                {
+                                    undoActions.Add(undoAction);
+                                }
+                            }
+                            else
+                            {
+                                lock (failedItems)
+                                {
+                                    failedItems.Add($"{item.Name}: 移动到备份目录失败");
+                                }
+                            }
                         }
                         else
                         {
-                            File.Delete(item.Path);
+                            // 直接删除（不可撤销）
+                            if (item.IsDirectory)
+                            {
+                                Directory.Delete(item.Path, true);
+                            }
+                            else
+                            {
+                                File.Delete(item.Path);
+                            }
                         }
                     }
                     catch (Exception ex)
@@ -82,11 +109,16 @@ namespace OoiMRR.Services.FileOperations
                 }
             });
 
-            // 刷新操作需要在UI线程上（通过ConfigureAwait确保）
-            // 注意：_context.RefreshAfterOperation() 内部应该使用 Dispatcher
+            // 记录撤销操作
+            foreach (var action in undoActions)
+            {
+                _undoService?.RecordAction(action);
+            }
+
+            // 刷新
             _context.RefreshAfterOperation();
 
-            // 错误消息也需要在UI线程上显示
+            // 错误消息
             if (failedItems.Count > 0)
             {
                 _context.ShowMessage(

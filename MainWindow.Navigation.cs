@@ -273,20 +273,10 @@ namespace OoiMRR
         /// </summary>
         private async Task LoadFilesAsync()
         {
-            // 使用信号量防止重复加载
-            // 等待200ms以允许上一个加载任务完成，避免标签页切换时文件列表为空
-            if (!_loadFilesSemaphore.Wait(200))
-            {
-                return;
-            }
-
             CancellationTokenSource cts = null;
 
             try
             {
-                // 设置加载标志
-                _isLoadingFiles = true;
-
                 // 创建超时控制
                 cts = new CancellationTokenSource(TimeSpan.FromSeconds(5)); // 5秒超时
 
@@ -354,11 +344,6 @@ namespace OoiMRR
                         catch (Exception)
                         {
                         }
-                        finally
-                        {
-                            // 确保 UI 状态重置
-                            _isLoadingFiles = false;
-                        }
                     }), System.Windows.Threading.DispatcherPriority.Background);
                 }
             }
@@ -367,16 +352,6 @@ namespace OoiMRR
             }
             finally
             {
-                // 确保释放资源
-                _isLoadingFiles = false;
-                try
-                {
-                    _loadFilesSemaphore.Release();
-                }
-                catch (SemaphoreFullException)
-                {
-                    // Ignore if already released (unlikely)
-                }
                 cts?.Dispose();
             }
         }
@@ -392,6 +367,9 @@ namespace OoiMRR
 
         #region FileListService 事件处理
 
+        /// <summary>
+        /// FileListService 文件加载完成事件处理
+        /// </summary>
         /// <summary>
         /// FileListService 文件加载完成事件处理
         /// </summary>
@@ -413,15 +391,9 @@ namespace OoiMRR
 
                     if (FileBrowser != null)
                         FileBrowser.FilesItemsSource = _currentFiles;
-
-                    // 重置加载标志并释放信号量
-                    _isLoadingFiles = false;
-                    _loadFilesSemaphore.Release();
                 }
                 catch (Exception)
                 {
-                    _isLoadingFiles = false;
-                    _loadFilesSemaphore.Release();
                 }
             }), System.Windows.Threading.DispatcherPriority.Background);
         }
@@ -493,15 +465,9 @@ namespace OoiMRR
         /// </summary>
         private void OnFileSystemWatcherServiceRefreshRequested(object sender, EventArgs e)
         {
-            // 检查是否正在加载，避免重复加载
-            if (!_isLoadingFiles)
-            {
-                RefreshFileList();
-            }
-            else
-            {
-            }
+            RefreshFileList();
         }
+
 
         /// <summary>
         /// FileListService 错误发生事件处理
@@ -538,12 +504,6 @@ namespace OoiMRR
                 }
                 catch (Exception)
                 {
-                }
-                finally
-                {
-                    // 释放加载锁定
-                    _isLoadingFiles = false;
-                    _loadFilesSemaphore.Release();
                 }
             }), System.Windows.Threading.DispatcherPriority.Normal);
         }

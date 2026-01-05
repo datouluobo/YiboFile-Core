@@ -182,6 +182,15 @@
                     Margin="0,0,0,20"
                     Panel.ZIndex="9000"/>
 
+        <!-- 文件操作进度容器: 位于右下角 -->
+        <Border x:Name="FileOperationProgressContainer"
+                Grid.Row="1" Grid.RowSpan="3" Grid.Column="0" Grid.ColumnSpan="5"
+                VerticalAlignment="Bottom" HorizontalAlignment="Right"
+                Margin="0,0,20,80"
+                Panel.ZIndex="8500"
+                Visibility="Collapsed"
+                Width="380"/>
+
     </Grid>
     
     <!-- 右上角窗口控制按钮：移动到 MainContainer 直接子元素，脱离 RootGrid 布局限制 -->

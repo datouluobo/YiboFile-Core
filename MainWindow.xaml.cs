@@ -28,6 +28,8 @@ using OoiMRR.Services.Favorite;
 using OoiMRR.Services.QuickAccess;
 using OoiMRR.Services.FileList;
 using OoiMRR.Services.Tabs;
+using OoiMRR.Services.FileOperations.Undo;
+using Microsoft.Extensions.DependencyInjection;
 using OoiMRR.Services.Preview;
 using OoiMRR.Services.ColumnManagement;
 using OoiMRR.Services.Config;
@@ -93,10 +95,7 @@ namespace OoiMRR
         private SelectionEventHandler _selectionEventHandler;
 
 
-        // 加载锁定，防止重复加载导致卡死
-        // TODO: 过渡代码 - 这些字段在事件处理器中仍在使用，后续考虑通过服务状态管理
-        private bool _isLoadingFiles = false;
-        private System.Threading.SemaphoreSlim _loadFilesSemaphore = new System.Threading.SemaphoreSlim(1, 1);
+
 
         // 定时器管理
         // 定时器管理
@@ -590,6 +589,60 @@ namespace OoiMRR
         internal void Delete_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.Delete_Click(sender, e);
         internal void Rename_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.Rename_Click(sender, e);
         internal void ShowProperties_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.ShowProperties_Click(sender, e);
+
+        /// <summary>
+        /// 撤销操作
+        /// </summary>
+        internal void Undo_Click(object sender, RoutedEventArgs e)
+        {
+            var undoService = App.ServiceProvider.GetService<UndoService>();
+            var errorService = App.ServiceProvider.GetService<OoiMRR.Services.Core.Error.ErrorService>();
+
+            if (undoService?.CanUndo == true)
+            {
+                var description = undoService.NextUndoDescription;
+                if (undoService.Undo())
+                {
+                    errorService?.ReportError($"已撤销: {description}", OoiMRR.Services.Core.Error.ErrorSeverity.Info);
+                    RefreshFileList();
+                }
+                else
+                {
+                    errorService?.ReportError("撤销失败", OoiMRR.Services.Core.Error.ErrorSeverity.Warning);
+                }
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("[Undo] 没有可撤销的操作");
+            }
+        }
+
+        /// <summary>
+        /// 重做操作
+        /// </summary>
+        internal void Redo_Click(object sender, RoutedEventArgs e)
+        {
+            var undoService = App.ServiceProvider.GetService<UndoService>();
+            var errorService = App.ServiceProvider.GetService<OoiMRR.Services.Core.Error.ErrorService>();
+
+            if (undoService?.CanRedo == true)
+            {
+                var description = undoService.NextRedoDescription;
+                if (undoService.Redo())
+                {
+                    errorService?.ReportError($"已重做: {description}", OoiMRR.Services.Core.Error.ErrorSeverity.Info);
+                    RefreshFileList();
+                }
+                else
+                {
+                    errorService?.ReportError("重做失败", OoiMRR.Services.Core.Error.ErrorSeverity.Warning);
+                }
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("[Redo] 没有可重做的操作");
+            }
+        }
 
         #endregion
 

@@ -18,6 +18,7 @@ using OoiMRR.Services.FileOperations;
 using OoiMRR.Services.Navigation;
 using OoiMRR.Services.Search;
 using OoiMRR.Services.Tabs;
+using Microsoft.Extensions.DependencyInjection;
 using OoiMRR.Services.Settings;
 // using OoiMRR.Services.TagTrain; // Phase 2
 // using TagTrain.UI; // Phase 2
@@ -202,8 +203,11 @@ namespace OoiMRR
                         }
                     }
                 },
-                () => // Paste
+                async () => // Paste
                 {
+                    Controls.FileOperationProgressControl progressControl = null;
+                    System.Threading.CancellationTokenSource cts = null;
+
                     try
                     {
                         IFileOperationContext context = null;
@@ -216,15 +220,50 @@ namespace OoiMRR
                             context = new PathOperationContext(_currentPath, FileBrowser, this, RefreshFileList);
                             System.Diagnostics.Debug.WriteLine($"[Paste] 使用PathOperationContext, 路径: {_currentPath}");
                         }
-                        var op = new PasteOperation(context);
-                        System.Diagnostics.Debug.WriteLine("[Paste] 开始执行粘贴操作");
-                        op.Execute(null, false); // 传递null，让PasteOperation自己从Windows剪贴板读取
+
+                        var errorService = App.ServiceProvider.GetRequiredService<OoiMRR.Services.Core.Error.ErrorService>();
+                        var op = new AsyncPasteOperation(context, errorService);
+
+                        // 创建进度控件
+                        cts = new System.Threading.CancellationTokenSource();
+                        progressControl = new Controls.FileOperationProgressControl();
+                        progressControl.SetTitle("正在粘贴文件...");
+                        progressControl.CancellationTokenSource = cts;
+
+                        // 显示进度控件
+                        FileOperationProgressContainer.Child = progressControl;
+                        FileOperationProgressContainer.Visibility = Visibility.Visible;
+
+                        // 连接进度事件
+                        op.ProgressChanged += (current, total, fileName) =>
+                        {
+                            Dispatcher.Invoke(() =>
+                            {
+                                progressControl.SetProgress(current, total);
+                                progressControl.SetCurrentFile(fileName);
+                            });
+                        };
+
+                        System.Diagnostics.Debug.WriteLine("[Paste] 开始执行异步粘贴操作");
+                        await op.ExecuteAsync(null, false, cts.Token);
                         System.Diagnostics.Debug.WriteLine("[Paste] 粘贴操作完成");
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        System.Diagnostics.Debug.WriteLine("[Paste] 操作已取消");
                     }
                     catch (Exception ex)
                     {
                         System.Diagnostics.Debug.WriteLine($"[Paste] 错误: {ex.Message}");
-                        MessageBox.Show($"粘贴失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        var errorService = App.ServiceProvider.GetService<OoiMRR.Services.Core.Error.ErrorService>();
+                        errorService?.ReportError($"粘贴失败: {ex.Message}", OoiMRR.Services.Core.Error.ErrorSeverity.Error, ex);
+                    }
+                    finally
+                    {
+                        // 隐藏进度控件
+                        FileOperationProgressContainer.Visibility = Visibility.Collapsed;
+                        FileOperationProgressContainer.Child = null;
+                        cts?.Dispose();
                     }
                 },
                 async () => // Delete
@@ -240,13 +279,16 @@ namespace OoiMRR
                         {
                             context = new PathOperationContext(_currentPath, FileBrowser, this, RefreshFileList);
                         }
-                        var op = new DeleteOperation(context);
+
+                        var undoService = App.ServiceProvider.GetRequiredService<OoiMRR.Services.FileOperations.Undo.UndoService>();
+                        var op = new DeleteOperation(context, undoService);
                         var items = FileBrowser?.FilesSelectedItems?.Cast<FileSystemItem>().ToList();
                         await op.ExecuteAsync(items);
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show($"删除操作失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        var errorService = App.ServiceProvider.GetService<OoiMRR.Services.Core.Error.ErrorService>();
+                        errorService?.ReportError($"删除操作失败: {ex.Message}", OoiMRR.Services.Core.Error.ErrorSeverity.Error, ex);
                     }
                 },
                 () => // Rename

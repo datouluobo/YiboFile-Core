@@ -3,8 +3,15 @@ using System.IO;
 using System.Windows;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using OoiMRR.Services;
 using OoiMRR.Services.Core;
+using OoiMRR.Services.Config;
+using OoiMRR.Services.Favorite;
+using OoiMRR.Services.QuickAccess;
+using OoiMRR.Services.FileList;
+using OoiMRR.Services.Search;
+using OoiMRR.Services.FileNotes;
 // using TagTrain.Services; // Phase 2将重新实现标签功能
 using OoiMRR.Controls;
 
@@ -20,13 +27,18 @@ namespace OoiMRR
         private const string MutexName = "OoiMRR_SingleInstance_Mutex";
 
         /// <summary>
+        /// 全局服务提供者
+        /// </summary>
+        public static IServiceProvider ServiceProvider { get; private set; }
+
+        /// <summary>
         /// 标签功能是否可用（Phase 2将实现）
         /// </summary>
         public static bool IsTagTrainAvailable => false;
 
         public App()
         {
-            this.DispatcherUnhandledException += App_DispatcherUnhandledException;
+            // 全局异常处理已移至 OnStartup 中统一配置
         }
 
         private void App_DispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
@@ -34,10 +46,99 @@ namespace OoiMRR
             // e.Handled = true; // Uncomment if we want to suppress crash, but we want to see it for now (or maybe just log)
         }
 
+        /// <summary>
+        /// 配置依赖注入服务
+        /// </summary>
+        private void ConfigureServices(IServiceCollection services)
+        {
+            // 注册核心服务
+            services.AddSingleton<AppConfig>(provider => ConfigManager.Load() ?? new AppConfig());
+            services.AddSingleton<ConfigService>(); // 配置服务应为单例
+            services.AddSingleton<OoiMRR.Services.Core.Error.ErrorService>(); // 统一错误处理服务
+            services.AddSingleton<OoiMRR.Services.FileOperations.Undo.UndoService>(); // 撤销/重做服务
+
+            // DatabaseManager 是静态类/单例模式，但如果我们需要注入它，可以封装一下，或者暂时保持静态访问
+            // 这里我们注册那些非静态的服务
+
+            services.AddSingleton<FavoriteService>();
+            services.AddSingleton<QuickAccessService>();
+
+            // FolderSizeCalculationService 看起来是无状态或短暂状态的，Transient 或 Singleton 都可以，这里选 Singleton 方便复用
+            services.AddSingleton<FolderSizeCalculationService>();
+
+            // FileListService 需要 Dispatcher
+            services.AddTransient<FileListService>(provider =>
+                new FileListService(
+                    Application.Current.Dispatcher,
+                    provider.GetRequiredService<OoiMRR.Services.Core.Error.ErrorService>()));
+
+            // LibraryService 也需要 Dispatcher
+            services.AddSingleton<LibraryService>(provider =>
+                new LibraryService(
+                    Application.Current.Dispatcher,
+                    provider.GetRequiredService<OoiMRR.Services.Core.Error.ErrorService>()));
+
+            // FileSystemWatcherService 需要 Dispatcher
+            services.AddTransient<FileSystemWatcherService>(provider =>
+                new FileSystemWatcherService(Application.Current.Dispatcher));
+
+            // SearchService 及其依赖
+            services.AddSingleton<SearchFilterService>();
+            services.AddSingleton<SearchCacheService>();
+
+            // SearchResultBuilder 需要复杂的工厂逻辑，暂时先 Transient，或者在 MainWindow 中手动创建，或者这里配置工厂
+            // 由于 SearchResultBuilder 依赖 FileListService 的 FormatFileSize 等方法，反向依赖稍微有点复杂
+            // 简化起见，我们先不注册 SearchService，或者使用工厂方法解决依赖
+            services.AddTransient<SearchResultBuilder>(provider =>
+            {
+                var fileListService = provider.GetRequiredService<FileListService>();
+                return new SearchResultBuilder(
+                   formatFileSize: size => fileListService.FormatFileSize(size),
+                   getFileTagIds: path => null, // Phase 2
+                   getTagName: tagId => null,   // Phase 2
+                   getFileNotes: path => FileNotesService.GetFileNotes(path)
+                );
+            });
+
+            services.AddTransient<SearchService>();
+
+            // ViewModels / Windows (Optional, if we want to inject MainWindow)
+            // services.AddTransient<MainWindow>();
+        }
+
         protected override void OnStartup(StartupEventArgs e)
         {
             try
             {
+                // 初始化依赖注入容器
+                var serviceCollection = new ServiceCollection();
+                ConfigureServices(serviceCollection);
+                ServiceProvider = serviceCollection.BuildServiceProvider();
+
+                // 注册全局异常处理
+                var errorService = ServiceProvider.GetRequiredService<OoiMRR.Services.Core.Error.ErrorService>();
+
+                // 1. UI线程未捕获异常
+                this.DispatcherUnhandledException += (s, args) =>
+                {
+                    errorService.ReportError("UI线程发生未捕获异常", OoiMRR.Services.Core.Error.ErrorSeverity.Critical, args.Exception);
+                    args.Handled = true; // 防止程序直接崩溃
+                };
+
+                // 2. 非UI线程未捕获异常
+                AppDomain.CurrentDomain.UnhandledException += (s, args) =>
+                {
+                    var exp = args.ExceptionObject as Exception;
+                    errorService.ReportError("后台线程发生致命错误", OoiMRR.Services.Core.Error.ErrorSeverity.Critical, exp);
+                };
+
+                // 3. Task未观察到的异常
+                TaskScheduler.UnobservedTaskException += (s, args) =>
+                {
+                    errorService.ReportError("后台任务发生异常", OoiMRR.Services.Core.Error.ErrorSeverity.Error, args.Exception);
+                    args.SetObserved(); // 标记为已观察，防止程序崩溃
+                };
+
                 // 移除了 --tagtrain 启动参数支持（Phase 2将重新实现）
 
                 // 原有的 OoiMRR 启动逻辑

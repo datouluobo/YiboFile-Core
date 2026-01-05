@@ -20,6 +20,7 @@ namespace OoiMRR.Services.FileList
         #region 依赖注入字段
 
         private readonly Dispatcher _dispatcher;
+        private readonly OoiMRR.Services.Core.Error.ErrorService _errorService;
         private readonly FolderSizeCalculator _folderSizeCalculator;
         private readonly FileMetadataEnricher _metadataEnricher;
         private readonly FolderSizeCalculationService _folderSizeCalculationService;
@@ -28,14 +29,17 @@ namespace OoiMRR.Services.FileList
 
         #region 加载状态字段
 
-        private bool _isLoadingFiles = false;
+
 
         /// <summary>
         /// 是否显示完整文件名（包括扩展名）
         /// 当空间不足隐藏类型列时设置为 true
         /// </summary>
         public bool ShowFullFileName { get; set; } = false; // 列表模式默认不显示扩展名
-        private readonly object _loadingLock = new object();
+        /// <summary>
+        /// 信号量，用于控制并发加载
+        /// </summary>
+        private readonly SemaphoreSlim _loadingSemaphore = new SemaphoreSlim(1, 1);
 
         #endregion
 
@@ -71,8 +75,9 @@ namespace OoiMRR.Services.FileList
         public event EventHandler<List<FileSystemItem>> MetadataEnriched;
 
         /// <summary>
-        /// 错误发生事件
+        /// 错误发生事件（已弃用，请使用 ErrorService）
         /// </summary>
+        [Obsolete("Use ErrorService instead")]
         public event EventHandler<string> ErrorOccurred;
 
         #endregion
@@ -83,9 +88,11 @@ namespace OoiMRR.Services.FileList
         /// 初始化 FileListService
         /// </summary>
         /// <param name="dispatcher">UI线程调度器，用于更新UI</param>
-        public FileListService(Dispatcher dispatcher)
+        /// <param name="errorService">统一错误处理服务</param>
+        public FileListService(Dispatcher dispatcher, OoiMRR.Services.Core.Error.ErrorService errorService)
         {
             _dispatcher = dispatcher ?? throw new ArgumentNullException(nameof(dispatcher));
+            _errorService = errorService ?? throw new ArgumentNullException(nameof(errorService));
             _folderSizeCalculator = new FolderSizeCalculator();
             _metadataEnricher = new FileMetadataEnricher();
             _folderSizeCalculationService = new FolderSizeCalculationService();
@@ -107,8 +114,14 @@ namespace OoiMRR.Services.FileList
             Func<string, long?> getFolderSizeCache = null,
             Func<long, string> formatFileSize = null)
         {
-            if (string.IsNullOrEmpty(path) || !Directory.Exists(path))
+            if (string.IsNullOrEmpty(path))
             {
+                return new List<FileSystemItem>();
+            }
+
+            if (!Directory.Exists(path))
+            {
+                _errorService.ReportError($"路径不存在: {path}", OoiMRR.Services.Core.Error.ErrorSeverity.Warning);
                 return new List<FileSystemItem>();
             }
 
@@ -228,17 +241,25 @@ namespace OoiMRR.Services.FileList
             Func<List<int>, List<string>> orderTagNames = null,
             CancellationToken cancellationToken = default)
         {
-            lock (_loadingLock)
+            // 等待获取信号量，支持取消
+            try
             {
-                if (_isLoadingFiles)
-                {
-                    return new List<FileSystemItem>();
-                }
-                _isLoadingFiles = true;
+                await _loadingSemaphore.WaitAsync(cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                return new List<FileSystemItem>();
             }
 
             try
             {
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    return new List<FileSystemItem>();
+                }
+
+
+
                 // 异步加载文件和文件夹
                 var directories = await LoadDirectoriesAsync(
                     path,
@@ -316,7 +337,7 @@ namespace OoiMRR.Services.FileList
                 {
                     errorMessage += $"\n{ex.Message}";
                 }
-                ErrorOccurred?.Invoke(this, errorMessage);
+                _errorService.ReportError(errorMessage);
                 return new List<FileSystemItem>();
             }
             catch (DirectoryNotFoundException ex)
@@ -326,7 +347,11 @@ namespace OoiMRR.Services.FileList
                 {
                     errorMessage += $"\n{ex.Message}";
                 }
-                ErrorOccurred?.Invoke(this, errorMessage);
+                _errorService.ReportError(errorMessage);
+                return new List<FileSystemItem>();
+            }
+            catch (OperationCanceledException)
+            {
                 return new List<FileSystemItem>();
             }
             catch (Exception ex)
@@ -336,15 +361,13 @@ namespace OoiMRR.Services.FileList
                 {
                     errorMessage += $"\n{ex.Message}";
                 }
-                ErrorOccurred?.Invoke(this, errorMessage);
+                _errorService.ReportError(errorMessage);
                 return new List<FileSystemItem>();
             }
             finally
             {
-                lock (_loadingLock)
-                {
-                    _isLoadingFiles = false;
-                }
+
+                _loadingSemaphore.Release();
             }
         }
 
@@ -494,6 +517,10 @@ namespace OoiMRR.Services.FileList
 
             // 释放信号量
             _folderSizeCalculationSemaphore?.Dispose();
+            _loadingSemaphore?.Dispose();
+
+            // 释放信号量
+            _folderSizeCalculationSemaphore?.Dispose();
         }
 
         #endregion
@@ -517,9 +544,10 @@ namespace OoiMRR.Services.FileList
                 {
                     dirPaths = await Task.Run(() => Directory.GetDirectories(path), cancellationToken);
                 }
-                catch (UnauthorizedAccessException)
+                catch (UnauthorizedAccessException ex)
                 {
-                    // 如果没有权限读取当前文件夹的子文件夹列表，直接返回空列表
+                    // 通知用户无权限访问
+                    _errorService.ReportError($"无权限访问文件夹: {path}", OoiMRR.Services.Core.Error.ErrorSeverity.Warning, ex);
                     return directories;
                 }
 

@@ -55,6 +55,22 @@ namespace OoiMRR
                 return;
             }
 
+            // Ctrl+Z - 撤销
+            if (e.Key == Key.Z && Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                Undo_Click(null, null);
+                e.Handled = true;
+                return;
+            }
+
+            // Ctrl+Y - 重做
+            if (e.Key == Key.Y && Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                Redo_Click(null, null);
+                e.Handled = true;
+                return;
+            }
+
             // Delete - 删除
             if (e.Key == Key.Delete)
             {

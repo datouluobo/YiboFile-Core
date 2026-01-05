@@ -2,6 +2,7 @@
 using OoiMRR.Services.Config;
 using OoiMRR.Services.Core;
 using OoiMRR;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace OoiMRR.Services
 {
@@ -51,7 +52,9 @@ namespace OoiMRR.Services
                 // 初始化配置服务
                 if (_mainWindow._configService == null)
                 {
-                    _mainWindow._configService = new ConfigService(config, _mainWindow);
+                    var errorService = App.ServiceProvider.GetRequiredService<OoiMRR.Services.Core.Error.ErrorService>();
+                    _mainWindow._configService = new ConfigService(config, errorService);
+                    _mainWindow._configService.UIHelper = _mainWindow;
                 }
                 else
                 {
