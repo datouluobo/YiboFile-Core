@@ -71,6 +71,7 @@ namespace OoiMRR
         private FileSystemWatcherService _fileSystemWatcherService;
         internal FolderSizeCalculationService _folderSizeCalculationService;
         internal TabService _tabService;
+        internal TabService _secondTabService;
         internal Services.Preview.PreviewService _previewService;
         internal SearchService _searchService;
         internal SearchCacheService _searchCacheService;
@@ -81,6 +82,7 @@ namespace OoiMRR
         internal Services.UIHelper.UIHelperService _uiHelperService;
         internal Services.WindowStateManager _windowStateManager;
         private Services.FileInfo.FileInfoService _fileInfoService;
+        private Services.FileInfo.FileInfoService _secondFileInfoService;
         private Services.FileNotes.FileNotesUIHandler _fileNotesUIHandler;
 
 

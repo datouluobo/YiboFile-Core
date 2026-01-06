@@ -147,11 +147,38 @@
                                      VerticalAlignment="Stretch"
                                      Margin="0,0,0,0"/>
 
-        <!-- ========== 列3：预览/备注区 ========== -->
-        <local:RightPanelControl Grid.Row="0" Grid.Column="4" Grid.RowSpan="4"
-                                 x:Name="RightPanel"
-                                 HorizontalAlignment="Stretch"
-                                 VerticalAlignment="Stretch"/>
+        <!-- ========== 列3：可切换区域（预览/副文件列表） ========== -->
+        <Grid Grid.Row="0" Grid.Column="4" Grid.RowSpan="4" WindowChrome.IsHitTestVisibleInChrome="True">
+            <!-- 预览面板（默认显示） -->
+            <local:RightPanelControl x:Name="RightPanel"
+                                     HorizontalAlignment="Stretch"
+                                     VerticalAlignment="Stretch"
+                                     Visibility="Visible"/>
+            
+            <!-- 副文件列表区域（默认隐藏） -->
+            <Grid x:Name="SecondFileBrowserContainer" Visibility="Collapsed" 
+                  WindowChrome.IsHitTestVisibleInChrome="True">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="51"/>  <!-- 标签页行 -->
+                    <RowDefinition Height="*"/>   <!-- 文件列表 -->
+                </Grid.RowDefinitions>
+                
+                <!-- 副标签页管理器 -->
+                <!-- Margin-Right=430: 为了避开右上角的窗口控制按钮区域(~422px) -->
+                <controls:TabManagerControl x:Name="SecondTabManager" 
+                                            Grid.Row="0"
+                                            Margin="0,0,430,0"
+                                            VerticalAlignment="Center"
+                                            IsHitTestVisible="True"
+                                            WindowChrome.IsHitTestVisibleInChrome="True"/>
+                
+                <!-- 副文件浏览器 -->
+                <controls:FileBrowserControl x:Name="SecondFileBrowser"
+                                             Grid.Row="1"
+                                             HorizontalAlignment="Stretch" 
+                                             VerticalAlignment="Stretch"/>
+            </Grid>
+        </Grid>
 
         <!-- 设置覆盖层:覆盖所有内容列,不包括标题栏 -->
         <Grid Name="SettingsOverlay"
@@ -194,6 +221,7 @@
     </Grid>
     
     <!-- 右上角窗口控制按钮：移动到 MainContainer 直接子元素，脱离 RootGrid 布局限制 -->
+    <!-- 右上角窗口控制按钮：移动到 MainContainer 直接子元素，脱离 RootGrid 布局限制 -->
     <Grid Name="WindowControlButtonsContainer" 
           HorizontalAlignment="Right" VerticalAlignment="Top"
           Height="51"
@@ -204,7 +232,6 @@
         <StackPanel x:Name="WindowButtonsStackPanel" 
                    Orientation="Horizontal"
                    HorizontalAlignment="Right" VerticalAlignment="Stretch"
-                   Background="{DynamicResource AppBackgroundBrush}"
                    WindowChrome.IsHitTestVisibleInChrome="True">
             <StackPanel.Style>
                 <Style TargetType="StackPanel">
@@ -297,6 +324,39 @@
                         Background="Transparent" BorderThickness="0" Cursor="Hand"
                         FontSize="16" FontFamily="{DynamicResource IconFontFamily}"
                         Tag="Active">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Padding" Value="0"/>
+                            <Setter Property="Margin" Value="0"/>
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="BorderBrush" Value="Transparent"/>
+                            <Setter Property="BorderThickness" Value="0"/>
+                            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                            <Setter Property="VerticalContentAlignment" Value="Center"/>
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="{DynamicResource ControlHoverBackgroundBrush}"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter Property="Background" Value="{DynamicResource ControlPressedBackgroundBrush}"/>
+                                </Trigger>
+                                <Trigger Property="Tag" Value="Active">
+                                    <Setter Property="Background" Value="{DynamicResource AccentDefaultBrush}"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource ForegroundOnAccentBrush}"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+                
+                <!-- 双列表模式切换 -->
+                <Button x:Name="DualListToggleBtn" Width="46"
+                        Content="|  |"
+                        ToolTip="双列表模式&#x0a;切换预览/副文件列表"
+                        Click="DualListToggle_Click"
+                        Background="Transparent" BorderThickness="0" Cursor="Hand"
+                        FontSize="14" FontWeight="Bold">
                     <Button.Style>
                         <Style TargetType="Button">
                             <Setter Property="Padding" Value="0"/>

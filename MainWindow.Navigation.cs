@@ -217,6 +217,35 @@ namespace OoiMRR
         {
             if (!Directory.Exists(path)) return;
 
+            // 双列表模式：如果焦点在副列表，则在副列表导航
+            if (_isDualListMode && _isSecondPaneFocused && _secondTabService != null)
+            {
+                var secondActiveTab = _secondTabService.ActiveTab;
+                // 规则1：同类型标签页直接更新
+                if (secondActiveTab != null && secondActiveTab.Type == Services.Tabs.TabType.Path)
+                {
+                    secondActiveTab.Path = path;
+                    _secondTabService.UpdateTabTitle(secondActiveTab, path);
+                    SecondFileBrowser_PathChanged(this, path);
+                    return;
+                }
+
+                // 规则2：查找最近访问的相同Path标签页
+                var secondRecentTab = _secondTabService.FindRecentPathTab(path);
+                if (secondRecentTab != null)
+                {
+                    _secondTabService.SwitchToTab(secondRecentTab);
+                }
+                else
+                {
+                    CreateTab(path); // Update CreateTab already handles logic validation, but simpler to call explicit service here? 
+                    // Actually calling CreateTab(path) is better because it checks for focus again, which is redundant but safe.
+                    // But to be explicit and consistent with logic above:
+                    _secondTabService.CreatePathTab(path);
+                }
+                return;
+            }
+
             var activeTab = _tabService.ActiveTab;
             // 规则1：同类型标签页直接更新
             if (activeTab != null && activeTab.Type == Services.Tabs.TabType.Path)

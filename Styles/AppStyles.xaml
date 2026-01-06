@@ -1051,7 +1051,9 @@
         <Setter Property="BorderThickness" Value="0,0,1,1"/>
         <Setter Property="BorderBrush" Value="#E0E0E0"/>
         <!-- 绑定 Tag 属性到内容的 Tag (假定内容是 FrameworkElement) -->
+        <!-- 绑定 Tag 属性到内容的 Tag (假定内容是 FrameworkElement) - 已移除以修复绑定错误 
         <Setter Property="Tag" Value="{Binding Content.Tag, RelativeSource={RelativeSource Self}}"/>
+        -->
         <!-- Remove EventSetter, handle Click in code behind if needed, or attach behavior -->
         <!-- EventSetter Event="Click" Handler="ColumnHeader_Click"/ --> 
         <Setter Property="Template">

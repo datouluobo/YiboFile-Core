@@ -22,7 +22,15 @@ namespace OoiMRR
         /// </summary>
         internal void CreateTab(string path, bool forceNewTab = false)
         {
-            _tabService?.CreatePathTab(path, forceNewTab);
+            // 在双列表模式下，根据焦点判断在哪个列表创建标签
+            if (_isDualListMode && _isSecondPaneFocused && _secondTabService != null)
+            {
+                _secondTabService.CreatePathTab(path, forceNewTab);
+            }
+            else
+            {
+                _tabService?.CreatePathTab(path, forceNewTab);
+            }
         }
 
         /// <summary>
@@ -30,7 +38,14 @@ namespace OoiMRR
         /// </summary>
         internal void OpenLibraryInTab(Library library, bool forceNewTab = false)
         {
-            _tabService?.OpenLibraryTab(library, forceNewTab);
+            if (_isDualListMode && _isSecondPaneFocused && _secondTabService != null)
+            {
+                _secondTabService.OpenLibraryTab(library, forceNewTab);
+            }
+            else
+            {
+                _tabService?.OpenLibraryTab(library, forceNewTab);
+            }
         }
 
 

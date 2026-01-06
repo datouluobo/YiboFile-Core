@@ -259,6 +259,7 @@ namespace OoiMRR.Previews
             public string ModifiedDate { get; set; }
             public string CreatedTime { get; set; }
             public bool IsDirectory { get; set; }
+            public string Notes { get; set; } // Binding fix
         }
     }
 }

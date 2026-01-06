@@ -34,6 +34,7 @@ namespace OoiMRR
         // 外观设置
         public string ThemeMode { get; set; } = "FollowSystem"; // Light, Dark, FollowSystem
         public string LayoutMode { get; set; } = "Full"; // Focus, Work, Full
+        public bool IsDualListMode { get; set; } = false; // 双列表模式
         public double WindowOpacity { get; set; } = 1.0; // 窗口透明度 (0.5-1.0)
         public bool AnimationsEnabled { get; set; } = true; // 动画效果启用
         public string IconStyle { get; set; } = "Emoji"; // 图标风格 (Emoji, Remix, Fluent)

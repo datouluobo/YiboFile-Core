@@ -733,7 +733,9 @@ namespace OoiMRR.Services.Tabs
         public void CreatePathTab(string path, bool forceNewTab = false, bool skipValidation = false, bool activate = true)
         {
             EnsureUi();
-            if (!_ui.TabManager?.TabsPanelControl?.IsLoaded ?? true) return;
+            EnsureUi();
+            // 移除 IsLoaded 检查，确保初始化时也能创建标签页
+            if (_ui.TabManager?.TabsPanelControl == null) return;
 
             if (!skipValidation && !ValidatePath(path, out string errorMessage))
             {

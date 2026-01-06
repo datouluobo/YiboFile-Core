@@ -334,13 +334,17 @@ namespace OoiMRR
                  () => _configService?.SaveCurrentConfig()
             );
 
+            // 定义获取当前活动标签页服务的逻辑
+            Func<Services.Tabs.TabService> getActiveTabService = () =>
+                (_isDualListMode && _isSecondPaneFocused && _secondTabService != null) ? _secondTabService : _tabService;
+
             // 初始化 KeyboardEventHandler
             _keyboardEventHandler = new OoiMRR.Handlers.KeyboardEventHandler(
                 FileBrowser,
-                _tabService,
-                (tab) => _tabService.RemoveTab(tab),
-                (path) => _tabService.CreatePathTab(path),
-                (tab) => _tabService.SwitchToTab(tab),
+                getActiveTabService,
+                (tab) => getActiveTabService().RemoveTab(tab),
+                (path) => CreateTab(path),
+                (tab) => getActiveTabService().SwitchToTab(tab),
                 () => _menuEventHandler.NewFolder_Click(null, null), // NewFolderClick
                 RefreshFileList,
                 () => _menuEventHandler.Copy_Click(null, null),
@@ -352,7 +356,9 @@ namespace OoiMRR
                 SwitchNavigationMode,
                 () => _currentLibrary != null,
                 Back_Click_Logic, // navigateBack
-                SwitchLayoutModeByIndex  // 添加布局切换回调
+                SwitchLayoutModeByIndex,  // 添加布局切换回调
+                () => IsDualListMode,     // isDualListMode 检查
+                () => SwitchFocusedPane() // switchDualPaneFocus 回调
             );
 
             // 初始化 MouseEventHandler

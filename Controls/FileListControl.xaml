@@ -67,6 +67,7 @@
                       SelectionMode="Extended"
                       Background="{DynamicResource AppBackgroundBrush}"
                       BorderThickness="0"
+                      FocusVisualStyle="{x:Null}"
                       ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                     <ListView.ItemContainerStyle>
                         <StaticResource ResourceKey="FileListItemStyle"/>
@@ -239,6 +240,7 @@
                                                       SelectionMode="Extended"
                                                       BorderThickness="0"
                                                       Background="Transparent"
+                                                      FocusVisualStyle="{x:Null}"
                                                       Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVisibilityConverter}}">
                                                 <ListView.ItemContainerStyle>
                                                     <Style TargetType="ListViewItem">

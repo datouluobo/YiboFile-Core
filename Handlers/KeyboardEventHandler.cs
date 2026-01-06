@@ -16,7 +16,7 @@ namespace OoiMRR.Handlers
     public class KeyboardEventHandler
     {
         private readonly FileBrowserControl _fileBrowser;
-        private readonly TabService _tabService;
+        private readonly Func<TabService> _getTabService;
         private readonly Action<PathTab> _closeTab;
         private readonly Action<string> _createTab;
         private readonly Action<PathTab> _switchToTab;
@@ -32,10 +32,12 @@ namespace OoiMRR.Handlers
         private readonly Func<bool> _isLibraryMode;
         private readonly Action _navigateBack;
         private readonly Action<int> _switchLayoutMode;
+        private readonly Func<bool> _isDualListMode;
+        private readonly Action _switchDualPaneFocus;
 
         public KeyboardEventHandler(
             FileBrowserControl fileBrowser,
-            TabService tabService,
+            Func<TabService> getTabService,
             Action<PathTab> closeTab,
             Action<string> createTab,
             Action<PathTab> switchToTab,
@@ -50,10 +52,12 @@ namespace OoiMRR.Handlers
             Action<string> switchNavigationMode,
             Func<bool> isLibraryMode,
             Action navigateBack,
-            Action<int> switchLayoutMode = null)
+            Action<int> switchLayoutMode = null,
+            Func<bool> isDualListMode = null,
+            Action switchDualPaneFocus = null)
         {
             _fileBrowser = fileBrowser ?? throw new ArgumentNullException(nameof(fileBrowser));
-            _tabService = tabService ?? throw new ArgumentNullException(nameof(tabService));
+            _getTabService = getTabService ?? throw new ArgumentNullException(nameof(getTabService));
             _closeTab = closeTab ?? throw new ArgumentNullException(nameof(closeTab));
             _createTab = createTab ?? throw new ArgumentNullException(nameof(createTab));
             _switchToTab = switchToTab ?? throw new ArgumentNullException(nameof(switchToTab));
@@ -69,6 +73,8 @@ namespace OoiMRR.Handlers
             _isLibraryMode = isLibraryMode ?? throw new ArgumentNullException(nameof(isLibraryMode));
             _navigateBack = navigateBack ?? throw new ArgumentNullException(nameof(navigateBack));
             _switchLayoutMode = switchLayoutMode; // 可选参数
+            _isDualListMode = isDualListMode;
+            _switchDualPaneFocus = switchDualPaneFocus;
         }
 
         public void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -76,12 +82,16 @@ namespace OoiMRR.Handlers
             // Ctrl+W 或 Ctrl+F4: 关闭当前标签页
             if ((e.Key == Key.W || e.Key == Key.F4) && Keyboard.Modifiers == ModifierKeys.Control)
             {
-                var activeTab = _tabService.ActiveTab;
-                if (activeTab != null && _tabService.TabCount > 1)
+                var tabService = _getTabService();
+                if (tabService != null)
                 {
-                    _closeTab(activeTab);
-                    e.Handled = true;
-                    return;
+                    var activeTab = tabService.ActiveTab;
+                    if (activeTab != null && tabService.TabCount > 1)
+                    {
+                        _closeTab(activeTab);
+                        e.Handled = true;
+                        return;
+                    }
                 }
             }
 
@@ -97,30 +107,38 @@ namespace OoiMRR.Handlers
             // Ctrl+Tab: 切换到下一个标签页
             if (e.Key == Key.Tab && Keyboard.Modifiers == ModifierKeys.Control && !Keyboard.IsKeyDown(Key.LeftShift) && !Keyboard.IsKeyDown(Key.RightShift))
             {
-                var tabs = _tabService.Tabs.ToList();
-                if (tabs.Count > 1)
+                var tabService = _getTabService();
+                if (tabService != null)
                 {
-                    var activeTab = _tabService.ActiveTab;
-                    var currentIndex = tabs.IndexOf(activeTab);
-                    var nextIndex = (currentIndex + 1) % tabs.Count;
-                    _switchToTab(tabs[nextIndex]);
-                    e.Handled = true;
-                    return;
+                    var tabs = tabService.Tabs.ToList();
+                    if (tabs.Count > 1)
+                    {
+                        var activeTab = tabService.ActiveTab;
+                        var currentIndex = tabs.IndexOf(activeTab);
+                        var nextIndex = (currentIndex + 1) % tabs.Count;
+                        _switchToTab(tabs[nextIndex]);
+                        e.Handled = true;
+                        return;
+                    }
                 }
             }
 
             // Ctrl+Shift+Tab: 切换到上一个标签页
             if (e.Key == Key.Tab && Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift))
             {
-                var tabs = _tabService.Tabs.ToList();
-                if (tabs.Count > 1)
+                var tabService = _getTabService();
+                if (tabService != null)
                 {
-                    var activeTab = _tabService.ActiveTab;
-                    var currentIndex = tabs.IndexOf(activeTab);
-                    var prevIndex = (currentIndex - 1 + tabs.Count) % tabs.Count;
-                    _switchToTab(tabs[prevIndex]);
-                    e.Handled = true;
-                    return;
+                    var tabs = tabService.Tabs.ToList();
+                    if (tabs.Count > 1)
+                    {
+                        var activeTab = tabService.ActiveTab;
+                        var currentIndex = tabs.IndexOf(activeTab);
+                        var prevIndex = (currentIndex - 1 + tabs.Count) % tabs.Count;
+                        _switchToTab(tabs[prevIndex]);
+                        e.Handled = true;
+                        return;
+                    }
                 }
             }
 
@@ -130,6 +148,17 @@ namespace OoiMRR.Handlers
                 _newFolderClick();
                 e.Handled = true;
                 return;
+            }
+
+            // Tab键（无修饰符）：在双列表模式下切换主副面板焦点
+            if (e.Key == Key.Tab && Keyboard.Modifiers == ModifierKeys.None)
+            {
+                if (_isDualListMode?.Invoke() == true)
+                {
+                    _switchDualPaneFocus?.Invoke();
+                    e.Handled = true;
+                    return;
+                }
             }
 
             // Ctrl+Shift+N: 新建文件夹（Windows标准）

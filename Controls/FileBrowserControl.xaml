@@ -108,7 +108,7 @@
         </Border>
         
         <!-- Row 2: 文件列表 -->
-        <controls:FileListControl Grid.Row="2" x:Name="FileList"/>
+        <controls:FileListControl Grid.Row="2" x:Name="FileList" FocusVisualStyle="{x:Null}"/>
         
         <!-- Row 3: 水平分割器（文件列表与信息面板之间） -->
         <controls:CollapsibleGridSplitter Grid.Row="3" 
