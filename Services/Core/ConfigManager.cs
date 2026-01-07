@@ -74,6 +74,10 @@ namespace OoiMRR
         public System.Collections.Generic.List<string> OpenTabs { get; set; } = new System.Collections.Generic.List<string>(); // 所有打开的标签页键值列表（按顺序）
         public string ActiveTabKey { get; set; } = string.Empty; // 活动标签页的键值
 
+        // 副列表（双栏模式）标签页状态保存
+        public System.Collections.Generic.List<string> OpenTabsSecondary { get; set; } = new System.Collections.Generic.List<string>();
+        public string ActiveTabKeySecondary { get; set; } = string.Empty;
+
         // 字体设置
         public double UIFontSize { get; set; } = 16; // 界面字体大小（默认16）
         public double TagFontSize { get; set; } = 16; // Tag字体大小（默认16）
@@ -326,6 +330,14 @@ namespace OoiMRR
             if (string.IsNullOrEmpty(config.ActiveTabKey))
             {
                 config.ActiveTabKey = string.Empty;
+            }
+            if (config.OpenTabsSecondary == null)
+            {
+                config.OpenTabsSecondary = new List<string>();
+            }
+            if (string.IsNullOrEmpty(config.ActiveTabKeySecondary))
+            {
+                config.ActiveTabKeySecondary = string.Empty;
             }
 
             // 如果 ColLeftWidth 和 ColCenterWidth 为 0，但 LeftPanelWidth 和 MiddlePanelWidth 有值，则迁移

@@ -16,66 +16,190 @@ namespace OoiMRR
     /// </summary>
     public partial class MainWindow : Window
     {
+        private DragDropManager _secondDragDropManager;
+
         private void InitializeDragDrop()
         {
             try
             {
-                // Initialize DragDropManager
+                System.Diagnostics.Debug.WriteLine("[DragDrop] InitializeDragDrop started");
+
+                // Initialize DragDropManager for main file list
                 _dragDropManager = new DragDropManager();
+                SetupDragDropManager(_dragDropManager, isPrimary: true);
 
-                // Set up delegates
-                _dragDropManager.RequestRefresh = () =>
-                {
-                    // Refresh the file list after an operation
-                    // If we are in library mode, calling LoadContent() might be safer, 
-                    // but LoadFiles() or RefreshFileList() is likely enough.
-                    try
-                    {
-                        if (_currentLibrary != null)
-                            LoadLibraryFiles(_currentLibrary);
-
-                        // else
-                        //     LoadCurrentDirectory();
-                    }
-                    catch { }
-                };
-
-                _dragDropManager.GetCurrentPath = () =>
-                {
-                    // Return current path for background drops
-                    // Only valid if not in Library or Tag mode (unless we support dropping into Library roots?)
-                    if (_currentLibrary == null)
-                    {
-                        return _currentPath;
-                    }
-                    return null;
-                };
-
-                // Enable file list drag and drop
-                if (FileBrowser != null && FileBrowser.FilesList != null)
+                // Enable file list drag and drop for main list
+                if (FileBrowser?.FilesList != null)
                 {
                     _dragDropManager.InitializeFileListDragDrop(FileBrowser.FilesList);
-                    // Note: TabManager drag-drop is now handled internally or not needed
+                    System.Diagnostics.Debug.WriteLine("[DragDrop] Main FileBrowser drag-drop initialized");
                 }
 
-                // TODO: Re-implement other drop targets (Libraries, Drivers, QuickAccess) if needed.
-                // For now we focus on the core file list.
+                // Initialize DragDropManager for second file list (dual mode)
+                _secondDragDropManager = new DragDropManager();
+                SetupDragDropManager(_secondDragDropManager, isPrimary: false);
+
+                if (SecondFileBrowser?.FilesList != null)
+                {
+                    _secondDragDropManager.InitializeFileListDragDrop(SecondFileBrowser.FilesList);
+                    System.Diagnostics.Debug.WriteLine("[DragDrop] Second FileBrowser drag-drop initialized");
+                }
+
+                // Initialize tab drop handlers
+                InitializeTabDragDrop();
+
+                // Initialize library drag drop
                 InitializeLibraryDragDrop();
+
+                System.Diagnostics.Debug.WriteLine("[DragDrop] InitializeDragDrop completed");
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"[DragDrop] InitializeDragDrop failed: {ex.Message}");
             }
+        }
+
+        private void SetupDragDropManager(DragDropManager manager, bool isPrimary)
+        {
+            manager.RequestRefresh = () =>
+            {
+                try
+                {
+                    // Refresh both lists after operation
+                    if (_currentLibrary != null)
+                        LoadLibraryFiles(_currentLibrary);
+                    else
+                        LoadCurrentDirectory();
+
+                    // Also refresh second list if in dual mode
+                    if (_isDualListMode && SecondFileBrowser != null)
+                    {
+                        var secondTab = _secondTabService?.ActiveTab;
+                        if (secondTab != null && !string.IsNullOrEmpty(secondTab.Path) && Directory.Exists(secondTab.Path))
+                        {
+                            SecondFileBrowser_PathChanged(this, secondTab.Path);
+                        }
+                    }
+                }
+                catch { }
+            };
+
+            manager.GetCurrentPath = () =>
+            {
+                if (isPrimary)
+                {
+                    return _currentLibrary == null ? _currentPath : null;
+                }
+                else
+                {
+                    var secondTab = _secondTabService?.ActiveTab;
+                    return secondTab?.Path;
+                }
+            };
+
+            manager.UndoService = App.ServiceProvider?.GetService(typeof(OoiMRR.Services.FileOperations.Undo.UndoService)) as OoiMRR.Services.FileOperations.Undo.UndoService;
+        }
+
+        private void InitializeTabDragDrop()
+        {
+            // Find tab container panels and enable drop
+            try
+            {
+                // Main tab panel
+                if (TabManager?.TabsPanelControl != null)
+                {
+                    TabManager.TabsPanelControl.AllowDrop = true;
+                    TabManager.TabsPanelControl.Drop += TabPanel_Drop;
+                    TabManager.TabsPanelControl.DragOver += TabPanel_DragOver;
+                }
+
+                // Second tab panel
+                if (SecondTabManager?.TabsPanelControl != null)
+                {
+                    SecondTabManager.TabsPanelControl.AllowDrop = true;
+                    SecondTabManager.TabsPanelControl.Drop += TabPanel_Drop;
+                    SecondTabManager.TabsPanelControl.DragOver += TabPanel_DragOver;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[DragDrop] InitializeTabDragDrop failed: {ex.Message}");
+            }
+        }
+
+        private void TabPanel_DragOver(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                // Check if hovering over a specific tab button
+                var tabButton = FindTabButtonAtPoint(sender as Panel, e.GetPosition(sender as IInputElement));
+                if (tabButton != null)
+                {
+                    e.Effects = DragDropEffects.Copy | DragDropEffects.Move;
+
+                    // Optional: Highlight tab?
+                    // Tabs usually have hover states, DragOver might not trigger hover VSM optionally.
+                }
+                else
+                {
+                    e.Effects = DragDropEffects.None;
+                }
+                e.Handled = true;
+            }
+        }
+
+        private void TabPanel_Drop(object sender, DragEventArgs e)
+        {
+            if (!e.Data.GetDataPresent(DataFormats.FileDrop)) return;
+
+            var files = (string[])e.Data.GetData(DataFormats.FileDrop);
+            if (files == null || files.Length == 0) return;
+
+            // Find which tab button was dropped on
+            var tabButton = FindTabButtonAtPoint(sender as Panel, e.GetPosition(sender as IInputElement));
+            if (tabButton == null) return;
+
+            // Get the tab's path from button Tag (Tag is PathTab object)
+            // Note: In TabManagerControl, buttons tags are likely PathTab objects
+            if (tabButton.Tag is OoiMRR.Services.Tabs.PathTab tab && !string.IsNullOrEmpty(tab.Path) && Directory.Exists(tab.Path))
+            {
+                // Determine operation type
+                bool isCopy = (e.KeyStates & DragDropKeyStates.ControlKey) == DragDropKeyStates.ControlKey;
+
+                System.Diagnostics.Debug.WriteLine($"[DragDrop] Tab drop: {files.Length} files to {tab.Path}, isCopy={isCopy}");
+
+                // Perform the operation
+                _dragDropManager?.PerformFileOperation(files, tab.Path, isCopy);
+            }
+        }
+
+        private Button FindTabButtonAtPoint(Panel panel, Point point)
+        {
+            if (panel == null) return null;
+
+            var hitTest = VisualTreeHelper.HitTest(panel, point);
+            var element = hitTest?.VisualHit;
+
+            while (element != null && element != panel)
+            {
+                if (element is Button button && button.Tag is OoiMRR.Services.Tabs.PathTab)
+                {
+                    return button;
+                }
+                element = VisualTreeHelper.GetParent(element);
+            }
+            return null;
         }
 
         private void InitializeLibraryDragDrop()
         {
             // Placeholder for Library Drag & Drop
-            // Logic to be moved to DragDropManager in future steps
             if (LibrariesListBox != null)
             {
                 LibrariesListBox.AllowDrop = true;
-                // Currently disabled to avoid conflict with the rewrite
             }
         }
     }
 }
+
+

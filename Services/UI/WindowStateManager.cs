@@ -21,6 +21,7 @@ namespace OoiMRR.Services
 
         private readonly IConfigUIHelper _uiHelper;
         private readonly TabService _tabService;
+        private TabService _secondTabService; // Removing readonly to allow updates
         private readonly ConfigService _configService;
         private readonly AppConfig _config;
         private readonly NavigationService _navigationService;
@@ -34,14 +35,38 @@ namespace OoiMRR.Services
         /// <summary>
         /// 初始化窗口状态管理器
         /// </summary>
-        public WindowStateManager(IConfigUIHelper uiHelper, TabService tabService, ConfigService configService, AppConfig config, NavigationService navigationService = null, Navigation.NavigationModeService navigationModeService = null)
+        public WindowStateManager(IConfigUIHelper uiHelper, TabService tabService, ConfigService configService, AppConfig config, NavigationService navigationService = null, Navigation.NavigationModeService navigationModeService = null, TabService secondTabService = null)
         {
             _uiHelper = uiHelper ?? throw new ArgumentNullException(nameof(uiHelper));
             _tabService = tabService ?? throw new ArgumentNullException(nameof(tabService));
+            _secondTabService = secondTabService;
             _configService = configService ?? throw new ArgumentNullException(nameof(configService));
             _config = config ?? throw new ArgumentNullException(nameof(config));
             _navigationService = navigationService;
             _navigationModeService = navigationModeService;
+        }
+
+        #endregion
+
+        #region 公共方法
+
+        /// <summary>
+        /// 更新副标签页服务实例（用于动态初始化的双列表模式）
+        /// </summary>
+        public void SetSecondTabService(TabService service)
+        {
+            _secondTabService = service;
+        }
+
+        /// <summary>
+        /// 专门恢复副列表标签页状态
+        /// </summary>
+        public void RestoreSecondaryTabs()
+        {
+            if (_secondTabService != null)
+            {
+                RestoreTabsForService(_secondTabService, _config.OpenTabsSecondary, _config.ActiveTabKeySecondary);
+            }
         }
 
         #endregion
@@ -117,6 +142,10 @@ namespace OoiMRR.Services
                     // 标签页状态
                     latestConfig.OpenTabs = _config.OpenTabs;
                     latestConfig.ActiveTabKey = _config.ActiveTabKey;
+
+                    // 副列表标签页状态
+                    latestConfig.OpenTabsSecondary = _config.OpenTabsSecondary;
+                    latestConfig.ActiveTabKeySecondary = _config.ActiveTabKeySecondary;
                 });
 
                 // ✅ 不再需要手动Save - ConfigurationService.Update会触发去抖保存
@@ -458,37 +487,47 @@ namespace OoiMRR.Services
             try { System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(logPath2)); System.IO.File.AppendAllText(logPath2, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "C", location = "WindowStateManager.cs:278", message = "SaveTabsState开始", data = new { tabServiceIsNull = _tabService == null }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
             // #endregion
 
-            if (_tabService == null) return;
-
-            var allTabs = _tabService.Tabs;
-            var orderedTabs = _tabService.GetTabsInOrder();
-
-            // 启动早期：如果当前没有任何标签页，但配置中已有 OpenTabs，说明还没完成恢复，避免把配置清空
-            if ((allTabs == null || allTabs.Count == 0) &&
-                _config.OpenTabs != null && _config.OpenTabs.Count > 0)
+            if (_tabService != null)
             {
-                return;
+                var (tabs, activeKey) = GetTabsState(_tabService);
+
+                // 启动早期：如果当前没有标签页且配置中有，可能是还没恢复，不覆盖
+                if (tabs.Count > 0 || _config.OpenTabs == null || _config.OpenTabs.Count == 0)
+                {
+                    _config.OpenTabs = tabs;
+                    _config.ActiveTabKey = activeKey;
+                }
+            }
+
+            if (_secondTabService != null)
+            {
+                var (tabs, activeKey) = GetTabsState(_secondTabService);
+                if (tabs.Count > 0 || _config.OpenTabsSecondary == null || _config.OpenTabsSecondary.Count == 0)
+                {
+                    _config.OpenTabsSecondary = tabs;
+                    _config.ActiveTabKeySecondary = activeKey;
+                }
             }
 
             // #region agent log
-            try { System.IO.File.AppendAllText(logPath2, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "C", location = "WindowStateManager.cs:285", message = "SaveTabsState标签页列表", data = new { allTabsCount = allTabs?.Count ?? 0, orderedTabsCount = orderedTabs?.Count() ?? 0, orderedTabsKeys = orderedTabs?.Select(tab => GetTabKey(tab)).ToList() ?? new List<string>() }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
+            try { System.IO.File.AppendAllText(logPath2, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "C", location = "WindowStateManager.cs:296", message = "SaveTabsState保存后", data = new { openTabsCount = _config.OpenTabs?.Count ?? 0, openTabs = _config.OpenTabs ?? new List<string>(), activeTabKey = _config.ActiveTabKey, openTabsSecondaryCount = _config.OpenTabsSecondary?.Count ?? 0 }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
             // #endregion
+        }
 
-            _config.OpenTabs = orderedTabs.Select(tab => GetTabKey(tab)).ToList();
+        private (List<string> tabs, string activeKey) GetTabsState(TabService service)
+        {
+            var orderedTabs = service.GetTabsInOrder();
 
-            var activeTab = _tabService.ActiveTab;
+            var tabs = orderedTabs.Select(tab => GetTabKey(tab)).ToList();
+            var activeKey = string.Empty;
+
+            var activeTab = service.ActiveTab;
             if (activeTab != null)
             {
-                _config.ActiveTabKey = GetTabKey(activeTab);
-            }
-            else
-            {
-                _config.ActiveTabKey = string.Empty;
+                activeKey = GetTabKey(activeTab);
             }
 
-            // #region agent log
-            try { System.IO.File.AppendAllText(logPath2, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "C", location = "WindowStateManager.cs:296", message = "SaveTabsState保存后", data = new { openTabsCount = _config.OpenTabs?.Count ?? 0, openTabs = _config.OpenTabs ?? new List<string>(), activeTabKey = _config.ActiveTabKey }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
-            // #endregion
+            return (tabs, activeKey);
         }
 
         /// <summary>
@@ -588,54 +627,13 @@ namespace OoiMRR.Services
         {
             try
             {
-                // 恢复保存的标签页状态
-                if (_config.OpenTabs != null && _config.OpenTabs.Count > 0)
-                {
-                    // 恢复所有标签页
-                    foreach (var tabKey in _config.OpenTabs)
-                    {
-                        if (string.IsNullOrEmpty(tabKey)) continue;
+                // 恢复主列表标签页
+                RestoreTabsForService(_tabService, _config.OpenTabs, _config.ActiveTabKey);
 
-                        try
-                        {
-                            RestoreTabFromKey(tabKey);
-                        }
-                        catch (Exception)
-                        {
-                            // 单个标签页恢复失败不影响其他标签页
-                        }
-                    }
-
-                    // 恢复活动标签页
-                    if (!string.IsNullOrEmpty(_config.ActiveTabKey))
-                    {
-                        var activeTab = FindTabByKey(_config.ActiveTabKey);
-                        if (activeTab != null)
-                        {
-                            _tabService.SwitchToTab(activeTab);
-                        }
-                        else if (_tabService.Tabs != null && _tabService.Tabs.Count > 0)
-                        {
-                            // 如果找不到活动标签页，但有其他标签页，切换到第一个
-                            var firstTab = _tabService.Tabs.First();
-                            _tabService.SwitchToTab(firstTab);
-                        }
-                    }
-                    else if (_tabService.Tabs != null && _tabService.Tabs.Count > 0)
-                    {
-                        // 如果没有保存活动标签页，但恢复了标签页，切换到第一个
-                        var firstTab = _tabService.Tabs.First();
-                        _tabService.SwitchToTab(firstTab);
-                    }
-                }
-                else
+                // 恢复副列表标签页
+                if (_secondTabService != null)
                 {
-                    // 如果没有保存的标签页，创建默认标签页
-                    var desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-                    if (Directory.Exists(desktopPath))
-                    {
-                        _tabService?.CreatePathTab(desktopPath, false);
-                    }
+                    RestoreTabsForService(_secondTabService, _config.OpenTabsSecondary, _config.ActiveTabKeySecondary);
                 }
             }
             catch (Exception)
@@ -643,10 +641,65 @@ namespace OoiMRR.Services
             }
         }
 
+        private void RestoreTabsForService(TabService service, List<string> openTabs, string activeTabKey)
+        {
+            if (service == null) return;
+
+            // 恢复保存的标签页状态
+            if (openTabs != null && openTabs.Count > 0)
+            {
+                // 恢复所有标签页
+                foreach (var tabKey in openTabs)
+                {
+                    if (string.IsNullOrEmpty(tabKey)) continue;
+
+                    try
+                    {
+                        RestoreTabFromKey(service, tabKey);
+                    }
+                    catch (Exception)
+                    {
+                        // 单个标签页恢复失败不影响其他标签页
+                    }
+                }
+
+                // 恢复活动标签页
+                if (!string.IsNullOrEmpty(activeTabKey))
+                {
+                    var activeTab = FindTabByKey(service, activeTabKey);
+                    if (activeTab != null)
+                    {
+                        service.SwitchToTab(activeTab);
+                    }
+                    else if (service.Tabs != null && service.Tabs.Count > 0)
+                    {
+                        // 如果找不到活动标签页，但有其他标签页，切换到第一个
+                        var firstTab = service.Tabs.First();
+                        service.SwitchToTab(firstTab);
+                    }
+                }
+                else if (service.Tabs != null && service.Tabs.Count > 0)
+                {
+                    // 如果没有保存活动标签页，但恢复了标签页，切换到第一个
+                    var firstTab = service.Tabs.First();
+                    service.SwitchToTab(firstTab);
+                }
+            }
+            else
+            {
+                // 如果没有保存的标签页，创建默认标签页
+                var desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+                if (Directory.Exists(desktopPath))
+                {
+                    service.CreatePathTab(desktopPath, false);
+                }
+            }
+        }
+
         /// <summary>
         /// 从键值恢复标签页
         /// </summary>
-        private void RestoreTabFromKey(string tabKey)
+        private void RestoreTabFromKey(TabService service, string tabKey)
         {
             if (string.IsNullOrEmpty(tabKey)) return;
 
@@ -656,11 +709,11 @@ namespace OoiMRR.Services
                 if (!string.IsNullOrEmpty(path))
                 {
                     // 恢复模式：先检查是否已存在相同路径的标签页，避免重复创建
-                    var existingTab = _tabService.FindTabByPath(path);
+                    var existingTab = service.FindTabByPath(path);
                     if (existingTab != null)
                     {
                         // 如果已存在，切换到该标签页即可
-                        _tabService.SwitchToTab(existingTab);
+                        service.SwitchToTab(existingTab);
                         return;
                     }
 
@@ -671,18 +724,18 @@ namespace OoiMRR.Services
                     // 搜索标签页会在切换到该标签页时自动刷新（通过MainWindow的CheckAndRefreshSearchTab）
                     if (path.StartsWith("search://"))
                     {
-                        _tabService.CreatePathTab(path, true, skipValidation: true, activate: false);
+                        service.CreatePathTab(path, true, skipValidation: true, activate: false);
                     }
                     else if (System.IO.Path.IsPathRooted(path) || (path.Length >= 2 && path[1] == ':'))
                     {
                         // 对于有效路径格式（绝对路径或驱动器路径），即使暂时不存在也尝试恢复（跳过验证）
                         // 这样可以恢复网络路径、USB设备等可能暂时不可用的路径
-                        _tabService.CreatePathTab(path, true, skipValidation: true, activate: false);
+                        service.CreatePathTab(path, true, skipValidation: true, activate: false);
                     }
                     else if (Directory.Exists(path))
                     {
                         // 对于相对路径，只有在存在时才恢复
-                        _tabService.CreatePathTab(path, true, skipValidation: false, activate: false);
+                        service.CreatePathTab(path, true, skipValidation: false, activate: false);
                     }
                 }
             }
@@ -694,7 +747,7 @@ namespace OoiMRR.Services
                     var library = DatabaseManager.GetLibrary(libraryId);
                     if (library != null)
                     {
-                        _tabService.OpenLibraryTab(library, false, activate: false); // 允许复用已存在的标签页
+                        service.OpenLibraryTab(library, false, activate: false); // 允许复用已存在的标签页
                     }
                 }
             }
@@ -710,21 +763,24 @@ namespace OoiMRR.Services
         /// <summary>
         /// 根据键值查找标签页
         /// </summary>
-        private PathTab FindTabByKey(string tabKey)
+        /// <summary>
+        /// 根据键值查找标签页
+        /// </summary>
+        private PathTab FindTabByKey(TabService service, string tabKey)
         {
             if (string.IsNullOrEmpty(tabKey)) return null;
 
             if (tabKey.StartsWith("path:"))
             {
                 var path = tabKey.Substring("path:".Length);
-                return _tabService.FindTabByPath(path);
+                return service.FindTabByPath(path);
             }
             else if (tabKey.StartsWith("library:"))
             {
                 var libraryIdStr = tabKey.Substring("library:".Length);
                 if (int.TryParse(libraryIdStr, out int libraryId))
                 {
-                    return _tabService.FindTabByLibraryId(libraryId);
+                    return service.FindTabByLibraryId(libraryId);
                 }
             }
             else if (tabKey.StartsWith("tag:"))
@@ -732,7 +788,7 @@ namespace OoiMRR.Services
                 var tagIdStr = tabKey.Substring("tag:".Length);
                 if (int.TryParse(tagIdStr, out int tagId))
                 {
-                    return _tabService.FindTabByTagId(tagId);
+                    return service.FindTabByTagId(tagId);
                 }
             }
 

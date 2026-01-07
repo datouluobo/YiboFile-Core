@@ -354,6 +354,32 @@ namespace OoiMRR.Services.Tabs
         }
 
         /// <summary>
+        /// 更新当前活动标签页的路径和标题
+        /// </summary>
+        public void UpdateActiveTabPath(string newPath)
+        {
+            if (_activeTab != null && _activeTab.Type == TabType.Path)
+            {
+                if (_activeTab.Path == newPath) return;
+
+                _activeTab.Path = newPath;
+                _activeTab.Title = GetPathDisplayTitle(newPath);
+
+                if (_activeTab.TitleTextBlock != null)
+                {
+                    _activeTab.TitleTextBlock.Text = _activeTab.Title;
+                }
+
+                if (_activeTab.TabButton != null)
+                {
+                    _activeTab.TabButton.ToolTip = newPath;
+                }
+
+                TabTitleChanged?.Invoke(this, _activeTab);
+            }
+        }
+
+        /// <summary>
         /// 判断是否可以关闭标签页
         /// </summary>
         public bool CanCloseTab(PathTab tab, bool isLibraryMode)
@@ -1557,7 +1583,17 @@ namespace OoiMRR.Services.Tabs
                 e.Effects = DragDropEffects.None;
                 return;
             }
-            e.Effects = DragDropEffects.Move;
+
+            // Allow Copy if Ctrl is pressed, otherwise Move
+            if ((e.KeyStates & DragDropKeyStates.ControlKey) == DragDropKeyStates.ControlKey)
+            {
+                e.Effects = DragDropEffects.Copy;
+            }
+            else
+            {
+                e.Effects = DragDropEffects.Move;
+            }
+
             e.Handled = true;
         }
 
@@ -1568,13 +1604,12 @@ namespace OoiMRR.Services.Tabs
                 if (!e.Data.GetDataPresent("OoiMRR_TabKey")) return;
                 var key = e.Data.GetData("OoiMRR_TabKey") as string;
                 if (string.IsNullOrEmpty(key) || _ui.TabManager?.TabsPanelControl == null) return;
-                var tab = _tabs.FirstOrDefault(t => GetTabKey(t) == key);
-                if (tab == null) return;
 
                 var panel = _ui.TabManager.TabsPanelControl;
                 var mousePos = e.GetPosition(panel);
                 var children = panel.Children.OfType<StackPanel>().ToList();
                 int childrenCount = children.Count;
+
                 int targetIndex = 0;
                 for (int i = 0; i < childrenCount; i++)
                 {
@@ -1585,14 +1620,82 @@ namespace OoiMRR.Services.Tabs
                     if (mousePos.X > mid) targetIndex = i + 1;
                 }
 
-                int pinnedCount = _tabs.Count(t => t.IsPinned);
-                if (tab.IsPinned) targetIndex = Math.Min(targetIndex, pinnedCount);
-                else targetIndex = Math.Max(targetIndex, pinnedCount);
+                var tab = _tabs.FirstOrDefault(t => GetTabKey(t) == key);
+
+                // 处理跨面板拖拽 (Inter-pane Drag & Drop)
+                if (tab == null)
+                {
+                    if (_ui.OwnerWindow is MainWindow mainWindow)
+                    {
+                        // 确定源服务
+                        TabService otherService = null;
+                        if (this == mainWindow._tabService) otherService = mainWindow._secondTabService;
+                        else if (this == mainWindow._secondTabService) otherService = mainWindow._tabService;
+
+                        if (otherService != null)
+                        {
+                            var otherTab = otherService.Tabs.FirstOrDefault(t => otherService.GetTabKey(t) == key);
+                            if (otherTab != null)
+                            {
+                                // Check for Copy vs Move (Ctrl key)
+                                bool isCopy = (e.KeyStates & DragDropKeyStates.ControlKey) == DragDropKeyStates.ControlKey;
+
+                                // 1. 如果不是复制模式，则从源服务移除
+                                if (!isCopy)
+                                {
+                                    otherService.RemoveTab(otherTab);
+                                }
+
+                                // 2. 在当前服务创建新标签页
+                                PathTab newTab = null;
+                                if (otherTab.Type == TabType.Library && otherTab.Library != null)
+                                {
+                                    OpenLibraryTab(otherTab.Library, forceNewTab: true);
+                                    newTab = ActiveTab;
+                                }
+                                else
+                                {
+                                    CreatePathTab(otherTab.Path, forceNewTab: true);
+                                    newTab = ActiveTab;
+                                }
+
+                                if (newTab == null) return;
+
+                                // 3. 恢复固定状态
+                                bool isPinned = false;
+                                if (e.Data.GetDataPresent("OoiMRR_TabPinned"))
+                                {
+                                    isPinned = (bool)e.Data.GetData("OoiMRR_TabPinned");
+                                }
+                                if (isPinned && !newTab.IsPinned)
+                                {
+                                    TogglePinTab(newTab);
+                                }
+
+                                // 4. 调整位置到 Drop 目标位
+                                int pinnedCount = _tabs.Count(t => t.IsPinned);
+                                if (newTab.IsPinned) targetIndex = Math.Min(targetIndex, pinnedCount); // 固定标签不能超过固定区
+                                else targetIndex = Math.Max(targetIndex, pinnedCount); // 非固定标签不能进入固定区
+
+                                UpdateTabOrderAfterDrag(newTab, targetIndex, pinnedCount);
+                                ReorderTabs();
+                                UpdateTabStyles();
+                                return;
+                            }
+                        }
+                    }
+                    return;
+                }
+
+                // 面板内排序 (Reordering within same pane)
+                int pinnedCountLocal = _tabs.Count(t => t.IsPinned);
+                if (tab.IsPinned) targetIndex = Math.Min(targetIndex, pinnedCountLocal);
+                else targetIndex = Math.Max(targetIndex, pinnedCountLocal);
 
                 int currentIndex = children.IndexOf(tab.TabContainer);
                 if (currentIndex == targetIndex) return;
 
-                UpdateTabOrderAfterDrag(tab, targetIndex, pinnedCount);
+                UpdateTabOrderAfterDrag(tab, targetIndex, pinnedCountLocal);
 
                 ReorderTabs();
                 UpdateTabStyles();

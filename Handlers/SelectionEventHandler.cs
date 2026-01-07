@@ -74,7 +74,8 @@ namespace OoiMRR.Handlers
                     // 5. 检查剪贴板状态（如果是剪切，调整透明度）
                     try
                     {
-                        bool isCut = FileClipboardManager.IsCutOperation && FileClipboardManager.GetCopiedPaths().Contains(selectedItem.Path);
+                        var clipboardService = OoiMRR.Services.FileOperations.ClipboardService.Instance;
+                        bool isCut = clipboardService.IsCutOperation && clipboardService.CutPaths.Contains(selectedItem.Path);
                         if (_mainWindow.FileBrowser?.FilesList != null)
                         {
                             var container = _mainWindow.FileBrowser.FilesList.ItemContainerGenerator.ContainerFromItem(selectedItem) as ListViewItem;

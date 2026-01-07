@@ -8,6 +8,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using OoiMRR.Controls;
 using OoiMRR.Services.Tabs;
+using OoiMRR.Services.FileOperations;
 
 namespace OoiMRR
 {
@@ -213,7 +214,7 @@ namespace OoiMRR
                 // 初始化副列表的 FileInfoService（首次进入时）
                 if (_secondFileInfoService == null)
                 {
-                    _secondFileInfoService = new Services.FileInfo.FileInfoService(SecondFileBrowser, _fileListService);
+                    _secondFileInfoService = new Services.FileInfo.FileInfoService(SecondFileBrowser, _secondFileListService);
                 }
 
                 // 初始化副标签页服务（首次进入时）
@@ -226,13 +227,22 @@ namespace OoiMRR
 
                     // 然后应用实际配置
                     _secondTabService.UpdateConfig(_configService?.Config ?? new AppConfig());
+
+                    // 通知 WindowStateManager 更新引用并恢复标签页
+                    if (_windowStateManager != null)
+                    {
+                        _windowStateManager.SetSecondTabService(_secondTabService);
+                        _windowStateManager.RestoreSecondaryTabs();
+                    }
                 }
 
-                SecondFileBrowser.UpdateBreadcrumb(_currentPath);
+                // 移除错误的 UpdateBreadcrumb(_currentPath) 调用，避免覆盖副列表的独立路径
+                // SecondFileBrowser.UpdateBreadcrumb(_currentPath); 
+
                 InitializeSecondFileBrowserEvents();
                 LoadSecondFileBrowserContent();
 
-                // 为副列表创建初始标签页
+                // 为副列表创建初始标签页（如果恢复失败或为空）
                 EnsureSecondTabExists();
             }
 
@@ -247,28 +257,34 @@ namespace OoiMRR
         /// <summary>
         /// 调整标签页管理器布局
         /// </summary>
+        /// <summary>
+        /// 调整标签页管理器布局
+        /// </summary>
         private void UpdateTabManagerLayout()
         {
             if (_isDualListMode)
             {
-                // 双列表模式：主标签页限制在列2
-                TabManager.Margin = new Thickness(0, 0, 0, 0);
+                // 双列表模式：主标签页限制在列1-3 (Gap + Center + Gap)
+                // 这样避免触碰到列4（副列表所在）
+                // 之前代码设为列2 Span 1，可能导致左侧有间隙，这里改为列1 Span 3 更自然
                 if (TabManager.Parent is Grid grid)
                 {
-                    Grid.SetColumn(TabManager, 2);
-                    Grid.SetColumnSpan(TabManager, 1);
+                    Grid.SetColumn(TabManager, 1);
+                    Grid.SetColumnSpan(TabManager, 3);
                 }
             }
             else
             {
-                // 单列表模式：标签页跨越列1-4
-                TabManager.Margin = new Thickness(0, 0, 380, 0);
+                // 单列表模式：标签页跨越列1-4（全部）
                 if (TabManager.Parent is Grid grid)
                 {
                     Grid.SetColumn(TabManager, 1);
                     Grid.SetColumnSpan(TabManager, 4);
                 }
             }
+
+            // 统一调用 Margin 更新逻辑
+            UpdateTabManagerMargin();
         }
 
         /// <summary>
@@ -448,6 +464,61 @@ namespace OoiMRR
             // 保留原有 GotFocus 以防键盘导航触发
             SecondFileBrowser.GotFocus += (s, e) => { if (!_isSecondPaneFocused) { _isSecondPaneFocused = true; UpdateFocusBorders(); } };
             FileBrowser.GotFocus += (s, e) => { if (_isSecondPaneFocused) { _isSecondPaneFocused = false; UpdateFocusBorders(); } };
+
+            // 绑定文件操作事件 (右键菜单支持)
+            SecondFileBrowser.FileCopy += (s, e) => _menuEventHandler?.Copy_Click(s, e);
+            SecondFileBrowser.FileCut += (s, e) => _menuEventHandler?.Cut_Click(s, e);
+            SecondFileBrowser.FilePaste += (s, e) => _menuEventHandler?.Paste_Click(s, e);
+            SecondFileBrowser.FileRename += (s, e) => _menuEventHandler?.Rename_Click(s, e);
+            SecondFileBrowser.FileRefresh += (s, e) => RefreshActiveFileList();
+            SecondFileBrowser.FileProperties += (s, e) => MessageBox.Show("属性功能开发中", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+
+            // F2快捷键和其他键盘事件支持
+            SecondFileBrowser.FilesPreviewKeyDown += FilesListView_PreviewKeyDown;
+
+            // 顶部工具栏按钮支持
+            SecondFileBrowser.FileNewFolder += (s, e) => _menuEventHandler?.NewFolder_Click(s, e);
+            SecondFileBrowser.FileNewFile += (s, e) => _menuEventHandler?.NewFile_Click(s, e);
+            SecondFileBrowser.FileAddTag += (s, e) => { /* Phase 2 */ };
+
+
+            SecondFileBrowser.FileDelete += async (s, e) =>
+            {
+                try
+                {
+                    // 使用 GetActiveContext 确保获取正确的上下文
+                    var (browser, path, library) = GetActiveContext();
+                    IFileOperationContext context = null;
+                    if (library != null)
+                    {
+                        context = new LibraryOperationContext(library, browser, this, RefreshActiveFileList);
+                    }
+                    else
+                    {
+                        context = new PathOperationContext(path, browser, this, RefreshActiveFileList);
+                    }
+                    var items = browser?.FilesSelectedItems?.Cast<FileSystemItem>().ToList();
+
+                    // 使用统一的文件操作服务进行删除，它已经包含了确认对话框和撤销支持
+                    // 注意：DeleteOperation 是旧的实现，这里我们应该尽量使用 FileOperationService
+                    // 但为了保持与 FileDelete 事件签名一致 (RoutedEventHandler)，我们这里手动调用
+
+                    if (_fileOperationService != null)
+                    {
+                        await _fileOperationService.DeleteAsync(items);
+                    }
+                    else
+                    {
+                        // Fallback to legacy DeleteOperation if service not available (unlikely)
+                        var op = new Services.FileOperations.DeleteOperation(context);
+                        await op.ExecuteAsync(items);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"删除操作失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            };
         }
 
         /// <summary>
@@ -469,7 +540,20 @@ namespace OoiMRR
 
         private void LoadSecondFileBrowserContent()
         {
-            _secondCurrentPath = _currentPath;
+            // 优先使用现有的副面板路径，或者副标签页的路径
+            if (string.IsNullOrEmpty(_secondCurrentPath))
+            {
+                if (_secondTabService?.ActiveTab != null && !string.IsNullOrEmpty(_secondTabService.ActiveTab.Path))
+                {
+                    _secondCurrentPath = _secondTabService.ActiveTab.Path;
+                }
+                else
+                {
+                    // 只有在完全没有状态时才默认跟随主面板
+                    _secondCurrentPath = _currentPath;
+                }
+            }
+
             LoadSecondFileBrowserDirectory(_secondCurrentPath);
         }
 
@@ -479,7 +563,7 @@ namespace OoiMRR
 
             try
             {
-                var items = await _fileListService.LoadFileSystemItemsAsync(path);
+                var items = await _secondFileListService.LoadFileSystemItemsAsync(path);
                 SecondFileBrowser.FilesItemsSource = items;
                 SecondFileBrowser.UpdateBreadcrumb(path);
                 SecondFileBrowser.NavBackEnabled = _secondNavHistory.Count > 0;
@@ -500,6 +584,13 @@ namespace OoiMRR
             }
             _secondNavForward.Clear();
             _secondCurrentPath = newPath;
+
+            // 同步更新当前激活的标签页路径
+            if (_secondTabService != null)
+            {
+                _secondTabService.UpdateActiveTabPath(newPath);
+            }
+
             LoadSecondFileBrowserDirectory(newPath);
         }
 
@@ -581,12 +672,19 @@ namespace OoiMRR
                         // 初始化副列表的 FileInfoService
                         if (_secondFileInfoService == null)
                         {
-                            _secondFileInfoService = new Services.FileInfo.FileInfoService(SecondFileBrowser, _fileListService);
+                            _secondFileInfoService = new Services.FileInfo.FileInfoService(SecondFileBrowser, _secondFileListService);
                         }
 
                         _secondTabService = new TabService(new AppConfig());
                         AttachSecondTabServiceUiContext();
                         _secondTabService.UpdateConfig(_configService?.Config ?? new AppConfig());
+
+                        // 通知 WindowStateManager 更新引用并恢复标签页
+                        if (_windowStateManager != null)
+                        {
+                            _windowStateManager.SetSecondTabService(_secondTabService);
+                            _windowStateManager.RestoreSecondaryTabs();
+                        }
                     }
 
                     UpdateTabManagerLayout();
@@ -626,6 +724,42 @@ namespace OoiMRR
 
         #endregion
 
+        #region 上下文获取辅助方法
+
+        /// <summary>
+        /// 获取当前激活的文件上下文（浏览器和路径）
+        /// 支持单/双栏模式自动识别
+        /// </summary>
+        internal (Controls.FileBrowserControl browser, string path, Library library) GetActiveContext()
+        {
+            if (_isDualListMode && _isSecondPaneFocused && SecondFileBrowser != null)
+            {
+                // 副列表目前只支持路径模式，暂不支持库
+                return (SecondFileBrowser, _secondCurrentPath, null);
+            }
+            return (FileBrowser, _currentPath, _currentLibrary);
+        }
+
+        /// <summary>
+        /// 刷新当前激活的文件列表
+        /// </summary>
+        internal void RefreshActiveFileList()
+        {
+            if (_isDualListMode && _isSecondPaneFocused && SecondFileBrowser != null)
+            {
+                if (!string.IsNullOrEmpty(_secondCurrentPath))
+                {
+                    LoadSecondFileBrowserDirectory(_secondCurrentPath);
+                }
+            }
+            else
+            {
+                RefreshFileList();
+            }
+        }
+
+        #endregion
+
         #region 布局初始化
 
         /// <summary>
@@ -636,6 +770,7 @@ namespace OoiMRR
         {
             // 初始恢复配置
             RestoreLayoutMode();
+            RestoreDualListMode();
         }
 
         #endregion

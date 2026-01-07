@@ -1,0 +1,207 @@
+<UserControl x:Class="OoiMRR.Controls.TaskQueuePanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:OoiMRR.Controls"
+             xmlns:tq="clr-namespace:OoiMRR.Services.FileOperations.TaskQueue"
+             mc:Ignorable="d" 
+             d:DesignHeight="300" d:DesignWidth="360">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        <!-- 状态转换器 -->
+        <local:TaskStatusToColorConverter x:Key="StatusToColor"/>
+        <local:PauseResumeTextConverter x:Key="PauseResumeTextConverter"/>
+        
+        <!-- 现代化圆角进度条样式 -->
+        <Style x:Key="ModernProgressBarStyle" TargetType="ProgressBar">
+            <Setter Property="Height" Value="6"/>
+            <Setter Property="Background" Value="{DynamicResource ControlDefaultBackgroundBrush}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ProgressBar">
+                        <Grid>
+                            <Border Background="{TemplateBinding Background}" CornerRadius="3" Height="{TemplateBinding Height}"/>
+                            <Border x:Name="PART_Track" CornerRadius="3" Height="{TemplateBinding Height}">
+                                <Border x:Name="PART_Indicator" HorizontalAlignment="Left" 
+                                        Background="{TemplateBinding Foreground}" CornerRadius="3"/>
+                            </Border>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <!-- 小型操作按钮样式 -->
+        <Style x:Key="TaskActionButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="{TemplateBinding Background}" 
+                                CornerRadius="4" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlHoverBackgroundBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlPressedBackgroundBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+    
+    <!-- 外层容器带阴影和圆角 -->
+    <Border Background="{DynamicResource SurfaceBrush}" 
+            BorderBrush="{DynamicResource BorderDefaultBrush}" 
+            BorderThickness="1" 
+            CornerRadius="8"
+            MinWidth="320"
+            MaxWidth="400">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="20" ShadowDepth="4" Opacity="0.2" Direction="270"/>
+        </Border.Effect>
+        
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*" MaxHeight="300"/>
+            </Grid.RowDefinitions>
+            
+            <!-- Header -->
+            <Border Grid.Row="0" Background="{DynamicResource ControlDefaultBackgroundBrush}" 
+                    CornerRadius="8,8,0,0" Padding="12,10">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <!-- 图标 -->
+                    <TextBlock Grid.Column="0" Text="📋" FontSize="14" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    
+                    <!-- 标题 -->
+                    <TextBlock Grid.Column="1" Text="任务队列" FontWeight="SemiBold" FontSize="13"
+                               VerticalAlignment="Center" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                    
+                    <!-- 操作按钮 -->
+                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                        <Button Content="清理" Click="ClearCompleted_Click" 
+                                Style="{StaticResource TaskActionButtonStyle}" 
+                                ToolTip="清理已完成的任务"/>
+                        <Button Content="✕" Click="Close_Click" 
+                                Style="{StaticResource TaskActionButtonStyle}" 
+                                FontSize="12" Padding="6,4"
+                                ToolTip="关闭面板"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+            
+            <!-- Task List -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0">
+                <ItemsControl x:Name="TasksList">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type tq:FileOperationTask}">
+                            <Border x:Name="taskBorder" Background="Transparent" 
+                                    BorderBrush="{DynamicResource BorderSubtleBrush}" 
+                                    BorderThickness="0,0,0,1" 
+                                    Padding="12,10">
+                                <Border.Triggers>
+                                    <EventTrigger RoutedEvent="Border.MouseEnter">
+                                        <BeginStoryboard>
+                                            <Storyboard>
+                                                <ColorAnimation Storyboard.TargetName="taskBorder"
+                                                                Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                                                                To="#08000000" Duration="0:0:0.15"/>
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </EventTrigger>
+                                    <EventTrigger RoutedEvent="Border.MouseLeave">
+                                        <BeginStoryboard>
+                                            <Storyboard>
+                                                <ColorAnimation Storyboard.TargetName="taskBorder"
+                                                                Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                                                                To="Transparent" Duration="0:0:0.15"/>
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </EventTrigger>
+                                </Border.Triggers>
+                                
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    
+                                    <!-- 描述和状态 -->
+                                    <Grid Grid.Row="0" Margin="0,0,0,6">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding Description}" 
+                                                   FontWeight="Medium" FontSize="12"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <Border Grid.Column="1" CornerRadius="4" Padding="6,2"
+                                                Background="{Binding Status, Converter={StaticResource StatusToColor}}"
+                                                Opacity="0.15">
+                                            <TextBlock Text="{Binding Status}" 
+                                                       FontSize="10" FontWeight="Medium"
+                                                       Foreground="{Binding Status, Converter={StaticResource StatusToColor}}"/>
+                                        </Border>
+                                    </Grid>
+                                    
+                                    <!-- 进度条 -->
+                                    <ProgressBar Grid.Row="1" 
+                                                 Value="{Binding Progress}" Maximum="100" 
+                                                 Margin="0,0,0,6"
+                                                 Style="{StaticResource ModernProgressBarStyle}"
+                                                 Foreground="{Binding Status, Converter={StaticResource StatusToColor}}"/>
+                                    
+                                    <!-- 当前文件和操作按钮 -->
+                                    <Grid Grid.Row="2">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding CurrentFile}" 
+                                                   FontSize="11" 
+                                                   Foreground="{DynamicResource TextTertiaryBrush}" 
+                                                   TextTrimming="CharacterEllipsis" 
+                                                   VerticalAlignment="Center"/>
+                                        
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="8,0,0,0">
+                                            <!-- Pause/Resume Button -->
+                                            <Button Content="{Binding IsPaused, Converter={StaticResource PauseResumeTextConverter}}" 
+                                                    Tag="{Binding}" Click="PauseResume_Click" 
+                                                    Style="{StaticResource TaskActionButtonStyle}" 
+                                                    Margin="0,0,4,0"/>
+                                            
+                                            <!-- Cancel Button -->
+                                            <Button Content="取消" Tag="{Binding}" Click="CancelTask_Click" 
+                                                    Style="{StaticResource TaskActionButtonStyle}"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Grid>
+    </Border>
+</UserControl>

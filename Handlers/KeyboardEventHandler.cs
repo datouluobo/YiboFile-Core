@@ -26,6 +26,7 @@ namespace OoiMRR.Handlers
         private readonly Action _pasteClick;
         private readonly Action _cutClick;
         private readonly Action _deleteClick;
+        private readonly Action _permanentDeleteClick; // Shift+Delete
         private readonly Action _renameClick;
         private readonly Action<string> _navigateToPath;
         private readonly Action<string> _switchNavigationMode;
@@ -47,6 +48,7 @@ namespace OoiMRR.Handlers
             Action pasteClick,
             Action cutClick,
             Action deleteClick,
+            Action permanentDeleteClick, // Shift+Delete
             Action renameClick,
             Action<string> navigateToPath,
             Action<string> switchNavigationMode,
@@ -67,6 +69,7 @@ namespace OoiMRR.Handlers
             _pasteClick = pasteClick ?? throw new ArgumentNullException(nameof(pasteClick));
             _cutClick = cutClick ?? throw new ArgumentNullException(nameof(cutClick));
             _deleteClick = deleteClick ?? throw new ArgumentNullException(nameof(deleteClick));
+            _permanentDeleteClick = permanentDeleteClick; // 可为null，回退到普通删除
             _renameClick = renameClick ?? throw new ArgumentNullException(nameof(renameClick));
             _navigateToPath = navigateToPath ?? throw new ArgumentNullException(nameof(navigateToPath));
             _switchNavigationMode = switchNavigationMode ?? throw new ArgumentNullException(nameof(switchNavigationMode));
@@ -280,6 +283,7 @@ namespace OoiMRR.Handlers
             }
 
             // Delete: 删除（如果文件列表有焦点，且不在文本框中）
+            // Shift+Delete: 永久删除（跳过回收站）
             if (e.Key == Key.Delete)
             {
                 var focusedElement = Keyboard.FocusedElement;
@@ -290,7 +294,15 @@ namespace OoiMRR.Handlers
                 }
                 if (_fileBrowser?.FilesSelectedItems != null && _fileBrowser.FilesSelectedItems.Count > 0)
                 {
-                    _deleteClick();
+                    bool isShiftPressed = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
+                    if (isShiftPressed && _permanentDeleteClick != null)
+                    {
+                        _permanentDeleteClick(); // Shift+Delete: 永久删除
+                    }
+                    else
+                    {
+                        _deleteClick(); // 普通删除（移到回收站）
+                    }
                     e.Handled = true;
                     return;
                 }

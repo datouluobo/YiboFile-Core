@@ -114,11 +114,33 @@ namespace OoiMRR
             // 初始化 FileOperationHandler
             _fileOperationHandler = new Handlers.FileOperationHandler(this);
 
+            // 初始化统一文件操作服务 (新架构) - 逐步迁移中
+            var errorService = App.ServiceProvider.GetRequiredService<OoiMRR.Services.Core.Error.ErrorService>();
+            var undoService = App.ServiceProvider.GetService(typeof(OoiMRR.Services.FileOperations.Undo.UndoService)) as OoiMRR.Services.FileOperations.Undo.UndoService;
+            var taskQueueService = App.ServiceProvider.GetService(typeof(OoiMRR.Services.FileOperations.TaskQueue.TaskQueueService)) as OoiMRR.Services.FileOperations.TaskQueue.TaskQueueService;
+
+            _fileOperationService = new Services.FileOperations.FileOperationService(
+                () =>
+                {
+                    var (browser, path, library) = GetActiveContext();
+                    return new Services.FileOperations.FileOperationContext
+                    {
+                        TargetPath = path,
+                        CurrentLibrary = library,
+                        OwnerWindow = this,
+                        RefreshCallback = RefreshActiveFileList
+                    };
+                },
+                errorService,
+                undoService,
+                taskQueueService
+            );
+
             // 初始化 MenuEventHandler
             _menuEventHandler = new MenuEventHandler(
                 FileBrowser,
                 _libraryService,
-                RefreshFileList,
+                RefreshActiveFileList,
                 LoadCurrentDirectory,
                 () => // ClearFilter
                 {
@@ -161,158 +183,38 @@ namespace OoiMRR
                 ImportLibrary_Click_Logic, // importLibrary
                 ExportLibrary_Click_Logic, // exportLibrary
                 () => { }, // addFileToLibrary - Implement logic if needed
-                () => // Copy
-                {
-                    if (FileBrowser?.FilesSelectedItems != null)
-                    {
-                        var paths = FileBrowser.FilesSelectedItems.Cast<FileSystemItem>().Select(i => i.Path).ToList();
-                        if (paths.Count > 0)
-                        {
-                            // 使用 DataObject 同时存储文件路径和 DropEffect，避免多次 SetData 互相覆盖
-                            var data = new System.Windows.DataObject();
-                            var fileDropList = new System.Collections.Specialized.StringCollection();
-                            fileDropList.AddRange(paths.ToArray());
-                            data.SetFileDropList(fileDropList);
-
-                            // 清除剪切标记（使用DataFormats.PreferredDropEffect）
-                            data.SetData("Preferred DropEffect", new System.IO.MemoryStream(BitConverter.GetBytes((int)System.Windows.DragDropEffects.Copy)));
-
-                            SetClipboardDataObjectWithRetry(data);
-                        }
-                    }
-                },
-                () => // Cut
-                {
-                    if (FileBrowser?.FilesSelectedItems != null)
-                    {
-                        var paths = FileBrowser.FilesSelectedItems.Cast<FileSystemItem>().Select(i => i.Path).ToList();
-                        if (paths.Count > 0)
-                        {
-                            // 使用 DataObject 同时存储文件路径和 DropEffect
-                            var data = new System.Windows.DataObject();
-                            var fileDropList = new System.Collections.Specialized.StringCollection();
-                            fileDropList.AddRange(paths.ToArray());
-                            data.SetFileDropList(fileDropList);
-
-                            // 设置剪切标记（与Windows资源管理器兼容）
-                            var dropEffect = new byte[] { 2, 0, 0, 0 }; // DROPEFFECT_MOVE = 2
-                            var ms = new System.IO.MemoryStream(dropEffect);
-                            data.SetData("Preferred DropEffect", ms);
-
-                            SetClipboardDataObjectWithRetry(data);
-                        }
-                    }
-                },
-                async () => // Paste
-                {
-                    Controls.FileOperationProgressControl progressControl = null;
-                    System.Threading.CancellationTokenSource cts = null;
-
-                    try
-                    {
-                        IFileOperationContext context = null;
-                        if (_currentLibrary != null)
-                        {
-                            context = new LibraryOperationContext(_currentLibrary, FileBrowser, this, RefreshFileList);
-                        }
-                        else
-                        {
-                            context = new PathOperationContext(_currentPath, FileBrowser, this, RefreshFileList);
-                            System.Diagnostics.Debug.WriteLine($"[Paste] 使用PathOperationContext, 路径: {_currentPath}");
-                        }
-
-                        var errorService = App.ServiceProvider.GetRequiredService<OoiMRR.Services.Core.Error.ErrorService>();
-                        var op = new AsyncPasteOperation(context, errorService);
-
-                        // 创建进度控件
-                        cts = new System.Threading.CancellationTokenSource();
-                        progressControl = new Controls.FileOperationProgressControl();
-                        progressControl.SetTitle("正在粘贴文件...");
-                        progressControl.CancellationTokenSource = cts;
-
-                        // 显示进度控件
-                        FileOperationProgressContainer.Child = progressControl;
-                        FileOperationProgressContainer.Visibility = Visibility.Visible;
-
-                        // 连接进度事件
-                        op.ProgressChanged += (current, total, fileName) =>
-                        {
-                            Dispatcher.Invoke(() =>
-                            {
-                                progressControl.SetProgress(current, total);
-                                progressControl.SetCurrentFile(fileName);
-                            });
-                        };
-
-                        System.Diagnostics.Debug.WriteLine("[Paste] 开始执行异步粘贴操作");
-                        await op.ExecuteAsync(null, false, cts.Token);
-                        System.Diagnostics.Debug.WriteLine("[Paste] 粘贴操作完成");
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        System.Diagnostics.Debug.WriteLine("[Paste] 操作已取消");
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[Paste] 错误: {ex.Message}");
-                        var errorService = App.ServiceProvider.GetService<OoiMRR.Services.Core.Error.ErrorService>();
-                        errorService?.ReportError($"粘贴失败: {ex.Message}", OoiMRR.Services.Core.Error.ErrorSeverity.Error, ex);
-                    }
-                    finally
-                    {
-                        // 隐藏进度控件
-                        FileOperationProgressContainer.Visibility = Visibility.Collapsed;
-                        FileOperationProgressContainer.Child = null;
-                        cts?.Dispose();
-                    }
-                },
-                async () => // Delete
-                {
-                    try
-                    {
-                        IFileOperationContext context = null;
-                        if (_currentLibrary != null)
-                        {
-                            context = new LibraryOperationContext(_currentLibrary, FileBrowser, this, RefreshFileList);
-                        }
-                        else
-                        {
-                            context = new PathOperationContext(_currentPath, FileBrowser, this, RefreshFileList);
-                        }
-
-                        var undoService = App.ServiceProvider.GetRequiredService<OoiMRR.Services.FileOperations.Undo.UndoService>();
-                        var op = new DeleteOperation(context, undoService);
-                        var items = FileBrowser?.FilesSelectedItems?.Cast<FileSystemItem>().ToList();
-                        await op.ExecuteAsync(items);
-                    }
-                    catch (Exception ex)
-                    {
-                        var errorService = App.ServiceProvider.GetService<OoiMRR.Services.Core.Error.ErrorService>();
-                        errorService?.ReportError($"删除操作失败: {ex.Message}", OoiMRR.Services.Core.Error.ErrorSeverity.Error, ex);
-                    }
-                },
+                async () => await CopySelectedFilesAsync(), // Copy - 使用统一服务
+                async () => await CutSelectedFilesAsync(), // Cut - 使用统一服务
+                async () => await PasteFilesAsync(), // Paste - 使用统一服务
+                async () => await DeleteSelectedFilesAsync(), // Delete - 使用统一服务
                 () => // Rename
                 {
+                    var (browser, path, library) = GetActiveContext();
                     IFileOperationContext context = null;
-                    if (_currentLibrary != null)
+                    if (library != null)
                     {
-                        context = new LibraryOperationContext(_currentLibrary, FileBrowser, this, RefreshFileList);
+                        context = new LibraryOperationContext(library, browser, this, RefreshActiveFileList);
                     }
                     else
                     {
-                        context = new PathOperationContext(_currentPath, FileBrowser, this, RefreshFileList);
+                        context = new PathOperationContext(path, browser, this, RefreshActiveFileList);
                     }
-                    var op = new RenameOperation(context, this);
-                    var item = FileBrowser?.FilesSelectedItem as FileSystemItem;
+                    var op = new RenameOperation(context, this, _fileOperationService);
+                    var item = browser?.FilesSelectedItem as FileSystemItem;
                     if (item != null) op.Execute(item);
                 },
                 () => { }, // ShowProperties - Implement if needed
                 NavigateToPath,
                 SwitchNavigationMode,
-                () => _currentPath,
-                () => _currentLibrary,
-                () => _currentFiles,
-                (files) => _currentFiles = files,
+                () => GetActiveContext().path,
+                () => GetActiveContext().library,
+                () => GetActiveContext().browser?.FilesItemsSource as System.Collections.Generic.List<FileSystemItem>,
+                (files) =>
+                {
+                    var b = GetActiveContext().browser;
+                    if (b != null) b.FilesItemsSource = files;
+                    if (b == FileBrowser) _currentFiles = files;
+                },
                 () => this,
                 (lib) => _tabService.OpenLibraryTab(lib),
                 (lib) => { }, // HighlightMatchingLibrary
@@ -351,6 +253,7 @@ namespace OoiMRR
                 () => _menuEventHandler.Paste_Click(null, null),
                 () => _menuEventHandler.Cut_Click(null, null),
                 () => _menuEventHandler.Delete_Click(null, null),
+                async () => await DeleteSelectedFilesAsync(permanent: true), // Shift+Delete 永久删除
                 () => _menuEventHandler.Rename_Click(null, null),
                 NavigateToPath,
                 SwitchNavigationMode,

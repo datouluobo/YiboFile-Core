@@ -85,6 +85,20 @@ namespace OoiMRR.Controls
                     SetupFileContextMenu();
                 }
             }
+
+            // 订阅标题操作栏事件
+            if (TitleActionBar != null)
+            {
+                TitleActionBar.NewFolderClicked += (s, e) => FileNewFolder?.Invoke(s, e);
+                TitleActionBar.NewFileClicked += (s, e) => FileNewFile?.Invoke(s, e);
+                TitleActionBar.CopyClicked += (s, e) => FileCopy?.Invoke(s, e);
+                TitleActionBar.PasteClicked += (s, e) => FilePaste?.Invoke(s, e);
+                TitleActionBar.DeleteClicked += (s, e) => FileDelete?.Invoke(s, e);
+                TitleActionBar.RefreshClicked += (s, e) => FileRefresh?.Invoke(s, e);
+                TitleActionBar.NewTagClicked += (s, e) => FileAddTag?.Invoke(s, e);
+                // TitleActionBar.ManageTagsClicked += ... (Pending implementation if needed)
+                // TitleActionBar.BatchAddTagsClicked += ...
+            }
         }
 
 
@@ -239,6 +253,8 @@ namespace OoiMRR.Controls
         public event RoutedEventHandler FileRefresh;
         public event RoutedEventHandler FileProperties;
         public event RoutedEventHandler FileAddTag;
+        public event RoutedEventHandler FileNewFolder;
+        public event RoutedEventHandler FileNewFile;
 
         // 地址栏事件处理
         private void AddressBarControl_PathChanged(object sender, string path)

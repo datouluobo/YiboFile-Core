@@ -67,6 +67,7 @@ namespace OoiMRR.Services
                     try
                     {
                         _mainWindow._tabService.UpdateConfig(config);
+                        _mainWindow._secondTabService?.UpdateConfig(config);
                     }
                     catch (Exception ex)
                     {
@@ -85,7 +86,8 @@ namespace OoiMRR.Services
                             _mainWindow._configService,
                             config,
                             _mainWindow._navigationService,
-                            _mainWindow._navigationModeService
+                            _mainWindow._navigationModeService,
+                            _mainWindow._secondTabService
                         );
                         FileLogger.Log("WindowStateManager initialized.");
                     }
@@ -147,6 +149,7 @@ namespace OoiMRR.Services
                             if (_mainWindow._tabService != null && cfg != null)
                             {
                                 _mainWindow._tabService.UpdateConfig(cfg);
+                                _mainWindow._secondTabService?.UpdateConfig(cfg);
                             }
                         }
                         catch (Exception ex)

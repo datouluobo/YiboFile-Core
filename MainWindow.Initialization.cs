@@ -28,6 +28,9 @@ namespace OoiMRR
 {
     public partial class MainWindow
     {
+        internal FileListService _secondFileListService;
+        internal List<FileSystemItem> _secondCurrentFiles = new List<FileSystemItem>();
+
         private void MainWindow_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
             _fileBrowserEventHandler?.HandleGlobalMouseDown(e);
@@ -69,12 +72,19 @@ namespace OoiMRR
             // 将 FileListService 传递给 FileListControl
             FileBrowser?.FileList?.SetFileListService(_fileListService);
 
+            // 初始化副文件列表服务
+            _secondFileListService = App.ServiceProvider.GetRequiredService<FileListService>();
+            SecondFileBrowser?.GetFileListControl()?.SetFileListService(_secondFileListService);
+
             _fileSystemWatcherService = App.ServiceProvider.GetRequiredService<FileSystemWatcherService>();
             _folderSizeCalculationService = App.ServiceProvider.GetRequiredService<FolderSizeCalculationService>();
 
             // 初始化标签页服务（需要配置，在加载配置后更新）
             // 注意：_config 将在 InitializeApplication 中加载，这里先创建空配置
+            // 初始化标签页服务（需要配置，在加载配置后更新）
+            // 注意：_config 将在 InitializeApplication 中加载，这里先创建空配置
             _tabService = new TabService(new AppConfig());
+            _secondTabService = new TabService(new AppConfig());
 
             // 初始化搜索服务
             // 注意：SearchResultBuilder 已在 DI 中注册但需要 FileListService 的依赖，这里通过 DI 获取 SearchService
@@ -98,6 +108,7 @@ namespace OoiMRR
             );
 
             AttachTabServiceUiContext();
+            AttachSecondTabServiceUiContext();
             _tabService.InitializeTabSizeHandler(); // Enable tab width compression
 
             // 初始化 UI 辅助服务（需要在 InitializeComponent 之后，因为需要 FileBrowser）
@@ -494,5 +505,6 @@ namespace OoiMRR
                 }
             };
         }
+
     }
 }

@@ -1,7 +1,8 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:controls="clr-namespace:OoiMRR.Controls"
-                    xmlns:colmgr="clr-namespace:OoiMRR.Services.UI.ColumnManagement">
+                    xmlns:colmgr="clr-namespace:OoiMRR.Services.UI.ColumnManagement"
+                    xmlns:ui="clr-namespace:OoiMRR.Services.UI">
     <!-- Theme resources are now loaded dynamically from Themes/*.xaml -->
     
     <!-- Window Control Brushes (Defaults) -->
@@ -1296,6 +1297,13 @@
             <Trigger Property="IsSelected" Value="True">
                 <Setter Property="Background" Value="{DynamicResource AccentSelectedBrush}"/>
                 <Setter Property="Foreground" Value="{DynamicResource ForegroundOnAccentBrush}"/>
+            </Trigger>
+
+            <!-- 拖放目标高亮 -->
+            <Trigger Property="ui:DragAttachedProperties.IsDragTarget" Value="True">
+                <Setter Property="Background" Value="{DynamicResource ControlHoverBrush}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource AccentDefaultBrush}"/>
+                <Setter Property="BorderThickness" Value="1"/>
             </Trigger>
             
             <!-- 选中且悬停 -->

@@ -6,7 +6,11 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Documents;
 using OoiMRR.Models.UI;
+using OoiMRR.Controls;
+using OoiMRR.Services.FileOperations.Undo;
+using OoiMRR.Services.UI;
 
 namespace OoiMRR.Services
 {
@@ -19,12 +23,17 @@ namespace OoiMRR.Services
         private Point _dragStartPoint;
         private bool _isDragging;
         private ListView _associatedListView;
+        private DragDropFeedbackAdorner _feedbackAdorner;
+        private AdornerLayer _adornerLayer;
 
         // Delegate for refreshing the UI after a file operation
         public Action RequestRefresh { get; set; }
 
         // Delegate to get the current path for background drops
         public Func<string> GetCurrentPath { get; set; }
+
+        // UndoService for recording undoable operations
+        public UndoService UndoService { get; set; }
 
         public DragDropManager()
         {
@@ -47,6 +56,7 @@ namespace OoiMRR.Services
             listView.AllowDrop = true;
             listView.Drop += ListView_Drop;
             listView.DragOver += ListView_DragOver;
+            listView.DragLeave += ListView_DragLeave;
         }
 
         private void ListView_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -68,9 +78,15 @@ namespace OoiMRR.Services
 
         private void StartDrag(ListView listView)
         {
-            if (listView == null) return;
+            System.Diagnostics.Debug.WriteLine("[DragDropManager] StartDrag called");
+            if (listView == null)
+            {
+                System.Diagnostics.Debug.WriteLine("[DragDropManager] StartDrag: listView is null");
+                return;
+            }
 
             var selectedItems = listView.SelectedItems.Cast<object>().ToList();
+            System.Diagnostics.Debug.WriteLine($"[DragDropManager] StartDrag: {selectedItems.Count} items selected");
             if (selectedItems.Count == 0) return;
 
             var filePaths = new List<string>();
@@ -91,8 +107,8 @@ namespace OoiMRR.Services
                     // Also set text/plain for compatibility
                     dataObject.SetData(DataFormats.Text, string.Join(Environment.NewLine, filePaths));
 
-                    // Allowed effects: Copy | Move
-                    DragDropEffects allowedEffects = DragDropEffects.Copy | DragDropEffects.Move;
+                    // 允许的操作: 复制 | 移动 | 创建快捷方式
+                    DragDropEffects allowedEffects = DragDropEffects.Copy | DragDropEffects.Move | DragDropEffects.Link;
                     DragDrop.DoDragDrop(listView, dataObject, allowedEffects);
                 }
                 finally
@@ -102,43 +118,91 @@ namespace OoiMRR.Services
             }
         }
 
+        private ListViewItem _lastTargetItem;
+
         private void ListView_DragOver(object sender, DragEventArgs e)
         {
-            // Determine effect based on keys
-            // Ctrl = Copy, Shift = Move, Default = Move (if same drive) or Copy (different drive)
-
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
             {
-                // Check if hovering over a directory item
+                // 修饰键优先级: Alt=快捷方式 > Ctrl=复制 > 默认=移动
+                DragDropEffects effect = GetDragDropEffect(e.KeyStates);
+
+                // 检查是否悬停在目录上
                 var targetItem = GetItemAtLocation(_associatedListView, e.GetPosition(_associatedListView));
+
+                // 更新高亮状态
+                if (targetItem != _lastTargetItem)
+                {
+                    if (_lastTargetItem != null)
+                    {
+                        DragAttachedProperties.SetIsDragTarget(_lastTargetItem, false);
+                    }
+                    _lastTargetItem = targetItem;
+                }
+
                 if (targetItem != null && targetItem.Content is FileSystemItem fsItem && fsItem.IsDirectory)
                 {
-                    // Dropping onto a folder
-                    e.Effects = (e.KeyStates & DragDropKeyStates.ControlKey) == DragDropKeyStates.ControlKey
-                        ? DragDropEffects.Copy
-                        : DragDropEffects.Move;
-                    e.Handled = true;
+                    // 仅当目标是文件夹时才高亮
+                    DragAttachedProperties.SetIsDragTarget(targetItem, true);
+                    e.Effects = effect;
                 }
                 else
                 {
-                    // Dropping into the current folder (background)
-                    e.Effects = DragDropEffects.Copy;
-                    e.Handled = true;
+                    if (targetItem != null)
+                    {
+                        DragAttachedProperties.SetIsDragTarget(targetItem, false);
+                    }
+                    e.Effects = effect;
                 }
+
+                // 更新视觉反馈提示
+                UpdateDragFeedback(e, effect);
+
+                e.Handled = true;
             }
             else
             {
+                ClearDragTargetHighlight();
                 e.Effects = DragDropEffects.None;
+                RemoveDragFeedback();
                 e.Handled = true;
             }
         }
 
+        private void ClearDragTargetHighlight()
+        {
+            if (_lastTargetItem != null)
+            {
+                DragAttachedProperties.SetIsDragTarget(_lastTargetItem, false);
+                _lastTargetItem = null;
+            }
+        }
+
+        private void ListView_DragLeave(object sender, DragEventArgs e)
+        {
+            RemoveDragFeedback();
+            ClearDragTargetHighlight();
+        }
+
         private void ListView_Drop(object sender, DragEventArgs e)
         {
-            if (!e.Data.GetDataPresent(DataFormats.FileDrop)) return;
+            System.Diagnostics.Debug.WriteLine("[DragDropManager] ListView_Drop called");
+            RemoveDragFeedback();
+            ClearDragTargetHighlight();
+
+            if (!e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                System.Diagnostics.Debug.WriteLine("[DragDropManager] ListView_Drop: No FileDrop data");
+                return;
+            }
 
             string[] sources = (string[])e.Data.GetData(DataFormats.FileDrop);
-            if (sources == null || sources.Length == 0) return;
+            if (sources == null || sources.Length == 0)
+            {
+                System.Diagnostics.Debug.WriteLine("[DragDropManager] ListView_Drop: sources is null or empty");
+                return;
+            }
+            System.Diagnostics.Debug.WriteLine($"[DragDropManager] ListView_Drop: {sources.Length} sources");
 
             // Determine Target
             string targetPath = null;
@@ -161,21 +225,25 @@ namespace OoiMRR.Services
                 return;
             }
 
-            // Perform Operation
-            bool isCopy = (e.KeyStates & DragDropKeyStates.ControlKey) == DragDropKeyStates.ControlKey;
+            // 确定操作类型: Alt=快捷方式, Ctrl=复制, Shift/默认=移动
+            DragDropEffects effect = GetDragDropEffect(e.KeyStates);
+            bool isCopy = effect == DragDropEffects.Copy;
+            bool isLink = effect == DragDropEffects.Link;
 
-            // If dragging from external -> assume Copy unless Shift is pressed (Move)
-            // Or simplified: Just respect Ctrl key. Default without Ctrl is usually Move if same drive, Copy if different.
-            // But implementing full Windows logic is complex. 
-            // For now: Ctrl -> Copy. No-Ctrl -> Move.
-            // UNLESS dropping on background (same folder), where Move is no-op, so maybe default to Copy if source==target?
-            // Actually, PerformFileOperation handles the Move-to-same-folder skipping.
-
-            PerformFileOperation(sources, targetPath, isCopy);
+            if (isLink)
+            {
+                // 创建快捷方式
+                CreateShortcuts(sources, targetPath);
+            }
+            else
+            {
+                PerformFileOperation(sources, targetPath, isCopy);
+            }
         }
 
         public void PerformFileOperation(string[] sources, string targetFolder, bool isCopy)
         {
+            System.Diagnostics.Debug.WriteLine($"[DragDropManager] PerformFileOperation: isCopy={isCopy}, target={targetFolder}, sources={sources.Length}");
             int successCount = 0;
             List<string> errors = new List<string>();
 
@@ -223,7 +291,8 @@ namespace OoiMRR.Services
                     }
                     else // Move
                     {
-                        if (Directory.Exists(source))
+                        bool isDirectory = Directory.Exists(source);
+                        if (isDirectory)
                         {
                             Directory.Move(source, destPath);
                         }
@@ -231,6 +300,9 @@ namespace OoiMRR.Services
                         {
                             File.Move(source, destPath);
                         }
+
+                        // 记录撤销操作
+                        UndoService?.RecordAction(new MoveUndoAction(source, destPath, isDirectory));
                     }
                     successCount++;
                 }
@@ -297,6 +369,120 @@ namespace OoiMRR.Services
                 target = VisualTreeHelper.GetParent(target);
             }
             return null;
+        }
+
+        /// <summary>
+        /// 更新拖放视觉反馈
+        /// </summary>
+        private void UpdateDragFeedback(DragEventArgs e, DragDropEffects effect)
+        {
+            if (_associatedListView == null) return;
+
+            // 获取或创建装饰者层
+            if (_adornerLayer == null)
+            {
+                _adornerLayer = AdornerLayer.GetAdornerLayer(_associatedListView);
+            }
+
+            // 创建装饰者
+            if (_feedbackAdorner == null && _adornerLayer != null)
+            {
+                _feedbackAdorner = new DragDropFeedbackAdorner(_associatedListView);
+                _adornerLayer.Add(_feedbackAdorner);
+            }
+
+            // 更新提示文本和位置
+            if (_feedbackAdorner != null)
+            {
+                string text = effect switch
+                {
+                    DragDropEffects.Copy => "复制",
+                    DragDropEffects.Link => "创建快捷方式",
+                    _ => "移动"
+                };
+
+                var position = e.GetPosition(_associatedListView);
+                _feedbackAdorner.UpdateFeedback(text, position);
+            }
+        }
+
+        /// <summary>
+        /// 移除拖放视觉反馈
+        /// </summary>
+        private void RemoveDragFeedback()
+        {
+            if (_feedbackAdorner != null && _adornerLayer != null)
+            {
+                _adornerLayer.Remove(_feedbackAdorner);
+                _feedbackAdorner = null;
+            }
+        }
+
+        /// <summary>
+        /// 根据修饰键确定拖放操作类型
+        /// 优先级: Alt=快捷方式 > Ctrl=复制 > Shift/默认=移动
+        /// </summary>
+        private DragDropEffects GetDragDropEffect(DragDropKeyStates keyStates)
+        {
+            // Alt = 创建快捷方式
+            if ((keyStates & DragDropKeyStates.AltKey) == DragDropKeyStates.AltKey)
+            {
+                return DragDropEffects.Link;
+            }
+            // Ctrl = 复制
+            if ((keyStates & DragDropKeyStates.ControlKey) == DragDropKeyStates.ControlKey)
+            {
+                return DragDropEffects.Copy;
+            }
+            // Shift 或默认 = 移动
+            return DragDropEffects.Move;
+        }
+
+        /// <summary>
+        /// 创建快捷方式
+        /// </summary>
+        private void CreateShortcuts(string[] sources, string targetFolder)
+        {
+            int successCount = 0;
+            try
+            {
+                foreach (var source in sources)
+                {
+                    if (!File.Exists(source) && !Directory.Exists(source)) continue;
+
+                    string fileName = Path.GetFileNameWithoutExtension(source);
+                    string shortcutPath = Path.Combine(targetFolder, $"{fileName}.lnk");
+
+                    // 确保唯一名称
+                    int counter = 1;
+                    while (File.Exists(shortcutPath))
+                    {
+                        shortcutPath = Path.Combine(targetFolder, $"{fileName} ({counter}).lnk");
+                        counter++;
+                    }
+
+                    // 使用 IWshRuntimeLibrary 创建快捷方式
+                    Type shellType = Type.GetTypeFromProgID("WScript.Shell");
+                    if (shellType != null)
+                    {
+                        dynamic shell = Activator.CreateInstance(shellType);
+                        var shortcut = shell.CreateShortcut(shortcutPath);
+                        shortcut.TargetPath = source;
+                        shortcut.WorkingDirectory = Path.GetDirectoryName(source);
+                        shortcut.Save();
+                        successCount++;
+                    }
+                }
+
+                if (successCount > 0)
+                {
+                    RequestRefresh?.Invoke();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"创建快捷方式失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
     }
 }

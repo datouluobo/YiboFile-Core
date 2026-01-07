@@ -96,6 +96,9 @@ namespace OoiMRR
         internal Handlers.FileOperationHandler _fileOperationHandler;
         private SelectionEventHandler _selectionEventHandler;
 
+        // 统一文件操作服务 (新架构)
+        internal Services.FileOperations.FileOperationService _fileOperationService;
+
 
 
 
@@ -213,6 +216,12 @@ namespace OoiMRR
                 CreateTab(Environment.GetFolderPath(Environment.SpecialFolder.Desktop));
             };
 
+            // 订阅剪切状态变化事件，更新文件半透明效果
+            Services.FileOperations.ClipboardService.Instance.CutStateChanged += (cutPaths) =>
+            {
+                Dispatcher.BeginInvoke(new Action(() => UpdateCutItemsVisualState(cutPaths)));
+            };
+
             // Hook up dynamic tab margin adjustment
             if (WindowButtonsStackPanel != null)
             {
@@ -237,15 +246,44 @@ namespace OoiMRR
 
         private void UpdateTabManagerMarginLogic()
         {
-            if (TabManager != null && WindowButtonsStackPanel != null)
-            {
-                // Ensure tabs don't overlap with window control buttons
-                // Add a small buffer (e.g. 10px) to the buttons' actual width
-                double rightMargin = WindowButtonsStackPanel.ActualWidth + 15;
+            if (WindowButtonsStackPanel == null) return;
 
-                // Keep the other margins as defined in XAML (0,0,0,0) - wait, XAML had 0,0,250,0
-                // We overwrite the Right margin dynamically.
-                TabManager.Margin = new Thickness(0, 0, rightMargin, 0);
+            // Ensure tabs don't overlap with window control buttons
+            // Add a small buffer (e.g. 15px) to the buttons' actual width
+            double rightMargin = WindowButtonsStackPanel.ActualWidth + 15;
+
+            // Check if we are in Dual List Mode (using the property from LayoutMode.cs)
+            // Note: Since this logic is in partial MainWindow, we can access _isDualListMode or use the property
+            bool isDualMode = this.IsDualListMode;
+
+            if (TabManager != null)
+            {
+                if (isDualMode)
+                {
+                    // Dual Mode: TabManager is in Left/Center columns.
+                    // It typically doesn't reach the far right (where window controls are), unless columns are weird.
+                    // Safest is to set 0 or small margin.
+                    TabManager.Margin = new Thickness(0, 0, 0, 0);
+                }
+                else
+                {
+                    // Single Mode: TabManager spans entire width. Needs to avoid window controls.
+                    TabManager.Margin = new Thickness(0, 0, rightMargin, 0);
+                }
+            }
+
+            if (SecondTabManager != null)
+            {
+                if (isDualMode)
+                {
+                    // SecondTabManager is visible and at the right. Needs to avoid window controls.
+                    SecondTabManager.Margin = new Thickness(0, 0, rightMargin, 0);
+                }
+                else
+                {
+                    // Not visible, margin doesn't matter much, but keep cleaner.
+                    SecondTabManager.Margin = new Thickness(0);
+                }
             }
         }
 
@@ -319,6 +357,19 @@ namespace OoiMRR
                 _configService.Config.FileViewMode = mode;
                 _configService.SaveCurrentConfig();
             }
+
+            // 恢复剪切状态的视觉效果
+            // 需要延迟执行等待容器生成
+            this.Dispatcher.InvokeAsync(async () =>
+            {
+                // 等待 UI 更新
+                await Task.Delay(100);
+                var (files, isCut) = await OoiMRR.Services.FileOperations.ClipboardService.Instance.GetPathsFromClipboardAsync();
+                if (isCut && files.Count > 0)
+                {
+                    UpdateCutItemsVisualState(files);
+                }
+            }, System.Windows.Threading.DispatcherPriority.Loaded);
         }
 
         private void RightPanel_NotesHeightChanged(object sender, double height)
@@ -575,12 +626,15 @@ namespace OoiMRR
         /// <summary>
         /// 执行复制操作
         /// </summary>
-        internal void PerformCopyOperation() => _fileOperationHandler?.PerformCopyOperation();
+        /// <summary>
+        /// 执行复制操作
+        /// </summary>
+        internal async void PerformCopyOperation() => await (_fileOperationHandler?.PerformCopyOperationAsync() ?? Task.CompletedTask);
 
         /// <summary>
         /// 执行剪切操作
         /// </summary>
-        internal void PerformCutOperation() => _fileOperationHandler?.PerformCutOperation();
+        internal async void PerformCutOperation() => await (_fileOperationHandler?.PerformCutOperationAsync() ?? Task.CompletedTask);
 
         /// <summary>
         /// 执行删除操作
@@ -591,6 +645,90 @@ namespace OoiMRR
         internal void Delete_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.Delete_Click(sender, e);
         internal void Rename_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.Rename_Click(sender, e);
         internal void ShowProperties_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.ShowProperties_Click(sender, e);
+
+        #region 统一文件操作 (新架构)
+
+        /// <summary>
+        /// 复制选中文件到剪贴板 (使用 FileOperationService)
+        /// </summary>
+        internal async Task CopySelectedFilesAsync()
+        {
+            var (browser, _, _) = GetActiveContext();
+            if (browser?.FilesSelectedItems == null) return;
+            var items = browser.FilesSelectedItems.Cast<FileSystemItem>().ToList();
+            var paths = items.Select(i => i.Path);
+            await _fileOperationService.CopyAsync(paths);
+            Services.Core.NotificationService.ShowSuccess($"已复制 {items.Count} 个项目");
+        }
+
+        /// <summary>
+        /// 剪切选中文件到剪贴板 (使用 FileOperationService)
+        /// </summary>
+        internal async Task CutSelectedFilesAsync()
+        {
+            var (browser, _, _) = GetActiveContext();
+            if (browser?.FilesSelectedItems == null) return;
+            var items = browser.FilesSelectedItems.Cast<FileSystemItem>().ToList();
+            var paths = items.Select(i => i.Path);
+            await _fileOperationService.CutAsync(paths);
+            Services.Core.NotificationService.ShowSuccess($"已剪切 {items.Count} 个项目");
+        }
+
+        /// <summary>
+        /// 粘贴剪贴板内容 (使用 FileOperationService)
+        /// 进度显示由 TaskQueuePanel 统一管理
+        /// </summary>
+        internal async Task PasteFilesAsync(CancellationToken ct = default)
+        {
+            await _fileOperationService.PasteAsync(ct);
+            Services.Core.NotificationService.ShowSuccess("粘贴完成");
+        }
+
+        /// <summary>
+        /// 删除选中文件 (使用 FileOperationService)
+        /// </summary>
+        internal async Task DeleteSelectedFilesAsync(bool permanent = false)
+        {
+            var (browser, _, _) = GetActiveContext();
+            if (browser?.FilesSelectedItems == null) return;
+            var items = browser.FilesSelectedItems.Cast<FileSystemItem>().ToList();
+
+            // 先清除选择，释放文件句柄
+            if (browser?.FilesList != null)
+            {
+                browser.FilesList.SelectedItem = null;
+                browser.FilesList.SelectedItems.Clear();
+                _selectionEventHandler?.HandleNoSelection();
+            }
+
+            await _fileOperationService.DeleteAsync(items, permanent);
+            var msg = permanent ? "永久删除" : "删除";
+            Services.Core.NotificationService.ShowSuccess($"已{msg} {items.Count} 个项目");
+        }
+
+        /// <summary>
+        /// 更新剪切文件的视觉状态（半透明效果）
+        /// </summary>
+        private void UpdateCutItemsVisualState(IReadOnlyList<string> cutPaths)
+        {
+            if (FileBrowser?.FilesList == null) return;
+
+            var hashSet = new HashSet<string>(cutPaths ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
+
+            foreach (var item in FileBrowser.FilesList.Items)
+            {
+                if (item is FileSystemItem fileItem)
+                {
+                    var container = FileBrowser.FilesList.ItemContainerGenerator.ContainerFromItem(fileItem) as System.Windows.Controls.ListViewItem;
+                    if (container != null)
+                    {
+                        container.Opacity = hashSet.Contains(fileItem.Path) ? 0.5 : 1.0;
+                    }
+                }
+            }
+        }
+
+        #endregion
 
         /// <summary>
         /// 撤销操作

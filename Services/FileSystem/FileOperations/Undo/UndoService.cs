@@ -140,6 +140,9 @@ namespace OoiMRR.Services.FileOperations.Undo
             _undoStack.Clear();
             _redoStack.Clear();
             StackChanged?.Invoke(this, EventArgs.Empty);
+
+            // 清理备份目录
+            BackupCleanupService.Cleanup();
         }
     }
 }

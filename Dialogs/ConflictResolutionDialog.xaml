@@ -2,68 +2,69 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="文件冲突" 
-        Height="280" Width="450"
+        Height="300" Width="480"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         WindowStyle="ToolWindow"
         Background="{DynamicResource AppBackgroundBrush}">
-    <Grid Margin="20">
+    <Grid Margin="24">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!-- 图标和标题 -->
         <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,16">
-            <TextBlock Text="⚠" FontSize="24" Foreground="{DynamicResource WarningBrush}" 
+            <TextBlock Text="⚠" FontSize="28" Foreground="{DynamicResource SemanticWarningBrush}" 
                        VerticalAlignment="Center" Margin="0,0,12,0"/>
-            <TextBlock Text="目标位置已存在同名文件" FontSize="16" FontWeight="SemiBold"
-                       Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+            <TextBlock Text="目标位置已存在同名文件" FontSize="18" FontWeight="SemiBold"
+                       Foreground="{DynamicResource ForegroundPrimaryBrush}" VerticalAlignment="Center"/>
         </StackPanel>
 
         <!-- 文件名 -->
         <TextBlock x:Name="FileNameText" Grid.Row="1" 
                    Text="filename.txt"
-                   FontSize="13"
-                   Foreground="{DynamicResource TextSecondaryBrush}"
+                   FontSize="14"
+                   Foreground="{DynamicResource ForegroundSecondaryBrush}"
                    TextWrapping="Wrap"
-                   Margin="0,0,0,20"/>
+                   Margin="0,0,0,24"/>
 
-        <!-- 选项 -->
-        <StackPanel Grid.Row="2" Margin="0,0,0,16">
-            <RadioButton x:Name="OverwriteOption" Content="覆盖现有文件" 
-                         IsChecked="True" Margin="0,0,0,8"
-                         Foreground="{DynamicResource TextPrimaryBrush}"/>
-            <RadioButton x:Name="SkipOption" Content="跳过此文件" 
-                         Margin="0,0,0,8"
-                         Foreground="{DynamicResource TextPrimaryBrush}"/>
-            <RadioButton x:Name="RenameOption" Content="保留两者（重命名新文件）" 
-                         Margin="0,0,0,8"
-                         Foreground="{DynamicResource TextPrimaryBrush}"/>
+        <!-- 直接按钮（一次点击直达） -->
+        <StackPanel Grid.Row="2" Margin="0,0,0,20">
+            <Button Content="📋 覆盖现有文件" Tag="Overwrite" Click="DirectButton_Click"
+                    HorizontalAlignment="Stretch" Padding="16,12" Margin="0,0,0,8"
+                    Background="{DynamicResource ControlDefaultBackgroundBrush}"
+                    Foreground="{DynamicResource ForegroundPrimaryBrush}"
+                    BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1"
+                    Cursor="Hand" FontSize="14" HorizontalContentAlignment="Left"/>
+            <Button Content="⏭ 跳过此文件" Tag="Skip" Click="DirectButton_Click"
+                    HorizontalAlignment="Stretch" Padding="16,12" Margin="0,0,0,8"
+                    Background="{DynamicResource ControlDefaultBackgroundBrush}"
+                    Foreground="{DynamicResource ForegroundPrimaryBrush}"
+                    BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1"
+                    Cursor="Hand" FontSize="14" HorizontalContentAlignment="Left"/>
+            <Button Content="📄 保留两者（自动重命名）" Tag="Rename" Click="DirectButton_Click"
+                    HorizontalAlignment="Stretch" Padding="16,12" Margin="0,0,0,8"
+                    Background="{DynamicResource AccentLightBrush}"
+                    Foreground="{DynamicResource AccentDefaultBrush}"
+                    BorderBrush="{DynamicResource AccentDefaultBrush}" BorderThickness="1"
+                    Cursor="Hand" FontSize="14" FontWeight="Medium" HorizontalContentAlignment="Left"/>
         </StackPanel>
 
-        <!-- 应用到全部 -->
-        <CheckBox x:Name="ApplyToAllCheckBox" Grid.Row="3"
-                  Content="对所有冲突执行相同操作"
-                  Foreground="{DynamicResource TextSecondaryBrush}"
-                  Margin="0,0,0,16"/>
-
-        <!-- 按钮 -->
-        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Content="取消操作" 
-                    Padding="16,8" Margin="0,0,8,0"
+        <!-- 底部操作 -->
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
+            <CheckBox x:Name="ApplyToAllCheckBox"
+                      Content="对所有冲突执行相同操作"
+                      Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                      VerticalAlignment="Center"
+                      Margin="0,0,16,0"/>
+            <Button Content="取消全部" 
+                    Padding="16,8"
                     Click="CancelAll_Click"
-                    Background="{DynamicResource ControlDefaultBackgroundBrush}"
-                    Foreground="{DynamicResource TextPrimaryBrush}"
-                    BorderThickness="0" Cursor="Hand"/>
-            <Button Content="确定" 
-                    Padding="24,8"
-                    Click="Confirm_Click"
-                    Background="{DynamicResource AccentDefaultBrush}"
-                    Foreground="{DynamicResource ForegroundOnAccentBrush}"
+                    Background="Transparent"
+                    Foreground="{DynamicResource SemanticErrorBrush}"
                     BorderThickness="0" Cursor="Hand"/>
         </StackPanel>
     </Grid>

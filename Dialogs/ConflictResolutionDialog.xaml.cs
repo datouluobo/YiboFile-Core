@@ -47,14 +47,7 @@ namespace OoiMRR.Dialogs
 
         private void Confirm_Click(object sender, RoutedEventArgs e)
         {
-            if (OverwriteOption.IsChecked == true)
-                Resolution = ConflictResolution.Overwrite;
-            else if (SkipOption.IsChecked == true)
-                Resolution = ConflictResolution.Skip;
-            else if (RenameOption.IsChecked == true)
-                Resolution = ConflictResolution.Rename;
-
-            ApplyToAll = ApplyToAllCheckBox.IsChecked == true;
+            // Legacy - kept for compatibility
             DialogResult = true;
             Close();
         }
@@ -64,6 +57,26 @@ namespace OoiMRR.Dialogs
             Resolution = ConflictResolution.CancelAll;
             DialogResult = false;
             Close();
+        }
+
+        /// <summary>
+        /// 直接按钮点击 - 一次点击直达
+        /// </summary>
+        private void DirectButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is System.Windows.Controls.Button btn && btn.Tag is string tag)
+            {
+                Resolution = tag switch
+                {
+                    "Overwrite" => ConflictResolution.Overwrite,
+                    "Skip" => ConflictResolution.Skip,
+                    "Rename" => ConflictResolution.Rename,
+                    _ => ConflictResolution.Skip
+                };
+                ApplyToAll = ApplyToAllCheckBox.IsChecked == true;
+                DialogResult = true;
+                Close();
+            }
         }
 
         /// <summary>

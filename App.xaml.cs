@@ -55,6 +55,8 @@ namespace OoiMRR
             services.AddSingleton<AppConfig>(provider => ConfigManager.Load() ?? new AppConfig());
             services.AddSingleton<ConfigService>(); // 配置服务应为单例
             services.AddSingleton<OoiMRR.Services.Core.Error.ErrorService>(); // 统一错误处理服务
+            services.AddSingleton<Services.FileOperations.FileOperationService>();
+            services.AddSingleton<Services.FileOperations.TaskQueue.TaskQueueService>(); // Register TaskQueueService
             services.AddSingleton<OoiMRR.Services.FileOperations.Undo.UndoService>(); // 撤销/重做服务
 
             // DatabaseManager 是静态类/单例模式，但如果我们需要注入它，可以封装一下，或者暂时保持静态访问

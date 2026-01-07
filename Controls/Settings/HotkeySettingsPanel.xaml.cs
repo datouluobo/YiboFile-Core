@@ -6,10 +6,30 @@ using System.Windows.Input; // Added for ModifierKeys, Key, Cursors
 
 namespace OoiMRR.Controls.Settings
 {
-    public class HotkeyItem
+    public class HotkeyItem : System.ComponentModel.INotifyPropertyChanged
     {
+        private string _keyCombination;
+
         public string Description { get; set; }
-        public string KeyCombination { get; set; }
+        public string DefaultKey { get; set; } // 默认快捷键
+
+        public string KeyCombination
+        {
+            get => _keyCombination;
+            set
+            {
+                if (_keyCombination != value)
+                {
+                    _keyCombination = value;
+                    PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(nameof(KeyCombination)));
+                    PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(nameof(IsModified)));
+                }
+            }
+        }
+
+        public bool IsModified => KeyCombination != DefaultKey;
+
+        public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;
     }
 
     public partial class HotkeySettingsPanel : UserControl
@@ -28,22 +48,41 @@ namespace OoiMRR.Controls.Settings
             // 默认快捷键列表
             _defaultHotkeys = new ObservableCollection<HotkeyItem>
             {
-                new HotkeyItem { Description = "新建标签页", KeyCombination = "Ctrl+T" },
-                new HotkeyItem { Description = "关闭标签页", KeyCombination = "Ctrl+W" },
-                new HotkeyItem { Description = "下一个标签", KeyCombination = "Ctrl+Tab" },
-                new HotkeyItem { Description = "上一个标签", KeyCombination = "Ctrl+Shift+Tab" },
-                new HotkeyItem { Description = "刷新", KeyCombination = "F5" },
-                new HotkeyItem { Description = "复制", KeyCombination = "Ctrl+C" },
-                new HotkeyItem { Description = "剪切", KeyCombination = "Ctrl+X" },
-                new HotkeyItem { Description = "粘贴", KeyCombination = "Ctrl+V" },
-                new HotkeyItem { Description = "删除", KeyCombination = "Delete" },
-                new HotkeyItem { Description = "重命名", KeyCombination = "F2" },
-                new HotkeyItem { Description = "全选", KeyCombination = "Ctrl+A" },
-                new HotkeyItem { Description = "打开设置", KeyCombination = "Ctrl+," },
-                new HotkeyItem { Description = "搜索文件", KeyCombination = "Ctrl+F" },
-                new HotkeyItem { Description = "返回上级目录", KeyCombination = "Backspace" },
-                new HotkeyItem { Description = "后退", KeyCombination = "Alt+←" },
-                new HotkeyItem { Description = "前进", KeyCombination = "Alt+→" },
+                // 标签页操作
+                new HotkeyItem { Description = "新建标签页", DefaultKey = "Ctrl+T", KeyCombination = "Ctrl+T" },
+                new HotkeyItem { Description = "关闭标签页", DefaultKey = "Ctrl+W", KeyCombination = "Ctrl+W" },
+                new HotkeyItem { Description = "下一个标签", DefaultKey = "Ctrl+Tab", KeyCombination = "Ctrl+Tab" },
+                new HotkeyItem { Description = "上一个标签", DefaultKey = "Ctrl+Shift+Tab", KeyCombination = "Ctrl+Shift+Tab" },
+                new HotkeyItem { Description = "切换双面板焦点", DefaultKey = "Tab", KeyCombination = "Tab" },
+                
+                // 文件操作
+                new HotkeyItem { Description = "复制", DefaultKey = "Ctrl+C", KeyCombination = "Ctrl+C" },
+                new HotkeyItem { Description = "剪切", DefaultKey = "Ctrl+X", KeyCombination = "Ctrl+X" },
+                new HotkeyItem { Description = "粘贴", DefaultKey = "Ctrl+V", KeyCombination = "Ctrl+V" },
+                new HotkeyItem { Description = "删除 (移到回收站)", DefaultKey = "Delete", KeyCombination = "Delete" },
+                new HotkeyItem { Description = "永久删除", DefaultKey = "Shift+Delete", KeyCombination = "Shift+Delete" },
+                new HotkeyItem { Description = "重命名", DefaultKey = "F2", KeyCombination = "F2" },
+                new HotkeyItem { Description = "全选", DefaultKey = "Ctrl+A", KeyCombination = "Ctrl+A" },
+                new HotkeyItem { Description = "新建文件夹", DefaultKey = "Ctrl+N", KeyCombination = "Ctrl+N" },
+                
+                // 撤销重做
+                new HotkeyItem { Description = "撤销", DefaultKey = "Ctrl+Z", KeyCombination = "Ctrl+Z" },
+                new HotkeyItem { Description = "重做", DefaultKey = "Ctrl+Y", KeyCombination = "Ctrl+Y" },
+                
+                // 导航
+                new HotkeyItem { Description = "返回上级目录", DefaultKey = "Backspace", KeyCombination = "Backspace" },
+                new HotkeyItem { Description = "地址栏编辑", DefaultKey = "Alt+D", KeyCombination = "Alt+D" },
+                new HotkeyItem { Description = "刷新", DefaultKey = "F5", KeyCombination = "F5" },
+                new HotkeyItem { Description = "打开文件/文件夹", DefaultKey = "Enter", KeyCombination = "Enter" },
+                
+                // 查看和预览
+                new HotkeyItem { Description = "QuickLook 预览", DefaultKey = "Space", KeyCombination = "Space" },
+                new HotkeyItem { Description = "属性", DefaultKey = "Alt+Enter", KeyCombination = "Alt+Enter" },
+                
+                // 布局切换
+                new HotkeyItem { Description = "专注模式", DefaultKey = "Ctrl+Shift+F", KeyCombination = "Ctrl+Shift+F" },
+                new HotkeyItem { Description = "工作模式", DefaultKey = "Ctrl+Shift+W", KeyCombination = "Ctrl+Shift+W" },
+                new HotkeyItem { Description = "完整模式", DefaultKey = "Ctrl+Shift+A", KeyCombination = "Ctrl+Shift+A" },
             };
 
             // 复制到当前快捷键列表
@@ -53,6 +92,7 @@ namespace OoiMRR.Controls.Settings
                 _hotkeys.Add(new HotkeyItem
                 {
                     Description = item.Description,
+                    DefaultKey = item.DefaultKey,
                     KeyCombination = item.KeyCombination
                 });
             }
@@ -201,6 +241,18 @@ namespace OoiMRR.Controls.Settings
             {
                 LoadHotkeys();
                 MessageBox.Show("快捷键已恢复为默认设置", "完成", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+
+        /// <summary>
+        /// 恢复单项快捷键为默认
+        /// </summary>
+        private void ResetSingleHotkey_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button button && button.Tag is HotkeyItem item)
+            {
+                item.KeyCombination = item.DefaultKey;
+                HotkeyGrid.Items.Refresh();
             }
         }
     }

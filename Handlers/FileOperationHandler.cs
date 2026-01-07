@@ -55,7 +55,10 @@ namespace OoiMRR.Handlers
         /// <summary>
         /// 执行复制操作
         /// </summary>
-        public void PerformCopyOperation()
+        /// <summary>
+        /// 执行复制操作
+        /// </summary>
+        public async Task PerformCopyOperationAsync()
         {
             try
             {
@@ -66,7 +69,7 @@ namespace OoiMRR.Handlers
                 }
 
                 var paths = selectedItems.Select(item => item.Path).ToList();
-                FileClipboardManager.SetCopyPaths(paths);
+                await OoiMRR.Services.FileOperations.ClipboardService.Instance.SetCopyPathsAsync(paths);
             }
             catch (Exception ex)
             {
@@ -77,7 +80,10 @@ namespace OoiMRR.Handlers
         /// <summary>
         /// 执行剪切操作
         /// </summary>
-        public void PerformCutOperation()
+        /// <summary>
+        /// 执行剪切操作
+        /// </summary>
+        public async Task PerformCutOperationAsync()
         {
             try
             {
@@ -88,7 +94,7 @@ namespace OoiMRR.Handlers
                 }
 
                 var paths = selectedItems.Select(item => item.Path).ToList();
-                FileClipboardManager.SetCutPaths(paths);
+                await OoiMRR.Services.FileOperations.ClipboardService.Instance.SetCutPathsAsync(paths);
             }
             catch (Exception ex)
             {

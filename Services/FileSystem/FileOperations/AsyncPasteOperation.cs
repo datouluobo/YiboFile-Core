@@ -92,40 +92,53 @@ namespace OoiMRR.Services.FileOperations
 
                     if (hasConflict)
                     {
-                        var resolution = cachedResolution;
+                        // 关键修复：检测同文件夹粘贴（源和目标在同一目录）
+                        // 同文件夹粘贴时，覆盖没有意义，应该自动重命名
+                        var sourceDir = Path.GetDirectoryName(sourcePath);
+                        bool isSameFolder = string.Equals(sourceDir, targetPath, StringComparison.OrdinalIgnoreCase);
 
-                        // 如果没有缓存的解决方式，询问用户
-                        if (!resolution.HasValue)
+                        if (isSameFolder)
                         {
-                            var (userResolution, applyToAll) = await ShowConflictDialogAsync(fileName);
-                            resolution = userResolution;
-
-                            if (applyToAll)
-                            {
-                                cachedResolution = resolution;
-                            }
+                            // 同文件夹粘贴：直接自动重命名，不显示对话框
+                            destPath = GetUniquePath(destPath);
                         }
-
-                        switch (resolution.Value)
+                        else
                         {
-                            case ConflictResolution.CancelAll:
-                                return; // 取消整个操作
+                            var resolution = cachedResolution;
 
-                            case ConflictResolution.Skip:
-                                processedItems++;
-                                continue;
+                            // 如果没有缓存的解决方式，询问用户
+                            if (!resolution.HasValue)
+                            {
+                                var (userResolution, applyToAll) = await ShowConflictDialogAsync(fileName);
+                                resolution = userResolution;
 
-                            case ConflictResolution.Rename:
-                                destPath = GetUniquePath(destPath);
-                                break;
+                                if (applyToAll)
+                                {
+                                    cachedResolution = resolution;
+                                }
+                            }
 
-                            case ConflictResolution.Overwrite:
-                                // 删除现有目标
-                                if (File.Exists(destPath))
-                                    File.Delete(destPath);
-                                else if (Directory.Exists(destPath))
-                                    Directory.Delete(destPath, true);
-                                break;
+                            switch (resolution.Value)
+                            {
+                                case ConflictResolution.CancelAll:
+                                    return; // 取消整个操作
+
+                                case ConflictResolution.Skip:
+                                    processedItems++;
+                                    continue;
+
+                                case ConflictResolution.Rename:
+                                    destPath = GetUniquePath(destPath);
+                                    break;
+
+                                case ConflictResolution.Overwrite:
+                                    // 删除现有目标
+                                    if (File.Exists(destPath))
+                                        File.Delete(destPath);
+                                    else if (Directory.Exists(destPath))
+                                        Directory.Delete(destPath, true);
+                                    break;
+                            }
                         }
                     }
 
