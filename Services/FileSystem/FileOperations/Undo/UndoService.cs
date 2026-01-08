@@ -39,6 +39,16 @@ namespace OoiMRR.Services.FileOperations.Undo
         /// </summary>
         public string NextRedoDescription => _redoStack.Count > 0 ? _redoStack.Peek().Description : null;
 
+        /// <summary>
+        /// 撤销执行后触发
+        /// </summary>
+        public event EventHandler ActionUndone;
+
+        /// <summary>
+        /// 重做执行后触发
+        /// </summary>
+        public event EventHandler ActionRedone;
+
         public UndoService(int maxStackSize = 50)
         {
             _maxStackSize = maxStackSize;
@@ -85,6 +95,7 @@ namespace OoiMRR.Services.FileOperations.Undo
             {
                 _redoStack.Push(action);
                 StackChanged?.Invoke(this, EventArgs.Empty);
+                ActionUndone?.Invoke(this, EventArgs.Empty);
                 return true;
             }
             else
@@ -112,6 +123,7 @@ namespace OoiMRR.Services.FileOperations.Undo
             {
                 _undoStack.Push(action);
                 StackChanged?.Invoke(this, EventArgs.Empty);
+                ActionRedone?.Invoke(this, EventArgs.Empty);
                 return true;
             }
             else

@@ -19,8 +19,8 @@ namespace OoiMRR.Services.ColumnManagement
     public class ColumnService
     {
         private readonly AppConfig _config;
-        private readonly Func<string> _getCurrentModeKey;
-        private readonly Action _saveConfig;
+        private Func<string> _getCurrentModeKey;
+        private Action _saveConfig;
 
         // 排序状态
         private string _lastSortColumn = "Name";
@@ -30,16 +30,9 @@ namespace OoiMRR.Services.ColumnManagement
         /// 构造函数
         /// </summary>
         /// <param name="config">应用配置对象</param>
-        /// <param name="getCurrentModeKey">获取当前导航模式的函数</param>
-        /// <param name="saveConfig">保存配置的回调函数</param>
-        public ColumnService(
-            AppConfig config,
-            Func<string> getCurrentModeKey,
-            Action saveConfig = null)
+        public ColumnService(AppConfig config)
         {
             _config = config ?? throw new ArgumentNullException(nameof(config));
-            _getCurrentModeKey = getCurrentModeKey ?? throw new ArgumentNullException(nameof(getCurrentModeKey));
-            _saveConfig = saveConfig;
 
             // Initialize sort state from config
             if (!string.IsNullOrEmpty(_config.SortColumn))
@@ -50,6 +43,15 @@ namespace OoiMRR.Services.ColumnManagement
             {
                 _sortAscending = _config.SortDirection == "Ascending";
             }
+        }
+
+        /// <summary>
+        /// 初始化上下文依赖（委托）
+        /// </summary>
+        public void Initialize(Func<string> getCurrentModeKey, Action saveConfig)
+        {
+            _getCurrentModeKey = getCurrentModeKey;
+            _saveConfig = saveConfig;
         }
 
         #region 排序功能
@@ -107,21 +109,42 @@ namespace OoiMRR.Services.ColumnManagement
         /// <summary>
         /// 排序文件列表（分离文件夹和文件）
         /// </summary>
+        /// <summary>
+        /// 排序文件列表（分离文件夹和文件）
+        /// 使用List.Sort进行原地排序，减少内存分配
+        /// </summary>
         public List<FileSystemItem> SortFiles(List<FileSystemItem> files)
         {
             if (files == null || files.Count == 0)
                 return files ?? new List<FileSystemItem>();
 
             // 分离文件夹和文件
-            var directories = files.Where(f => f.IsDirectory).ToList();
-            var fileItems = files.Where(f => !f.IsDirectory).ToList();
+            // 此处仍需遍历一次，但后续排序效率更高
+            var directories = new List<FileSystemItem>(files.Count / 3);
+            var fileItems = new List<FileSystemItem>(files.Count);
 
-            // 对文件夹和文件分别排序
-            directories = SortList(directories);
-            fileItems = SortList(fileItems);
+            foreach (var item in files)
+            {
+                if (item.IsDirectory)
+                {
+                    directories.Add(item);
+                }
+                else
+                {
+                    fileItems.Add(item);
+                }
+            }
+
+            // 使用自定义比较器进行原地排序
+            var comparer = new FileSystemItemComparer(_lastSortColumn, _sortAscending);
+
+            directories.Sort(comparer);
+            fileItems.Sort(comparer);
 
             // 合并：文件夹在前，文件在后
-            var result = new List<FileSystemItem>();
+            // 复用传入的list以减少内存分配（如果允许修改传入list）
+            //这里为了安全，还是创建新list返回，如需进一步优化可考虑原地修改传入list
+            var result = new List<FileSystemItem>(files.Count);
             result.AddRange(directories);
             result.AddRange(fileItems);
             return result;
@@ -137,61 +160,71 @@ namespace OoiMRR.Services.ColumnManagement
             return SortFiles(files);
         }
 
-        private List<FileSystemItem> SortList(List<FileSystemItem> items)
+        // 移除 SortList 方法，因为已集成到 SortFiles 中
+
+        /// <summary>
+        /// 自定义文件排序比较器
+        /// </summary>
+        private class FileSystemItemComparer : IComparer<FileSystemItem>
         {
-            if (items == null || items.Count == 0) return items;
+            private readonly string _column;
+            private readonly bool _ascending;
+            private readonly int _direction;
 
-            IEnumerable<FileSystemItem> sorted = items;
-
-            switch (_lastSortColumn)
+            public FileSystemItemComparer(string column, bool ascending)
             {
-                case "Name":
-                    sorted = _sortAscending
-                        ? items.OrderBy(f => f.Name, StringComparer.OrdinalIgnoreCase)
-                        : items.OrderByDescending(f => f.Name, StringComparer.OrdinalIgnoreCase);
-                    break;
-
-                case "Size":
-                    // 使用SizeBytes属性进行排序（已在修复时添加）
-                    sorted = _sortAscending
-                        ? items.OrderBy(f => f.SizeBytes)
-                        : items.OrderByDescending(f => f.SizeBytes);
-                    break;
-
-                case "Type":
-                    sorted = _sortAscending
-                        ? items.OrderBy(f => f.Type, StringComparer.OrdinalIgnoreCase)
-                        : items.OrderByDescending(f => f.Type, StringComparer.OrdinalIgnoreCase);
-                    break;
-
-                case "ModifiedDate":
-                    // 使用ModifiedDateTime属性进行排序（已在修复时添加）
-                    sorted = _sortAscending
-                        ? items.OrderBy(f => f.ModifiedDateTime)
-                        : items.OrderByDescending(f => f.ModifiedDateTime);
-                    break;
-
-                case "CreatedTime":
-                    // 使用CreatedDateTime属性进行排序（已在修复时添加）
-                    sorted = _sortAscending
-                        ? items.OrderBy(f => f.CreatedDateTime)
-                        : items.OrderByDescending(f => f.CreatedDateTime);
-                    break;
-
-                case "Tags":
-                    sorted = _sortAscending
-                        ? items.OrderBy(f => f.Tags ?? "", StringComparer.OrdinalIgnoreCase)
-                        : items.OrderByDescending(f => f.Tags ?? "", StringComparer.OrdinalIgnoreCase);
-                    break;
-
-                case "Notes":
-                    sorted = _sortAscending
-                        ? items.OrderBy(f => f.Notes ?? "", StringComparer.OrdinalIgnoreCase)
-                        : items.OrderByDescending(f => f.Notes ?? "", StringComparer.OrdinalIgnoreCase);
-                    break;
+                _column = column;
+                _ascending = ascending;
+                _direction = ascending ? 1 : -1;
             }
 
-            return sorted.ToList();
+            public int Compare(FileSystemItem x, FileSystemItem y)
+            {
+                if (ReferenceEquals(x, y)) return 0;
+                if (x == null) return -1; // null在小端
+                if (y == null) return 1;
+
+                int result = 0;
+
+                switch (_column)
+                {
+                    case "Name":
+                        result = string.Compare(x.Name, y.Name, StringComparison.OrdinalIgnoreCase);
+                        break;
+
+                    case "Size":
+                        result = x.SizeBytes.CompareTo(y.SizeBytes);
+                        break;
+
+                    case "Type":
+                        result = string.Compare(x.Type, y.Type, StringComparison.OrdinalIgnoreCase);
+                        break;
+
+                    case "ModifiedDate":
+                        result = x.ModifiedDateTime.CompareTo(y.ModifiedDateTime);
+                        break;
+
+                    case "CreatedTime":
+                        result = x.CreatedDateTime.CompareTo(y.CreatedDateTime);
+                        break;
+
+                    case "Tags":
+                        // Tags 可能为 null
+                        result = string.Compare(x.Tags ?? "", y.Tags ?? "", StringComparison.OrdinalIgnoreCase);
+                        break;
+
+                    case "Notes":
+                        // Notes 可能为 null
+                        result = string.Compare(x.Notes ?? "", y.Notes ?? "", StringComparison.OrdinalIgnoreCase);
+                        break;
+
+                    default:
+                        result = string.Compare(x.Name, y.Name, StringComparison.OrdinalIgnoreCase);
+                        break;
+                }
+
+                return result * _direction;
+            }
         }
 
         /// <summary>

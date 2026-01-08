@@ -149,6 +149,19 @@ namespace OoiMRR
                 taskQueueService
             );
 
+            // 监听撤销/重做事件以刷新UI
+            if (undoService != null)
+            {
+                undoService.ActionUndone += (s, e) =>
+                {
+                    Application.Current?.Dispatcher?.Invoke(() => RefreshActiveFileList());
+                };
+                undoService.ActionRedone += (s, e) =>
+                {
+                    Application.Current?.Dispatcher?.Invoke(() => RefreshActiveFileList());
+                };
+            }
+
             // 初始化 MenuEventHandler
             _menuEventHandler = new MenuEventHandler(
                 FileBrowser,
@@ -230,13 +243,26 @@ namespace OoiMRR
                 () => LibraryContextMenu, // Func<ContextMenu>
                 (ext) => // CreateNewFileWithExtension
                 {
-                    IFileOperationContext context = new PathOperationContext(_currentPath, FileBrowser, this, RefreshFileList);
-                    var op = new NewFileOperation(context, this);
+                    var (browser, path, library) = GetActiveContext();
+                    Services.FileOperations.IFileOperationContext context;
+                    if (library != null)
+                        context = new Services.FileOperations.LibraryOperationContext(library, browser, this, RefreshActiveFileList);
+                    else
+                        context = new Services.FileOperations.PathOperationContext(path, browser, this, RefreshActiveFileList);
+
+                    var op = new Services.FileOperations.NewFileOperation(context, this, _fileOperationService);
                     op.Execute(ext);
                 },
-                (name) => // CreateNewFolder
+                async (path) => // CreateNewFolder
                 {
-                    // This is handled inside MenuEventHandler's NewFolder_Click usually
+                    if (_fileOperationService != null)
+                    {
+                        var parent = System.IO.Path.GetDirectoryName(path);
+                        var name = System.IO.Path.GetFileName(path);
+                        var result = await _fileOperationService.CreateFolderAsync(parent, name);
+                        return result != null;
+                    }
+                    return false;
                 },
                  () => _configService?.Config,
                  (cfg) => _configService?.ApplyConfig(cfg),
@@ -266,6 +292,8 @@ namespace OoiMRR
                 SwitchNavigationMode,
                 () => _currentLibrary != null,
                 Back_Click_Logic, // navigateBack
+                () => Undo_Click(null, null),
+                () => Redo_Click(null, null),
                 SwitchLayoutModeByIndex,  // 添加布局切换回调
                 () => IsDualListMode,     // isDualListMode 检查
                 () => SwitchFocusedPane() // switchDualPaneFocus 回调

@@ -19,11 +19,13 @@ namespace OoiMRR.Services.FileOperations
         private readonly IFileOperationContext _context;
         private readonly System.Windows.Window _ownerWindow;
         private readonly System.Windows.UIElement _placementTarget;
+        private readonly FileOperationService _fileOperationService;
 
-        public NewFileOperation(IFileOperationContext context, System.Windows.Window ownerWindow, System.Windows.UIElement placementTarget = null)
+        public NewFileOperation(IFileOperationContext context, System.Windows.Window ownerWindow, FileOperationService fileOperationService, System.Windows.UIElement placementTarget = null)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _ownerWindow = ownerWindow ?? throw new ArgumentNullException(nameof(ownerWindow));
+            _fileOperationService = fileOperationService;
             _placementTarget = placementTarget;
         }
 
@@ -127,12 +129,12 @@ namespace OoiMRR.Services.FileOperations
 
         public void Execute(string extension)
         {
-             if (string.IsNullOrEmpty(extension))
-             {
-                 Execute();
-                 return;
-             }
-             CreateNewFileWithExtension(extension);
+            if (string.IsNullOrEmpty(extension))
+            {
+                Execute();
+                return;
+            }
+            CreateNewFileWithExtension(extension);
         }
 
         private void CreateNewFileWithExtension(string extension)
@@ -167,6 +169,9 @@ namespace OoiMRR.Services.FileOperations
 
                 // 根据文件类型创建合适的文件内容
                 CreateFileWithProperFormat(filePath, extension.ToLower());
+
+                // 注册 Undo
+                _fileOperationService?.NotifyFileCreated(filePath);
 
                 // 刷新显示
                 _context.RefreshAfterOperation();

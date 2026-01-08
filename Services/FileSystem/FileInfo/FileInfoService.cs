@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Threading.Tasks;
 using OoiMRR.Controls;
 using OoiMRR.Services.FileList;
 
@@ -109,31 +110,93 @@ namespace OoiMRR.Services.FileInfo
         /// 显示文件夹详细信息
         /// </summary>
         /// <param name="item">文件夹项</param>
+        /// <summary>
+        /// 显示文件夹详细信息
+        /// </summary>
+        /// <param name="item">文件夹项</param>
         private void ShowDirectoryInfo(FileSystemItem item)
         {
             try
             {
-                var files = Directory.GetFiles(item.Path);
-                var directories = Directory.GetDirectories(item.Path);
-                long totalSize = files.Sum(f => new System.IO.FileInfo(f).Length);
-
-                var infoItems = new[]
+                // 先显示基本信息，统计数据暂时显示"计算中..."
+                if (_fileBrowser?.FileInfoPanelControl != null)
                 {
-                    ("名称", item.Name),
-                    ("路径", item.Path),
-                    ("类型", "文件夹"),
-                    ("文件数", files.Length.ToString()),
-                    ("文件夹数", directories.Length.ToString()),
-                    ("总大小", _fileListService.FormatFileSize(totalSize)),
-                    ("修改日期", item.ModifiedDate),
-                    ("标签", item.Tags)
-                };
+                    var infoItems = new System.Collections.Generic.List<(string label, string value)>
+                    {
+                        ("名称", item.Name),
+                        ("路径", item.Path),
+                        ("类型", "文件夹"),
+                        ("修改日期", item.ModifiedDate),
+                        ("标签", item.Tags ?? "")
+                    };
 
-                foreach (var (label, value) in infoItems)
-                {
-                    var panel = CreateInfoPanel(label, value);
-                    if (_fileBrowser?.FileInfoPanelControl != null)
+                    foreach (var (label, value) in infoItems)
+                    {
+                        var panel = CreateInfoPanel(label, value);
                         _fileBrowser.FileInfoPanelControl.Children.Add(panel);
+                    }
+
+                    // 创建占位符面板用于后续更新
+                    var filesCountPanel = CreateInfoPanel("文件数", "计算中...");
+                    var dirsCountPanel = CreateInfoPanel("文件夹数", "计算中...");
+                    var totalSizePanel = CreateInfoPanel("总大小", "计算中...");
+
+                    _fileBrowser.FileInfoPanelControl.Children.Insert(3, filesCountPanel);
+                    _fileBrowser.FileInfoPanelControl.Children.Insert(4, dirsCountPanel);
+                    _fileBrowser.FileInfoPanelControl.Children.Insert(5, totalSizePanel);
+
+                    // 异步计算统计信息
+                    Task.Run(() =>
+                    {
+                        try
+                        {
+                            var files = Directory.GetFiles(item.Path);
+                            var directories = Directory.GetDirectories(item.Path);
+                            long totalSize = 0;
+
+                            // 仅计算顶层文件大小，避免递归遍历导致过度卡顿
+                            // 如需递归，建议使用 FileListService.CalculateFolderSizeAsync 的逻辑
+                            foreach (var file in files)
+                            {
+                                try
+                                {
+                                    totalSize += new System.IO.FileInfo(file).Length;
+                                }
+                                catch { }
+                            }
+
+                            var filesCountStr = files.Length.ToString();
+                            var dirsCountStr = directories.Length.ToString();
+                            var totalSizeStr = _fileListService.FormatFileSize(totalSize);
+
+                            // 更新UI
+                            Application.Current.Dispatcher.Invoke(() =>
+                            {
+                                // 检查当前面板是否仍对应同一个路径（避免快速切换导致的错乱）
+                                // 这里简单更新，如果面板已被清空则可能抛出异常或无效
+                                try
+                                {
+                                    UpdateValueInPanel(filesCountPanel, filesCountStr);
+                                    UpdateValueInPanel(dirsCountPanel, dirsCountStr);
+                                    UpdateValueInPanel(totalSizePanel, totalSizeStr);
+                                }
+                                catch { }
+                            });
+                        }
+                        catch (Exception)
+                        {
+                            Application.Current.Dispatcher.Invoke(() =>
+                            {
+                                try
+                                {
+                                    UpdateValueInPanel(filesCountPanel, "-");
+                                    UpdateValueInPanel(dirsCountPanel, "-");
+                                    UpdateValueInPanel(totalSizePanel, "-");
+                                }
+                                catch { }
+                            });
+                        }
+                    });
                 }
             }
             catch (Exception ex)
@@ -141,6 +204,14 @@ namespace OoiMRR.Services.FileInfo
                 var errorPanel = CreateErrorPanel(ex.Message);
                 if (_fileBrowser?.FileInfoPanelControl != null)
                     _fileBrowser.FileInfoPanelControl.Children.Add(errorPanel);
+            }
+        }
+
+        private void UpdateValueInPanel(StackPanel panel, string newValue)
+        {
+            if (panel.Children.Count > 1 && panel.Children[1] is TextBlock valueBlock)
+            {
+                valueBlock.Text = newValue;
             }
         }
 

@@ -69,6 +69,7 @@ namespace OoiMRR.Services.FileOperations
                 {
                     await _fileOperationService.RenameAsync(item, newName);
                     System.Diagnostics.Debug.WriteLine("[RenameOp] RenameAsync completed");
+                    _context.RefreshAfterOperation();
                 }
                 catch (Exception ex)
                 {

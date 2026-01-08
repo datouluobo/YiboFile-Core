@@ -114,13 +114,13 @@ namespace OoiMRR.Controls
 
         private void HeaderBorder_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
         {
-            if (_isDragging && (this.Content as Border)?.RenderTransform is TranslateTransform transform)
+            if (_isDragging && PanelTranslateTransform != null)
             {
                 var currentPosition = e.GetPosition(null);
                 var offset = currentPosition - _lastMousePosition;
 
-                transform.X += offset.X;
-                transform.Y += offset.Y;
+                PanelTranslateTransform.X += offset.X;
+                PanelTranslateTransform.Y += offset.Y;
 
                 _lastMousePosition = currentPosition;
             }
@@ -167,5 +167,56 @@ namespace OoiMRR.Controls
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// 将 TaskStatus 枚举转换为中文文本
+    /// </summary>
+    public class TaskStatusToTextConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is TaskStatus status)
+            {
+                return status switch
+                {
+                    TaskStatus.Pending => "等待中",
+                    TaskStatus.Running => "进行中",
+                    TaskStatus.Paused => "已暂停",
+                    TaskStatus.Canceling => "取消中",
+                    TaskStatus.Canceled => "已取消",
+                    TaskStatus.Completed => "已完成",
+                    TaskStatus.Failed => "失败",
+                    _ => "未知"
+                };
+            }
+            return "未知";
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// 将进度值转换为实际宽度
+    /// </summary>
+    public class ProgressWidthConverter : IMultiValueConverter
+    {
+        public static readonly ProgressWidthConverter Instance = new ProgressWidthConverter();
+
+        public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (values.Length >= 3 &&
+                values[0] is double value &&
+                values[1] is double maximum &&
+                values[2] is double actualWidth &&
+                maximum > 0)
+            {
+                return (value / maximum) * actualWidth;
+            }
+            return 0.0;
+        }
+
+        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
+            => throw new NotImplementedException();
     }
 }

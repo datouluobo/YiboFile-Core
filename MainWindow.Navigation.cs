@@ -498,44 +498,7 @@ namespace OoiMRR
         }
 
 
-        /// <summary>
-        /// FileListService 错误发生事件处理
-        /// </summary>
-        private void OnFileListServiceErrorOccurred(object sender, string errorMessage)
-        {
-            Dispatcher.BeginInvoke(new Action(() =>
-            {
-                try
-                {
-                    // 清空文件列表
-                    _currentFiles.Clear();
-                    if (FileBrowser != null)
-                    {
-                        FileBrowser.FilesItemsSource = null;
-                    }
 
-                    // 显示错误消息
-                    if (errorMessage.Contains("无权限访问"))
-                    {
-                        MessageBox.Show(errorMessage, "权限错误", MessageBoxButton.OK, MessageBoxImage.Warning);
-                        ShowEmptyStateMessage($"无法访问此路径：\n{_currentPath}");
-                    }
-                    else if (errorMessage.Contains("路径不存在"))
-                    {
-                        MessageBox.Show(errorMessage, "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
-                        ShowEmptyStateMessage($"路径不存在：\n{_currentPath}");
-                    }
-                    else
-                    {
-                        MessageBox.Show(errorMessage, "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                        ShowEmptyStateMessage($"加载失败：\n{errorMessage}");
-                    }
-                }
-                catch (Exception)
-                {
-                }
-            }), System.Windows.Threading.DispatcherPriority.Normal);
-        }
 
         #endregion
     }

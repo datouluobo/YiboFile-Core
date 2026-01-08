@@ -136,6 +136,12 @@ namespace OoiMRR.Services.FileOperations
 
             foreach (var sourcePath in sourcePaths)
             {
+                // 更新任务进度
+                if (task != null && totalCount > 0)
+                {
+                    task.Progress = (int)((double)processedCount / totalCount * 100);
+                }
+
                 if (ct.IsCancellationRequested || (task != null && task.Status == TaskStatus.Canceling))
                 {
                     if (task != null) task.Status = TaskStatus.Canceled;
@@ -420,6 +426,13 @@ namespace OoiMRR.Services.FileOperations
                     {
                         failedItems.Add($"{item.Name}: {ex.Message}");
                     }
+
+                    // 更新进度
+                    if (task != null)
+                    {
+                        task.Progress = (int)((double)processedCount / task.TotalItems * 100);
+                    }
+                    ProgressChanged?.Invoke(processedCount, task?.TotalItems ?? itemList.Count, item.Name);
                 }
             }, ct);
 
@@ -612,5 +625,44 @@ namespace OoiMRR.Services.FileOperations
         }
 
         #endregion
+        /// <summary>
+        /// 创建新文件夹
+        /// </summary>
+        public async Task<string> CreateFolderAsync(string parentPath, string name)
+        {
+            if (string.IsNullOrEmpty(parentPath) || string.IsNullOrEmpty(name)) return null;
+
+            try
+            {
+                string rawPath = Path.Combine(parentPath, name);
+                string finalPath = GetUniquePath(rawPath);
+
+                await Task.Run(() => Directory.CreateDirectory(finalPath));
+
+                // Record Undo
+                if (_undoService != null)
+                {
+                    _undoService.RecordAction(new NewFileUndoAction(finalPath, true));
+                }
+
+                return finalPath;
+            }
+            catch (Exception ex)
+            {
+                _errorService?.ReportError($"创建文件夹失败: {ex.Message}", Core.Error.ErrorSeverity.Error);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// 通知服务已创建新文件（用于Undo支持）
+        /// </summary>
+        public void NotifyFileCreated(string filePath, bool isDirectory = false)
+        {
+            if (_undoService != null)
+            {
+                _undoService.RecordAction(new NewFileUndoAction(filePath, isDirectory));
+            }
+        }
     }
 }

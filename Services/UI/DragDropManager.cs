@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -34,6 +35,9 @@ namespace OoiMRR.Services
 
         // UndoService for recording undoable operations
         public UndoService UndoService { get; set; }
+
+        // TaskQueueService for showing progress
+        public FileOperations.TaskQueue.TaskQueueService TaskQueueService { get; set; }
 
         public DragDropManager()
         {
@@ -251,86 +255,142 @@ namespace OoiMRR.Services
             }
         }
 
-        public void PerformFileOperation(string[] sources, string targetFolder, bool isCopy)
+        public async void PerformFileOperation(string[] sources, string targetFolder, bool isCopy)
         {
             System.Diagnostics.Debug.WriteLine($"[DragDropManager] PerformFileOperation: isCopy={isCopy}, target={targetFolder}, sources={sources.Length}");
-            int successCount = 0;
-            List<string> errors = new List<string>();
 
-            try
+            // Create and enqueue task for progress display
+            var task = new FileOperations.TaskQueue.FileOperationTask
             {
-                foreach (var source in sources)
+                Description = isCopy ? "复制文件" : "移动文件",
+                TotalItems = sources.Length,
+                Status = FileOperations.TaskQueue.TaskStatus.Running,
+                CurrentFile = "准备中..."
+            };
+            TaskQueueService?.EnqueueTask(task);
+
+            // Run file operations on background thread to prevent UI freeze
+            await Task.Run(() =>
+            {
+                int successCount = 0;
+                int processedCount = 0;
+
+                try
                 {
-                    if (!File.Exists(source) && !Directory.Exists(source)) continue;
-
-                    var fileName = Path.GetFileName(source);
-                    var destPath = Path.Combine(targetFolder, fileName);
-
-                    bool isSameFolder = string.Equals(Path.GetDirectoryName(source), targetFolder, StringComparison.OrdinalIgnoreCase);
-
-                    // If Moving to same folder, skip
-                    if (!isCopy && isSameFolder) continue;
-
-                    // If Copying to same folder, or if destination exists, we need a new name
-                    if (File.Exists(destPath) || Directory.Exists(destPath))
+                    foreach (var source in sources)
                     {
-                        if (isCopy)
+                        // Check cancellation
+                        if (task.Status == FileOperations.TaskQueue.TaskStatus.Canceling)
                         {
-                            // Auto-rename for Copy
-                            string newName = GetUniqueName(targetFolder, fileName);
-                            destPath = Path.Combine(targetFolder, newName);
+                            task.Status = FileOperations.TaskQueue.TaskStatus.Canceled;
+                            break;
                         }
-                        else
+                        task.WaitIfPaused();
+
+                        if (!File.Exists(source) && !Directory.Exists(source))
                         {
-                            // For Move, if target exists, we usually ask or fail. For now, let's skip to avoid overwrite.
-                            // errors.Add($"Skipped '{fileName}' because target already exists.");
+                            processedCount++;
                             continue;
                         }
-                    }
 
-                    if (isCopy)
-                    {
-                        if (Directory.Exists(source))
+                        var fileName = Path.GetFileName(source);
+                        task.CurrentFile = fileName;
+
+                        var destPath = Path.Combine(targetFolder, fileName);
+                        bool isSameFolder = string.Equals(Path.GetDirectoryName(source), targetFolder, StringComparison.OrdinalIgnoreCase);
+
+                        // If Moving to same folder, skip
+                        if (!isCopy && isSameFolder)
                         {
-                            CopyDirectory(source, destPath);
-                        }
-                        else
-                        {
-                            File.Copy(source, destPath, overwrite: false);
-                        }
-                    }
-                    else // Move
-                    {
-                        bool isDirectory = Directory.Exists(source);
-                        if (isDirectory)
-                        {
-                            Directory.Move(source, destPath);
-                        }
-                        else
-                        {
-                            File.Move(source, destPath);
+                            processedCount++;
+                            task.Progress = (int)((double)processedCount / sources.Length * 100);
+                            continue;
                         }
 
-                        // 记录撤销操作
-                        UndoService?.RecordAction(new MoveUndoAction(source, destPath, isDirectory));
+                        // If destination exists, handle conflict
+                        if (File.Exists(destPath) || Directory.Exists(destPath))
+                        {
+                            if (isCopy)
+                            {
+                                string newName = GetUniqueName(targetFolder, fileName);
+                                destPath = Path.Combine(targetFolder, newName);
+                            }
+                            else
+                            {
+                                processedCount++;
+                                task.Progress = (int)((double)processedCount / sources.Length * 100);
+                                continue;
+                            }
+                        }
+
+                        if (isCopy)
+                        {
+                            if (Directory.Exists(source))
+                            {
+                                CopyDirectory(source, destPath);
+                            }
+                            else
+                            {
+                                File.Copy(source, destPath, overwrite: false);
+                            }
+                            UndoService?.RecordAction(new NewFileUndoAction(destPath, Directory.Exists(destPath)));
+                        }
+                        else // Move
+                        {
+                            bool isDirectory = Directory.Exists(source);
+                            try
+                            {
+                                if (isDirectory)
+                                    Directory.Move(source, destPath);
+                                else
+                                    File.Move(source, destPath);
+                            }
+                            catch (IOException)
+                            {
+                                // Cross-drive move: copy then delete
+                                if (isDirectory)
+                                {
+                                    CopyDirectory(source, destPath);
+                                    Directory.Delete(source, true);
+                                }
+                                else
+                                {
+                                    File.Copy(source, destPath, true);
+                                    File.Delete(source);
+                                }
+                            }
+                            UndoService?.RecordAction(new MoveUndoAction(source, destPath, isDirectory));
+                        }
+
+                        successCount++;
+                        processedCount++;
+                        task.Progress = (int)((double)processedCount / sources.Length * 100);
                     }
-                    successCount++;
+
+                    // Update task status
+                    if (task.Status != FileOperations.TaskQueue.TaskStatus.Canceled)
+                    {
+                        task.Status = FileOperations.TaskQueue.TaskStatus.Completed;
+                        task.Progress = 100;
+                        task.CurrentFile = "完成";
+                    }
+
+                    if (successCount > 0)
+                    {
+                        System.Windows.Application.Current?.Dispatcher?.Invoke(() => RequestRefresh?.Invoke());
+                    }
+
+                    // Auto-clear completed task after delay
+                    Task.Delay(2000).ContinueWith(_ => TaskQueueService?.ClearCompleted());
                 }
-
-                if (successCount > 0)
+                catch (Exception ex)
                 {
-                    RequestRefresh?.Invoke();
+                    task.Status = FileOperations.TaskQueue.TaskStatus.Failed;
+                    task.CurrentFile = ex.Message;
+                    System.Windows.Application.Current?.Dispatcher?.Invoke(() =>
+                        MessageBox.Show($"操作失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error));
                 }
-
-                // if (errors.Count > 0)
-                // {
-                //      MessageBox.Show(string.Join("\n", errors), "Operation Incomplete", MessageBoxButton.OK, MessageBoxImage.Warning);
-                // }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Operation failed: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+            });
         }
 
         private string GetUniqueName(string folder, string fileName)

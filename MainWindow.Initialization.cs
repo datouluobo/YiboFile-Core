@@ -82,9 +82,9 @@ namespace OoiMRR
             // 初始化标签页服务（需要配置，在加载配置后更新）
             // 注意：_config 将在 InitializeApplication 中加载，这里先创建空配置
             // 初始化标签页服务（需要配置，在加载配置后更新）
-            // 注意：_config 将在 InitializeApplication 中加载，这里先创建空配置
-            _tabService = new TabService(new AppConfig());
-            _secondTabService = new TabService(new AppConfig());
+            // 使用 DI 获取 Transient 实例，分别为两个面板创建独立的服务
+            _tabService = App.ServiceProvider.GetRequiredService<TabService>();
+            _secondTabService = App.ServiceProvider.GetRequiredService<TabService>();
 
             // 初始化搜索服务
             // 注意：SearchResultBuilder 已在 DI 中注册但需要 FileListService 的依赖，这里通过 DI 获取 SearchService
@@ -99,10 +99,8 @@ namespace OoiMRR
             _configService.UIHelper = this;
 
             // 初始化列管理服务
-            // 注意：_config 将在 InitializeApplication 中加载，这里先创建空配置
-            var tempConfig = new AppConfig();
-            _columnService = new ColumnService(
-                tempConfig,
+            _columnService = App.ServiceProvider.GetRequiredService<ColumnService>();
+            _columnService.Initialize(
                 () => GetCurrentModeKey(),
                 () => { if (_configService != null) _configService.SaveCurrentConfig(); }
             );
@@ -125,12 +123,23 @@ namespace OoiMRR
             // _tagUIHandler = new Services.Tag.TagUIHandler(tagUIHandlerContext);
 
             // 初始化预览服务（需要在 InitializeComponent 之后，因为需要 RightPanel 和 FileBrowser）
+            // 初始化预览服务（需要在 InitializeComponent 之后，因为需要 RightPanel 和 FileBrowser）
             _previewService = new Services.Preview.PreviewService(
                 RightPanel,
                 FileBrowser,
                 this.Dispatcher,
                 LoadCurrentDirectory,
                 path => CreateTab(path, true)
+            );
+
+            // 初始化文件操作服务
+            // 此时 UndoService, TaskQueueService 已通过 DI 注入到 FileOperationService 的构造函数中
+            // 我们只需要提供 ContextProvider
+            _fileOperationService = new FileOperationService(
+                () => GetActiveFileOperationContext(),
+                App.ServiceProvider.GetRequiredService<OoiMRR.Services.Core.Error.ErrorService>(),
+                App.ServiceProvider.GetRequiredService<OoiMRR.Services.FileOperations.Undo.UndoService>(),
+                App.ServiceProvider.GetRequiredService<OoiMRR.Services.FileOperations.TaskQueue.TaskQueueService>()
             );
 
             // 订阅全局错误事件
@@ -190,6 +199,14 @@ namespace OoiMRR
                 FileBrowser.NavigationForward += NavigateForward_Click;
                 FileBrowser.NavigationUp += NavigateUp_Click;
                 FileBrowser.ViewModeChanged += FileBrowser_ViewModeChanged;
+
+                // Subscribe to File Operations from TitleActionBar
+                FileBrowser.FileNewFolder += (s, e) => _menuEventHandler?.NewFolder_Click(s, e);
+                FileBrowser.FileNewFile += (s, e) => _menuEventHandler?.NewFile_Click(s, e);
+                FileBrowser.FileCopy += async (s, e) => await CopySelectedFilesAsync();
+                FileBrowser.FilePaste += async (s, e) => await PasteFilesAsync();
+                FileBrowser.FileDelete += async (s, e) => await DeleteSelectedFilesAsync();
+                FileBrowser.FileRefresh += (s, e) => RefreshActiveFileList();
             }
 
             // 订阅 NavigationService 事件
@@ -254,7 +271,7 @@ namespace OoiMRR
             // _fileListService.FilesLoaded += OnFileListServiceFilesLoaded; // 已改为直接在 LoadFilesAsync 中处理
             _fileListService.FolderSizeCalculated += OnFileListServiceFolderSizeCalculated;
             _fileListService.MetadataEnriched += OnFileListServiceMetadataEnriched;
-            _fileListService.ErrorOccurred += OnFileListServiceErrorOccurred;
+
 
             // 订阅 FileSystemWatcherService 事件
             _fileSystemWatcherService.FileSystemChanged += OnFileSystemWatcherServiceFileSystemChanged;
@@ -437,18 +454,7 @@ namespace OoiMRR
                 {
                     try
                     {
-                        IFileOperationContext context = null;
-                        if (_currentLibrary != null)
-                        {
-                            context = new LibraryOperationContext(_currentLibrary, FileBrowser, this, RefreshFileList);
-                        }
-                        else
-                        {
-                            context = new PathOperationContext(_currentPath, FileBrowser, this, RefreshFileList);
-                        }
-                        var op = new DeleteOperation(context);
-                        var items = FileBrowser?.FilesSelectedItems?.Cast<FileSystemItem>().ToList();
-                        await op.ExecuteAsync(items);
+                        await DeleteSelectedFilesAsync();
                     }
                     catch (Exception ex)
                     {
@@ -462,18 +468,7 @@ namespace OoiMRR
                     // 属性功能可以后续实现
                     MessageBox.Show("属性功能开发中", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
                 };
-                // FileBrowser.FileAddTag += AddTagToFile_Click; // Phase 2
             }
-
-            // InitializeApplication call moved to MainWindow constructor to ensure correct initialization order
-            this.Activated += (s, e) =>
-            {
-                var activeTab = _tabService.ActiveTab;
-                if (activeTab != null && activeTab.Path != null && activeTab.Path.StartsWith("search://"))
-                {
-                    CheckAndRefreshSearchTab(activeTab.Path);
-                }
-            };
 
             this.Activated += (s, e) =>
             {
@@ -541,5 +536,35 @@ namespace OoiMRR
             };
         }
 
+        private FileOperationContext GetActiveFileOperationContext()
+        {
+            // 确定当前活动的面板
+            bool useSecond = IsDualListMode && _isSecondPaneFocused;
+
+            var targetBrowser = useSecond ? SecondFileBrowser : FileBrowser;
+            var targetPath = useSecond ? SecondFileBrowser?.AddressText : _currentPath;
+
+            // TODO: Determine library for second pane if separate
+            var targetLibrary = useSecond ? null : _currentLibrary;
+
+            return new FileOperationContext
+            {
+                TargetPath = targetPath,
+                CurrentLibrary = targetLibrary,
+                OwnerWindow = this,
+                RefreshCallback = () =>
+                {
+                    if (useSecond)
+                    {
+                        if (SecondFileBrowser != null && !string.IsNullOrEmpty(SecondFileBrowser.AddressText))
+                            LoadSecondFileBrowserDirectory(SecondFileBrowser.AddressText);
+                    }
+                    else
+                    {
+                        RefreshFileList();
+                    }
+                }
+            };
+        }
     }
 }

@@ -74,11 +74,7 @@ namespace OoiMRR.Services.FileList
         /// </summary>
         public event EventHandler<List<FileSystemItem>> MetadataEnriched;
 
-        /// <summary>
-        /// 错误发生事件（已弃用，请使用 ErrorService）
-        /// </summary>
-        [Obsolete("Use ErrorService instead")]
-        public event EventHandler<string> ErrorOccurred;
+
 
         #endregion
 
@@ -109,39 +105,56 @@ namespace OoiMRR.Services.FileList
         /// <param name="getFolderSizeCache">获取文件夹大小缓存的函数（可选）</param>
         /// <param name="formatFileSize">格式化文件大小的函数（可选）</param>
         /// <returns>文件系统项列表</returns>
+        /// <summary>
+        /// 从指定路径加载文件和文件夹列表
+        /// </summary>
+        /// <param name="path">要加载的路径</param>
+        /// <param name="getFolderSizeCache">获取文件夹大小缓存的函数（可选）</param>
+        /// <param name="formatFileSize">格式化文件大小的函数（可选）</param>
+        /// <returns>文件系统项列表</returns>
+        [Obsolete("Use LoadFileSystemItemsAsync instead")]
         public List<FileSystemItem> LoadFileSystemItems(
             string path,
             Func<string, long?> getFolderSizeCache = null,
             Func<long, string> formatFileSize = null)
         {
-            if (string.IsNullOrEmpty(path))
+            // 同步等待信号量，防止与异步加载冲突
+            _loadingSemaphore.Wait();
+            try
             {
-                return new List<FileSystemItem>();
-            }
+                if (string.IsNullOrEmpty(path))
+                {
+                    return new List<FileSystemItem>();
+                }
 
-            if (!Directory.Exists(path))
+                if (!Directory.Exists(path))
+                {
+                    _errorService.ReportError($"路径不存在: {path}", OoiMRR.Services.Core.Error.ErrorSeverity.Warning);
+                    return new List<FileSystemItem>();
+                }
+
+                // 使用默认的格式化函数
+                if (formatFileSize == null)
+                {
+                    formatFileSize = FormatFileSize;
+                }
+
+                var items = new List<FileSystemItem>();
+
+                // 加载文件夹
+                var directories = LoadDirectories(path, getFolderSizeCache, formatFileSize);
+                items.AddRange(directories);
+
+                // 加载文件
+                var files = LoadFiles(path, formatFileSize);
+                items.AddRange(files);
+
+                return items;
+            }
+            finally
             {
-                _errorService.ReportError($"路径不存在: {path}", OoiMRR.Services.Core.Error.ErrorSeverity.Warning);
-                return new List<FileSystemItem>();
+                _loadingSemaphore.Release();
             }
-
-            // 使用默认的格式化函数
-            if (formatFileSize == null)
-            {
-                formatFileSize = FormatFileSize;
-            }
-
-            var items = new List<FileSystemItem>();
-
-            // 加载文件夹
-            var directories = LoadDirectories(path, getFolderSizeCache, formatFileSize);
-            items.AddRange(directories);
-
-            // 加载文件
-            var files = LoadFiles(path, formatFileSize);
-            items.AddRange(files);
-
-            return items;
         }
 
         /// <summary>
@@ -584,7 +597,9 @@ namespace OoiMRR.Services.FileList
                         long? cachedSize = null;
                         if (getFolderSizeCache != null)
                         {
-                            cachedSize = await Task.Run(() => getFolderSizeCache(actualPath), cancellationToken);
+                            // 移除 Task.Run，直接同步读取缓存以提高加载速度
+                            // loop 中 await Task.Run 会导致严重的性能开销
+                            cachedSize = getFolderSizeCache(actualPath);
                             if (cachedSize.HasValue)
                             {
                                 sizeDisplay = formatFileSize(cachedSize.Value);

@@ -114,6 +114,7 @@ namespace OoiMRR.Services.FileOperations.TaskQueue
             {
                 Status = TaskStatus.Paused;
                 _pauseEvent.Reset();
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsPaused)));
             }
         }
 
@@ -123,6 +124,7 @@ namespace OoiMRR.Services.FileOperations.TaskQueue
             {
                 Status = TaskStatus.Running;
                 _pauseEvent.Set();
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsPaused)));
             }
         }
 

@@ -61,6 +61,10 @@ namespace OoiMRR.Services.Preview
         public void LoadFilePreview(FileSystemItem item)
         {
             if (_rightPanel?.PreviewGrid == null) return;
+
+            // 如果面板不可见（例如在双列表模式下），则不进行加载以节省资源
+            if (_rightPanel.Visibility != Visibility.Visible) return;
+
             _dispatcher.Invoke(() =>
             {
                 var mainWindow = Application.Current.MainWindow;

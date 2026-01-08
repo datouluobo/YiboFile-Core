@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using Microsoft.Win32;
@@ -50,7 +51,7 @@ namespace OoiMRR.Handlers
         private readonly Func<ListBox> _getLibrariesListBox;
         private readonly Func<ContextMenu> _getLibraryContextMenu;
         private readonly Action<string> _createNewFileWithExtension;
-        private readonly Action<string> _createNewFolder;
+        private readonly Func<string, Task<bool>> _createFolder;
         private readonly Func<AppConfig> _getConfig;
         private readonly Action<AppConfig> _applyConfig;
         private readonly Action _saveCurrentConfig;
@@ -89,7 +90,7 @@ namespace OoiMRR.Handlers
             Func<ListBox> getLibrariesListBox,
             Func<ContextMenu> getLibraryContextMenu,
             Action<string> createNewFileWithExtension,
-            Action<string> createNewFolder,
+            Func<string, Task<bool>> createFolder, // Changed from Action<string> createNewFolder
             Func<AppConfig> getConfig,
             Action<AppConfig> applyConfig,
             Action saveCurrentConfig)
@@ -127,7 +128,7 @@ namespace OoiMRR.Handlers
             _getLibrariesListBox = getLibrariesListBox ?? throw new ArgumentNullException(nameof(getLibrariesListBox));
             _getLibraryContextMenu = getLibraryContextMenu ?? throw new ArgumentNullException(nameof(getLibraryContextMenu));
             _createNewFileWithExtension = createNewFileWithExtension ?? throw new ArgumentNullException(nameof(createNewFileWithExtension));
-            _createNewFolder = createNewFolder ?? throw new ArgumentNullException(nameof(createNewFolder));
+            _createFolder = createFolder ?? throw new ArgumentNullException(nameof(createFolder));
             _getConfig = getConfig ?? throw new ArgumentNullException(nameof(getConfig));
             _applyConfig = applyConfig ?? throw new ArgumentNullException(nameof(applyConfig));
             _saveCurrentConfig = saveCurrentConfig ?? throw new ArgumentNullException(nameof(saveCurrentConfig));
@@ -289,7 +290,7 @@ namespace OoiMRR.Handlers
             _showPropertiesClick();
         }
 
-        public void NewFolder_Click(object sender, RoutedEventArgs e)
+        public async void NewFolder_Click(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -388,8 +389,15 @@ namespace OoiMRR.Handlers
                         while (Directory.Exists(folderPath));
                     }
 
-                    // 创建文件夹
-                    Directory.CreateDirectory(folderPath);
+                    // 创建文件夹 (通过服务)
+                    if (_createFolder != null)
+                    {
+                        await _createFolder(folderPath);
+                    }
+                    else
+                    {
+                        Directory.CreateDirectory(folderPath); // Fallback
+                    }
 
                     // 刷新显示
                     _refreshFileList();

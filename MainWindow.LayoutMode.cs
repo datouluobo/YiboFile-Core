@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.IO;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -476,11 +477,9 @@ namespace OoiMRR
             FileBrowser.GotFocus += (s, e) => { if (_isSecondPaneFocused) { _isSecondPaneFocused = false; UpdateFocusBorders(); } };
 
             // 绑定文件操作事件 (右键菜单支持)
-            SecondFileBrowser.FileCopy += (s, e) => _menuEventHandler?.Copy_Click(s, e);
+            // Copy/Paste/Refresh handled below with Toolbar support
             SecondFileBrowser.FileCut += (s, e) => _menuEventHandler?.Cut_Click(s, e);
-            SecondFileBrowser.FilePaste += (s, e) => _menuEventHandler?.Paste_Click(s, e);
             SecondFileBrowser.FileRename += (s, e) => _menuEventHandler?.Rename_Click(s, e);
-            SecondFileBrowser.FileRefresh += (s, e) => RefreshActiveFileList();
             SecondFileBrowser.FileProperties += (s, e) => MessageBox.Show("属性功能开发中", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
 
             // F2快捷键和其他键盘事件支持
@@ -498,7 +497,24 @@ namespace OoiMRR
             // 顶部工具栏按钮支持
             SecondFileBrowser.FileNewFolder += (s, e) => _menuEventHandler?.NewFolder_Click(s, e);
             SecondFileBrowser.FileNewFile += (s, e) => _menuEventHandler?.NewFile_Click(s, e);
+            SecondFileBrowser.FileRefresh += (s, e) => LoadSecondFileBrowserDirectory(_secondCurrentPath);
+            SecondFileBrowser.FileCopy += async (s, e) => await CopySelectedFilesAsync();
+            SecondFileBrowser.FilePaste += async (s, e) => await PasteFilesAsync();
             SecondFileBrowser.FileAddTag += (s, e) => { /* Phase 2 */ };
+
+            // F2 Rename handling for Second Browser
+            SecondFileBrowser.CommitRename += (s, e) =>
+            {
+                if (e.Item == null || string.IsNullOrWhiteSpace(e.NewName)) return;
+
+                IFileOperationContext context = null;
+                // Currently only Path mode supported for Second Browser usually?
+                // Or verify if it's library. Assuming Path mode for now or reuse simple context.
+                context = new PathOperationContext(_secondCurrentPath, SecondFileBrowser, this, () => LoadSecondFileBrowserDirectory(_secondCurrentPath));
+
+                var op = new Services.FileOperations.RenameOperation(context, this, _fileOperationService);
+                op.Execute(e.Item, e.NewName);
+            };
 
 
             SecondFileBrowser.FileDelete += async (s, e) =>
@@ -556,6 +572,40 @@ namespace OoiMRR
                 // 使用共享的 FileInfoService 实例更新文件信息
                 _secondFileInfoService?.ShowFileInfo(item);
             }
+            else
+            {
+                // 处理无选择的情况：显示当前文件夹信息
+                if (_secondFileInfoService == null && SecondFileBrowser != null)
+                {
+                    _secondFileInfoService = new Services.FileInfo.FileInfoService(SecondFileBrowser, _secondFileListService);
+                }
+
+                if (!string.IsNullOrEmpty(_secondCurrentPath) && Directory.Exists(_secondCurrentPath))
+                {
+                    try
+                    {
+                        var dirInfo = new DirectoryInfo(_secondCurrentPath);
+                        var folderItem = new FileSystemItem
+                        {
+                            Name = dirInfo.Name,
+                            Path = dirInfo.FullName,
+                            Type = "文件夹",
+                            IsDirectory = true,
+                            ModifiedDateTime = dirInfo.LastWriteTime,
+                            ModifiedDate = dirInfo.LastWriteTime.ToString("yyyy/M/d HH:mm"),
+                            CreatedDateTime = dirInfo.CreationTime,
+                            CreatedTime = dirInfo.CreationTime.ToString("yyyy/M/d HH:mm"),
+                            Size = "-", // 将在 ShowDirectoryInfo 中异步计算
+                            Tags = ""
+                        };
+                        _secondFileInfoService?.ShowFileInfo(folderItem);
+                    }
+                    catch
+                    {
+                        // 忽略错误
+                    }
+                }
+            }
         }
 
         // 副文件列表导航状态
@@ -594,6 +644,35 @@ namespace OoiMRR
                 SecondFileBrowser.NavBackEnabled = _secondNavHistory.Count > 0;
                 SecondFileBrowser.NavForwardEnabled = _secondNavForward.Count > 0;
                 SecondFileBrowser.NavUpEnabled = !string.IsNullOrEmpty(System.IO.Path.GetDirectoryName(path));
+
+                // 显示当前文件夹信息（与主面板行为一致）
+                if (_secondFileInfoService == null && SecondFileBrowser != null)
+                {
+                    _secondFileInfoService = new Services.FileInfo.FileInfoService(SecondFileBrowser, _secondFileListService);
+                }
+
+                if (Directory.Exists(path))
+                {
+                    try
+                    {
+                        var dirInfo = new DirectoryInfo(path);
+                        var folderItem = new FileSystemItem
+                        {
+                            Name = dirInfo.Name,
+                            Path = dirInfo.FullName,
+                            Type = "文件夹",
+                            IsDirectory = true,
+                            ModifiedDateTime = dirInfo.LastWriteTime,
+                            ModifiedDate = dirInfo.LastWriteTime.ToString("yyyy/M/d HH:mm"),
+                            CreatedDateTime = dirInfo.CreationTime,
+                            CreatedTime = dirInfo.CreationTime.ToString("yyyy/M/d HH:mm"),
+                            Size = "-",
+                            Tags = ""
+                        };
+                        _secondFileInfoService?.ShowFileInfo(folderItem);
+                    }
+                    catch { }
+                }
             }
             catch (Exception ex)
             {

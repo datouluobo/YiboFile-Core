@@ -98,6 +98,7 @@ namespace OoiMRR
             };
 
             manager.UndoService = App.ServiceProvider?.GetService(typeof(OoiMRR.Services.FileOperations.Undo.UndoService)) as OoiMRR.Services.FileOperations.Undo.UndoService;
+            manager.TaskQueueService = App.ServiceProvider?.GetService(typeof(OoiMRR.Services.FileOperations.TaskQueue.TaskQueueService)) as OoiMRR.Services.FileOperations.TaskQueue.TaskQueueService;
         }
 
         private void InitializeTabDragDrop()

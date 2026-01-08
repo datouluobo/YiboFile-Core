@@ -12,6 +12,8 @@ using OoiMRR.Services.QuickAccess;
 using OoiMRR.Services.FileList;
 using OoiMRR.Services.Search;
 using OoiMRR.Services.FileNotes;
+using OoiMRR.Services.Tabs;
+using OoiMRR.Services.ColumnManagement;
 // using TagTrain.Services; // Phase 2将重新实现标签功能
 using OoiMRR.Controls;
 
@@ -106,6 +108,10 @@ namespace OoiMRR
 
             // ViewModels / Windows (Optional, if we want to inject MainWindow)
             // services.AddTransient<MainWindow>();
+
+            // UI Logic Services
+            services.AddTransient<TabService>();
+            services.AddTransient<ColumnService>();
         }
 
         protected override void OnStartup(StartupEventArgs e)

@@ -35,6 +35,8 @@ namespace OoiMRR.Handlers
         private readonly Action<int> _switchLayoutMode;
         private readonly Func<bool> _isDualListMode;
         private readonly Action _switchDualPaneFocus;
+        private readonly Action _undoClick;
+        private readonly Action _redoClick;
 
         public KeyboardEventHandler(
             FileBrowserControl fileBrowser,
@@ -54,6 +56,8 @@ namespace OoiMRR.Handlers
             Action<string> switchNavigationMode,
             Func<bool> isLibraryMode,
             Action navigateBack,
+            Action undoClick,
+            Action redoClick,
             Action<int> switchLayoutMode = null,
             Func<bool> isDualListMode = null,
             Action switchDualPaneFocus = null)
@@ -75,6 +79,8 @@ namespace OoiMRR.Handlers
             _switchNavigationMode = switchNavigationMode ?? throw new ArgumentNullException(nameof(switchNavigationMode));
             _isLibraryMode = isLibraryMode ?? throw new ArgumentNullException(nameof(isLibraryMode));
             _navigateBack = navigateBack ?? throw new ArgumentNullException(nameof(navigateBack));
+            _undoClick = undoClick;
+            _redoClick = redoClick;
             _switchLayoutMode = switchLayoutMode; // 可选参数
             _isDualListMode = isDualListMode;
             _switchDualPaneFocus = switchDualPaneFocus;
@@ -323,6 +329,22 @@ namespace OoiMRR.Handlers
                     e.Handled = true;
                     return;
                 }
+            }
+
+            // Ctrl+Z: 撤销
+            if (e.Key == Key.Z && Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                _undoClick?.Invoke();
+                e.Handled = true;
+                return;
+            }
+
+            // Ctrl+Y: 重做
+            if (e.Key == Key.Y && Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                _redoClick?.Invoke();
+                e.Handled = true;
+                return;
             }
 
             // 空格键触发 QuickLook 预览

@@ -11,22 +11,34 @@
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
         <!-- 状态转换器 -->
         <local:TaskStatusToColorConverter x:Key="StatusToColor"/>
+        <local:TaskStatusToTextConverter x:Key="StatusToText"/>
         <local:PauseResumeTextConverter x:Key="PauseResumeTextConverter"/>
         
         <!-- 现代化圆角进度条样式 -->
         <Style x:Key="ModernProgressBarStyle" TargetType="ProgressBar">
             <Setter Property="Height" Value="6"/>
             <Setter Property="Background" Value="{DynamicResource ControlDefaultBackgroundBrush}"/>
+            <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ProgressBar">
-                        <Grid>
-                            <Border Background="{TemplateBinding Background}" CornerRadius="3" Height="{TemplateBinding Height}"/>
-                            <Border x:Name="PART_Track" CornerRadius="3" Height="{TemplateBinding Height}">
-                                <Border x:Name="PART_Indicator" HorizontalAlignment="Left" 
-                                        Background="{TemplateBinding Foreground}" CornerRadius="3"/>
-                            </Border>
-                        </Grid>
+                        <Border Background="{TemplateBinding Background}" CornerRadius="3" ClipToBounds="True">
+                            <Grid>
+                                <!-- Progress indicator using scale transform based on percentage -->
+                                <Border x:Name="PART_Indicator" 
+                                        Background="{TemplateBinding Foreground}" 
+                                        CornerRadius="3"
+                                        HorizontalAlignment="Left">
+                                    <Border.Width>
+                                        <MultiBinding Converter="{x:Static local:ProgressWidthConverter.Instance}">
+                                            <Binding Path="Value" RelativeSource="{RelativeSource TemplatedParent}"/>
+                                            <Binding Path="Maximum" RelativeSource="{RelativeSource TemplatedParent}"/>
+                                            <Binding Path="ActualWidth" RelativeSource="{RelativeSource TemplatedParent}"/>
+                                        </MultiBinding>
+                                    </Border.Width>
+                                </Border>
+                            </Grid>
+                        </Border>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
@@ -169,7 +181,7 @@
                                         <Border Grid.Column="1" CornerRadius="4" Padding="6,2"
                                                 Background="{Binding Status, Converter={StaticResource StatusToColor}}"
                                                 Opacity="0.15">
-                                            <TextBlock Text="{Binding Status}" 
+                                            <TextBlock Text="{Binding Status, Converter={StaticResource StatusToText}}" 
                                                        FontSize="10" FontWeight="Medium"
                                                        Foreground="{Binding Status, Converter={StaticResource StatusToColor}}"/>
                                         </Border>

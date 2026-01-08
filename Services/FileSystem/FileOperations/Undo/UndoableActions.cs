@@ -48,17 +48,36 @@ namespace OoiMRR.Services.FileOperations.Undo
         {
             try
             {
+                // 确保备份目录存在
+                var backupDir = Path.GetDirectoryName(_backupPath);
+                if (!Directory.Exists(backupDir))
+                    Directory.CreateDirectory(backupDir);
+
                 if (_isDirectory)
                 {
-                    Directory.Move(_originalPath, _backupPath);
+                    try
+                    {
+                        Directory.Move(_originalPath, _backupPath);
+                    }
+                    catch (IOException)
+                    {
+                        // 跨磁盘移动失败，使用复制+删除
+                        CopyDirectory(_originalPath, _backupPath);
+                        Directory.Delete(_originalPath, true);
+                    }
                 }
                 else
                 {
-                    // 确保备份目录存在
-                    var backupDir = Path.GetDirectoryName(_backupPath);
-                    if (!Directory.Exists(backupDir))
-                        Directory.CreateDirectory(backupDir);
-                    File.Move(_originalPath, _backupPath);
+                    try
+                    {
+                        File.Move(_originalPath, _backupPath);
+                    }
+                    catch (IOException)
+                    {
+                        // 跨磁盘移动失败，使用复制+删除
+                        File.Copy(_originalPath, _backupPath, true);
+                        File.Delete(_originalPath);
+                    }
                 }
                 return true;
             }
@@ -68,18 +87,54 @@ namespace OoiMRR.Services.FileOperations.Undo
             }
         }
 
+        private void CopyDirectory(string sourceDir, string destDir)
+        {
+            Directory.CreateDirectory(destDir);
+            foreach (var file in Directory.GetFiles(sourceDir))
+            {
+                File.Copy(file, Path.Combine(destDir, Path.GetFileName(file)), true);
+            }
+            foreach (var subDir in Directory.GetDirectories(sourceDir))
+            {
+                CopyDirectory(subDir, Path.Combine(destDir, Path.GetFileName(subDir)));
+            }
+        }
+
         public override bool Undo()
         {
             try
             {
+                // 确保目标目录存在
+                var targetDir = Path.GetDirectoryName(_originalPath);
+                if (!Directory.Exists(targetDir))
+                    Directory.CreateDirectory(targetDir);
+
                 // 恢复到原位置
                 if (_isDirectory)
                 {
-                    Directory.Move(_backupPath, _originalPath);
+                    try
+                    {
+                        Directory.Move(_backupPath, _originalPath);
+                    }
+                    catch (IOException)
+                    {
+                        // 跨磁盘移动失败，使用复制+删除
+                        CopyDirectory(_backupPath, _originalPath);
+                        Directory.Delete(_backupPath, true);
+                    }
                 }
                 else
                 {
-                    File.Move(_backupPath, _originalPath);
+                    try
+                    {
+                        File.Move(_backupPath, _originalPath);
+                    }
+                    catch (IOException)
+                    {
+                        // 跨磁盘移动失败，使用复制+删除
+                        File.Copy(_backupPath, _originalPath, true);
+                        File.Delete(_backupPath);
+                    }
                 }
                 return true;
             }
@@ -116,6 +171,9 @@ namespace OoiMRR.Services.FileOperations.Undo
     /// <summary>
     /// 移动操作的撤销支持
     /// </summary>
+    /// <summary>
+    /// 移动操作的撤销支持
+    /// </summary>
     public class MoveUndoAction : UndoableAction
     {
         private readonly string _sourcePath;
@@ -132,18 +190,45 @@ namespace OoiMRR.Services.FileOperations.Undo
             _isDirectory = isDirectory;
         }
 
-        public override bool Undo()
+        private void CopyDirectory(string sourceDir, string destDir)
+        {
+            Directory.CreateDirectory(destDir);
+            foreach (var file in Directory.GetFiles(sourceDir))
+            {
+                File.Copy(file, Path.Combine(destDir, Path.GetFileName(file)), true);
+            }
+            foreach (var subDir in Directory.GetDirectories(sourceDir))
+            {
+                CopyDirectory(subDir, Path.Combine(destDir, Path.GetFileName(subDir)));
+            }
+        }
+
+        private bool SafeMove(string src, string dest)
         {
             try
             {
-                // 移回原位置
                 if (_isDirectory)
                 {
-                    Directory.Move(_destinationPath, _sourcePath);
+                    if (Directory.Exists(src))
+                    {
+                        try
+                        {
+                            Directory.Move(src, dest);
+                        }
+                        catch (IOException) // Span across volumes or other error
+                        {
+                            CopyDirectory(src, dest);
+                            Directory.Delete(src, true);
+                        }
+                    }
                 }
                 else
                 {
-                    File.Move(_destinationPath, _sourcePath);
+                    if (File.Exists(src))
+                    {
+                        if (File.Exists(dest)) File.Delete(dest); // Overwrite protection
+                        File.Move(src, dest);
+                    }
                 }
                 return true;
             }
@@ -153,24 +238,16 @@ namespace OoiMRR.Services.FileOperations.Undo
             }
         }
 
+        public override bool Undo()
+        {
+            // 移回原位置: Dest -> Source
+            return SafeMove(_destinationPath, _sourcePath);
+        }
+
         public override bool Redo()
         {
-            try
-            {
-                if (_isDirectory)
-                {
-                    Directory.Move(_sourcePath, _destinationPath);
-                }
-                else
-                {
-                    File.Move(_sourcePath, _destinationPath);
-                }
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
+            // 重做: Source -> Dest
+            return SafeMove(_sourcePath, _destinationPath);
         }
     }
 
@@ -285,33 +362,95 @@ namespace OoiMRR.Services.FileOperations.Undo
     /// <summary>
     /// 新建文件/复制文件的撤销支持（撤销时删除文件）
     /// </summary>
+    /// <summary>
+    /// 新建文件/复制文件的撤销支持
+    /// 撤销时：将文件移至临时备份（像删除一样），以便Redo时恢复
+    /// </summary>
     public class NewFileUndoAction : UndoableAction
     {
         private readonly string _filePath;
         private readonly bool _isDirectory;
+        private readonly string _backupPath;
 
-        public override UndoableActionType ActionType => UndoableActionType.NewFile; // Or Copy
+        public override UndoableActionType ActionType => UndoableActionType.NewFile;
         public override string Description => $"新建/复制 {Path.GetFileName(_filePath)}";
+
+        // 复用DeleteUndoAction的备份目录逻辑
+        private string BackupDirectory
+        {
+            get
+            {
+                var path = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "OoiMRR", "UndoBackup");
+                if (!Directory.Exists(path))
+                    Directory.CreateDirectory(path);
+                return path;
+            }
+        }
 
         public NewFileUndoAction(string filePath, bool isDirectory)
         {
             _filePath = filePath;
             _isDirectory = isDirectory;
+            _backupPath = Path.Combine(BackupDirectory, Guid.NewGuid().ToString());
         }
 
         public override bool Undo()
         {
             try
             {
+                // 撤销新建 = 删除。但为了支持Redo，我们将其移至备份
                 if (_isDirectory)
                 {
                     if (Directory.Exists(_filePath))
-                        Directory.Delete(_filePath, true);
+                    {
+                        // 确保备份目录父级存在
+                        var backupDir = Path.GetDirectoryName(_backupPath);
+                        if (!Directory.Exists(backupDir)) Directory.CreateDirectory(backupDir);
+                        Directory.Move(_filePath, _backupPath);
+                    }
                 }
                 else
                 {
                     if (File.Exists(_filePath))
-                        File.Delete(_filePath);
+                    {
+                        var backupDir = Path.GetDirectoryName(_backupPath);
+                        if (!Directory.Exists(backupDir)) Directory.CreateDirectory(backupDir);
+                        File.Move(_filePath, _backupPath);
+                    }
+                }
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        public override bool Redo()
+        {
+            try
+            {
+                // Redo = 恢复新建 = 从备份移回
+                if (_isDirectory)
+                {
+                    if (Directory.Exists(_backupPath))
+                    {
+                        // 确保目标父目录存在
+                        var targetDir = Path.GetDirectoryName(_filePath);
+                        if (!Directory.Exists(targetDir)) Directory.CreateDirectory(targetDir);
+                        Directory.Move(_backupPath, _filePath);
+                    }
+                }
+                else
+                {
+                    if (File.Exists(_backupPath))
+                    {
+                        var targetDir = Path.GetDirectoryName(_filePath);
+                        if (!Directory.Exists(targetDir)) Directory.CreateDirectory(targetDir);
+                        File.Move(_backupPath, _filePath);
+                    }
                 }
                 return true;
             }
@@ -321,20 +460,16 @@ namespace OoiMRR.Services.FileOperations.Undo
             }
         }
 
-        public override bool Redo()
+        public void CleanupBackup()
         {
-            // Redo creation? Not easily supported unless we backed it up.
-            // For Copy/NewFile redo, we ideally need to re-copy or re-create.
-            // However, typical Windows Undo behavior: Undo Copy -> Delete. Redo Copy -> Restore (Recopy?).
-            // If we don't have the source or backup, Redo is impossible.
-            // For now, return false or implement simple restore if deleted to Recycle Bin?
-            // Let's assume DeleteUndoAction logic (Move to backup) is better?
-            // But NewFileUndoAction deletes permanently?
-            // To support Redo, Undo must Move to Backup.
-
-            // Let's reuse DeleteUndoAction logic basically!
-            // But inverted.
-            return false;
+            try
+            {
+                if (_isDirectory && Directory.Exists(_backupPath))
+                    Directory.Delete(_backupPath, true);
+                else if (File.Exists(_backupPath))
+                    File.Delete(_backupPath);
+            }
+            catch { }
         }
     }
 }
