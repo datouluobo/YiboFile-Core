@@ -63,12 +63,16 @@
     </UserControl.Resources>
     
     <!-- 外层容器带阴影和圆角 -->
-    <Border Background="{DynamicResource SurfaceBrush}" 
+    <Border x:Name="MainBorder" Background="{DynamicResource CardBackgroundBrush}" 
             BorderBrush="{DynamicResource BorderDefaultBrush}" 
             BorderThickness="1" 
             CornerRadius="8"
             MinWidth="320"
+            VerticalAlignment="Top"
             MaxWidth="400">
+        <Border.RenderTransform>
+            <TranslateTransform x:Name="PanelTranslateTransform"/>
+        </Border.RenderTransform>
         <Border.Effect>
             <DropShadowEffect BlurRadius="20" ShadowDepth="4" Opacity="0.2" Direction="270"/>
         </Border.Effect>
@@ -76,12 +80,15 @@
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*" MaxHeight="300"/>
+                <RowDefinition Height="Auto" MaxHeight="300"/>
             </Grid.RowDefinitions>
             
             <!-- Header -->
-            <Border Grid.Row="0" Background="{DynamicResource ControlDefaultBackgroundBrush}" 
-                    CornerRadius="8,8,0,0" Padding="12,10">
+            <Border x:Name="HeaderBorder" Grid.Row="0" Background="{DynamicResource ControlDefaultBackgroundBrush}" 
+                    CornerRadius="8,8,0,0" Padding="12,10"
+                    MouseLeftButtonDown="HeaderBorder_MouseLeftButtonDown"
+                    MouseLeftButtonUp="HeaderBorder_MouseLeftButtonUp"
+                    MouseMove="HeaderBorder_MouseMove">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
@@ -101,6 +108,9 @@
                         <Button Content="清理" Click="ClearCompleted_Click" 
                                 Style="{StaticResource TaskActionButtonStyle}" 
                                 ToolTip="清理已完成的任务"/>
+                        <Button Content="全清" Click="ForceRemoveAll_Click" 
+                                Style="{StaticResource TaskActionButtonStyle}" 
+                                ToolTip="强制清除所有任务（包括运行中）"/>
                         <Button Content="✕" Click="Close_Click" 
                                 Style="{StaticResource TaskActionButtonStyle}" 
                                 FontSize="12" Padding="6,4"

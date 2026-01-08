@@ -121,6 +121,9 @@ namespace OoiMRR.Services.FileOperations
             int totalCount = sourcePaths.Count;
             ConflictResolution? cachedResolution = null;
 
+            // 用于撤销操作
+            var undoActionList = new List<UndoableAction>();
+
             // 创建并注册任务
             var task = new FileOperationTask
             {
@@ -153,25 +156,21 @@ namespace OoiMRR.Services.FileOperations
 
                 var fileName = Path.GetFileName(sourcePath);
                 var destPath = Path.Combine(targetPath, fileName);
+                bool isDir = Directory.Exists(sourcePath);
 
                 ProgressChanged?.Invoke(processedCount, totalCount, fileName);
 
                 // 防止递归复制/移动 (源文件夹不能包含目标文件夹)
-                if (Directory.Exists(sourcePath))
+                if (isDir)
                 {
                     var srcFull = Path.GetFullPath(sourcePath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
                     var targetFull = Path.GetFullPath(targetPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
-                    System.Diagnostics.Debug.WriteLine($"[FileOperationService] Recursion check: src='{srcFull}', target='{targetFull}'");
-
                     bool isRecursive = targetFull.StartsWith(srcFull + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) ||
                                      string.Equals(targetFull, srcFull, StringComparison.OrdinalIgnoreCase);
 
-                    System.Diagnostics.Debug.WriteLine($"[FileOperationService] isRecursive = {isRecursive}");
-
                     if (isRecursive)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[FileOperationService] BLOCKED: Recursive operation detected for {fileName}");
                         failedItems.Add($"{fileName}: 目标文件夹是源文件夹的子文件夹");
                         processedCount++;
                         continue;
@@ -180,24 +179,18 @@ namespace OoiMRR.Services.FileOperations
 
                 try
                 {
-                    // ★ 关键安全检查：防止将文件/文件夹复制到自身
-                    // 当目标路径等于源路径时，必须自动重命名，否则会导致无限递归
+                    // 防止自我复制/移动
                     var srcFullPath = Path.GetFullPath(sourcePath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
                     var destFullPath = Path.GetFullPath(destPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
                     if (string.Equals(srcFullPath, destFullPath, StringComparison.OrdinalIgnoreCase))
                     {
-                        System.Diagnostics.Debug.WriteLine($"[FileOperationService] SAME PATH DETECTED: src='{srcFullPath}' == dest='{destFullPath}'");
                         if (!isCut)
                         {
-                            // 复制操作：自动重命名
                             destPath = GetUniquePath(destPath);
-                            System.Diagnostics.Debug.WriteLine($"[FileOperationService] Auto-renamed to: {destPath}");
                         }
                         else
                         {
-                            // 剪切操作：无需处理，跳过
-                            System.Diagnostics.Debug.WriteLine($"[FileOperationService] Cut operation, skipping same path");
                             processedCount++;
                             continue;
                         }
@@ -213,16 +206,14 @@ namespace OoiMRR.Services.FileOperations
 
                         if (isSameFolder)
                         {
-                            // 同文件夹自动重命名
                             destPath = GetUniquePath(destPath);
                         }
                         else
                         {
-                            // 不同文件夹显示冲突对话框
                             var resolution = cachedResolution;
                             if (!resolution.HasValue)
                             {
-                                var (userRes, applyAll) = await ShowConflictDialogAsync(fileName);
+                                var (userRes, applyAll) = await ShowConflictDialogAsync(fileName, totalCount > 1, task?.CancellationTokenSource.Token ?? ct);
                                 resolution = userRes;
                                 if (applyAll) cachedResolution = resolution;
                             }
@@ -230,6 +221,7 @@ namespace OoiMRR.Services.FileOperations
                             switch (resolution.Value)
                             {
                                 case ConflictResolution.CancelAll:
+                                    if (task != null) task.Status = TaskStatus.Canceled;
                                     return FileOperationResult.Cancelled();
                                 case ConflictResolution.Skip:
                                     processedCount++;
@@ -245,8 +237,6 @@ namespace OoiMRR.Services.FileOperations
                         }
                     }
 
-                    System.Diagnostics.Debug.WriteLine($"[FileOperationService] Executing {(isCut ? "move" : "copy")}: {sourcePath} -> {destPath}");
-
                     // 执行复制/移动
                     await Task.Run(() =>
                     {
@@ -258,9 +248,20 @@ namespace OoiMRR.Services.FileOperations
                         else if (Directory.Exists(sourcePath))
                         {
                             if (isCut) SafeMoveDirectory(sourcePath, destPath, task);
-                            else CopyDirectory(sourcePath, destPath, task); // Use task's token implicitly via check inside
+                            else CopyDirectory(sourcePath, destPath, task);
                         }
                     }, task?.CancellationTokenSource.Token ?? ct);
+
+                    // 记录撤销操作 (仅当成功时)
+                    // 注意：如果是移动操作，源路径可能已经不存在，但在UndoAction中需要记录源路径以便恢复
+                    if (isCut)
+                    {
+                        undoActionList.Add(new MoveUndoAction(sourcePath, destPath, isDir));
+                    }
+                    else
+                    {
+                        undoActionList.Add(new NewFileUndoAction(destPath, isDir));
+                    }
                 }
                 catch (OperationCanceledException)
                 {
@@ -273,24 +274,27 @@ namespace OoiMRR.Services.FileOperations
                 }
 
                 processedCount++;
-                System.Diagnostics.Debug.WriteLine($"[FileOperationService] Item processed, count={processedCount}/{totalCount}");
             }
 
-            System.Diagnostics.Debug.WriteLine("[FileOperationService] Loop completed, starting cleanup...");
+            // 注册批量撤销
+            if (undoActionList.Count > 0 && _undoService != null)
+            {
+                var compositeAction = new CompositeUndoAction(isCut ? "移动文件" : "复制文件");
+                foreach (var action in undoActionList)
+                {
+                    compositeAction.AddAction(action);
+                }
+                _undoService.RecordAction(compositeAction);
+            }
 
-            // 清理
-            System.Diagnostics.Debug.WriteLine("[FileOperationService] Calling context.Refresh()...");
+            // 刷新
             context.Refresh();
-            System.Diagnostics.Debug.WriteLine("[FileOperationService] context.Refresh() completed");
 
             if (isCut && !ct.IsCancellationRequested)
             {
-                System.Diagnostics.Debug.WriteLine("[FileOperationService] Clearing cut state...");
                 await _clipboard.ClearCutStateAsync();
-                System.Diagnostics.Debug.WriteLine("[FileOperationService] Cut state cleared");
             }
 
-            System.Diagnostics.Debug.WriteLine("[FileOperationService] Creating result...");
             var result = new FileOperationResult
             {
                 Success = failedItems.Count == 0,
@@ -299,13 +303,11 @@ namespace OoiMRR.Services.FileOperations
                 FailedItems = failedItems
             };
 
-            System.Diagnostics.Debug.WriteLine("[FileOperationService] Updating task status...");
             if (task != null && task.Status != TaskStatus.Canceled && task.Status != TaskStatus.Failed)
             {
                 task.Status = TaskStatus.Completed;
                 task.Progress = 100;
 
-                // 延迟 2 秒后自动清理已完成的任务
                 _ = Task.Run(async () =>
                 {
                     await Task.Delay(2000);
@@ -313,9 +315,7 @@ namespace OoiMRR.Services.FileOperations
                 });
             }
 
-            System.Diagnostics.Debug.WriteLine("[FileOperationService] Invoking OperationCompleted...");
             OperationCompleted?.Invoke(result);
-            System.Diagnostics.Debug.WriteLine("[FileOperationService] Invoking ProgressChanged...");
             ProgressChanged?.Invoke(totalCount, totalCount, "完成");
 
             if (failedItems.Count > 0)
@@ -458,26 +458,40 @@ namespace OoiMRR.Services.FileOperations
         /// </summary>
         public async Task<FileOperationResult> RenameAsync(FileSystemItem item, string newName)
         {
+            System.Diagnostics.Debug.WriteLine($"[RenameAsync] Start - item: {item?.Name}, newName: {newName}, path: {item?.Path}");
+
             if (item == null || string.IsNullOrWhiteSpace(newName))
+            {
+                System.Diagnostics.Debug.WriteLine("[RenameAsync] Invalid parameters");
                 return FileOperationResult.Failed("参数无效");
+            }
 
             var context = _getContext();
             var directory = Path.GetDirectoryName(item.Path);
             var newPath = Path.Combine(directory, newName);
 
-            if (File.Exists(newPath) || Directory.Exists(newPath))
+            System.Diagnostics.Debug.WriteLine($"[RenameAsync] newPath: {newPath}");
+
+            // 检查是否仅并在且只是大小写不同
+            bool isCaseChangeOnly = string.Equals(item.Path, newPath, StringComparison.OrdinalIgnoreCase);
+
+            if (!isCaseChangeOnly && (File.Exists(newPath) || Directory.Exists(newPath)))
             {
+                System.Diagnostics.Debug.WriteLine($"[RenameAsync] File already exists: {newPath}");
                 _errorService?.ReportError($"已存在同名文件: {newName}", ErrorSeverity.Warning);
                 return FileOperationResult.Failed("已存在同名文件");
             }
 
             try
             {
+                System.Diagnostics.Debug.WriteLine($"[RenameAsync] Moving {item.Path} -> {newPath}, IsDirectory: {item.IsDirectory}");
                 await Task.Run(() =>
                 {
                     if (item.IsDirectory) Directory.Move(item.Path, newPath);
                     else File.Move(item.Path, newPath);
                 });
+
+                System.Diagnostics.Debug.WriteLine("[RenameAsync] Move completed successfully");
 
                 // 记录撤销操作
                 _undoService?.RecordAction(new RenameUndoAction(item.Path, newPath, item.IsDirectory));
@@ -487,6 +501,7 @@ namespace OoiMRR.Services.FileOperations
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"[RenameAsync] Exception: {ex.Message}");
                 _errorService?.ReportError($"重命名失败: {ex.Message}", ErrorSeverity.Error, ex);
                 return FileOperationResult.Failed(ex.Message, ex);
             }
@@ -562,12 +577,27 @@ namespace OoiMRR.Services.FileOperations
             }
         }
 
-        private async Task<(ConflictResolution, bool)> ShowConflictDialogAsync(string fileName)
+        private async Task<(ConflictResolution, bool)> ShowConflictDialogAsync(string fileName, bool isMultiple, CancellationToken ct)
         {
             return await Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 var owner = Application.Current.MainWindow;
-                return ConflictResolutionDialog.Show(owner, fileName);
+                var dialog = new ConflictResolutionDialog { Owner = owner };
+                dialog.SetFileName(fileName);
+                dialog.SetMultipleMode(isMultiple);
+
+                using (ct.Register(() =>
+                {
+                    try { dialog.Dispatcher.Invoke(dialog.Close); } catch { }
+                }))
+                {
+                    if (dialog.ShowDialog() == true)
+                    {
+                        return (dialog.Resolution, dialog.ApplyToAll);
+                    }
+                }
+
+                return (ConflictResolution.CancelAll, false);
             });
         }
 

@@ -300,21 +300,31 @@ namespace OoiMRR
             if (!_isDualListMode)
             {
                 // 单列表模式：清除边框
+                if (FileBrowser?.FocusBorderControl != null) FileBrowser.FocusBorderControl.BorderBrush = new SolidColorBrush(Colors.Transparent);
+                if (SecondFileBrowser?.FocusBorderControl != null) SecondFileBrowser.FocusBorderControl.BorderBrush = new SolidColorBrush(Colors.Transparent);
+                // 确保 UserControl 本身没有边框
                 FileBrowser.BorderThickness = new Thickness(0);
                 SecondFileBrowser.BorderThickness = new Thickness(0);
                 return;
             }
 
-            // 双列表模式：显示焦点边框
+            // 双列表模式：显示焦点边框 (使用覆盖层 Border 防止抖动)
             var focusBrush = new SolidColorBrush(Color.FromArgb(120, 0, 120, 215)); // 半透明蓝色
             var normalBrush = new SolidColorBrush(Colors.Transparent);
 
-            FileBrowser.BorderBrush = _isSecondPaneFocused ? normalBrush : focusBrush;
-            // 保持固定边框厚度以防止布局跳动
-            FileBrowser.BorderThickness = new Thickness(2);
+            if (FileBrowser?.FocusBorderControl != null)
+            {
+                FileBrowser.FocusBorderControl.BorderBrush = _isSecondPaneFocused ? normalBrush : focusBrush;
+            }
+            // 移除 UserControl 边框设置
+            FileBrowser.BorderThickness = new Thickness(0);
 
-            SecondFileBrowser.BorderBrush = _isSecondPaneFocused ? focusBrush : normalBrush;
-            SecondFileBrowser.BorderThickness = new Thickness(2);
+            if (SecondFileBrowser?.FocusBorderControl != null)
+            {
+                SecondFileBrowser.FocusBorderControl.BorderBrush = _isSecondPaneFocused ? focusBrush : normalBrush;
+            }
+            // 移除 UserControl 边框设置
+            SecondFileBrowser.BorderThickness = new Thickness(0);
         }
 
         /// <summary>
@@ -476,6 +486,15 @@ namespace OoiMRR
             // F2快捷键和其他键盘事件支持
             SecondFileBrowser.FilesPreviewKeyDown += FilesListView_PreviewKeyDown;
 
+            // 空白区域点击取消选择
+            SecondFileBrowser.FilesPreviewMouseLeftButtonDown += (s, e) =>
+            {
+                if (SecondFileBrowser?.FilesList is ListView listView)
+                {
+                    FilesListView_PreviewMouseLeftButtonDown(listView, e);
+                }
+            };
+
             // 顶部工具栏按钮支持
             SecondFileBrowser.FileNewFolder += (s, e) => _menuEventHandler?.NewFolder_Click(s, e);
             SecondFileBrowser.FileNewFile += (s, e) => _menuEventHandler?.NewFile_Click(s, e);
@@ -528,6 +547,12 @@ namespace OoiMRR
         {
             if (SecondFileBrowser?.FilesSelectedItem is FileSystemItem item)
             {
+                // 确保 _secondFileInfoService 已初始化
+                if (_secondFileInfoService == null && SecondFileBrowser != null)
+                {
+                    _secondFileInfoService = new Services.FileInfo.FileInfoService(SecondFileBrowser, _secondFileListService);
+                }
+
                 // 使用共享的 FileInfoService 实例更新文件信息
                 _secondFileInfoService?.ShowFileInfo(item);
             }

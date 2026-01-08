@@ -89,6 +89,16 @@ namespace OoiMRR.Services
             System.Diagnostics.Debug.WriteLine($"[DragDropManager] StartDrag: {selectedItems.Count} items selected");
             if (selectedItems.Count == 0) return;
 
+            // 如果选中的项目正在重命名，不启动拖放（允许TextBox中的文本选择）
+            foreach (var item in selectedItems)
+            {
+                if (item is FileSystemItem fsItem && fsItem.IsRenaming)
+                {
+                    System.Diagnostics.Debug.WriteLine("[DragDropManager] StartDrag: Item is renaming, skipping drag");
+                    return;
+                }
+            }
+
             var filePaths = new List<string>();
             foreach (var item in selectedItems)
             {

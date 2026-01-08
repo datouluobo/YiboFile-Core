@@ -88,7 +88,20 @@ namespace OoiMRR
                 (e) => FilesListView_PreviewMouseDown(FileBrowser?.FilesList, e), // Wrapped
                 (e) => FilesListView_PreviewMouseDoubleClickForBlank(FileBrowser?.FilesList, e), // Wrapped
                 (e) => { }, // FilesListView_PreviewMouseMove handled by DragDropManager directly
-                () => ColLeft // Func<ColumnDefinition>
+                () => ColLeft, // Func<ColumnDefinition>
+                (e) => // CommitRename
+                {
+                    System.Diagnostics.Debug.WriteLine($"[MainWindow] CommitRename handler - Item: {e.Item?.Name}, NewName: {e.NewName}");
+                    var (browser, path, library) = GetActiveContext();
+                    Services.FileOperations.IFileOperationContext context = null;
+                    if (library != null)
+                        context = new Services.FileOperations.LibraryOperationContext(library, browser, this, RefreshActiveFileList);
+                    else
+                        context = new Services.FileOperations.PathOperationContext(path, browser, this, RefreshActiveFileList);
+
+                    var op = new Services.FileOperations.RenameOperation(context, this, _fileOperationService);
+                    op.Execute(e.Item, e.NewName);
+                }
             );
             _fileBrowserEventHandler.Initialize();
 
@@ -190,18 +203,12 @@ namespace OoiMRR
                 () => // Rename
                 {
                     var (browser, path, library) = GetActiveContext();
-                    IFileOperationContext context = null;
-                    if (library != null)
-                    {
-                        context = new LibraryOperationContext(library, browser, this, RefreshActiveFileList);
-                    }
-                    else
-                    {
-                        context = new PathOperationContext(path, browser, this, RefreshActiveFileList);
-                    }
-                    var op = new RenameOperation(context, this, _fileOperationService);
                     var item = browser?.FilesSelectedItem as FileSystemItem;
-                    if (item != null) op.Execute(item);
+                    if (item != null)
+                    {
+                        // Trigger inline rename
+                        item.IsRenaming = true;
+                    }
                 },
                 () => { }, // ShowProperties - Implement if needed
                 NavigateToPath,

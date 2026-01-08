@@ -84,7 +84,8 @@ namespace OoiMRR.Handlers
             Action<MouseButtonEventArgs> filesListViewPreviewMouseDown,
             Action<MouseButtonEventArgs> filesListViewPreviewMouseDoubleClickForBlank,
             Action<MouseEventArgs> filesListViewPreviewMouseMove,
-            Func<ColumnDefinition> getColLeft)
+            Func<ColumnDefinition> getColLeft,
+            Action<RenameEventArgs> commitRename)
         {
             _fileBrowser = fileBrowser ?? throw new ArgumentNullException(nameof(fileBrowser));
             _navigationCoordinator = navigationCoordinator ?? throw new ArgumentNullException(nameof(navigationCoordinator));
@@ -117,7 +118,10 @@ namespace OoiMRR.Handlers
             _filesListViewPreviewMouseDoubleClickForBlank = filesListViewPreviewMouseDoubleClickForBlank ?? throw new ArgumentNullException(nameof(filesListViewPreviewMouseDoubleClickForBlank));
             _filesListViewPreviewMouseMove = filesListViewPreviewMouseMove ?? throw new ArgumentNullException(nameof(filesListViewPreviewMouseMove));
             _getColLeft = getColLeft ?? throw new ArgumentNullException(nameof(getColLeft));
+            _commitRename = commitRename ?? throw new ArgumentNullException(nameof(commitRename));
         }
+
+        private readonly Action<RenameEventArgs> _commitRename;
 
         /// <summary>
         /// 初始化事件绑定
@@ -144,6 +148,7 @@ namespace OoiMRR.Handlers
             _fileBrowser.FilesPreviewMouseDown += FileBrowser_FilesPreviewMouseDown;
             _fileBrowser.FilesPreviewMouseDoubleClickForBlank += FileBrowser_FilesPreviewMouseDoubleClickForBlank;
             _fileBrowser.FilesPreviewMouseMove += FileBrowser_FilesPreviewMouseMove;
+            _fileBrowser.CommitRename += (s, e) => _commitRename(e);
         }
 
         public void FileBrowser_PathChanged(object sender, string path)

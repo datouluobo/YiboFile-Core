@@ -109,7 +109,7 @@ namespace OoiMRR.Services.FileOperations
                             // 如果没有缓存的解决方式，询问用户
                             if (!resolution.HasValue)
                             {
-                                var (userResolution, applyToAll) = await ShowConflictDialogAsync(fileName);
+                                var (userResolution, applyToAll) = await ShowConflictDialogAsync(fileName, totalItems > 1, cancellationToken);
                                 resolution = userResolution;
 
                                 if (applyToAll)
@@ -194,12 +194,28 @@ namespace OoiMRR.Services.FileOperations
             ProgressChanged?.Invoke(totalItems, totalItems, "完成");
         }
 
-        private async Task<(ConflictResolution, bool)> ShowConflictDialogAsync(string fileName)
+        private async Task<(ConflictResolution, bool)> ShowConflictDialogAsync(string fileName, bool isMultiple, CancellationToken ct)
         {
             return await Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 var ownerWindow = Application.Current.MainWindow;
-                return ConflictResolutionDialog.Show(ownerWindow, fileName);
+                var dialog = new ConflictResolutionDialog { Owner = ownerWindow };
+                dialog.SetFileName(fileName);
+                dialog.SetMultipleMode(isMultiple);
+
+                // 如果任务取消，关闭对话框
+                using (ct.Register(() =>
+                {
+                    try { dialog.Dispatcher.Invoke(dialog.Close); } catch { }
+                }))
+                {
+                    if (dialog.ShowDialog() == true)
+                    {
+                        return (dialog.Resolution, dialog.ApplyToAll);
+                    }
+                }
+
+                return (ConflictResolution.CancelAll, false);
             });
         }
 

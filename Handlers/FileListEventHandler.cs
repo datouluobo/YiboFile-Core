@@ -544,6 +544,14 @@ namespace OoiMRR.Handlers
             if (listView == null)
                 return;
 
+            // 如果正在重命名，跳过所有快捷键处理，让 TextBox 处理输入
+            if (_fileBrowser?.FilesSelectedItem is FileSystemItem renamingItem && renamingItem.IsRenaming)
+            {
+                // Enter 和 Escape 由 TextBox 的 KeyDown 处理
+                // 其他键（包括 Ctrl+A, Ctrl+C 等）也传递给 TextBox
+                return;
+            }
+
             // Ctrl+A - 全选
             if (e.Key == Key.A && Keyboard.Modifiers == ModifierKeys.Control)
             {
@@ -742,6 +750,12 @@ namespace OoiMRR.Handlers
             {
                 if (_fileBrowser?.FilesSelectedItem is FileSystemItem selectedItem)
                 {
+                    // 如果正在重命名，不拦截 Enter 键，让 TextBox 处理
+                    if (selectedItem.IsRenaming)
+                    {
+                        return; // 不设置 e.Handled，让事件继续传播到 TextBox
+                    }
+
                     if (selectedItem.IsDirectory)
                     {
                         if (_isLibraryMode())

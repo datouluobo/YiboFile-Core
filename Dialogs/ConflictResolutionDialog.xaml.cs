@@ -60,20 +60,34 @@ namespace OoiMRR.Dialogs
         }
 
         /// <summary>
+        /// 是否有多个文件（用于显示"全部"选项）
+        /// </summary>
+        public void SetMultipleMode(bool isMultiple)
+        {
+            if (AllFilesPanel != null)
+            {
+                AllFilesPanel.Visibility = isMultiple ? Visibility.Visible : Visibility.Collapsed;
+            }
+        }
+
+        /// <summary>
         /// 直接按钮点击 - 一次点击直达
         /// </summary>
         private void DirectButton_Click(object sender, RoutedEventArgs e)
         {
             if (sender is System.Windows.Controls.Button btn && btn.Tag is string tag)
             {
-                Resolution = tag switch
+                ApplyToAll = tag.EndsWith("All");
+                string action = ApplyToAll ? tag.Replace("All", "") : tag;
+
+                Resolution = action switch
                 {
                     "Overwrite" => ConflictResolution.Overwrite,
                     "Skip" => ConflictResolution.Skip,
                     "Rename" => ConflictResolution.Rename,
                     _ => ConflictResolution.Skip
                 };
-                ApplyToAll = ApplyToAllCheckBox.IsChecked == true;
+
                 DialogResult = true;
                 Close();
             }
@@ -82,13 +96,14 @@ namespace OoiMRR.Dialogs
         /// <summary>
         /// 显示对话框并获取用户选择
         /// </summary>
-        public static (ConflictResolution resolution, bool applyToAll) Show(Window owner, string fileName)
+        public static (ConflictResolution resolution, bool applyToAll) Show(Window owner, string fileName, bool isMultiple = false)
         {
             var dialog = new ConflictResolutionDialog
             {
                 Owner = owner
             };
             dialog.SetFileName(fileName);
+            dialog.SetMultipleMode(isMultiple);
 
             if (dialog.ShowDialog() == true)
             {

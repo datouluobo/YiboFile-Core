@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace OoiMRR.Services.FileOperations.Undo
 {
@@ -229,6 +231,110 @@ namespace OoiMRR.Services.FileOperations.Undo
             {
                 return false;
             }
+        }
+    }
+    /// <summary>
+    /// 组合撤销操作（支持事务性撤销多个操作）
+    /// </summary>
+    public class CompositeUndoAction : UndoableAction
+    {
+        private readonly List<UndoableAction> _actions = new List<UndoableAction>();
+        private readonly string _description;
+
+        public override UndoableActionType ActionType => _actions.Count > 0 ? _actions[0].ActionType : UndoableActionType.None;
+        public override string Description => _description;
+
+        public CompositeUndoAction(string description)
+        {
+            _description = description;
+        }
+
+        public void AddAction(UndoableAction action)
+        {
+            _actions.Add(action);
+        }
+
+        public override bool Undo()
+        {
+            bool success = true;
+            // 按相反顺序撤销
+            for (int i = _actions.Count - 1; i >= 0; i--)
+            {
+                if (!_actions[i].Undo())
+                {
+                    success = false;
+                }
+            }
+            return success;
+        }
+
+        public override bool Redo()
+        {
+            bool success = true;
+            foreach (var action in _actions)
+            {
+                if (!action.Redo())
+                {
+                    success = false;
+                }
+            }
+            return success;
+        }
+    }
+
+    /// <summary>
+    /// 新建文件/复制文件的撤销支持（撤销时删除文件）
+    /// </summary>
+    public class NewFileUndoAction : UndoableAction
+    {
+        private readonly string _filePath;
+        private readonly bool _isDirectory;
+
+        public override UndoableActionType ActionType => UndoableActionType.NewFile; // Or Copy
+        public override string Description => $"新建/复制 {Path.GetFileName(_filePath)}";
+
+        public NewFileUndoAction(string filePath, bool isDirectory)
+        {
+            _filePath = filePath;
+            _isDirectory = isDirectory;
+        }
+
+        public override bool Undo()
+        {
+            try
+            {
+                if (_isDirectory)
+                {
+                    if (Directory.Exists(_filePath))
+                        Directory.Delete(_filePath, true);
+                }
+                else
+                {
+                    if (File.Exists(_filePath))
+                        File.Delete(_filePath);
+                }
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public override bool Redo()
+        {
+            // Redo creation? Not easily supported unless we backed it up.
+            // For Copy/NewFile redo, we ideally need to re-copy or re-create.
+            // However, typical Windows Undo behavior: Undo Copy -> Delete. Redo Copy -> Restore (Recopy?).
+            // If we don't have the source or backup, Redo is impossible.
+            // For now, return false or implement simple restore if deleted to Recycle Bin?
+            // Let's assume DeleteUndoAction logic (Move to backup) is better?
+            // But NewFileUndoAction deletes permanently?
+            // To support Redo, Undo must Move to Backup.
+
+            // Let's reuse DeleteUndoAction logic basically!
+            // But inverted.
+            return false;
         }
     }
 }

@@ -67,5 +67,27 @@ namespace OoiMRR.Services.FileOperations.TaskQueue
                 });
             }
         }
+
+        /// <summary>
+        /// 强制清除所有任务（包括运行中的任务）
+        /// </summary>
+        public void ForceRemoveAll()
+        {
+            if (System.Windows.Application.Current != null)
+            {
+                System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                {
+                    // 先取消所有运行中的任务
+                    foreach (var t in _tasks.ToList())
+                    {
+                        if (t.Status == TaskStatus.Running || t.Status == TaskStatus.Paused)
+                        {
+                            t.Cancel();
+                        }
+                    }
+                    _tasks.Clear();
+                });
+            }
+        }
     }
 }

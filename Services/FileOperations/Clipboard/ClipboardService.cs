@@ -228,7 +228,7 @@ namespace OoiMRR.Services.FileOperations
             return await action();
         }
 
-        private async Task<T> RetryAsync<T>(Func<T> action, string operationName, int maxRetries = 20, int delayMs = 200)
+        private async Task<T> RetryAsync<T>(Func<T> action, string operationName, int maxRetries = 5, int delayMs = 50)
         {
             Debug.WriteLine($"[ClipboardService] RetryAsync '{operationName}' starting, maxRetries={maxRetries}");
             for (int i = 0; i < maxRetries; i++)

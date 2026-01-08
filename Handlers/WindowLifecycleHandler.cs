@@ -47,6 +47,9 @@ namespace OoiMRR.Handlers
                 // 停止并刷新配置服务的定时器（如果有），确保配置落盘
                 _configService?.StopAllTimers();
 
+                // 执行备份清理（程序退出循环）
+                OoiMRR.Services.FileOperations.Undo.BackupCleanupService.Cleanup();
+
                 // 🔥 BUG FIX: 不要调用SaveCurrentConfig！
                 // ConfigService保存的是启动时加载的旧_config，会覆盖ConfigurationService刚保存的新配置！
                 // ConfigurationService和WindowStateManager已经负责保存所有设置，不需要重复保存

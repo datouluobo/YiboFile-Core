@@ -89,8 +89,11 @@ namespace OoiMRR
 
         private void AddFavorite_Click(object sender, RoutedEventArgs e)
         {
+            // 根据当前焦点判断使用哪个列表
+            var activeBrowser = (_isSecondPaneFocused && SecondFileBrowser != null) ? SecondFileBrowser : FileBrowser;
+
             // 获取选中的文件或文件夹
-            var selectedItems = FileBrowser?.FilesSelectedItems?.Cast<FileSystemItem>().ToList() ?? new List<FileSystemItem>();
+            var selectedItems = activeBrowser?.FilesSelectedItems?.Cast<FileSystemItem>().ToList() ?? new List<FileSystemItem>();
             if (selectedItems.Count == 0)
             {
                 MessageBox.Show("请先选择要收藏的文件或文件夹", "提示", MessageBoxButton.OK, MessageBoxImage.Information);

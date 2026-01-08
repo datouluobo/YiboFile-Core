@@ -141,8 +141,8 @@ namespace OoiMRR.Services.FileOperations.Undo
             _redoStack.Clear();
             StackChanged?.Invoke(this, EventArgs.Empty);
 
-            // 清理备份目录
-            BackupCleanupService.Cleanup();
+            // 移除自动清理，改为由程序退出时调用
+            // BackupCleanupService.Cleanup();
         }
     }
 }

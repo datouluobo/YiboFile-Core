@@ -68,6 +68,11 @@ namespace OoiMRR.Controls
                 FileList.SizeChanged += (s, e) => FilesSizeChanged?.Invoke(s, e);
                 FileList.GridViewColumnHeaderClick += (s, e) => GridViewColumnHeaderClick?.Invoke(s, e);
                 FileList.LoadMoreClick += (s, e) => LoadMoreBtn_Click(s, e);
+                FileList.CommitRename += (s, e) =>
+                {
+                    System.Diagnostics.Debug.WriteLine($"[FileBrowser] CommitRename forwarding - Item: {e.Item?.Name}, NewName: {e.NewName}, HasSubscribers: {CommitRename != null}");
+                    CommitRename?.Invoke(s, e);
+                };
 
                 // 订阅列标题点击事件（用于记录默认列宽）
                 if (FileList.FilesGrid != null)
@@ -112,6 +117,7 @@ namespace OoiMRR.Controls
         // public StackPanel TabsPanelControl => TabManager?.TabsPanelControl;
         // public Border TabsBorderControl => TabManager?.TabsBorderControl;
 
+        public Border FocusBorderControl => FocusBorder; // 焦点边框
         public StackPanel FileInfoPanelControl => FileInfoPanel;
         public TextBlock EmptyStateTextControl => FileList?.EmptyStateTextControl;
 
@@ -255,6 +261,7 @@ namespace OoiMRR.Controls
         public event RoutedEventHandler FileAddTag;
         public event RoutedEventHandler FileNewFolder;
         public event RoutedEventHandler FileNewFile;
+        public event EventHandler<RenameEventArgs> CommitRename;
 
         // 地址栏事件处理
         private void AddressBarControl_PathChanged(object sender, string path)

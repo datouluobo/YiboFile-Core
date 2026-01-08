@@ -332,6 +332,19 @@ namespace OoiMRR
                 }
                 else
                 {
+                    // 在后台线程应用排序，避免阻塞 UI
+                    if (_columnService != null)
+                    {
+                        try
+                        {
+                            items = _columnService.SortFiles(items);
+                        }
+                        catch (Exception)
+                        {
+                            // 排序失败不应该导致整个加载失败，忽略排序错误
+                        }
+                    }
+
                     // 在 UI 线程更新
                     await Dispatcher.BeginInvoke(new Action(() =>
                     {
@@ -339,19 +352,6 @@ namespace OoiMRR
                         {
                             _currentFiles.Clear();
                             _currentFiles.AddRange(items);
-
-                            // 应用排序
-                            if (_columnService != null)
-                            {
-                                try
-                                {
-                                    _currentFiles = _columnService.SortFiles(_currentFiles);
-                                }
-                                catch (Exception)
-                                {
-                                    // 排序失败不应该导致整个加载失败，忽略排序错误
-                                }
-                            }
 
                             if (FileBrowser != null)
                             {

@@ -31,16 +31,62 @@
                            HorizontalAlignment="Center"
                            VerticalAlignment="Center"/>
                     
-                    <!-- 文件名 -->
-                    <TextBlock Grid.Row="1" 
-                               Text="{Binding Name}" 
-                               TextAlignment="Center" 
-                               TextWrapping="Wrap" 
-                               MaxHeight="36" 
-                               TextTrimming="CharacterEllipsis"
-                               Margin="4,2"
-                               FontSize="11"
-                               ToolTip="{Binding Name}"/>
+                    <!-- 文件名区域 -->
+                    <Grid Grid.Row="1" x:Name="ThumbnailNameGrid">
+                        <TextBlock x:Name="ThumbnailFileName"
+                                   Text="{Binding Name}" 
+                                   TextAlignment="Center" 
+                                   TextWrapping="Wrap" 
+                                   MaxHeight="36" 
+                                   TextTrimming="CharacterEllipsis"
+                                   Margin="4,2"
+                                   FontSize="11"
+                                   ToolTip="{Binding Name}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsRenaming}" Value="True">
+                                            <Setter Property="Visibility" Value="Hidden"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <!-- 缩略图模式重命名 Popup -->
+                        <Popup x:Name="ThumbnailRenamePopup" 
+                               PlacementTarget="{Binding ElementName=ThumbnailNameGrid}"
+                               Placement="Center"
+                               HorizontalOffset="0"
+                               VerticalOffset="0"
+                               StaysOpen="True"
+                               AllowsTransparency="False"
+                               IsOpen="{Binding IsRenaming}">
+                            <Border MinHeight="24"
+                                    Width="{Binding ItemWidth, RelativeSource={RelativeSource AncestorType={x:Type local:FileListControl}}}"
+                                    Background="#FFFFFF"
+                                    BorderBrush="#0078D4"
+                                    BorderThickness="2"
+                                    CornerRadius="2">
+                                <Border.Effect>
+                                    <DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.3"/>
+                                </Border.Effect>
+                                <TextBox x:Name="ThumbnailRenameTextBox"
+                                         Text="{Binding RenameText, UpdateSourceTrigger=PropertyChanged}" 
+                                         VerticalAlignment="Center"
+                                         TextAlignment="Center"
+                                         TextWrapping="Wrap"
+                                         AcceptsReturn="False"
+                                         Background="Transparent"
+                                         Foreground="#000000"
+                                         CaretBrush="#0078D4"
+                                         BorderThickness="0" Padding="4,2"
+                                         KeyDown="RenameTextBox_KeyDown"
+                                         IsVisibleChanged="RenameTextBox_IsVisibleChanged"
+                                         LostFocus="RenameTextBox_LostFocus"/>
+                            </Border>
+                        </Popup>
+                    </Grid>
                 </Grid>
             </Border>
         </DataTemplate>
@@ -74,10 +120,59 @@
                     </ListView.ItemContainerStyle>
                     <ListView.View>
                         <GridView x:Name="FilesGridView" ColumnHeaderContainerStyle="{StaticResource FileListColumnHeaderStyle}">
-                            <GridViewColumn x:Name="ColName" DisplayMemberBinding="{Binding Name}">
+                            <GridViewColumn x:Name="ColName">
                                 <GridViewColumn.Header>
                                     <TextBlock Text="名称" Tag="Name"/>
                                 </GridViewColumn.Header>
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Grid x:Name="NameCellGrid">
+                                            <TextBlock x:Name="FileNameText" Text="{Binding Name}" Margin="6,0" VerticalAlignment="Center">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsRenaming}" Value="True">
+                                                                <Setter Property="Visibility" Value="Hidden"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                            <!-- 重命名 Popup - 真正的悬浮层，可以遮挡任何内容 -->
+                                            <Popup x:Name="RenamePopup" 
+                                                   PlacementTarget="{Binding ElementName=FileNameText}"
+                                                   Placement="Top"
+                                                   HorizontalOffset="-6"
+                                                   VerticalOffset="20"
+                                                   StaysOpen="True"
+                                                   AllowsTransparency="False"
+                                                   IsOpen="{Binding IsRenaming}">
+                                                <Border MinHeight="24"
+                                                        Background="#FFFFFF"
+                                                        BorderBrush="#0078D4"
+                                                        BorderThickness="2"
+                                                        CornerRadius="2">
+                                                    <Border.Effect>
+                                                        <DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.3"/>
+                                                    </Border.Effect>
+                                                    <TextBox x:Name="RenameTextBox"
+                                                             Text="{Binding RenameText, UpdateSourceTrigger=PropertyChanged}" 
+                                                             MinWidth="350"
+                                                             VerticalAlignment="Center"
+                                                             TextAlignment="Left"
+                                                             Background="Transparent"
+                                                             Foreground="#000000"
+                                                             CaretBrush="#0078D4"
+                                                             BorderThickness="0" Padding="4,2"
+                                                             KeyDown="RenameTextBox_KeyDown"
+                                                             IsVisibleChanged="RenameTextBox_IsVisibleChanged"
+                                                             LostFocus="RenameTextBox_LostFocus"/>
+                                                </Border>
+                                            </Popup>
+                                        </Grid>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
                             </GridViewColumn>
                             
                             <GridViewColumn x:Name="ColType" Width="60" HeaderContainerStyle="{StaticResource NonResizableFileColumnHeaderStyle}" DisplayMemberBinding="{Binding Type}">

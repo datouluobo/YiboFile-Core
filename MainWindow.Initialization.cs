@@ -203,8 +203,43 @@ namespace OoiMRR
                 if (tab != null)
                 {
                     UpdateTabStyles();
+
+                    // 切换标签页时自动聚焦主文件列表
+                    if (_isDualListMode && _isSecondPaneFocused)
+                    {
+                        _isSecondPaneFocused = false;
+                        UpdateFocusBorders();
+                        FileBrowser?.FilesList?.Focus();
+                    }
                 }
             };
+
+            // 订阅副标签页服务事件
+            _secondTabService.ActiveTabChanged += (s, tab) =>
+            {
+                if (tab != null)
+                {
+                    // 切换标签页时自动聚焦副文件列表
+                    if (_isDualListMode && !_isSecondPaneFocused)
+                    {
+                        _isSecondPaneFocused = true;
+                        UpdateFocusBorders();
+                        SecondFileBrowser?.FilesList?.Focus();
+                    }
+                    _secondTabService?.UpdateTabStyles();
+                }
+            };
+
+            _secondTabService.TabPinStateChanged += (s, tab) =>
+            {
+                _secondTabService.ApplyPinVisual(tab);
+                _secondTabService.ReorderTabs();
+            };
+            _secondTabService.TabTitleChanged += (s, tab) =>
+            {
+                _secondTabService.ApplyPinVisual(tab);
+            };
+
             _tabService.TabPinStateChanged += (s, tab) =>
             {
                 _tabService.ApplyPinVisual(tab);

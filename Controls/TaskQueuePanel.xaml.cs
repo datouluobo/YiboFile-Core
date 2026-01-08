@@ -64,6 +64,11 @@ namespace OoiMRR.Controls
             _queueService?.ClearCompleted();
         }
 
+        private void ForceRemoveAll_Click(object sender, RoutedEventArgs e)
+        {
+            _queueService?.ForceRemoveAll();
+        }
+
         private void PauseResume_Click(object sender, RoutedEventArgs e)
         {
             if (sender is Button btn && btn.Tag is FileOperationTask task)
@@ -82,6 +87,46 @@ namespace OoiMRR.Controls
                 task.Cancel();
             }
         }
+
+        #region Drag Support
+
+        private bool _isDragging = false;
+        private Point _lastMousePosition;
+
+        private void HeaderBorder_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (sender is Border header)
+            {
+                _isDragging = true;
+                _lastMousePosition = e.GetPosition(null);
+                header.CaptureMouse();
+            }
+        }
+
+        private void HeaderBorder_MouseLeftButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (_isDragging && sender is Border header)
+            {
+                _isDragging = false;
+                header.ReleaseMouseCapture();
+            }
+        }
+
+        private void HeaderBorder_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+        {
+            if (_isDragging && (this.Content as Border)?.RenderTransform is TranslateTransform transform)
+            {
+                var currentPosition = e.GetPosition(null);
+                var offset = currentPosition - _lastMousePosition;
+
+                transform.X += offset.X;
+                transform.Y += offset.Y;
+
+                _lastMousePosition = currentPosition;
+            }
+        }
+
+        #endregion
     }
 
     // Converters within the same file for simplicity (or should move to Converters folder)

@@ -798,23 +798,153 @@ namespace OoiMRR.Controls
             {
                 if (_isGroupedMode)
                 {
-                    SwitchToNormalView();
+                    // 分组模式下不支持直接设置ItemsSource，需要通过SetGroupedSearchResults
+                    // 这里可以留空或抛出异常，视具体需求而定
                 }
-
-                if (FilesListView != null)
+                else
                 {
-                    FilesListView.ItemsSource = value;
-                    // 强制刷新ListView，确保排序后UI更新
-                    FilesListView.Items.Refresh();
-
-                    // 如果当前是缩略图模式，且有新数据，触发缩略图加载
-                    if (_currentViewMode == "Thumbnail" && value != null)
+                    if (FilesListView != null)
                     {
-                        _thumbnailService?.LoadThumbnailsAsync(value);
+                        FilesListView.ItemsSource = value;
+                        // 强制刷新ListView，确保排序后UI更新
+                        FilesListView.Items.Refresh();
+
+                        // 如果当前是缩略图模式，且有新数据，触发缩略图加载
+                        if (_currentViewMode == "Thumbnail" && value != null)
+                        {
+                            _thumbnailService?.LoadThumbnailsAsync(value);
+                        }
                     }
                 }
             }
         }
+
+        #region Inline Rename
+
+        public event EventHandler<RenameEventArgs> CommitRename;
+
+        private void RenameTextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            System.Diagnostics.Debug.WriteLine($"[Rename] KeyDown: {e.Key}");
+            if (sender is TextBox textBox && textBox.DataContext is FileSystemItem item)
+            {
+                if (e.Key == Key.Enter)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Rename] Enter pressed, item: {item.Name}, text: {textBox.Text}, RenameText: {item.RenameText}");
+                    // Force sync the TextBox text to RenameText in case binding hasn't updated
+                    item.RenameText = textBox.Text;
+                    CommitRenameLogic(item);
+                    e.Handled = true;
+                }
+                else if (e.Key == Key.Escape)
+                {
+                    System.Diagnostics.Debug.WriteLine("[Rename] Escape pressed");
+                    CancelRenameLogic(item);
+                    e.Handled = true;
+                }
+            }
+        }
+
+        private void RenameTextBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (sender is TextBox textBox && textBox.DataContext is FileSystemItem item)
+            {
+                // Commit on lost focus
+                if (item.IsRenaming)
+                {
+                    // Delay slightly to allow Cancel to process if Esc was pressed
+                    // But actually, KeyDown happens before LostFocus.
+                    CommitRenameLogic(item);
+                }
+            }
+        }
+
+        private void RenameTextBox_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (sender is TextBox textBox && textBox.DataContext is FileSystemItem item)
+            {
+                // 只在变为可见时处理
+                bool isVisible = (bool)e.NewValue;
+                if (!isVisible || !item.IsRenaming)
+                    return;
+
+                System.Diagnostics.Debug.WriteLine($"[Rename] TextBox IsVisibleChanged - visible: {isVisible}, IsRenaming: {item.IsRenaming}");
+
+                // 使用 Render 优先级以确保在布局完成后执行
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    // 再次检查 - 可能在调度期间状态已改变
+                    if (!item.IsRenaming || !textBox.IsVisible)
+                        return;
+
+                    // 使用 Keyboard.Focus() 确保键盘焦点设置正确
+                    Keyboard.Focus(textBox);
+                    textBox.Focus();
+
+                    // 从 Path 获取完整文件名（因为 RenameText 可能还没同步）
+                    string name = !string.IsNullOrEmpty(item.RenameText)
+                        ? item.RenameText
+                        : System.IO.Path.GetFileName(item.Path);
+
+                    System.Diagnostics.Debug.WriteLine($"[Rename] Focus set - name: {name}, IsDirectory: {item.IsDirectory}");
+
+                    if (!string.IsNullOrEmpty(name))
+                    {
+                        // 确保 TextBox 有正确的文本
+                        if (string.IsNullOrEmpty(textBox.Text))
+                        {
+                            textBox.Text = name;
+                        }
+
+                        int lastDotIndex = name.LastIndexOf('.');
+                        System.Diagnostics.Debug.WriteLine($"[Rename] lastDotIndex: {lastDotIndex}");
+
+                        if (lastDotIndex > 0 && !item.IsDirectory)
+                        {
+                            // 选中文件名部分（不包含扩展名）
+                            textBox.Select(0, lastDotIndex);
+                            System.Diagnostics.Debug.WriteLine($"[Rename] Selected 0 to {lastDotIndex}");
+                        }
+                        else
+                        {
+                            textBox.SelectAll();
+                            System.Diagnostics.Debug.WriteLine("[Rename] Selected all");
+                        }
+                    }
+                }), System.Windows.Threading.DispatcherPriority.Render);
+            }
+        }
+
+        private void CommitRenameLogic(FileSystemItem item)
+        {
+            if (!item.IsRenaming) return;
+
+            System.Diagnostics.Debug.WriteLine($"[Rename] CommitRenameLogic - Item: {item.Name}, NewName: {item.RenameText}");
+
+            // Check if name actually changed
+            if (string.IsNullOrWhiteSpace(item.RenameText) || item.RenameText == item.Name)
+            {
+                System.Diagnostics.Debug.WriteLine("[Rename] Name unchanged or empty, cancelling rename");
+                item.IsRenaming = false;
+                return;
+            }
+
+            // 触发重命名提交事件
+            CommitRename?.Invoke(this, new RenameEventArgs(item, item.RenameText));
+
+            // 重置状态 (实际重命名逻辑完成后，或者失败后，由外部控制或者这里暂时关闭用于UI反馈)
+            // 这里先关闭编辑状态，外部逻辑如果失败可以再次重新开启或者报错
+            item.IsRenaming = false;
+        }
+
+        private void CancelRenameLogic(FileSystemItem item)
+        {
+            item.IsRenaming = false;
+            // Revert text? Actually IsRenaming=false hides the box, so text doesn't matter much unless reused.
+            item.RenameText = item.Name;
+        }
+
+        #endregion
 
         private string GetCellTextForColumn(object item, GridViewColumn column, GridViewColumnHeader header)
         {
@@ -1025,6 +1155,18 @@ namespace OoiMRR.Controls
         }
 
         #endregion
+    }
+
+    public class RenameEventArgs : EventArgs
+    {
+        public FileSystemItem Item { get; }
+        public string NewName { get; }
+
+        public RenameEventArgs(FileSystemItem item, string newName)
+        {
+            Item = item;
+            NewName = newName;
+        }
     }
 }
 

@@ -126,5 +126,13 @@
                 <StackPanel x:Name="FileInfoPanel" Margin="4"/>
             </ScrollViewer>
         </Border>
+
+        <!-- 焦点边框覆盖层 (Grid.RowSpan="5") -->
+        <Border x:Name="FocusBorder"
+                Grid.Row="0" Grid.RowSpan="5"
+                BorderThickness="2"
+                BorderBrush="Transparent"
+                IsHitTestVisible="False"
+                Panel.ZIndex="1000"/>
     </Grid>
 </UserControl>

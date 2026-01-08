@@ -10,7 +10,9 @@ namespace OoiMRR.Services.FileOperations.Undo
         Delete,
         Move,
         Rename,
-        Copy
+        Copy,
+        NewFile,
+        None
     }
 
     /// <summary>

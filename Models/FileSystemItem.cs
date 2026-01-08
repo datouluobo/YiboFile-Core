@@ -17,6 +17,43 @@ namespace OoiMRR
         public bool IsDirectory { get; set; }
         public string SourcePath { get; set; } // 库模式下的来源路径
 
+        // Inline Rename Support
+        private bool _isRenaming;
+        public bool IsRenaming
+        {
+            get => _isRenaming;
+            set
+            {
+                if (_isRenaming != value)
+                {
+                    _isRenaming = value;
+                    OnPropertyChanged(nameof(IsRenaming));
+                    if (_isRenaming)
+                    {
+                        // Use full filename from Path (including extension) for rename
+                        // Name might not have extension when ShowFullFileName is false
+                        RenameText = !string.IsNullOrEmpty(Path)
+                            ? System.IO.Path.GetFileName(Path)
+                            : Name;
+                    }
+                }
+            }
+        }
+
+        private string _renameText;
+        public string RenameText
+        {
+            get => _renameText;
+            set
+            {
+                if (_renameText != value)
+                {
+                    _renameText = value;
+                    OnPropertyChanged(nameof(RenameText));
+                }
+            }
+        }
+
         // 原始数据用于排序，避免字符串解析异常
         public long SizeBytes { get; set; } = -1;
         public DateTime ModifiedDateTime { get; set; } = DateTime.MinValue;

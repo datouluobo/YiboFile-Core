@@ -146,6 +146,9 @@ namespace OoiMRR.Services
                     // 副列表标签页状态
                     latestConfig.OpenTabsSecondary = _config.OpenTabsSecondary;
                     latestConfig.ActiveTabKeySecondary = _config.ActiveTabKeySecondary;
+
+                    // 确保双列表模式状态被正确保存
+                    latestConfig.IsDualListMode = _config.IsDualListMode;
                 });
 
                 // ✅ 不再需要手动Save - ConfigurationService.Update会触发去抖保存
