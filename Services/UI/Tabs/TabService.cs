@@ -1031,6 +1031,8 @@ namespace OoiMRR.Services.Tabs
             if (!CanCloseTab(tab, _ui.GetCurrentLibrary?.Invoke() != null)) return;
             if (_ui.TabManager == null || _ui.TabManager.TabsPanelControl == null) return;
 
+            bool wasActive = (tab == _activeTab);
+
             RemoveTab(tab);
 
             var container = tab.TabButton.Parent as StackPanel;
@@ -1046,15 +1048,17 @@ namespace OoiMRR.Services.Tabs
             tab.TabButton = null;
             tab.CloseButton = null;
 
-            var activeTab = _activeTab;
-            if (tab == activeTab)
+            // 如果关闭的是活动标签页，切换到剩余的第一个标签页
+            if (wasActive)
             {
-                if (TabCount > 0 && activeTab != null)
+                var remainingTabs = GetTabsInOrder();
+                if (remainingTabs.Count > 0)
                 {
-                    SwitchToTab(activeTab);
+                    SwitchToTab(remainingTabs[0]);
                 }
                 else
                 {
+                    // 没有剩余标签页，创建默认标签页
                     var desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
                     if (Directory.Exists(desktopPath))
                     {
