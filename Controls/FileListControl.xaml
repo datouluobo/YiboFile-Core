@@ -114,10 +114,37 @@
                       Background="{DynamicResource AppBackgroundBrush}"
                       BorderThickness="0"
                       FocusVisualStyle="{x:Null}"
+                      VirtualizingPanel.IsVirtualizing="True"
+                      VirtualizingPanel.IsVirtualizingWhenGrouping="True"
                       ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                     <ListView.ItemContainerStyle>
                         <StaticResource ResourceKey="FileListItemStyle"/>
                     </ListView.ItemContainerStyle>
+                    <ListView.GroupStyle>
+                        <GroupStyle>
+                            <GroupStyle.ContainerStyle>
+                                <Style TargetType="{x:Type GroupItem}">
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="{x:Type GroupItem}">
+                                                <Expander IsExpanded="True" BorderThickness="0,0,0,1" BorderBrush="{DynamicResource BorderDefaultBrush}">
+                                                    <Expander.Header>
+                                                        <StackPanel Orientation="Horizontal" Margin="4">
+                                                            <TextBlock Text="{Binding Name}" FontWeight="Bold" Margin="0,0,8,0"
+                                                                       Foreground="{DynamicResource ForegroundBrush}"/>
+                                                            <TextBlock Text="{Binding ItemCount, StringFormat=({0})}" VerticalAlignment="Center" 
+                                                                       Foreground="{DynamicResource ForegroundSecondaryBrush}"/>
+                                                        </StackPanel>
+                                                    </Expander.Header>
+                                                    <ItemsPresenter />
+                                                </Expander>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </GroupStyle.ContainerStyle>
+                        </GroupStyle>
+                    </ListView.GroupStyle>
                     <ListView.View>
                         <GridView x:Name="FilesGridView" ColumnHeaderContainerStyle="{StaticResource FileListColumnHeaderStyle}">
                             <GridViewColumn x:Name="ColName">
@@ -226,181 +253,7 @@
                     </ListView.View>
                 </ListView>
                 
-                <!-- 分组列表视图 -->
-                <Grid x:Name="GroupedResultsViewer" Visibility="Collapsed">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-                    
-                    <Border Grid.Row="0" 
-                            Background="{DynamicResource BackgroundTertiaryBrush}" 
-                            BorderBrush="{DynamicResource BorderDefaultBrush}" 
-                            BorderThickness="0,0,0,1">
-                        <ListView x:Name="GroupedHeaderListView" BorderThickness="0" Background="Transparent">
-                            <ListView.View>
-                                <GridView ColumnHeaderContainerStyle="{StaticResource FileListColumnHeaderStyle}">
-                                    <GridViewColumn x:Name="ColHeaderName" Width="250">
-                                        <GridViewColumn.Header>
-                                            <TextBlock Text="名称" Tag="Name"/>
-                                        </GridViewColumn.Header>
-                                    </GridViewColumn>
-                                    
-                                    <GridViewColumn x:Name="ColHeaderType" Width="60" HeaderContainerStyle="{StaticResource NonResizableFileColumnHeaderStyle}">
-                                        <GridViewColumn.Header>
-                                            <TextBlock Text="类型" Tag="Type"/>
-                                        </GridViewColumn.Header>
-                                    </GridViewColumn>
 
-                                    <GridViewColumn x:Name="ColHeaderSize" Width="90" HeaderContainerStyle="{StaticResource NonResizableFileColumnHeaderStyle}">
-                                        <GridViewColumn.Header>
-                                            <TextBlock Text="大小" Tag="Size"/>
-                                        </GridViewColumn.Header>
-                                    </GridViewColumn>
-                                    
-                                    <GridViewColumn x:Name="ColHeaderModifiedDate" Width="100" HeaderContainerStyle="{StaticResource NonResizableFileColumnHeaderStyle}">
-                                        <GridViewColumn.Header>
-                                            <TextBlock Text="修改日期" Tag="ModifiedDate"/>
-                                        </GridViewColumn.Header>
-                                    </GridViewColumn>
-                                    
-                                    <GridViewColumn x:Name="ColHeaderCreatedTime" Width="60" HeaderContainerStyle="{StaticResource NonResizableFileColumnHeaderStyle}">
-                                        <GridViewColumn.Header>
-                                            <TextBlock Text="创建" Tag="CreatedTime"/>
-                                        </GridViewColumn.Header>
-                                    </GridViewColumn>
-                                    
-                                    <GridViewColumn x:Name="ColHeaderTags" Width="150">
-                                        <GridViewColumn.Header>
-                                            <TextBlock Text="标签" Tag="Tags"/>
-                                        </GridViewColumn.Header>
-                                    </GridViewColumn>
-                                    <GridViewColumn x:Name="ColHeaderNotes" Width="200">
-                                        <GridViewColumn.Header>
-                                            <TextBlock Text="备注" Tag="Notes"/>
-                                        </GridViewColumn.Header>
-                                    </GridViewColumn>
-                                </GridView>
-                            </ListView.View>
-                        </ListView>
-                    </Border>
-                    
-                    <ScrollViewer Grid.Row="1"
-                                  VerticalScrollBarVisibility="Auto"
-                                  HorizontalScrollBarVisibility="Disabled">
-                        <ItemsControl x:Name="GroupedResultsList">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate DataType="{x:Type vm:SearchResultGroupViewModel}">
-                                    <Border Background="{Binding GroupBackground}" 
-                                            BorderBrush="{Binding GroupBorderBrush}"
-                                            BorderThickness="0,0,0,2"
-                                            Margin="0,0,0,8">
-                                        <StackPanel>
-                                            <Border Background="{Binding GroupBackground}" 
-                                                    BorderBrush="{Binding GroupBorderBrush}"
-                                                    BorderThickness="0,0,0,1"
-                                                    Padding="12,8"
-                                                    Cursor="Hand"
-                                                    MouseLeftButtonDown="GroupHeader_MouseLeftButtonDown">
-                                                <Grid>
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                        <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                    </Grid.ColumnDefinitions>
-                                                    
-                                                    <TextBlock Grid.Column="0" 
-                                                               Text="{Binding ExpandIcon}" 
-                                                               FontSize="16"
-                                                               FontWeight="Bold"
-                                                               Foreground="{DynamicResource ForegroundSecondaryBrush}"
-                                                               Margin="0,0,12,0"
-                                                               VerticalAlignment="Center"/>
-                                                    
-                                                    <StackPanel Grid.Column="1" Orientation="Horizontal">
-                                                        <TextBlock Text="{Binding GroupName}" 
-                                                                   FontWeight="SemiBold"
-                                                                   FontSize="14"
-                                                                   VerticalAlignment="Center"/>
-                                                        <TextBlock Text="{Binding ItemCount, StringFormat=' ({0})'}" 
-                                                                   FontSize="12"
-                                                                   Foreground="{DynamicResource ForegroundSecondaryBrush}"
-                                                                   Margin="8,0,0,0"
-                                                                   VerticalAlignment="Center"/>
-                                                    </StackPanel>
-                                                </Grid>
-                                            </Border>
-                                            
-                                            <ListView ItemsSource="{Binding Items}"
-                                                      SelectionMode="Extended"
-                                                      BorderThickness="0"
-                                                      Background="Transparent"
-                                                      FocusVisualStyle="{x:Null}"
-                                                      Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVisibilityConverter}}">
-                                                <ListView.ItemContainerStyle>
-                                                    <Style TargetType="ListViewItem">
-                                                        <Setter Property="Background" Value="{DynamicResource AppBackgroundBrush}"/>
-                                                        <Setter Property="BorderBrush" Value="Transparent"/>
-                                                        <Setter Property="BorderThickness" Value="0"/>
-                                                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                                                        <Setter Property="VerticalContentAlignment" Value="Center"/>
-                                                        <Style.Triggers>
-                                                            <Trigger Property="IsSelected" Value="True">
-                                                                <Setter Property="Background" Value="#64B5F6"/>
-                                                                <Setter Property="Foreground" Value="#FFFFFF"/>
-                                                            </Trigger>
-                                                            <MultiTrigger>
-                                                                <MultiTrigger.Conditions>
-                                                                    <Condition Property="IsSelected" Value="True"/>
-                                                                    <Condition Property="IsMouseOver" Value="True"/>
-                                                                </MultiTrigger.Conditions>
-                                                                <Setter Property="Background" Value="#42A5F5"/>
-                                                                <Setter Property="Foreground" Value="#FFFFFF"/>
-                                                            </MultiTrigger>
-                                                            <Trigger Property="IsMouseOver" Value="True">
-                                                                <Setter Property="Background" Value="#E3F2FD"/>
-                                                            </Trigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </ListView.ItemContainerStyle>
-                                                <ListView.View>
-                                                    <GridView>
-                                                        <GridViewColumn Width="{Binding ElementName=ColHeaderName, Path=Width}" DisplayMemberBinding="{Binding Name}"/>
-                                                        <GridViewColumn Width="{Binding ElementName=ColHeaderType, Path=Width}" DisplayMemberBinding="{Binding Type}"/>
-                                                        <GridViewColumn Width="{Binding ElementName=ColHeaderSize, Path=Width}">
-                                                            <GridViewColumn.CellTemplate>
-                                                                <DataTemplate>
-                                                                    <TextBlock Text="{Binding Size}" HorizontalAlignment="Right" Margin="0,0,10,0"/>
-                                                                </DataTemplate>
-                                                            </GridViewColumn.CellTemplate>
-                                                        </GridViewColumn>
-                                                        <GridViewColumn Width="{Binding ElementName=ColHeaderModifiedDate, Path=Width}" DisplayMemberBinding="{Binding ModifiedDate}"/>
-                                                        <GridViewColumn Width="{Binding ElementName=ColHeaderCreatedTime, Path=Width}">
-                                                            <GridViewColumn.CellTemplate>
-                                                                <DataTemplate>
-                                                                    <Border Background="{Binding CreatedTimeBrush}" Margin="-6,0" Padding="8,2" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
-                                                                        <TextBlock Text="{Binding CreatedTime}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="Black"/>
-                                                                    </Border>
-                                                                </DataTemplate>
-                                                            </GridViewColumn.CellTemplate>
-                                                        </GridViewColumn>
-                                                        <GridViewColumn Width="{Binding ElementName=ColHeaderTags, Path=Width}" DisplayMemberBinding="{Binding Tags}"/>
-                                                        <GridViewColumn Width="{Binding ElementName=ColHeaderNotes, Path=Width}" DisplayMemberBinding="{Binding Notes}"/>
-                                                    </GridView>
-                                                </ListView.View>
-                                                <ListView.Resources>
-                                                    <Style TargetType="GridViewColumnHeader">
-                                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                                    </Style>
-                                                </ListView.Resources>
-                                            </ListView>
-                                        </StackPanel>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </ScrollViewer>
-                </Grid>
                 
                 <!-- 加载更多按钮 -->
                 <Button x:Name="LoadMoreBtn" Content="加载更多" Width="88" Height="28"

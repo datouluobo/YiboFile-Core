@@ -173,10 +173,6 @@
                                         IsChecked="True" Tag="FileName"
                                         Checked="SearchMode_Checked" ToolTip="按文件名搜索"/>
                             <Border Width="1" Background="{DynamicResource BorderDefaultBrush}" Margin="0,4"/>
-                            <RadioButton x:Name="SearchModeTags" Content="🏷️ 标签" 
-                                        Style="{StaticResource SegmentedButtonStyle}"
-                                        Tag="Tags" Checked="SearchMode_Checked" ToolTip="按标签搜索"/>
-                            <Border Width="1" Background="{DynamicResource BorderDefaultBrush}" Margin="0,4"/>
                             <RadioButton x:Name="SearchModeNotes" Content="📝 备注" 
                                         Style="{StaticResource SegmentedButtonStyle}"
                                         Tag="Notes" Checked="SearchMode_Checked" ToolTip="按备注搜索"/>
@@ -243,6 +239,7 @@
         <Border x:Name="FocusBorder"
                 Grid.Row="0" Grid.RowSpan="5"
                 BorderThickness="2"
+                Margin="-2"
                 BorderBrush="Transparent"
                 IsHitTestVisible="False"
                 Panel.ZIndex="1000"/>

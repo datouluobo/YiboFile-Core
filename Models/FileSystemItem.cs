@@ -16,6 +16,7 @@ namespace OoiMRR
         public string Notes { get; set; }
         public bool IsDirectory { get; set; }
         public string SourcePath { get; set; } // 库模式下的来源路径
+        public string GroupingKey { get; set; } // UI分组键
 
         // Inline Rename Support
         private bool _isRenaming;

@@ -333,7 +333,6 @@ namespace OoiMRR.Controls
             get
             {
                 if (SearchModeFileName?.IsChecked == true) return "FileName";
-                if (SearchModeTags?.IsChecked == true) return "Tags";
                 if (SearchModeNotes?.IsChecked == true) return "Notes";
                 return "FileName";
             }
