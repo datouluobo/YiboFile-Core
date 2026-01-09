@@ -96,6 +96,10 @@ namespace OoiMRR
                         FileBrowser.FilesItemsSource = _currentFiles;
                     }
                     FileBrowser.LoadMoreVisible = cache.HasMore;
+                    if (_currentFiles != null)
+                    {
+                        FileBrowser.SetSearchStatus(true, $"找到 {_currentFiles.Count} 个结果");
+                    }
                 }
             }
             catch (Exception ex)

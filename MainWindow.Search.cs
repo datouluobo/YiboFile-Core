@@ -26,6 +26,9 @@ namespace OoiMRR
 
             var normalizedKeyword = SearchService.NormalizeKeyword(searchText);
 
+            // 显示搜索状态
+            FileBrowser?.SetSearchStatus(true, "搜索中...");
+
             try
             {
                 // 执行搜索
@@ -41,6 +44,7 @@ namespace OoiMRR
                 if (searchResult == null || searchResult.Items == null)
                 {
                     Debug.WriteLine("搜索结果为空");
+                    FileBrowser?.SetSearchStatus(true, "未找到匹配项");
                     return;
                 }
 
@@ -48,6 +52,7 @@ namespace OoiMRR
                 var groupedItems = searchResult.GroupedItems;
 
                 Debug.WriteLine($"搜索完成，共找到 {results.Count} 个结果");
+                FileBrowser?.SetSearchStatus(true, $"找到 {results.Count} 个结果");
 
                 // 在列2打开新标签页显示搜索结果（即使结果为空也要创建标签页）
                 if (FileBrowser != null) FileBrowser.TabsVisible = true;

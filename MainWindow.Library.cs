@@ -35,7 +35,12 @@ namespace OoiMRR
             {
                 _currentFiles.Clear();
                 _currentPath = null; // 标记当前在库模式下
-                if (FileBrowser != null) FileBrowser.NavUpEnabled = false;
+                if (FileBrowser != null)
+                {
+                    FileBrowser.NavUpEnabled = false;
+                    // 隐藏搜索状态
+                    FileBrowser.SetSearchStatus(false);
+                }
 
                 // 使用库服务加载文件
                 _libraryService.LoadLibraryFiles(library,
@@ -219,6 +224,8 @@ namespace OoiMRR
                 FileBrowser.FilesItemsSource = null; // 先清空
                 FileBrowser.FilesItemsSource = _currentFiles; // 再设置
                 FileBrowser.FilesList?.Items.Refresh(); // 强制刷新
+                // 隐藏搜索状态
+                FileBrowser.SetSearchStatus(false);
             }
 
             // 高亮当前库（作为匹配当前库）

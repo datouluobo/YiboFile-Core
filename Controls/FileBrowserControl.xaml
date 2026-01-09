@@ -10,9 +10,10 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>  <!-- Row 0: 地址栏 -->
             <RowDefinition Height="Auto"/>  <!-- Row 1: 工具栏行 -->
-            <RowDefinition Height="*"/>     <!-- Row 2: 文件列表 -->
-            <RowDefinition Height="12"/>     <!-- Row 3: Splitter -->
-            <RowDefinition Height="180" MinHeight="120"/> <!-- Row 4: Info Panel -->
+            <RowDefinition Height="Auto"/>  <!-- Row 2: 搜索状态提示 -->
+            <RowDefinition Height="*"/>     <!-- Row 3: 文件列表 -->
+            <RowDefinition Height="12"/>     <!-- Row 4: Splitter -->
+            <RowDefinition Height="180" MinHeight="120"/> <!-- Row 5: Info Panel -->
         </Grid.RowDefinitions>
         
         <Grid.Resources>
@@ -208,20 +209,30 @@
             </Grid>
         </Border>
         
-        <!-- Row 2: 文件列表 -->
-        <controls:FileListControl Grid.Row="2" x:Name="FileList" FocusVisualStyle="{x:Null}"/>
+        <!-- Row 2: 搜索状态提示条 -->
+        <Border x:Name="SearchStatusBar" Grid.Row="2" Background="{DynamicResource AccentSubtleBrush}" 
+                Visibility="Collapsed" Padding="8,4" Margin="0,0,0,4">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock x:Name="SearchStatusIcon" Text="🔍" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                <TextBlock x:Name="SearchStatusText" Text="搜索中..." 
+                          Foreground="{DynamicResource ForegroundBrush}" FontSize="12" VerticalAlignment="Center"/>
+            </StackPanel>
+        </Border>
         
-        <!-- Row 3: 水平分割器（文件列表与信息面板之间） -->
-        <controls:CollapsibleGridSplitter Grid.Row="3" 
+        <!-- Row 3: 文件列表 -->
+        <controls:FileListControl Grid.Row="3" x:Name="FileList" FocusVisualStyle="{x:Null}"/>
+        
+        <!-- Row 4: 水平分割器（文件列表与信息面板之间） -->
+        <controls:CollapsibleGridSplitter Grid.Row="4" 
                       Style="{StaticResource HorizontalCollapsibleGridSplitterStyle}"
                       CollapseMode="Both"
                       HorizontalAlignment="Stretch"
                       Panel.ZIndex="999"
                       AutoFillNeighbor="True"
-                      DragCompleted="GridSplitter_DragCompleted"/>
+                      ShowsPreview="True"/>
         
-        <!-- Row 4: 文件详细信息 -->
-        <Border Grid.Row="4" Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,1,0,0">
+        <!-- Row 5: 右侧信息面板（现在移动到底部作为信息栏） -->
+        <Border Grid.Row="5" Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,1,0,0">
             <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="8,4">
                 <!-- 文件信息面板 -->
                 <StackPanel x:Name="FileInfoPanel" Margin="4"/>

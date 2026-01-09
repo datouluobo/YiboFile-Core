@@ -195,6 +195,22 @@ namespace OoiMRR.Controls
         }
 
         /// <summary>
+        /// 设置搜索状态显示
+        /// </summary>
+        /// <param name="isVisible">是否可见</param>
+        /// <param name="text">状态文本</param>
+        public void SetSearchStatus(bool isVisible, string text = null)
+        {
+            if (SearchStatusBar == null) return;
+
+            SearchStatusBar.Visibility = isVisible ? Visibility.Visible : Visibility.Collapsed;
+            if (isVisible && !string.IsNullOrEmpty(text))
+            {
+                if (SearchStatusText != null) SearchStatusText.Text = text;
+            }
+        }
+
+        /// <summary>
         /// 设置分组搜索结果
         /// </summary>
         public void SetGroupedSearchResults(Dictionary<SearchResultType, List<FileSystemItem>> groupedItems)

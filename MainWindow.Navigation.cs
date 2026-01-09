@@ -107,12 +107,13 @@ namespace OoiMRR
         {
             try
             {
-                // 路径页使用文件浏览控件
                 if (FileBrowser != null)
                 {
                     FileBrowser.AddressText = _currentPath;
                     FileBrowser.IsAddressReadOnly = false;
                     FileBrowser.UpdateBreadcrumb(_currentPath);
+                    // 隐藏搜索状态
+                    FileBrowser.SetSearchStatus(false);
                 }
 
                 // 检查目录是否存在
