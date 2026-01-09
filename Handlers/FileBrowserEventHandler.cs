@@ -262,7 +262,25 @@ namespace OoiMRR.Handlers
                 return;
             }
 
-            // 非路径，执行全盘搜索（文件名+备注），使用规范化关键词
+            // 获取搜索模式
+            var searchMode = _fileBrowser?.SelectedSearchMode ?? "FileName";
+
+            // 根据搜索模式设置搜索选项
+            var searchOptions = _getSearchOptions();
+            switch (searchMode)
+            {
+                case "Tags":
+                    searchOptions.Mode = SearchMode.Tags;
+                    break;
+                case "Notes":
+                    searchOptions.Mode = SearchMode.Notes;
+                    break;
+                default:
+                    searchOptions.Mode = SearchMode.FileName;
+                    break;
+            }
+
+            // 非路径，执行搜索，使用规范化关键词
             _performSearch(normalizedKeyword);
         }
 
