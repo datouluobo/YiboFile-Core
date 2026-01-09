@@ -316,12 +316,14 @@ namespace OoiMRR.Controls
         {
             get
             {
-                var selectedItem = SearchModeComboBox?.SelectedItem as System.Windows.Controls.ComboBoxItem;
-                return selectedItem?.Tag?.ToString() ?? "FileName";
+                if (SearchModeFileName?.IsChecked == true) return "FileName";
+                if (SearchModeTags?.IsChecked == true) return "Tags";
+                if (SearchModeNotes?.IsChecked == true) return "Notes";
+                return "FileName";
             }
         }
 
-        private void SearchModeComboBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        private void SearchMode_Checked(object sender, RoutedEventArgs e)
         {
             var mode = SelectedSearchMode;
             SearchModeChanged?.Invoke(this, mode);

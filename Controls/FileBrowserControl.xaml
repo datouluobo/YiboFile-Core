@@ -53,6 +53,36 @@
                     </Setter.Value>
                 </Setter>
             </Style>
+            
+            <!-- 分段按钮样式（用于搜索模式切换） -->
+            <Style x:Key="SegmentedButtonStyle" TargetType="RadioButton">
+                <Setter Property="Height" Value="26"/>
+                <Setter Property="Padding" Value="8,4"/>
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="Foreground" Value="{DynamicResource ForegroundSecondaryBrush}"/>
+                <Setter Property="FontSize" Value="12"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="RadioButton">
+                            <Border x:Name="border"
+                                    Background="{TemplateBinding Background}" 
+                                    Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="{DynamicResource ButtonHoverBackgroundBrush}"/>
+                                </Trigger>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter Property="Background" Value="{DynamicResource AccentSubtleBrush}"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
         </Grid.Resources>
 
         <!-- Row 0: 地址栏（纯地址输入） -->
@@ -97,22 +127,31 @@
                 
                 <!-- 搜索/筛选按钮 -->
                 <StackPanel Grid.Column="6" Orientation="Horizontal">
-                    <!-- 搜索模式选择器 -->
-                    <ComboBox x:Name="SearchModeComboBox" 
-                              Width="80" Margin="0,0,6,0"
-                              VerticalAlignment="Center"
-                              SelectionChanged="SearchModeComboBox_SelectionChanged"
-                              ToolTip="搜索模式">
-                        <ComboBoxItem Content="文件名" Tag="FileName" IsSelected="True"/>
-                        <ComboBoxItem Content="标签" Tag="Tags"/>
-                        <ComboBoxItem Content="备注" Tag="Notes"/>
-                    </ComboBox>
+                    <!-- 搜索模式分段按钮 -->
+                    <Border Background="{DynamicResource ControlBackgroundBrush}" 
+                            CornerRadius="4" BorderBrush="{DynamicResource BorderDefaultBrush}" 
+                            BorderThickness="1" Margin="0,0,8,0" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton x:Name="SearchModeFileName" Content="📁 文件" 
+                                        Style="{StaticResource SegmentedButtonStyle}"
+                                        IsChecked="True" Tag="FileName"
+                                        Checked="SearchMode_Checked" ToolTip="按文件名搜索"/>
+                            <Border Width="1" Background="{DynamicResource BorderDefaultBrush}" Margin="0,4"/>
+                            <RadioButton x:Name="SearchModeTags" Content="🏷️ 标签" 
+                                        Style="{StaticResource SegmentedButtonStyle}"
+                                        Tag="Tags" Checked="SearchMode_Checked" ToolTip="按标签搜索"/>
+                            <Border Width="1" Background="{DynamicResource BorderDefaultBrush}" Margin="0,4"/>
+                            <RadioButton x:Name="SearchModeNotes" Content="📝 备注" 
+                                        Style="{StaticResource SegmentedButtonStyle}"
+                                        Tag="Notes" Checked="SearchMode_Checked" ToolTip="按备注搜索"/>
+                        </StackPanel>
+                    </Border>
                     <Button Name="SearchBtn" Content="{DynamicResource Icon_Search}" FontFamily="{DynamicResource IconFontFamily}" FontSize="14"
                             Click="SearchBtn_Click" Margin="0,0,6,0"
                             Style="{StaticResource ModernToolbarButtonStyle}" ToolTip="搜索"/>
                     <Button Name="FilterBtn" Content="{DynamicResource Icon_Filter}" FontFamily="{DynamicResource IconFontFamily}" FontSize="14"
                             Click="FilterBtn_Click"
-                            Style="{StaticResource ModernToolbarButtonStyle}" ToolTip="设置"/>
+                            Style="{StaticResource ModernToolbarButtonStyle}" ToolTip="筛选"/>
                 </StackPanel>
             </Grid>
         </Border>
