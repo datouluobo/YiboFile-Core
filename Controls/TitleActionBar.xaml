@@ -10,216 +10,150 @@
     <Grid>
         <StackPanel x:Name="PathPanel" Orientation="Horizontal" VerticalAlignment="Center">
             <Button Click="OnNewFolderClicked" ToolTip="新建文件夹" Margin="0,0,2,0">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="{DynamicResource Icon_Folder}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                    <TextBlock Text="新建文件夹" VerticalAlignment="Center"/>
-                </StackPanel>
+                <TextBlock Text="{DynamicResource Icon_Folder}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center"/>
             </Button>
             <Button Click="OnNewFileClicked" ToolTip="新建文件" Margin="0,0,2,0">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="{DynamicResource Icon_File}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                    <TextBlock Text="新建文件" VerticalAlignment="Center"/>
-                </StackPanel>
+                <TextBlock Text="{DynamicResource Icon_File}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center"/>
             </Button>
             <Separator Margin="12,4" Height="20" VerticalAlignment="Center"/>
             <Button Click="OnCopyClicked" ToolTip="复制" Margin="0,0,2,0">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="{DynamicResource Icon_Copy}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                    <TextBlock Text="复制" VerticalAlignment="Center"/>
-                </StackPanel>
+                <TextBlock Text="{DynamicResource Icon_Copy}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center"/>
             </Button>
             <Button Click="OnPasteClicked" ToolTip="粘贴" Margin="0,0,2,0">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="{DynamicResource Icon_Format}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                    <TextBlock Text="粘贴" VerticalAlignment="Center"/>
-                </StackPanel>
+                <TextBlock Text="{DynamicResource Icon_Format}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center"/>
             </Button>
             <Button Click="OnDeleteClicked" ToolTip="删除" Margin="0,0,2,0">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="{DynamicResource Icon_Delete_Outline}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                    <TextBlock Text="删除" VerticalAlignment="Center"/>
-                </StackPanel>
+                <TextBlock Text="{DynamicResource Icon_Delete_Outline}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center"/>
             </Button>
         </StackPanel>
 
         <StackPanel x:Name="LibraryPanel" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
-            <Button Click="OnNewFolderClicked" Margin="0,0,2,0">
-                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="{DynamicResource Icon_Folder}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                    <TextBlock Text="新建文件夹" VerticalAlignment="Center"/>
-                </StackPanel>
+            <Button Click="OnNewFolderClicked" ToolTip="新建文件夹" Margin="0,0,2,0">
+                <TextBlock Text="{DynamicResource Icon_Folder}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center"/>
             </Button>
-            <Button Click="OnNewFileClicked" Margin="0,0,2,0">
-                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="{DynamicResource Icon_File}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                    <TextBlock Text="新建文件" VerticalAlignment="Center"/>
-                </StackPanel>
+            <Button Click="OnNewFileClicked" ToolTip="新建文件" Margin="0,0,2,0">
+                <TextBlock Text="{DynamicResource Icon_File}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center"/>
             </Button>
             <Separator Margin="12,4" Height="20" VerticalAlignment="Center"/>
             <Button Click="OnCopyClicked" ToolTip="复制" Margin="0,0,2,0">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="{DynamicResource Icon_Copy}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                    <TextBlock Text="复制" VerticalAlignment="Center"/>
-                </StackPanel>
+                <TextBlock Text="{DynamicResource Icon_Copy}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center"/>
             </Button>
             <Button Click="OnPasteClicked" ToolTip="粘贴" Margin="0,0,2,0">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="{DynamicResource Icon_Format}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                    <TextBlock Text="粘贴" VerticalAlignment="Center"/>
-                </StackPanel>
+                <TextBlock Text="{DynamicResource Icon_Format}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center"/>
             </Button>
-            <Button Click="OnDeleteClicked" Margin="0,0,2,0">
+            <Button Click="OnDeleteClicked" ToolTip="删除" Margin="0,0,2,0">
                 <Button.Style>
                     <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
                         <Setter Property="Padding" Value="8,0"/>
                         <Setter Property="Height" Value="32"/>
                     </Style>
                 </Button.Style>
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="{DynamicResource Icon_Delete_Outline}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                    <TextBlock Text="删除" VerticalAlignment="Center"/>
-                </StackPanel>
+                <TextBlock Text="{DynamicResource Icon_Delete_Outline}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center"/>
             </Button>
-            <Button Click="OnRefreshClicked" Margin="0,0,2,0">
+            <Button Click="OnRefreshClicked" ToolTip="刷新" Margin="0,0,2,0">
                 <Button.Style>
                     <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
                         <Setter Property="Padding" Value="8,0"/>
                         <Setter Property="Height" Value="32"/>
                     </Style>
                 </Button.Style>
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="{DynamicResource Icon_Refresh}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                    <TextBlock Text="刷新" VerticalAlignment="Center"/>
-                </StackPanel>
+                <TextBlock Text="{DynamicResource Icon_Refresh}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center"/>
             </Button>
         </StackPanel>
 
         <StackPanel x:Name="TagPanel" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
-            <Button Click="OnNewTagClicked" Margin="0,0,2,0" Height="36">
+            <Button Click="OnNewTagClicked" ToolTip="新建标签" Margin="0,0,2,0" Height="36">
                 <Button.Style>
                     <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
                         <Setter Property="Padding" Value="8,0"/>
                     </Style>
                 </Button.Style>
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="&#xE8EC;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                    <TextBlock Text="新建标签" VerticalAlignment="Center"/>
-                </StackPanel>
+                <TextBlock Text="&#xE8EC;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
             </Button>
-            <Button Click="OnManageTagsClicked" Margin="0,0,2,0" Height="36">
+            <Button Click="OnManageTagsClicked" ToolTip="管理标签" Margin="0,0,2,0" Height="36">
                 <Button.Style>
                     <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
                         <Setter Property="Padding" Value="8,0"/>
                     </Style>
                 </Button.Style>
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                    <TextBlock Text="管理标签" VerticalAlignment="Center"/>
-                </StackPanel>
+                <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
             </Button>
             <Separator Margin="12,4" Height="20" VerticalAlignment="Center"/>
-            <Button Click="OnBatchAddTagsClicked" Margin="0,0,2,0" Height="36">
+            <Button Click="OnBatchAddTagsClicked" ToolTip="批量添加" Margin="0,0,2,0" Height="36">
                 <Button.Style>
                     <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
                         <Setter Property="Padding" Value="8,0"/>
                     </Style>
                 </Button.Style>
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="&#xE7B8;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                    <TextBlock Text="批量添加" VerticalAlignment="Center"/>
-                </StackPanel>
+                <TextBlock Text="&#xE7B8;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
             </Button>
-            <Button Click="OnTagStatisticsClicked" Margin="0,0,2,0" Height="36">
+            <Button Click="OnTagStatisticsClicked" ToolTip="标签统计" Margin="0,0,2,0" Height="36">
                 <Button.Style>
                     <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
                         <Setter Property="Padding" Value="8,0"/>
                     </Style>
                 </Button.Style>
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="&#xE9D2;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                    <TextBlock Text="标签统计" VerticalAlignment="Center"/>
-                </StackPanel>
+                <TextBlock Text="&#xE9D2;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
             </Button>
             <Separator Margin="12,4" Height="20" VerticalAlignment="Center"/>
-            <Button Click="OnCopyClicked" Margin="0,0,2,0" Height="36">
+            <Button Click="OnCopyClicked" ToolTip="复制" Margin="0,0,2,0" Height="36">
                 <Button.Style>
                     <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
                         <Setter Property="Padding" Value="8,0"/>
                     </Style>
                 </Button.Style>
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="{DynamicResource Icon_Copy}" FontFamily="{DynamicResource IconFontFamily}" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                    <TextBlock Text="复制" VerticalAlignment="Center"/>
-                </StackPanel>
+                <TextBlock Text="{DynamicResource Icon_Copy}" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center"/>
             </Button>
-            <Button Click="OnPasteClicked" Margin="0,0,2,0" Height="36">
+            <Button Click="OnPasteClicked" ToolTip="粘贴" Margin="0,0,2,0" Height="36">
                 <Button.Style>
                     <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
                         <Setter Property="Padding" Value="8,0"/>
                     </Style>
                 </Button.Style>
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="{DynamicResource Icon_Format}" FontFamily="{DynamicResource IconFontFamily}" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                    <TextBlock Text="粘贴" VerticalAlignment="Center"/>
-                </StackPanel>
+                <TextBlock Text="{DynamicResource Icon_Format}" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center"/>
             </Button>
-            <Button Click="OnDeleteClicked" Margin="0,0,2,0" Height="36">
+            <Button Click="OnDeleteClicked" ToolTip="删除" Margin="0,0,2,0" Height="36">
                 <Button.Style>
                     <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
                         <Setter Property="Padding" Value="8,0"/>
                     </Style>
                 </Button.Style>
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="{DynamicResource Icon_Delete_Outline}" FontFamily="{DynamicResource IconFontFamily}" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                    <TextBlock Text="删除" VerticalAlignment="Center"/>
-                </StackPanel>
+                <TextBlock Text="{DynamicResource Icon_Delete_Outline}" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center"/>
             </Button>
         </StackPanel>
 
         <StackPanel x:Name="SearchPanel" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
-            <Button Click="OnCopyClicked" Margin="0,0,4,0" Height="36">
+            <Button Click="OnCopyClicked" ToolTip="复制" Margin="0,0,4,0" Height="36">
                 <Button.Style>
                     <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
                         <Setter Property="Padding" Value="8,0"/>
                     </Style>
                 </Button.Style>
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="&#xE8C8;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                    <TextBlock Text="复制" VerticalAlignment="Center"/>
-                </StackPanel>
+                <TextBlock Text="&#xE8C8;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
             </Button>
-            <Button Click="OnPasteClicked" Margin="0,0,4,0" Height="36">
+            <Button Click="OnPasteClicked" ToolTip="粘贴" Margin="0,0,4,0" Height="36">
                 <Button.Style>
                     <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
                         <Setter Property="Padding" Value="8,0"/>
                     </Style>
                 </Button.Style>
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="&#xE77F;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                    <TextBlock Text="粘贴" VerticalAlignment="Center"/>
-                </StackPanel>
+                <TextBlock Text="&#xE77F;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
             </Button>
-            <Button Click="OnDeleteClicked" Margin="0,0,4,0" Height="36">
+            <Button Click="OnDeleteClicked" ToolTip="删除" Margin="0,0,4,0" Height="36">
                 <Button.Style>
                     <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
                         <Setter Property="Padding" Value="8,0"/>
                     </Style>
                 </Button.Style>
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                    <TextBlock Text="删除" VerticalAlignment="Center"/>
-                </StackPanel>
+                <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
             </Button>
-            <Button Click="OnRefreshClicked" Margin="0,0,4,0" Height="36">
+            <Button Click="OnRefreshClicked" ToolTip="刷新" Margin="0,0,4,0" Height="36">
                 <Button.Style>
                     <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
                         <Setter Property="Padding" Value="8,0"/>
                     </Style>
                 </Button.Style>
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                    <TextBlock Text="刷新" VerticalAlignment="Center"/>
-                </StackPanel>
+                <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
             </Button>
         </StackPanel>
     </Grid>

@@ -91,6 +91,97 @@
             </Border>
         </DataTemplate>
 
+        <!-- 平铺视图模板 (Tiles) - 64x64图标 + 多行详细文本 -->
+        <DataTemplate x:Key="TilesTemplate">
+            <Border Width="250" Height="72" Margin="4" Background="Transparent" 
+                    ToolTip="{Binding Path}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="72"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <!-- 图标/缩略图 -->
+                    <Image Grid.Column="0" Source="{Binding Thumbnail}" Width="64" Height="64" 
+                           Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    <!-- 详细信息 -->
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="8,0">
+                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" 
+                                   Foreground="{DynamicResource ForegroundBrush}"/>
+                        <TextBlock Text="{Binding Type}" Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11"/>
+                        <TextBlock Text="{Binding Size}" Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <!-- 内容视图模板 (Content) - 单行展开式详细信息 -->
+        <DataTemplate x:Key="ContentTemplate">
+            <Border Height="56" Margin="2" Background="Transparent" 
+                    BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1"
+                    ToolTip="{Binding Path}">
+                <Grid Margin="8,4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="48"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <!-- 图标 -->
+                    <Image Grid.Column="0" Source="{Binding Thumbnail}" Width="40" Height="40" 
+                           Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    <!-- 名称 + 类型 -->
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="8,0">
+                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
+                                   Foreground="{DynamicResource ForegroundBrush}"/>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding Type}" Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11"/>
+                            <TextBlock Text=" · " Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11"/>
+                            <TextBlock Text="{Binding Size}" Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11"/>
+                            <TextBlock Text=" · " Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11"/>
+                            <TextBlock Text="{Binding ModifiedDate}" Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11"/>
+                        </StackPanel>
+                    </StackPanel>
+                    <!-- 标签/备注 -->
+                    <TextBlock Grid.Column="2" Text="{Binding Notes}" MaxWidth="200" TextTrimming="CharacterEllipsis" 
+                               Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11" VerticalAlignment="Center" Margin="8,0"/>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <!-- 小图标视图模板 (SmallIcons) - 16px图标 + 文件名 -->
+        <DataTemplate x:Key="SmallIconsTemplate">
+            <Border Width="180" Height="28" Margin="2" Background="Transparent"
+                    ToolTip="{Binding Path}">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="4,0">
+                    <Image Source="{Binding Thumbnail}" Width="16" Height="16" Stretch="Uniform" Margin="0,0,6,0"/>
+                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource ForegroundBrush}"/>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+        <!-- 紧凑列表模板 (Compact) - 单行简化 -->
+        <DataTemplate x:Key="CompactTemplate">
+            <Border Height="24" Margin="0" Background="Transparent" 
+                    BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1"
+                    ToolTip="{Binding Path}">
+                <Grid Margin="8,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="24"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="80"/>
+                        <ColumnDefinition Width="80"/>
+                    </Grid.ColumnDefinitions>
+                    <Image Grid.Column="0" Source="{Binding Thumbnail}" Width="16" Height="16" Stretch="Uniform"/>
+                    <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" Margin="4,0" 
+                               TextTrimming="CharacterEllipsis" Foreground="{DynamicResource ForegroundBrush}"/>
+                    <TextBlock Grid.Column="2" Text="{Binding Size}" HorizontalAlignment="Right" VerticalAlignment="Center" 
+                               Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11"/>
+                    <TextBlock Grid.Column="3" Text="{Binding ModifiedDate}" HorizontalAlignment="Right" VerticalAlignment="Center" 
+                               Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11"/>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
         <!-- 缩略图视图的 WrapPanel 布局 -->
         <ItemsPanelTemplate x:Key="WrapPanelTemplate">
             <WrapPanel Orientation="Horizontal"/>

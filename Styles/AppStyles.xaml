@@ -2,8 +2,12 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:controls="clr-namespace:OoiMRR.Controls"
                     xmlns:colmgr="clr-namespace:OoiMRR.Services.UI.ColumnManagement"
-                    xmlns:ui="clr-namespace:OoiMRR.Services.UI">
+                    xmlns:ui="clr-namespace:OoiMRR.Services.UI"
+                    xmlns:converters="clr-namespace:OoiMRR.Controls.Converters">
     <!-- Theme resources are now loaded dynamically from Themes/*.xaml -->
+    
+    <!-- Converters -->
+    <converters:UsagePercentageToColorConverter x:Key="UsagePercentageToColorConverter"/>
     
     <!-- Window Control Brushes (Defaults) -->
     <SolidColorBrush x:Key="CloseButtonHoverBackgroundBrush" Color="#E81123"/>
@@ -836,7 +840,7 @@
                                                         <Border x:Name="PART_Track"
                                                                CornerRadius="3">
                                                             <Border x:Name="PART_Indicator"
-                                                                   Background="#4A90E2"
+                                                                   Background="{Binding UsagePercentage, Converter={StaticResource UsagePercentageToColorConverter}}"
                                                                    HorizontalAlignment="Left"
                                                                    CornerRadius="3"/>
                                                         </Border>

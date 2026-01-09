@@ -310,79 +310,14 @@ namespace OoiMRR.Controls
             NavigationUp?.Invoke(sender, e);
         }
 
-        private void SearchBtn_Click(object sender, RoutedEventArgs e)
-        {
-            SearchClicked?.Invoke(sender, e);
-        }
+
 
         private void FilterBtn_Click(object sender, RoutedEventArgs e)
         {
             FilterClicked?.Invoke(sender, e);
         }
 
-        /// <summary>
-        /// 搜索模式变更事件
-        /// </summary>
-        public event EventHandler<string> SearchModeChanged;
 
-        /// <summary>
-        /// 获取当前选中的搜索模式
-        /// </summary>
-        public string SelectedSearchMode
-        {
-            get
-            {
-                if (SearchModeFileName?.IsChecked == true) return "FileName";
-                if (SearchModeNotes?.IsChecked == true) return "Notes";
-                return "FileName";
-            }
-        }
-
-        private void SearchMode_Checked(object sender, RoutedEventArgs e)
-        {
-            var mode = SelectedSearchMode;
-            SearchModeChanged?.Invoke(this, mode);
-        }
-
-        /// <summary>
-        /// 类型过滤器变更事件
-        /// </summary>
-        public event EventHandler<string> TypeFilterChanged;
-
-        /// <summary>
-        /// 获取当前选中的类型过滤器
-        /// </summary>
-        public string SelectedTypeFilter
-        {
-            get
-            {
-                if (FilterImages?.IsChecked == true) return "Images";
-                if (FilterVideos?.IsChecked == true) return "Videos";
-                if (FilterDocs?.IsChecked == true) return "Documents";
-                if (FilterFolders?.IsChecked == true) return "Folders";
-                return "All";
-            }
-        }
-
-        private void FilterChip_Click(object sender, RoutedEventArgs e)
-        {
-            var btn = sender as System.Windows.Controls.Primitives.ToggleButton;
-            if (btn == null) return;
-
-            // 如果点击的是已选中的按钮，取消选中（变为All）
-            // 如果点击的是未选中的按钮，取消其他按钮的选中状态
-            var tag = btn.Tag?.ToString();
-            if (btn.IsChecked == true)
-            {
-                // 取消其他按钮
-                if (tag != "Images" && FilterImages != null) FilterImages.IsChecked = false;
-                if (tag != "Videos" && FilterVideos != null) FilterVideos.IsChecked = false;
-                if (tag != "Documents" && FilterDocs != null) FilterDocs.IsChecked = false;
-                if (tag != "Folders" && FilterFolders != null) FilterFolders.IsChecked = false;
-            }
-
-            TypeFilterChanged?.Invoke(this, SelectedTypeFilter);
-        }
 
         private void LoadMoreBtn_Click(object sender, RoutedEventArgs e)
         {
@@ -582,6 +517,68 @@ namespace OoiMRR.Controls
             {
                 FileList?.SetViewMode(mode);
                 ViewModeChanged?.Invoke(this, mode);
+            }
+        }
+
+        /// <summary>
+        /// 点击视图模式按钮时打开下拉菜单
+        /// </summary>
+        private void ViewModeBtn_DropDown(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.ContextMenu != null)
+            {
+                btn.ContextMenu.PlacementTarget = btn;
+                btn.ContextMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+                btn.ContextMenu.IsOpen = true;
+            }
+        }
+
+        /// <summary>
+        /// 视图模式菜单项点击
+        /// </summary>
+        private void ViewModeMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuItem menuItem && menuItem.Tag is string mode)
+            {
+                FileList?.SetViewMode(mode);
+                ViewModeChanged?.Invoke(this, mode);
+
+                // 更新按钮图标以反映当前模式
+                UpdateViewModeButtonIcon(mode);
+            }
+        }
+
+        /// <summary>
+        /// 更新视图模式按钮图标
+        /// </summary>
+        private void UpdateViewModeButtonIcon(string mode)
+        {
+            // 查找按钮控件
+            var viewModeBtn = FindName("ViewModeBtn") as Button;
+            if (viewModeBtn == null) return;
+
+            // 根据视图模式更新按钮图标
+            string iconKey = mode switch
+            {
+                "Thumbnail" or "Tiles" => "Icon_ViewThumb",
+                "SmallIcons" => "Icon_ViewThumb",
+                "Content" => "Icon_ViewList",
+                "Compact" => "Icon_ViewList",
+                _ => "Icon_ViewList" // List 或默认
+            };
+
+            // 安全地获取资源
+            try
+            {
+                var icon = FindResource(iconKey);
+                if (icon != null)
+                {
+                    viewModeBtn.Content = icon;
+                }
+            }
+            catch
+            {
+                // 资源不存在，保持默认图标
             }
         }
 

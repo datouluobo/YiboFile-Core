@@ -206,6 +206,9 @@ namespace OoiMRR
             // Step 3: Initialize Events (UI interactions)
             InitializeEvents();
 
+            // Step 3.5: Initialize Clipboard History (must be after window handle is available)
+            InitializeClipboardHistory();
+
             // Step 4: Apply Initial State (Logic/UI Update Phase)
             initializer.ApplyInitialState();
 
@@ -752,7 +755,7 @@ namespace OoiMRR
                 }
             }
             else
-            {            }
+            { }
         }
 
         /// <summary>
@@ -777,7 +780,7 @@ namespace OoiMRR
                 }
             }
             else
-            {            }
+            { }
         }
 
         #endregion

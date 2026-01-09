@@ -162,36 +162,79 @@ namespace OoiMRR.Controls
         {
             if (FilesListView == null) return;
 
-            if (_currentViewMode == "Thumbnail")
+            switch (_currentViewMode)
             {
-                // 缩略图视图
-                FilesListView.View = null; // 清除 GridView
-                FilesListView.ItemTemplate = (DataTemplate)FindResource("ThumbnailTemplate");
+                case "Thumbnail":
+                    ApplyWrapPanelView("ThumbnailTemplate", loadThumbnails: true);
+                    break;
+                case "Tiles":
+                    ApplyWrapPanelView("TilesTemplate", loadThumbnails: true);
+                    break;
+                case "SmallIcons":
+                    ApplyWrapPanelView("SmallIconsTemplate", loadThumbnails: true);
+                    break;
+                case "Content":
+                    ApplyStackPanelView("ContentTemplate", loadThumbnails: true);
+                    break;
+                case "Compact":
+                    ApplyStackPanelView("CompactTemplate", loadThumbnails: true);
+                    break;
+                default: // "List"
+                    ApplyListView();
+                    break;
+            }
+        }
 
-                // 使用预定义的 WrapPanel 模板
-                FilesListView.ItemsPanel = (ItemsPanelTemplate)FindResource("WrapPanelTemplate");
+        /// <summary>
+        /// 应用 WrapPanel 布局视图（缩略图、平铺、小图标）
+        /// </summary>
+        private void ApplyWrapPanelView(string templateKey, bool loadThumbnails)
+        {
+            FilesListView.View = null;
+            FilesListView.ItemTemplate = (DataTemplate)FindResource(templateKey);
+            FilesListView.ItemsPanel = (ItemsPanelTemplate)FindResource("WrapPanelTemplate");
+            ScrollViewer.SetHorizontalScrollBarVisibility(FilesListView, ScrollBarVisibility.Disabled);
 
-                ScrollViewer.SetHorizontalScrollBarVisibility(FilesListView, ScrollBarVisibility.Disabled);
-
-                // 启动缩略图加载（使用新的ThumbnailService）
-                // 启动缩略图加载（使用新的ThumbnailService）
-                if (FilesListView.ItemsSource != null)
-                {
-                    // 使用默认高清尺寸(256)加载，以便支持缩放
-                    _thumbnailService?.LoadThumbnailsAsync(FilesListView.ItemsSource);
-                }
+            if (loadThumbnails && FilesListView.ItemsSource != null)
+            {
+                _thumbnailService?.LoadThumbnailsAsync(FilesListView.ItemsSource);
             }
             else
             {
-                // 详细信息视图：使用 GridView（已在XAML定义）
-                FilesListView.ItemTemplate = null;
-                FilesListView.ItemsPanel = (ItemsPanelTemplate)FindResource("StackPanelTemplate");
-                if (FilesGridView != null) FilesListView.View = FilesGridView;
-                ScrollViewer.SetHorizontalScrollBarVisibility(FilesListView, ScrollBarVisibility.Auto);
-
-                // 停止缩略图加载（性能优化）
                 _thumbnailService?.Stop();
             }
+        }
+
+        /// <summary>
+        /// 应用 StackPanel 布局视图（内容、紧凑）
+        /// </summary>
+        private void ApplyStackPanelView(string templateKey, bool loadThumbnails)
+        {
+            FilesListView.View = null;
+            FilesListView.ItemTemplate = (DataTemplate)FindResource(templateKey);
+            FilesListView.ItemsPanel = (ItemsPanelTemplate)FindResource("StackPanelTemplate");
+            ScrollViewer.SetHorizontalScrollBarVisibility(FilesListView, ScrollBarVisibility.Disabled);
+
+            if (loadThumbnails && FilesListView.ItemsSource != null)
+            {
+                _thumbnailService?.LoadThumbnailsAsync(FilesListView.ItemsSource);
+            }
+            else
+            {
+                _thumbnailService?.Stop();
+            }
+        }
+
+        /// <summary>
+        /// 应用列表视图（GridView）
+        /// </summary>
+        private void ApplyListView()
+        {
+            FilesListView.ItemTemplate = null;
+            FilesListView.ItemsPanel = (ItemsPanelTemplate)FindResource("StackPanelTemplate");
+            if (FilesGridView != null) FilesListView.View = FilesGridView;
+            ScrollViewer.SetHorizontalScrollBarVisibility(FilesListView, ScrollBarVisibility.Auto);
+            _thumbnailService?.Stop();
         }
 
         private void FilesListView_PreviewMouseWheel(object sender, MouseWheelEventArgs e)

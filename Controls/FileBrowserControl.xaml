@@ -149,58 +149,31 @@
                 <!-- TitleActionBar (操作按钮) -->
                 <controls:TitleActionBar Grid.Column="2" x:Name="TitleActionBar" Mode="Path"/>
                 
-                <!-- 视图切换按钮 -->
+                <!-- 视图切换按钮 (下拉菜单) -->
                 <StackPanel Grid.Column="4" Orientation="Horizontal">
-                    <RadioButton Name="ViewListBtn" Content="{DynamicResource Icon_ViewList}" FontFamily="{DynamicResource IconFontFamily}" FontSize="14"
-                                ToolTip="列表视图" Click="ViewModeBtn_Click" 
-                                Style="{StaticResource ToolbarRadioButtonStyle}"
-                                IsChecked="True" Tag="List"/>
-                    <RadioButton Name="ViewThumbBtn" Content="{DynamicResource Icon_ViewThumb}" FontFamily="{DynamicResource IconFontFamily}" FontSize="14" 
-                                ToolTip="缩略图视图" Click="ViewModeBtn_Click" 
-                                Style="{StaticResource ToolbarRadioButtonStyle}"
-                                Tag="Thumbnail"/>
+                    <Button Name="ViewModeBtn" Content="{DynamicResource Icon_ViewList}" 
+                            FontFamily="{DynamicResource IconFontFamily}" FontSize="14"
+                            Click="ViewModeBtn_DropDown" Style="{StaticResource ModernToolbarButtonStyle}" ToolTip="视图模式">
+                        <Button.ContextMenu>
+                            <ContextMenu Name="ViewModeMenu">
+                                <MenuItem Header="📋 列表" Tag="List" Click="ViewModeMenuItem_Click"/>
+                                <MenuItem Header="📝 紧凑列表" Tag="Compact" Click="ViewModeMenuItem_Click"/>
+                                <Separator/>
+                                <MenuItem Header="🖼️ 缩略图" Tag="Thumbnail" Click="ViewModeMenuItem_Click"/>
+                                <MenuItem Header="🔲 平铺" Tag="Tiles" Click="ViewModeMenuItem_Click"/>
+                                <MenuItem Header="📎 小图标" Tag="SmallIcons" Click="ViewModeMenuItem_Click"/>
+                                <Separator/>
+                                <MenuItem Header="📄 内容" Tag="Content" Click="ViewModeMenuItem_Click"/>
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
                 </StackPanel>
                 
                 <!-- 搜索/筛选按钮 -->
                 <StackPanel Grid.Column="6" Orientation="Horizontal">
-                    <!-- 搜索模式分段按钮 -->
-                    <Border Background="{DynamicResource ControlBackgroundBrush}" 
-                            CornerRadius="4" BorderBrush="{DynamicResource BorderDefaultBrush}" 
-                            BorderThickness="1" Margin="0,0,8,0" VerticalAlignment="Center">
-                        <StackPanel Orientation="Horizontal">
-                            <RadioButton x:Name="SearchModeFileName" Content="📁 文件" 
-                                        Style="{StaticResource SegmentedButtonStyle}"
-                                        IsChecked="True" Tag="FileName"
-                                        Checked="SearchMode_Checked" ToolTip="按文件名搜索"/>
-                            <Border Width="1" Background="{DynamicResource BorderDefaultBrush}" Margin="0,4"/>
-                            <RadioButton x:Name="SearchModeNotes" Content="📝 备注" 
-                                        Style="{StaticResource SegmentedButtonStyle}"
-                                        Tag="Notes" Checked="SearchMode_Checked" ToolTip="按备注搜索"/>
-                        </StackPanel>
-                    </Border>
-                    <Button Name="SearchBtn" Content="{DynamicResource Icon_Search}" FontFamily="{DynamicResource IconFontFamily}" FontSize="14"
-                            Click="SearchBtn_Click" Margin="0,0,6,0"
-                            Style="{StaticResource ModernToolbarButtonStyle}" ToolTip="搜索"/>
                     <Button Name="FilterBtn" Content="{DynamicResource Icon_Filter}" FontFamily="{DynamicResource IconFontFamily}" FontSize="14"
                             Click="FilterBtn_Click"
-                            Style="{StaticResource ModernToolbarButtonStyle}" ToolTip="高级筛选"/>
-                    
-                    <!-- 快捷类型过滤器芯片 -->
-                    <Border Width="1" Background="{DynamicResource BorderDefaultBrush}" Margin="6,4"/>
-                    <StackPanel Orientation="Horizontal">
-                        <ToggleButton x:Name="FilterImages" Content="🖼️" FontSize="12" 
-                                     Style="{StaticResource FilterChipStyle}" ToolTip="图片"
-                                     Click="FilterChip_Click" Tag="Images"/>
-                        <ToggleButton x:Name="FilterVideos" Content="🎬" FontSize="12"
-                                     Style="{StaticResource FilterChipStyle}" ToolTip="视频"
-                                     Click="FilterChip_Click" Tag="Videos"/>
-                        <ToggleButton x:Name="FilterDocs" Content="📄" FontSize="12"
-                                     Style="{StaticResource FilterChipStyle}" ToolTip="文档"
-                                     Click="FilterChip_Click" Tag="Documents"/>
-                        <ToggleButton x:Name="FilterFolders" Content="📁" FontSize="12"
-                                     Style="{StaticResource FilterChipStyle}" ToolTip="文件夹"
-                                     Click="FilterChip_Click" Tag="Folders"/>
-                    </StackPanel>
+                            Style="{StaticResource ModernToolbarButtonStyle}" ToolTip="筛选和选项"/>
                 </StackPanel>
             </Grid>
         </Border>
