@@ -83,6 +83,41 @@
                     </Setter.Value>
                 </Setter>
             </Style>
+            
+            <!-- 过滤器芯片样式 -->
+            <Style x:Key="FilterChipStyle" TargetType="ToggleButton">
+                <Setter Property="Width" Value="28"/>
+                <Setter Property="Height" Value="24"/>
+                <Setter Property="Padding" Value="4"/>
+                <Setter Property="Margin" Value="1,0"/>
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderBrush" Value="Transparent"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ToggleButton">
+                            <Border x:Name="border"
+                                    Background="{TemplateBinding Background}" 
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="{DynamicResource ButtonHoverBackgroundBrush}"/>
+                                </Trigger>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter Property="Background" Value="{DynamicResource AccentSubtleBrush}"/>
+                                    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                    <Setter Property="BorderThickness" Value="1"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
         </Grid.Resources>
 
         <!-- Row 0: 地址栏（纯地址输入） -->
@@ -151,7 +186,24 @@
                             Style="{StaticResource ModernToolbarButtonStyle}" ToolTip="搜索"/>
                     <Button Name="FilterBtn" Content="{DynamicResource Icon_Filter}" FontFamily="{DynamicResource IconFontFamily}" FontSize="14"
                             Click="FilterBtn_Click"
-                            Style="{StaticResource ModernToolbarButtonStyle}" ToolTip="筛选"/>
+                            Style="{StaticResource ModernToolbarButtonStyle}" ToolTip="高级筛选"/>
+                    
+                    <!-- 快捷类型过滤器芯片 -->
+                    <Border Width="1" Background="{DynamicResource BorderDefaultBrush}" Margin="6,4"/>
+                    <StackPanel Orientation="Horizontal">
+                        <ToggleButton x:Name="FilterImages" Content="🖼️" FontSize="12" 
+                                     Style="{StaticResource FilterChipStyle}" ToolTip="图片"
+                                     Click="FilterChip_Click" Tag="Images"/>
+                        <ToggleButton x:Name="FilterVideos" Content="🎬" FontSize="12"
+                                     Style="{StaticResource FilterChipStyle}" ToolTip="视频"
+                                     Click="FilterChip_Click" Tag="Videos"/>
+                        <ToggleButton x:Name="FilterDocs" Content="📄" FontSize="12"
+                                     Style="{StaticResource FilterChipStyle}" ToolTip="文档"
+                                     Click="FilterChip_Click" Tag="Documents"/>
+                        <ToggleButton x:Name="FilterFolders" Content="📁" FontSize="12"
+                                     Style="{StaticResource FilterChipStyle}" ToolTip="文件夹"
+                                     Click="FilterChip_Click" Tag="Folders"/>
+                    </StackPanel>
                 </StackPanel>
             </Grid>
         </Border>

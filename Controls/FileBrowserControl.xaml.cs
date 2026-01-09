@@ -329,6 +329,46 @@ namespace OoiMRR.Controls
             SearchModeChanged?.Invoke(this, mode);
         }
 
+        /// <summary>
+        /// 类型过滤器变更事件
+        /// </summary>
+        public event EventHandler<string> TypeFilterChanged;
+
+        /// <summary>
+        /// 获取当前选中的类型过滤器
+        /// </summary>
+        public string SelectedTypeFilter
+        {
+            get
+            {
+                if (FilterImages?.IsChecked == true) return "Images";
+                if (FilterVideos?.IsChecked == true) return "Videos";
+                if (FilterDocs?.IsChecked == true) return "Documents";
+                if (FilterFolders?.IsChecked == true) return "Folders";
+                return "All";
+            }
+        }
+
+        private void FilterChip_Click(object sender, RoutedEventArgs e)
+        {
+            var btn = sender as System.Windows.Controls.Primitives.ToggleButton;
+            if (btn == null) return;
+
+            // 如果点击的是已选中的按钮，取消选中（变为All）
+            // 如果点击的是未选中的按钮，取消其他按钮的选中状态
+            var tag = btn.Tag?.ToString();
+            if (btn.IsChecked == true)
+            {
+                // 取消其他按钮
+                if (tag != "Images" && FilterImages != null) FilterImages.IsChecked = false;
+                if (tag != "Videos" && FilterVideos != null) FilterVideos.IsChecked = false;
+                if (tag != "Documents" && FilterDocs != null) FilterDocs.IsChecked = false;
+                if (tag != "Folders" && FilterFolders != null) FilterFolders.IsChecked = false;
+            }
+
+            TypeFilterChanged?.Invoke(this, SelectedTypeFilter);
+        }
+
         private void LoadMoreBtn_Click(object sender, RoutedEventArgs e)
         {
             LoadMoreClicked?.Invoke(sender, e);
