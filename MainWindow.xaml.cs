@@ -752,9 +752,7 @@ namespace OoiMRR
                 }
             }
             else
-            {
-                System.Diagnostics.Debug.WriteLine("[Undo] 没有可撤销的操作");
-            }
+            {            }
         }
 
         /// <summary>
@@ -779,9 +777,7 @@ namespace OoiMRR
                 }
             }
             else
-            {
-                System.Diagnostics.Debug.WriteLine("[Redo] 没有可重做的操作");
-            }
+            {            }
         }
 
         #endregion

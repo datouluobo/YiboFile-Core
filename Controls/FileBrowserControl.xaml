@@ -97,6 +97,16 @@
                 
                 <!-- 搜索/筛选按钮 -->
                 <StackPanel Grid.Column="6" Orientation="Horizontal">
+                    <!-- 搜索模式选择器 -->
+                    <ComboBox x:Name="SearchModeComboBox" 
+                              Width="80" Margin="0,0,6,0"
+                              VerticalAlignment="Center"
+                              SelectionChanged="SearchModeComboBox_SelectionChanged"
+                              ToolTip="搜索模式">
+                        <ComboBoxItem Content="文件名" Tag="FileName" IsSelected="True"/>
+                        <ComboBoxItem Content="标签" Tag="Tags"/>
+                        <ComboBoxItem Content="备注" Tag="Notes"/>
+                    </ComboBox>
                     <Button Name="SearchBtn" Content="{DynamicResource Icon_Search}" FontFamily="{DynamicResource IconFontFamily}" FontSize="14"
                             Click="SearchBtn_Click" Margin="0,0,6,0"
                             Style="{StaticResource ModernToolbarButtonStyle}" ToolTip="搜索"/>

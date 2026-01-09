@@ -39,9 +39,7 @@ namespace OoiMRR.Services
                 CurrentTheme = theme;
             }
             catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Failed to load theme {themeName}: {ex.Message}");
-            }
+            {            }
         }
 
         public static void ToggleTheme()

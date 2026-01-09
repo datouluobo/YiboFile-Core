@@ -825,20 +825,16 @@ namespace OoiMRR.Controls
 
         private void RenameTextBox_KeyDown(object sender, KeyEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine($"[Rename] KeyDown: {e.Key}");
             if (sender is TextBox textBox && textBox.DataContext is FileSystemItem item)
             {
                 if (e.Key == Key.Enter)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[Rename] Enter pressed, item: {item.Name}, text: {textBox.Text}, RenameText: {item.RenameText}");
-                    // Force sync the TextBox text to RenameText in case binding hasn't updated
+                {                    // Force sync the TextBox text to RenameText in case binding hasn't updated
                     item.RenameText = textBox.Text;
                     CommitRenameLogic(item);
                     e.Handled = true;
                 }
                 else if (e.Key == Key.Escape)
                 {
-                    System.Diagnostics.Debug.WriteLine("[Rename] Escape pressed");
                     CancelRenameLogic(item);
                     e.Handled = true;
                 }
@@ -867,9 +863,6 @@ namespace OoiMRR.Controls
                 bool isVisible = (bool)e.NewValue;
                 if (!isVisible || !item.IsRenaming)
                     return;
-
-                System.Diagnostics.Debug.WriteLine($"[Rename] TextBox IsVisibleChanged - visible: {isVisible}, IsRenaming: {item.IsRenaming}");
-
                 // 使用 Render 优先级以确保在布局完成后执行
                 Dispatcher.BeginInvoke(new Action(() =>
                 {
@@ -885,9 +878,6 @@ namespace OoiMRR.Controls
                     string name = !string.IsNullOrEmpty(item.RenameText)
                         ? item.RenameText
                         : System.IO.Path.GetFileName(item.Path);
-
-                    System.Diagnostics.Debug.WriteLine($"[Rename] Focus set - name: {name}, IsDirectory: {item.IsDirectory}");
-
                     if (!string.IsNullOrEmpty(name))
                     {
                         // 确保 TextBox 有正确的文本
@@ -897,18 +887,14 @@ namespace OoiMRR.Controls
                         }
 
                         int lastDotIndex = name.LastIndexOf('.');
-                        System.Diagnostics.Debug.WriteLine($"[Rename] lastDotIndex: {lastDotIndex}");
-
                         if (lastDotIndex > 0 && !item.IsDirectory)
                         {
                             // 选中文件名部分（不包含扩展名）
                             textBox.Select(0, lastDotIndex);
-                            System.Diagnostics.Debug.WriteLine($"[Rename] Selected 0 to {lastDotIndex}");
                         }
                         else
                         {
                             textBox.SelectAll();
-                            System.Diagnostics.Debug.WriteLine("[Rename] Selected all");
                         }
                     }
                 }), System.Windows.Threading.DispatcherPriority.Render);
@@ -918,13 +904,9 @@ namespace OoiMRR.Controls
         private void CommitRenameLogic(FileSystemItem item)
         {
             if (!item.IsRenaming) return;
-
-            System.Diagnostics.Debug.WriteLine($"[Rename] CommitRenameLogic - Item: {item.Name}, NewName: {item.RenameText}");
-
             // Check if name actually changed
             if (string.IsNullOrWhiteSpace(item.RenameText) || item.RenameText == item.Name)
             {
-                System.Diagnostics.Debug.WriteLine("[Rename] Name unchanged or empty, cancelling rename");
                 item.IsRenaming = false;
                 return;
             }
@@ -970,7 +952,6 @@ namespace OoiMRR.Controls
 
         private double MeasureTextWidth(string text, ListView listView)
         {
-            // System.Diagnostics.Debug.WriteLine($"MeasureTextWidth called for: {text}");
             try
             {
                 var tb = new TextBlock

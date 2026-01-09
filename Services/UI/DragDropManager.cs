@@ -81,25 +81,17 @@ namespace OoiMRR.Services
         }
 
         private void StartDrag(ListView listView)
-        {
-            System.Diagnostics.Debug.WriteLine("[DragDropManager] StartDrag called");
-            if (listView == null)
-            {
-                System.Diagnostics.Debug.WriteLine("[DragDropManager] StartDrag: listView is null");
-                return;
+        {            if (listView == null)
+            {                return;
             }
 
-            var selectedItems = listView.SelectedItems.Cast<object>().ToList();
-            System.Diagnostics.Debug.WriteLine($"[DragDropManager] StartDrag: {selectedItems.Count} items selected");
-            if (selectedItems.Count == 0) return;
+            var selectedItems = listView.SelectedItems.Cast<object>().ToList();            if (selectedItems.Count == 0) return;
 
             // 如果选中的项目正在重命名，不启动拖放（允许TextBox中的文本选择）
             foreach (var item in selectedItems)
             {
                 if (item is FileSystemItem fsItem && fsItem.IsRenaming)
-                {
-                    System.Diagnostics.Debug.WriteLine("[DragDropManager] StartDrag: Item is renaming, skipping drag");
-                    return;
+                {                    return;
                 }
             }
 
@@ -199,25 +191,17 @@ namespace OoiMRR.Services
         }
 
         private void ListView_Drop(object sender, DragEventArgs e)
-        {
-            System.Diagnostics.Debug.WriteLine("[DragDropManager] ListView_Drop called");
-            RemoveDragFeedback();
+        {            RemoveDragFeedback();
             ClearDragTargetHighlight();
 
             if (!e.Data.GetDataPresent(DataFormats.FileDrop))
-            {
-                System.Diagnostics.Debug.WriteLine("[DragDropManager] ListView_Drop: No FileDrop data");
-                return;
+            {                return;
             }
 
             string[] sources = (string[])e.Data.GetData(DataFormats.FileDrop);
             if (sources == null || sources.Length == 0)
-            {
-                System.Diagnostics.Debug.WriteLine("[DragDropManager] ListView_Drop: sources is null or empty");
-                return;
+            {                return;
             }
-            System.Diagnostics.Debug.WriteLine($"[DragDropManager] ListView_Drop: {sources.Length} sources");
-
             // Determine Target
             string targetPath = null;
 
@@ -257,8 +241,6 @@ namespace OoiMRR.Services
 
         public async void PerformFileOperation(string[] sources, string targetFolder, bool isCopy)
         {
-            System.Diagnostics.Debug.WriteLine($"[DragDropManager] PerformFileOperation: isCopy={isCopy}, target={targetFolder}, sources={sources.Length}");
-
             // Create and enqueue task for progress display
             var task = new FileOperations.TaskQueue.FileOperationTask
             {

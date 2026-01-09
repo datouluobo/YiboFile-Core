@@ -35,9 +35,7 @@ namespace OoiMRR
                         _favoriteService?.LoadFavorites(FavoritesListBox);
                 }
                 catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"刷新导航图标时出错: {ex.Message}");
-                }
+                {                }
             }), System.Windows.Threading.DispatcherPriority.Loaded);
         }
     }

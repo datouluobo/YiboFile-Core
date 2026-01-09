@@ -675,9 +675,7 @@ namespace OoiMRR
                 }
             }
             catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"LoadSecondFileBrowserDirectory error: {ex.Message}");
-            }
+            {            }
         }
 
         private void SecondFileBrowser_PathChanged(object sender, string newPath)

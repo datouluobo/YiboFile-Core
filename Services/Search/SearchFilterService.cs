@@ -83,6 +83,115 @@ namespace OoiMRR.Services.Search
             }
             return null;
         }
+
+        /// <summary>
+        /// 获取当前文件夹路径（用于 CurrentFolder 范围）
+        /// </summary>
+        public string GetCurrentFolderPath(PathRangeFilter pathRangeFilter, string currentPath)
+        {
+            if (pathRangeFilter == PathRangeFilter.CurrentFolder && !string.IsNullOrEmpty(currentPath))
+            {
+                return currentPath;
+            }
+            return GetRangePath(pathRangeFilter, currentPath);
+        }
+
+        /// <summary>
+        /// 应用日期过滤器
+        /// </summary>
+        public IEnumerable<FileSystemItem> ApplyDateFilter(IEnumerable<FileSystemItem> items, DateRangeFilter dateFilter, DateTime? customFrom = null, DateTime? customTo = null)
+        {
+            if (items == null || dateFilter == DateRangeFilter.All)
+                return items ?? Enumerable.Empty<FileSystemItem>();
+
+            var now = DateTime.Now;
+            DateTime? minDate = null;
+            DateTime? maxDate = null;
+
+            switch (dateFilter)
+            {
+                case DateRangeFilter.Today:
+                    minDate = now.Date;
+                    maxDate = now.Date.AddDays(1).AddSeconds(-1);
+                    break;
+                case DateRangeFilter.ThisWeek:
+                    var startOfWeek = now.Date.AddDays(-(int)now.DayOfWeek);
+                    minDate = startOfWeek;
+                    maxDate = now;
+                    break;
+                case DateRangeFilter.ThisMonth:
+                    minDate = new DateTime(now.Year, now.Month, 1);
+                    maxDate = now;
+                    break;
+                case DateRangeFilter.ThisYear:
+                    minDate = new DateTime(now.Year, 1, 1);
+                    maxDate = now;
+                    break;
+                case DateRangeFilter.Custom:
+                    minDate = customFrom;
+                    maxDate = customTo;
+                    break;
+            }
+
+            return items.Where(item =>
+            {
+                var modTime = item.ModifiedDateTime;
+                if (modTime == default) return true; // 无日期信息则保留
+                if (minDate.HasValue && modTime < minDate.Value) return false;
+                if (maxDate.HasValue && modTime > maxDate.Value) return false;
+                return true;
+            });
+        }
+
+        /// <summary>
+        /// 应用大小过滤器
+        /// </summary>
+        public IEnumerable<FileSystemItem> ApplySizeFilter(IEnumerable<FileSystemItem> items, SizeRangeFilter sizeFilter, long? customMin = null, long? customMax = null)
+        {
+            if (items == null || sizeFilter == SizeRangeFilter.All)
+                return items ?? Enumerable.Empty<FileSystemItem>();
+
+            long? minSize = null;
+            long? maxSize = null;
+
+            const long KB = 1024;
+            const long MB = 1024 * KB;
+
+            switch (sizeFilter)
+            {
+                case SizeRangeFilter.Tiny:      // < 100KB
+                    maxSize = 100 * KB;
+                    break;
+                case SizeRangeFilter.Small:     // 100KB - 1MB
+                    minSize = 100 * KB;
+                    maxSize = MB;
+                    break;
+                case SizeRangeFilter.Medium:    // 1MB - 10MB
+                    minSize = MB;
+                    maxSize = 10 * MB;
+                    break;
+                case SizeRangeFilter.Large:     // 10MB - 100MB
+                    minSize = 10 * MB;
+                    maxSize = 100 * MB;
+                    break;
+                case SizeRangeFilter.Huge:      // > 100MB
+                    minSize = 100 * MB;
+                    break;
+                case SizeRangeFilter.Custom:
+                    minSize = customMin;
+                    maxSize = customMax;
+                    break;
+            }
+
+            return items.Where(item =>
+            {
+                if (item.IsDirectory) return true; // 文件夹不按大小过滤
+                var size = item.SizeBytes >= 0 ? item.SizeBytes : 0;
+                if (minSize.HasValue && size < minSize.Value) return false;
+                if (maxSize.HasValue && size > maxSize.Value) return false;
+                return true;
+            });
+        }
     }
 }
 

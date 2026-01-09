@@ -91,30 +91,15 @@ namespace OoiMRR.Services.FileOperations
         /// </summary>
         public async Task<FileOperationResult> PasteAsync(CancellationToken ct = default)
         {
-            System.Diagnostics.Debug.WriteLine("[FileOperationService] PasteAsync - START");
-
             var context = _getContext();
-            System.Diagnostics.Debug.WriteLine($"[FileOperationService] Context: {context?.GetType().Name}, CanPerformOperation: {context?.CanPerformOperation()}");
-
             if (context == null || !context.CanPerformOperation())
-            {
-                System.Diagnostics.Debug.WriteLine("[FileOperationService] FAILED: 目标路径无效");
-                return FileOperationResult.Failed("目标路径无效");
-            }
-
-            System.Diagnostics.Debug.WriteLine("[FileOperationService] Calling GetPathsFromClipboardAsync...");
-            var (sourcePaths, isCut) = await _clipboard.GetPathsFromClipboardAsync();
-            System.Diagnostics.Debug.WriteLine($"[FileOperationService] Got {sourcePaths.Count} paths from clipboard, isCut={isCut}");
-
+            {                return FileOperationResult.Failed("目标路径无效");
+            }            var (sourcePaths, isCut) = await _clipboard.GetPathsFromClipboardAsync();
             if (sourcePaths.Count == 0)
-            {
-                System.Diagnostics.Debug.WriteLine("[FileOperationService] FAILED: 剪贴板为空");
-                return FileOperationResult.Failed("剪贴板为空");
+            {                return FileOperationResult.Failed("剪贴板为空");
             }
 
-            var targetPath = context.GetEffectiveTargetPath();
-            System.Diagnostics.Debug.WriteLine($"[FileOperationService] TargetPath: {targetPath}");
-            OperationStarted?.Invoke(isCut ? "正在移动文件..." : "正在复制文件...");
+            var targetPath = context.GetEffectiveTargetPath();            OperationStarted?.Invoke(isCut ? "正在移动文件..." : "正在复制文件...");
 
             var failedItems = new List<string>();
             int processedCount = 0;
@@ -471,41 +456,27 @@ namespace OoiMRR.Services.FileOperations
         /// </summary>
         public async Task<FileOperationResult> RenameAsync(FileSystemItem item, string newName)
         {
-            System.Diagnostics.Debug.WriteLine($"[RenameAsync] Start - item: {item?.Name}, newName: {newName}, path: {item?.Path}");
-
             if (item == null || string.IsNullOrWhiteSpace(newName))
-            {
-                System.Diagnostics.Debug.WriteLine("[RenameAsync] Invalid parameters");
-                return FileOperationResult.Failed("参数无效");
+            {                return FileOperationResult.Failed("参数无效");
             }
 
             var context = _getContext();
             var directory = Path.GetDirectoryName(item.Path);
             var newPath = Path.Combine(directory, newName);
-
-            System.Diagnostics.Debug.WriteLine($"[RenameAsync] newPath: {newPath}");
-
             // 检查是否仅并在且只是大小写不同
             bool isCaseChangeOnly = string.Equals(item.Path, newPath, StringComparison.OrdinalIgnoreCase);
 
             if (!isCaseChangeOnly && (File.Exists(newPath) || Directory.Exists(newPath)))
-            {
-                System.Diagnostics.Debug.WriteLine($"[RenameAsync] File already exists: {newPath}");
-                _errorService?.ReportError($"已存在同名文件: {newName}", ErrorSeverity.Warning);
+            {                _errorService?.ReportError($"已存在同名文件: {newName}", ErrorSeverity.Warning);
                 return FileOperationResult.Failed("已存在同名文件");
             }
 
             try
-            {
-                System.Diagnostics.Debug.WriteLine($"[RenameAsync] Moving {item.Path} -> {newPath}, IsDirectory: {item.IsDirectory}");
-                await Task.Run(() =>
+            {                await Task.Run(() =>
                 {
                     if (item.IsDirectory) Directory.Move(item.Path, newPath);
                     else File.Move(item.Path, newPath);
                 });
-
-                System.Diagnostics.Debug.WriteLine("[RenameAsync] Move completed successfully");
-
                 // 记录撤销操作
                 _undoService?.RecordAction(new RenameUndoAction(item.Path, newPath, item.IsDirectory));
 
@@ -513,9 +484,7 @@ namespace OoiMRR.Services.FileOperations
                 return FileOperationResult.Succeeded(1);
             }
             catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[RenameAsync] Exception: {ex.Message}");
-                _errorService?.ReportError($"重命名失败: {ex.Message}", ErrorSeverity.Error, ex);
+            {                _errorService?.ReportError($"重命名失败: {ex.Message}", ErrorSeverity.Error, ex);
                 return FileOperationResult.Failed(ex.Message, ex);
             }
         }

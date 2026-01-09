@@ -19,6 +19,7 @@ namespace OoiMRR.Services.Search
         private readonly SearchResultBuilder _resultBuilder;
         private readonly EverythingSearchExecutor _everythingExecutor;
         private readonly NotesSearchExecutor _notesExecutor;
+        private readonly TagSearchExecutor _tagExecutor;
         private readonly SearchPaginationService _paginationService;
 
         // 搜索配置
@@ -81,6 +82,7 @@ namespace OoiMRR.Services.Search
                 _pageSize,
                 _maxResults);
             _notesExecutor = new NotesSearchExecutor();
+            _tagExecutor = new TagSearchExecutor();
             _paginationService = new SearchPaginationService(
                 _filterService,
                 _resultBuilder,
@@ -144,7 +146,7 @@ namespace OoiMRR.Services.Search
 
             var normalizedKeyword = NormalizeKeyword(keyword);
             var resultPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            
+
             // 分别收集不同类型的搜索结果
             var notesResultPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var nameResultPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -171,7 +173,7 @@ namespace OoiMRR.Services.Search
                         resultPaths,
                         progressCallback,
                         _cancellationTokenSource.Token);
-                    
+
                     // 记录文件名搜索结果
                     foreach (var path in resultPaths)
                     {
@@ -197,6 +199,25 @@ namespace OoiMRR.Services.Search
                 // 构建结果项
                 var results = _resultBuilder.BuildItemsFromPaths(sortedPaths);
 
+                // 应用日期和大小过滤
+                if (searchOptions.DateRange != DateRangeFilter.All)
+                {
+                    results = _filterService.ApplyDateFilter(
+                        results,
+                        searchOptions.DateRange,
+                        searchOptions.DateFrom,
+                        searchOptions.DateTo).ToList();
+                }
+
+                if (searchOptions.SizeRange != SizeRangeFilter.All)
+                {
+                    results = _filterService.ApplySizeFilter(
+                        results,
+                        searchOptions.SizeRange,
+                        searchOptions.SizeMin,
+                        searchOptions.SizeMax).ToList();
+                }
+
                 // 限制展示：备注与文件夹全部保留，文件仅取前100条
                 const int maxFiles = 100;
                 var limited = new List<FileSystemItem>();
@@ -211,11 +232,11 @@ namespace OoiMRR.Services.Search
                 limited.AddRange(folderItemsLimited);
                 limited.AddRange(fileItemsLimited);
                 results = limited;
-                
+
                 // 构建分组结果
                 var groupedItems = SearchResultGrouper.BuildGroupedResults(
-                    results, 
-                    notesResultPaths, 
+                    results,
+                    notesResultPaths,
                     nameResultPaths);
 
                 Debug.WriteLine($"搜索完成，共找到 {results.Count} 个结果");

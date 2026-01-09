@@ -60,15 +60,11 @@ namespace OoiMRR.Services.Theming
                         }
                     }
                     catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[CustomThemeManager] Failed to load theme from {file}: {ex.Message}");
-                    }
+                    {                    }
                 }
             }
             catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[CustomThemeManager] Failed to load custom themes: {ex.Message}");
-            }
+            {            }
 
             return _cachedThemes;
         }
@@ -109,14 +105,9 @@ namespace OoiMRR.Services.Theming
                         _cachedThemes.Remove(existing);
                     }
                     _cachedThemes.Add(theme);
-                }
-
-                System.Diagnostics.Debug.WriteLine($"[CustomThemeManager] Saved theme: {theme.Name} ({theme.Id})");
-            }
+                }            }
             catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[CustomThemeManager] Failed to save theme: {ex.Message}");
-                throw;
+            {                throw;
             }
         }
 
@@ -135,9 +126,7 @@ namespace OoiMRR.Services.Theming
 
                 if (File.Exists(filePath))
                 {
-                    File.Delete(filePath);
-                    System.Diagnostics.Debug.WriteLine($"[CustomThemeManager] Deleted theme: {themeId}");
-                }
+                    File.Delete(filePath);                }
 
                 // 更新缓存
                 if (_cachedThemes != null)
@@ -146,9 +135,7 @@ namespace OoiMRR.Services.Theming
                 }
             }
             catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[CustomThemeManager] Failed to delete theme: {ex.Message}");
-                throw;
+            {                throw;
             }
         }
 
@@ -210,17 +197,10 @@ namespace OoiMRR.Services.Theming
                         appResources[kvp.Key] = brush;
                     }
                     catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[CustomThemeManager] Failed to apply color {kvp.Key}: {ex.Message}");
-                    }
-                }
-
-                System.Diagnostics.Debug.WriteLine($"[CustomThemeManager] Applied custom theme: {theme.Name}");
-            }
+                    {                    }
+                }            }
             catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[CustomThemeManager] Failed to apply theme: {ex.Message}");
-                throw;
+            {                throw;
             }
         }
 
@@ -259,9 +239,7 @@ namespace OoiMRR.Services.Theming
                 }
             }
             catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[CustomThemeManager] Failed to get theme {themeId}: {ex.Message}");
-            }
+            {            }
 
             return null;
         }
@@ -284,14 +262,9 @@ namespace OoiMRR.Services.Theming
                         // 注意：如果ResourceDictionary里也有这个key，Remove只会移除本地覆盖的值
                         appResources.Remove(key);
                     }
-                }
-
-                System.Diagnostics.Debug.WriteLine("[CustomThemeManager] Cleared all resource overrides.");
-            }
+                }            }
             catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[CustomThemeManager] Failed to clear overrides: {ex.Message}");
-            }
+            {            }
         }
 
         /// <summary>
@@ -313,9 +286,7 @@ namespace OoiMRR.Services.Theming
                     ColorConverter.ConvertFromString(color);
                 }
                 catch
-                {
-                    System.Diagnostics.Debug.WriteLine($"[CustomThemeManager] Invalid color format: {color}");
-                    return false;
+                {                    return false;
                 }
             }
 

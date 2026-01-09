@@ -70,9 +70,7 @@ namespace OoiMRR.Services.Theming
                         }
                     }
                     catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Failed to load theme {filePath}: {ex.Message}");
-                    }
+                    {                    }
                 }
 
                 // 确保至少有Light和Dark主题
@@ -91,8 +89,6 @@ namespace OoiMRR.Services.Theming
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Theme discovery failed: {ex.Message}");
-
                 // 最小化回退：只加载Light和Dark
                 var fallbackThemes = new[] { "Light", "Dark" };
                 foreach (var themeId in fallbackThemes)
@@ -139,9 +135,7 @@ namespace OoiMRR.Services.Theming
                 };
             }
             catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Failed to load theme metadata from {source}: {ex.Message}");
-                return null;
+            {                return null;
             }
         }
 
@@ -229,10 +223,7 @@ namespace OoiMRR.Services.Theming
                 };
 
                 _currentTheme = customThemeMetadata;
-                ThemeChanged?.Invoke(null, new ThemeChangedEventArgs(oldTheme, customThemeMetadata));
-
-                System.Diagnostics.Debug.WriteLine($"Custom theme applied: {customTheme.Name} ({customTheme.Id})");
-                return;
+                ThemeChanged?.Invoke(null, new ThemeChangedEventArgs(oldTheme, customThemeMetadata));                return;
             }
 
             throw new ArgumentException($"Theme '{themeId}' not found.");
@@ -260,14 +251,9 @@ namespace OoiMRR.Services.Theming
                 var oldTheme = _currentTheme;
                 _currentTheme = theme;
 
-                ThemeChanged?.Invoke(null, new ThemeChangedEventArgs(oldTheme, theme));
-
-                System.Diagnostics.Debug.WriteLine($"Theme applied: {theme.DisplayName}");
-            }
+                ThemeChanged?.Invoke(null, new ThemeChangedEventArgs(oldTheme, theme));            }
             catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Failed to apply theme '{theme.Id}': {ex.Message}");
-                throw;
+            {                throw;
             }
         }
 
@@ -346,13 +332,9 @@ namespace OoiMRR.Services.Theming
                     appDictionaries.Remove(existingDict);
                 }
 
-                appDictionaries.Add(newDict);
-                System.Diagnostics.Debug.WriteLine($"Icon style changed to: {styleName}");
-            }
+                appDictionaries.Add(newDict);            }
             catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Failed to change icon style to {styleName}: {ex.Message}");
-            }
+            {            }
         }
 
         #region 系统主题跟随
@@ -363,9 +345,7 @@ namespace OoiMRR.Services.Theming
         public static void EnableSystemThemeFollowing()
         {
             if (_isFollowingSystemTheme)
-            {
-                System.Diagnostics.Debug.WriteLine("System theme following is already enabled.");
-                return;
+            {                return;
             }
 
             _isFollowingSystemTheme = true;
@@ -374,13 +354,9 @@ namespace OoiMRR.Services.Theming
             try
             {
                 var systemTheme = DetectSystemTheme();
-                SetTheme(systemTheme, animate: false);
-                System.Diagnostics.Debug.WriteLine($"System theme following enabled. Current system theme: {systemTheme}");
-            }
+                SetTheme(systemTheme, animate: false);            }
             catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Failed to apply system theme: {ex.Message}");
-            }
+            {            }
 
             // 监听系统主题变化
             SystemEvents.UserPreferenceChanged += OnSystemPreferenceChanged;
@@ -397,9 +373,7 @@ namespace OoiMRR.Services.Theming
             }
 
             _isFollowingSystemTheme = false;
-            SystemEvents.UserPreferenceChanged -= OnSystemPreferenceChanged;
-            System.Diagnostics.Debug.WriteLine("System theme following disabled.");
-        }
+            SystemEvents.UserPreferenceChanged -= OnSystemPreferenceChanged;        }
 
         /// <summary>
         /// 系统偏好设置变化事件处理
@@ -416,8 +390,6 @@ namespace OoiMRR.Services.Theming
 
                     if (newTheme != currentThemeId)
                     {
-                        System.Diagnostics.Debug.WriteLine($"System theme changed: {currentThemeId} -> {newTheme}");
-
                         // 在UI线程上切换主题
                         Application.Current.Dispatcher.BeginInvoke(new Action(() =>
                         {
@@ -426,9 +398,7 @@ namespace OoiMRR.Services.Theming
                     }
                 }
                 catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Error handling system theme change: {ex.Message}");
-                }
+                {                }
             }
         }
 
@@ -449,17 +419,13 @@ namespace OoiMRR.Services.Theming
                         if (value is int intValue)
                         {
                             // 0 = Dark, 1 = Light
-                            var theme = intValue == 0 ? "Dark" : "Light";
-                            System.Diagnostics.Debug.WriteLine($"Detected system theme: {theme} (value: {intValue})");
-                            return theme;
+                            var theme = intValue == 0 ? "Dark" : "Light";                            return theme;
                         }
                     }
                 }
             }
             catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Failed to detect system theme: {ex.Message}");
-            }
+            {            }
 
             // 默认返回浅色主题
             return "Light";

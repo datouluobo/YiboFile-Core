@@ -254,7 +254,6 @@ namespace OoiMRR.Services.Config
                     catch (Exception ex)
                     {
                         // 记录错误但不抛出，避免影响应用运行
-                        System.Diagnostics.Debug.WriteLine($"ConfigurationService保存失败: {ex.Message}");
                     }
                 }
             }

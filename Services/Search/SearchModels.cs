@@ -34,7 +34,47 @@ namespace OoiMRR.Services.Search
     public enum PathRangeFilter
     {
         AllDrives,      // 全部磁盘
-        CurrentDrive    // 当前磁盘
+        CurrentDrive,   // 当前磁盘
+        CurrentFolder   // 当前文件夹及子目录
+    }
+
+    /// <summary>
+    /// 日期范围过滤器
+    /// </summary>
+    public enum DateRangeFilter
+    {
+        All,         // 全部时间
+        Today,       // 今天
+        ThisWeek,    // 本周
+        ThisMonth,   // 本月
+        ThisYear,    // 今年
+        Custom       // 自定义范围
+    }
+
+    /// <summary>
+    /// 文件大小过滤器
+    /// </summary>
+    public enum SizeRangeFilter
+    {
+        All,         // 全部大小
+        Tiny,        // < 100KB
+        Small,       // 100KB - 1MB
+        Medium,      // 1MB - 10MB
+        Large,       // 10MB - 100MB
+        Huge,        // > 100MB
+        Custom       // 自定义范围
+    }
+
+    /// <summary>
+    /// 搜索模式
+    /// </summary>
+    public enum SearchMode
+    {
+        FileName,    // 文件名搜索
+        Content,     // 内容搜索 (未来)
+        Notes,       // 备注搜索
+        Tags,        // 标签搜索
+        All          // 组合搜索
     }
 
     /// <summary>
@@ -44,8 +84,19 @@ namespace OoiMRR.Services.Search
     {
         public FileTypeFilter Type { get; set; } = FileTypeFilter.All;
         public PathRangeFilter PathRange { get; set; } = PathRangeFilter.AllDrives;
+        public DateRangeFilter DateRange { get; set; } = DateRangeFilter.All;
+        public SizeRangeFilter SizeRange { get; set; } = SizeRangeFilter.All;
+        public SearchMode Mode { get; set; } = SearchMode.FileName;
         public bool SearchNames { get; set; } = true;
         public bool SearchNotes { get; set; } = true;
+
+        // 自定义日期范围
+        public DateTime? DateFrom { get; set; }
+        public DateTime? DateTo { get; set; }
+
+        // 自定义大小范围 (bytes)
+        public long? SizeMin { get; set; }
+        public long? SizeMax { get; set; }
     }
 
     /// <summary>
@@ -74,11 +125,11 @@ namespace OoiMRR.Services.Search
         public bool HasMore { get; set; }
         public int PageSize { get; set; }
         public int MaxResults { get; set; }
-        
+
         /// <summary>
         /// 按类型分组的搜索结果
         /// </summary>
-        public Dictionary<SearchResultType, List<FileSystemItem>> GroupedItems { get; set; } 
+        public Dictionary<SearchResultType, List<FileSystemItem>> GroupedItems { get; set; }
             = new Dictionary<SearchResultType, List<FileSystemItem>>();
     }
 

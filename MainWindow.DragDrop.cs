@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
@@ -22,8 +22,6 @@ namespace OoiMRR
         {
             try
             {
-                System.Diagnostics.Debug.WriteLine("[DragDrop] InitializeDragDrop started");
-
                 // Initialize DragDropManager for main file list
                 _dragDropManager = new DragDropManager();
                 SetupDragDropManager(_dragDropManager, isPrimary: true);
@@ -31,9 +29,7 @@ namespace OoiMRR
                 // Enable file list drag and drop for main list
                 if (FileBrowser?.FilesList != null)
                 {
-                    _dragDropManager.InitializeFileListDragDrop(FileBrowser.FilesList);
-                    System.Diagnostics.Debug.WriteLine("[DragDrop] Main FileBrowser drag-drop initialized");
-                }
+                    _dragDropManager.InitializeFileListDragDrop(FileBrowser.FilesList);                }
 
                 // Initialize DragDropManager for second file list (dual mode)
                 _secondDragDropManager = new DragDropManager();
@@ -41,22 +37,15 @@ namespace OoiMRR
 
                 if (SecondFileBrowser?.FilesList != null)
                 {
-                    _secondDragDropManager.InitializeFileListDragDrop(SecondFileBrowser.FilesList);
-                    System.Diagnostics.Debug.WriteLine("[DragDrop] Second FileBrowser drag-drop initialized");
-                }
+                    _secondDragDropManager.InitializeFileListDragDrop(SecondFileBrowser.FilesList);                }
 
                 // Initialize tab drop handlers
                 InitializeTabDragDrop();
 
                 // Initialize library drag drop
-                InitializeLibraryDragDrop();
-
-                System.Diagnostics.Debug.WriteLine("[DragDrop] InitializeDragDrop completed");
-            }
+                InitializeLibraryDragDrop();            }
             catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[DragDrop] InitializeDragDrop failed: {ex.Message}");
-            }
+            {            }
         }
 
         private void SetupDragDropManager(DragDropManager manager, bool isPrimary)
@@ -123,9 +112,7 @@ namespace OoiMRR
                 }
             }
             catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[DragDrop] InitializeTabDragDrop failed: {ex.Message}");
-            }
+            {            }
         }
 
         private void TabPanel_DragOver(object sender, DragEventArgs e)
@@ -166,9 +153,6 @@ namespace OoiMRR
             {
                 // Determine operation type
                 bool isCopy = (e.KeyStates & DragDropKeyStates.ControlKey) == DragDropKeyStates.ControlKey;
-
-                System.Diagnostics.Debug.WriteLine($"[DragDrop] Tab drop: {files.Length} files to {tab.Path}, isCopy={isCopy}");
-
                 // Perform the operation
                 _dragDropManager?.PerformFileOperation(files, tab.Path, isCopy);
             }

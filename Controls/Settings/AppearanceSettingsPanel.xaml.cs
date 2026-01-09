@@ -653,9 +653,7 @@ namespace OoiMRR.Controls.Settings
                 }
             }
             catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Failed to detect system theme: {ex.Message}");
-            }
+            {            }
 
             // 默认返回浅色
             return "Light";
@@ -1172,9 +1170,7 @@ namespace OoiMRR.Controls.Settings
                 // UI update is handled automatically by DynamicResource bindings on the border
             }
             catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Apply color failed: {ex.Message}");
-            }
+            {            }
         }
 
         /// <summary>

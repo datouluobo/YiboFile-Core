@@ -90,9 +90,7 @@ namespace OoiMRR
                 (e) => { }, // FilesListView_PreviewMouseMove handled by DragDropManager directly
                 () => ColLeft, // Func<ColumnDefinition>
                 (e) => // CommitRename
-                {
-                    System.Diagnostics.Debug.WriteLine($"[MainWindow] CommitRename handler - Item: {e.Item?.Name}, NewName: {e.NewName}");
-                    var (browser, path, library) = GetActiveContext();
+                {                    var (browser, path, library) = GetActiveContext();
                     Services.FileOperations.IFileOperationContext context = null;
                     if (library != null)
                         context = new Services.FileOperations.LibraryOperationContext(library, browser, this, RefreshActiveFileList);

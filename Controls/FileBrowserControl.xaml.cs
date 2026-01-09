@@ -70,7 +70,6 @@ namespace OoiMRR.Controls
                 FileList.LoadMoreClick += (s, e) => LoadMoreBtn_Click(s, e);
                 FileList.CommitRename += (s, e) =>
                 {
-                    System.Diagnostics.Debug.WriteLine($"[FileBrowser] CommitRename forwarding - Item: {e.Item?.Name}, NewName: {e.NewName}, HasSubscribers: {CommitRename != null}");
                     CommitRename?.Invoke(s, e);
                 };
 
@@ -303,6 +302,29 @@ namespace OoiMRR.Controls
         private void FilterBtn_Click(object sender, RoutedEventArgs e)
         {
             FilterClicked?.Invoke(sender, e);
+        }
+
+        /// <summary>
+        /// 搜索模式变更事件
+        /// </summary>
+        public event EventHandler<string> SearchModeChanged;
+
+        /// <summary>
+        /// 获取当前选中的搜索模式
+        /// </summary>
+        public string SelectedSearchMode
+        {
+            get
+            {
+                var selectedItem = SearchModeComboBox?.SelectedItem as System.Windows.Controls.ComboBoxItem;
+                return selectedItem?.Tag?.ToString() ?? "FileName";
+            }
+        }
+
+        private void SearchModeComboBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            var mode = SelectedSearchMode;
+            SearchModeChanged?.Invoke(this, mode);
         }
 
         private void LoadMoreBtn_Click(object sender, RoutedEventArgs e)

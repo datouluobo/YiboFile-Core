@@ -158,9 +158,7 @@ namespace OoiMRR.Previews
                     {
                         try
                         {
-                            string message = e.TryGetWebMessageAsString();
-                            System.Diagnostics.Debug.WriteLine($"PDF Viewer Message: {message}");
-                        }
+                            string message = e.TryGetWebMessageAsString();                        }
                         catch { }
                     };
                 }
@@ -229,9 +227,7 @@ namespace OoiMRR.Previews
                 await webView.CoreWebView2.ExecuteScriptAsync(errorScript);
             }
             catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"显示错误失败: {ex.Message}");
-            }
+            {            }
         }
 
         /// <summary>
