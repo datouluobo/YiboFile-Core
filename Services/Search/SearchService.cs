@@ -157,14 +157,41 @@ namespace OoiMRR.Services.Search
 
             try
             {
+                // 根据搜索模式决定搜索行为
+                var mode = searchOptions.Mode;
+
+                // 如果明确指定了 searchNames/searchNotes 参数，则使用参数
+                // 否则根据 Mode 决定
+                bool doNameSearch = searchNames;
+                bool doNotesSearch = searchNotes;
+                bool doTagSearch = false;
+
+                if (mode == SearchMode.Tags)
+                {
+                    doTagSearch = true;
+                    doNameSearch = true; // 标签搜索需要先获取文件列表
+                    doNotesSearch = false;
+                }
+                else if (mode == SearchMode.Notes)
+                {
+                    doNameSearch = false;
+                    doNotesSearch = true;
+                }
+                else if (mode == SearchMode.All)
+                {
+                    doNameSearch = true;
+                    doNotesSearch = true;
+                    doTagSearch = true;
+                }
+
                 // 确保至少有一个搜索选项
-                if (!searchNames && !searchNotes)
+                if (!doNameSearch && !doNotesSearch && !doTagSearch)
                 {
                     throw new ArgumentException("请至少选择一个搜索选项");
                 }
 
                 // 名称搜索（强制使用 Everything）
-                if (searchNames)
+                if (doNameSearch)
                 {
                     await _everythingExecutor.ExecuteAsync(
                         normalizedKeyword,
@@ -182,7 +209,7 @@ namespace OoiMRR.Services.Search
                 }
 
                 // 备注搜索
-                if (searchNotes && getNotesFromDb != null)
+                if (doNotesSearch && getNotesFromDb != null)
                 {
                     notesResultPaths = _notesExecutor.Execute(
                         normalizedKeyword,
@@ -216,6 +243,12 @@ namespace OoiMRR.Services.Search
                         searchOptions.SizeRange,
                         searchOptions.SizeMin,
                         searchOptions.SizeMax).ToList();
+                }
+
+                // 标签过滤（当模式为 Tags 时）
+                if (doTagSearch && mode == SearchMode.Tags)
+                {
+                    results = _tagExecutor.FilterByTag(results, normalizedKeyword).ToList();
                 }
 
                 // 限制展示：备注与文件夹全部保留，文件仅取前100条
