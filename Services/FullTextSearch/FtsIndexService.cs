@@ -38,6 +38,11 @@ namespace OoiMRR.Services.FullTextSearch
         private readonly ContentExtractorManager _extractorManager;
         private bool _disposed;
 
+        /// <summary>
+        /// 获取当前索引数据库路径
+        /// </summary>
+        public string IndexDbPath => _dbPath;
+
         public FtsIndexService(string dbPath = null)
         {
             _dbPath = dbPath ?? GetDefaultDbPath();

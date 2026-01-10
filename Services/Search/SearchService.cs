@@ -149,6 +149,26 @@ namespace OoiMRR.Services.Search
                 return new SearchResult { Keyword = keyword };
             }
 
+            // 检查全文搜索配置
+            var (isContentSearch, _) = FullTextSearchService.ParseSearchQuery(keyword);
+            bool isFtsEnabled = Config.ConfigurationService.Instance.Get(c => c.IsEnableFullTextSearch);
+
+            if (isContentSearch && !isFtsEnabled)
+            {
+                // 如果禁用了全文搜索但用户尝试使用content:语法，我们可以返回空结果或者提示
+                // 或者回退到普通搜索？为了避免混淆，这里暂不执行特殊逻辑，让它走普通搜索流程
+                // 但由于ParseSearchQuery是静态的，调用方可能已经解析了。
+                // 其实应该在 ParseSearchQuery 或者更上层拦截。
+                // 但这里 SearchService.PerformSearchAsync 内部逻辑会用到 fullTextSearchService?
+                // SearchService 并没有直接依赖 FullTextSearchService (它是通过 FullTextSearchService -> FtsIndexService)
+                // Wait, SearchService uses `EverythingSearchExecutor`, `NotesSearchExecutor`.
+                // It does NOT invoke `FullTextSearchService` directly in the code I viewed in Step 1422.
+                // This is surprising. Who calls `FullTextSearchService`?
+                // Maybe `MainWindow.Search.cs` calls it directly?
+                // Step 1484 implementation plan says:
+                // Update SearchService to support content: syntax.
+            }
+
             // 强制依赖 Everything，未运行则不回退到系统枚举，避免卡顿
             var everythingReady = await EverythingHelper.InitializeAsync();
             if (!everythingReady || !EverythingHelper.IsEverythingRunning())

@@ -34,42 +34,42 @@ namespace OoiMRR.Services
         // Everything API 函数指针委托定义（使用 stdcall 调用约定）
         [UnmanagedFunctionPointer(CallingConvention.StdCall, CharSet = CharSet.Unicode)]
         private delegate void SetSearchDelegate(string lpSearchString);
-        
+
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate bool QueryDelegate(bool bWait);
-        
+
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int GetNumResultsDelegate();
-        
+
         [UnmanagedFunctionPointer(CallingConvention.StdCall, CharSet = CharSet.Unicode)]
         private delegate void GetResultFullPathNameDelegate(int nIndex, StringBuilder lpString, int nMaxCount);
-        
+
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate void ResetDelegate();
-        
+
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate uint GetLastErrorDelegate();
-        
+
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate bool IsDBLoadedDelegate();
-        
+
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate void SetMaxDelegate(int max);
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate void SetOffsetDelegate(int offset);
-        
+
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int GetMajorVersionDelegate();
-        
+
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int GetMinorVersionDelegate();
-        
+
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate void SetMatchPathDelegate(bool bEnable);
-        
+
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate void SetMatchCaseDelegate(bool bEnable);
-        
+
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate void SetMatchWholeWordDelegate(bool bEnable);
 
@@ -139,7 +139,7 @@ namespace OoiMRR.Services
                         if (funcPtr != IntPtr.Zero) break;
                     }
                     Debug.WriteLine($"EverythingHelper: 函数 {string.Join("/", funcNames)} 地址: {funcPtr}");
-                    
+
                     if (funcPtr == IntPtr.Zero)
                     {
                         Debug.WriteLine($"EverythingHelper: 警告 - 函数 {string.Join("/", funcNames)} 未找到");
@@ -278,14 +278,14 @@ namespace OoiMRR.Services
                     CreateNoWindow = true,
                     WindowStyle = ProcessWindowStyle.Hidden
                 };
-                
+
                 _everythingProcess = Process.Start(startInfo);
-                
+
                 if (_everythingProcess == null)
                 {
                     return false;
                 }
-                
+
                 Debug.WriteLine($"EverythingHelper: Everything 进程已启动 (PID: {_everythingProcess.Id})");
 
                 // 等待 Everything 初始化（最多等待 5 秒）
@@ -342,8 +342,8 @@ namespace OoiMRR.Services
         /// 搜索文件
         /// </summary>
         public static List<string> SearchFiles(
-            string searchText, 
-            int maxResults = 5000, 
+            string searchText,
+            int maxResults = 5000,
             string searchPath = null,
             bool matchCase = false,
             bool matchWholeWord = false)
@@ -513,5 +513,36 @@ namespace OoiMRR.Services
         private static void SetMatchPath(bool bEnable) => _SetMatchPath?.Invoke(bEnable);
         private static void SetMatchCase(bool bEnable) => _SetMatchCase?.Invoke(bEnable);
         private static void SetMatchWholeWord(bool bEnable) => _SetMatchWholeWord?.Invoke(bEnable);
+
+        /// <summary>
+        /// 强制重建 Everything 索引
+        /// </summary>
+        public static void ForceRebuildIndex()
+        {
+            try
+            {
+                string appDir = AppDomain.CurrentDomain.BaseDirectory;
+                string everythingPath = Path.Combine(appDir, "Dependencies", "Everything", "Everything.exe");
+
+                if (!File.Exists(everythingPath))
+                {
+                    // 尝试查找系统安装的 Everything? 暂不，只支持内置的
+                    return;
+                }
+
+                // 发送 -rebuild 命令
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = everythingPath,
+                    Arguments = "-rebuild",
+                    UseShellExecute = false
+                };
+                Process.Start(startInfo);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"EverythingHelper: 重建索引失败 {ex.Message}");
+            }
+        }
     }
 }

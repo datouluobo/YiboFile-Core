@@ -79,6 +79,7 @@ namespace OoiMRR.Controls
             {
                 "General" => new Settings.GeneralSettingsPanel(),
                 "Appearance" => new Settings.AppearanceSettingsPanel(),
+                "Search" => new Settings.SearchSettingsPanel(),
                 "FileList" => new Settings.FileListSettingsPanel(),
                 "Path" => new Settings.PathSettingsPanel(),
                 "Library" => new Settings.LibrarySettingsPanel(),

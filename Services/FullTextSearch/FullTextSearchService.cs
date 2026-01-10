@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using OoiMRR.Services.Config;
 
 namespace OoiMRR.Services.FullTextSearch
 {
@@ -18,7 +19,18 @@ namespace OoiMRR.Services.FullTextSearch
 
         public FullTextSearchService(FtsIndexService ftsService = null)
         {
-            _ftsService = ftsService ?? new FtsIndexService();
+            if (ftsService == null)
+            {
+                var config = ConfigurationService.Instance.GetSnapshot();
+                var dbPath = config.FullTextIndexDbPath;
+                if (string.IsNullOrWhiteSpace(dbPath)) dbPath = null;
+                _ftsService = new FtsIndexService(dbPath);
+            }
+            else
+            {
+                _ftsService = ftsService;
+            }
+
             _indexingService = new IndexingTaskService(_ftsService);
         }
 
@@ -87,6 +99,11 @@ namespace OoiMRR.Services.FullTextSearch
         /// 获取已索引文件数量
         /// </summary>
         public int IndexedFileCount => _ftsService.GetIndexedCount();
+
+        /// <summary>
+        /// 获取索引数据库路径
+        /// </summary>
+        public string IndexDbPath => _ftsService.IndexDbPath;
 
         /// <summary>
         /// 清空索引

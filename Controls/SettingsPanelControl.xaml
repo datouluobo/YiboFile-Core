@@ -61,6 +61,7 @@
                         </ListBox.ItemContainerStyle>
                         <ListBoxItem Tag="General">通用</ListBoxItem>
                         <ListBoxItem Tag="Appearance">外观</ListBoxItem>
+                        <ListBoxItem Tag="Search">搜索</ListBoxItem>
                         <ListBoxItem Tag="FileList">文件列表</ListBoxItem>
                         <ListBoxItem Tag="Path">路径</ListBoxItem>
                         <ListBoxItem Tag="Library">库</ListBoxItem>

@@ -99,6 +99,11 @@ namespace OoiMRR
 
         // 标签页宽度模式
         public TabWidthMode TabWidthMode { get; set; } = TabWidthMode.FixedWidth;
+
+        // 搜索设置
+        public bool IsEnableFullTextSearch { get; set; } = true;
+        public System.Collections.Generic.List<string> FullTextIndexPaths { get; set; } = new System.Collections.Generic.List<string>(); // 启用全文搜索
+        public string FullTextIndexDbPath { get; set; } = string.Empty; // 索引数据库路径
     }
 
     public class AllSettingsConfig
