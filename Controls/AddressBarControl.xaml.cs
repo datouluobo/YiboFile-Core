@@ -87,13 +87,48 @@ namespace OoiMRR.Controls
             var hoverBrush = parentWindow?.TryFindResource("HighlightBrush") as System.Windows.Media.SolidColorBrush
                 ?? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 120, 215));
 
-            // 添加 "path" 标签
-            var prefixRun = new System.Windows.Documents.Run("path ")
+            // 动态识别路径类型并设置标签
+            string identifier = "path ";
+            string specialContent = null;
+            bool isSpecial = false;
+
+            if (path.StartsWith("content://", StringComparison.OrdinalIgnoreCase))
+            {
+                identifier = "content ";
+                specialContent = path.Substring("content://".Length);
+                isSpecial = true;
+            }
+            else if (path.StartsWith("search://", StringComparison.OrdinalIgnoreCase))
+            {
+                identifier = "search ";
+                specialContent = path.Substring("search://".Length);
+                isSpecial = true;
+            }
+            else if (path.StartsWith("lib://", StringComparison.OrdinalIgnoreCase))
+            {
+                identifier = "library ";
+                specialContent = path.Substring("lib://".Length);
+                isSpecial = true;
+            }
+
+            // 添加标签 Run
+            var prefixRun = new System.Windows.Documents.Run(identifier)
             {
                 Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 165, 0)),
                 FontWeight = FontWeights.SemiBold
             };
             BreadcrumbText.Inlines.Add(prefixRun);
+
+            if (isSpecial)
+            {
+                // 对于特殊模式，直接显示内容而不拆分路径
+                var contentRun = new System.Windows.Documents.Run(specialContent ?? "")
+                {
+                    Foreground = defaultBrush
+                };
+                BreadcrumbText.Inlines.Add(contentRun);
+                return;
+            }
 
             // 处理路径分段
             string rootPath = "";
@@ -415,9 +450,39 @@ namespace OoiMRR.Controls
             if (_isEditMode) return;
 
             _isEditMode = true;
-            AddressTextBox.Text = _currentPath;
-            AddressTextBox.Visibility = Visibility.Visible;
+
+            // 自动识别模式并优化显示文本
+            string displayPath = _currentPath;
+            if (SearchModeToggle != null)
+            {
+                if (!string.IsNullOrEmpty(_currentPath))
+                {
+                    if (_currentPath.StartsWith("content://", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // 全文搜索模式：选中开关，隐藏协议头
+                        SearchModeToggle.IsChecked = true;
+                        displayPath = _currentPath.Substring("content://".Length);
+                    }
+                    else if (_currentPath.StartsWith("search://", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // 文件名搜索模式：不选中开关，保留协议头（暂不隐藏以免混淆）
+                        SearchModeToggle.IsChecked = false;
+                    }
+                    else
+                    {
+                        // 普通路径模式：不选中开关
+                        SearchModeToggle.IsChecked = false;
+                    }
+                }
+            }
+
+            AddressTextBox.Text = displayPath;
+
             BreadcrumbContainer.Visibility = Visibility.Collapsed;
+
+            // 显示编辑容器
+            if (EditModeContainer != null) EditModeContainer.Visibility = Visibility.Visible;
+            AddressTextBox.Visibility = Visibility.Visible;
 
             // 延迟设置焦点，确保UI更新完成
             Dispatcher.BeginInvoke(new System.Action(() =>
@@ -433,7 +498,11 @@ namespace OoiMRR.Controls
             if (!_isEditMode) return;
 
             _isEditMode = false;
+
+            // 隐藏编辑容器
+            if (EditModeContainer != null) EditModeContainer.Visibility = Visibility.Collapsed;
             AddressTextBox.Visibility = Visibility.Collapsed;
+
             BreadcrumbContainer.Visibility = Visibility.Visible;
             if (!string.IsNullOrEmpty(_breadcrumbCustomText))
                 UpdateBreadcrumbText(_breadcrumbCustomText);
@@ -443,24 +512,29 @@ namespace OoiMRR.Controls
 
         private void AddressTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            // 可以在这里添加实时验证逻辑
+
         }
 
         private void AddressTextBox_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter)
             {
-                var path = AddressTextBox.Text.Trim();
-                if (!string.IsNullOrEmpty(path))
+                var path = AddressTextBox.Text;
+
+                // 处理搜索模式
+                if (SearchModeToggle != null && SearchModeToggle.IsChecked == true)
                 {
-                    _currentPath = path;
-                    PathChanged?.Invoke(this, path);
-                    SwitchToBreadcrumbMode();
+                    // 全文搜索模式：确保有 content:// 前缀
+                    // 注意：这里使用 content:// 作为强制全文搜索的协议头，区别于 content:
+                    // 这样可以彻底隔离 Everything 和 Lucene
+                    if (!string.IsNullOrWhiteSpace(path) && !path.StartsWith("content://", StringComparison.OrdinalIgnoreCase))
+                    {
+                        path = "content://" + path;
+                    }
                 }
-                else
-                {
-                    SwitchToBreadcrumbMode();
-                }
+
+                PathChanged?.Invoke(this, path);
+                SwitchToBreadcrumbMode();
                 e.Handled = true;
             }
             else if (e.Key == Key.Escape)
@@ -471,6 +545,12 @@ namespace OoiMRR.Controls
                 e.Handled = true;
             }
             // KeyDown 中不处理快捷键，让 PreviewKeyDown 处理，避免重复
+        }
+
+        private void SearchModeToggle_Click(object sender, RoutedEventArgs e)
+        {
+            // UI更新由XAML Trigger处理，这里只需确保焦点回到输入框
+            AddressTextBox.Focus();
         }
 
         // 极速剪贴板操作（无延迟，直接操作）

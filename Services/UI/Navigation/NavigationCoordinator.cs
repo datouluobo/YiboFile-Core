@@ -66,11 +66,11 @@ namespace OoiMRR.Services.Navigation
         {
             if (e.ChangedButton == MouseButton.Middle)
                 return ClickType.MiddleClick;
-            
-            if (e.ChangedButton == MouseButton.Left && 
+
+            if (e.ChangedButton == MouseButton.Left &&
                 (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
                 return ClickType.CtrlLeftClick;
-            
+
             return ClickType.LeftClick;
         }
 
@@ -88,7 +88,10 @@ namespace OoiMRR.Services.Navigation
                 return;
 
             // 验证路径是否存在
-            if (!Directory.Exists(path) && !File.Exists(path))
+            bool isVirtual = path.StartsWith("content://", StringComparison.OrdinalIgnoreCase) ||
+                           path.StartsWith("search://", StringComparison.OrdinalIgnoreCase);
+
+            if (!isVirtual && !Directory.Exists(path) && !File.Exists(path))
             {
                 MessageBox.Show($"路径不存在: {path}", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;

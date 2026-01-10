@@ -6,30 +6,67 @@
              mc:Ignorable="d" 
              d:DesignHeight="30" d:DesignWidth="800">
     <Grid>
-        <!-- 地址栏（编辑模式） -->
-        <TextBox Name="AddressTextBox" 
-                 TextChanged="AddressTextBox_TextChanged"
-                 KeyDown="AddressTextBox_KeyDown"
-                 PreviewKeyDown="AddressTextBox_PreviewKeyDown"
-                 LostFocus="AddressTextBox_LostFocus"
-                 GotFocus="AddressTextBox_GotFocus"
-                 PreviewMouseRightButtonDown="AddressTextBox_PreviewMouseRightButtonDown"
-                 ContextMenuOpening="AddressTextBox_ContextMenuOpening"
-                 Visibility="Collapsed"
-                 VerticalContentAlignment="Center"
-                 VerticalAlignment="Stretch"
-                 Height="30"
-                 Padding="5,3"
-                 MaxLength="100"
-                 AcceptsReturn="False"
-                 AcceptsTab="False">
-            <TextBox.CommandBindings>
-                <CommandBinding Command="ApplicationCommands.Copy" Executed="CopyCommand_Executed" CanExecute="CopyCommand_CanExecute"/>
-                <CommandBinding Command="ApplicationCommands.Cut" Executed="CutCommand_Executed" CanExecute="CutCommand_CanExecute"/>
-                <CommandBinding Command="ApplicationCommands.Paste" Executed="PasteCommand_Executed" CanExecute="PasteCommand_CanExecute"/>
-                <CommandBinding Command="ApplicationCommands.SelectAll" Executed="SelectAllCommand_Executed"/>
-            </TextBox.CommandBindings>
-        </TextBox>
+        <!-- 编辑模式容器 -->
+        <Grid x:Name="EditModeContainer" Visibility="Collapsed">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBox Name="AddressTextBox" 
+                     Grid.Column="0"
+                     TextChanged="AddressTextBox_TextChanged"
+                     KeyDown="AddressTextBox_KeyDown"
+                     PreviewKeyDown="AddressTextBox_PreviewKeyDown"
+                     LostFocus="AddressTextBox_LostFocus"
+                     GotFocus="AddressTextBox_GotFocus"
+                     PreviewMouseRightButtonDown="AddressTextBox_PreviewMouseRightButtonDown"
+                     ContextMenuOpening="AddressTextBox_ContextMenuOpening"
+                     Visibility="Visible"
+                     VerticalContentAlignment="Center"
+                     VerticalAlignment="Stretch"
+                     Height="30"
+                     Padding="5,3"
+                     MaxLength="100"
+                     AcceptsReturn="False"
+                     AcceptsTab="False">
+                <TextBox.CommandBindings>
+                    <CommandBinding Command="ApplicationCommands.Copy" Executed="CopyCommand_Executed" CanExecute="CopyCommand_CanExecute"/>
+                    <CommandBinding Command="ApplicationCommands.Cut" Executed="CutCommand_Executed" CanExecute="CutCommand_CanExecute"/>
+                    <CommandBinding Command="ApplicationCommands.Paste" Executed="PasteCommand_Executed" CanExecute="PasteCommand_CanExecute"/>
+                    <CommandBinding Command="ApplicationCommands.SelectAll" Executed="SelectAllCommand_Executed"/>
+                </TextBox.CommandBindings>
+            </TextBox>
+
+            <ToggleButton x:Name="SearchModeToggle"
+                          Grid.Column="1"
+                          Width="30"
+                          Height="30"
+                          BorderThickness="0"
+                          Background="Transparent"
+                          Focusable="False"
+                          Click="SearchModeToggle_Click"
+                          FontSize="14"
+                          FontWeight="Bold">
+                <ToggleButton.Style>
+                    <Style TargetType="ToggleButton">
+                        <!-- 默认状态：文件名搜索 -->
+                        <Setter Property="Content" Value="名"/>
+                        <Setter Property="ToolTip" Value="切换搜索模式：文件名 (默认) / 全文内容"/>
+                        <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+                        
+                        <Style.Triggers>
+                            <!-- 选中状态：全文搜索 -->
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter Property="Content" Value="文"/>
+                                <Setter Property="ToolTip" Value="当前模式：全文搜索 (再次点击切换回文件名搜索)"/>
+                                <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </ToggleButton.Style>
+            </ToggleButton>
+        </Grid>
         
         <!-- 面包屑导航（默认显示） -->
         <Border Name="BreadcrumbContainer"

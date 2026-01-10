@@ -167,6 +167,9 @@ namespace OoiMRR.Handlers
             }
 
             // 非有效路径：按搜索关键词处理（支持回车触发搜索）
+
+            // 非有效路径：按搜索关键词处理（支持回车触发搜索）
+
             // 使用统一的规范化方法剥离前缀"搜索:"
             var normalizedKeyword = SearchService.NormalizeKeyword(path);
             if (!string.IsNullOrEmpty(normalizedKeyword))
@@ -673,7 +676,18 @@ namespace OoiMRR.Handlers
                         isAddressBar = true;
                         break;
                     }
-                    current = VisualTreeHelper.GetParent(current);
+                    if (current is Visual || current is System.Windows.Media.Media3D.Visual3D)
+                    {
+                        current = VisualTreeHelper.GetParent(current);
+                    }
+                    else if (current is FrameworkContentElement fce)
+                    {
+                        current = fce.Parent;
+                    }
+                    else
+                    {
+                        current = null;
+                    }
                 }
 
                 // 如果点击在地址栏外部，退出编辑模式

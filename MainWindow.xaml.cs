@@ -177,6 +177,7 @@ namespace OoiMRR
         public MainWindow()
         {
             InitializeComponent();
+            this.Title += " [FIXED]";
 
 
 

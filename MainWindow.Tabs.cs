@@ -64,7 +64,23 @@ namespace OoiMRR
             {
                 if (string.IsNullOrEmpty(searchTabPath)) return;
 
-                var keyword = searchTabPath.Substring("search://".Length);
+                string keyword = null;
+                bool isContentSearch = false;
+
+                if (searchTabPath.StartsWith("content://", StringComparison.OrdinalIgnoreCase))
+                {
+                    keyword = searchTabPath.Substring("content://".Length);
+                    isContentSearch = true;
+                }
+                else if (searchTabPath.StartsWith("search://", StringComparison.OrdinalIgnoreCase))
+                {
+                    keyword = searchTabPath.Substring("search://".Length);
+                }
+                else
+                {
+                    return;
+                }
+
                 if (string.IsNullOrEmpty(keyword)) return;
 
                 var cacheKey = searchTabPath;
@@ -73,7 +89,7 @@ namespace OoiMRR
                 if (cache == null || !_searchCacheService.IsCacheValid(cacheKey))
                 {
                     // 无缓存或缓存过期，触发刷新
-                    await RefreshActiveSearchTab(keyword);
+                    await RefreshActiveSearchTab(keyword, isContentSearch);
                     return;
                 }
 
@@ -86,6 +102,7 @@ namespace OoiMRR
 
                 if (FileBrowser != null)
                 {
+                    // ... (UI update logic logic similar to PerformSearch)
                     if (groupedItems != null && groupedItems.Count > 0)
                     {
                         FileBrowser.SetGroupedSearchResults(groupedItems);
@@ -96,8 +113,15 @@ namespace OoiMRR
                         FileBrowser.FilesItemsSource = _currentFiles;
                     }
                     FileBrowser.LoadMoreVisible = cache.HasMore;
-                    if (_currentFiles != null)
+
+                    if (_currentFiles.Count == 0)
                     {
+                        FileBrowser.ShowEmptyState("未找到匹配项");
+                        FileBrowser.SetSearchStatus(false);
+                    }
+                    else
+                    {
+                        FileBrowser.HideEmptyState();
                         FileBrowser.SetSearchStatus(true, $"找到 {_currentFiles.Count} 个结果");
                     }
                 }
@@ -108,16 +132,48 @@ namespace OoiMRR
             }
         }
 
-        private async Task RefreshActiveSearchTab(string keyword)
+        private async Task RefreshActiveSearchTab(string keyword, bool isContentSearch = false)
         {
             try
             {
-                // 规范化关键词（确保使用规范化后的关键词）
-                var normalizedKeyword = SearchService.NormalizeKeyword(keyword);
-
                 FileBrowser?.ShowEmptyState("正在刷新...");
 
-                // 使用 SearchService 刷新搜索（重新执行完整搜索，包含备注搜索以支持分组显示）
+                if (isContentSearch)
+                {
+                    // 全文搜索刷新
+                    // 注意：FullTextSearchService.Instance.SearchContent 是同步的还是支持异步？
+                    // 它是 CPU 密集型，应该在 Task.Run 中运行
+                    var results = await Task.Run(() => OoiMRR.Services.FullTextSearch.FullTextSearchService.Instance.SearchContent(keyword));
+
+                    if (results == null) results = new List<FileSystemItem>();
+                    _currentFiles = results;
+
+                    if (FileBrowser != null)
+                    {
+                        FileBrowser.FilesItemsSource = _currentFiles;
+                        if (_currentFiles.Count == 0)
+                        {
+                            FileBrowser.ShowEmptyState("未找到包含该内容的文件");
+                            FileBrowser.SetSearchStatus(false);
+                        }
+                        else
+                        {
+                            FileBrowser.HideEmptyState();
+                            // 更新地址栏和面包屑
+                            FileBrowser.SetSearchBreadcrumb($"内容: {keyword}");
+                            FileBrowser.AddressText = $"content://{keyword}";
+                            FileBrowser.SetSearchStatus(true, $"找到 {_currentFiles.Count} 个结果");
+                        }
+                        FileBrowser.LoadMoreVisible = false;
+                    }
+                    return;
+                }
+
+                // 常规搜索 (Everything)
+                // 规范化关键词
+                var normalizedKeyword = SearchService.NormalizeKeyword(keyword);
+
+                // 使用 SearchService 刷新搜索
                 var searchResult = await _searchService.PerformSearchAsync(
                     keyword: normalizedKeyword,
                     searchOptions: _searchOptions,
@@ -148,7 +204,18 @@ namespace OoiMRR
                         FileBrowser.SetSearchBreadcrumb(normalizedKeyword);
                         FileBrowser.AddressText = normalizedKeyword;
                         FileBrowser.LoadMoreVisible = searchResult.HasMore;
-                        FileBrowser.HideEmptyState();
+
+                        // 统一空状态处理
+                        if (_currentFiles.Count == 0)
+                        {
+                            FileBrowser.ShowEmptyState("未找到匹配项");
+                            FileBrowser.SetSearchStatus(false);
+                        }
+                        else
+                        {
+                            FileBrowser.HideEmptyState();
+                            FileBrowser.SetSearchStatus(true, $"找到 {_currentFiles.Count} 个结果");
+                        }
                     }
                 }
                 else

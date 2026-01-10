@@ -53,10 +53,15 @@ namespace OoiMRR
         {
             // 检查是否是搜索标签页
             var activeTab = _tabService.ActiveTab;
-            if (activeTab != null && activeTab.Path != null && activeTab.Path.StartsWith("search://"))
+            if (activeTab != null && !string.IsNullOrEmpty(activeTab.Path))
             {
-                CheckAndRefreshSearchTab(activeTab.Path);
-                return;
+                var path = activeTab.Path.Trim();
+                if (path.StartsWith("search://", StringComparison.OrdinalIgnoreCase) ||
+                    path.StartsWith("content://", StringComparison.OrdinalIgnoreCase))
+                {
+                    CheckAndRefreshSearchTab(activeTab.Path);
+                    return;
+                }
             }
 
             // 根据当前导航模式刷新文件列表
@@ -107,6 +112,14 @@ namespace OoiMRR
         {
             try
             {
+                // 识别虚拟路径 (宽松检测)
+                bool isVirtualPath = false;
+                if (!string.IsNullOrEmpty(_currentPath))
+                {
+                    isVirtualPath = _currentPath.IndexOf("content://", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                  _currentPath.IndexOf("search://", StringComparison.OrdinalIgnoreCase) >= 0;
+                }
+
                 if (FileBrowser != null)
                 {
                     FileBrowser.AddressText = _currentPath;
@@ -116,17 +129,31 @@ namespace OoiMRR
                     FileBrowser.SetSearchStatus(false);
                 }
 
-                // 检查目录是否存在
-                if (string.IsNullOrEmpty(_currentPath) || !Directory.Exists(_currentPath))
+                // 检查目录是否存在（跳过虚拟路径）
+                // 彻底移除 DirectoryNotFoundException 抛出，改为内联提示
+                if (!isVirtualPath && !string.IsNullOrEmpty(_currentPath))
                 {
-                    throw new DirectoryNotFoundException($"路径不存在: {_currentPath}");
+                    if (!Directory.Exists(_currentPath))
+                    {
+                        // 路径不存在：显示空状态，不弹窗
+                        _currentFiles.Clear();
+                        if (FileBrowser != null)
+                            FileBrowser.FilesItemsSource = null;
+
+                        ShowEmptyStateMessage($"路径不存在：\n{_currentPath}");
+                        return; // 中止后续加载
+                    }
                 }
 
                 // 使用 FileListService 异步加载文件
-                await LoadFilesAsync();
+                // 对于虚拟路径，LoadFilesAsync 可能会返回空或由 Search 逻辑单独处理
+                if (!isVirtualPath)
+                {
+                    await LoadFilesAsync();
 
-                // 设置文件系统监控
-                _fileSystemWatcherService.SetupFileWatcher(_currentPath);
+                    // 设置文件系统监控
+                    _fileSystemWatcherService.SetupFileWatcher(_currentPath);
+                }
 
                 // 高亮匹配当前路径的列表项
                 HighlightMatchingItems(_currentPath);
@@ -155,9 +182,10 @@ namespace OoiMRR
                     FileBrowser.FilesItemsSource = null;
                 ShowEmptyStateMessage($"无法访问此路径：\n{_currentPath}\n(访问被拒绝)");
             }
-            catch (DirectoryNotFoundException ex)
+            catch (DirectoryNotFoundException)
             {
-                MessageBox.Show($"路径不存在: {_currentPath}\n\n{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                // MessageBox.Show($"路径不存在: {_currentPath}\n\n{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                System.Diagnostics.Debug.WriteLine($"[LoadCurrentDirectoryAsync] 路径不存在: {_currentPath}");
                 // 清空文件列表
                 _currentFiles.Clear();
                 if (FileBrowser != null)
@@ -166,7 +194,8 @@ namespace OoiMRR
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"无法加载目录: {_currentPath}\n\n{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                // MessageBox.Show($"无法加载目录: {_currentPath}\n\n{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                System.Diagnostics.Debug.WriteLine($"[LoadCurrentDirectoryAsync] 无法加载目录: {_currentPath} Error: {ex.Message}");
                 // 清空文件列表
                 _currentFiles.Clear();
                 if (FileBrowser != null)
@@ -216,7 +245,16 @@ namespace OoiMRR
 
         internal void NavigateToPath(string path)
         {
-            if (!Directory.Exists(path)) return;
+            // 识别虚拟路径
+            bool isVirtualPath = false;
+            if (!string.IsNullOrEmpty(path))
+            {
+                var trimmedPath = path.Trim();
+                isVirtualPath = trimmedPath.StartsWith("content://", StringComparison.OrdinalIgnoreCase) ||
+                              trimmedPath.StartsWith("search://", StringComparison.OrdinalIgnoreCase);
+            }
+
+            if (!isVirtualPath && !Directory.Exists(path)) return;
 
             // 双列表模式：如果焦点在副列表，则在副列表导航
             if (_isDualListMode && _isSecondPaneFocused && _secondTabService != null)
@@ -239,8 +277,7 @@ namespace OoiMRR
                 }
                 else
                 {
-                    CreateTab(path); // Update CreateTab already handles logic validation, but simpler to call explicit service here? 
-                    // Actually calling CreateTab(path) is better because it checks for focus again, which is redundant but safe.
+                    // CreateTab(path) is better because it checks for focus again, which is redundant but safe.
                     // But to be explicit and consistent with logic above:
                     _secondTabService.CreatePathTab(path);
                 }
@@ -274,7 +311,16 @@ namespace OoiMRR
 
         private void NavigateToPathInternal(string path)
         {
-            if (!Directory.Exists(path)) return;
+            // 识别虚拟路径
+            bool isVirtualPath = false;
+            if (!string.IsNullOrEmpty(path))
+            {
+                var trimmedPath = path.Trim();
+                isVirtualPath = trimmedPath.StartsWith("content://", StringComparison.OrdinalIgnoreCase) ||
+                              trimmedPath.StartsWith("search://", StringComparison.OrdinalIgnoreCase);
+            }
+
+            if (!isVirtualPath && !Directory.Exists(path)) return;
 
             var isDriveRoot = string.Equals(
                 System.IO.Path.GetPathRoot(path)?.TrimEnd('\\'),
@@ -282,7 +328,8 @@ namespace OoiMRR
                 StringComparison.OrdinalIgnoreCase);
 
             // 如果进入的是文件夹，计算并更新其大小缓存（驱动器根目录跳过，避免耗时）
-            if (!isDriveRoot)
+            // 虚拟也不计算
+            if (!isVirtualPath && !isDriveRoot)
             {
                 Task.Run(() => _folderSizeCalculationService.CalculateAndUpdateFolderSizeAsync(path));
             }

@@ -625,8 +625,9 @@ namespace OoiMRR.Services.Tabs
                 return false;
             }
 
-            // 搜索标签页的路径格式是 "search://keyword"，不需要验证目录存在性
-            if (path.StartsWith("search://"))
+            // 搜索标签页的路径格式是 "search://keyword" 或 "content://keyword"，不需要验证目录存在性
+            if (path.StartsWith("search://", StringComparison.OrdinalIgnoreCase) ||
+                path.StartsWith("content://", StringComparison.OrdinalIgnoreCase))
             {
                 return true;
             }
@@ -906,10 +907,15 @@ namespace OoiMRR.Services.Tabs
 
             _ui.SetCurrentLibrary?.Invoke(null);
 
-            if (tab.Path != null && tab.Path.StartsWith("search://"))
+            if (tab.Path != null && (tab.Path.StartsWith("search://", StringComparison.OrdinalIgnoreCase) ||
+                                     tab.Path.StartsWith("content://", StringComparison.OrdinalIgnoreCase)))
             {
                 // 从路径提取关键词并规范化（确保即使路径被污染也能正确处理）
-                var rawKeyword = tab.Path.Substring("search://".Length);
+                string rawKeyword;
+                if (tab.Path.StartsWith("search://", StringComparison.OrdinalIgnoreCase))
+                    rawKeyword = tab.Path.Substring("search://".Length);
+                else
+                    rawKeyword = tab.Path.Substring("content://".Length); // handle content://
                 var normalizedKeyword = SearchService.NormalizeKeyword(rawKeyword);
                 _ui.SetCurrentPath?.Invoke(null);
                 if (_ui.FileBrowser != null)
@@ -1184,7 +1190,8 @@ namespace OoiMRR.Services.Tabs
             {
                 if (!string.IsNullOrEmpty(tab.Path))
                 {
-                    if (tab.Path.StartsWith("search://")) return "🔍";
+                    if (tab.Path.StartsWith("search://", StringComparison.OrdinalIgnoreCase)) return "🔍";
+                    if (tab.Path.StartsWith("content://", StringComparison.OrdinalIgnoreCase)) return "📝";
                     if (tab.Path.StartsWith("lib://")) return "📚";
 
                 }

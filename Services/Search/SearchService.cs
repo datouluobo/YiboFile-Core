@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using OoiMRR.Services;
+using OoiMRR.Services.FullTextSearch;
 
 namespace OoiMRR.Services.Search
 {
@@ -103,9 +104,20 @@ namespace OoiMRR.Services.Search
                 return searchText;
 
             var normalized = searchText.Trim();
-            while (normalized.StartsWith("搜索:"))
+            while (true)
             {
-                normalized = normalized.Substring("搜索:".Length).Trim();
+                if (normalized.StartsWith("搜索:"))
+                {
+                    normalized = normalized.Substring("搜索:".Length).Trim();
+                }
+                else if (normalized.StartsWith("search://"))
+                {
+                    normalized = normalized.Substring("search://".Length).Trim();
+                }
+                else
+                {
+                    break;
+                }
             }
             return normalized;
         }

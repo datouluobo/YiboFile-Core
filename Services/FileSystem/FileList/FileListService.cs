@@ -118,6 +118,13 @@ namespace OoiMRR.Services.FileList
             Func<string, long?> getFolderSizeCache = null,
             Func<long, string> formatFileSize = null)
         {
+            // 拦截搜索路径
+            if (path.StartsWith("search://", StringComparison.OrdinalIgnoreCase) ||
+                path.StartsWith("content:", StringComparison.OrdinalIgnoreCase))
+            {
+                return new List<FileSystemItem>();
+            }
+
             // 同步等待信号量，防止与异步加载冲突
             _loadingSemaphore.Wait();
             try
@@ -129,7 +136,7 @@ namespace OoiMRR.Services.FileList
 
                 if (!Directory.Exists(path))
                 {
-                    _errorService.ReportError($"路径不存在: {path}", OoiMRR.Services.Core.Error.ErrorSeverity.Warning);
+                    // _errorService.ReportError($"路径不存在: {path}", OoiMRR.Services.Core.Error.ErrorSeverity.Warning);
                     return new List<FileSystemItem>();
                 }
 
@@ -254,6 +261,13 @@ namespace OoiMRR.Services.FileList
             Func<List<int>, List<string>> orderTagNames = null,
             CancellationToken cancellationToken = default)
         {
+            // 拦截搜索路径，防止 Directory.GetDirectories 抛出异常
+            if (path.StartsWith("search://", StringComparison.OrdinalIgnoreCase) ||
+                path.StartsWith("content:", StringComparison.OrdinalIgnoreCase))
+            {
+                return new List<FileSystemItem>();
+            }
+
             // 等待获取信号量，支持取消
             try
             {
@@ -353,14 +367,14 @@ namespace OoiMRR.Services.FileList
                 _errorService.ReportError(errorMessage);
                 return new List<FileSystemItem>();
             }
-            catch (DirectoryNotFoundException ex)
+            catch (DirectoryNotFoundException)
             {
-                var errorMessage = $"路径不存在: {path}";
-                if (!string.IsNullOrEmpty(ex.Message))
-                {
-                    errorMessage += $"\n{ex.Message}";
-                }
-                _errorService.ReportError(errorMessage);
+                // var errorMessage = $"路径不存在: {path}";
+                // if (!string.IsNullOrEmpty(ex.Message))
+                // {
+                //     errorMessage += $"\n{ex.Message}";
+                // }
+                // _errorService.ReportError(errorMessage);
                 return new List<FileSystemItem>();
             }
             catch (OperationCanceledException)
