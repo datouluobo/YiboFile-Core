@@ -21,31 +21,8 @@
         <!-- 操作按钮区 -->
         <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,15">
             <Button Name="ResetButton" Content="恢复默认" Click="ResetButton_Click"
-                    Padding="16,8" MinWidth="100" Background="{DynamicResource BackgroundSecondaryBrush}" BorderBrush="{DynamicResource BorderSubtleBrush}" Cursor="Hand">
-                <Button.Style>
-                    <Style TargetType="Button">
-                        <Setter Property="Template">
-                            <Setter.Value>
-                                <ControlTemplate TargetType="Button">
-                                    <Border Background="{TemplateBinding Background}" 
-                                            BorderBrush="{TemplateBinding BorderBrush}" 
-                                            BorderThickness="1" CornerRadius="4" Padding="{TemplateBinding Padding}">
-                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                    </Border>
-                                </ControlTemplate>
-                            </Setter.Value>
-                        </Setter>
-                        <Style.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="{DynamicResource ControlHoverBrush}"/>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter Property="Background" Value="{DynamicResource ControlPressedBrush}"/>
-                            </Trigger>
-                        </Style.Triggers>
-                    </Style>
-                </Button.Style>
-            </Button>
+                    Padding="16,8" MinWidth="100" Background="{DynamicResource BackgroundSecondaryBrush}" BorderBrush="{DynamicResource BorderSubtleBrush}" Cursor="Hand"
+                    Style="{StaticResource ModernButtonStyle}"/>
         </StackPanel>
         
         <!-- 快捷键列表 -->
@@ -62,7 +39,8 @@
                       BorderThickness="0"
                       Background="Transparent"
                       SelectionMode="Single"
-                      SelectionUnit="FullRow">
+                      SelectionUnit="FullRow"
+                      PreviewMouseWheel="HotkeyGrid_PreviewMouseWheel">
                 <!-- DataGrid样式 -->
                 <DataGrid.Resources>
                     <!-- 表头样式 -->
@@ -150,61 +128,14 @@
                                 <StackPanel Orientation="Horizontal">
                                     <Button Content="编辑" Click="EditHotkey_Click" Tag="{Binding}"
                                             Padding="12,6" Background="Transparent" BorderBrush="{DynamicResource BorderSubtleBrush}" 
-                                            Foreground="{DynamicResource AccentDefaultBrush}" Cursor="Hand" FontSize="12" Margin="0,0,8,0">
-                                        <Button.Style>
-                                            <Style TargetType="Button">
-                                                <Setter Property="Template">
-                                                    <Setter.Value>
-                                                        <ControlTemplate TargetType="Button">
-                                                            <Border Background="{TemplateBinding Background}" 
-                                                                    BorderBrush="{TemplateBinding BorderBrush}" 
-                                                                    BorderThickness="1" CornerRadius="3" 
-                                                                    Padding="{TemplateBinding Padding}">
-                                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                            </Border>
-                                                        </ControlTemplate>
-                                                    </Setter.Value>
-                                                </Setter>
-                                                <Style.Triggers>
-                                                    <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter Property="Background" Value="{DynamicResource AccentLightBrush}"/>
-                                                        <Setter Property="BorderBrush" Value="{DynamicResource AccentDefaultBrush}"/>
-                                                    </Trigger>
-                                                    <Trigger Property="IsPressed" Value="True">
-                                                        <Setter Property="Background" Value="{DynamicResource AccentPressedBrush}"/>
-                                                    </Trigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Button.Style>
-                                    </Button>
+                                            Foreground="{DynamicResource AccentDefaultBrush}" Cursor="Hand" FontSize="12" Margin="0,0,8,0"
+                                            Style="{StaticResource ModernButtonStyle}"/>
                                     <!-- 恢复默认按钮 (仅修改项显示) -->
                                     <Button Content="恢复" Click="ResetSingleHotkey_Click" Tag="{Binding}"
                                             Padding="8,6" Background="Transparent" BorderBrush="{DynamicResource SemanticWarningBrush}" 
                                             Foreground="{DynamicResource SemanticWarningBrush}" Cursor="Hand" FontSize="11"
-                                            Visibility="{Binding IsModified, Converter={StaticResource BoolToVisConverter}}">
-                                        <Button.Style>
-                                            <Style TargetType="Button">
-                                                <Setter Property="Template">
-                                                    <Setter.Value>
-                                                        <ControlTemplate TargetType="Button">
-                                                            <Border Background="{TemplateBinding Background}" 
-                                                                    BorderBrush="{TemplateBinding BorderBrush}" 
-                                                                    BorderThickness="1" CornerRadius="3" 
-                                                                    Padding="{TemplateBinding Padding}">
-                                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                            </Border>
-                                                        </ControlTemplate>
-                                                    </Setter.Value>
-                                                </Setter>
-                                                <Style.Triggers>
-                                                    <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter Property="Background" Value="{DynamicResource SemanticWarningBrush}"/>
-                                                        <Setter Property="Foreground" Value="White"/>
-                                                    </Trigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Button.Style>
-                                    </Button>
+                                            Visibility="{Binding IsModified, Converter={StaticResource BoolToVisConverter}}"
+                                            Style="{StaticResource ModernButtonStyle}"/>
                                 </StackPanel>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>

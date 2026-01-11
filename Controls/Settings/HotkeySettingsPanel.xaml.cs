@@ -64,6 +64,7 @@ namespace OoiMRR.Controls.Settings
                 new HotkeyItem { Description = "重命名", DefaultKey = "F2", KeyCombination = "F2" },
                 new HotkeyItem { Description = "全选", DefaultKey = "Ctrl+A", KeyCombination = "Ctrl+A" },
                 new HotkeyItem { Description = "新建文件夹", DefaultKey = "Ctrl+N", KeyCombination = "Ctrl+N" },
+                new HotkeyItem { Description = "新建窗口", DefaultKey = "Ctrl+Shift+N", KeyCombination = "Ctrl+Shift+N" },
                 
                 // 撤销重做
                 new HotkeyItem { Description = "撤销", DefaultKey = "Ctrl+Z", KeyCombination = "Ctrl+Z" },
@@ -253,6 +254,21 @@ namespace OoiMRR.Controls.Settings
             {
                 item.KeyCombination = item.DefaultKey;
                 HotkeyGrid.Items.Refresh();
+            }
+        }
+
+        private void HotkeyGrid_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            if (!e.Handled)
+            {
+                e.Handled = true;
+                var eventArg = new MouseWheelEventArgs(e.MouseDevice, e.Timestamp, e.Delta)
+                {
+                    RoutedEvent = UIElement.MouseWheelEvent,
+                    Source = sender
+                };
+                var parent = ((Control)sender).Parent as UIElement;
+                parent?.RaiseEvent(eventArg);
             }
         }
     }

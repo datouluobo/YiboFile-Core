@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using Microsoft.Extensions.DependencyInjection;
 using OoiMRR.Services;
 using OoiMRR.Services.FileNotes;
@@ -34,6 +35,44 @@ namespace OoiMRR
         private void MainWindow_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
             _fileBrowserEventHandler?.HandleGlobalMouseDown(e);
+
+            // Apply the same global mouse down logic for the Secondary File Browser
+            // If the Secondary Address Bar is in edit mode and the click is outside it, close edit mode.
+            if (SecondFileBrowser != null && SecondFileBrowser.AddressBarControl != null &&
+                SecondFileBrowser.AddressBarControl.IsEditMode)
+            {
+                var source = e.OriginalSource as DependencyObject;
+                bool isAddressBar = false;
+
+                // Check if the click target is within the AddressBarControl
+                var current = source;
+                while (current != null)
+                {
+                    if (current == SecondFileBrowser.AddressBarControl)
+                    {
+                        isAddressBar = true;
+                        break;
+                    }
+                    if (current is Visual || current is System.Windows.Media.Media3D.Visual3D)
+                    {
+                        current = VisualTreeHelper.GetParent(current);
+                    }
+                    else if (current is FrameworkContentElement fce)
+                    {
+                        current = fce.Parent;
+                    }
+                    else
+                    {
+                        current = null;
+                    }
+                }
+
+                if (!isAddressBar)
+                {
+                    // If clicked outside, exit edit mode
+                    SecondFileBrowser.AddressBarControl.SwitchToBreadcrumbMode();
+                }
+            }
         }
 
         // ... existing codes ...

@@ -141,14 +141,10 @@ namespace OoiMRR.Handlers
             _fileBrowser.FilesSizeChanged += FileBrowser_FilesSizeChanged;
             _fileBrowser.Loaded += FileBrowser_Loaded;
             _fileBrowser.FilesSelectionChanged += FileBrowser_FilesSelectionChanged;
-            _fileBrowser.FilesMouseDoubleClick += FileBrowser_FilesMouseDoubleClick;
-            _fileBrowser.FilesPreviewMouseDoubleClick += FileBrowser_FilesPreviewMouseDoubleClick;
-            _fileBrowser.FilesPreviewKeyDown += FileBrowser_FilesPreviewKeyDown;
-            _fileBrowser.FilesPreviewMouseLeftButtonDown += FileBrowser_FilesPreviewMouseLeftButtonDown;
-            _fileBrowser.FilesMouseLeftButtonUp += FileBrowser_FilesMouseLeftButtonUp;
-            _fileBrowser.FilesPreviewMouseDown += FileBrowser_FilesPreviewMouseDown;
-            _fileBrowser.FilesPreviewMouseDoubleClickForBlank += FileBrowser_FilesPreviewMouseDoubleClickForBlank;
-            _fileBrowser.FilesPreviewMouseMove += FileBrowser_FilesPreviewMouseMove;
+
+            // Handled by FileListEventHandler now
+
+
             _fileBrowser.CommitRename += (s, e) => _commitRename(e);
 
         }
@@ -315,16 +311,16 @@ namespace OoiMRR.Handlers
             }
         }
 
-        private static readonly HashSet<string> ImageExtensions = new(StringComparer.OrdinalIgnoreCase)
+        public static readonly HashSet<string> ImageExtensions = new(StringComparer.OrdinalIgnoreCase)
         { ".png", ".jpg", ".jpeg", ".bmp", ".gif", ".webp", ".tif", ".tiff", ".ico", ".svg" };
 
-        private static readonly HashSet<string> VideoExtensions = new(StringComparer.OrdinalIgnoreCase)
+        public static readonly HashSet<string> VideoExtensions = new(StringComparer.OrdinalIgnoreCase)
         { ".mp4", ".mov", ".mkv", ".avi", ".wmv", ".flv", ".webm", ".m4v", ".ts" };
 
-        private static readonly HashSet<string> DocumentExtensions = new(StringComparer.OrdinalIgnoreCase)
+        public static readonly HashSet<string> DocumentExtensions = new(StringComparer.OrdinalIgnoreCase)
         { ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".txt", ".md", ".rtf" };
 
-        private bool MatchesTypeFilter(FileSystemItem item, FileTypeFilter filter)
+        public static bool MatchesTypeFilter(FileSystemItem item, FileTypeFilter filter)
         {
             switch (filter)
             {
@@ -341,7 +337,7 @@ namespace OoiMRR.Handlers
             }
         }
 
-        private bool MatchesDateFilter(FileSystemItem item, DateRangeFilter filter)
+        public static bool MatchesDateFilter(FileSystemItem item, DateRangeFilter filter)
         {
             var modTime = item.ModifiedDateTime;
             if (modTime == default) return true;
@@ -357,7 +353,7 @@ namespace OoiMRR.Handlers
             };
         }
 
-        private bool MatchesSizeFilter(FileSystemItem item, SizeRangeFilter filter)
+        public static bool MatchesSizeFilter(FileSystemItem item, SizeRangeFilter filter)
         {
             if (item.IsDirectory) return true; // 文件夹不按大小过滤
             var size = item.SizeBytes >= 0 ? item.SizeBytes : 0;
@@ -380,120 +376,20 @@ namespace OoiMRR.Handlers
         {
             try
             {
-                var cm = new ContextMenu();
                 var searchOptions = _getSearchOptions();
+                if (searchOptions == null) return;
 
-                // Multi-select Toggle
-                var multiSelect = new MenuItem { Header = "多选模式 (保持菜单开启)", IsCheckable = true, IsChecked = _isFilterMultiSelect };
-                multiSelect.Click += (s, ev) =>
+                // Show the modern Filter Panel instead of ContextMenu
+                _fileBrowser.ToggleFilterPanel(searchOptions, (s, ev) =>
                 {
-                    _isFilterMultiSelect = !_isFilterMultiSelect;
-                    multiSelect.IsChecked = _isFilterMultiSelect;
-                    foreach (var item in cm.Items)
-                    {
-                        if (item is MenuItem mi && mi != multiSelect) mi.StaysOpenOnClick = _isFilterMultiSelect;
-                    }
-                };
-                multiSelect.StaysOpenOnClick = true;
-                cm.Items.Add(multiSelect);
-                cm.Items.Add(new Separator());
-
-                // Helper to add items
-                void AddItem(string header, bool isChecked, Action onClick, object tag = null)
-                {
-                    var mi = new MenuItem { Header = header, IsCheckable = true, IsChecked = isChecked, Tag = tag };
-                    mi.StaysOpenOnClick = _isFilterMultiSelect;
-                    mi.Click += (s, ev) =>
-                    {
-                        onClick();
-                        if (!_isFilterMultiSelect)
-                        {
-                            ApplyGlobalFilter();
-                        }
-                        else
-                        {
-                            ApplyGlobalFilter();
-                            // Update visual state for radio behavior
-                            if (tag != null) // Group logic implies by Tag type
-                            {
-                                var type = tag.GetType();
-                                foreach (var item in cm.Items)
-                                {
-                                    if (item is MenuItem otherMi && otherMi.Tag != null && otherMi.Tag.GetType() == type)
-                                    {
-                                        otherMi.IsChecked = (otherMi == mi);
-                                    }
-                                }
-                            }
-                            // Special handling for Scope (no Enum Tag used below, explicit string check or separate Tag)
-                            if (header == "按文件名" || header == "按备注")
-                            {
-                                foreach (var item in cm.Items)
-                                {
-                                    if (item is MenuItem otherMi && (otherMi.Header.ToString() == "按文件名" || otherMi.Header.ToString() == "按备注"))
-                                    {
-                                        otherMi.IsChecked = (otherMi == mi);
-                                    }
-                                }
-                            }
-                        }
-                    };
-                    cm.Items.Add(mi);
-                }
-
-                // Search Scope
-                cm.Items.Add(new MenuItem { Header = "搜索范围", IsEnabled = false });
-                AddItem("按文件名", searchOptions.Mode == SearchMode.FileName, () =>
-                {
-                    searchOptions.Mode = SearchMode.FileName;
-                    searchOptions.SearchNames = true;
-                    searchOptions.SearchNotes = false;
+                    // Filter Changed Handler
+                    ApplyGlobalFilter();
                 });
-                AddItem("按备注", searchOptions.Mode == SearchMode.Notes, () =>
-                {
-                    searchOptions.Mode = SearchMode.Notes;
-                    searchOptions.SearchNames = false;
-                    searchOptions.SearchNotes = true;
-                });
-                cm.Items.Add(new Separator());
-
-                // Date Range
-                cm.Items.Add(new MenuItem { Header = "时间范围", IsEnabled = false });
-                AddItem("全部时间", searchOptions.DateRange == DateRangeFilter.All, () => searchOptions.DateRange = DateRangeFilter.All, DateRangeFilter.All);
-                AddItem("今天", searchOptions.DateRange == DateRangeFilter.Today, () => searchOptions.DateRange = DateRangeFilter.Today, DateRangeFilter.Today);
-                AddItem("本周", searchOptions.DateRange == DateRangeFilter.ThisWeek, () => searchOptions.DateRange = DateRangeFilter.ThisWeek, DateRangeFilter.ThisWeek);
-                AddItem("本月", searchOptions.DateRange == DateRangeFilter.ThisMonth, () => searchOptions.DateRange = DateRangeFilter.ThisMonth, DateRangeFilter.ThisMonth);
-                AddItem("今年", searchOptions.DateRange == DateRangeFilter.ThisYear, () => searchOptions.DateRange = DateRangeFilter.ThisYear, DateRangeFilter.ThisYear);
-                cm.Items.Add(new Separator());
-
-                // File Type
-                cm.Items.Add(new MenuItem { Header = "文件类型", IsEnabled = false });
-                AddItem("全部类型", searchOptions.Type == FileTypeFilter.All, () => searchOptions.Type = FileTypeFilter.All, FileTypeFilter.All);
-                AddItem("图片", searchOptions.Type == FileTypeFilter.Images, () => searchOptions.Type = FileTypeFilter.Images, FileTypeFilter.Images);
-                AddItem("视频", searchOptions.Type == FileTypeFilter.Videos, () => searchOptions.Type = FileTypeFilter.Videos, FileTypeFilter.Videos);
-                AddItem("文档", searchOptions.Type == FileTypeFilter.Documents, () => searchOptions.Type = FileTypeFilter.Documents, FileTypeFilter.Documents);
-                AddItem("文件夹", searchOptions.Type == FileTypeFilter.Folders, () => searchOptions.Type = FileTypeFilter.Folders, FileTypeFilter.Folders);
-                cm.Items.Add(new Separator());
-
-                // Size Range
-                cm.Items.Add(new MenuItem { Header = "文件大小", IsEnabled = false });
-                AddItem("全部大小", searchOptions.SizeRange == SizeRangeFilter.All, () => searchOptions.SizeRange = SizeRangeFilter.All, SizeRangeFilter.All);
-                AddItem("微型 (<100KB)", searchOptions.SizeRange == SizeRangeFilter.Tiny, () => searchOptions.SizeRange = SizeRangeFilter.Tiny, SizeRangeFilter.Tiny);
-                AddItem("小 (100KB-1MB)", searchOptions.SizeRange == SizeRangeFilter.Small, () => searchOptions.SizeRange = SizeRangeFilter.Small, SizeRangeFilter.Small);
-                AddItem("中 (1MB-10MB)", searchOptions.SizeRange == SizeRangeFilter.Medium, () => searchOptions.SizeRange = SizeRangeFilter.Medium, SizeRangeFilter.Medium);
-                AddItem("大 (10MB-100MB)", searchOptions.SizeRange == SizeRangeFilter.Large, () => searchOptions.SizeRange = SizeRangeFilter.Large, SizeRangeFilter.Large);
-                AddItem("巨大 (>100MB)", searchOptions.SizeRange == SizeRangeFilter.Huge, () => searchOptions.SizeRange = SizeRangeFilter.Huge, SizeRangeFilter.Huge);
-                cm.Items.Add(new Separator());
-
-                // Path Range (仅搜索时有效)
-                cm.Items.Add(new MenuItem { Header = "搜索位置 (仅搜索)", IsEnabled = false });
-                AddItem("当前磁盘", searchOptions.PathRange == PathRangeFilter.CurrentDrive, () => searchOptions.PathRange = PathRangeFilter.CurrentDrive, PathRangeFilter.CurrentDrive);
-                AddItem("全部磁盘", searchOptions.PathRange == PathRangeFilter.AllDrives, () => searchOptions.PathRange = PathRangeFilter.AllDrives, PathRangeFilter.AllDrives);
-
-                cm.PlacementTarget = sender as UIElement;
-                cm.IsOpen = true;
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[FilterClicked] Error: {ex.Message}");
+            }
         }
 
         public void FileBrowser_LoadMoreClicked(object sender, RoutedEventArgs e)

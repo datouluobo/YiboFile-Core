@@ -104,6 +104,9 @@ namespace OoiMRR
         public bool IsEnableFullTextSearch { get; set; } = true;
         public System.Collections.Generic.List<string> FullTextIndexPaths { get; set; } = new System.Collections.Generic.List<string>(); // 启用全文搜索
         public string FullTextIndexDbPath { get; set; } = string.Empty; // 索引数据库路径
+
+        // 多窗口支持
+        public bool EnableMultiWindow { get; set; } = true;
     }
 
     public class AllSettingsConfig

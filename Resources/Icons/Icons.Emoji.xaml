@@ -19,7 +19,7 @@
     <sys:String x:Key="Icon_ChevronDown">▼</sys:String>
     <sys:String x:Key="Icon_Search">🔍</sys:String>
     <sys:String x:Key="Icon_Settings">⚙️</sys:String>
-    <sys:String x:Key="Icon_Filter">⚡</sys:String>
+    <sys:String x:Key="Icon_Filter">▼</sys:String>
     <sys:String x:Key="Icon_Add">➕</sys:String>
     <sys:String x:Key="Icon_Delete_Outline">🗑️</sys:String>
     <sys:String x:Key="Icon_NewFolder">📁➕</sys:String>

@@ -258,10 +258,9 @@ namespace OoiMRR.Controls.Settings
                 Content = "➕ 创建",
                 Padding = new Thickness(16, 8, 16, 8),
                 HorizontalAlignment = HorizontalAlignment.Stretch,
-                Margin = new Thickness(0, 0, 0, 0)
+                Margin = new Thickness(0, 0, 0, 0),
+                Style = (Style)Application.Current.Resources["ModernAccentButtonStyle"]
             };
-            createCustomThemeButton.SetResourceReference(Button.BackgroundProperty, "AccentDefaultBrush");
-            createCustomThemeButton.SetResourceReference(Button.ForegroundProperty, "ForegroundOnAccentBrush");
             createCustomThemeButton.Click += CreateCustomTheme_Click;
             Grid.SetColumn(createCustomThemeButton, 0);
             customThemeButtonsGrid.Children.Add(createCustomThemeButton);
@@ -271,7 +270,8 @@ namespace OoiMRR.Controls.Settings
                 Content = "🔧 管理",
                 Padding = new Thickness(16, 8, 16, 8),
                 HorizontalAlignment = HorizontalAlignment.Stretch,
-                Margin = new Thickness(0, 0, 0, 0)
+                Margin = new Thickness(0, 0, 0, 0),
+                Style = (Style)Application.Current.Resources["ModernButtonStyle"]
             };
             manageCustomThemeButton.Click += ManageCustomThemes_Click;
             Grid.SetColumn(manageCustomThemeButton, 2);
@@ -401,9 +401,9 @@ namespace OoiMRR.Controls.Settings
                 Content = "↺ 恢复默认主题",
                 Padding = new Thickness(12, 8, 12, 8),
                 HorizontalAlignment = HorizontalAlignment.Left,
-                Margin = new Thickness(0, 12, 0, 0)
+                Margin = new Thickness(0, 12, 0, 0),
+                Style = (Style)Application.Current.Resources["ModernButtonStyle"]
             };
-            resetButton.SetResourceReference(Button.BackgroundProperty, "ControlDefaultBrush");
             resetButton.Click += ResetTheme_Click;
             leftPanel.Children.Add(resetButton);
 
@@ -653,7 +653,7 @@ namespace OoiMRR.Controls.Settings
                 }
             }
             catch (Exception ex)
-            {            }
+            { }
 
             // 默认返回浅色
             return "Light";
@@ -743,7 +743,8 @@ namespace OoiMRR.Controls.Settings
             {
                 Content = "关闭",
                 Padding = new Thickness(24, 8, 24, 8),
-                HorizontalAlignment = HorizontalAlignment.Right
+                HorizontalAlignment = HorizontalAlignment.Right,
+                Style = (Style)Application.Current.Resources["ModernButtonStyle"]
             };
             closeButton.Click += (s, args) => dialog.Close();
             stackPanel.Children.Add(closeButton);
@@ -801,10 +802,9 @@ namespace OoiMRR.Controls.Settings
             {
                 Content = "应用",
                 Padding = new Thickness(12, 6, 12, 6),
-                Margin = new Thickness(0, 0, 8, 0)
+                Margin = new Thickness(0, 0, 8, 0),
+                Style = (Style)Application.Current.Resources["ModernAccentButtonStyle"]
             };
-            applyButton.SetResourceReference(Button.BackgroundProperty, "AccentDefaultBrush");
-            applyButton.SetResourceReference(Button.ForegroundProperty, "ForegroundOnAccentBrush");
             applyButton.Click += (s, e) =>
             {
                 try
@@ -826,7 +826,8 @@ namespace OoiMRR.Controls.Settings
             {
                 Content = "编辑",
                 Padding = new Thickness(12, 6, 12, 6),
-                Margin = new Thickness(0, 0, 8, 0)
+                Margin = new Thickness(0, 0, 8, 0),
+                Style = (Style)Application.Current.Resources["ModernButtonStyle"]
             };
             editButton.Click += (s, e) =>
             {
@@ -849,7 +850,8 @@ namespace OoiMRR.Controls.Settings
             var deleteButton = new Button
             {
                 Content = "删除",
-                Padding = new Thickness(12, 6, 12, 6)
+                Padding = new Thickness(12, 6, 12, 6),
+                Style = (Style)Application.Current.Resources["ModernButtonStyle"]
             };
             deleteButton.SetResourceReference(Button.ForegroundProperty, "ErrorBrush");
             deleteButton.Click += (s, e) =>
@@ -1170,7 +1172,7 @@ namespace OoiMRR.Controls.Settings
                 // UI update is handled automatically by DynamicResource bindings on the border
             }
             catch (Exception ex)
-            {            }
+            { }
         }
 
         /// <summary>

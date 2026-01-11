@@ -25,13 +25,61 @@ namespace OoiMRR.Handlers
 
         public ColumnInteractionHandler(
             MainWindow mainWindow,
+            FileBrowserControl targetBrowser,
             ColumnService columnService,
             ConfigService configService)
         {
             _mainWindow = mainWindow ?? throw new ArgumentNullException(nameof(mainWindow));
+            _fileBrowser = targetBrowser ?? throw new ArgumentNullException(nameof(targetBrowser));
             _columnService = columnService ?? throw new ArgumentNullException(nameof(columnService));
             _configService = configService ?? throw new ArgumentNullException(nameof(configService));
-            _fileBrowser = _mainWindow.FileBrowser;
+        }
+
+        public void Initialize()
+        {
+            EnsureHeaderContextMenuHook();
+            AttachColumnPropertyObservers();
+        }
+
+        private void AttachColumnPropertyObservers()
+        {
+            if (_fileBrowser?.FilesGrid?.Columns == null) return;
+
+            foreach (var column in _fileBrowser.FilesGrid.Columns)
+            {
+                // Remove existing to avoid duplicates
+                ((System.ComponentModel.INotifyPropertyChanged)column).PropertyChanged -= OnColumnPropertyChanged;
+                ((System.ComponentModel.INotifyPropertyChanged)column).PropertyChanged += OnColumnPropertyChanged;
+            }
+        }
+
+        private bool _isAutoFitting = false;
+        private System.Threading.Timer _debounceTimer;
+
+        private void OnColumnPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == "ActualWidth")
+            {
+                if (_isAutoFitting) return; // Ignore changes caused by our own auto-fit
+
+                // Debounce the auto-fit to avoid performance issues during rapid resize
+                _debounceTimer?.Dispose();
+                _debounceTimer = new System.Threading.Timer((state) =>
+                {
+                    _fileBrowser?.Dispatcher?.BeginInvoke(new Action(() =>
+                    {
+                        try
+                        {
+                            _isAutoFitting = true;
+                            AutoFitNameColumn();
+                        }
+                        finally
+                        {
+                            _isAutoFitting = false;
+                        }
+                    }), System.Windows.Threading.DispatcherPriority.Render); // Use Render priority for smoother updates
+                }, null, 10, System.Threading.Timeout.Infinite); // 10ms delay
+            }
         }
 
         /// <summary>
@@ -79,11 +127,35 @@ namespace OoiMRR.Handlers
             {
                 foreach (var column in _fileBrowser.FilesGrid.Columns)
                 {
-                    var colHeader = column.Header as GridViewColumnHeader;
-                    var tag = colHeader?.Tag?.ToString();
+                    // column.Header is usually the content (e.g., TextBlock or string)
+                    // The GridViewColumnHeader IS THE CONTAINER wrapping this content, but column.Header refers to the content property.
+
+                    var headerContent = column.Header;
+                    string tag = null;
+                    string title = null;
+
+                    if (headerContent is FrameworkElement fe)
+                    {
+                        tag = fe.Tag?.ToString();
+                        if (fe is TextBlock tb)
+                        {
+                            title = tb.Text;
+                        }
+                    }
+                    else if (headerContent != null)
+                    {
+                        // Fallback: use string content as tag/title
+                        tag = headerContent.ToString();
+                        title = tag;
+                    }
+
                     if (string.IsNullOrEmpty(tag)) continue;
 
-                    string title = colHeader?.Content?.ToString() ?? tag;
+                    // Skip "Tags" column in context menu as requested
+                    if (tag == "Tags") continue;
+
+                    if (string.IsNullOrEmpty(title)) title = tag;
+
                     bool isVisible = visibleSet.Contains(tag);
 
                     var mi = new MenuItem
@@ -126,12 +198,92 @@ namespace OoiMRR.Handlers
             }
             else
             {
+                // Save current width before hiding so we can restore it later
+                if (column.ActualWidth > 1 && _configService?.Config != null)
+                {
+                    switch (tag)
+                    {
+                        case "Name": _configService.Config.ColNameWidth = column.ActualWidth; break;
+                        case "Size": _configService.Config.ColSizeWidth = column.ActualWidth; break;
+                        case "Type": _configService.Config.ColTypeWidth = column.ActualWidth; break;
+                        case "ModifiedDate": _configService.Config.ColModifiedDateWidth = column.ActualWidth; break;
+                        case "CreatedTime": _configService.Config.ColCreatedTimeWidth = column.ActualWidth; break;
+                        case "Tags": _configService.Config.ColTagsWidth = column.ActualWidth; break;
+                        case "Notes": _configService.Config.ColNotesWidth = column.ActualWidth; break;
+                    }
+                }
+
                 // 隐藏列
                 column.Width = 0;
             }
 
             // 更新配置
             UpdateVisibleColumnsConfig(tag, isVisible);
+
+            // Auto-fill Name column space after visibility change
+            // Run on dispatcher/idle to allow layout updates to propagate first if needed
+            _fileBrowser?.Dispatcher?.BeginInvoke(new Action(() =>
+            {
+                AutoFitNameColumn();
+                // Force layout update to clear any ghost header artifacts
+                _fileBrowser?.FilesList?.UpdateLayout();
+            }), System.Windows.Threading.DispatcherPriority.Loaded);
+        }
+
+        private void AutoFitNameColumn()
+        {
+            if (_fileBrowser?.FilesList == null || _fileBrowser.FilesGrid == null) return;
+
+            var gridView = _fileBrowser.FilesGrid;
+            var columns = gridView.Columns;
+            GridViewColumn nameCol = null;
+            double otherColsWidth = 0;
+
+            foreach (var col in columns)
+            {
+                var header = col.Header as GridViewColumnHeader;
+                // Try to find Name column by Tag or Content
+                string tag = null;
+                if (col.Header is FrameworkElement fe) tag = fe.Tag?.ToString();
+                else if (col.Header != null) tag = col.Header.ToString();
+
+                // Name column is the target for auto-size
+                if (tag == "Name")
+                {
+                    nameCol = col;
+                }
+                else
+                {
+                    otherColsWidth += col.ActualWidth;
+                }
+            }
+
+            if (nameCol != null)
+            {
+                // Safety check: if Name column is explicitly hidden by user, do not resizing it (which would unhide it)
+                if (nameCol.Width == 0 && !IsColumnVisible("Name")) return;
+
+                double listWidth = _fileBrowser.FilesList.ActualWidth;
+
+                // Dynamic padding calculation based on scrollbar visibility
+                double padding = 2; // Minimal safe padding
+                var scrollViewer = FindDescendant<ScrollViewer>(_fileBrowser.FilesList);
+                if (scrollViewer != null && scrollViewer.ComputedVerticalScrollBarVisibility == Visibility.Visible)
+                {
+                    padding += SystemParameters.VerticalScrollBarWidth;
+                }
+
+                double availableWidth = listWidth - otherColsWidth - padding;
+
+                if (availableWidth > 100)
+                {
+                    // Update width only if it changes significantly to avoid infinite loops if we are being called by PropertyChanged
+                    if (Math.Abs(nameCol.Width - availableWidth) > 1)
+                    {
+                        nameCol.Width = availableWidth;
+                    }
+                }
+            }
         }
 
         private void UpdateVisibleColumnsConfig(string tag, bool isVisible)
@@ -211,6 +363,7 @@ namespace OoiMRR.Handlers
                 {
                     AutoSizeGridViewColumn(header.Column);
                     e.Handled = true;
+                    // Auto-fit will be triggered by PropertyChanged listener
                 }
             }
         }

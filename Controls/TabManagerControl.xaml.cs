@@ -26,7 +26,17 @@ namespace OoiMRR.Controls
         public TabManagerControl()
         {
             InitializeComponent();
+            TabScrollViewer.PreviewMouseWheel += TabScrollViewer_PreviewMouseWheel;
             CreateAndAddNewTabButton();
+        }
+
+        private void TabScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            if (e.Delta != 0)
+            {
+                TabScrollViewer.ScrollToHorizontalOffset(TabScrollViewer.HorizontalOffset - e.Delta);
+                e.Handled = true;
+            }
         }
 
         /// <summary>

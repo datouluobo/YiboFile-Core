@@ -77,14 +77,87 @@
             <!-- 导航按钮区域：固定宽度，左对齐 -->
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="8,0" WindowChrome.IsHitTestVisibleInChrome="True">
                 <Button Name="NavPathBtn" Click="NavPathBtn_Click" Margin="2,0" Height="32" Width="60"
-                        Style="{StaticResource ActiveNavigationButtonStyle}" Tag="Selected"> <!-- 默认选中路径 -->
+                        Tag="Selected"> <!-- 默认选中路径 -->
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Height" Value="36"/>
+                            <Setter Property="Margin" Value="2,0"/>
+                            <Setter Property="Padding" Value="8,0"/>
+                            <Setter Property="Cursor" Value="Hand"/>
+                            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                            <Setter Property="VerticalContentAlignment" Value="Center"/>
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="border"
+                                                Background="{TemplateBinding Background}" 
+                                                BorderBrush="{DynamicResource AccentBrush}" 
+                                                BorderThickness="0"
+                                                CornerRadius="4,4,0,0">
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="{DynamicResource ButtonHoverBackgroundBrush}"/>
+                                            </Trigger>
+                                            <Trigger Property="Tag" Value="Selected">
+                                                 <Setter TargetName="border" Property="BorderThickness" Value="0,0,0,2"/>
+                                                 <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}"/>
+                                                 <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                                                 <Setter Property="FontWeight" Value="SemiBold"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </Button.Style>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                         <TextBlock Text="{DynamicResource Icon_Nav_Path}" FontFamily="{DynamicResource IconFontFamily}" Margin="0,0,6,0" VerticalAlignment="Center"/>
                         <TextBlock Text="路径" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
-                <Button Name="NavLibraryBtn" Click="NavLibraryBtn_Click" Margin="2,0" Height="32" Width="60"
-                        Style="{StaticResource ActiveNavigationButtonStyle}">
+                <Button Name="NavLibraryBtn" Click="NavLibraryBtn_Click" Margin="2,0" Height="32" Width="60">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Height" Value="36"/>
+                            <Setter Property="Margin" Value="2,0"/>
+                            <Setter Property="Padding" Value="8,0"/>
+                            <Setter Property="Cursor" Value="Hand"/>
+                            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                            <Setter Property="VerticalContentAlignment" Value="Center"/>
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="border"
+                                                Background="{TemplateBinding Background}" 
+                                                BorderBrush="{DynamicResource AccentBrush}" 
+                                                BorderThickness="0"
+                                                CornerRadius="4,4,0,0">
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="{DynamicResource ButtonHoverBackgroundBrush}"/>
+                                            </Trigger>
+                                            <Trigger Property="Tag" Value="Selected">
+                                                 <Setter TargetName="border" Property="BorderThickness" Value="0,0,0,2"/>
+                                                 <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}"/>
+                                                 <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                                                 <Setter Property="FontWeight" Value="SemiBold"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </Button.Style>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                         <TextBlock Text="{DynamicResource Icon_Nav_Library}" FontFamily="{DynamicResource IconFontFamily}" Margin="0,0,6,0" VerticalAlignment="Center"/>
                         <TextBlock Text="库" VerticalAlignment="Center"/>
@@ -157,30 +230,9 @@
                                 Content="{DynamicResource Icon_Layout_Focus}"
                                 ToolTip="专注模式 (Ctrl+Shift+F)&#x0a;折叠左右，最大化文件列表"
                                 Click="LayoutFocus_Click"
-                                Background="Transparent" BorderThickness="0" Cursor="Hand"
-                                FontSize="14" FontFamily="{DynamicResource IconFontFamily}">
-                            <Button.Style>
-                                <Style TargetType="Button">
-                                    <Setter Property="Template">
-                                        <Setter.Value>
-                                            <ControlTemplate TargetType="Button">
-                                                <Border Background="{TemplateBinding Background}" CornerRadius="4">
-                                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                </Border>
-                                            </ControlTemplate>
-                                        </Setter.Value>
-                                    </Setter>
-                                    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-                                    <Style.Triggers>
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter Property="Background" Value="{DynamicResource ControlHoverBackgroundBrush}"/>
-                                        </Trigger>
-                                        <Trigger Property="IsPressed" Value="True">
-                                            <Setter Property="Background" Value="{DynamicResource ControlPressedBackgroundBrush}"/>
-                                        </Trigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
+                                Background="Transparent" Padding="0" Cursor="Hand"
+                                FontSize="14" FontFamily="{DynamicResource IconFontFamily}"
+                                Style="{StaticResource ModernButtonStyle}">
                         </Button>
                         
                         <!-- 工作模式 -->
@@ -188,30 +240,9 @@
                                 Content="{DynamicResource Icon_Layout_Work}"
                                 ToolTip="工作模式 (Ctrl+Shift+W)&#x0a;左导航+文件列表"
                                 Click="LayoutWork_Click"
-                                Background="Transparent" BorderThickness="0" Cursor="Hand"
-                                FontSize="14" FontFamily="{DynamicResource IconFontFamily}">
-                            <Button.Style>
-                                <Style TargetType="Button">
-                                    <Setter Property="Template">
-                                        <Setter.Value>
-                                            <ControlTemplate TargetType="Button">
-                                                <Border Background="{TemplateBinding Background}" CornerRadius="4">
-                                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                </Border>
-                                            </ControlTemplate>
-                                        </Setter.Value>
-                                    </Setter>
-                                    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-                                    <Style.Triggers>
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter Property="Background" Value="{DynamicResource ControlHoverBackgroundBrush}"/>
-                                        </Trigger>
-                                        <Trigger Property="IsPressed" Value="True">
-                                            <Setter Property="Background" Value="{DynamicResource ControlPressedBackgroundBrush}"/>
-                                        </Trigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
+                                Background="Transparent" Padding="0" Cursor="Hand"
+                                FontSize="14" FontFamily="{DynamicResource IconFontFamily}"
+                                Style="{StaticResource ModernButtonStyle}">
                         </Button>
                         
                         <!-- 完整模式 -->
@@ -219,35 +250,10 @@
                                 Content="{DynamicResource Icon_Layout_Full}"
                                 ToolTip="完整模式 (Ctrl+Shift+A)&#x0a;三栏完整布局"
                                 Click="LayoutFull_Click"
-                                Background="Transparent" BorderThickness="0" Cursor="Hand"
+                                Background="Transparent" Padding="0" Cursor="Hand"
                                 FontSize="14" FontFamily="{DynamicResource IconFontFamily}"
-                                Tag="Active">
-                            <Button.Style>
-                                <Style TargetType="Button">
-                                    <Setter Property="Template">
-                                        <Setter.Value>
-                                            <ControlTemplate TargetType="Button">
-                                                <Border Background="{TemplateBinding Background}" CornerRadius="4">
-                                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                </Border>
-                                            </ControlTemplate>
-                                        </Setter.Value>
-                                    </Setter>
-                                    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-                                    <Style.Triggers>
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter Property="Background" Value="{DynamicResource ControlHoverBackgroundBrush}"/>
-                                        </Trigger>
-                                        <Trigger Property="IsPressed" Value="True">
-                                            <Setter Property="Background" Value="{DynamicResource ControlPressedBackgroundBrush}"/>
-                                        </Trigger>
-                                        <Trigger Property="Tag" Value="Active">
-                                            <Setter Property="Background" Value="{DynamicResource AccentDefaultBrush}"/>
-                                            <Setter Property="Foreground" Value="{DynamicResource ForegroundOnAccentBrush}"/>
-                                        </Trigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
+                                Tag="Active"
+                                Style="{StaticResource ModernButtonStyle}">
                         </Button>
 
                         <!-- 双列表模式 (分隔线 + 按钮) -->
@@ -257,34 +263,9 @@
                                 Content="|  |"
                                 ToolTip="双列表模式&#x0a;切换预览/副文件列表"
                                 Click="DualListToggle_Click"
-                                Background="Transparent" BorderThickness="0" Cursor="Hand"
-                                FontSize="12" FontWeight="Bold">
-                            <Button.Style>
-                                <Style TargetType="Button">
-                                    <Setter Property="Template">
-                                        <Setter.Value>
-                                            <ControlTemplate TargetType="Button">
-                                                <Border Background="{TemplateBinding Background}" CornerRadius="4">
-                                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                </Border>
-                                            </ControlTemplate>
-                                        </Setter.Value>
-                                    </Setter>
-                                    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-                                    <Style.Triggers>
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter Property="Background" Value="{DynamicResource ControlHoverBackgroundBrush}"/>
-                                        </Trigger>
-                                        <Trigger Property="IsPressed" Value="True">
-                                            <Setter Property="Background" Value="{DynamicResource ControlPressedBackgroundBrush}"/>
-                                        </Trigger>
-                                         <Trigger Property="Tag" Value="Active">
-                                            <Setter Property="Background" Value="{DynamicResource AccentDefaultBrush}"/>
-                                            <Setter Property="Foreground" Value="{DynamicResource ForegroundOnAccentBrush}"/>
-                                        </Trigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
+                                Background="Transparent" Padding="0" Cursor="Hand"
+                                FontSize="12" FontWeight="Bold"
+                                Style="{StaticResource ModernButtonStyle}">
                         </Button>
                         
                         <!-- 剪切板历史 (分隔线 + 按钮) -->
@@ -294,30 +275,9 @@
                                 Content="📋"
                                 ToolTip="剪切板历史 (Ctrl+Shift+V)"
                                 Click="ClipboardHistoryBtn_Click"
-                                Background="Transparent" BorderThickness="0" Cursor="Hand"
-                                FontSize="14">
-                            <Button.Style>
-                                <Style TargetType="Button">
-                                    <Setter Property="Template">
-                                        <Setter.Value>
-                                            <ControlTemplate TargetType="Button">
-                                                <Border Background="{TemplateBinding Background}" CornerRadius="4">
-                                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                </Border>
-                                            </ControlTemplate>
-                                        </Setter.Value>
-                                    </Setter>
-                                    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-                                    <Style.Triggers>
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter Property="Background" Value="{DynamicResource ControlHoverBackgroundBrush}"/>
-                                        </Trigger>
-                                        <Trigger Property="IsPressed" Value="True">
-                                            <Setter Property="Background" Value="{DynamicResource ControlPressedBackgroundBrush}"/>
-                                        </Trigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
+                                Background="Transparent" Padding="0" Cursor="Hand"
+                                FontSize="14"
+                                Style="{StaticResource ModernButtonStyle}">
                         </Button>
                     </StackPanel>
                     
@@ -327,58 +287,16 @@
                                 Width="32" Height="32"
                                 Click="Settings_Click" 
                                 ToolTip="设置" FontSize="16" FontFamily="{DynamicResource IconFontFamily}"
-                                Background="Transparent" BorderThickness="0" Cursor="Hand">
-                            <Button.Style>
-                                <Style TargetType="Button">
-                                    <Setter Property="Template">
-                                        <Setter.Value>
-                                            <ControlTemplate TargetType="Button">
-                                                <Border Background="{TemplateBinding Background}" CornerRadius="4">
-                                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                </Border>
-                                            </ControlTemplate>
-                                        </Setter.Value>
-                                    </Setter>
-                                    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-                                    <Style.Triggers>
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter Property="Background" Value="{DynamicResource ControlHoverBackgroundBrush}"/>
-                                        </Trigger>
-                                        <Trigger Property="IsPressed" Value="True">
-                                            <Setter Property="Background" Value="{DynamicResource ControlPressedBackgroundBrush}"/>
-                                        </Trigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
+                                Background="Transparent" Padding="0" Cursor="Hand"
+                                Style="{StaticResource ModernButtonStyle}">
                         </Button>
                         
                         <Button x:Name="TitleBarAboutButton" Content="{DynamicResource Icon_Window_About}" 
                                 Width="32" Height="32"
                                 Click="About_Click" 
                                 ToolTip="关于" FontSize="16" FontFamily="{DynamicResource IconFontFamily}"
-                                Background="Transparent" BorderThickness="0" Cursor="Hand">
-                            <Button.Style>
-                                <Style TargetType="Button">
-                                    <Setter Property="Template">
-                                        <Setter.Value>
-                                            <ControlTemplate TargetType="Button">
-                                                <Border Background="{TemplateBinding Background}" CornerRadius="4">
-                                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                </Border>
-                                            </ControlTemplate>
-                                        </Setter.Value>
-                                    </Setter>
-                                    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-                                    <Style.Triggers>
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter Property="Background" Value="{DynamicResource ControlHoverBackgroundBrush}"/>
-                                        </Trigger>
-                                        <Trigger Property="IsPressed" Value="True">
-                                            <Setter Property="Background" Value="{DynamicResource ControlPressedBackgroundBrush}"/>
-                                        </Trigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
+                                Background="Transparent" Padding="0" Cursor="Hand"
+                                Style="{StaticResource ModernButtonStyle}">
                         </Button>
                     </StackPanel>
                 </Grid>
@@ -479,7 +397,7 @@
 
         <!-- 右上角窗口控制按钮：放回 RootGrid 内部以自动适配 Margin -->
         <Grid Name="WindowControlButtonsContainer" 
-              Grid.Row="0" Grid.Column="4"
+              Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="5"
               HorizontalAlignment="Right" VerticalAlignment="Top"
               Margin="0,-4,-12,0"
               Height="51"

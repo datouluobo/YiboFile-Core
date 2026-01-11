@@ -145,14 +145,13 @@ namespace OoiMRR.ViewModels
                 _isLoadingFiles = true;
                 IsLoading = true;
 
-                var files = await Task.Run(() =>
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    return _fileListService.LoadFileSystemItems(
-                        path,
-                        p => DatabaseManager.GetFolderSize(p),
-                        b => _fileListService.FormatFileSize(b));
-                }, cancellationToken);
+                // 异步加载文件列表
+                // 使用 Async 方法替换过时的同步方法
+                cancellationToken.ThrowIfCancellationRequested();
+                var files = await _fileListService.LoadFileSystemItemsAsync(
+                    path,
+                    null,
+                    cancellationToken);
 
                 var sortedFiles = ApplySorting(files);
 

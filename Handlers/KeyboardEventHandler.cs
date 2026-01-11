@@ -6,6 +6,7 @@ using System.Windows;
 using System.Windows.Input;
 using OoiMRR.Controls;
 using OoiMRR.Services.Tabs;
+using OoiMRR.Services.Config;
 
 namespace OoiMRR.Handlers
 {
@@ -16,6 +17,7 @@ namespace OoiMRR.Handlers
     public class KeyboardEventHandler
     {
         private readonly FileBrowserControl _fileBrowser;
+        private readonly Func<FileBrowserControl> _getActiveBrowser;
         private readonly Func<TabService> _getTabService;
         private readonly Action<PathTab> _closeTab;
         private readonly Action<string> _createTab;
@@ -39,7 +41,8 @@ namespace OoiMRR.Handlers
         private readonly Action _redoClick;
 
         public KeyboardEventHandler(
-            FileBrowserControl fileBrowser,
+            FileBrowserControl fileBrowser, // Keep for backward compatibility or primary ref
+             Func<FileBrowserControl> getActiveBrowser, // New delegate
             Func<TabService> getTabService,
             Action<PathTab> closeTab,
             Action<string> createTab,
@@ -63,6 +66,7 @@ namespace OoiMRR.Handlers
             Action switchDualPaneFocus = null)
         {
             _fileBrowser = fileBrowser ?? throw new ArgumentNullException(nameof(fileBrowser));
+            _getActiveBrowser = getActiveBrowser ?? (() => fileBrowser); // Default to main if null
             _getTabService = getTabService ?? throw new ArgumentNullException(nameof(getTabService));
             _closeTab = closeTab ?? throw new ArgumentNullException(nameof(closeTab));
             _createTab = createTab ?? throw new ArgumentNullException(nameof(createTab));
@@ -151,7 +155,7 @@ namespace OoiMRR.Handlers
                 }
             }
 
-            // Ctrl+N: 新建文件夹
+            // Ctrl+N: 新建文件夹（恢复标准行为）
             if (e.Key == Key.N && Keyboard.Modifiers == ModifierKeys.Control)
             {
                 _newFolderClick();
@@ -170,12 +174,37 @@ namespace OoiMRR.Handlers
                 }
             }
 
-            // Ctrl+Shift+N: 新建文件夹（Windows标准）
+            // Ctrl+Shift+N: 新建窗口（独立进程）
             if (e.Key == Key.N && Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift))
             {
-                _newFolderClick();
-                e.Handled = true;
-                return;
+                var config = ConfigurationService.Instance.GetSnapshot();
+                if (config.EnableMultiWindow)
+                {
+                    try
+                    {
+                        var exePath = Environment.ProcessPath;
+                        if (!string.IsNullOrEmpty(exePath))
+                        {
+                            Process.Start(exePath);
+                            e.Handled = true;
+                            return;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"无法启动新窗口: {ex.Message}");
+                    }
+                }
+                else
+                {
+                    // 如果禁用，则保留原逻辑（也是新建文件夹？）
+                    // Windows默认为Ctrl+Shift+N新建文件夹。这里如果多窗口启用，则覆盖为新窗口。
+                    // 按照用户需求：Ctrl+N=新建文件夹，Ctrl+Shift+N=新建窗口。
+                    // 如果禁用多窗口，Ctrl+Shift+N 回退为 新建文件夹。
+                    _newFolderClick();
+                    e.Handled = true;
+                    return;
+                }
             }
 
             // F5: 刷新
@@ -210,25 +239,46 @@ namespace OoiMRR.Handlers
                 return;
             }
 
-            // Ctrl+A: 全选（在文件列表中）
-            if (e.Key == Key.A && Keyboard.Modifiers == ModifierKeys.Control)
+            // Alt+D: 聚焦地址栏
+            // 必须同时检查 Key.D 和 SystemKey.D，因为按下 Alt 时 Key 可能是 System
+            bool isAltD = (e.Key == Key.D && Keyboard.Modifiers == ModifierKeys.Alt) ||
+                          (e.SystemKey == Key.D && Keyboard.Modifiers == ModifierKeys.Alt);
+
+            if (isAltD)
             {
-                if (_fileBrowser?.FilesList != null && _fileBrowser.FilesList.Items.Count > 0)
+                var activeBrowser = _getActiveBrowser();
+                if (activeBrowser != null)
                 {
-                    if (_fileBrowser?.FilesList != null)
-                        _fileBrowser.FilesList.SelectAll();
+                    // 确保切换到编辑模式并全选
+                    activeBrowser.AddressBarControl?.SwitchToEditMode();
                     e.Handled = true;
                     return;
                 }
             }
 
-            // Alt+D: 进入地址栏编辑模式
-            // 注意:Alt+字母时,e.Key是System,需要检查e.SystemKey
-            if ((e.Key == Key.D || e.SystemKey == Key.D) && Keyboard.Modifiers == ModifierKeys.Alt)
+            // Alt+A: 聚焦地址栏 (Alias for Alt+D)
+            // 修复文件列表拦截 Alt+A 的问题
+            bool isAltA = (e.Key == Key.A && Keyboard.Modifiers == ModifierKeys.Alt) ||
+                          (e.SystemKey == Key.A && Keyboard.Modifiers == ModifierKeys.Alt);
+
+            if (isAltA)
             {
-                if (_fileBrowser?.AddressBar != null && !_fileBrowser.AddressBar.IsAddressTextBoxFocused)
+                var activeBrowser = _getActiveBrowser();
+                if (activeBrowser != null)
                 {
-                    _fileBrowser.AddressBar.SwitchToEditMode();
+                    activeBrowser.AddressBarControl?.SwitchToEditMode();
+                    e.Handled = true;
+                    return;
+                }
+            }
+
+            // Ctrl+A: 全选当前列表
+            if (e.Key == Key.A && Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                var activeBrowser = _getActiveBrowser();
+                if (activeBrowser?.FilesList != null && !(e.OriginalSource is System.Windows.Controls.TextBox))
+                {
+                    activeBrowser.FilesList.SelectAll();
                     e.Handled = true;
                     return;
                 }
@@ -238,14 +288,14 @@ namespace OoiMRR.Handlers
             if (e.Key == Key.C && Keyboard.Modifiers == ModifierKeys.Control)
             {
                 var focusedElement = Keyboard.FocusedElement;
-                // 只在文本框中才跳过，其他情况都执行复制
                 if (focusedElement is System.Windows.Controls.TextBox ||
                     focusedElement is System.Windows.Controls.RichTextBox)
                 {
-                    return; // 让文本框处理自己的复制
+                    return;
                 }
 
-                if (_fileBrowser?.FilesSelectedItems != null && _fileBrowser.FilesSelectedItems.Count > 0)
+                var activeBrowser = _getActiveBrowser();
+                if (activeBrowser?.FilesSelectedItems != null && activeBrowser.FilesSelectedItems.Count > 0)
                 {
                     _copyClick();
                     e.Handled = true;
@@ -257,11 +307,10 @@ namespace OoiMRR.Handlers
             if (e.Key == Key.V && Keyboard.Modifiers == ModifierKeys.Control)
             {
                 var focusedElement = Keyboard.FocusedElement;
-                // 只在文本框中才跳过，其他情况都执行粘贴
                 if (focusedElement is System.Windows.Controls.TextBox ||
                     focusedElement is System.Windows.Controls.RichTextBox)
                 {
-                    return; // 让文本框处理自己的粘贴
+                    return;
                 }
 
                 _pasteClick();
@@ -273,14 +322,14 @@ namespace OoiMRR.Handlers
             if (e.Key == Key.X && Keyboard.Modifiers == ModifierKeys.Control)
             {
                 var focusedElement = Keyboard.FocusedElement;
-                // 只在文本框中才跳过，其他情况都执行剪切
                 if (focusedElement is System.Windows.Controls.TextBox ||
                     focusedElement is System.Windows.Controls.RichTextBox)
                 {
-                    return; // 让文本框处理自己的剪切
+                    return;
                 }
 
-                if (_fileBrowser?.FilesSelectedItems != null && _fileBrowser.FilesSelectedItems.Count > 0)
+                var activeBrowser = _getActiveBrowser();
+                if (activeBrowser?.FilesSelectedItems != null && activeBrowser.FilesSelectedItems.Count > 0)
                 {
                     _cutClick();
                     e.Handled = true;
@@ -288,42 +337,37 @@ namespace OoiMRR.Handlers
                 }
             }
 
-            // Delete: 删除（如果文件列表有焦点，且不在文本框中）
-            // Shift+Delete: 永久删除（跳过回收站）
+            // Delete: 删除
             if (e.Key == Key.Delete)
             {
                 var focusedElement = Keyboard.FocusedElement;
                 if (focusedElement is System.Windows.Controls.TextBox || focusedElement is System.Windows.Controls.TextBlock)
                 {
-                    // 在文本框中，不处理
                     return;
                 }
-                if (_fileBrowser?.FilesSelectedItems != null && _fileBrowser.FilesSelectedItems.Count > 0)
+
+                var activeBrowser = _getActiveBrowser();
+                if (activeBrowser?.FilesSelectedItems != null && activeBrowser.FilesSelectedItems.Count > 0)
                 {
                     bool isShiftPressed = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
                     if (isShiftPressed && _permanentDeleteClick != null)
                     {
-                        _permanentDeleteClick(); // Shift+Delete: 永久删除
+                        _permanentDeleteClick();
                     }
                     else
                     {
-                        _deleteClick(); // 普通删除（移到回收站）
+                        _deleteClick();
                     }
                     e.Handled = true;
                     return;
                 }
             }
 
-            // F2: 重命名（如果文件列表有焦点）
+            // F2: 重命名
             if (e.Key == Key.F2)
             {
-                var focusedElement = Keyboard.FocusedElement;
-                if (focusedElement is System.Windows.Controls.TextBox)
-                {
-                    // 在文本框中，不处理
-                    return;
-                }
-                if (_fileBrowser?.FilesSelectedItem != null)
+                var activeBrowser = _getActiveBrowser();
+                if (activeBrowser?.FilesSelectedItem != null)
                 {
                     _renameClick();
                     e.Handled = true;
@@ -334,47 +378,22 @@ namespace OoiMRR.Handlers
             // Ctrl+Z: 撤销
             if (e.Key == Key.Z && Keyboard.Modifiers == ModifierKeys.Control)
             {
-                _undoClick?.Invoke();
-                e.Handled = true;
-                return;
+                if (_undoClick != null)
+                {
+                    _undoClick();
+                    e.Handled = true;
+                    return;
+                }
             }
 
             // Ctrl+Y: 重做
             if (e.Key == Key.Y && Keyboard.Modifiers == ModifierKeys.Control)
             {
-                _redoClick?.Invoke();
-                e.Handled = true;
-                return;
-            }
-
-            // 空格键触发 QuickLook 预览
-            if (e.Key == Key.Space)
-            {
-                // 检查是否有选中的文件
-                if (_fileBrowser?.FilesSelectedItem is FileSystemItem selectedItem && !selectedItem.IsDirectory)
+                if (_redoClick != null)
                 {
-                    // 检查 QuickLook 是否安装
-                    if (OoiMRR.Previews.PreviewHelper.IsQuickLookInstalled())
-                    {
-                        try
-                        {
-                            var quickLookPath = OoiMRR.Previews.PreviewHelper.GetQuickLookPath();
-                            if (!string.IsNullOrEmpty(quickLookPath))
-                            {
-                                Process.Start(new ProcessStartInfo
-                                {
-                                    FileName = quickLookPath,
-                                    Arguments = $@"""{selectedItem.Path}""",
-                                    UseShellExecute = false
-                                });
-                                e.Handled = true; // 标记事件已处理
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            MessageBox.Show($"无法启动 QuickLook: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                        }
-                    }
+                    _redoClick();
+                    e.Handled = true;
+                    return;
                 }
             }
         }

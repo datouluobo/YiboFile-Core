@@ -317,6 +317,67 @@ namespace OoiMRR.Controls
             FilterClicked?.Invoke(sender, e);
         }
 
+        public void ShowFilterPopup(SearchOptions options, EventHandler onChange)
+        {
+            if (FilterPanelControl == null || FilterPopup == null) return;
+
+            // Initialize panel
+            FilterPanelControl.Initialize(options);
+
+            // Subscribe to change (avoid duplicate subscription by unsubscribing first? Or passing delegate that is stored?)
+            // FilterPanelControl.FilterChanged actually is an event. We should clear previous subscribers?
+            // Since we create a new EventHandler in the caller usually, we rely on the caller to manage logic.
+            // But here we need to hook the 'onChange' to the panel's event.
+
+            // Better pattern: The caller (handler) subscribes to the event. The control just shows it.
+            // But the handler doesn't have access to FilterPanelControl (it's internal/private field).
+            // So we bridge it.
+
+            // Unsubscribe previous handlers to prevent memory leaks/multiple calls if called repeatedly
+            // But we can't easily unsubscribe anonymous delegates.
+            // Let's assume the handler manages the subscription lifecycle or we clear all invocations?
+
+            // Simpler: Just set the options. The Panel fires FilterChanged. 
+            // We expose an event `FilterPanelFilterChanged` on FileBrowserControl.
+
+            if (!FilterPopup.IsOpen)
+            {
+                FilterPopup.IsOpen = true;
+                // Focus?
+            }
+            else
+            {
+                FilterPopup.IsOpen = false;
+            }
+        }
+
+        /// <summary>
+        /// 显示筛选面板
+        /// </summary>
+        public void ToggleFilterPanel(SearchOptions options, EventHandler onFilterChanged)
+        {
+            if (FilterPanelControl == null || FilterPopup == null) return;
+
+            if (FilterPopup.IsOpen)
+            {
+                FilterPopup.IsOpen = false;
+                return;
+            }
+
+            // Initialize with current options
+            FilterPanelControl.Initialize(options);
+
+            // Remove old handlers to prevent duplicates
+            // Use a private stub to forward?
+            FilterPanelControl.FilterChanged -= _filterChangedStub; // Try remove previous
+            _filterChangedStub = onFilterChanged;
+            FilterPanelControl.FilterChanged += _filterChangedStub;
+
+            FilterPopup.IsOpen = true;
+        }
+
+        private EventHandler _filterChangedStub;
+
 
 
         private void LoadMoreBtn_Click(object sender, RoutedEventArgs e)

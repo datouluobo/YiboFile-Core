@@ -322,19 +322,24 @@
                                 </GridViewColumn.Header>
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>
-                                        <Border Background="{Binding CreatedTimeBrush}" Margin="-6,0" Padding="8,2" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
-                                            <TextBlock Text="{Binding CreatedTime}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="Black"/>
-                                        </Border>
+                                        <Grid ClipToBounds="True">
+                                            <Border Background="{Binding CreatedTimeBrush}" Margin="-6,0" Padding="8,2" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+                                                <TextBlock Text="{Binding CreatedTime}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="Black"/>
+                                            </Border>
+                                        </Grid>
                                     </DataTemplate>
                                 </GridViewColumn.CellTemplate>
                             </GridViewColumn>
                             
                             <!-- Tags and Notes columns with configurable widths -->
+                            <!-- Tags column removed as requested -->
+                            <!--
                             <GridViewColumn x:Name="ColTags" Width="150" HeaderContainerStyle="{StaticResource NonResizableFileColumnHeaderStyle}" DisplayMemberBinding="{Binding Tags}">
                                 <GridViewColumn.Header>
                                     <TextBlock Text="标签" Tag="Tags"/>
                                 </GridViewColumn.Header>
                             </GridViewColumn>
+                            -->
                             <GridViewColumn x:Name="ColNotes" Width="200" HeaderContainerStyle="{StaticResource NonResizableFileColumnHeaderStyle}" DisplayMemberBinding="{Binding Notes}">
                                 <GridViewColumn.Header>
                                     <TextBlock Text="备注" Tag="Notes"/>

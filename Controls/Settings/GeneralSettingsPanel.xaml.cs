@@ -17,6 +17,7 @@ namespace OoiMRR.Controls.Settings
 
         private CheckBox _rememberWindowPositionCheckBox;
         private CheckBox _startMaximizedCheckBox;
+        private CheckBox _enableMultiWindowCheckBox;
         private TextBox _baseDirectoryTextBox;
         private TextBox _uiFontSizeTextBox;
         private Button _fontSizeUpButton;
@@ -97,7 +98,19 @@ namespace OoiMRR.Controls.Settings
             };
             _startMaximizedCheckBox.Checked += (s, e) => OnSettingChanged();
             _startMaximizedCheckBox.Unchecked += (s, e) => OnSettingChanged();
+            _startMaximizedCheckBox.Unchecked += (s, e) => OnSettingChanged();
             stackPanel.Children.Add(_startMaximizedCheckBox);
+
+            _enableMultiWindowCheckBox = new CheckBox
+            {
+                Content = "启用多窗口支持 (Ctrl+Shift+N)",
+                FontSize = 14,
+                MinHeight = 32,
+                Margin = new Thickness(0, 0, 0, 24)
+            };
+            _enableMultiWindowCheckBox.Checked += (s, e) => OnSettingChanged();
+            _enableMultiWindowCheckBox.Unchecked += (s, e) => OnSettingChanged();
+            stackPanel.Children.Add(_enableMultiWindowCheckBox);
 
             // 标签页宽度模式
             var tabWidthModeLabel = new TextBlock
@@ -170,7 +183,8 @@ namespace OoiMRR.Controls.Settings
                 Height = 16,
                 FontSize = 10,
                 Padding = new Thickness(0),
-                Margin = new Thickness(0, 0, 0, 2)
+                Margin = new Thickness(0, 0, 0, 2),
+                Style = (Style)Application.Current.Resources["ModernButtonStyle"]
             };
             _pinnedTabWidthUpButton.Click += PinnedTabWidthUpButton_Click;
             pinnedWidthButtonPanel.Children.Add(_pinnedTabWidthUpButton);
@@ -181,7 +195,8 @@ namespace OoiMRR.Controls.Settings
                 Width = 24,
                 Height = 16,
                 FontSize = 10,
-                Padding = new Thickness(0)
+                Padding = new Thickness(0),
+                Style = (Style)Application.Current.Resources["ModernButtonStyle"]
             };
             _pinnedTabWidthDownButton.Click += PinnedTabWidthDownButton_Click;
             pinnedWidthButtonPanel.Children.Add(_pinnedTabWidthDownButton);
@@ -259,7 +274,8 @@ namespace OoiMRR.Controls.Settings
                 FontSize = 10,
                 Padding = new Thickness(0),
                 Margin = new Thickness(0, 0, 0, 2),
-                VerticalAlignment = VerticalAlignment.Center
+                VerticalAlignment = VerticalAlignment.Center,
+                Style = (Style)Application.Current.Resources["ModernButtonStyle"]
             };
             _fontSizeUpButton.Click += FontSizeUpButton_Click;
 
@@ -270,7 +286,8 @@ namespace OoiMRR.Controls.Settings
                 Height = 16,
                 FontSize = 10,
                 Padding = new Thickness(0),
-                VerticalAlignment = VerticalAlignment.Center
+                VerticalAlignment = VerticalAlignment.Center,
+                Style = (Style)Application.Current.Resources["ModernButtonStyle"]
             };
             _fontSizeDownButton.Click += FontSizeDownButton_Click;
 
@@ -330,7 +347,8 @@ namespace OoiMRR.Controls.Settings
                 FontSize = 10,
                 Padding = new Thickness(0),
                 Margin = new Thickness(0, 0, 0, 2),
-                VerticalAlignment = VerticalAlignment.Center
+                VerticalAlignment = VerticalAlignment.Center,
+                Style = (Style)Application.Current.Resources["ModernButtonStyle"]
             };
             _tagFontSizeUpButton.Click += TagFontSizeUpButton_Click;
 
@@ -341,7 +359,8 @@ namespace OoiMRR.Controls.Settings
                 Height = 16,
                 FontSize = 10,
                 Padding = new Thickness(0),
-                VerticalAlignment = VerticalAlignment.Center
+                VerticalAlignment = VerticalAlignment.Center,
+                Style = (Style)Application.Current.Resources["ModernButtonStyle"]
             };
             _tagFontSizeDownButton.Click += TagFontSizeDownButton_Click;
 
@@ -401,7 +420,8 @@ namespace OoiMRR.Controls.Settings
                 FontSize = 10,
                 Padding = new Thickness(0),
                 Margin = new Thickness(0, 0, 0, 2),
-                VerticalAlignment = VerticalAlignment.Center
+                VerticalAlignment = VerticalAlignment.Center,
+                Style = (Style)Application.Current.Resources["ModernButtonStyle"]
             };
             _tagBoxWidthUpButton.Click += TagBoxWidthUpButton_Click;
 
@@ -412,7 +432,8 @@ namespace OoiMRR.Controls.Settings
                 Height = 16,
                 FontSize = 10,
                 Padding = new Thickness(0),
-                VerticalAlignment = VerticalAlignment.Center
+                VerticalAlignment = VerticalAlignment.Center,
+                Style = (Style)Application.Current.Resources["ModernButtonStyle"]
             };
             _tagBoxWidthDownButton.Click += TagBoxWidthDownButton_Click;
 
@@ -600,7 +621,8 @@ namespace OoiMRR.Controls.Settings
                 FontSize = 13,
                 Padding = new Thickness(12, 6, 12, 6),
                 MinHeight = 32,
-                Margin = new Thickness(8, 0, 0, 0)
+                Margin = new Thickness(8, 0, 0, 0),
+                Style = (Style)Application.Current.Resources["ModernButtonStyle"]
             };
             button.Click += browseHandler;
             Grid.SetColumn(button, 2);
@@ -630,7 +652,8 @@ namespace OoiMRR.Controls.Settings
                 FontSize = 13,
                 Padding = new Thickness(14, 6, 14, 6),
                 MinHeight = 32,
-                Margin = new Thickness(0, 0, 8, 0)
+                Margin = new Thickness(0, 0, 8, 0),
+                Style = (Style)Application.Current.Resources["ModernButtonStyle"]
             };
             exportButton.Click += exportHandler;
             buttonPanel.Children.Add(exportButton);
@@ -640,7 +663,8 @@ namespace OoiMRR.Controls.Settings
                 Content = "导入",
                 FontSize = 13,
                 Padding = new Thickness(14, 6, 14, 6),
-                MinHeight = 32
+                MinHeight = 32,
+                Style = (Style)Application.Current.Resources["ModernButtonStyle"]
             };
             importButton.Click += importHandler;
             buttonPanel.Children.Add(importButton);
@@ -659,6 +683,9 @@ namespace OoiMRR.Controls.Settings
 
                 if (_startMaximizedCheckBox != null)
                     _startMaximizedCheckBox.IsChecked = config.IsMaximized;
+
+                if (_enableMultiWindowCheckBox != null)
+                    _enableMultiWindowCheckBox.IsChecked = config.EnableMultiWindow;
 
                 // 加载固定标签页宽度
                 if (_pinnedTabWidthTextBox != null)
@@ -728,6 +755,10 @@ namespace OoiMRR.Controls.Settings
                 // 启动时最大化
                 if (_startMaximizedCheckBox != null)
                     config.IsMaximized = _startMaximizedCheckBox.IsChecked ?? true;
+
+                // 多窗口支持
+                if (_enableMultiWindowCheckBox != null)
+                    config.EnableMultiWindow = _enableMultiWindowCheckBox.IsChecked ?? true;
 
                 // 标签页宽度模式
                 if (_tabWidthDynamicRadio != null && _tabWidthDynamicRadio.IsChecked == true)

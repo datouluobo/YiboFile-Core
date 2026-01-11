@@ -95,7 +95,7 @@
     
     <!-- 按钮别名 -->
     <SolidColorBrush x:Key="ButtonBackgroundBrush" Color="#3A3A3A"/>
-    <SolidColorBrush x:Key="ButtonBorderBrush" Color="#404040"/>
+    <SolidColorBrush x:Key="ButtonBorderBrush" Color="#606060"/>
     <SolidColorBrush x:Key="ButtonHoverBackgroundBrush" Color="#4A4A4A"/>
     <SolidColorBrush x:Key="ButtonPressedBackgroundBrush" Color="#555555"/>
     

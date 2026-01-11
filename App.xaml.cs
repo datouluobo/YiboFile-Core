@@ -11,11 +11,13 @@ using OoiMRR.Services.Favorite;
 using OoiMRR.Services.QuickAccess;
 using OoiMRR.Services.FileList;
 using OoiMRR.Services.Search;
+using OoiMRR.Services.Search;
 using OoiMRR.Services.FileNotes;
 using OoiMRR.Services.Tabs;
 using OoiMRR.Services.ColumnManagement;
 // using TagTrain.Services; // Phase 2将重新实现标签功能
 using OoiMRR.Controls;
+using System.Runtime.InteropServices; // Added for P/Invoke
 
 namespace OoiMRR
 {
@@ -157,10 +159,20 @@ namespace OoiMRR
 
                 if (!createdNew)
                 {
-                    // 已有实例在运行
-                    MessageBox.Show("程序已在运行中,请勿重复启动。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-                    Shutdown();
-                    return;
+                    // 检查是否启用了多窗口支持
+                    var config = ConfigManager.Load();
+                    if (config != null && config.EnableMultiWindow)
+                    {
+                        FileLogger.Log("Function: Multi-Window enabled. Proceeding to launch new instance.");
+                        // DO NOT RETURN/SHUTDOWN
+                    }
+                    else
+                    {
+                        // 已有实例在运行且未启用多窗口 -> 激活现有窗口
+                        ActivateExistingInstance();
+                        Shutdown();
+                        return;
+                    }
                 }
 
                 FileLogger.Log("Application passing single instance check.");
@@ -297,5 +309,50 @@ namespace OoiMRR
 
             base.OnExit(e);
         }
+
+        #region Single Instance Activation
+
+        private void ActivateExistingInstance()
+        {
+            var currentProcess = System.Diagnostics.Process.GetCurrentProcess();
+            var processes = System.Diagnostics.Process.GetProcessesByName(currentProcess.ProcessName);
+            foreach (var process in processes)
+            {
+                if (process.Id != currentProcess.Id)
+                {
+                    // 简单的尝试激活主窗口
+                    // 注意: 更严谨的做法通常涉及遍历窗口句柄或使用其它IPC机制，
+                    // 但对于大多数单窗口应用，MainWindowHandle 足够。
+                    var handle = process.MainWindowHandle;
+                    if (handle != IntPtr.Zero)
+                    {
+                        // 如果窗口最小化，则还原
+                        if (IsIconic(handle))
+                        {
+                            ShowWindow(handle, SW_RESTORE);
+                        }
+
+                        // 将窗口以前台方式显示（不改变大小状态）
+                        SetForegroundWindow(handle);
+                        return;
+                    }
+                }
+            }
+        }
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool IsIconic(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+        private const int SW_RESTORE = 9;
+
+        #endregion
     }
 }

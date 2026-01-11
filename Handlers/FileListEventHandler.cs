@@ -41,6 +41,7 @@ namespace OoiMRR.Handlers
         private readonly Action _renameClick;
         private readonly Action _refreshClick;
         private readonly Action _showPropertiesClick;
+        private readonly Action<string, bool> _createTabAction;
 
 
         private System.Windows.Point _mouseDownPoint;
@@ -68,7 +69,8 @@ namespace OoiMRR.Handlers
             Action deleteClick,
             Action renameClick,
             Action refreshClick,
-            Action showPropertiesClick)
+            Action showPropertiesClick,
+            Action<string, bool> createTabAction) // Added explicit CreateTab action
 
         {
             _fileBrowser = fileBrowser ?? throw new ArgumentNullException(nameof(fileBrowser));
@@ -92,6 +94,7 @@ namespace OoiMRR.Handlers
             _renameClick = renameClick ?? throw new ArgumentNullException(nameof(renameClick));
             _refreshClick = refreshClick ?? throw new ArgumentNullException(nameof(refreshClick));
             _showPropertiesClick = showPropertiesClick ?? throw new ArgumentNullException(nameof(showPropertiesClick));
+            _createTabAction = createTabAction ?? throw new ArgumentNullException(nameof(createTabAction));
 
         }
 
@@ -198,7 +201,8 @@ namespace OoiMRR.Handlers
                             // 检查是否是中键双击
                             if (e.ChangedButton == MouseButton.Middle)
                             {
-                                _navigationCoordinator.HandlePathNavigation(selectedItem.Path, NavigationCoordinator.NavigationSource.FileList, NavigationCoordinator.ClickType.MiddleClick);
+                                // 使用注入的 createTabAction
+                                _createTabAction(selectedItem.Path, true);
                             }
                             else
                             {
@@ -287,6 +291,24 @@ namespace OoiMRR.Handlers
                         e.Handled = true;
                         return;
                     }
+                }
+            }
+
+            // 确保点击列表（包括空白区域）时获取焦点
+            // 这解决了副地址栏点击空白处无法退出编辑模式的问题
+            if (!listView.IsFocused)
+            {
+                listView.Focus();
+            }
+
+            // 显式退出地址栏编辑模式（如果存在）
+            // 这是一个双重保障，防止 Focus() 无法触发 AddressBar 的 LostFocus
+            var fileBrowser = FindAncestor<FileBrowserControl>(listView);
+            if (fileBrowser != null && fileBrowser.AddressBarControl != null)
+            {
+                if (fileBrowser.AddressBarControl.IsEditMode)
+                {
+                    fileBrowser.AddressBarControl.SwitchToBreadcrumbMode();
                 }
             }
 
@@ -395,7 +417,8 @@ namespace OoiMRR.Handlers
                         if (selectedItem.IsDirectory)
                         {
                             // 中键点击：在新标签页打开文件夹
-                            _navigationCoordinator.HandlePathNavigation(selectedItem.Path, NavigationCoordinator.NavigationSource.FileList, NavigationCoordinator.ClickType.MiddleClick);
+                            // 使用注入的 createTabAction，不再依赖 NavigationCoordinator 的隐式上下文
+                            _createTabAction(selectedItem.Path, true);
                             e.Handled = true;
                             return;
                         }

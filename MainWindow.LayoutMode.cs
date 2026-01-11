@@ -451,6 +451,40 @@ namespace OoiMRR
             // 双击打开事件
             SecondFileBrowser.FilesPreviewMouseDoubleClick += SecondFileBrowser_FilesDoubleClick;
 
+            // 中键点击事件（打开新标签页）- 直接处理以确保在副面板打开
+            SecondFileBrowser.FilesPreviewMouseDown += (s, e) =>
+            {
+                if (e.ChangedButton != MouseButton.Middle) return;
+
+                var listView = SecondFileBrowser.FilesList;
+                if (listView == null) return;
+
+                // 获取点击位置对应的项目
+                var hitResult = VisualTreeHelper.HitTest(listView, e.GetPosition(listView));
+                if (hitResult == null) return;
+
+                // 向上查找 ListViewItem
+                DependencyObject current = hitResult.VisualHit;
+                while (current != null && current != listView)
+                {
+                    if (current is ListViewItem item)
+                    {
+                        if (item.Content is FileSystemItem selectedItem)
+                        {
+                            if (selectedItem.IsDirectory)
+                            {
+                                // 强制在副标签页服务中创建新标签页
+                                _secondTabService?.CreatePathTab(selectedItem.Path, forceNewTab: true);
+                                e.Handled = true;
+                                return;
+                            }
+                        }
+                        break;
+                    }
+                    current = VisualTreeHelper.GetParent(current);
+                }
+            };
+
             // 选择变化事件（更新文件信息面板）
             SecondFileBrowser.FilesSelectionChanged += SecondFileBrowser_SelectionChanged;
 
@@ -483,16 +517,18 @@ namespace OoiMRR
             SecondFileBrowser.FileProperties += (s, e) => MessageBox.Show("属性功能开发中", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
 
             // F2快捷键和其他键盘事件支持
-            SecondFileBrowser.FilesPreviewKeyDown += FilesListView_PreviewKeyDown;
+            // Handled by _secondFileListHandler
+            // SecondFileBrowser.FilesPreviewKeyDown += FilesListView_PreviewKeyDown;
 
             // 空白区域点击取消选择
-            SecondFileBrowser.FilesPreviewMouseLeftButtonDown += (s, e) =>
-            {
-                if (SecondFileBrowser?.FilesList is ListView listView)
-                {
-                    FilesListView_PreviewMouseLeftButtonDown(listView, e);
-                }
-            };
+            // Handled by _secondFileListHandler
+            // SecondFileBrowser.FilesPreviewMouseLeftButtonDown += (s, e) =>
+            // {
+            //     if (SecondFileBrowser?.FilesList is ListView listView)
+            //     {
+            //         FilesListView_PreviewMouseLeftButtonDown(listView, e);
+            //     }
+            // };
 
             // 顶部工具栏按钮支持
             SecondFileBrowser.FileNewFolder += (s, e) => _menuEventHandler?.NewFolder_Click(s, e);
@@ -675,7 +711,7 @@ namespace OoiMRR
                 }
             }
             catch (Exception ex)
-            {            }
+            { }
         }
 
         private void SecondFileBrowser_PathChanged(object sender, string newPath)

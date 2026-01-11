@@ -359,9 +359,9 @@
         <Setter Property="Padding" Value="8,4"/>
         <Setter Property="Margin" Value="2"/>
         <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource ButtonBorderBrush}"/>
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="FontSize" Value="12"/>
         <Setter Property="FontWeight" Value="Normal"/>
         <Setter Property="HorizontalContentAlignment" Value="Center"/>
@@ -380,17 +380,52 @@
                                           Margin="{TemplateBinding Padding}"/>
                     </Border>
                     <ControlTemplate.Triggers>
-                        <!-- Hover: Light Background -->
+                        <!-- Hover: Light Background + Accent Border -->
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Background" Value="{DynamicResource ButtonHoverBackgroundBrush}"/> <!-- Usually #F0F0F0 or equivalent -->
+                            <Setter Property="Background" Value="{DynamicResource ButtonHoverBackgroundBrush}"/>
+                            <Setter Property="BorderBrush" Value="{DynamicResource AccentHoverBrush}"/>
                         </Trigger>
-                        <!-- Pressed: Slightly Darker -->
+                        <!-- Pressed: Slightly Darker + Stronger Border -->
                         <Trigger Property="IsPressed" Value="True">
                             <Setter Property="Background" Value="{DynamicResource ButtonPressedBackgroundBrush}"/>
+                            <Setter Property="BorderBrush" Value="{DynamicResource AccentPressedBrush}"/>
                             <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter Property="Foreground" Value="{DynamicResource TextDisabledBrush}"/>
+                            <Setter Property="Opacity" Value="0.6"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Modern Accent Button Style (Solid Color) -->
+    <Style x:Key="ModernAccentButtonStyle" TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+        <Setter Property="Background" Value="{DynamicResource AccentDefaultBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ForegroundOnAccentBrush}"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="border"
+                            Background="{TemplateBinding Background}" 
+                            BorderBrush="{TemplateBinding BorderBrush}" 
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="4">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" 
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                          Margin="{TemplateBinding Padding}"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource AccentHoverBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource AccentPressedBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
                             <Setter Property="Opacity" Value="0.6"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
@@ -460,10 +495,16 @@
     </Style>
 
     <!-- Active Navigation Button Style (For 'Path', 'Library', 'Tags' in TitleBar) -->
-    <Style x:Key="ActiveNavigationButtonStyle" TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+    <Style x:Key="ActiveNavButtonStyle_Fixed" TargetType="Button">
         <Setter Property="Height" Value="36"/>
+        <Setter Property="Margin" Value="2,0"/>
+        <Setter Property="Padding" Value="8,0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
         <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="BorderThickness" Value="0,0,0,2"/> <!-- Bottom Border for selection indicator -->
+        <Setter Property="BorderThickness" Value="0"/> <!-- Strictly No Border by default -->
         <Setter Property="BorderBrush" Value="Transparent"/>
         <Setter Property="Template">
             <Setter.Value>
@@ -479,8 +520,9 @@
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter Property="Background" Value="{DynamicResource ButtonHoverBackgroundBrush}"/>
                         </Trigger>
-                        <!-- Selected State Logic (needs custom property or trigger in usage) -->
+                        <!-- Selected State (Tag='Selected') -->
                         <Trigger Property="Tag" Value="Selected">
+                             <Setter Property="BorderThickness" Value="0,0,0,2"/>
                              <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
                              <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}"/>
                              <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
@@ -1053,18 +1095,16 @@
         <Setter Property="Foreground" Value="#666666"/>
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="Padding" Value="12,8"/>
-        <Setter Property="BorderThickness" Value="0,0,1,1"/>
+        <Setter Property="BorderThickness" Value="0,0,0,1"/>
         <Setter Property="BorderBrush" Value="#E0E0E0"/>
-        <!-- 绑定 Tag 属性到内容的 Tag (假定内容是 FrameworkElement) -->
-        <!-- 绑定 Tag 属性到内容的 Tag (假定内容是 FrameworkElement) - 已移除以修复绑定错误 
-        <Setter Property="Tag" Value="{Binding Content.Tag, RelativeSource={RelativeSource Self}}"/>
-        -->
-        <!-- Remove EventSetter, handle Click in code behind if needed, or attach behavior -->
-        <!-- EventSetter Event="Click" Handler="ColumnHeader_Click"/ --> 
+        <Setter Property="ClipToBounds" Value="True"/> <!-- Force clipping at container level -->
+        
+        <!-- Remove EventSetter... -->
+        
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type GridViewColumnHeader}">
-                    <Grid>
+                    <Grid ClipToBounds="True" SnapsToDevicePixels="True">
                         <Border BorderThickness="{TemplateBinding BorderThickness}" 
                                 BorderBrush="{TemplateBinding BorderBrush}" 
                                 Background="{TemplateBinding Background}">
@@ -1149,10 +1189,40 @@
                             <Setter Property="Background" Value="{DynamicResource BackgroundTertiaryBrush}"/>
                             <Setter Property="FontWeight" Value="SemiBold"/>
                         </DataTrigger>
+                        <!-- Hide Padding Header (Empty container artifact) - Removed from here -->
+                        
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
+        <Style.Triggers>
+             <!-- Completely hide the header if the column width is 0 -->
+             <DataTrigger Binding="{Binding Column.Width, RelativeSource={RelativeSource Self}}" Value="0">
+                 <Setter Property="Visibility" Value="Collapsed"/>
+                 <Setter Property="Template">
+                     <Setter.Value>
+                        <ControlTemplate TargetType="{x:Type GridViewColumnHeader}"/>
+                     </Setter.Value> 
+                 </Setter>
+             </DataTrigger>
+             
+             <!-- Hide Padding Header (Empty container artifact) -->
+             <Trigger Property="Role" Value="Padding">
+                <Setter Property="Visibility" Value="Collapsed"/>
+                <Setter Property="IsHitTestVisible" Value="False"/>
+                <Setter Property="MinWidth" Value="0"/>
+                <Setter Property="Width" Value="0"/>
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="GridViewColumnHeader">
+                            <Grid Width="0" Height="0" Visibility="Collapsed"/>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Trigger>
+        </Style.Triggers>
     </Style>
 
     <!-- Non-Resizable File Column Header Style -->
@@ -1160,7 +1230,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type GridViewColumnHeader}">
-                    <Grid>
+                    <Grid ClipToBounds="True" SnapsToDevicePixels="True">
                         <Border BorderThickness="{TemplateBinding BorderThickness}" 
                                 BorderBrush="{TemplateBinding BorderBrush}" 
                                 Background="{TemplateBinding Background}">
@@ -1177,23 +1247,23 @@
                                                   RecognizesAccessKey="True"
                                                   SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
                                 
-                                <!-- 排序箭头 - 升序 -->
+                                <!-- 排序箭头 - 升序 (与可调整大小列保持一致) -->
                                 <Path x:Name="SortArrowAsc"
                                       Grid.Column="1"
                                       Visibility="Collapsed"
-                                      Data="M 0,5 L 8,5 L 4,0 Z"
+                                      Data="M 0,8 L 10,8 L 5,0 Z" 
                                       Fill="{DynamicResource AccentDefaultBrush}"
-                                      Margin="4,0,8,0"
+                                      Margin="6,0,8,0"
                                       VerticalAlignment="Center"
                                       HorizontalAlignment="Right"/>
                                 
-                                <!-- 排序箭头 - 降序 -->
+                                <!-- 排序箭头 - 降序 (与可调整大小列保持一致) -->
                                 <Path x:Name="SortArrowDesc"
                                       Grid.Column="1"
                                       Visibility="Collapsed"
-                                      Data="M 0,0 L 8,0 L 4,5 Z"
+                                      Data="M 0,0 L 10,0 L 5,8 Z"
                                       Fill="{DynamicResource AccentDefaultBrush}"
-                                      Margin="4,0,8,0"
+                                      Margin="6,0,8,0"
                                       VerticalAlignment="Center"
                                       HorizontalAlignment="Right"/>
                             </Grid>
@@ -1201,7 +1271,7 @@
                         <!-- 无 Gripper -->
                     </Grid>
                     <ControlTemplate.Triggers>
-                        <!-- 优化悬停效果 - 与可调整大小的列头保持一致 -->
+                        <!-- 优化悬停效果 -->
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter Property="Background" Value="{DynamicResource ControlHoverBrush}"/>
                         </Trigger>
@@ -1212,16 +1282,38 @@
                         <!-- 升序箭头（向上） -->
                         <DataTrigger Binding="{Binding Path=(colmgr:ColumnHeaderSortHelper.SortDirection), RelativeSource={RelativeSource Self}}" Value="Ascending">
                             <Setter TargetName="SortArrowAsc" Property="Visibility" Value="Visible"/>
+                            <Setter Property="Background" Value="{DynamicResource BackgroundTertiaryBrush}"/>
+                            <Setter Property="FontWeight" Value="SemiBold"/>
                         </DataTrigger>
                         
                         <!-- 降序箭头（向下） -->
                         <DataTrigger Binding="{Binding Path=(colmgr:ColumnHeaderSortHelper.SortDirection), RelativeSource={RelativeSource Self}}" Value="Descending">
                             <Setter TargetName="SortArrowDesc" Property="Visibility" Value="Visible"/>
+                            <Setter Property="Background" Value="{DynamicResource BackgroundTertiaryBrush}"/>
+                            <Setter Property="FontWeight" Value="SemiBold"/>
                         </DataTrigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
+        <Style.Triggers>
+            <!-- Hide Padding Header (Empty container artifact) -->
+            <Trigger Property="Role" Value="Padding">
+                <Setter Property="Visibility" Value="Collapsed"/>
+                <Setter Property="IsHitTestVisible" Value="False"/>
+                <Setter Property="MinWidth" Value="0"/>
+                <Setter Property="Width" Value="0"/>
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="GridViewColumnHeader">
+                            <Grid Width="0" Height="0" Visibility="Collapsed"/>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Trigger>
+        </Style.Triggers>
     </Style>
 
     <!-- File List Item Style (Modern Card Style) -->

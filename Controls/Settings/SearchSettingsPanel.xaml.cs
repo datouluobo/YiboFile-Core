@@ -104,7 +104,9 @@ namespace OoiMRR.Controls.Settings
             {
                 Header = "Everything 搜索引擎 (文件名)",
                 Margin = new Thickness(0, 0, 0, 24),
-                Padding = new Thickness(10)
+                Padding = new Thickness(10),
+                Background = Brushes.Transparent,
+                BorderThickness = new Thickness(0)
             };
             var everythingStack = new StackPanel();
 
@@ -119,11 +121,9 @@ namespace OoiMRR.Controls.Settings
                 Padding = new Thickness(16, 8, 16, 8),
                 HorizontalAlignment = HorizontalAlignment.Left,
                 Margin = new Thickness(0, 10, 0, 10),
-                BorderThickness = new Thickness(1),
-                Cursor = System.Windows.Input.Cursors.Hand
+                Cursor = System.Windows.Input.Cursors.Hand,
+                Style = (Style)Application.Current.Resources["ModernButtonStyle"]
             };
-            // 尝试应用默认按钮样式以确保可见性
-            rebuildEverythingButton.SetResourceReference(Control.BackgroundProperty, "SystemControlBackgroundChromeMediumLowBrush");
 
             rebuildEverythingButton.Click += (s, e) =>
             {
@@ -171,7 +171,9 @@ namespace OoiMRR.Controls.Settings
             {
                 Header = "全文索引状态",
                 Margin = new Thickness(0, 0, 0, 24),
-                Padding = new Thickness(10)
+                Padding = new Thickness(10),
+                Background = Brushes.Transparent,
+                BorderThickness = new Thickness(0)
             };
             var statusStack = new StackPanel();
 
@@ -201,7 +203,12 @@ namespace OoiMRR.Controls.Settings
             Grid.SetColumn(_indexLocationText, 1);
             indexLocationGrid.Children.Add(_indexLocationText);
 
-            var changeLocButton = new Button { Content = "更改", Padding = new Thickness(8, 2, 8, 2) };
+            var changeLocButton = new Button
+            {
+                Content = "更改",
+                Padding = new Thickness(8, 2, 8, 2),
+                Style = (Style)Application.Current.Resources["ModernButtonStyle"]
+            };
             changeLocButton.Click += ChangeIndexLocationButton_Click;
             Grid.SetColumn(changeLocButton, 2);
             indexLocationGrid.Children.Add(changeLocButton);
@@ -228,7 +235,9 @@ namespace OoiMRR.Controls.Settings
             {
                 Header = "维护操作",
                 Margin = new Thickness(0, 0, 0, 24),
-                Padding = new Thickness(10)
+                Padding = new Thickness(10),
+                Background = Brushes.Transparent,
+                BorderThickness = new Thickness(0)
             };
             var actionStack = new StackPanel();
 
@@ -245,9 +254,20 @@ namespace OoiMRR.Controls.Settings
             actionStack.Children.Add(_scopeListBox);
 
             var scopeButtons = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 15) };
-            var addScopeButton = new Button { Content = "添加目录", Padding = new Thickness(10, 4, 10, 4), Margin = new Thickness(0, 0, 10, 0) };
+            var addScopeButton = new Button
+            {
+                Content = "添加目录",
+                Padding = new Thickness(10, 4, 10, 4),
+                Margin = new Thickness(0, 0, 10, 0),
+                Style = (Style)Application.Current.Resources["ModernButtonStyle"]
+            };
             addScopeButton.Click += AddScopeButton_Click;
-            var removeScopeButton = new Button { Content = "移除选中", Padding = new Thickness(10, 4, 10, 4) };
+            var removeScopeButton = new Button
+            {
+                Content = "移除选中",
+                Padding = new Thickness(10, 4, 10, 4),
+                Style = (Style)Application.Current.Resources["ModernButtonStyle"]
+            };
             removeScopeButton.Click += RemoveScopeButton_Click;
             scopeButtons.Children.Add(addScopeButton);
             scopeButtons.Children.Add(removeScopeButton);
@@ -258,7 +278,8 @@ namespace OoiMRR.Controls.Settings
                 Content = "重建索引",
                 Padding = new Thickness(16, 8, 16, 8),
                 HorizontalAlignment = HorizontalAlignment.Left,
-                Margin = new Thickness(0, 0, 0, 10)
+                Margin = new Thickness(0, 0, 0, 10),
+                Style = (Style)Application.Current.Resources["ModernButtonStyle"]
             };
             _rebuildIndexButton.Click += RebuildIndexButton_Click;
             actionStack.Children.Add(_rebuildIndexButton);
@@ -304,6 +325,8 @@ namespace OoiMRR.Controls.Settings
                     }
                 });
                 LoadScopeList();
+                // 触发后台索引
+                OoiMRR.Services.FullTextSearch.FullTextSearchService.Instance.StartBackgroundIndexing();
             }
         }
 
@@ -485,6 +508,12 @@ namespace OoiMRR.Controls.Settings
             if (_isLoadingSettings) return;
             SaveSettings();
             SettingsChanged?.Invoke(this, EventArgs.Empty);
+
+            // 如果刚刚启用了 FTS，尝试启动索引
+            if (_enableFtsCheckBox.IsChecked == true)
+            {
+                OoiMRR.Services.FullTextSearch.FullTextSearchService.Instance.StartBackgroundIndexing();
+            }
         }
 
         private async void RebuildIndexButton_Click(object sender, RoutedEventArgs e)

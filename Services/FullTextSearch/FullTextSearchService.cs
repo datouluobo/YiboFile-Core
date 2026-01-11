@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using OoiMRR.Services.Config;
 
 namespace OoiMRR.Services.FullTextSearch
@@ -109,6 +110,50 @@ namespace OoiMRR.Services.FullTextSearch
         /// 清空索引
         /// </summary>
         public void ClearIndex() => _ftsService.ClearIndex();
+
+        /// <summary>
+        /// 启动后台自动索引（扫描配置的路径）
+        /// </summary>
+        public void StartBackgroundIndexing()
+        {
+            var config = ConfigurationService.Instance.GetSnapshot();
+            if (!config.IsEnableFullTextSearch) return;
+
+            // 如果正在运行，则跳过（简单防重入）
+            if (_indexingService.IsRunning) return;
+
+            Task.Run(async () =>
+            {
+                try
+                {
+                    IEnumerable<string> scanPaths;
+
+                    if (config.FullTextIndexPaths != null && config.FullTextIndexPaths.Count > 0)
+                    {
+                        scanPaths = config.FullTextIndexPaths.ToList(); // 复制列表防止迭代修改
+                    }
+                    else
+                    {
+                        // 默认扫描所有库
+                        var libraries = OoiMRR.DatabaseManager.GetAllLibraries();
+                        scanPaths = libraries?.SelectMany(l => l.Paths ?? Enumerable.Empty<string>()) ?? Enumerable.Empty<string>();
+                    }
+
+                    foreach (var path in scanPaths)
+                    {
+                        if (System.IO.Directory.Exists(path))
+                        {
+                            // 递归索引
+                            await _indexingService.StartIndexingAsync(path, recursive: true);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[FullTextSearchService] Auto indexing error: {ex.Message}");
+                }
+            });
+        }
 
         public void Dispose()
         {

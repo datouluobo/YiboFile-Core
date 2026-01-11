@@ -65,8 +65,8 @@
                         <ListBoxItem Tag="FileList">文件列表</ListBoxItem>
                         <ListBoxItem Tag="Path">路径</ListBoxItem>
                         <ListBoxItem Tag="Library">库</ListBoxItem>
-                        <ListBoxItem Tag="Tag">标签</ListBoxItem>
-                        <ListBoxItem Tag="TagTrain">TagTrain</ListBoxItem>
+                        <!-- <ListBoxItem Tag="Tag">标签</ListBoxItem> -->
+                        <!-- <ListBoxItem Tag="TagTrain">TagTrain</ListBoxItem> -->
                         <ListBoxItem Tag="Hotkeys">快捷键</ListBoxItem>
                     </ListBox>
                 </ScrollViewer>

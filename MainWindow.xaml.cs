@@ -51,9 +51,7 @@ namespace OoiMRR
         internal List<FileSystemItem> _currentFiles = new List<FileSystemItem>();
 
         private DragDropManager _dragDropManager;
-        private System.Windows.Point _mouseDownPoint;
-        private bool _isMouseDownOnListView = false;
-        private bool _isMouseDownOnColumnHeader = false;
+
         internal Library _currentLibrary = null;
         internal Tag _currentTagFilter = null;
         internal bool _isUpdatingTagSelection = false;
@@ -88,10 +86,13 @@ namespace OoiMRR
 
         // 事件处理器
         internal Handlers.FileBrowserEventHandler _fileBrowserEventHandler;
+        internal Handlers.FileListEventHandler _mainFileListHandler;
+        internal Handlers.FileListEventHandler _secondFileListHandler;
         internal Handlers.MenuEventHandler _menuEventHandler;
         internal Handlers.KeyboardEventHandler _keyboardEventHandler;
         internal Handlers.MouseEventHandler _mouseEventHandler;
         internal Handlers.ColumnInteractionHandler _columnInteractionHandler;
+        internal Handlers.ColumnInteractionHandler _secondColumnInteractionHandler;
         internal Handlers.WindowLifecycleHandler _windowLifecycleHandler;
         internal Handlers.FileOperationHandler _fileOperationHandler;
         private SelectionEventHandler _selectionEventHandler;
@@ -485,22 +486,7 @@ namespace OoiMRR
             }
         }
 
-        internal void FilesListView_PreviewMouseDoubleClick(object sender, MouseButtonEventArgs e)
-        {
-            // 如果双击发生在列头或分隔线，拦截，不进行文件/文件夹打开
-            var src = e.OriginalSource as DependencyObject;
-            if (src != null)
-            {
-                if (FindAncestor<GridViewColumnHeader>(src) != null ||
-                    FindAncestor<System.Windows.Controls.Primitives.Thumb>(src) != null)
-                {
-                    e.Handled = true;
-                    return;
-                }
-            }
-            // Preview 事件优先处理
-            HandleDoubleClick(e);
-        }
+
 
 
 

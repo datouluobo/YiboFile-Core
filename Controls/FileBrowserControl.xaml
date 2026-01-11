@@ -171,9 +171,9 @@
                 
                 <!-- 搜索/筛选按钮 -->
                 <StackPanel Grid.Column="6" Orientation="Horizontal">
-                    <Button Name="FilterBtn" Content="{DynamicResource Icon_Filter}" FontFamily="{DynamicResource IconFontFamily}" FontSize="14"
+                    <Button Name="FilterBtn" Content="&#xE71C;" FontFamily="Segoe MDL2 Assets" FontSize="12"
                             Click="FilterBtn_Click"
-                            Style="{StaticResource ModernToolbarButtonStyle}" ToolTip="筛选和选项"/>
+                            Style="{StaticResource ModernToolbarButtonStyle}" ToolTip="筛选"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -216,5 +216,14 @@
                 BorderBrush="Transparent"
                 IsHitTestVisible="False"
                 Panel.ZIndex="1000"/>
+
+        <!-- 筛选弹出面板 -->
+        <Popup x:Name="FilterPopup" PlacementTarget="{Binding ElementName=FilterBtn}" 
+               StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade"
+               Placement="Bottom" VerticalOffset="4">
+            <Border Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8" Effect="{DynamicResource DropShadowEffect}">
+                <controls:FilterPanel x:Name="FilterPanelControl"/>
+            </Border>
+        </Popup>
     </Grid>
 </UserControl>

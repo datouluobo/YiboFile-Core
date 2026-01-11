@@ -202,6 +202,9 @@ namespace OoiMRR.Services
                     _mainWindow._windowLifecycleHandler?.AdjustColumnWidths();
                 }, System.Windows.Threading.DispatcherPriority.Loaded);
 
+                // 启动全文搜索后台索引（如果启用）
+                OoiMRR.Services.FullTextSearch.FullTextSearchService.Instance.StartBackgroundIndexing();
+
                 FileLogger.Log("ApplyInitialState completed.");
             }
             catch (Exception ex)
