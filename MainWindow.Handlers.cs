@@ -402,11 +402,9 @@ namespace OoiMRR
                 () => WindowMaximize_Click(null, null),
                 () => DragMove(),
                 () => FavoritesListBox,
-                () => DrivesListBox,
                 () => QuickAccessListBox,
                 _navigationCoordinator,
                 (fav) => _navigationCoordinator.HandleFavoriteNavigation(fav, NavigationCoordinator.ClickType.LeftClick),
-                (drivePath) => _navigationCoordinator.HandlePathNavigation(drivePath, NavigationCoordinator.NavigationSource.Drive, NavigationCoordinator.ClickType.LeftClick),
                 (path) => _navigationCoordinator.HandlePathNavigation(path, NavigationCoordinator.NavigationSource.QuickAccess, NavigationCoordinator.ClickType.LeftClick)
             );
 
@@ -497,22 +495,7 @@ namespace OoiMRR
             }
         }
 
-        private void DrivesListBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
-        {
-            var listBox = sender as ListBox;
-            if (listBox == null) return;
 
-            var clickType = NavigationCoordinator.GetClickType(e);
-            if (clickType == NavigationCoordinator.ClickType.LeftClick) return; // 左键由SelectionChanged处理
-
-            var path = ExtractPathFromListBoxItem(listBox, e.GetPosition(listBox));
-            if (!string.IsNullOrEmpty(path))
-            {
-                _navigationService.LastLeftNavSource = "Drive";
-                _navigationCoordinator.HandlePathNavigation(path, NavigationCoordinator.NavigationSource.Drive, clickType);
-                e.Handled = true;
-            }
-        }
 
         private void QuickAccessListBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {

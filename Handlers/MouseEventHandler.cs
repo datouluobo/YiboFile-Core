@@ -15,32 +15,27 @@ namespace OoiMRR.Handlers
         private readonly Action _windowMaximizeClick;
         private readonly Action _windowDragMove;
         private readonly Func<ListBox> _getFavoritesListBox;
-        private readonly Func<ListBox> _getDrivesListBox;
         private readonly Func<ListBox> _getQuickAccessListBox;
         private readonly NavigationCoordinator _navigationCoordinator;
         private readonly Action<Favorite> _handleFavoriteNavigation;
-        private readonly Action<string> _handleDriveNavigation;
         private readonly Action<string> _handleQuickAccessNavigation;
 
         public MouseEventHandler(
             Action windowMaximizeClick,
             Action windowDragMove,
             Func<ListBox> getFavoritesListBox,
-            Func<ListBox> getDrivesListBox,
+
             Func<ListBox> getQuickAccessListBox,
             NavigationCoordinator navigationCoordinator,
             Action<Favorite> handleFavoriteNavigation,
-            Action<string> handleDriveNavigation,
             Action<string> handleQuickAccessNavigation)
         {
             _windowMaximizeClick = windowMaximizeClick ?? throw new ArgumentNullException(nameof(windowMaximizeClick));
             _windowDragMove = windowDragMove ?? throw new ArgumentNullException(nameof(windowDragMove));
             _getFavoritesListBox = getFavoritesListBox ?? throw new ArgumentNullException(nameof(getFavoritesListBox));
-            _getDrivesListBox = getDrivesListBox ?? throw new ArgumentNullException(nameof(getDrivesListBox));
             _getQuickAccessListBox = getQuickAccessListBox ?? throw new ArgumentNullException(nameof(getQuickAccessListBox));
             _navigationCoordinator = navigationCoordinator ?? throw new ArgumentNullException(nameof(navigationCoordinator));
             _handleFavoriteNavigation = handleFavoriteNavigation ?? throw new ArgumentNullException(nameof(handleFavoriteNavigation));
-            _handleDriveNavigation = handleDriveNavigation ?? throw new ArgumentNullException(nameof(handleDriveNavigation));
             _handleQuickAccessNavigation = handleQuickAccessNavigation ?? throw new ArgumentNullException(nameof(handleQuickAccessNavigation));
         }
 
@@ -93,29 +88,7 @@ namespace OoiMRR.Handlers
             }
         }
 
-        public void DrivesListBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
-        {
-            var listBox = sender as ListBox;
-            if (listBox == null) return;
 
-            var clickType = NavigationCoordinator.GetClickType(e);
-            if (clickType == NavigationCoordinator.ClickType.LeftClick) return; // 左键由SelectionChanged处理
-
-            var hitResult = System.Windows.Media.VisualTreeHelper.HitTest(listBox, e.GetPosition(listBox));
-            if (hitResult == null) return;
-
-            DependencyObject current = hitResult.VisualHit;
-            while (current != null && current != listBox)
-            {
-                if (current is ListBoxItem item && item.DataContext is string drivePath)
-                {
-                    e.Handled = true;
-                    _handleDriveNavigation(drivePath);
-                    return;
-                }
-                current = System.Windows.Media.VisualTreeHelper.GetParent(current);
-            }
-        }
 
         public void QuickAccessListBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {

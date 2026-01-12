@@ -11,7 +11,7 @@ using OoiMRR.Services.Favorite;
 using OoiMRR.Services.QuickAccess;
 using OoiMRR.Services.FileList;
 using OoiMRR.Services.Search;
-using OoiMRR.Services.Search;
+
 using OoiMRR.Services.FileNotes;
 using OoiMRR.Services.Tabs;
 using OoiMRR.Services.ColumnManagement;

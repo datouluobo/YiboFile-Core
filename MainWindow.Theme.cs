@@ -29,13 +29,13 @@ namespace OoiMRR
                     // 重新加载快速访问、驱动器和收藏列表以刷新图标
                     if (QuickAccessListBox != null)
                         _quickAccessService?.LoadQuickAccess(QuickAccessListBox);
-                    if (DrivesListBox != null)
-                        _quickAccessService?.LoadDrives(DrivesListBox, _fileListService.FormatFileSize);
+                    if (DrivesTreeView != null)
+                        _quickAccessService?.LoadDriveTree(DrivesTreeView, _fileListService.FormatFileSize);
                     if (FavoritesListBox != null)
                         _favoriteService?.LoadFavorites(FavoritesListBox);
                 }
                 catch (Exception ex)
-                {                }
+                { }
             }), System.Windows.Threading.DispatcherPriority.Loaded);
         }
     }

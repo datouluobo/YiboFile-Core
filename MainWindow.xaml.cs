@@ -125,7 +125,8 @@ namespace OoiMRR
         // NavigationPanelControl控件的便捷访问属性
         // 改为 internal 以便 NavigationUIHelper 可以访问
         internal ListBox LibrariesListBox => NavigationPanelControl?.LibrariesListBoxControl;
-        internal ListBox DrivesListBox => NavigationPanelControl?.DrivesListBoxControl;
+        internal TreeView DrivesTreeView => NavigationPanelControl?.DrivesTreeViewControl;
+        // Obsolete: internal ListBox DrivesListBox => NavigationPanelControl?.DrivesListBoxControl;
         internal ListBox QuickAccessListBox => NavigationPanelControl?.QuickAccessListBoxControl;
         internal ListBox FavoritesListBox => NavigationPanelControl?.FavoritesListBoxControl;
         internal Grid NavPathContent => NavigationPanelControl?.NavPathContentControl;
@@ -839,9 +840,9 @@ namespace OoiMRR
         /// <param name="exceptSource">不清除哪个源 ("Drives", "QuickAccess", "Favorites")</param>
         private void ClearOtherNavigationSelections(string exceptSource)
         {
-            if (exceptSource != "Drives" && DrivesListBox != null)
+            if (exceptSource != "Drives")
             {
-                DrivesListBox.SelectedItem = null;
+                ClearDriveSelection();
             }
             if (exceptSource != "QuickAccess" && QuickAccessListBox != null)
             {

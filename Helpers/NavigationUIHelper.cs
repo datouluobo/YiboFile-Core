@@ -23,7 +23,7 @@ namespace OoiMRR.Helpers
 
         public IEnumerable GetDrivesListItems()
         {
-            return _mainWindow.DrivesListBox?.Items;
+            return _mainWindow.DrivesTreeView?.ItemsSource;
         }
 
         public IEnumerable GetQuickAccessListItems()
@@ -43,12 +43,25 @@ namespace OoiMRR.Helpers
 
         public void SetItemHighlight(string listType, object item, bool highlight)
         {
+            // Special handling for Drive TreeView
+            if (listType == "Drive")
+            {
+                var treeView = _mainWindow.DrivesTreeView;
+                if (treeView == null || item == null) return;
+
+                // Simple handling for root items for now. 
+                // Recursive finding of TreeViewItems is complex and might be better handled by a TreeView-specific helper later.
+                var container = treeView.ItemContainerGenerator.ContainerFromItem(item) as TreeViewItem;
+                if (container != null)
+                {
+                    UpdateContainerTag(container, highlight);
+                }
+                return;
+            }
+
             ListBox listBox = null;
             switch (listType)
             {
-                case "Drive":
-                    listBox = _mainWindow.DrivesListBox;
-                    break;
                 case "QuickAccess":
                     listBox = _mainWindow.QuickAccessListBox;
                     break;
@@ -67,24 +80,7 @@ namespace OoiMRR.Helpers
                 var container = listBox.ItemContainerGenerator.ContainerFromItem(item) as ListBoxItem;
                 if (container != null)
                 {
-                    if (highlight)
-                    {
-                        // 检查是否已经高亮，避免重复设置
-                        if (container.Tag as string == "Match")
-                            return;
-
-                        // 只设置 Tag，让样式触发器处理视觉效果
-                        container.Tag = "Match";
-                    }
-                    else
-                    {
-                        // 清除匹配高亮
-                        var tag = container.Tag as string;
-                        if (tag == "Match")
-                        {
-                            container.Tag = null;
-                        }
-                    }
+                    UpdateContainerTag(container, highlight);
                 }
                 else
                 {
@@ -94,21 +90,7 @@ namespace OoiMRR.Helpers
                         var retryContainer = listBox.ItemContainerGenerator.ContainerFromItem(item) as ListBoxItem;
                         if (retryContainer != null)
                         {
-                            if (highlight)
-                            {
-                                if (retryContainer.Tag as string == "Match")
-                                    return;
-
-                                retryContainer.Tag = "Match";
-                            }
-                            else
-                            {
-                                var tag = retryContainer.Tag as string;
-                                if (tag == "Match")
-                                {
-                                    retryContainer.Tag = null;
-                                }
-                            }
+                            UpdateContainerTag(retryContainer, highlight);
                         }
                     }), System.Windows.Threading.DispatcherPriority.Background);
                 }
@@ -118,14 +100,38 @@ namespace OoiMRR.Helpers
             }
         }
 
+        private void UpdateContainerTag(FrameworkElement container, bool highlight)
+        {
+            if (highlight)
+            {
+                if (container.Tag as string == "Match") return;
+                container.Tag = "Match";
+            }
+            else
+            {
+                if (container.Tag as string == "Match") container.Tag = null;
+            }
+        }
+
         public void ClearListBoxHighlights(string listType)
         {
+            if (listType == "Drive")
+            {
+                // For TreeView, we need to iterate differently. 
+                // Assuming flat search highlighting for now, or just clearing root interactions.
+                // This is a placeholder as full recursive clearing would be needed.
+                var treeView = _mainWindow.DrivesTreeView;
+                if (treeView?.ItemsSource == null) return;
+                foreach (var item in treeView.ItemsSource)
+                {
+                    SetItemHighlight(listType, item, false);
+                }
+                return;
+            }
+
             ListBox listBox = null;
             switch (listType)
             {
-                case "Drive":
-                    listBox = _mainWindow.DrivesListBox;
-                    break;
                 case "QuickAccess":
                     listBox = _mainWindow.QuickAccessListBox;
                     break;

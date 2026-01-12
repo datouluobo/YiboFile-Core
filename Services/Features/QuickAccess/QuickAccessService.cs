@@ -121,7 +121,56 @@ namespace OoiMRR.Services.QuickAccess
         }
 
         /// <summary>
-        /// 加载驱动器列表
+        /// 加载驱动器树状列表
+        /// </summary>
+        public void LoadDriveTree(TreeView treeView, Func<long, string> formatFileSize)
+        {
+            if (treeView == null) return;
+
+            _dispatcher.Invoke(() =>
+            {
+                try
+                {
+                    var items = new System.Collections.ObjectModel.ObservableCollection<OoiMRR.Services.Navigation.NavigationItem>();
+
+                    var drives = DriveInfo.GetDrives().Where(d => d.IsReady).ToList();
+                    foreach (var drive in drives)
+                    {
+                        long usedSize = drive.TotalSize - drive.AvailableFreeSpace;
+                        double usagePercentage = drive.TotalSize > 0 ? (double)usedSize / drive.TotalSize : 0;
+
+                        var item = new OoiMRR.Services.Navigation.NavigationItem
+                        {
+                            Header = $"{drive.Name} ({drive.VolumeLabel})",
+                            Path = drive.Name,
+                            IsDrive = true,
+                            IconKey = "Icon_Drive",
+                            TotalSize = drive.TotalSize,
+                            UsedSize = usedSize,
+                            UsagePercentage = usagePercentage,
+                            UsageText = $"{formatFileSize(usedSize)} / {formatFileSize(drive.TotalSize)}",
+                            ToolTip = $"总空间: {formatFileSize(drive.TotalSize)}\n可用空间: {formatFileSize(drive.AvailableFreeSpace)}"
+                        };
+
+                        // 默认添加 dummy child 以显示展开箭头（所有驱动器都可能有子文件夹）
+                        item.AddDummyChild();
+
+                        items.Add(item);
+                    }
+
+                    treeView.ItemsSource = items;
+
+                    // 事件绑定应该在 XAML 或 View 代码中处理，这里仅绑定数据源
+                }
+                catch
+                {
+                    treeView.ItemsSource = null;
+                }
+            });
+        }
+
+        /// <summary>
+        /// 加载驱动器列表 (Legacy ListBox support)
         /// </summary>
         public void LoadDrives(ListBox drivesListBox, Func<long, string> formatFileSize)
         {

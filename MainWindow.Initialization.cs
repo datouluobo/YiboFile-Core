@@ -466,7 +466,8 @@ namespace OoiMRR
             if (NavigationPanelControl != null)
             {
                 NavigationPanelControl.LibrariesListBoxPreviewMouseDown += LibrariesListBox_PreviewMouseDown;
-                NavigationPanelControl.DrivesListBoxPreviewMouseDown += DrivesListBox_PreviewMouseDown;
+                NavigationPanelControl.DrivesTreeViewItemClick += DrivesTreeViewItem_Click;
+                // NavigationPanelControl.DrivesListBoxPreviewMouseDown += DrivesListBox_PreviewMouseDown;
                 NavigationPanelControl.QuickAccessListBoxPreviewMouseDown += QuickAccessListBox_PreviewMouseDown;
                 NavigationPanelControl.FavoritesListBoxPreviewMouseDown += FavoritesListBox_PreviewMouseDown;
                 NavigationPanelControl.LibrariesListBoxSelectionChanged += LibrariesListBox_SelectionChanged;
