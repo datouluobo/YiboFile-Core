@@ -204,6 +204,11 @@ namespace OoiMRR.Services.Search
                     doNameSearch = true; // 标签搜索需要先获取文件列表
                     doNotesSearch = false;
                 }
+                else if (mode == SearchMode.Folder)
+                {
+                    doNameSearch = true;
+                    doNotesSearch = false;
+                }
                 else if (mode == SearchMode.Notes)
                 {
                     doNameSearch = false;

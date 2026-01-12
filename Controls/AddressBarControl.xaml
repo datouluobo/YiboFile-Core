@@ -3,13 +3,20 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:controls="clr-namespace:OoiMRR.Controls"
              mc:Ignorable="d" 
              d:DesignHeight="30" d:DesignWidth="800">
+    <UserControl.Resources>
+        <controls:HistoryTypeToIconConverter x:Key="HistoryTypeToIconConverter"/>
+        <controls:HistoryTypeToTextConverter x:Key="HistoryTypeToTextConverter"/>
+    </UserControl.Resources>
+    
     <Grid>
         <!-- 编辑模式容器 -->
         <Grid x:Name="EditModeContainer" Visibility="Collapsed">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
@@ -66,7 +73,90 @@
                     </Style>
                 </ToggleButton.Style>
             </ToggleButton>
+
+            <!-- 历史记录下拉按钮 -->
+            <ToggleButton x:Name="HistoryDropdownButton"
+                          Grid.Column="2"
+                          Width="20"
+                          Height="30"
+                          BorderThickness="0"
+                          Background="Transparent"
+                          Focusable="False"
+                          Click="HistoryDropdownButton_Click"
+                          Content="▼"
+                          FontSize="10">
+                <ToggleButton.Style>
+                    <Style TargetType="ToggleButton">
+                        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+                                <Setter Property="Background" Value="{DynamicResource ButtonHoverBackgroundBrush}"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </ToggleButton.Style>
+            </ToggleButton>
         </Grid>
+
+        <!-- 历史记录弹出窗口 -->
+        <Popup x:Name="HistoryPopup" 
+               PlacementTarget="{Binding ElementName=EditModeContainer}"
+               StaysOpen="True"
+               AllowsTransparency="True"
+               PopupAnimation="Fade"
+               Placement="Bottom"
+               VerticalOffset="4">
+            <Border Background="{DynamicResource AppBackgroundBrush}" 
+                    BorderBrush="{DynamicResource BorderBrush}" 
+                    BorderThickness="1" 
+                    CornerRadius="4" 
+                    Effect="{DynamicResource DropShadowEffect}"
+                    Width="{Binding PlacementTarget.ActualWidth, RelativeSource={RelativeSource AncestorType=Popup}}"
+                    MaxHeight="300">
+                <ListBox x:Name="HistoryListBox"
+                         BorderThickness="0"
+                         Background="Transparent"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         PreviewKeyDown="HistoryListBox_PreviewKeyDown"
+                         PreviewMouseLeftButtonUp="HistoryListBox_PreviewMouseLeftButtonUp">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="0,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="24"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <!-- 图标 -->
+                                <TextBlock Grid.Column="0" 
+                                           FontFamily="{DynamicResource IconFontFamily}" 
+                                           FontSize="14" 
+                                           VerticalAlignment="Center"
+                                           HorizontalAlignment="Center"
+                                           Text="{Binding Type, Converter={StaticResource HistoryTypeToIconConverter}}"/>
+
+                                <!-- 内容 -->
+                                <TextBlock Grid.Column="1" 
+                                           Text="{Binding Content}" 
+                                           VerticalAlignment="Center" 
+                                           TextTrimming="CharacterEllipsis"
+                                           Margin="4,0"/>
+                                
+                                <!-- 类型提示 -->
+                                <TextBlock Grid.Column="2"
+                                           Text="{Binding Type, Converter={StaticResource HistoryTypeToTextConverter}}"
+                                           FontSize="10"
+                                           Foreground="{DynamicResource TextTertiaryBrush}"
+                                           VerticalAlignment="Center"
+                                           Margin="8,0,4,0"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Border>
+        </Popup>
         
         <!-- 面包屑导航（默认显示） -->
         <Border Name="BreadcrumbContainer"

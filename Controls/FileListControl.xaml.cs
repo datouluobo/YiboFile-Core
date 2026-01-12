@@ -120,6 +120,13 @@ namespace OoiMRR.Controls
                 FilesListView.PreviewMouseWheel += FilesListView_PreviewMouseWheel;
             }
 
+            // 重新添加列头点击事件捕获 (因为 Style 中的 EventSetter 被移除了)
+            // 现在通过 XAML 中的 EventSetter 恢复了原生处理，无需手动 AddHandler
+            // if (FilesListView != null)
+            // {
+            //     FilesListView.AddHandler(GridViewColumnHeader.ClickEvent, new RoutedEventHandler(ColumnHeader_Click), true);
+            // }
+
             // 订阅加载更多按钮事件
             if (LoadMoreBtn != null)
             {
@@ -314,12 +321,14 @@ namespace OoiMRR.Controls
                 EmptyStateTextControl.Text = message;
                 EmptyStateTextControl.Visibility = Visibility.Visible;
             }
+            if (FilesListView != null) FilesListView.Visibility = Visibility.Collapsed;
         }
 
         public void HideEmptyState()
         {
             if (EmptyStateTextControl != null)
                 EmptyStateTextControl.Visibility = Visibility.Collapsed;
+            if (FilesListView != null) FilesListView.Visibility = Visibility.Visible;
         }
 
         // 选中的项
@@ -519,6 +528,7 @@ namespace OoiMRR.Controls
 
         private void ColumnHeader_Click(object sender, RoutedEventArgs e)
         {
+            // 通过 EventSetter 调用时，sender 就是 GridViewColumnHeader
             if (sender is GridViewColumnHeader header)
             {
                 GridViewColumnHeaderClick?.Invoke(header, e);

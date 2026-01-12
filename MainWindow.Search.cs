@@ -153,20 +153,14 @@ namespace OoiMRR
                         getNotesFromDb: searchNotes ? (Func<string, List<string>>)(keyword => FileNotesService.SearchFilesByNotes(keyword)) : null
                     );
 
-                    if (searchResult == null || searchResult.Items == null || searchResult.Items.Count == 0)
+                    var results = (searchResult?.Items) ?? new List<FileSystemItem>();
+                    var groupedItems = searchResult?.GroupedItems;
+
+                    if (results.Count == 0)
                     {
                         Debug.WriteLine("搜索结果为空");
-                        // 结果为空：显示列表内空状态，隐藏顶栏状态
-                        if (FileBrowser != null)
-                        {
-                            FileBrowser.ShowEmptyState("未找到匹配项");
-                            FileBrowser.SetSearchStatus(false);
-                        }
-                        return;
+                        // Can show a toast or status, but we should proceed to open the tab to show "0 results"
                     }
-
-                    var results = searchResult.Items;
-                    var groupedItems = searchResult.GroupedItems;
 
                     Debug.WriteLine($"搜索完成，共找到 {results.Count} 个结果");
                     FileBrowser?.SetSearchStatus(true, $"找到 {results.Count} 个结果");
@@ -194,6 +188,8 @@ namespace OoiMRR
                             else
                             {
                                 FileBrowser.FilesItemsSource = results;
+                                if (results.Count == 0) FileBrowser.ShowEmptyState("未找到匹配项");
+                                else FileBrowser.HideEmptyState();
                             }
                             // 确保地址栏和面包屑显示规范化关键词
                             FileBrowser.SetSearchBreadcrumb(normalizedKeyword);
@@ -222,6 +218,8 @@ namespace OoiMRR
                             {
                                 Debug.WriteLine($"[PerformSearch] 设置 FilesItemsSource，结果数: {results.Count}");
                                 FileBrowser.FilesItemsSource = results;
+                                if (results.Count == 0) FileBrowser.ShowEmptyState("未找到匹配项");
+                                else FileBrowser.HideEmptyState();
                             }
                             FileBrowser.SetSearchBreadcrumb(normalizedKeyword);
                             FileBrowser.AddressText = normalizedKeyword;

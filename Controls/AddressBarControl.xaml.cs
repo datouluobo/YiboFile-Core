@@ -5,6 +5,10 @@ using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Globalization;
+using System.Windows.Data;
+using OoiMRR.Services.Search;
+using OoiMRR.Services.Config;
 
 namespace OoiMRR.Controls
 {
@@ -534,6 +538,10 @@ namespace OoiMRR.Controls
                 }
 
                 PathChanged?.Invoke(this, path);
+
+                // 记录历史
+                RecordHistory(path);
+
                 SwitchToBreadcrumbMode();
                 e.Handled = true;
             }
@@ -643,6 +651,25 @@ namespace OoiMRR.Controls
                         }
                         e.Handled = true;
                         break;
+                }
+                if (e.Key == Key.Down)
+                {
+                    if (!HistoryPopup.IsOpen)
+                    {
+                        ShowHistoryPopup();
+                    }
+
+                    if (HistoryPopup.IsOpen && HistoryListBox.Items.Count > 0)
+                    {
+                        // 选中第一项并聚焦列表
+                        HistoryListBox.SelectedIndex = 0;
+                        HistoryListBox.Focus();
+
+                        // 尝试聚焦到具体Item容器(如果有必要)
+                        var item = HistoryListBox.ItemContainerGenerator.ContainerFromIndex(0) as ListBoxItem;
+                        item?.Focus();
+                    }
+                    e.Handled = true;
                 }
             }
             else if (e.Key == Key.F5)
@@ -794,24 +821,150 @@ namespace OoiMRR.Controls
 
         private void AddressTextBox_LostFocus(object sender, RoutedEventArgs e)
         {
-            // 如果路径没有改变，切换回面包屑模式
-            if (AddressTextBox.Text.Trim() == _currentPath)
+            // 使用 Dispatcher 延迟执行，以便检查焦点是否移动到了弹出窗口内部
+            Dispatcher.BeginInvoke(new Action(() =>
             {
-                SwitchToBreadcrumbMode();
-            }
-            else
-            {
-                // 路径改变了，但用户没有按Enter，询问是否导航？
-                // 或者直接切换回面包屑模式，保持原路径
-                AddressTextBox.Text = _currentPath;
-                SwitchToBreadcrumbMode();
-            }
+                // 如果焦点在历史记录弹出窗口内，或者点击的是下拉按钮，不关闭
+                if (HistoryPopup.IsOpen && (HistoryPopup.IsKeyboardFocusWithin || HistoryListBox.IsKeyboardFocusWithin))
+                {
+                    return;
+                }
+
+                // 只有当点击发生在 UserControl 外部时才关闭 Popup
+                // 由于 StaysOpen=True，我们需要手动处理关闭。
+                // 这里的 LostFocus 这意味着焦点离开了 TextBox。
+                // 如果焦点没有去 Popup，也不在 AddressBarControl 内部，则关闭。
+                if (!this.IsKeyboardFocusWithin)
+                {
+                    HistoryPopup.IsOpen = false;
+                }
+
+                // 如果路径没有改变，切换回面包屑模式
+                if (AddressTextBox.Text.Trim() == _currentPath)
+                {
+                    SwitchToBreadcrumbMode();
+                }
+                else
+                {
+                    // 路径改变了，但用户没有按Enter，询问是否导航？
+                    // 或者直接切换回面包屑模式，保持原路径
+                    AddressTextBox.Text = _currentPath;
+                    SwitchToBreadcrumbMode();
+                }
+            }));
         }
 
         private void AddressTextBox_GotFocus(object sender, RoutedEventArgs e)
         {
             // 获得焦点时选中所有文本
             AddressTextBox.SelectAll();
+
+            // 自动展开历史记录（如果设置启用）
+            if (ConfigurationService.Instance.GetSnapshot().AutoExpandHistory)
+            {
+                // 使用 Dispatcher 延迟打开，防止鼠标点击事件被误判为"点击外部"导致立即关闭
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    if (AddressTextBox.IsFocused)
+                    {
+                        ShowHistoryPopup();
+                    }
+                }), System.Windows.Threading.DispatcherPriority.Input);
+            }
+        }
+
+        private void HistoryDropdownButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (HistoryPopup.IsOpen)
+            {
+                HistoryPopup.IsOpen = false;
+            }
+            else
+            {
+                // Ensure TextBox has focus so typing works immediately
+                AddressTextBox.Focus();
+                ShowHistoryPopup();
+            }
+        }
+
+        private void ShowHistoryPopup()
+        {
+            var historyItems = SearchHistoryService.Instance.GetRecent();
+            if (historyItems.Count > 0)
+            {
+                HistoryListBox.ItemsSource = historyItems;
+                HistoryPopup.IsOpen = true;
+            }
+        }
+
+        private void HistoryListBox_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            var item = (e.OriginalSource as FrameworkElement)?.DataContext as HistoryItem;
+            if (item != null)
+            {
+                NavigateToHistoryItem(item);
+                e.Handled = true;
+            }
+        }
+
+        private void HistoryListBox_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                var item = HistoryListBox.SelectedItem as HistoryItem;
+                if (item != null)
+                {
+                    NavigateToHistoryItem(item);
+                    e.Handled = true;
+                }
+            }
+            else if (e.Key == Key.Escape)
+            {
+                HistoryPopup.IsOpen = false;
+                AddressTextBox.Focus();
+                e.Handled = true;
+            }
+        }
+
+        private void NavigateToHistoryItem(HistoryItem item)
+        {
+            HistoryPopup.IsOpen = false;
+
+            string path = item.Content;
+            if (item.Type == HistoryType.FullTextSearch && !path.StartsWith("content://", StringComparison.OrdinalIgnoreCase))
+            {
+                path = "content://" + path;
+            }
+            else if (item.Type == HistoryType.Search && !path.StartsWith("search://", StringComparison.OrdinalIgnoreCase))
+            {
+                path = "search://" + path;
+            }
+
+            AddressTextBox.Text = path; // 更新文本框显示
+            PathChanged?.Invoke(this, path); // 触发导航
+            SwitchToBreadcrumbMode();
+        }
+
+        private void RecordHistory(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path)) return;
+
+            HistoryType type = HistoryType.LocalPath;
+            string content = path;
+
+            if (path.StartsWith("content://", StringComparison.OrdinalIgnoreCase))
+            {
+                type = HistoryType.FullTextSearch;
+                content = path.Substring("content://".Length);
+            }
+            else if (path.StartsWith("search://", StringComparison.OrdinalIgnoreCase))
+            {
+                type = HistoryType.Search;
+                content = path.Substring("search://".Length);
+            }
+            // else 默认为 LocalPath
+
+            SearchHistoryService.Instance.Add(content, type);
         }
 
         private static T FindAncestor<T>(DependencyObject current) where T : DependencyObject
@@ -823,6 +976,52 @@ namespace OoiMRR.Controls
                 current = System.Windows.Media.VisualTreeHelper.GetParent(current);
             }
             return null;
+        }
+    }
+
+    public class HistoryTypeToIconConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is HistoryType type)
+            {
+                return type switch
+                {
+                    HistoryType.LocalPath => "\uE838", // Folder icon
+                    HistoryType.Search => "\uE721",    // Search icon
+                    HistoryType.FullTextSearch => "\uE890", // Document Search icon
+                    _ => "\uE838"
+                };
+            }
+            return "";
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    public class HistoryTypeToTextConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is HistoryType type)
+            {
+                return type switch
+                {
+                    HistoryType.LocalPath => "位置",
+                    HistoryType.Search => "搜索",
+                    HistoryType.FullTextSearch => "全文",
+                    _ => ""
+                };
+            }
+            return "";
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
         }
     }
 }

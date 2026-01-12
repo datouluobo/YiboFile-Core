@@ -78,10 +78,11 @@
 
                     <!-- 搜索范围 -->
                     <DockPanel Margin="0,0,0,8" LastChildFill="False">
-                        <TextBlock Text="搜索范围" Style="{StaticResource FilterSectionHeaderStyle}" DockPanel.Dock="Left" VerticalAlignment="Center"/>
+                        <TextBlock Text="筛选范围" Style="{StaticResource FilterSectionHeaderStyle}" DockPanel.Dock="Left" VerticalAlignment="Center"/>
                         <ToggleButton x:Name="ScopeAllBtn" Content="全部" Tag="AllScope" Click="Scope_Click" Style="{StaticResource FilterChipToggleStyle}" DockPanel.Dock="Right" Margin="0"/>
                     </DockPanel>
                     <WrapPanel Orientation="Horizontal" Margin="0,0,0,16">
+                        <ToggleButton x:Name="ScopeFolderBtn" Content="按文件夹" Tag="Folder" Click="Scope_Click" Style="{StaticResource FilterChipToggleStyle}"/>
                         <ToggleButton x:Name="ScopeFilenameBtn" Content="按文件名" Tag="FileName" Click="Scope_Click" Style="{StaticResource FilterChipToggleStyle}"/>
                         <ToggleButton x:Name="ScopeNotesBtn" Content="按备注" Tag="Notes" Click="Scope_Click" Style="{StaticResource FilterChipToggleStyle}"/>
                     </WrapPanel>

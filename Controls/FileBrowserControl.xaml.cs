@@ -78,13 +78,24 @@ namespace OoiMRR.Controls
                 {
                     foreach (GridViewColumn column in FileList.FilesGrid.Columns)
                     {
-                        if (column.Header is GridViewColumnHeader header)
+                        // 记录默认列宽
+                        if (!_columnDefaultWidths.ContainsKey(column))
+                            _columnDefaultWidths[column] = column.Width;
+                    }
+
+                    // 挂载列头点击事件（通过 VisualTree 查找，确保覆盖整个列头区域且解决 Tag 问题）
+                    if (FileList.FilesList != null)
+                    {
+                        if (FileList.FilesList.IsLoaded)
                         {
-                            // 记录默认列宽
-                            if (!_columnDefaultWidths.ContainsKey(column))
-                                _columnDefaultWidths[column] = column.Width;
+                            HookColumnHeaders();
+                        }
+                        else
+                        {
+                            FileList.FilesList.Loaded += (s, e) => HookColumnHeaders();
                         }
                     }
+
                     // 右键菜单：与预览窗口一致的列显示/隐藏
                     SetupFileContextMenu();
                 }
@@ -656,6 +667,62 @@ namespace OoiMRR.Controls
                 current = VisualTreeHelper.GetParent(current);
             }
             return false;
+        }
+        /// <summary>
+        /// 手动挂载列头点击事件
+        /// 此方法通过遍历可视树找到 Visual Header 容器，解决 TextBlock 内容导致点击区域过小和 Tag 丢失的问题
+        /// </summary>
+        private void HookColumnHeaders()
+        {
+            if (FileList?.FilesList == null) return;
+
+            var headers = FindVisualChildren<GridViewColumnHeader>(FileList.FilesList);
+            foreach (var header in headers)
+            {
+                // 移除旧处理程序以防重复
+                header.Click -= Header_Click;
+                header.Click += Header_Click;
+
+                // 尝试修复 Tag 缺失问题（立即修复，防止第一次点击失败）
+                FixHeaderTag(header);
+            }
+        }
+
+        private void Header_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is GridViewColumnHeader header)
+            {
+                FixHeaderTag(header);
+                GridViewColumnHeaderClick?.Invoke(header, e);
+            }
+        }
+
+        private void FixHeaderTag(GridViewColumnHeader header)
+        {
+            if (header.Tag == null && header.Content is FrameworkElement content && content.Tag != null)
+            {
+                header.Tag = content.Tag;
+            }
+        }
+
+        private IEnumerable<T> FindVisualChildren<T>(DependencyObject depObj) where T : DependencyObject
+        {
+            if (depObj != null)
+            {
+                for (int i = 0; i < VisualTreeHelper.GetChildrenCount(depObj); i++)
+                {
+                    DependencyObject child = VisualTreeHelper.GetChild(depObj, i);
+                    if (child != null && child is T t)
+                    {
+                        yield return t;
+                    }
+
+                    foreach (T childOfChild in FindVisualChildren<T>(child))
+                    {
+                        yield return childOfChild;
+                    }
+                }
+            }
         }
     }
 }

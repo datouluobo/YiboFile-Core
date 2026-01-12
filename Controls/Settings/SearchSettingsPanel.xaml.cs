@@ -23,6 +23,11 @@ namespace OoiMRR.Controls.Settings
         private Button _rebuildIndexButton; // Ensure this is declared
         private StackPanel _extensionsPanel; // Ensure this is declared
 
+        // History config
+        private TextBox _historyMaxCountBox;
+        private CheckBox _autoExpandHistoryCheck;
+        private Button _clearHistoryButton;
+
         private bool _isLoadingSettings = false;
 
         public SearchSettingsPanel()
@@ -229,6 +234,75 @@ namespace OoiMRR.Controls.Settings
 
             statusGroup.Content = statusStack;
             stackPanel.Children.Add(statusGroup);
+
+            // 搜索历史区域
+            var historyGroup = new GroupBox
+            {
+                Header = "搜索历史与地址栏",
+                Margin = new Thickness(0, 0, 0, 24),
+                Padding = new Thickness(10),
+                Background = Brushes.Transparent,
+                BorderThickness = new Thickness(0)
+            };
+            var historyStack = new StackPanel();
+
+            // 自动展开
+            _autoExpandHistoryCheck = new CheckBox
+            {
+                Content = "地址栏获得焦点时自动展开历史记录",
+                FontSize = 14,
+                Margin = new Thickness(0, 0, 0, 10),
+                IsChecked = false
+            };
+            _autoExpandHistoryCheck.Checked += (s, e) => OnSettingChanged();
+            _autoExpandHistoryCheck.Unchecked += (s, e) => OnSettingChanged();
+            historyStack.Children.Add(_autoExpandHistoryCheck);
+
+            // 记录数量限制
+            var countGrid = new Grid { Margin = new Thickness(0, 0, 0, 10) };
+            countGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            countGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(100) });
+
+            var countLabel = new TextBlock
+            {
+                Text = "保留历史记录数量:",
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, 10, 0)
+            };
+            Grid.SetColumn(countLabel, 0);
+            countGrid.Children.Add(countLabel);
+
+            _historyMaxCountBox = new TextBox
+            {
+                VerticalContentAlignment = VerticalAlignment.Center,
+                Padding = new Thickness(4)
+            };
+            _historyMaxCountBox.TextChanged += (s, e) => OnSettingChanged();
+            Grid.SetColumn(_historyMaxCountBox, 1);
+            countGrid.Children.Add(_historyMaxCountBox);
+
+            historyStack.Children.Add(countGrid);
+
+            // 清除历史按钮
+            _clearHistoryButton = new Button
+            {
+                Content = "清除所有历史记录",
+                Padding = new Thickness(12, 6, 12, 6),
+                HorizontalAlignment = HorizontalAlignment.Left,
+                Style = (Style)Application.Current.Resources["ModernButtonStyle"]
+            };
+            _clearHistoryButton.Click += (s, e) =>
+            {
+                if (MessageBox.Show("确定要删除所有本地搜索和路径历史记录吗？", "清除历史", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+                {
+                    OoiMRR.Services.Search.SearchHistoryService.Instance.Clear();
+                    MessageBox.Show("历史记录已清除。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            };
+            historyStack.Children.Add(_clearHistoryButton);
+
+            historyGroup.Content = historyStack;
+            stackPanel.Children.Add(historyGroup);
 
             // 操作区域
             var actionGroup = new GroupBox
@@ -452,6 +526,16 @@ namespace OoiMRR.Controls.Settings
                     _enableFtsCheckBox.IsChecked = config.IsEnableFullTextSearch;
                 }
 
+                if (_autoExpandHistoryCheck != null)
+                {
+                    _autoExpandHistoryCheck.IsChecked = config.AutoExpandHistory;
+                }
+
+                if (_historyMaxCountBox != null)
+                {
+                    _historyMaxCountBox.Text = config.HistoryMaxCount.ToString();
+                }
+
                 LoadScopeList();
 
                 // 加载索引状态
@@ -499,7 +583,16 @@ namespace OoiMRR.Controls.Settings
             ConfigurationService.Instance.Update(config =>
             {
                 if (_enableFtsCheckBox != null)
-                    config.IsEnableFullTextSearch = _enableFtsCheckBox.IsChecked ?? true;
+                    if (_enableFtsCheckBox != null)
+                        config.IsEnableFullTextSearch = _enableFtsCheckBox.IsChecked ?? true;
+
+                if (_autoExpandHistoryCheck != null)
+                    config.AutoExpandHistory = _autoExpandHistoryCheck.IsChecked ?? false;
+
+                if (_historyMaxCountBox != null && int.TryParse(_historyMaxCountBox.Text, out int maxCount))
+                {
+                    config.HistoryMaxCount = Math.Max(0, Math.Min(100, maxCount)); // Limit 0-100
+                }
             });
         }
 

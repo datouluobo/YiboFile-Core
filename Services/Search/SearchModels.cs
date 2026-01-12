@@ -71,6 +71,7 @@ namespace OoiMRR.Services.Search
     public enum SearchMode
     {
         FileName,    // 文件名搜索
+        Folder,      // 文件夹名搜索
         Content,     // 内容搜索 (未来)
         Notes,       // 备注搜索
         Tags,        // 标签搜索
@@ -88,6 +89,7 @@ namespace OoiMRR.Services.Search
         public SizeRangeFilter SizeRange { get; set; } = SizeRangeFilter.All;
         public SearchMode Mode { get; set; } = SearchMode.FileName;
         public bool SearchNames { get; set; } = true;
+        public bool SearchFolders { get; set; } = false;
         public bool SearchNotes { get; set; } = true;
 
         // 自定义日期范围

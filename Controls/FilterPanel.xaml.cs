@@ -29,9 +29,10 @@ namespace OoiMRR.Controls
             _isUpdatingUI = true;
 
             // Scope
-            ScopeFilenameBtn.IsChecked = _currentOptions.SearchNames && !_currentOptions.SearchNotes;
-            ScopeNotesBtn.IsChecked = !_currentOptions.SearchNames && _currentOptions.SearchNotes;
-            ScopeAllBtn.IsChecked = _currentOptions.SearchNames && _currentOptions.SearchNotes;
+            ScopeFolderBtn.IsChecked = _currentOptions.SearchFolders && !_currentOptions.SearchNames && !_currentOptions.SearchNotes;
+            ScopeFilenameBtn.IsChecked = _currentOptions.SearchNames && !_currentOptions.SearchFolders && !_currentOptions.SearchNotes;
+            ScopeNotesBtn.IsChecked = !_currentOptions.SearchNames && !_currentOptions.SearchFolders && _currentOptions.SearchNotes;
+            ScopeAllBtn.IsChecked = _currentOptions.SearchNames && _currentOptions.SearchNotes && _currentOptions.SearchFolders;
 
             // Date
             DateAllBtn.IsChecked = _currentOptions.DateRange == DateRangeFilter.All;
@@ -78,21 +79,48 @@ namespace OoiMRR.Controls
 
             string tag = btn.Tag.ToString();
 
-            if (tag == "FileName")
+            if (tag == "Folder")
+            {
+                _currentOptions.Mode = SearchMode.Folder;
+                _currentOptions.SearchFolders = true;
+                _currentOptions.SearchNames = false;
+                _currentOptions.SearchNotes = false;
+
+                // Optional: Auto-select Type=Folder for convenience?
+                // Given the user specifically asked for "Scope: Folder", they likely want to search folders.
+                _currentOptions.Type = FileTypeFilter.Folders;
+            }
+            else if (tag == "FileName")
             {
                 _currentOptions.Mode = SearchMode.FileName;
+                _currentOptions.SearchFolders = false;
                 _currentOptions.SearchNames = true;
                 _currentOptions.SearchNotes = false;
+
+                // Reset Type to All to ensure files are visible (unless user manually restricts type later)
+                // If we don't reset, switching from "Folder" scope (Type=Folder) to "File" scope would show nothing.
+                if (_currentOptions.Type == FileTypeFilter.Folders)
+                {
+                    _currentOptions.Type = FileTypeFilter.All;
+                }
             }
             else if (tag == "Notes")
             {
                 _currentOptions.Mode = SearchMode.Notes;
+                _currentOptions.SearchFolders = false;
                 _currentOptions.SearchNames = false;
                 _currentOptions.SearchNotes = true;
+
+                // Similarly, ensure we don't block notes visibility due to conflicting type
+                if (_currentOptions.Type == FileTypeFilter.Folders)
+                {
+                    _currentOptions.Type = FileTypeFilter.All;
+                }
             }
             else if (tag == "AllScope")
             {
-                _currentOptions.Mode = SearchMode.FileName; // Default mode or implies both?
+                _currentOptions.Mode = SearchMode.All;
+                _currentOptions.SearchFolders = true;
                 _currentOptions.SearchNames = true;
                 _currentOptions.SearchNotes = true;
             }

@@ -282,6 +282,20 @@ namespace OoiMRR.Handlers
                 {
                     if (obj is not FileSystemItem item) return true;
 
+                    // Scope Filter (SearchMode) for Normal View
+                    switch (searchOptions.Mode)
+                    {
+                        case SearchMode.Folder:
+                            if (!item.IsDirectory) return false;
+                            break;
+                        case SearchMode.FileName:
+                            if (item.IsDirectory) return false;
+                            break;
+                        case SearchMode.Notes:
+                            if (string.IsNullOrEmpty(item.Notes)) return false;
+                            break;
+                    }
+
                     // 类型过滤
                     if (searchOptions.Type != FileTypeFilter.All)
                     {

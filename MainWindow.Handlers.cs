@@ -125,7 +125,11 @@ namespace OoiMRR
             {
                 _secondColumnInteractionHandler = new Handlers.ColumnInteractionHandler(this, SecondFileBrowser, _columnService, _configService);
                 _secondColumnInteractionHandler.Initialize();
+                _secondColumnInteractionHandler.Initialize();
                 _secondColumnInteractionHandler.HookHeaderThumbs();
+
+                // Wire up SecondFileBrowser Sorting
+                SecondFileBrowser.GridViewColumnHeaderClick += SecondGridViewColumnHeader_Click;
 
                 // Wire up SecondFileBrowser Filter Click
                 SecondFileBrowser.FilterClicked += (s, e) =>
@@ -575,6 +579,38 @@ namespace OoiMRR
                     FileBrowser.FilesItemsSource = _currentFiles;
                 },
                 FileBrowser.FilesGrid
+            );
+        }
+
+        internal void SecondGridViewColumnHeader_Click(object sender, RoutedEventArgs e)
+        {
+            var header = sender as GridViewColumnHeader;
+            if (header == null || SecondFileBrowser == null) return;
+
+            // Simple debounce (optional, but good practice)
+            // Reusing same variables might be tricky if dual clicking, but explicit click is serial.
+            // Let's use local debounce if needed or shared - shared is fine for UI clicks.
+            var now = DateTime.Now;
+            var columnTag = header.Tag?.ToString();
+            if ((now - _lastColumnClickTime).TotalMilliseconds < 200 && columnTag == _lastClickedColumn)
+            {
+                return;
+            }
+            _lastColumnClickTime = now;
+            _lastClickedColumn = columnTag;
+
+            var currentFiles = SecondFileBrowser.FilesItemsSource as IEnumerable<FileSystemItem>;
+            if (currentFiles == null) return;
+            var fileList = currentFiles.ToList();
+
+            _columnService?.HandleColumnHeaderClick(
+                header,
+                fileList,
+                (sortedFiles) =>
+                {
+                    SecondFileBrowser.FilesItemsSource = sortedFiles;
+                },
+                SecondFileBrowser.FilesGrid
             );
         }
 

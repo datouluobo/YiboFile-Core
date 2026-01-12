@@ -107,6 +107,10 @@ namespace OoiMRR
 
         // 多窗口支持
         public bool EnableMultiWindow { get; set; } = true;
+
+        // 搜索历史设置
+        public int HistoryMaxCount { get; set; } = 20;
+        public bool AutoExpandHistory { get; set; } = false;
     }
 
     public class AllSettingsConfig
