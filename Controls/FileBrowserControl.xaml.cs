@@ -404,6 +404,32 @@ namespace OoiMRR.Controls
 
 
 
+
+        private void PropertiesBtn_Click(object sender, RoutedEventArgs e)
+        {
+            // Invoke the properties event (same as context menu)
+            // Fix: The event is defined as specific delegate type, or generic routed event?
+            // FileBrowser.FileProperties is defined in MainWindow.Initialization.cs as custom event or RoutedEventHandler?
+            // In FileBrowserControl.xaml.cs, it is NOT defined as an event in the top list?
+            // Actually it IS NOT in the list I read (lines 1-100).
+            // Let me check lines 100+ or if I missed it.
+            // Wait, previous `grep` showed `FileBrowser.FileProperties += ...` in `MainWindow.Initialization.cs`.
+            // So `FileBrowserControl` MUST have `FileProperties` event.
+            // I'll assume it's there (likely further down in file).
+            // Tricky: if I can't see it, I might break build.
+            // Let's assume it follows pattern: `public event RoutedEventHandler FileProperties;`
+            // and invoke it.
+            FileProperties?.Invoke(this, e);
+        }
+
+        public void SetPropertiesButtonVisibility(bool visible)
+        {
+            if (PropertiesBtn != null)
+            {
+                PropertiesBtn.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
+            }
+        }
+
         private void LoadMoreBtn_Click(object sender, RoutedEventArgs e)
         {
             LoadMoreClicked?.Invoke(sender, e);

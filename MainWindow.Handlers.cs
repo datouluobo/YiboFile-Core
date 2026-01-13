@@ -23,6 +23,7 @@ using OoiMRR.Services.Settings;
 // using OoiMRR.Services.TagTrain; // Phase 2
 // using TagTrain.UI; // Phase 2
 using System.Windows.Media;
+using OoiMRR.Services.Core;
 
 namespace OoiMRR
 {
@@ -204,7 +205,7 @@ namespace OoiMRR
                 () => DeleteSelectedFilesAsync().Wait(),
                 () => { _menuEventHandler?.Rename_Click(null, null); },
                 () => RefreshActiveFileList(),
-                () => { MessageBox.Show("属性功能开发中", "提示", MessageBoxButton.OK, MessageBoxImage.Information); },
+                () => ShowSelectedFileProperties(),
                 (path, force) => CreateTab(path, force) // Main Browser CreateTab
             );
             _mainFileListHandler.Initialize(FileBrowser.FilesList);
@@ -232,7 +233,7 @@ namespace OoiMRR
                     () => { /* Delete logic specific to second browser? Handled by GetActiveContext */ DeleteSelectedFilesAsync().Wait(); },
                     () => { _menuEventHandler?.Rename_Click(null, null); },
                     () => LoadSecondFileBrowserDirectory(_secondCurrentPath),
-                    () => { },
+                    () => ShowSelectedFileProperties(), // Use the new method
                     (path, force) => _secondTabService?.CreatePathTab(path, force) // Second Browser CreateTab
                 );
                 _secondFileListHandler.Initialize(SecondFileBrowser.FilesList);
@@ -329,7 +330,7 @@ namespace OoiMRR
                         item.IsRenaming = true;
                     }
                 },
-                () => { }, // ShowProperties - Implement if needed
+                () => ShowSelectedFileProperties(), // ShowProperties
                 NavigateToPath,
                 SwitchNavigationMode,
                 () => GetActiveContext().path,
@@ -537,6 +538,37 @@ namespace OoiMRR
                 _navigationService.LastLeftNavSource = "Favorites";
                 _navigationCoordinator.HandleFavoriteNavigation(favorite, clickType);
                 e.Handled = true;
+            }
+        }
+
+        private void ShowSelectedFileProperties()
+        {
+            var (browser, path, library) = GetActiveContext();
+            var item = browser?.FilesSelectedItem as FileSystemItem;
+
+            // 目标路径：优先选中项，否则当前文件夹
+            string targetPath = null;
+            if (item != null && !string.IsNullOrEmpty(item.Path))
+            {
+                targetPath = item.Path;
+            }
+            else if (!string.IsNullOrEmpty(path) && Directory.Exists(path) && !ProtocolManager.IsVirtual(path))
+            {
+                // 注意：只有物理路径才支持文件夹属性
+                targetPath = path;
+            }
+
+            if (!string.IsNullOrEmpty(targetPath))
+            {
+                // 如果是虚拟路径（如 zip 内部），可能无法显示系统属性，给予提示或处理
+                if (ProtocolManager.IsVirtual(targetPath))
+                {
+                    // 暂时不支持压缩包内文件的系统属性
+                    MessageBox.Show($"暂不支持查看此类型的系统属性：\n{targetPath}", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                Services.Core.ShellNative.ShowFileProperties(targetPath);
             }
         }
 

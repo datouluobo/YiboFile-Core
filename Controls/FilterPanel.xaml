@@ -99,18 +99,6 @@
                         <ToggleButton x:Name="DateYearBtn" Content="今年" Tag="ThisYear" Click="Date_Click" Style="{StaticResource FilterChipToggleStyle}"/>
                     </WrapPanel>
 
-                    <!-- 文件类型 -->
-                    <DockPanel Margin="0,0,0,8" LastChildFill="False">
-                        <TextBlock Text="文件类型" Style="{StaticResource FilterSectionHeaderStyle}" DockPanel.Dock="Left" VerticalAlignment="Center"/>
-                        <ToggleButton x:Name="TypeAllBtn" Content="全部类型" Tag="All" Click="Type_Click" Style="{StaticResource FilterChipToggleStyle}" DockPanel.Dock="Right" Margin="0"/>
-                    </DockPanel>
-                    <WrapPanel Orientation="Horizontal" Margin="0,0,0,16">
-                        <ToggleButton x:Name="TypeImageBtn" Content="图片" Tag="Images" Click="Type_Click" Style="{StaticResource FilterChipToggleStyle}"/>
-                        <ToggleButton x:Name="TypeVideoBtn" Content="视频" Tag="Videos" Click="Type_Click" Style="{StaticResource FilterChipToggleStyle}"/>
-                        <ToggleButton x:Name="TypeDocBtn" Content="文档" Tag="Documents" Click="Type_Click" Style="{StaticResource FilterChipToggleStyle}"/>
-                        <ToggleButton x:Name="TypeFolderBtn" Content="文件夹" Tag="Folders" Click="Type_Click" Style="{StaticResource FilterChipToggleStyle}"/>
-                    </WrapPanel>
-
                     <!-- 文件大小 -->
                     <DockPanel Margin="0,0,0,8" LastChildFill="False">
                         <TextBlock Text="文件大小" Style="{StaticResource FilterSectionHeaderStyle}" DockPanel.Dock="Left" VerticalAlignment="Center"/>
@@ -122,6 +110,42 @@
                         <ToggleButton x:Name="SizeMediumBtn" Content="中 (1M-10M)" Tag="Medium" Click="Size_Click" Style="{StaticResource FilterChipToggleStyle}"/>
                         <ToggleButton x:Name="SizeLargeBtn" Content="大 (10M-100M)" Tag="Large" Click="Size_Click" Style="{StaticResource FilterChipToggleStyle}"/>
                         <ToggleButton x:Name="SizeHugeBtn" Content="巨大 (&gt;100M)" Tag="Huge" Click="Size_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                    </WrapPanel>
+
+                    <!-- 文件类型 -->
+                    <DockPanel Margin="0,0,0,8" LastChildFill="False">
+                        <TextBlock Text="文件类型" Style="{StaticResource FilterSectionHeaderStyle}" DockPanel.Dock="Left" VerticalAlignment="Center"/>
+                        <ToggleButton x:Name="TypeAllBtn" Content="全部类型" Tag="All" Click="Type_Click" Style="{StaticResource FilterChipToggleStyle}" DockPanel.Dock="Right" Margin="0"/>
+                    </DockPanel>
+                    <WrapPanel Orientation="Horizontal" Margin="0,0,0,16">
+                        <ToggleButton x:Name="TypeImageBtn" Content="图片" Tag="Images" Click="Type_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="TypeVideoBtn" Content="视频" Tag="Videos" Click="Type_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="TypeAudioBtn" Content="音频" Tag="Audio" Click="Type_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="TypeDocBtn" Content="文档" Tag="Documents" Click="Type_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                    </WrapPanel>
+
+                    <!-- 图片尺寸 (动态显示) -->
+                    <DockPanel x:Name="ImageSizeHeader" Margin="0,0,0,8" LastChildFill="False" Visibility="Collapsed">
+                        <TextBlock Text="图片尺寸" Style="{StaticResource FilterSectionHeaderStyle}" DockPanel.Dock="Left" VerticalAlignment="Center"/>
+                        <ToggleButton x:Name="ImgSizeAllBtn" Content="全部尺寸" Tag="All" Click="ImgSize_Click" Style="{StaticResource FilterChipToggleStyle}" DockPanel.Dock="Right" Margin="0"/>
+                    </DockPanel>
+                    <WrapPanel x:Name="ImageSizeContent" Orientation="Horizontal" Margin="0,0,0,16" Visibility="Collapsed">
+                        <ToggleButton x:Name="ImgSizeSmallBtn" Content="小 (&lt;800px)" Tag="Small" Click="ImgSize_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="ImgSizeMediumBtn" Content="中 (800-1920)" Tag="Medium" Click="ImgSize_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="ImgSizeLargeBtn" Content="大 (&gt;1920)" Tag="Large" Click="ImgSize_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="ImgSizeHugeBtn" Content="超大 (&gt;3840)" Tag="Huge" Click="ImgSize_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                    </WrapPanel>
+
+                    <!-- 媒体时长 (动态显示) -->
+                    <DockPanel x:Name="DurationHeader" Margin="0,0,0,8" LastChildFill="False" Visibility="Collapsed">
+                        <TextBlock Text="媒体时长" Style="{StaticResource FilterSectionHeaderStyle}" DockPanel.Dock="Left" VerticalAlignment="Center"/>
+                        <ToggleButton x:Name="DurationAllBtn" Content="全部时长" Tag="All" Click="Duration_Click" Style="{StaticResource FilterChipToggleStyle}" DockPanel.Dock="Right" Margin="0"/>
+                    </DockPanel>
+                    <WrapPanel x:Name="DurationContent" Orientation="Horizontal" Margin="0,0,0,16" Visibility="Collapsed">
+                        <ToggleButton x:Name="DurationShortBtn" Content="短 (&lt;1m)" Tag="Short" Click="Duration_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="DurationMediumBtn" Content="中 (1-5m)" Tag="Medium" Click="Duration_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="DurationLongBtn" Content="长 (5-20m)" Tag="Long" Click="Duration_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="DurationVeryLongBtn" Content="超长 (&gt;20m)" Tag="VeryLong" Click="Duration_Click" Style="{StaticResource FilterChipToggleStyle}"/>
                     </WrapPanel>
 
                     <!-- 搜索位置 -->

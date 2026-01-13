@@ -82,10 +82,62 @@ namespace OoiMRR.Services.FileList
 
                 item.Tags = BuildTags(item.Path, orderTagNames);
                 item.Notes = BuildNotes(item.Path);
+
+                // Enhance: Extract Media Metadata
+                await EnrichMediaMetadataAsync(item);
             }
             finally
             {
                 semaphore.Release();
+            }
+        }
+
+        private async Task EnrichMediaMetadataAsync(FileSystemItem item)
+        {
+            if (item.IsDirectory || string.IsNullOrEmpty(item.Path)) return;
+
+            string ext = System.IO.Path.GetExtension(item.Path).ToLowerInvariant();
+            if (OoiMRR.Services.Search.SearchFilterService.ImageExtensions.Contains(ext))
+            {
+                try
+                {
+                    // Use System.Drawing.Common for images
+                    // Run in Task to avoid blocking
+                    await Task.Run(() =>
+                    {
+                        try
+                        {
+                            // Use FileStream to avoid locking the file if possible, or just Image.FromFile
+                            // Image.FromFile locks until disposed. 
+                            using (var fs = new System.IO.FileStream(item.Path, System.IO.FileMode.Open, System.IO.FileAccess.Read))
+                            {
+                                using (var img = System.Drawing.Image.FromStream(fs, false, false))
+                                {
+                                    item.PixelWidth = img.Width;
+                                    item.PixelHeight = img.Height;
+                                }
+                            }
+                        }
+                        catch { }
+                    });
+                }
+                catch { }
+            }
+            else if (OoiMRR.Services.Search.SearchFilterService.VideoExtensions.Contains(ext) ||
+                     OoiMRR.Services.Search.SearchFilterService.AudioExtensions.Contains(ext))
+            {
+                try
+                {
+                    // Use Native Shell Property (reliable, built-in)
+                    // Replaces FFMpegCore which requires external binaries
+                    long duration = OoiMRR.Services.Core.ShellPropertyHelper.GetDuration(item.Path);
+                    item.DurationMs = duration;
+
+                    // For video dimensions, ShellPropertyHelper could also be used but requires more PKEYs.
+                    // For now, if duration is retrieved, that's good.
+                    // If we really need dimensions for video, we can try FFMpeg as backup or add PKEYs.
+                }
+                catch { }
             }
         }
 

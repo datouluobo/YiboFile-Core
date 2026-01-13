@@ -13,17 +13,22 @@ namespace OoiMRR.Services.Search
     {
         #region 文件类型扩展名定义
 
-        private static readonly HashSet<string> ImageExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        public static readonly HashSet<string> ImageExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             ".png", ".jpg", ".jpeg", ".bmp", ".gif", ".webp", ".tif", ".tiff"
         };
 
-        private static readonly HashSet<string> VideoExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        public static readonly HashSet<string> VideoExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             ".mp4", ".mov", ".mkv", ".avi", ".wmv", ".flv", ".webm"
         };
 
-        private static readonly HashSet<string> DocumentExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        public static readonly HashSet<string> AudioExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ".mp3", ".wav", ".flac", ".aac", ".ogg", ".wma", ".m4a"
+        };
+
+        public static readonly HashSet<string> DocumentExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".txt"
         };
@@ -48,6 +53,9 @@ namespace OoiMRR.Services.Search
 
                 case FileTypeFilter.Videos:
                     return paths.Where(p => VideoExtensions.Contains(Path.GetExtension(p)));
+
+                case FileTypeFilter.Audio:
+                    return paths.Where(p => AudioExtensions.Contains(Path.GetExtension(p)));
 
                 case FileTypeFilter.Documents:
                     return paths.Where(p => DocumentExtensions.Contains(Path.GetExtension(p)));
@@ -190,6 +198,55 @@ namespace OoiMRR.Services.Search
                 if (minSize.HasValue && size < minSize.Value) return false;
                 if (maxSize.HasValue && size > maxSize.Value) return false;
                 return true;
+            });
+        }
+        public IEnumerable<FileSystemItem> ApplyImageDimensionFilter(IEnumerable<FileSystemItem> items, ImageDimensionFilter filter)
+        {
+            if (items == null || filter == ImageDimensionFilter.All)
+                return items ?? Enumerable.Empty<FileSystemItem>();
+
+            return items.Where(item =>
+            {
+                if (item.IsDirectory) return false;
+                // Assuming width is populated. If 0, it counts as Small? Or ignore?
+                // Let's assume 0 means unknown, but technically 0 < 800.
+                // If we want to filter rigidly, maybe exclude 0 unless filtering for "Tiny"?
+                // For now, treat 0 as small.
+                int width = item.PixelWidth > 0 ? item.PixelWidth : 0;
+                int height = item.PixelHeight > 0 ? item.PixelHeight : 0;
+                int maxDim = Math.Max(width, height);
+
+                return filter switch
+                {
+                    ImageDimensionFilter.Small => maxDim < 800,
+                    ImageDimensionFilter.Medium => maxDim >= 800 && maxDim < 1920,
+                    ImageDimensionFilter.Large => maxDim >= 1920 && maxDim < 3840,
+                    ImageDimensionFilter.Huge => maxDim >= 3840,
+                    _ => true
+                };
+            });
+        }
+
+        public IEnumerable<FileSystemItem> ApplyAudioDurationFilter(IEnumerable<FileSystemItem> items, AudioDurationFilter filter)
+        {
+            if (items == null || filter == AudioDurationFilter.All)
+                return items ?? Enumerable.Empty<FileSystemItem>();
+
+            return items.Where(item =>
+            {
+                if (item.IsDirectory) return false;
+                long duration = item.DurationMs;
+
+                const long Minute = 60 * 1000;
+
+                return filter switch
+                {
+                    AudioDurationFilter.Short => duration < Minute,
+                    AudioDurationFilter.Medium => duration >= Minute && duration < 5 * Minute,
+                    AudioDurationFilter.Long => duration >= 5 * Minute && duration < 20 * Minute,
+                    AudioDurationFilter.VeryLong => duration >= 20 * Minute,
+                    _ => true
+                };
             });
         }
     }

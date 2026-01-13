@@ -14,6 +14,10 @@ namespace OoiMRR
         public string CreatedTime { get; set; }
         public string Tags { get; set; }
         public string Notes { get; set; }
+        // Metadata
+        public int PixelWidth { get; set; } // 0 if N/A
+        public int PixelHeight { get; set; } // 0 if N/A
+        public long DurationMs { get; set; } // 0 if N/A, in milliseconds
         public bool IsDirectory { get; set; }
         public string SourcePath { get; set; } // 库模式下的来源路径
         public string GroupingKey { get; set; } // UI分组键

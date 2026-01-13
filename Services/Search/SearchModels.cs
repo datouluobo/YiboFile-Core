@@ -24,6 +24,7 @@ namespace OoiMRR.Services.Search
         All,        // 全部
         Images,     // 图片
         Videos,     // 视频
+        Audio,      // 音频
         Documents,  // 文档
         Folders     // 文件夹
     }
@@ -66,6 +67,30 @@ namespace OoiMRR.Services.Search
     }
 
     /// <summary>
+    /// 图片尺寸过滤器
+    /// </summary>
+    public enum ImageDimensionFilter
+    {
+        All,        // 全部
+        Small,      // 小 (< 800px)
+        Medium,     // 中 (800px - 1920px)
+        Large,      // 大 (> 1920px)
+        Huge        // 超大 (> 3840px)
+    }
+
+    /// <summary>
+    /// 音频/视频时长过滤器
+    /// </summary>
+    public enum AudioDurationFilter
+    {
+        All,        // 全部
+        Short,      // 短 (< 1 min)
+        Medium,     // 中 (1 - 5 min)
+        Long,       // 长 (5 - 20 min)
+        VeryLong    // 超长 (> 20 min)
+    }
+
+    /// <summary>
     /// 搜索模式
     /// </summary>
     public enum SearchMode
@@ -87,6 +112,8 @@ namespace OoiMRR.Services.Search
         public PathRangeFilter PathRange { get; set; } = PathRangeFilter.AllDrives;
         public DateRangeFilter DateRange { get; set; } = DateRangeFilter.All;
         public SizeRangeFilter SizeRange { get; set; } = SizeRangeFilter.All;
+        public ImageDimensionFilter ImageSize { get; set; } = ImageDimensionFilter.All;
+        public AudioDurationFilter Duration { get; set; } = AudioDurationFilter.All;
         public SearchMode Mode { get; set; } = SearchMode.FileName;
         public bool SearchNames { get; set; } = true;
         public bool SearchFolders { get; set; } = false;

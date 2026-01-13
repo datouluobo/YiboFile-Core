@@ -126,8 +126,7 @@ namespace OoiMRR.Services.FileInfo
                         ("名称", item.Name),
                         ("路径", item.Path),
                         ("类型", "文件夹"),
-                        ("修改日期", item.ModifiedDate),
-                        ("标签", item.Tags ?? "")
+                        ("修改日期", item.ModifiedDate)
                     };
 
                     foreach (var (label, value) in infoItems)
@@ -227,12 +226,28 @@ namespace OoiMRR.Services.FileInfo
                 ("路径", item.Path),
                 ("类型", item.Type),
                 ("大小", item.Size),
-                ("修改日期", item.ModifiedDate),
-                ("标签", item.Tags)
+                ("修改日期", item.ModifiedDate)
+                // ("标签", item.Tags) // Removed as per user request
             };
 
-            // 如果是图片文件，添加尺寸信息
             var fileExtension = System.IO.Path.GetExtension(item.Path)?.ToLowerInvariant();
+
+            // 如果是视频或音频文件，添加时长信息
+            if (!string.IsNullOrEmpty(fileExtension) &&
+                (OoiMRR.Services.Search.SearchFilterService.VideoExtensions.Contains(fileExtension) ||
+                 OoiMRR.Services.Search.SearchFilterService.AudioExtensions.Contains(fileExtension)))
+            {
+                if (item.DurationMs > 0)
+                {
+                    TimeSpan t = TimeSpan.FromMilliseconds(item.DurationMs);
+                    // Format as HH:mm:ss or mm:ss
+                    string durationStr = (t.TotalHours >= 1) ? t.ToString(@"hh\:mm\:ss") : t.ToString(@"mm\:ss");
+                    infoItems.Insert(4, ("时长", durationStr)); // 在"大小"(index 3)之后插入? No, "修改日期" is index 4. Insert at 4 puts it before "修改日期". 
+                    // Let's insert after Size (index 3). So index 4.
+                }
+            }
+
+            // 如果是图片文件，添加尺寸信息
             var imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".webp", ".tiff", ".tif", ".svg", ".psd", ".ico" };
             if (!string.IsNullOrEmpty(fileExtension) && imageExtensions.Contains(fileExtension))
             {
@@ -241,7 +256,15 @@ namespace OoiMRR.Services.FileInfo
                     string imageSize = GetImageDimensions(item.Path);
                     if (!string.IsNullOrEmpty(imageSize))
                     {
-                        infoItems.Insert(4, ("尺寸", imageSize)); // 在"大小"之后插入
+                        // Ensure insertion index is correct. 
+                        // If Duration inserted at 4, Size is 3. Duration is 4. Modified is 5.
+                        // Insert dimensions after Size (or Duration). 
+                        // Let's just find "大小" index or append.
+                        // Ideally consistent order: Name, Path, Type, Size, [Dimensions/Duration], Modified.
+                        // Size is index 3. Insert at 4 for Dimensions/Duration.
+                        // If both exist (rare for image/video overlap?), one pushes other.
+
+                        infoItems.Insert(4, ("尺寸", imageSize));
                     }
                 }
                 catch

@@ -507,11 +507,7 @@ namespace OoiMRR
                 };
                 FileBrowser.FileRename += (s, e) => _menuEventHandler?.Rename_Click(s, e);
                 FileBrowser.FileRefresh += (s, e) => RefreshFileList();
-                FileBrowser.FileProperties += (s, e) =>
-                {
-                    // 属性功能可以后续实现
-                    MessageBox.Show("属性功能开发中", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-                };
+                FileBrowser.FileProperties += (s, e) => ShowSelectedFileProperties();
             }
 
             this.Activated += (s, e) =>

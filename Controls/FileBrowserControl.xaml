@@ -151,6 +151,10 @@
                 
                 <!-- 视图切换按钮 (下拉菜单) -->
                 <StackPanel Grid.Column="4" Orientation="Horizontal">
+                    <Button Name="PropertiesBtn" Content="&#xE946;" 
+                            FontFamily="Segoe MDL2 Assets" FontSize="14"
+                            Click="PropertiesBtn_Click" Style="{StaticResource ModernToolbarButtonStyle}" ToolTip="属性"
+                            Margin="0,0,4,0"/>
                     <Button Name="ViewModeBtn" Content="{DynamicResource Icon_ViewList}" 
                             FontFamily="{DynamicResource IconFontFamily}" FontSize="14"
                             Click="ViewModeBtn_DropDown" Style="{StaticResource ModernToolbarButtonStyle}" ToolTip="视图模式">

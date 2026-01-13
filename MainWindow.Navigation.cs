@@ -386,6 +386,39 @@ namespace OoiMRR
             }
 
             LoadCurrentDirectory();
+
+            // 更新属性按钮可见性
+            UpdatePropertiesButtonVisibility();
+        }
+
+        private void UpdatePropertiesButtonVisibility()
+        {
+            if (FileBrowser != null)
+            {
+                bool visible = true;
+                if (_currentLibrary != null) visible = false;
+                else if (!string.IsNullOrEmpty(_currentPath))
+                {
+                    if (_currentPath.StartsWith("search:", StringComparison.OrdinalIgnoreCase) ||
+                        ProtocolManager.IsVirtual(_currentPath))
+                    {
+                        visible = false;
+                    }
+                }
+                else if (_currentPath == null) // Empty path/home
+                {
+                    // visible = true; // or false? Usually empty path means "This PC" or drives? 
+                    // If My Computer, properties of "This PC"? 
+                    // Usually This PC has properties (System properties). 
+                    // But let's keep it visible or hidden?
+                    // If drives list is shown, what is "current folder"? It's virtual "MyComputer".
+                    // ShellProperties might work on "This PC" (CLSID).
+                    // Let's safe default to true, or handle specifically. 
+                    // For now, let's assume true unless virtual/search.
+                }
+
+                FileBrowser.SetPropertiesButtonVisibility(visible);
+            }
         }
 
         /// <summary>

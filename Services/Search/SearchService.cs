@@ -282,6 +282,16 @@ namespace OoiMRR.Services.Search
                         searchOptions.SizeMax).ToList();
                 }
 
+                if (searchOptions.ImageSize != ImageDimensionFilter.All)
+                {
+                    results = _filterService.ApplyImageDimensionFilter(results, searchOptions.ImageSize).ToList();
+                }
+
+                if (searchOptions.Duration != AudioDurationFilter.All)
+                {
+                    results = _filterService.ApplyAudioDurationFilter(results, searchOptions.Duration).ToList();
+                }
+
                 // 标签过滤（当模式为 Tags 时）
                 if (doTagSearch && mode == SearchMode.Tags)
                 {

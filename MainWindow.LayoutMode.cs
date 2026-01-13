@@ -9,7 +9,9 @@ using System.Windows.Input;
 using System.Windows.Media;
 using OoiMRR.Controls;
 using OoiMRR.Services.Tabs;
+using OoiMRR.Services.Tabs;
 using OoiMRR.Services.FileOperations;
+using OoiMRR.Services.Core;
 
 namespace OoiMRR
 {
@@ -514,7 +516,7 @@ namespace OoiMRR
             // Copy/Paste/Refresh handled below with Toolbar support
             SecondFileBrowser.FileCut += (s, e) => _menuEventHandler?.Cut_Click(s, e);
             SecondFileBrowser.FileRename += (s, e) => _menuEventHandler?.Rename_Click(s, e);
-            SecondFileBrowser.FileProperties += (s, e) => MessageBox.Show("属性功能开发中", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            SecondFileBrowser.FileProperties += (s, e) => ShowSelectedFileProperties();
 
             // F2快捷键和其他键盘事件支持
             // Handled by _secondFileListHandler
@@ -730,6 +732,21 @@ namespace OoiMRR
             }
 
             LoadSecondFileBrowserDirectory(newPath);
+
+            // 更新副列表属性按钮可见性
+            if (SecondFileBrowser != null)
+            {
+                bool visible = true;
+                if (!string.IsNullOrEmpty(newPath))
+                {
+                    if (newPath.StartsWith("search:", StringComparison.OrdinalIgnoreCase) ||
+                       ProtocolManager.IsVirtual(newPath))
+                    {
+                        visible = false;
+                    }
+                }
+                SecondFileBrowser.SetPropertiesButtonVisibility(visible);
+            }
         }
 
         private void SecondFileBrowser_BreadcrumbClicked(object sender, string path)

@@ -45,8 +45,8 @@ namespace OoiMRR.Controls
             TypeAllBtn.IsChecked = _currentOptions.Type == FileTypeFilter.All;
             TypeImageBtn.IsChecked = _currentOptions.Type == FileTypeFilter.Images;
             TypeVideoBtn.IsChecked = _currentOptions.Type == FileTypeFilter.Videos;
+            TypeAudioBtn.IsChecked = _currentOptions.Type == FileTypeFilter.Audio;
             TypeDocBtn.IsChecked = _currentOptions.Type == FileTypeFilter.Documents;
-            TypeFolderBtn.IsChecked = _currentOptions.Type == FileTypeFilter.Folders;
 
             // Size
             SizeAllBtn.IsChecked = _currentOptions.SizeRange == SizeRangeFilter.All;
@@ -55,6 +55,37 @@ namespace OoiMRR.Controls
             SizeMediumBtn.IsChecked = _currentOptions.SizeRange == SizeRangeFilter.Medium;
             SizeLargeBtn.IsChecked = _currentOptions.SizeRange == SizeRangeFilter.Large;
             SizeHugeBtn.IsChecked = _currentOptions.SizeRange == SizeRangeFilter.Huge;
+
+            // Image Size & Duration (Visibility & State)
+            bool isImage = _currentOptions.Type == FileTypeFilter.Images;
+            bool isVideo = _currentOptions.Type == FileTypeFilter.Videos;
+            bool isAudio = _currentOptions.Type == FileTypeFilter.Audio;
+
+            ImageSizeHeader.Visibility = isImage ? Visibility.Visible : Visibility.Collapsed;
+            ImageSizeContent.Visibility = isImage ? Visibility.Visible : Visibility.Collapsed;
+
+            // Show duration for both Video and Audio
+            bool showDuration = isVideo || isAudio;
+            DurationHeader.Visibility = showDuration ? Visibility.Visible : Visibility.Collapsed;
+            DurationContent.Visibility = showDuration ? Visibility.Visible : Visibility.Collapsed;
+
+            if (isImage)
+            {
+                ImgSizeAllBtn.IsChecked = _currentOptions.ImageSize == ImageDimensionFilter.All;
+                ImgSizeSmallBtn.IsChecked = _currentOptions.ImageSize == ImageDimensionFilter.Small;
+                ImgSizeMediumBtn.IsChecked = _currentOptions.ImageSize == ImageDimensionFilter.Medium;
+                ImgSizeLargeBtn.IsChecked = _currentOptions.ImageSize == ImageDimensionFilter.Large;
+                ImgSizeHugeBtn.IsChecked = _currentOptions.ImageSize == ImageDimensionFilter.Huge;
+            }
+
+            if (showDuration)
+            {
+                DurationAllBtn.IsChecked = _currentOptions.Duration == AudioDurationFilter.All;
+                DurationShortBtn.IsChecked = _currentOptions.Duration == AudioDurationFilter.Short;
+                DurationMediumBtn.IsChecked = _currentOptions.Duration == AudioDurationFilter.Medium;
+                DurationLongBtn.IsChecked = _currentOptions.Duration == AudioDurationFilter.Long;
+                DurationVeryLongBtn.IsChecked = _currentOptions.Duration == AudioDurationFilter.VeryLong;
+            }
 
             // Path
             PathCurrentBtn.IsChecked = _currentOptions.PathRange == PathRangeFilter.CurrentDrive;
@@ -180,6 +211,34 @@ namespace OoiMRR.Controls
             if (Enum.TryParse<PathRangeFilter>(btn.Tag.ToString(), out var result))
             {
                 _currentOptions.PathRange = result;
+                UpdateUI();
+                NotifyChanged();
+            }
+        }
+
+        private void ImgSize_Click(object sender, RoutedEventArgs e)
+        {
+            if (_isUpdatingUI) return;
+            var btn = sender as ToggleButton;
+            if (btn == null || btn.Tag == null) return;
+
+            if (Enum.TryParse<ImageDimensionFilter>(btn.Tag.ToString(), out var result))
+            {
+                _currentOptions.ImageSize = result;
+                UpdateUI();
+                NotifyChanged();
+            }
+        }
+
+        private void Duration_Click(object sender, RoutedEventArgs e)
+        {
+            if (_isUpdatingUI) return;
+            var btn = sender as ToggleButton;
+            if (btn == null || btn.Tag == null) return;
+
+            if (Enum.TryParse<AudioDurationFilter>(btn.Tag.ToString(), out var result))
+            {
+                _currentOptions.Duration = result;
                 UpdateUI();
                 NotifyChanged();
             }

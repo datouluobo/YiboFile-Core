@@ -320,6 +320,18 @@ namespace OoiMRR.Handlers
                         if (!MatchesSizeFilter(item, searchOptions.SizeRange)) return false;
                     }
 
+                    // 图片尺寸过滤
+                    if (searchOptions.ImageSize != ImageDimensionFilter.All)
+                    {
+                        if (!MatchesImageSizeFilter(item, searchOptions.ImageSize)) return false;
+                    }
+
+                    // 时长过滤
+                    if (searchOptions.Duration != AudioDurationFilter.All)
+                    {
+                        if (!MatchesDurationFilter(item, searchOptions.Duration)) return false;
+                    }
+
                     return true;
                 };
 
@@ -345,11 +357,13 @@ namespace OoiMRR.Handlers
             switch (filter)
             {
                 case FileTypeFilter.Images:
-                    return !item.IsDirectory && ImageExtensions.Contains(System.IO.Path.GetExtension(item.Path));
+                    return !item.IsDirectory && OoiMRR.Services.Search.SearchFilterService.ImageExtensions.Contains(System.IO.Path.GetExtension(item.Path));
                 case FileTypeFilter.Videos:
-                    return !item.IsDirectory && VideoExtensions.Contains(System.IO.Path.GetExtension(item.Path));
+                    return !item.IsDirectory && OoiMRR.Services.Search.SearchFilterService.VideoExtensions.Contains(System.IO.Path.GetExtension(item.Path));
+                case FileTypeFilter.Audio:
+                    return !item.IsDirectory && OoiMRR.Services.Search.SearchFilterService.AudioExtensions.Contains(System.IO.Path.GetExtension(item.Path));
                 case FileTypeFilter.Documents:
-                    return !item.IsDirectory && DocumentExtensions.Contains(System.IO.Path.GetExtension(item.Path));
+                    return !item.IsDirectory && OoiMRR.Services.Search.SearchFilterService.DocumentExtensions.Contains(System.IO.Path.GetExtension(item.Path));
                 case FileTypeFilter.Folders:
                     return item.IsDirectory;
                 default:
@@ -388,6 +402,37 @@ namespace OoiMRR.Handlers
                 SizeRangeFilter.Medium => size >= MB && size < 10 * MB,
                 SizeRangeFilter.Large => size >= 10 * MB && size < 100 * MB,
                 SizeRangeFilter.Huge => size >= 100 * MB,
+                _ => true
+            };
+        }
+
+        public static bool MatchesImageSizeFilter(FileSystemItem item, ImageDimensionFilter filter)
+        {
+            if (item.IsDirectory) return false;
+            int maxDim = Math.Max(item.PixelWidth, item.PixelHeight); // 0 if N/A
+
+            return filter switch
+            {
+                ImageDimensionFilter.Small => maxDim < 800,
+                ImageDimensionFilter.Medium => maxDim >= 800 && maxDim < 1920,
+                ImageDimensionFilter.Large => maxDim >= 1920 && maxDim < 3840,
+                ImageDimensionFilter.Huge => maxDim >= 3840,
+                _ => true
+            };
+        }
+
+        public static bool MatchesDurationFilter(FileSystemItem item, AudioDurationFilter filter)
+        {
+            if (item.IsDirectory) return false;
+            long duration = item.DurationMs; // 0 if N/A
+            const long Minute = 60 * 1000;
+
+            return filter switch
+            {
+                AudioDurationFilter.Short => duration < Minute,
+                AudioDurationFilter.Medium => duration >= Minute && duration < 5 * Minute,
+                AudioDurationFilter.Long => duration >= 5 * Minute && duration < 20 * Minute,
+                AudioDurationFilter.VeryLong => duration >= 20 * Minute,
                 _ => true
             };
         }
