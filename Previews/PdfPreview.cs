@@ -158,7 +158,8 @@ namespace OoiMRR.Previews
                     {
                         try
                         {
-                            string message = e.TryGetWebMessageAsString();                        }
+                            string message = e.TryGetWebMessageAsString();
+                        }
                         catch { }
                     };
                 }
@@ -226,8 +227,8 @@ namespace OoiMRR.Previews
 
                 await webView.CoreWebView2.ExecuteScriptAsync(errorScript);
             }
-            catch (Exception ex)
-            {            }
+            catch (Exception)
+            { }
         }
 
         /// <summary>

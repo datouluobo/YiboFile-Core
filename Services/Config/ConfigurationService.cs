@@ -251,7 +251,7 @@ namespace OoiMRR.Services.Config
                         PerformSaveWithMonitoring();
                         _isDirty = false;
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
                         // 记录错误但不抛出，避免影响应用运行
                     }

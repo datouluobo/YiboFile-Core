@@ -10,6 +10,8 @@ using System.Windows.Data;
 using OoiMRR.Services.Search;
 using OoiMRR.Services.Config;
 
+using OoiMRR.Services.Core;
+
 namespace OoiMRR.Controls
 {
     /// <summary>
@@ -96,32 +98,145 @@ namespace OoiMRR.Controls
             string specialContent = null;
             bool isSpecial = false;
 
-            if (path.StartsWith("content://", StringComparison.OrdinalIgnoreCase))
+            // Reset background rigorously first
+            BreadcrumbContainer.ClearValue(Border.BackgroundProperty);
+            if (BreadcrumbContainer.Background == null || BreadcrumbContainer.Background == System.Windows.Media.Brushes.Transparent)
             {
-                identifier = "content ";
-                specialContent = path.Substring("content://".Length);
-                isSpecial = true;
+                // Ensure it is transparent if style didn't set it (though usually it does or is null)
+                BreadcrumbContainer.Background = System.Windows.Media.Brushes.Transparent;
             }
-            else if (path.StartsWith("search://", StringComparison.OrdinalIgnoreCase))
-            {
-                identifier = "search ";
-                specialContent = path.Substring("search://".Length);
-                isSpecial = true;
-            }
-            else if (path.StartsWith("lib://", StringComparison.OrdinalIgnoreCase))
+
+            // ... (rest of logic)
+
+
+
+            var protocolInfo = ProtocolManager.Parse(path);
+
+            if (protocolInfo.Type == ProtocolType.Library)
             {
                 identifier = "library ";
-                specialContent = path.Substring("lib://".Length);
+                specialContent = protocolInfo.TargetPath;
+                isSpecial = true;
+            }
+            else if (protocolInfo.Type == ProtocolType.Archive)
+            {
+                // Remove yellow background (keep transparent)
+                BreadcrumbContainer.Background = System.Windows.Media.Brushes.Transparent;
+
+                // Standard-like Archive Breadcrumbs
+                BreadcrumbText.Inlines.Clear();
+
+                // Add "zip " prefix
+                var prefixRun = new System.Windows.Documents.Run("zip ")
+                {
+                    Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 165, 0)),
+                    FontWeight = FontWeights.SemiBold
+                };
+                BreadcrumbText.Inlines.Add(prefixRun);
+
+                string archivePath = protocolInfo.TargetPath; // e.g. C:\Downloads\test.zip
+                string innerPath = protocolInfo.ExtraData;    // e.g. Folder/Sub
+
+                // 1. Process the standard file system path to the archive file
+                // This breaks down C:\Downloads\test.zip into [C:] [Downloads] [test.zip]
+                string archiveRoot = "";
+                string[] archiveParts;
+
+                if (archivePath.Length >= 2 && archivePath[1] == ':')
+                {
+                    archiveRoot = archivePath.Substring(0, 2); // "C:"
+                    var remainingPath = archivePath.Substring(2).TrimStart(Path.DirectorySeparatorChar);
+                    archiveParts = string.IsNullOrEmpty(remainingPath)
+                        ? new[] { archiveRoot }
+                        : new[] { archiveRoot }.Concat(remainingPath.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries)).ToArray();
+                }
+                else if (archivePath.StartsWith("\\\\"))
+                {
+                    var uncParts = archivePath.Substring(2).Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
+                    archiveRoot = "\\\\" + (uncParts.Length > 0 ? uncParts[0] : "");
+                    archiveParts = uncParts.Length > 1
+                        ? new[] { archiveRoot }.Concat(uncParts.Skip(1)).ToArray()
+                        : new[] { archiveRoot };
+                }
+                else
+                {
+                    archiveParts = archivePath.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
+                }
+
+                // Add the segments for the archive file path
+                string currentArchiveSegPath = "";
+                for (int i = 0; i < archiveParts.Length; i++)
+                {
+                    if (i == 0 && archiveParts[i].Length == 2 && archiveParts[i][1] == ':') { currentArchiveSegPath = archiveParts[i] + Path.DirectorySeparatorChar; }
+                    else if (i == 0 && archiveParts[i].StartsWith("\\\\")) { currentArchiveSegPath = archiveParts[i]; }
+                    else { currentArchiveSegPath = Path.Combine(currentArchiveSegPath, archiveParts[i]); }
+
+                    // Navigation Path Logic:
+                    // Only the LAST part (the archive file itself) should navigate to zip://...|
+                    // The previous parts should navigate to standard file system folders.
+
+                    bool isLastPart = (i == archiveParts.Length - 1);
+                    string navigatePath;
+
+                    if (isLastPart)
+                    {
+                        // The archive file itself -> Enter the archive root
+                        navigatePath = $"{ProtocolManager.ZipProtocol}{archivePath}|";
+                    }
+                    else
+                    {
+                        // Parent folders -> Standard navigation
+                        navigatePath = currentArchiveSegPath;
+                    }
+
+                    AddSegment(BreadcrumbText, archiveParts[i], navigatePath, defaultBrush, hoverBrush, true);
+                }
+
+                // 2. Inner Path Segments
+                if (!string.IsNullOrEmpty(innerPath))
+                {
+                    var innerParts = innerPath.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
+                    string currentInner = "";
+
+                    for (int i = 0; i < innerParts.Length; i++)
+                    {
+                        currentInner = i == 0 ? innerParts[i] : currentInner + "/" + innerParts[i];
+                        string navPath = $"{ProtocolManager.ZipProtocol}{archivePath}|{currentInner}";
+
+                        AddSegment(BreadcrumbText, innerParts[i], navPath, defaultBrush, hoverBrush, i < innerParts.Length - 1);
+                    }
+                }
+                else
+                {
+                    // Remove the trailing separator from the last added segment if there is no inner path
+                    if (BreadcrumbText.Inlines.Count > 0 && BreadcrumbText.Inlines.LastInline is System.Windows.Documents.Run lastRun && lastRun.Text == " \\ ")
+                    {
+                        BreadcrumbText.Inlines.Remove(lastRun);
+                    }
+                }
+
+                return; // Return early as we handled breadcrumbs manually
+            }
+            else if (protocolInfo.Type == ProtocolType.Search)
+            {
+                identifier = "search ";
+                specialContent = protocolInfo.TargetPath;
+                isSpecial = true;
+            }
+            else if (protocolInfo.Type == ProtocolType.ContentSearch)
+            {
+                identifier = "content ";
+                specialContent = protocolInfo.TargetPath;
                 isSpecial = true;
             }
 
-            // 添加标签 Run
-            var prefixRun = new System.Windows.Documents.Run(identifier)
+            // 添加标签 Run (Standard Handling)
+            var prefixRunStandard = new System.Windows.Documents.Run(identifier)
             {
                 Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 165, 0)),
                 FontWeight = FontWeights.SemiBold
             };
-            BreadcrumbText.Inlines.Add(prefixRun);
+            BreadcrumbText.Inlines.Add(prefixRunStandard);
 
             if (isSpecial)
             {
@@ -257,6 +372,39 @@ namespace OoiMRR.Controls
                     };
                     targetTextBlock.Inlines.Add(separator);
                 }
+            }
+        }
+
+        private void AddSegment(TextBlock targetTextBlock, string text, string navigatePath,
+            System.Windows.Media.SolidColorBrush defaultBrush, System.Windows.Media.SolidColorBrush hoverBrush, bool addSeparator)
+        {
+            var run = new System.Windows.Documents.Run(text)
+            {
+                Foreground = defaultBrush,
+                Cursor = Cursors.Hand
+            };
+
+            run.MouseEnter += (s, e) => run.Foreground = hoverBrush;
+            run.MouseLeave += (s, e) => run.Foreground = defaultBrush;
+            run.MouseDown += (s, e) =>
+            {
+                if (e.ChangedButton == MouseButton.Left)
+                {
+                    e.Handled = true;
+                    BreadcrumbClicked?.Invoke(this, navigatePath);
+                }
+                else if (e.ChangedButton == MouseButton.Middle)
+                {
+                    e.Handled = true;
+                    BreadcrumbMiddleClicked?.Invoke(this, navigatePath);
+                }
+            };
+
+            targetTextBlock.Inlines.Add(run);
+
+            if (addSeparator)
+            {
+                targetTextBlock.Inlines.Add(new System.Windows.Documents.Run(" \\ ") { Foreground = System.Windows.Media.Brushes.Gray });
             }
         }
 

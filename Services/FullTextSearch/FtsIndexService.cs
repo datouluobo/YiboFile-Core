@@ -88,6 +88,30 @@ namespace OoiMRR.Services.FullTextSearch
 
             using var cmd = new SqliteCommand(createTableSql, _connection);
             cmd.ExecuteNonQuery();
+
+            // Enable WAL mode for better concurrency and performance
+            using var walCmd = new SqliteCommand("PRAGMA journal_mode=WAL;", _connection);
+            walCmd.ExecuteNonQuery();
+        }
+
+        private SqliteTransaction _currentTransaction;
+
+        public void BeginTransaction()
+        {
+            if (_currentTransaction == null)
+            {
+                _currentTransaction = _connection.BeginTransaction();
+            }
+        }
+
+        public void CommitTransaction()
+        {
+            if (_currentTransaction != null)
+            {
+                _currentTransaction.Commit();
+                _currentTransaction.Dispose();
+                _currentTransaction = null;
+            }
         }
 
         /// <summary>
@@ -115,7 +139,7 @@ namespace OoiMRR.Services.FullTextSearch
                 if (string.IsNullOrWhiteSpace(content))
                     return false;
 
-                // 删除旧记录
+                // 删除旧记录 (DeleteDocument handles transaction internally if we update it)
                 DeleteDocument(filePath);
 
                 // 插入新记录
@@ -128,6 +152,7 @@ namespace OoiMRR.Services.FullTextSearch
                 ";
 
                 using var cmd = new SqliteCommand(insertSql, _connection);
+                cmd.Transaction = _currentTransaction;
                 cmd.Parameters.AddWithValue("@path", filePath);
                 cmd.Parameters.AddWithValue("@filename", Path.GetFileName(filePath));
                 cmd.Parameters.AddWithValue("@content", content);
@@ -151,6 +176,7 @@ namespace OoiMRR.Services.FullTextSearch
         {
             var sql = "SELECT modified_time FROM index_meta WHERE path = @path";
             using var cmd = new SqliteCommand(sql, _connection);
+            cmd.Transaction = _currentTransaction;
             cmd.Parameters.AddWithValue("@path", filePath);
 
             var result = cmd.ExecuteScalar();
@@ -174,6 +200,7 @@ namespace OoiMRR.Services.FullTextSearch
                 DELETE FROM index_meta WHERE path = @path;
             ";
             using var cmd = new SqliteCommand(sql, _connection);
+            cmd.Transaction = _currentTransaction;
             cmd.Parameters.AddWithValue("@path", filePath);
             cmd.ExecuteNonQuery();
         }

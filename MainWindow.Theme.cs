@@ -34,7 +34,7 @@ namespace OoiMRR
                     if (FavoritesListBox != null)
                         _favoriteService?.LoadFavorites(FavoritesListBox);
                 }
-                catch (Exception ex)
+                catch (Exception)
                 { }
             }), System.Windows.Threading.DispatcherPriority.Loaded);
         }

@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
+using OoiMRR.Services.Core;
+
 namespace OoiMRR.Services.Navigation
 {
     /// <summary>
@@ -159,6 +161,67 @@ namespace OoiMRR.Services.Navigation
             if (string.IsNullOrEmpty(_currentPath))
                 return null;
 
+            var protocolInfo = ProtocolManager.Parse(_currentPath);
+            if (protocolInfo.Type == ProtocolType.Archive)
+            {
+                try
+                {
+                    string archiveFile = protocolInfo.TargetPath;
+                    string innerPath = protocolInfo.ExtraData;
+
+                    // If innerPath contains directory separators, move up inside archive
+                    // Normalize innerPath to use standard slash for logic if needed, but 7z uses what it uses.
+                    // Assuming simple hierarchy.
+
+                    string parentInner = string.Empty;
+
+                    // Trim trailing slashes from innerPath
+                    innerPath = innerPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+
+                    if (!string.IsNullOrEmpty(innerPath))
+                    {
+                        // Has content, try to find parent
+                        // If inner path is just a file or folder name, parent is empty (archive root)
+                        // If "A/B", parent is "A"
+
+                        int lastSlash = innerPath.LastIndexOfAny(new char[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar });
+                        if (lastSlash >= 0)
+                        {
+                            parentInner = innerPath.Substring(0, lastSlash);
+                            string newUrl = $"{ProtocolManager.ZipProtocol}{archiveFile}|{parentInner}";
+                            CurrentPath = newUrl;
+                            NavigateRequested?.Invoke(this, newUrl);
+                            return newUrl;
+                        }
+                        else
+                        {
+                            // At root folder of archive content (e.g. zip://zip|folder), parent is archive root (zip://zip|)
+                            string newUrl = $"{ProtocolManager.ZipProtocol}{archiveFile}|";
+                            CurrentPath = newUrl;
+                            NavigateRequested?.Invoke(this, newUrl);
+                            return newUrl;
+                        }
+                    }
+
+                    // If innerPath is empty or we are at root "zip://zip|", navigate to the archive file's parent folder
+                    // i.e. exit archive mode
+                    if (string.IsNullOrEmpty(innerPath))
+                    {
+                        string parentDir = Directory.GetParent(archiveFile)?.FullName;
+                        if (!string.IsNullOrEmpty(parentDir) && Directory.Exists(parentDir))
+                        {
+                            CurrentPath = parentDir;
+                            NavigateRequested?.Invoke(this, parentDir);
+                            return parentDir;
+                        }
+                    }
+                }
+                catch
+                {
+                    // Fallback to standard logic if parsing fails
+                }
+            }
+
             try
             {
                 var parentPath = Directory.GetParent(_currentPath)?.FullName;
@@ -183,7 +246,11 @@ namespace OoiMRR.Services.Navigation
         /// <param name="path">目标路径</param>
         public void NavigateTo(string path)
         {
-            if (string.IsNullOrEmpty(path) || !Directory.Exists(path))
+            if (string.IsNullOrEmpty(path))
+                return;
+
+            // Allow navigation if it's a directory OR a virtual path (e.g. zip://)
+            if (!Directory.Exists(path) && !ProtocolManager.IsVirtual(path))
                 return;
 
             CurrentPath = path;

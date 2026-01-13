@@ -10,6 +10,8 @@ using OoiMRR.Services;
 using OoiMRR.Services.Navigation;
 using OoiMRR.Models.UI;
 
+using OoiMRR.Services.Core;
+
 namespace OoiMRR
 {
     public partial class MainWindow
@@ -116,8 +118,7 @@ namespace OoiMRR
                 bool isVirtualPath = false;
                 if (!string.IsNullOrEmpty(_currentPath))
                 {
-                    isVirtualPath = _currentPath.IndexOf("content://", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                                  _currentPath.IndexOf("search://", StringComparison.OrdinalIgnoreCase) >= 0;
+                    isVirtualPath = ProtocolManager.IsVirtual(_currentPath);
                 }
 
                 if (FileBrowser != null)
@@ -153,6 +154,36 @@ namespace OoiMRR
 
                     // 设置文件系统监控
                     _fileSystemWatcherService.SetupFileWatcher(_currentPath);
+                }
+                else
+                {
+                    // Handle Virtual Paths (like Archives)
+                    var protocol = ProtocolManager.Parse(_currentPath);
+                    if (protocol.Type == ProtocolType.Archive)
+                    {
+                        var items = await _archiveService.GetArchiveContentAsync(protocol.TargetPath, protocol.ExtraData);
+
+                        // Update UI on background priority
+                        await Dispatcher.BeginInvoke(new Action(() =>
+                       {
+                           try
+                           {
+                               _currentFiles.Clear();
+                               _currentFiles.AddRange(items);
+
+                               if (FileBrowser != null)
+                               {
+                                   FileBrowser.FilesItemsSource = _currentFiles;
+                                   // Trigger updates if necessary
+                                   _selectionEventHandler?.HandleNoSelection();
+
+                                   // Archives are read-only-ish, hide search status
+                                   FileBrowser.SetSearchStatus(false);
+                               }
+                           }
+                           catch (Exception) { }
+                       }), System.Windows.Threading.DispatcherPriority.Background);
+                    }
                 }
 
                 // 高亮匹配当前路径的列表项
@@ -249,9 +280,19 @@ namespace OoiMRR
             bool isVirtualPath = false;
             if (!string.IsNullOrEmpty(path))
             {
-                var trimmedPath = path.Trim();
-                isVirtualPath = trimmedPath.StartsWith("content://", StringComparison.OrdinalIgnoreCase) ||
-                              trimmedPath.StartsWith("search://", StringComparison.OrdinalIgnoreCase);
+                isVirtualPath = ProtocolManager.IsVirtual(path);
+            }
+
+            // [Archive Support] Check if path is an archive file
+            if (!isVirtualPath && !Directory.Exists(path) && File.Exists(path))
+            {
+                var ext = System.IO.Path.GetExtension(path).ToLowerInvariant();
+                if (ext == ".zip" || ext == ".7z" || ext == ".rar" || ext == ".tar" || ext == ".gz")
+                {
+                    // Redirect to archive schema
+                    NavigateToPath($"zip://{path}|");
+                    return;
+                }
             }
 
             if (!isVirtualPath && !Directory.Exists(path)) return;
@@ -289,7 +330,8 @@ namespace OoiMRR
             if (activeTab != null && activeTab.Type == Services.Tabs.TabType.Path)
             {
                 activeTab.Path = path;
-                _tabService?.UpdateTabTitle(activeTab, path);
+                // Update active tab path will update title and icon correctly
+                _tabService?.UpdateActiveTabPath(path);
                 NavigateToPathInternal(path);
                 return;
             }
@@ -315,31 +357,32 @@ namespace OoiMRR
             bool isVirtualPath = false;
             if (!string.IsNullOrEmpty(path))
             {
-                var trimmedPath = path.Trim();
-                isVirtualPath = trimmedPath.StartsWith("content://", StringComparison.OrdinalIgnoreCase) ||
-                              trimmedPath.StartsWith("search://", StringComparison.OrdinalIgnoreCase);
+                isVirtualPath = ProtocolManager.IsVirtual(path);
             }
 
             if (!isVirtualPath && !Directory.Exists(path)) return;
 
-            var isDriveRoot = string.Equals(
-                System.IO.Path.GetPathRoot(path)?.TrimEnd('\\'),
-                path.TrimEnd('\\'),
-                StringComparison.OrdinalIgnoreCase);
+            // ALWAYS sync navigation service state FIRST for all valid paths (including virtual)
+            _currentPath = path;
+            if (_navigationService != null)
+            {
+                _navigationService.CurrentPath = path;
+            }
+
+            var isDriveRoot = false;
+            if (!isVirtualPath)
+            {
+                isDriveRoot = string.Equals(
+                    System.IO.Path.GetPathRoot(path)?.TrimEnd('\\'),
+                    path.TrimEnd('\\'),
+                    StringComparison.OrdinalIgnoreCase);
+            }
 
             // 如果进入的是文件夹，计算并更新其大小缓存（驱动器根目录跳过，避免耗时）
             // 虚拟也不计算
             if (!isVirtualPath && !isDriveRoot)
             {
                 Task.Run(() => _folderSizeCalculationService.CalculateAndUpdateFolderSizeAsync(path));
-            }
-
-            _currentPath = path;
-
-            // 确保导航服务状态同步
-            if (_navigationService != null)
-            {
-                _navigationService.CurrentPath = path;
             }
 
             LoadCurrentDirectory();

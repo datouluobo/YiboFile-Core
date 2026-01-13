@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Windows.Threading;
 using OoiMRR.Services.FileNotes;
 using OoiMRR.Services.FileSystem;
+using OoiMRR.Services.Core;
 
 namespace OoiMRR.Services.FileList
 {
@@ -119,8 +120,9 @@ namespace OoiMRR.Services.FileList
             Func<long, string> formatFileSize = null)
         {
             // 拦截搜索路径
-            if (path.StartsWith("search://", StringComparison.OrdinalIgnoreCase) ||
-                path.StartsWith("content:", StringComparison.OrdinalIgnoreCase))
+            var protocolInfo = ProtocolManager.Parse(path);
+            if (protocolInfo.Type == ProtocolType.Search ||
+                protocolInfo.Type == ProtocolType.ContentSearch)
             {
                 return new List<FileSystemItem>();
             }
@@ -171,10 +173,30 @@ namespace OoiMRR.Services.FileList
         /// <param name="getFolderSizeCache">获取文件夹大小缓存的函数（可选）</param>
         /// <param name="formatFileSize">格式化文件大小的函数（可选）</param>
         /// <returns>合并后的文件系统项列表</returns>
+        [Obsolete("Use LoadFileSystemItemsFromMultiplePathsAsync instead")]
         public List<FileSystemItem> LoadFileSystemItemsFromMultiplePaths(
             IEnumerable<string> paths,
             Func<string, long?> getFolderSizeCache = null,
             Func<long, string> formatFileSize = null)
+        {
+            var task = LoadFileSystemItemsFromMultiplePathsAsync(paths, getFolderSizeCache, formatFileSize);
+            task.Wait();
+            return task.Result;
+        }
+
+        /// <summary>
+        /// 异步从多个路径加载文件系统项，合并结果（同名项保留第一个）
+        /// </summary>
+        /// <param name="paths">要加载的路径列表</param>
+        /// <param name="getFolderSizeCache">获取文件夹大小缓存的函数（可选）</param>
+        /// <param name="formatFileSize">格式化文件大小的函数（可选）</param>
+        /// <param name="cancellationToken">取消令牌（可选）</param>
+        /// <returns>合并后的文件系统项列表</returns>
+        public async Task<List<FileSystemItem>> LoadFileSystemItemsFromMultiplePathsAsync(
+            IEnumerable<string> paths,
+            Func<string, long?> getFolderSizeCache = null,
+            Func<long, string> formatFileSize = null,
+            CancellationToken cancellationToken = default)
         {
             var allItems = new Dictionary<string, FileSystemItem>();
 
@@ -187,7 +209,10 @@ namespace OoiMRR.Services.FileList
 
                 try
                 {
-                    var items = LoadFileSystemItems(path, getFolderSizeCache, formatFileSize);
+                    // 使用异步方法
+                    // 注意：这里串行加载，如果路径很多可能慢，但对于库来说通常只有几个路径
+                    var items = await LoadFileSystemItemsAsync(path, null, cancellationToken);
+
                     foreach (var item in items)
                     {
                         var key = item.Name.ToLowerInvariant();
@@ -249,6 +274,8 @@ namespace OoiMRR.Services.FileList
             return nameWithoutExt;
         }
 
+        private readonly OoiMRR.Services.Archive.ArchiveService _archiveService = new OoiMRR.Services.Archive.ArchiveService();
+
         /// <summary>
         /// 异步加载文件系统项，包含文件夹大小计算和元数据加载
         /// </summary>
@@ -262,10 +289,34 @@ namespace OoiMRR.Services.FileList
             CancellationToken cancellationToken = default)
         {
             // 拦截搜索路径，防止 Directory.GetDirectories 抛出异常
-            if (path.StartsWith("search://", StringComparison.OrdinalIgnoreCase) ||
-                path.StartsWith("content:", StringComparison.OrdinalIgnoreCase))
+            var protocolInfo = ProtocolManager.Parse(path);
+            if (protocolInfo.Type == ProtocolType.Search ||
+                protocolInfo.Type == ProtocolType.ContentSearch)
             {
                 return new List<FileSystemItem>();
+            }
+
+            // [Archive Support] Check for Archive Paths
+            // Case 1: Path is "zip://..." -> Virtual Path
+            if (protocolInfo.Type == ProtocolType.Archive)
+            {
+                return await _archiveService.GetArchiveContentAsync(protocolInfo.TargetPath, protocolInfo.ExtraData);
+            }
+
+            // Case 2: Path is a physical file that is an archive (User tried to "open" it like a folder)
+            // But FileListService is usually called with a Directory path. 
+            // If the UI passes a File Path here, it means we want to open it.
+            // We need to check if 'path' refers to an existing FILE, and if it is an archive.
+            bool isFile = File.Exists(path);
+            bool isDir = Directory.Exists(path);
+
+            if (isFile && !isDir)
+            {
+                if (_archiveService.IsArchive(path))
+                {
+                    // Redirect to root of archive
+                    return await _archiveService.GetArchiveContentAsync(path, "");
+                }
             }
 
             // 等待获取信号量，支持取消

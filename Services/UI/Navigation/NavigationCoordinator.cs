@@ -5,6 +5,7 @@ using System.Windows.Input;
 using OoiMRR.Controls;
 using FavoriteType = OoiMRR.Favorite;
 using TagType = OoiMRR.Tag;
+using OoiMRR.Services.Core;
 
 namespace OoiMRR.Services.Navigation
 {
@@ -88,7 +89,8 @@ namespace OoiMRR.Services.Navigation
                 return;
 
             // 验证路径是否存在
-            bool isVirtual = path.StartsWith("content://", StringComparison.OrdinalIgnoreCase) ||
+            bool isVirtual = ProtocolManager.IsVirtual(path) ||
+                           path.StartsWith("content://", StringComparison.OrdinalIgnoreCase) ||
                            path.StartsWith("search://", StringComparison.OrdinalIgnoreCase);
 
             if (!isVirtual && !Directory.Exists(path) && !File.Exists(path))

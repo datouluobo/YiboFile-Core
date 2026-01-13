@@ -710,7 +710,7 @@ namespace OoiMRR
                     catch { }
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             { }
         }
 
@@ -776,6 +776,14 @@ namespace OoiMRR
                 }
                 else
                 {
+                    // 检查是否为归档文件或其他特殊协议
+                    var protocolInfo = Services.Core.ProtocolManager.Parse(item.Path);
+                    if (protocolInfo.Type == Services.Core.ProtocolType.Archive)
+                    {
+                        MessageBox.Show("暂不支持直接打开压缩包内的文件。\n请先解压后再试。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                        return;
+                    }
+
                     // 打开文件
                     try
                     {
@@ -785,7 +793,10 @@ namespace OoiMRR
                             UseShellExecute = true
                         });
                     }
-                    catch { }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"无法打开文件: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
                 }
             }
         }

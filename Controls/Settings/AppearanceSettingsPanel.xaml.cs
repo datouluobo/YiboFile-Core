@@ -652,7 +652,7 @@ namespace OoiMRR.Controls.Settings
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             { }
 
             // 默认返回浅色
@@ -1171,7 +1171,7 @@ namespace OoiMRR.Controls.Settings
 
                 // UI update is handled automatically by DynamicResource bindings on the border
             }
-            catch (Exception ex)
+            catch (Exception)
             { }
         }
 

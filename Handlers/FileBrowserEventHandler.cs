@@ -10,6 +10,7 @@ using OoiMRR.Controls;
 using OoiMRR.Services;
 using OoiMRR.Services.Navigation;
 using OoiMRR.Services.Search;
+using OoiMRR.Services.Core;
 using OoiMRR.Services.Tabs;
 using System.Windows.Media;
 
@@ -122,7 +123,7 @@ namespace OoiMRR.Handlers
         }
 
         private readonly Action<RenameEventArgs> _commitRename;
-        private bool _isFilterMultiSelect = false;
+
 
         /// <summary>
         /// 初始化事件绑定
@@ -141,6 +142,7 @@ namespace OoiMRR.Handlers
             _fileBrowser.FilesSizeChanged += FileBrowser_FilesSizeChanged;
             _fileBrowser.Loaded += FileBrowser_Loaded;
             _fileBrowser.FilesSelectionChanged += FileBrowser_FilesSelectionChanged;
+            _fileBrowser.FilesPreviewMouseDoubleClickForBlank += FileBrowser_FilesPreviewMouseDoubleClickForBlank;
 
             // Handled by FileListEventHandler now
 
@@ -154,7 +156,7 @@ namespace OoiMRR.Handlers
             if (string.IsNullOrEmpty(path))
                 return;
             // 检查是否为有效路径
-            bool isPath = Directory.Exists(path) || File.Exists(path);
+            bool isPath = Directory.Exists(path) || File.Exists(path) || ProtocolManager.Parse(path).Type == ProtocolType.Archive;
             if (isPath)
             {
                 // 使用统一导航协调器处理路径导航（左键点击）
@@ -247,12 +249,15 @@ namespace OoiMRR.Handlers
         private void RefreshSearchIfActive()
         {
             var currentPath = _getCurrentPath();
-            if (!string.IsNullOrEmpty(currentPath) && currentPath.StartsWith("search://"))
+            if (!string.IsNullOrEmpty(currentPath))
             {
-                var keyword = currentPath.Substring("search://".Length);
-                if (!string.IsNullOrEmpty(keyword))
+                var protocolInfo = ProtocolManager.Parse(currentPath);
+                if (protocolInfo.Type == ProtocolType.Search)
                 {
-                    _performSearch(keyword);
+                    if (!string.IsNullOrEmpty(protocolInfo.TargetPath))
+                    {
+                        _performSearch(protocolInfo.TargetPath);
+                    }
                 }
             }
         }
@@ -269,9 +274,10 @@ namespace OoiMRR.Handlers
 
                 var searchOptions = _getSearchOptions();
                 var currentPath = _getCurrentPath();
+                var protocolInfo = ProtocolManager.Parse(currentPath);
 
                 // 如果是搜索模式，刷新搜索结果（搜索服务会应用过滤）
-                if (!string.IsNullOrEmpty(currentPath) && currentPath.StartsWith("search://"))
+                if (protocolInfo.Type == ProtocolType.Search)
                 {
                     RefreshSearchIfActive();
                     return;
@@ -411,10 +417,12 @@ namespace OoiMRR.Handlers
             try
             {
                 var activeTab = _tabService.ActiveTab;
-                if (activeTab == null || activeTab.Path == null || !activeTab.Path.StartsWith("search://"))
-                    return;
+                if (activeTab == null || activeTab.Path == null) return;
 
-                var keyword = activeTab.Path.Substring("search://".Length);
+                var protocolInfo = ProtocolManager.Parse(activeTab.Path);
+                if (protocolInfo.Type != ProtocolType.Search) return;
+
+                var keyword = protocolInfo.TargetPath;
                 if (string.IsNullOrEmpty(keyword)) return;
 
                 // 从缓存获取当前偏移量

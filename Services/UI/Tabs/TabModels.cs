@@ -31,6 +31,7 @@ namespace OoiMRR.Services.Tabs
         public bool IsPinned { get; set; }
         public StackPanel TabContainer { get; set; }
         public TextBlock TitleTextBlock { get; set; }
+        public TextBlock IconTextBlock { get; set; }
         public string OverrideTitle { get; set; }
 
         /// <summary>

@@ -19,6 +19,8 @@ using OoiMRR.Services.Tabs;
 using OoiMRR.Services.Preview;
 using OoiMRR.Services.ColumnManagement;
 using OoiMRR.Services.Config;
+using OoiMRR.Services.Archive; // Import Archive Service
+
 
 using OoiMRR.Helpers;
 using OoiMRR.Handlers;
@@ -117,6 +119,8 @@ namespace OoiMRR
 
             _fileSystemWatcherService = App.ServiceProvider.GetRequiredService<FileSystemWatcherService>();
             _folderSizeCalculationService = App.ServiceProvider.GetRequiredService<FolderSizeCalculationService>();
+            _archiveService = App.ServiceProvider.GetRequiredService<ArchiveService>();
+
 
             // 初始化标签页服务（需要配置，在加载配置后更新）
             // 注意：_config 将在 InitializeApplication 中加载，这里先创建空配置

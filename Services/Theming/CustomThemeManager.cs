@@ -59,12 +59,12 @@ namespace OoiMRR.Services.Theming
                             _cachedThemes.Add(theme);
                         }
                     }
-                    catch (Exception ex)
-                    {                    }
+                    catch (Exception)
+                    { }
                 }
             }
-            catch (Exception ex)
-            {            }
+            catch (Exception)
+            { }
 
             return _cachedThemes;
         }
@@ -105,9 +105,11 @@ namespace OoiMRR.Services.Theming
                         _cachedThemes.Remove(existing);
                     }
                     _cachedThemes.Add(theme);
-                }            }
-            catch (Exception ex)
-            {                throw;
+                }
+            }
+            catch (Exception)
+            {
+                throw;
             }
         }
 
@@ -126,7 +128,8 @@ namespace OoiMRR.Services.Theming
 
                 if (File.Exists(filePath))
                 {
-                    File.Delete(filePath);                }
+                    File.Delete(filePath);
+                }
 
                 // 更新缓存
                 if (_cachedThemes != null)
@@ -134,8 +137,9 @@ namespace OoiMRR.Services.Theming
                     _cachedThemes.RemoveAll(t => t.Id == themeId);
                 }
             }
-            catch (Exception ex)
-            {                throw;
+            catch (Exception)
+            {
+                throw;
             }
         }
 
@@ -196,11 +200,13 @@ namespace OoiMRR.Services.Theming
 
                         appResources[kvp.Key] = brush;
                     }
-                    catch (Exception ex)
-                    {                    }
-                }            }
-            catch (Exception ex)
-            {                throw;
+                    catch (Exception)
+                    { }
+                }
+            }
+            catch (Exception)
+            {
+                throw;
             }
         }
 
@@ -238,8 +244,8 @@ namespace OoiMRR.Services.Theming
                     }
                 }
             }
-            catch (Exception ex)
-            {            }
+            catch (Exception)
+            { }
 
             return null;
         }
@@ -262,9 +268,10 @@ namespace OoiMRR.Services.Theming
                         // 注意：如果ResourceDictionary里也有这个key，Remove只会移除本地覆盖的值
                         appResources.Remove(key);
                     }
-                }            }
-            catch (Exception ex)
-            {            }
+                }
+            }
+            catch (Exception)
+            { }
         }
 
         /// <summary>
@@ -286,7 +293,8 @@ namespace OoiMRR.Services.Theming
                     ColorConverter.ConvertFromString(color);
                 }
                 catch
-                {                    return false;
+                {
+                    return false;
                 }
             }
 

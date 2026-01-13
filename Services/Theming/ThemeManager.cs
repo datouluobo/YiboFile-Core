@@ -69,8 +69,8 @@ namespace OoiMRR.Services.Theming
                             _themes[fileName] = metadata;
                         }
                     }
-                    catch (Exception ex)
-                    {                    }
+                    catch (Exception)
+                    { }
                 }
 
                 // 确保至少有Light和Dark主题
@@ -87,7 +87,7 @@ namespace OoiMRR.Services.Theming
                     if (metadata != null) _themes["Dark"] = metadata;
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // 最小化回退：只加载Light和Dark
                 var fallbackThemes = new[] { "Light", "Dark" };
@@ -134,8 +134,9 @@ namespace OoiMRR.Services.Theming
                     }
                 };
             }
-            catch (Exception ex)
-            {                return null;
+            catch (Exception)
+            {
+                return null;
             }
         }
 
@@ -223,7 +224,7 @@ namespace OoiMRR.Services.Theming
                 };
 
                 _currentTheme = customThemeMetadata;
-                ThemeChanged?.Invoke(null, new ThemeChangedEventArgs(oldTheme, customThemeMetadata));                return;
+                ThemeChanged?.Invoke(null, new ThemeChangedEventArgs(oldTheme, customThemeMetadata)); return;
             }
 
             throw new ArgumentException($"Theme '{themeId}' not found.");
@@ -251,9 +252,11 @@ namespace OoiMRR.Services.Theming
                 var oldTheme = _currentTheme;
                 _currentTheme = theme;
 
-                ThemeChanged?.Invoke(null, new ThemeChangedEventArgs(oldTheme, theme));            }
-            catch (Exception ex)
-            {                throw;
+                ThemeChanged?.Invoke(null, new ThemeChangedEventArgs(oldTheme, theme));
+            }
+            catch (Exception)
+            {
+                throw;
             }
         }
 
@@ -332,9 +335,10 @@ namespace OoiMRR.Services.Theming
                     appDictionaries.Remove(existingDict);
                 }
 
-                appDictionaries.Add(newDict);            }
-            catch (Exception ex)
-            {            }
+                appDictionaries.Add(newDict);
+            }
+            catch (Exception)
+            { }
         }
 
         #region 系统主题跟随
@@ -345,7 +349,8 @@ namespace OoiMRR.Services.Theming
         public static void EnableSystemThemeFollowing()
         {
             if (_isFollowingSystemTheme)
-            {                return;
+            {
+                return;
             }
 
             _isFollowingSystemTheme = true;
@@ -354,9 +359,10 @@ namespace OoiMRR.Services.Theming
             try
             {
                 var systemTheme = DetectSystemTheme();
-                SetTheme(systemTheme, animate: false);            }
-            catch (Exception ex)
-            {            }
+                SetTheme(systemTheme, animate: false);
+            }
+            catch (Exception)
+            { }
 
             // 监听系统主题变化
             SystemEvents.UserPreferenceChanged += OnSystemPreferenceChanged;
@@ -373,7 +379,8 @@ namespace OoiMRR.Services.Theming
             }
 
             _isFollowingSystemTheme = false;
-            SystemEvents.UserPreferenceChanged -= OnSystemPreferenceChanged;        }
+            SystemEvents.UserPreferenceChanged -= OnSystemPreferenceChanged;
+        }
 
         /// <summary>
         /// 系统偏好设置变化事件处理
@@ -397,8 +404,8 @@ namespace OoiMRR.Services.Theming
                         }));
                     }
                 }
-                catch (Exception ex)
-                {                }
+                catch (Exception)
+                { }
             }
         }
 
@@ -419,13 +426,13 @@ namespace OoiMRR.Services.Theming
                         if (value is int intValue)
                         {
                             // 0 = Dark, 1 = Light
-                            var theme = intValue == 0 ? "Dark" : "Light";                            return theme;
+                            var theme = intValue == 0 ? "Dark" : "Light"; return theme;
                         }
                     }
                 }
             }
-            catch (Exception ex)
-            {            }
+            catch (Exception)
+            { }
 
             // 默认返回浅色主题
             return "Light";

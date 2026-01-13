@@ -271,18 +271,18 @@ namespace OoiMRR.Services
                 }
 
                 // 异步加载库文件，避免阻塞UI线程
-                Task.Run(() =>
+                Task.Run(async () =>
                 {
                     try
                     {
                         // 使用 FileListService 从多个路径加载文件
-                        var allItems = _fileListService.LoadFileSystemItemsFromMultiplePaths(
+                        var allItems = await _fileListService.LoadFileSystemItemsFromMultiplePathsAsync(
                             library.Paths,
                             getFolderSizeCache,
                             formatFileSize);
 
                         // 在UI线程更新文件列表
-                        _dispatcher.BeginInvoke(new Action(() =>
+                        await _dispatcher.InvokeAsync(() =>
                         {
                             try
                             {
@@ -297,16 +297,16 @@ namespace OoiMRR.Services
                             {
                                 _loadFilesSemaphore.Release();
                             }
-                        }), DispatcherPriority.Background);
+                        }, DispatcherPriority.Background);
                     }
                     catch (Exception ex)
                     {
                         // 在UI线程显示错误
-                        _dispatcher.BeginInvoke(new Action(() =>
+                        await _dispatcher.InvokeAsync(() =>
                         {
                             _loadFilesSemaphore.Release();
                             MessageBox.Show($"加载库文件失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                        }), DispatcherPriority.Background);
+                        }, DispatcherPriority.Background);
                     }
                 });
             }

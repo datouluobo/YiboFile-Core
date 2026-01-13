@@ -55,7 +55,20 @@ namespace OoiMRR.Controls
                 {
                     FilesPreviewMouseDoubleClick?.Invoke(s, e);
                     // Check for blank area double click
-                    if (!IsMouseOverItem(s as ListView, e.GetPosition(s as IInputElement)))
+                    // Fix: sender is FileListControl, not ListView. Use FileList.FilesList.
+                    // Improve Blank Area Check
+                    // If HitTest hits ScrollViewer, Border, or Grid but NOT a ListViewItem, it's blank.
+                    var hit = FileList.InputHitTest(e.GetPosition(FileList));
+                    bool isItem = false;
+                    var current = hit as DependencyObject;
+                    while (current != null)
+                    {
+                        if (current is ListViewItem) { isItem = true; break; }
+                        if (current == FileList) break;
+                        current = VisualTreeHelper.GetParent(current);
+                    }
+
+                    if (!isItem)
                     {
                         FilesPreviewMouseDoubleClickForBlank?.Invoke(s, e);
                     }
@@ -272,7 +285,7 @@ namespace OoiMRR.Controls
         public event RoutedEventHandler NavigationBack;
         public event RoutedEventHandler NavigationForward;
         public event RoutedEventHandler NavigationUp;
-        public event RoutedEventHandler SearchClicked;
+        // public event RoutedEventHandler SearchClicked; // Removed unused event
         public event RoutedEventHandler FilterClicked;
         public event RoutedEventHandler LoadMoreClicked;
 

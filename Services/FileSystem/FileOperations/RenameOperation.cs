@@ -49,20 +49,23 @@ namespace OoiMRR.Services.FileOperations
         public async void Execute(FileSystemItem item, string newName)
         {
             if (item == null)
-            {                return;
+            {
+                return;
             }
             if (string.IsNullOrEmpty(newName))
-            {                _context.ShowMessage("名称不能为空", "错误", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            {
+                _context.ShowMessage("名称不能为空", "错误", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
                 return;
             }
 
             if (_fileOperationService != null)
-            {                try
+            {
+                try
                 {
-                    await _fileOperationService.RenameAsync(item, newName);                    _context.RefreshAfterOperation();
+                    await _fileOperationService.RenameAsync(item, newName); _context.RefreshAfterOperation();
                 }
-                catch (Exception ex)
-                {                }
+                catch (Exception)
+                { }
             }
             else
             {                // Fallback logic

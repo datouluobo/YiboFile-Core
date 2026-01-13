@@ -9,6 +9,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using OoiMRR.Controls;
 using OoiMRR.Services;
+using OoiMRR.Services.Core;
 using OoiMRR.Services.Navigation;
 
 
@@ -214,20 +215,9 @@ namespace OoiMRR.Handlers
                         }
                         else
                         {
-                            try
-                            {
-                                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                                {
-                                    FileName = selectedItem.Path,
-                                    UseShellExecute = true
-                                });
-                                e.Handled = true;
-                                return;
-                            }
-                            catch (Exception ex)
-                            {
-                                MessageBox.Show($"无法打开文件: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                            }
+                            HandleFileOpen(selectedItem);
+                            e.Handled = true;
+                            return;
                         }
                     }
                 }
@@ -251,20 +241,52 @@ namespace OoiMRR.Handlers
                 }
                 else
                 {
-                    try
-                    {
-                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                        {
-                            FileName = backupItem.Path,
-                            UseShellExecute = true
-                        });
-                        e.Handled = true;
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show($"无法打开文件: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                    }
+                    HandleFileOpen(backupItem);
+                    e.Handled = true;
                 }
+            }
+        }
+
+        private void HandleFileOpen(FileSystemItem item)
+        {
+            // Special handling for execution of files inside archive
+            if (ProtocolManager.Parse(item.Path).Type == ProtocolType.Archive)
+            {
+                MessageBox.Show("暂不支持直接打开压缩包内的文件。\n请先解压后再试。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            // CHECK FOR ARCHIVE FILE
+            var ext = Path.GetExtension(item.Path);
+            if (!string.IsNullOrEmpty(ext))
+            {
+                var extLower = ext.ToLowerInvariant();
+                if (extLower == ".zip" || extLower == ".7z" || extLower == ".rar" || extLower == ".tar" || extLower == ".gz")
+                {
+                    // Navigate into archive
+                    // Format: zip://PathToZip|
+                    string archiveUrl = $"{ProtocolManager.ZipProtocol}{item.Path}|";
+                    // If the path itself is a virtual path (e.g. inside a zip), use it as is?
+                    // Actually, if we are inside a zip, item.Path is zip://.../foo.zip
+                    // We want zip://zip://.../foo.zip|
+                    // Wait, our ProtocolManager handles nested?
+                    // ArchiveService expects standard path or zip:// path.
+                    _navigateToPath(archiveUrl);
+                    return;
+                }
+            }
+
+            try
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = item.Path,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"无法打开文件: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -550,13 +572,42 @@ namespace OoiMRR.Handlers
                 return;
 
             var currentPath = _getCurrentPath();
-            if (!string.IsNullOrEmpty(currentPath) && Directory.Exists(currentPath))
+            if (!string.IsNullOrEmpty(currentPath))
             {
-                var parentPath = Directory.GetParent(currentPath);
-                if (parentPath != null)
+                // Support both directories and virtual archive paths
+                if (Directory.Exists(currentPath) || ProtocolManager.IsVirtual(currentPath))
                 {
-                    _navigateToPath(parentPath.FullName);
-                    e.Handled = true;
+                    // Use _navigationCoordinator logic if possible, or simple parent logic
+                    // But here we need to Navigate Up.
+                    // If we depend on MainWindow handler, we can just return and let it bubble?
+                    // But typically we handle it here.
+
+                    // Actually, let's just delegate to the bound action if possible, OR fix the logic.
+                    // Since specific NavigateUp logic is complex for archives, we rely on the _navigateBack or similar?
+                    // No, _navigateBack is History Back.
+                    // We need 'Up'.
+
+                    // The simplest fix: If it's an archive, we invoke the 'Up' logic via the event bubbling 
+                    // to MainWindow? 
+                    // Wait, if we set Handled=true here, we MUST do the work.
+                    // If we DON'T set Handled=true, MainWindow handler (from FileBrowserControl) will catch it.
+
+                    // So, if it is a directory, we handle it. If it is an archive, we ALSO handle it?
+                    // Let's rely on event bubbling for 'Smart' Up navigation if we can't contextually decide here.
+                    // BUT previous code handled it for Directories.
+
+                    if (ProtocolManager.Parse(currentPath).Type == ProtocolType.Archive)
+                    {
+                        // Let it bubble to MainWindow which has access to NavigationService.NavigateUp()
+                        return;
+                    }
+
+                    var parentPath = Directory.GetParent(currentPath);
+                    if (parentPath != null)
+                    {
+                        _navigateToPath(parentPath.FullName);
+                        e.Handled = true;
+                    }
                 }
             }
         }
@@ -789,6 +840,15 @@ namespace OoiMRR.Handlers
                     }
                     else
                     {
+                        // 检查是否为归档文件或其他特殊协议
+                        var protocolInfo = Services.Core.ProtocolManager.Parse(selectedItem.Path);
+                        if (protocolInfo.Type == Services.Core.ProtocolType.Archive)
+                        {
+                            MessageBox.Show("暂不支持直接打开压缩包内的文件。\n请先解压后再试。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                            e.Handled = true;
+                            return;
+                        }
+
                         try
                         {
                             System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo

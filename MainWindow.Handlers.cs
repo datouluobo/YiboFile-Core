@@ -86,7 +86,16 @@ namespace OoiMRR
                 (e) => { }, // FilesListView_PreviewMouseLeftButtonDown
                 (e) => { }, // FilesListView_MouseLeftButtonUp
                 (e) => { }, // FilesListView_PreviewMouseDown
-                (e) => { }, // FilesListView_PreviewMouseDoubleClickForBlank
+                (e) =>
+                {
+                    var result = _navigationService?.NavigateUp();
+                    if (result != null)
+                    {
+                        // Actually perform the UI navigation with the returned path!
+                        NavigateToPath(result);
+                        e.Handled = true;
+                    }
+                }, // FilesListView_PreviewMouseDoubleClickForBlank
                 (e) => { }, // FilesListView_PreviewMouseMove handled by DragDropManager directly
                 () => ColLeft, // Func<ColumnDefinition>
                 (e) => // CommitRename

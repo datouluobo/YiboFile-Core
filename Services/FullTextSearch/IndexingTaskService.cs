@@ -102,26 +102,52 @@ namespace OoiMRR.Services.FullTextSearch
             var processedFiles = 0;
             var indexedFiles = 0;
 
-            foreach (var file in files)
+            // Transaction batching configuration
+            const int batchSize = 50;
+            int currentBatchCount = 0;
+
+            try
             {
-                if (ct.IsCancellationRequested) break;
+                _ftsService.BeginTransaction();
 
-                processedFiles++;
-
-                try
+                foreach (var file in files)
                 {
-                    if (_ftsService.IndexFile(file))
+                    if (ct.IsCancellationRequested) break;
+
+                    processedFiles++;
+                    currentBatchCount++;
+
+                    try
                     {
-                        indexedFiles++;
+                        if (_ftsService.IndexFile(file))
+                        {
+                            indexedFiles++;
+                        }
+                    }
+                    catch { }
+
+                    // Commit batch
+                    if (currentBatchCount >= batchSize)
+                    {
+                        _ftsService.CommitTransaction();
+                        _ftsService.BeginTransaction();
+                        currentBatchCount = 0;
+                    }
+
+                    // 每处理 10 个文件报告一次进度
+                    if (processedFiles % 10 == 0 || processedFiles == totalFiles)
+                    {
+                        RaiseProgress(totalFiles, processedFiles, indexedFiles, file, processedFiles == totalFiles);
                     }
                 }
-                catch { }
 
-                // 每处理 10 个文件报告一次进度
-                if (processedFiles % 10 == 0 || processedFiles == totalFiles)
-                {
-                    RaiseProgress(totalFiles, processedFiles, indexedFiles, file, processedFiles == totalFiles);
-                }
+                _ftsService.CommitTransaction();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[IndexingTaskService] Error in indexing loop: {ex.Message}");
+                // Try to commit whatever we can or it will rollback on dispose
+                try { _ftsService.CommitTransaction(); } catch { }
             }
 
             // 最终报告

@@ -38,8 +38,8 @@ namespace OoiMRR.Services
                 appDictionaries.Add(newDict);
                 CurrentTheme = theme;
             }
-            catch (Exception ex)
-            {            }
+            catch (Exception)
+            { }
         }
 
         public static void ToggleTheme()

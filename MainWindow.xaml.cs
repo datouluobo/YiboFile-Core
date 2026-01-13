@@ -81,6 +81,8 @@ namespace OoiMRR
         internal Services.WindowStateManager _windowStateManager;
         private Services.FileInfo.FileInfoService _fileInfoService;
         private Services.FileInfo.FileInfoService _secondFileInfoService;
+        internal Services.Archive.ArchiveService _archiveService; // ARCHIVE SERVICE
+
         private Services.FileNotes.FileNotesUIHandler _fileNotesUIHandler;
 
 

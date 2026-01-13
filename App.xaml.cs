@@ -62,6 +62,7 @@ namespace OoiMRR
             services.AddSingleton<Services.FileOperations.FileOperationService>();
             services.AddSingleton<Services.FileOperations.TaskQueue.TaskQueueService>(); // Register TaskQueueService
             services.AddSingleton<OoiMRR.Services.FileOperations.Undo.UndoService>(); // 撤销/重做服务
+            services.AddSingleton<OoiMRR.Services.Archive.ArchiveService>(); // Archive Service
 
             // DatabaseManager 是静态类/单例模式，但如果我们需要注入它，可以封装一下，或者暂时保持静态访问
             // 这里我们注册那些非静态的服务

@@ -32,10 +32,17 @@ namespace OoiMRR.Services.FullTextSearch.Extractors
                 {
                     foreach (var page in document.GetPages())
                     {
-                        var text = page.Text;
-                        if (!string.IsNullOrWhiteSpace(text))
+                        try
                         {
-                            sb.AppendLine(text);
+                            var text = page.Text;
+                            if (!string.IsNullOrWhiteSpace(text))
+                            {
+                                sb.AppendLine(text);
+                            }
+                        }
+                        catch (Exception)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[PdfExtractor] Error extracting page from {filePath}: Error");
                         }
                     }
                 }

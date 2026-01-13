@@ -375,6 +375,11 @@ namespace OoiMRR.Services.Tabs
                     _activeTab.TabButton.ToolTip = newPath;
                 }
 
+                if (_activeTab.IconTextBlock != null)
+                {
+                    _activeTab.IconTextBlock.Text = GetTabTypePrefix(_activeTab);
+                }
+
                 TabTitleChanged?.Invoke(this, _activeTab);
             }
         }
@@ -1553,6 +1558,7 @@ namespace OoiMRR.Services.Tabs
 
             tab.CloseButton = closeButton;
             tab.TitleTextBlock = titleText;
+            tab.IconTextBlock = typeIcon;
             tab.TabContainer = tabContainer;
             tab.TabButton = button;
 

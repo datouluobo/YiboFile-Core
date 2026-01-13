@@ -29,7 +29,8 @@ namespace OoiMRR
                 // Enable file list drag and drop for main list
                 if (FileBrowser?.FilesList != null)
                 {
-                    _dragDropManager.InitializeFileListDragDrop(FileBrowser.FilesList);                }
+                    _dragDropManager.InitializeFileListDragDrop(FileBrowser.FilesList);
+                }
 
                 // Initialize DragDropManager for second file list (dual mode)
                 _secondDragDropManager = new DragDropManager();
@@ -37,15 +38,17 @@ namespace OoiMRR
 
                 if (SecondFileBrowser?.FilesList != null)
                 {
-                    _secondDragDropManager.InitializeFileListDragDrop(SecondFileBrowser.FilesList);                }
+                    _secondDragDropManager.InitializeFileListDragDrop(SecondFileBrowser.FilesList);
+                }
 
                 // Initialize tab drop handlers
                 InitializeTabDragDrop();
 
                 // Initialize library drag drop
-                InitializeLibraryDragDrop();            }
-            catch (Exception ex)
-            {            }
+                InitializeLibraryDragDrop();
+            }
+            catch (Exception)
+            { }
         }
 
         private void SetupDragDropManager(DragDropManager manager, bool isPrimary)
@@ -111,8 +114,8 @@ namespace OoiMRR
                     SecondTabManager.TabsPanelControl.DragOver += TabPanel_DragOver;
                 }
             }
-            catch (Exception ex)
-            {            }
+            catch (Exception)
+            { }
         }
 
         private void TabPanel_DragOver(object sender, DragEventArgs e)
