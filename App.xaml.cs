@@ -40,6 +40,8 @@ namespace OoiMRR
         /// </summary>
         public static bool IsTagTrainAvailable => false;
 
+
+
         public App()
         {
             // 全局异常处理已移至 OnStartup 中统一配置
@@ -125,6 +127,8 @@ namespace OoiMRR
                 var serviceCollection = new ServiceCollection();
                 ConfigureServices(serviceCollection);
                 ServiceProvider = serviceCollection.BuildServiceProvider();
+
+
 
                 // 注册全局异常处理
                 var errorService = ServiceProvider.GetRequiredService<OoiMRR.Services.Core.Error.ErrorService>();

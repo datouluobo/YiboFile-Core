@@ -16,7 +16,7 @@ using System.Windows.Media;
 using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
-using FFMpegCore;
+
 using ImageMagick;
 
 namespace OoiMRR.Controls.Converters
@@ -29,10 +29,7 @@ namespace OoiMRR.Controls.Converters
         private const int MaxCacheSize = 50; // 从100降到50，减少内存占用
         private static readonly Dictionary<string, BitmapSource> _imageThumbnailCache = new();
         private const int MaxImageCacheSize = 100; // 从200降到100，减少内存占用
-        
-        // FFmpeg初始化状态
-        private static bool _ffmpegInitialized = false;
-        private static readonly object _ffmpegInitLock = new object();
+
 
         // 立即加载的文件路径集合（第一页文件）
         private static readonly HashSet<string> _priorityLoadPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -183,33 +180,33 @@ namespace OoiMRR.Controls.Converters
         {
             try
             {
-                    BitmapSource thumbnail = LoadThumbnailSync(path, targetSize);
-                    if (thumbnail != null)
+                BitmapSource thumbnail = LoadThumbnailSync(path, targetSize);
+                if (thumbnail != null)
+                {
+                    // 在UI线程更新
+                    Application.Current?.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
                     {
-                        // 在UI线程更新
-                        Application.Current?.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+                        try
                         {
-                            try
+                            // 查找Image控件并更新Source
+                            if (target is System.Windows.Controls.Image image)
                             {
-                                // 查找Image控件并更新Source
-                                if (target is System.Windows.Controls.Image image)
-                                {
-                                    image.Source = thumbnail;
-                                }
-                                else if (target is FrameworkElement fe)
-                                {
-                                    // 尝试查找子元素中的Image
-                                    var img = FindVisualChild<System.Windows.Controls.Image>(fe);
-                                    if (img != null)
-                                        img.Source = thumbnail;
-                                }
+                                image.Source = thumbnail;
                             }
-                            catch { }
-                        }));
-                    }
+                            else if (target is FrameworkElement fe)
+                            {
+                                // 尝试查找子元素中的Image
+                                var img = FindVisualChild<System.Windows.Controls.Image>(fe);
+                                if (img != null)
+                                    img.Source = thumbnail;
+                            }
+                        }
+                        catch { }
+                    }));
                 }
-                catch { }
-            });
+            }
+            catch { }
+        });
         }
 
         /// <summary>
@@ -229,7 +226,7 @@ namespace OoiMRR.Controls.Converters
                 if (childOfChild != null)
                     return childOfChild;
             }
-                    return null;
+            return null;
         }
 
         /// <summary>
@@ -340,7 +337,7 @@ namespace OoiMRR.Controls.Converters
                                 return null;
                             }
 
-                        // 视频格式：使用 FFmpeg 提取第一帧
+                        // 视频格式：交由 Shell 处理 (GetShellThumbnail)
                         case ".mp4":
                         case ".avi":
                         case ".mkv":
@@ -361,15 +358,8 @@ namespace OoiMRR.Controls.Converters
                         case ".ts":
                         case ".mts":
                         case ".m2ts":
-                            try
-                            {
-                                return ExtractVideoThumbnail(path, targetSize);
-                            }
-                            catch
-                            {
-                                // FFmpeg 提取失败，继续尝试其他方法
-                            }
-                            break;
+                            break; // Fall through to generic shell handler
+
                     }
                 }
 
@@ -419,8 +409,8 @@ namespace OoiMRR.Controls.Converters
                 {
                     // 异常时也返回占位符
                     return CreatePlaceholder(targetSize);
-                                }
-                            }
+                }
+            }
             catch
             {
                 return null;
@@ -428,7 +418,7 @@ namespace OoiMRR.Controls.Converters
         }
 
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-                            {
+        {
             try
             {
                 var path = value as string;
@@ -678,322 +668,6 @@ namespace OoiMRR.Controls.Converters
                     DeleteObject(hBitmap);
             }
             return null;
-        }
-
-        /// <summary>
-        /// 使用 FFmpeg 提取视频第一帧作为缩略图
-        /// </summary>
-        private BitmapSource ExtractVideoThumbnail(string videoPath, int targetSize)
-        {
-            // 生成缓存键（包含文件路径、大小和最后修改时间）
-            var fileInfo = new FileInfo(videoPath);
-            if (!fileInfo.Exists)
-            {
-                                return null;
-            }
-
-            string cacheKey = $"{videoPath}_{targetSize}_{fileInfo.LastWriteTime.Ticks}";
-
-            // 检查缓存
-            lock (_cacheLock)
-            {
-                if (_videoThumbnailCache.TryGetValue(cacheKey, out var cached))
-                {
-                    return cached;
-                }
-            }
-            try
-            {
-                // 创建临时输出文件
-                string tempImagePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString() + ".jpg");
-
-                try
-                {
-                                                            // 确保视频文件路径是绝对路径且存在
-                    if (!Path.IsPathRooted(videoPath))
-                    {
-                        videoPath = Path.GetFullPath(videoPath);
-                    }
-
-                    if (!File.Exists(videoPath))
-                    {
-                                                return null;
-                    }
-
-                    // 按需初始化FFmpeg
-                    EnsureFFmpegInitialized();
-                    
-                    // 尝试直接调用 FFmpeg 命令（绕过 FFMpegCore，以便捕获错误输出）
-                    string ffmpegPath = GetFFmpegPath();
-                    if (string.IsNullOrEmpty(ffmpegPath))
-                    {
-                        return null;
-                    }
-
-                                        // 构建 FFmpeg 命令参数
-                    // -ss 0.1: 从 0.1 秒处开始
-                    // -i: 输入文件（用引号包裹以处理路径中的空格和中文）
-                    // -vframes 1: 只提取一帧
-                    // -vf scale={targetSize}:-1: 保持宽高比，宽度缩放到 targetSize，高度自动计算
-                    // -q:v 2: 高质量 JPEG
-                    // -y: 覆盖输出文件
-                    string escapedVideoPath = $"\"{videoPath}\"";
-                    string escapedOutputPath = $"\"{tempImagePath}\"";
-                    // 使用 scale={targetSize}:-1 保持宽高比，避免变形
-                    string arguments = $"-ss 0.1 -i {escapedVideoPath} -vframes 1 -vf scale={targetSize}:-1 -q:v 2 -y {escapedOutputPath}";
-
-                                        var startTime = DateTime.Now;
-                    bool success = RunFFmpegCommand(ffmpegPath, arguments, out string stdout, out string stderr);
-                    var endTime = DateTime.Now;
-                    var duration = (endTime - startTime).TotalMilliseconds;
-
-                                        if (!string.IsNullOrEmpty(stdout))
-                    {
-                                            }
-                    if (!string.IsNullOrEmpty(stderr))
-                    {
-                                            }
-
-                    if (!success)
-                    {
-                                                return null;
-                    }
-
-                    // 等待文件生成（FFmpeg 操作可能需要一些时间）
-                    int maxWaitMs = 10000; // 最多等待10秒
-                    int waitIntervalMs = 100; // 每100ms检查一次
-                    int waitedMs = 0;
-                    bool fileExists = false;
-
-                    while (waitedMs < maxWaitMs)
-                    {
-                        if (File.Exists(tempImagePath))
-                        {
-                            // 文件存在，再检查一下是否有内容（大小>0）
-                            try
-                            {
-                                var checkInfo = new FileInfo(tempImagePath);
-                                if (checkInfo.Length > 0)
-                                {
-                                    fileExists = true;
-                                                                        break;
-                                }
-                            }
-                            catch { }
-                        }
-
-                        System.Threading.Thread.Sleep(waitIntervalMs);
-                        waitedMs += waitIntervalMs;
-                    }
-
-                    if (!fileExists)
-                    {
-                        // 检查临时文件目录是否有权限
-                        try
-                        {
-                            string tempDir = Path.GetDirectoryName(tempImagePath);
-                        }
-                        catch { }
-                        return null;
-                    }
-
-                    // 检查文件大小
-                    var tempFileInfo = new FileInfo(tempImagePath);
-                    if (tempFileInfo.Length == 0)
-                    {
-                        return null;
-                    }
-
-                                        // 创建 BitmapImage - 使用文件流加载，避免URI路径解析问题
-                    var bitmap = new BitmapImage();
-                    bitmap.BeginInit();
-                    bitmap.StreamSource = new FileStream(tempImagePath, FileMode.Open, FileAccess.Read);
-                    bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                    // 只设置宽度，让高度自动保持宽高比，避免变形
-                    bitmap.DecodePixelWidth = targetSize;
-                    bitmap.EndInit();
-                    bitmap.Freeze();
-                    // 添加到缓存
-                    lock (_cacheLock)
-                    {
-                        // LRU 策略：超出限制时删除最早的
-                        if (_videoThumbnailCache.Count >= MaxCacheSize)
-                        {
-                            var firstKey = _videoThumbnailCache.Keys.First();
-                            _videoThumbnailCache.Remove(firstKey);
-                        }
-                        _videoThumbnailCache[cacheKey] = bitmap;
-                    }
-                    return bitmap;
-                }
-                finally
-                {
-                    // 清理临时文件
-                    try
-                    {
-                        if (File.Exists(tempImagePath))
-                        {
-                            File.Delete(tempImagePath);
-                        }
-
-                    }
-                    catch{
-                                            }
-                }
-            }
-            catch (Exception ex)
-            {
-                // 详细记录错误信息
-                                if (ex.InnerException != null)
-                {
-                }
-                                                return null;
-            }
-        }
-
-        /// <summary>
-        /// 检查目录是否可写
-        /// </summary>
-        private static bool IsDirectoryWritable(string directory)
-        {
-            try
-            {
-                if (!Directory.Exists(directory))
-                    return false;
-
-                string testFile = Path.Combine(directory, Guid.NewGuid().ToString() + ".tmp");
-                File.WriteAllText(testFile, "test");
-                File.Delete(testFile);
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// 确保FFmpeg已初始化（按需加载）
-        /// </summary>
-        private static void EnsureFFmpegInitialized()
-        {
-            if (_ffmpegInitialized) return;
-            
-            lock (_ffmpegInitLock)
-            {
-                if (_ffmpegInitialized) return;
-                
-                try
-                {
-                    bool ffmpegAvailable = OoiMRR.Controls.FFmpegHelper.InitializeFFmpeg();
-                    if (ffmpegAvailable)
-                    {
-                    }
-                    _ffmpegInitialized = true; // 标记为已尝试初始化，避免重复尝试
-                }
-                catch (Exception)
-                {
-                    _ffmpegInitialized = true; // 标记为已尝试，避免重复尝试
-                }
-            }
-        }
-        
-        /// <summary>
-        /// 获取 FFmpeg 可执行文件路径
-        /// </summary>
-        private static string GetFFmpegPath()
-        {
-            try
-            {
-                var options = GlobalFFOptions.Current;
-                if (options != null && !string.IsNullOrEmpty(options.BinaryFolder))
-                {
-                    string ffmpegPath = Path.Combine(options.BinaryFolder, "ffmpeg.exe");
-                    if (File.Exists(ffmpegPath))
-                    {
-                        return ffmpegPath;
-                    }
-                }
-
-                // 回退：从系统 PATH 查找
-                return "ffmpeg";
-            }
-            catch
-            {
-                return "ffmpeg";
-            }
-        }
-
-        /// <summary>
-        /// 直接运行 FFmpeg 命令并捕获输出
-        /// </summary>
-        private static bool RunFFmpegCommand(string ffmpegPath, string arguments, out string stdout, out string stderr)
-        {
-            stdout = string.Empty;
-            stderr = string.Empty;
-
-            try
-            {
-                var processStartInfo = new ProcessStartInfo
-                {
-                    FileName = ffmpegPath,
-                    Arguments = arguments,
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    StandardOutputEncoding = Encoding.UTF8,
-                    StandardErrorEncoding = Encoding.UTF8
-                };
-
-                using (var process = Process.Start(processStartInfo))
-                {
-                    if (process == null)
-                    {
-                                                return false;
-                    }
-
-                    // 异步读取输出
-                    var stdoutBuilder = new StringBuilder();
-                    var stderrBuilder = new StringBuilder();
-
-                    process.OutputDataReceived += (sender, e) =>
-                    {
-                        if (!string.IsNullOrEmpty(e.Data))
-                            stdoutBuilder.AppendLine(e.Data);
-                    };
-
-                    process.ErrorDataReceived += (sender, e) =>
-                    {
-                        if (!string.IsNullOrEmpty(e.Data))
-                            stderrBuilder.AppendLine(e.Data);
-                    };
-
-                    process.BeginOutputReadLine();
-                    process.BeginErrorReadLine();
-
-                    // 等待进程完成（最多30秒）
-                    bool finished = process.WaitForExit(30000);
-
-                    if (!finished)
-                    {
-                                                process.Kill();
-                        process.WaitForExit(5000);
-                        return false;
-                    }
-
-                    stdout = stdoutBuilder.ToString().Trim();
-                    stderr = stderrBuilder.ToString().Trim();
-
-                    int exitCode = process.ExitCode;
-                                        return exitCode == 0;
-                }
-            }
-            catch (Exception ex)
-            {
-                stderr = ex.Message;
-                return false;
-            }
         }
 
         [DllImport("gdi32.dll")]

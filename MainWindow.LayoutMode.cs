@@ -9,7 +9,6 @@ using System.Windows.Input;
 using System.Windows.Media;
 using OoiMRR.Controls;
 using OoiMRR.Services.Tabs;
-using OoiMRR.Services.Tabs;
 using OoiMRR.Services.FileOperations;
 using OoiMRR.Services.Core;
 
