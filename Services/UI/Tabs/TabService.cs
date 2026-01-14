@@ -360,7 +360,8 @@ namespace OoiMRR.Services.Tabs
         {
             if (_activeTab != null && _activeTab.Type == TabType.Path)
             {
-                if (_activeTab.Path == newPath) return;
+                // 如果路径相同也可能需要刷新标题（例如重命名或显示名称不符）
+                // if (_activeTab.Path == newPath) return;
 
                 _activeTab.Path = newPath;
                 _activeTab.Title = GetPathDisplayTitle(newPath);

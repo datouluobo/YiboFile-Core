@@ -29,6 +29,12 @@ namespace OoiMRR.Services.Navigation
         // 驱动器特有属性
         public long TotalSize { get; set; }
         public long UsedSize { get; set; }
+
+        // 驱动器显示属性（用于响应式隐藏）
+        public string DriveLetter { get; set; }   // 驱动器盘符，如 "C:\"
+        public string DriveLabel { get; set; }    // 驱动器别名，如 "Win11"
+        public string UsedSizeText { get; set; }  // 已使用容量，如 "413.98 GB"
+        public string TotalSizeText { get; set; } // 总容量，如 "930.99 GB"
         public string ToolTip
         {
             get => _toolTip;

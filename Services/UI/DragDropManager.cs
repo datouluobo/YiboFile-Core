@@ -22,6 +22,7 @@ namespace OoiMRR.Services
     public class DragDropManager
     {
         private Point _dragStartPoint;
+        private bool _canInitiateDrag;
         private bool _isDragging;
         private ListView _associatedListView;
         private DragDropFeedbackAdorner _feedbackAdorner;
@@ -66,11 +67,18 @@ namespace OoiMRR.Services
         private void ListView_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             _dragStartPoint = e.GetPosition(null);
+            if (sender is ListView listView)
+            {
+                _canInitiateDrag = GetItemAtLocation(listView, e.GetPosition(listView)) != null;
+            }
         }
 
         private void ListView_PreviewMouseMove(object sender, MouseEventArgs e)
         {
             if (e.LeftButton != MouseButtonState.Pressed || _isDragging) return;
+
+            // 只有当点击在项目上时才允许拖放，否则可能是框选
+            if (!_canInitiateDrag) return;
 
             Point currentPosition = e.GetPosition(null);
             if (Math.Abs(currentPosition.X - _dragStartPoint.X) > SystemParameters.MinimumHorizontalDragDistance ||
@@ -81,17 +89,20 @@ namespace OoiMRR.Services
         }
 
         private void StartDrag(ListView listView)
-        {            if (listView == null)
-            {                return;
+        {
+            if (listView == null)
+            {
+                return;
             }
 
-            var selectedItems = listView.SelectedItems.Cast<object>().ToList();            if (selectedItems.Count == 0) return;
+            var selectedItems = listView.SelectedItems.Cast<object>().ToList(); if (selectedItems.Count == 0) return;
 
             // 如果选中的项目正在重命名，不启动拖放（允许TextBox中的文本选择）
             foreach (var item in selectedItems)
             {
                 if (item is FileSystemItem fsItem && fsItem.IsRenaming)
-                {                    return;
+                {
+                    return;
                 }
             }
 
@@ -191,16 +202,19 @@ namespace OoiMRR.Services
         }
 
         private void ListView_Drop(object sender, DragEventArgs e)
-        {            RemoveDragFeedback();
+        {
+            RemoveDragFeedback();
             ClearDragTargetHighlight();
 
             if (!e.Data.GetDataPresent(DataFormats.FileDrop))
-            {                return;
+            {
+                return;
             }
 
             string[] sources = (string[])e.Data.GetData(DataFormats.FileDrop);
             if (sources == null || sources.Length == 0)
-            {                return;
+            {
+                return;
             }
             // Determine Target
             string targetPath = null;

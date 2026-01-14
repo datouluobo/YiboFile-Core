@@ -364,6 +364,14 @@
                            HorizontalAlignment="Center"
                            VerticalAlignment="Center"
                            Visibility="Collapsed"/>
+                
+                <!-- 框选覆盖层 - 仅用于绘制选择矩形，不拦截鼠标事件 -->
+                <Canvas x:Name="LassoSelectionCanvas" 
+                        Background="Transparent" 
+                        IsHitTestVisible="False"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Stretch"
+                        Panel.ZIndex="100"/>
             </Grid>
         </Border>
     </Grid>

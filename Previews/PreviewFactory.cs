@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Windows;
+using OoiMRR.Services.Core;
 
 namespace OoiMRR.Previews
 {
@@ -26,7 +27,20 @@ namespace OoiMRR.Previews
         {
             try
             {
-                if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath) && !Directory.Exists(filePath))
+                if (string.IsNullOrEmpty(filePath))
+                {
+                    return PreviewHelper.CreateErrorPreview("文件不存在");
+                }
+
+                // Check if this is a file inside an archive (virtual path)
+                var protocolInfo = ProtocolManager.Parse(filePath);
+                if (protocolInfo.Type == ProtocolType.Archive && !string.IsNullOrEmpty(protocolInfo.ExtraData))
+                {
+                    // This is a file inside an archive, not at the root
+                    return PreviewHelper.CreateInfoPreview("📦 压缩包内文件", "此文件位于压缩包内，暂不支持预览。\n\n如需预览，请先将文件解压到本地。");
+                }
+
+                if (!File.Exists(filePath) && !Directory.Exists(filePath))
                 {
                     return PreviewHelper.CreateErrorPreview("文件不存在");
                 }

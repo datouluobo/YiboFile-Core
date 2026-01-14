@@ -166,6 +166,14 @@ namespace OoiMRR.Previews
         }
 
         /// <summary>
+        /// 创建信息提示（用于提示性消息，非错误）
+        /// </summary>
+        public static UIElement CreateInfoPreview(string title, string message)
+        {
+            return CreateGenericMessagePanel("📦", title, message, new SolidColorBrush(Color.FromRgb(100, 149, 237))); // CornflowerBlue
+        }
+
+        /// <summary>
         /// 创建不支持预览的UI
         /// </summary>
         public static UIElement CreateNoPreview(string filePath)

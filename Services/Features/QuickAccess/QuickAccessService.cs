@@ -149,7 +149,12 @@ namespace OoiMRR.Services.QuickAccess
                             UsedSize = usedSize,
                             UsagePercentage = usagePercentage,
                             UsageText = $"{formatFileSize(usedSize)} / {formatFileSize(drive.TotalSize)}",
-                            ToolTip = $"总空间: {formatFileSize(drive.TotalSize)}\n可用空间: {formatFileSize(drive.AvailableFreeSpace)}"
+                            ToolTip = $"总空间: {formatFileSize(drive.TotalSize)}\n可用空间: {formatFileSize(drive.AvailableFreeSpace)}",
+                            // 响应式显示属性
+                            DriveLetter = drive.Name.TrimEnd('\\'),
+                            DriveLabel = !string.IsNullOrEmpty(drive.VolumeLabel) ? $"({drive.VolumeLabel})" : "",
+                            UsedSizeText = formatFileSize(usedSize),
+                            TotalSizeText = formatFileSize(drive.TotalSize)
                         };
 
                         // 默认添加 dummy child 以显示展开箭头（所有驱动器都可能有子文件夹）

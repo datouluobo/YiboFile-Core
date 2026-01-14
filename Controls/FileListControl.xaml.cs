@@ -13,6 +13,7 @@ using System.Windows.Media.Effects;
 using System.Windows.Data;
 using System.ComponentModel;
 using OoiMRR.Controls.Converters;
+using OoiMRR.Controls.Behaviors;
 using OoiMRR.ViewModels;
 using OoiMRR.Services.Search;
 using OoiMRR.Services.ColumnManagement;
@@ -28,6 +29,7 @@ namespace OoiMRR.Controls
     {
         private ThumbnailService _thumbnailService;
         private Services.FileList.FileListService _fileListService;
+        private LassoSelectionBehavior _lassoSelectionBehavior;
 
         // 配置缓存
         private double _cachedTagsWidth = 150;
@@ -157,6 +159,12 @@ namespace OoiMRR.Controls
                 }
 
                 AdjustNameColumnWidth();
+
+                // 初始化框选行为
+                if (LassoSelectionCanvas != null && FilesListView != null && _lassoSelectionBehavior == null)
+                {
+                    _lassoSelectionBehavior = new LassoSelectionBehavior(FilesListView, LassoSelectionCanvas);
+                }
             };
         }
 

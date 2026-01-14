@@ -329,9 +329,9 @@ namespace OoiMRR
             // 规则1：同类型标签页直接更新
             if (activeTab != null && activeTab.Type == Services.Tabs.TabType.Path)
             {
-                activeTab.Path = path;
-                // Update active tab path will update title and icon correctly
+                // 先更新标题，确保标签页显示同步
                 _tabService?.UpdateActiveTabPath(path);
+                activeTab.Path = path;
                 NavigateToPathInternal(path);
                 return;
             }
