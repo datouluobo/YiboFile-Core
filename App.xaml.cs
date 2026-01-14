@@ -136,7 +136,7 @@ namespace OoiMRR
                 // 1. UI线程未捕获异常
                 this.DispatcherUnhandledException += (s, args) =>
                 {
-                    errorService.ReportError("UI线程发生未捕获异常", OoiMRR.Services.Core.Error.ErrorSeverity.Critical, args.Exception);
+                    errorService.ReportError($"UI线程发生未捕获异常: {args.Exception.GetType().Name}", OoiMRR.Services.Core.Error.ErrorSeverity.Critical, args.Exception);
                     args.Handled = true; // 防止程序直接崩溃
                 };
 

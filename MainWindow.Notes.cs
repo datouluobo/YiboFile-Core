@@ -16,7 +16,7 @@ namespace OoiMRR
             _fileNotesUIHandler?.NotesTextBox_TextChanged(sender, e);
         }
 
-        internal async void NotesAutoSaved_Handler(object sender, RoutedEventArgs e)
+        internal void NotesAutoSaved_Handler(object sender, RoutedEventArgs e)
         {
             _fileNotesUIHandler?.NotesAutoSaved_Handler(sender, e);
         }
