@@ -62,7 +62,6 @@ namespace OoiMRR
                 LoadCurrentDirectory,
                 () => // ClearFilter
                 {
-                    _currentTagFilter = null;
                     FileBrowser.IsAddressReadOnly = false;
                     FileBrowser.SetTagBreadcrumb(null);
                     LoadCurrentDirectory();
@@ -75,8 +74,8 @@ namespace OoiMRR
                 FileBrowser_GridSplitterDragDelta, // Action<DragDeltaEventArgs>
                 () => _currentPath,
                 () => _configService?.Config,
-                () => _currentTagFilter,
-                (tag) => _currentTagFilter = tag,
+                () => null,
+                (tag) => { },
                 () => _currentFiles,
                 (files) => _currentFiles = files,
                 () => _searchOptions,
@@ -176,13 +175,22 @@ namespace OoiMRR
             // 初始化 WindowLifecycleHandler
             _windowLifecycleHandler = new Handlers.WindowLifecycleHandler(this, _windowStateManager, _configService, _columnService);
 
-            // 初始化 FileOperationHandler
-            _fileOperationHandler = new Handlers.FileOperationHandler(this);
-
             // 初始化统一文件操作服务 (新架构) - 逐步迁移中
             var errorService = App.ServiceProvider.GetRequiredService<OoiMRR.Services.Core.Error.ErrorService>();
             var undoService = App.ServiceProvider.GetService(typeof(OoiMRR.Services.FileOperations.Undo.UndoService)) as OoiMRR.Services.FileOperations.Undo.UndoService;
             var taskQueueService = App.ServiceProvider.GetService(typeof(OoiMRR.Services.FileOperations.TaskQueue.TaskQueueService)) as OoiMRR.Services.FileOperations.TaskQueue.TaskQueueService;
+
+            // 初始化 FileOperationHandler
+            _fileOperationHandler = new Handlers.FileOperationHandler(this, undoService);
+
+            // Wire up Undo/Redo events from FileBrowser
+            if (FileBrowser != null)
+            {
+                FileBrowser.FileUndo += (s, e) => _fileOperationHandler.PerformUndo();
+                FileBrowser.FileRedo += (s, e) => _fileOperationHandler.PerformRedo();
+            }
+
+
 
             // 初始化 Main FileListEventHandler
             _mainFileListHandler = new Handlers.FileListEventHandler(
@@ -277,7 +285,6 @@ namespace OoiMRR
                 LoadCurrentDirectory,
                 () => // ClearFilter
                 {
-                    _currentTagFilter = null;
                     FileBrowser.IsAddressReadOnly = false;
                     FileBrowser.SetTagBreadcrumb(null);
                     LoadCurrentDirectory();

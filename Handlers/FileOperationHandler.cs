@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using OoiMRR.Services.FileOperations;
+using OoiMRR.Services.FileOperations.Undo;
 using System.Collections.Specialized;
 
 namespace OoiMRR.Handlers
@@ -14,11 +15,15 @@ namespace OoiMRR.Handlers
     internal class FileOperationHandler
     {
         private readonly MainWindow _mainWindow;
+        private readonly UndoService _undoService;
 
-        public FileOperationHandler(MainWindow mainWindow)
+        public FileOperationHandler(MainWindow mainWindow, UndoService undoService)
         {
             _mainWindow = mainWindow ?? throw new ArgumentNullException(nameof(mainWindow));
+            _undoService = undoService;
         }
+
+        public UndoService UndoService => _undoService;
 
         /// <summary>
         /// 获取当前操作上下文
@@ -55,9 +60,6 @@ namespace OoiMRR.Handlers
         /// <summary>
         /// 执行复制操作
         /// </summary>
-        /// <summary>
-        /// 执行复制操作
-        /// </summary>
         public async Task PerformCopyOperationAsync()
         {
             try
@@ -77,9 +79,6 @@ namespace OoiMRR.Handlers
             }
         }
 
-        /// <summary>
-        /// 执行剪切操作
-        /// </summary>
         /// <summary>
         /// 执行剪切操作
         /// </summary>
@@ -121,12 +120,38 @@ namespace OoiMRR.Handlers
                     return;
                 }
 
-                var deleteOperation = new DeleteOperation(context);
+                var deleteOperation = new DeleteOperation(context, _undoService);
                 await deleteOperation.ExecuteAsync(selectedItems);
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"删除操作失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        /// <summary>
+        /// 执行撤销
+        /// </summary>
+        public void PerformUndo()
+        {
+            if (_undoService.CanUndo)
+            {
+                _undoService.Undo();
+                // 刷新当前视图以反映更改
+                _mainWindow.RefreshFileList();
+            }
+        }
+
+        /// <summary>
+        /// 执行重做
+        /// </summary>
+        public void PerformRedo()
+        {
+            if (_undoService.CanRedo)
+            {
+                _undoService.Redo();
+                // 刷新当前视图以反映更改
+                _mainWindow.RefreshFileList();
             }
         }
     }

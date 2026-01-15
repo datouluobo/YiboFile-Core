@@ -16,7 +16,6 @@ using OoiMRR.Services.Search;
 using OoiMRR.Services.Config;
 using OoiMRR;
 using System.Text.Json;
-using Tag = OoiMRR.Tag;
 
 namespace OoiMRR.Services.Tabs
 {
@@ -36,9 +35,6 @@ namespace OoiMRR.Services.Tabs
         public Func<string> GetCurrentPath { get; init; }
         public Action<string> SetCurrentPath { get; init; }
         public Action<string> SetNavigationCurrentPath { get; init; }
-        public Func<OoiMRR.Tag> GetCurrentTagFilter { get; init; }
-        public Action<OoiMRR.Tag> SetCurrentTagFilter { get; init; }
-        public Action<OoiMRR.Tag> FilterByTag { get; init; }
         public Action<Library> LoadLibraryFiles { get; init; }
         public Action<string> NavigateToPathInternal { get; init; }
         public Action UpdateNavigationButtonsState { get; init; }
@@ -50,10 +46,9 @@ namespace OoiMRR.Services.Tabs
         public Action ClearFilter { get; init; }
         public Func<string, Task> RefreshSearchTab { get; init; }
         public Func<string, object> FindResource { get; init; }
-        public Func<bool> IsTagTrainAvailable { get; init; }
 
         /// <summary>
-        /// 获取当前导航模式（"Path", "Library", "Tag"）
+        /// 获取当前导航模式（"Path", "Library"）
         /// </summary>
         public Func<string> GetCurrentNavigationMode { get; init; }
     }

@@ -36,7 +36,7 @@ namespace OoiMRR
                 Directory.CreateDirectory(dir);
             }
             _connectionString = $"Data Source={dbPath}";
-            
+
             // 确保之前的连接被释放
             SqliteConnection.ClearAllPools();
 
@@ -120,7 +120,7 @@ namespace OoiMRR
                     LastModified DATETIME NOT NULL,
                     CalculatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
                 )";
-            
+
             command.CommandText = createFolderSizesTable;
             command.ExecuteNonQuery();
 
@@ -130,7 +130,7 @@ namespace OoiMRR
                 var checkOldTable = "SELECT COUNT(*) FROM pragma_table_info('Libraries') WHERE name='Path'";
                 command.CommandText = checkOldTable;
                 var hasPathColumn = Convert.ToInt32(command.ExecuteScalar()) > 0;
-                
+
                 if (hasPathColumn)
                 {
                     // 1. 先迁移旧数据到 LibraryPaths 表
@@ -140,7 +140,7 @@ namespace OoiMRR
                     ";
                     command.CommandText = migrateData;
                     command.ExecuteNonQuery();
-                    
+
                     // 2. 重建 Libraries 表以移除 Path 列
                     // 创建临时表
                     command.CommandText = @"
@@ -150,15 +150,15 @@ namespace OoiMRR
                             CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
                         )";
                     command.ExecuteNonQuery();
-                    
+
                     // 复制数据到新表
                     command.CommandText = "INSERT INTO Libraries_new (Id, Name, CreatedAt) SELECT Id, Name, CreatedAt FROM Libraries";
                     command.ExecuteNonQuery();
-                    
+
                     // 删除旧表
                     command.CommandText = "DROP TABLE Libraries";
                     command.ExecuteNonQuery();
-                    
+
                     // 重命名新表
                     command.CommandText = "ALTER TABLE Libraries_new RENAME TO Libraries";
                     command.ExecuteNonQuery();
@@ -175,13 +175,13 @@ namespace OoiMRR
                 var checkOrderColumn = "SELECT COUNT(*) FROM pragma_table_info('Libraries') WHERE name='DisplayOrder'";
                 command.CommandText = checkOrderColumn;
                 var hasOrderColumn = Convert.ToInt32(command.ExecuteScalar()) > 0;
-                
+
                 if (!hasOrderColumn)
                 {
                     // 添加 DisplayOrder 列
                     command.CommandText = "ALTER TABLE Libraries ADD COLUMN DisplayOrder INTEGER DEFAULT 0";
                     command.ExecuteNonQuery();
-                    
+
                     // 为现有库设置初始排序值（按Id）
                     command.CommandText = "UPDATE Libraries SET DisplayOrder = Id";
                     command.ExecuteNonQuery();
@@ -201,36 +201,36 @@ namespace OoiMRR
         {
             using var connection = new SqliteConnection(_connectionString);
             connection.Open();
-            
+
             // 先检查库是否已存在
             using var checkCommand = connection.CreateCommand();
             checkCommand.CommandText = "SELECT Id FROM Libraries WHERE Name = @name";
             checkCommand.Parameters.AddWithValue("@name", name);
             var existingId = checkCommand.ExecuteScalar();
-            
+
             if (existingId != null && existingId != DBNull.Value)
             {
                 // 库已存在，返回其ID（但返回负数表示已存在）
                 return -Convert.ToInt32(existingId);
             }
-            
+
             // 库不存在，创建新库
             // 获取当前最大的 DisplayOrder 值
             using var maxOrderCommand = connection.CreateCommand();
             maxOrderCommand.CommandText = "SELECT COALESCE(MAX(DisplayOrder), 0) FROM Libraries";
             var maxOrder = Convert.ToInt32(maxOrderCommand.ExecuteScalar());
-            
+
             using var insertCommand = connection.CreateCommand();
             insertCommand.CommandText = "INSERT INTO Libraries (Name, DisplayOrder) VALUES (@name, @displayOrder); SELECT last_insert_rowid();";
             insertCommand.Parameters.AddWithValue("@name", name);
             insertCommand.Parameters.AddWithValue("@displayOrder", maxOrder + 1);
             var newId = insertCommand.ExecuteScalar();
-            
+
             if (newId != null && newId != DBNull.Value)
             {
                 return Convert.ToInt32(newId);
             }
-            
+
             return 0;
         }
 
@@ -295,7 +295,7 @@ namespace OoiMRR
             var libraries = new List<Library>();
             using var connection = new SqliteConnection(_connectionString);
             connection.Open();
-            
+
             // 获取所有库
             using var command = connection.CreateCommand();
             command.CommandText = "SELECT Id, Name, DisplayOrder FROM Libraries ORDER BY DisplayOrder, Id";
@@ -305,7 +305,7 @@ namespace OoiMRR
                 var libraryId = reader.GetInt32(0);
                 var libraryName = reader.GetString(1);
                 var displayOrder = reader.IsDBNull(2) ? 0 : reader.GetInt32(2);
-                
+
                 // 获取该库的所有位置
                 var paths = new List<string>();
                 using var pathCommand = connection.CreateCommand();
@@ -316,7 +316,7 @@ namespace OoiMRR
                 {
                     paths.Add(pathReader.GetString(0));
                 }
-                
+
                 libraries.Add(new Library
                 {
                     Id = libraryId,
@@ -325,7 +325,7 @@ namespace OoiMRR
                     DisplayOrder = displayOrder
                 });
             }
-            
+
             return libraries;
         }
 
@@ -333,35 +333,35 @@ namespace OoiMRR
         {
             using var connection = new SqliteConnection(_connectionString);
             connection.Open();
-            
+
             // 获取当前库的DisplayOrder
             using var getCurrentCommand = connection.CreateCommand();
             getCurrentCommand.CommandText = "SELECT DisplayOrder FROM Libraries WHERE Id = @id";
             getCurrentCommand.Parameters.AddWithValue("@id", libraryId);
             var currentOrder = getCurrentCommand.ExecuteScalar();
-            
+
             if (currentOrder == null || currentOrder == DBNull.Value) return;
             var currentOrderValue = Convert.ToInt32(currentOrder);
-            
+
             // 查找上一个库（DisplayOrder小于当前值的最大DisplayOrder）
             using var getPrevCommand = connection.CreateCommand();
             getPrevCommand.CommandText = "SELECT Id, DisplayOrder FROM Libraries WHERE DisplayOrder < @order ORDER BY DisplayOrder DESC LIMIT 1";
             getPrevCommand.Parameters.AddWithValue("@order", currentOrderValue);
             using var prevReader = getPrevCommand.ExecuteReader();
-            
+
             if (prevReader.Read())
             {
                 var prevId = prevReader.GetInt32(0);
                 var prevOrder = prevReader.GetInt32(1);
-                
+
                 // 交换两个库的DisplayOrder
                 using var updateCommand = connection.CreateCommand();
                 updateCommand.CommandText = "UPDATE Libraries SET DisplayOrder = @newOrder WHERE Id = @id";
-                
+
                 updateCommand.Parameters.AddWithValue("@newOrder", prevOrder);
                 updateCommand.Parameters.AddWithValue("@id", libraryId);
                 updateCommand.ExecuteNonQuery();
-                
+
                 updateCommand.Parameters.Clear();
                 updateCommand.Parameters.AddWithValue("@newOrder", currentOrderValue);
                 updateCommand.Parameters.AddWithValue("@id", prevId);
@@ -373,35 +373,35 @@ namespace OoiMRR
         {
             using var connection = new SqliteConnection(_connectionString);
             connection.Open();
-            
+
             // 获取当前库的DisplayOrder
             using var getCurrentCommand = connection.CreateCommand();
             getCurrentCommand.CommandText = "SELECT DisplayOrder FROM Libraries WHERE Id = @id";
             getCurrentCommand.Parameters.AddWithValue("@id", libraryId);
             var currentOrder = getCurrentCommand.ExecuteScalar();
-            
+
             if (currentOrder == null || currentOrder == DBNull.Value) return;
             var currentOrderValue = Convert.ToInt32(currentOrder);
-            
+
             // 查找下一个库（DisplayOrder大于当前值的最小DisplayOrder）
             using var getNextCommand = connection.CreateCommand();
             getNextCommand.CommandText = "SELECT Id, DisplayOrder FROM Libraries WHERE DisplayOrder > @order ORDER BY DisplayOrder ASC LIMIT 1";
             getNextCommand.Parameters.AddWithValue("@order", currentOrderValue);
             using var nextReader = getNextCommand.ExecuteReader();
-            
+
             if (nextReader.Read())
             {
                 var nextId = nextReader.GetInt32(0);
                 var nextOrder = nextReader.GetInt32(1);
-                
+
                 // 交换两个库的DisplayOrder
                 using var updateCommand = connection.CreateCommand();
                 updateCommand.CommandText = "UPDATE Libraries SET DisplayOrder = @newOrder WHERE Id = @id";
-                
+
                 updateCommand.Parameters.AddWithValue("@newOrder", nextOrder);
                 updateCommand.Parameters.AddWithValue("@id", libraryId);
                 updateCommand.ExecuteNonQuery();
-                
+
                 updateCommand.Parameters.Clear();
                 updateCommand.Parameters.AddWithValue("@newOrder", currentOrderValue);
                 updateCommand.Parameters.AddWithValue("@id", nextId);
@@ -413,23 +413,23 @@ namespace OoiMRR
         {
             using var connection = new SqliteConnection(_connectionString);
             connection.Open();
-            
+
             string name;
             int displayOrder;
-            
+
             // 获取库的基本信息
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT Name, DisplayOrder FROM Libraries WHERE Id = @libraryId";
                 command.Parameters.AddWithValue("@libraryId", libraryId);
                 using var reader = command.ExecuteReader();
-                
+
                 if (!reader.Read()) return null;
-                
+
                 name = reader.GetString(0);
                 displayOrder = reader.IsDBNull(1) ? 0 : reader.GetInt32(1);
             }
-            
+
             // 获取库的所有路径（使用新的command对象）
             var paths = new List<string>();
             using (var pathCommand = connection.CreateCommand())
@@ -442,7 +442,7 @@ namespace OoiMRR
                     paths.Add(pathReader.GetString(0));
                 }
             }
-            
+
             return new Library
             {
                 Id = libraryId,
@@ -571,13 +571,13 @@ namespace OoiMRR
                     FROM FolderSizes 
                     WHERE FolderPath = @folderPath";
                 command.Parameters.AddWithValue("@folderPath", folderPath);
-                
+
                 using var reader = command.ExecuteReader();
                 if (reader.Read())
                 {
                     var sizeBytes = reader.GetInt64(0);
                     var lastModified = reader.GetDateTime(1);
-                    
+
                     // 检查文件夹的最后修改时间是否与缓存一致
                     var currentLastModified = Directory.GetLastWriteTime(folderPath);
                     if (currentLastModified <= lastModified)
@@ -590,7 +590,7 @@ namespace OoiMRR
             catch
             {
             }
-            
+
             return null;
         }
 
@@ -607,7 +607,7 @@ namespace OoiMRR
                 using var connection = new SqliteConnection(_connectionString);
                 connection.Open();
                 using var command = connection.CreateCommand();
-                
+
                 // 获取文件夹的最后修改时间
                 DateTime lastModified = DateTime.MinValue;
                 try
@@ -618,7 +618,7 @@ namespace OoiMRR
                     }
                 }
                 catch { }
-                
+
                 command.CommandText = @"
                     INSERT OR REPLACE INTO FolderSizes (FolderPath, SizeBytes, LastModified, CalculatedAt) 
                     VALUES (@folderPath, @sizeBytes, @lastModified, CURRENT_TIMESTAMP)";
@@ -645,7 +645,7 @@ namespace OoiMRR
             {
                 using var connection = new SqliteConnection(_connectionString);
                 connection.Open();
-                
+
                 // 过滤出存在的文件夹路径
                 var existingPaths = folderPaths.Where(p => !string.IsNullOrEmpty(p) && Directory.Exists(p)).ToList();
                 if (existingPaths.Count == 0)
@@ -658,19 +658,19 @@ namespace OoiMRR
                     SELECT FolderPath, SizeBytes, LastModified 
                     FROM FolderSizes 
                     WHERE FolderPath IN ({placeholders})";
-                
+
                 for (int i = 0; i < existingPaths.Count; i++)
                 {
                     command.Parameters.AddWithValue($"@path{i}", existingPaths[i]);
                 }
-                
+
                 using var reader = command.ExecuteReader();
                 while (reader.Read())
                 {
                     var folderPath = reader.GetString(0);
                     var sizeBytes = reader.GetInt64(1);
                     var lastModified = reader.GetDateTime(2);
-                    
+
                     // 检查文件夹的最后修改时间是否与缓存一致
                     try
                     {
@@ -687,7 +687,7 @@ namespace OoiMRR
             catch
             {
             }
-            
+
             return result;
         }
 
@@ -726,7 +726,7 @@ namespace OoiMRR
             {
                 using var connection = new SqliteConnection(_connectionString);
                 connection.Open();
-                
+
                 // 获取所有文件夹路径（分批处理）
                 using var selectCommand = connection.CreateCommand();
                 selectCommand.CommandText = @"
@@ -734,14 +734,14 @@ namespace OoiMRR
                     FROM FolderSizes 
                     ORDER BY CalculatedAt ASC
                     LIMIT @limit";
-                
+
                 int processed = 0;
                 while (maxProcessed == 0 || processed < maxProcessed)
                 {
                     selectCommand.Parameters.Clear();
                     int currentBatchSize = Math.Min(batchSize, maxProcessed == 0 ? batchSize : maxProcessed - processed);
                     selectCommand.Parameters.AddWithValue("@limit", currentBatchSize);
-                    
+
                     var pathsToCheck = new List<string>();
                     using (var reader = selectCommand.ExecuteReader())
                     {
@@ -750,10 +750,10 @@ namespace OoiMRR
                             pathsToCheck.Add(reader.GetString(0));
                         }
                     }
-                    
+
                     if (pathsToCheck.Count == 0)
                         break; // 没有更多记录了
-                    
+
                     // 检查每个路径是否存在
                     var pathsToDelete = new List<string>();
                     foreach (var path in pathsToCheck)
@@ -771,7 +771,7 @@ namespace OoiMRR
                             pathsToDelete.Add(path);
                         }
                     }
-                    
+
                     // 批量删除不存在的路径
                     if (pathsToDelete.Count > 0)
                     {
@@ -779,18 +779,18 @@ namespace OoiMRR
                         // 构建批量删除SQL
                         var placeholders = string.Join(",", pathsToDelete.Select((_, i) => $"@path{i}"));
                         deleteCommand.CommandText = $"DELETE FROM FolderSizes WHERE FolderPath IN ({placeholders})";
-                        
+
                         for (int i = 0; i < pathsToDelete.Count; i++)
                         {
                             deleteCommand.Parameters.AddWithValue($"@path{i}", pathsToDelete[i]);
                         }
-                        
+
                         int deleted = deleteCommand.ExecuteNonQuery();
                         cleanedCount += deleted;
                     }
-                    
+
                     processed += pathsToCheck.Count;
-                    
+
                     // 如果这批没有需要删除的，且已处理足够多，可以提前结束
                     if (pathsToDelete.Count == 0 && processed >= maxProcessed / 2)
                     {
@@ -801,7 +801,7 @@ namespace OoiMRR
             catch
             {
             }
-            
+
             return cleanedCount;
         }
 
@@ -828,27 +828,20 @@ namespace OoiMRR
         #endregion
     }
 
-    public class Tag
-    {
-        public int Id { get; set; }
-        public string Name { get; set; }
-        public string Color { get; set; }
-    }
-
     public class Library
     {
         public int Id { get; set; }
         public string Name { get; set; }
         public List<string> Paths { get; set; } = new List<string>();
         public int DisplayOrder { get; set; }
-        
+
         // 兼容旧代码
         [Obsolete("Use Paths property instead")]
-        public string Path 
-        { 
+        public string Path
+        {
             get => Paths?.FirstOrDefault() ?? "";
-            set 
-            { 
+            set
+            {
                 if (Paths == null) Paths = new List<string>();
                 if (!Paths.Contains(value)) Paths.Add(value);
             }

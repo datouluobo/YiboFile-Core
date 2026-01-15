@@ -318,6 +318,7 @@ namespace OoiMRR.Services
             }
         }
 
+
         /// <summary>
         /// 请求高亮库
         /// </summary>
@@ -327,6 +328,117 @@ namespace OoiMRR.Services
             {
                 LibraryHighlightRequested?.Invoke(this, library);
             }
+        }
+
+        #endregion
+
+        #region 导入/导出功能
+
+        /// <summary>
+        /// 导出所有库配置为JSON字符串
+        /// </summary>
+        public string ExportLibrariesToJson()
+        {
+            try
+            {
+                var libraries = LoadLibraries();
+                // 转换为DTO以避免导出不必要的字段或ID冲突
+                var exportData = libraries.Select(l => new
+                {
+                    Name = l.Name,
+                    Paths = l.Paths,
+                    DisplayOrder = l.DisplayOrder
+                }).ToList();
+
+                // 使用 System.Text.Json 进行序列化
+                // 兼容性注意：如果 .NET 版本较低可能需要 Newtonsoft.Json
+                // 这里假设环境支持 System.Text.Json
+                var options = new System.Text.Json.JsonSerializerOptions
+                {
+                    WriteIndented = true,
+                    Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+                };
+                return System.Text.Json.JsonSerializer.Serialize(exportData, options);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"导出库配置失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// 从JSON字符串导入库配置
+        /// </summary>
+        public bool ImportLibrariesFromJson(string json)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(json)) return false;
+
+                var options = new System.Text.Json.JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                };
+
+                // 定义临时 DTO 类结构以匹配 JSON
+                var importList = System.Text.Json.JsonSerializer.Deserialize<List<LibraryImportDto>>(json, options);
+
+                if (importList == null || importList.Count == 0)
+                {
+                    MessageBox.Show("导入的数据为空或格式不正确", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return false;
+                }
+
+                int successCount = 0;
+                foreach (var item in importList)
+                {
+                    if (string.IsNullOrWhiteSpace(item.Name)) continue;
+
+                    // 尝试添加库
+                    // AddLibrary 会处理重名情况（返回负ID或0）
+                    // 我们可以先尝试获取现有的，或者直接调用AddLibrary
+                    // 为了简单起见，我们先创建库，然后添加路径
+
+                    int libId = AddLibrary(item.Name);
+                    if (libId == 0) continue; // 创建失败
+
+                    // 如果库已存在(libId < 0)，我们需要获取它的正ID来添加路径
+                    if (libId < 0)
+                    {
+                        libId = -libId;
+                    }
+
+                    // 添加路径
+                    if (item.Paths != null)
+                    {
+                        foreach (var path in item.Paths)
+                        {
+                            if (!string.IsNullOrWhiteSpace(path))
+                            {
+                                DatabaseManager.AddLibraryPath(libId, path);
+                            }
+                        }
+                    }
+
+                    successCount++;
+                }
+
+                LoadLibraries();
+                MessageBox.Show($"成功导入 {successCount} 个库配置", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"导入库配置失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                return false;
+            }
+        }
+
+        private class LibraryImportDto
+        {
+            public string Name { get; set; }
+            public List<string> Paths { get; set; }
         }
 
         #endregion

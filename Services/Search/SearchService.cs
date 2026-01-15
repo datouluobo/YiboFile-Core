@@ -20,7 +20,7 @@ namespace OoiMRR.Services.Search
         private readonly SearchResultBuilder _resultBuilder;
         private readonly EverythingSearchExecutor _everythingExecutor;
         private readonly NotesSearchExecutor _notesExecutor;
-        private readonly TagSearchExecutor _tagExecutor;
+        // TagSearchExecutor removed
         private readonly SearchPaginationService _paginationService;
 
         // 搜索配置
@@ -83,7 +83,7 @@ namespace OoiMRR.Services.Search
                 _pageSize,
                 _maxResults);
             _notesExecutor = new NotesSearchExecutor();
-            _tagExecutor = new TagSearchExecutor();
+            // _tagExecutor removed
             _paginationService = new SearchPaginationService(
                 _filterService,
                 _resultBuilder,
@@ -122,18 +122,6 @@ namespace OoiMRR.Services.Search
             return normalized;
         }
 
-        /// <summary>
-        /// 执行搜索
-        /// </summary>
-        /// <param name="keyword">搜索关键词</param>
-        /// <param name="searchOptions">搜索选项</param>
-        /// <param name="currentPath">当前路径（用于路径范围过滤）</param>
-        /// <param name="searchNames">是否搜索文件名</param>
-        /// <param name="searchNotes">是否搜索备注</param>
-        /// <param name="getNotesFromDb">从数据库获取备注搜索结果的函数</param>
-        /// <param name="progressCallback">进度回调（每页加载完成后调用）</param>
-        /// <param name="cancellationToken">取消令牌</param>
-        /// <returns>搜索结果</returns>
         public async Task<SearchResult> PerformSearchAsync(
             string keyword,
             SearchOptions searchOptions,
@@ -149,30 +137,12 @@ namespace OoiMRR.Services.Search
                 return new SearchResult { Keyword = keyword };
             }
 
-            // 检查全文搜索配置
-            var (isContentSearch, _) = FullTextSearchService.ParseSearchQuery(keyword);
-            bool isFtsEnabled = Config.ConfigurationService.Instance.Get(c => c.IsEnableFullTextSearch);
+            // ... (FTS check skipped)
 
-            if (isContentSearch && !isFtsEnabled)
-            {
-                // 如果禁用了全文搜索但用户尝试使用content:语法，我们可以返回空结果或者提示
-                // 或者回退到普通搜索？为了避免混淆，这里暂不执行特殊逻辑，让它走普通搜索流程
-                // 但由于ParseSearchQuery是静态的，调用方可能已经解析了。
-                // 其实应该在 ParseSearchQuery 或者更上层拦截。
-                // 但这里 SearchService.PerformSearchAsync 内部逻辑会用到 fullTextSearchService?
-                // SearchService 并没有直接依赖 FullTextSearchService (它是通过 FullTextSearchService -> FtsIndexService)
-                // Wait, SearchService uses `EverythingSearchExecutor`, `NotesSearchExecutor`.
-                // It does NOT invoke `FullTextSearchService` directly in the code I viewed in Step 1422.
-                // This is surprising. Who calls `FullTextSearchService`?
-                // Maybe `MainWindow.Search.cs` calls it directly?
-                // Step 1484 implementation plan says:
-                // Update SearchService to support content: syntax.
-            }
-
-            // 强制依赖 Everything，未运行则不回退到系统枚举，避免卡顿
             var everythingReady = await EverythingHelper.InitializeAsync();
             if (!everythingReady || !EverythingHelper.IsEverythingRunning())
             {
+                OoiMRR.Services.Core.NotificationService.ShowError("Everything 服务启动失败，无法执行搜索。请检查 Everything 是否安装正确。");
                 return new SearchResult { Keyword = keyword };
             }
 
@@ -196,12 +166,15 @@ namespace OoiMRR.Services.Search
                 // 否则根据 Mode 决定
                 bool doNameSearch = searchNames;
                 bool doNotesSearch = searchNotes;
-                bool doTagSearch = false;
+                // Tag search removed
 
                 if (mode == SearchMode.Tags)
                 {
-                    doTagSearch = true;
-                    doNameSearch = true; // 标签搜索需要先获取文件列表
+                    // Deprecated Tag Mode - Default to name search or handle gracefully
+                    // For now, treat as Name search but maybe show warning?
+                    // Actually, if UI removes Tag mode, this shouldn't be hit.
+                    // Fallback:
+                    doNameSearch = true;
                     doNotesSearch = false;
                 }
                 else if (mode == SearchMode.Folder)
@@ -218,13 +191,17 @@ namespace OoiMRR.Services.Search
                 {
                     doNameSearch = true;
                     doNotesSearch = true;
-                    doTagSearch = true;
+                    // Tag search removed
                 }
 
                 // 确保至少有一个搜索选项
-                if (!doNameSearch && !doNotesSearch && !doTagSearch)
+                if (!doNameSearch && !doNotesSearch)
                 {
-                    throw new ArgumentException("请至少选择一个搜索选项");
+                    // If tag mode was selected and we removed it, we might end up here if we don't fallback.
+                    // But we added fallback above.
+                    // throw new ArgumentException("请至少选择一个搜索选项");
+                    // Let's safe guard -> default to name search?
+                    doNameSearch = true;
                 }
 
                 // 名称搜索（强制使用 Everything）
@@ -292,11 +269,7 @@ namespace OoiMRR.Services.Search
                     results = _filterService.ApplyAudioDurationFilter(results, searchOptions.Duration).ToList();
                 }
 
-                // 标签过滤（当模式为 Tags 时）
-                if (doTagSearch && mode == SearchMode.Tags)
-                {
-                    results = _tagExecutor.FilterByTag(results, normalizedKeyword).ToList();
-                }
+                // Tag filtering Logic Removed
 
                 // 限制展示：备注与文件夹全部保留，文件仅取前100条
                 const int maxFiles = 100;

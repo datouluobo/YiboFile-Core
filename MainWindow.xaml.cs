@@ -53,7 +53,6 @@ namespace OoiMRR
         private DragDropManager _dragDropManager;
 
         internal Library _currentLibrary = null;
-        internal Tag _currentTagFilter = null;
         internal bool _isUpdatingTagSelection = false;
 
 
@@ -446,9 +445,6 @@ namespace OoiMRR
         internal void ClearFilter()
         {
             // 清除过滤状态，恢复正常的文件浏览
-            _currentTagFilter = null;
-            // TagsListBox已移除，标签选择现在由TagTrain面板处理
-
             _currentFiles.Clear();
             if (FileBrowser != null)
                 FileBrowser.FilesItemsSource = null;

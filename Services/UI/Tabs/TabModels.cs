@@ -12,7 +12,6 @@ namespace OoiMRR.Services.Tabs
     {
         Path,    // 路径标签页
         Library  // 库标签页
-        // Tag   // 标签标签页 - Phase 2将重新实现
     }
 
     /// <summary>
@@ -26,8 +25,6 @@ namespace OoiMRR.Services.Tabs
         public Button TabButton { get; set; }
         public FrameworkElement CloseButton { get; set; }
         public Library Library { get; set; }  // 库标签页时使用
-        // public int TagId { get; set; }     // 标签页时使用 - Phase 2将重新实现
-        // public string TagName { get; set; }  // 标签页时使用 - Phase 2将重新实现
         public bool IsPinned { get; set; }
         public StackPanel TabContainer { get; set; }
         public TextBlock TitleTextBlock { get; set; }

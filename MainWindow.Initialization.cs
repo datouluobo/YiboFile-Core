@@ -425,11 +425,6 @@ namespace OoiMRR
             {
                 OpenLibraryInTab(library, forceNewTab);
             };
-            // Phase 2: Tag Navigation
-            _navigationCoordinator.TagNavigateRequested += (tag, forceNewTab) =>
-            {
-                // OpenTagInTab(tag, forceNewTab);
-            };
             _navigationCoordinator.FileOpenRequested += (filePath) =>
             {
                 try
@@ -540,9 +535,6 @@ namespace OoiMRR
                 GetCurrentPath = () => _currentPath,
                 SetCurrentPath = path => _currentPath = path,
                 SetNavigationCurrentPath = path => _navigationService.CurrentPath = path,
-                GetCurrentTagFilter = () => _currentTagFilter,
-                SetCurrentTagFilter = tag => _currentTagFilter = tag,
-                // FilterByTag = FilterByTag, // Phase 2
                 LoadLibraryFiles = lib => LoadLibraryFiles(lib),
                 NavigateToPathInternal = NavigateToPathInternal,
                 UpdateNavigationButtonsState = UpdateNavigationButtonsState,
@@ -555,7 +547,6 @@ namespace OoiMRR
                 ClearFilter = ClearFilter,
                 RefreshSearchTab = path => { CheckAndRefreshSearchTab(path); return Task.CompletedTask; },
                 FindResource = key => FindResource(key),
-                IsTagTrainAvailable = () => App.IsTagTrainAvailable,
 
                 // 获取当前导航模式
                 GetCurrentNavigationMode = () => _configService?.Config?.LastNavigationMode ?? "Path"

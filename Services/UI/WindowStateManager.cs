@@ -754,15 +754,7 @@ namespace OoiMRR.Services
                     }
                 }
             }
-            // Tag标签页恢复已移除 - Phase 2将重新实现
-            // var tagName = OoiMRRIntegration.GetTagName(tagId);
-            // if (!string.IsNullOrEmpty(tagName))
-            // {
-            //     var tag = new OoiMRR.Tag { Id = tagId, Name = tagName };
-            //     _tabService.OpenTagTab(tag, false, activate: false);
-            // }
         }
-
         /// <summary>
         /// 根据键值查找标签页
         /// </summary>
@@ -784,14 +776,6 @@ namespace OoiMRR.Services
                 if (int.TryParse(libraryIdStr, out int libraryId))
                 {
                     return service.FindTabByLibraryId(libraryId);
-                }
-            }
-            else if (tabKey.StartsWith("tag:"))
-            {
-                var tagIdStr = tabKey.Substring("tag:".Length);
-                if (int.TryParse(tagIdStr, out int tagId))
-                {
-                    return service.FindTabByTagId(tagId);
                 }
             }
 

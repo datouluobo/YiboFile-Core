@@ -83,9 +83,6 @@ namespace OoiMRR.ViewModels
                 case "Library":
                     newMode = NavigationStateManager.NavigationMode.Library;
                     break;
-                case "Tag":
-                    newMode = NavigationStateManager.NavigationMode.Tag;
-                    break;
                 default:
                     newMode = NavigationStateManager.NavigationMode.Path;
                     break;

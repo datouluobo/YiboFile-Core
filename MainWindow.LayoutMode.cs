@@ -369,9 +369,6 @@ namespace OoiMRR
                 GetCurrentPath = () => _secondCurrentPath ?? _currentPath,
                 SetCurrentPath = (path) => _secondCurrentPath = path,
                 SetNavigationCurrentPath = (path) => _secondCurrentPath = path,
-                GetCurrentTagFilter = () => null,
-                SetCurrentTagFilter = (_) => { },
-                FilterByTag = (_) => { },
                 LoadLibraryFiles = (_) => { },
                 NavigateToPathInternal = (path) => SecondFileBrowser_PathChanged(this, path),
                 UpdateNavigationButtonsState = () => { },
@@ -381,8 +378,7 @@ namespace OoiMRR
                 GetCurrentFiles = () => SecondFileBrowser.FilesItemsSource as List<FileSystemItem>,
                 SetCurrentFiles = (files) => SecondFileBrowser.FilesItemsSource = files,
                 ClearFilter = () => { },
-                FindResource = (key) => this.TryFindResource(key),
-                IsTagTrainAvailable = () => false
+                FindResource = (key) => this.TryFindResource(key)
             };
 
             _secondTabService.AttachUiContext(uiContext);

@@ -1,20 +1,18 @@
 using System;
 using OoiMRR.Services.Tabs;
-using TagType = OoiMRR.Tag;
 
 namespace OoiMRR.Services
 {
     /// <summary>
     /// 导航状态管理器
-    /// 负责管理路径/库/标签的导航状态，提供状态保护和恢复功能
+    /// 负责管理路径/库的导航状态，提供状态保护和恢复功能
     /// </summary>
     public class NavigationStateManager
     {
         public enum NavigationMode
         {
             Path,
-            Library,
-            Tag
+            Library
         }
 
         /// <summary>
@@ -25,13 +23,11 @@ namespace OoiMRR.Services
             public NavigationMode Mode { get; set; }
             public string CurrentPath { get; set; }
             public Library CurrentLibrary { get; set; }
-            public TagType CurrentTagFilter { get; set; }
 
             public void Clear()
             {
                 CurrentPath = null;
                 CurrentLibrary = null;
-                CurrentTagFilter = null;
             }
 
             public void SetFromTab(PathTab tab)
@@ -47,14 +43,6 @@ namespace OoiMRR.Services
                         Mode = NavigationMode.Library;
                         CurrentLibrary = tab.Library;
                         break;
-                        // Tag mode removed - Phase 2
-                        // case TabType.Tag:
-                        //     Mode = NavigationMode.Tag;
-                        //     if (tab.TagId > 0 && !string.IsNullOrEmpty(tab.TagName))
-                        //     {
-                        //         CurrentTagFilter = new TagType { Id = tab.TagId, Name = tab.TagName };
-                        //     }
-                        //     break;
                 }
             }
 
@@ -64,13 +52,7 @@ namespace OoiMRR.Services
                 {
                     Mode = this.Mode,
                     CurrentPath = this.CurrentPath,
-                    CurrentLibrary = this.CurrentLibrary,
-                    CurrentTagFilter = this.CurrentTagFilter != null ? new TagType
-                    {
-                        Id = this.CurrentTagFilter.Id,
-                        Name = this.CurrentTagFilter.Name,
-                        Color = this.CurrentTagFilter.Color
-                    } : null
+                    CurrentLibrary = this.CurrentLibrary
                 };
             }
         }
@@ -129,15 +111,6 @@ namespace OoiMRR.Services
                 case NavigationMode.Library:
                     saved.Mode = NavigationMode.Library;
                     saved.CurrentLibrary = _currentState.CurrentLibrary;
-                    break;
-                case NavigationMode.Tag:
-                    saved.Mode = NavigationMode.Tag;
-                    saved.CurrentTagFilter = _currentState.CurrentTagFilter != null ? new TagType
-                    {
-                        Id = _currentState.CurrentTagFilter.Id,
-                        Name = _currentState.CurrentTagFilter.Name,
-                        Color = _currentState.CurrentTagFilter.Color
-                    } : null;
                     break;
             }
             return saved;

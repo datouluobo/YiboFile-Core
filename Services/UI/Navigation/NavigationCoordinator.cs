@@ -4,7 +4,6 @@ using System.Windows;
 using System.Windows.Input;
 using OoiMRR.Controls;
 using FavoriteType = OoiMRR.Favorite;
-using TagType = OoiMRR.Tag;
 using OoiMRR.Services.Core;
 
 namespace OoiMRR.Services.Navigation
@@ -24,7 +23,6 @@ namespace OoiMRR.Services.Navigation
             QuickAccess,   // 快速访问
             Favorite,       // 收藏夹
             Library,        // 库
-            Tag,            // 标签
             Breadcrumb,     // 面包屑
             AddressBar,     // 地址栏
             FileList        // 文件列表
@@ -49,11 +47,6 @@ namespace OoiMRR.Services.Navigation
         /// 库导航请求事件
         /// </summary>
         public event Action<Library, bool> LibraryNavigateRequested; // library, forceNewTab
-
-        /// <summary>
-        /// 标签导航请求事件
-        /// </summary>
-        public event Action<TagType, bool> TagNavigateRequested; // tag, forceNewTab
 
         /// <summary>
         /// 文件打开请求事件
@@ -131,26 +124,6 @@ namespace OoiMRR.Services.Navigation
 
             // 触发库导航请求
             LibraryNavigateRequested?.Invoke(library, forceNewTab);
-        }
-
-        /// <summary>
-        /// 处理标签导航
-        /// 判断顺序：
-        /// 1. 如果是forceNewTab（中键或Ctrl+左键），直接创建新标签页
-        /// 2. 否则查找是否已存在该标签的标签页（按标签ID），如果有则切换
-        /// 3. 如果当前标签页是tag页，用当前页打开
-        /// 4. 否则创建新标签页
-        /// </summary>
-        public void HandleTagNavigation(TagType tag, ClickType clickType)
-        {
-            if (tag == null || string.IsNullOrWhiteSpace(tag.Name))
-                return;
-
-            // 判断是否需要强制打开新标签页
-            bool forceNewTab = clickType == ClickType.MiddleClick || clickType == ClickType.CtrlLeftClick;
-
-            // 触发标签导航请求
-            TagNavigateRequested?.Invoke(tag, forceNewTab);
         }
 
         /// <summary>

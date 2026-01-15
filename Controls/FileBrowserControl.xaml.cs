@@ -300,6 +300,8 @@ namespace OoiMRR.Controls
         public event RoutedEventHandler FileAddTag;
         public event RoutedEventHandler FileNewFolder;
         public event RoutedEventHandler FileNewFile;
+        public event RoutedEventHandler FileUndo;
+        public event RoutedEventHandler FileRedo;
         public event EventHandler<RenameEventArgs> CommitRename;
 
         // 地址栏事件处理
@@ -329,9 +331,20 @@ namespace OoiMRR.Controls
             NavigationForward?.Invoke(sender, e);
         }
 
+
         private void NavUpBtn_Click(object sender, RoutedEventArgs e)
         {
             NavigationUp?.Invoke(sender, e);
+        }
+
+        private void UndoBtn_Click(object sender, RoutedEventArgs e)
+        {
+            FileUndo?.Invoke(this, e);
+        }
+
+        private void RedoBtn_Click(object sender, RoutedEventArgs e)
+        {
+            FileRedo?.Invoke(this, e);
         }
 
 

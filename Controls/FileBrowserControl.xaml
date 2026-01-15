@@ -144,6 +144,10 @@
                     <Button Name="NavBackBtn" FontFamily="{DynamicResource IconFontFamily}" Content="{DynamicResource Icon_Back}" FontSize="14" Click="NavBackBtn_Click" ToolTip="后退" Style="{StaticResource ModernToolbarButtonStyle}"/>
                     <Button Name="NavForwardBtn" FontFamily="{DynamicResource IconFontFamily}" Content="{DynamicResource Icon_Forward}" FontSize="14" Click="NavForwardBtn_Click" ToolTip="前进" Style="{StaticResource ModernToolbarButtonStyle}"/>
                     <Button Name="NavUpBtn" FontFamily="{DynamicResource IconFontFamily}" Content="{DynamicResource Icon_Up}" FontSize="14" Click="NavUpBtn_Click" ToolTip="向上" Style="{StaticResource ModernToolbarButtonStyle}"/>
+                    <!-- Undo/Redo -->
+                    <Rectangle Width="1" Height="20" Fill="{DynamicResource BorderBrush}" Margin="4,0" VerticalAlignment="Center"/>
+                    <Button Name="UndoBtn" FontFamily="Segoe MDL2 Assets" Content="&#xE7A7;" FontSize="14" Click="UndoBtn_Click" ToolTip="撤销" Style="{StaticResource ModernToolbarButtonStyle}"/>
+                    <Button Name="RedoBtn" FontFamily="Segoe MDL2 Assets" Content="&#xE7A6;" FontSize="14" Click="RedoBtn_Click" ToolTip="重做" Style="{StaticResource ModernToolbarButtonStyle}"/>
                 </StackPanel>
                 
                 <!-- TitleActionBar (操作按钮) -->

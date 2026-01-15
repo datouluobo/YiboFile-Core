@@ -38,8 +38,6 @@ namespace OoiMRR.Handlers
         private readonly Action<DragDeltaEventArgs> _gridSplitterDragDelta;
         private readonly Func<string> _getCurrentPath;
         private readonly Func<AppConfig> _getConfig;
-        private readonly Func<Tag> _getCurrentTagFilter;
-        private readonly Action<Tag> _setCurrentTagFilter;
         private readonly Func<List<FileSystemItem>> _getCurrentFiles;
         private readonly Action<List<FileSystemItem>> _setCurrentFiles;
         private readonly Func<SearchOptions> _getSearchOptions;
@@ -71,8 +69,8 @@ namespace OoiMRR.Handlers
             Action<DragDeltaEventArgs> gridSplitterDragDelta,
             Func<string> getCurrentPath,
             Func<AppConfig> getConfig,
-            Func<Tag> getCurrentTagFilter,
-            Action<Tag> setCurrentTagFilter,
+            Func<object> getCurrentTagFilter,
+            Action<object> setCurrentTagFilter,
             Func<List<FileSystemItem>> getCurrentFiles,
             Action<List<FileSystemItem>> setCurrentFiles,
             Func<SearchOptions> getSearchOptions,
@@ -104,8 +102,6 @@ namespace OoiMRR.Handlers
             _gridSplitterDragDelta = gridSplitterDragDelta ?? throw new ArgumentNullException(nameof(gridSplitterDragDelta));
             _getCurrentPath = getCurrentPath ?? throw new ArgumentNullException(nameof(getCurrentPath));
             _getConfig = getConfig ?? throw new ArgumentNullException(nameof(getConfig));
-            _getCurrentTagFilter = getCurrentTagFilter ?? throw new ArgumentNullException(nameof(getCurrentTagFilter));
-            _setCurrentTagFilter = setCurrentTagFilter ?? throw new ArgumentNullException(nameof(setCurrentTagFilter));
             _getCurrentFiles = getCurrentFiles ?? throw new ArgumentNullException(nameof(getCurrentFiles));
             _setCurrentFiles = setCurrentFiles ?? throw new ArgumentNullException(nameof(setCurrentFiles));
             _getSearchOptions = getSearchOptions ?? throw new ArgumentNullException(nameof(getSearchOptions));
@@ -184,28 +180,8 @@ namespace OoiMRR.Handlers
             if (string.IsNullOrEmpty(path))
                 return;
 
-            // 处理tag://路径，返回到标签浏览模式
             if (path == "tag://")
             {
-                var config = _getConfig();
-                // 切换到标签模式（如果当前不在标签模式）
-                if (config.LastNavigationMode != "Tag")
-                {
-                    _switchNavigationMode("Tag");
-                }
-                else
-                {
-                    // 已经在标签模式，清除当前选中的标签，显示所有标签
-                    _setCurrentTagFilter(null);
-                    if (_fileBrowser != null)
-                    {
-                        _fileBrowser.FilesItemsSource = null;
-                        _fileBrowser.AddressText = "";
-                        _fileBrowser.IsAddressReadOnly = true;
-                        _fileBrowser.SetTagBreadcrumb("标签");
-                    }
-                    _hideEmptyStateMessage();
-                }
                 return;
             }
 
@@ -215,28 +191,8 @@ namespace OoiMRR.Handlers
 
         public void FileBrowser_BreadcrumbClicked(object sender, string path)
         {
-            // 处理tag://路径，返回到标签浏览模式
             if (path == "tag://")
             {
-                var config = _getConfig();
-                // 切换到标签模式（如果当前不在标签模式）
-                if (config.LastNavigationMode != "Tag")
-                {
-                    _switchNavigationMode("Tag");
-                }
-                else
-                {
-                    // 已经在标签模式，清除当前选中的标签，显示所有标签
-                    _setCurrentTagFilter(null);
-                    if (_fileBrowser != null)
-                    {
-                        _fileBrowser.FilesItemsSource = null;
-                        _fileBrowser.AddressText = "";
-                        _fileBrowser.IsAddressReadOnly = true;
-                        _fileBrowser.SetTagBreadcrumb("标签");
-                    }
-                    _hideEmptyStateMessage();
-                }
                 return;
             }
 

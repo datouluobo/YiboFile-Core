@@ -26,7 +26,7 @@ namespace OoiMRR.Controls.Behaviors
         private HashSet<object> _initialSelection = new();
 
         // 调试开关
-        private const bool DEBUG_LASSO = false;
+        private static readonly bool DEBUG_LASSO = false;
 
         // 选择框样式
         private static readonly SolidColorBrush SelectionFillBrush = new(Color.FromArgb(60, 0, 120, 215));
