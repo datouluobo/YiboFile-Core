@@ -5,11 +5,11 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using OoiMRR.Services;
-using OoiMRR.Services.Navigation;
-using OoiMRR.Services.FileNotes;
+using YiboFile.Services;
+using YiboFile.Services.Navigation;
+using YiboFile.Services.FileNotes;
 
-namespace OoiMRR
+namespace YiboFile
 {
     /// <summary>
     /// MainWindow 的库管理功能
@@ -358,3 +358,4 @@ namespace OoiMRR
         #endregion
     }
 }
+

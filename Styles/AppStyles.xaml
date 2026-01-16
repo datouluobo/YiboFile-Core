@@ -1,9 +1,9 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:controls="clr-namespace:OoiMRR.Controls"
-                    xmlns:colmgr="clr-namespace:OoiMRR.Services.UI.ColumnManagement"
-                    xmlns:ui="clr-namespace:OoiMRR.Services.UI"
-                    xmlns:converters="clr-namespace:OoiMRR.Controls.Converters">
+                    xmlns:controls="clr-namespace:YiboFile.Controls"
+                    xmlns:colmgr="clr-namespace:YiboFile.Services.UI.ColumnManagement"
+                    xmlns:ui="clr-namespace:YiboFile.Services.UI"
+                    xmlns:converters="clr-namespace:YiboFile.Controls.Converters">
     <!-- Theme resources are now loaded dynamically from Themes/*.xaml -->
     
     <!-- Converters -->
@@ -1826,3 +1826,4 @@
     </Style>
 
 </ResourceDictionary>
+

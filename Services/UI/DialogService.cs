@@ -1,6 +1,6 @@
 using System.Windows;
 
-namespace OoiMRR
+namespace YiboFile
 {
     public static class DialogService
     {
@@ -25,6 +25,7 @@ namespace OoiMRR
         }
     }
 }
+
 
 
 

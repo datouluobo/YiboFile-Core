@@ -6,10 +6,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
-using OoiMRR.Dialogs;
-using OoiMRR.Services.Core.Error;
+using YiboFile.Dialogs;
+using YiboFile.Services.Core.Error;
 
-namespace OoiMRR.Services.FileOperations
+namespace YiboFile.Services.FileOperations
 {
     /// <summary>
     /// 异步粘贴操作 - 支持进度显示和冲突处理
@@ -356,3 +356,4 @@ namespace OoiMRR.Services.FileOperations
         }
     }
 }
+

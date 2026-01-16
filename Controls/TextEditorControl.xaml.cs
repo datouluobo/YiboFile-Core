@@ -6,7 +6,7 @@ using System.Windows.Input;
 using ICSharpCode.AvalonEdit;
 using ICSharpCode.AvalonEdit.Highlighting;
 
-namespace OoiMRR.Controls
+namespace YiboFile.Controls
 {
     public partial class TextEditorControl : UserControl
     {
@@ -175,3 +175,4 @@ namespace OoiMRR.Controls
         public string CurrentFilePath => _currentFilePath;
     }
 }
+

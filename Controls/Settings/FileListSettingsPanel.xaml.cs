@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using OoiMRR;
-using OoiMRR.Services.Config;
+using YiboFile;
+using YiboFile.Services.Config;
 
-namespace OoiMRR.Controls.Settings
+namespace YiboFile.Controls.Settings
 {
     public partial class FileListSettingsPanel : UserControl, ISettingsPanel
     {
@@ -374,3 +374,4 @@ namespace OoiMRR.Controls.Settings
         }
     }
 }
+

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -19,7 +19,7 @@ using System.Runtime.InteropServices.ComTypes;
 
 using ImageMagick;
 
-namespace OoiMRR.Controls.Converters
+namespace YiboFile.Controls.Converters
 {
     public class ThumbnailConverter : IValueConverter
     {
@@ -370,24 +370,24 @@ namespace OoiMRR.Controls.Converters
                         var ext = Path.GetExtension(path)?.ToLowerInvariant();
                         if (ext == ".dxf")
                         {
-                            var cached = OoiMRR.Services.CadImageCache.Get(path, targetSize);
+                            var cached = YiboFile.Services.CadImageCache.Get(path, targetSize);
                             if (cached != null) return cached;
                             // Keep using DxfRenderEngine for thumbnails as it produces a bitmap directly
-                            var bmp = OoiMRR.Rendering.DxfRenderEngine.Render(path, "Model", targetSize, targetSize);
+                            var bmp = YiboFile.Rendering.DxfRenderEngine.Render(path, "Model", targetSize, targetSize);
                             if (bmp != null)
                             {
-                                OoiMRR.Services.CadImageCache.Put(bmp, path, targetSize);
+                                YiboFile.Services.CadImageCache.Put(bmp, path, targetSize);
                                 return bmp;
                             }
                         }
                         if (ext == ".dwg")
                         {
-                            var cached = OoiMRR.Services.CadImageCache.Get(path, targetSize);
+                            var cached = YiboFile.Services.CadImageCache.Get(path, targetSize);
                             if (cached != null) return cached;
                             var ph = CreatePlaceholder(targetSize);
                             if (ph != null)
                             {
-                                OoiMRR.Services.CadImageCache.Put(ph, path, targetSize);
+                                YiboFile.Services.CadImageCache.Put(ph, path, targetSize);
                                 return ph;
                             }
                         }
@@ -940,3 +940,4 @@ namespace OoiMRR.Controls.Converters
         }
     }
 }
+

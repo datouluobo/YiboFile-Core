@@ -1,9 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
-using OoiMRR.Controls;
-using OoiMRR.Services.Search;
+using YiboFile.Controls;
+using YiboFile.Services.Search;
 
-namespace OoiMRR.Services.Bridges
+namespace YiboFile.Services.Bridges
 {
     /// <summary>
     /// Thin wrapper for FileBrowserControl to decouple navigation logic from UI access.
@@ -122,6 +122,7 @@ namespace OoiMRR.Services.Bridges
         }
     }
 }
+
 
 
 

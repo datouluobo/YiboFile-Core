@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
-using OoiMRR.Controls.Converters;
+using YiboFile.Controls.Converters;
 
-namespace OoiMRR.Services.UI
+namespace YiboFile.Services.UI
 {
     /// <summary>
     /// 简化的缩略图服务 - 负责异步加载文件缩略图到数据模型
@@ -195,3 +195,4 @@ namespace OoiMRR.Services.UI
         }
     }
 }
+

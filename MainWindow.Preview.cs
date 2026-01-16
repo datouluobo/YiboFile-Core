@@ -5,10 +5,10 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using OoiMRR.Models;
-using OoiMRR.Services;
+using YiboFile.Models;
+using YiboFile.Services;
 
-namespace OoiMRR
+namespace YiboFile
 {
     public partial class MainWindow
     {
@@ -58,3 +58,4 @@ namespace OoiMRR
         // private void RenderPredictionResults(List<TagTrain.Services.TagPredictionResult> preds) { }
     }
 }
+

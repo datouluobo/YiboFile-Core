@@ -1,6 +1,6 @@
 using System.Windows;
 
-namespace OoiMRR.Services.UI
+namespace YiboFile.Services.UI
 {
     public static class DragAttachedProperties
     {
@@ -22,3 +22,4 @@ namespace OoiMRR.Services.UI
         }
     }
 }
+

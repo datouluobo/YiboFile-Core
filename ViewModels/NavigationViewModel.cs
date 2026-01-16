@@ -4,10 +4,10 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Windows;
-using OoiMRR.Controls;
-using OoiMRR.Services;
+using YiboFile.Controls;
+using YiboFile.Services;
 
-namespace OoiMRR.ViewModels
+namespace YiboFile.ViewModels
 {
     /// <summary>
     /// 导航管理 ViewModel
@@ -230,4 +230,5 @@ namespace OoiMRR.ViewModels
         }
     }
 }
+
 

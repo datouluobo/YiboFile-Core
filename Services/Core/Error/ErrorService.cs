@@ -1,6 +1,6 @@
 using System;
 
-namespace OoiMRR.Services.Core.Error
+namespace YiboFile.Services.Core.Error
 {
     /// <summary>
     /// 错误严重程度
@@ -77,3 +77,4 @@ namespace OoiMRR.Services.Core.Error
         }
     }
 }
+

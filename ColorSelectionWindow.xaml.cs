@@ -1,8 +1,8 @@
-﻿using System;
+using System;
 using System.Windows;
 using System.Windows.Media;
 
-namespace OoiMRR
+namespace YiboFile
 {
     /// <summary>
     /// ColorSelectionWindow.xaml 的交互逻辑
@@ -54,3 +54,4 @@ namespace OoiMRR
         }
     }
 }
+

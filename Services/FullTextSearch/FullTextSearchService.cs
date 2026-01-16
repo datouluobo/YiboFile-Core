@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using OoiMRR.Services.Config;
+using YiboFile.Services.Config;
 
-namespace OoiMRR.Services.FullTextSearch
+namespace YiboFile.Services.FullTextSearch
 {
     /// <summary>
     /// 全文搜索服务 - 提供 content: 语法支持的搜索接口
@@ -135,7 +135,7 @@ namespace OoiMRR.Services.FullTextSearch
                     else
                     {
                         // 默认扫描所有库
-                        var libraries = OoiMRR.DatabaseManager.GetAllLibraries();
+                        var libraries = YiboFile.DatabaseManager.GetAllLibraries();
                         scanPaths = libraries?.SelectMany(l => l.Paths ?? Enumerable.Empty<string>()) ?? Enumerable.Empty<string>();
                     }
 
@@ -166,3 +166,4 @@ namespace OoiMRR.Services.FullTextSearch
         }
     }
 }
+

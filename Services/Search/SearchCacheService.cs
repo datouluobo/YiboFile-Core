@@ -1,8 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace OoiMRR.Services.Search
+namespace YiboFile.Services.Search
 {
     /// <summary>
     /// 搜索缓存服务
@@ -104,6 +104,7 @@ namespace OoiMRR.Services.Search
         }
     }
 }
+
 
 
 

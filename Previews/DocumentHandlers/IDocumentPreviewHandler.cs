@@ -1,6 +1,6 @@
 using System.Windows;
 
-namespace OoiMRR.Previews.DocumentHandlers
+namespace YiboFile.Previews.DocumentHandlers
 {
     /// <summary>
     /// 文档预览处理器接口
@@ -23,3 +23,4 @@ namespace OoiMRR.Previews.DocumentHandlers
         bool CanHandle(string extension);
     }
 }
+

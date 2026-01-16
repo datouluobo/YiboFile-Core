@@ -1,6 +1,6 @@
 using System;
 
-namespace OoiMRR.Services.Theming
+namespace YiboFile.Services.Theming
 {
     /// <summary>
     /// 主题元数据
@@ -79,3 +79,4 @@ namespace OoiMRR.Services.Theming
         public string TextPrimary { get; set; }
     }
 }
+

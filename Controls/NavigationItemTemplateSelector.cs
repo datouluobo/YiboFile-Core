@@ -1,8 +1,8 @@
 using System.Windows;
 using System.Windows.Controls;
-using OoiMRR.Services.Navigation;
+using YiboFile.Services.Navigation;
 
-namespace OoiMRR.Controls
+namespace YiboFile.Controls
 {
     public class NavigationItemTemplateSelector : DataTemplateSelector
     {
@@ -20,3 +20,4 @@ namespace OoiMRR.Controls
         }
     }
 }
+

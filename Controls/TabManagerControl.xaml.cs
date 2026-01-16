@@ -4,9 +4,9 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shell;
-using OoiMRR;
+using YiboFile;
 
-namespace OoiMRR.Controls
+namespace YiboFile.Controls
 {
     /// <summary>
     /// TabManagerControl.xaml 的交互逻辑
@@ -164,3 +164,4 @@ namespace OoiMRR.Controls
         public Border TabsBorderControl => TabsBorder;
     }
 }
+

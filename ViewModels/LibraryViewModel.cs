@@ -3,9 +3,9 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using OoiMRR.Controls;
+using YiboFile.Controls;
 
-namespace OoiMRR.ViewModels
+namespace YiboFile.ViewModels
 {
     /// <summary>
     /// 库管理 ViewModel
@@ -188,6 +188,7 @@ namespace OoiMRR.ViewModels
         }
     }
 }
+
 
 
 

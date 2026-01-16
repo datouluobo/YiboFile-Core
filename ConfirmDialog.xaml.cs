@@ -3,7 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 
-namespace OoiMRR
+namespace YiboFile
 {
     public partial class ConfirmDialog : Window
     {
@@ -122,4 +122,5 @@ namespace OoiMRR
         }
     }
 }
+
 

@@ -1,9 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-namespace OoiMRR.Services.Search
+namespace YiboFile.Services.Search
 {
     /// <summary>
     /// 搜索结果构建器
@@ -216,4 +216,5 @@ namespace OoiMRR.Services.Search
         }
     }
 }
+
 

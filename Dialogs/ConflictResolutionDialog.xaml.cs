@@ -1,6 +1,6 @@
 using System.Windows;
 
-namespace OoiMRR.Dialogs
+namespace YiboFile.Dialogs
 {
     /// <summary>
     /// 文件冲突解决方式
@@ -114,3 +114,4 @@ namespace OoiMRR.Dialogs
         }
     }
 }
+

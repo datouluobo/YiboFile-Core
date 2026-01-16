@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Windows;
-using OoiMRR.Services;
+using YiboFile.Services;
 
-namespace OoiMRR.Services.FileOperations
+namespace YiboFile.Services.FileOperations
 {
     /// <summary>
     /// 文件操作上下文接口
@@ -51,6 +51,7 @@ namespace OoiMRR.Services.FileOperations
         bool ShowConfirm(string message, string title);
     }
 }
+
 
 
 

@@ -1,10 +1,10 @@
 using System;
 using System.Windows;
 using System.Windows.Controls;
-using OoiMRR.Controls;
-using OoiMRR.Services.Config;
+using YiboFile.Controls;
+using YiboFile.Services.Config;
 
-namespace OoiMRR.Services.Settings
+namespace YiboFile.Services.Settings
 {
     /// <summary>
     /// Handles showing, hiding and applying settings overlay logic.
@@ -114,3 +114,4 @@ namespace OoiMRR.Services.Settings
         }
     }
 }
+

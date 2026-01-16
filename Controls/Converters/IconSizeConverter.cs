@@ -3,7 +3,7 @@ using System.Globalization;
 using System.IO;
 using System.Windows.Data;
 
-namespace OoiMRR.Controls.Converters
+namespace YiboFile.Controls.Converters
 {
     /// <summary>
     /// 图标大小转换器
@@ -85,6 +85,7 @@ namespace OoiMRR.Controls.Converters
         }
     }
 }
+
 
 
 

@@ -4,7 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 
-namespace OoiMRR.Services.Navigation
+namespace YiboFile.Services.Navigation
 {
     /// <summary>
     /// 导航 UI 辅助接口
@@ -68,6 +68,7 @@ namespace OoiMRR.Services.Navigation
         void SetLibrarySelectedItem(object library);
     }
 }
+
 
 
 

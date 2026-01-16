@@ -6,9 +6,9 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using OoiMRR.Controls;
+using YiboFile.Controls;
 
-namespace OoiMRR.Previews
+namespace YiboFile.Previews
 {
     /// <summary>
     /// 文件夹预览 - 显示与左侧一样的文件列表
@@ -263,3 +263,4 @@ namespace OoiMRR.Previews
         }
     }
 }
+

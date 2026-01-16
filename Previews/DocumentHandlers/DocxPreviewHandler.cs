@@ -12,9 +12,9 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using Microsoft.Web.WebView2.Wpf;
-using OoiMRR.Controls;
+using YiboFile.Controls;
 
-namespace OoiMRR.Previews.DocumentHandlers
+namespace YiboFile.Previews.DocumentHandlers
 {
     /// <summary>
     /// DOCX 文档预览处理器
@@ -498,3 +498,4 @@ namespace OoiMRR.Previews.DocumentHandlers
         #endregion
     }
 }
+

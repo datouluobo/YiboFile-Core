@@ -9,9 +9,9 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Input;
 using ImageMagick;
-using OoiMRR.Controls;
+using YiboFile.Controls;
 
-namespace OoiMRR.Previews
+namespace YiboFile.Previews
 {
     /// <summary>
     /// 图片文件预览 - 支持多种图像格式
@@ -346,5 +346,6 @@ namespace OoiMRR.Previews
 
     }
 }
+
 
 

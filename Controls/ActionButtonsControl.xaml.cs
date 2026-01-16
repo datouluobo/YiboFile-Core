@@ -5,7 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 
-namespace OoiMRR.Controls
+namespace YiboFile.Controls
 {
     /// <summary>
     /// 动态操作按钮控件
@@ -236,6 +236,7 @@ namespace OoiMRR.Controls
         }
     }
 }
+
 
 
 

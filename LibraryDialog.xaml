@@ -1,4 +1,4 @@
-<Window x:Class="OoiMRR.LibraryDialog"
+<Window x:Class="YiboFile.LibraryDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="添加库" Height="200" Width="400"
@@ -34,3 +34,4 @@
         </StackPanel>
     </Grid>
 </Window>
+

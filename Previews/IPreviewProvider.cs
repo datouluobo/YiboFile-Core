@@ -1,6 +1,6 @@
 using System.Windows;
 
-namespace OoiMRR.Previews
+namespace YiboFile.Previews
 {
     /// <summary>
     /// 预览提供者接口
@@ -15,4 +15,5 @@ namespace OoiMRR.Previews
         UIElement CreatePreview(string filePath);
     }
 }
+
 

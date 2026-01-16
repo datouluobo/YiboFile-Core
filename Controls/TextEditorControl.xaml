@@ -1,4 +1,4 @@
-<UserControl x:Class="OoiMRR.Controls.TextEditorControl"
+<UserControl x:Class="YiboFile.Controls.TextEditorControl"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:avalonedit="clr-namespace:ICSharpCode.AvalonEdit;assembly=ICSharpCode.AvalonEdit">
@@ -30,3 +30,4 @@
                                WordWrap="False"/>
     </Grid>
 </UserControl>
+

@@ -2,7 +2,7 @@ using System;
 using System.ComponentModel;
 using System.Windows.Media.Imaging;
 
-namespace OoiMRR
+namespace YiboFile
 {
     public class FileSystemItem : INotifyPropertyChanged
     {
@@ -77,7 +77,7 @@ namespace OoiMRR
         /// <summary>
         /// 搜索结果类型（用于搜索结果显示）
         /// </summary>
-        public OoiMRR.Services.Search.SearchResultType? SearchResultType { get; set; }
+        public YiboFile.Services.Search.SearchResultType? SearchResultType { get; set; }
 
         // 缩略图属性（用于缩略图视图）
         private BitmapSource _thumbnail;
@@ -149,3 +149,4 @@ namespace OoiMRR
         }
     }
 }
+

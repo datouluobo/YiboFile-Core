@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Windows;
 
-namespace OoiMRR.Services.FileOperations
+namespace YiboFile.Services.FileOperations
 {
     /// <summary>
     /// 统一的文件操作上下文
@@ -69,3 +69,4 @@ namespace OoiMRR.Services.FileOperations
         }
     }
 }
+

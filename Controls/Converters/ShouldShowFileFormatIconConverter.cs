@@ -3,7 +3,7 @@ using System.Globalization;
 using System.IO;
 using System.Windows.Data;
 
-namespace OoiMRR.Controls.Converters
+namespace YiboFile.Controls.Converters
 {
     /// <summary>
     /// 判断是否应该显示文件格式图标
@@ -80,5 +80,6 @@ namespace OoiMRR.Controls.Converters
         }
     }
 }
+
 
 

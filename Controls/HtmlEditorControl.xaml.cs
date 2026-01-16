@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
 using ICSharpCode.AvalonEdit.Highlighting;
 
-namespace OoiMRR.Controls
+namespace YiboFile.Controls
 {
     public partial class HtmlEditorControl : UserControl
     {
@@ -172,3 +172,4 @@ namespace OoiMRR.Controls
         public string CurrentFilePath => _currentFilePath;
     }
 }
+

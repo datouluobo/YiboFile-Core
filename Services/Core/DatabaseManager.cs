@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using Microsoft.Data.Sqlite;
 
-namespace OoiMRR
+namespace YiboFile
 {
     /// <summary>
     /// 数据库管理器
@@ -866,3 +866,4 @@ namespace OoiMRR
         public int SortOrder { get; set; }
     }
 }
+

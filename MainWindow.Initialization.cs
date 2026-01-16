@@ -7,27 +7,27 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using Microsoft.Extensions.DependencyInjection;
-using OoiMRR.Services;
-using OoiMRR.Services.FileNotes;
-using OoiMRR.Services.Search;
-using OoiMRR.Services.Navigation;
-using OoiMRR.Services.FileOperations;
-using OoiMRR.Services.Favorite;
-using OoiMRR.Services.QuickAccess;
-using OoiMRR.Services.FileList;
-using OoiMRR.Services.Tabs;
-using OoiMRR.Services.Preview;
-using OoiMRR.Services.ColumnManagement;
-using OoiMRR.Services.Config;
-using OoiMRR.Services.Archive; // Import Archive Service
+using YiboFile.Services;
+using YiboFile.Services.FileNotes;
+using YiboFile.Services.Search;
+using YiboFile.Services.Navigation;
+using YiboFile.Services.FileOperations;
+using YiboFile.Services.Favorite;
+using YiboFile.Services.QuickAccess;
+using YiboFile.Services.FileList;
+using YiboFile.Services.Tabs;
+using YiboFile.Services.Preview;
+using YiboFile.Services.ColumnManagement;
+using YiboFile.Services.Config;
+using YiboFile.Services.Archive; // Import Archive Service
 
 
-using OoiMRR.Helpers;
-using OoiMRR.Handlers;
-using OoiMRR.Models.UI;
+using YiboFile.Helpers;
+using YiboFile.Handlers;
+using YiboFile.Models.UI;
 using System.ComponentModel;
 
-namespace OoiMRR
+namespace YiboFile
 {
     public partial class MainWindow
     {
@@ -180,19 +180,19 @@ namespace OoiMRR
             // 我们只需要提供 ContextProvider
             _fileOperationService = new FileOperationService(
                 () => GetActiveFileOperationContext(),
-                App.ServiceProvider.GetRequiredService<OoiMRR.Services.Core.Error.ErrorService>(),
-                App.ServiceProvider.GetRequiredService<OoiMRR.Services.FileOperations.Undo.UndoService>(),
-                App.ServiceProvider.GetRequiredService<OoiMRR.Services.FileOperations.TaskQueue.TaskQueueService>()
+                App.ServiceProvider.GetRequiredService<YiboFile.Services.Core.Error.ErrorService>(),
+                App.ServiceProvider.GetRequiredService<YiboFile.Services.FileOperations.Undo.UndoService>(),
+                App.ServiceProvider.GetRequiredService<YiboFile.Services.FileOperations.TaskQueue.TaskQueueService>()
             );
 
             // 订阅全局错误事件
-            var errorService = App.ServiceProvider.GetRequiredService<OoiMRR.Services.Core.Error.ErrorService>();
+            var errorService = App.ServiceProvider.GetRequiredService<YiboFile.Services.Core.Error.ErrorService>();
             errorService.ErrorOccurred += (s, e) =>
             {
                 // 确保在UI线程执行
                 this.Dispatcher.Invoke(() =>
                 {
-                    if (e.Severity == OoiMRR.Services.Core.Error.ErrorSeverity.Critical)
+                    if (e.Severity == YiboFile.Services.Core.Error.ErrorSeverity.Critical)
                     {
                         MessageBox.Show(this, e.Message, "严重错误", MessageBoxButton.OK, MessageBoxImage.Error);
                     }
@@ -200,9 +200,9 @@ namespace OoiMRR
                     {
                         var notificationType = e.Severity switch
                         {
-                            OoiMRR.Services.Core.Error.ErrorSeverity.Warning => OoiMRR.Controls.NotificationType.Warning,
-                            OoiMRR.Services.Core.Error.ErrorSeverity.Error => OoiMRR.Controls.NotificationType.Error,
-                            _ => OoiMRR.Controls.NotificationType.Info
+                            YiboFile.Services.Core.Error.ErrorSeverity.Warning => YiboFile.Controls.NotificationType.Warning,
+                            YiboFile.Services.Core.Error.ErrorSeverity.Error => YiboFile.Controls.NotificationType.Error,
+                            _ => YiboFile.Controls.NotificationType.Info
                         };
 
                         Services.Core.NotificationService.Show(e.Message, notificationType);
@@ -599,3 +599,4 @@ namespace OoiMRR
         }
     }
 }
+

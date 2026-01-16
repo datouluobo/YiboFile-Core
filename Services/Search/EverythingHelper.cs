@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace OoiMRR.Services
+namespace YiboFile.Services
 {
     /// <summary>
     /// Everything 搜索服务包装类
@@ -546,3 +546,4 @@ namespace OoiMRR.Services
         }
     }
 }
+

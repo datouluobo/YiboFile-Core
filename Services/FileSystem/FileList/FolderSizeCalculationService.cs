@@ -7,7 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Threading;
 
-namespace OoiMRR.Services.FileList
+namespace YiboFile.Services.FileList
 {
     /// <summary>
     /// 文件夹大小计算服务
@@ -580,4 +580,5 @@ namespace OoiMRR.Services.FileList
         }
     }
 }
+
 

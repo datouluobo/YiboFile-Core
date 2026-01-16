@@ -6,9 +6,9 @@ using System.Windows;
 using System.Windows.Controls;
 using DocumentFormat.OpenXml.Packaging;
 using Microsoft.Web.WebView2.Wpf;
-using OoiMRR.Controls;
+using YiboFile.Controls;
 
-namespace OoiMRR.Previews.DocumentHandlers
+namespace YiboFile.Previews.DocumentHandlers
 {
     /// <summary>
     /// DOC (旧版 Word) 文档预览处理器
@@ -249,3 +249,4 @@ namespace OoiMRR.Previews.DocumentHandlers
         }
     }
 }
+

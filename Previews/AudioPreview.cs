@@ -6,9 +6,9 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Runtime.InteropServices;
-using OoiMRR.Controls;
+using YiboFile.Controls;
 
-namespace OoiMRR.Previews
+namespace YiboFile.Previews
 {
     /// <summary>
     /// 音频文件预览
@@ -595,3 +595,4 @@ namespace OoiMRR.Previews
         private static extern int MciSendString(string command, System.Text.StringBuilder buffer, int bufferSize, IntPtr hwndCallback);
     }
 }
+

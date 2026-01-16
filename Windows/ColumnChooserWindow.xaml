@@ -1,4 +1,4 @@
-<Window x:Class="OoiMRR.Windows.ColumnChooserWindow"
+<Window x:Class="YiboFile.Windows.ColumnChooserWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="列显示设置"
@@ -26,5 +26,6 @@
         </UniformGrid>
     </Grid>
 </Window>
+
 
 

@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 
-namespace OoiMRR.Services.Core
+namespace YiboFile.Services.Core
 {
     public enum ProtocolType
     {
@@ -162,3 +162,4 @@ namespace OoiMRR.Services.Core
         }
     }
 }
+

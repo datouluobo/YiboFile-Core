@@ -2,7 +2,7 @@ using System;
 using System.Windows;
 using System.Windows.Threading;
 
-namespace OoiMRR.Services.Config
+namespace YiboFile.Services.Config
 {
     /// <summary>
     /// 配置管理服务
@@ -14,7 +14,7 @@ namespace OoiMRR.Services.Config
 
         private AppConfig _config;
         private IConfigUIHelper _uiHelper;
-        private readonly OoiMRR.Services.Core.Error.ErrorService _errorService;
+        private readonly YiboFile.Services.Core.Error.ErrorService _errorService;
         private bool _isApplyingConfig = false;
         private DispatcherTimer _saveTimer;
         private DispatcherTimer _columnWidthSaveTimer;
@@ -75,7 +75,7 @@ namespace OoiMRR.Services.Config
         /// <summary>
         /// 初始化配置服务
         /// </summary>
-        public ConfigService(AppConfig config, OoiMRR.Services.Core.Error.ErrorService errorService)
+        public ConfigService(AppConfig config, YiboFile.Services.Core.Error.ErrorService errorService)
         {
             _config = config ?? throw new ArgumentNullException(nameof(config));
             _errorService = errorService ?? throw new ArgumentNullException(nameof(errorService));
@@ -95,7 +95,7 @@ namespace OoiMRR.Services.Config
             try
             {
                 // #region agent log
-                var logPath = @"f:\Download\GitHub\OoiMRR\.cursor\debug.log";
+                var logPath = @"f:\Download\GitHub\YiboFile\.cursor\debug.log";
                 try { System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(logPath)); System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "E", location = "ConfigService.cs:87", message = "ApplyConfig开始", data = new { cfgWindowWidth = cfg.WindowWidth, cfgWindowHeight = cfg.WindowHeight, cfgWindowTop = cfg.WindowTop, cfgWindowLeft = cfg.WindowLeft, cfgIsMaximized = cfg.IsMaximized, cfgLeftPanelWidth = cfg.LeftPanelWidth, cfgMiddlePanelWidth = cfg.MiddlePanelWidth, cfgColLeftWidth = cfg.ColLeftWidth, cfgColCenterWidth = cfg.ColCenterWidth }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
                 // #endregion
 
@@ -133,7 +133,7 @@ namespace OoiMRR.Services.Config
             }
             catch (Exception ex)
             {
-                _errorService.ReportError("应用配置失败", OoiMRR.Services.Core.Error.ErrorSeverity.Error, ex);
+                _errorService.ReportError("应用配置失败", YiboFile.Services.Core.Error.ErrorSeverity.Error, ex);
             }
             finally
             {
@@ -202,7 +202,7 @@ namespace OoiMRR.Services.Config
             }
             catch (Exception ex)
             {
-                _errorService.ReportError("保存配置失败", OoiMRR.Services.Core.Error.ErrorSeverity.Warning, ex);
+                _errorService.ReportError("保存配置失败", YiboFile.Services.Core.Error.ErrorSeverity.Warning, ex);
             }
         }
 
@@ -326,7 +326,7 @@ namespace OoiMRR.Services.Config
             window.ResizeMode = ResizeMode.CanResize;
 
             // #region agent log
-            var logPath = @"f:\Download\GitHub\OoiMRR\.cursor\debug.log";
+            var logPath = @"f:\Download\GitHub\YiboFile\.cursor\debug.log";
             try { System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "E", location = "ConfigService.cs:ApplyNonMaximizedWindowState", message = "应用非最大化窗口状态", data = new { appliedWidth = window.Width, appliedHeight = window.Height, appliedTop = window.Top, appliedLeft = window.Left }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
             // #endregion
         }
@@ -366,7 +366,7 @@ namespace OoiMRR.Services.Config
             _uiHelper.RootGrid.ColumnDefinitions[4].Width = new GridLength(rightWidth);
 
             // #region agent log
-            var logPath = @"f:\Download\GitHub\OoiMRR\.cursor\debug.log";
+            var logPath = @"f:\Download\GitHub\YiboFile\.cursor\debug.log";
             try { System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "E", location = "ConfigService.cs:ApplySplitterPositions", message = "应用分割线位置", data = new { appliedLeftWidth = leftWidth, appliedCenterWidth = centerWidth, cfgColLeftWidth = cfg.ColLeftWidth, cfgColCenterWidth = cfg.ColCenterWidth, cfgLeftPanelWidth = cfg.LeftPanelWidth, cfgMiddlePanelWidth = cfg.MiddlePanelWidth }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
             // #endregion
 
@@ -451,4 +451,5 @@ namespace OoiMRR.Services.Config
         #endregion
     }
 }
+
 

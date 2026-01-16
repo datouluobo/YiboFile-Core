@@ -1,10 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Microsoft.Data.Sqlite;
 
-namespace OoiMRR.Services.FileNotes
+namespace YiboFile.Services.FileNotes
 {
     /// <summary>
     /// 文件备注服务
@@ -274,6 +274,7 @@ namespace OoiMRR.Services.FileNotes
         }
     }
 }
+
 
 
 

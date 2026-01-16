@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
-namespace OoiMRR.ViewModels
+namespace YiboFile.ViewModels
 {
     /// <summary>
     /// ViewModel 基类，实现 INotifyPropertyChanged
@@ -26,6 +26,7 @@ namespace OoiMRR.ViewModels
         }
     }
 }
+
 
 
 

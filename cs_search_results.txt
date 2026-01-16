@@ -1,6 +1,0 @@
-f:\Download\GitHub\OoiMRR\Controls\DragDropFeedbackAdorner.cs:21:            IsHitTestVisible = false;
-f:\Download\GitHub\OoiMRR\Controls\TabManagerControl.xaml.cs:68:            _newTabButton.SetValue(WindowChrome.IsHitTestVisibleInChromeProperty, true);
-f:\Download\GitHub\OoiMRR\Previews\VideoPreview.cs:86:                IsHitTestVisible = true
-f:\Download\GitHub\OoiMRR\Previews\VideoPreview.cs:580:                                        <Border Height='2' Background='#FFFFFF' CornerRadius='1' VerticalAlignment='Center' HitTestVisible='False'/>
-f:\Download\GitHub\OoiMRR\Previews\VideoPreview.cs:589:                                        <Border Height='2' Background='#66888888' CornerRadius='1' VerticalAlignment='Center' HitTestVisible='False'/>
-f:\Download\GitHub\OoiMRR\Services\UI\Tabs\TabService.cs:1358:            System.Windows.Shell.WindowChrome.SetIsHitTestVisibleInChrome(button, true);

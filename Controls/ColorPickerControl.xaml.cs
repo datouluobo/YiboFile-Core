@@ -3,7 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 
-namespace OoiMRR.Controls
+namespace YiboFile.Controls
 {
     /// <summary>
     /// 颜色选择器控件
@@ -276,3 +276,4 @@ namespace OoiMRR.Controls
         #endregion
     }
 }
+

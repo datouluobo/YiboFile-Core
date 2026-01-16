@@ -3,7 +3,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Forms;
 
-namespace OoiMRR
+namespace YiboFile
 {
     /// <summary>
     /// LibraryDialog.xaml 的交互逻辑
@@ -97,3 +97,4 @@ namespace OoiMRR
         }
     }
 }
+

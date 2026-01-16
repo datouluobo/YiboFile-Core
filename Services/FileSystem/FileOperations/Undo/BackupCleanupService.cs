@@ -1,9 +1,9 @@
 using System;
 using System.IO;
 using System.Linq;
-using OoiMRR.Services.Core;
+using YiboFile.Services.Core;
 
-namespace OoiMRR.Services.FileOperations.Undo
+namespace YiboFile.Services.FileOperations.Undo
 {
     /// <summary>
     /// 备份清理服务 - 防止备份目录无限增长
@@ -123,3 +123,4 @@ namespace OoiMRR.Services.FileOperations.Undo
         }
     }
 }
+

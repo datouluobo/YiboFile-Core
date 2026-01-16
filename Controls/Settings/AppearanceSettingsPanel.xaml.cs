@@ -6,14 +6,14 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using Microsoft.Win32;
-using OoiMRR.Controls;
-using OoiMRR.Models;
-using OoiMRR.Services.Config;
-using OoiMRR.Services.Theming;
-using OoiMRR.Windows;
+using YiboFile.Controls;
+using YiboFile.Models;
+using YiboFile.Services.Config;
+using YiboFile.Services.Theming;
+using YiboFile.Windows;
 using System.Windows.Controls.Primitives;
 
-namespace OoiMRR.Controls.Settings
+namespace YiboFile.Controls.Settings
 {
     public partial class AppearanceSettingsPanel : UserControl, ISettingsPanel
     {
@@ -1224,3 +1224,4 @@ namespace OoiMRR.Controls.Settings
         }
     }
 }
+

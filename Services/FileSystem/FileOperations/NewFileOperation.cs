@@ -7,9 +7,9 @@ using System.Windows.Controls.Primitives;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
-using OoiMRR;
+using YiboFile;
 
-namespace OoiMRR.Services.FileOperations
+namespace YiboFile.Services.FileOperations
 {
     /// <summary>
     /// 新建文件操作
@@ -438,6 +438,7 @@ pause");
         }
     }
 }
+
 
 
 

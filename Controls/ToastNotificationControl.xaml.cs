@@ -5,7 +5,7 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
 
-namespace OoiMRR.Controls
+namespace YiboFile.Controls
 {
     /// <summary>
     /// Notification Type Enum
@@ -100,3 +100,4 @@ namespace OoiMRR.Controls
         }
     }
 }
+

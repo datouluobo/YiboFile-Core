@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-using OoiMRR.Services.Core;
+using YiboFile.Services.Core;
 
-namespace OoiMRR.Services.Navigation
+namespace YiboFile.Services.Navigation
 {
     /// <summary>
     /// 导航服务
@@ -401,3 +401,4 @@ namespace OoiMRR.Services.Navigation
         #endregion
     }
 }
+

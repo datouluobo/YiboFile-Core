@@ -5,10 +5,10 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Threading.Tasks;
-using OoiMRR.Services.Config;
-using OoiMRR.Services.FullTextSearch;
+using YiboFile.Services.Config;
+using YiboFile.Services.FullTextSearch;
 
-namespace OoiMRR.Controls.Settings
+namespace YiboFile.Controls.Settings
 {
     public partial class SearchSettingsPanel : UserControl, ISettingsPanel
     {
@@ -117,7 +117,7 @@ namespace OoiMRR.Controls.Settings
 
             // 版本信息
             everythingStack.Children.Add(CreateInfoRow("当前版本:", out var everythingVersionText));
-            everythingVersionText.Text = OoiMRR.Services.EverythingHelper.GetVersion();
+            everythingVersionText.Text = YiboFile.Services.EverythingHelper.GetVersion();
 
             // 重建按钮
             var rebuildEverythingButton = new Button
@@ -136,7 +136,7 @@ namespace OoiMRR.Controls.Settings
                 {
                     if (MessageBox.Show("确定要强制重建 Everything 索引吗？这可能会触发 UAC 提示。", "重建索引", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
                     {
-                        OoiMRR.Services.EverythingHelper.ForceRebuildIndex();
+                        YiboFile.Services.EverythingHelper.ForceRebuildIndex();
                     }
                 }
                 catch (Exception ex)
@@ -295,7 +295,7 @@ namespace OoiMRR.Controls.Settings
             {
                 if (MessageBox.Show("确定要删除所有本地搜索和路径历史记录吗？", "清除历史", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
                 {
-                    OoiMRR.Services.Search.SearchHistoryService.Instance.Clear();
+                    YiboFile.Services.Search.SearchHistoryService.Instance.Clear();
                     MessageBox.Show("历史记录已清除。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             };
@@ -400,7 +400,7 @@ namespace OoiMRR.Controls.Settings
                 });
                 LoadScopeList();
                 // 触发后台索引
-                OoiMRR.Services.FullTextSearch.FullTextSearchService.Instance.StartBackgroundIndexing();
+                YiboFile.Services.FullTextSearch.FullTextSearchService.Instance.StartBackgroundIndexing();
             }
         }
 
@@ -605,7 +605,7 @@ namespace OoiMRR.Controls.Settings
             // 如果刚刚启用了 FTS，尝试启动索引
             if (_enableFtsCheckBox.IsChecked == true)
             {
-                OoiMRR.Services.FullTextSearch.FullTextSearchService.Instance.StartBackgroundIndexing();
+                YiboFile.Services.FullTextSearch.FullTextSearchService.Instance.StartBackgroundIndexing();
             }
         }
 
@@ -636,7 +636,7 @@ namespace OoiMRR.Controls.Settings
                     else
                     {
                         // 默认扫描所有库
-                        var libraries = OoiMRR.DatabaseManager.GetAllLibraries();
+                        var libraries = YiboFile.DatabaseManager.GetAllLibraries();
                         scanPaths = libraries?.SelectMany(l => l.Paths ?? Enumerable.Empty<string>()) ?? Enumerable.Empty<string>();
                     }
 
@@ -664,3 +664,4 @@ namespace OoiMRR.Controls.Settings
         }
     }
 }
+

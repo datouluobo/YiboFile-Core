@@ -9,7 +9,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Drawing;
 
-namespace OoiMRR.Controls.Converters
+namespace YiboFile.Controls.Converters
 {
     /// <summary>
     /// 文件扩展名图标转换器
@@ -490,4 +490,5 @@ namespace OoiMRR.Controls.Converters
         }
     }
 }
+
 

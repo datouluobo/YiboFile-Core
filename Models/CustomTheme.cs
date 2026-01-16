@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace OoiMRR.Models
+namespace YiboFile.Models
 {
     /// <summary>
     /// 自定义主题数据模型
@@ -94,3 +94,4 @@ namespace OoiMRR.Models
         }
     }
 }
+

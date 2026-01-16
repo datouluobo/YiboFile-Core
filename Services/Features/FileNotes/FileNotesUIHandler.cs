@@ -1,10 +1,10 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using OoiMRR.Controls;
+using YiboFile.Controls;
 
-namespace OoiMRR.Services.FileNotes
+namespace YiboFile.Services.FileNotes
 {
     /// <summary>
     /// 文件备注 UI 处理
@@ -141,6 +141,7 @@ namespace OoiMRR.Services.FileNotes
         }
     }
 }
+
 
 
 

@@ -1,6 +1,6 @@
 using System.Windows;
 
-namespace OoiMRR.Services.UI.ColumnManagement
+namespace YiboFile.Services.UI.ColumnManagement
 {
     /// <summary>
     /// 列头排序相关的附加属性
@@ -28,3 +28,4 @@ namespace OoiMRR.Services.UI.ColumnManagement
         }
     }
 }
+

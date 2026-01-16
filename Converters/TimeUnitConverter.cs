@@ -1,7 +1,7 @@
 using System;
 using System.Windows.Data;
 
-namespace OoiMRR
+namespace YiboFile
 {
     /// <summary>
     /// 时间单位转换器 - 提取时间字符串中的单位
@@ -38,3 +38,4 @@ namespace OoiMRR
         }
     }
 }
+

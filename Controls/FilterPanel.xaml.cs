@@ -2,9 +2,9 @@ using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
-using OoiMRR.Services.Search;
+using YiboFile.Services.Search;
 
-namespace OoiMRR.Controls
+namespace YiboFile.Controls
 {
     public partial class FilterPanel : UserControl
     {
@@ -245,3 +245,4 @@ namespace OoiMRR.Controls
         }
     }
 }
+

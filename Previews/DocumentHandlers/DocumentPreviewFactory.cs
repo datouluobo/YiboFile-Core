@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace OoiMRR.Previews.DocumentHandlers
+namespace YiboFile.Previews.DocumentHandlers
 {
     /// <summary>
     /// 文档预览处理器工厂
@@ -56,3 +56,4 @@ namespace OoiMRR.Previews.DocumentHandlers
         }
     }
 }
+

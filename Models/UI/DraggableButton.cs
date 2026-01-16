@@ -1,7 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 
-namespace OoiMRR.Models.UI
+namespace YiboFile.Models.UI
 {
     internal class DraggableButton
     {
@@ -10,3 +10,4 @@ namespace OoiMRR.Models.UI
         public RoutedEventHandler ClickHandler { get; set; }
     }
 }
+

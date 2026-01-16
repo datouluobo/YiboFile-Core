@@ -1,9 +1,9 @@
-<UserControl x:Class="OoiMRR.Controls.NavigationPanelControl"
+<UserControl x:Class="YiboFile.Controls.NavigationPanelControl"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:helpers="clr-namespace:OoiMRR.Helpers"
-             xmlns:local="clr-namespace:OoiMRR.Controls"
-             xmlns:converters="clr-namespace:OoiMRR.Controls.Converters"
+             xmlns:helpers="clr-namespace:YiboFile.Helpers"
+             xmlns:local="clr-namespace:YiboFile.Controls"
+             xmlns:converters="clr-namespace:YiboFile.Controls.Converters"
              Background="{DynamicResource PanelBackgroundBrush}">
     <UserControl.Resources>
         <helpers:ResourceKeyConverter x:Key="ResourceKeyConverter"/>
@@ -451,6 +451,7 @@
         </Border>
     </Grid>
 </UserControl>
+
 
 
 

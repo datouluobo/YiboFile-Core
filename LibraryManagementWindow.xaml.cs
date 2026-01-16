@@ -4,10 +4,10 @@ using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Forms;
-using OoiMRR.Controls;
-using OoiMRR.Services.Core;
+using YiboFile.Controls;
+using YiboFile.Services.Core;
 
-namespace OoiMRR
+namespace YiboFile
 {
     public partial class LibraryManagementWindow : Window
     {
@@ -376,3 +376,4 @@ namespace OoiMRR
         }
     }
 }
+

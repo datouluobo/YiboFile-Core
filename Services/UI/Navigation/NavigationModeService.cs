@@ -3,12 +3,12 @@ using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using OoiMRR.Services.Tabs;
-using OoiMRR.Services.Config;
-using OoiMRR.Services.Navigation;
+using YiboFile.Services.Tabs;
+using YiboFile.Services.Config;
+using YiboFile.Services.Navigation;
 
 
-namespace OoiMRR.Services.Navigation
+namespace YiboFile.Services.Navigation
 {
     /// <summary>
     /// 导航模式管理服务
@@ -287,4 +287,5 @@ namespace OoiMRR.Services.Navigation
         #endregion
     }
 }
+
 

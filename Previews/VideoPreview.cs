@@ -12,13 +12,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices;
 using LibVLCSharp.Shared;
-using OoiMRR.Controls;
+using YiboFile.Controls;
 using MediaPlayer = LibVLCSharp.Shared.MediaPlayer;
 using System.Windows.Markup;
 using System.Collections.Generic;
 using System.Windows.Data;
 
-namespace OoiMRR.Previews
+namespace YiboFile.Previews
 {
     /// <summary>
     /// 视频文件预览 (LibVLCSharp) - 增强版 (Loading + Floating UI)
@@ -952,3 +952,4 @@ namespace OoiMRR.Previews
         }
     }
 }
+

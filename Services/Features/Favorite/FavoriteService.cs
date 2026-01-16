@@ -7,10 +7,10 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
-using OoiMRR.Services.Core;
-using OoiMRR.Controls;
+using YiboFile.Services.Core;
+using YiboFile.Controls;
 
-namespace OoiMRR.Services.Favorite
+namespace YiboFile.Services.Favorite
 {
     /// <summary>
     /// 收藏管理服务
@@ -45,7 +45,7 @@ namespace OoiMRR.Services.Favorite
         #region 私有字段
 
         private readonly System.Windows.Threading.Dispatcher _dispatcher;
-        private OoiMRR.Favorite _draggedFavorite = null;
+        private YiboFile.Favorite _draggedFavorite = null;
         private System.Windows.Point _dragStartPoint;
         private bool _isDraggingFavorite = false;
         private bool _suppressFavoriteSelectionNavigation = false;
@@ -68,7 +68,7 @@ namespace OoiMRR.Services.Favorite
         /// </summary>
         public class FavoriteItem
         {
-            public OoiMRR.Favorite Favorite { get; set; }
+            public YiboFile.Favorite Favorite { get; set; }
             public string IconKey { get; set; }
             public string DisplayName { get; set; }
             public string Path { get; set; }
@@ -232,7 +232,7 @@ namespace OoiMRR.Services.Favorite
             var favoriteProperty = selectedItem.GetType().GetProperty("Favorite");
             if (favoriteProperty == null) return;
 
-            var favorite = favoriteProperty.GetValue(selectedItem) as OoiMRR.Favorite;
+            var favorite = favoriteProperty.GetValue(selectedItem) as YiboFile.Favorite;
             if (favorite == null) return;
 
             if (favorite.IsDirectory && Directory.Exists(favorite.Path))
@@ -288,7 +288,7 @@ namespace OoiMRR.Services.Favorite
                         var favoriteProperty = item.DataContext.GetType().GetProperty("Favorite");
                         if (favoriteProperty != null)
                         {
-                            var favorite = favoriteProperty.GetValue(item.DataContext) as OoiMRR.Favorite;
+                            var favorite = favoriteProperty.GetValue(item.DataContext) as YiboFile.Favorite;
                             if (favorite != null && favorite.IsDirectory)
                             {
                                 try
@@ -346,7 +346,7 @@ namespace OoiMRR.Services.Favorite
                     var favoriteProperty = selectedItem.GetType().GetProperty("Favorite");
                     if (favoriteProperty != null)
                     {
-                        var favorite = favoriteProperty.GetValue(selectedItem) as OoiMRR.Favorite;
+                        var favorite = favoriteProperty.GetValue(selectedItem) as YiboFile.Favorite;
                         if (favorite != null)
                         {
                             FavoriteService obj = this; // Capture 'this' explicitly if needed, assuming we are inside instance method of FavoriteService
@@ -415,7 +415,7 @@ namespace OoiMRR.Services.Favorite
                                 var favoriteProperty = item.GetType().GetProperty("Favorite");
                                 if (favoriteProperty != null)
                                 {
-                                    _draggedFavorite = favoriteProperty.GetValue(item) as OoiMRR.Favorite;
+                                    _draggedFavorite = favoriteProperty.GetValue(item) as YiboFile.Favorite;
                                 }
                             }
                         }
@@ -446,7 +446,7 @@ namespace OoiMRR.Services.Favorite
                 return;
             }
 
-            var draggedItem = e.Data.GetData("Favorite") as OoiMRR.Favorite;
+            var draggedItem = e.Data.GetData("Favorite") as YiboFile.Favorite;
             if (draggedItem == null)
             {
                 e.Effects = DragDropEffects.None;
@@ -501,7 +501,7 @@ namespace OoiMRR.Services.Favorite
                 return;
             }
 
-            var draggedFavorite = e.Data.GetData("Favorite") as OoiMRR.Favorite;
+            var draggedFavorite = e.Data.GetData("Favorite") as YiboFile.Favorite;
             if (draggedFavorite == null) return;
 
             var listBox = sender as ListBox;
@@ -529,7 +529,7 @@ namespace OoiMRR.Services.Favorite
                 return;
             }
 
-            var targetFavorite = favoriteProperty.GetValue(targetData) as OoiMRR.Favorite;
+            var targetFavorite = favoriteProperty.GetValue(targetData) as YiboFile.Favorite;
             if (targetFavorite == null || targetFavorite.Id == draggedFavorite.Id)
             {
                 return;
@@ -543,7 +543,7 @@ namespace OoiMRR.Services.Favorite
             if (draggedIndex >= 0 && targetIndex >= 0 && draggedIndex != targetIndex)
             {
                 // 重新排序：移除拖拽项，插入到目标位置
-                var newOrder = new List<OoiMRR.Favorite>();
+                var newOrder = new List<YiboFile.Favorite>();
                 for (int i = 0; i < favorites.Count; i++)
                 {
                     if (i == draggedIndex) continue; // 跳过被拖拽的项
@@ -631,4 +631,5 @@ namespace OoiMRR.Services.Favorite
         #endregion
     }
 }
+
 

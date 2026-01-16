@@ -4,9 +4,9 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using OoiMRR.Services;
+using YiboFile.Services;
 
-namespace OoiMRR.Services.Search
+namespace YiboFile.Services.Search
 {
     /// <summary>
     /// Everything 搜索执行器
@@ -180,6 +180,7 @@ namespace OoiMRR.Services.Search
         public bool HasMore { get; set; }
     }
 }
+
 
 
 

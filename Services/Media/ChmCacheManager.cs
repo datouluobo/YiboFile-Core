@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 
-namespace OoiMRR.Services
+namespace YiboFile.Services
 {
     /// <summary>
     /// CHM 缓存管理器
@@ -145,3 +145,4 @@ namespace OoiMRR.Services
         }
     }
 }
+

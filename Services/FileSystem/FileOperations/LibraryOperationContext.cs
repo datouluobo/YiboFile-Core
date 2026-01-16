@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Windows;
-using OoiMRR.Controls;
-using OoiMRR.Services;
+using YiboFile.Controls;
+using YiboFile.Services;
 
-namespace OoiMRR.Services.FileOperations
+namespace YiboFile.Services.FileOperations
 {
     /// <summary>
     /// 库模式操作上下文
@@ -106,6 +106,7 @@ namespace OoiMRR.Services.FileOperations
         }
     }
 }
+
 
 
 

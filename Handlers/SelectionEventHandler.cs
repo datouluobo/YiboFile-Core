@@ -4,13 +4,13 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using OoiMRR.Models.UI;
-using OoiMRR.Services;
-using OoiMRR.Services.FileNotes; // Corrected namespace
-using OoiMRR.Services.FileOperations;
+using YiboFile.Models.UI;
+using YiboFile.Services;
+using YiboFile.Services.FileNotes; // Corrected namespace
+using YiboFile.Services.FileOperations;
 
 
-namespace OoiMRR.Handlers
+namespace YiboFile.Handlers
 {
     /// <summary>
     /// 处理文件列表的选择事件
@@ -18,26 +18,26 @@ namespace OoiMRR.Handlers
     public class SelectionEventHandler
     {
         private readonly MainWindow _mainWindow;
-        private readonly OoiMRR.Services.Preview.PreviewService _filePreviewService;
+        private readonly YiboFile.Services.Preview.PreviewService _filePreviewService;
         private readonly FileNotesUIHandler _fileNotesUIHandler;
 
         private readonly Action<FileSystemItem> _updateFileInfoPanel;
         private readonly Action _clearPreviewAndInfo;
 
-        private readonly OoiMRR.Services.FileList.FileListService _fileListService;
+        private readonly YiboFile.Services.FileList.FileListService _fileListService;
         private readonly Func<List<FileSystemItem>> _getCurrentFiles;
         private readonly Func<string> _getCurrentPath;
         private System.Threading.CancellationTokenSource _folderSizeCts;
 
         public SelectionEventHandler(
             MainWindow mainWindow,
-            OoiMRR.Services.Preview.PreviewService filePreviewService,
+            YiboFile.Services.Preview.PreviewService filePreviewService,
             FileNotesUIHandler fileNotesUIHandler,
 
             Action<FileSystemItem> updateFileInfoPanel,
             Action clearPreviewAndInfo,
 
-            OoiMRR.Services.FileList.FileListService fileListService,
+            YiboFile.Services.FileList.FileListService fileListService,
             Func<List<FileSystemItem>> getCurrentFiles,
             Func<string> getCurrentPath)
         {
@@ -74,7 +74,7 @@ namespace OoiMRR.Handlers
                     // 5. 检查剪贴板状态（如果是剪切，调整透明度）
                     try
                     {
-                        var clipboardService = OoiMRR.Services.FileOperations.ClipboardService.Instance;
+                        var clipboardService = YiboFile.Services.FileOperations.ClipboardService.Instance;
                         bool isCut = clipboardService.IsCutOperation && clipboardService.CutPaths.Contains(selectedItem.Path);
                         if (_mainWindow.FileBrowser?.FilesList != null)
                         {
@@ -181,3 +181,4 @@ namespace OoiMRR.Handlers
         }
     }
 }
+

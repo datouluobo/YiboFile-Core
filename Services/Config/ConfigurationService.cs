@@ -3,9 +3,9 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading;
 using System.Windows.Threading;
-using OoiMRR.Services.Core;
+using YiboFile.Services.Core;
 
-namespace OoiMRR.Services.Config
+namespace YiboFile.Services.Config
 {
     /// <summary>
     /// 统一配置管理服务 - 单例模式
@@ -33,7 +33,7 @@ namespace OoiMRR.Services.Config
         private static int _totalSaveCount = 0;
         private static int _debouncedSaveCount = 0;
         private static DateTime _lastSaveTime = DateTime.MinValue;
-        private static readonly string _perfLogPath = @"f:\Download\GitHub\OoiMRR\.cursor\config_perf.log";
+        private static readonly string _perfLogPath = @"f:\Download\GitHub\YiboFile\.cursor\config_perf.log";
 
         /// <summary>
         /// 单例实例
@@ -281,3 +281,4 @@ namespace OoiMRR.Services.Config
         public double DebounceHitRate { get; set; }
     }
 }
+

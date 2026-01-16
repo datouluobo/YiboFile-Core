@@ -4,7 +4,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace OoiMRR.Services.FileOperations
+namespace YiboFile.Services.FileOperations
 {
     /// <summary>
     /// 文件操作基类 - 提供通用功能
@@ -135,3 +135,4 @@ namespace OoiMRR.Services.FileOperations
         }
     }
 }
+

@@ -1,7 +1,7 @@
 using System.Threading.Tasks;
-using Library = OoiMRR.Library;
+using Library = YiboFile.Library;
 
-namespace OoiMRR.Services.Abstractions
+namespace YiboFile.Services.Abstractions
 {
     /// <summary>
     /// Library related operations consumed by tab navigation.
@@ -51,4 +51,5 @@ namespace OoiMRR.Services.Abstractions
         Task PerformSearchAsync(string keyword);
     }
 }
+
 

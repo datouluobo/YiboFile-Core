@@ -1,4 +1,4 @@
-<UserControl x:Class="OoiMRR.Controls.AboutPanelControl"
+<UserControl x:Class="YiboFile.Controls.AboutPanelControl"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
@@ -51,7 +51,7 @@
                         <Image Source="/Resources/logo.png" Width="80" Height="80" HorizontalAlignment="Center" Margin="0,0,0,20"/>
                         
                         <!-- 标题 -->
-                        <TextBlock Text="OoiMRR" FontSize="32" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,10" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        <TextBlock Text="YiboFile" FontSize="32" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,10" Foreground="{DynamicResource TextPrimaryBrush}"/>
                         <TextBlock Text="现代文件资源管理器" FontSize="16" HorizontalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,30"/>
 
                         <!-- 版本 -->
@@ -239,3 +239,4 @@
         </Style>
     </UserControl.Resources>
 </UserControl>
+

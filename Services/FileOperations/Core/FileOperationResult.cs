@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace OoiMRR.Services.FileOperations
+namespace YiboFile.Services.FileOperations
 {
     /// <summary>
     /// 文件操作结果封装
@@ -35,3 +35,4 @@ namespace OoiMRR.Services.FileOperations
         };
     }
 }
+

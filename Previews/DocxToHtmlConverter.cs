@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Xml.Linq;
 
-namespace OoiMRR.Previews
+namespace YiboFile.Previews
 {
     /// <summary>
     /// DOCX 到 HTML 转换器
@@ -235,4 +235,5 @@ namespace OoiMRR.Previews
         }
     }
 }
+
 

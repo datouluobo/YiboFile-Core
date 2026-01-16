@@ -4,10 +4,10 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Threading.Tasks;
-using OoiMRR.Controls;
-using OoiMRR.Services.FileList;
+using YiboFile.Controls;
+using YiboFile.Services.FileList;
 
-namespace OoiMRR.Services.FileInfo
+namespace YiboFile.Services.FileInfo
 {
     /// <summary>
     /// 文件信息显示服务
@@ -234,8 +234,8 @@ namespace OoiMRR.Services.FileInfo
 
             // 如果是视频或音频文件，添加时长信息
             if (!string.IsNullOrEmpty(fileExtension) &&
-                (OoiMRR.Services.Search.SearchFilterService.VideoExtensions.Contains(fileExtension) ||
-                 OoiMRR.Services.Search.SearchFilterService.AudioExtensions.Contains(fileExtension)))
+                (YiboFile.Services.Search.SearchFilterService.VideoExtensions.Contains(fileExtension) ||
+                 YiboFile.Services.Search.SearchFilterService.AudioExtensions.Contains(fileExtension)))
             {
                 if (item.DurationMs > 0)
                 {
@@ -325,4 +325,5 @@ namespace OoiMRR.Services.FileInfo
         #endregion
     }
 }
+
 

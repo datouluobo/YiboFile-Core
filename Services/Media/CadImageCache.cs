@@ -4,7 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Windows.Media.Imaging;
 
-namespace OoiMRR.Services
+namespace YiboFile.Services
 {
     public static class CadImageCache
     {
@@ -12,7 +12,7 @@ namespace OoiMRR.Services
         {
             get
             {
-                var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "OoiMRR", "Cache", "CAD");
+                var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "YiboFile", "Cache", "CAD");
                 Directory.CreateDirectory(path);
                 return path;
             }
@@ -60,4 +60,5 @@ namespace OoiMRR.Services
         }
     }
 }
+
 

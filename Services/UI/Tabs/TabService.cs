@@ -11,13 +11,13 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
-using OoiMRR.Controls;
-using OoiMRR.Services.Search;
-using OoiMRR.Services.Config;
-using OoiMRR;
+using YiboFile.Controls;
+using YiboFile.Services.Search;
+using YiboFile.Services.Config;
+using YiboFile;
 using System.Text.Json;
 
-namespace OoiMRR.Services.Tabs
+namespace YiboFile.Services.Tabs
 {
     /// <summary>
     /// 标签页服务的 UI 上下文，用于解耦 MainWindow 状态与 TabService 逻辑
@@ -860,7 +860,7 @@ namespace OoiMRR.Services.Tabs
         }
 
         // OpenTagTab removed - Phase 2
-        // public void OpenTagTab(OoiMRR.Tag tag, bool forceNewTab = false, bool activate = true) { ... }
+        // public void OpenTagTab(YiboFile.Tag tag, bool forceNewTab = false, bool activate = true) { ... }
 
         public void SwitchToTab(PathTab tab)
         {
@@ -1387,8 +1387,8 @@ namespace OoiMRR.Services.Tabs
                         // 确定要拖拽时才捕获鼠标和处理事件
                         button.CaptureMouse();
                         var data = new DataObject();
-                        data.SetData("OoiMRR_TabKey", GetTabKey(tab));
-                        data.SetData("OoiMRR_TabPinned", tab.IsPinned);
+                        data.SetData("YiboFile_TabKey", GetTabKey(tab));
+                        data.SetData("YiboFile_TabPinned", tab.IsPinned);
                         DragDrop.DoDragDrop(button, data, DragDropEffects.Move);
                         if (button.IsMouseCaptured)
                         {
@@ -1591,7 +1591,7 @@ namespace OoiMRR.Services.Tabs
 
         private void TabsPanel_DragOver(object sender, DragEventArgs e)
         {
-            if (!e.Data.GetDataPresent("OoiMRR_TabKey"))
+            if (!e.Data.GetDataPresent("YiboFile_TabKey"))
             {
                 e.Effects = DragDropEffects.None;
                 return;
@@ -1614,8 +1614,8 @@ namespace OoiMRR.Services.Tabs
         {
             try
             {
-                if (!e.Data.GetDataPresent("OoiMRR_TabKey")) return;
-                var key = e.Data.GetData("OoiMRR_TabKey") as string;
+                if (!e.Data.GetDataPresent("YiboFile_TabKey")) return;
+                var key = e.Data.GetData("YiboFile_TabKey") as string;
                 if (string.IsNullOrEmpty(key) || _ui.TabManager?.TabsPanelControl == null) return;
 
                 var panel = _ui.TabManager.TabsPanelControl;
@@ -1676,9 +1676,9 @@ namespace OoiMRR.Services.Tabs
 
                                 // 3. 恢复固定状态
                                 bool isPinned = false;
-                                if (e.Data.GetDataPresent("OoiMRR_TabPinned"))
+                                if (e.Data.GetDataPresent("YiboFile_TabPinned"))
                                 {
-                                    isPinned = (bool)e.Data.GetData("OoiMRR_TabPinned");
+                                    isPinned = (bool)e.Data.GetData("YiboFile_TabPinned");
                                 }
                                 if (isPinned && !newTab.IsPinned)
                                 {
@@ -1851,6 +1851,7 @@ namespace OoiMRR.Services.Tabs
         #endregion
     }
 }
+
 
 
 

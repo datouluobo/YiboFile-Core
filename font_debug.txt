@@ -1,3 +1,0 @@
-[FONT DEBUG] File: FluentSystemIcons-Regular.ttf -> Name: FluentSystemIcons-Regular
-[FONT DEBUG] File: MaterialIcons-Regular.ttf -> Name: Material Icons
-[FONT DEBUG] File: remixicon.ttf -> Name: remixicon

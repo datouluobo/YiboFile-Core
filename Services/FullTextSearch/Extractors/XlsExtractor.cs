@@ -4,7 +4,7 @@ using System.Text;
 using NPOI.HSSF.UserModel;
 using NPOI.SS.UserModel;
 
-namespace OoiMRR.Services.FullTextSearch.Extractors
+namespace YiboFile.Services.FullTextSearch.Extractors
 {
     /// <summary>
     /// XLS (旧版 Excel) 文件文本提取器 (使用 NPOI)
@@ -87,3 +87,4 @@ namespace OoiMRR.Services.FullTextSearch.Extractors
         }
     }
 }
+

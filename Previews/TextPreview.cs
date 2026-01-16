@@ -5,9 +5,9 @@ using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using OoiMRR.Controls;
+using YiboFile.Controls;
 
-namespace OoiMRR.Previews
+namespace YiboFile.Previews
 {
     /// <summary>
     /// 文本文件预览
@@ -449,4 +449,5 @@ namespace OoiMRR.Previews
         }
     }
 }
+
 

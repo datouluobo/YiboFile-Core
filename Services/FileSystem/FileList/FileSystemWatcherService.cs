@@ -1,9 +1,9 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Windows.Threading;
-using OoiMRR.Services.FileList;
+using YiboFile.Services.FileList;
 
-namespace OoiMRR.Services.FileList
+namespace YiboFile.Services.FileList
 {
     /// <summary>
     /// 文件系统监控服务
@@ -203,4 +203,5 @@ namespace OoiMRR.Services.FileList
         #endregion
     }
 }
+
 

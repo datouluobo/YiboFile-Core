@@ -10,9 +10,9 @@ using System.Windows.Media;
 using System.Xml;
 using System.Xml.Linq;
 using Microsoft.Web.WebView2.Wpf;
-using OoiMRR.Controls;
+using YiboFile.Controls;
 
-namespace OoiMRR.Previews
+namespace YiboFile.Previews
 {
     /// <summary>
     /// XML 文件预览 - 支持渲染和源码两种视图
@@ -318,3 +318,4 @@ namespace OoiMRR.Previews
         }
     }
 }
+

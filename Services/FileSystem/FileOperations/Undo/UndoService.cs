@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using OoiMRR.Services.Core;
+using YiboFile.Services.Core;
 
-namespace OoiMRR.Services.FileOperations.Undo
+namespace YiboFile.Services.FileOperations.Undo
 {
     /// <summary>
     /// 撤销/重做服务
@@ -158,3 +158,4 @@ namespace OoiMRR.Services.FileOperations.Undo
         }
     }
 }
+

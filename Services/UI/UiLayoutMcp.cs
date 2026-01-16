@@ -3,7 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
 
-namespace OoiMRR.Services
+namespace YiboFile.Services
 {
     public static class UiLayoutMcp
     {

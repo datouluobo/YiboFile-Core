@@ -11,9 +11,9 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Xml.Linq;
 using Microsoft.Web.WebView2.Wpf;
-using OoiMRR.Controls;
+using YiboFile.Controls;
 
-namespace OoiMRR.Previews.DocumentHandlers
+namespace YiboFile.Previews.DocumentHandlers
 {
     /// <summary>
     /// CHM (Compiled HTML Help) 文档预览处理器
@@ -516,3 +516,4 @@ namespace OoiMRR.Previews.DocumentHandlers
         }
     }
 }
+

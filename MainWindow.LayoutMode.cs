@@ -7,12 +7,12 @@ using System.IO;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
-using OoiMRR.Controls;
-using OoiMRR.Services.Tabs;
-using OoiMRR.Services.FileOperations;
-using OoiMRR.Services.Core;
+using YiboFile.Controls;
+using YiboFile.Services.Tabs;
+using YiboFile.Services.FileOperations;
+using YiboFile.Services.Core;
 
-namespace OoiMRR
+namespace YiboFile
 {
     /// <summary>
     /// 布局模式切换功能
@@ -937,3 +937,4 @@ namespace OoiMRR
         #endregion
     }
 }
+

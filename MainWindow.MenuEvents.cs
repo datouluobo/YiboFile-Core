@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Windows;
 
-namespace OoiMRR
+namespace YiboFile
 {
     /// <summary>
     /// MainWindow 菜单事件处理
@@ -521,8 +521,8 @@ namespace OoiMRR
  xmlns:dcmitype=""http://purl.org/dc/dcmitype/""
  xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"">
   <dc:title>New Document</dc:title>
-  <dc:creator>OoiMRR</dc:creator>
-  <cp:lastModifiedBy>OoiMRR</cp:lastModifiedBy>
+  <dc:creator>YiboFile</dc:creator>
+  <cp:lastModifiedBy>YiboFile</cp:lastModifiedBy>
   <dcterms:created xsi:type=""dcterms:W3CDTF"">{DateTime.UtcNow:yyyy-MM-ddTHH:mm:ssZ}</dcterms:created>
   <dcterms:modified xsi:type=""dcterms:W3CDTF"">{DateTime.UtcNow:yyyy-MM-ddTHH:mm:ssZ}</dcterms:modified>
 </cp:coreProperties>");
@@ -531,7 +531,7 @@ namespace OoiMRR
                     @"<?xml version=""1.0"" encoding=""UTF-8""?>
 <Properties xmlns=""http://schemas.openxmlformats.org/officeDocument/2006/extended-properties""
  xmlns:vt=""http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"">
-  <Application>OoiMRR</Application>
+  <Application>YiboFile</Application>
 </Properties>");
             }
         }
@@ -543,3 +543,4 @@ namespace OoiMRR
 
     }
 }
+

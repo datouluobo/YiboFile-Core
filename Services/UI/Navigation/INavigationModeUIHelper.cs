@@ -3,7 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 
 
-namespace OoiMRR.Services.Navigation
+namespace YiboFile.Services.Navigation
 {
     /// <summary>
     /// 导航模式 UI 辅助接口
@@ -128,4 +128,5 @@ namespace OoiMRR.Services.Navigation
 
 
 }
+
 

@@ -1,7 +1,7 @@
-<Window x:Class="OoiMRR.Windows.ThemeColorEditorWindow"
+<Window x:Class="YiboFile.Windows.ThemeColorEditorWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:controls="clr-namespace:OoiMRR.Controls"
+        xmlns:controls="clr-namespace:YiboFile.Controls"
         Title="自定义主题颜色" 
         Width="850" Height="680"
         WindowStartupLocation="CenterOwner"
@@ -160,3 +160,4 @@
         </Grid>
     </Grid>
 </Window>
+

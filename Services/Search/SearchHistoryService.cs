@@ -4,9 +4,9 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
-using OoiMRR.Services.Config;
+using YiboFile.Services.Config;
 
-namespace OoiMRR.Services.Search
+namespace YiboFile.Services.Search
 {
     public enum HistoryType
     {
@@ -48,7 +48,7 @@ namespace OoiMRR.Services.Search
         private SearchHistoryService()
         {
             string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            string appFolder = Path.Combine(appData, "OoiMRR");
+            string appFolder = Path.Combine(appData, "YiboFile");
             if (!Directory.Exists(appFolder))
             {
                 Directory.CreateDirectory(appFolder);
@@ -127,3 +127,4 @@ namespace OoiMRR.Services.Search
         }
     }
 }
+

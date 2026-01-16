@@ -4,22 +4,22 @@ using System.Windows;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
-using OoiMRR.Services;
-using OoiMRR.Services.Core;
-using OoiMRR.Services.Config;
-using OoiMRR.Services.Favorite;
-using OoiMRR.Services.QuickAccess;
-using OoiMRR.Services.FileList;
-using OoiMRR.Services.Search;
+using YiboFile.Services;
+using YiboFile.Services.Core;
+using YiboFile.Services.Config;
+using YiboFile.Services.Favorite;
+using YiboFile.Services.QuickAccess;
+using YiboFile.Services.FileList;
+using YiboFile.Services.Search;
 
-using OoiMRR.Services.FileNotes;
-using OoiMRR.Services.Tabs;
-using OoiMRR.Services.ColumnManagement;
+using YiboFile.Services.FileNotes;
+using YiboFile.Services.Tabs;
+using YiboFile.Services.ColumnManagement;
 // using TagTrain.Services; // Phase 2将重新实现标签功能
-using OoiMRR.Controls;
+using YiboFile.Controls;
 using System.Runtime.InteropServices; // Added for P/Invoke
 
-namespace OoiMRR
+namespace YiboFile
 {
     /// <summary>
     /// App.xaml 的交互逻辑
@@ -28,7 +28,7 @@ namespace OoiMRR
     {
         private static Mutex _mutex = null;
         private static bool _mutexOwned = false; // 跟踪是否拥有mutex
-        private const string MutexName = "OoiMRR_SingleInstance_Mutex";
+        private const string MutexName = "YiboFile_SingleInstance_Mutex";
 
         /// <summary>
         /// 全局服务提供者
@@ -60,11 +60,11 @@ namespace OoiMRR
             // 注册核心服务
             services.AddSingleton<AppConfig>(provider => ConfigManager.Load() ?? new AppConfig());
             services.AddSingleton<ConfigService>(); // 配置服务应为单例
-            services.AddSingleton<OoiMRR.Services.Core.Error.ErrorService>(); // 统一错误处理服务
+            services.AddSingleton<YiboFile.Services.Core.Error.ErrorService>(); // 统一错误处理服务
             services.AddSingleton<Services.FileOperations.FileOperationService>();
             services.AddSingleton<Services.FileOperations.TaskQueue.TaskQueueService>(); // Register TaskQueueService
-            services.AddSingleton<OoiMRR.Services.FileOperations.Undo.UndoService>(); // 撤销/重做服务
-            services.AddSingleton<OoiMRR.Services.Archive.ArchiveService>(); // Archive Service
+            services.AddSingleton<YiboFile.Services.FileOperations.Undo.UndoService>(); // 撤销/重做服务
+            services.AddSingleton<YiboFile.Services.Archive.ArchiveService>(); // Archive Service
 
             // DatabaseManager 是静态类/单例模式，但如果我们需要注入它，可以封装一下，或者暂时保持静态访问
             // 这里我们注册那些非静态的服务
@@ -79,13 +79,13 @@ namespace OoiMRR
             services.AddTransient<FileListService>(provider =>
                 new FileListService(
                     Application.Current.Dispatcher,
-                    provider.GetRequiredService<OoiMRR.Services.Core.Error.ErrorService>()));
+                    provider.GetRequiredService<YiboFile.Services.Core.Error.ErrorService>()));
 
             // LibraryService 也需要 Dispatcher
             services.AddSingleton<LibraryService>(provider =>
                 new LibraryService(
                     Application.Current.Dispatcher,
-                    provider.GetRequiredService<OoiMRR.Services.Core.Error.ErrorService>()));
+                    provider.GetRequiredService<YiboFile.Services.Core.Error.ErrorService>()));
 
             // FileSystemWatcherService 需要 Dispatcher
             services.AddTransient<FileSystemWatcherService>(provider =>
@@ -131,12 +131,12 @@ namespace OoiMRR
 
 
                 // 注册全局异常处理
-                var errorService = ServiceProvider.GetRequiredService<OoiMRR.Services.Core.Error.ErrorService>();
+                var errorService = ServiceProvider.GetRequiredService<YiboFile.Services.Core.Error.ErrorService>();
 
                 // 1. UI线程未捕获异常
                 this.DispatcherUnhandledException += (s, args) =>
                 {
-                    errorService.ReportError($"UI线程发生未捕获异常: {args.Exception.GetType().Name}", OoiMRR.Services.Core.Error.ErrorSeverity.Critical, args.Exception);
+                    errorService.ReportError($"UI线程发生未捕获异常: {args.Exception.GetType().Name}", YiboFile.Services.Core.Error.ErrorSeverity.Critical, args.Exception);
                     args.Handled = true; // 防止程序直接崩溃
                 };
 
@@ -144,19 +144,19 @@ namespace OoiMRR
                 AppDomain.CurrentDomain.UnhandledException += (s, args) =>
                 {
                     var exp = args.ExceptionObject as Exception;
-                    errorService.ReportError("后台线程发生致命错误", OoiMRR.Services.Core.Error.ErrorSeverity.Critical, exp);
+                    errorService.ReportError("后台线程发生致命错误", YiboFile.Services.Core.Error.ErrorSeverity.Critical, exp);
                 };
 
                 // 3. Task未观察到的异常
                 TaskScheduler.UnobservedTaskException += (s, args) =>
                 {
-                    errorService.ReportError("后台任务发生异常", OoiMRR.Services.Core.Error.ErrorSeverity.Error, args.Exception);
+                    errorService.ReportError("后台任务发生异常", YiboFile.Services.Core.Error.ErrorSeverity.Error, args.Exception);
                     args.SetObserved(); // 标记为已观察，防止程序崩溃
                 };
 
                 // 移除了 --tagtrain 启动参数支持（Phase 2将重新实现）
 
-                // 原有的 OoiMRR 启动逻辑
+                // 原有的 YiboFile 启动逻辑
                 // 检查是否已有实例运行
                 bool createdNew;
                 _mutex = new Mutex(true, MutexName, out createdNew);
@@ -198,18 +198,18 @@ namespace OoiMRR
                     var themeMode = config?.ThemeMode ?? "FollowSystem";
 
                     // 设置动画启用状态
-                    OoiMRR.Services.Theming.ThemeManager.AnimationsEnabled = config?.AnimationsEnabled ?? true;
+                    YiboFile.Services.Theming.ThemeManager.AnimationsEnabled = config?.AnimationsEnabled ?? true;
 
                     // 根据主题模式应用主题
                     if (themeMode == "FollowSystem")
                     {
-                        OoiMRR.Services.Theming.ThemeManager.EnableSystemThemeFollowing();
+                        YiboFile.Services.Theming.ThemeManager.EnableSystemThemeFollowing();
                         FileLogger.Log("System theme following enabled.");
                     }
                     else
                     {
                         // 使用显式指定的主题
-                        OoiMRR.Services.Theming.ThemeManager.SetTheme(themeMode, animate: false);
+                        YiboFile.Services.Theming.ThemeManager.SetTheme(themeMode, animate: false);
                         FileLogger.Log($"Theme applied: {themeMode}");
                     }
                 }
@@ -226,8 +226,8 @@ namespace OoiMRR
                 {
                     try
                     {
-                        OoiMRR.Services.ChmCacheManager.CleanupExpiredCache();
-                        OoiMRR.Services.ChmCacheManager.EnforceCacheSizeLimit();
+                        YiboFile.Services.ChmCacheManager.CleanupExpiredCache();
+                        YiboFile.Services.ChmCacheManager.EnforceCacheSizeLimit();
                     }
                     catch (Exception)
                     {
@@ -286,7 +286,7 @@ namespace OoiMRR
             // 取消系统主题监听
             try
             {
-                OoiMRR.Services.Theming.ThemeManager.DisableSystemThemeFollowing();
+                YiboFile.Services.Theming.ThemeManager.DisableSystemThemeFollowing();
             }
             catch (Exception ex)
             {
@@ -361,3 +361,4 @@ namespace OoiMRR
         #endregion
     }
 }
+

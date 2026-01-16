@@ -7,7 +7,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 
-namespace OoiMRR.Services.QuickAccess
+namespace YiboFile.Services.QuickAccess
 {
     /// <summary>
     /// 快速访问服务
@@ -131,7 +131,7 @@ namespace OoiMRR.Services.QuickAccess
             {
                 try
                 {
-                    var items = new System.Collections.ObjectModel.ObservableCollection<OoiMRR.Services.Navigation.NavigationItem>();
+                    var items = new System.Collections.ObjectModel.ObservableCollection<YiboFile.Services.Navigation.NavigationItem>();
 
                     var drives = DriveInfo.GetDrives().Where(d => d.IsReady).ToList();
                     foreach (var drive in drives)
@@ -139,7 +139,7 @@ namespace OoiMRR.Services.QuickAccess
                         long usedSize = drive.TotalSize - drive.AvailableFreeSpace;
                         double usagePercentage = drive.TotalSize > 0 ? (double)usedSize / drive.TotalSize : 0;
 
-                        var item = new OoiMRR.Services.Navigation.NavigationItem
+                        var item = new YiboFile.Services.Navigation.NavigationItem
                         {
                             Header = $"{drive.Name} ({drive.VolumeLabel})",
                             Path = drive.Name,
@@ -369,6 +369,7 @@ namespace OoiMRR.Services.QuickAccess
         #endregion
     }
 }
+
 
 
 

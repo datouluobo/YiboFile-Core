@@ -2,7 +2,7 @@ using System;
 using System.Windows;
 using System.Windows.Controls;
 
-namespace OoiMRR.Controls
+namespace YiboFile.Controls
 {
     /// <summary>
     /// Title action bar with mode-aware button groups.
@@ -77,6 +77,7 @@ namespace OoiMRR.Controls
         private void OnTagStatisticsClicked(object sender, RoutedEventArgs e) => TagStatisticsClicked?.Invoke(this, e);
     }
 }
+
 
 
 

@@ -1,6 +1,6 @@
 using System.Windows;
 
-namespace OoiMRR
+namespace YiboFile
 {
     /// <summary>
     /// PathInputDialog.xaml 的交互逻辑
@@ -89,3 +89,4 @@ namespace OoiMRR
         }
     }
 }
+

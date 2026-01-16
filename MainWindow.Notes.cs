@@ -2,7 +2,7 @@ using System;
 using System.Windows;
 using System.Windows.Controls;
 
-namespace OoiMRR
+namespace YiboFile
 {
     /// <summary>
     /// MainWindow 备注功能
@@ -24,3 +24,4 @@ namespace OoiMRR
         #endregion
     }
 }
+

@@ -1,9 +1,9 @@
 using System;
 using System.IO;
 using System.Windows;
-using OoiMRR.Services.Core;
+using YiboFile.Services.Core;
 
-namespace OoiMRR.Previews
+namespace YiboFile.Previews
 {
     /// <summary>
     /// 预览工厂 - 根据文件类型创建相应的预览
@@ -126,3 +126,4 @@ namespace OoiMRR.Previews
         }
     }
 }
+

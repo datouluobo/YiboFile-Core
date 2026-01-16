@@ -6,17 +6,17 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
-using OoiMRR.Dialogs;
-using OoiMRR.Services.Core.Error;
+using YiboFile.Dialogs;
+using YiboFile.Services.Core.Error;
 
-using OoiMRR.Services.FileOperations.Undo;
+using YiboFile.Services.FileOperations.Undo;
 
 // 使用 Dialogs 命名空间的 ConflictResolution
-using ConflictResolution = OoiMRR.Dialogs.ConflictResolution;
-using OoiMRR.Services.FileOperations.TaskQueue;
-using TaskStatus = OoiMRR.Services.FileOperations.TaskQueue.TaskStatus;
+using ConflictResolution = YiboFile.Dialogs.ConflictResolution;
+using YiboFile.Services.FileOperations.TaskQueue;
+using TaskStatus = YiboFile.Services.FileOperations.TaskQueue.TaskStatus;
 
-namespace OoiMRR.Services.FileOperations
+namespace YiboFile.Services.FileOperations
 {
     /// <summary>
     /// 文件操作服务 - 所有文件操作的统一入口
@@ -516,7 +516,7 @@ namespace OoiMRR.Services.FileOperations
         {
             var backupDir = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "OoiMRR", "Backup", DateTime.Now.ToString("yyyyMMdd"));
+                "YiboFile", "Backup", DateTime.Now.ToString("yyyyMMdd"));
             Directory.CreateDirectory(backupDir);
 
             var fileName = Path.GetFileName(path);
@@ -635,3 +635,4 @@ namespace OoiMRR.Services.FileOperations
         }
     }
 }
+

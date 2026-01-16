@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 
-namespace OoiMRR.Services.Core
+namespace YiboFile.Services.Core
 {
     public static class FileLogger
     {
@@ -26,3 +26,4 @@ namespace OoiMRR.Services.Core
         }
     }
 }
+

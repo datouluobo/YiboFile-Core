@@ -3,11 +3,11 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using OoiMRR.Services;
-using OoiMRR.Services.Navigation;
-using OoiMRR.Models.UI;
+using YiboFile.Services;
+using YiboFile.Services.Navigation;
+using YiboFile.Models.UI;
 
-namespace OoiMRR
+namespace YiboFile
 {
     public partial class MainWindow
     {
@@ -296,3 +296,4 @@ namespace OoiMRR
         #endregion
     }
 }
+

@@ -3,7 +3,7 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
 
-namespace OoiMRR.Helpers
+namespace YiboFile.Helpers
 {
     /// <summary>
     /// Converts a resource key (string) to the resource value.
@@ -56,3 +56,4 @@ namespace OoiMRR.Helpers
         }
     }
 }
+

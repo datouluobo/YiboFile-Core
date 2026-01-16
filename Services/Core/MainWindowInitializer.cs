@@ -1,10 +1,10 @@
-﻿using System;
-using OoiMRR.Services.Config;
-using OoiMRR.Services.Core;
-using OoiMRR;
+using System;
+using YiboFile.Services.Config;
+using YiboFile.Services.Core;
+using YiboFile;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace OoiMRR.Services
+namespace YiboFile.Services
 {
     /// <summary>
     /// MainWindow 初始化器
@@ -52,7 +52,7 @@ namespace OoiMRR.Services
                 // 初始化配置服务
                 if (_mainWindow._configService == null)
                 {
-                    var errorService = App.ServiceProvider.GetRequiredService<OoiMRR.Services.Core.Error.ErrorService>();
+                    var errorService = App.ServiceProvider.GetRequiredService<YiboFile.Services.Core.Error.ErrorService>();
                     _mainWindow._configService = new ConfigService(config, errorService);
                     _mainWindow._configService.UIHelper = _mainWindow;
                 }
@@ -203,7 +203,7 @@ namespace OoiMRR.Services
                 }, System.Windows.Threading.DispatcherPriority.Loaded);
 
                 // 启动全文搜索后台索引（如果启用）
-                OoiMRR.Services.FullTextSearch.FullTextSearchService.Instance.StartBackgroundIndexing();
+                YiboFile.Services.FullTextSearch.FullTextSearchService.Instance.StartBackgroundIndexing();
 
                 FileLogger.Log("ApplyInitialState completed.");
             }
@@ -297,3 +297,4 @@ namespace OoiMRR.Services
         }
     }
 }
+

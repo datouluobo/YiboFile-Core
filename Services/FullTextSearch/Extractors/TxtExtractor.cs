@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 
-namespace OoiMRR.Services.FullTextSearch.Extractors
+namespace YiboFile.Services.FullTextSearch.Extractors
 {
     /// <summary>
     /// 纯文本文件提取器 (TXT, MD, 代码文件等)
@@ -60,3 +60,4 @@ namespace OoiMRR.Services.FullTextSearch.Extractors
         }
     }
 }
+

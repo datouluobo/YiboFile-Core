@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
-namespace OoiMRR.Services.Search
+namespace YiboFile.Services.Search
 {
     /// <summary>
     /// 搜索结果分组器
@@ -145,6 +145,7 @@ namespace OoiMRR.Services.Search
         }
     }
 }
+
 
 
 

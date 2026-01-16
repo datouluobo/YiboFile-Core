@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-namespace OoiMRR.Services.FileOperations.Undo
+namespace YiboFile.Services.FileOperations.Undo
 {
     /// <summary>
     /// 删除操作的撤销支持
@@ -27,7 +27,7 @@ namespace OoiMRR.Services.FileOperations.Undo
             {
                 var path = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "OoiMRR", "UndoBackup");
+                    "YiboFile", "UndoBackup");
                 if (!Directory.Exists(path))
                     Directory.CreateDirectory(path);
                 return path;
@@ -382,7 +382,7 @@ namespace OoiMRR.Services.FileOperations.Undo
             {
                 var path = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "OoiMRR", "UndoBackup");
+                    "YiboFile", "UndoBackup");
                 if (!Directory.Exists(path))
                     Directory.CreateDirectory(path);
                 return path;
@@ -473,3 +473,4 @@ namespace OoiMRR.Services.FileOperations.Undo
         }
     }
 }
+

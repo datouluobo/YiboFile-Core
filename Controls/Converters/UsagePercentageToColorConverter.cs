@@ -3,7 +3,7 @@ using System.Globalization;
 using System.Windows.Data;
 using System.Windows.Media;
 
-namespace OoiMRR.Controls.Converters
+namespace YiboFile.Controls.Converters
 {
     /// <summary>
     /// 驱动器使用率颜色转换器
@@ -46,3 +46,4 @@ namespace OoiMRR.Controls.Converters
         }
     }
 }
+

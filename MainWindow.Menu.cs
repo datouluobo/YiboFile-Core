@@ -1,8 +1,8 @@
 using System;
 using System.Windows;
-using OoiMRR.Handlers;
+using YiboFile.Handlers;
 
-namespace OoiMRR
+namespace YiboFile
 {
     public partial class MainWindow
     {
@@ -21,3 +21,4 @@ namespace OoiMRR
         private void About_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.About_Click(sender, e);
     }
 }
+

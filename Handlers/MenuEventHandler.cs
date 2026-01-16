@@ -6,11 +6,11 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using Microsoft.Win32;
-using OoiMRR.Controls;
-using OoiMRR.Services;
-using OoiMRR.Services.FileOperations;
+using YiboFile.Controls;
+using YiboFile.Services;
+using YiboFile.Services.FileOperations;
 
-namespace OoiMRR.Handlers
+namespace YiboFile.Handlers
 {
     /// <summary>
     /// 菜单和按钮事件处理器
@@ -647,4 +647,5 @@ namespace OoiMRR.Handlers
         }
     }
 }
+
 

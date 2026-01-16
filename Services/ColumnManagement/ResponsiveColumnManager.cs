@@ -1,7 +1,7 @@
 using System;
 using System.Windows.Threading;
 
-namespace OoiMRR.Services.ColumnManagement
+namespace YiboFile.Services.ColumnManagement
 {
     /// <summary>
     /// 列可见性变化事件参数
@@ -154,3 +154,4 @@ namespace OoiMRR.Services.ColumnManagement
         }
     }
 }
+

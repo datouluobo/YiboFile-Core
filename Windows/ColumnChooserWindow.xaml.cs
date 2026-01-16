@@ -4,7 +4,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 
-namespace OoiMRR.Windows
+namespace YiboFile.Windows
 {
     public partial class ColumnChooserWindow : Window
     {
@@ -86,5 +86,6 @@ namespace OoiMRR.Windows
         }
     }
 }
+
 
 

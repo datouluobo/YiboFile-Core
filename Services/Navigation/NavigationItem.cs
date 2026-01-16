@@ -6,7 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 
-namespace OoiMRR.Services.Navigation
+namespace YiboFile.Services.Navigation
 {
     /// <summary>
     /// 导航树节点模型
@@ -169,3 +169,4 @@ namespace OoiMRR.Services.Navigation
         }
     }
 }
+

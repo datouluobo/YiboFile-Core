@@ -1,6 +1,6 @@
 using System;
 
-namespace OoiMRR.Services.FileOperations.Undo
+namespace YiboFile.Services.FileOperations.Undo
 {
     /// <summary>
     /// 可撤销操作的类型
@@ -48,3 +48,4 @@ namespace OoiMRR.Services.FileOperations.Undo
         public abstract bool Redo();
     }
 }
+

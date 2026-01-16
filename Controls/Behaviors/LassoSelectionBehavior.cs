@@ -8,7 +8,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
 
-namespace OoiMRR.Controls.Behaviors
+namespace YiboFile.Controls.Behaviors
 {
     /// <summary>
     /// 为 ListView 提供鼠标框选（Lasso Selection）功能
@@ -398,3 +398,4 @@ namespace OoiMRR.Controls.Behaviors
         }
     }
 }
+

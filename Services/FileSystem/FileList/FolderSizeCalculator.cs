@@ -7,7 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Threading;
 
-namespace OoiMRR.Services.FileList
+namespace YiboFile.Services.FileList
 {
     /// <summary>
     /// 提供文件夹大小的异步计算能力，并控制并发与延迟。
@@ -303,6 +303,7 @@ namespace OoiMRR.Services.FileList
         }
     }
 }
+
 
 
 

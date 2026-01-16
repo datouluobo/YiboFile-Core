@@ -2,7 +2,7 @@
 # This script intelligently detects and fixes all unused catch (Exception ex) blocks
 
 param(
-    [string]$ProjectPath = "f:\Download\GitHub\OoiMRR"
+    [string]$ProjectPath = "f:\Download\GitHub\YiboFile"
 )
 
 Write-Host "Starting scan for unused exception variables..." -ForegroundColor Cyan
@@ -104,3 +104,4 @@ Write-Host "`nFix completed!" -ForegroundColor Cyan
 Write-Host "Total files: $totalFiles" -ForegroundColor Yellow
 Write-Host "Modified files: $modifiedFiles" -ForegroundColor Green
 Write-Host "Total replacements: $totalReplacements" -ForegroundColor Green
+

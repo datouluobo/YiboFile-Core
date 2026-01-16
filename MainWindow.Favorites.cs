@@ -5,16 +5,16 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using OoiMRR.Services.Favorite;
-using OoiMRR.Services.Core;
-using OoiMRR.Models;
-using OoiMRR.Services.Navigation;
-using OoiMRR.Services.FileList;
-using OoiMRR.Models.UI;
-using OoiMRR.Services.Config;
-using OoiMRR.Controls;
+using YiboFile.Services.Favorite;
+using YiboFile.Services.Core;
+using YiboFile.Models;
+using YiboFile.Services.Navigation;
+using YiboFile.Services.FileList;
+using YiboFile.Models.UI;
+using YiboFile.Services.Config;
+using YiboFile.Controls;
 
-namespace OoiMRR
+namespace YiboFile
 {
     public partial class MainWindow
     {
@@ -137,3 +137,4 @@ namespace OoiMRR
         #endregion
     }
 }
+

@@ -3,7 +3,7 @@ using System.IO;
 using System.Text;
 using UglyToad.PdfPig;
 
-namespace OoiMRR.Services.FullTextSearch.Extractors
+namespace YiboFile.Services.FullTextSearch.Extractors
 {
     /// <summary>
     /// PDF 文件文本提取器 (使用 PdfPig)
@@ -57,3 +57,4 @@ namespace OoiMRR.Services.FullTextSearch.Extractors
         }
     }
 }
+

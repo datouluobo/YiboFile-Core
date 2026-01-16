@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using OoiMRR.Services.Navigation;
+using YiboFile.Services.Navigation;
 
-namespace OoiMRR.Helpers
+namespace YiboFile.Helpers
 {
     /// <summary>
     /// 导航 UI 辅助实现类
@@ -199,3 +199,4 @@ namespace OoiMRR.Helpers
         }
     }
 }
+

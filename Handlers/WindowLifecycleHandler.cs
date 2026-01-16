@@ -6,11 +6,11 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
-using OoiMRR.Services;
-using OoiMRR.Services.ColumnManagement;
-using OoiMRR.Services.Config;
+using YiboFile.Services;
+using YiboFile.Services.ColumnManagement;
+using YiboFile.Services.Config;
 
-namespace OoiMRR.Handlers
+namespace YiboFile.Handlers
 {
     public class WindowLifecycleHandler
     {
@@ -35,20 +35,20 @@ namespace OoiMRR.Handlers
             try
             {
                 // 第1次SaveNow: 强制保存ConfigurationService中用户设置（跳过去抖）
-                OoiMRR.Services.Config.ConfigurationService.Instance.SaveNow();
+                YiboFile.Services.Config.ConfigurationService.Instance.SaveNow();
 
                 // 保存窗口状态 - 注意：这会调用ConfigurationService.Update()，触发500ms去抖！
                 _windowStateManager?.SaveAllState();
 
                 // 第2次SaveNow: 强制保存窗口状态（SaveAllState触发的去抖还没完成）
                 // 这是关键！确保窗口状态立即写入磁盘
-                OoiMRR.Services.Config.ConfigurationService.Instance.SaveNow();
+                YiboFile.Services.Config.ConfigurationService.Instance.SaveNow();
 
                 // 停止并刷新配置服务的定时器（如果有），确保配置落盘
                 _configService?.StopAllTimers();
 
                 // 执行备份清理（程序退出循环）
-                OoiMRR.Services.FileOperations.Undo.BackupCleanupService.Cleanup();
+                YiboFile.Services.FileOperations.Undo.BackupCleanupService.Cleanup();
 
                 // 🔥 BUG FIX: 不要调用SaveCurrentConfig！
                 // ConfigService保存的是启动时加载的旧_config，会覆盖ConfigurationService刚保存的新配置！
@@ -351,3 +351,4 @@ namespace OoiMRR.Handlers
         }
     }
 }
+

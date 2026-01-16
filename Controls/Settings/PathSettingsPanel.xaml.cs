@@ -1,9 +1,9 @@
 using System;
 using System.Windows;
 using System.Windows.Controls;
-using OoiMRR.Controls;
+using YiboFile.Controls;
 
-namespace OoiMRR.Controls.Settings
+namespace YiboFile.Controls.Settings
 {
 #pragma warning disable CS0067 // 事件从未使用，但接口要求
     public partial class PathSettingsPanel : UserControl, ISettingsPanel
@@ -59,4 +59,5 @@ namespace OoiMRR.Controls.Settings
         }
     }
 }
+
 

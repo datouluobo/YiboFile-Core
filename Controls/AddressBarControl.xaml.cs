@@ -7,12 +7,12 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Globalization;
 using System.Windows.Data;
-using OoiMRR.Services.Search;
-using OoiMRR.Services.Config;
+using YiboFile.Services.Search;
+using YiboFile.Services.Config;
 
-using OoiMRR.Services.Core;
+using YiboFile.Services.Core;
 
-namespace OoiMRR.Controls
+namespace YiboFile.Controls
 {
     /// <summary>
     /// AddressBarControl.xaml 的交互逻辑
@@ -1173,3 +1173,4 @@ namespace OoiMRR.Controls
         }
     }
 }
+

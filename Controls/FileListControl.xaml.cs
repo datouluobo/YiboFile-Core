@@ -12,14 +12,14 @@ using System.Windows.Media.Imaging;
 using System.Windows.Media.Effects;
 using System.Windows.Data;
 using System.ComponentModel;
-using OoiMRR.Controls.Converters;
-using OoiMRR.Controls.Behaviors;
-using OoiMRR.ViewModels;
-using OoiMRR.Services.Search;
-using OoiMRR.Services.ColumnManagement;
-using OoiMRR.Services.UI;
+using YiboFile.Controls.Converters;
+using YiboFile.Controls.Behaviors;
+using YiboFile.ViewModels;
+using YiboFile.Services.Search;
+using YiboFile.Services.ColumnManagement;
+using YiboFile.Services.UI;
 
-namespace OoiMRR.Controls
+namespace YiboFile.Controls
 {
     /// <summary>
     /// FileListControl.xaml 的交互逻辑
@@ -1017,6 +1017,7 @@ namespace OoiMRR.Controls
         }
     }
 }
+
 
 
 

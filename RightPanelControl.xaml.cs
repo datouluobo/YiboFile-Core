@@ -6,7 +6,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
 
-namespace OoiMRR
+namespace YiboFile
 {
     /// <summary>
     /// RightPanelControl.xaml 的交互逻辑
@@ -422,4 +422,5 @@ namespace OoiMRR
         }
     }
 }
+
 

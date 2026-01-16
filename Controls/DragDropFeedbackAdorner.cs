@@ -2,7 +2,7 @@ using System.Windows;
 using System.Windows.Documents;
 using System.Windows.Media;
 
-namespace OoiMRR.Controls
+namespace YiboFile.Controls
 {
     /// <summary>
     /// 拖放反馈装饰器 - 在鼠标旁边显示操作类型提示
@@ -63,3 +63,4 @@ namespace OoiMRR.Controls
         }
     }
 }
+

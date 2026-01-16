@@ -6,9 +6,9 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Threading;
-using OoiMRR.Controls;
+using YiboFile.Controls;
 
-namespace OoiMRR.Services.Preview
+namespace YiboFile.Services.Preview
 {
     /// <summary>
     /// 文件预览服务
@@ -88,7 +88,7 @@ namespace OoiMRR.Services.Preview
                 ClearPreviewGridForEditor();
 
                 // 显示Markdown编辑器
-                var markdownEditor = new OoiMRR.Controls.MarkdownEditorControl();
+                var markdownEditor = new YiboFile.Controls.MarkdownEditorControl();
                 markdownEditor.LoadMarkdown(item.Path);
                 _rightPanel.PreviewGrid.Children.Add(markdownEditor);
 
@@ -116,7 +116,7 @@ namespace OoiMRR.Services.Preview
                 ClearPreviewGridForEditor();
 
                 // 显示文本编辑器
-                var textEditor = new OoiMRR.Controls.TextEditorControl();
+                var textEditor = new YiboFile.Controls.TextEditorControl();
                 textEditor.LoadFile(item.Path);
                 _rightPanel.PreviewGrid.Children.Add(textEditor);
 
@@ -155,7 +155,7 @@ namespace OoiMRR.Services.Preview
             try
             {
                 // 设置刷新回调
-                OoiMRR.Previews.PreviewFactory.OnFileListRefreshRequested = () =>
+                YiboFile.Previews.PreviewFactory.OnFileListRefreshRequested = () =>
                 {
                     _dispatcher.Invoke(() =>
                     {
@@ -164,7 +164,7 @@ namespace OoiMRR.Services.Preview
                 };
 
                 // 设置在新标签页中打开文件夹的回调
-                OoiMRR.Previews.PreviewFactory.OnOpenFolderInNewTab = (folderPath) =>
+                YiboFile.Previews.PreviewFactory.OnOpenFolderInNewTab = (folderPath) =>
                 {
                     _dispatcher.Invoke(() =>
                     {
@@ -173,7 +173,7 @@ namespace OoiMRR.Services.Preview
                 };
 
                 // PreviewFactory 会自动处理文件夹和文件
-                var previewElement = OoiMRR.Previews.PreviewFactory.CreatePreview(item.Path);
+                var previewElement = YiboFile.Previews.PreviewFactory.CreatePreview(item.Path);
                 if (previewElement != null)
                 {
                     // 确保预览元素在ImagePreviewBorder之上 - 使用更高的ZIndex
@@ -471,4 +471,5 @@ namespace OoiMRR.Services.Preview
         #endregion
     }
 }
+
 

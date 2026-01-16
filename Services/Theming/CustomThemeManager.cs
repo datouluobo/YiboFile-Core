@@ -5,9 +5,9 @@ using System.Linq;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Media;
-using OoiMRR.Models;
+using YiboFile.Models;
 
-namespace OoiMRR.Services.Theming
+namespace YiboFile.Services.Theming
 {
     /// <summary>
     /// 自定义主题管理器
@@ -22,7 +22,7 @@ namespace OoiMRR.Services.Theming
         {
             CustomThemesDirectory = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "OoiMRR",
+                "YiboFile",
                 "CustomThemes"
             );
 
@@ -361,3 +361,4 @@ namespace OoiMRR.Services.Theming
         }
     }
 }
+

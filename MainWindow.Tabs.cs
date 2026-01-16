@@ -5,13 +5,13 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Diagnostics;
-using OoiMRR.Services;
-using OoiMRR.Services.Tabs;
-using OoiMRR.Models.UI;
-using OoiMRR.Services.Search;
-using OoiMRR.Services.FileNotes; // For FileNotesService
+using YiboFile.Services;
+using YiboFile.Services.Tabs;
+using YiboFile.Models.UI;
+using YiboFile.Services.Search;
+using YiboFile.Services.FileNotes; // For FileNotesService
 
-namespace OoiMRR
+namespace YiboFile
 {
     public partial class MainWindow
     {
@@ -143,7 +143,7 @@ namespace OoiMRR
                     // 全文搜索刷新
                     // 注意：FullTextSearchService.Instance.SearchContent 是同步的还是支持异步？
                     // 它是 CPU 密集型，应该在 Task.Run 中运行
-                    var results = await Task.Run(() => OoiMRR.Services.FullTextSearch.FullTextSearchService.Instance.SearchContent(keyword));
+                    var results = await Task.Run(() => YiboFile.Services.FullTextSearch.FullTextSearchService.Instance.SearchContent(keyword));
 
                     if (results == null) results = new List<FileSystemItem>();
                     _currentFiles = results;
@@ -280,3 +280,4 @@ namespace OoiMRR
         #endregion
     }
 }
+

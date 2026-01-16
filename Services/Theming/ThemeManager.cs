@@ -6,9 +6,9 @@ using System.Windows;
 using System.Windows.Media.Animation;
 using Microsoft.Win32; // SystemEvents 和 Registry
 
-using OoiMRR.Models;
+using YiboFile.Models;
 
-namespace OoiMRR.Services.Theming
+namespace YiboFile.Services.Theming
 {
     /// <summary>
     /// 主题管理器 - 负责主题发现、加载和切换
@@ -456,3 +456,4 @@ namespace OoiMRR.Services.Theming
         }
     }
 }
+

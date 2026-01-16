@@ -4,9 +4,9 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Threading;
-using OoiMRR.Services.FileNotes;
+using YiboFile.Services.FileNotes;
 
-namespace OoiMRR.Services.FileList
+namespace YiboFile.Services.FileList
 {
     /// <summary>
     /// 提供文件标签与备注的批量填充能力。
@@ -97,7 +97,7 @@ namespace OoiMRR.Services.FileList
             if (item.IsDirectory || string.IsNullOrEmpty(item.Path)) return;
 
             string ext = System.IO.Path.GetExtension(item.Path).ToLowerInvariant();
-            if (OoiMRR.Services.Search.SearchFilterService.ImageExtensions.Contains(ext))
+            if (YiboFile.Services.Search.SearchFilterService.ImageExtensions.Contains(ext))
             {
                 try
                 {
@@ -123,14 +123,14 @@ namespace OoiMRR.Services.FileList
                 }
                 catch { }
             }
-            else if (OoiMRR.Services.Search.SearchFilterService.VideoExtensions.Contains(ext) ||
-                     OoiMRR.Services.Search.SearchFilterService.AudioExtensions.Contains(ext))
+            else if (YiboFile.Services.Search.SearchFilterService.VideoExtensions.Contains(ext) ||
+                     YiboFile.Services.Search.SearchFilterService.AudioExtensions.Contains(ext))
             {
                 try
                 {
                     // Use Native Shell Property (reliable, built-in)
                     // Replaces FFMpegCore which requires external binaries
-                    long duration = OoiMRR.Services.Core.ShellPropertyHelper.GetDuration(item.Path);
+                    long duration = YiboFile.Services.Core.ShellPropertyHelper.GetDuration(item.Path);
                     item.DurationMs = duration;
 
                     // For video dimensions, ShellPropertyHelper could also be used but requires more PKEYs.
@@ -169,6 +169,7 @@ namespace OoiMRR.Services.FileList
         // }
     }
 }
+
 
 
 

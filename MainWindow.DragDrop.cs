@@ -5,11 +5,11 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.IO;
-using OoiMRR.Services;
-using OoiMRR.Services.FileOperations;
-using OoiMRR.Models.UI;
+using YiboFile.Services;
+using YiboFile.Services.FileOperations;
+using YiboFile.Models.UI;
 
-namespace OoiMRR
+namespace YiboFile
 {
     /// <summary>
     /// MainWindow drag and drop logic (Simplified)
@@ -89,8 +89,8 @@ namespace OoiMRR
                 }
             };
 
-            manager.UndoService = App.ServiceProvider?.GetService(typeof(OoiMRR.Services.FileOperations.Undo.UndoService)) as OoiMRR.Services.FileOperations.Undo.UndoService;
-            manager.TaskQueueService = App.ServiceProvider?.GetService(typeof(OoiMRR.Services.FileOperations.TaskQueue.TaskQueueService)) as OoiMRR.Services.FileOperations.TaskQueue.TaskQueueService;
+            manager.UndoService = App.ServiceProvider?.GetService(typeof(YiboFile.Services.FileOperations.Undo.UndoService)) as YiboFile.Services.FileOperations.Undo.UndoService;
+            manager.TaskQueueService = App.ServiceProvider?.GetService(typeof(YiboFile.Services.FileOperations.TaskQueue.TaskQueueService)) as YiboFile.Services.FileOperations.TaskQueue.TaskQueueService;
         }
 
         private void InitializeTabDragDrop()
@@ -152,7 +152,7 @@ namespace OoiMRR
 
             // Get the tab's path from button Tag (Tag is PathTab object)
             // Note: In TabManagerControl, buttons tags are likely PathTab objects
-            if (tabButton.Tag is OoiMRR.Services.Tabs.PathTab tab && !string.IsNullOrEmpty(tab.Path) && Directory.Exists(tab.Path))
+            if (tabButton.Tag is YiboFile.Services.Tabs.PathTab tab && !string.IsNullOrEmpty(tab.Path) && Directory.Exists(tab.Path))
             {
                 // Determine operation type
                 bool isCopy = (e.KeyStates & DragDropKeyStates.ControlKey) == DragDropKeyStates.ControlKey;
@@ -170,7 +170,7 @@ namespace OoiMRR
 
             while (element != null && element != panel)
             {
-                if (element is Button button && button.Tag is OoiMRR.Services.Tabs.PathTab)
+                if (element is Button button && button.Tag is YiboFile.Services.Tabs.PathTab)
                 {
                     return button;
                 }
@@ -189,5 +189,6 @@ namespace OoiMRR
         }
     }
 }
+
 
 

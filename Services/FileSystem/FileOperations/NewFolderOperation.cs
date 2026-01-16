@@ -1,8 +1,8 @@
 using System;
 using System.IO;
-using OoiMRR;
+using YiboFile;
 
-namespace OoiMRR.Services.FileOperations
+namespace YiboFile.Services.FileOperations
 {
     /// <summary>
     /// 新建文件夹操作
@@ -95,6 +95,7 @@ namespace OoiMRR.Services.FileOperations
         }
     }
 }
+
 
 
 

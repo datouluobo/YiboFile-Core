@@ -3,7 +3,7 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
 
-namespace OoiMRR.Controls.Converters
+namespace YiboFile.Controls.Converters
 {
     /// <summary>
     /// 当容器宽度小于阈值时隐藏元素的转换器
@@ -40,3 +40,4 @@ namespace OoiMRR.Controls.Converters
         }
     }
 }
+

@@ -7,7 +7,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Windows;
 
-namespace OoiMRR
+namespace YiboFile
 {
     /// <summary>
     /// 标签页宽度模式
@@ -115,7 +115,7 @@ namespace OoiMRR
 
     public class AllSettingsConfig
     {
-        public AppConfig OoiMRRConfig { get; set; } = new AppConfig();
+        public AppConfig YiboFileConfig { get; set; } = new AppConfig();
         public Dictionary<string, string> TagTrainSettings { get; set; } = new Dictionary<string, string>();
     }
 
@@ -129,7 +129,7 @@ namespace OoiMRR
         private const string BasePathMarkerFileName = "basepath.txt";
 
         private static readonly string DefaultBaseDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "AppData");
-        private static readonly string LegacyBaseDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "OoiMRR");
+        private static readonly string LegacyBaseDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "YiboFile");
 
         private static string _baseDirectory;
 
@@ -382,7 +382,7 @@ namespace OoiMRR
                 if (config == null) return;
 
                 // #region agent log
-                var logPath = @"f:\Download\GitHub\OoiMRR\.cursor\debug.log";
+                var logPath = @"f:\Download\GitHub\YiboFile\.cursor\debug.log";
                 try { System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(logPath)); System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "D", location = "ConfigManager.cs:310", message = "ConfigManager.Save开始", data = new { windowWidth = config.WindowWidth, windowHeight = config.WindowHeight, windowTop = config.WindowTop, windowLeft = config.WindowLeft, isMaximized = config.IsMaximized, colLeftWidth = config.ColLeftWidth, colCenterWidth = config.ColCenterWidth, openTabsCount = config.OpenTabs?.Count ?? 0, activeTabKey = config.ActiveTabKey }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
                 // #endregion
 
@@ -406,7 +406,7 @@ namespace OoiMRR
             catch (Exception ex)
             {
                 // #region agent log
-                try { var logPath = @"f:\Download\GitHub\OoiMRR\.cursor\debug.log"; System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "D", location = "ConfigManager.cs:327", message = "ConfigManager.Save异常", data = new { error = ex.Message, stackTrace = ex.StackTrace }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
+                try { var logPath = @"f:\Download\GitHub\YiboFile\.cursor\debug.log"; System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "D", location = "ConfigManager.cs:327", message = "ConfigManager.Save异常", data = new { error = ex.Message, stackTrace = ex.StackTrace }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
                 // #endregion
                 // ignore disk errors for now
             }
@@ -505,7 +505,7 @@ namespace OoiMRR
                 File.Delete(targetZip);
             }
 
-            var tempDir = Path.Combine(Path.GetTempPath(), "OoiMRR_Export_" + Guid.NewGuid().ToString("N"));
+            var tempDir = Path.Combine(Path.GetTempPath(), "YiboFile_Export_" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(tempDir);
 
             try
@@ -574,4 +574,5 @@ namespace OoiMRR
         }
     }
 }
+
 

@@ -1,10 +1,10 @@
-﻿using System;
+using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Threading;
 
-namespace OoiMRR.Services.UIHelper
+namespace YiboFile.Services.UIHelper
 {
     /// <summary>
     /// UI 辅助服务实现
@@ -193,6 +193,7 @@ namespace OoiMRR.Services.UIHelper
         }
     }
 }
+
 
 
 

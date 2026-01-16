@@ -6,9 +6,9 @@ using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-using OoiMRR.Services.Core;
+using YiboFile.Services.Core;
 
-namespace OoiMRR.Services.Archive
+namespace YiboFile.Services.Archive
 {
     public class ArchiveService
     {
@@ -265,3 +265,4 @@ namespace OoiMRR.Services.Archive
         }
     }
 }
+

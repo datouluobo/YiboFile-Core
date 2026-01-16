@@ -7,9 +7,9 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Net;
 using Microsoft.Web.WebView2.Wpf;
-using OoiMRR.Controls;
+using YiboFile.Controls;
 
-namespace OoiMRR.Previews
+namespace YiboFile.Previews
 {
     /// <summary>
     /// HTML 文件预览 - 支持源码和渲染两种视图
@@ -248,4 +248,5 @@ namespace OoiMRR.Previews
         }
     }
 }
+
 

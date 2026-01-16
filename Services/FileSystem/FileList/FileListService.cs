@@ -1,15 +1,15 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Threading;
-using OoiMRR.Services.FileNotes;
-using OoiMRR.Services.FileSystem;
-using OoiMRR.Services.Core;
+using YiboFile.Services.FileNotes;
+using YiboFile.Services.FileSystem;
+using YiboFile.Services.Core;
 
-namespace OoiMRR.Services.FileList
+namespace YiboFile.Services.FileList
 {
     /// <summary>
     /// 文件列表加载服务
@@ -21,7 +21,7 @@ namespace OoiMRR.Services.FileList
         #region 依赖注入字段
 
         private readonly Dispatcher _dispatcher;
-        private readonly OoiMRR.Services.Core.Error.ErrorService _errorService;
+        private readonly YiboFile.Services.Core.Error.ErrorService _errorService;
         private readonly FolderSizeCalculator _folderSizeCalculator;
         private readonly FileMetadataEnricher _metadataEnricher;
         private readonly FolderSizeCalculationService _folderSizeCalculationService;
@@ -86,7 +86,7 @@ namespace OoiMRR.Services.FileList
         /// </summary>
         /// <param name="dispatcher">UI线程调度器，用于更新UI</param>
         /// <param name="errorService">统一错误处理服务</param>
-        public FileListService(Dispatcher dispatcher, OoiMRR.Services.Core.Error.ErrorService errorService)
+        public FileListService(Dispatcher dispatcher, YiboFile.Services.Core.Error.ErrorService errorService)
         {
             _dispatcher = dispatcher ?? throw new ArgumentNullException(nameof(dispatcher));
             _errorService = errorService ?? throw new ArgumentNullException(nameof(errorService));
@@ -138,7 +138,7 @@ namespace OoiMRR.Services.FileList
 
                 if (!Directory.Exists(path))
                 {
-                    // _errorService.ReportError($"路径不存在: {path}", OoiMRR.Services.Core.Error.ErrorSeverity.Warning);
+                    // _errorService.ReportError($"路径不存在: {path}", YiboFile.Services.Core.Error.ErrorSeverity.Warning);
                     return new List<FileSystemItem>();
                 }
 
@@ -274,7 +274,7 @@ namespace OoiMRR.Services.FileList
             return nameWithoutExt;
         }
 
-        private readonly OoiMRR.Services.Archive.ArchiveService _archiveService = new OoiMRR.Services.Archive.ArchiveService();
+        private readonly YiboFile.Services.Archive.ArchiveService _archiveService = new YiboFile.Services.Archive.ArchiveService();
 
         /// <summary>
         /// 异步加载文件系统项，包含文件夹大小计算和元数据加载
@@ -377,7 +377,7 @@ namespace OoiMRR.Services.FileList
                     catch (OperationCanceledException) { }
                     catch (Exception ex)
                     {
-                        OoiMRR.Services.Core.FileLogger.LogException($"[FileListService] 文件夹大小计算失败", ex);
+                        YiboFile.Services.Core.FileLogger.LogException($"[FileListService] 文件夹大小计算失败", ex);
                     }
                 }, combinedToken);
 
@@ -402,7 +402,7 @@ namespace OoiMRR.Services.FileList
                     catch (OperationCanceledException) { }
                     catch (Exception ex)
                     {
-                        OoiMRR.Services.Core.FileLogger.LogException($"[FileListService] 元数据加载失败", ex);
+                        YiboFile.Services.Core.FileLogger.LogException($"[FileListService] 元数据加载失败", ex);
                     }
                 }, combinedMetadataToken);
 
@@ -625,7 +625,7 @@ namespace OoiMRR.Services.FileList
                 catch (UnauthorizedAccessException ex)
                 {
                     // 通知用户无权限访问
-                    _errorService.ReportError($"无权限访问文件夹: {path}", OoiMRR.Services.Core.Error.ErrorSeverity.Warning, ex);
+                    _errorService.ReportError($"无权限访问文件夹: {path}", YiboFile.Services.Core.Error.ErrorSeverity.Warning, ex);
                     return directories;
                 }
 
@@ -905,6 +905,7 @@ namespace OoiMRR.Services.FileList
         #endregion
     }
 }
+
 
 
 

@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
-using OoiMRR.Services.FileOperations;
-using OoiMRR.Services.FileOperations.Undo;
+using YiboFile.Services.FileOperations;
+using YiboFile.Services.FileOperations.Undo;
 using System.Collections.Specialized;
 
-namespace OoiMRR.Handlers
+namespace YiboFile.Handlers
 {
     /// <summary>
     /// 处理文件操作逻辑（复制、剪切、粘贴、删除）
@@ -71,7 +71,7 @@ namespace OoiMRR.Handlers
                 }
 
                 var paths = selectedItems.Select(item => item.Path).ToList();
-                await OoiMRR.Services.FileOperations.ClipboardService.Instance.SetCopyPathsAsync(paths);
+                await YiboFile.Services.FileOperations.ClipboardService.Instance.SetCopyPathsAsync(paths);
             }
             catch (Exception ex)
             {
@@ -93,7 +93,7 @@ namespace OoiMRR.Handlers
                 }
 
                 var paths = selectedItems.Select(item => item.Path).ToList();
-                await OoiMRR.Services.FileOperations.ClipboardService.Instance.SetCutPathsAsync(paths);
+                await YiboFile.Services.FileOperations.ClipboardService.Instance.SetCutPathsAsync(paths);
             }
             catch (Exception ex)
             {
@@ -156,3 +156,4 @@ namespace OoiMRR.Handlers
         }
     }
 }
+

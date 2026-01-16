@@ -2,7 +2,7 @@ using System;
 using System.Windows;
 using System.Windows.Controls;
 
-namespace OoiMRR
+namespace YiboFile
 {
     /// <summary>
     /// MainWindow 快速访问功能
@@ -26,3 +26,4 @@ namespace OoiMRR
         #endregion
     }
 }
+

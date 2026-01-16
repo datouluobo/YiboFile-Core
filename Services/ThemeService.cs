@@ -2,7 +2,7 @@ using System;
 using System.Linq;
 using System.Windows;
 
-namespace OoiMRR.Services
+namespace YiboFile.Services
 {
     public enum AppTheme
     {
@@ -48,3 +48,4 @@ namespace OoiMRR.Services
         }
     }
 }
+

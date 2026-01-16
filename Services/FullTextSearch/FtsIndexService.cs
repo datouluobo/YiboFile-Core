@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using Microsoft.Data.Sqlite;
 
-namespace OoiMRR.Services.FullTextSearch
+namespace YiboFile.Services.FullTextSearch
 {
     /// <summary>
     /// 全文搜索索引记录
@@ -53,7 +53,7 @@ namespace OoiMRR.Services.FullTextSearch
         private string GetDefaultDbPath()
         {
             var appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            var dir = Path.Combine(appData, "OoiMRR", "Data");
+            var dir = Path.Combine(appData, "YiboFile", "Data");
             Directory.CreateDirectory(dir);
             return Path.Combine(dir, "fts_index.db");
         }
@@ -302,3 +302,4 @@ namespace OoiMRR.Services.FullTextSearch
         }
     }
 }
+

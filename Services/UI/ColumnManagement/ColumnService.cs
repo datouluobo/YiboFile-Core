@@ -5,11 +5,11 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using OoiMRR.Controls;
+using YiboFile.Controls;
 using System.Windows.Controls.Primitives;
-using OoiMRR.Services.UI.ColumnManagement;
+using YiboFile.Services.UI.ColumnManagement;
 
-namespace OoiMRR.Services.ColumnManagement
+namespace YiboFile.Services.ColumnManagement
 {
     /// <summary>
     /// 列管理服务（整合版）
@@ -711,3 +711,4 @@ namespace OoiMRR.Services.ColumnManagement
         #endregion
     }
 }
+

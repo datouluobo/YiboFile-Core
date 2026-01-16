@@ -3,7 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 
-namespace OoiMRR.Previews
+namespace YiboFile.Previews
 {
     /// <summary>
     /// 图片预览工具栏辅助类
@@ -271,3 +271,4 @@ namespace OoiMRR.Previews
         }
     }
 }
+

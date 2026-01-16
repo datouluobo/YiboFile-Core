@@ -3,7 +3,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 
-namespace OoiMRR.Controls
+namespace YiboFile.Controls
 {
     public partial class SettingsPanelControl : UserControl
     {
@@ -151,4 +151,5 @@ namespace OoiMRR.Controls
         event EventHandler SettingsChanged;
     }
 }
+
 

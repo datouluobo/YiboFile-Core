@@ -5,7 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace OoiMRR.Services.FullTextSearch
+namespace YiboFile.Services.FullTextSearch
 {
     /// <summary>
     /// 索引进度事件参数
@@ -202,3 +202,4 @@ namespace OoiMRR.Services.FullTextSearch
         }
     }
 }
+

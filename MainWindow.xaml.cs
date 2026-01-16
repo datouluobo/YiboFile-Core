@@ -19,28 +19,28 @@ using System.Drawing.Imaging;
 using Microsoft.Win32;
 using System.Runtime.InteropServices;
 using System.ComponentModel;
-using OoiMRR.Services;
-using OoiMRR.Services.FileNotes;
-using OoiMRR.Services.Search;
-using OoiMRR.Services.Navigation;
-using OoiMRR.Services.FileOperations;
-using OoiMRR.Services.Favorite;
-using OoiMRR.Services.QuickAccess;
-using OoiMRR.Services.FileList;
-using OoiMRR.Services.Tabs;
-using OoiMRR.Services.FileOperations.Undo;
+using YiboFile.Services;
+using YiboFile.Services.FileNotes;
+using YiboFile.Services.Search;
+using YiboFile.Services.Navigation;
+using YiboFile.Services.FileOperations;
+using YiboFile.Services.Favorite;
+using YiboFile.Services.QuickAccess;
+using YiboFile.Services.FileList;
+using YiboFile.Services.Tabs;
+using YiboFile.Services.FileOperations.Undo;
 using Microsoft.Extensions.DependencyInjection;
-using OoiMRR.Services.Preview;
-using OoiMRR.Services.ColumnManagement;
-using OoiMRR.Services.Config;
-using OoiMRR.Handlers;
+using YiboFile.Services.Preview;
+using YiboFile.Services.ColumnManagement;
+using YiboFile.Services.Config;
+using YiboFile.Handlers;
 using System.Threading;
 using System.Text.Json;
 using System.Text;
 
-using OoiMRR.Models.UI;
+using YiboFile.Models.UI;
 
-namespace OoiMRR
+namespace YiboFile
 {
     /// <summary>
     /// MainWindow.xaml 的交互逻辑
@@ -371,7 +371,7 @@ namespace OoiMRR
             {
                 // 等待 UI 更新
                 await Task.Delay(100);
-                var (files, isCut) = await OoiMRR.Services.FileOperations.ClipboardService.Instance.GetPathsFromClipboardAsync();
+                var (files, isCut) = await YiboFile.Services.FileOperations.ClipboardService.Instance.GetPathsFromClipboardAsync();
                 if (isCut && files.Count > 0)
                 {
                     UpdateCutItemsVisualState(files);
@@ -725,19 +725,19 @@ namespace OoiMRR
         internal void Undo_Click(object sender, RoutedEventArgs e)
         {
             var undoService = App.ServiceProvider.GetService<UndoService>();
-            var errorService = App.ServiceProvider.GetService<OoiMRR.Services.Core.Error.ErrorService>();
+            var errorService = App.ServiceProvider.GetService<YiboFile.Services.Core.Error.ErrorService>();
 
             if (undoService?.CanUndo == true)
             {
                 var description = undoService.NextUndoDescription;
                 if (undoService.Undo())
                 {
-                    errorService?.ReportError($"已撤销: {description}", OoiMRR.Services.Core.Error.ErrorSeverity.Info);
+                    errorService?.ReportError($"已撤销: {description}", YiboFile.Services.Core.Error.ErrorSeverity.Info);
                     RefreshFileList();
                 }
                 else
                 {
-                    errorService?.ReportError("撤销失败", OoiMRR.Services.Core.Error.ErrorSeverity.Warning);
+                    errorService?.ReportError("撤销失败", YiboFile.Services.Core.Error.ErrorSeverity.Warning);
                 }
             }
             else
@@ -750,19 +750,19 @@ namespace OoiMRR
         internal void Redo_Click(object sender, RoutedEventArgs e)
         {
             var undoService = App.ServiceProvider.GetService<UndoService>();
-            var errorService = App.ServiceProvider.GetService<OoiMRR.Services.Core.Error.ErrorService>();
+            var errorService = App.ServiceProvider.GetService<YiboFile.Services.Core.Error.ErrorService>();
 
             if (undoService?.CanRedo == true)
             {
                 var description = undoService.NextRedoDescription;
                 if (undoService.Redo())
                 {
-                    errorService?.ReportError($"已重做: {description}", OoiMRR.Services.Core.Error.ErrorSeverity.Info);
+                    errorService?.ReportError($"已重做: {description}", YiboFile.Services.Core.Error.ErrorSeverity.Info);
                     RefreshFileList();
                 }
                 else
                 {
-                    errorService?.ReportError("重做失败", OoiMRR.Services.Core.Error.ErrorSeverity.Warning);
+                    errorService?.ReportError("重做失败", YiboFile.Services.Core.Error.ErrorSeverity.Warning);
                 }
             }
             else
@@ -855,5 +855,6 @@ namespace OoiMRR
 
     #endregion
 }
+
 
 

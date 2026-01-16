@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 
-namespace OoiMRR.Controls
+namespace YiboFile.Controls
 {
     public partial class AboutPanelControl : UserControl
     {
@@ -116,3 +116,4 @@ namespace OoiMRR.Controls
         public string License { get; set; }
     }
 }
+

@@ -4,7 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input; // Added for ModifierKeys, Key, Cursors
 
-namespace OoiMRR.Controls.Settings
+namespace YiboFile.Controls.Settings
 {
     public class HotkeyItem : System.ComponentModel.INotifyPropertyChanged
     {
@@ -273,3 +273,4 @@ namespace OoiMRR.Controls.Settings
         }
     }
 }
+

@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Runtime.InteropServices;
 
-namespace OoiMRR.Services.FileSystem
+namespace YiboFile.Services.FileSystem
 {
     /// <summary>
     /// 符号链接和重定向文件夹辅助类
@@ -227,3 +227,4 @@ namespace OoiMRR.Services.FileSystem
         #endregion
     }
 }
+

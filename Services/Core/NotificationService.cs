@@ -4,9 +4,9 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Threading;
-using OoiMRR.Controls;
+using YiboFile.Controls;
 
-namespace OoiMRR.Services.Core
+namespace YiboFile.Services.Core
 {
     /// <summary>
     /// Service for managing and displaying global toast notifications.
@@ -58,3 +58,4 @@ namespace OoiMRR.Services.Core
         public static void ShowInfo(string message) => Show(message, NotificationType.Info);
     }
 }
+

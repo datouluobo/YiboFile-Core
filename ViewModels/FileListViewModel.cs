@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -8,14 +8,14 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Threading;
-using OoiMRR;
-using OoiMRR.Controls;
-using OoiMRR.Services;
-using OoiMRR.Services.ColumnManagement;
-using OoiMRR.Services.FileList;
+using YiboFile;
+using YiboFile.Controls;
+using YiboFile.Services;
+using YiboFile.Services.ColumnManagement;
+using YiboFile.Services.FileList;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace OoiMRR.ViewModels
+namespace YiboFile.ViewModels
 {
     /// <summary>
     /// 文件列表 ViewModel
@@ -82,7 +82,7 @@ namespace OoiMRR.ViewModels
             _ownerWindow = ownerWindow ?? throw new ArgumentNullException(nameof(ownerWindow));
             _dispatcher = ownerWindow.Dispatcher;
 
-            var errorService = App.ServiceProvider.GetRequiredService<OoiMRR.Services.Core.Error.ErrorService>();
+            var errorService = App.ServiceProvider.GetRequiredService<YiboFile.Services.Core.Error.ErrorService>();
             _fileListService = new FileListService(_dispatcher, errorService);
 
             _columnService = columnService;
@@ -489,4 +489,5 @@ namespace OoiMRR.ViewModels
         }
     }
 }
+
 

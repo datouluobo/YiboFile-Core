@@ -6,10 +6,10 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
-using OoiMRR.Controls.Converters;
-using OoiMRR.Services.Search;
+using YiboFile.Controls.Converters;
+using YiboFile.Services.Search;
 
-namespace OoiMRR.Controls
+namespace YiboFile.Controls
 {
     /// <summary>
     /// FileBrowserControl.xaml 的交互逻辑
@@ -778,3 +778,4 @@ namespace OoiMRR.Controls
         }
     }
 }
+

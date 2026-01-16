@@ -3,7 +3,7 @@ using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 
-namespace OoiMRR.Controls
+namespace YiboFile.Controls
 {
     /// <summary>
     /// 文件操作进度控件
@@ -81,3 +81,4 @@ namespace OoiMRR.Controls
         }
     }
 }
+

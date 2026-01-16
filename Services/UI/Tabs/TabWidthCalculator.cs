@@ -5,9 +5,9 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using OoiMRR.Services.Config;
+using YiboFile.Services.Config;
 
-namespace OoiMRR.Services.Tabs
+namespace YiboFile.Services.Tabs
 {
     /// <summary>
     /// 标签页宽度计算器
@@ -185,3 +185,4 @@ namespace OoiMRR.Services.Tabs
         }
     }
 }
+

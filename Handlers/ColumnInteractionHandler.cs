@@ -6,11 +6,11 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
-using OoiMRR.Controls;
-using OoiMRR.Services.ColumnManagement;
-using OoiMRR.Services.Config;
+using YiboFile.Controls;
+using YiboFile.Services.ColumnManagement;
+using YiboFile.Services.Config;
 
-namespace OoiMRR.Handlers
+namespace YiboFile.Handlers
 {
     /// <summary>
     /// 处理文件列表列的交互逻辑
@@ -529,3 +529,4 @@ namespace OoiMRR.Handlers
         }
     }
 }
+

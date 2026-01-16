@@ -1,7 +1,7 @@
-# OoiMRR - 推送到 GitHub 脚本
+# YiboFile - 推送到 GitHub 脚本
 
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "  OoiMRR - Push to GitHub" -ForegroundColor Cyan
+Write-Host "  YiboFile - Push to GitHub" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -16,7 +16,7 @@ if (-not $remoteUrl) {
     Write-Host "⚠️  未配置远程仓库" -ForegroundColor Yellow
     Write-Host ""
     Write-Host "请先在 GitHub 上创建私有仓库，然后运行：" -ForegroundColor White
-    Write-Host "git remote add origin https://github.com/你的用户名/OoiMRR.git" -ForegroundColor Green
+    Write-Host "git remote add origin https://github.com/你的用户名/YiboFile.git" -ForegroundColor Green
     Write-Host ""
     Write-Host "详细步骤请参考 docs/GITHUB_SETUP.md 文件" -ForegroundColor White
     Write-Host ""
@@ -69,4 +69,5 @@ if ($confirm -eq 'y' -or $confirm -eq 'Y') {
 
 Write-Host ""
 pause
+
 

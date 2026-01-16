@@ -7,9 +7,9 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
-using OoiMRR.Controls;
+using YiboFile.Controls;
 
-namespace OoiMRR.Previews
+namespace YiboFile.Previews
 {
     /// <summary>
     /// TOC文件预览器 - 魔兽世界插件配置文件（支持预览/编辑/分屏模式）
@@ -473,3 +473,4 @@ namespace OoiMRR.Previews
         }
     }
 }
+

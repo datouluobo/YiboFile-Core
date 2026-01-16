@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using OoiMRR.Services.FullTextSearch.Extractors;
+using YiboFile.Services.FullTextSearch.Extractors;
 
-namespace OoiMRR.Services.FullTextSearch
+namespace YiboFile.Services.FullTextSearch
 {
     /// <summary>
     /// 内容提取器管理器 - 统一管理所有文件格式的文本提取
@@ -70,3 +70,4 @@ namespace OoiMRR.Services.FullTextSearch
         }
     }
 }
+

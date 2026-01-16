@@ -9,9 +9,9 @@ using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using OoiMRR.Controls;
+using YiboFile.Controls;
 
-namespace OoiMRR.Previews
+namespace YiboFile.Previews
 {
     /// <summary>
     /// 压缩文件预览
@@ -835,4 +835,5 @@ namespace OoiMRR.Previews
         #endregion
     }
 }
+
 

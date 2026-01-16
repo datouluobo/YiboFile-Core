@@ -7,7 +7,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Text;
 
-namespace OoiMRR
+namespace YiboFile
 {
     /// <summary>
     /// 文件类型管理器
@@ -243,10 +243,10 @@ namespace OoiMRR
         }
 
         // 预览功能已移至Previews目录，此方法保留用于向后兼容
-        [Obsolete("请使用OoiMRR.Previews.PreviewFactory.CreatePreview代替")]
+        [Obsolete("请使用YiboFile.Previews.PreviewFactory.CreatePreview代替")]
         public static UIElement CreatePreview(string filePath)
         {
-            return OoiMRR.Previews.PreviewFactory.CreatePreview(filePath);
+            return YiboFile.Previews.PreviewFactory.CreatePreview(filePath);
         }
 
         // 所有预览方法已移至Previews目录
@@ -272,3 +272,4 @@ namespace OoiMRR
         Shortcut
     }
 }
+

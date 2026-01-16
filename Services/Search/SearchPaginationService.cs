@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
-using OoiMRR.Services;
+using YiboFile.Services;
 
-namespace OoiMRR.Services.Search
+namespace YiboFile.Services.Search
 {
     /// <summary>
     /// 搜索分页服务
@@ -174,6 +174,7 @@ namespace OoiMRR.Services.Search
         }
     }
 }
+
 
 
 

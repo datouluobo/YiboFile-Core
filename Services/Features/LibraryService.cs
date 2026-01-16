@@ -7,10 +7,10 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
-using OoiMRR.Controls;
-using OoiMRR.Services.FileList;
+using YiboFile.Controls;
+using YiboFile.Services.FileList;
 
-namespace OoiMRR.Services
+namespace YiboFile.Services
 {
     /// <summary>
     /// 库管理服务
@@ -50,7 +50,7 @@ namespace OoiMRR.Services
 
         #region 构造函数
 
-        public LibraryService(Dispatcher dispatcher, OoiMRR.Services.Core.Error.ErrorService errorService)
+        public LibraryService(Dispatcher dispatcher, YiboFile.Services.Core.Error.ErrorService errorService)
         {
             _dispatcher = dispatcher ?? Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
             _fileListService = new FileListService(_dispatcher, errorService);
@@ -460,4 +460,5 @@ namespace OoiMRR.Services
         public bool IsEmpty { get; set; }
     }
 }
+
 

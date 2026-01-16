@@ -1,6 +1,6 @@
 using System.Windows.Controls;
 
-namespace OoiMRR.Models.UI
+namespace YiboFile.Models.UI
 {
     internal class ActionItem
     {
@@ -9,3 +9,4 @@ namespace OoiMRR.Models.UI
         public bool IsSeparator => Separator != null;
     }
 }
+

@@ -1,9 +1,9 @@
 using System;
 using System.Windows;
 using System.Windows.Controls;
-using OoiMRR.Controls;
+using YiboFile.Controls;
 
-namespace OoiMRR.Controls.Settings
+namespace YiboFile.Controls.Settings
 {
 #pragma warning disable CS0067 // 事件从未使用，但接口要求
     public partial class LibrarySettingsPanel : UserControl, ISettingsPanel
@@ -101,7 +101,7 @@ namespace OoiMRR.Controls.Settings
                 try
                 {
                     string json = System.IO.File.ReadAllText(dialog.FileName);
-                    var libraryService = new OoiMRR.Services.LibraryService(Dispatcher, null);
+                    var libraryService = new YiboFile.Services.LibraryService(Dispatcher, null);
                     libraryService.ImportLibrariesFromJson(json);
                 }
                 catch (Exception ex)
@@ -124,7 +124,7 @@ namespace OoiMRR.Controls.Settings
             {
                 try
                 {
-                    var libraryService = new OoiMRR.Services.LibraryService(Dispatcher, null);
+                    var libraryService = new YiboFile.Services.LibraryService(Dispatcher, null);
                     string json = libraryService.ExportLibrariesToJson();
                     if (!string.IsNullOrEmpty(json))
                     {
@@ -150,4 +150,5 @@ namespace OoiMRR.Controls.Settings
         }
     }
 }
+
 

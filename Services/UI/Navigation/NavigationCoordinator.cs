@@ -2,11 +2,11 @@ using System;
 using System.IO;
 using System.Windows;
 using System.Windows.Input;
-using OoiMRR.Controls;
-using FavoriteType = OoiMRR.Favorite;
-using OoiMRR.Services.Core;
+using YiboFile.Controls;
+using FavoriteType = YiboFile.Favorite;
+using YiboFile.Services.Core;
 
-namespace OoiMRR.Services.Navigation
+namespace YiboFile.Services.Navigation
 {
     /// <summary>
     /// 统一导航协调器
@@ -155,4 +155,5 @@ namespace OoiMRR.Services.Navigation
         }
     }
 }
+
 

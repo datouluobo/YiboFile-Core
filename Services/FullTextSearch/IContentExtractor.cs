@@ -1,6 +1,6 @@
 using System;
 
-namespace OoiMRR.Services.FullTextSearch
+namespace YiboFile.Services.FullTextSearch
 {
     /// <summary>
     /// 文件内容提取器接口
@@ -23,3 +23,4 @@ namespace OoiMRR.Services.FullTextSearch
         string[] SupportedExtensions { get; }
     }
 }
+

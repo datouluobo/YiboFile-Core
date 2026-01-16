@@ -7,9 +7,9 @@ using System.Windows.Media;
 using Microsoft.Web.WebView2.Wpf;
 using Microsoft.Web.WebView2.Core;
 using System.Collections.Generic;
-using OoiMRR.Controls;
+using YiboFile.Controls;
 
-namespace OoiMRR.Previews
+namespace YiboFile.Previews
 {
     /// <summary>
     /// PDF文件预览提供者 - 使用PDF.js实现完整的阅读器功能
@@ -347,5 +347,6 @@ namespace OoiMRR.Previews
         }
     }
 }
+
 
 

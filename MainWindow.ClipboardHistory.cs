@@ -1,8 +1,8 @@
 using System.Windows;
 using System.Windows.Controls.Primitives;
-using OoiMRR.Services.ClipboardHistory;
+using YiboFile.Services.ClipboardHistory;
 
-namespace OoiMRR
+namespace YiboFile
 {
     /// <summary>
     /// MainWindow 剪切板历史功能分部类
@@ -69,3 +69,4 @@ namespace OoiMRR
         }
     }
 }
+

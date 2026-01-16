@@ -10,22 +10,22 @@ using System.Windows.Input;
 using System.Windows.Threading;
 using System.Diagnostics;
 using System.IO;
-using OoiMRR.Handlers;
-using HandlerMouseEventHandler = OoiMRR.Handlers.MouseEventHandler;
-using OoiMRR.Services;
-using OoiMRR.Services.FileNotes;
-using OoiMRR.Services.FileOperations;
-using OoiMRR.Services.Navigation;
-using OoiMRR.Services.Search;
-using OoiMRR.Services.Tabs;
+using YiboFile.Handlers;
+using HandlerMouseEventHandler = YiboFile.Handlers.MouseEventHandler;
+using YiboFile.Services;
+using YiboFile.Services.FileNotes;
+using YiboFile.Services.FileOperations;
+using YiboFile.Services.Navigation;
+using YiboFile.Services.Search;
+using YiboFile.Services.Tabs;
 using Microsoft.Extensions.DependencyInjection;
-using OoiMRR.Services.Settings;
-// using OoiMRR.Services.TagTrain; // Phase 2
+using YiboFile.Services.Settings;
+// using YiboFile.Services.TagTrain; // Phase 2
 // using TagTrain.UI; // Phase 2
 using System.Windows.Media;
-using OoiMRR.Services.Core;
+using YiboFile.Services.Core;
 
-namespace OoiMRR
+namespace YiboFile
 {
     public partial class MainWindow
     {
@@ -176,9 +176,9 @@ namespace OoiMRR
             _windowLifecycleHandler = new Handlers.WindowLifecycleHandler(this, _windowStateManager, _configService, _columnService);
 
             // 初始化统一文件操作服务 (新架构) - 逐步迁移中
-            var errorService = App.ServiceProvider.GetRequiredService<OoiMRR.Services.Core.Error.ErrorService>();
-            var undoService = App.ServiceProvider.GetService(typeof(OoiMRR.Services.FileOperations.Undo.UndoService)) as OoiMRR.Services.FileOperations.Undo.UndoService;
-            var taskQueueService = App.ServiceProvider.GetService(typeof(OoiMRR.Services.FileOperations.TaskQueue.TaskQueueService)) as OoiMRR.Services.FileOperations.TaskQueue.TaskQueueService;
+            var errorService = App.ServiceProvider.GetRequiredService<YiboFile.Services.Core.Error.ErrorService>();
+            var undoService = App.ServiceProvider.GetService(typeof(YiboFile.Services.FileOperations.Undo.UndoService)) as YiboFile.Services.FileOperations.Undo.UndoService;
+            var taskQueueService = App.ServiceProvider.GetService(typeof(YiboFile.Services.FileOperations.TaskQueue.TaskQueueService)) as YiboFile.Services.FileOperations.TaskQueue.TaskQueueService;
 
             // 初始化 FileOperationHandler
             _fileOperationHandler = new Handlers.FileOperationHandler(this, undoService);
@@ -388,7 +388,7 @@ namespace OoiMRR
                 (_isDualListMode && _isSecondPaneFocused && _secondTabService != null) ? _secondTabService : _tabService;
 
             // 初始化 KeyboardEventHandler
-            _keyboardEventHandler = new OoiMRR.Handlers.KeyboardEventHandler(
+            _keyboardEventHandler = new YiboFile.Handlers.KeyboardEventHandler(
                 FileBrowser,
                 () => GetActiveContext().browser, // NEW: Active browser delegate
                 getActiveTabService,
@@ -710,3 +710,4 @@ namespace OoiMRR
         }
     }
 }
+

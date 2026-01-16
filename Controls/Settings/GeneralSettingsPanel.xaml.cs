@@ -4,12 +4,12 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using Microsoft.Win32;
-using OoiMRR.Controls;
+using YiboFile.Controls;
 using Forms = System.Windows.Forms;
-using OoiMRR.Services;
-using OoiMRR.Services.Config;
+using YiboFile.Services;
+using YiboFile.Services.Config;
 
-namespace OoiMRR.Controls.Settings
+namespace YiboFile.Controls.Settings
 {
     public partial class GeneralSettingsPanel : UserControl, ISettingsPanel
     {
@@ -1322,4 +1322,5 @@ namespace OoiMRR.Controls.Settings
         }
     }
 }
+
 

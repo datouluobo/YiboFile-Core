@@ -8,12 +8,12 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Documents;
-using OoiMRR.Models.UI;
-using OoiMRR.Controls;
-using OoiMRR.Services.FileOperations.Undo;
-using OoiMRR.Services.UI;
+using YiboFile.Models.UI;
+using YiboFile.Controls;
+using YiboFile.Services.FileOperations.Undo;
+using YiboFile.Services.UI;
 
-namespace OoiMRR.Services
+namespace YiboFile.Services
 {
     /// <summary>
     /// Simplified Drag & Drop Manager using standard WPF mechanisms.
@@ -552,3 +552,4 @@ namespace OoiMRR.Services
         }
     }
 }
+

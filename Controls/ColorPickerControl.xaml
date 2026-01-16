@@ -1,4 +1,4 @@
-<UserControl x:Class="OoiMRR.Controls.ColorPickerControl"
+<UserControl x:Class="YiboFile.Controls.ColorPickerControl"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
@@ -179,3 +179,4 @@
         </Grid>
     </Border>
 </UserControl>
+

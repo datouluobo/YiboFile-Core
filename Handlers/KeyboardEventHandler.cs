@@ -4,11 +4,11 @@ using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Input;
-using OoiMRR.Controls;
-using OoiMRR.Services.Tabs;
-using OoiMRR.Services.Config;
+using YiboFile.Controls;
+using YiboFile.Services.Tabs;
+using YiboFile.Services.Config;
 
-namespace OoiMRR.Handlers
+namespace YiboFile.Handlers
 {
     /// <summary>
     /// 键盘事件处理器
@@ -407,11 +407,11 @@ namespace OoiMRR.Handlers
                 if (_fileBrowser?.FilesSelectedItem is FileSystemItem selectedItem && !selectedItem.IsDirectory)
                 {
                     // 检查 QuickLook 是否安装
-                    if (OoiMRR.Previews.PreviewHelper.IsQuickLookInstalled())
+                    if (YiboFile.Previews.PreviewHelper.IsQuickLookInstalled())
                     {
                         try
                         {
-                            var quickLookPath = OoiMRR.Previews.PreviewHelper.GetQuickLookPath();
+                            var quickLookPath = YiboFile.Previews.PreviewHelper.GetQuickLookPath();
                             if (!string.IsNullOrEmpty(quickLookPath))
                             {
                                 Process.Start(new ProcessStartInfo
@@ -433,4 +433,5 @@ namespace OoiMRR.Handlers
         }
     }
 }
+
 

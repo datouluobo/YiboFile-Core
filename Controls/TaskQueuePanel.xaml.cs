@@ -4,9 +4,9 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Media;
-using OoiMRR.Services.FileOperations.TaskQueue;
+using YiboFile.Services.FileOperations.TaskQueue;
 
-namespace OoiMRR.Controls
+namespace YiboFile.Controls
 {
     public partial class TaskQueuePanel : UserControl
     {
@@ -220,3 +220,4 @@ namespace OoiMRR.Controls
             => throw new NotImplementedException();
     }
 }
+

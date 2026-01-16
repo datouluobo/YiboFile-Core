@@ -4,9 +4,9 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Collections.Generic;
-using OoiMRR.Controls;
+using YiboFile.Controls;
 
-namespace OoiMRR.Previews
+namespace YiboFile.Previews
 {
     /// <summary>
     /// 优化的GIF动画预览（使用WpfAnimatedGif库）
@@ -107,3 +107,4 @@ namespace OoiMRR.Previews
         }
     }
 }
+

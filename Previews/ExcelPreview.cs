@@ -12,9 +12,9 @@ using System.Windows.Media;
 using Microsoft.Web.WebView2.Wpf;
 using System.Xml.Linq;
 using System.Runtime.InteropServices;
-using OoiMRR.Controls;
+using YiboFile.Controls;
 
-namespace OoiMRR.Previews
+namespace YiboFile.Previews
 {
     public class ExcelPreview : IPreviewProvider
     {
@@ -574,3 +574,4 @@ namespace OoiMRR.Previews
         }
     }
 }
+

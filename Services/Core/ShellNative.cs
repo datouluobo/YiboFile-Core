@@ -1,7 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
 
-namespace OoiMRR.Services.Core
+namespace YiboFile.Services.Core
 {
     public static class ShellNative
     {
@@ -51,3 +51,4 @@ namespace OoiMRR.Services.Core
         }
     }
 }
+

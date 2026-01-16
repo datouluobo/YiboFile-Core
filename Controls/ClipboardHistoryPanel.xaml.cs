@@ -2,9 +2,9 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using OoiMRR.Services.ClipboardHistory;
+using YiboFile.Services.ClipboardHistory;
 
-namespace OoiMRR.Controls
+namespace YiboFile.Controls
 {
     /// <summary>
     /// 剪切板历史面板
@@ -82,3 +82,4 @@ namespace OoiMRR.Controls
         }
     }
 }
+

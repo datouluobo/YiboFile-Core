@@ -8,9 +8,9 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Xml;
 using Microsoft.Web.WebView2.Wpf;
-using OoiMRR.Controls;
+using YiboFile.Controls;
 
-namespace OoiMRR.Previews
+namespace YiboFile.Previews
 {
     /// <summary>
     /// SVG预览 - 支持渲染和源码两种视图
@@ -326,3 +326,4 @@ namespace OoiMRR.Previews
         }
     }
 }
+

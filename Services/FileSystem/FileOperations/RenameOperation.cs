@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using OoiMRR;
+using YiboFile;
 
-namespace OoiMRR.Services.FileOperations
+namespace YiboFile.Services.FileOperations
 {
     /// <summary>
     /// 重命名操作
@@ -84,6 +84,7 @@ namespace OoiMRR.Services.FileOperations
         }
     }
 }
+
 
 
 

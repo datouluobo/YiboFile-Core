@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -20,9 +20,9 @@ using System.Text.RegularExpressions;
 using System.Windows.Controls.Primitives;
 using System.Runtime.InteropServices;
 using System.Xml.Linq;
-using OoiMRR.Controls;
+using YiboFile.Controls;
 
-namespace OoiMRR.Previews
+namespace YiboFile.Previews
 {
     /// <summary>
     /// 文档文件预览（DOCX、DOC、PDF、RTF、CHM）
@@ -2144,5 +2144,6 @@ namespace OoiMRR.Previews
 
     }
 }
+
 
 

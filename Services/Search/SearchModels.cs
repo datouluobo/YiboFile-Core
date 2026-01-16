@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace OoiMRR.Services.Search
+namespace YiboFile.Services.Search
 {
     /// <summary>
     /// 搜索结果类型
@@ -171,4 +171,5 @@ namespace OoiMRR.Services.Search
         public string TabPath { get; set; }
     }
 }
+
 

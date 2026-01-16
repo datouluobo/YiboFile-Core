@@ -1,9 +1,9 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using OoiMRR.Services.Search;
+using YiboFile.Services.Search;
 
-namespace OoiMRR.ViewModels
+namespace YiboFile.ViewModels
 {
     /// <summary>
     /// 搜索结果分组视图模型
@@ -76,6 +76,7 @@ namespace OoiMRR.ViewModels
         }
     }
 }
+
 
 
 

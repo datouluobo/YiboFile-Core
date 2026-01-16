@@ -4,7 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 
-namespace OoiMRR.Controls
+namespace YiboFile.Controls
 {
     /// <summary>
     /// TextPreviewToolbar.xaml 的交互逻辑
@@ -255,3 +255,4 @@ namespace OoiMRR.Controls
         #endregion
     }
 }
+

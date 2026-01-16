@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -6,15 +6,15 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
-using OoiMRR.Controls;
-using OoiMRR.Services;
-using OoiMRR.Services.Navigation;
-using OoiMRR.Services.Search;
-using OoiMRR.Services.Core;
-using OoiMRR.Services.Tabs;
+using YiboFile.Controls;
+using YiboFile.Services;
+using YiboFile.Services.Navigation;
+using YiboFile.Services.Search;
+using YiboFile.Services.Core;
+using YiboFile.Services.Tabs;
 using System.Windows.Media;
 
-namespace OoiMRR.Handlers
+namespace YiboFile.Handlers
 {
     /// <summary>
     /// FileBrowser 控件事件处理器
@@ -313,13 +313,13 @@ namespace OoiMRR.Handlers
             switch (filter)
             {
                 case FileTypeFilter.Images:
-                    return !item.IsDirectory && OoiMRR.Services.Search.SearchFilterService.ImageExtensions.Contains(System.IO.Path.GetExtension(item.Path));
+                    return !item.IsDirectory && YiboFile.Services.Search.SearchFilterService.ImageExtensions.Contains(System.IO.Path.GetExtension(item.Path));
                 case FileTypeFilter.Videos:
-                    return !item.IsDirectory && OoiMRR.Services.Search.SearchFilterService.VideoExtensions.Contains(System.IO.Path.GetExtension(item.Path));
+                    return !item.IsDirectory && YiboFile.Services.Search.SearchFilterService.VideoExtensions.Contains(System.IO.Path.GetExtension(item.Path));
                 case FileTypeFilter.Audio:
-                    return !item.IsDirectory && OoiMRR.Services.Search.SearchFilterService.AudioExtensions.Contains(System.IO.Path.GetExtension(item.Path));
+                    return !item.IsDirectory && YiboFile.Services.Search.SearchFilterService.AudioExtensions.Contains(System.IO.Path.GetExtension(item.Path));
                 case FileTypeFilter.Documents:
-                    return !item.IsDirectory && OoiMRR.Services.Search.SearchFilterService.DocumentExtensions.Contains(System.IO.Path.GetExtension(item.Path));
+                    return !item.IsDirectory && YiboFile.Services.Search.SearchFilterService.DocumentExtensions.Contains(System.IO.Path.GetExtension(item.Path));
                 case FileTypeFilter.Folders:
                     return item.IsDirectory;
                 default:
@@ -628,4 +628,5 @@ namespace OoiMRR.Handlers
         }
     }
 }
+
 

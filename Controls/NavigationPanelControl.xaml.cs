@@ -5,7 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 // using TagTrain.UI; // Phase 2
 
-namespace OoiMRR.Controls
+namespace YiboFile.Controls
 {
     /// <summary>
     /// 导航面板控件
@@ -262,3 +262,4 @@ namespace OoiMRR.Controls
         public StackPanel TagBottomButtonsControl => FindName("TagBottomButtons") as StackPanel;
     }
 }
+

@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using OoiMRR.Services.FileOperations.Undo;
+using YiboFile.Services.FileOperations.Undo;
 
-namespace OoiMRR.Services.FileOperations
+namespace YiboFile.Services.FileOperations
 {
     /// <summary>
     /// 删除操作
@@ -130,6 +130,7 @@ namespace OoiMRR.Services.FileOperations
         }
     }
 }
+
 
 
 

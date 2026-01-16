@@ -7,9 +7,9 @@ using System.Windows.Media;
 using Microsoft.Web.WebView2.Wpf;
 using System.Diagnostics;
 using System.Threading.Tasks;
-using OoiMRR.Controls;
+using YiboFile.Controls;
 
-namespace OoiMRR.Previews
+namespace YiboFile.Previews
 {
     /// <summary>
     /// CAD 文件预览（DWG、DXF）
@@ -127,7 +127,7 @@ namespace OoiMRR.Previews
                 if (ext == ".dwg")
                 {
                     // 检查 ODA File Converter 是否已安装
-                    if (!OoiMRR.Services.OdaDownloader.IsInstalled())
+                    if (!YiboFile.Services.OdaDownloader.IsInstalled())
                     {
                         // 显示下载界面
                         ShowOdaDownloadUI(webView, loadingPanel, filePath);
@@ -138,7 +138,7 @@ namespace OoiMRR.Previews
 
                     var convertTask = Task.Run(async () =>
                     {
-                        return await OoiMRR.Services.DwgConverter.ConvertToDxfAsync(filePath);
+                        return await YiboFile.Services.DwgConverter.ConvertToDxfAsync(filePath);
                     });
 
                     if (await Task.WhenAny(convertTask, Task.Delay(TimeSpan.FromSeconds(60))) == convertTask)
@@ -156,7 +156,7 @@ namespace OoiMRR.Previews
 
                 var svgContent = await Task.Run(() =>
                 {
-                    return OoiMRR.Rendering.DxfSvgConverter.ConvertToSvg(dxfFilePath);
+                    return YiboFile.Rendering.DxfSvgConverter.ConvertToSvg(dxfFilePath);
                 });
 
                 // 3. Wrap SVG in HTML for better viewing experience (zoom/pan)
@@ -445,14 +445,14 @@ namespace OoiMRR.Previews
                 try
                 {
                     // 获取缓存的 DXF 文件路径
-                    var cachedDxfPath = OoiMRR.Services.DwgConverter.GetConvertedDxfPath(dwgFilePath);
+                    var cachedDxfPath = YiboFile.Services.DwgConverter.GetConvertedDxfPath(dwgFilePath);
 
                     // 如果缓存不存在，先转换
                     if (!File.Exists(cachedDxfPath))
                     {
                         try
                         {
-                            cachedDxfPath = await OoiMRR.Services.DwgConverter.ConvertToDxfAsync(dwgFilePath);
+                            cachedDxfPath = await YiboFile.Services.DwgConverter.ConvertToDxfAsync(dwgFilePath);
                         }
                         catch (Exception ex)
                         {
@@ -513,6 +513,7 @@ namespace OoiMRR.Previews
 
     }
 }
+
 
 
 

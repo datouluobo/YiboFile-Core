@@ -1,6 +1,6 @@
 using System.Windows.Controls;
 
-namespace OoiMRR.Services.UIHelper
+namespace YiboFile.Services.UIHelper
 {
     /// <summary>
     /// UI 辅助服务接口
@@ -35,6 +35,7 @@ namespace OoiMRR.Services.UIHelper
         void UpdateBreadcrumb(string text);
     }
 }
+
 
 
 

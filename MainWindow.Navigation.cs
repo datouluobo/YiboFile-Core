@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -6,13 +6,13 @@ using System.Threading.Tasks;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
-using OoiMRR.Services;
-using OoiMRR.Services.Navigation;
-using OoiMRR.Models.UI;
+using YiboFile.Services;
+using YiboFile.Services.Navigation;
+using YiboFile.Models.UI;
 
-using OoiMRR.Services.Core;
+using YiboFile.Services.Core;
 
-namespace OoiMRR
+namespace YiboFile
 {
     public partial class MainWindow
     {
@@ -627,3 +627,4 @@ namespace OoiMRR
         #endregion
     }
 }
+

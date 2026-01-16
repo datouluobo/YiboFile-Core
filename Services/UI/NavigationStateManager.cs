@@ -1,7 +1,7 @@
 using System;
-using OoiMRR.Services.Tabs;
+using YiboFile.Services.Tabs;
 
-namespace OoiMRR.Services
+namespace YiboFile.Services
 {
     /// <summary>
     /// 导航状态管理器
@@ -125,4 +125,5 @@ namespace OoiMRR.Services
         }
     }
 }
+
 

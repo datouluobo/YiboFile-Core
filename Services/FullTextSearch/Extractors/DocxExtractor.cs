@@ -3,7 +3,7 @@ using System.IO;
 using System.Text;
 using DocumentFormat.OpenXml.Packaging;
 
-namespace OoiMRR.Services.FullTextSearch.Extractors
+namespace YiboFile.Services.FullTextSearch.Extractors
 {
     /// <summary>
     /// DOCX 文件文本提取器 (使用 OpenXML)
@@ -54,3 +54,4 @@ namespace OoiMRR.Services.FullTextSearch.Extractors
         }
     }
 }
+

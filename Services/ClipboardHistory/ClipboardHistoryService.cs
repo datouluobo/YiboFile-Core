@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 
-namespace OoiMRR.Services.ClipboardHistory
+namespace YiboFile.Services.ClipboardHistory
 {
     /// <summary>
     /// 剪切板内容类型
@@ -311,3 +311,4 @@ namespace OoiMRR.Services.ClipboardHistory
         }
     }
 }
+

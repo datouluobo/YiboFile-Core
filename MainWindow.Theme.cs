@@ -1,7 +1,7 @@
 using System;
 using System.Windows;
 
-namespace OoiMRR
+namespace YiboFile
 {
     public partial class MainWindow
     {
@@ -40,3 +40,4 @@ namespace OoiMRR
         }
     }
 }
+

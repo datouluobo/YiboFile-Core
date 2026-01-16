@@ -4,10 +4,10 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using OoiMRR.Models;
-using OoiMRR.Services.Theming;
+using YiboFile.Models;
+using YiboFile.Services.Theming;
 
-namespace OoiMRR.Windows
+namespace YiboFile.Windows
 {
     /// <summary>
     /// 主题颜色编辑窗口
@@ -315,3 +315,4 @@ namespace OoiMRR.Windows
         }
     }
 }
+

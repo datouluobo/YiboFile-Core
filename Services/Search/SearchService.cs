@@ -4,10 +4,10 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using OoiMRR.Services;
-using OoiMRR.Services.FullTextSearch;
+using YiboFile.Services;
+using YiboFile.Services.FullTextSearch;
 
-namespace OoiMRR.Services.Search
+namespace YiboFile.Services.Search
 {
     /// <summary>
     /// 搜索服务（编排器）
@@ -142,7 +142,7 @@ namespace OoiMRR.Services.Search
             var everythingReady = await EverythingHelper.InitializeAsync();
             if (!everythingReady || !EverythingHelper.IsEverythingRunning())
             {
-                OoiMRR.Services.Core.NotificationService.ShowError("Everything 服务启动失败，无法执行搜索。请检查 Everything 是否安装正确。");
+                YiboFile.Services.Core.NotificationService.ShowError("Everything 服务启动失败，无法执行搜索。请检查 Everything 是否安装正确。");
                 return new SearchResult { Keyword = keyword };
             }
 
@@ -379,4 +379,5 @@ namespace OoiMRR.Services.Search
 
     }
 }
+
 

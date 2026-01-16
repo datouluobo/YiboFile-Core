@@ -14,9 +14,9 @@ using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Drawing;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices;
-using OoiMRR.Controls;
+using YiboFile.Controls;
 
-namespace OoiMRR.Previews
+namespace YiboFile.Previews
 {
     /// <summary>
     /// PowerPoint 文件预览（PPT、PPTX）
@@ -795,4 +795,5 @@ namespace OoiMRR.Previews
         #endregion
     }
 }
+
 

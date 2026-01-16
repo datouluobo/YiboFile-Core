@@ -7,9 +7,9 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Runtime.InteropServices;
-using OoiMRR.Controls;
+using YiboFile.Controls;
 
-namespace OoiMRR.Previews
+namespace YiboFile.Previews
 {
     /// <summary>
     /// 快捷方式文件预览 - 显示链接指向的文件夹和文件
@@ -471,4 +471,5 @@ namespace OoiMRR.Previews
         }
     }
 }
+
 

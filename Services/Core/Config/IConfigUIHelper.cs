@@ -1,9 +1,9 @@
 using System;
 using System.Windows;
 using System.Windows.Controls;
-using OoiMRR.Controls;
+using YiboFile.Controls;
 
-namespace OoiMRR.Services.Config
+namespace YiboFile.Services.Config
 {
     /// <summary>
     /// 配置 UI 辅助接口
@@ -86,4 +86,5 @@ namespace OoiMRR.Services.Config
         void UpdateWindowStateUI();
     }
 }
+
 

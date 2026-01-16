@@ -7,13 +7,13 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using OoiMRR.Controls;
-using OoiMRR.Services;
-using OoiMRR.Services.Core;
-using OoiMRR.Services.Navigation;
+using YiboFile.Controls;
+using YiboFile.Services;
+using YiboFile.Services.Core;
+using YiboFile.Services.Navigation;
 
 
-namespace OoiMRR.Handlers
+namespace YiboFile.Handlers
 {
     /// <summary>
     /// 文件列表事件处理器
@@ -893,4 +893,5 @@ namespace OoiMRR.Handlers
         }
     }
 }
+
 

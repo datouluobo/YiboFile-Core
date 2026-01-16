@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using System.Windows;
-using OoiMRR.Services.Search;
-using OoiMRR.Services.FileNotes;
-using OoiMRR.Services.Tabs;
-using OoiMRR.Services.FullTextSearch;
+using YiboFile.Services.Search;
+using YiboFile.Services.FileNotes;
+using YiboFile.Services.Tabs;
+using YiboFile.Services.FullTextSearch;
 
-namespace OoiMRR
+namespace YiboFile
 {
     public partial class MainWindow
     {
@@ -272,3 +272,4 @@ namespace OoiMRR
         }
     }
 }
+

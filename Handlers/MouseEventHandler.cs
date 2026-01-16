@@ -2,9 +2,9 @@ using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using OoiMRR.Services.Navigation;
+using YiboFile.Services.Navigation;
 
-namespace OoiMRR.Handlers
+namespace YiboFile.Handlers
 {
     /// <summary>
     /// 鼠标事件处理器
@@ -115,6 +115,7 @@ namespace OoiMRR.Handlers
         }
     }
 }
+
 
 
 

@@ -6,7 +6,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows;
 
-namespace OoiMRR.Services
+namespace YiboFile.Services
 {
     public static class OdaDownloader
     {
@@ -144,3 +144,4 @@ namespace OoiMRR.Services
         }
     }
 }
+

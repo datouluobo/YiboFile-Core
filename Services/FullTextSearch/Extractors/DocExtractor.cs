@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
-namespace OoiMRR.Services.FullTextSearch.Extractors
+namespace YiboFile.Services.FullTextSearch.Extractors
 {
     /// <summary>
     /// DOC (旧版 Word) 文件文本提取器
@@ -95,3 +95,4 @@ namespace OoiMRR.Services.FullTextSearch.Extractors
         }
     }
 }
+

@@ -2,7 +2,7 @@ using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 
-namespace OoiMRR.Services.FileOperations.TaskQueue
+namespace YiboFile.Services.FileOperations.TaskQueue
 {
     public class TaskQueueService
     {
@@ -91,3 +91,4 @@ namespace OoiMRR.Services.FileOperations.TaskQueue
         }
     }
 }
+

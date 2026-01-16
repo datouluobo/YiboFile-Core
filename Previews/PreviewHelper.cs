@@ -7,7 +7,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Input;
 
-namespace OoiMRR.Previews
+namespace YiboFile.Previews
 {
     /// <summary>
     /// 预览辅助类 - 提供通用的预览UI创建方法
@@ -643,4 +643,5 @@ namespace OoiMRR.Previews
         }
     }
 }
+
 

@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace OoiMRR.Services.FileOperations.TaskQueue
+namespace YiboFile.Services.FileOperations.TaskQueue
 {
     /// <summary>
     /// 表示文件操作任务的状态
@@ -157,3 +157,4 @@ namespace OoiMRR.Services.FileOperations.TaskQueue
         }
     }
 }
+

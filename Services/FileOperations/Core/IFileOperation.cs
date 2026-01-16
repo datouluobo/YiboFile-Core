@@ -2,7 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace OoiMRR.Services.FileOperations
+namespace YiboFile.Services.FileOperations
 {
     /// <summary>
     /// 文件操作接口 - 所有文件操作的统一抽象
@@ -30,3 +30,4 @@ namespace OoiMRR.Services.FileOperations
         string Description { get; }
     }
 }
+

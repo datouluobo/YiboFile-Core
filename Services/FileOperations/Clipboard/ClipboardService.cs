@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Linq;
 
-namespace OoiMRR.Services.FileOperations
+namespace YiboFile.Services.FileOperations
 {
     /// <summary>
     /// 统一剪贴板服务 - 封装 Windows 系统剪贴板操作
@@ -255,3 +255,4 @@ namespace OoiMRR.Services.FileOperations
         }
     }
 }
+

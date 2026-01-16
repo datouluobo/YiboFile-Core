@@ -1,9 +1,9 @@
 using System;
 using System.Windows;
 using System.Windows.Controls;
-using OoiMRR;
+using YiboFile;
 
-namespace OoiMRR.Services.Tabs
+namespace YiboFile.Services.Tabs
 {
     /// <summary>
     /// 标签页类型枚举
@@ -37,6 +37,7 @@ namespace OoiMRR.Services.Tabs
         public DateTime LastAccessTime { get; set; } = DateTime.Now;
     }
 }
+
 
 
 

@@ -4,7 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media.Animation;
 
-namespace OoiMRR.Controls
+namespace YiboFile.Controls
 {
     /// <summary>
     /// 可折叠的 GridSplitter 控件，支持拖动调整大小和折叠/展开功能
@@ -538,3 +538,4 @@ namespace OoiMRR.Controls
 
     #endregion
 }
+

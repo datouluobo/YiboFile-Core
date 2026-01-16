@@ -2,7 +2,7 @@ using System;
 using System.Windows;
 using System.Windows.Controls;
 
-namespace OoiMRR
+namespace YiboFile
 {
     /// <summary>
     /// MainWindow 驱动器功能
@@ -24,7 +24,7 @@ namespace OoiMRR
             // We ignore 'e' because it might be null or not contain useful info for TreeView wrapper
             if (sender is TreeView treeView)
             {
-                if (treeView.SelectedItem is OoiMRR.Services.Navigation.NavigationItem selectedItem)
+                if (treeView.SelectedItem is YiboFile.Services.Navigation.NavigationItem selectedItem)
                 {
                     if (!string.IsNullOrEmpty(selectedItem.Path))
                     {
@@ -41,7 +41,7 @@ namespace OoiMRR
             {
                 foreach (var item in items)
                 {
-                    if (item is OoiMRR.Services.Navigation.NavigationItem navItem)
+                    if (item is YiboFile.Services.Navigation.NavigationItem navItem)
                     {
                         RecursivelyClearSelection(navItem);
                     }
@@ -49,7 +49,7 @@ namespace OoiMRR
             }
         }
 
-        private void RecursivelyClearSelection(OoiMRR.Services.Navigation.NavigationItem item)
+        private void RecursivelyClearSelection(YiboFile.Services.Navigation.NavigationItem item)
         {
             if (item.IsSelected) item.IsSelected = false;
             foreach (var child in item.Children)
@@ -62,7 +62,7 @@ namespace OoiMRR
         {
             // Handle direct click on TreeViewItem (or content)
             // 'sender' is the TreeViewItem from the EventSetter
-            if (sender is TreeViewItem tvi && tvi.DataContext is OoiMRR.Services.Navigation.NavigationItem navItem)
+            if (sender is TreeViewItem tvi && tvi.DataContext is YiboFile.Services.Navigation.NavigationItem navItem)
             {
                 if (!string.IsNullOrEmpty(navItem.Path))
                 {
@@ -99,7 +99,7 @@ namespace OoiMRR
                 if (e.OriginalSource is DependencyObject obj)
                 {
                     var item = FindAncestor<TreeViewItem>(obj);
-                    if (item != null && item.DataContext is OoiMRR.Services.Navigation.NavigationItem navItem)
+                    if (item != null && item.DataContext is YiboFile.Services.Navigation.NavigationItem navItem)
                     {
                         CreateTab(navItem.Path);
                         e.Handled = true;
@@ -111,3 +111,4 @@ namespace OoiMRR
         #endregion
     }
 }
+

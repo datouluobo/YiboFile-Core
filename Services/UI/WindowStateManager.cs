@@ -1,15 +1,15 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Windows;
-using OoiMRR;
-using OoiMRR.Controls;
-using OoiMRR.Services.Config;
-using OoiMRR.Services.Tabs;
-using OoiMRR.Services.Navigation;
+using YiboFile;
+using YiboFile.Controls;
+using YiboFile.Services.Config;
+using YiboFile.Services.Tabs;
+using YiboFile.Services.Navigation;
 
-namespace OoiMRR.Services
+namespace YiboFile.Services
 {
     /// <summary>
     /// 窗口状态管理器
@@ -86,7 +86,7 @@ namespace OoiMRR.Services
             try
             {
                 // #region agent log
-                var logPath = @"f:\Download\GitHub\OoiMRR\.cursor\debug.log";
+                var logPath = @"f:\Download\GitHub\YiboFile\.cursor\debug.log";
                 try { System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(logPath)); System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "A", location = "WindowStateManager.cs:51", message = "SaveAllState开始", data = new { windowLoaded = _uiHelper?.Window?.IsLoaded ?? false }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
                 // #endregion
 
@@ -111,7 +111,7 @@ namespace OoiMRR.Services
                 // 如果在这里复制，会用启动时的旧_config覆盖用户刚保存的设置！
 
                 // ✅ 使用ConfigurationService统一更新，避免覆盖用户设置
-                OoiMRR.Services.Config.ConfigurationService.Instance.Update(latestConfig =>
+                YiboFile.Services.Config.ConfigurationService.Instance.Update(latestConfig =>
                 {
                     // 窗口尺寸和位置
                     latestConfig.WindowWidth = _config.WindowWidth;
@@ -162,7 +162,7 @@ namespace OoiMRR.Services
             {
                 // 静默处理错误，避免影响程序关闭
                 // #region agent log
-                try { var logPathErr = @"f:\Download\GitHub\OoiMRR\.cursor\debug.log"; System.IO.File.AppendAllText(logPathErr, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "A", location = "WindowStateManager.cs:77", message = "SaveAllState异常", data = new { error = ex.Message, stackTrace = ex.StackTrace }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
+                try { var logPathErr = @"f:\Download\GitHub\YiboFile\.cursor\debug.log"; System.IO.File.AppendAllText(logPathErr, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "A", location = "WindowStateManager.cs:77", message = "SaveAllState异常", data = new { error = ex.Message, stackTrace = ex.StackTrace }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
                 // #endregion
             }
         }
@@ -173,7 +173,7 @@ namespace OoiMRR.Services
         public void SaveWindowState()
         {
             // #region agent log
-            var logPath = @"f:\Download\GitHub\OoiMRR\.cursor\debug.log";
+            var logPath = @"f:\Download\GitHub\YiboFile\.cursor\debug.log";
             try { System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(logPath)); System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "A", location = "WindowStateManager.cs:80", message = "SaveWindowState开始", data = new { windowIsNull = _uiHelper?.Window == null }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
             // #endregion
 
@@ -271,7 +271,7 @@ namespace OoiMRR.Services
         private void SaveSplitterPositions()
         {
             // #region agent log
-            var logPath = @"f:\Download\GitHub\OoiMRR\.cursor\debug.log";
+            var logPath = @"f:\Download\GitHub\YiboFile\.cursor\debug.log";
             try { System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(logPath)); System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "B", location = "WindowStateManager.cs:147", message = "SaveSplitterPositions开始", data = new { rootGridIsNull = _uiHelper?.RootGrid == null, rootGridIsLoaded = _uiHelper?.RootGrid?.IsLoaded ?? false, isInitialized = _isInitialized, isApplyingConfig = _configService?.IsApplyingConfig ?? false }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
             // #endregion
 
@@ -353,7 +353,7 @@ namespace OoiMRR.Services
             {
                 var content = _uiHelper.RightPanelControl.Content as System.Windows.Controls.Grid; // UserControl Content is usually Grid
                                                                                                    // RightPanelControl XAML root is Grid.
-                                                                                                   // But _uiHelper.RightPanelControl IS the OoiMRR.RightPanelControl (UserControl).
+                                                                                                   // But _uiHelper.RightPanelControl IS the YiboFile.RightPanelControl (UserControl).
                                                                                                    // We need checking its Structure. 
                                                                                                    // The UserControl Content property holds the root Grid.
                 if (_uiHelper.RightPanelControl.Content is System.Windows.Controls.Grid rightRootGrid)
@@ -486,7 +486,7 @@ namespace OoiMRR.Services
         private void SaveTabsState()
         {
             // #region agent log
-            var logPath2 = @"f:\Download\GitHub\OoiMRR\.cursor\debug.log";
+            var logPath2 = @"f:\Download\GitHub\YiboFile\.cursor\debug.log";
             try { System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(logPath2)); System.IO.File.AppendAllText(logPath2, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "C", location = "WindowStateManager.cs:278", message = "SaveTabsState开始", data = new { tabServiceIsNull = _tabService == null }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
             // #endregion
 
@@ -785,6 +785,7 @@ namespace OoiMRR.Services
         #endregion
     }
 }
+
 
 
 
