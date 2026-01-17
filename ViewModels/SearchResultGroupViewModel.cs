@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using YiboFile.Models;
 using YiboFile.Services.Search;
 
 namespace YiboFile.ViewModels
@@ -11,12 +12,12 @@ namespace YiboFile.ViewModels
     public class SearchResultGroupViewModel : INotifyPropertyChanged
     {
         private bool _isExpanded = true;
-        
+
         public SearchResultType GroupType { get; set; }
         public string GroupName { get; set; }
         public ObservableCollection<FileSystemItem> Items { get; set; }
         public int ItemCount => Items?.Count ?? 0;
-        
+
         public bool IsExpanded
         {
             get => _isExpanded;
@@ -27,9 +28,9 @@ namespace YiboFile.ViewModels
                 OnPropertyChanged(nameof(ExpandIcon));
             }
         }
-        
+
         public string ExpandIcon => IsExpanded ? "−" : "+";
-        
+
         /// <summary>
         /// 不同类型使用不同的背景色
         /// </summary>
@@ -48,7 +49,7 @@ namespace YiboFile.ViewModels
                 };
             }
         }
-        
+
         public string GroupBorderBrush
         {
             get
@@ -64,12 +65,12 @@ namespace YiboFile.ViewModels
                 };
             }
         }
-        
+
         public string ItemBackground => "#FFFFFF";
         public string ItemBorderBrush => "#E0E0E0";
-        
+
         public event PropertyChangedEventHandler PropertyChanged;
-        
+
         protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));

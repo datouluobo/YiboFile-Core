@@ -331,15 +331,6 @@
                                 </GridViewColumn.CellTemplate>
                             </GridViewColumn>
                             
-                            <!-- Tags and Notes columns with configurable widths -->
-                            <!-- Tags column removed as requested -->
-                            <!--
-                            <GridViewColumn x:Name="ColTags" Width="150" HeaderContainerStyle="{StaticResource NonResizableFileColumnHeaderStyle}" DisplayMemberBinding="{Binding Tags}">
-                                <GridViewColumn.Header>
-                                    <TextBlock Text="标签" Tag="Tags"/>
-                                </GridViewColumn.Header>
-                            </GridViewColumn>
-                            -->
                             <GridViewColumn x:Name="ColNotes" Width="200" HeaderContainerStyle="{StaticResource NonResizableFileColumnHeaderStyle}" DisplayMemberBinding="{Binding Notes}">
                                 <GridViewColumn.Header>
                                     <TextBlock Text="备注" Tag="Notes"/>

@@ -15,7 +15,7 @@ using YiboFile.Services.Search;
 using YiboFile.Services.FileNotes;
 using YiboFile.Services.Tabs;
 using YiboFile.Services.ColumnManagement;
-// using TagTrain.Services; // Phase 2将重新实现标签功能
+using YiboFile.Services.Features;
 using YiboFile.Controls;
 using System.Runtime.InteropServices; // Added for P/Invoke
 
@@ -36,9 +36,9 @@ namespace YiboFile
         public static IServiceProvider ServiceProvider { get; private set; }
 
         /// <summary>
-        /// 标签功能是否可用（Phase 2将实现）
+        /// 标签功能是否可用（由 ITagService 注入情况决定）
         /// </summary>
-        public static bool IsTagTrainAvailable => false;
+        public static bool IsTagTrainAvailable { get; private set; } = false;
 
 
 
@@ -55,7 +55,7 @@ namespace YiboFile
         /// <summary>
         /// 配置依赖注入服务
         /// </summary>
-        private void ConfigureServices(IServiceCollection services)
+        protected virtual void ConfigureServices(IServiceCollection services)
         {
             // 注册核心服务
             services.AddSingleton<AppConfig>(provider => ConfigManager.Load() ?? new AppConfig());
@@ -114,10 +114,16 @@ namespace YiboFile
             // ViewModels / Windows (Optional, if we want to inject MainWindow)
             // services.AddTransient<MainWindow>();
 
+            // TagService 注册逻辑已移除，由子类 (ProApp/UltraApp) 负责注册
+
             // UI Logic Services
             services.AddTransient<TabService>();
             services.AddTransient<ColumnService>();
+
+            // Register Dispatcher
+            services.AddSingleton(System.Windows.Application.Current.Dispatcher);
         }
+
 
         protected override void OnStartup(StartupEventArgs e)
         {
@@ -218,8 +224,18 @@ namespace YiboFile
                     FileLogger.LogException("Failed to apply theme", ex);
                 }
 
-                // 标签功能已移除，将在 Phase 2 重新实现
-                FileLogger.Log("Tag features disabled, will be reimplemented in Phase 2.");
+                // 初始化标签数据（如果可用）
+                var tagService = ServiceProvider.GetService<ITagService>();
+                if (tagService != null)
+                {
+                    FileLogger.Log("ITagService found, enabling tag features.");
+                    IsTagTrainAvailable = true;
+                }
+                else
+                {
+                    FileLogger.Log("Tag features disabled (ITagService not registered).");
+                    IsTagTrainAvailable = false;
+                }
 
                 // 清理过期的 CHM 缓存
                 Task.Run(() =>

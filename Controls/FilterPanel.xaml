@@ -12,8 +12,8 @@
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="/Styles/AppStyles.xaml"/>
-                <ResourceDictionary Source="/Themes/Light.xaml"/>
+                <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/AppStyles.xaml"/>
+                <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Themes/Light.xaml"/>
             </ResourceDictionary.MergedDictionaries>
 
             <!-- 复用/定义的 FilterChipStyle -->

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Threading;
+using YiboFile.Models;
 using YiboFile.Services.FileNotes;
 using YiboFile.Services.FileSystem;
 using YiboFile.Services.Core;
@@ -531,7 +532,7 @@ namespace YiboFile.Services.FileList
         /// <param name="orderTagNames">标签排序函数（可选）</param>
         /// <param name="cancellationToken">取消令牌（可选）</param>
         public async Task EnrichMetadataAsync(
-            IEnumerable<FileSystemItem> items,
+            IEnumerable<YiboFile.Models.FileSystemItem> items,
             Func<List<int>, List<string>> orderTagNames = null,
             CancellationToken cancellationToken = default)
         {
@@ -900,6 +901,49 @@ namespace YiboFile.Services.FileList
             }
 
             return files;
+        }
+
+        /// <summary>
+        /// 根据路径创建单个文件系统项（支持文件和文件夹）
+        /// </summary>
+        public FileSystemItem CreateFileSystemItem(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return null;
+
+            if (System.IO.Directory.Exists(path))
+            {
+                var dirInfo = new System.IO.DirectoryInfo(path);
+                return new FileSystemItem
+                {
+                    Name = System.IO.Path.GetFileName(path),
+                    Path = path,
+                    Type = "文件夹",
+                    Size = FormatFileSize(DatabaseManager.GetFolderSize(path) ?? 0),
+                    ModifiedDate = dirInfo.LastWriteTime.ToString("yyyy-MM-dd"),
+                    CreatedTime = FileSystemItem.FormatTimeAgo(dirInfo.CreationTime),
+                    IsDirectory = true,
+                    ModifiedDateTime = dirInfo.LastWriteTime,
+                    CreatedDateTime = dirInfo.CreationTime
+                };
+            }
+            else if (System.IO.File.Exists(path))
+            {
+                var fileInfo = new System.IO.FileInfo(path);
+                return new FileSystemItem
+                {
+                    Name = GetDisplayFileName(path, ShowFullFileName),
+                    Path = path,
+                    Type = !string.IsNullOrEmpty(fileInfo.Extension) ? fileInfo.Extension : "文件",
+                    Size = FormatFileSize(fileInfo.Length),
+                    ModifiedDate = fileInfo.LastWriteTime.ToString("yyyy-MM-dd"),
+                    CreatedTime = FileSystemItem.FormatTimeAgo(fileInfo.CreationTime),
+                    IsDirectory = false,
+                    SizeBytes = fileInfo.Length,
+                    ModifiedDateTime = fileInfo.LastWriteTime,
+                    CreatedDateTime = fileInfo.CreationTime
+                };
+            }
+            return null;
         }
 
         #endregion

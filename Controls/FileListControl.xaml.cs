@@ -18,6 +18,7 @@ using YiboFile.ViewModels;
 using YiboFile.Services.Search;
 using YiboFile.Services.ColumnManagement;
 using YiboFile.Services.UI;
+using YiboFile.Models;
 
 namespace YiboFile.Controls
 {
@@ -32,7 +33,6 @@ namespace YiboFile.Controls
         private LassoSelectionBehavior _lassoSelectionBehavior;
 
         // 配置缓存
-        private double _cachedTagsWidth = 150;
         private double _cachedNotesWidth = 200;
 
         // 事件定义
@@ -146,7 +146,6 @@ namespace YiboFile.Controls
 
             // 加载并缓存配置
             var config = ConfigManager.Load();
-            _cachedTagsWidth = config.ColTagsWidth;
             _cachedNotesWidth = config.ColNotesWidth;
 
             // 延迟调整名称列宽度并禁用横向滚动条
@@ -608,7 +607,6 @@ namespace YiboFile.Controls
                 "Type" => 2,
                 "ModifiedDate" => 3,
                 "CreatedTime" => 4,
-                "Tags" => 5,
                 "Notes" => 6,
                 _ => -1
             };

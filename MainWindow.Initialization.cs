@@ -1,4 +1,5 @@
 using System;
+using YiboFile.Models;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -474,11 +475,25 @@ namespace YiboFile
                 NavigationPanelControl.AddFavoriteClick += AddFavorite_Click;
                 // NavigationPanelControl.AddTagToFileClick += AddTagToFile_Click; // Phase 2
                 NavigationPanelControl.LibraryManageClick += ManageLibraries_Click;
+                NavigationPanelControl.LibraryManageClick += ManageLibraries_Click;
                 // NavigationPanelControl.LibraryRefreshClick
-                // Tag panel event subscriptions removed - Phase 2
+
+                // Tag panel event subscriptions combined - Phase 2 restored
                 // NavigationPanelControl.TagClickModeClick += TagClickModeBtn_Click;
                 // NavigationPanelControl.TagCategoryManageClick += TagCategoryManageBtn_Click;
-                // NavigationPanelControl.TagBrowsePanelTagClicked += TagBrowsePanel_TagClicked;
+                if (NavigationPanelControl.TagBrowsePanelControl != null)
+                {
+                    NavigationPanelControl.TagBrowsePanelControl.TagClicked += OnTagSelected;
+                }
+
+                // Initialize NavTagBtn visibility
+                // Check if Tag Service is available (Pro feature)
+                if (App.IsTagTrainAvailable)
+                {
+                    var navTagBtn = this.FindName("NavTagBtn") as Button;
+                    if (navTagBtn != null) navTagBtn.Visibility = Visibility.Visible;
+                }
+
                 // NavigationPanelControl.TagEditPanelTagClicked += TagEditPanel_TagClicked;
             }
 

@@ -22,12 +22,7 @@ namespace YiboFile.Controls
         public event ContextMenuEventHandler LibrariesListBoxContextMenuOpening;
         public event MouseButtonEventHandler LibrariesListBoxPreviewMouseDown;
         public event RoutedEventHandler AddFavoriteClick;
-        public event RoutedEventHandler AddTagToFileClick;
         public event RoutedEventHandler LibraryManageClick;
-        // public event RoutedEventHandler LibraryRefreshClick; // Removed unused event
-        public event RoutedEventHandler TagClickModeClick;
-        public event RoutedEventHandler TagCategoryManageClick;
-        // Tag events removed - Phase 2
         // public event Action<string, bool> TagBrowsePanelTagClicked;
         // public event Action TagBrowsePanelCategoryManagementRequested;
         // public event Action<string, bool> TagEditPanelTagClicked; // Phase 2
@@ -207,11 +202,6 @@ namespace YiboFile.Controls
                 addFavoriteButton.Click += (s, e) => AddFavoriteClick?.Invoke(s, e);
             }
 
-            var addTagToFileButton = FindName("AddTagToFileButton") as Button;
-            if (addTagToFileButton != null)
-            {
-                addTagToFileButton.Click += (s, e) => AddTagToFileClick?.Invoke(s, e);
-            }
 
             var libraryManageBtn = FindName("LibraryManageBtn") as Button;
             if (libraryManageBtn != null)
@@ -220,23 +210,16 @@ namespace YiboFile.Controls
             }
 
 
-            var tagClickModeBtn = FindName("TagClickModeBtn") as Button;
-            if (tagClickModeBtn != null)
-            {
-                tagClickModeBtn.Click += (s, e) => TagClickModeClick?.Invoke(s, e);
-            }
-
-            var tagCategoryManageBtn = FindName("TagCategoryManageBtn") as Button;
-            if (tagCategoryManageBtn != null)
-            {
-                tagCategoryManageBtn.Click += (s, e) => TagCategoryManageClick?.Invoke(s, e);
-            }
 
             // TagPanel 事件
-            // Tag panel initialization removed - Phase 2
-            // var tagBrowsePanel = TagBrowsePanelControl;
-            // if (tagBrowsePanel != null)
-            // {...}
+            // Tag panel initialization - Phase 2 restored
+            var tagBrowsePanel = TagBrowsePanelControl;
+            if (tagBrowsePanel != null)
+            {
+                // Proxy TagClicked event
+                // tagBrowsePanel.TagClicked += (id, name) => TagBrowsePanelTagClicked?.Invoke(id, name);
+                // tagBrowsePanel.ManagementRequested += (s, e) => TagBrowsePanelCategoryManagementRequested?.Invoke();
+            }
 
             // Tag edit panel initialization removed - Phase 2
             // var tagEditPanel = TagEditPanelControl;
@@ -252,14 +235,13 @@ namespace YiboFile.Controls
         public ContextMenu LibraryContextMenuControl => FindName("LibraryContextMenu") as ContextMenu;
         public Grid NavPathContentControl => FindName("NavPathContent") as Grid;
         public Grid NavLibraryContentControl => FindName("NavLibraryContent") as Grid;
-        public Grid NavTagContentControl => FindName("NavTagContent") as Grid;
-        // TagBrowsePanelControl removed - Phase 2
-        // public TagPanel TagBrowsePanelControl => FindName("TagBrowsePanel") as TagPanel;
-        // public TagPanel TagEditPanelControl => FindName("TagEditPanel") as TagPanel; // Phase 2
         public StackPanel LibraryBottomButtonsControl => FindName("LibraryBottomButtons") as StackPanel;
 
+        // Tag Panel
+        public TagBrowsePanel TagBrowsePanelControl => FindName("TagBrowsePanelElement") as TagBrowsePanel;
+        public Grid NavTagContentControl => FindName("NavTagContent") as Grid;
 
-        public StackPanel TagBottomButtonsControl => FindName("TagBottomButtons") as StackPanel;
+
     }
 }
 

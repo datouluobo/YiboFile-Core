@@ -57,16 +57,9 @@
                           FontWeight="Bold">
                 <ToggleButton.Style>
                     <Style TargetType="ToggleButton">
-                        <!-- 默认状态：文件名搜索 -->
-                        <Setter Property="Content" Value="名"/>
-                        <Setter Property="ToolTip" Value="切换搜索模式：文件名 (默认) / 全文内容"/>
                         <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
-                        
                         <Style.Triggers>
-                            <!-- 选中状态：全文搜索 -->
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter Property="Content" Value="文"/>
-                                <Setter Property="ToolTip" Value="当前模式：全文搜索 (再次点击切换回文件名搜索)"/>
                                 <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}"/>
                             </Trigger>
                         </Style.Triggers>

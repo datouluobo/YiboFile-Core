@@ -101,5 +101,8 @@
     <RemoveDir Directories="$(OutputPath)libvlc" />
   </Target>
   
-  </Project>
+
+</Project>
+
+
 

@@ -39,6 +39,7 @@ using System.Text.Json;
 using System.Text;
 
 using YiboFile.Models.UI;
+using YiboFile.Models;
 
 namespace YiboFile
 {
@@ -81,6 +82,7 @@ namespace YiboFile
         private Services.FileInfo.FileInfoService _fileInfoService;
         private Services.FileInfo.FileInfoService _secondFileInfoService;
         internal Services.Archive.ArchiveService _archiveService; // ARCHIVE SERVICE
+        internal Services.Features.ITagService _tagService;
 
         private Services.FileNotes.FileNotesUIHandler _fileNotesUIHandler;
 
@@ -244,7 +246,81 @@ namespace YiboFile
 
             // 立即更新一次
             UpdateTabManagerMargin();
+
+            // 标签服务将通过依赖注入获取接口实现
+            _tagService = App.ServiceProvider?.GetService<YiboFile.Services.Features.ITagService>();
+            // LoadTagsToSidebar(); // Phase 2 - 标签 UI 控件已移至 Pro 模块
         }
+
+        private void NavTagBtn_Click(object sender, RoutedEventArgs e)
+        {
+            _navigationModeService.SwitchNavigationMode("Tag");
+        }
+
+        private void OnTagSelected(int tagId, string tagName)
+        {
+            // 切换到标签模式（如果尚未切换）
+            if (GetCurrentModeKey() != "Tag")
+            {
+                _navigationModeService.SwitchNavigationMode("Tag");
+            }
+
+            // 使用搜索服务或文件列表服务来显示标签关联的文件
+            //目前简单实现：搜索 tag:tagName
+            // TODO: 更完善的标签筛选实现
+
+            // 为了演示，我们构造一个特殊的搜索
+            // _searchOptions.Keyword = $"tag:{tagName}";
+            // _searchOptions.SearchScope = Services.Search.SearchScope.All; // 或者专门的 Tag Scope
+
+            // 触发搜索
+            // 这里可能需要一种方式来告诉 FileBrowser 显示搜索结果而不进入搜索模式 UI
+            // 或者直接加载文件列表
+
+            LoadFilesByTag(tagId, tagName);
+        }
+
+        private async void LoadFilesByTag(int tagId, string tagName)
+        {
+            ShowEmptyStateMessage("正在加载标签文件...");
+            try
+            {
+                if (_tagService == null) return;
+                var files = _tagService.GetFilesByTag(tagId);
+
+                var items = new List<FileSystemItem>();
+                foreach (var file in files)
+                {
+                    if (File.Exists(file))
+                    {
+                        // 简单的 FileSystemItem 创建，可能缺少图标等详细信息
+                        // 实际应使用 FileSystemItemFactory
+                        items.Add(new FileSystemItem
+                        {
+                            Path = file,
+                            Name = System.IO.Path.GetFileName(file),
+                            IsDirectory = false
+                        });
+                    }
+                }
+
+                FileBrowser.FilesItemsSource = items;
+
+                if (items.Count == 0)
+                {
+                    ShowEmptyStateMessage($"标签 \"{tagName}\" 下没有文件");
+                }
+                else
+                {
+                    HideEmptyStateMessage();
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowEmptyStateMessage($"加载失败: {ex.Message}");
+            }
+        }
+
 
         private void UpdateTabManagerMargin()
         {
@@ -372,9 +448,9 @@ namespace YiboFile
                 // 等待 UI 更新
                 await Task.Delay(100);
                 var (files, isCut) = await YiboFile.Services.FileOperations.ClipboardService.Instance.GetPathsFromClipboardAsync();
-                if (isCut && files.Count > 0)
+                if (files != null && files.Count > 0)
                 {
-                    UpdateCutItemsVisualState(files);
+                    UpdateCutItemsVisualState(files.ToList().AsReadOnly());
                 }
             }, System.Windows.Threading.DispatcherPriority.Loaded);
         }
@@ -644,8 +720,8 @@ namespace YiboFile
         {
             var (browser, _, _) = GetActiveContext();
             if (browser?.FilesSelectedItems == null) return;
-            var items = browser.FilesSelectedItems.Cast<FileSystemItem>().ToList();
-            var paths = items.Select(i => i.Path);
+            var items = browser.FilesSelectedItems.Cast<YiboFile.Models.FileSystemItem>().ToList();
+            var paths = items.Select(i => i.Path).ToList();
             await _fileOperationService.CopyAsync(paths);
             Services.Core.NotificationService.ShowSuccess($"已复制 {items.Count} 个项目");
         }
@@ -657,8 +733,8 @@ namespace YiboFile
         {
             var (browser, _, _) = GetActiveContext();
             if (browser?.FilesSelectedItems == null) return;
-            var items = browser.FilesSelectedItems.Cast<FileSystemItem>().ToList();
-            var paths = items.Select(i => i.Path);
+            var items = browser.FilesSelectedItems.Cast<YiboFile.Models.FileSystemItem>().ToList();
+            var paths = items.Select(i => i.Path).ToList();
             await _fileOperationService.CutAsync(paths);
             Services.Core.NotificationService.ShowSuccess($"已剪切 {items.Count} 个项目");
         }
@@ -680,7 +756,7 @@ namespace YiboFile
         {
             var (browser, _, _) = GetActiveContext();
             if (browser?.FilesSelectedItems == null) return;
-            var items = browser.FilesSelectedItems.Cast<FileSystemItem>().ToList();
+            var items = browser.FilesSelectedItems.Cast<YiboFile.Models.FileSystemItem>().ToList();
 
             // 先清除选择，释放文件句柄
             if (browser?.FilesList != null)

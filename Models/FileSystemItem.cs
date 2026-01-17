@@ -1,8 +1,12 @@
 using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using YiboFile.Models;
 
-namespace YiboFile
+namespace YiboFile.Models
 {
     public class FileSystemItem : INotifyPropertyChanged
     {
@@ -13,6 +17,22 @@ namespace YiboFile
         public string ModifiedDate { get; set; }
         public string CreatedTime { get; set; }
         public string Tags { get; set; }
+
+        private List<TagViewModel> _tagList;
+        public List<TagViewModel> TagList
+        {
+            get => _tagList;
+            set
+            {
+                _tagList = value;
+                OnPropertyChanged(nameof(TagList));
+            }
+        }
+
+        public void NotifyTagsChanged()
+        {
+            OnPropertyChanged(nameof(TagList));
+        }
         public string Notes { get; set; }
         // Metadata
         public int PixelWidth { get; set; } // 0 if N/A

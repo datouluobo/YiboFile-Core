@@ -7,6 +7,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
 using YiboFile.Controls.Converters;
+using YiboFile.Models;
 using YiboFile.Services.Search;
 
 namespace YiboFile.Controls

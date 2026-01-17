@@ -410,13 +410,14 @@ namespace YiboFile
             NavigateToImageIndexRequested?.Invoke(this, -1);
         }
 
+
         public event EventHandler<double> NotesHeightChanged;
 
         private void GridSplitter_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
         {
-            if (this.Content is Grid rootGrid && rootGrid.RowDefinitions.Count > 3)
+            if (this.Content is Grid rootGrid && rootGrid.RowDefinitions.Count > 4)
             {
-                var height = rootGrid.RowDefinitions[3].Height.Value;
+                var height = rootGrid.RowDefinitions[4].Height.Value;
                 NotesHeightChanged?.Invoke(this, height);
             }
         }

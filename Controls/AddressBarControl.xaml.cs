@@ -30,6 +30,7 @@ namespace YiboFile.Controls
         public AddressBarControl()
         {
             InitializeComponent();
+            UpdateSearchModeUI();
         }
 
         public string AddressText
@@ -705,8 +706,25 @@ namespace YiboFile.Controls
 
         private void SearchModeToggle_Click(object sender, RoutedEventArgs e)
         {
+            UpdateSearchModeUI();
             // UI更新由XAML Trigger处理，这里只需确保焦点回到输入框
             AddressTextBox.Focus();
+        }
+
+        private void UpdateSearchModeUI()
+        {
+            if (SearchModeToggle == null) return;
+
+            if (SearchModeToggle.IsChecked == true)
+            {
+                SearchModeToggle.Content = "文";
+                SearchModeToggle.ToolTip = "当前模式：全文搜索 (再次点击切换回文件名搜索)";
+            }
+            else
+            {
+                SearchModeToggle.Content = "名";
+                SearchModeToggle.ToolTip = "切换搜索模式：文件名 (默认) / 全文内容";
+            }
         }
 
         // 极速剪贴板操作（无延迟，直接操作）

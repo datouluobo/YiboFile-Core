@@ -12,21 +12,16 @@
             <!-- 行1：预览区 -->
             <RowDefinition Height="*"/>
             <!-- 行2：分割器 -->
-            <RowDefinition Height="12"/>
-            <!-- 行3：备注区 -->
+            <RowDefinition Height="Auto"/>
+            <!-- 行4：备注区 -->
             <RowDefinition Height="200" MinHeight="120"/>
         </Grid.RowDefinitions>
         
         <!-- 行0：标题栏（占位，与列2工具栏对齐） -->
         <Border Grid.Row="0" Height="50" Background="Transparent" IsHitTestVisible="False"/>
         
-        <!-- 预览区与备注区之间的水平分割器 -->
-        <controls:CollapsibleGridSplitter Grid.Row="2" 
-                      Style="{StaticResource HorizontalCollapsibleGridSplitterStyle}"
-                      CollapseMode="Both"
-                      HorizontalAlignment="Stretch"
-                      AutoFillNeighbor="True"
-                      DragCompleted="GridSplitter_DragCompleted"/>
+        <!-- 预览区下方分割线 -->
+        <Border Grid.Row="2" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1"/>
         
         <!-- 行1：预览区 - 保持原有预览功能，图片时使用TagTrain样式 -->
         <Border Grid.Row="1" Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1">
@@ -104,8 +99,9 @@
             </Grid>
         </Border>
         
-        <!-- 行3：备注区 -->
-        <Border Grid.Row="3" Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0">
+
+        <!-- 行4：备注区 -->
+        <Border Grid.Row="4" Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,1,0,0">
             <TextBox Name="NotesTextBox" Padding="8,4,8,4" 
                      AcceptsReturn="True" 
                      TextWrapping="Wrap"

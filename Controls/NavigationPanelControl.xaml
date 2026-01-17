@@ -394,11 +394,12 @@
                     </ListBox>
                 </ScrollViewer>
             </Grid>
-            
-            <!-- 标签导航内容：Phase 2将重新实现 -->
+
+            <!-- 标签导航内容 -->
             <Grid Name="NavTagContent" Margin="8" Visibility="Collapsed">
-                <!-- TagPanel controls removed -->
+                 <local:TagBrowsePanel x:Name="TagBrowsePanelElement"/>
             </Grid>
+            
         </Grid>
         
         <!-- 底部按钮区：系统按钮 + 标签页面按钮 + 库管理按钮 -->
@@ -411,8 +412,6 @@
                 
                 <!-- 左侧：添加收藏/标签按钮 -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Left" Margin="8,8">
-                    <Button Content="{DynamicResource Icon_Nav_Tag}" FontFamily="{DynamicResource IconFontFamily}" Name="AddTagToFileButton" Width="32" Height="32"
-                            Style="{StaticResource ModernButtonStyle}" ToolTip="添加标签" Margin="0,0,4,0"/>
                 </StackPanel>
                 
                 <!-- 右侧：库管理按钮（仅在库模式显示）+ 标签页面按钮（仅在标签页面显示） -->
@@ -429,23 +428,6 @@
                                Margin="4,0"/>
                     </StackPanel>
                     
-                    <!-- 标签页面按钮 -->
-                    <StackPanel Orientation="Horizontal" Visibility="Collapsed" Name="TagBottomButtons">
-                        <Button Name="TagClickModeBtn"
-                               Content="{DynamicResource Icon_OpenExternal}"
-                               FontFamily="{DynamicResource IconFontFamily}"
-                               Width="32" Height="32"
-                               Style="{StaticResource ModernButtonStyle}"
-                               ToolTip="切换浏览/编辑模式"
-                               Margin="4,0"/>
-                        <Button Name="TagCategoryManageBtn"
-                               Content="{DynamicResource Icon_Nav_Library}"
-                               FontFamily="{DynamicResource IconFontFamily}"
-                               Width="32" Height="32"
-                               Style="{StaticResource ModernButtonStyle}"
-                               ToolTip="分组管理"
-                               Margin="4,0"/>
-                    </StackPanel>
                 </StackPanel>
             </Grid>
         </Border>

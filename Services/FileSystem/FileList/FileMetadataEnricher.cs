@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Threading;
+using YiboFile.Models;
 using YiboFile.Services.FileNotes;
 
 namespace YiboFile.Services.FileList

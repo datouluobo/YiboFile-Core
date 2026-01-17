@@ -94,6 +94,8 @@ namespace YiboFile
             command.CommandText = createFileNotesFts;
             command.ExecuteNonQuery();
 
+            // 标签系统表已移至 Pro 模块初始化
+
             // 文件备注 FTS 表同步已移至 Services/FileNotes/FileNotesService.cs
             // 首次搜索时会自动同步
 

@@ -13,6 +13,7 @@ using YiboFile.Controls;
 using YiboFile.Services;
 using YiboFile.Services.ColumnManagement;
 using YiboFile.Services.FileList;
+using YiboFile.Models;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace YiboFile.ViewModels
