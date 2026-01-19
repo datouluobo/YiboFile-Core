@@ -50,7 +50,7 @@ namespace YiboFile.Controls.Settings
             };
             manageBtn.Click += (s, e) =>
             {
-                var win = new LibraryManagementWindow();
+                var win = new YiboFile.Windows.NavigationSettingsWindow("Library");
                 win.Owner = Window.GetWindow(this);
                 win.ShowDialog();
             };

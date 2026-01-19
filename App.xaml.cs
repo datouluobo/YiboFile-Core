@@ -114,7 +114,8 @@ namespace YiboFile
             // ViewModels / Windows (Optional, if we want to inject MainWindow)
             // services.AddTransient<MainWindow>();
 
-            // TagService 注册逻辑已移除，由子类 (ProApp/UltraApp) 负责注册
+            // 注册标签服务 (Core Implementation)
+            services.AddSingleton<ITagService, TagService>();
 
             // UI Logic Services
             services.AddTransient<TabService>();

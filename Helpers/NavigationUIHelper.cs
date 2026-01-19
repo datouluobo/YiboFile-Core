@@ -33,7 +33,15 @@ namespace YiboFile.Helpers
 
         public IEnumerable GetFavoritesListItems()
         {
-            return _mainWindow.FavoritesListBox?.Items;
+            var folderItems = _mainWindow.NavigationPanelControl.FolderFavoritesListBoxControl?.Items;
+            var fileItems = _mainWindow.NavigationPanelControl.FileFavoritesListBoxControl?.Items;
+
+            if (folderItems == null && fileItems == null) return null;
+
+            var list = new System.Collections.Generic.List<object>();
+            if (folderItems != null) foreach (var item in folderItems) list.Add(item);
+            if (fileItems != null) foreach (var item in fileItems) list.Add(item);
+            return list;
         }
 
         public IEnumerable GetLibrariesListItems()
@@ -66,14 +74,31 @@ namespace YiboFile.Helpers
                     listBox = _mainWindow.QuickAccessListBox;
                     break;
                 case "Favorites":
-                    listBox = _mainWindow.FavoritesListBox;
+                case "FolderFavorites":
+                    // 先尝试文件夹收藏
+                    listBox = _mainWindow.NavigationPanelControl.FolderFavoritesListBoxControl;
+                    HighlightItemInListBox(listBox, item, highlight);
+
+                    // 再尝试文件收藏 (如果传入的是Favorites泛型)
+                    listBox = _mainWindow.NavigationPanelControl.FileFavoritesListBoxControl;
+                    HighlightItemInListBox(listBox, item, highlight);
+                    return; // 已处理
+                case "FileFavorites":
+                    listBox = _mainWindow.NavigationPanelControl.FileFavoritesListBoxControl;
                     break;
                 case "Library":
                     listBox = _mainWindow.LibrariesListBox;
                     break;
             }
 
-            if (listBox == null || item == null) return;
+            if (listBox != null)
+            {
+                HighlightItemInListBox(listBox, item, highlight);
+            }
+        }
+
+        private void HighlightItemInListBox(ListBox listBox, object item, bool highlight)
+        {
 
             try
             {
@@ -133,21 +158,35 @@ namespace YiboFile.Helpers
             switch (listType)
             {
                 case "QuickAccess":
-                    listBox = _mainWindow.QuickAccessListBox;
+                    ClearListBox(_mainWindow.QuickAccessListBox);
                     break;
                 case "Favorites":
-                    listBox = _mainWindow.FavoritesListBox;
+                    ClearListBox(_mainWindow.NavigationPanelControl.FolderFavoritesListBoxControl);
+                    ClearListBox(_mainWindow.NavigationPanelControl.FileFavoritesListBoxControl);
                     break;
                 case "Library":
-                    listBox = _mainWindow.LibrariesListBox;
+                    ClearListBox(_mainWindow.LibrariesListBox);
                     break;
             }
+        }
 
+        private void ClearListBox(ListBox listBox)
+        {
             if (listBox == null || listBox.Items == null) return;
 
             foreach (var item in listBox.Items)
             {
-                SetItemHighlight(listType, item, false);
+                SetItemHighlight("", item, false); // listType is ignored inside for loop logic above? No, wait.
+                                                   // The original logic called SetItemHighlight(listType, item, false). 
+                                                   // But SetItemHighlight uses listType to find the listbox again.
+                                                   // We should refactor to pass the container or just reset the tag directly here or call UpdateContainerTag.
+
+                try
+                {
+                    var container = listBox.ItemContainerGenerator.ContainerFromItem(item) as ListBoxItem;
+                    if (container != null) UpdateContainerTag(container, false);
+                }
+                catch { }
             }
         }
 

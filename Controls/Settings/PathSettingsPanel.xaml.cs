@@ -1,63 +1,109 @@
 using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using YiboFile.Controls;
+using YiboFile.Services.Config;
 
 namespace YiboFile.Controls.Settings
 {
-#pragma warning disable CS0067 // 事件从未使用，但接口要求
     public partial class PathSettingsPanel : UserControl, ISettingsPanel
     {
         public event EventHandler SettingsChanged;
-#pragma warning restore CS0067
-        
+
+        public class SectionItem
+        {
+            public string Key { get; set; }
+            public string DisplayName { get; set; }
+        }
+
+        private ObservableCollection<SectionItem> _sections = new ObservableCollection<SectionItem>();
+        private bool _isInitialized = false;
+
         public PathSettingsPanel()
         {
             InitializeComponent();
+            SectionsListBox.ItemsSource = _sections;
             LoadSettings();
-        }
-
-        private void InitializeComponent()
-        {
-            var stackPanel = new StackPanel { Margin = new Thickness(0) };
-            
-            var titleText = new TextBlock
-            {
-                Text = "路径设置",
-                FontSize = 16,
-                FontWeight = FontWeights.Bold,
-                Margin = new Thickness(0, 0, 0, 15)
-            };
-            stackPanel.Children.Add(titleText);
-            
-            var placeholderText = new TextBlock
-            {
-                Text = "路径相关设置功能即将推出...",
-                Foreground = System.Windows.Media.Brushes.Gray,
-                FontStyle = FontStyles.Italic,
-                Margin = new Thickness(0, 0, 0, 15)
-            };
-            stackPanel.Children.Add(placeholderText);
-            
-            var scrollViewer = new ScrollViewer
-            {
-                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-                Content = stackPanel
-            };
-            
-            Content = scrollViewer;
+            _isInitialized = true;
         }
 
         public void LoadSettings()
         {
-            // 加载路径设置
+            var order = ConfigurationService.Instance.Get(c => c.NavigationSectionsOrder);
+            if (order == null || order.Count == 0)
+            {
+                order = new List<string> { "QuickAccess", "Drives", "FolderFavorites", "FileFavorites" };
+            }
+
+            var safeKeys = new HashSet<string> { "QuickAccess", "Drives", "FolderFavorites", "FileFavorites" };
+
+            _sections.Clear();
+            foreach (var key in order)
+            {
+                if (safeKeys.Contains(key))
+                {
+                    _sections.Add(new SectionItem { Key = key, DisplayName = GetDisplayName(key) });
+                }
+            }
+
+            // Ensure all known sections are present (in case config is old)
+            var allKeys = new[] { "QuickAccess", "Drives", "FolderFavorites", "FileFavorites" };
+            foreach (var key in allKeys)
+            {
+                if (!_sections.Any(s => s.Key == key))
+                {
+                    _sections.Add(new SectionItem { Key = key, DisplayName = GetDisplayName(key) });
+                }
+            }
+        }
+
+        private string GetDisplayName(string key)
+        {
+            switch (key)
+            {
+                case "QuickAccess": return "快速访问";
+                case "Drives": return "此电脑 (驱动器)";
+                case "FolderFavorites": return "收藏夹 (文件夹)";
+                case "FileFavorites": return "收藏夹 (文件)";
+                default: return key;
+            }
         }
 
         public void SaveSettings()
         {
-            // 保存路径设置
+            if (!_isInitialized) return;
+
+            var newOrder = _sections.Select(s => s.Key).ToList();
+            ConfigurationService.Instance.Set(c => c.NavigationSectionsOrder, newOrder);
+            SettingsChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void MoveUpButton_Click(object sender, RoutedEventArgs e)
+        {
+            int index = SectionsListBox.SelectedIndex;
+            if (index > 0)
+            {
+                var item = _sections[index];
+                _sections.RemoveAt(index);
+                _sections.Insert(index - 1, item);
+                SectionsListBox.SelectedIndex = index - 1;
+                SaveSettings(); // Auto save
+            }
+        }
+
+        private void MoveDownButton_Click(object sender, RoutedEventArgs e)
+        {
+            int index = SectionsListBox.SelectedIndex;
+            if (index >= 0 && index < _sections.Count - 1)
+            {
+                var item = _sections[index];
+                _sections.RemoveAt(index);
+                _sections.Insert(index + 1, item);
+                SectionsListBox.SelectedIndex = index + 1;
+                SaveSettings(); // Auto save
+            }
         }
     }
 }
-
-

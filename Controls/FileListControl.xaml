@@ -245,10 +245,19 @@
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>
                                         <Grid x:Name="NameCellGrid">
-                                            <TextBlock x:Name="FileNameText" Text="{Binding Name}" Margin="6,0" VerticalAlignment="Center">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            
+                                            <!-- 图标 -->
+                                            <Image Grid.Column="0" Source="{Binding Thumbnail}" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center" Stretch="Uniform"/>
+                                            
+                                            <TextBlock Grid.Column="1" x:Name="FileNameText" Text="{Binding Name}" VerticalAlignment="Center">
                                                 <TextBlock.Style>
                                                     <Style TargetType="TextBlock">
                                                         <Setter Property="Visibility" Value="Visible"/>
+                                                        <Setter Property="Background" Value="Transparent"/>
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding IsRenaming}" Value="True">
                                                                 <Setter Property="Visibility" Value="Hidden"/>

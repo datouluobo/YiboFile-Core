@@ -538,17 +538,17 @@ namespace YiboFile.Controls
 
             // 复制
             var copyItem = new MenuItem { Header = "复制", Name = "CopyItem" };
-            copyItem.Click += (s, e) => FileCopy?.Invoke(s, e);
+            copyItem.Click += (s, e) => FileCopy?.Invoke(this, e);
             cm.Items.Add(copyItem);
 
             // 剪切
             var cutItem = new MenuItem { Header = "剪切", Name = "CutItem" };
-            cutItem.Click += (s, e) => FileCut?.Invoke(s, e);
+            cutItem.Click += (s, e) => FileCut?.Invoke(this, e);
             cm.Items.Add(cutItem);
 
             // 粘贴
             var pasteItem = new MenuItem { Header = "粘贴", Name = "PasteItem" };
-            pasteItem.Click += (s, e) => FilePaste?.Invoke(s, e);
+            pasteItem.Click += (s, e) => FilePaste?.Invoke(this, e);
             cm.Items.Add(pasteItem);
 
             var separator1 = new Separator { Name = "Separator1" };
@@ -556,12 +556,12 @@ namespace YiboFile.Controls
 
             // 删除
             var deleteItem = new MenuItem { Header = "删除", Name = "DeleteItem" };
-            deleteItem.Click += (s, e) => FileDelete?.Invoke(s, e);
+            deleteItem.Click += (s, e) => FileDelete?.Invoke(this, e);
             cm.Items.Add(deleteItem);
 
             // 重命名
             var renameItem = new MenuItem { Header = "重命名", Name = "RenameItem" };
-            renameItem.Click += (s, e) => FileRename?.Invoke(s, e);
+            renameItem.Click += (s, e) => FileRename?.Invoke(this, e);
             cm.Items.Add(renameItem);
 
             var separator2 = new Separator { Name = "Separator2" };
@@ -571,7 +571,7 @@ namespace YiboFile.Controls
             if (App.IsTagTrainAvailable)
             {
                 var addTagItem = new MenuItem { Header = "添加标签", Name = "AddTagItem" };
-                addTagItem.Click += (s, e) => FileAddTag?.Invoke(s, e);
+                addTagItem.Click += (s, e) => FileAddTag?.Invoke(this, e);
                 cm.Items.Add(addTagItem);
             }
 
@@ -580,12 +580,12 @@ namespace YiboFile.Controls
 
             // 刷新
             var refreshItem = new MenuItem { Header = "刷新", Name = "RefreshItem" };
-            refreshItem.Click += (s, e) => FileRefresh?.Invoke(s, e);
+            refreshItem.Click += (s, e) => FileRefresh?.Invoke(this, e);
             cm.Items.Add(refreshItem);
 
             // 属性
             var propertiesItem = new MenuItem { Header = "属性", Name = "PropertiesItem" };
-            propertiesItem.Click += (s, e) => FileProperties?.Invoke(s, e);
+            propertiesItem.Click += (s, e) => FileProperties?.Invoke(this, e);
             cm.Items.Add(propertiesItem);
 
             // 在菜单打开时动态更新菜单项可见性

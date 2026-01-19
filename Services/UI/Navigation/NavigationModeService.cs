@@ -113,7 +113,7 @@ namespace YiboFile.Services.Navigation
             {
                 // 获取样式资源
                 var activeStyle = Application.Current.TryFindResource("ActiveNavigationButtonStyle") as System.Windows.Style;
-                var normalStyle = Application.Current.TryFindResource("ModernButtonStyle") as System.Windows.Style;
+                var normalStyle = Application.Current.TryFindResource("FramelessNavButtonStyle") as System.Windows.Style;
 
                 // 重置所有按钮为普通样式
                 if (_uiHelper.NavPathButton != null && normalStyle != null)
@@ -124,7 +124,10 @@ namespace YiboFile.Services.Navigation
                 {
                     _uiHelper.NavLibraryButton.Style = normalStyle;
                 }
-
+                if (_uiHelper.NavTagButton != null && normalStyle != null)
+                {
+                    _uiHelper.NavTagButton.Style = normalStyle;
+                }
 
                 // 设置当前模式的按钮为橙色样式
                 switch (activeMode)
@@ -139,6 +142,12 @@ namespace YiboFile.Services.Navigation
                         if (_uiHelper.NavLibraryButton != null && activeStyle != null)
                         {
                             _uiHelper.NavLibraryButton.Style = activeStyle;
+                        }
+                        break;
+                    case "Tag":
+                        if (_uiHelper.NavTagButton != null && activeStyle != null)
+                        {
+                            _uiHelper.NavTagButton.Style = activeStyle;
                         }
                         break;
 
@@ -156,10 +165,7 @@ namespace YiboFile.Services.Navigation
             // Tag Bottom Buttons hidden - Phase 2
 
             // 隐藏库管理按钮
-            if (_uiHelper.LibraryBottomButtons != null)
-            {
-                _uiHelper.LibraryBottomButtons.Visibility = Visibility.Collapsed;
-            }
+
 
             if (_uiHelper.FileBrowser != null)
             {
@@ -217,10 +223,7 @@ namespace YiboFile.Services.Navigation
             // Tag Bottom Buttons hidden - Phase 2
 
             // 显示库管理按钮
-            if (_uiHelper.LibraryBottomButtons != null)
-            {
-                _uiHelper.LibraryBottomButtons.Visibility = Visibility.Visible;
-            }
+
 
             // 库模式下也显示标签页
             if (_uiHelper.FileBrowser != null)

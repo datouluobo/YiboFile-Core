@@ -31,8 +31,7 @@ namespace YiboFile
                         _quickAccessService?.LoadQuickAccess(QuickAccessListBox);
                     if (DrivesTreeView != null)
                         _quickAccessService?.LoadDriveTree(DrivesTreeView, _fileListService.FormatFileSize);
-                    if (FavoritesListBox != null)
-                        _favoriteService?.LoadFavorites(FavoritesListBox);
+                    LoadFavorites();
                 }
                 catch (Exception)
                 { }

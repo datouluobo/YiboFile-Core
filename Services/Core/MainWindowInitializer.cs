@@ -228,19 +228,12 @@ namespace YiboFile.Services
             }
 
             // 加载收藏列表  
-            if (_mainWindow.FavoritesListBox != null)
+            try
             {
-                try
-                {
-                    var favoriteServiceField = typeof(MainWindow).GetField("_favoriteService",
-                        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                    var favoriteService = favoriteServiceField?.GetValue(_mainWindow);
-                    favoriteService?.GetType().GetMethod("LoadFavorites")?.Invoke(favoriteService,
-                        new[] { _mainWindow.FavoritesListBox });
-                }
-                catch (Exception)
-                {
-                }
+                _mainWindow.LoadFavorites();
+            }
+            catch (Exception)
+            {
             }
 
             // 加载快速访问列表

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using YiboFile.Services.Config;
 // using TagTrain.UI; // Phase 2
 
 namespace YiboFile.Controls
@@ -17,12 +18,15 @@ namespace YiboFile.Controls
         public event MouseButtonEventHandler DrivesListBoxPreviewMouseDown;
         public event SelectionChangedEventHandler DrivesListBoxSelectionChanged;
         public event MouseButtonEventHandler QuickAccessListBoxPreviewMouseDown;
-        public event MouseButtonEventHandler FavoritesListBoxPreviewMouseDown;
+        public event MouseButtonEventHandler FolderFavoritesListBoxPreviewMouseDown;
+        public event MouseButtonEventHandler FileFavoritesListBoxPreviewMouseDown;
         public event SelectionChangedEventHandler LibrariesListBoxSelectionChanged;
         public event ContextMenuEventHandler LibrariesListBoxContextMenuOpening;
         public event MouseButtonEventHandler LibrariesListBoxPreviewMouseDown;
-        public event RoutedEventHandler AddFavoriteClick;
+        public event RoutedEventHandler AddFolderFavoriteClick;
+        public event RoutedEventHandler AddFileFavoriteClick;
         public event RoutedEventHandler LibraryManageClick;
+        public event RoutedEventHandler PathManageClick;
         // public event Action<string, bool> TagBrowsePanelTagClicked;
         // public event Action TagBrowsePanelCategoryManagementRequested;
         // public event Action<string, bool> TagEditPanelTagClicked; // Phase 2
@@ -40,6 +44,57 @@ namespace YiboFile.Controls
         private void NavigationPanelControl_Loaded(object sender, RoutedEventArgs e)
         {
             InitializeEvents();
+            UpdateSectionOrder();
+            ConfigurationService.Instance.SettingChanged += OnSettingChanged;
+        }
+
+        private void OnSettingChanged(object sender, string propertyName)
+        {
+            if (propertyName == nameof(AppConfig.NavigationSectionsOrder) || propertyName == "All")
+            {
+                Dispatcher.Invoke(() => UpdateSectionOrder());
+            }
+        }
+
+        private void UpdateSectionOrder()
+        {
+            var order = ConfigurationService.Instance.Get(c => c.NavigationSectionsOrder);
+            if (order == null || order.Count == 0) return;
+
+            var drivesExpander = FindName("DrivesExpander") as UIElement;
+            var quickAccessExpander = FindName("QuickAccessExpander") as UIElement;
+            var folderFavoritesExpander = FindName("FolderFavoritesExpander") as UIElement;
+            var fileFavoritesExpander = FindName("FileFavoritesExpander") as UIElement;
+            var navSectionsPanel = FindName("NavSectionsPanel") as StackPanel;
+
+            if (navSectionsPanel == null) return;
+
+            var controls = new Dictionary<string, UIElement>
+            {
+                { "Drives", drivesExpander },
+                { "QuickAccess", quickAccessExpander },
+                { "FolderFavorites", folderFavoritesExpander },
+                { "FileFavorites", fileFavoritesExpander }
+            };
+
+            navSectionsPanel.Children.Clear();
+
+            foreach (var key in order)
+            {
+                if (controls.TryGetValue(key, out var control) && control != null)
+                {
+                    navSectionsPanel.Children.Add(control);
+                    controls.Remove(key);
+                }
+            }
+
+            foreach (var kvp in controls)
+            {
+                if (kvp.Value != null)
+                {
+                    navSectionsPanel.Children.Add(kvp.Value);
+                }
+            }
         }
 
         // Handler for TreeViewItem PreviewMouseLeftButtonDown (defined in Style EventSetter)
@@ -166,11 +221,18 @@ namespace YiboFile.Controls
                 quickAccessListBox.PreviewMouseWheel += OnPreviewMouseWheel;
             }
 
-            var favoritesListBox = FavoritesListBoxControl;
-            if (favoritesListBox != null)
+            var folderFavoritesListBox = FolderFavoritesListBoxControl;
+            if (folderFavoritesListBox != null)
             {
-                favoritesListBox.PreviewMouseDown += (s, e) => FavoritesListBoxPreviewMouseDown?.Invoke(s, e);
-                favoritesListBox.PreviewMouseWheel += OnPreviewMouseWheel;
+                folderFavoritesListBox.PreviewMouseDown += (s, e) => FolderFavoritesListBoxPreviewMouseDown?.Invoke(s, e);
+                folderFavoritesListBox.PreviewMouseWheel += OnPreviewMouseWheel;
+            }
+
+            var fileFavoritesListBox = FileFavoritesListBoxControl;
+            if (fileFavoritesListBox != null)
+            {
+                fileFavoritesListBox.PreviewMouseDown += (s, e) => FileFavoritesListBoxPreviewMouseDown?.Invoke(s, e);
+                fileFavoritesListBox.PreviewMouseWheel += OnPreviewMouseWheel;
             }
 
             // 库导航事件
@@ -196,10 +258,16 @@ namespace YiboFile.Controls
             }
 
             // 底部按钮事件
-            var addFavoriteButton = FindName("AddFavoriteButton") as Button;
-            if (addFavoriteButton != null)
+            var addFolderFavoriteButton = FindName("AddFolderFavoriteButton") as Button;
+            if (addFolderFavoriteButton != null)
             {
-                addFavoriteButton.Click += (s, e) => AddFavoriteClick?.Invoke(s, e);
+                addFolderFavoriteButton.Click += (s, e) => AddFolderFavoriteClick?.Invoke(s, e);
+            }
+
+            var addFileFavoriteButton = FindName("AddFileFavoriteButton") as Button;
+            if (addFileFavoriteButton != null)
+            {
+                addFileFavoriteButton.Click += (s, e) => AddFileFavoriteClick?.Invoke(s, e);
             }
 
 
@@ -207,6 +275,12 @@ namespace YiboFile.Controls
             if (libraryManageBtn != null)
             {
                 libraryManageBtn.Click += (s, e) => LibraryManageClick?.Invoke(s, e);
+            }
+
+            var pathManageBtn = FindName("PathManageBtn") as Button;
+            if (pathManageBtn != null)
+            {
+                pathManageBtn.Click += (s, e) => PathManageClick?.Invoke(s, e);
             }
 
 
@@ -230,12 +304,13 @@ namespace YiboFile.Controls
         public TreeView DrivesTreeViewControl => FindName("DrivesTreeView") as TreeView;
         // Obsolete: public ListBox DrivesListBoxControl => FindName("DrivesListBox") as ListBox;
         public ListBox QuickAccessListBoxControl => FindName("QuickAccessListBox") as ListBox;
-        public ListBox FavoritesListBoxControl => FindName("FavoritesListBox") as ListBox;
+        public ListBox FolderFavoritesListBoxControl => FindName("FolderFavoritesListBox") as ListBox;
+        public ListBox FileFavoritesListBoxControl => FindName("FileFavoritesListBox") as ListBox;
         public ListBox LibrariesListBoxControl => FindName("LibrariesListBox") as ListBox;
         public ContextMenu LibraryContextMenuControl => FindName("LibraryContextMenu") as ContextMenu;
         public Grid NavPathContentControl => FindName("NavPathContent") as Grid;
         public Grid NavLibraryContentControl => FindName("NavLibraryContent") as Grid;
-        public StackPanel LibraryBottomButtonsControl => FindName("LibraryBottomButtons") as StackPanel;
+
 
         // Tag Panel
         public TagBrowsePanel TagBrowsePanelControl => FindName("TagBrowsePanelElement") as TagBrowsePanel;

@@ -328,6 +328,7 @@ namespace YiboFile.Controls
                 };
 
                 var pathToNavigate = currentPath;
+                bool isLast = (i == parts.Length - 1);
 
                 // 鼠标悬停效果
                 run.MouseEnter += (s, e) =>
@@ -352,7 +353,16 @@ namespace YiboFile.Controls
                         else
                         {
                             e.Handled = true;
-                            BreadcrumbClicked?.Invoke(this, pathToNavigate);
+
+                            // 如果是最后一项，进入编辑模式
+                            if (isLast)
+                            {
+                                SwitchToEditMode();
+                            }
+                            else
+                            {
+                                BreadcrumbClicked?.Invoke(this, pathToNavigate);
+                            }
                         }
                     }
                     else if (e.ChangedButton == MouseButton.Middle)

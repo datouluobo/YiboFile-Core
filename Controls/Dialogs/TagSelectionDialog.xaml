@@ -1,0 +1,16 @@
+<Window x:Class="YiboFile.Controls.Dialogs.TagSelectionDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:YiboFile.Controls.Dialogs"
+        xmlns:controls="clr-namespace:YiboFile.Controls"
+        mc:Ignorable="d"
+        Title="选择标签" Height="400" Width="300"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        WindowStyle="SingleBorderWindow">
+    <Grid>
+        <controls:TagBrowsePanel x:Name="TagPanel" ShowHeader="False" ShowFooter="True"/>
+    </Grid>
+</Window>

@@ -135,11 +135,11 @@ namespace YiboFile.Controls
                 LoadMoreBtn.Click += (s, e) => LoadMoreClick?.Invoke(s, e);
             }
 
-            // 初始化详细信息视图
-            ApplyViewMode();
-
             // 初始化缩略图服务
             _thumbnailService = new ThumbnailService();
+
+            // 初始化详细信息视图
+            ApplyViewMode();
 
             // Load column widths from config
             LoadColumnWidths();
@@ -248,7 +248,12 @@ namespace YiboFile.Controls
             FilesListView.ItemsPanel = (ItemsPanelTemplate)FindResource("StackPanelTemplate");
             if (FilesGridView != null) FilesListView.View = FilesGridView;
             ScrollViewer.SetHorizontalScrollBarVisibility(FilesListView, ScrollBarVisibility.Auto);
-            _thumbnailService?.Stop();
+
+            // 启用缩略图加载 (16px for small icons)
+            if (FilesListView.ItemsSource != null)
+            {
+                _thumbnailService?.LoadThumbnailsAsync(FilesListView.ItemsSource, 16);
+            }
         }
 
         private void FilesListView_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
@@ -300,10 +305,16 @@ namespace YiboFile.Controls
                 {
                     FilesListView.ItemsSource = value;
 
-                    // 如果当前是缩略图模式，且有新数据，触发缩略图加载
-                    if (_currentViewMode == "Thumbnail" && value != null)
+                    // 触发缩略图加载
+                    if (value != null)
                     {
-                        _thumbnailService?.LoadThumbnailsAsync(value);
+                        // 确定图标大小
+                        int size = 32;
+                        if (_currentViewMode == "Thumbnail") size = (int)ThumbnailSize; // 使用当前设定的缩略图大小
+                        else if (_currentViewMode == "Tiles") size = 64;
+                        else if (_currentViewMode == "Content") size = 48; // Content视图图标约40-48
+
+                        _thumbnailService?.LoadThumbnailsAsync(value, size);
                     }
                 }
             }
@@ -692,10 +703,18 @@ namespace YiboFile.Controls
                     // 强制刷新ListView，确保排序后UI更新
                     FilesListView.Items.Refresh();
 
-                    // 如果当前是缩略图模式，且有新数据，触发缩略图加载
-                    if (_currentViewMode == "Thumbnail" && value != null)
+                    // 触发缩略图加载
+                    if (value != null)
                     {
-                        _thumbnailService?.LoadThumbnailsAsync(value);
+                        // 确定图标大小
+                        int size = 16;
+                        if (_currentViewMode == "Thumbnail") size = (int)ThumbnailSize; // 使用当前设定的缩略图大小
+                        else if (_currentViewMode == "Tiles") size = 64;
+                        else if (_currentViewMode == "Content") size = 48; // Content视图图标约40-48
+                        else if (_currentViewMode == "SmallIcons") size = 16;
+                        else if (_currentViewMode == "Compact") size = 16;
+
+                        _thumbnailService?.LoadThumbnailsAsync(value, size);
                     }
                 }
             }

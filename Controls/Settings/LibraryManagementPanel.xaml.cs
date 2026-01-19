@@ -8,10 +8,11 @@ using System.Windows.Forms;
 using System.Windows.Input;
 using YiboFile.Services.Core;
 using YiboFile.Services.Navigation;
+using YiboFile.Controls.Dialogs; // Use shared InputDialog
 
-namespace YiboFile
+namespace YiboFile.Controls.Settings
 {
-    public partial class LibraryManagementWindow : Window
+    public partial class LibraryManagementPanel : System.Windows.Controls.UserControl
     {
         // Use a UI-specific model to support hierarchical binding with LibraryPath objects
         public class LibraryUiModel
@@ -24,19 +25,10 @@ namespace YiboFile
 
         private List<LibraryUiModel> _libraries;
 
-        public LibraryManagementWindow()
+        public LibraryManagementPanel()
         {
             InitializeComponent();
             RefreshLibraries();
-            this.KeyDown += LibraryManagementWindow_KeyDown;
-        }
-
-        private void LibraryManagementWindow_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
-        {
-            if (e.Key == Key.Escape)
-            {
-                Close();
-            }
         }
 
         private void RefreshLibraries()
@@ -116,7 +108,7 @@ namespace YiboFile
             var categoryName = NewLibraryNameTextBox.Text?.Trim();
             if (string.IsNullOrWhiteSpace(categoryName))
             {
-                DialogService.Warning("请输入库名称", "提示", this);
+                DialogService.Warning("请输入库名称", "提示", Window.GetWindow(this));
                 NewLibraryNameTextBox.Focus();
                 return;
             }
@@ -150,7 +142,9 @@ namespace YiboFile
         {
             if ((sender as FrameworkElement)?.DataContext is LibraryUiModel library)
             {
-                var dialog = new Controls.Dialogs.InputDialog("重命名库", "请输入新的库名称:", library.Name);
+                // Use shared InputDialog
+                var dialog = new InputDialog("重命名库", "请输入新的库名称:", library.Name);
+                dialog.Owner = Window.GetWindow(this);
 
                 if (dialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(dialog.InputText))
                 {
@@ -172,7 +166,7 @@ namespace YiboFile
         {
             if ((sender as FrameworkElement)?.DataContext is LibraryUiModel library)
             {
-                if (System.Windows.MessageBox.Show(
+                if (System.Windows.MessageBox.Show(Window.GetWindow(this),
                     $"确定要删除库 \"{library.Name}\" 吗？\n\n删除后，该库的所有位置将被移除，但不会删除实际文件。",
                     "确认删除",
                     MessageBoxButton.YesNo,
@@ -264,7 +258,8 @@ namespace YiboFile
         {
             if ((sender as FrameworkElement)?.DataContext is LibraryPath path)
             {
-                var dialog = new Controls.Dialogs.InputDialog("编辑显示名称", "请输入显示名称:", path.DisplayName);
+                var dialog = new InputDialog("编辑显示名称", "请输入显示名称:", path.DisplayName);
+                dialog.Owner = Window.GetWindow(this);
                 if (dialog.ShowDialog() == true)
                 {
                     var newName = dialog.InputText.Trim();
@@ -287,7 +282,7 @@ namespace YiboFile
         {
             if ((sender as FrameworkElement)?.DataContext is LibraryPath path)
             {
-                if (System.Windows.MessageBox.Show(
+                if (System.Windows.MessageBox.Show(Window.GetWindow(this),
                     $"确定要从库中移除位置 \"{path.Path}\" 吗？",
                     "确认移除",
                     MessageBoxButton.YesNo,
@@ -302,6 +297,59 @@ namespace YiboFile
                     {
                         ShowError($"移除位置失败: {ex.Message}");
                     }
+                }
+            }
+        }
+
+        // --- Import / Export ---
+        private void ImportBtn_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new Microsoft.Win32.OpenFileDialog
+            {
+                Filter = "JSON 文件 (*.json)|*.json|所有文件 (*.*)|*.*",
+                Title = "导入库配置"
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                try
+                {
+                    string json = System.IO.File.ReadAllText(dialog.FileName);
+                    var libraryService = new YiboFile.Services.LibraryService(Dispatcher, null);
+                    libraryService.ImportLibrariesFromJson(json);
+                    RefreshLibraries(); // Refresh after import
+                }
+                catch (Exception ex)
+                {
+                    System.Windows.MessageBox.Show(Window.GetWindow(this), $"读取文件失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        private void ExportBtn_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Filter = "JSON 文件 (*.json)|*.json|所有文件 (*.*)|*.*",
+                FileName = $"Libraries_Backup_{DateTime.Now:yyyyMMdd}.json",
+                Title = "导出库配置"
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                try
+                {
+                    var libraryService = new YiboFile.Services.LibraryService(Dispatcher, null);
+                    string json = libraryService.ExportLibrariesToJson();
+                    if (!string.IsNullOrEmpty(json))
+                    {
+                        System.IO.File.WriteAllText(dialog.FileName, json);
+                        System.Windows.MessageBox.Show(Window.GetWindow(this), "库配置已导出", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Windows.MessageBox.Show(Window.GetWindow(this), $"保存文件失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }

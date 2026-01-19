@@ -33,10 +33,7 @@ namespace YiboFile.Services.Navigation
         /// </summary>
 
 
-        /// <summary>
-        /// 获取库底部按钮面板
-        /// </summary>
-        StackPanel LibraryBottomButtons { get; }
+
 
         /// <summary>
         /// 获取标签导航内容区域
@@ -120,6 +117,7 @@ namespace YiboFile.Services.Navigation
         /// <summary>
         /// 获取标签导航按钮
         /// </summary>
+        System.Windows.Controls.Button NavTagButton { get; }
 
         //     Browse,
         //     Edit

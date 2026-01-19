@@ -396,7 +396,8 @@ namespace YiboFile
 
             _favoriteService.FavoritesLoaded += (s, e) =>
             {
-                // 收藏列表已加载，UI已更新
+                // 收藏列表已变更，重新加载UI
+                LoadFavorites();
             };
 
             // 订阅快速访问服务事件
@@ -452,7 +453,7 @@ namespace YiboFile
                 if (result == MessageBoxResult.Yes)
                 {
                     DatabaseManager.RemoveFavorite(favorite.Path);
-                    _favoriteService.LoadFavorites(FavoritesListBox);
+                    LoadFavorites();
                 }
             };
 
@@ -469,13 +470,20 @@ namespace YiboFile
                 NavigationPanelControl.DrivesTreeViewItemClick += DrivesTreeViewItem_Click;
                 // NavigationPanelControl.DrivesListBoxPreviewMouseDown += DrivesListBox_PreviewMouseDown;
                 NavigationPanelControl.QuickAccessListBoxPreviewMouseDown += QuickAccessListBox_PreviewMouseDown;
-                NavigationPanelControl.FavoritesListBoxPreviewMouseDown += FavoritesListBox_PreviewMouseDown;
+                NavigationPanelControl.FolderFavoritesListBoxPreviewMouseDown += FolderFavoritesListBox_PreviewMouseDown;
+                NavigationPanelControl.FileFavoritesListBoxPreviewMouseDown += FileFavoritesListBox_PreviewMouseDown;
                 NavigationPanelControl.LibrariesListBoxSelectionChanged += LibrariesListBox_SelectionChanged;
                 NavigationPanelControl.LibrariesListBoxContextMenuOpening += LibrariesListBox_ContextMenuOpening;
-                NavigationPanelControl.AddFavoriteClick += AddFavorite_Click;
-                // NavigationPanelControl.AddTagToFileClick += AddTagToFile_Click; // Phase 2
                 NavigationPanelControl.LibraryManageClick += ManageLibraries_Click;
-                NavigationPanelControl.LibraryManageClick += ManageLibraries_Click;
+                NavigationPanelControl.AddFolderFavoriteClick += AddFavorite_Click;
+                NavigationPanelControl.AddFileFavoriteClick += AddFavorite_Click;
+                NavigationPanelControl.PathManageClick += (s, e) =>
+                {
+                    var window = new YiboFile.Windows.NavigationSettingsWindow("Path");
+                    window.Owner = this;
+                    window.ShowDialog();
+                };
+
                 // NavigationPanelControl.LibraryRefreshClick
 
                 // Tag panel event subscriptions combined - Phase 2 restored
@@ -518,6 +526,7 @@ namespace YiboFile
                 FileBrowser.FileRename += (s, e) => _menuEventHandler?.Rename_Click(s, e);
                 FileBrowser.FileRefresh += (s, e) => RefreshFileList();
                 FileBrowser.FileProperties += (s, e) => ShowSelectedFileProperties();
+                FileBrowser.FileAddTag += FileAddTag_Click;
             }
 
             this.Activated += (s, e) =>

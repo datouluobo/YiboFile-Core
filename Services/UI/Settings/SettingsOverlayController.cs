@@ -40,9 +40,14 @@ namespace YiboFile.Services.Settings
             }
         }
 
-        public void Show()
+        public void Show(string category = null)
         {
             _panel.LoadAllSettings();
+
+            if (!string.IsNullOrEmpty(category))
+            {
+                _panel.SelectCategory(category);
+            }
 
             // 隐藏右侧面板
             if (_rightPanel != null)

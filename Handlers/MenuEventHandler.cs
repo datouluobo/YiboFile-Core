@@ -524,11 +524,9 @@ namespace YiboFile.Handlers
 
         public void ManageLibraries_Click(object sender, RoutedEventArgs e)
         {
-            var manageWindow = new LibraryManagementWindow();
-            var owner = _getOwnerWindow();
-            manageWindow.Owner = owner;
-            manageWindow.ShowDialog();
-            _loadLibraries();
+            var window = new YiboFile.Windows.NavigationSettingsWindow("Library");
+            window.Owner = _getOwnerWindow();
+            window.ShowDialog();
         }
 
         public void LibraryRename_Click(object sender, RoutedEventArgs e)

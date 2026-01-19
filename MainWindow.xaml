@@ -94,9 +94,9 @@
                                     <ControlTemplate TargetType="Button">
                                         <Border x:Name="border"
                                                 Background="{TemplateBinding Background}" 
-                                                BorderBrush="{DynamicResource AccentBrush}" 
+                                                BorderBrush="Transparent" 
                                                 BorderThickness="0"
-                                                CornerRadius="4,4,0,0">
+                                                CornerRadius="4">
                                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                         </Border>
                                         <ControlTemplate.Triggers>
@@ -104,8 +104,7 @@
                                                 <Setter Property="Background" Value="{DynamicResource ButtonHoverBackgroundBrush}"/>
                                             </Trigger>
                                             <Trigger Property="Tag" Value="Selected">
-                                                 <Setter TargetName="border" Property="BorderThickness" Value="0,0,0,2"/>
-                                                 <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}"/>
+                                                 <Setter Property="Background" Value="Transparent"/>
                                                  <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
                                                  <Setter Property="FontWeight" Value="SemiBold"/>
                                             </Trigger>
@@ -137,9 +136,9 @@
                                     <ControlTemplate TargetType="Button">
                                         <Border x:Name="border"
                                                 Background="{TemplateBinding Background}" 
-                                                BorderBrush="{DynamicResource AccentBrush}" 
+                                                BorderBrush="Transparent" 
                                                 BorderThickness="0"
-                                                CornerRadius="4,4,0,0">
+                                                CornerRadius="4">
                                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                         </Border>
                                         <ControlTemplate.Triggers>
@@ -147,8 +146,7 @@
                                                 <Setter Property="Background" Value="{DynamicResource ButtonHoverBackgroundBrush}"/>
                                             </Trigger>
                                             <Trigger Property="Tag" Value="Selected">
-                                                 <Setter TargetName="border" Property="BorderThickness" Value="0,0,0,2"/>
-                                                 <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}"/>
+                                                 <Setter Property="Background" Value="Transparent"/>
                                                  <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
                                                  <Setter Property="FontWeight" Value="SemiBold"/>
                                             </Trigger>
@@ -183,9 +181,9 @@
                                     <ControlTemplate TargetType="Button">
                                         <Border x:Name="border"
                                                 Background="{TemplateBinding Background}" 
-                                                BorderBrush="{DynamicResource AccentBrush}" 
+                                                BorderBrush="Transparent" 
                                                 BorderThickness="0"
-                                                CornerRadius="4,4,0,0">
+                                                CornerRadius="4">
                                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                         </Border>
                                         <ControlTemplate.Triggers>
@@ -193,8 +191,7 @@
                                                 <Setter Property="Background" Value="{DynamicResource ButtonHoverBackgroundBrush}"/>
                                             </Trigger>
                                             <Trigger Property="Tag" Value="Selected">
-                                                 <Setter TargetName="border" Property="BorderThickness" Value="0,0,0,2"/>
-                                                 <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}"/>
+                                                 <Setter Property="Background" Value="Transparent"/>
                                                  <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
                                                  <Setter Property="FontWeight" Value="SemiBold"/>
                                             </Trigger>

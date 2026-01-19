@@ -534,7 +534,7 @@ namespace YiboFile
             SecondFileBrowser.FileRefresh += (s, e) => LoadSecondFileBrowserDirectory(_secondCurrentPath);
             SecondFileBrowser.FileCopy += async (s, e) => await CopySelectedFilesAsync();
             SecondFileBrowser.FilePaste += async (s, e) => await PasteFilesAsync();
-            SecondFileBrowser.FileAddTag += (s, e) => { /* Phase 2 */ };
+            SecondFileBrowser.FileAddTag += FileAddTag_Click;
 
             // F2 Rename handling for Second Browser
             SecondFileBrowser.CommitRename += (s, e) =>

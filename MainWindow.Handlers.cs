@@ -419,7 +419,7 @@ namespace YiboFile
             _mouseEventHandler = new HandlerMouseEventHandler(
                 () => WindowMaximize_Click(null, null),
                 () => DragMove(),
-                () => FavoritesListBox,
+                // () => FavoritesListBox, // Removed
                 () => QuickAccessListBox,
                 _navigationCoordinator,
                 (fav) => _navigationCoordinator.HandleFavoriteNavigation(fav, NavigationCoordinator.ClickType.LeftClick),
@@ -532,9 +532,18 @@ namespace YiboFile
             }
         }
 
-        private void FavoritesListBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        private void FolderFavoritesListBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
-            var listBox = sender as ListBox;
+            HandleFavoriteListBoxPreviewMouseDown(sender as ListBox, e, "FolderFavorites");
+        }
+
+        private void FileFavoritesListBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            HandleFavoriteListBoxPreviewMouseDown(sender as ListBox, e, "FileFavorites");
+        }
+
+        private void HandleFavoriteListBoxPreviewMouseDown(ListBox listBox, MouseButtonEventArgs e, string sourceName)
+        {
             if (listBox == null) return;
 
             var clickType = NavigationCoordinator.GetClickType(e);
@@ -543,7 +552,7 @@ namespace YiboFile
             var favorite = ExtractFavoriteFromListBoxItem(listBox, e.GetPosition(listBox));
             if (favorite != null)
             {
-                _navigationService.LastLeftNavSource = "Favorites";
+                _navigationService.LastLeftNavSource = sourceName;
                 _navigationCoordinator.HandleFavoriteNavigation(favorite, clickType);
                 e.Handled = true;
             }

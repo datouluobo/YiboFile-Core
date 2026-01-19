@@ -131,12 +131,11 @@ namespace YiboFile
         internal TreeView DrivesTreeView => NavigationPanelControl?.DrivesTreeViewControl;
         // Obsolete: internal ListBox DrivesListBox => NavigationPanelControl?.DrivesListBoxControl;
         internal ListBox QuickAccessListBox => NavigationPanelControl?.QuickAccessListBoxControl;
-        internal ListBox FavoritesListBox => NavigationPanelControl?.FavoritesListBoxControl;
         internal Grid NavPathContent => NavigationPanelControl?.NavPathContentControl;
         internal Grid NavLibraryContent => NavigationPanelControl?.NavLibraryContentControl;
         internal Grid NavTagContent => NavigationPanelControl?.NavTagContentControl;
 
-        private StackPanel LibraryBottomButtons => NavigationPanelControl?.LibraryBottomButtonsControl;
+
         internal ContextMenu LibraryContextMenu => NavigationPanelControl?.LibraryContextMenuControl;
 
         // INavigationModeUIHelper 实现
@@ -152,7 +151,7 @@ namespace YiboFile
             set => _currentPath = value;
         }
 
-        StackPanel Services.Navigation.INavigationModeUIHelper.LibraryBottomButtons => LibraryBottomButtons;
+
 
         // TagPanel TagBrowsePanel => NavigationPanelControl?.TagBrowsePanelControl; // Phase 2
         // TagPanel TagEditPanel => NavigationPanelControl?.TagEditPanelControl; // Phase 2
@@ -161,6 +160,7 @@ namespace YiboFile
         Controls.NavigationPanelControl Services.Navigation.INavigationModeUIHelper.NavigationPanelControl => NavigationPanelControl;
         System.Windows.Controls.Button Services.Navigation.INavigationModeUIHelper.NavPathButton => NavPathBtn;
         System.Windows.Controls.Button Services.Navigation.INavigationModeUIHelper.NavLibraryButton => NavLibraryBtn;
+        System.Windows.Controls.Button Services.Navigation.INavigationModeUIHelper.NavTagButton => NavTagBtn;
 
 
         // INavigationModeUIHelper 方法实现
@@ -921,10 +921,6 @@ namespace YiboFile
             if (exceptSource != "QuickAccess" && QuickAccessListBox != null)
             {
                 QuickAccessListBox.SelectedItem = null;
-            }
-            if (exceptSource != "Favorites" && FavoritesListBox != null)
-            {
-                FavoritesListBox.SelectedItem = null;
             }
         }
     }

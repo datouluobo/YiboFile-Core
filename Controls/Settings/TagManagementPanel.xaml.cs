@@ -7,15 +7,16 @@ using System.Windows.Input;
 using System.Windows.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using YiboFile.Services.Features;
+using YiboFile.Controls.Dialogs; // Shared InputDialog
 
-namespace YiboFile.Controls.Dialogs
+namespace YiboFile.Controls.Settings
 {
-    public partial class TagManagementDialog : Window
+    public partial class TagManagementPanel : UserControl
     {
         private readonly ITagService _tagService;
         public ObservableCollection<TagGroupManageViewModel> Groups { get; set; } = new();
 
-        public TagManagementDialog()
+        public TagManagementPanel()
         {
             InitializeComponent();
             _tagService = App.ServiceProvider?.GetService<ITagService>();
@@ -60,19 +61,14 @@ namespace YiboFile.Controls.Dialogs
         {
             if (sender is FrameworkElement btn && btn.DataContext is TagGroupManageViewModel groupVm)
             {
-                // Find sibling TextBox - simplistic approach or binding approach?
-                // VisualTreeHelper search is reliable but tedious. 
-                // Better: The TextBox is updated in UI, but how do we get its text?
-                // Let's rely on finding the TextBox via name in the visual tree relative to the button? 
-                // OR: Binding? But TagGroupManageViewModel doesn't have "NewTagText" property.
-                // Let's traverse up to Grid, then find TextBox "NewTagBox".
-
+                // Find sibling TextBox
                 var parent = System.Windows.Media.VisualTreeHelper.GetParent(btn);
+                // Grid -> Grid (Container) contains the TextBox
                 while (parent != null && !(parent is Grid)) parent = System.Windows.Media.VisualTreeHelper.GetParent(parent);
 
                 if (parent is Grid grid)
                 {
-                    // This grid contains NewTagBox
+                    // This grid contains two columns: Grid (with TextBox) and Button
                     foreach (var child in grid.Children)
                     {
                         if (child is Grid innerGrid) // TextBox is wrapped in Grid for Watermark
@@ -88,8 +84,6 @@ namespace YiboFile.Controls.Dialogs
                                         {
                                             _tagService?.AddTag(groupVm.Id, name);
                                             tb.Text = "";
-                                            // Refresh just this group's tags? Or all? easier to refresh all for now or modify collection locally.
-                                            // Refreshing all ensures ID sync.
                                             RefreshGroups();
                                         }
                                         catch (Exception ex)
@@ -108,41 +102,24 @@ namespace YiboFile.Controls.Dialogs
 
         private void NewTagBox_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Key == Key.Enter)
+            if (e.Key == Key.Enter && sender is TextBox tb)
             {
-                // Find the button and mock click?
-                // Or navigate tree to find Button?
-                // Let's traverse up to Grid (same container) and find button.
-                if (sender is TextBox tb)
+                if (tb.DataContext is TagGroupManageViewModel groupVm)
                 {
-                    var parent = System.Windows.Media.VisualTreeHelper.GetParent(tb.Parent as FrameworkElement); // tb -> Grid -> Grid (Container)
-                    if (parent is Grid grid)
+                    string name = tb.Text.Trim();
+                    if (!string.IsNullOrEmpty(name))
                     {
-                        foreach (var child in grid.Children)
+                        try
                         {
-                            if (child is Button btn && btn.Name == "") // The button doesn't have x:Name in template?
-                            {
-                                // We didn't give button x:Name. 
-                                // Let's rely on AddTagToGroup_Click logic but call it directly if we can context.
-                                // Instead of complex traversal, let's execute logic directly if DataContext matches.
-                                if (tb.DataContext is TagGroupManageViewModel groupVm)
-                                {
-                                    string name = tb.Text.Trim();
-                                    if (!string.IsNullOrEmpty(name))
-                                    {
-                                        try
-                                        {
-                                            _tagService?.AddTag(groupVm.Id, name);
-                                            tb.Text = "";
-                                            RefreshGroups();
-                                        }
-                                        catch (Exception ex) { ShowError($"添加标签失败: {ex.Message}"); }
-                                    }
-                                }
-                            }
+                            _tagService?.AddTag(groupVm.Id, name);
+                            tb.Text = "";
+                            RefreshGroups();
                         }
+                        catch (Exception ex) { ShowError($"添加标签失败: {ex.Message}"); }
                     }
                 }
+                // Handle Enter press: call AddTagToGroup logic or duplicate it
+                // We duplicated it above because getting reference to button is annoying.
             }
         }
 
@@ -156,10 +133,6 @@ namespace YiboFile.Controls.Dialogs
                 _tagService?.AddTagGroup(name);
                 NewGroupNameBox.Text = "";
                 RefreshGroups();
-                // Select the new group
-                // Select the new group - Not supported in ItemsControl
-                // var newGroup = Groups.FirstOrDefault(g => g.Name == name);
-                // if (newGroup != null) GroupsList.SelectedItem = newGroup;
             }
             catch (Exception ex)
             {
@@ -172,16 +145,13 @@ namespace YiboFile.Controls.Dialogs
             if (e.Key == Key.Enter) AddGroupBtn_Click(sender, e);
         }
 
-        // Removed Old AddTagBtn_Click and NewTagNameBox_KeyDown as they are now inline
-
-
         private void DeleteGroup_Click(object sender, RoutedEventArgs e)
         {
             if (sender is FrameworkElement fe && fe.DataContext is TagGroupManageViewModel vm)
             {
                 try
                 {
-                    if (MessageBox.Show($"确定要删除分组“{vm.Name}”及其所有标签吗？", "确认删除", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
+                    if (MessageBox.Show(Window.GetWindow(this), $"确定要删除分组“{vm.Name}”及其所有标签吗？", "确认删除", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
                     {
                         _tagService?.DeleteTagGroup(vm.Id);
                         RefreshGroups();
@@ -199,16 +169,13 @@ namespace YiboFile.Controls.Dialogs
             if (sender is FrameworkElement fe && fe.DataContext is TagGroupManageViewModel vm)
             {
                 var input = new InputDialog("重命名分组", "请输入新的分组名称:", vm.Name);
+                input.Owner = Window.GetWindow(this);
                 if (input.ShowDialog() == true)
                 {
                     try
                     {
                         _tagService?.RenameTagGroup(vm.Id, input.InputText);
                         RefreshGroups();
-                        // Restore selection
-                        // Restore selection - Not supported in ItemsControl, maybe scroll to it later?
-                        // var updated = Groups.FirstOrDefault(g => g.Id == vm.Id);
-                        // if (updated != null) GroupsList.SelectedItem = updated;
                     }
                     catch (Exception ex)
                     {
@@ -224,10 +191,10 @@ namespace YiboFile.Controls.Dialogs
             {
                 try
                 {
-                    if (MessageBox.Show($"确定要删除标签“{vm.Name}”吗？", "确认删除", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
+                    if (MessageBox.Show(Window.GetWindow(this), $"确定要删除标签“{vm.Name}”吗？", "确认删除", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
                     {
                         _tagService?.DeleteTag(vm.Id);
-                        RefreshGroups(); // Refresh all to simplest update
+                        RefreshGroups();
                     }
                 }
                 catch (Exception ex)
@@ -242,6 +209,7 @@ namespace YiboFile.Controls.Dialogs
             if (sender is FrameworkElement fe && fe.DataContext is TagManageViewModel vm)
             {
                 var input = new InputDialog("重命名标签", "请输入新的标签名称:", vm.Name);
+                input.Owner = Window.GetWindow(this);
                 if (input.ShowDialog() == true)
                 {
                     try
@@ -256,11 +224,6 @@ namespace YiboFile.Controls.Dialogs
                 }
             }
         }
-
-        // Inline Edit Stubs - for now using Dialogs for Rename
-        private void EditNameBox_KeyDown(object sender, KeyEventArgs e) { }
-        private void EditNameBox_LostFocus(object sender, RoutedEventArgs e) { }
-
 
         private void ShowError(string msg)
         {
@@ -294,6 +257,4 @@ namespace YiboFile.Controls.Dialogs
         public string Color { get; set; }
         public int GroupId { get; set; }
     }
-
-
 }

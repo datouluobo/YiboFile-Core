@@ -1,0 +1,67 @@
+<Window x:Class="YiboFile.Windows.NavigationSettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:settings="clr-namespace:YiboFile.Controls.Settings"
+        mc:Ignorable="d"
+        Title="导航设置" Height="600" Width="900"
+        WindowStartupLocation="CenterOwner" ResizeMode="CanResize"
+        Background="White" Foreground="#333333">
+    
+    <Window.Resources>
+        <!-- Modern TabItem Style -->
+        <Style TargetType="TabItem">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border Name="Border" BorderThickness="0,0,0,3" BorderBrush="Transparent" Margin="0,0,10,0" Padding="15,10">
+                            <ContentPresenter x:Name="ContentSite"
+                                            VerticalAlignment="Center"
+                                            HorizontalAlignment="Center"
+                                            ContentSource="Header"
+                                            RecognizesAccessKey="True"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Border" Property="BorderBrush" Value="#2196F3"/>
+                                <Setter Property="Foreground" Value="#2196F3"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="#1976D2"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Custom Tab Control Header Area -->
+        <Border BorderThickness="0,0,0,1" BorderBrush="#EEEEEE" Background="#FAFAFA" Padding="15,5,15,0">
+             <TabControl x:Name="MainTabControl" BorderThickness="0" Background="Transparent" SelectionChanged="MainTabControl_SelectionChanged">
+                <TabItem Header="位置" Tag="Path">
+                     <!-- Content is loaded lazily or explicitly set -->
+                </TabItem>
+                <TabItem Header="库" Tag="Library">
+                </TabItem>
+                <TabItem Header="标签" Tag="Tag">
+                </TabItem>
+             </TabControl>
+        </Border>
+
+        <!-- Main Content Area -->
+        <Border Grid.Row="1" Padding="0">
+            <ContentControl x:Name="TabContentArea"/>
+        </Border>
+    </Grid>
+</Window>

@@ -13,7 +13,29 @@ namespace YiboFile.Controls
     public partial class TagBrowsePanel : UserControl
     {
         public event Action<int, string> TagClicked;
-        public event EventHandler ManagementRequested;
+        public event EventHandler BackRequested;
+
+
+
+
+        // Dependency Properties for UI control
+        public static readonly DependencyProperty ShowHeaderProperty =
+            DependencyProperty.Register("ShowHeader", typeof(bool), typeof(TagBrowsePanel), new PropertyMetadata(true));
+
+        public bool ShowHeader
+        {
+            get { return (bool)GetValue(ShowHeaderProperty); }
+            set { SetValue(ShowHeaderProperty, value); }
+        }
+
+        public static readonly DependencyProperty ShowFooterProperty =
+            DependencyProperty.Register("ShowFooter", typeof(bool), typeof(TagBrowsePanel), new PropertyMetadata(false));
+
+        public bool ShowFooter
+        {
+            get { return (bool)GetValue(ShowFooterProperty); }
+            set { SetValue(ShowFooterProperty, value); }
+        }
 
         private ITagService _tagService;
 
@@ -56,15 +78,12 @@ namespace YiboFile.Controls
                         Color = t.Color
                     }).ToList();
 
-                    if (tags.Any())
+                    viewModels.Add(new TagGroupViewModel
                     {
-                        viewModels.Add(new TagGroupViewModel
-                        {
-                            Id = group.Id,
-                            Name = group.Name,
-                            Tags = tags
-                        });
-                    }
+                        Id = group.Id,
+                        Name = group.Name,
+                        Tags = tags
+                    });
                 }
 
                 // 2. Process ungrouped tags? (Assuming ITagGroup doesn't cover ungrouped yet, or GroupId=0)
@@ -106,10 +125,14 @@ namespace YiboFile.Controls
 
         private void ManageTagsBtn_Click(object sender, RoutedEventArgs e)
         {
-            var dialog = new TagManagementDialog();
-            dialog.Owner = Window.GetWindow(this);
-            dialog.ShowDialog();
-            RefreshTags();
+            var window = new YiboFile.Windows.NavigationSettingsWindow("Tag");
+            window.Owner = Window.GetWindow(this);
+            window.ShowDialog();
+        }
+
+        private void BackBtn_Click(object sender, RoutedEventArgs e)
+        {
+            BackRequested?.Invoke(this, EventArgs.Empty);
         }
 
         private void RenameTag_Click(object sender, RoutedEventArgs e)
@@ -212,6 +235,51 @@ namespace YiboFile.Controls
                         MessageBox.Show($"已将 {files.Length} 个文件添加到标签 '{tag.Name}'");
                     }
                 }
+            }
+        }
+
+        // Footer Actions
+        private void NewGroupBtn_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new InputDialog("新建分组", "请输入分组名称:");
+            if (dialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(dialog.InputText))
+            {
+                _tagService?.AddTagGroup(dialog.InputText);
+                RefreshTags();
+            }
+        }
+
+        private void NewTagBtn_Click(object sender, RoutedEventArgs e)
+        {
+            // Default to first group if any, or ask user to select group? 
+            // InputDialog is simple text. We need a way to select group?
+            // For now, let's create in first group or "Default" group.
+            // Or use a more complex logic.
+            // Simplest: Ask name, add to first available group or "未分组" equivalent.
+            // But ITagService requires GroupId.
+            // Let's check groups count.
+            var groups = _tagService?.GetTagGroups().ToList();
+            if (groups == null || groups.Count == 0)
+            {
+                MessageBox.Show("请先创建分组");
+                return;
+            }
+
+            // Ideally we show a dialog to pick group + name.
+            // But reuse InputDialog for Name, then pick Group?
+            // Let's assume selection of group is needed.
+            // Hack for now: Add to first group, user can move later?
+            // Better: Add an overload to InputDialog? No.
+
+            // Let's just prompt for name and add to the first group for now, 
+            // or if we have a "selected group" context.
+            // We don't have selected group context in the footer button.
+
+            var dialog = new InputDialog("新建标签 (添加到第一分组)", "请输入标签名称:");
+            if (dialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(dialog.InputText))
+            {
+                _tagService?.AddTag(groups[0].Id, dialog.InputText);
+                RefreshTags();
             }
         }
     }

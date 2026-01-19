@@ -6,6 +6,10 @@ using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Windows;
+using YiboFile.Models;
+using Microsoft.Extensions.DependencyInjection;
+using YiboFile.Services.Features;
+using YiboFile.Controls.Dialogs;
 
 namespace YiboFile
 {
@@ -19,6 +23,43 @@ namespace YiboFile
         // 文件操作事件桥接方法 - 已迁移到 MenuEventHandler
         internal void NewFolder_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.NewFolder_Click(sender, e);
         private void NewFile_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.NewFile_Click(sender, e);
+
+        private void FileAddTag_Click(object sender, RoutedEventArgs e)
+        {
+            var browser = sender as YiboFile.Controls.FileBrowserControl;
+            if (browser == null) return;
+
+            var items = browser.FilesSelectedItems?.Cast<FileSystemItem>().ToList();
+            if (items == null || items.Count == 0) return;
+
+            var dialog = new TagSelectionDialog();
+            dialog.Owner = this;
+            if (dialog.ShowDialog() == true)
+            {
+                var tagService = App.ServiceProvider.GetService<ITagService>();
+                if (tagService != null)
+                {
+                    int successCount = 0;
+                    foreach (var item in items)
+                    {
+                        try
+                        {
+                            tagService.AddTagToFile(item.Path, dialog.SelectedTagId);
+                            successCount++;
+                        }
+                        catch { }
+                    }
+
+                    if (successCount > 0)
+                    {
+                        // Refresh the file list to show updated tags
+                        if (browser == FileBrowser) RefreshFileList();
+                        else if (browser == SecondFileBrowser && !string.IsNullOrEmpty(SecondFileBrowser.AddressText))
+                            LoadSecondFileBrowserDirectory(SecondFileBrowser.AddressText);
+                    }
+                }
+            }
+        }
 
         internal void CreateNewFileWithExtension(string extension)
         {

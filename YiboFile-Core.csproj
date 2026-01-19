@@ -10,9 +10,9 @@
     <AssemblyName>YiboFile-Core</AssemblyName>
     <AssemblyTitle>YiboFile - 文件资源管理器</AssemblyTitle>
     <AssemblyDescription>Windows文件资源管理器程序，用于管理、归档、浏览各种格式的文档、图片、视频</AssemblyDescription>
-    <AssemblyVersion>1.0.2.0</AssemblyVersion>
-    <FileVersion>1.0.2.0</FileVersion>
-    <Version>1.0.2.0</Version>
+    <AssemblyVersion>1.0.3.0</AssemblyVersion>
+    <FileVersion>1.0.3.0</FileVersion>
+    <Version>1.0.3.0</Version>
     <NoWarn>$(NoWarn);NU1701</NoWarn>
     <!-- 构建优化 -->
     <UseSharedCompilation>true</UseSharedCompilation>

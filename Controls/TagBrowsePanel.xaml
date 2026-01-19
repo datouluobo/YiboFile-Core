@@ -5,26 +5,38 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="300">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+    </UserControl.Resources>
+
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/> <!-- Footer for inline management -->
         </Grid.RowDefinitions>
 
         <!-- Header / Management actions -->
-        <Border Grid.Row="0" Margin="0,0,0,8" Padding="4,4,10,4">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <TextBlock Text="标签" FontWeight="Bold" FontSize="14" VerticalAlignment="Center"/>
-                <Button Grid.Column="1" x:Name="ManageTagsBtn" Content="⚙" ToolTip="管理标签" 
-                        Width="30" Height="30" Click="ManageTagsBtn_Click"
-                        Style="{StaticResource ModernButtonStyle}"
-                        Background="Transparent" Margin="0,0,-5,0"/>
-            </Grid>
-        </Border>
+        <Grid Grid.Row="0" Margin="0,0,0,8" Visibility="{Binding ShowHeader, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <Button Grid.Column="0" x:Name="BackBtn" Content="←" ToolTip="返回" 
+                    Width="30" Height="30" Click="BackBtn_Click"
+                    Style="{StaticResource ModernButtonStyle}"
+                    Background="Transparent" Margin="-5,0,5,0"
+                    Padding="0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+            
+            <TextBlock Grid.Column="1" Text="标签" FontWeight="Bold" FontSize="14" VerticalAlignment="Center"/>
+            
+            <Button Grid.Column="2" x:Name="ManageTagsBtn" Content="⚙" ToolTip="管理标签" 
+                    Width="30" Height="30" Click="ManageTagsBtn_Click"
+                    Style="{StaticResource ModernButtonStyle}"
+                    Background="Transparent" Margin="0,0,-5,0"
+                    Padding="0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+        </Grid>
 
         <!-- Tags List - Simplified version without complex styles -->
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
@@ -68,5 +80,16 @@
                    HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,20,0,0"
                    Foreground="{DynamicResource TextDisabledBrush}"
                    Visibility="Collapsed"/>
+
+        <!-- Inline Management Footer (Visible when ShowHeader is False, or controlled by prop) -->
+        <Grid Grid.Row="2" Margin="0,8,0,0" Visibility="{Binding ShowFooter, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="8"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Button Grid.Column="0" Content="新建分组" Click="NewGroupBtn_Click"/>
+            <Button Grid.Column="2" Content="新建标签" Click="NewTagBtn_Click"/>
+        </Grid>
     </Grid>
 </UserControl>

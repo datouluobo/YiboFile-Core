@@ -94,7 +94,39 @@ namespace YiboFile
             command.CommandText = createFileNotesFts;
             command.ExecuteNonQuery();
 
-            // 标签系统表已移至 Pro 模块初始化
+            // 标签系统表 (Restored for Core)
+            var createTagGroupsTable = @"
+                CREATE TABLE IF NOT EXISTS TagGroups (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    Name TEXT NOT NULL UNIQUE,
+                    Color TEXT
+                )";
+            command.CommandText = createTagGroupsTable;
+            command.ExecuteNonQuery();
+
+            var createTagsTable = @"
+                CREATE TABLE IF NOT EXISTS Tags (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    GroupId INTEGER NOT NULL,
+                    Name TEXT NOT NULL,
+                    Color TEXT,
+                    FOREIGN KEY (GroupId) REFERENCES TagGroups (Id) ON DELETE CASCADE,
+                    UNIQUE(GroupId, Name)
+                )";
+            command.CommandText = createTagsTable;
+            command.ExecuteNonQuery();
+
+            var createFileTagsTable = @"
+                CREATE TABLE IF NOT EXISTS FileTags (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    FilePath TEXT NOT NULL,
+                    TagId INTEGER NOT NULL,
+                    CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (TagId) REFERENCES Tags (Id) ON DELETE CASCADE,
+                    UNIQUE(FilePath, TagId)
+                )";
+            command.CommandText = createFileTagsTable;
+            command.ExecuteNonQuery();
 
             // 文件备注 FTS 表同步已移至 Services/FileNotes/FileNotesService.cs
             // 首次搜索时会自动同步
@@ -193,9 +225,230 @@ namespace YiboFile
             {
                 // 记录错误但不中断初始化
             }
+
+
+            // 数据库迁移：Tags 表添加 GroupId 列 (从 Pro 迁移可能遗留旧结构)
+            try
+            {
+                // 检查 Tags 表是否存在
+                command.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name='Tags'";
+                var tableExists = command.ExecuteScalar() != null;
+
+                if (tableExists)
+                {
+                    var checkGroupIdColumn = "SELECT COUNT(*) FROM pragma_table_info('Tags') WHERE name='GroupId'";
+                    command.CommandText = checkGroupIdColumn;
+                    var hasGroupId = Convert.ToInt32(command.ExecuteScalar()) > 0;
+
+                    if (!hasGroupId)
+                    {
+                        // 添加 GroupId 列
+                        command.CommandText = "ALTER TABLE Tags ADD COLUMN GroupId INTEGER DEFAULT 0";
+                        command.ExecuteNonQuery();
+                    }
+                }
+            }
+            catch
+            {
+                // Ignore
+            }
         }
 
-        // 本地标签相关 API 已弃用（改为完全使用 TagTrain），故移除
+
+        #region 标签系统 (Tag System)
+
+        public static int AddTagGroup(string name, string color = null)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "INSERT INTO TagGroups (Name, Color) VALUES (@name, @color); SELECT last_insert_rowid();";
+            command.Parameters.AddWithValue("@name", name);
+            command.Parameters.AddWithValue("@color", color ?? (object)DBNull.Value);
+            return Convert.ToInt32(command.ExecuteScalar());
+        }
+
+        public static void RenameTagGroup(int groupId, string newName)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "UPDATE TagGroups SET Name = @name WHERE Id = @id";
+            command.Parameters.AddWithValue("@name", newName);
+            command.Parameters.AddWithValue("@id", groupId);
+            command.ExecuteNonQuery();
+        }
+
+        public static void DeleteTagGroup(int groupId)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            using var command = connection.CreateCommand();
+            // Tags and FileTags will be deleted by CASCADE if supported, but Sqlite default might not be ON.
+            // Let's ensure cleaner deletion just in case or rely on PRAGMA foreign_keys = ON;
+            // Best practice implies ensuring dependencies are gone or letting DB handle it.
+            // We'll trust CASCADE if configured, but to be safe/explicit:
+            command.CommandText = "DELETE FROM TagGroups WHERE Id = @id";
+            command.Parameters.AddWithValue("@id", groupId);
+            command.ExecuteNonQuery();
+        }
+
+        public static List<Services.Features.ITagGroup> GetTagGroups()
+        {
+            var result = new List<Services.Features.ITagGroup>();
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "SELECT Id, Name, Color FROM TagGroups ORDER BY Id";
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                result.Add(new TagGroupModel
+                {
+                    Id = reader.GetInt32(0),
+                    Name = reader.GetString(1),
+                    Color = reader.IsDBNull(2) ? null : reader.GetString(2)
+                });
+            }
+            return result;
+        }
+
+        public static int AddTag(int groupId, string name, string color = null)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "INSERT INTO Tags (GroupId, Name, Color) VALUES (@groupId, @name, @color); SELECT last_insert_rowid();";
+            command.Parameters.AddWithValue("@groupId", groupId);
+            command.Parameters.AddWithValue("@name", name);
+            command.Parameters.AddWithValue("@color", string.IsNullOrEmpty(color) ? "#808080" : color);
+            return Convert.ToInt32(command.ExecuteScalar());
+        }
+
+        public static void RenameTag(int tagId, string newName)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "UPDATE Tags SET Name = @name WHERE Id = @id";
+            command.Parameters.AddWithValue("@name", newName);
+            command.Parameters.AddWithValue("@id", tagId);
+            command.ExecuteNonQuery();
+        }
+
+        public static void DeleteTag(int tagId)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "DELETE FROM Tags WHERE Id = @id";
+            command.Parameters.AddWithValue("@id", tagId);
+            command.ExecuteNonQuery();
+        }
+
+        public static List<Services.Features.ITag> GetTagsByGroup(int groupId)
+        {
+            var result = new List<Services.Features.ITag>();
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "SELECT Id, Name, Color, GroupId FROM Tags WHERE GroupId = @groupId ORDER BY Id";
+            command.Parameters.AddWithValue("@groupId", groupId);
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                result.Add(new TagModel
+                {
+                    Id = reader.GetInt32(0),
+                    Name = reader.GetString(1),
+                    Color = reader.IsDBNull(2) ? null : reader.GetString(2),
+                    GroupId = reader.GetInt32(3)
+                });
+            }
+            return result;
+        }
+
+        public static void AddTagToFile(string filePath, int tagId)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "INSERT OR IGNORE INTO FileTags (FilePath, TagId) VALUES (@path, @tagId)";
+            command.Parameters.AddWithValue("@path", filePath);
+            command.Parameters.AddWithValue("@tagId", tagId);
+            command.ExecuteNonQuery();
+        }
+
+        public static void RemoveTagFromFile(string filePath, int tagId)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "DELETE FROM FileTags WHERE FilePath = @path AND TagId = @tagId";
+            command.Parameters.AddWithValue("@path", filePath);
+            command.Parameters.AddWithValue("@tagId", tagId);
+            command.ExecuteNonQuery();
+        }
+
+        public static List<Services.Features.ITag> GetFileTags(string filePath)
+        {
+            var result = new List<Services.Features.ITag>();
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = @"
+                SELECT t.Id, t.Name, t.Color, t.GroupId 
+                FROM Tags t
+                INNER JOIN FileTags ft ON t.Id = ft.TagId
+                WHERE ft.FilePath = @path";
+            command.Parameters.AddWithValue("@path", filePath);
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                result.Add(new TagModel
+                {
+                    Id = reader.GetInt32(0),
+                    Name = reader.GetString(1),
+                    Color = reader.IsDBNull(2) ? null : reader.GetString(2),
+                    GroupId = reader.GetInt32(3)
+                });
+            }
+            return result;
+        }
+
+        public static List<string> GetFilesByTag(int tagId)
+        {
+            var result = new List<string>();
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "SELECT FilePath FROM FileTags WHERE TagId = @tagId";
+            command.Parameters.AddWithValue("@tagId", tagId);
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                result.Add(reader.GetString(0));
+            }
+            return result;
+        }
+
+        // Private models for DB interaction
+        private class TagGroupModel : Services.Features.ITagGroup
+        {
+            public int Id { get; set; }
+            public string Name { get; set; }
+            public string Color { get; set; }
+        }
+
+        private class TagModel : Services.Features.ITag
+        {
+            public int Id { get; set; }
+            public string Name { get; set; }
+            public string Color { get; set; }
+            public int GroupId { get; set; }
+        }
+
+        #endregion
 
         // 文件备注功能已移至 Services/FileNotes/FileNotesService.cs
 

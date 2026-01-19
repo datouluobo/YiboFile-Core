@@ -142,6 +142,21 @@ namespace YiboFile.Controls
                 settingsPanel.LoadSettings();
             }
         }
+
+        public void SelectCategory(string category)
+        {
+            if (CategoryListBox == null) return;
+
+            foreach (ListBoxItem item in CategoryListBox.Items)
+            {
+                if (item.Tag?.ToString() == category)
+                {
+                    CategoryListBox.SelectedItem = item;
+                    // LoadCategory will be called by SelectionChanged handler
+                    break;
+                }
+            }
+        }
     }
 
     public interface ISettingsPanel

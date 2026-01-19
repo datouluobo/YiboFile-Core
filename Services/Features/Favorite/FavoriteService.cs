@@ -76,25 +76,17 @@ namespace YiboFile.Services.Favorite
         }
 
         /// <summary>
-        /// 加载收藏列表
+        /// 加载收藏列表 (分离文件夹和文件)
         /// </summary>
-        public void LoadFavorites(ListBox favoritesListBox)
+        public void LoadFavorites(ListBox folderFavoritesListBox, ListBox fileFavoritesListBox)
         {
-            if (favoritesListBox == null) return;
-
             _dispatcher.Invoke(() =>
             {
                 try
                 {
                     var favorites = DatabaseManager.GetAllFavorites();
 
-                    if (favorites.Count == 0)
-                    {
-                        favoritesListBox.ItemsSource = null;
-                        return;
-                    }
-
-                    // 检查同名文件/文件夹
+                    // 分组同名项
                     var nameGroups = favorites.GroupBy(f =>
                     {
                         string name = f.DisplayName ?? Path.GetFileName(f.Path);
@@ -103,7 +95,7 @@ namespace YiboFile.Services.Favorite
                     }).ToList();
 
                     // 创建显示项列表
-                    var displayItems = favorites.Select(favorite =>
+                    var allDisplayItems = favorites.Select(favorite =>
                     {
                         string iconKey = favorite.IsDirectory ? "Icon_Folder" : "Icon_Document";
                         string displayName = favorite.DisplayName ?? Path.GetFileName(favorite.Path);
@@ -143,36 +135,54 @@ namespace YiboFile.Services.Favorite
                         };
                     }).ToList();
 
-                    favoritesListBox.ItemsSource = displayItems;
-                    favoritesListBox.DisplayMemberPath = null; // 使用XAML模板
+                    // 分离文件夹和文件
+                    var folderItems = allDisplayItems.Where(i => i.Favorite.IsDirectory).OrderBy(i => i.Favorite.SortOrder).ToList();
+                    var fileItems = allDisplayItems.Where(i => !i.Favorite.IsDirectory).OrderBy(i => i.Favorite.SortOrder).ToList();
 
-                    // 移除代码生成的DataTemplate，使用XAML定义的模板
-                    // if (favoritesListBox.ItemTemplate == null) ... 
+                    // 绑定文件夹列表
+                    if (folderFavoritesListBox != null)
+                    {
+                        folderFavoritesListBox.ItemsSource = folderItems;
+                        folderFavoritesListBox.DisplayMemberPath = null;
+                        ConfigureListBoxEvents(folderFavoritesListBox);
+                    }
 
+                    // 绑定文件列表
+                    if (fileFavoritesListBox != null)
+                    {
+                        fileFavoritesListBox.ItemsSource = fileItems;
+                        fileFavoritesListBox.DisplayMemberPath = null;
+                        ConfigureListBoxEvents(fileFavoritesListBox);
+                    }
 
-                    // 设置选择事件（单击进入）
-                    favoritesListBox.SelectionChanged -= FavoritesListBox_SelectionChanged;
-                    favoritesListBox.SelectionChanged += FavoritesListBox_SelectionChanged;
-
-                    // 设置右键菜单
-                    favoritesListBox.ContextMenu = CreateFavoritesContextMenu(favoritesListBox);
-                    favoritesListBox.PreviewMouseRightButtonDown -= FavoritesListBox_PreviewMouseRightButtonDown;
-                    favoritesListBox.PreviewMouseRightButtonDown += FavoritesListBox_PreviewMouseRightButtonDown;
-
-                    // 设置鼠标中键事件
-                    favoritesListBox.PreviewMouseDown -= FavoritesListBox_PreviewMouseDown;
-                    favoritesListBox.PreviewMouseDown += FavoritesListBox_PreviewMouseDown;
-
-                    // 初始化拖拽排序
-                    InitializeFavoritesDragDrop(favoritesListBox);
-
-                    FavoritesLoaded?.Invoke(this, EventArgs.Empty);
+                    // FavoritesLoaded?.Invoke(this, EventArgs.Empty);  // Removed to avoid infinite loop when MainWindow reloads on this event
                 }
                 catch
                 {
-                    favoritesListBox.ItemsSource = null;
+                    if (folderFavoritesListBox != null) folderFavoritesListBox.ItemsSource = null;
+                    if (fileFavoritesListBox != null) fileFavoritesListBox.ItemsSource = null;
                 }
             });
+        }
+
+        private void ConfigureListBoxEvents(ListBox listBox)
+        {
+            // 设置选择事件（单击进入）
+            listBox.SelectionChanged -= FavoritesListBox_SelectionChanged;
+            listBox.SelectionChanged += FavoritesListBox_SelectionChanged;
+
+            // 设置右键菜单
+            listBox.ContextMenu = CreateFavoritesContextMenu(listBox);
+            listBox.PreviewMouseRightButtonDown -= FavoritesListBox_PreviewMouseRightButtonDown;
+            listBox.PreviewMouseRightButtonDown += FavoritesListBox_PreviewMouseRightButtonDown;
+
+            // 设置鼠标中键事件 - 已在 MainWindow.Initialization 中处理，这里移除或保留作为备用？
+            // 原逻辑包含在此类中，保留以维持功能完整性
+            listBox.PreviewMouseDown -= FavoritesListBox_PreviewMouseDown;
+            listBox.PreviewMouseDown += FavoritesListBox_PreviewMouseDown;
+
+            // 初始化拖拽排序
+            InitializeFavoritesDragDrop(listBox);
         }
 
         /// <summary>
@@ -350,14 +360,15 @@ namespace YiboFile.Services.Favorite
                         var favorite = favoriteProperty.GetValue(selectedItem) as YiboFile.Favorite;
                         if (favorite != null)
                         {
-                            FavoriteService obj = this; // Capture 'this' explicitly if needed, assuming we are inside instance method of FavoriteService
-                                                        // Actually context menu creation is inside FavoriteService instance method.
-
-                            // Re-read context:
-                            // private ContextMenu CreateFavoritesContextMenu(ListBox listBox) Is inside FavoriteService class.
+                            // Capture references needed for reload
+                            // 由于 LoadFavorites 现在需要两个 ListBox，我们需要知道上下文
+                            // 或者通过事件通知上层重新加载
+                            // 暂时简单地调用 LoadFavorites 需要保存 listbox 引用吗？
+                            // 更好的方式是触发事件通知 MainWindow 更新
 
                             DatabaseManager.RemoveFavorite(favorite.Path);
-                            LoadFavorites(listBox);
+
+                            // 触发重新加载 - 下游 MainWindow 监听此事件并调用 LoadFavorites
                             FavoritesLoaded?.Invoke(this, EventArgs.Empty);
                             NotificationService.Show("已取消收藏", NotificationType.Success);
                         }
@@ -570,20 +581,21 @@ namespace YiboFile.Services.Favorite
                     }
                 }
 
-                // 更新数据库中的SortOrder（在文件夹和文件分组内排序）
-                // 先按文件夹/文件分组，再更新SortOrder
-                var folderGroup = newOrder.Where(f => f.IsDirectory).ToList();
-                var fileGroup = newOrder.Where(f => !f.IsDirectory).ToList();
+                // 更新数据库中的SortOrder
+                // 判断是文件夹还是文件，仅更新该组的顺序
+                // 注意：由于我们分开了两个列表，这里的 newOrder 仅包含当前组（全是文件夹或全是文件）
+                // 我们需要重新分配这些项的 SortOrder
+                // 为了避免冲突，可以简单地重新分配所有 Favorites 的 SortOrder，或者只更新变动的。
+                // 简单策略：获取该 item 类型（List 中第一个即可），找出所有该类型的 items，按新顺序更新
 
-                int sortOrder = 0;
-                foreach (var fav in folderGroup)
+                int counter = 0;
+                foreach (var item in newOrder)
                 {
-                    DatabaseManager.UpdateFavoriteSortOrder(fav.Id, sortOrder++);
+                    DatabaseManager.UpdateFavoriteSortOrder(item.Id, counter++);
                 }
-                foreach (var fav in fileGroup)
-                {
-                    DatabaseManager.UpdateFavoriteSortOrder(fav.Id, sortOrder++);
-                }
+
+                // 触发 LoadFavorites
+                FavoritesLoaded?.Invoke(this, EventArgs.Empty);
 
                 // 重新加载显示
                 FavoritesLoaded?.Invoke(this, EventArgs.Empty);

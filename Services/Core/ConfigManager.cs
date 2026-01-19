@@ -111,6 +111,17 @@ namespace YiboFile
         // 搜索历史设置
         public int HistoryMaxCount { get; set; } = 20;
         public bool AutoExpandHistory { get; set; } = false;
+
+        // 导航栏项目顺序
+        public System.Collections.Generic.List<string> NavigationSectionsOrder { get; set; } = new System.Collections.Generic.List<string>
+        {
+            "QuickAccess",
+            "Drives",
+            "FolderFavorites",
+            "FileFavorites",
+            "Libraries",
+            "Tags"
+        };
     }
 
     public class AllSettingsConfig
