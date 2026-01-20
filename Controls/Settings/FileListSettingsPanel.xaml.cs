@@ -2,14 +2,18 @@ using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Data;
 using YiboFile;
 using YiboFile.Services.Config;
+using YiboFile.ViewModels;
 
 namespace YiboFile.Controls.Settings
 {
     public partial class FileListSettingsPanel : UserControl, ISettingsPanel
     {
         public event EventHandler SettingsChanged;
+
+        private SettingsViewModel _viewModel;
 
         private TextBox _tagsWidthTextBox;
         private Button _tagsWidthUpButton;
@@ -18,12 +22,24 @@ namespace YiboFile.Controls.Settings
         private Button _notesWidthUpButton;
         private Button _notesWidthDownButton;
 
-        private bool _isLoadingSettings = false;
-
         public FileListSettingsPanel()
         {
             InitializeComponent();
-            LoadSettings();
+            _viewModel = new SettingsViewModel();
+            this.DataContext = _viewModel;
+
+            // Bridge ViewModel changes to SettingsChanged event and refresh columns
+            _viewModel.PropertyChanged += (s, e) =>
+            {
+                if (e.PropertyName == nameof(SettingsViewModel.ColTagsWidth) ||
+                    e.PropertyName == nameof(SettingsViewModel.ColNotesWidth))
+                {
+                    RefreshFileListColumns();
+                }
+                SettingsChanged?.Invoke(this, EventArgs.Empty);
+            };
+
+            InitializeBindings();
         }
 
         private void InitializeComponent()
@@ -44,11 +60,9 @@ namespace YiboFile.Controls.Settings
             var tagsGrid = CreateNumberInputRow("标签列宽度:", ref _tagsWidthTextBox, ref _tagsWidthUpButton, ref _tagsWidthDownButton);
             stackPanel.Children.Add(tagsGrid);
 
-            _tagsWidthTextBox.TextChanged += TagsWidthTextBox_TextChanged;
-            _tagsWidthTextBox.LostFocus += TagsWidthTextBox_LostFocus;
             _tagsWidthTextBox.PreviewTextInput += NumericTextBox_PreviewTextInput;
-            _tagsWidthUpButton.Click += TagsWidthUpButton_Click;
-            _tagsWidthDownButton.Click += TagsWidthDownButton_Click;
+            _tagsWidthUpButton.Click += (s, e) => AdjustValue(_viewModel.ColTagsWidth, 5, 50, 500, v => _viewModel.ColTagsWidth = v);
+            _tagsWidthDownButton.Click += (s, e) => AdjustValue(_viewModel.ColTagsWidth, -5, 50, 500, v => _viewModel.ColTagsWidth = v);
 
             // 添加提示
             var tagsHint = new TextBlock
@@ -64,11 +78,9 @@ namespace YiboFile.Controls.Settings
             var notesGrid = CreateNumberInputRow("备注列宽度:", ref _notesWidthTextBox, ref _notesWidthUpButton, ref _notesWidthDownButton);
             stackPanel.Children.Add(notesGrid);
 
-            _notesWidthTextBox.TextChanged += NotesWidthTextBox_TextChanged;
-            _notesWidthTextBox.LostFocus += NotesWidthTextBox_LostFocus;
             _notesWidthTextBox.PreviewTextInput += NumericTextBox_PreviewTextInput;
-            _notesWidthUpButton.Click += NotesWidthUpButton_Click;
-            _notesWidthDownButton.Click += NotesWidthDownButton_Click;
+            _notesWidthUpButton.Click += (s, e) => AdjustValue(_viewModel.ColNotesWidth, 5, 100, 800, v => _viewModel.ColNotesWidth = v);
+            _notesWidthDownButton.Click += (s, e) => AdjustValue(_viewModel.ColNotesWidth, -5, 100, 800, v => _viewModel.ColNotesWidth = v);
 
             // 添加提示
             var notesHint = new TextBlock
@@ -87,6 +99,21 @@ namespace YiboFile.Controls.Settings
             };
 
             Content = scrollViewer;
+        }
+
+        private void InitializeBindings()
+        {
+            _tagsWidthTextBox.SetBinding(TextBox.TextProperty, new Binding(nameof(SettingsViewModel.ColTagsWidth))
+            {
+                Mode = BindingMode.TwoWay,
+                UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged
+            });
+
+            _notesWidthTextBox.SetBinding(TextBox.TextProperty, new Binding(nameof(SettingsViewModel.ColNotesWidth))
+            {
+                Mode = BindingMode.TwoWay,
+                UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged
+            });
         }
 
         private Grid CreateNumberInputRow(string label, ref TextBox textBox, ref Button upButton, ref Button downButton)
@@ -156,187 +183,15 @@ namespace YiboFile.Controls.Settings
             return grid;
         }
 
-        public void LoadSettings()
+        private void AdjustValue(double current, double delta, double min, double max, Action<double> setter)
         {
-            _isLoadingSettings = true;
-            try
-            {
-                // 使用统一配置服务获取配置快照
-                var config = ConfigurationService.Instance.GetSnapshot();
-
-                if (_tagsWidthTextBox != null)
-                {
-                    _tagsWidthTextBox.Text = ((int)config.ColTagsWidth).ToString();
-                }
-
-                if (_notesWidthTextBox != null)
-                {
-                    _notesWidthTextBox.Text = ((int)config.ColNotesWidth).ToString();
-                }
-            }
-            finally
-            {
-                _isLoadingSettings = false;
-            }
-        }
-
-        public void SaveSettings()
-        {
-            // 使用统一配置服务批量更新列宽设置
-            ConfigurationService.Instance.Update(config =>
-            {
-                if (_tagsWidthTextBox != null && int.TryParse(_tagsWidthTextBox.Text, out int tagsWidth))
-                {
-                    config.ColTagsWidth = tagsWidth;
-                }
-
-                if (_notesWidthTextBox != null && int.TryParse(_notesWidthTextBox.Text, out int notesWidth))
-                {
-                    config.ColNotesWidth = notesWidth;
-                }
-            });
+            double newValue = Math.Clamp(current + delta, min, max);
+            setter(newValue);
         }
 
         private void NumericTextBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
         {
             e.Handled = !char.IsDigit(e.Text, 0);
-        }
-
-        private void TagsWidthTextBox_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            if (_isLoadingSettings) return;
-
-            var textBox = sender as TextBox;
-            if (textBox == null) return;
-
-            // 只验证是否是有效数字，不限制范围（允许中间输入状态）
-            if (int.TryParse(textBox.Text, out int value))
-            {
-                // 实时更新预览（可选）
-                // 这里可以添加实时预览逻辑
-            }
-        }
-
-        private void TagsWidthTextBox_LostFocus(object sender, RoutedEventArgs e)
-        {
-            var textBox = sender as TextBox;
-            if (textBox == null) return;
-
-            if (int.TryParse(textBox.Text, out int value))
-            {
-                // 限制范围（失去焦点时）
-                if (value < 50) value = 50;
-                if (value > 500) value = 500;
-
-                // 更新文本框为有效值
-                textBox.Text = value.ToString();
-                ApplyTagsWidth(value); // Apply the corrected value
-            }
-            else
-            {
-                // 无效输入，恢复默认值
-                textBox.Text = "150";
-                ApplyTagsWidth(150); // Apply default value
-            }
-        }
-
-        private void TagsWidthUpButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (int.TryParse(_tagsWidthTextBox.Text, out int value))
-            {
-                value = Math.Min(500, value + 5);
-                _tagsWidthTextBox.Text = value.ToString();
-                ApplyTagsWidth(value);
-            }
-        }
-
-        private void TagsWidthDownButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (int.TryParse(_tagsWidthTextBox.Text, out int value))
-            {
-                value = Math.Max(50, value - 5);
-                _tagsWidthTextBox.Text = value.ToString();
-                ApplyTagsWidth(value);
-            }
-        }
-
-        private void ApplyTagsWidth(double width)
-        {
-            // 使用统一配置服务更新
-            ConfigurationService.Instance.Set(cfg => cfg.ColTagsWidth, width);
-
-            // 直接刷新 FileListControl 的列宽度
-            RefreshFileListColumns();
-
-            SettingsChanged?.Invoke(this, EventArgs.Empty);
-        }
-
-        private void NotesWidthTextBox_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            if (_isLoadingSettings) return;
-
-            var textBox = sender as TextBox;
-            if (textBox == null) return;
-
-            // 只验证是否是有效数字，不限制范围
-            if (int.TryParse(textBox.Text, out int value))
-            {
-                // 实时更新预览（可选）
-            }
-        }
-
-        private void NotesWidthTextBox_LostFocus(object sender, RoutedEventArgs e)
-        {
-            var textBox = sender as TextBox;
-            if (textBox == null) return;
-
-            if (int.TryParse(textBox.Text, out int value))
-            {
-                // 限制范围（失去焦点时）
-                if (value < 100) value = 100;
-                if (value > 800) value = 800;
-
-                // 更新文本框为有效值
-                textBox.Text = value.ToString();
-                ApplyNotesWidth(value); // Apply the corrected value
-            }
-            else
-            {
-                // 无效输入，恢复默认值
-                textBox.Text = "200";
-                ApplyNotesWidth(200); // Apply default value
-            }
-        }
-
-        private void NotesWidthUpButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (int.TryParse(_notesWidthTextBox.Text, out int value))
-            {
-                value = Math.Min(800, value + 5);
-                _notesWidthTextBox.Text = value.ToString();
-                ApplyNotesWidth(value);
-            }
-        }
-
-        private void NotesWidthDownButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (int.TryParse(_notesWidthTextBox.Text, out int value))
-            {
-                value = Math.Max(100, value - 5);
-                _notesWidthTextBox.Text = value.ToString();
-                ApplyNotesWidth(value);
-            }
-        }
-
-        private void ApplyNotesWidth(double width)
-        {
-            // 使用统一配置服务更新
-            ConfigurationService.Instance.Set(cfg => cfg.ColNotesWidth, width);
-
-            // 直接刷新 FileListControl 的列宽度
-            RefreshFileListColumns();
-
-            SettingsChanged?.Invoke(this, EventArgs.Empty);
         }
 
         /// <summary>
@@ -372,6 +227,15 @@ namespace YiboFile.Controls.Settings
             {
             }
         }
+
+        public void LoadSettings()
+        {
+            _viewModel?.LoadFromConfig();
+        }
+
+        public void SaveSettings()
+        {
+            // Auto-saved by bindings
+        }
     }
 }
-

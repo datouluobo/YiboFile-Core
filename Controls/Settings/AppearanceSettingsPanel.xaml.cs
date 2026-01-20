@@ -12,12 +12,15 @@ using YiboFile.Services.Config;
 using YiboFile.Services.Theming;
 using YiboFile.Windows;
 using System.Windows.Controls.Primitives;
+using YiboFile.ViewModels;
 
 namespace YiboFile.Controls.Settings
 {
     public partial class AppearanceSettingsPanel : UserControl, ISettingsPanel
     {
         public event EventHandler SettingsChanged;
+
+        private SettingsViewModel _viewModel;
 
         private ComboBox _themeComboBox;
         private ComboBox _iconStyleComboBox; // New
@@ -109,6 +112,9 @@ namespace YiboFile.Controls.Settings
 
         public AppearanceSettingsPanel()
         {
+            _viewModel = new SettingsViewModel();
+            _viewModel.PropertyChanged += (s, e) => SettingsChanged?.Invoke(this, EventArgs.Empty);
+            DataContext = _viewModel;
             InitializeComponent();
             LoadSettings();
         }
@@ -169,32 +175,20 @@ namespace YiboFile.Controls.Settings
             _themeComboBox.SetResourceReference(ComboBox.ForegroundProperty, "ForegroundPrimaryBrush");
             _themeComboBox.SetResourceReference(ComboBox.BorderBrushProperty, "BorderDefaultBrush");
 
-            // Add Items
-            _themeComboBox.Items.Add(new ThemeComboBoxItem
-            {
-                DisplayName = "🔄 跟随系统",
-                ThemeId = "FollowSystem",
-                Description = "自动跟随Windows系统主题设置"
-            });
-            _themeComboBox.Items.Add(new ThemeComboBoxItem
-            {
-                DisplayName = "──────────",
-                ThemeId = "Separator",
-                IsEnabled = false
-            });
+            _themeComboBox.SetResourceReference(ComboBox.BorderBrushProperty, "BorderDefaultBrush");
 
-            var availableThemes = ThemeManager.GetAvailableThemes().OrderBy(t => t.Id).ToList();
-            foreach (var theme in availableThemes)
+            // Bind ItemsSource
+            var themeItemsBinding = new System.Windows.Data.Binding("Themes") { Source = _viewModel };
+            _themeComboBox.SetBinding(ComboBox.ItemsSourceProperty, themeItemsBinding);
+
+            // Bind SelectedItem
+            var themeSelectedBinding = new System.Windows.Data.Binding("SelectedTheme")
             {
-                string emoji = GetThemeEmoji(theme.Id);
-                _themeComboBox.Items.Add(new ThemeComboBoxItem
-                {
-                    DisplayName = $"{emoji} {theme.DisplayName}",
-                    ThemeId = theme.Id,
-                    Description = theme.Description
-                });
-            }
-            _themeComboBox.SelectionChanged += ThemeComboBox_SelectionChanged;
+                Source = _viewModel,
+                Mode = System.Windows.Data.BindingMode.TwoWay
+            };
+            _themeComboBox.SetBinding(ComboBox.SelectedItemProperty, themeSelectedBinding);
+
             leftPanel.Children.Add(_themeComboBox);
 
             // 1.5 Icon Style Selection
@@ -221,21 +215,20 @@ namespace YiboFile.Controls.Settings
             _iconStyleComboBox.SetResourceReference(ComboBox.ForegroundProperty, "ForegroundPrimaryBrush");
             _iconStyleComboBox.SetResourceReference(ComboBox.BorderBrushProperty, "BorderDefaultBrush");
 
-            _iconStyleComboBox.Items.Add(new ComboBoxItem { Content = "🌈 系统 Emoji (默认)", Tag = "Emoji" });
-            _iconStyleComboBox.Items.Add(new ComboBoxItem { Content = "✒️ Remix Icon (现代) [实验性]", Tag = "Remix" });
-            _iconStyleComboBox.Items.Add(new ComboBoxItem { Content = "💠 Fluent Icons (Win11) [实验性]", Tag = "Fluent" });
-            _iconStyleComboBox.Items.Add(new ComboBoxItem { Content = "✨ Material Design (Google) [实验性]", Tag = "Material" });
+            _iconStyleComboBox.SetResourceReference(ComboBox.BorderBrushProperty, "BorderDefaultBrush");
 
-            _iconStyleComboBox.SelectionChanged += (s, e) =>
+            // Bind ItemsSource
+            var iconItemsBinding = new System.Windows.Data.Binding("IconStyles") { Source = _viewModel };
+            _iconStyleComboBox.SetBinding(ComboBox.ItemsSourceProperty, iconItemsBinding);
+
+            // Bind SelectedItem
+            var iconSelectedBinding = new System.Windows.Data.Binding("SelectedIconStyle")
             {
-                if (_isLoadingSettings) return;
-                if (_iconStyleComboBox.SelectedItem is ComboBoxItem item && item.Tag is string style)
-                {
-                    ThemeManager.ChangeIconStyle(style);
-                    // TODO: Save to config
-                    SaveSettings();
-                }
+                Source = _viewModel,
+                Mode = System.Windows.Data.BindingMode.TwoWay
             };
+            _iconStyleComboBox.SetBinding(ComboBox.SelectedItemProperty, iconSelectedBinding);
+
             leftPanel.Children.Add(_iconStyleComboBox);
 
             // 2. Custom Theme Buttons
@@ -356,7 +349,15 @@ namespace YiboFile.Controls.Settings
                 VerticalAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(0, 0, 12, 0)
             };
-            _opacitySlider.ValueChanged += OpacitySlider_ValueChanged;
+            // _opacitySlider.ValueChanged += OpacitySlider_ValueChanged; // Moved to Binding
+
+            var opacityBinding = new System.Windows.Data.Binding("WindowOpacity")
+            {
+                Source = _viewModel,
+                Mode = System.Windows.Data.BindingMode.TwoWay
+            };
+            _opacitySlider.SetBinding(Slider.ValueProperty, opacityBinding);
+
             Grid.SetColumn(_opacitySlider, 1);
             opacityGrid.Children.Add(_opacitySlider);
 
@@ -368,6 +369,15 @@ namespace YiboFile.Controls.Settings
                 TextAlignment = TextAlignment.Right,
                 Text = "100%"
             };
+
+            var opacityTextBinding = new System.Windows.Data.Binding("WindowOpacity")
+            {
+                Source = _viewModel,
+                Mode = System.Windows.Data.BindingMode.OneWay,
+                StringFormat = "{0:P0}"
+            };
+            _opacityValueText.SetBinding(TextBlock.TextProperty, opacityTextBinding);
+
             Grid.SetColumn(_opacityValueText, 2);
             opacityGrid.Children.Add(_opacityValueText);
             leftPanel.Children.Add(opacityGrid);
@@ -381,8 +391,15 @@ namespace YiboFile.Controls.Settings
                 Margin = new Thickness(0, 0, 0, 4),
                 IsChecked = true
             };
-            _animationsEnabledCheckBox.Checked += AnimationsCheckBox_Changed;
-            _animationsEnabledCheckBox.Unchecked += AnimationsCheckBox_Changed;
+
+
+            var animationBinding = new System.Windows.Data.Binding("EnableAnimations")
+            {
+                Source = _viewModel,
+                Mode = System.Windows.Data.BindingMode.TwoWay
+            };
+            _animationsEnabledCheckBox.SetBinding(CheckBox.IsCheckedProperty, animationBinding);
+
             leftPanel.Children.Add(_animationsEnabledCheckBox);
 
             var animationHint = new TextBlock
@@ -534,35 +551,17 @@ namespace YiboFile.Controls.Settings
             {
                 var config = ConfigurationService.Instance.GetSnapshot();
 
-                // 加载主题模式
-                var themeMode = config.ThemeMode ?? "FollowSystem";
+                // 加载主题模式 (Handled by ViewModel)
+                // var themeMode = config.ThemeMode ?? "FollowSystem";
 
-                // 在ComboBox中查找匹配的主题
-                foreach (ThemeComboBoxItem item in _themeComboBox.Items)
-                {
-                    if (item.ThemeId == themeMode)
-                    {
-                        _themeComboBox.SelectedItem = item;
-                        break;
-                    }
-                }
-
-                // Load Icon Style
-                var iconStyle = config.IconStyle ?? "Emoji";
-                foreach (ComboBoxItem item in _iconStyleComboBox.Items)
-                {
-                    if (item.Tag as string == iconStyle)
-                    {
-                        _iconStyleComboBox.SelectedItem = item;
-                        break;
-                    }
-                }
+                // Load Icon Style (Handled by ViewModel)
+                // var iconStyle = config.IconStyle ?? "Emoji";
 
                 // 加载窗口透明度
-                _opacitySlider.Value = config.WindowOpacity > 0 ? config.WindowOpacity : 1.0;
+                // _opacitySlider.Value = config.WindowOpacity > 0 ? config.WindowOpacity : 1.0; // ViewModel Binding
 
                 // 加载动画设置
-                _animationsEnabledCheckBox.IsChecked = config.AnimationsEnabled;
+                // _animationsEnabledCheckBox.IsChecked = config.AnimationsEnabled; // ViewModel Binding
 
                 // 刷新颜色块状态
                 // RefreshColorBlocks(); -> No longer needed with DynamicResource
@@ -603,33 +602,7 @@ namespace YiboFile.Controls.Settings
             });
         }
 
-        private void OpacitySlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            if (_opacityValueText != null)
-            {
-                _opacityValueText.Text = $"{(int)(_opacitySlider.Value * 100)}%";
-            }
 
-            if (_isLoadingSettings) return;
-
-            // 实时应用透明度到主窗口
-            var mainWindow = Application.Current.MainWindow;
-            if (mainWindow != null)
-            {
-                mainWindow.Opacity = _opacitySlider.Value;
-            }
-
-            SaveSettings();
-            SettingsChanged?.Invoke(this, EventArgs.Empty);
-        }
-
-        private void AnimationsCheckBox_Changed(object sender, RoutedEventArgs e)
-        {
-            if (_isLoadingSettings) return;
-
-            SaveSettings();
-            SettingsChanged?.Invoke(this, EventArgs.Empty);
-        }
 
         /// <summary>
         /// 检测系统主题（Light或Dark）
@@ -685,6 +658,7 @@ namespace YiboFile.Controls.Settings
                     MessageBox.Show($"应用主题失败: {ex.Message}",
                         "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
+                _viewModel.RefreshThemes();
             }
         }
 
@@ -750,7 +724,10 @@ namespace YiboFile.Controls.Settings
             stackPanel.Children.Add(closeButton);
 
             dialog.Content = stackPanel;
+            dialog.Content = stackPanel;
             dialog.ShowDialog();
+
+            _viewModel.RefreshThemes();
         }
 
         private Border CreateThemeCard(CustomTheme theme, Window parentDialog)
@@ -908,40 +885,13 @@ namespace YiboFile.Controls.Settings
             };
         }
 
-        /// <summary>
-        /// 主题ComboBox选择变化事件
-        /// </summary>
-        private void ThemeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (_isLoadingSettings) return;
-            if (_themeComboBox.SelectedItem is not ThemeComboBoxItem selectedItem) return;
-            if (selectedItem.ThemeId == "Separator")
-            {
-                // 如果选中了分隔线，恢复之前的选择
-                e.Handled = true;
-                return;
-            }
 
-            if (selectedItem.ThemeId == "FollowSystem")
-            {
-                ThemeManager.EnableSystemThemeFollowing();
-            }
-            else
-            {
-                ThemeManager.DisableSystemThemeFollowing();
-                ThemeManager.SetTheme(selectedItem.ThemeId, animate: _animationsEnabledCheckBox?.IsChecked ?? true);
-            }
-
-            SaveSettings();
-        }
 
         private void ApplyAccentColor(string hexColor)
         {
             try
             {
-                // 1. 确定基准主题 (如果是Light/Dark等内置主题，以此为基准；如果是已有自定义主题，以此为基准)
-                // 简化逻辑：总是基于当前正在运行的主题颜色创建/更新一个名为 "我的自定义主题" 的配置
-
+                // 1. 确定基准主题
                 var currentId = ConfigurationService.Instance.GetSnapshot().ThemeMode;
                 string baseTheme = "Light";
 
@@ -951,35 +901,48 @@ namespace YiboFile.Controls.Settings
                     baseTheme = "Light"; // 默认为Light
 
                 // 2. 创建一个基于当前视觉状态的自定义主题
-                // 我们使用 "QuickCustom" 作为专用ID来存储这种快速修改
                 var theme = CustomThemeManager.CreateFromCurrent("我的自定义主题", baseTheme);
                 theme.Id = "QuickCustomTheme";
 
                 // 3. 覆盖强调色相关的所有画笔
-                // 简单的算法：悬停变亮，按下变暗
                 var baseColor = (Color)ColorConverter.ConvertFromString(hexColor);
 
+                // 核心强调色
                 theme.Colors["AccentDefaultBrush"] = hexColor;
-                theme.Colors["AccentHoverBrush"] = ChangeColorBrightness(baseColor, 0.2f); // 亮20%
-                theme.Colors["AccentPressedBrush"] = ChangeColorBrightness(baseColor, -0.2f); // 暗20%
+
+                // 交互状态 (变亮/变暗)
+                theme.Colors["AccentHoverBrush"] = ChangeColorBrightness(baseColor, 0.1f);
+                theme.Colors["AccentPressedBrush"] = ChangeColorBrightness(baseColor, -0.1f);
                 theme.Colors["AccentSelectedBrush"] = hexColor;
-                theme.Colors["ControlFocusBrush"] = hexColor;
                 theme.Colors["BorderFocusBrush"] = hexColor;
-                theme.Colors["ForegroundOnAccentBrush"] = "#FFFFFF"; // 假设强调色总是深色，配白字
+
+                // 自动计算前景文本颜色 (黑/白)
+                double luminance = (0.299 * baseColor.R + 0.587 * baseColor.G + 0.114 * baseColor.B);
+                theme.Colors["ForegroundOnAccentBrush"] = luminance > 160 ? "#000000" : "#FFFFFF";
+
+                // 浅色背景 (AccentLightBrush) - 列表选中背景等
+                if (baseTheme == "Dark")
+                {
+                    // 深色模式下，使用低不透明度的强调色 (25% opacity)
+                    // 注意：CustomThemeManager.Apply 使用 ColorConverter, 支持 #AARRGGBB
+                    theme.Colors["AccentLightBrush"] = $"#40{baseColor.R:X2}{baseColor.G:X2}{baseColor.B:X2}";
+                }
+                else
+                {
+                    // 浅色模式下，使用极淡的混合色 (85% White mix)
+                    theme.Colors["AccentLightBrush"] = ChangeColorBrightness(baseColor, 0.85f);
+                }
 
                 // 4. 保存并应用
                 CustomThemeManager.Save(theme);
                 CustomThemeManager.Apply(theme);
 
                 // 5. 更新配置为使用该自定义主题
-                // 我们需要确保ComboBox选中它（如果不在列表中，需添加）
                 UpdateThemeComboBoxSelection(theme);
-
-                // 保存设置
                 ConfigurationService.Instance.Update(config => config.ThemeMode = theme.Id);
 
-                // 提示用户
-                // MessageBox.Show("强调色已更新！", "提示", MessageBoxButton.OK, MessageBoxImage.Information); 
+                // 6. 刷新 ViewModel 以同步 ComboBox
+                _viewModel.RefreshThemes();
             }
             catch (Exception ex)
             {

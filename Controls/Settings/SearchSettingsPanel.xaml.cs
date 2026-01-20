@@ -7,6 +7,7 @@ using System.Windows.Media;
 using System.Threading.Tasks;
 using YiboFile.Services.Config;
 using YiboFile.Services.FullTextSearch;
+using YiboFile.ViewModels;
 
 namespace YiboFile.Controls.Settings
 {
@@ -14,70 +15,31 @@ namespace YiboFile.Controls.Settings
     {
         public event EventHandler SettingsChanged;
 
+        private SettingsViewModel _viewModel;
+
         private CheckBox _enableFtsCheckBox;
         private TextBlock _indexLocationText;
         private TextBlock _indexedCountText;
         private ProgressBar _indexProgressBar;
         private TextBlock _indexProgressText;
         private ListBox _scopeListBox;
-        private Button _rebuildIndexButton; // Ensure this is declared
-        private StackPanel _extensionsPanel; // Ensure this is declared
+        private Button _rebuildIndexButton;
+        private StackPanel _extensionsPanel;
 
         // History config
         private TextBox _historyMaxCountBox;
         private CheckBox _autoExpandHistoryCheck;
         private Button _clearHistoryButton;
 
-        private bool _isLoadingSettings = false;
-
         public SearchSettingsPanel()
         {
             InitializeComponent();
+            _viewModel = new SettingsViewModel();
+            this.DataContext = _viewModel;
+
             InitializeUI();
-            LoadSettings();
-
-            // 订阅进度事件
-            if (FullTextSearchService.Instance.IndexingService != null)
-            {
-                // Fix: Adjust event handler signature match
-                FullTextSearchService.Instance.IndexingService.ProgressChanged += OnIndexingProgressChanged;
-            }
+            // LoadSettings removed - ViewModel loads itself
         }
-
-        // Fix: Update signature to match EventHandler<IndexingProgressEventArgs> or whatever delegate is used
-        // Assuming the previous error meant it expects (object sender, IndexingProgressEventArgs e) or similar
-        // Let's check IndexingService.ProgressChanged type via reflection or assuming standard EventHandler pattern
-        // If it's a custom delegate, we should match it.
-        // Based on "EventHandler<IndexingProgressEventArgs>" error, it means we need:
-        private void OnIndexingProgressChanged(object sender, IndexingProgressEventArgs e)
-        {
-            Dispatcher.Invoke(() =>
-            {
-                if (e.IsCompleted)
-                {
-                    _indexProgressText.Text = $"扫描完成。共索引 {e.IndexedFiles} 个文件。";
-                    _indexProgressBar.IsIndeterminate = false;
-                    _indexProgressBar.Maximum = 100;
-                    _indexProgressBar.Value = 100; // 填满
-                    RefreshIndexStats();
-                }
-                else
-                {
-                    _indexProgressText.Text = $"正在扫描 ({e.ProcessedFiles}/{e.TotalFiles}): {System.IO.Path.GetFileName(e.CurrentFile)}";
-                    _indexProgressBar.IsIndeterminate = false;
-                    if (e.TotalFiles > 0)
-                    {
-                        _indexProgressBar.Maximum = e.TotalFiles;
-                        _indexProgressBar.Value = e.ProcessedFiles;
-                    }
-                    else
-                    {
-                        _indexProgressBar.IsIndeterminate = true;
-                    }
-                }
-            });
-        }
-
 
         private void InitializeUI()
         {
@@ -101,10 +63,9 @@ namespace YiboFile.Controls.Settings
                 TextWrapping = TextWrapping.Wrap
             };
             infoText.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
-            infoText.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
             stackPanel.Children.Add(infoText);
 
-            // Everything 索引区域
+            // Everything 索引区域 (保持原样，因 EverythingHelper 是静态工具类，暂不完全移入 VM)
             var everythingGroup = new GroupBox
             {
                 Header = "Everything 搜索引擎 (文件名)",
@@ -115,11 +76,9 @@ namespace YiboFile.Controls.Settings
             };
             var everythingStack = new StackPanel();
 
-            // 版本信息
             everythingStack.Children.Add(CreateInfoRow("当前版本:", out var everythingVersionText));
             everythingVersionText.Text = YiboFile.Services.EverythingHelper.GetVersion();
 
-            // 重建按钮
             var rebuildEverythingButton = new Button
             {
                 Content = "强制重建 Everything 索引",
@@ -129,7 +88,6 @@ namespace YiboFile.Controls.Settings
                 Cursor = System.Windows.Input.Cursors.Hand,
                 Style = (Style)Application.Current.Resources["ModernButtonStyle"]
             };
-
             rebuildEverythingButton.Click += (s, e) =>
             {
                 try
@@ -158,17 +116,15 @@ namespace YiboFile.Controls.Settings
             everythingGroup.Content = everythingStack;
             stackPanel.Children.Add(everythingGroup);
 
-            // 标题：全文搜索设置
+            // --- 全文搜索设置 ---
             _enableFtsCheckBox = new CheckBox
             {
                 Content = "启用全文索引与搜索",
                 FontSize = 14,
                 MinHeight = 32,
-                Margin = new Thickness(0, 0, 0, 24),
-                IsChecked = true
+                Margin = new Thickness(0, 0, 0, 24)
             };
-            _enableFtsCheckBox.Checked += (s, e) => OnSettingChanged();
-            _enableFtsCheckBox.Unchecked += (s, e) => OnSettingChanged();
+            _enableFtsCheckBox.SetBinding(CheckBox.IsCheckedProperty, new System.Windows.Data.Binding(nameof(SettingsViewModel.IsEnableFullTextSearch)));
             stackPanel.Children.Add(_enableFtsCheckBox);
 
             // 索引状态区域
@@ -182,7 +138,7 @@ namespace YiboFile.Controls.Settings
             };
             var statusStack = new StackPanel();
 
-            // 索引位置 (可修改)
+            // 索引位置
             var indexLocationGrid = new Grid { Margin = new Thickness(0, 0, 0, 8) };
             indexLocationGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             indexLocationGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -200,11 +156,11 @@ namespace YiboFile.Controls.Settings
 
             _indexLocationText = new TextBlock
             {
-                Text = "...",
                 TextWrapping = TextWrapping.Wrap,
                 VerticalAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(0, 0, 10, 0)
             };
+            _indexLocationText.SetBinding(TextBlock.TextProperty, new System.Windows.Data.Binding(nameof(SettingsViewModel.IndexLocation)));
             Grid.SetColumn(_indexLocationText, 1);
             indexLocationGrid.Children.Add(_indexLocationText);
 
@@ -220,14 +176,19 @@ namespace YiboFile.Controls.Settings
 
             statusStack.Children.Add(indexLocationGrid);
 
-
             // 已索引数量
             statusStack.Children.Add(CreateInfoRow("已索引文档数:", out _indexedCountText));
+            _indexedCountText.SetBinding(TextBlock.TextProperty, new System.Windows.Data.Binding(nameof(SettingsViewModel.IndexedFileCount)));
 
             // 索引进度
             var progressBox = new StackPanel { Margin = new Thickness(0, 5, 0, 0) };
-            _indexProgressBar = new ProgressBar { Height = 6, Margin = new Thickness(0, 5, 0, 5), Maximum = 100, Value = 0 };
-            _indexProgressText = new TextBlock { Text = "就绪", FontSize = 12, Opacity = 0.7 };
+            _indexProgressBar = new ProgressBar { Height = 6, Margin = new Thickness(0, 5, 0, 5), Maximum = 100 };
+            _indexProgressBar.SetBinding(ProgressBar.ValueProperty, new System.Windows.Data.Binding(nameof(SettingsViewModel.IndexingProgress)));
+            // 可选: 绑定 IsIndeterminate 
+
+            _indexProgressText = new TextBlock { FontSize = 12, Opacity = 0.7 };
+            _indexProgressText.SetBinding(TextBlock.TextProperty, new System.Windows.Data.Binding(nameof(SettingsViewModel.IndexingStatusText)));
+
             progressBox.Children.Add(_indexProgressBar);
             progressBox.Children.Add(_indexProgressText);
             statusStack.Children.Add(progressBox);
@@ -246,16 +207,13 @@ namespace YiboFile.Controls.Settings
             };
             var historyStack = new StackPanel();
 
-            // 自动展开
             _autoExpandHistoryCheck = new CheckBox
             {
                 Content = "地址栏获得焦点时自动展开历史记录",
                 FontSize = 14,
-                Margin = new Thickness(0, 0, 0, 10),
-                IsChecked = false
+                Margin = new Thickness(0, 0, 0, 10)
             };
-            _autoExpandHistoryCheck.Checked += (s, e) => OnSettingChanged();
-            _autoExpandHistoryCheck.Unchecked += (s, e) => OnSettingChanged();
+            _autoExpandHistoryCheck.SetBinding(CheckBox.IsCheckedProperty, new System.Windows.Data.Binding(nameof(SettingsViewModel.AutoExpandHistory)));
             historyStack.Children.Add(_autoExpandHistoryCheck);
 
             // 记录数量限制
@@ -277,7 +235,7 @@ namespace YiboFile.Controls.Settings
                 VerticalContentAlignment = VerticalAlignment.Center,
                 Padding = new Thickness(4)
             };
-            _historyMaxCountBox.TextChanged += (s, e) => OnSettingChanged();
+            _historyMaxCountBox.SetBinding(TextBox.TextProperty, new System.Windows.Data.Binding(nameof(SettingsViewModel.HistoryMaxCount)));
             Grid.SetColumn(_historyMaxCountBox, 1);
             countGrid.Children.Add(_historyMaxCountBox);
 
@@ -295,7 +253,7 @@ namespace YiboFile.Controls.Settings
             {
                 if (MessageBox.Show("确定要删除所有本地搜索和路径历史记录吗？", "清除历史", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
                 {
-                    YiboFile.Services.Search.SearchHistoryService.Instance.Clear();
+                    _viewModel.ClearHistoryCommand.Execute(null);
                     MessageBox.Show("历史记录已清除。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             };
@@ -315,7 +273,6 @@ namespace YiboFile.Controls.Settings
             };
             var actionStack = new StackPanel();
 
-            // 索引范围设置
             var scopeLabel = new TextBlock { Text = "索引范围 (为空时默认扫描所有库)", FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 5) };
             actionStack.Children.Add(scopeLabel);
 
@@ -325,6 +282,7 @@ namespace YiboFile.Controls.Settings
                 Margin = new Thickness(0, 0, 0, 5),
                 SelectionMode = SelectionMode.Extended
             };
+            _scopeListBox.SetBinding(ListBox.ItemsSourceProperty, new System.Windows.Data.Binding(nameof(SettingsViewModel.IndexScopes)));
             actionStack.Children.Add(_scopeListBox);
 
             var scopeButtons = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 15) };
@@ -336,6 +294,7 @@ namespace YiboFile.Controls.Settings
                 Style = (Style)Application.Current.Resources["ModernButtonStyle"]
             };
             addScopeButton.Click += AddScopeButton_Click;
+
             var removeScopeButton = new Button
             {
                 Content = "移除选中",
@@ -343,6 +302,7 @@ namespace YiboFile.Controls.Settings
                 Style = (Style)Application.Current.Resources["ModernButtonStyle"]
             };
             removeScopeButton.Click += RemoveScopeButton_Click;
+
             scopeButtons.Children.Add(addScopeButton);
             scopeButtons.Children.Add(removeScopeButton);
             actionStack.Children.Add(scopeButtons);
@@ -355,6 +315,9 @@ namespace YiboFile.Controls.Settings
                 Margin = new Thickness(0, 0, 0, 10),
                 Style = (Style)Application.Current.Resources["ModernButtonStyle"]
             };
+            // 绑定 IsEnabled 以防止重复点击 (ViewModel 中设置 IsIndexing)
+            // 简单起见，暂不绑定 IsEnabled，点击事件里判断
+
             _rebuildIndexButton.Click += RebuildIndexButton_Click;
             actionStack.Children.Add(_rebuildIndexButton);
 
@@ -391,16 +354,14 @@ namespace YiboFile.Controls.Settings
             if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
                 string path = dialog.SelectedPath;
-                ConfigurationService.Instance.Update(c =>
+                if (!_viewModel.IndexScopes.Contains(path))
                 {
-                    if (!c.FullTextIndexPaths.Contains(path))
-                    {
-                        c.FullTextIndexPaths.Add(path);
-                    }
-                });
-                LoadScopeList();
-                // 触发后台索引
-                YiboFile.Services.FullTextSearch.FullTextSearchService.Instance.StartBackgroundIndexing();
+                    _viewModel.IndexScopes.Add(path);
+                    _viewModel.UpdateIndexScopes(_viewModel.IndexScopes);
+
+                    // Trigger indexing logic
+                    YiboFile.Services.FullTextSearch.FullTextSearchService.Instance.StartBackgroundIndexing();
+                }
             }
         }
 
@@ -416,10 +377,7 @@ namespace YiboFile.Controls.Settings
 
             if (dialog.ShowDialog() == true)
             {
-                string newPath = dialog.FileName;
-                ConfigurationService.Instance.Update(c => c.FullTextIndexDbPath = newPath);
-
-                _indexLocationText.Text = newPath;
+                _viewModel.UpdateIndexLocation(dialog.FileName);
                 MessageBox.Show("索引位置已更新。请重启应用以生效。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
@@ -429,28 +387,24 @@ namespace YiboFile.Controls.Settings
             var selectedItems = _scopeListBox.SelectedItems.Cast<string>().ToList();
             if (selectedItems.Count > 0)
             {
-                ConfigurationService.Instance.Update(config =>
+                foreach (var item in selectedItems)
                 {
-                    foreach (var item in selectedItems)
-                    {
-                        config.FullTextIndexPaths.Remove(item);
-                    }
-                });
-                LoadScopeList();
+                    _viewModel.IndexScopes.Remove(item);
+                }
+                _viewModel.UpdateIndexScopes(_viewModel.IndexScopes);
             }
         }
 
-        private void LoadScopeList()
+        private void RebuildIndexButton_Click(object sender, RoutedEventArgs e)
         {
-            _scopeListBox.Items.Clear();
-            var config = ConfigurationService.Instance.GetSnapshot();
-            if (config.FullTextIndexPaths != null)
-            {
-                foreach (var path in config.FullTextIndexPaths)
-                {
-                    _scopeListBox.Items.Add(path);
-                }
-            }
+            if (_viewModel.IsIndexing) return;
+
+            if (MessageBox.Show("确信要清空并重建索引吗？此操作不可撤销。", "重建索引", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes)
+                return;
+
+            _viewModel.RebuildIndexCommand.Execute(null);
+
+            MessageBox.Show("索引已清空。后台任务将自动开始重新扫描您的文件（请确保应用保持运行）。", "完成", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private Grid CreateInfoRow(string label, out TextBlock valueBlock)
@@ -483,8 +437,6 @@ namespace YiboFile.Controls.Settings
 
         private void LoadSupportedExtensions()
         {
-            // 这里我们手动列出已知支持的格式，因为ContentExtractorManager没有直接暴露列表API
-            // 或者我们可以稍后修改ContentExtractorManager来暴露
             var formats = new[]
             {
                 new { Ext = ".txt", Desc = "纯文本文档" },
@@ -517,151 +469,14 @@ namespace YiboFile.Controls.Settings
 
         public void LoadSettings()
         {
-            _isLoadingSettings = true;
-            try
-            {
-                var config = ConfigurationService.Instance.GetSnapshot();
-                if (_enableFtsCheckBox != null)
-                {
-                    _enableFtsCheckBox.IsChecked = config.IsEnableFullTextSearch;
-                }
-
-                if (_autoExpandHistoryCheck != null)
-                {
-                    _autoExpandHistoryCheck.IsChecked = config.AutoExpandHistory;
-                }
-
-                if (_historyMaxCountBox != null)
-                {
-                    _historyMaxCountBox.Text = config.HistoryMaxCount.ToString();
-                }
-
-                LoadScopeList();
-
-                // 加载索引状态
-                try
-                {
-                    // 尝试获取索引路径
-                    // 注意：这里需要 FullTextSearchService 暴露相关属性，如果未暴露可以使用默认提示
-                    // _indexLocationText.Text = FullTextSearchService.Instance.IndexDbPath; 
-                }
-                catch
-                {
-                    _indexLocationText.Text = "无法获取状态";
-                }
-
-                RefreshIndexStats();
-            }
-            finally
-            {
-                _isLoadingSettings = false;
-            }
-        }
-
-        private void RefreshIndexStats()
-        {
-            // 异步刷新状态
-            Task.Run(() =>
-            {
-                try
-                {
-                    int count = FullTextSearchService.Instance.IndexedFileCount; // 假设有这个属性
-                    string path = FullTextSearchService.Instance.IndexDbPath; // 假设有这个属性
-
-                    Dispatcher.Invoke(() =>
-                    {
-                        _indexedCountText.Text = count.ToString();
-                        _indexLocationText.Text = path;
-                    });
-                }
-                catch { }
-            });
+            _viewModel?.LoadFromConfig();
         }
 
         public void SaveSettings()
         {
-            ConfigurationService.Instance.Update(config =>
-            {
-                if (_enableFtsCheckBox != null)
-                    if (_enableFtsCheckBox != null)
-                        config.IsEnableFullTextSearch = _enableFtsCheckBox.IsChecked ?? true;
-
-                if (_autoExpandHistoryCheck != null)
-                    config.AutoExpandHistory = _autoExpandHistoryCheck.IsChecked ?? false;
-
-                if (_historyMaxCountBox != null && int.TryParse(_historyMaxCountBox.Text, out int maxCount))
-                {
-                    config.HistoryMaxCount = Math.Max(0, Math.Min(100, maxCount)); // Limit 0-100
-                }
-            });
-        }
-
-        private void OnSettingChanged()
-        {
-            if (_isLoadingSettings) return;
-            SaveSettings();
-            SettingsChanged?.Invoke(this, EventArgs.Empty);
-
-            // 如果刚刚启用了 FTS，尝试启动索引
-            if (_enableFtsCheckBox.IsChecked == true)
-            {
-                YiboFile.Services.FullTextSearch.FullTextSearchService.Instance.StartBackgroundIndexing();
-            }
-        }
-
-        private async void RebuildIndexButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (MessageBox.Show("确信要清空并重建索引吗？此操作不可撤销。", "重建索引", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes)
-                return;
-
-            _rebuildIndexButton.IsEnabled = false;
-            _rebuildIndexButton.Content = "正在清理...";
-
-            try
-            {
-                await Task.Run(async () =>
-                {
-                    // 1. 清空索引
-                    FullTextSearchService.Instance.ClearIndex();
-
-                    // 2. 获取范围并重新扫描
-                    // 根据配置决定扫描范围
-                    var config = ConfigurationService.Instance.GetSnapshot();
-                    IEnumerable<string> scanPaths;
-
-                    if (config.FullTextIndexPaths != null && config.FullTextIndexPaths.Count > 0)
-                    {
-                        scanPaths = config.FullTextIndexPaths;
-                    }
-                    else
-                    {
-                        // 默认扫描所有库
-                        var libraries = YiboFile.DatabaseManager.GetAllLibraries();
-                        scanPaths = libraries?.SelectMany(l => l.Paths ?? Enumerable.Empty<string>()) ?? Enumerable.Empty<string>();
-                    }
-
-                    foreach (var path in scanPaths)
-                    {
-                        if (System.IO.Directory.Exists(path))
-                        {
-                            await FullTextSearchService.Instance.IndexingService.StartIndexingAsync(path, recursive: true);
-                        }
-                    }
-                });
-
-                MessageBox.Show("索引已清空。后台任务将自动开始重新扫描您的文件（请确保应用保持运行）。", "完成", MessageBoxButton.OK, MessageBoxImage.Information);
-                RefreshIndexStats();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"重建失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-            finally
-            {
-                _rebuildIndexButton.IsEnabled = true;
-                _rebuildIndexButton.Content = "重建索引";
-            }
+            // Auto-saved by bindings
         }
     }
 }
+
 

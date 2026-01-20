@@ -14,6 +14,16 @@ namespace YiboFile
             Services.Theming.ThemeManager.ThemeChanged += (s, e) =>
             {
                 RefreshNavigationIcons();
+
+                // 修复：切换主题时，如果有副列表，强制刷新布局以防止地址栏错位
+                if (IsDualListMode && SecondFileBrowserContainer != null)
+                {
+                    this.Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        SecondFileBrowserContainer.InvalidateVisual();
+                        SecondFileBrowserContainer.UpdateLayout();
+                    }), System.Windows.Threading.DispatcherPriority.Render);
+                }
             };
         }
 

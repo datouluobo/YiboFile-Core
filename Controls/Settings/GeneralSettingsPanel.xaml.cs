@@ -3,11 +3,13 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Data;
 using Microsoft.Win32;
 using YiboFile.Controls;
 using Forms = System.Windows.Forms;
 using YiboFile.Services;
 using YiboFile.Services.Config;
+using YiboFile.ViewModels;
 
 namespace YiboFile.Controls.Settings
 {
@@ -15,19 +17,15 @@ namespace YiboFile.Controls.Settings
     {
         public event EventHandler SettingsChanged;
 
+        private SettingsViewModel _viewModel;
+
         private CheckBox _rememberWindowPositionCheckBox;
         private CheckBox _startMaximizedCheckBox;
         private CheckBox _enableMultiWindowCheckBox;
         private TextBox _baseDirectoryTextBox;
         private TextBox _uiFontSizeTextBox;
-        private Button _fontSizeUpButton;
-        private Button _fontSizeDownButton;
         private TextBox _tagFontSizeTextBox;
-        private Button _tagFontSizeUpButton;
-        private Button _tagFontSizeDownButton;
         private TextBox _tagBoxWidthTextBox;
-        private Button _tagBoxWidthUpButton;
-        private Button _tagBoxWidthDownButton;
         private RadioButton _tabWidthFixedRadio;
         private RadioButton _tabWidthDynamicRadio;
         private TextBox _pinnedTabWidthTextBox;
@@ -35,12 +33,17 @@ namespace YiboFile.Controls.Settings
         private Button _pinnedTabWidthDownButton;
         private TextBlock _pinnedTabWidthLabel;
 
-        private bool _isLoadingSettings = false;
-
         public GeneralSettingsPanel()
         {
             InitializeComponent();
-            LoadSettings();
+            _viewModel = new SettingsViewModel();
+            this.DataContext = _viewModel;
+
+            // Bridge ViewModel changes to SettingsChanged event for legacy support
+            _viewModel.PropertyChanged += (s, e) => SettingsChanged?.Invoke(this, EventArgs.Empty);
+
+            InitializeBindings();
+            InitializeState(); // Initial state for non-bound controls like RadioButtons
         }
 
         private void InitializeComponent()
@@ -83,10 +86,8 @@ namespace YiboFile.Controls.Settings
                 FontSize = 14,
                 MinHeight = 32,
                 Margin = new Thickness(0, 0, 0, 10),
-                IsChecked = true
+                IsChecked = true // UI Placeholder, logic not implemented in VM yet
             };
-            _rememberWindowPositionCheckBox.Checked += (s, e) => OnSettingChanged();
-            _rememberWindowPositionCheckBox.Unchecked += (s, e) => OnSettingChanged();
             stackPanel.Children.Add(_rememberWindowPositionCheckBox);
 
             _startMaximizedCheckBox = new CheckBox
@@ -96,9 +97,6 @@ namespace YiboFile.Controls.Settings
                 MinHeight = 32,
                 Margin = new Thickness(0, 0, 0, 24)
             };
-            _startMaximizedCheckBox.Checked += (s, e) => OnSettingChanged();
-            _startMaximizedCheckBox.Unchecked += (s, e) => OnSettingChanged();
-            _startMaximizedCheckBox.Unchecked += (s, e) => OnSettingChanged();
             stackPanel.Children.Add(_startMaximizedCheckBox);
 
             _enableMultiWindowCheckBox = new CheckBox
@@ -108,8 +106,6 @@ namespace YiboFile.Controls.Settings
                 MinHeight = 32,
                 Margin = new Thickness(0, 0, 0, 24)
             };
-            _enableMultiWindowCheckBox.Checked += (s, e) => OnSettingChanged();
-            _enableMultiWindowCheckBox.Unchecked += (s, e) => OnSettingChanged();
             stackPanel.Children.Add(_enableMultiWindowCheckBox);
 
             // 标签页宽度模式
@@ -134,11 +130,9 @@ namespace YiboFile.Controls.Settings
                 GroupName = "TabWidthMode",
                 FontSize = 14,
                 MinHeight = 32,
-                VerticalAlignment = VerticalAlignment.Center,
-                IsChecked = true
+                VerticalAlignment = VerticalAlignment.Center
             };
-            _tabWidthFixedRadio.Checked += TabWidthFixedRadio_Checked;
-            _tabWidthFixedRadio.Unchecked += TabWidthFixedRadio_Unchecked;
+            _tabWidthFixedRadio.Checked += TabWidthMode_Changed;
             fixedWidthPanel.Children.Add(_tabWidthFixedRadio);
 
             // 宽度标签（带范围提示）
@@ -156,16 +150,13 @@ namespace YiboFile.Controls.Settings
             {
                 FontSize = 14,
                 Width = 60,
-                Height = 36,  // 增加高度与单选按钮对齐
+                Height = 36,
                 VerticalContentAlignment = VerticalAlignment.Center,
                 TextAlignment = TextAlignment.Center,
                 Padding = new Thickness(5, 0, 5, 0),
                 Margin = new Thickness(0, 0, 8, 0)
             };
-            _pinnedTabWidthTextBox.TextChanged += PinnedTabWidthTextBox_TextChanged;
-            _pinnedTabWidthTextBox.LostFocus += PinnedTabWidthTextBox_LostFocus;
-            _pinnedTabWidthTextBox.PreviewTextInput += FontSizeTextBox_PreviewTextInput;
-            _pinnedTabWidthTextBox.KeyDown += NumericTextBox_KeyDown;
+            _pinnedTabWidthTextBox.PreviewTextInput += NumericOnly_PreviewTextInput;
             fixedWidthPanel.Children.Add(_pinnedTabWidthTextBox);
 
             // 上下按钮
@@ -186,7 +177,7 @@ namespace YiboFile.Controls.Settings
                 Margin = new Thickness(0, 0, 0, 2),
                 Style = (Style)Application.Current.Resources["ModernButtonStyle"]
             };
-            _pinnedTabWidthUpButton.Click += PinnedTabWidthUpButton_Click;
+            _pinnedTabWidthUpButton.Click += (s, e) => AdjustValue(_viewModel.PinnedTabWidth, 10, 50, 300, v => _viewModel.PinnedTabWidth = v);
             pinnedWidthButtonPanel.Children.Add(_pinnedTabWidthUpButton);
 
             _pinnedTabWidthDownButton = new Button
@@ -198,7 +189,7 @@ namespace YiboFile.Controls.Settings
                 Padding = new Thickness(0),
                 Style = (Style)Application.Current.Resources["ModernButtonStyle"]
             };
-            _pinnedTabWidthDownButton.Click += PinnedTabWidthDownButton_Click;
+            _pinnedTabWidthDownButton.Click += (s, e) => AdjustValue(_viewModel.PinnedTabWidth, -10, 50, 300, v => _viewModel.PinnedTabWidth = v);
             pinnedWidthButtonPanel.Children.Add(_pinnedTabWidthDownButton);
 
             fixedWidthPanel.Children.Add(pinnedWidthButtonPanel);
@@ -212,7 +203,7 @@ namespace YiboFile.Controls.Settings
                 MinHeight = 32,
                 Margin = new Thickness(20, 0, 0, 24)
             };
-            _tabWidthDynamicRadio.Checked += TabWidthDynamicRadio_Checked;
+            _tabWidthDynamicRadio.Checked += TabWidthMode_Changed;
             stackPanel.Children.Add(_tabWidthDynamicRadio);
 
             // 字体设置
@@ -253,10 +244,7 @@ namespace YiboFile.Controls.Settings
                 Padding = new Thickness(5, 0, 5, 0),
                 Margin = new Thickness(0, 0, 8, 0)
             };
-            _uiFontSizeTextBox.TextChanged += FontSizeTextBox_TextChanged;
-            _uiFontSizeTextBox.LostFocus += FontSizeTextBox_LostFocus;
-            _uiFontSizeTextBox.PreviewTextInput += FontSizeTextBox_PreviewTextInput;
-            _uiFontSizeTextBox.KeyDown += NumericTextBox_KeyDown;
+            _uiFontSizeTextBox.PreviewTextInput += NumericOnly_PreviewTextInput;
             Grid.SetColumn(_uiFontSizeTextBox, 1);
             fontGrid.Children.Add(_uiFontSizeTextBox);
 
@@ -266,7 +254,7 @@ namespace YiboFile.Controls.Settings
                 Margin = new Thickness(0, 0, 0, 0)
             };
 
-            _fontSizeUpButton = new Button
+            var fontSizeUpButton = new Button
             {
                 Content = "▲",
                 Width = 24,
@@ -277,9 +265,9 @@ namespace YiboFile.Controls.Settings
                 VerticalAlignment = VerticalAlignment.Center,
                 Style = (Style)Application.Current.Resources["ModernButtonStyle"]
             };
-            _fontSizeUpButton.Click += FontSizeUpButton_Click;
+            fontSizeUpButton.Click += (s, e) => AdjustValue(_viewModel.UIFontSize, 1, 10, 48, v => _viewModel.UIFontSize = v);
 
-            _fontSizeDownButton = new Button
+            var fontSizeDownButton = new Button
             {
                 Content = "▼",
                 Width = 24,
@@ -289,10 +277,10 @@ namespace YiboFile.Controls.Settings
                 VerticalAlignment = VerticalAlignment.Center,
                 Style = (Style)Application.Current.Resources["ModernButtonStyle"]
             };
-            _fontSizeDownButton.Click += FontSizeDownButton_Click;
+            fontSizeDownButton.Click += (s, e) => AdjustValue(_viewModel.UIFontSize, -1, 10, 48, v => _viewModel.UIFontSize = v);
 
-            buttonPanel.Children.Add(_fontSizeUpButton);
-            buttonPanel.Children.Add(_fontSizeDownButton);
+            buttonPanel.Children.Add(fontSizeUpButton);
+            buttonPanel.Children.Add(fontSizeDownButton);
             Grid.SetColumn(buttonPanel, 2);
             fontGrid.Children.Add(buttonPanel);
 
@@ -326,10 +314,7 @@ namespace YiboFile.Controls.Settings
                 Padding = new Thickness(5, 0, 5, 0),
                 Margin = new Thickness(0, 0, 8, 0)
             };
-            _tagFontSizeTextBox.TextChanged += TagFontSizeTextBox_TextChanged;
-            _tagFontSizeTextBox.LostFocus += TagFontSizeTextBox_LostFocus;
-            _tagFontSizeTextBox.PreviewTextInput += FontSizeTextBox_PreviewTextInput;
-            _tagFontSizeTextBox.KeyDown += NumericTextBox_KeyDown;
+            _tagFontSizeTextBox.PreviewTextInput += NumericOnly_PreviewTextInput;
             Grid.SetColumn(_tagFontSizeTextBox, 1);
             tagFontGrid.Children.Add(_tagFontSizeTextBox);
 
@@ -339,7 +324,7 @@ namespace YiboFile.Controls.Settings
                 Margin = new Thickness(0, 0, 0, 0)
             };
 
-            _tagFontSizeUpButton = new Button
+            var tagFontSizeUpButton = new Button
             {
                 Content = "▲",
                 Width = 24,
@@ -350,9 +335,9 @@ namespace YiboFile.Controls.Settings
                 VerticalAlignment = VerticalAlignment.Center,
                 Style = (Style)Application.Current.Resources["ModernButtonStyle"]
             };
-            _tagFontSizeUpButton.Click += TagFontSizeUpButton_Click;
+            tagFontSizeUpButton.Click += (s, e) => AdjustValue(_viewModel.TagFontSize, 1, 10, 48, v => _viewModel.TagFontSize = v);
 
-            _tagFontSizeDownButton = new Button
+            var tagFontSizeDownButton = new Button
             {
                 Content = "▼",
                 Width = 24,
@@ -362,10 +347,10 @@ namespace YiboFile.Controls.Settings
                 VerticalAlignment = VerticalAlignment.Center,
                 Style = (Style)Application.Current.Resources["ModernButtonStyle"]
             };
-            _tagFontSizeDownButton.Click += TagFontSizeDownButton_Click;
+            tagFontSizeDownButton.Click += (s, e) => AdjustValue(_viewModel.TagFontSize, -1, 10, 48, v => _viewModel.TagFontSize = v);
 
-            tagButtonPanel.Children.Add(_tagFontSizeUpButton);
-            tagButtonPanel.Children.Add(_tagFontSizeDownButton);
+            tagButtonPanel.Children.Add(tagFontSizeUpButton);
+            tagButtonPanel.Children.Add(tagFontSizeDownButton);
             Grid.SetColumn(tagButtonPanel, 2);
             tagFontGrid.Children.Add(tagButtonPanel);
 
@@ -399,10 +384,7 @@ namespace YiboFile.Controls.Settings
                 Padding = new Thickness(5, 0, 5, 0),
                 Margin = new Thickness(0, 0, 8, 0)
             };
-            _tagBoxWidthTextBox.TextChanged += TagBoxWidthTextBox_TextChanged;
-            _tagBoxWidthTextBox.LostFocus += TagBoxWidthTextBox_LostFocus;
-            _tagBoxWidthTextBox.PreviewTextInput += FontSizeTextBox_PreviewTextInput;
-            _tagBoxWidthTextBox.KeyDown += NumericTextBox_KeyDown;
+            _tagBoxWidthTextBox.PreviewTextInput += NumericOnly_PreviewTextInput;
             Grid.SetColumn(_tagBoxWidthTextBox, 1);
             tagBoxWidthGrid.Children.Add(_tagBoxWidthTextBox);
 
@@ -412,7 +394,7 @@ namespace YiboFile.Controls.Settings
                 Margin = new Thickness(0, 0, 0, 0)
             };
 
-            _tagBoxWidthUpButton = new Button
+            var tagBoxWidthUpButton = new Button
             {
                 Content = "▲",
                 Width = 24,
@@ -423,9 +405,9 @@ namespace YiboFile.Controls.Settings
                 VerticalAlignment = VerticalAlignment.Center,
                 Style = (Style)Application.Current.Resources["ModernButtonStyle"]
             };
-            _tagBoxWidthUpButton.Click += TagBoxWidthUpButton_Click;
+            tagBoxWidthUpButton.Click += (s, e) => AdjustValue(_viewModel.TagBoxWidth, 5, 0, 500, v => _viewModel.TagBoxWidth = v);
 
-            _tagBoxWidthDownButton = new Button
+            var tagBoxWidthDownButton = new Button
             {
                 Content = "▼",
                 Width = 24,
@@ -435,16 +417,16 @@ namespace YiboFile.Controls.Settings
                 VerticalAlignment = VerticalAlignment.Center,
                 Style = (Style)Application.Current.Resources["ModernButtonStyle"]
             };
-            _tagBoxWidthDownButton.Click += TagBoxWidthDownButton_Click;
+            tagBoxWidthDownButton.Click += (s, e) => AdjustValue(_viewModel.TagBoxWidth, -10, 50, 500, v => _viewModel.TagBoxWidth = v);
 
-            tagBoxWidthButtonPanel.Children.Add(_tagBoxWidthUpButton);
-            tagBoxWidthButtonPanel.Children.Add(_tagBoxWidthDownButton);
+            tagBoxWidthButtonPanel.Children.Add(tagBoxWidthUpButton);
+            tagBoxWidthButtonPanel.Children.Add(tagBoxWidthDownButton);
             Grid.SetColumn(tagBoxWidthButtonPanel, 2);
             tagBoxWidthGrid.Children.Add(tagBoxWidthButtonPanel);
 
             stackPanel.Children.Add(tagBoxWidthGrid);
 
-            // 添加提示文本（单独一行）
+            // 添加提示文本
             var tagBoxWidthHint = new TextBlock
             {
                 Text = "（0表示自动计算，>0表示固定宽度，范围：0-500）",
@@ -489,9 +471,17 @@ namespace YiboFile.Controls.Settings
             };
             stackPanel.Children.Add(configTitle);
 
-            stackPanel.Children.Add(CreateImportExportRow("仅配置（ooi_config.json + tt_settings.txt）", ExportConfigs_Click, ImportConfigs_Click));
-            stackPanel.Children.Add(CreateImportExportRow("仅数据（ooi_data.db + tt_training.db + tt_model.zip）", ExportData_Click, ImportData_Click));
-            stackPanel.Children.Add(CreateImportExportRow("全部（配置 + 数据）", ExportAll_Click, ImportAll_Click));
+            stackPanel.Children.Add(CreateImportExportRow("仅配置（ooi_config.json + tt_settings.txt）",
+                (s, e) => ExportFileAndExecute(_viewModel.ExportConfigsCommand, "configs.zip"),
+                (s, e) => ImportFileAndExecute(_viewModel.ImportConfigsCommand)));
+
+            stackPanel.Children.Add(CreateImportExportRow("仅数据（ooi_data.db + tt_training.db + tt_model.zip）",
+                (s, e) => ExportFileAndExecute(_viewModel.ExportDataCommand, "data.zip"),
+                (s, e) => ImportFileAndExecute(_viewModel.ImportDataCommand)));
+
+            stackPanel.Children.Add(CreateImportExportRow("全部（配置 + 数据）",
+                (s, e) => ExportFileAndExecute(_viewModel.ExportAllCommand, "all.zip"),
+                (s, e) => ImportFileAndExecute(_viewModel.ImportAllCommand)));
 
             var scrollViewer = new ScrollViewer
             {
@@ -502,87 +492,58 @@ namespace YiboFile.Controls.Settings
             Content = scrollViewer;
         }
 
-        private Slider CreateSliderPanel(StackPanel parent, string label, double min, double max, double defaultValue, ref TextBlock valueText)
+        private void InitializeBindings()
         {
-            var grid = new Grid { Margin = new Thickness(0, 0, 0, 12) };
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            _startMaximizedCheckBox.SetBinding(CheckBox.IsCheckedProperty, new Binding(nameof(SettingsViewModel.IsMaximized)) { Mode = BindingMode.TwoWay });
+            _enableMultiWindowCheckBox.SetBinding(CheckBox.IsCheckedProperty, new Binding(nameof(SettingsViewModel.EnableMultiWindow)) { Mode = BindingMode.TwoWay });
 
-            var labelText = new TextBlock
-            {
-                Text = label,
-                FontSize = 14,
-                VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(0, 0, 12, 0),
-                MinWidth = 140,
-                MinHeight = 32
-            };
-            Grid.SetColumn(labelText, 0);
-            grid.Children.Add(labelText);
+            _uiFontSizeTextBox.SetBinding(TextBox.TextProperty, new Binding(nameof(SettingsViewModel.UIFontSize)) { Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged });
+            _tagFontSizeTextBox.SetBinding(TextBox.TextProperty, new Binding(nameof(SettingsViewModel.TagFontSize)) { Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged });
+            _tagBoxWidthTextBox.SetBinding(TextBox.TextProperty, new Binding(nameof(SettingsViewModel.TagBoxWidth)) { Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged });
 
-            var slider = new Slider
-            {
-                Minimum = min,
-                Maximum = max,
-                Value = defaultValue,
-                TickFrequency = 10,
-                IsSnapToTickEnabled = true,
-                VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(0, 0, 12, 0),
-                Height = 24
-            };
-            Grid.SetColumn(slider, 1);
-            grid.Children.Add(slider);
+            _pinnedTabWidthTextBox.SetBinding(TextBox.TextProperty, new Binding(nameof(SettingsViewModel.PinnedTabWidth)) { Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged });
 
-            var valueTextBlock = new TextBlock
-            {
-                FontSize = 14,
-                VerticalAlignment = VerticalAlignment.Center,
-                MinWidth = 60,
-                MinHeight = 32,
-                Text = ((int)defaultValue).ToString()
-            };
-            valueText = valueTextBlock;
-            slider.ValueChanged += (s, e) => valueTextBlock.Text = ((int)slider.Value).ToString();
-            Grid.SetColumn(valueTextBlock, 2);
-            grid.Children.Add(valueTextBlock);
-
-            parent.Children.Add(grid);
-            return slider;
+            _baseDirectoryTextBox.SetBinding(TextBox.TextProperty, new Binding(nameof(SettingsViewModel.BaseDirectory)) { Mode = BindingMode.OneWay });
         }
 
-        private TextBox CreatePathPanel(StackPanel parent, string label, bool isReadOnly = false)
+        private void InitializeState()
         {
-            var grid = new Grid { Margin = new Thickness(0, 0, 0, 12) };
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            if (_viewModel.TabWidthMode == TabWidthMode.DynamicWidth)
+                _tabWidthDynamicRadio.IsChecked = true;
+            else
+                _tabWidthFixedRadio.IsChecked = true;
 
-            var labelText = new TextBlock
-            {
-                Text = label,
-                FontSize = 14,
-                VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(0, 0, 12, 0),
-                MinWidth = 140,
-                MinHeight = 36
-            };
-            Grid.SetColumn(labelText, 0);
-            grid.Children.Add(labelText);
+            UpdatePinnedTabWidthUIState();
+        }
 
-            var textBox = new TextBox
-            {
-                FontSize = 14,
-                MinHeight = 36,
-                IsReadOnly = isReadOnly,
-                VerticalContentAlignment = VerticalAlignment.Center,
-                Padding = new Thickness(10, 6, 10, 6)
-            };
-            Grid.SetColumn(textBox, 1);
-            grid.Children.Add(textBox);
+        private void TabWidthMode_Changed(object sender, RoutedEventArgs e)
+        {
+            if (_tabWidthDynamicRadio.IsChecked == true)
+                _viewModel.TabWidthMode = TabWidthMode.DynamicWidth;
+            else
+                _viewModel.TabWidthMode = TabWidthMode.FixedWidth;
 
-            parent.Children.Add(grid);
-            return textBox;
+            UpdatePinnedTabWidthUIState();
+        }
+
+        private void UpdatePinnedTabWidthUIState()
+        {
+            bool isFixedMode = _viewModel.TabWidthMode != TabWidthMode.DynamicWidth;
+            if (_pinnedTabWidthLabel != null) _pinnedTabWidthLabel.Opacity = isFixedMode ? 1.0 : 0.5;
+            if (_pinnedTabWidthTextBox != null) _pinnedTabWidthTextBox.IsEnabled = isFixedMode;
+            if (_pinnedTabWidthUpButton != null) _pinnedTabWidthUpButton.IsEnabled = isFixedMode;
+            if (_pinnedTabWidthDownButton != null) _pinnedTabWidthDownButton.IsEnabled = isFixedMode;
+        }
+
+        private void AdjustValue(double current, double delta, double min, double max, Action<double> setter)
+        {
+            double newValue = Math.Clamp(current + delta, min, max);
+            setter(newValue);
+        }
+
+        private void NumericOnly_PreviewTextInput(object sender, TextCompositionEventArgs e)
+        {
+            e.Handled = !char.IsDigit(e.Text, 0);
         }
 
         private TextBox CreatePathPanelWithButton(StackPanel parent, string label, RoutedEventHandler browseHandler)
@@ -673,654 +634,72 @@ namespace YiboFile.Controls.Settings
             return panel;
         }
 
-        public void LoadSettings()
+        private void BrowseBaseDirectory_Click(object sender, RoutedEventArgs e)
         {
-            _isLoadingSettings = true;
-            try
+            var dialog = new Forms.FolderBrowserDialog
             {
-                // 使用统一配置服务获取配置快照
-                var config = ConfigurationService.Instance.GetSnapshot();
+                Description = "选择配置/数据存储目录（默认 .\\AppData）",
+                SelectedPath = _viewModel.BaseDirectory // Use VM property
+            };
 
-                if (_startMaximizedCheckBox != null)
-                    _startMaximizedCheckBox.IsChecked = config.IsMaximized;
-
-                if (_enableMultiWindowCheckBox != null)
-                    _enableMultiWindowCheckBox.IsChecked = config.EnableMultiWindow;
-
-                // 加载固定标签页宽度
-                if (_pinnedTabWidthTextBox != null)
-                {
-                    int width = (int)(config.PinnedTabWidth > 0 ? config.PinnedTabWidth : 120);
-                    _pinnedTabWidthTextBox.Text = width.ToString();
-
-                    // 根据当前模式设置启用/禁用状态
-                    bool isFixedMode = (config.TabWidthMode != TabWidthMode.DynamicWidth);
-                    _pinnedTabWidthLabel.Opacity = isFixedMode ? 1.0 : 0.5;
-                    _pinnedTabWidthTextBox.IsEnabled = isFixedMode;
-                    _pinnedTabWidthUpButton.IsEnabled = isFixedMode;
-                    _pinnedTabWidthDownButton.IsEnabled = isFixedMode;
-                }
-
-                if (_uiFontSizeTextBox != null)
-                {
-                    _uiFontSizeTextBox.Text = ((int)(config.UIFontSize > 0 ? config.UIFontSize : 16)).ToString();
-                }
-
-                if (_tagFontSizeTextBox != null)
-                {
-                    _tagFontSizeTextBox.Text = ((int)(config.TagFontSize > 0 ? config.TagFontSize : 16)).ToString();
-                }
-
-                if (_tagBoxWidthTextBox != null)
-                {
-                    _tagBoxWidthTextBox.Text = ((int)config.TagBoxWidth).ToString();
-                }
-
-                // Load tab width mode
-                if (_tabWidthFixedRadio != null && _tabWidthDynamicRadio != null)
-                {
-                    if (config.TabWidthMode == TabWidthMode.DynamicWidth)
-                    {
-                        _tabWidthDynamicRadio.IsChecked = true;
-                    }
-                    else
-                    {
-                        _tabWidthFixedRadio.IsChecked = true;
-                    }
-                }
-
-                if (_baseDirectoryTextBox != null)
-                    _baseDirectoryTextBox.Text = ConfigManager.GetBaseDirectory();
-            }
-            finally
+            if (dialog.ShowDialog() == Forms.DialogResult.OK)
             {
-                _isLoadingSettings = false;
+                _viewModel.ChangeBaseDirectoryCommand.Execute(dialog.SelectedPath);
             }
         }
 
-        private void OnSettingChanged()
+        private void ExportFileAndExecute(ICommand command, string defaultName)
         {
-            if (_isLoadingSettings) return;
+            var sfd = new SaveFileDialog
+            {
+                FileName = defaultName,
+                Filter = "ZIP文件 (*.zip)|*.zip|所有文件 (*.*)|*.*"
+            };
 
-            SaveSettings();
-            SettingsChanged?.Invoke(this, EventArgs.Empty);
+            if (sfd.ShowDialog() == true)
+            {
+                try
+                {
+                    command.Execute(sfd.FileName);
+                    MessageBox.Show("文件已导出。", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"导出失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        private void ImportFileAndExecute(ICommand command)
+        {
+            var ofd = new OpenFileDialog
+            {
+                Filter = "ZIP文件 (*.zip)|*.zip|所有文件 (*.*)|*.*"
+            };
+
+            if (ofd.ShowDialog() == true)
+            {
+                try
+                {
+                    command.Execute(ofd.FileName);
+                    MessageBox.Show("文件已导入。", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"导入失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        public void LoadSettings()
+        {
+            _viewModel?.LoadFromConfig();
+            InitializeState();
         }
 
         public void SaveSettings()
         {
-            // 使用统一配置服务批量更新所有设置
-            // 注意：字体大小已在ApplyFontSize中实时保存，这里只保存非实时的设置
-            ConfigurationService.Instance.Update(config =>
-            {
-                // 启动时最大化
-                if (_startMaximizedCheckBox != null)
-                    config.IsMaximized = _startMaximizedCheckBox.IsChecked ?? true;
-
-                // 多窗口支持
-                if (_enableMultiWindowCheckBox != null)
-                    config.EnableMultiWindow = _enableMultiWindowCheckBox.IsChecked ?? true;
-
-                // 标签页宽度模式
-                if (_tabWidthDynamicRadio != null && _tabWidthDynamicRadio.IsChecked == true)
-                {
-                    config.TabWidthMode = TabWidthMode.DynamicWidth;
-                }
-                else
-                {
-                    config.TabWidthMode = TabWidthMode.FixedWidth;
-                }
-
-                // 字体大小已在ApplyFontSize/ApplyTagFontSize/ApplyTagBoxWidth中实时保存
-                // 这里不需要重复保存，避免从UI读取可能不一致的值
-            });
-        }
-
-        private void FontSizeTextBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
-        {
-            // 只允许输入数字
-            e.Handled = !char.IsDigit(e.Text, 0);
-        }
-
-        private void FontSizeTextBox_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            if (_isLoadingSettings) return;
-
-            var textBox = sender as TextBox;
-            if (textBox == null) return;
-
-            // 只验证是否是有效数字，不限制范围（允许中间输入状态）
-            if (int.TryParse(textBox.Text, out int value))
-            {
-                // 应用字体（即时预览）
-                ApplyFontSize(value);
-            }
-        }
-
-        private void FontSizeTextBox_LostFocus(object sender, RoutedEventArgs e)
-        {
-            var textBox = sender as TextBox;
-            if (textBox == null) return;
-
-            if (int.TryParse(textBox.Text, out int value))
-            {
-                // 限制范围（失去焦点时）
-                if (value < 10) value = 10;
-                if (value > 48) value = 48;
-
-                // 更新文本框为有效值
-                textBox.Text = value.ToString();
-
-                // 应用字体
-                ApplyFontSize(value);
-            }
-            else
-            {
-                // 无效输入，恢复默认值
-                textBox.Text = "15";
-                ApplyFontSize(15);
-            }
-        }
-
-
-        private void FontSizeUpButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (int.TryParse(_uiFontSizeTextBox.Text, out int value))
-            {
-                value = Math.Min(48, value + 1);
-                _uiFontSizeTextBox.Text = value.ToString();
-                ApplyFontSize(value);
-            }
-        }
-
-        private void FontSizeDownButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (int.TryParse(_uiFontSizeTextBox.Text, out int value))
-            {
-                value = Math.Max(10, value - 1);
-                _uiFontSizeTextBox.Text = value.ToString();
-                ApplyFontSize(value);
-            }
-        }
-
-        private void ApplyFontSize(double fontSize)
-        {
-            // 使用统一配置服务更新
-            ConfigurationService.Instance.Set(cfg => cfg.UIFontSize, fontSize);
-
-            // 触发设置变更事件，让MainWindow应用字体
-            SettingsChanged?.Invoke(this, EventArgs.Empty);
-        }
-
-        private void TagFontSizeTextBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
-        {
-            // 只允许输入数字
-            e.Handled = !char.IsDigit(e.Text, 0);
-        }
-
-        private void TagFontSizeTextBox_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            if (_isLoadingSettings) return;
-
-            var textBox = sender as TextBox;
-            if (textBox == null) return;
-
-            // 只验证是否是有效数字，不限制范围
-            if (int.TryParse(textBox.Text, out int value))
-            {
-                // 应用字体（即时预览）
-                ApplyTagFontSize(value);
-            }
-        }
-
-        private void TagFontSizeTextBox_LostFocus(object sender, RoutedEventArgs e)
-        {
-            var textBox = sender as TextBox;
-            if (textBox == null) return;
-
-            if (int.TryParse(textBox.Text, out int value))
-            {
-                // 限制范围（失去焦点时）
-                if (value < 10) value = 10;
-                if (value > 48) value = 48;
-
-                // 更新文本框为有效值
-                textBox.Text = value.ToString();
-
-                // 应用字体
-                ApplyTagFontSize(value);
-            }
-            else
-            {
-                // 无效输入，恢复默认值
-                textBox.Text = "16";
-                ApplyTagFontSize(16);
-            }
-        }
-
-
-
-
-        private void TagFontSizeUpButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (int.TryParse(_tagFontSizeTextBox.Text, out int value))
-            {
-                value = Math.Min(48, value + 1);
-                _tagFontSizeTextBox.Text = value.ToString();
-                ApplyTagFontSize(value);
-            }
-        }
-
-        private void TagFontSizeDownButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (int.TryParse(_tagFontSizeTextBox.Text, out int value))
-            {
-                value = Math.Max(10, value - 1);
-                _tagFontSizeTextBox.Text = value.ToString();
-                ApplyTagFontSize(value);
-            }
-        }
-
-        // 通用数值输入框回车确认处理
-        private void NumericTextBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
-        {
-            if (e.Key == System.Windows.Input.Key.Enter)
-            {
-                // 按回车键时，移动焦点触发LostFocus事件
-                var textBox = sender as TextBox;
-                if (textBox != null)
-                {
-                    // 移动焦点到父容器，触发LostFocus
-                    textBox.MoveFocus(new System.Windows.Input.TraversalRequest(
-                        System.Windows.Input.FocusNavigationDirection.Next));
-                    e.Handled = true;
-                }
-            }
-        }
-
-        private void ApplyTagFontSize(double fontSize)
-        {
-            // 使用统一配置服务更新
-            ConfigurationService.Instance.Set(cfg => cfg.TagFontSize, fontSize);
-
-            // 触发设置变更事件，让MainWindow应用字体
-            SettingsChanged?.Invoke(this, EventArgs.Empty);
-        }
-
-        private void TagBoxWidthTextBox_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            if (_isLoadingSettings) return;
-
-            var textBox = sender as TextBox;
-            if (textBox == null) return;
-
-            if (int.TryParse(textBox.Text, out int value))
-            {
-                // 限制范围
-                if (value < 0) value = 0;
-                if (value > 500) value = 500;
-
-                // 如果值被修正，更新文本框
-                if (textBox.Text != value.ToString())
-                {
-                    var selectionStart = textBox.SelectionStart;
-                    textBox.Text = value.ToString();
-                    textBox.SelectionStart = Math.Min(selectionStart, textBox.Text.Length);
-                }
-
-                // 应用宽度
-                ApplyTagBoxWidth(value);
-            }
-        }
-
-        private void TagBoxWidthTextBox_LostFocus(object sender, RoutedEventArgs e)
-        {
-            var textBox = sender as TextBox;
-            if (textBox == null) return;
-
-            // 如果输入无效，恢复为当前配置值
-            if (!int.TryParse(textBox.Text, out int value) || value < 0 || value > 500)
-            {
-                var config = ConfigManager.Load();
-                textBox.Text = ((int)config.TagBoxWidth).ToString();
-            }
-        }
-
-        private void TagBoxWidthUpButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (int.TryParse(_tagBoxWidthTextBox.Text, out int value))
-            {
-                value = Math.Min(500, value + 5);
-                _tagBoxWidthTextBox.Text = value.ToString();
-                ApplyTagBoxWidth(value);
-            }
-        }
-
-        private void TagBoxWidthDownButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (int.TryParse(_tagBoxWidthTextBox.Text, out int value))
-            {
-                value = Math.Max(50, value - 10);
-                _tagBoxWidthTextBox.Text = value.ToString();
-            }
-        }
-
-        #region 固定标签页宽度
-
-        private void PinnedTabWidthTextBox_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            if (_isLoadingSettings) return;
-
-            var textBox = sender as TextBox;
-            if (textBox == null) return;
-
-            // 实时验证并应用宽度（用于预览）
-            if (int.TryParse(textBox.Text, out int value))
-            {
-                // 实时预览：放宽范围限制以便输入时立即生效
-                // 即使输入较小的值(如20)也立即应用，让用户有直观反馈
-                // 最终的有效性检查由LostFocus处理
-                if (value >= 10 && value <= 500)
-                {
-                    // 实时更新标签页宽度（不保存到配置）
-                    ConfigurationService.Instance.Set(cfg => cfg.PinnedTabWidth, value);
-                    SettingsChanged?.Invoke(this, EventArgs.Empty);
-                }
-            }
-        }
-
-        private void PinnedTabWidthTextBox_LostFocus(object sender, RoutedEventArgs e)
-        {
-            var textBox = sender as TextBox;
-            if (textBox == null) return;
-
-            if (int.TryParse(textBox.Text, out int value))
-            {
-                // 限制范围（50-300）
-                if (value < 50) value = 50;
-                if (value > 300) value = 300;
-
-                // 更新文本框为有效值
-                textBox.Text = value.ToString();
-
-                // 保存到配置
-                ConfigurationService.Instance.Set(cfg => cfg.PinnedTabWidth, value);
-
-                // 触发事件，让主窗口更新标签页
-                SettingsChanged?.Invoke(this, EventArgs.Empty);
-            }
-            else
-            {
-                // 无效输入，恢复默认值
-                textBox.Text = "120";
-                ConfigurationService.Instance.Set(cfg => cfg.PinnedTabWidth, 120);
-                SettingsChanged?.Invoke(this, EventArgs.Empty);
-            }
-        }
-
-        private void PinnedTabWidthUpButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (int.TryParse(_pinnedTabWidthTextBox.Text, out int value))
-            {
-                value = Math.Min(300, value + 10);
-                _pinnedTabWidthTextBox.Text = value.ToString();
-            }
-        }
-
-        private void PinnedTabWidthDownButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (int.TryParse(_pinnedTabWidthTextBox.Text, out int value))
-            {
-                value = Math.Max(50, value - 10);
-                _pinnedTabWidthTextBox.Text = value.ToString();
-            }
-        }
-
-        private void TabWidthFixedRadio_Checked(object sender, RoutedEventArgs e)
-        {
-            // 启用宽度输入
-            if (_pinnedTabWidthLabel != null)
-                _pinnedTabWidthLabel.Opacity = 1.0;
-            if (_pinnedTabWidthTextBox != null)
-                _pinnedTabWidthTextBox.IsEnabled = true;
-            if (_pinnedTabWidthUpButton != null)
-                _pinnedTabWidthUpButton.IsEnabled = true;
-            if (_pinnedTabWidthDownButton != null)
-                _pinnedTabWidthDownButton.IsEnabled = true;
-
-            OnSettingChanged();
-        }
-
-        private void TabWidthFixedRadio_Unchecked(object sender, RoutedEventArgs e)
-        {
-            // 禁用宽度输入并变灰
-            if (_pinnedTabWidthLabel != null)
-                _pinnedTabWidthLabel.Opacity = 0.5;
-            if (_pinnedTabWidthTextBox != null)
-                _pinnedTabWidthTextBox.IsEnabled = false;
-            if (_pinnedTabWidthUpButton != null)
-                _pinnedTabWidthUpButton.IsEnabled = false;
-            if (_pinnedTabWidthDownButton != null)
-                _pinnedTabWidthDownButton.IsEnabled = false;
-        }
-
-        private void TabWidthDynamicRadio_Checked(object sender, RoutedEventArgs e)
-        {
-            OnSettingChanged();
-        }
-
-        #endregion
-
-        private void ApplyTagBoxWidth(double width)
-        {
-            // 使用统一配置服务更新
-            ConfigurationService.Instance.Set(cfg => cfg.TagBoxWidth, width);
-
-            // 触发设置变更事件，让MainWindow应用宽度
-            SettingsChanged?.Invoke(this, EventArgs.Empty);
-        }
-
-        private void BrowseBaseDirectory_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                var dialog = new Forms.FolderBrowserDialog
-                {
-                    Description = "选择配置/数据存储目录（默认 .\\AppData）",
-                    SelectedPath = ConfigManager.GetBaseDirectory()
-                };
-
-                if (dialog.ShowDialog() == Forms.DialogResult.OK)
-                {
-                    ApplyBaseDirectoryChange(dialog.SelectedPath);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"选择目录失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        private void ApplyBaseDirectoryChange(string newDir)
-        {
-            if (string.IsNullOrWhiteSpace(newDir)) return;
-
-            var oldDir = ConfigManager.GetBaseDirectory();
-            if (string.Equals(NormalizePath(oldDir), NormalizePath(newDir), StringComparison.OrdinalIgnoreCase))
-            {
-                return;
-            }
-
-            ConfigManager.SetBaseDirectory(newDir, copyMissingFromOld: true);
-
-            if (App.IsTagTrainAvailable)
-            {
-                try
-                {
-                    // TagTrain SettingsManager removed - Phase 2
-                    // TagTrain.Services.SettingsManager.ClearCache();
-                    // TagTrain.Services.SettingsManager.SetDataStorageDirectory(ConfigManager.GetBaseDirectory());
-                    // TagTrain.Services.SettingsManager.ClearCache();
-                }
-                catch { }
-            }
-
-            try
-            {
-                DatabaseManager.Initialize();
-            }
-            catch { }
-
-            LoadSettings();
-            SettingsChanged?.Invoke(this, EventArgs.Empty);
-        }
-
-        private static string NormalizePath(string path)
-        {
-            try
-            {
-                return Path.GetFullPath(path.Trim());
-            }
-            catch
-            {
-                return path;
-            }
-        }
-
-        private void ExportConfigs_Click(object sender, RoutedEventArgs e)
-        {
-            var sfd = new SaveFileDialog
-            {
-                FileName = "configs.zip",
-                Filter = "ZIP文件 (*.zip)|*.zip|所有文件 (*.*)|*.*"
-            };
-
-            if (sfd.ShowDialog() == true)
-            {
-                try
-                {
-                    ConfigManager.ExportConfigsZip(sfd.FileName);
-                    MessageBox.Show("配置已导出。", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"导出失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-            }
-        }
-
-        private void ImportConfigs_Click(object sender, RoutedEventArgs e)
-        {
-            var ofd = new OpenFileDialog
-            {
-                Filter = "ZIP文件 (*.zip)|*.zip|所有文件 (*.*)|*.*"
-            };
-
-            if (ofd.ShowDialog() == true)
-            {
-                try
-                {
-                    ConfigManager.ImportConfigsZip(ofd.FileName);
-                    LoadSettings();
-                    SettingsChanged?.Invoke(this, EventArgs.Empty);
-                    MessageBox.Show("配置已导入。", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"导入失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-            }
-        }
-
-        private void ExportData_Click(object sender, RoutedEventArgs e)
-        {
-            var sfd = new SaveFileDialog
-            {
-                FileName = "data.zip",
-                Filter = "ZIP文件 (*.zip)|*.zip|所有文件 (*.*)|*.*"
-            };
-
-            if (sfd.ShowDialog() == true)
-            {
-                try
-                {
-                    ConfigManager.ExportDataZip(sfd.FileName);
-                    MessageBox.Show("数据已导出。", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"导出失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-            }
-        }
-
-        private void ImportData_Click(object sender, RoutedEventArgs e)
-        {
-            var ofd = new OpenFileDialog
-            {
-                Filter = "ZIP文件 (*.zip)|*.zip|所有文件 (*.*)|*.*"
-            };
-
-            if (ofd.ShowDialog() == true)
-            {
-                try
-                {
-                    ConfigManager.ImportDataZip(ofd.FileName);
-                    LoadSettings();
-                    SettingsChanged?.Invoke(this, EventArgs.Empty);
-                    MessageBox.Show("数据已导入。", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"导入失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-            }
-        }
-
-        private void ExportAll_Click(object sender, RoutedEventArgs e)
-        {
-            var sfd = new SaveFileDialog
-            {
-                FileName = "all.zip",
-                Filter = "ZIP文件 (*.zip)|*.zip|所有文件 (*.*)|*.*"
-            };
-
-            if (sfd.ShowDialog() == true)
-            {
-                try
-                {
-                    ConfigManager.ExportAllZip(sfd.FileName);
-                    MessageBox.Show("全部文件已导出。", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"导出失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-            }
-        }
-
-        private void ImportAll_Click(object sender, RoutedEventArgs e)
-        {
-            var ofd = new OpenFileDialog
-            {
-                Filter = "ZIP文件 (*.zip)|*.zip|所有文件 (*.*)|*.*"
-            };
-
-            if (ofd.ShowDialog() == true)
-            {
-                try
-                {
-                    ConfigManager.ImportAllZip(ofd.FileName);
-                    LoadSettings();
-                    SettingsChanged?.Invoke(this, EventArgs.Empty);
-                    MessageBox.Show("全部文件已导入。", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"导入失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-            }
+            // Auto-saved by bindings and VM logic
         }
     }
 }
-
-

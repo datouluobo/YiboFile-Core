@@ -1,20 +1,24 @@
 using System;
 using System.Windows;
 using System.Windows.Controls;
-using YiboFile.Controls;
+using System.Windows.Data;
+using YiboFile.ViewModels;
 
 namespace YiboFile.Controls.Settings
 {
-#pragma warning disable CS0067 // 事件从未使用，但接口要求
     public partial class LibrarySettingsPanel : UserControl, ISettingsPanel
     {
         public event EventHandler SettingsChanged;
-#pragma warning restore CS0067
+
+        private SettingsViewModel _viewModel;
 
         public LibrarySettingsPanel()
         {
             InitializeComponent();
-            LoadSettings();
+            _viewModel = new SettingsViewModel();
+            this.DataContext = _viewModel;
+
+            _viewModel.OpenLibraryManagerRequested += OnOpenLibraryManagerRequested;
         }
 
         private void InitializeComponent()
@@ -48,12 +52,7 @@ namespace YiboFile.Controls.Settings
                 Margin = new Thickness(0, 0, 0, 10),
                 MinWidth = 120
             };
-            manageBtn.Click += (s, e) =>
-            {
-                var win = new YiboFile.Windows.NavigationSettingsWindow("Library");
-                win.Owner = Window.GetWindow(this);
-                win.ShowDialog();
-            };
+            manageBtn.SetBinding(Button.CommandProperty, new Binding(nameof(SettingsViewModel.OpenLibraryManagerCommand)));
             stackPanel.Children.Add(manageBtn);
 
             // 导入库按钮
@@ -65,7 +64,7 @@ namespace YiboFile.Controls.Settings
                 Margin = new Thickness(0, 0, 0, 10),
                 MinWidth = 120
             };
-            importBtn.Click += ImportBtn_Click;
+            importBtn.Click += ImportBtn_Click; // Handle Click to open dialog, then Command
             stackPanel.Children.Add(importBtn);
 
             // 导出库按钮
@@ -76,7 +75,7 @@ namespace YiboFile.Controls.Settings
                 Padding = new Thickness(15, 8, 15, 8),
                 MinWidth = 120
             };
-            exportBtn.Click += ExportBtn_Click;
+            exportBtn.Click += ExportBtn_Click; // Handle Click to open dialog, then Command
             stackPanel.Children.Add(exportBtn);
 
             var scrollViewer = new ScrollViewer
@@ -86,6 +85,13 @@ namespace YiboFile.Controls.Settings
             };
 
             Content = scrollViewer;
+        }
+
+        private void OnOpenLibraryManagerRequested(object sender, EventArgs e)
+        {
+            var win = new YiboFile.Windows.NavigationSettingsWindow("Library");
+            win.Owner = Window.GetWindow(this);
+            win.ShowDialog();
         }
 
         private void ImportBtn_Click(object sender, RoutedEventArgs e)
@@ -98,15 +104,10 @@ namespace YiboFile.Controls.Settings
 
             if (dialog.ShowDialog() == true)
             {
-                try
+                // Call Command
+                if (_viewModel.ImportLibrariesCommand.CanExecute(dialog.FileName))
                 {
-                    string json = System.IO.File.ReadAllText(dialog.FileName);
-                    var libraryService = new YiboFile.Services.LibraryService(Dispatcher, null);
-                    libraryService.ImportLibrariesFromJson(json);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"读取文件失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    _viewModel.ImportLibrariesCommand.Execute(dialog.FileName);
                 }
             }
         }
@@ -122,33 +123,23 @@ namespace YiboFile.Controls.Settings
 
             if (dialog.ShowDialog() == true)
             {
-                try
+                // Call Command
+                if (_viewModel.ExportLibrariesCommand.CanExecute(dialog.FileName))
                 {
-                    var libraryService = new YiboFile.Services.LibraryService(Dispatcher, null);
-                    string json = libraryService.ExportLibrariesToJson();
-                    if (!string.IsNullOrEmpty(json))
-                    {
-                        System.IO.File.WriteAllText(dialog.FileName, json);
-                        MessageBox.Show("库配置已导出", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"保存文件失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    _viewModel.ExportLibrariesCommand.Execute(dialog.FileName);
+                    MessageBox.Show("库配置已导出", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
         }
 
         public void LoadSettings()
         {
-            // 加载库设置
+            _viewModel?.LoadFromConfig();
         }
 
         public void SaveSettings()
         {
-            // 保存库设置
+            // Auto-saved by Command actions
         }
     }
 }
-
-

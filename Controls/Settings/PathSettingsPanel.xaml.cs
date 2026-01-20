@@ -1,10 +1,8 @@
 using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using YiboFile.Services.Config;
+using System.Windows.Data;
+using YiboFile.ViewModels;
 
 namespace YiboFile.Controls.Settings
 {
@@ -12,98 +10,131 @@ namespace YiboFile.Controls.Settings
     {
         public event EventHandler SettingsChanged;
 
-        public class SectionItem
-        {
-            public string Key { get; set; }
-            public string DisplayName { get; set; }
-        }
-
-        private ObservableCollection<SectionItem> _sections = new ObservableCollection<SectionItem>();
-        private bool _isInitialized = false;
+        private SettingsViewModel _viewModel;
 
         public PathSettingsPanel()
         {
             InitializeComponent();
-            SectionsListBox.ItemsSource = _sections;
-            LoadSettings();
-            _isInitialized = true;
+            _viewModel = new SettingsViewModel();
+            this.DataContext = _viewModel;
+
+            InitializeBindings();
+        }
+
+        private void InitializeComponent()
+        {
+            var stackPanel = new StackPanel { Margin = new Thickness(0) };
+
+            var title = new TextBlock
+            {
+                Text = "导航栏显示顺序",
+                FontSize = 18,
+                FontWeight = FontWeights.Bold,
+                Margin = new Thickness(0, 0, 0, 16)
+            };
+            stackPanel.Children.Add(title);
+
+            var hint = new TextBlock
+            {
+                Text = "拖拽或使用按钮调整侧边栏导航项的显示顺序。",
+                FontSize = 12,
+                Margin = new Thickness(0, 0, 0, 12)
+            };
+            hint.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
+            stackPanel.Children.Add(hint);
+
+            var grid = new Grid();
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            // ListBox for sections
+            var listBox = new ListBox
+            {
+                Name = "SectionsListBox",
+                Margin = new Thickness(0, 0, 10, 0),
+                MinHeight = 200,
+                BorderThickness = new Thickness(1),
+            };
+            listBox.SelectionMode = SelectionMode.Single;
+
+            // Create item template
+            var itemTemplate = new DataTemplate();
+            var factory = new FrameworkElementFactory(typeof(TextBlock));
+            factory.SetBinding(TextBlock.TextProperty, new Binding("DisplayName"));
+            factory.SetValue(TextBlock.PaddingProperty, new Thickness(5));
+            factory.SetValue(TextBlock.FontSizeProperty, 14.0);
+            itemTemplate.VisualTree = factory;
+            listBox.ItemTemplate = itemTemplate;
+
+            Grid.SetColumn(listBox, 0);
+            grid.Children.Add(listBox);
+
+            // Buttons
+            var buttonPanel = new StackPanel
+            {
+                Orientation = Orientation.Vertical,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            var moveUpButton = new Button
+            {
+                Content = "▲ 上移",
+                Margin = new Thickness(0, 0, 0, 10),
+                Padding = new Thickness(15, 8, 15, 8),
+                Style = (Style)Application.Current.Resources["ModernButtonStyle"]
+            };
+            // Command binding handles click
+            buttonPanel.Children.Add(moveUpButton);
+
+            var moveDownButton = new Button
+            {
+                Content = "▼ 下移",
+                Padding = new Thickness(15, 8, 15, 8),
+                Style = (Style)Application.Current.Resources["ModernButtonStyle"]
+            };
+            // Command binding handles click
+            buttonPanel.Children.Add(moveDownButton);
+
+            Grid.SetColumn(buttonPanel, 1);
+            grid.Children.Add(buttonPanel);
+
+            stackPanel.Children.Add(grid);
+
+            var scrollViewer = new ScrollViewer
+            {
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                Content = stackPanel
+            };
+
+            Content = scrollViewer;
+
+            // Save reference for binding in InitializeBindings used by non-generated members
+            // But since we are creating purely in code, we can bind directly here
+
+            // Bind ListBox ItemsSource
+            listBox.SetBinding(ListBox.ItemsSourceProperty, new Binding(nameof(SettingsViewModel.NavigationSections)));
+
+            // Bind Buttons Command
+            moveUpButton.SetBinding(Button.CommandProperty, new Binding(nameof(SettingsViewModel.MoveSectionUpCommand)));
+            moveUpButton.SetBinding(Button.CommandParameterProperty, new Binding("SelectedItem") { Source = listBox });
+
+            moveDownButton.SetBinding(Button.CommandProperty, new Binding(nameof(SettingsViewModel.MoveSectionDownCommand)));
+            moveDownButton.SetBinding(Button.CommandParameterProperty, new Binding("SelectedItem") { Source = listBox });
+        }
+
+        private void InitializeBindings()
+        {
+            // Bindings handled in InitializeComponent for this simple panel
         }
 
         public void LoadSettings()
         {
-            var order = ConfigurationService.Instance.Get(c => c.NavigationSectionsOrder);
-            if (order == null || order.Count == 0)
-            {
-                order = new List<string> { "QuickAccess", "Drives", "FolderFavorites", "FileFavorites" };
-            }
-
-            var safeKeys = new HashSet<string> { "QuickAccess", "Drives", "FolderFavorites", "FileFavorites" };
-
-            _sections.Clear();
-            foreach (var key in order)
-            {
-                if (safeKeys.Contains(key))
-                {
-                    _sections.Add(new SectionItem { Key = key, DisplayName = GetDisplayName(key) });
-                }
-            }
-
-            // Ensure all known sections are present (in case config is old)
-            var allKeys = new[] { "QuickAccess", "Drives", "FolderFavorites", "FileFavorites" };
-            foreach (var key in allKeys)
-            {
-                if (!_sections.Any(s => s.Key == key))
-                {
-                    _sections.Add(new SectionItem { Key = key, DisplayName = GetDisplayName(key) });
-                }
-            }
-        }
-
-        private string GetDisplayName(string key)
-        {
-            switch (key)
-            {
-                case "QuickAccess": return "快速访问";
-                case "Drives": return "此电脑 (驱动器)";
-                case "FolderFavorites": return "收藏夹 (文件夹)";
-                case "FileFavorites": return "收藏夹 (文件)";
-                default: return key;
-            }
+            _viewModel?.LoadFromConfig();
         }
 
         public void SaveSettings()
         {
-            if (!_isInitialized) return;
-
-            var newOrder = _sections.Select(s => s.Key).ToList();
-            ConfigurationService.Instance.Set(c => c.NavigationSectionsOrder, newOrder);
-            SettingsChanged?.Invoke(this, EventArgs.Empty);
-        }
-
-        private void MoveUpButton_Click(object sender, RoutedEventArgs e)
-        {
-            int index = SectionsListBox.SelectedIndex;
-            if (index > 0)
-            {
-                var item = _sections[index];
-                _sections.RemoveAt(index);
-                _sections.Insert(index - 1, item);
-                SectionsListBox.SelectedIndex = index - 1;
-                SaveSettings(); // Auto save
-            }
-        }
-
-        private void MoveDownButton_Click(object sender, RoutedEventArgs e)
-        {
-            int index = SectionsListBox.SelectedIndex;
-            if (index >= 0 && index < _sections.Count - 1)
-            {
-                var item = _sections[index];
-                _sections.RemoveAt(index);
-                _sections.Insert(index + 1, item);
-                SectionsListBox.SelectedIndex = index + 1;
-                SaveSettings(); // Auto save
-            }
+            // Auto-saved by ViewModel
         }
     }
 }

@@ -274,6 +274,7 @@ namespace YiboFile.Services.FullTextSearch
         {
             var sql = "SELECT COUNT(*) FROM index_meta";
             using var cmd = new SqliteCommand(sql, _connection);
+            cmd.Transaction = _currentTransaction;
             var result = cmd.ExecuteScalar();
             return Convert.ToInt32(result);
         }
@@ -288,6 +289,7 @@ namespace YiboFile.Services.FullTextSearch
                 DELETE FROM index_meta;
             ";
             using var cmd = new SqliteCommand(sql, _connection);
+            cmd.Transaction = _currentTransaction;
             cmd.ExecuteNonQuery();
         }
 

@@ -122,6 +122,9 @@ namespace YiboFile
             "Libraries",
             "Tags"
         };
+
+        // 自定义快捷键 (Description -> KeyCombination)
+        public System.Collections.Generic.Dictionary<string, string> CustomHotkeys { get; set; } = new System.Collections.Generic.Dictionary<string, string>();
     }
 
     public class AllSettingsConfig

@@ -1,114 +1,182 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input; // Added for ModifierKeys, Key, Cursors
+using System.Windows.Data;
+using System.Windows.Input;
+using System.Windows.Media;
+using YiboFile.ViewModels;
 
 namespace YiboFile.Controls.Settings
 {
-    public class HotkeyItem : System.ComponentModel.INotifyPropertyChanged
+    public partial class HotkeySettingsPanel : UserControl, ISettingsPanel
     {
-        private string _keyCombination;
+        public event EventHandler SettingsChanged;
 
-        public string Description { get; set; }
-        public string DefaultKey { get; set; } // 默认快捷键
-
-        public string KeyCombination
-        {
-            get => _keyCombination;
-            set
-            {
-                if (_keyCombination != value)
-                {
-                    _keyCombination = value;
-                    PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(nameof(KeyCombination)));
-                    PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(nameof(IsModified)));
-                }
-            }
-        }
-
-        public bool IsModified => KeyCombination != DefaultKey;
-
-        public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;
-    }
-
-    public partial class HotkeySettingsPanel : UserControl
-    {
-        private ObservableCollection<HotkeyItem> _hotkeys;
-        private ObservableCollection<HotkeyItem> _defaultHotkeys; // Added this line
+        private SettingsViewModel _viewModel;
 
         public HotkeySettingsPanel()
         {
             InitializeComponent();
-            LoadHotkeys();
+            _viewModel = new SettingsViewModel();
+            this.DataContext = _viewModel;
+            // LoadSettings will be called by Interface or initial binding
         }
 
-        private void LoadHotkeys()
+        private void InitializeComponent()
         {
-            // 默认快捷键列表
-            _defaultHotkeys = new ObservableCollection<HotkeyItem>
+            var grid = new Grid { Margin = new Thickness(30) };
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+            // Title
+            var titlePanel = new StackPanel { Margin = new Thickness(0, 0, 0, 20) };
+            titlePanel.Children.Add(new TextBlock
             {
-                // 标签页操作
-                new HotkeyItem { Description = "新建标签页", DefaultKey = "Ctrl+T", KeyCombination = "Ctrl+T" },
-                new HotkeyItem { Description = "关闭标签页", DefaultKey = "Ctrl+W", KeyCombination = "Ctrl+W" },
-                new HotkeyItem { Description = "下一个标签", DefaultKey = "Ctrl+Tab", KeyCombination = "Ctrl+Tab" },
-                new HotkeyItem { Description = "上一个标签", DefaultKey = "Ctrl+Shift+Tab", KeyCombination = "Ctrl+Shift+Tab" },
-                new HotkeyItem { Description = "切换双面板焦点", DefaultKey = "Tab", KeyCombination = "Tab" },
-                
-                // 文件操作
-                new HotkeyItem { Description = "复制", DefaultKey = "Ctrl+C", KeyCombination = "Ctrl+C" },
-                new HotkeyItem { Description = "剪切", DefaultKey = "Ctrl+X", KeyCombination = "Ctrl+X" },
-                new HotkeyItem { Description = "粘贴", DefaultKey = "Ctrl+V", KeyCombination = "Ctrl+V" },
-                new HotkeyItem { Description = "删除 (移到回收站)", DefaultKey = "Delete", KeyCombination = "Delete" },
-                new HotkeyItem { Description = "永久删除", DefaultKey = "Shift+Delete", KeyCombination = "Shift+Delete" },
-                new HotkeyItem { Description = "重命名", DefaultKey = "F2", KeyCombination = "F2" },
-                new HotkeyItem { Description = "全选", DefaultKey = "Ctrl+A", KeyCombination = "Ctrl+A" },
-                new HotkeyItem { Description = "新建文件夹", DefaultKey = "Ctrl+N", KeyCombination = "Ctrl+N" },
-                new HotkeyItem { Description = "新建窗口", DefaultKey = "Ctrl+Shift+N", KeyCombination = "Ctrl+Shift+N" },
-                
-                // 撤销重做
-                new HotkeyItem { Description = "撤销", DefaultKey = "Ctrl+Z", KeyCombination = "Ctrl+Z" },
-                new HotkeyItem { Description = "重做", DefaultKey = "Ctrl+Y", KeyCombination = "Ctrl+Y" },
-                
-                // 导航
-                new HotkeyItem { Description = "返回上级目录", DefaultKey = "Backspace", KeyCombination = "Backspace" },
-                new HotkeyItem { Description = "地址栏编辑", DefaultKey = "Alt+D", KeyCombination = "Alt+D" },
-                new HotkeyItem { Description = "刷新", DefaultKey = "F5", KeyCombination = "F5" },
-                new HotkeyItem { Description = "打开文件/文件夹", DefaultKey = "Enter", KeyCombination = "Enter" },
-                
-                // 查看和预览
-                new HotkeyItem { Description = "QuickLook 预览", DefaultKey = "Space", KeyCombination = "Space" },
-                new HotkeyItem { Description = "属性", DefaultKey = "Alt+Enter", KeyCombination = "Alt+Enter" },
-                
-                // 布局切换
-                new HotkeyItem { Description = "专注模式", DefaultKey = "Ctrl+Shift+F", KeyCombination = "Ctrl+Shift+F" },
-                new HotkeyItem { Description = "工作模式", DefaultKey = "Ctrl+Shift+W", KeyCombination = "Ctrl+Shift+W" },
-                new HotkeyItem { Description = "完整模式", DefaultKey = "Ctrl+Shift+A", KeyCombination = "Ctrl+Shift+A" },
+                Text = "快捷键管理",
+                FontSize = 28,
+                FontWeight = FontWeights.Bold,
+                Foreground = (Brush)FindResource("ForegroundPrimaryBrush") ?? Brushes.Black
+            });
+            titlePanel.Children.Add(new TextBlock
+            {
+                Text = "查看和自定义应用程序快捷键",
+                FontSize = 14,
+                Foreground = (Brush)FindResource("ForegroundSecondaryBrush") ?? Brushes.Gray,
+                Margin = new Thickness(0, 8, 0, 0)
+            });
+            Grid.SetRow(titlePanel, 0);
+            grid.Children.Add(titlePanel);
+
+            // Action Buttons
+            var btnPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 15) };
+            var resetBtn = new Button
+            {
+                Content = "恢复默认",
+                Padding = new Thickness(16, 8, 16, 8),
+                MinWidth = 100,
+                Cursor = Cursors.Hand
+            };
+            resetBtn.SetBinding(Button.CommandProperty, new Binding(nameof(SettingsViewModel.ResetHotkeysCommand)));
+            btnPanel.Children.Add(resetBtn);
+            Grid.SetRow(btnPanel, 1);
+            grid.Children.Add(btnPanel);
+
+            // DataGrid
+            var dataGrid = new DataGrid
+            {
+                AutoGenerateColumns = false,
+                CanUserAddRows = false,
+                CanUserDeleteRows = false,
+                CanUserResizeRows = false,
+                CanUserSortColumns = true,
+                RowHeaderWidth = 0,
+                GridLinesVisibility = DataGridGridLinesVisibility.None,
+                HeadersVisibility = DataGridHeadersVisibility.Column,
+                BorderThickness = new Thickness(0),
+                Background = Brushes.Transparent,
+                SelectionMode = DataGridSelectionMode.Single,
+                SelectionUnit = DataGridSelectionUnit.FullRow
+            };
+            dataGrid.SetBinding(DataGrid.ItemsSourceProperty, new Binding(nameof(SettingsViewModel.Hotkeys)));
+
+            // Columns
+            // Description
+            var descCol = new DataGridTextColumn
+            {
+                Header = "功能描述",
+                Binding = new Binding(nameof(HotkeyItemViewModel.Description)),
+                IsReadOnly = true,
+                Width = new DataGridLength(2, DataGridLengthUnitType.Star)
+            };
+            dataGrid.Columns.Add(descCol);
+
+            // Key
+            var keyCol = new DataGridTextColumn
+            {
+                Header = "快捷键",
+                Binding = new Binding(nameof(HotkeyItemViewModel.KeyCombination)),
+                IsReadOnly = true,
+                Width = new DataGridLength(1, DataGridLengthUnitType.Star)
+            };
+            dataGrid.Columns.Add(keyCol);
+
+            // Actions
+            var actionCol = new DataGridTemplateColumn
+            {
+                Header = "操作",
+                Width = DataGridLength.Auto
             };
 
-            // 复制到当前快捷键列表
-            _hotkeys = new ObservableCollection<HotkeyItem>();
-            foreach (var item in _defaultHotkeys)
-            {
-                _hotkeys.Add(new HotkeyItem
-                {
-                    Description = item.Description,
-                    DefaultKey = item.DefaultKey,
-                    KeyCombination = item.KeyCombination
-                });
-            }
+            // Create DataTemplate for Actions using XamlReader or FrameworkElementFactory
+            // Using FrameworkElementFactory for code-behind template
+            var stackFactory = new FrameworkElementFactory(typeof(StackPanel));
+            stackFactory.SetValue(StackPanel.OrientationProperty, Orientation.Horizontal);
 
-            HotkeyGrid.ItemsSource = _hotkeys;
+            // Edit Button
+            var editBtnFactory = new FrameworkElementFactory(typeof(Button));
+            editBtnFactory.SetValue(Button.ContentProperty, "编辑");
+            editBtnFactory.SetValue(Button.PaddingProperty, new Thickness(12, 6, 12, 6));
+            editBtnFactory.SetValue(Button.MarginProperty, new Thickness(0, 0, 8, 0));
+            editBtnFactory.SetValue(Button.CursorProperty, Cursors.Hand);
+            editBtnFactory.SetBinding(Button.TagProperty, new Binding(".")); // Bind whole object
+            editBtnFactory.AddHandler(Button.ClickEvent, new RoutedEventHandler(EditHotkey_Click));
+            stackFactory.AppendChild(editBtnFactory);
+
+            // Reset Single Button
+            var resetSingleBtnFactory = new FrameworkElementFactory(typeof(Button));
+            resetSingleBtnFactory.SetValue(Button.ContentProperty, "恢复");
+            resetSingleBtnFactory.SetValue(Button.PaddingProperty, new Thickness(8, 6, 8, 6));
+            resetSingleBtnFactory.SetValue(Button.CursorProperty, Cursors.Hand);
+            // resetSingleBtnFactory.SetValue(Button.ForegroundProperty, Brushes.Red); // Optional simplified styling
+            resetSingleBtnFactory.SetBinding(Button.CommandProperty, new Binding("DataContext.ResetSingleHotkeyCommand") { Source = this }); // Access ViewModel command
+            // Binding CommandParameter to the Item
+            resetSingleBtnFactory.SetBinding(Button.CommandParameterProperty, new Binding("."));
+
+            // Visibility binding for Reset button
+            var visibilityBinding = new Binding(nameof(HotkeyItemViewModel.IsModified));
+            visibilityBinding.Converter = new BooleanToVisibilityConverter();
+            resetSingleBtnFactory.SetBinding(Button.VisibilityProperty, visibilityBinding);
+
+            stackFactory.AppendChild(resetSingleBtnFactory);
+
+            actionCol.CellTemplate = new DataTemplate { VisualTree = stackFactory };
+            dataGrid.Columns.Add(actionCol);
+
+            // Container for DataGrid to simulate Border
+            var border = new Border
+            {
+                BorderBrush = (Brush)FindResource("BorderBrush") ?? Brushes.Gray,
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(6),
+                Background = (Brush)FindResource("CardBackgroundBrush") ?? Brushes.White,
+                Child = dataGrid
+            };
+            Grid.SetRow(border, 2);
+            grid.Children.Add(border);
+
+            // Footer
+            var footer = new TextBlock
+            {
+                Text = "点击编辑按钮可自定义快捷键。修改会立即保存。",
+                FontSize = 12,
+                Foreground = (Brush)FindResource("ForegroundSecondaryBrush") ?? Brushes.Gray,
+                Margin = new Thickness(0, 15, 0, 0)
+            };
+            Grid.SetRow(footer, 3);
+            grid.Children.Add(footer);
+
+            this.Content = grid;
         }
 
-        /// <summary>
-        /// 编辑快捷键按钮点击事件
-        /// </summary>
         private void EditHotkey_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is Button button && button.Tag is HotkeyItem item)
+            if (sender is Button button && button.Tag is HotkeyItemViewModel item)
             {
-                // 创建输入对话框
+                // Create input dialog (similar to original code)
                 var dialog = new Window
                 {
                     Title = "编辑快捷键",
@@ -132,14 +200,16 @@ namespace YiboFile.Controls.Settings
                     Margin = new Thickness(0, 0, 0, 10)
                 };
                 Grid.SetRow(descText, 0);
+                grid.Children.Add(descText);
 
                 var label = new TextBlock
                 {
                     Text = "新快捷键:",
                     FontSize = 13,
-                    Margin = new Thickness(0, 0, 0, 8) // Corrected 'M' to 'Margin'
+                    Margin = new Thickness(0, 0, 0, 8)
                 };
                 Grid.SetRow(label, 1);
+                grid.Children.Add(label);
 
                 var textBox = new TextBox
                 {
@@ -147,30 +217,32 @@ namespace YiboFile.Controls.Settings
                     FontSize = 13,
                     Padding = new Thickness(8),
                     IsReadOnly = true,
-                    Background = System.Windows.Media.Brushes.WhiteSmoke
+                    Background = Brushes.WhiteSmoke
                 };
                 Grid.SetRow(textBox, 2);
+                grid.Children.Add(textBox);
 
-                // 监听键盘输入
+                // Keyboard listener
                 textBox.PreviewKeyDown += (s, args) =>
                 {
                     args.Handled = true;
                     var key = args.Key;
-                    var modifiers = args.KeyboardDevice.Modifiers;
+                    var modifiers = Keyboard.Modifiers;
 
-                    // 构建快捷键字符串
+                    if (key == Key.System) key = args.SystemKey;
+
+                    // Build string
                     var keys = new System.Collections.Generic.List<string>();
-                    if (modifiers.HasFlag(System.Windows.Input.ModifierKeys.Control)) keys.Add("Ctrl");
-                    if (modifiers.HasFlag(System.Windows.Input.ModifierKeys.Alt)) keys.Add("Alt");
-                    if (modifiers.HasFlag(System.Windows.Input.ModifierKeys.Shift)) keys.Add("Shift");
+                    if (modifiers.HasFlag(ModifierKeys.Control)) keys.Add("Ctrl");
+                    if (modifiers.HasFlag(ModifierKeys.Alt)) keys.Add("Alt");
+                    if (modifiers.HasFlag(ModifierKeys.Shift)) keys.Add("Shift");
+                    if (modifiers.HasFlag(ModifierKeys.Windows)) keys.Add("Win");
 
-                    // 添加主键
-                    if (key != System.Windows.Input.Key.LeftCtrl &&
-                        key != System.Windows.Input.Key.RightCtrl &&
-                        key != System.Windows.Input.Key.LeftAlt &&
-                        key != System.Windows.Input.Key.RightAlt &&
-                        key != System.Windows.Input.Key.LeftShift &&
-                        key != System.Windows.Input.Key.RightShift)
+                    // Add main key
+                    if (key != Key.LeftCtrl && key != Key.RightCtrl &&
+                        key != Key.LeftAlt && key != Key.RightAlt &&
+                        key != Key.LeftShift && key != Key.RightShift &&
+                        key != Key.LWin && key != Key.RWin)
                     {
                         keys.Add(key.ToString());
                     }
@@ -188,89 +260,48 @@ namespace YiboFile.Controls.Settings
                     Margin = new Thickness(0, 15, 0, 0)
                 };
                 Grid.SetRow(buttonPanel, 3);
+                grid.Children.Add(buttonPanel);
 
                 var saveBtn = new Button
                 {
                     Content = "保存",
                     Padding = new Thickness(20, 8, 20, 8),
                     Margin = new Thickness(0, 0, 10, 0),
-                    Cursor = System.Windows.Input.Cursors.Hand
+                    Cursor = Cursors.Hand
                 };
                 saveBtn.Click += (s, args) =>
                 {
+                    // Update ViewModel
                     item.KeyCombination = textBox.Text;
-                    HotkeyGrid.Items.Refresh();
                     dialog.DialogResult = true;
                 };
+                buttonPanel.Children.Add(saveBtn);
 
                 var cancelBtn = new Button
                 {
                     Content = "取消",
                     Padding = new Thickness(20, 8, 20, 8),
-                    Cursor = System.Windows.Input.Cursors.Hand
+                    Cursor = Cursors.Hand
                 };
                 cancelBtn.Click += (s, args) =>
                 {
                     dialog.DialogResult = false;
                 };
-
-                buttonPanel.Children.Add(saveBtn);
                 buttonPanel.Children.Add(cancelBtn);
-
-                grid.Children.Add(descText);
-                grid.Children.Add(label);
-                grid.Children.Add(textBox);
-                grid.Children.Add(buttonPanel);
 
                 dialog.Content = grid;
                 dialog.ShowDialog();
             }
         }
 
-        /// <summary>
-        /// 恢复默认按钮点击事件
-        /// </summary>
-        private void ResetButton_Click(object sender, RoutedEventArgs e)
+        public void LoadSettings()
         {
-            var result = MessageBox.Show(
-                "确定要恢复所有快捷键为默认设置吗?",
-                "确认恢复",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Question);
-
-            if (result == MessageBoxResult.Yes)
-            {
-                LoadHotkeys();
-                MessageBox.Show("快捷键已恢复为默认设置", "完成", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
+            _viewModel?.LoadFromConfig();
         }
 
-        /// <summary>
-        /// 恢复单项快捷键为默认
-        /// </summary>
-        private void ResetSingleHotkey_Click(object sender, RoutedEventArgs e)
+        public void SaveSettings()
         {
-            if (sender is Button button && button.Tag is HotkeyItem item)
-            {
-                item.KeyCombination = item.DefaultKey;
-                HotkeyGrid.Items.Refresh();
-            }
-        }
-
-        private void HotkeyGrid_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
-        {
-            if (!e.Handled)
-            {
-                e.Handled = true;
-                var eventArg = new MouseWheelEventArgs(e.MouseDevice, e.Timestamp, e.Delta)
-                {
-                    RoutedEvent = UIElement.MouseWheelEvent,
-                    Source = sender
-                };
-                var parent = ((Control)sender).Parent as UIElement;
-                parent?.RaiseEvent(eventArg);
-            }
+            // Auto-saved by command interactions or property changes
         }
     }
 }
-
