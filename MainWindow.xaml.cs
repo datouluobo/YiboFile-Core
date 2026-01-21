@@ -249,7 +249,33 @@ namespace YiboFile
 
             // 标签服务将通过依赖注入获取接口实现
             _tagService = App.ServiceProvider?.GetService<YiboFile.Services.Features.ITagService>();
+
+            if (_tagService != null)
+            {
+                _tagService.TagUpdated += OnTagUpdated;
+            }
             // LoadTagsToSidebar(); // Phase 2 - 标签 UI 控件已移至 Pro 模块
+        }
+
+        private void OnTagUpdated(int tagId, string newColor)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                if (_currentFiles != null)
+                {
+                    foreach (var file in _currentFiles)
+                    {
+                        if (file.TagList != null)
+                        {
+                            var tag = file.TagList.FirstOrDefault(t => t.Id == tagId);
+                            if (tag != null)
+                            {
+                                tag.Color = newColor;
+                            }
+                        }
+                    }
+                }
+            });
         }
 
         private void NavTagBtn_Click(object sender, RoutedEventArgs e)
@@ -259,25 +285,9 @@ namespace YiboFile
 
         private void OnTagSelected(int tagId, string tagName)
         {
-            // 切换到标签模式（如果尚未切换）
-            if (GetCurrentModeKey() != "Tag")
-            {
-                _navigationModeService.SwitchNavigationMode("Tag");
-            }
-
-            // 使用搜索服务或文件列表服务来显示标签关联的文件
-            //目前简单实现：搜索 tag:tagName
-            // TODO: 更完善的标签筛选实现
-
-            // 为了演示，我们构造一个特殊的搜索
-            // _searchOptions.Keyword = $"tag:{tagName}";
-            // _searchOptions.SearchScope = Services.Search.SearchScope.All; // 或者专门的 Tag Scope
-
-            // 触发搜索
-            // 这里可能需要一种方式来告诉 FileBrowser 显示搜索结果而不进入搜索模式 UI
-            // 或者直接加载文件列表
-
-            LoadFilesByTag(tagId, tagName);
+            // Consistent navigation: Use tag protocol
+            // User requested opening in new tab
+            CreateTab($"tag://{tagId}");
         }
 
         private async void LoadFilesByTag(int tagId, string tagName)
@@ -773,9 +783,13 @@ namespace YiboFile
                 _selectionEventHandler?.HandleNoSelection();
             }
 
-            await _fileOperationService.DeleteAsync(items, permanent);
-            var msg = permanent ? "永久删除" : "删除";
-            Services.Core.NotificationService.ShowSuccess($"已{msg} {items.Count} 个项目");
+            var result = await _fileOperationService.DeleteAsync(items, permanent);
+
+            if (result.Success && result.ProcessedCount > 0)
+            {
+                var msg = permanent ? "永久删除" : "删除";
+                Services.Core.NotificationService.ShowSuccess($"已{msg} {items.Count} 个项目");
+            }
         }
 
         /// <summary>

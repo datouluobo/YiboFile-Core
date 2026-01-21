@@ -4,6 +4,8 @@ using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
 using System.Threading.Tasks;
 using YiboFile.Controls;
 using YiboFile.Services.FileList;
@@ -30,11 +32,15 @@ namespace YiboFile.Services.FileInfo
         /// </summary>
         /// <param name="fileBrowser">文件浏览器控件</param>
         /// <param name="fileListService">文件列表服务</param>
-        public FileInfoService(FileBrowserControl fileBrowser, FileListService fileListService)
+        /// <param name="navigationCoordinator">导航协调器</param>
+        public FileInfoService(FileBrowserControl fileBrowser, FileListService fileListService, YiboFile.Services.Navigation.NavigationCoordinator navigationCoordinator)
         {
             _fileBrowser = fileBrowser ?? throw new ArgumentNullException(nameof(fileBrowser));
             _fileListService = fileListService ?? throw new ArgumentNullException(nameof(fileListService));
+            _navigationCoordinator = navigationCoordinator ?? throw new ArgumentNullException(nameof(navigationCoordinator));
         }
+
+        private readonly YiboFile.Services.Navigation.NavigationCoordinator _navigationCoordinator;
 
         #endregion
 
@@ -128,6 +134,7 @@ namespace YiboFile.Services.FileInfo
                         ("路径", item.Path),
                         ("类型", "文件夹"),
                         ("修改日期", item.ModifiedDate)
+                        // ("标签", item.Tags)
                     };
 
                     foreach (var (label, value) in infoItems)
@@ -135,6 +142,10 @@ namespace YiboFile.Services.FileInfo
                         var panel = CreateInfoPanel(label, value);
                         _fileBrowser.FileInfoPanelControl.Children.Add(panel);
                     }
+
+                    // Tags Panel
+                    var dirTagsPanel = CreateTagsPanel("标签", item.Tags);
+                    _fileBrowser.FileInfoPanelControl.Children.Add(dirTagsPanel);
 
                     // 创建占位符面板用于后续更新
                     var filesCountPanel = CreateInfoPanel("文件数", "计算中...");
@@ -228,7 +239,7 @@ namespace YiboFile.Services.FileInfo
                 ("类型", item.Type),
                 ("大小", item.Size),
                 ("修改日期", item.ModifiedDate)
-                // ("标签", item.Tags) // Removed as per user request
+                // ("标签", item.Tags) // Handled by CreateTagsPanel
             };
 
             var fileExtension = System.IO.Path.GetExtension(item.Path)?.ToLowerInvariant();
@@ -244,7 +255,7 @@ namespace YiboFile.Services.FileInfo
                     // Format as HH:mm:ss or mm:ss
                     string durationStr = (t.TotalHours >= 1) ? t.ToString(@"hh\:mm\:ss") : t.ToString(@"mm\:ss");
                     infoItems.Insert(4, ("时长", durationStr)); // 在"大小"(index 3)之后插入? No, "修改日期" is index 4. Insert at 4 puts it before "修改日期". 
-                    // Let's insert after Size (index 3). So index 4.
+                                                              // Let's insert after Size (index 3). So index 4.
                 }
             }
 
@@ -280,6 +291,13 @@ namespace YiboFile.Services.FileInfo
                 if (_fileBrowser?.FileInfoPanelControl != null)
                     _fileBrowser.FileInfoPanelControl.Children.Add(panel);
             }
+
+            // Display Tags
+            if (_fileBrowser?.FileInfoPanelControl != null)
+            {
+                var tagsPanel = CreateTagsPanel("标签", item.Tags);
+                _fileBrowser.FileInfoPanelControl.Children.Add(tagsPanel);
+            }
         }
 
         /// <summary>
@@ -301,6 +319,85 @@ namespace YiboFile.Services.FileInfo
             panel.Children.Add(valueText);
 
             return panel;
+        }
+
+        private StackPanel CreateTagsPanel(string label, string tagsString)
+        {
+            var panel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 2) };
+
+            var labelText = new TextBlock { Text = $"{label}: ", FontWeight = FontWeights.Bold, Width = 80, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 4, 0, 0) };
+            labelText.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundPrimaryBrush");
+            panel.Children.Add(labelText);
+
+            if (string.IsNullOrWhiteSpace(tagsString))
+            {
+                var valueText = new TextBlock { Text = "-", TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center };
+                valueText.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundSecondaryBrush");
+                panel.Children.Add(valueText);
+            }
+            else
+            {
+                var tagsWrapPanel = new WrapPanel { Orientation = Orientation.Horizontal };
+                var tags = tagsString.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+                foreach (var tag in tags)
+                {
+                    var cleanTag = tag.Trim();
+                    if (string.IsNullOrEmpty(cleanTag)) continue;
+
+                    var tagBorder = new Border
+                    {
+                        CornerRadius = new CornerRadius(4),
+                        Padding = new Thickness(6, 2, 6, 2),
+                        Margin = new Thickness(0, 0, 6, 4),
+                        Background = GetTagBrush(cleanTag),
+                        BorderThickness = new Thickness(0),
+                        Cursor = Cursors.Hand
+                    };
+
+                    // Add hover effect
+                    tagBorder.MouseEnter += (s, e) => tagBorder.Opacity = 0.8;
+                    tagBorder.MouseLeave += (s, e) => tagBorder.Opacity = 1.0;
+
+                    // Add click handler
+                    tagBorder.MouseLeftButtonUp += (s, e) =>
+                    {
+                        _navigationCoordinator.HandlePathNavigation(
+                            $"tag://{cleanTag}",
+                            YiboFile.Services.Navigation.NavigationCoordinator.NavigationSource.AddressBar,
+                            YiboFile.Services.Navigation.NavigationCoordinator.ClickType.LeftClick
+                        );
+                    };
+
+                    var tagText = new TextBlock
+                    {
+                        Text = cleanTag,
+                        FontSize = 11,
+                        // Ensure text is dark gray for better contrast on pastel backgrounds
+                        Foreground = new SolidColorBrush(Color.FromRgb(40, 40, 40))
+                    };
+
+                    tagBorder.Child = tagText;
+                    tagsWrapPanel.Children.Add(tagBorder);
+                }
+                panel.Children.Add(tagsWrapPanel);
+            }
+
+            return panel;
+        }
+
+        private Brush GetTagBrush(string tag)
+        {
+            // First check DB for explicit color
+            string dbColor = null;
+            try
+            {
+                dbColor = DatabaseManager.GetTagColorByName(tag);
+            }
+            catch { }
+
+            // Use TagViewModel's shared logic (Explicit Color -> Hash Pastel -> Gray)
+            return TagViewModel.GetColorBrush(tag, dbColor);
         }
 
         /// <summary>

@@ -217,7 +217,7 @@ namespace YiboFile
                 // 初始化副列表的 FileInfoService（首次进入时）
                 if (_secondFileInfoService == null)
                 {
-                    _secondFileInfoService = new Services.FileInfo.FileInfoService(SecondFileBrowser, _secondFileListService);
+                    _secondFileInfoService = new Services.FileInfo.FileInfoService(SecondFileBrowser, _secondFileListService, _navigationCoordinator);
                 }
 
                 // 初始化副标签页服务（首次进入时）
@@ -600,7 +600,7 @@ namespace YiboFile
                 // 确保 _secondFileInfoService 已初始化
                 if (_secondFileInfoService == null && SecondFileBrowser != null)
                 {
-                    _secondFileInfoService = new Services.FileInfo.FileInfoService(SecondFileBrowser, _secondFileListService);
+                    _secondFileInfoService = new Services.FileInfo.FileInfoService(SecondFileBrowser, _secondFileListService, _navigationCoordinator);
                 }
 
                 // 使用共享的 FileInfoService 实例更新文件信息
@@ -611,7 +611,7 @@ namespace YiboFile
                 // 处理无选择的情况：显示当前文件夹信息
                 if (_secondFileInfoService == null && SecondFileBrowser != null)
                 {
-                    _secondFileInfoService = new Services.FileInfo.FileInfoService(SecondFileBrowser, _secondFileListService);
+                    _secondFileInfoService = new Services.FileInfo.FileInfoService(SecondFileBrowser, _secondFileListService, _navigationCoordinator);
                 }
 
                 if (!string.IsNullOrEmpty(_secondCurrentPath) && Directory.Exists(_secondCurrentPath))
@@ -682,7 +682,7 @@ namespace YiboFile
                 // 显示当前文件夹信息（与主面板行为一致）
                 if (_secondFileInfoService == null && SecondFileBrowser != null)
                 {
-                    _secondFileInfoService = new Services.FileInfo.FileInfoService(SecondFileBrowser, _secondFileListService);
+                    _secondFileInfoService = new Services.FileInfo.FileInfoService(SecondFileBrowser, _secondFileListService, _navigationCoordinator);
                 }
 
                 if (Directory.Exists(path))
@@ -834,7 +834,7 @@ namespace YiboFile
                         // 初始化副列表的 FileInfoService
                         if (_secondFileInfoService == null)
                         {
-                            _secondFileInfoService = new Services.FileInfo.FileInfoService(SecondFileBrowser, _secondFileListService);
+                            _secondFileInfoService = new Services.FileInfo.FileInfoService(SecondFileBrowser, _secondFileListService, _navigationCoordinator);
                         }
 
                         _secondTabService = new TabService(new AppConfig());

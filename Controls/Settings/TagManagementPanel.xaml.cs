@@ -10,7 +10,10 @@ namespace YiboFile.Controls.Settings
 {
     public partial class TagManagementPanel : UserControl, ISettingsPanel
     {
+        // Event reserved for future use
+#pragma warning disable CS0067
         public event EventHandler SettingsChanged;
+#pragma warning restore CS0067
         private SettingsViewModel _viewModel;
 
         public TagManagementPanel()
@@ -293,7 +296,14 @@ namespace YiboFile.Controls.Settings
             // Tag Pill: Border -> [Name] [x]
             string xaml = @"
 <DataTemplate xmlns=""http://schemas.microsoft.com/winfx/2006/xaml/presentation"">
-    <Border Background=""{Binding ColorBrush}"" CornerRadius=""4"" Padding=""10,4,8,4"" Margin=""0,0,8,8"">
+    <Border Background=""{Binding ColorBrush}"" CornerRadius=""4"" Padding=""10,4,8,4"" Margin=""0,0,8,8""
+            Tag=""{Binding DataContext, RelativeSource={RelativeSource AncestorType=UserControl}}"">
+        <Border.ContextMenu>
+            <ContextMenu>
+                <MenuItem Header=""修改颜色"" Command=""{Binding PlacementTarget.Tag.UpdateTagColorCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"" CommandParameter=""{Binding}"" />
+                <MenuItem Header=""重命名"" Command=""{Binding PlacementTarget.Tag.RenameTagCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"" CommandParameter=""{Binding}"" />
+            </ContextMenu>
+        </Border.ContextMenu>
         <StackPanel Orientation=""Horizontal"">
             <TextBlock Text=""{Binding Name}"" Foreground=""#FFFFFF"" FontSize=""13"" VerticalAlignment=""Center"" Margin=""0,0,8,0""/>
             <Button Content=""✕"" 
@@ -365,9 +375,11 @@ namespace YiboFile.Controls.Settings
             // Unsubscribe first to avoid duplicates
             _viewModel.RenameTagGroupRequested -= ViewModel_RenameTagGroupRequested;
             _viewModel.RenameTagRequested -= ViewModel_RenameTagRequested;
+            _viewModel.UpdateTagColorRequested -= ViewModel_UpdateTagColorRequested;
 
             _viewModel.RenameTagGroupRequested += ViewModel_RenameTagGroupRequested;
             _viewModel.RenameTagRequested += ViewModel_RenameTagRequested;
+            _viewModel.UpdateTagColorRequested += ViewModel_UpdateTagColorRequested;
         }
 
         private void ViewModel_RenameTagRequested(object sender, YiboFile.ViewModels.TagItemManageViewModel e)
@@ -377,6 +389,16 @@ namespace YiboFile.Controls.Settings
             if (input.ShowDialog() == true)
             {
                 _viewModel.RenameTag(e, input.InputText);
+            }
+        }
+
+        private void ViewModel_UpdateTagColorRequested(object sender, YiboFile.ViewModels.TagItemManageViewModel e)
+        {
+            var dialog = new YiboFile.Controls.Dialogs.ColorSelectionDialog(e.Color);
+            dialog.Owner = Window.GetWindow(this);
+            if (dialog.ShowDialog() == true)
+            {
+                _viewModel.UpdateTagColor(e, dialog.SelectedColor);
             }
         }
 

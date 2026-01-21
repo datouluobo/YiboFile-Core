@@ -79,9 +79,11 @@ namespace YiboFile.ViewModels
         public ICommand AddTagCommand { get; }
         public ICommand RenameTagCommand { get; }
         public ICommand DeleteTagCommand { get; }
+        public ICommand UpdateTagColorCommand { get; }
 
         public event EventHandler<TagGroupManageViewModel> RenameTagGroupRequested;
         public event EventHandler<TagItemManageViewModel> RenameTagRequested;
+        public event EventHandler<TagItemManageViewModel> UpdateTagColorRequested;
 
         public ICommand MoveSectionUpCommand { get; }
         public ICommand MoveSectionDownCommand { get; }
@@ -120,6 +122,7 @@ namespace YiboFile.ViewModels
             AddTagCommand = new RelayCommand<TagGroupManageViewModel>(AddTag);
             RenameTagCommand = new RelayCommand<TagItemManageViewModel>(t => RenameTagRequested?.Invoke(this, t));
             DeleteTagCommand = new RelayCommand<TagItemManageViewModel>(DeleteTag);
+            UpdateTagColorCommand = new RelayCommand<TagItemManageViewModel>(t => UpdateTagColorRequested?.Invoke(this, t));
 
             // Rename and AddTag (inside group) involve inputs. 
             // I'll expose public methods for these to be called from View's dialog logic.
@@ -473,7 +476,30 @@ namespace YiboFile.ViewModels
         private void InitializeTagManagement()
         {
             _tagService = App.ServiceProvider?.GetService<ITagService>();
+            if (_tagService != null)
+            {
+                _tagService.TagUpdated -= OnTagServiceTagUpdated;
+                _tagService.TagUpdated += OnTagServiceTagUpdated;
+            }
             RefreshTagGroups();
+        }
+
+        private void OnTagServiceTagUpdated(int tagId, string newColor)
+        {
+            System.Windows.Application.Current.Dispatcher.Invoke(() =>
+            {
+                if (TagGroups != null)
+                {
+                    foreach (var group in TagGroups)
+                    {
+                        var tag = group.Tags.FirstOrDefault(t => t.Id == tagId);
+                        if (tag != null)
+                        {
+                            tag.Color = newColor;
+                        }
+                    }
+                }
+            });
         }
 
         public void RefreshTagGroups()
@@ -581,6 +607,17 @@ namespace YiboFile.ViewModels
             try
             {
                 _tagService?.DeleteTag(tag.Id);
+                RefreshTagGroups();
+            }
+            catch (Exception ex) { throw new Exception(ex.Message); }
+        }
+
+        public void UpdateTagColor(TagItemManageViewModel tag, string newColor)
+        {
+            if (tag == null) return;
+            try
+            {
+                _tagService?.UpdateTagColor(tag.Id, newColor);
                 RefreshTagGroups();
             }
             catch (Exception ex) { throw new Exception(ex.Message); }
@@ -1342,15 +1379,7 @@ namespace YiboFile.ViewModels
         {
             get
             {
-                try
-                {
-                    if (string.IsNullOrEmpty(Color)) return Brushes.Transparent;
-                    return (Brush)new BrushConverter().ConvertFrom(Color);
-                }
-                catch
-                {
-                    return Brushes.Transparent;
-                }
+                return YiboFile.Models.TagViewModel.GetColorBrush(Name, Color);
             }
         }
 

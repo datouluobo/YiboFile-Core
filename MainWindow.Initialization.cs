@@ -111,6 +111,12 @@ namespace YiboFile
             _quickAccessService = App.ServiceProvider.GetRequiredService<QuickAccessService>();
             _fileListService = App.ServiceProvider.GetRequiredService<FileListService>();
 
+            // 初始化 TagService
+            if (App.IsTagTrainAvailable)
+            {
+                _tagService = App.ServiceProvider.GetService<Services.Features.ITagService>();
+            }
+
             // 将 FileListService 传递给 FileListControl
             FileBrowser?.FileList?.SetFileListService(_fileListService);
 
@@ -157,7 +163,7 @@ namespace YiboFile
             _uiHelperService = new Services.UIHelper.UIHelperService(FileBrowser, this.Dispatcher);
 
             // 初始化文件信息服务（需要在 InitializeComponent 之后，因为需要 FileBrowser）
-            _fileInfoService = new Services.FileInfo.FileInfoService(FileBrowser, _fileListService);
+            _fileInfoService = new Services.FileInfo.FileInfoService(FileBrowser, _fileListService, _navigationCoordinator);
 
             // 初始化备注UI处理器（需要在 InitializeComponent 之后，因为需要 RightPanel 和 FileBrowser）
             _fileNotesUIHandler = new Services.FileNotes.FileNotesUIHandler(RightPanel, FileBrowser);
@@ -492,6 +498,11 @@ namespace YiboFile
                 if (NavigationPanelControl.TagBrowsePanelControl != null)
                 {
                     NavigationPanelControl.TagBrowsePanelControl.TagClicked += OnTagSelected;
+                    NavigationPanelControl.TagBrowsePanelControl.BackRequested += (s, e) =>
+                    {
+                        // Navigate back when back button is clicked in TagBrowsePanel
+                        NavigateBack_Click(null, null);
+                    };
                 }
 
                 // Initialize NavTagBtn visibility
@@ -573,7 +584,9 @@ namespace YiboFile
                 FindResource = key => FindResource(key),
 
                 // 获取当前导航模式
-                GetCurrentNavigationMode = () => _configService?.Config?.LastNavigationMode ?? "Path"
+                GetCurrentNavigationMode = () => _configService?.Config?.LastNavigationMode ?? "Path",
+
+                TagService = _tagService
             };
             _tabService.AttachUiContext(context);
 

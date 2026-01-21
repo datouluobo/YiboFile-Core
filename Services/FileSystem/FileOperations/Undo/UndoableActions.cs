@@ -81,9 +81,33 @@ namespace YiboFile.Services.FileOperations.Undo
                 }
                 return true;
             }
-            catch
+            catch (Exception)
             {
-                return false;
+                // Fallback for any error (e.g. UnauthorizedAccessException)
+                try
+                {
+                    if (_isDirectory) return false; // Directory fallback complex
+
+                    // Attempt to remove ReadOnly attribute
+                    if (File.Exists(_originalPath))
+                    {
+                        var attributes = File.GetAttributes(_originalPath);
+                        if ((attributes & FileAttributes.ReadOnly) == FileAttributes.ReadOnly)
+                        {
+                            File.SetAttributes(_originalPath, attributes & ~FileAttributes.ReadOnly);
+                        }
+                    }
+
+                    // Try Copy+Delete again
+                    File.Copy(_originalPath, _backupPath, true);
+                    File.Delete(_originalPath);
+                    return true;
+                }
+                catch
+                {
+                    // Last resort failed
+                    return false;
+                }
             }
         }
 

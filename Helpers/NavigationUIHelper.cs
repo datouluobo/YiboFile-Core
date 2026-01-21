@@ -154,7 +154,7 @@ namespace YiboFile.Helpers
                 return;
             }
 
-            ListBox listBox = null;
+
             switch (listType)
             {
                 case "QuickAccess":

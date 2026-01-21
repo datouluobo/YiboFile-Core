@@ -167,6 +167,17 @@ namespace YiboFile.Controls
             };
         }
 
+        public event EventHandler<TagViewModel> TagClicked;
+
+        private void Tag_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.DataContext is TagViewModel tag)
+            {
+                TagClicked?.Invoke(this, tag);
+                e.Handled = true;
+            }
+        }
+
         private void LoadMoreBtn_Click(object sender, RoutedEventArgs e)
         {
             LoadMoreClick?.Invoke(sender, e);

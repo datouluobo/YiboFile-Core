@@ -141,8 +141,17 @@ namespace YiboFile.Handlers
             _fileBrowser.FilesSelectionChanged += FileBrowser_FilesSelectionChanged;
             _fileBrowser.FilesPreviewMouseDoubleClickForBlank += FileBrowser_FilesPreviewMouseDoubleClickForBlank;
 
-            // Handled by FileListEventHandler now
-
+            _fileBrowser.TagClicked += (s, tag) =>
+            {
+                if (tag != null && !string.IsNullOrEmpty(tag.Name))
+                {
+                    _navigationCoordinator.HandlePathNavigation(
+                        $"tag://{tag.Name}",
+                        NavigationCoordinator.NavigationSource.AddressBar,
+                        NavigationCoordinator.ClickType.LeftClick
+                    );
+                }
+            };
 
             _fileBrowser.CommitRename += (s, e) => _commitRename(e);
 
@@ -153,7 +162,7 @@ namespace YiboFile.Handlers
             if (string.IsNullOrEmpty(path))
                 return;
             // 检查是否为有效路径
-            bool isPath = Directory.Exists(path) || File.Exists(path) || ProtocolManager.Parse(path).Type == ProtocolType.Archive;
+            bool isPath = Directory.Exists(path) || File.Exists(path) || ProtocolManager.Parse(path).Type == ProtocolType.Archive || ProtocolManager.Parse(path).Type == ProtocolType.Tag;
             if (isPath)
             {
                 // 使用统一导航协调器处理路径导航（左键点击）

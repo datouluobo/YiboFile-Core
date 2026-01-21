@@ -304,7 +304,82 @@ namespace YiboFile.Services.FileList
                 return await _archiveService.GetArchiveContentAsync(protocolInfo.TargetPath, protocolInfo.ExtraData);
             }
 
-            // Case 2: Path is a physical file that is an archive (User tried to "open" it like a folder)
+            // Case 2: Path is "tag://..." -> Virtual Path
+            if (protocolInfo.Type == ProtocolType.Tag)
+            {
+                var files = new List<FileSystemItem>();
+                try
+                {
+                    // TargetPath is the tag ID (e.g., "5" from "tag://5")
+                    var tagIdStr = protocolInfo.TargetPath;
+                    List<string> filePaths;
+
+                    if (int.TryParse(tagIdStr, out int tagId))
+                    {
+                        // Query by tag ID
+                        filePaths = await Task.Run(() => DatabaseManager.GetFilesByTagId(tagId), cancellationToken);
+                    }
+                    else
+                    {
+                        // Fallback: treat as tag name for backwards compatibility
+                        filePaths = await Task.Run(() => DatabaseManager.GetFilesByTagName(tagIdStr), cancellationToken);
+                    }
+                    foreach (var filePath in filePaths)
+                    {
+                        if (cancellationToken.IsCancellationRequested) break;
+                        if (!File.Exists(filePath)) continue; // Skip if file no longer exists
+
+                        try
+                        {
+                            var fileInfo = new System.IO.FileInfo(filePath);
+                            files.Add(new FileSystemItem
+                            {
+                                Name = GetDisplayFileName(filePath, ShowFullFileName),
+                                Path = fileInfo.FullName,
+                                Type = !string.IsNullOrEmpty(fileInfo.Extension) ? fileInfo.Extension : "文件",
+                                Size = FormatFileSize(fileInfo.Length),
+                                ModifiedDate = fileInfo.LastWriteTime.ToString("yyyy-MM-dd"),
+                                CreatedTime = FileSystemItem.FormatTimeAgo(fileInfo.CreationTime),
+                                IsDirectory = false,
+                                SourcePath = path,
+                                SizeBytes = fileInfo.Length,
+                                ModifiedDateTime = fileInfo.LastWriteTime,
+                                CreatedDateTime = fileInfo.CreationTime
+                            });
+                        }
+                        catch { }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    YiboFile.Services.Core.FileLogger.LogException($"[FileListService] Error loading tag files", ex);
+                }
+
+                // Trigger metadata enrichment for these files
+                // We need to do this manually because we return early
+                _metadataEnrichmentCancellation = new CancellationTokenSource();
+                var combinedMetadataToken = CancellationTokenSource.CreateLinkedTokenSource(
+                    cancellationToken,
+                    _metadataEnrichmentCancellation.Token).Token;
+
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await _metadataEnricher.EnrichAsync(
+                            files,
+                            combinedMetadataToken,
+                            _dispatcher,
+                            orderTagNames,
+                            () => MetadataEnriched?.Invoke(this, files));
+                    }
+                    catch { }
+                }, combinedMetadataToken);
+
+                return files;
+            }
+
+            // Case 3: Path is a physical file that is an archive (User tried to "open" it like a folder)
             // But FileListService is usually called with a Directory path. 
             // If the UI passes a File Path here, it means we want to open it.
             // We need to check if 'path' refers to an existing FILE, and if it is an archive.

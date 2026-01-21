@@ -336,6 +336,17 @@ namespace YiboFile
             command.ExecuteNonQuery();
         }
 
+        public static void UpdateTagColor(int tagId, string color)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "UPDATE Tags SET Color = @color WHERE Id = @id";
+            command.Parameters.AddWithValue("@color", string.IsNullOrEmpty(color) ? (object)DBNull.Value : color);
+            command.Parameters.AddWithValue("@id", tagId);
+            command.ExecuteNonQuery();
+        }
+
         public static void DeleteTag(int tagId)
         {
             using var connection = new SqliteConnection(_connectionString);
@@ -430,6 +441,88 @@ namespace YiboFile
                 result.Add(reader.GetString(0));
             }
             return result;
+        }
+
+        public static string GetTagColorByName(string tagName)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "SELECT Color FROM Tags WHERE Name = @name";
+            command.Parameters.AddWithValue("@name", tagName);
+            var result = command.ExecuteScalar();
+            return result != null && result != DBNull.Value ? result.ToString() : null;
+        }
+
+        public static List<string> GetFilesByTagName(string tagName)
+        {
+            var result = new List<string>();
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+
+            // First find the tag ID
+            int tagId = -1;
+            using (var findCommand = connection.CreateCommand())
+            {
+                findCommand.CommandText = "SELECT Id FROM Tags WHERE Name = @name";
+                findCommand.Parameters.AddWithValue("@name", tagName);
+                var idObj = findCommand.ExecuteScalar();
+                if (idObj == null || idObj == DBNull.Value) return result;
+                tagId = Convert.ToInt32(idObj);
+            }
+
+            // Then get files
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT FilePath FROM FileTags WHERE TagId = @tagId";
+                command.Parameters.AddWithValue("@tagId", tagId);
+                using var reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    result.Add(reader.GetString(0));
+                }
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// 根据标签 ID 获取关联的文件路径列表
+        /// </summary>
+        public static List<string> GetFilesByTagId(int tagId)
+        {
+            var result = new List<string>();
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "SELECT FilePath FROM FileTags WHERE TagId = @tagId";
+            command.Parameters.AddWithValue("@tagId", tagId);
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                result.Add(reader.GetString(0));
+            }
+            return result;
+        }
+
+        public static Services.Features.ITag GetTag(int tagId)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "SELECT Id, Name, Color, GroupId FROM Tags WHERE Id = @id";
+            command.Parameters.AddWithValue("@id", tagId);
+            using var reader = command.ExecuteReader();
+            if (reader.Read())
+            {
+                return new TagModel
+                {
+                    Id = reader.GetInt32(0),
+                    Name = reader.GetString(1),
+                    Color = reader.IsDBNull(2) ? null : reader.GetString(2),
+                    GroupId = reader.GetInt32(3)
+                };
+            }
+            return null;
         }
 
         // Private models for DB interaction

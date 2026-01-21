@@ -80,6 +80,9 @@ namespace YiboFile.Services.Search
         {
             if (pathRangeFilter == PathRangeFilter.CurrentDrive && !string.IsNullOrEmpty(currentPath))
             {
+                // Prevent crash on virtual paths
+                if (Services.Core.ProtocolManager.IsVirtual(currentPath)) return null;
+
                 try
                 {
                     var driveInfo = new DriveInfo(currentPath);

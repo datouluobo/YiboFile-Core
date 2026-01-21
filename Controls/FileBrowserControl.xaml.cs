@@ -113,6 +113,8 @@ namespace YiboFile.Controls
                     // 右键菜单：与预览窗口一致的列显示/隐藏
                     SetupFileContextMenu();
                 }
+
+                FileList.TagClicked += (s, e) => TagClicked?.Invoke(s, e);
             }
 
             // 订阅标题操作栏事件
@@ -126,9 +128,13 @@ namespace YiboFile.Controls
                 TitleActionBar.RefreshClicked += (s, e) => FileRefresh?.Invoke(s, e);
                 TitleActionBar.NewTagClicked += (s, e) => FileAddTag?.Invoke(s, e);
                 // TitleActionBar.ManageTagsClicked += ... (Pending implementation if needed)
+                // TitleActionBar.ManageTagsClicked += ... (Pending implementation if needed)
                 // TitleActionBar.BatchAddTagsClicked += ...
             }
         }
+
+
+
 
 
         // 公共属性（保持向后兼容）
@@ -304,6 +310,7 @@ namespace YiboFile.Controls
         public event RoutedEventHandler FileUndo;
         public event RoutedEventHandler FileRedo;
         public event EventHandler<RenameEventArgs> CommitRename;
+        public event EventHandler<TagViewModel> TagClicked;
 
         // 地址栏事件处理
         private void AddressBarControl_PathChanged(object sender, string path)

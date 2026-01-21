@@ -10,7 +10,10 @@ namespace YiboFile.Controls.Settings
 {
     public partial class PathSettingsPanel : UserControl, ISettingsPanel
     {
+        // Event reserved for future use
+#pragma warning disable CS0067
         public event EventHandler SettingsChanged;
+#pragma warning restore CS0067
 
         private SettingsViewModel _viewModel;
 

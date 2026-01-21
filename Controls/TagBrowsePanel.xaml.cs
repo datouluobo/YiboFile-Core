@@ -7,6 +7,7 @@ using System.Windows.Input;
 using Microsoft.Extensions.DependencyInjection;
 using YiboFile.Services.Features;
 using YiboFile.Controls.Dialogs;
+using YiboFile.Models;
 
 namespace YiboFile.Controls
 {
@@ -92,12 +93,36 @@ namespace YiboFile.Controls
 
                 TagGroupsControl.ItemsSource = viewModels;
                 EmptyStateText.Visibility = viewModels.Any() ? Visibility.Collapsed : Visibility.Visible;
+
+                // Subscribe to events (avoid duplicate)
+                _tagService.TagUpdated -= OnTagUpdated;
+                _tagService.TagUpdated += OnTagUpdated;
             }
             catch (Exception ex)
             {
                 // Fallback logging
                 System.Diagnostics.Debug.WriteLine($"Error loading tags: {ex.Message}");
             }
+        }
+
+        private void OnTagUpdated(int tagId, string newColor)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                if (TagGroupsControl.ItemsSource is List<TagGroupViewModel> groups)
+                {
+                    foreach (var group in groups)
+                    {
+                        var tag = group.Tags.FirstOrDefault(t => t.Id == tagId);
+                        if (tag != null)
+                        {
+                            tag.Color = newColor;
+                            // Force refresh if needed, but PropertyChanged should handle it
+                            // Assuming TagViewModel implements INotifyPropertyChanged
+                        }
+                    }
+                }
+            });
         }
 
         private void TagItem_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -143,6 +168,20 @@ namespace YiboFile.Controls
                 if (dialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(dialog.InputText))
                 {
                     _tagService?.RenameTag(tag.Id, dialog.InputText);
+                    RefreshTags();
+                }
+            }
+        }
+
+        private void ChangeTagColor_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuItem menuItem && menuItem.DataContext is TagViewModel tag)
+            {
+                var dialog = new ColorSelectionDialog(tag.Color);
+                dialog.Owner = Window.GetWindow(this);
+                if (dialog.ShowDialog() == true)
+                {
+                    _tagService?.UpdateTagColor(tag.Id, dialog.SelectedColor);
                     RefreshTags();
                 }
             }

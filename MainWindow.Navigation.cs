@@ -186,6 +186,68 @@ namespace YiboFile
                            catch (Exception) { }
                        }), System.Windows.Threading.DispatcherPriority.Background);
                     }
+                    else if (protocol.Type == ProtocolType.Tag)
+                    {
+                        // Handle Tag Protocol
+                        int.TryParse(protocol.TargetPath, out int tagId);
+                        if (tagId > 0 && _tagService != null)
+                        {
+                            var files = await Task.Run(() => _tagService.GetFilesByTag(tagId));
+
+                            // Update UI on background priority
+                            await Dispatcher.BeginInvoke(new Action(() =>
+                            {
+                                try
+                                {
+                                    _currentFiles.Clear();
+
+                                    foreach (var file in files)
+                                    {
+                                        if (File.Exists(file))
+                                        {
+                                            _currentFiles.Add(new FileSystemItem
+                                            {
+                                                Path = file,
+                                                Name = System.IO.Path.GetFileName(file),
+                                                IsDirectory = false,
+                                                ModifiedDateTime = File.GetLastWriteTime(file),
+                                                SizeBytes = new FileInfo(file).Length
+                                            });
+                                        }
+                                        else if (Directory.Exists(file))
+                                        {
+                                            _currentFiles.Add(new FileSystemItem
+                                            {
+                                                Path = file,
+                                                Name = System.IO.Path.GetFileName(file),
+                                                IsDirectory = true,
+                                                ModifiedDateTime = Directory.GetLastWriteTime(file)
+                                            });
+                                        }
+                                    }
+
+                                    if (FileBrowser != null)
+                                    {
+                                        FileBrowser.FilesItemsSource = _currentFiles;
+                                        _selectionEventHandler?.HandleNoSelection();
+                                        FileBrowser.SetSearchStatus(false);
+                                    }
+                                }
+                                catch (Exception) { }
+                            }), System.Windows.Threading.DispatcherPriority.Background);
+
+                            // Trigger metadata enrichment to populate Tags and Notes
+                            _ = Task.Run(async () =>
+                            {
+                                try
+                                {
+                                    using var cts = new CancellationTokenSource();
+                                    await _fileListService.EnrichMetadataAsync(_currentFiles, null, cts.Token);
+                                }
+                                catch { }
+                            });
+                        }
+                    }
                 }
 
                 // 高亮匹配当前路径的列表项
@@ -313,7 +375,7 @@ namespace YiboFile
                 }
 
                 // 规则2：查找最近访问的相同Path标签页
-                var secondRecentTab = _secondTabService.FindRecentPathTab(path);
+                var secondRecentTab = _secondTabService.FindRecentTab(t => t.Type == Services.Tabs.TabType.Path && string.Equals(t.Path, path, StringComparison.OrdinalIgnoreCase), TimeSpan.FromSeconds(10));
                 if (secondRecentTab != null)
                 {
                     _secondTabService.SwitchToTab(secondRecentTab);
@@ -339,7 +401,7 @@ namespace YiboFile
             }
 
             // 规则2：查找最近访问的相同Path标签页（使用配置时间窗口）
-            var recentTab = _tabService.FindRecentPathTab(path);
+            var recentTab = _tabService.FindRecentTab(t => t.Type == Services.Tabs.TabType.Path && string.Equals(t.Path, path, StringComparison.OrdinalIgnoreCase), TimeSpan.FromSeconds(10));
 
             if (recentTab != null)
             {

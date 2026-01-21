@@ -81,7 +81,7 @@ namespace YiboFile.Services.FileList
                     return;
                 }
 
-                item.Tags = BuildTags(item.Path, orderTagNames);
+                item.Tags = BuildTags(item.Path, item, orderTagNames);
                 item.Notes = BuildNotes(item.Path);
 
                 // Enhance: Extract Media Metadata
@@ -142,22 +142,32 @@ namespace YiboFile.Services.FileList
             }
         }
 
-        private string BuildTags(string path, Func<List<int>, List<string>> orderTagNames)
+        private string BuildTags(string path, FileSystemItem item, Func<List<int>, List<string>> orderTagNames)
         {
             try
             {
-                var tags = DatabaseManager.GetFileTags(path);
-                if (tags == null || tags.Count == 0)
+                var dbTags = DatabaseManager.GetFileTags(path);
+                if (dbTags == null || dbTags.Count == 0)
                 {
+                    item.TagList = new List<TagViewModel>();
                     return string.Empty;
                 }
 
+                // Map to TagViewModel
+                item.TagList = dbTags.Select(t => new TagViewModel
+                {
+                    Id = t.Id,
+                    Name = t.Name,
+                    Color = t.Color
+                }).ToList();
+
                 // Consider ordering if needed, for now just join names
                 // If orderTagNames is provided, we could use it, but for now just comma separation
-                return string.Join(", ", tags.Select(t => t.Name));
+                return string.Join(", ", dbTags.Select(t => t.Name));
             }
             catch (Exception)
             {
+                item.TagList = new List<TagViewModel>();
                 return string.Empty;
             }
         }

@@ -340,6 +340,54 @@
                                 </GridViewColumn.CellTemplate>
                             </GridViewColumn>
                             
+                            <GridViewColumn x:Name="ColTags" Width="150" HeaderContainerStyle="{StaticResource NonResizableFileColumnHeaderStyle}">
+                                <GridViewColumn.Header>
+                                    <TextBlock Text="标签" Tag="Tags"/>
+                                </GridViewColumn.Header>
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ItemsControl ItemsSource="{Binding TagList}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <WrapPanel Orientation="Horizontal"/>
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Button Content="{Binding Name}" 
+                                                            Background="{Binding ColorBrush}"
+                                                            Foreground="#282828"
+                                                            Margin="0,0,4,2"
+                                                            Padding="6,2"
+                                                            BorderThickness="0"
+                                                            FontSize="11"
+                                                            Click="Tag_Click"
+                                                            Cursor="Hand"
+                                                            HorizontalAlignment="Left"
+                                                            VerticalAlignment="Center">
+                                                        <Button.Template>
+                                                            <ControlTemplate TargetType="Button">
+                                                                <Border x:Name="border" 
+                                                                        Background="{TemplateBinding Background}" 
+                                                                        CornerRadius="4" 
+                                                                        Padding="{TemplateBinding Padding}">
+                                                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                </Border>
+                                                                <ControlTemplate.Triggers>
+                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                        <Setter TargetName="border" Property="Opacity" Value="0.8"/>
+                                                                    </Trigger>
+                                                                </ControlTemplate.Triggers>
+                                                            </ControlTemplate>
+                                                        </Button.Template>
+                                                    </Button>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+
                             <GridViewColumn x:Name="ColNotes" Width="200" HeaderContainerStyle="{StaticResource NonResizableFileColumnHeaderStyle}" DisplayMemberBinding="{Binding Notes}">
                                 <GridViewColumn.Header>
                                     <TextBlock Text="备注" Tag="Notes"/>

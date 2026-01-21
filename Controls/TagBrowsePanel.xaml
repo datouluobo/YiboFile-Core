@@ -53,10 +53,18 @@
                                     <DataTemplate>
                                         <Border Background="Transparent" Padding="8,4" Margin="0,1"
                                                 Cursor="Hand" CornerRadius="4"
-                                                MouseLeftButtonDown="TagItem_MouseLeftButtonDown">
+                                                MouseLeftButtonDown="TagItem_MouseLeftButtonDown"
+                                                AllowDrop="True" Drop="TagItem_Drop" PreviewMouseMove="TagItem_PreviewMouseMove">
+                                            <Border.ContextMenu>
+                                                <ContextMenu>
+                                                    <MenuItem Header="修改颜色" Click="ChangeTagColor_Click"/>
+                                                    <MenuItem Header="重命名" Click="RenameTag_Click"/>
+                                                    <MenuItem Header="删除" Click="DeleteTag_Click"/>
+                                                </ContextMenu>
+                                            </Border.ContextMenu>
                                             <StackPanel Orientation="Horizontal">
                                                 <Border Width="10" Height="10" CornerRadius="5" Margin="0,0,8,0" VerticalAlignment="Center"
-                                                        Background="{Binding Color, TargetNullValue=#0078D4}"/>
+                                                        Background="{Binding ColorBrush}"/>
                                                 <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
                                             </StackPanel>
                                         </Border>

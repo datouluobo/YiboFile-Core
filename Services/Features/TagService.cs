@@ -41,9 +41,22 @@ namespace YiboFile.Services.Features
             return DatabaseManager.GetFilesByTag(tagId);
         }
 
+        public ITag GetTag(int tagId)
+        {
+            return DatabaseManager.GetTag(tagId);
+        }
+
         public void RenameTag(int tagId, string newName)
         {
             DatabaseManager.RenameTag(tagId, newName);
+        }
+
+        public event Action<int, string> TagUpdated;
+
+        public void UpdateTagColor(int tagId, string color)
+        {
+            DatabaseManager.UpdateTagColor(tagId, color);
+            TagUpdated?.Invoke(tagId, color);
         }
 
         public void DeleteTag(int tagId)

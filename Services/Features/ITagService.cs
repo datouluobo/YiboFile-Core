@@ -11,14 +11,17 @@ namespace YiboFile.Services.Features
     {
         IEnumerable<ITagGroup> GetTagGroups();
         IEnumerable<ITag> GetTagsByGroup(int groupId);
+        event Action<int, string> TagUpdated; // int: TagId, string: NewColorHex (or null if irrelevant)
         IEnumerable<ITag> GetFileTags(string filePath);
         void AddTagToFile(string filePath, int tagId);
         void RemoveTagFromFile(string filePath, int tagId);
         int AddTag(int groupId, string name, string color = null);
         IEnumerable<string> GetFilesByTag(int tagId);
+        ITag GetTag(int tagId);
 
         // Management Methods
         void RenameTag(int tagId, string newName);
+        void UpdateTagColor(int tagId, string color);
         void DeleteTag(int tagId);
         int AddTagGroup(string name, string color = null);
         void RenameTagGroup(int groupId, string newName);
@@ -40,10 +43,5 @@ namespace YiboFile.Services.Features
         int GroupId { get; set; }
     }
 
-    public class TagViewModel
-    {
-        public int Id { get; set; }
-        public string Name { get; set; }
-        public string Color { get; set; }
-    }
+
 }
