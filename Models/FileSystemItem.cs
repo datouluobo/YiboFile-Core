@@ -16,7 +16,19 @@ namespace YiboFile.Models
         public string Size { get; set; }
         public string ModifiedDate { get; set; }
         public string CreatedTime { get; set; }
-        public string Tags { get; set; }
+        private string _tags;
+        public string Tags
+        {
+            get => _tags;
+            set
+            {
+                if (_tags != value)
+                {
+                    _tags = value;
+                    OnPropertyChanged(nameof(Tags));
+                }
+            }
+        }
 
         private List<TagViewModel> _tagList;
         public List<TagViewModel> TagList

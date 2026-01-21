@@ -98,6 +98,7 @@ namespace YiboFile
                             return;
                         }
                     }
+
                 }
 
                 // 其他模式：清空列表
@@ -620,6 +621,21 @@ namespace YiboFile
         private void OnFileSystemWatcherServiceRefreshRequested(object sender, EventArgs e)
         {
             RefreshFileList();
+        }
+
+        internal async void RefreshFileMetadata()
+        {
+            if (_currentFiles == null || _currentFiles.Count == 0) return;
+            if (_fileListService == null) return;
+
+            var cts = new CancellationTokenSource();
+            cts.CancelAfter(5000);
+
+            try
+            {
+                await _fileListService.EnrichMetadataAsync(_currentFiles, null, cts.Token);
+            }
+            catch { }
         }
 
 

@@ -52,10 +52,15 @@ namespace YiboFile
 
                     if (successCount > 0)
                     {
+                        Services.Core.NotificationService.Show($"成功为 {successCount} 个文件添加标签", YiboFile.Controls.NotificationType.Success);
+
                         // Refresh the file list to show updated tags
-                        if (browser == FileBrowser) RefreshFileList();
+                        if (browser == FileBrowser) RefreshFileMetadata();
                         else if (browser == SecondFileBrowser && !string.IsNullOrEmpty(SecondFileBrowser.AddressText))
                             LoadSecondFileBrowserDirectory(SecondFileBrowser.AddressText);
+
+                        // Refresh Tag Panel to update counts or structure if needed
+                        NavigationPanelControl?.TagBrowsePanelControl?.RefreshTags();
                     }
                 }
             }

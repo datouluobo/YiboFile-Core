@@ -1,260 +1,412 @@
 using System;
-using System.Collections.ObjectModel;
-using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Media;
 using System.Windows.Input;
-using System.Windows.Threading;
-using Microsoft.Extensions.DependencyInjection;
-using YiboFile.Services.Features;
-using YiboFile.Controls.Dialogs; // Shared InputDialog
+using YiboFile.ViewModels;
 
 namespace YiboFile.Controls.Settings
 {
-    public partial class TagManagementPanel : UserControl
+    public partial class TagManagementPanel : UserControl, ISettingsPanel
     {
-        private readonly ITagService _tagService;
-        public ObservableCollection<TagGroupManageViewModel> Groups { get; set; } = new();
+        public event EventHandler SettingsChanged;
+        private SettingsViewModel _viewModel;
 
         public TagManagementPanel()
         {
-            InitializeComponent();
-            _tagService = App.ServiceProvider?.GetService<ITagService>();
-            GroupsList.ItemsSource = Groups;
+            InitializeUI();
+            this.DataContextChanged += OnDataContextChanged;
 
-            Loaded += (s, e) => RefreshGroups();
-        }
-
-        private void RefreshGroups()
-        {
-            if (_tagService == null) return;
-            Groups.Clear();
-            var groups = _tagService.GetTagGroups();
-            foreach (var g in groups)
+            // Auto-initialize if DataContext is not set externally (Common for independent panels)
+            if (this.DataContext == null)
             {
-                var groupVm = new TagGroupManageViewModel
-                {
-                    Id = g.Id,
-                    Name = g.Name,
-                    Color = g.Color
-                };
-
-                // Load tags immediately
-                var tags = _tagService.GetTagsByGroup(g.Id);
-                foreach (var t in tags)
-                {
-                    groupVm.Tags.Add(new TagManageViewModel
-                    {
-                        Id = t.Id,
-                        Name = t.Name,
-                        Color = t.Color ?? "#2E8B57",
-                        GroupId = t.GroupId
-                    });
-                }
-
-                Groups.Add(groupVm);
+                // Try to get from ServiceProvider or create new
+                var vm = (SettingsViewModel)App.ServiceProvider?.GetService(typeof(SettingsViewModel)) ?? new SettingsViewModel();
+                this.DataContext = vm;
+                _viewModel = vm;
+                SubscribeEvents();
+                _viewModel.RefreshTagGroups();
             }
         }
 
-        // Logic for Add Tag from within Group
-        private void AddTagToGroup_Click(object sender, RoutedEventArgs e)
+        private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
-            if (sender is FrameworkElement btn && btn.DataContext is TagGroupManageViewModel groupVm)
+            if (e.NewValue is SettingsViewModel vm)
             {
-                // Find sibling TextBox
-                var parent = System.Windows.Media.VisualTreeHelper.GetParent(btn);
-                // Grid -> Grid (Container) contains the TextBox
-                while (parent != null && !(parent is Grid)) parent = System.Windows.Media.VisualTreeHelper.GetParent(parent);
-
-                if (parent is Grid grid)
-                {
-                    // This grid contains two columns: Grid (with TextBox) and Button
-                    foreach (var child in grid.Children)
-                    {
-                        if (child is Grid innerGrid) // TextBox is wrapped in Grid for Watermark
-                        {
-                            foreach (var innerChild in innerGrid.Children)
-                            {
-                                if (innerChild is TextBox tb && tb.Name == "NewTagBox")
-                                {
-                                    string name = tb.Text.Trim();
-                                    if (!string.IsNullOrEmpty(name))
-                                    {
-                                        try
-                                        {
-                                            _tagService?.AddTag(groupVm.Id, name);
-                                            tb.Text = "";
-                                            RefreshGroups();
-                                        }
-                                        catch (Exception ex)
-                                        {
-                                            ShowError($"添加标签失败: {ex.Message}");
-                                        }
-                                    }
-                                    return;
-                                }
-                            }
-                        }
-                    }
-                }
+                _viewModel = vm;
+                SubscribeEvents();
+                // Ensure data is refreshed
+                _viewModel.RefreshTagGroups();
             }
         }
 
-        private void NewTagBox_KeyDown(object sender, KeyEventArgs e)
+        private void InitializeUI()
         {
-            if (e.Key == Key.Enter && sender is TextBox tb)
+            this.SetResourceReference(Panel.BackgroundProperty, "PanelBackgroundBrush");
+
+            // Main Layout
+            var mainGrid = new Grid();
+            mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Header
+            mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // Content
+
+            // Header
+            var headerBlock = new TextBlock
             {
-                if (tb.DataContext is TagGroupManageViewModel groupVm)
-                {
-                    string name = tb.Text.Trim();
-                    if (!string.IsNullOrEmpty(name))
-                    {
-                        try
-                        {
-                            _tagService?.AddTag(groupVm.Id, name);
-                            tb.Text = "";
-                            RefreshGroups();
-                        }
-                        catch (Exception ex) { ShowError($"添加标签失败: {ex.Message}"); }
-                    }
-                }
-                // Handle Enter press: call AddTagToGroup logic or duplicate it
-                // We duplicated it above because getting reference to button is annoying.
-            }
-        }
-
-        private void AddGroupBtn_Click(object sender, RoutedEventArgs e)
-        {
-            var name = NewGroupNameBox.Text.Trim();
-            if (string.IsNullOrWhiteSpace(name)) return;
-
-            try
-            {
-                _tagService?.AddTagGroup(name);
-                NewGroupNameBox.Text = "";
-                RefreshGroups();
-            }
-            catch (Exception ex)
-            {
-                ShowError($"添加分组失败: {ex.Message} (可能是名称重复)");
-            }
-        }
-
-        private void NewGroupNameBox_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Enter) AddGroupBtn_Click(sender, e);
-        }
-
-        private void DeleteGroup_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is FrameworkElement fe && fe.DataContext is TagGroupManageViewModel vm)
-            {
-                try
-                {
-                    if (MessageBox.Show(Window.GetWindow(this), $"确定要删除分组“{vm.Name}”及其所有标签吗？", "确认删除", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
-                    {
-                        _tagService?.DeleteTagGroup(vm.Id);
-                        RefreshGroups();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    ShowError($"删除失败: {ex.Message}");
-                }
-            }
-        }
-
-        private void RenameGroup_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is FrameworkElement fe && fe.DataContext is TagGroupManageViewModel vm)
-            {
-                var input = new InputDialog("重命名分组", "请输入新的分组名称:", vm.Name);
-                input.Owner = Window.GetWindow(this);
-                if (input.ShowDialog() == true)
-                {
-                    try
-                    {
-                        _tagService?.RenameTagGroup(vm.Id, input.InputText);
-                        RefreshGroups();
-                    }
-                    catch (Exception ex)
-                    {
-                        ShowError($"重命名失败: {ex.Message}");
-                    }
-                }
-            }
-        }
-
-        private void DeleteTag_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is FrameworkElement fe && fe.DataContext is TagManageViewModel vm)
-            {
-                try
-                {
-                    if (MessageBox.Show(Window.GetWindow(this), $"确定要删除标签“{vm.Name}”吗？", "确认删除", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
-                    {
-                        _tagService?.DeleteTag(vm.Id);
-                        RefreshGroups();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    ShowError($"删除失败: {ex.Message}");
-                }
-            }
-        }
-
-        private void RenameTag_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is FrameworkElement fe && fe.DataContext is TagManageViewModel vm)
-            {
-                var input = new InputDialog("重命名标签", "请输入新的标签名称:", vm.Name);
-                input.Owner = Window.GetWindow(this);
-                if (input.ShowDialog() == true)
-                {
-                    try
-                    {
-                        _tagService?.RenameTag(vm.Id, input.InputText);
-                        RefreshGroups();
-                    }
-                    catch (Exception ex)
-                    {
-                        ShowError($"重命名失败: {ex.Message}");
-                    }
-                }
-            }
-        }
-
-        private void ShowError(string msg)
-        {
-            if (ErrorText == null || ErrorOverlay == null) return;
-            ErrorText.Text = msg;
-            ErrorOverlay.Visibility = Visibility.Visible;
-
-            // Auto hide after 3 seconds
-            var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
-            timer.Tick += (s, e) =>
-            {
-                if (ErrorOverlay != null) ErrorOverlay.Visibility = Visibility.Collapsed;
-                timer.Stop();
+                Text = "标签管理",
+                FontSize = 18,
+                FontWeight = FontWeights.SemiBold,
+                Margin = new Thickness(0, 0, 0, 10)
             };
-            timer.Start();
+            headerBlock.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimaryBrush");
+            mainGrid.Children.Add(headerBlock);
+
+            // Master-Detail Grid
+            var contentGrid = new Grid();
+            contentGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(220) }); // Groups (Master)
+            contentGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Tags (Detail)
+            contentGrid.Margin = new Thickness(0, 10, 0, 0);
+
+            Grid.SetRow(contentGrid, 1);
+            mainGrid.Children.Add(contentGrid);
+
+            // ==================== LEFT COLUMN: GROUPS ====================
+            var leftPanel = new Grid();
+            leftPanel.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // List
+            leftPanel.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Add Group Area
+            leftPanel.Margin = new Thickness(0, 0, 20, 0);
+
+            // Group List
+            var groupList = new ListBox
+            {
+                Name = "GroupList",
+                BorderThickness = new Thickness(1),
+                ItemContainerStyle = CreateGroupItemStyle()
+            };
+            groupList.SetResourceReference(Control.BorderBrushProperty, "BorderBrush");
+            groupList.SetResourceReference(Panel.BackgroundProperty, "InputBackgroundBrush");
+            ScrollViewer.SetHorizontalScrollBarVisibility(groupList, ScrollBarVisibility.Disabled);
+            groupList.SetBinding(ListBox.ItemsSourceProperty, new Binding("TagGroups"));
+            groupList.ItemTemplate = CreateGroupTemplate();
+
+            leftPanel.Children.Add(groupList);
+
+            // Add Group Area
+            var addGroupPanel = new Border
+            {
+                Padding = new Thickness(10),
+                Margin = new Thickness(0, 10, 0, 0),
+                CornerRadius = new CornerRadius(4)
+            };
+
+            var addGroupStack = new StackPanel();
+
+            // New Group TextBox with Watermark
+            var newGroupTb = new TextBox
+            {
+                Margin = new Thickness(0, 0, 0, 5),
+                Padding = new Thickness(5),
+                BorderThickness = new Thickness(1)
+            };
+            addGroupPanel.SetResourceReference(Border.BackgroundProperty, "BackgroundSecondaryBrush");
+            newGroupTb.SetResourceReference(Control.BorderBrushProperty, "InputBorderBrush");
+            newGroupTb.SetResourceReference(Control.BackgroundProperty, "InputBackgroundBrush");
+            newGroupTb.SetResourceReference(Control.ForegroundProperty, "TextPrimaryBrush");
+            newGroupTb.SetBinding(TextBox.TextProperty, new Binding("NewGroupName") { UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged });
+
+            var newGroupWatermark = new TextBlock
+            {
+                Text = "新分组名称...",
+                Margin = new Thickness(8, 0, 0, 5), // Adjust margin to match TextBox
+                VerticalAlignment = VerticalAlignment.Center,
+                IsHitTestVisible = false,
+                Visibility = Visibility.Visible
+            };
+            newGroupWatermark.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
+            newGroupTb.TextChanged += (s, e) => newGroupWatermark.Visibility = string.IsNullOrEmpty(newGroupTb.Text) ? Visibility.Visible : Visibility.Collapsed;
+
+            var newGroupGrid = new Grid { Margin = new Thickness(0, 0, 0, 5) };
+            newGroupGrid.Children.Add(newGroupTb);
+            newGroupGrid.Children.Add(newGroupWatermark);
+
+            var addGroupBtn = new Button
+            {
+                Content = "新建分组",
+                Padding = new Thickness(0, 6, 0, 6),
+                BorderThickness = new Thickness(0),
+                Cursor = Cursors.Hand
+            };
+            addGroupBtn.SetResourceReference(Control.BackgroundProperty, "ButtonBackgroundBrush");
+            addGroupBtn.SetResourceReference(Control.ForegroundProperty, "TextPrimaryBrush");
+            addGroupBtn.SetBinding(Button.CommandProperty, new Binding("AddTagGroupCommand"));
+
+            addGroupStack.Children.Add(newGroupGrid);
+            addGroupStack.Children.Add(addGroupBtn);
+            addGroupPanel.Child = addGroupStack;
+
+            Grid.SetRow(addGroupPanel, 1);
+            leftPanel.Children.Add(addGroupPanel);
+
+            contentGrid.Children.Add(leftPanel);
+
+            // ==================== RIGHT COLUMN: TAGS ====================
+            var rightPanel = new Grid();
+            rightPanel.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Header
+            rightPanel.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Add Tag Area
+            rightPanel.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // Tag Cloud
+
+            // Bind Right Panel Visibility
+            var visibilityBinding = new Binding("SelectedItem") { Source = groupList, Converter = new NullToVisibilityConverter() };
+            rightPanel.SetBinding(UIElement.VisibilityProperty, visibilityBinding);
+
+            // Header
+            var headerStack = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 15) };
+
+            var groupTitle = new TextBlock
+            {
+                FontSize = 16,
+                FontWeight = FontWeights.Bold,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            groupTitle.SetBinding(TextBlock.TextProperty, new Binding("SelectedItem.Name") { Source = groupList, StringFormat = "分组: {0}" });
+            headerStack.Children.Add(groupTitle);
+
+            // Delete Group Button
+            var delGroupBtn = new Button
+            {
+                Content = "删除分组",
+                Margin = new Thickness(15, 0, 0, 0),
+                Padding = new Thickness(10, 4, 10, 4),
+                Background = Brushes.Transparent,
+                Foreground = Brushes.Red,
+                BorderThickness = new Thickness(1),
+                BorderBrush = Brushes.Red,
+                FontSize = 12,
+                Cursor = Cursors.Hand
+            };
+            delGroupBtn.SetBinding(Button.CommandProperty, new Binding("DataContext.DeleteTagGroupCommand") { Source = this });
+            delGroupBtn.SetBinding(Button.CommandParameterProperty, new Binding("SelectedItem") { Source = groupList });
+            headerStack.Children.Add(delGroupBtn);
+
+            rightPanel.Children.Add(headerStack);
+
+            // Add Tag Area
+            var addTagPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 20) };
+
+            // New Tag TextBox with Watermark
+            var newTagTb = new TextBox
+            {
+                Padding = new Thickness(5),
+                VerticalContentAlignment = VerticalAlignment.Center
+            };
+            newTagTb.SetBinding(TextBox.TextProperty, new Binding("SelectedItem.NewTagText") { Source = groupList, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged });
+
+            var newTagWatermark = new TextBlock
+            {
+                Text = "输入标签名称...",
+                Foreground = Brushes.Gray,
+                Margin = new Thickness(8, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center,
+                IsHitTestVisible = false,
+                Visibility = Visibility.Visible
+            };
+            newTagTb.TextChanged += (s, e) => newTagWatermark.Visibility = string.IsNullOrEmpty(newTagTb.Text) ? Visibility.Visible : Visibility.Collapsed;
+
+            var tagInputGrid = new Grid { Margin = new Thickness(0, 0, 10, 0), Width = 200 };
+            tagInputGrid.Children.Add(newTagTb);
+            tagInputGrid.Children.Add(newTagWatermark);
+
+            var addTagBtn = new Button
+            {
+                Content = "添加标签",
+                Padding = new Thickness(15, 5, 15, 5),
+                Background = new SolidColorBrush(Color.FromRgb(0x21, 0x96, 0xF3)),
+                Foreground = Brushes.White,
+                BorderThickness = new Thickness(0),
+                Cursor = Cursors.Hand
+            };
+            addTagBtn.SetBinding(Button.CommandProperty, new Binding("DataContext.AddTagCommand") { Source = this });
+            addTagBtn.SetBinding(Button.CommandParameterProperty, new Binding("SelectedItem") { Source = groupList });
+
+            addTagPanel.Children.Add(tagInputGrid);
+            addTagPanel.Children.Add(addTagBtn);
+
+            Grid.SetRow(addTagPanel, 1);
+            rightPanel.Children.Add(addTagPanel);
+
+            // Tag Cloud
+            var tagScroll = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
+            var tagItemsControl = new ItemsControl();
+
+            var itemsPanelTemplate = new ItemsPanelTemplate();
+            var wrapPanelFactory = new FrameworkElementFactory(typeof(WrapPanel));
+            wrapPanelFactory.SetValue(WrapPanel.OrientationProperty, Orientation.Horizontal);
+            itemsPanelTemplate.VisualTree = wrapPanelFactory;
+            tagItemsControl.ItemsPanel = itemsPanelTemplate;
+
+            tagItemsControl.SetBinding(ItemsControl.ItemsSourceProperty, new Binding("SelectedItem.Tags") { Source = groupList });
+            tagItemsControl.ItemTemplate = CreateTagTemplate();
+
+            tagScroll.Content = tagItemsControl;
+            Grid.SetRow(tagScroll, 2);
+            rightPanel.Children.Add(tagScroll);
+
+            Grid.SetColumn(rightPanel, 1);
+            contentGrid.Children.Add(rightPanel);
+
+            // Empty State
+            var emptyText = new TextBlock
+            {
+                Text = "← 请从左侧选择一个分组以管理标签",
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            emptyText.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
+            var emptyVisibility = new Binding("SelectedItem") { Source = groupList, Converter = new NullToVisibilityConverter { Invert = true } };
+            emptyText.SetBinding(UIElement.VisibilityProperty, emptyVisibility);
+            Grid.SetColumn(emptyText, 1);
+            contentGrid.Children.Add(emptyText);
+
+            var container = new Border { Padding = new Thickness(20), Child = mainGrid };
+            this.Content = container;
         }
+
+        private DataTemplate CreateGroupTemplate()
+        {
+            // Simple: [Color] [Name]
+            string xaml = @"
+<DataTemplate xmlns=""http://schemas.microsoft.com/winfx/2006/xaml/presentation"">
+    <Grid Margin=""0,8"">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width=""Auto""/>
+            <ColumnDefinition Width=""*""/>
+        </Grid.ColumnDefinitions>
+        <Border Width=""12"" Height=""12"" CornerRadius=""6"" Background=""{Binding ColorBrush}"" Margin=""0,0,10,0"" VerticalAlignment=""Center""/>
+        <TextBlock Grid.Column=""1"" Text=""{Binding Name}"" FontSize=""14"" VerticalAlignment=""Center"" Foreground=""{DynamicResource TextPrimaryBrush}""/>
+    </Grid>
+</DataTemplate>";
+            return (DataTemplate)System.Windows.Markup.XamlReader.Parse(xaml);
+        }
+
+        private DataTemplate CreateTagTemplate()
+        {
+            // Tag Pill: Border -> [Name] [x]
+            string xaml = @"
+<DataTemplate xmlns=""http://schemas.microsoft.com/winfx/2006/xaml/presentation"">
+    <Border Background=""{Binding ColorBrush}"" CornerRadius=""4"" Padding=""10,4,8,4"" Margin=""0,0,8,8"">
+        <StackPanel Orientation=""Horizontal"">
+            <TextBlock Text=""{Binding Name}"" Foreground=""#FFFFFF"" FontSize=""13"" VerticalAlignment=""Center"" Margin=""0,0,8,0""/>
+            <Button Content=""✕"" 
+                    Command=""{Binding DataContext.DeleteTagCommand, RelativeSource={RelativeSource AncestorType=UserControl}}""
+                    CommandParameter=""{Binding}""
+                    Width=""16"" Height=""16"" 
+                    Background=""Transparent"" BorderThickness=""0"" Foreground=""#FFFFFF"" Opacity=""0.7"" Cursor=""Hand"" ToolTip=""删除标签"">
+                <Button.Template>
+                     <ControlTemplate TargetType=""Button"">
+                         <Border Background=""transparent"">
+                             <TextBlock Text=""✕"" HorizontalAlignment=""Center"" VerticalAlignment=""Center"" FontSize=""10"" FontWeight=""Bold""/>
+                         </Border>
+                     </ControlTemplate>
+                </Button.Template>
+                <Button.Style>
+                    <Style TargetType=""Button"">
+                         <Style.Triggers>
+                            <Trigger Property=""IsMouseOver"" Value=""True"">
+                                <Setter Property=""Opacity"" Value=""1""/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+            </Button>
+        </StackPanel>
+    </Border>
+</DataTemplate>";
+            return (DataTemplate)System.Windows.Markup.XamlReader.Parse(xaml);
+        }
+
+        private Style CreateGroupItemStyle()
+        {
+            // Using XamlReader is more robust for ControlTemplates with Triggers and TargetName
+            string xaml = @"
+<Style xmlns=""http://schemas.microsoft.com/winfx/2006/xaml/presentation"" 
+       xmlns:x=""http://schemas.microsoft.com/winfx/2006/xaml""
+       TargetType=""ListBoxItem"">
+    <Setter Property=""Template"">
+        <Setter.Value>
+            <ControlTemplate TargetType=""ListBoxItem"">
+                <Border x:Name=""Bd""
+                        Padding=""10,4,10,4""
+                        CornerRadius=""4""
+                        SnapsToDevicePixels=""True""
+                        Margin=""0,0,0,2""
+                        Background=""Transparent""
+                        BorderBrush=""Transparent""
+                        BorderThickness=""0"">
+                    <ContentPresenter/>
+                </Border>
+                <ControlTemplate.Triggers>
+                    <Trigger Property=""IsSelected"" Value=""True"">
+                        <Setter TargetName=""Bd"" Property=""Background"" Value=""{DynamicResource AccentLightBrush}""/>
+                    </Trigger>
+                    <Trigger Property=""IsMouseOver"" Value=""True"">
+                        <Setter TargetName=""Bd"" Property=""Background"" Value=""{DynamicResource ControlHoverBrush}""/>
+                    </Trigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate>
+        </Setter.Value>
+    </Setter>
+</Style>";
+            return (Style)System.Windows.Markup.XamlReader.Parse(xaml);
+        }
+
+        private void SubscribeEvents()
+        {
+            if (_viewModel == null) return;
+            // Unsubscribe first to avoid duplicates
+            _viewModel.RenameTagGroupRequested -= ViewModel_RenameTagGroupRequested;
+            _viewModel.RenameTagRequested -= ViewModel_RenameTagRequested;
+
+            _viewModel.RenameTagGroupRequested += ViewModel_RenameTagGroupRequested;
+            _viewModel.RenameTagRequested += ViewModel_RenameTagRequested;
+        }
+
+        private void ViewModel_RenameTagRequested(object sender, YiboFile.ViewModels.TagItemManageViewModel e)
+        {
+            var input = new YiboFile.Controls.Dialogs.InputDialog("重命名标签", "请输入新的标签名称:", e.Name);
+            input.Owner = Window.GetWindow(this);
+            if (input.ShowDialog() == true)
+            {
+                _viewModel.RenameTag(e, input.InputText);
+            }
+        }
+
+        private void ViewModel_RenameTagGroupRequested(object sender, YiboFile.ViewModels.TagGroupManageViewModel e)
+        {
+            var input = new YiboFile.Controls.Dialogs.InputDialog("重命名分组", "请输入新的分组名称:", e.Name);
+            input.Owner = Window.GetWindow(this);
+            if (input.ShowDialog() == true)
+            {
+                _viewModel.RenameTagGroup(e, input.InputText);
+            }
+        }
+
+        public void LoadSettings()
+        {
+            _viewModel?.RefreshTagGroups();
+        }
+
+        public void SaveSettings() { }
     }
 
-    public class TagGroupManageViewModel
+    public class NullToVisibilityConverter : IValueConverter
     {
-        public int Id { get; set; }
-        public string Name { get; set; }
-        public string Color { get; set; }
-        public ObservableCollection<TagManageViewModel> Tags { get; set; } = new();
-    }
-
-    public class TagManageViewModel
-    {
-        public int Id { get; set; }
-        public string Name { get; set; }
-        public string Color { get; set; }
-        public int GroupId { get; set; }
+        public bool Invert { get; set; }
+        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        {
+            bool isNull = value == null;
+            if (Invert) return isNull ? Visibility.Visible : Visibility.Collapsed;
+            return isNull ? Visibility.Collapsed : Visibility.Visible;
+        }
+        public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture) => throw new NotImplementedException();
     }
 }

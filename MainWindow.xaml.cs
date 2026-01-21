@@ -293,13 +293,20 @@ namespace YiboFile
                 {
                     if (File.Exists(file))
                     {
-                        // 简单的 FileSystemItem 创建，可能缺少图标等详细信息
-                        // 实际应使用 FileSystemItemFactory
                         items.Add(new FileSystemItem
                         {
                             Path = file,
                             Name = System.IO.Path.GetFileName(file),
                             IsDirectory = false
+                        });
+                    }
+                    else if (Directory.Exists(file))
+                    {
+                        items.Add(new FileSystemItem
+                        {
+                            Path = file,
+                            Name = System.IO.Path.GetFileName(file),
+                            IsDirectory = true
                         });
                     }
                 }

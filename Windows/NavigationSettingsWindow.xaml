@@ -49,7 +49,7 @@
         <!-- Custom Tab Control Header Area -->
         <Border BorderThickness="0,0,0,1" BorderBrush="#EEEEEE" Background="#FAFAFA" Padding="15,5,15,0">
              <TabControl x:Name="MainTabControl" BorderThickness="0" Background="Transparent" SelectionChanged="MainTabControl_SelectionChanged">
-                <TabItem Header="位置" Tag="Path">
+                <TabItem Header="路径" Tag="Path">
                      <!-- Content is loaded lazily or explicitly set -->
                 </TabItem>
                 <TabItem Header="库" Tag="Library">

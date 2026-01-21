@@ -38,16 +38,16 @@ namespace YiboFile.Controls.Settings
             {
                 Text = "快捷键管理",
                 FontSize = 28,
-                FontWeight = FontWeights.Bold,
-                Foreground = (Brush)FindResource("ForegroundPrimaryBrush") ?? Brushes.Black
+                FontWeight = FontWeights.Bold
             });
+            ((TextBlock)titlePanel.Children[0]).SetResourceReference(TextBlock.ForegroundProperty, "TextPrimaryBrush");
             titlePanel.Children.Add(new TextBlock
             {
                 Text = "查看和自定义应用程序快捷键",
                 FontSize = 14,
-                Foreground = (Brush)FindResource("ForegroundSecondaryBrush") ?? Brushes.Gray,
                 Margin = new Thickness(0, 8, 0, 0)
             });
+            ((TextBlock)titlePanel.Children[1]).SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
             Grid.SetRow(titlePanel, 0);
             grid.Children.Add(titlePanel);
 
@@ -149,12 +149,12 @@ namespace YiboFile.Controls.Settings
             // Container for DataGrid to simulate Border
             var border = new Border
             {
-                BorderBrush = (Brush)FindResource("BorderBrush") ?? Brushes.Gray,
                 BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(6),
-                Background = (Brush)FindResource("CardBackgroundBrush") ?? Brushes.White,
                 Child = dataGrid
             };
+            border.SetResourceReference(Border.BorderBrushProperty, "BorderBrush");
+            border.SetResourceReference(Border.BackgroundProperty, "CardBackgroundBrush");
             Grid.SetRow(border, 2);
             grid.Children.Add(border);
 
@@ -163,9 +163,9 @@ namespace YiboFile.Controls.Settings
             {
                 Text = "点击编辑按钮可自定义快捷键。修改会立即保存。",
                 FontSize = 12,
-                Foreground = (Brush)FindResource("ForegroundSecondaryBrush") ?? Brushes.Gray,
                 Margin = new Thickness(0, 15, 0, 0)
             };
+            footer.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
             Grid.SetRow(footer, 3);
             grid.Children.Add(footer);
 

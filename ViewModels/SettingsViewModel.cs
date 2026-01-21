@@ -8,9 +8,43 @@ using YiboFile.Services.Config;
 using YiboFile.Services.Theming;
 using YiboFile.Services.FullTextSearch;
 using System.Threading.Tasks;
+using YiboFile.Services.Features;
+using Microsoft.Extensions.DependencyInjection; // For service location
+
+using YiboFile.Services;
+using YiboFile.Models;
 
 namespace YiboFile.ViewModels
 {
+    public class LibraryItemViewModel : BaseViewModel
+    {
+        public int Id { get; set; }
+
+        private string _name;
+        public string Name
+        {
+            get => _name;
+            set => SetProperty(ref _name, value);
+        }
+
+        private ObservableCollection<string> _paths;
+        public ObservableCollection<string> Paths
+        {
+            get => _paths;
+            set => SetProperty(ref _paths, value);
+        }
+
+        public string DisplayPath => Paths != null && Paths.Count > 0 ? Paths[0] : "无路径";
+        public string ToolTipText => Paths != null ? string.Join(Environment.NewLine, Paths) : "";
+
+        public LibraryItemViewModel(Library lib)
+        {
+            Id = lib.Id;
+            Name = lib.Name;
+            Paths = new ObservableCollection<string>(lib.Paths ?? new List<string>());
+        }
+    }
+
     /// <summary>
     /// Minimal SettingsViewModel for settings panels.
     /// Does NOT contain static events or services that run at startup.
@@ -29,11 +63,25 @@ namespace YiboFile.ViewModels
         public ICommand ExportLibrariesCommand { get; }
         public ICommand OpenLibraryManagerCommand { get; }
 
+        public ICommand AddLibraryCommand { get; }
+        public ICommand RemoveLibraryCommand { get; }
+
         public event EventHandler OpenLibraryManagerRequested;
 
         // Hotkey Settings Commands
         public ICommand ResetHotkeysCommand { get; }
         public ICommand ResetSingleHotkeyCommand { get; }
+
+        // Tag Settings Commands
+        public ICommand AddTagGroupCommand { get; }
+        public ICommand RenameTagGroupCommand { get; }
+        public ICommand DeleteTagGroupCommand { get; }
+        public ICommand AddTagCommand { get; }
+        public ICommand RenameTagCommand { get; }
+        public ICommand DeleteTagCommand { get; }
+
+        public event EventHandler<TagGroupManageViewModel> RenameTagGroupRequested;
+        public event EventHandler<TagItemManageViewModel> RenameTagRequested;
 
         public ICommand MoveSectionUpCommand { get; }
         public ICommand MoveSectionDownCommand { get; }
@@ -59,8 +107,22 @@ namespace YiboFile.ViewModels
             ExportLibrariesCommand = new RelayCommand<string>(ExportLibraries);
             OpenLibraryManagerCommand = new RelayCommand(OpenLibraryManager);
 
+            AddLibraryCommand = new RelayCommand(AddLibrary);
+            RemoveLibraryCommand = new RelayCommand<LibraryItemViewModel>(RemoveLibrary);
+
             ResetHotkeysCommand = new RelayCommand(ResetHotkeys);
             ResetSingleHotkeyCommand = new RelayCommand<HotkeyItemViewModel>(ResetSingleHotkey);
+
+            AddTagGroupCommand = new RelayCommand(AddTagGroup);
+            RenameTagGroupCommand = new RelayCommand<TagGroupManageViewModel>(g => RenameTagGroupRequested?.Invoke(this, g));
+            DeleteTagGroupCommand = new RelayCommand<TagGroupManageViewModel>(DeleteTagGroup);
+
+            AddTagCommand = new RelayCommand<TagGroupManageViewModel>(AddTag);
+            RenameTagCommand = new RelayCommand<TagItemManageViewModel>(t => RenameTagRequested?.Invoke(this, t));
+            DeleteTagCommand = new RelayCommand<TagItemManageViewModel>(DeleteTag);
+
+            // Rename and AddTag (inside group) involve inputs. 
+            // I'll expose public methods for these to be called from View's dialog logic.
 
             MoveSectionUpCommand = new RelayCommand<NavigationSectionItemViewModel>(MoveSectionUp);
             MoveSectionDownCommand = new RelayCommand<NavigationSectionItemViewModel>(MoveSectionDown);
@@ -109,8 +171,98 @@ namespace YiboFile.ViewModels
             InitializeIconStyles(config);
             InitializePathSettings(config);
             InitializeHotkeySettings(config);
+            InitializeTagManagement(); // Not config based, loads from DB via Service
+            InitializeLibraryManagement(); // Not config based, loads from DB via Service
             InitializeSearchSettings(config);
         }
+
+        #region Library Management
+        private ObservableCollection<LibraryItemViewModel> _libraries;
+        public ObservableCollection<LibraryItemViewModel> Libraries
+        {
+            get => _libraries;
+            set => SetProperty(ref _libraries, value);
+        }
+
+        private LibraryService _libraryService;
+
+        private void InitializeLibraryManagement()
+        {
+            // LibraryService needs Dispatcher and ErrorService. 
+            // Ideally retrieved from DI container if registered, or instantiated if transient.
+            // Usually LibraryService is singleton or scoped. Let's try getting from ServiceProvider.
+            _libraryService = App.ServiceProvider?.GetService<LibraryService>();
+
+            // If not registered (legacy), instantiate manually if possible (but ErrorService?)
+            // Assuming it IS registered as per modern DI patterns in this app.
+
+            RefreshLibraries();
+        }
+
+        public void RefreshLibraries()
+        {
+            if (_libraryService == null)
+            {
+                _libraryService = App.ServiceProvider?.GetService<LibraryService>();
+            }
+
+            if (_libraryService == null) return;
+
+            var libs = _libraryService.LoadLibraries();
+            var vmList = new ObservableCollection<LibraryItemViewModel>();
+            foreach (var lib in libs)
+            {
+                vmList.Add(new LibraryItemViewModel(lib));
+            }
+            Libraries = vmList;
+        }
+
+        private void AddLibrary()
+        {
+            // Logic: Pick folder -> Default Name = Folder Name -> Add
+            var dialog = new System.Windows.Forms.FolderBrowserDialog();
+            dialog.Description = "选择文件夹作为新的库";
+            dialog.UseDescriptionForTitle = true;
+            dialog.ShowNewFolderButton = true;
+
+            if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                string path = dialog.SelectedPath;
+                string name = new System.IO.DirectoryInfo(path).Name;
+
+                // Add via service
+                try
+                {
+                    if (_libraryService != null)
+                    {
+                        _libraryService.AddLibrary(name, path);
+                        RefreshLibraries();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Windows.MessageBox.Show("添加库失败: " + ex.Message);
+                }
+            }
+        }
+
+        private void RemoveLibrary(LibraryItemViewModel item)
+        {
+            if (item == null) return;
+            if (System.Windows.MessageBox.Show($"确定要移除库 \"{item.Name}\" 吗？", "确认", System.Windows.MessageBoxButton.YesNo) == System.Windows.MessageBoxResult.Yes)
+            {
+                try
+                {
+                    _libraryService?.DeleteLibrary(item.Id, item.Name);
+                    RefreshLibraries();
+                }
+                catch (Exception ex)
+                {
+                    System.Windows.MessageBox.Show("移除库失败: " + ex.Message);
+                }
+            }
+        }
+        #endregion
 
         #region Path Settings
         private ObservableCollection<NavigationSectionItemViewModel> _navigationSections;
@@ -299,6 +451,141 @@ namespace YiboFile.ViewModels
                     ConfigurationService.Instance.Update(c => c.ColNotesWidth = value);
             }
         }
+        #endregion
+
+        #region Tag Settings
+        private ObservableCollection<TagGroupManageViewModel> _tagGroups;
+        public ObservableCollection<TagGroupManageViewModel> TagGroups
+        {
+            get => _tagGroups;
+            set => SetProperty(ref _tagGroups, value);
+        }
+
+        private string _newGroupName;
+        public string NewGroupName
+        {
+            get => _newGroupName;
+            set => SetProperty(ref _newGroupName, value);
+        }
+
+        private ITagService _tagService;
+
+        private void InitializeTagManagement()
+        {
+            _tagService = App.ServiceProvider?.GetService<ITagService>();
+            RefreshTagGroups();
+        }
+
+        public void RefreshTagGroups()
+        {
+            if (_tagService == null)
+            {
+                // Try resolve again (in case initialized before container ready)
+                _tagService = App.ServiceProvider?.GetService<ITagService>();
+            }
+            if (_tagService == null) return;
+
+            var list = new ObservableCollection<TagGroupManageViewModel>();
+            var groups = _tagService.GetTagGroups();
+
+            // Convert to ViewModel
+            foreach (var group in groups)
+            {
+                var groupVm = new TagGroupManageViewModel
+                {
+                    Id = group.Id,
+                    Name = group.Name,
+                    Color = group.Color,
+                    Tags = new ObservableCollection<TagItemManageViewModel>()
+                };
+
+                var tags = _tagService.GetTagsByGroup(group.Id);
+                foreach (var tag in tags)
+                {
+                    groupVm.Tags.Add(new TagItemManageViewModel
+                    {
+                        Id = tag.Id,
+                        Name = tag.Name,
+                        Color = tag.Color ?? "#2E8B57",
+                        GroupId = tag.GroupId
+                    });
+                }
+
+                list.Add(groupVm);
+            }
+
+            TagGroups = list;
+        }
+
+
+        public void AddTagGroup()
+        {
+            if (string.IsNullOrWhiteSpace(NewGroupName)) return;
+            try
+            {
+                _tagService?.AddTagGroup(NewGroupName);
+                NewGroupName = string.Empty; // Clear input
+                RefreshTagGroups();
+            }
+            catch (Exception ex) { throw new Exception(ex.Message); }
+        }
+
+        public void RenameTagGroup(TagGroupManageViewModel group, string newName)
+        {
+            if (group == null || string.IsNullOrWhiteSpace(newName)) return;
+            try
+            {
+                _tagService?.RenameTagGroup(group.Id, newName);
+                RefreshTagGroups();
+            }
+            catch (Exception ex) { throw new Exception(ex.Message); }
+        }
+
+        public void DeleteTagGroup(TagGroupManageViewModel group)
+        {
+            if (group == null) return;
+            try
+            {
+                _tagService?.DeleteTagGroup(group.Id);
+                RefreshTagGroups();
+            }
+            catch (Exception ex) { throw new Exception(ex.Message); }
+        }
+
+        public void AddTag(TagGroupManageViewModel group)
+        {
+            if (group == null || string.IsNullOrWhiteSpace(group.NewTagText)) return;
+            try
+            {
+                _tagService?.AddTag(group.Id, group.NewTagText);
+                group.NewTagText = string.Empty; // Clear Input
+                RefreshTagGroups();
+            }
+            catch (Exception ex) { throw new Exception(ex.Message); }
+        }
+
+        public void RenameTag(TagItemManageViewModel tag, string newName)
+        {
+            if (tag == null || string.IsNullOrWhiteSpace(newName)) return;
+            try
+            {
+                _tagService?.RenameTag(tag.Id, newName);
+                RefreshTagGroups();
+            }
+            catch (Exception ex) { throw new Exception(ex.Message); }
+        }
+
+        public void DeleteTag(TagItemManageViewModel tag)
+        {
+            if (tag == null) return;
+            try
+            {
+                _tagService?.DeleteTag(tag.Id);
+                RefreshTagGroups();
+            }
+            catch (Exception ex) { throw new Exception(ex.Message); }
+        }
+
         #endregion
 
         #region Hotkey Settings
@@ -686,18 +973,18 @@ namespace YiboFile.ViewModels
 
         private void OnIndexingProgressChanged(object sender, IndexingProgressEventArgs e)
         {
-            System.Windows.Application.Current.Dispatcher.Invoke(() =>
+            System.Windows.Application.Current?.Dispatcher?.Invoke(() =>
             {
                 if (e.IsCompleted)
                 {
-                    IndexingStatusText = $"扫描完成。共索引 {e.IndexedFiles} 个文件。";
+                    IndexingStatusText = $"索引完成: {e.TotalFiles} 个文件";
                     IsIndexing = false;
                     IndexingProgress = 100;
                     RefreshIndexStats();
                 }
                 else
                 {
-                    IndexingStatusText = $"正在扫描 ({e.ProcessedFiles}/{e.TotalFiles}): {System.IO.Path.GetFileName(e.CurrentFile)}";
+                    IndexingStatusText = $"正在索引: {e.ProcessedFiles}/{e.TotalFiles}";
                     IsIndexing = true;
                     if (e.TotalFiles > 0)
                     {
@@ -977,5 +1264,96 @@ namespace YiboFile.ViewModels
             DefaultKey = defaultKey;
             _keyCombination = defaultKey;
         }
+    }
+
+    public class TagGroupManageViewModel : BaseViewModel
+    {
+        public int Id { get; set; }
+        private string _name;
+        public string Name
+        {
+            get => _name;
+            set => SetProperty(ref _name, value);
+        }
+
+        private string _color;
+        public string Color
+        {
+            get => _color;
+            set
+            {
+                if (SetProperty(ref _color, value))
+                {
+                    OnPropertyChanged(nameof(ColorBrush));
+                }
+            }
+        }
+
+        public Brush ColorBrush
+        {
+            get
+            {
+                try
+                {
+                    if (string.IsNullOrEmpty(Color)) return Brushes.Transparent;
+                    return (Brush)new BrushConverter().ConvertFrom(Color);
+                }
+                catch
+                {
+                    return Brushes.Transparent;
+                }
+            }
+        }
+
+        public ObservableCollection<TagItemManageViewModel> Tags { get; set; } = new ObservableCollection<TagItemManageViewModel>();
+
+        private string _newTagText;
+        public string NewTagText
+        {
+            get => _newTagText;
+            set => SetProperty(ref _newTagText, value);
+        }
+    }
+
+    public class TagItemManageViewModel : BaseViewModel
+    {
+        public int Id { get; set; }
+        private string _name;
+        public string Name
+        {
+            get => _name;
+            set => SetProperty(ref _name, value);
+        }
+
+        private string _color;
+        public string Color
+        {
+            get => _color;
+            set
+            {
+                if (SetProperty(ref _color, value))
+                {
+                    OnPropertyChanged(nameof(ColorBrush));
+                }
+            }
+        }
+
+        public Brush ColorBrush
+        {
+            get
+            {
+                try
+                {
+                    if (string.IsNullOrEmpty(Color)) return Brushes.Transparent;
+                    return (Brush)new BrushConverter().ConvertFrom(Color);
+                }
+                catch
+                {
+                    return Brushes.Transparent;
+                }
+            }
+        }
+
+        public int GroupId { get; set; }
     }
 }

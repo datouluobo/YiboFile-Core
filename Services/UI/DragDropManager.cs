@@ -56,6 +56,7 @@ namespace YiboFile.Services
 
             // Drag Source Events
             listView.PreviewMouseLeftButtonDown += ListView_PreviewMouseLeftButtonDown;
+            listView.PreviewMouseLeftButtonUp += ListView_PreviewMouseLeftButtonUp;
             listView.PreviewMouseMove += ListView_PreviewMouseMove;
 
             // Drop Target Events (for dropping INTO the list - e.g. from external source or moving to a subfolder)
@@ -63,6 +64,11 @@ namespace YiboFile.Services
             listView.Drop += ListView_Drop;
             listView.DragOver += ListView_DragOver;
             listView.DragLeave += ListView_DragLeave;
+        }
+
+        private void ListView_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            _canInitiateDrag = false;
         }
 
         private void ListView_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)

@@ -144,8 +144,22 @@ namespace YiboFile.Services.FileList
 
         private string BuildTags(string path, Func<List<int>, List<string>> orderTagNames)
         {
-            // Tag加载已移除 - Phase 2将重新实现
-            return string.Empty;
+            try
+            {
+                var tags = DatabaseManager.GetFileTags(path);
+                if (tags == null || tags.Count == 0)
+                {
+                    return string.Empty;
+                }
+
+                // Consider ordering if needed, for now just join names
+                // If orderTagNames is provided, we could use it, but for now just comma separation
+                return string.Join(", ", tags.Select(t => t.Name));
+            }
+            catch (Exception)
+            {
+                return string.Empty;
+            }
         }
 
         private string BuildNotes(string path)

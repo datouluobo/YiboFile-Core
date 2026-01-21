@@ -39,6 +39,7 @@ namespace YiboFile.Windows
                     case "Path":
                         if (_pathPanel == null) _pathPanel = new PathSettingsPanel();
                         TabContentArea.Content = _pathPanel;
+                        _pathPanel.LoadSettings();
                         break;
                     case "Library":
                         if (_libraryPanel == null) _libraryPanel = new LibraryManagementPanel();
@@ -47,6 +48,7 @@ namespace YiboFile.Windows
                     case "Tag":
                         if (_tagPanel == null) _tagPanel = new TagManagementPanel();
                         TabContentArea.Content = _tagPanel;
+                        _tagPanel.LoadSettings();
                         break;
                 }
             }
