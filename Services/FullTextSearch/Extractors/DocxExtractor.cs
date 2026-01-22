@@ -46,9 +46,9 @@ namespace YiboFile.Services.FullTextSearch.Extractors
 
                 return sb.ToString();
             }
-            catch (Exception ex)
+            catch
             {
-                System.Diagnostics.Debug.WriteLine($"[DocxExtractor] Error extracting {filePath}: {ex.Message}");
+                // 静默处理：损坏文件、临时锁定文件等情况是预期的
                 return string.Empty;
             }
         }

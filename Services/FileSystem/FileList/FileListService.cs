@@ -310,19 +310,17 @@ namespace YiboFile.Services.FileList
                 var files = new List<FileSystemItem>();
                 try
                 {
-                    // TargetPath is the tag ID (e.g., "5" from "tag://5")
-                    var tagIdStr = protocolInfo.TargetPath;
+                    // TargetPath is the tag NAME (e.g., "111" from "tag://111")
+                    var tagName = protocolInfo.TargetPath;
                     List<string> filePaths;
 
-                    if (int.TryParse(tagIdStr, out int tagId))
+                    // Primary: Query by tag name
+                    filePaths = await Task.Run(() => DatabaseManager.GetFilesByTagName(tagName), cancellationToken);
+
+                    // Fallback: If no results and it looks like an ID, try by ID for backward compatibility
+                    if ((filePaths == null || filePaths.Count == 0) && int.TryParse(tagName, out int tagId))
                     {
-                        // Query by tag ID
                         filePaths = await Task.Run(() => DatabaseManager.GetFilesByTagId(tagId), cancellationToken);
-                    }
-                    else
-                    {
-                        // Fallback: treat as tag name for backwards compatibility
-                        filePaths = await Task.Run(() => DatabaseManager.GetFilesByTagName(tagIdStr), cancellationToken);
                     }
                     foreach (var filePath in filePaths)
                     {

@@ -285,9 +285,9 @@ namespace YiboFile
 
         private void OnTagSelected(int tagId, string tagName)
         {
-            // Consistent navigation: Use tag protocol
+            // Consistent navigation: Use tag protocol with tag NAME
             // User requested opening in new tab
-            CreateTab($"tag://{tagId}");
+            CreateTab($"tag://{tagName}");
         }
 
         private async void LoadFilesByTag(int tagId, string tagName)

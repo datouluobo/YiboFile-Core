@@ -189,6 +189,18 @@ namespace YiboFile.Services.Config
         private void PerformSaveWithMonitoring()
         {
             var startTime = DateTime.Now;
+
+            // 在保存前，从磁盘读取最新配置并合并 ColumnOrder（避免覆盖 FileListControl 保存的值）
+            try
+            {
+                var latestFromDisk = ConfigManager.Load();
+                if (latestFromDisk != null && !string.IsNullOrEmpty(latestFromDisk.ColumnOrder))
+                {
+                    _config.ColumnOrder = latestFromDisk.ColumnOrder;
+                }
+            }
+            catch { /* 忽略读取错误，继续保存 */ }
+
             ConfigManager.Save(_config);
             var duration = (DateTime.Now - startTime).TotalMilliseconds;
 

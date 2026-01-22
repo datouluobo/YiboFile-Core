@@ -40,18 +40,18 @@ namespace YiboFile.Services.FullTextSearch.Extractors
                                 sb.AppendLine(text);
                             }
                         }
-                        catch (Exception)
+                        catch
                         {
-                            System.Diagnostics.Debug.WriteLine($"[PdfExtractor] Error extracting page from {filePath}: Error");
+                            // 静默处理单页提取失败，继续处理其他页面
                         }
                     }
                 }
 
                 return sb.ToString();
             }
-            catch (Exception ex)
+            catch
             {
-                System.Diagnostics.Debug.WriteLine($"[PdfExtractor] Error extracting {filePath}: {ex.Message}");
+                // 静默处理：加密PDF、格式不兼容等情况是预期的，不需要输出错误信息
                 return string.Empty;
             }
         }

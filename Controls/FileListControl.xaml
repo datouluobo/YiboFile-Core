@@ -420,6 +420,25 @@
                         HorizontalAlignment="Stretch"
                         VerticalAlignment="Stretch"
                         Panel.ZIndex="100"/>
+
+                <!-- 列拖拽位置指示器 (垂直线) -->
+                <Canvas x:Name="ColumnDropIndicatorCanvas"
+                        Background="Transparent"
+                        IsHitTestVisible="False"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Stretch"
+                        Panel.ZIndex="200"
+                        Visibility="Collapsed">
+                    <Border x:Name="ColumnDropIndicator"
+                            Width="3"
+                            Height="30"
+                            Background="{DynamicResource AccentBrush}"
+                            SnapsToDevicePixels="True">
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="8" ShadowDepth="0" Color="{DynamicResource AccentColor}" Opacity="0.8"/>
+                        </Border.Effect>
+                    </Border>
+                </Canvas>
             </Grid>
         </Border>
     </Grid>

@@ -236,16 +236,9 @@ namespace YiboFile.Services.Tabs
                 }
                 if (path.StartsWith("tag://", StringComparison.OrdinalIgnoreCase))
                 {
-                    if (_ui?.TagService != null)
-                    {
-                        var idStr = path.Substring("tag://".Length);
-                        if (int.TryParse(idStr, out int tagId))
-                        {
-                            var tag = _ui.TagService.GetTag(tagId);
-                            if (tag != null) return tag.Name;
-                        }
-                    }
-                    return "标签";
+                    // Path format is now "tag://tagName" (e.g., "tag://111")
+                    var tagName = path.Substring("tag://".Length);
+                    return !string.IsNullOrEmpty(tagName) ? tagName : "标签";
                 }
                 // Handle other virtual paths if needed
                 return path;

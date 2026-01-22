@@ -91,10 +91,74 @@ namespace YiboFile.Handlers
             _switchDualPaneFocus = switchDualPaneFocus;
         }
 
+        /// <summary>
+        /// 检查是否触发了指定动作的快捷键
+        /// </summary>
+        internal bool IsActionTriggered(KeyEventArgs e, string actionName, string defaultKey)
+        {
+            var config = ConfigurationService.Instance.GetSnapshot();
+            var hotkeyStr = defaultKey;
+
+            // 尝试获取用户自定义快捷键
+            if (config.CustomHotkeys != null && config.CustomHotkeys.TryGetValue(actionName, out var customKey))
+            {
+                hotkeyStr = customKey;
+            }
+
+            if (string.IsNullOrEmpty(hotkeyStr)) return false;
+
+            // 解析快捷键字符串 (例如 "Ctrl+Shift+T" 或 "Backspace")
+            var parts = hotkeyStr.Split('+');
+            bool ctrlRequired = false;
+            bool altRequired = false;
+            bool shiftRequired = false;
+            bool winRequired = false;
+            string mainKeyStr = "";
+
+            foreach (var part in parts)
+            {
+                var p = part.Trim();
+                if (p.Equals("Ctrl", StringComparison.OrdinalIgnoreCase)) ctrlRequired = true;
+                else if (p.Equals("Alt", StringComparison.OrdinalIgnoreCase)) altRequired = true;
+                else if (p.Equals("Shift", StringComparison.OrdinalIgnoreCase)) shiftRequired = true;
+                else if (p.Equals("Win", StringComparison.OrdinalIgnoreCase)) winRequired = true;
+                else mainKeyStr = p;
+            }
+
+            // 验证修饰符
+            var modifiers = Keyboard.Modifiers;
+            if (ctrlRequired != modifiers.HasFlag(ModifierKeys.Control)) return false;
+            if (altRequired != modifiers.HasFlag(ModifierKeys.Alt)) return false;
+            if (shiftRequired != modifiers.HasFlag(ModifierKeys.Shift)) return false;
+            if (winRequired != modifiers.HasFlag(ModifierKeys.Windows)) return false;
+
+            // 验证主键
+            if (string.IsNullOrEmpty(mainKeyStr)) return true; // 仅有修饰符的情况（通常不建议）
+
+            var currentKey = e.Key == Key.System ? e.SystemKey : e.Key;
+            string currentKeyStr = currentKey.ToString();
+
+            // 兼容性映射
+            if (currentKeyStr == mainKeyStr) return true;
+
+            // 处理数字键 (D1 -> 1, NumPad1 -> 1)
+            if (currentKey >= Key.D0 && currentKey <= Key.D9)
+            {
+                if (mainKeyStr == (currentKey - Key.D0).ToString()) return true;
+            }
+            if (currentKey >= Key.NumPad0 && currentKey <= Key.NumPad9)
+            {
+                if (mainKeyStr == (currentKey - Key.NumPad0).ToString()) return true;
+            }
+
+            return false;
+        }
+
         public void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e)
         {
             // Ctrl+W 或 Ctrl+F4: 关闭当前标签页
-            if ((e.Key == Key.W || e.Key == Key.F4) && Keyboard.Modifiers == ModifierKeys.Control)
+            // 我们保留 F4 作为硬编码备选，但 Ctrl+W 改为动态
+            if (IsActionTriggered(e, "关闭标签页", "Ctrl+W") || (e.Key == Key.F4 && Keyboard.Modifiers == ModifierKeys.Control))
             {
                 var tabService = _getTabService();
                 if (tabService != null)
@@ -109,8 +173,8 @@ namespace YiboFile.Handlers
                 }
             }
 
-            // Ctrl+T: 新建标签页（打开桌面）
-            if (e.Key == Key.T && Keyboard.Modifiers == ModifierKeys.Control)
+            // Ctrl+T: 新建标签页
+            if (IsActionTriggered(e, "新建标签页", "Ctrl+T"))
             {
                 var desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
                 _createTab(desktopPath);
@@ -119,7 +183,7 @@ namespace YiboFile.Handlers
             }
 
             // Ctrl+Tab: 切换到下一个标签页
-            if (e.Key == Key.Tab && Keyboard.Modifiers == ModifierKeys.Control && !Keyboard.IsKeyDown(Key.LeftShift) && !Keyboard.IsKeyDown(Key.RightShift))
+            if (IsActionTriggered(e, "下一个标签", "Ctrl+Tab"))
             {
                 var tabService = _getTabService();
                 if (tabService != null)
@@ -138,7 +202,7 @@ namespace YiboFile.Handlers
             }
 
             // Ctrl+Shift+Tab: 切换到上一个标签页
-            if (e.Key == Key.Tab && Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift))
+            if (IsActionTriggered(e, "上一个标签", "Ctrl+Shift+Tab"))
             {
                 var tabService = _getTabService();
                 if (tabService != null)
@@ -156,8 +220,8 @@ namespace YiboFile.Handlers
                 }
             }
 
-            // Ctrl+N: 新建文件夹（恢复标准行为）
-            if (e.Key == Key.N && Keyboard.Modifiers == ModifierKeys.Control)
+            // Ctrl+N: 新建文件夹
+            if (IsActionTriggered(e, "新建文件夹", "Ctrl+N"))
             {
                 _newFolderClick();
                 e.Handled = true;
@@ -165,7 +229,7 @@ namespace YiboFile.Handlers
             }
 
             // Tab键（无修饰符）：在双列表模式下切换主副面板焦点
-            if (e.Key == Key.Tab && Keyboard.Modifiers == ModifierKeys.None)
+            if (IsActionTriggered(e, "切换双面板焦点", "Tab"))
             {
                 if (_isDualListMode?.Invoke() == true)
                 {
@@ -175,8 +239,8 @@ namespace YiboFile.Handlers
                 }
             }
 
-            // Ctrl+Shift+N: 新建窗口（独立进程）
-            if (e.Key == Key.N && Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift))
+            // Ctrl+Shift+N: 新建窗口
+            if (IsActionTriggered(e, "新建窗口", "Ctrl+Shift+N"))
             {
                 var config = ConfigurationService.Instance.GetSnapshot();
                 if (config.EnableMultiWindow)
@@ -198,10 +262,6 @@ namespace YiboFile.Handlers
                 }
                 else
                 {
-                    // 如果禁用，则保留原逻辑（也是新建文件夹？）
-                    // Windows默认为Ctrl+Shift+N新建文件夹。这里如果多窗口启用，则覆盖为新窗口。
-                    // 按照用户需求：Ctrl+N=新建文件夹，Ctrl+Shift+N=新建窗口。
-                    // 如果禁用多窗口，Ctrl+Shift+N 回退为 新建文件夹。
                     _newFolderClick();
                     e.Handled = true;
                     return;
@@ -209,7 +269,7 @@ namespace YiboFile.Handlers
             }
 
             // F5: 刷新
-            if (e.Key == Key.F5)
+            if (IsActionTriggered(e, "刷新", "F5"))
             {
                 _refreshClick();
                 e.Handled = true;
@@ -217,52 +277,31 @@ namespace YiboFile.Handlers
             }
 
             // Ctrl+Shift+F: 专注模式
-            if (e.Key == Key.F && Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift))
+            if (IsActionTriggered(e, "专注模式", "Ctrl+Shift+F"))
             {
-                _switchLayoutMode?.Invoke(0); // 专注模式 = 0
+                _switchLayoutMode?.Invoke(0);
                 e.Handled = true;
                 return;
             }
 
             // Ctrl+Shift+W: 工作模式
-            if (e.Key == Key.W && Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift))
+            if (IsActionTriggered(e, "工作模式", "Ctrl+Shift+W"))
             {
-                _switchLayoutMode?.Invoke(1); // 工作模式 = 1
+                _switchLayoutMode?.Invoke(1);
                 e.Handled = true;
                 return;
             }
 
             // Ctrl+Shift+A: 完整模式
-            if (e.Key == Key.A && Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift))
+            if (IsActionTriggered(e, "完整模式", "Ctrl+Shift+A"))
             {
-                _switchLayoutMode?.Invoke(2); // 完整模式 = 2
+                _switchLayoutMode?.Invoke(2);
                 e.Handled = true;
                 return;
             }
 
             // Alt+D: 聚焦地址栏
-            // 必须同时检查 Key.D 和 SystemKey.D，因为按下 Alt 时 Key 可能是 System
-            bool isAltD = (e.Key == Key.D && Keyboard.Modifiers == ModifierKeys.Alt) ||
-                          (e.SystemKey == Key.D && Keyboard.Modifiers == ModifierKeys.Alt);
-
-            if (isAltD)
-            {
-                var activeBrowser = _getActiveBrowser();
-                if (activeBrowser != null)
-                {
-                    // 确保切换到编辑模式并全选
-                    activeBrowser.AddressBarControl?.SwitchToEditMode();
-                    e.Handled = true;
-                    return;
-                }
-            }
-
-            // Alt+A: 聚焦地址栏 (Alias for Alt+D)
-            // 修复文件列表拦截 Alt+A 的问题
-            bool isAltA = (e.Key == Key.A && Keyboard.Modifiers == ModifierKeys.Alt) ||
-                          (e.SystemKey == Key.A && Keyboard.Modifiers == ModifierKeys.Alt);
-
-            if (isAltA)
+            if (IsActionTriggered(e, "地址栏编辑", "Alt+D"))
             {
                 var activeBrowser = _getActiveBrowser();
                 if (activeBrowser != null)
@@ -274,7 +313,7 @@ namespace YiboFile.Handlers
             }
 
             // Ctrl+A: 全选当前列表
-            if (e.Key == Key.A && Keyboard.Modifiers == ModifierKeys.Control)
+            if (IsActionTriggered(e, "全选", "Ctrl+A"))
             {
                 var activeBrowser = _getActiveBrowser();
                 if (activeBrowser?.FilesList != null && !(e.OriginalSource is System.Windows.Controls.TextBox))
@@ -285,87 +324,86 @@ namespace YiboFile.Handlers
                 }
             }
 
-            // Ctrl+C: 复制（排除文本框）
-            if (e.Key == Key.C && Keyboard.Modifiers == ModifierKeys.Control)
+            // Ctrl+C: 复制
+            if (IsActionTriggered(e, "复制", "Ctrl+C"))
             {
                 var focusedElement = Keyboard.FocusedElement;
-                if (focusedElement is System.Windows.Controls.TextBox ||
-                    focusedElement is System.Windows.Controls.RichTextBox)
+                if (!(focusedElement is System.Windows.Controls.TextBox || focusedElement is System.Windows.Controls.RichTextBox))
                 {
-                    return;
+                    var activeBrowser = _getActiveBrowser();
+                    if (activeBrowser?.FilesSelectedItems != null && activeBrowser.FilesSelectedItems.Count > 0)
+                    {
+                        _copyClick();
+                        e.Handled = true;
+                        return;
+                    }
                 }
+            }
 
-                var activeBrowser = _getActiveBrowser();
-                if (activeBrowser?.FilesSelectedItems != null && activeBrowser.FilesSelectedItems.Count > 0)
+            // Ctrl+V: 粘贴
+            if (IsActionTriggered(e, "粘贴", "Ctrl+V"))
+            {
+                var focusedElement = Keyboard.FocusedElement;
+                if (!(focusedElement is System.Windows.Controls.TextBox || focusedElement is System.Windows.Controls.RichTextBox))
                 {
-                    _copyClick();
+                    _pasteClick();
                     e.Handled = true;
                     return;
                 }
             }
 
-            // Ctrl+V: 粘贴（排除文本框）
-            if (e.Key == Key.V && Keyboard.Modifiers == ModifierKeys.Control)
+            // Ctrl+X: 剪切
+            if (IsActionTriggered(e, "剪切", "Ctrl+X"))
             {
                 var focusedElement = Keyboard.FocusedElement;
-                if (focusedElement is System.Windows.Controls.TextBox ||
-                    focusedElement is System.Windows.Controls.RichTextBox)
+                if (!(focusedElement is System.Windows.Controls.TextBox || focusedElement is System.Windows.Controls.RichTextBox))
                 {
-                    return;
-                }
-
-                _pasteClick();
-                e.Handled = true;
-                return;
-            }
-
-            // Ctrl+X: 剪切（排除文本框）
-            if (e.Key == Key.X && Keyboard.Modifiers == ModifierKeys.Control)
-            {
-                var focusedElement = Keyboard.FocusedElement;
-                if (focusedElement is System.Windows.Controls.TextBox ||
-                    focusedElement is System.Windows.Controls.RichTextBox)
-                {
-                    return;
-                }
-
-                var activeBrowser = _getActiveBrowser();
-                if (activeBrowser?.FilesSelectedItems != null && activeBrowser.FilesSelectedItems.Count > 0)
-                {
-                    _cutClick();
-                    e.Handled = true;
-                    return;
+                    var activeBrowser = _getActiveBrowser();
+                    if (activeBrowser?.FilesSelectedItems != null && activeBrowser.FilesSelectedItems.Count > 0)
+                    {
+                        _cutClick();
+                        e.Handled = true;
+                        return;
+                    }
                 }
             }
 
             // Delete: 删除
-            if (e.Key == Key.Delete)
+            if (IsActionTriggered(e, "删除 (移到回收站)", "Delete"))
             {
+                // 注意：这里需要确保 Shift+Delete 不会命入这个逻辑，除非 Shift 在 default 字符串中
                 var focusedElement = Keyboard.FocusedElement;
-                if (focusedElement is System.Windows.Controls.TextBox || focusedElement is System.Windows.Controls.TextBlock)
+                if (!(focusedElement is System.Windows.Controls.TextBox || focusedElement is System.Windows.Controls.TextBlock))
                 {
-                    return;
-                }
-
-                var activeBrowser = _getActiveBrowser();
-                if (activeBrowser?.FilesSelectedItems != null && activeBrowser.FilesSelectedItems.Count > 0)
-                {
-                    bool isShiftPressed = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
-                    if (isShiftPressed && _permanentDeleteClick != null)
-                    {
-                        _permanentDeleteClick();
-                    }
-                    else
+                    var activeBrowser = _getActiveBrowser();
+                    if (activeBrowser?.FilesSelectedItems != null && activeBrowser.FilesSelectedItems.Count > 0)
                     {
                         _deleteClick();
+                        e.Handled = true;
+                        return;
                     }
-                    e.Handled = true;
-                    return;
+                }
+            }
+
+            // Shift+Delete: 永久删除
+            if (IsActionTriggered(e, "永久删除", "Shift+Delete"))
+            {
+                var focusedElement = Keyboard.FocusedElement;
+                if (!(focusedElement is System.Windows.Controls.TextBox || focusedElement is System.Windows.Controls.TextBlock))
+                {
+                    var activeBrowser = _getActiveBrowser();
+                    if (activeBrowser?.FilesSelectedItems != null && activeBrowser.FilesSelectedItems.Count > 0)
+                    {
+                        if (_permanentDeleteClick != null) _permanentDeleteClick();
+                        else _deleteClick();
+                        e.Handled = true;
+                        return;
+                    }
                 }
             }
 
             // F2: 重命名
-            if (e.Key == Key.F2)
+            if (IsActionTriggered(e, "重命名", "F2"))
             {
                 var activeBrowser = _getActiveBrowser();
                 if (activeBrowser?.FilesSelectedItem != null)
@@ -377,7 +415,7 @@ namespace YiboFile.Handlers
             }
 
             // Ctrl+Z: 撤销
-            if (e.Key == Key.Z && Keyboard.Modifiers == ModifierKeys.Control)
+            if (IsActionTriggered(e, "撤销", "Ctrl+Z"))
             {
                 if (_undoClick != null)
                 {
@@ -388,7 +426,7 @@ namespace YiboFile.Handlers
             }
 
             // Ctrl+Y: 重做
-            if (e.Key == Key.Y && Keyboard.Modifiers == ModifierKeys.Control)
+            if (IsActionTriggered(e, "重做", "Ctrl+Y"))
             {
                 if (_redoClick != null)
                 {
@@ -402,10 +440,10 @@ namespace YiboFile.Handlers
         public void MainWindow_KeyDown(object sender, KeyEventArgs e)
         {
             // 空格键触发 QuickLook 预览
-            if (e.Key == Key.Space)
+            if (IsActionTriggered(e, "QuickLook 预览", "Space"))
             {
                 // 检查是否有选中的文件
-                if (_fileBrowser?.FilesSelectedItem is FileSystemItem selectedItem && !selectedItem.IsDirectory)
+                if (_getActiveBrowser()?.FilesSelectedItem is FileSystemItem selectedItem && !selectedItem.IsDirectory)
                 {
                     // 检查 QuickLook 是否安装
                     if (YiboFile.Previews.PreviewHelper.IsQuickLookInstalled())
@@ -422,6 +460,7 @@ namespace YiboFile.Handlers
                                     UseShellExecute = false
                                 });
                                 e.Handled = true;
+                                return;
                             }
                         }
                         catch (Exception ex)
@@ -430,6 +469,50 @@ namespace YiboFile.Handlers
                         }
                     }
                 }
+            }
+
+            // Enter: 打开文件/文件夹
+            if (IsActionTriggered(e, "打开文件/文件夹", "Enter"))
+            {
+                var activeBrowser = _getActiveBrowser();
+                if (activeBrowser?.FilesSelectedItem is FileSystemItem selectedItem)
+                {
+                    if (selectedItem.IsRenaming) return;
+
+                    if (selectedItem.IsDirectory)
+                    {
+                        if (_isLibraryMode())
+                        {
+                            _switchNavigationMode("Path");
+                        }
+                        _navigateToPath(selectedItem.Path);
+                    }
+                    else
+                    {
+                        try
+                        {
+                            Process.Start(new ProcessStartInfo { FileName = selectedItem.Path, UseShellExecute = true });
+                        }
+                        catch (Exception ex) { MessageBox.Show($"无法打开文件: {ex.Message}"); }
+                    }
+                }
+                e.Handled = true;
+                return;
+            }
+
+            // Backspace: 返回上级目录
+            if (IsActionTriggered(e, "返回上级目录", "Backspace"))
+            {
+                _navigateBack();
+                e.Handled = true;
+                return;
+            }
+
+            // Alt+Enter: 属性
+            if (IsActionTriggered(e, "属性", "Alt+Enter"))
+            {
+                // 由于我们没有属性点击的回调注入，这里暂时保留或通过其他方式调用
+                // e.Handled = true;
             }
         }
     }

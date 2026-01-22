@@ -18,7 +18,7 @@ namespace YiboFile
         private void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e) => _keyboardEventHandler?.MainWindow_PreviewKeyDown(sender, e);
         private void MainWindow_KeyDown(object sender, KeyEventArgs e) => _keyboardEventHandler?.MainWindow_KeyDown(sender, e);
 
-        internal void FilesListView_PreviewKeyDown(object sender, KeyEventArgs e)
+        internal async void FilesListView_PreviewKeyDown(object sender, KeyEventArgs e)
         {
             var listView = sender as ListView;
             if (listView == null)
@@ -34,8 +34,10 @@ namespace YiboFile
                 return;
             }
 
+            if (_keyboardEventHandler == null) return;
+
             // Ctrl+A - 全选
-            if (e.Key == Key.A && Keyboard.Modifiers == ModifierKeys.Control)
+            if (_keyboardEventHandler.IsActionTriggered(e, "全选", "Ctrl+A"))
             {
                 listView.SelectAll();
                 e.Handled = true;
@@ -43,7 +45,7 @@ namespace YiboFile
             }
 
             // Ctrl+C - 复制
-            if (e.Key == Key.C && Keyboard.Modifiers == ModifierKeys.Control)
+            if (_keyboardEventHandler.IsActionTriggered(e, "复制", "Ctrl+C"))
             {
                 Copy_Click(null, null);
                 e.Handled = true;
@@ -51,7 +53,7 @@ namespace YiboFile
             }
 
             // Ctrl+V - 粘贴
-            if (e.Key == Key.V && Keyboard.Modifiers == ModifierKeys.Control)
+            if (_keyboardEventHandler.IsActionTriggered(e, "粘贴", "Ctrl+V"))
             {
                 Paste_Click(null, null);
                 e.Handled = true;
@@ -59,7 +61,7 @@ namespace YiboFile
             }
 
             // Ctrl+X - 剪切
-            if (e.Key == Key.X && Keyboard.Modifiers == ModifierKeys.Control)
+            if (_keyboardEventHandler.IsActionTriggered(e, "剪切", "Ctrl+X"))
             {
                 Cut_Click(null, null);
                 e.Handled = true;
@@ -67,7 +69,7 @@ namespace YiboFile
             }
 
             // Ctrl+Z - 撤销
-            if (e.Key == Key.Z && Keyboard.Modifiers == ModifierKeys.Control)
+            if (_keyboardEventHandler.IsActionTriggered(e, "撤销", "Ctrl+Z"))
             {
                 Undo_Click(null, null);
                 e.Handled = true;
@@ -75,7 +77,7 @@ namespace YiboFile
             }
 
             // Ctrl+Y - 重做
-            if (e.Key == Key.Y && Keyboard.Modifiers == ModifierKeys.Control)
+            if (_keyboardEventHandler.IsActionTriggered(e, "重做", "Ctrl+Y"))
             {
                 Redo_Click(null, null);
                 e.Handled = true;
@@ -83,15 +85,23 @@ namespace YiboFile
             }
 
             // Delete - 删除
-            if (e.Key == Key.Delete)
+            if (_keyboardEventHandler.IsActionTriggered(e, "删除 (移到回收站)", "Delete"))
             {
                 Delete_Click(null, null);
                 e.Handled = true;
                 return;
             }
 
+            // Shift+Delete - 永久删除
+            if (_keyboardEventHandler.IsActionTriggered(e, "永久删除", "Shift+Delete"))
+            {
+                await DeleteSelectedFilesAsync(permanent: true);
+                e.Handled = true;
+                return;
+            }
+
             // F2 - 重命名
-            if (e.Key == Key.F2)
+            if (_keyboardEventHandler.IsActionTriggered(e, "重命名", "F2"))
             {
                 Rename_Click(null, null);
                 e.Handled = true;
@@ -99,7 +109,7 @@ namespace YiboFile
             }
 
             // F5 - 刷新
-            if (e.Key == Key.F5)
+            if (_keyboardEventHandler.IsActionTriggered(e, "刷新", "F5"))
             {
                 Refresh_Click(null, null);
                 e.Handled = true;
@@ -107,7 +117,7 @@ namespace YiboFile
             }
 
             // Alt+Enter - 属性
-            if (e.Key == Key.Enter && Keyboard.Modifiers == ModifierKeys.Alt)
+            if (_keyboardEventHandler.IsActionTriggered(e, "属性", "Alt+Enter"))
             {
                 ShowProperties_Click(null, null);
                 e.Handled = true;
@@ -115,7 +125,7 @@ namespace YiboFile
             }
 
             // Backspace - 返回上一级
-            if (e.Key == Key.Back)
+            if (_keyboardEventHandler.IsActionTriggered(e, "返回上级目录", "Backspace"))
             {
                 NavigateBack_Click(null, null);
                 e.Handled = true;

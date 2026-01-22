@@ -577,18 +577,19 @@ namespace YiboFile.Controls.Converters
                                 {
                                     try
                                     {
+                                        // 先获取原始尺寸图像，不在创建时强制缩放
                                         var bitmapSource = Imaging.CreateBitmapSourceFromHBitmap(
                                             hBitmap,
                                             IntPtr.Zero,
                                             System.Windows.Int32Rect.Empty,
-                                            BitmapSizeOptions.FromWidthAndHeight(size, size));
+                                            BitmapSizeOptions.FromEmptyOptions()); // 使用原始尺寸
 
                                         // 设置高质量渲染选项
                                         RenderOptions.SetBitmapScalingMode(bitmapSource, BitmapScalingMode.HighQuality);
                                         RenderOptions.SetCachingHint(bitmapSource, CachingHint.Cache);
 
-                                        // 如果获取的尺寸与目标尺寸不同，使用高质量缩放
-                                        if (Math.Abs(bitmapSource.PixelWidth - size) > 1 || Math.Abs(bitmapSource.PixelHeight - size) > 1)
+                                        // 始终进行高质量缩放到目标尺寸
+                                        if (bitmapSource.PixelWidth != size || bitmapSource.PixelHeight != size)
                                         {
                                             var scaleTransform = new ScaleTransform(
                                                 (double)size / bitmapSource.PixelWidth,
@@ -608,7 +609,7 @@ namespace YiboFile.Controls.Converters
                                             return scaledBitmap;
                                         }
 
-                                        // 如果尺寸正好（误差在1px内），直接使用
+                                        // 如果尺寸正好，直接使用
                                         bitmapSource.Freeze();
 
                                         // 释放原始位图
@@ -753,19 +754,19 @@ namespace YiboFile.Controls.Converters
                                         {
                                             try
                                             {
+                                                // 先获取原始尺寸图像，不在创建时强制缩放
                                                 var bitmapSource = Imaging.CreateBitmapSourceFromHBitmap(
                                                     hBitmap,
                                                     IntPtr.Zero,
                                                     System.Windows.Int32Rect.Empty,
-                                                    BitmapSizeOptions.FromWidthAndHeight(targetSize, targetSize));
+                                                    BitmapSizeOptions.FromEmptyOptions()); // 使用原始尺寸
 
                                                 // 设置高质量渲染选项
                                                 RenderOptions.SetBitmapScalingMode(bitmapSource, BitmapScalingMode.HighQuality);
                                                 RenderOptions.SetCachingHint(bitmapSource, CachingHint.Cache);
 
-                                                // 强制缩放到目标尺寸，确保所有格式（包括Office文档）都使用相同大小
-                                                // 即使获取的尺寸与目标尺寸相同，也检查并确保一致性
-                                                if (Math.Abs(bitmapSource.PixelWidth - targetSize) > 1 || Math.Abs(bitmapSource.PixelHeight - targetSize) > 1)
+                                                // 始终进行高质量缩放到目标尺寸
+                                                if (bitmapSource.PixelWidth != targetSize || bitmapSource.PixelHeight != targetSize)
                                                 {
                                                     var scaleTransform = new ScaleTransform(
                                                         (double)targetSize / bitmapSource.PixelWidth,
@@ -785,7 +786,7 @@ namespace YiboFile.Controls.Converters
                                                     return scaledBitmap;
                                                 }
 
-                                                // 如果尺寸正好（误差在1px内），直接使用
+                                                // 如果尺寸正好，直接使用
                                                 bitmapSource.Freeze();
 
                                                 // 释放原始位图
@@ -883,17 +884,18 @@ namespace YiboFile.Controls.Converters
                                 {
                                     using (Icon icon = Icon.FromHandle(hIcon))
                                     {
+                                        // 先获取完整尺寸的图标（不在创建时缩放，避免质量损失）
                                         var bitmapSource = Imaging.CreateBitmapSourceFromHIcon(
                                             icon.Handle,
                                             System.Windows.Int32Rect.Empty,
-                                            BitmapSizeOptions.FromWidthAndHeight(targetSize, targetSize));
+                                            BitmapSizeOptions.FromEmptyOptions()); // 使用原始尺寸
 
                                         // 设置高质量渲染选项
                                         RenderOptions.SetBitmapScalingMode(bitmapSource, BitmapScalingMode.HighQuality);
                                         RenderOptions.SetCachingHint(bitmapSource, CachingHint.Cache);
 
-                                        // 强制缩放到目标尺寸，确保所有格式（包括Office文档）都使用相同大小
-                                        if (Math.Abs(bitmapSource.PixelWidth - targetSize) > 1 || Math.Abs(bitmapSource.PixelHeight - targetSize) > 1)
+                                        // 始终进行高质量缩放到目标尺寸
+                                        if (bitmapSource.PixelWidth != targetSize || bitmapSource.PixelHeight != targetSize)
                                         {
                                             var scaleTransform = new ScaleTransform(
                                                 (double)targetSize / bitmapSource.PixelWidth,
@@ -907,7 +909,7 @@ namespace YiboFile.Controls.Converters
                                             return scaledBitmap;
                                         }
 
-                                        // 如果尺寸正好（误差在1px内），直接使用
+                                        // 如果尺寸正好，直接使用
                                         bitmapSource.Freeze();
                                         return bitmapSource;
                                     }

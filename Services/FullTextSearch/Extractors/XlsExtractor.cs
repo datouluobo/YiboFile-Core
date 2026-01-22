@@ -61,9 +61,9 @@ namespace YiboFile.Services.FullTextSearch.Extractors
 
                 return sb.ToString();
             }
-            catch (Exception ex)
+            catch
             {
-                System.Diagnostics.Debug.WriteLine($"[XlsExtractor] Error extracting {filePath}: {ex.Message}");
+                // 静默处理：旧版Excel格式、损坏文件、公式错误等情况是预期的
                 return string.Empty;
             }
         }

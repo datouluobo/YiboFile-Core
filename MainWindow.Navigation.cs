@@ -188,11 +188,11 @@ namespace YiboFile
                     }
                     else if (protocol.Type == ProtocolType.Tag)
                     {
-                        // Handle Tag Protocol
-                        int.TryParse(protocol.TargetPath, out int tagId);
-                        if (tagId > 0 && _tagService != null)
+                        // Handle Tag Protocol - TargetPath is TAG NAME (e.g., "111" from "tag://111")
+                        var tagName = protocol.TargetPath;
+                        if (!string.IsNullOrEmpty(tagName))
                         {
-                            var files = await Task.Run(() => _tagService.GetFilesByTag(tagId));
+                            var files = await Task.Run(() => DatabaseManager.GetFilesByTagName(tagName));
 
                             // Update UI on background priority
                             await Dispatcher.BeginInvoke(new Action(() =>
@@ -205,23 +205,34 @@ namespace YiboFile
                                     {
                                         if (File.Exists(file))
                                         {
+                                            var fileInfo = new FileInfo(file);
                                             _currentFiles.Add(new FileSystemItem
                                             {
                                                 Path = file,
                                                 Name = System.IO.Path.GetFileName(file),
                                                 IsDirectory = false,
-                                                ModifiedDateTime = File.GetLastWriteTime(file),
-                                                SizeBytes = new FileInfo(file).Length
+                                                ModifiedDateTime = fileInfo.LastWriteTime,
+                                                ModifiedDate = fileInfo.LastWriteTime.ToString("yyyy-MM-dd"),
+                                                CreatedDateTime = fileInfo.CreationTime,
+                                                CreatedTime = FileSystemItem.FormatTimeAgo(fileInfo.CreationTime),
+                                                SizeBytes = fileInfo.Length,
+                                                Size = _fileListService.FormatFileSize(fileInfo.Length),
+                                                Type = !string.IsNullOrEmpty(fileInfo.Extension) ? fileInfo.Extension : "文件"
                                             });
                                         }
                                         else if (Directory.Exists(file))
                                         {
+                                            var dirInfo = new DirectoryInfo(file);
                                             _currentFiles.Add(new FileSystemItem
                                             {
                                                 Path = file,
                                                 Name = System.IO.Path.GetFileName(file),
                                                 IsDirectory = true,
-                                                ModifiedDateTime = Directory.GetLastWriteTime(file)
+                                                ModifiedDateTime = dirInfo.LastWriteTime,
+                                                ModifiedDate = dirInfo.LastWriteTime.ToString("yyyy-MM-dd"),
+                                                CreatedDateTime = dirInfo.CreationTime,
+                                                CreatedTime = FileSystemItem.FormatTimeAgo(dirInfo.CreationTime),
+                                                Type = "文件夹"
                                             });
                                         }
                                     }

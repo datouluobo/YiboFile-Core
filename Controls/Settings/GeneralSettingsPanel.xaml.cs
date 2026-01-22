@@ -483,13 +483,8 @@ namespace YiboFile.Controls.Settings
                 (s, e) => ExportFileAndExecute(_viewModel.ExportAllCommand, "all.zip"),
                 (s, e) => ImportFileAndExecute(_viewModel.ImportAllCommand)));
 
-            var scrollViewer = new ScrollViewer
-            {
-                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-                Content = stackPanel
-            };
-
-            Content = scrollViewer;
+            // 不使用内部 ScrollViewer，外部 SettingsPanelControl 已有 ScrollViewer 处理滚动
+            Content = stackPanel;
         }
 
         private void InitializeBindings()
