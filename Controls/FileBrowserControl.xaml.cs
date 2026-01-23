@@ -8,6 +8,7 @@ using System.Windows.Media;
 using System.Windows.Media.Effects;
 using YiboFile.Controls.Converters;
 using YiboFile.Models;
+using YiboFile.Services.Favorite;
 using YiboFile.Services.Search;
 
 namespace YiboFile.Controls
@@ -574,6 +575,14 @@ namespace YiboFile.Controls
             var separator2 = new Separator { Name = "Separator2" };
             cm.Items.Add(separator2);
 
+            // 添加到收藏
+            MenuItem addFavoriteItem = new MenuItem { Header = "⭐ 添加到收藏", Name = "AddFavoriteItem" };
+            cm.Items.Add(addFavoriteItem);
+
+            // 添加到库 - 仅对文件夹显示
+            MenuItem addToLibraryItem = new MenuItem { Header = "添加到库", Name = "AddToLibraryItem" };
+            cm.Items.Add(addToLibraryItem);
+
             // 添加标签 (仅当TagTrain可用时显示) - 使用子菜单展示所有标签
             MenuItem addTagItem = null;
             if (App.IsTagTrainAvailable)
@@ -696,6 +705,176 @@ namespace YiboFile.Controls
                     }
                 }
 
+                // 添加到收藏项可见性和动态子菜单
+                addFavoriteItem.Visibility = hasSelection ? Visibility.Visible : Visibility.Collapsed;
+                if (hasSelection)
+                {
+                    addFavoriteItem.Items.Clear();
+                    try
+                    {
+                        var groups = DatabaseManager.GetAllFavoriteGroups();
+                        var selectedItemsList = FileList?.SelectedItems?.Cast<FileSystemItem>().ToList();
+
+                        if (groups != null && groups.Count > 0)
+                        {
+                            foreach (var group in groups)
+                            {
+                                var groupMenuItem = new MenuItem
+                                {
+                                    Header = group.Name,
+                                    Tag = group.Id
+                                };
+                                groupMenuItem.Click += (sender, args) =>
+                                {
+                                    var mi = (MenuItem)sender;
+                                    var groupId = (int)mi.Tag;
+                                    if (selectedItemsList != null)
+                                    {
+                                        var favoriteService = App.ServiceProvider?.GetService(typeof(FavoriteService)) as FavoriteService;
+                                        favoriteService?.AddFavorite(selectedItemsList, groupId);
+                                    }
+                                };
+                                addFavoriteItem.Items.Add(groupMenuItem);
+                            }
+
+                            addFavoriteItem.Items.Add(new Separator());
+                        }
+
+                        var createGroupItem = new MenuItem { Header = "+ 新建分组..." };
+                        createGroupItem.Click += (sender, args) =>
+                        {
+                            var dialog = new PathInputDialog("请输入新分组名称：");
+                            dialog.InputText = "新分组";
+                            var owner = Window.GetWindow(this);
+                            dialog.Owner = owner;
+                            if (dialog.ShowDialog() == true)
+                            {
+                                var name = dialog.InputText?.Trim();
+                                if (!string.IsNullOrEmpty(name))
+                                {
+                                    int newGroupId = DatabaseManager.CreateFavoriteGroup(name);
+                                    if (selectedItemsList != null)
+                                    {
+                                        var favoriteService = App.ServiceProvider?.GetService(typeof(FavoriteService)) as FavoriteService;
+                                        favoriteService?.AddFavorite(selectedItemsList, newGroupId);
+                                    }
+                                }
+                            }
+                        };
+                        addFavoriteItem.Items.Add(createGroupItem);
+                    }
+                    catch
+                    {
+                        addFavoriteItem.Items.Add(new MenuItem { Header = "加载失败", IsEnabled = false });
+                    }
+                }
+
+                // 添加到库项可见性和动态子菜单（仅对文件夹显示）
+                bool hasFolderSelection = hasSelection && FileList.SelectedItems.Cast<FileSystemItem>().Any(item => item.IsDirectory);
+                addToLibraryItem.Visibility = hasFolderSelection ? Visibility.Visible : Visibility.Collapsed;
+
+                if (hasFolderSelection)
+                {
+                    addToLibraryItem.Items.Clear();
+
+                    try
+                    {
+                        var allLibraries = DatabaseManager.GetAllLibraries();
+                        var selectedFolders = FileList.SelectedItems.Cast<FileSystemItem>().Where(item => item.IsDirectory).ToList();
+
+                        if (allLibraries != null && allLibraries.Count > 0)
+                        {
+                            foreach (var library in allLibraries)
+                            {
+                                var libraryMenuItem = new MenuItem
+                                {
+                                    IsCheckable = true,
+                                    StaysOpenOnClick = true,
+                                    Tag = library.Id,
+                                    Header = library.Name
+                                };
+
+                                // 判断是否勾选：如果所有选中的文件夹都已在该库中，则勾选
+                                bool allInLibrary = selectedFolders.All(folder =>
+                                    library.Paths != null && library.Paths.Contains(folder.Path));
+                                libraryMenuItem.IsChecked = allInLibrary;
+
+                                libraryMenuItem.Click += (sender, args) =>
+                                {
+                                    var mi = (MenuItem)sender;
+                                    var libId = (int)mi.Tag;
+                                    bool shouldAdd = mi.IsChecked;
+
+                                    foreach (var folder in selectedFolders)
+                                    {
+                                        if (!string.IsNullOrEmpty(folder.Path))
+                                        {
+                                            if (shouldAdd)
+                                                DatabaseManager.AddLibraryPath(libId, folder.Path);
+                                            else
+                                                DatabaseManager.RemoveLibraryPath(libId, folder.Path);
+                                        }
+                                    }
+                                };
+
+                                addToLibraryItem.Items.Add(libraryMenuItem);
+                            }
+                        }
+
+                        // 添加分隔符和"新建库..."选项
+                        if (allLibraries != null && allLibraries.Count > 0)
+                        {
+                            addToLibraryItem.Items.Add(new Separator());
+                        }
+
+                        var newLibraryItem = new MenuItem { Header = "新建库..." };
+                        newLibraryItem.Click += (sender, args) =>
+                        {
+                            var dialog = new YiboFile.Controls.Dialogs.InputDialog("新建库", "请输入库名称:");
+                            if (dialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(dialog.InputText))
+                            {
+                                var libService = App.ServiceProvider?.GetService(typeof(YiboFile.Services.LibraryService)) as YiboFile.Services.LibraryService;
+                                if (libService != null)
+                                {
+                                    // 创建新库并添加所有选中的文件夹
+                                    int newLibId = libService.AddLibrary(dialog.InputText);
+                                    if (newLibId > 0)
+                                    {
+                                        foreach (var folder in selectedFolders)
+                                        {
+                                            if (!string.IsNullOrEmpty(folder.Path))
+                                            {
+                                                DatabaseManager.AddLibraryPath(newLibId, folder.Path);
+                                            }
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    // 直接使用 DatabaseManager
+                                    int newLibId = DatabaseManager.AddLibrary(dialog.InputText);
+                                    if (newLibId > 0)
+                                    {
+                                        foreach (var folder in selectedFolders)
+                                        {
+                                            if (!string.IsNullOrEmpty(folder.Path))
+                                            {
+                                                DatabaseManager.AddLibraryPath(newLibId, folder.Path);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        };
+                        addToLibraryItem.Items.Add(newLibraryItem);
+                    }
+                    catch
+                    {
+                        addToLibraryItem.Items.Clear();
+                        var errorItem = new MenuItem { Header = "加载失败", IsEnabled = false };
+                        addToLibraryItem.Items.Add(errorItem);
+                    }
+                }
 
                 // 始终可用的操作
                 pasteItem.Visibility = Visibility.Visible;

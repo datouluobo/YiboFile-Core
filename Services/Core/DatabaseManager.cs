@@ -252,6 +252,53 @@ namespace YiboFile
             {
                 // Ignore
             }
+
+            // 数据库迁移：收藏分组支持
+            try
+            {
+                // 1. 创建收藏分组表
+                var createFavoriteGroupsTable = @"
+                    CREATE TABLE IF NOT EXISTS FavoriteGroups (
+                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        Name TEXT NOT NULL UNIQUE,
+                        SortOrder INTEGER DEFAULT 0,
+                        CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )";
+                command.CommandText = createFavoriteGroupsTable;
+                command.ExecuteNonQuery();
+
+                // 2. 检查 Favorites 表是否有 GroupId 列
+                command.CommandText = "SELECT COUNT(*) FROM pragma_table_info('Favorites') WHERE name='GroupId'";
+                var hasGroupId = Convert.ToInt32(command.ExecuteScalar()) > 0;
+
+                if (!hasGroupId)
+                {
+                    // 添加 GroupId 列
+                    command.CommandText = "ALTER TABLE Favorites ADD COLUMN GroupId INTEGER DEFAULT 1";
+                    command.ExecuteNonQuery();
+
+                    // 初始化默认分组 (1: 文件夹, 2: 文件)
+                    // 使用显式事务确保一致性
+                    command.CommandText = "SELECT COUNT(*) FROM FavoriteGroups WHERE Id IN (1, 2)";
+                    if (Convert.ToInt32(command.ExecuteScalar()) == 0)
+                    {
+                        command.CommandText = "INSERT OR IGNORE INTO FavoriteGroups (Id, Name, SortOrder) VALUES (1, '文件夹', 0)";
+                        command.ExecuteNonQuery();
+                        command.CommandText = "INSERT OR IGNORE INTO FavoriteGroups (Id, Name, SortOrder) VALUES (2, '文件', 1)";
+                        command.ExecuteNonQuery();
+                    }
+
+                    // 迁移现有数据：根据 IsDirectory 分配到 文件夹(1) 或 文件(2) 分组
+                    command.CommandText = "UPDATE Favorites SET GroupId = 1 WHERE IsDirectory = 1";
+                    command.ExecuteNonQuery();
+                    command.CommandText = "UPDATE Favorites SET GroupId = 2 WHERE IsDirectory = 0";
+                    command.ExecuteNonQuery();
+                }
+            }
+            catch
+            {
+                // 记录错误但不中断初始化
+            }
         }
 
 
@@ -877,17 +924,18 @@ namespace YiboFile
 
         #region 收藏功能
 
-        public static void AddFavorite(string path, bool isDirectory, string displayName = null)
+        public static void AddFavorite(string path, bool isDirectory, string displayName = null, int groupId = 1)
         {
             using var connection = new SqliteConnection(_connectionString);
             connection.Open();
             using var command = connection.CreateCommand();
             command.CommandText = @"
-                INSERT OR REPLACE INTO Favorites (Path, DisplayName, IsDirectory, CreatedAt) 
-                VALUES (@path, @displayName, @isDirectory, CURRENT_TIMESTAMP)";
+                INSERT OR REPLACE INTO Favorites (Path, DisplayName, IsDirectory, GroupId, CreatedAt) 
+                VALUES (@path, @displayName, @isDirectory, @groupId, CURRENT_TIMESTAMP)";
             command.Parameters.AddWithValue("@path", path);
             command.Parameters.AddWithValue("@displayName", displayName ?? (object)DBNull.Value);
             command.Parameters.AddWithValue("@isDirectory", isDirectory ? 1 : 0);
+            command.Parameters.AddWithValue("@groupId", groupId);
             command.ExecuteNonQuery();
         }
 
@@ -918,11 +966,10 @@ namespace YiboFile
             using var connection = new SqliteConnection(_connectionString);
             connection.Open();
             using var command = connection.CreateCommand();
-            // 文件夹在上（IsDirectory=1），文件在下（IsDirectory=0），按SortOrder和创建时间排序
             command.CommandText = @"
-                SELECT Id, Path, DisplayName, IsDirectory, CreatedAt, SortOrder 
+                SELECT Id, Path, DisplayName, IsDirectory, CreatedAt, SortOrder, GroupId 
                 FROM Favorites 
-                ORDER BY IsDirectory DESC, SortOrder ASC, CreatedAt DESC";
+                ORDER BY SortOrder ASC, CreatedAt DESC";
             using var reader = command.ExecuteReader();
             while (reader.Read())
             {
@@ -933,7 +980,8 @@ namespace YiboFile
                     DisplayName = reader.IsDBNull(2) ? null : reader.GetString(2),
                     IsDirectory = reader.GetInt32(3) == 1,
                     CreatedAt = reader.GetDateTime(4),
-                    SortOrder = reader.GetInt32(5)
+                    SortOrder = reader.GetInt32(5),
+                    GroupId = reader.GetInt32(6)
                 });
             }
             return favorites;
@@ -949,6 +997,75 @@ namespace YiboFile
             command.Parameters.AddWithValue("@id", favoriteId);
             command.ExecuteNonQuery();
         }
+
+        #region 收藏分组管理
+
+        public static List<FavoriteGroup> GetAllFavoriteGroups()
+        {
+            var result = new List<FavoriteGroup>();
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "SELECT Id, Name, SortOrder, CreatedAt FROM FavoriteGroups ORDER BY SortOrder ASC, CreatedAt ASC";
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                result.Add(new FavoriteGroup
+                {
+                    Id = reader.GetInt32(0),
+                    Name = reader.GetString(1),
+                    SortOrder = reader.GetInt32(2),
+                    CreatedAt = reader.GetDateTime(3)
+                });
+            }
+            return result;
+        }
+
+        public static int CreateFavoriteGroup(string name)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "INSERT INTO FavoriteGroups (Name) VALUES (@name); SELECT last_insert_rowid();";
+            command.Parameters.AddWithValue("@name", name);
+            return Convert.ToInt32(command.ExecuteScalar());
+        }
+
+        public static void RenameFavoriteGroup(int id, string name)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "UPDATE FavoriteGroups SET Name = @name WHERE Id = @id";
+            command.Parameters.AddWithValue("@name", name);
+            command.Parameters.AddWithValue("@id", id);
+            command.ExecuteNonQuery();
+        }
+
+        public static void DeleteFavoriteGroup(int id)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            using var command = connection.CreateCommand();
+            // 如果删除分组，将其中的收藏移动到默认分组(1) 或者直接删除？
+            // 建议移动到默认分组以防意外丢失
+            command.CommandText = "UPDATE Favorites SET GroupId = 1 WHERE GroupId = @id; DELETE FROM FavoriteGroups WHERE Id = @id AND Id != 1;";
+            command.Parameters.AddWithValue("@id", id);
+            command.ExecuteNonQuery();
+        }
+
+        public static void UpdateFavoriteGroupSortOrder(int id, int order)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "UPDATE FavoriteGroups SET SortOrder = @order WHERE Id = @id";
+            command.Parameters.AddWithValue("@order", order);
+            command.Parameters.AddWithValue("@id", id);
+            command.ExecuteNonQuery();
+        }
+
+        #endregion
 
         #endregion
 
@@ -1260,11 +1377,20 @@ namespace YiboFile
     public class Favorite
     {
         public int Id { get; set; }
+        public int GroupId { get; set; }
         public string Path { get; set; }
         public string DisplayName { get; set; }
         public bool IsDirectory { get; set; }
         public DateTime CreatedAt { get; set; }
         public int SortOrder { get; set; }
+    }
+
+    public class FavoriteGroup
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public int SortOrder { get; set; }
+        public DateTime CreatedAt { get; set; }
     }
 }
 

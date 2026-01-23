@@ -18,38 +18,13 @@
         <Grid Name="NavContentGrid" Grid.Row="0">
             <!-- 路径导航内容 -->
             <!-- 路径导航内容 -->
+            <!-- 路径面板 -->
             <Grid Name="NavPathContent" Margin="8">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-
-                <!-- 位置 Header -->
-                <Grid Grid.Row="0" Margin="0,0,0,8">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    
-                    <!-- 占位 Column 0 -->
-
-                    <TextBlock Grid.Column="1" Text="位置" FontWeight="Bold" FontSize="14" VerticalAlignment="Center"/>
-                    
-                    <Button Grid.Column="2" Name="PathManageBtn"
-                            Content="{DynamicResource Icon_Settings}"
-                            FontFamily="{DynamicResource IconFontFamily}"
-                            Width="30" Height="30"
-                            Style="{StaticResource ModernButtonStyle}"
-                            Background="Transparent"
-                            ToolTip="路径设置"
-                            Margin="0,0,-5,0"
-                            Padding="0"
-                            VerticalContentAlignment="Center"
-                            HorizontalContentAlignment="Center"/>
-                </Grid>
-
-                <Grid Grid.Row="1">
+                <!-- 基础层：路径平铺列表 -->
+                <!-- 基础层：路径平铺列表 -->
+                
+                <!-- 基础层：路径可滚动内容 -->
+                <Grid Margin="0,8,0,0">
                 <Grid.Resources>
                     <!-- 递归数据模板 -->
                     <HierarchicalDataTemplate x:Key="FolderTemplate" ItemsSource="{Binding Children}">
@@ -316,8 +291,13 @@
                 <!-- 使用覆盖式 ScrollViewer 包裹整个路径导航区域 -->
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Style="{StaticResource OverlayScrollViewerStyle}">
                     <StackPanel Name="NavSectionsPanel">
-                        <!-- 驱动器列表 (Tree View) -->
-                        <Expander Name="DrivesExpander" Header="驱动器" Margin="0,0,0,8" IsExpanded="True">
+                        <!-- 驱动器列表 (整体上移以对齐管理按钮, 内部对齐保持默认) -->
+                        <Expander Name="DrivesExpander" Margin="0,-8,0,4" IsExpanded="True" FocusVisualStyle="{x:Null}">
+                             <Expander.Header>
+                                 <Grid Height="32">
+                                     <TextBlock Text="驱动器" FontWeight="Bold" FontSize="15" VerticalAlignment="Center"/>
+                                 </Grid>
+                             </Expander.Header>
                             <TreeView Name="DrivesTreeView" 
                                       Margin="2"
                                       BorderThickness="0"
@@ -331,7 +311,12 @@
                         </Expander>
         
                         <!-- 快速访问 -->
-                        <Expander Name="QuickAccessExpander" Header="快速访问" Margin="0,0,0,8" IsExpanded="True">
+                        <Expander Name="QuickAccessExpander" Margin="0,-8,0,4" IsExpanded="True" FocusVisualStyle="{x:Null}">
+                             <Expander.Header>
+                                 <Grid Height="32">
+                                     <TextBlock Text="快速访问" FontWeight="Bold" FontSize="15" VerticalAlignment="Center"/>
+                                 </Grid>
+                             </Expander.Header>
                             <ListBox Name="QuickAccessListBox" 
                                      Margin="2,0,2,2"
                                      BorderThickness="0"
@@ -355,74 +340,65 @@
                             </ListBox>
                         </Expander>
                         
-                        <!-- 文件夹收藏 -->
-                        <Expander Name="FolderFavoritesExpander" IsExpanded="True" Margin="0,0,0,8">
-                            <Expander.Header>
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="文件夹收藏" VerticalAlignment="Center"/>
-                                    <Button Content="{DynamicResource Icon_Add}" FontFamily="{DynamicResource IconFontFamily}" Name="AddFolderFavoriteButton" Width="18" Height="18" FontSize="12"
-                                            Margin="8,0,0,0" Padding="0" VerticalAlignment="Center"
-                                            ToolTip="添加文件夹收藏" Background="Transparent" BorderThickness="0"/>
-                                </StackPanel>
-                            </Expander.Header>
-                            <ListBox Name="FolderFavoritesListBox" 
-                                     Margin="2,0,2,2"
-                                     BorderThickness="0"
-                                     Background="Transparent"
-                                     SelectionMode="Single"
-                                     ItemContainerStyle="{StaticResource NavListBoxItemStyle}"
-                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                     ScrollViewer.VerticalScrollBarVisibility="Disabled">
-                                <ListBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="{Binding IconKey, Converter={StaticResource ResourceKeyConverter}}" 
-                                                       FontFamily="{DynamicResource IconFontFamily}" 
-                                                       Margin="0,0,8,0" 
-                                                       VerticalAlignment="Center"
-                                                       FontSize="16"/>
-                                            <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center"/>
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </ListBox.ItemTemplate>
-                            </ListBox>
-                        </Expander>
-
-                        <!-- 文件收藏 -->
-                        <Expander Name="FileFavoritesExpander" IsExpanded="True" Margin="0,0,0,8">
-                            <Expander.Header>
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="文件收藏" VerticalAlignment="Center"/>
-                                    <Button Content="{DynamicResource Icon_Add}" FontFamily="{DynamicResource IconFontFamily}" Name="AddFileFavoriteButton" Width="18" Height="18" FontSize="12"
-                                            Margin="8,0,0,0" Padding="0" VerticalAlignment="Center"
-                                            ToolTip="添加文件收藏" Background="Transparent" BorderThickness="0"/>
-                                </StackPanel>
-                            </Expander.Header>
-                            <ListBox Name="FileFavoritesListBox" 
-                                     Margin="2,0,2,2"
-                                     BorderThickness="0"
-                                     Background="Transparent"
-                                     SelectionMode="Single"
-                                     ItemContainerStyle="{StaticResource NavListBoxItemStyle}"
-                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                     ScrollViewer.VerticalScrollBarVisibility="Disabled">
-                                <ListBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="{Binding IconKey, Converter={StaticResource ResourceKeyConverter}}" 
-                                                       FontFamily="{DynamicResource IconFontFamily}" 
-                                                       Margin="0,0,8,0" 
-                                                       VerticalAlignment="Center"
-                                                       FontSize="16"/>
-                                            <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center"/>
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </ListBox.ItemTemplate>
-                            </ListBox>
-                        </Expander>
+                        <!-- 收藏分组 (动态 ItemControl) -->
+                        <ItemsControl Name="FavoritesGroupsItemsControl" Margin="0,0,0,8">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Expander IsExpanded="True" Margin="0,-2,0,4" FocusVisualStyle="{x:Null}">
+                                        <Expander.Header>
+                                            <Grid Height="32" Margin="0,-6,0,0">
+                                                <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="15" VerticalAlignment="Center"/>
+                                            </Grid>
+                                        </Expander.Header>
+                                        <Expander.ContextMenu>
+                                            <ContextMenu>
+                                                <MenuItem Header="重命名分组" Tag="{Binding}" Click="RenameFavoriteGroup_Click"/>
+                                                <MenuItem Header="删除分组" Tag="{Binding}" Click="DeleteFavoriteGroup_Click"/>
+                                            </ContextMenu>
+                                        </Expander.ContextMenu>
+                                        <ListBox ItemsSource="{Binding Items}" 
+                                                 Margin="2,0,2,2"
+                                                 BorderThickness="0"
+                                                 Background="Transparent"
+                                                 SelectionMode="Single"
+                                                 ItemContainerStyle="{StaticResource NavListBoxItemStyle}"
+                                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                                 ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                                 Loaded="FavoriteListBox_Loaded">
+                                            <ListBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="{Binding IconKey, Converter={StaticResource ResourceKeyConverter}}" 
+                                                                   FontFamily="{DynamicResource IconFontFamily}" 
+                                                                   Margin="0,0,8,0" 
+                                                                   VerticalAlignment="Center"
+                                                                   FontSize="16"/>
+                                                        <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </ListBox.ItemTemplate>
+                                        </ListBox>
+                                    </Expander>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
                     </StackPanel>
                 </ScrollViewer>
-            </Grid>
+                </Grid>
+ 
+                <!-- 对齐首行的管理按钮 (Overlay 模式，Margin用于匹配 32px Header) -->
+                <Button x:Name="PathManageBtn" 
+                        Content="{DynamicResource Icon_Settings}" 
+                        FontFamily="{DynamicResource IconFontFamily}"
+                        Style="{StaticResource ModernButtonStyle}" 
+                        Width="24" Height="24" Padding="0" 
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Top"
+                        Margin="0,4,-5,0"
+                        ToolTip="导航设置"
+                        Background="Transparent"
+                        VerticalContentAlignment="Center"
+                        HorizontalContentAlignment="Center"/>
             </Grid>
             
             <!-- 库导航内容 -->
@@ -433,21 +409,18 @@
                 </Grid.RowDefinitions>
 
                 <!-- 库 Header -->
-                <Grid Grid.Row="0" Margin="0,0,0,8">
+                <Grid Grid.Row="0" Height="32">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     
-                    <!-- 占位 Column 0 (用于对齐) -->
+                    <TextBlock Grid.Column="0" Text="库" FontWeight="Bold" FontSize="15" VerticalAlignment="Center"/>
                     
-                    <TextBlock Grid.Column="1" Text="库" FontWeight="Bold" FontSize="14" VerticalAlignment="Center"/>
-                    
-                    <Button Grid.Column="2" Name="LibraryManageBtn"
+                    <Button Grid.Column="1" Name="LibraryManageBtn"
                             Content="{DynamicResource Icon_Settings}"
                             FontFamily="{DynamicResource IconFontFamily}"
-                            Width="30" Height="30"
+                            Width="24" Height="24"
                             Style="{StaticResource ModernButtonStyle}"
                             Background="Transparent"
                             ToolTip="管理库"

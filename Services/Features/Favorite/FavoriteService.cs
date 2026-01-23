@@ -10,6 +10,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using YiboFile.Services.Core;
 using YiboFile.Controls;
+using YiboFile;
 
 namespace YiboFile.Services.Favorite
 {
@@ -76,7 +77,90 @@ namespace YiboFile.Services.Favorite
         }
 
         /// <summary>
-        /// 加载收藏列表 (分离文件夹和文件)
+        /// 收藏分组显示项
+        /// </summary>
+        public class FavoriteGroupItem
+        {
+            public int Id { get; set; }
+            public string Name { get; set; }
+            public List<FavoriteItem> Items { get; set; }
+        }
+
+        /// <summary>
+        /// 加载收藏列表 (按分组加载)
+        /// </summary>
+        public void LoadFavorites(ItemsControl groupsControl)
+        {
+            if (groupsControl == null) return;
+
+            _dispatcher.Invoke(() =>
+            {
+                try
+                {
+                    var allFavorites = DatabaseManager.GetAllFavorites();
+                    var groups = DatabaseManager.GetAllFavoriteGroups();
+
+                    // 分组同名项
+                    var nameGroups = allFavorites.GroupBy(f =>
+                    {
+                        string name = f.DisplayName ?? Path.GetFileName(f.Path);
+                        if (string.IsNullOrEmpty(name)) name = f.Path;
+                        return name;
+                    }).ToList();
+
+                    var displayGroups = groups.Select(group =>
+                    {
+                        var groupFavorites = allFavorites.Where(f => f.GroupId == group.Id).OrderBy(f => f.SortOrder).ToList();
+
+                        var items = groupFavorites.Select(favorite =>
+                        {
+                            string iconKey = favorite.IsDirectory ? "Icon_Folder" : "Icon_Document";
+                            string displayName = favorite.DisplayName ?? Path.GetFileName(favorite.Path);
+                            if (string.IsNullOrEmpty(displayName))
+                                displayName = favorite.Path;
+
+                            // 同名项区分逻辑
+                            var sameNameGroup = nameGroups.FirstOrDefault(g => (favorite.DisplayName ?? Path.GetFileName(favorite.Path)) == g.Key);
+                            if (sameNameGroup != null && sameNameGroup.Count() > 1)
+                            {
+                                var parentDir = Path.GetDirectoryName(favorite.Path);
+                                if (!string.IsNullOrEmpty(parentDir))
+                                {
+                                    var parentName = Path.GetFileName(parentDir);
+                                    if (!string.IsNullOrEmpty(parentName))
+                                        displayName = $"{displayName} ({parentName})";
+                                }
+                            }
+
+                            return new FavoriteItem
+                            {
+                                Favorite = favorite,
+                                IconKey = iconKey,
+                                DisplayName = displayName,
+                                Path = favorite.Path
+                            };
+                        }).ToList();
+
+                        return new FavoriteGroupItem
+                        {
+                            Id = group.Id,
+                            Name = group.Name,
+                            Items = items
+                        };
+                    }).ToList();
+
+                    groupsControl.ItemsSource = displayGroups;
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error loading favorites: {ex.Message}");
+                    groupsControl.ItemsSource = null;
+                }
+            });
+        }
+
+        /// <summary>
+        /// 加载旧版收藏列表 (兼容逻辑，逐步淘汰)
         /// </summary>
         public void LoadFavorites(ListBox folderFavoritesListBox, ListBox fileFavoritesListBox)
         {
@@ -165,7 +249,7 @@ namespace YiboFile.Services.Favorite
             });
         }
 
-        private void ConfigureListBoxEvents(ListBox listBox)
+        public void ConfigureListBoxEvents(ListBox listBox)
         {
             // 设置选择事件（单击进入）
             listBox.SelectionChanged -= FavoritesListBox_SelectionChanged;
@@ -188,7 +272,7 @@ namespace YiboFile.Services.Favorite
         /// <summary>
         /// 添加收藏
         /// </summary>
-        public void AddFavorite(List<FileSystemItem> selectedItems)
+        public void AddFavorite(List<FileSystemItem> selectedItems, int groupId = 1)
         {
             if (selectedItems == null || selectedItems.Count == 0)
             {
@@ -197,21 +281,14 @@ namespace YiboFile.Services.Favorite
             }
 
             int successCount = 0;
-            int skipCount = 0;
 
             foreach (var item in selectedItems)
             {
                 try
                 {
-                    // 检查是否已收藏
-                    if (DatabaseManager.IsFavorite(item.Path))
-                    {
-                        skipCount++;
-                        continue;
-                    }
-
+                    // 注意：现在支持移动分组，所以不检查是否已收藏，而是直接 AddFavorite (INSERT OR REPLACE)
                     string displayName = item.Name;
-                    DatabaseManager.AddFavorite(item.Path, item.IsDirectory, displayName);
+                    DatabaseManager.AddFavorite(item.Path, item.IsDirectory, displayName, groupId);
                     successCount++;
                 }
                 catch (Exception ex)
@@ -226,6 +303,37 @@ namespace YiboFile.Services.Favorite
             if (successCount > 0)
                 NotificationService.Show($"成功添加 {successCount} 个项目到收藏", NotificationType.Success);
         }
+
+        #region 分组管理方法
+
+        public List<FavoriteGroup> GetAllGroups() => DatabaseManager.GetAllFavoriteGroups();
+
+        public void CreateGroup(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return;
+            DatabaseManager.CreateFavoriteGroup(name);
+            FavoritesLoaded?.Invoke(this, EventArgs.Empty);
+        }
+
+        public void RenameGroup(int id, string name)
+        {
+            if (string.IsNullOrEmpty(name)) return;
+            DatabaseManager.RenameFavoriteGroup(id, name);
+            FavoritesLoaded?.Invoke(this, EventArgs.Empty);
+        }
+
+        public void DeleteGroup(int id)
+        {
+            if (id == 1)
+            {
+                MessageBox.Show("默认分组不能删除", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+            DatabaseManager.DeleteFavoriteGroup(id);
+            FavoritesLoaded?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
 
         #endregion
 
@@ -508,19 +616,17 @@ namespace YiboFile.Services.Favorite
         private void FavoritesListBox_Drop(object sender, DragEventArgs e)
         {
             // 检查数据格式
-            if (!e.Data.GetDataPresent("Favorite"))
-            {
-                return;
-            }
+            if (!e.Data.GetDataPresent("Favorite")) return;
 
             var draggedFavorite = e.Data.GetData("Favorite") as YiboFile.Favorite;
             if (draggedFavorite == null) return;
 
             var listBox = sender as ListBox;
-            if (listBox == null)
-            {
-                return;
-            }
+            if (listBox == null) return;
+
+            // 获取目标分组信息
+            var targetGroup = listBox.DataContext as FavoriteGroupItem;
+            if (targetGroup == null) return;
 
             // 清除所有高亮
             foreach (ListBoxItem item in FindVisualChildren<ListBoxItem>(listBox))
@@ -528,76 +634,48 @@ namespace YiboFile.Services.Favorite
                 item.Background = Brushes.Transparent;
             }
 
-            var targetItem = FindAncestor<ListBoxItem>((DependencyObject)e.OriginalSource);
-            if (targetItem == null || targetItem.DataContext == null)
+            // 情况1：跨分组拖拽
+            if (draggedFavorite.GroupId != targetGroup.Id)
             {
+                // 更新数据库中的分组 ID
+                DatabaseManager.AddFavorite(draggedFavorite.Path, draggedFavorite.IsDirectory, draggedFavorite.DisplayName, targetGroup.Id);
+                FavoritesLoaded?.Invoke(this, EventArgs.Empty);
+                _draggedFavorite = null;
+                _isDraggingFavorite = false;
+                e.Handled = true;
                 return;
             }
+
+            // 情况2：组内排序
+            var targetItem = FindAncestor<ListBoxItem>((DependencyObject)e.OriginalSource);
+            if (targetItem == null || targetItem.DataContext == null) return;
 
             var targetData = targetItem.DataContext;
             var favoriteProperty = targetData.GetType().GetProperty("Favorite");
-            if (favoriteProperty == null)
-            {
-                return;
-            }
+            if (favoriteProperty == null) return;
 
             var targetFavorite = favoriteProperty.GetValue(targetData) as YiboFile.Favorite;
-            if (targetFavorite == null || targetFavorite.Id == draggedFavorite.Id)
-            {
-                return;
-            }
+            if (targetFavorite == null || targetFavorite.Id == draggedFavorite.Id) return;
 
-            // 更新排序顺序并重新加载
-            var favorites = DatabaseManager.GetAllFavorites().ToList();
-            var draggedIndex = favorites.FindIndex(f => f.Id == draggedFavorite.Id);
-            var targetIndex = favorites.FindIndex(f => f.Id == targetFavorite.Id);
+            // 更新排序顺序
+            var allFavorites = DatabaseManager.GetAllFavorites();
+            var groupFavorites = allFavorites.Where(f => f.GroupId == targetGroup.Id).OrderBy(f => f.SortOrder).ToList();
+
+            var draggedIndex = groupFavorites.FindIndex(f => f.Id == draggedFavorite.Id);
+            var targetIndex = groupFavorites.FindIndex(f => f.Id == targetFavorite.Id);
 
             if (draggedIndex >= 0 && targetIndex >= 0 && draggedIndex != targetIndex)
             {
-                // 重新排序：移除拖拽项，插入到目标位置
-                var newOrder = new List<YiboFile.Favorite>();
-                for (int i = 0; i < favorites.Count; i++)
+                groupFavorites.RemoveAt(draggedIndex);
+                groupFavorites.Insert(targetIndex, draggedFavorite);
+
+                // 更新数据库中的 SortOrder
+                for (int i = 0; i < groupFavorites.Count; i++)
                 {
-                    if (i == draggedIndex) continue; // 跳过被拖拽的项
-                    if (i == targetIndex)
-                    {
-                        // 在目标位置插入
-                        if (draggedIndex < targetIndex)
-                        {
-                            // 向下拖拽：先插入目标项，再插入被拖拽项
-                            newOrder.Add(favorites[targetIndex]);
-                            newOrder.Add(draggedFavorite);
-                        }
-                        else
-                        {
-                            // 向上拖拽：先插入被拖拽项，再插入目标项
-                            newOrder.Add(draggedFavorite);
-                            newOrder.Add(favorites[targetIndex]);
-                        }
-                    }
-                    else
-                    {
-                        newOrder.Add(favorites[i]);
-                    }
+                    DatabaseManager.UpdateFavoriteSortOrder(groupFavorites[i].Id, i);
                 }
 
-                // 更新数据库中的SortOrder
-                // 判断是文件夹还是文件，仅更新该组的顺序
-                // 注意：由于我们分开了两个列表，这里的 newOrder 仅包含当前组（全是文件夹或全是文件）
-                // 我们需要重新分配这些项的 SortOrder
-                // 为了避免冲突，可以简单地重新分配所有 Favorites 的 SortOrder，或者只更新变动的。
-                // 简单策略：获取该 item 类型（List 中第一个即可），找出所有该类型的 items，按新顺序更新
-
-                int counter = 0;
-                foreach (var item in newOrder)
-                {
-                    DatabaseManager.UpdateFavoriteSortOrder(item.Id, counter++);
-                }
-
-                // 触发 LoadFavorites
-                FavoritesLoaded?.Invoke(this, EventArgs.Empty);
-
-                // 重新加载显示
+                // 重新加载系统
                 FavoritesLoaded?.Invoke(this, EventArgs.Empty);
             }
 

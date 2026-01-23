@@ -280,28 +280,42 @@ namespace YiboFile.ViewModels
             var order = config.NavigationSectionsOrder;
             if (order == null || order.Count == 0)
             {
-                order = new List<string> { "QuickAccess", "Drives", "FolderFavorites", "FileFavorites" };
+                order = new List<string> { "Drives", "QuickAccess" };
             }
 
             var sections = new ObservableCollection<NavigationSectionItemViewModel>();
-            var safeKeys = new HashSet<string> { "QuickAccess", "Drives", "FolderFavorites", "FileFavorites" };
+            var fixedSections = new HashSet<string> { "QuickAccess", "Drives" };
 
             // Add sorted
             foreach (var key in order)
             {
-                if (safeKeys.Contains(key))
+                if (fixedSections.Contains(key))
+                {
+                    sections.Add(new NavigationSectionItemViewModel(key, GetSectionDisplayName(key)));
+                }
+                else if (key.StartsWith("FavoriteGroup_"))
                 {
                     sections.Add(new NavigationSectionItemViewModel(key, GetSectionDisplayName(key)));
                 }
             }
 
-            // Ensure all exist
-            var allKeys = new[] { "QuickAccess", "Drives", "FolderFavorites", "FileFavorites" };
-            foreach (var key in allKeys)
+            // Ensure fixed sections exist
+            foreach (var key in fixedSections)
             {
                 if (!sections.Any(s => s.Key == key))
                 {
                     sections.Add(new NavigationSectionItemViewModel(key, GetSectionDisplayName(key)));
+                }
+            }
+
+            // Add any missing favorite groups
+            var groups = DatabaseManager.GetAllFavoriteGroups();
+            foreach (var group in groups)
+            {
+                string key = $"FavoriteGroup_{group.Id}";
+                if (!sections.Any(s => s.Key == key))
+                {
+                    sections.Add(new NavigationSectionItemViewModel(key, group.Name));
                 }
             }
 
@@ -310,14 +324,20 @@ namespace YiboFile.ViewModels
 
         private string GetSectionDisplayName(string key)
         {
-            switch (key)
+            if (key == "QuickAccess") return "快速访问";
+            if (key == "Drives") return "此电脑 (驱动器)";
+            if (key.StartsWith("FavoriteGroup_"))
             {
-                case "QuickAccess": return "快速访问";
-                case "Drives": return "此电脑 (驱动器)";
-                case "FolderFavorites": return "收藏夹 (文件夹)";
-                case "FileFavorites": return "收藏夹 (文件)";
-                default: return key;
+                if (int.TryParse(key.Substring("FavoriteGroup_".Length), out int groupId))
+                {
+                    var group = DatabaseManager.GetAllFavoriteGroups().FirstOrDefault(g => g.Id == groupId);
+                    if (group != null) return group.Name;
+                }
+                return "收藏项";
             }
+            if (key == "FolderFavorites") return "收藏夹 (文件夹)"; // Legacy
+            if (key == "FileFavorites") return "收藏夹 (文件)";   // Legacy
+            return key;
         }
 
         private void MoveSectionUp(NavigationSectionItemViewModel item)

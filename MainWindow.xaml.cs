@@ -424,6 +424,8 @@ namespace YiboFile
             if (!string.IsNullOrEmpty(path))
             {
                 _currentPath = path;
+                // 更新标签页标题
+                _tabService?.UpdateActiveTabPath(path);
                 ClearFilter();
                 LoadCurrentDirectory();
                 UpdateNavigationButtonsState();
@@ -436,6 +438,8 @@ namespace YiboFile
             if (!string.IsNullOrEmpty(path))
             {
                 _currentPath = path;
+                // 更新标签页标题
+                _tabService?.UpdateActiveTabPath(path);
                 ClearFilter();
                 LoadCurrentDirectory();
                 UpdateNavigationButtonsState();
@@ -515,6 +519,8 @@ namespace YiboFile
         {
             // 导航服务已更新 CurrentPath，这里只需要同步 _currentPath
             _currentPath = path;
+            // 同步更新标签页标题
+            _tabService?.UpdateActiveTabPath(path);
             UpdateNavigationButtonsState();
         }
 

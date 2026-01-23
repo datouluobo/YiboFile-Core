@@ -756,6 +756,8 @@ namespace YiboFile
             {
                 _secondNavForward.Push(_secondCurrentPath);
                 _secondCurrentPath = _secondNavHistory.Pop();
+                // 更新副标签页标题
+                _secondTabService?.UpdateActiveTabPath(_secondCurrentPath);
                 LoadSecondFileBrowserDirectory(_secondCurrentPath);
             }
         }
@@ -766,6 +768,8 @@ namespace YiboFile
             {
                 _secondNavHistory.Push(_secondCurrentPath);
                 _secondCurrentPath = _secondNavForward.Pop();
+                // 更新副标签页标题
+                _secondTabService?.UpdateActiveTabPath(_secondCurrentPath);
                 LoadSecondFileBrowserDirectory(_secondCurrentPath);
             }
         }

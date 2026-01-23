@@ -27,6 +27,11 @@ namespace YiboFile.Controls
         public event RoutedEventHandler AddFileFavoriteClick;
         public event RoutedEventHandler LibraryManageClick;
         public event RoutedEventHandler PathManageClick;
+
+        public event Action<NavigationPanelControl, ListBox> FavoriteListBoxLoaded;
+        public event Action<NavigationPanelControl, ListBox, MouseButtonEventArgs> FavoriteListBoxPreviewMouseDown;
+        public event Action<object> RenameFavoriteGroupRequested;
+        public event Action<object> DeleteFavoriteGroupRequested;
         // public event Action<string, bool> TagBrowsePanelTagClicked;
         // public event Action TagBrowsePanelCategoryManagementRequested;
         // public event Action<string, bool> TagEditPanelTagClicked; // Phase 2
@@ -63,38 +68,42 @@ namespace YiboFile.Controls
 
             var drivesExpander = FindName("DrivesExpander") as UIElement;
             var quickAccessExpander = FindName("QuickAccessExpander") as UIElement;
-            var folderFavoritesExpander = FindName("FolderFavoritesExpander") as UIElement;
-            var fileFavoritesExpander = FindName("FileFavoritesExpander") as UIElement;
-            var navSectionsPanel = FindName("NavSectionsPanel") as StackPanel;
+            var favoritesGroups = FavoritesGroupsControl as UIElement;
+            var navSectionsPanel = NavSectionsPanel;
 
             if (navSectionsPanel == null) return;
 
-            var controls = new Dictionary<string, UIElement>
+            var fixedControls = new Dictionary<string, UIElement>
             {
                 { "Drives", drivesExpander },
-                { "QuickAccess", quickAccessExpander },
-                { "FolderFavorites", folderFavoritesExpander },
-                { "FileFavorites", fileFavoritesExpander }
+                { "QuickAccess", quickAccessExpander }
             };
 
             navSectionsPanel.Children.Clear();
 
             foreach (var key in order)
             {
-                if (controls.TryGetValue(key, out var control) && control != null)
+                if (fixedControls.TryGetValue(key, out var control) && control != null)
                 {
                     navSectionsPanel.Children.Add(control);
-                    controls.Remove(key);
+                    fixedControls.Remove(key);
+                }
+                else if (key == "Favorites" || key == "FolderFavorites" || key == "FileFavorites" || key.StartsWith("FavoriteGroup_"))
+                {
+                    if (favoritesGroups != null && !navSectionsPanel.Children.Contains(favoritesGroups))
+                    {
+                        navSectionsPanel.Children.Add(favoritesGroups);
+                    }
                 }
             }
 
-            foreach (var kvp in controls)
+            foreach (var ctrl in fixedControls.Values)
             {
-                if (kvp.Value != null)
-                {
-                    navSectionsPanel.Children.Add(kvp.Value);
-                }
+                if (ctrl != null && !navSectionsPanel.Children.Contains(ctrl))
+                    navSectionsPanel.Children.Add(ctrl);
             }
+            if (favoritesGroups != null && !navSectionsPanel.Children.Contains(favoritesGroups))
+                navSectionsPanel.Children.Add(favoritesGroups);
         }
 
         // Handler for TreeViewItem PreviewMouseLeftButtonDown (defined in Style EventSetter)
@@ -311,12 +320,47 @@ namespace YiboFile.Controls
         public Grid NavPathContentControl => FindName("NavPathContent") as Grid;
         public Grid NavLibraryContentControl => FindName("NavLibraryContent") as Grid;
 
+        public ItemsControl FavoritesGroupsControl => FindName("FavoritesGroupsItemsControl") as ItemsControl;
 
         // Tag Panel
         public TagBrowsePanel TagBrowsePanelControl => FindName("TagBrowsePanelElement") as TagBrowsePanel;
         public Grid NavTagContentControl => FindName("NavTagContent") as Grid;
 
+        private void FavoriteListBox_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (sender is ListBox listBox)
+            {
+                FavoriteListBoxLoaded?.Invoke(this, listBox);
+            }
+        }
 
+        private void FavoritesListBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is ListBox listBox)
+            {
+                FavoriteListBoxPreviewMouseDown?.Invoke(this, listBox, e);
+            }
+        }
+
+        private void FavoritesListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            // Usually handled by FavoriteService directly if hooked in Loaded
+        }
+        private void RenameFavoriteGroup_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuItem mi)
+            {
+                RenameFavoriteGroupRequested?.Invoke(mi.Tag);
+            }
+        }
+
+        private void DeleteFavoriteGroup_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuItem mi)
+            {
+                DeleteFavoriteGroupRequested?.Invoke(mi.Tag);
+            }
+        }
     }
 }
 

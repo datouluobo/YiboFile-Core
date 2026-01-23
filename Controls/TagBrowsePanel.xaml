@@ -19,22 +19,25 @@
         </Grid.RowDefinitions>
 
         <!-- Header / Management actions -->
-        <Grid Grid.Row="0" Margin="0,0,0,8" Visibility="{Binding ShowHeader, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}">
+        <Grid Grid.Row="0" Height="32" Margin="0,0,0,8" Visibility="{Binding ShowHeader, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             <Button Grid.Column="0" x:Name="BackBtn" Content="←" ToolTip="返回" 
-                    Width="30" Height="30" Click="BackBtn_Click"
+                    Width="24" Height="24" Click="BackBtn_Click"
                     Style="{StaticResource ModernButtonStyle}"
                     Background="Transparent" Margin="-5,0,5,0"
                     Padding="0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
             
-            <TextBlock Grid.Column="1" Text="标签" FontWeight="Bold" FontSize="14" VerticalAlignment="Center"/>
+            <TextBlock Grid.Column="1" Text="标签" FontWeight="Bold" FontSize="15" VerticalAlignment="Center"/>
             
-            <Button Grid.Column="2" x:Name="ManageTagsBtn" Content="⚙" ToolTip="管理标签" 
-                    Width="30" Height="30" Click="ManageTagsBtn_Click"
+            <Button Grid.Column="2" x:Name="ManageTagsBtn" 
+                    Content="{DynamicResource Icon_Settings}" 
+                    FontFamily="{DynamicResource IconFontFamily}"
+                    ToolTip="管理标签" 
+                    Width="24" Height="24" Click="ManageTagsBtn_Click"
                     Style="{StaticResource ModernButtonStyle}"
                     Background="Transparent" Margin="0,0,-5,0"
                     Padding="0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>

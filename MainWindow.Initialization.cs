@@ -479,13 +479,14 @@ namespace YiboFile
                 NavigationPanelControl.DrivesTreeViewItemClick += DrivesTreeViewItem_Click;
                 // NavigationPanelControl.DrivesListBoxPreviewMouseDown += DrivesListBox_PreviewMouseDown;
                 NavigationPanelControl.QuickAccessListBoxPreviewMouseDown += QuickAccessListBox_PreviewMouseDown;
-                NavigationPanelControl.FolderFavoritesListBoxPreviewMouseDown += FolderFavoritesListBox_PreviewMouseDown;
-                NavigationPanelControl.FileFavoritesListBoxPreviewMouseDown += FileFavoritesListBox_PreviewMouseDown;
+                NavigationPanelControl.FavoriteListBoxPreviewMouseDown += OnFavoriteListBoxPreviewMouseDown;
+                NavigationPanelControl.FavoriteListBoxLoaded += OnFavoriteListBoxLoaded;
+                NavigationPanelControl.RenameFavoriteGroupRequested += OnRenameFavoriteGroupRequested;
+                NavigationPanelControl.DeleteFavoriteGroupRequested += OnDeleteFavoriteGroupRequested;
                 NavigationPanelControl.LibrariesListBoxSelectionChanged += LibrariesListBox_SelectionChanged;
                 NavigationPanelControl.LibrariesListBoxContextMenuOpening += LibrariesListBox_ContextMenuOpening;
                 NavigationPanelControl.LibraryManageClick += ManageLibraries_Click;
-                NavigationPanelControl.AddFolderFavoriteClick += AddFavorite_Click;
-                NavigationPanelControl.AddFileFavoriteClick += AddFavorite_Click;
+
                 NavigationPanelControl.PathManageClick += (s, e) =>
                 {
                     var window = new YiboFile.Windows.NavigationSettingsWindow("Path");
