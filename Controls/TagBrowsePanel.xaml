@@ -3,10 +3,12 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:converters="clr-namespace:YiboFile.Controls.Converters"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="300">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <converters:NullToThicknessConverter x:Key="NullToThicknessConverter"/>
     </UserControl.Resources>
 
     <Grid>
@@ -45,14 +47,26 @@
                     <DataTemplate>
                         <Expander IsExpanded="True" BorderThickness="0" Background="Transparent">
                             <Expander.Header>
-                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13" 
-                                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,4"/>
+                                <Border AllowDrop="True" Drop="GroupHeader_Drop" Background="Transparent" Padding="0,4">
+                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13" 
+                                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                </Border>
                             </Expander.Header>
-                            <ItemsControl ItemsSource="{Binding Tags}">
+                            <ItemsControl ItemsSource="{Binding Tags}" Margin="4,4,0,8">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel Orientation="Horizontal"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Border Background="Transparent" Padding="8,4" Margin="0,1"
-                                                Cursor="Hand" CornerRadius="4"
+                                        <Border Background="{Binding ColorBrush}" 
+                                                BorderBrush="#CCCCCC"
+                                                BorderThickness="{Binding Color, Converter={StaticResource NullToThicknessConverter}}"
+                                                CornerRadius="4" 
+                                                Padding="8,4" 
+                                                Margin="0,0,6,6"
+                                                Cursor="Hand"
                                                 MouseLeftButtonDown="TagItem_MouseLeftButtonDown"
                                                 AllowDrop="True" Drop="TagItem_Drop" PreviewMouseMove="TagItem_PreviewMouseMove">
                                             <Border.ContextMenu>
@@ -62,11 +76,10 @@
                                                     <MenuItem Header="删除" Click="DeleteTag_Click"/>
                                                 </ContextMenu>
                                             </Border.ContextMenu>
-                                            <StackPanel Orientation="Horizontal">
-                                                <Border Width="10" Height="10" CornerRadius="5" Margin="0,0,8,0" VerticalAlignment="Center"
-                                                        Background="{Binding ColorBrush}"/>
-                                                <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
-                                            </StackPanel>
+                                            <TextBlock Text="{Binding Name}" 
+                                                       Foreground="#282828" 
+                                                       FontSize="12"
+                                                       VerticalAlignment="Center"/>
                                         </Border>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>

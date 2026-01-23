@@ -397,7 +397,8 @@
               Grid.Column="0" Grid.ColumnSpan="5"
               Background="{DynamicResource AppBackgroundBrush}"
               Panel.ZIndex="5000"
-              Visibility="Collapsed">
+              Visibility="Collapsed"
+              MouseDown="SettingsOverlay_MouseDown">
             <controls:SettingsPanelControl x:Name="SettingsPanel"/>
         </Grid>
 

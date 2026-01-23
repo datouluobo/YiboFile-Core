@@ -67,9 +67,10 @@ namespace YiboFile.Controls
             ContentPanel.Children.Clear();
             if (_currentSettingsPanel != null)
             {
-                // 取消订阅旧面板的事件
+                // 在切换前保存旧面板的设置
                 if (_currentSettingsPanel is ISettingsPanel oldPanel)
                 {
+                    oldPanel.SaveSettings();
                     oldPanel.SettingsChanged -= OnSettingsPanelChanged;
                 }
                 _currentSettingsPanel = null;

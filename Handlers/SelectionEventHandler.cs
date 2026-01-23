@@ -23,6 +23,7 @@ namespace YiboFile.Handlers
         private readonly FileNotesUIHandler _fileNotesUIHandler;
 
         private readonly Action<FileSystemItem> _updateFileInfoPanel;
+        private readonly Action<Library> _updateLibraryInfoPanel;
         private readonly Action _clearPreviewAndInfo;
 
         private readonly YiboFile.Services.FileList.FileListService _fileListService;
@@ -40,13 +41,15 @@ namespace YiboFile.Handlers
 
             YiboFile.Services.FileList.FileListService fileListService,
             Func<List<FileSystemItem>> getCurrentFiles,
-            Func<string> getCurrentPath)
+            Func<string> getCurrentPath,
+            Action<Library> updateLibraryInfoPanel = null)
         {
             _mainWindow = mainWindow ?? throw new ArgumentNullException(nameof(mainWindow));
             _filePreviewService = filePreviewService ?? throw new ArgumentNullException(nameof(filePreviewService));
             _fileNotesUIHandler = fileNotesUIHandler ?? throw new ArgumentNullException(nameof(fileNotesUIHandler));
 
             _updateFileInfoPanel = updateFileInfoPanel ?? throw new ArgumentNullException(nameof(updateFileInfoPanel));
+            _updateLibraryInfoPanel = updateLibraryInfoPanel;
             _clearPreviewAndInfo = clearPreviewAndInfo ?? throw new ArgumentNullException(nameof(clearPreviewAndInfo));
 
             _fileListService = fileListService ?? throw new ArgumentNullException(nameof(_fileListService));
@@ -144,6 +147,13 @@ namespace YiboFile.Handlers
                 }
                 else
                 {
+                    // 库模式支持：如果没有当前路径，但有当前库，则显示库信息
+                    if (string.IsNullOrEmpty(currentPath) && _mainWindow._currentLibrary != null)
+                    {
+                        _updateLibraryInfoPanel?.Invoke(_mainWindow._currentLibrary);
+                        return;
+                    }
+
                     // 如果路径无效（例如搜索结果页面），则清除信息面板
                     _clearPreviewAndInfo();
                 }

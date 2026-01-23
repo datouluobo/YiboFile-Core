@@ -271,6 +271,9 @@ namespace YiboFile
                 {
                     UpdateTabStyles();
 
+                    // 切换标签页时自动刷新信息面板（处理空选状态）
+                    _selectionEventHandler?.HandleNoSelection();
+
                     // 切换标签页时自动聚焦主文件列表
                     if (_isDualListMode && _isSecondPaneFocused)
                     {

@@ -151,8 +151,6 @@ namespace YiboFile.Handlers
 
                     if (string.IsNullOrEmpty(tag)) continue;
 
-                    // Skip "Tags" column in context menu as requested
-                    if (tag == "Tags") continue;
 
                     if (string.IsNullOrEmpty(title)) title = tag;
 

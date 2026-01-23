@@ -34,6 +34,7 @@ namespace YiboFile.Handlers
         private readonly Action<string> _navigateToPath;
         private readonly Action<string> _switchNavigationMode;
         private readonly Func<bool> _isLibraryMode;
+        private readonly Action _closeOverlays;
         private readonly Action _navigateBack;
         private readonly Action<int> _switchLayoutMode;
         private readonly Func<bool> _isDualListMode;
@@ -59,6 +60,7 @@ namespace YiboFile.Handlers
             Action<string> navigateToPath,
             Action<string> switchNavigationMode,
             Func<bool> isLibraryMode,
+            Action closeOverlays,
             Action navigateBack,
             Action undoClick,
             Action redoClick,
@@ -83,6 +85,7 @@ namespace YiboFile.Handlers
             _navigateToPath = navigateToPath ?? throw new ArgumentNullException(nameof(navigateToPath));
             _switchNavigationMode = switchNavigationMode ?? throw new ArgumentNullException(nameof(switchNavigationMode));
             _isLibraryMode = isLibraryMode ?? throw new ArgumentNullException(nameof(isLibraryMode));
+            _closeOverlays = closeOverlays ?? throw new ArgumentNullException(nameof(closeOverlays));
             _navigateBack = navigateBack ?? throw new ArgumentNullException(nameof(navigateBack));
             _undoClick = undoClick;
             _redoClick = redoClick;
@@ -156,6 +159,15 @@ namespace YiboFile.Handlers
 
         public void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e)
         {
+            // Esc: 关闭全屏覆盖层 (设置、关于)
+            if (e.Key == Key.Escape && Keyboard.Modifiers == ModifierKeys.None)
+            {
+                _closeOverlays?.Invoke();
+                // 如果覆盖层是打开的，我们可能想标记 e.Handled = true
+                // 但为了不破坏其他可能的 Esc 逻辑，我们这里取决于 closeOverlays 逻辑
+                // 实际上 CloseOverlays 在 MainWindow 中会检查可见性
+            }
+
             // Ctrl+W 或 Ctrl+F4: 关闭当前标签页
             // 我们保留 F4 作为硬编码备选，但 Ctrl+W 改为动态
             if (IsActionTriggered(e, "关闭标签页", "Ctrl+W") || (e.Key == Key.F4 && Keyboard.Modifiers == ModifierKeys.Control))

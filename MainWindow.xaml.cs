@@ -944,6 +944,14 @@ namespace YiboFile
                 QuickAccessListBox.SelectedItem = null;
             }
         }
+
+        private void SettingsOverlay_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.OriginalSource == sender)
+            {
+                _settingsOverlayController?.Hide();
+            }
+        }
     }
 
     #endregion

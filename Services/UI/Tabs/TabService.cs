@@ -632,37 +632,51 @@ namespace YiboFile.Services.Tabs
         {
             EnsureUi();
             if (tab == null) return;
-            var beforeCount = (_ui.FileBrowser?.FilesItemsSource as System.Collections.IList)?.Count ?? 0;
-            // 更新最后访问时间
-            tab.LastAccessTime = DateTime.Now;
 
-            SetActiveTab(tab);
-            UpdateTabStyles();
-
-            // 清空文件列表，防止显示上一个标签页的内容
-            // 各个分支的加载方法会重新设置文件列表
-            if (_ui.FileBrowser != null)
-            {
-                _ui.FileBrowser.FilesItemsSource = null;
-                _ui.GetCurrentFiles?.Invoke()?.Clear(); // 清空 _currentFiles
-            }
-
+            // 1. 同步更新状态到 UI 上下文 (MainWindow)，确保在触发任何选择变化事件前状态已到位
             if (tab.Type == TabType.Library)
             {
                 if (tab.Library != null)
                 {
                     _ui.SetCurrentLibrary?.Invoke(tab.Library);
                     _ui.SetCurrentPath?.Invoke(null);
+
                     var cfg = _ui.GetConfig?.Invoke();
                     if (cfg != null)
                     {
-                        // 使用ConfigurationService保存最后访问的库ID
                         ConfigurationService.Instance.Set(c => c.LastLibraryId, tab.Library.Id);
                     }
+                }
+            }
+            else
+            {
+                _ui.SetCurrentLibrary?.Invoke(null);
+                _ui.SetCurrentPath?.Invoke(tab.Path);
+                _ui.SetNavigationCurrentPath?.Invoke(tab.Path);
+            }
+
+            // 2. 更新最后访问时间并设置活动标签
+            tab.LastAccessTime = DateTime.Now;
+            SetActiveTab(tab);
+            UpdateTabStyles();
+
+            // 3. 清空文件列表，防止显示上一个标签页的内容
+            // 此时触发的选择变化事件会看到上面已经更新好的正确状态
+            if (_ui.FileBrowser != null)
+            {
+                _ui.FileBrowser.FilesItemsSource = null;
+                _ui.GetCurrentFiles?.Invoke()?.Clear();
+            }
+
+            // 4. 执行加载逻辑
+            if (tab.Type == TabType.Library)
+            {
+                if (tab.Library != null)
+                {
                     if (_ui.FileBrowser != null)
                     {
                         _ui.FileBrowser.NavUpEnabled = false;
-                        _ui.FileBrowser.IsAddressReadOnly = false;  // 允许在库标签页中进行搜索
+                        _ui.FileBrowser.IsAddressReadOnly = false;
                     }
                     _ui.LoadLibraryFiles?.Invoke(tab.Library);
                 }

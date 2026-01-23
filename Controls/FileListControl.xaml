@@ -6,10 +6,12 @@
              xmlns:vm="clr-namespace:YiboFile.ViewModels"
              xmlns:colmgr="clr-namespace:YiboFile.Services.UI.ColumnManagement"
              xmlns:local="clr-namespace:YiboFile.Controls"
+             xmlns:converters="clr-namespace:YiboFile.Controls.Converters"
              mc:Ignorable="d" 
              d:DesignHeight="600" d:DesignWidth="800">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <converters:NullToThicknessConverter x:Key="NullToThicknessConverter"/>
         
         <!-- 缩略图视图模板 -->
         <DataTemplate x:Key="ThumbnailTemplate">
@@ -352,7 +354,7 @@
                                                     <WrapPanel Orientation="Horizontal"/>
                                                 </ItemsPanelTemplate>
                                             </ItemsControl.ItemsPanel>
-                                            <ItemsControl.ItemTemplate>
+                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
                                                     <Button Content="{Binding Name}" 
                                                             Background="{Binding ColorBrush}"
@@ -369,6 +371,8 @@
                                                             <ControlTemplate TargetType="Button">
                                                                 <Border x:Name="border" 
                                                                         Background="{TemplateBinding Background}" 
+                                                                        BorderBrush="#CCCCCC"
+                                                                        BorderThickness="{Binding Color, Converter={StaticResource NullToThicknessConverter}}"
                                                                         CornerRadius="4" 
                                                                         Padding="{TemplateBinding Padding}">
                                                                     <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>

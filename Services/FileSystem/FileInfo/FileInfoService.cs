@@ -66,6 +66,31 @@ namespace YiboFile.Services.FileInfo
         }
 
         /// <summary>
+        /// 显示库的详细信息
+        /// </summary>
+        /// <param name="library">库对象</param>
+        public void ShowLibraryInfo(Library library)
+        {
+            if (_fileBrowser?.FileInfoPanelControl == null || library == null) return;
+            _fileBrowser.FileInfoPanelControl.Children.Clear();
+
+            var infoItems = new System.Collections.Generic.List<(string label, string value)>
+            {
+                ("名称", library.Name),
+                ("类型", "库"),
+                ("包含位置", library.Paths != null && library.Paths.Count > 0
+                    ? string.Join(Environment.NewLine, library.Paths)
+                    : "未添加位置")
+            };
+
+            foreach (var (label, value) in infoItems)
+            {
+                var panel = CreateInfoPanel(label, value);
+                _fileBrowser.FileInfoPanelControl.Children.Add(panel);
+            }
+        }
+
+        /// <summary>
         /// 获取图片的尺寸信息
         /// </summary>
         /// <param name="imagePath">图片路径</param>
@@ -345,13 +370,18 @@ namespace YiboFile.Services.FileInfo
                     var cleanTag = tag.Trim();
                     if (string.IsNullOrEmpty(cleanTag)) continue;
 
+                    var tagColor = null as string;
+                    try { tagColor = DatabaseManager.GetTagColorByName(cleanTag); } catch { }
+                    bool hasColor = !string.IsNullOrEmpty(tagColor);
+
                     var tagBorder = new Border
                     {
                         CornerRadius = new CornerRadius(4),
                         Padding = new Thickness(6, 2, 6, 2),
                         Margin = new Thickness(0, 0, 6, 4),
-                        Background = GetTagBrush(cleanTag),
-                        BorderThickness = new Thickness(0),
+                        Background = TagViewModel.GetColorBrush(cleanTag, tagColor),
+                        BorderBrush = new SolidColorBrush(Color.FromRgb(204, 204, 204)), // #CCCCCC
+                        BorderThickness = new Thickness(hasColor ? 0 : 1),
                         Cursor = Cursors.Hand
                     };
 

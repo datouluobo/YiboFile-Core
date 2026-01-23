@@ -11,6 +11,8 @@ namespace YiboFile.Services.Features
     {
         IEnumerable<ITagGroup> GetTagGroups();
         IEnumerable<ITag> GetTagsByGroup(int groupId);
+        IEnumerable<ITag> GetAllTags();
+        IEnumerable<ITag> GetUngroupedTags();
         event Action<int, string> TagUpdated; // int: TagId, string: NewColorHex (or null if irrelevant)
         IEnumerable<ITag> GetFileTags(string filePath);
         void AddTagToFile(string filePath, int tagId);
@@ -22,6 +24,7 @@ namespace YiboFile.Services.Features
         // Management Methods
         void RenameTag(int tagId, string newName);
         void UpdateTagColor(int tagId, string color);
+        void UpdateTagGroup(int tagId, int newGroupId);
         void DeleteTag(int tagId);
         int AddTagGroup(string name, string color = null);
         void RenameTagGroup(int groupId, string newName);

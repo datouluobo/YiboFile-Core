@@ -79,10 +79,10 @@ namespace YiboFile.Services.Settings
 
             _overlay.Visibility = Visibility.Collapsed;
 
-            // 恢复右侧面板为可见，让预览功能自己决定是否显示内容
+            // 恢复右侧面板为之前的状态，而不是强制 Visible
             if (_rightPanel != null)
             {
-                _rightPanel.Visibility = Visibility.Visible;
+                _rightPanel.Visibility = _previousRightPanelVisibility;
             }
         }
 

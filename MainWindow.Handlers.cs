@@ -34,7 +34,7 @@ namespace YiboFile
         {
             if (SettingsOverlay != null && SettingsOverlay.Visibility == Visibility.Visible)
             {
-                SettingsOverlay.Visibility = Visibility.Collapsed;
+                _settingsOverlayController?.Hide();
             }
             if (AboutOverlay != null && AboutOverlay.Visibility == Visibility.Visible)
             {
@@ -48,6 +48,11 @@ namespace YiboFile
             if (TabManager != null)
             {
                 TabManager.CloseOverlayRequested += (s, e) => CloseOverlays();
+            }
+
+            if (SecondTabManager != null)
+            {
+                SecondTabManager.CloseOverlayRequested += (s, e) => CloseOverlays();
             }
 
             // 初始化 FileBrowserEventHandler
@@ -122,7 +127,8 @@ namespace YiboFile
                 () => ClearPreviewAndInfo(),
                 _fileListService,
                 () => _currentFiles,
-                () => _currentPath
+                () => _currentPath,
+                lib => _fileInfoService?.ShowLibraryInfo(lib)
             );
 
             // 初始化 ColumnInteractionHandler
@@ -297,7 +303,7 @@ namespace YiboFile
                     if (SettingsOverlay == null) return;
                     if (SettingsOverlay.Visibility == Visibility.Visible)
                     {
-                        SettingsOverlay.Visibility = Visibility.Collapsed;
+                        _settingsOverlayController?.Hide();
                     }
                     else
                     {
@@ -407,6 +413,7 @@ namespace YiboFile
                 NavigateToPath,
                 SwitchNavigationMode,
                 () => _currentLibrary != null,
+                () => CloseOverlays(), // closeOverlays
                 Back_Click_Logic, // navigateBack
                 () => Undo_Click(null, null),
                 () => Redo_Click(null, null),
@@ -489,7 +496,7 @@ namespace YiboFile
             // 如果是在全屏覆盖层打开的情况下点击标题栏空白处，关闭覆盖层
             if (SettingsOverlay != null && SettingsOverlay.Visibility == Visibility.Visible)
             {
-                SettingsOverlay.Visibility = Visibility.Collapsed;
+                _settingsOverlayController?.Hide();
             }
             if (AboutOverlay != null && AboutOverlay.Visibility == Visibility.Visible)
             {

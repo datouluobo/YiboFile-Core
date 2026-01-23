@@ -342,7 +342,7 @@ namespace YiboFile
             connection.Open();
             using var command = connection.CreateCommand();
             command.CommandText = "UPDATE Tags SET Color = @color WHERE Id = @id";
-            command.Parameters.AddWithValue("@color", string.IsNullOrEmpty(color) ? (object)DBNull.Value : color);
+            command.Parameters.AddWithValue("@color", color ?? "");
             command.Parameters.AddWithValue("@id", tagId);
             command.ExecuteNonQuery();
         }
@@ -353,6 +353,17 @@ namespace YiboFile
             connection.Open();
             using var command = connection.CreateCommand();
             command.CommandText = "DELETE FROM Tags WHERE Id = @id";
+            command.Parameters.AddWithValue("@id", tagId);
+            command.ExecuteNonQuery();
+        }
+
+        public static void UpdateTagGroup(int tagId, int newGroupId)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "UPDATE Tags SET GroupId = @groupId WHERE Id = @id";
+            command.Parameters.AddWithValue("@groupId", newGroupId);
             command.Parameters.AddWithValue("@id", tagId);
             command.ExecuteNonQuery();
         }
@@ -523,6 +534,48 @@ namespace YiboFile
                 };
             }
             return null;
+        }
+
+        public static List<Services.Features.ITag> GetAllTags()
+        {
+            var result = new List<Services.Features.ITag>();
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "SELECT Id, Name, Color, GroupId FROM Tags ORDER BY Name";
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                result.Add(new TagModel
+                {
+                    Id = reader.GetInt32(0),
+                    Name = reader.GetString(1),
+                    Color = reader.IsDBNull(2) ? null : reader.GetString(2),
+                    GroupId = reader.GetInt32(3)
+                });
+            }
+            return result;
+        }
+
+        public static List<Services.Features.ITag> GetUngroupedTags()
+        {
+            var result = new List<Services.Features.ITag>();
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "SELECT Id, Name, Color, GroupId FROM Tags WHERE GroupId = 0 OR GroupId NOT IN (SELECT Id FROM TagGroups) ORDER BY Name";
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                result.Add(new TagModel
+                {
+                    Id = reader.GetInt32(0),
+                    Name = reader.GetString(1),
+                    Color = reader.IsDBNull(2) ? null : reader.GetString(2),
+                    GroupId = reader.GetInt32(3)
+                });
+            }
+            return result;
         }
 
         // Private models for DB interaction

@@ -16,6 +16,16 @@ namespace YiboFile.Services.Features
             return DatabaseManager.GetTagsByGroup(groupId);
         }
 
+        public IEnumerable<ITag> GetAllTags()
+        {
+            return DatabaseManager.GetAllTags();
+        }
+
+        public IEnumerable<ITag> GetUngroupedTags()
+        {
+            return DatabaseManager.GetUngroupedTags();
+        }
+
         public IEnumerable<ITag> GetFileTags(string filePath)
         {
             return DatabaseManager.GetFileTags(filePath);
@@ -62,6 +72,11 @@ namespace YiboFile.Services.Features
         public void DeleteTag(int tagId)
         {
             DatabaseManager.DeleteTag(tagId);
+        }
+
+        public void UpdateTagGroup(int tagId, int newGroupId)
+        {
+            DatabaseManager.UpdateTagGroup(tagId, newGroupId);
         }
 
         public int AddTagGroup(string name, string color = null)

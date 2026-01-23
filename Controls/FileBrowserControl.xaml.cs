@@ -574,11 +574,11 @@ namespace YiboFile.Controls
             var separator2 = new Separator { Name = "Separator2" };
             cm.Items.Add(separator2);
 
-            // 添加标签 (仅当TagTrain可用时显示)
+            // 添加标签 (仅当TagTrain可用时显示) - 使用子菜单展示所有标签
+            MenuItem addTagItem = null;
             if (App.IsTagTrainAvailable)
             {
-                var addTagItem = new MenuItem { Header = "添加标签", Name = "AddTagItem" };
-                addTagItem.Click += (s, e) => FileAddTag?.Invoke(this, e);
+                addTagItem = new MenuItem { Header = "添加标签", Name = "AddTagItem" };
                 cm.Items.Add(addTagItem);
             }
 
@@ -607,17 +607,95 @@ namespace YiboFile.Controls
                 renameItem.Visibility = hasSelection && FileList.SelectedItems.Count == 1 ? Visibility.Visible : Visibility.Collapsed;
                 propertiesItem.Visibility = hasSelection && FileList.SelectedItems.Count == 1 ? Visibility.Visible : Visibility.Collapsed;
 
-                // 添加标签项可见性
-                if (App.IsTagTrainAvailable)
+                // 添加标签项可见性和动态子菜单
+                if (App.IsTagTrainAvailable && addTagItem != null)
                 {
-                    var addTagItem = cm.Items.Cast<object>()
-                        .OfType<MenuItem>()
-                        .FirstOrDefault(m => m.Name == "AddTagItem");
-                    if (addTagItem != null)
+                    addTagItem.Visibility = hasSelection ? Visibility.Visible : Visibility.Collapsed;
+
+                    // 清空并重新填充子菜单
+                    addTagItem.Items.Clear();
+
+                    try
                     {
-                        addTagItem.Visibility = hasSelection ? Visibility.Visible : Visibility.Collapsed;
+                        var tagService = App.ServiceProvider?.GetService(typeof(YiboFile.Services.Features.ITagService)) as YiboFile.Services.Features.ITagService;
+                        var allTags = tagService?.GetAllTags()?.ToList();
+                        var selectedItemsList = FileList?.SelectedItems?.Cast<FileSystemItem>().ToList();
+
+                        if (allTags != null && allTags.Count > 0)
+                        {
+                            foreach (var tag in allTags)
+                            {
+                                var tagMenuItem = new MenuItem
+                                {
+                                    IsCheckable = true,
+                                    StaysOpenOnClick = true,
+                                    Tag = tag.Id
+                                };
+
+                                // 判断是否勾选：如果所有选中的文件都包含此标签，则勾选
+                                bool allHaveTag = selectedItemsList != null && selectedItemsList.Count > 0 &&
+                                                 selectedItemsList.All(item => item.TagList != null && item.TagList.Any(t => t.Id == tag.Id));
+                                tagMenuItem.IsChecked = allHaveTag;
+
+                                // 创建带颜色的Header
+                                var headerPanel = new StackPanel { Orientation = Orientation.Horizontal };
+
+                                // 颜色指示器
+                                var colorRect = new System.Windows.Shapes.Rectangle
+                                {
+                                    Width = 12,
+                                    Height = 12,
+                                    RadiusX = 2,
+                                    RadiusY = 2,
+                                    Margin = new Thickness(0, 0, 8, 0),
+                                    Fill = new SolidColorBrush(ParseColor(tag.Color ?? "#808080"))
+                                };
+                                headerPanel.Children.Add(colorRect);
+
+                                // 标签名称
+                                headerPanel.Children.Add(new TextBlock { Text = tag.Name, VerticalAlignment = VerticalAlignment.Center });
+
+                                tagMenuItem.Header = headerPanel;
+
+                                tagMenuItem.Click += (sender, args) =>
+                                {
+                                    var mi = (MenuItem)sender;
+                                    var tagId = (int)mi.Tag;
+                                    bool shouldAdd = mi.IsChecked; // 点击后IsChecked已自动翻转
+
+                                    if (selectedItemsList != null && tagService != null)
+                                    {
+                                        foreach (var item in selectedItemsList)
+                                        {
+                                            if (!string.IsNullOrEmpty(item.Path))
+                                            {
+                                                if (shouldAdd)
+                                                    tagService.AddTagToFile(item.Path, tagId);
+                                                else
+                                                    tagService.RemoveTagFromFile(item.Path, tagId);
+                                            }
+                                        }
+                                        // 触发刷新以显示新标签（注意：这里可能需要更新ViewModel而不是全量刷新，但目前保持一致）
+                                        FileRefresh?.Invoke(this, args);
+                                    }
+                                };
+
+                                addTagItem.Items.Add(tagMenuItem);
+                            }
+                        }
+                        else
+                        {
+                            var emptyItem = new MenuItem { Header = "暂无标签", IsEnabled = false };
+                            addTagItem.Items.Add(emptyItem);
+                        }
+                    }
+                    catch
+                    {
+                        var errorItem = new MenuItem { Header = "加载失败", IsEnabled = false };
+                        addTagItem.Items.Add(errorItem);
                     }
                 }
+
 
                 // 始终可用的操作
                 pasteItem.Visibility = Visibility.Visible;
@@ -630,6 +708,25 @@ namespace YiboFile.Controls
 
             FileList.FilesList.ContextMenu = cm;
         }
+
+        /// <summary>
+        /// 解析颜色字符串为 Color 对象
+        /// </summary>
+        private static Color ParseColor(string colorString)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(colorString))
+                    return Colors.Gray;
+
+                return (Color)ColorConverter.ConvertFromString(colorString);
+            }
+            catch
+            {
+                return Colors.Gray;
+            }
+        }
+
         // 视图模式变更事件
         public event EventHandler<string> ViewModeChanged;
 

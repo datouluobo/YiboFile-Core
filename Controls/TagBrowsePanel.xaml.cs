@@ -87,9 +87,23 @@ namespace YiboFile.Controls
                     });
                 }
 
-                // 2. Process ungrouped tags? (Assuming ITagGroup doesn't cover ungrouped yet, or GroupId=0)
-                // Implementation detail: Check if your default ungrouped handler exists.
-                // For now, adhering to strict ITagService usage.
+                // 2. Process ungrouped tags (GroupId = 0 or orphaned)
+                var ungroupedTags = _tagService.GetUngroupedTags().Select(t => new TagViewModel
+                {
+                    Id = t.Id,
+                    Name = t.Name,
+                    Color = t.Color
+                }).ToList();
+
+                if (ungroupedTags.Any())
+                {
+                    viewModels.Add(new TagGroupViewModel
+                    {
+                        Id = 0,
+                        Name = "未分组",
+                        Tags = ungroupedTags
+                    });
+                }
 
                 TagGroupsControl.ItemsSource = viewModels;
                 EmptyStateText.Visibility = viewModels.Any() ? Visibility.Collapsed : Visibility.Visible;
@@ -242,20 +256,21 @@ namespace YiboFile.Controls
             }
         }
 
+
         private void TagItem_PreviewMouseMove(object sender, MouseEventArgs e)
         {
-            if (e.LeftButton == MouseButtonState.Pressed && sender is ListBoxItem item)
+            if (e.LeftButton == MouseButtonState.Pressed && sender is Border border && border.DataContext is TagViewModel tag)
             {
-                // Logic to start drag if needed (dragging tag itself), 
-                // but requirements said "Dragging files onto a tag".
-                // So this might not be needed unless we want to drag tags to rearrange.
-                // Skipping for now to focus on Drop.
+                // Start drag operation for moving tag to another group
+                var data = new DataObject("TagViewModel", tag);
+                DragDrop.DoDragDrop(border, data, DragDropEffects.Move);
             }
         }
 
         private void TagItem_Drop(object sender, DragEventArgs e)
         {
-            if (sender is ListBoxItem item && item.DataContext is TagViewModel tag)
+            // Handle file drops onto tags
+            if (sender is Border border && border.DataContext is TagViewModel tag)
             {
                 if (e.Data.GetDataPresent(DataFormats.FileDrop))
                 {
@@ -276,6 +291,54 @@ namespace YiboFile.Controls
                 }
             }
         }
+
+        private void GroupHeader_Drop(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent("TagViewModel"))
+            {
+                var tag = e.Data.GetData("TagViewModel") as TagViewModel;
+                if (tag == null) return;
+
+                // Find target group from DataContext
+                var targetGroup = (sender as FrameworkElement)?.DataContext as TagGroupViewModel;
+                if (targetGroup == null) return;
+
+                if (_tagService != null)
+                {
+                    // Update tag's group in database
+                    _tagService.UpdateTagGroup(tag.Id, targetGroup.Id);
+
+                    // If moving to a real group (not ungrouped) and tag has no color, assign one
+                    if (targetGroup.Id != 0 && string.IsNullOrEmpty(tag.Color))
+                    {
+                        var randomColor = GetRandomTagColor();
+                        _tagService.UpdateTagColor(tag.Id, randomColor);
+                    }
+                    // If moving to ungrouped, clear the color
+                    else if (targetGroup.Id == 0)
+                    {
+                        _tagService.UpdateTagColor(tag.Id, null);
+                    }
+
+                    RefreshTags();
+                }
+
+                e.Handled = true;
+            }
+        }
+
+        private static readonly string[] _tagColors = new[]
+        {
+            "#FFB3BA", "#FFDFBA", "#FFFFBA", "#BAFFC9", "#BAE1FF",
+            "#E2B6CF", "#C9B1FF", "#FFD1DC", "#B5EAD7", "#C7CEEA"
+        };
+
+        private static string GetRandomTagColor()
+        {
+            var random = new Random();
+            return _tagColors[random.Next(_tagColors.Length)];
+        }
+
 
         // Footer Actions
         private void NewGroupBtn_Click(object sender, RoutedEventArgs e)
