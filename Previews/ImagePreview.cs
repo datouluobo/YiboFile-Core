@@ -80,12 +80,16 @@ namespace YiboFile.Previews
         /// </summary>
         private UIElement CreateBitmapPreview(string filePath)
         {
-            // 加载位图
+            // 加载位图 - 使用流并正确设置共享模式，避免文件锁定
             BitmapImage bitmap = new BitmapImage();
-            bitmap.BeginInit();
-            bitmap.UriSource = new Uri(filePath, UriKind.Absolute);
-            bitmap.CacheOption = BitmapCacheOption.OnLoad;
-            bitmap.EndInit();
+            using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+            {
+                bitmap.BeginInit();
+                bitmap.StreamSource = fs;
+                bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                bitmap.EndInit();
+            }
+            bitmap.Freeze();
 
             // 创建主容器
             var grid = new Grid();

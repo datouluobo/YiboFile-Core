@@ -17,11 +17,13 @@ namespace YiboFile.Handlers
     {
         private readonly MainWindow _mainWindow;
         private readonly UndoService _undoService;
+        private readonly FileOperationService _fileOperationService;
 
-        public FileOperationHandler(MainWindow mainWindow, UndoService undoService)
+        public FileOperationHandler(MainWindow mainWindow, UndoService undoService, FileOperationService fileOperationService = null)
         {
             _mainWindow = mainWindow ?? throw new ArgumentNullException(nameof(mainWindow));
             _undoService = undoService;
+            _fileOperationService = fileOperationService;
         }
 
         public UndoService UndoService => _undoService;
@@ -115,14 +117,17 @@ namespace YiboFile.Handlers
                     return;
                 }
 
-                var context = GetCurrentOperationContext();
-                if (context == null)
+                if (_fileOperationService != null)
                 {
-                    return;
+                    await _fileOperationService.DeleteAsync(selectedItems, permanent: false);
                 }
-
-                var deleteOperation = new DeleteOperation(context, _undoService);
-                await deleteOperation.ExecuteAsync(selectedItems);
+                else
+                {
+                    var context = GetCurrentOperationContext();
+                    if (context == null) return;
+                    var deleteOperation = new YiboFile.Services.FileOperations.DeleteOperation(context, _undoService);
+                    await deleteOperation.ExecuteAsync(selectedItems);
+                }
             }
             catch (Exception ex)
             {

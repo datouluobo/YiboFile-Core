@@ -65,6 +65,7 @@ namespace YiboFile
             services.AddSingleton<Services.FileOperations.TaskQueue.TaskQueueService>(); // Register TaskQueueService
             services.AddSingleton<YiboFile.Services.FileOperations.Undo.UndoService>(); // 撤销/重做服务
             services.AddSingleton<YiboFile.Services.Archive.ArchiveService>(); // Archive Service
+            services.AddSingleton<Services.Backup.IBackupService, Services.Backup.BackupService>(); // Backup Service
 
             // DatabaseManager 是静态类/单例模式，但如果我们需要注入它，可以封装一下，或者暂时保持静态访问
             // 这里我们注册那些非静态的服务

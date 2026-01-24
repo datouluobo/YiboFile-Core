@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -16,7 +17,6 @@ namespace YiboFile.Controls
         {
             InitializeComponent();
 
-            // Should inject via constructor or property, but for UserControl used in XAML, we often resolve via App.ServiceProvider
             if (App.ServiceProvider != null)
             {
                 var service = App.ServiceProvider.GetService(typeof(TaskQueueService)) as TaskQueueService;
@@ -42,15 +42,29 @@ namespace YiboFile.Controls
 
         private void UpdateVisibility()
         {
-            if (_queueService.Tasks.Count > 0)
+            if (_queueService == null) return;
+
+            bool hasActiveVisibleTasks = _queueService.Tasks.Any(t => !t.IsSilent &&
+                (t.Status == TaskStatus.Running || t.Status == TaskStatus.Pending || t.Status == TaskStatus.Paused));
+
+            if (hasActiveVisibleTasks)
             {
                 if (this.Visibility != Visibility.Visible)
+                {
                     this.Visibility = Visibility.Visible;
+                    if (PanelTranslateTransform != null)
+                    {
+                        PanelTranslateTransform.X = 0;
+                        PanelTranslateTransform.Y = 0;
+                    }
+                }
             }
             else
             {
-                if (this.Visibility != Visibility.Collapsed)
+                if (_queueService.Tasks.Count == 0 && this.Visibility != Visibility.Collapsed)
+                {
                     this.Visibility = Visibility.Collapsed;
+                }
             }
         }
 
@@ -129,7 +143,6 @@ namespace YiboFile.Controls
         #endregion
     }
 
-    // Converters within the same file for simplicity (or should move to Converters folder)
     public class TaskStatusToColorConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
@@ -139,7 +152,6 @@ namespace YiboFile.Controls
                 return status switch
                 {
                     TaskStatus.Running => Brushes.DodgerBlue,
-                    // TaskStatus.Percentage does not exist, use Running or remove
                     TaskStatus.Paused => Brushes.Orange,
                     TaskStatus.Completed => Brushes.Green,
                     TaskStatus.Failed => Brushes.Red,
@@ -158,7 +170,6 @@ namespace YiboFile.Controls
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            // value is IsPaused (bool)
             if (value is bool isPaused)
             {
                 return isPaused ? "继续" : "暂停";
@@ -169,9 +180,6 @@ namespace YiboFile.Controls
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
     }
 
-    /// <summary>
-    /// 将 TaskStatus 枚举转换为中文文本
-    /// </summary>
     public class TaskStatusToTextConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
@@ -181,7 +189,7 @@ namespace YiboFile.Controls
                 return status switch
                 {
                     TaskStatus.Pending => "等待中",
-                    TaskStatus.Running => "进行中",
+                    TaskStatus.Running => "运行中",
                     TaskStatus.Paused => "已暂停",
                     TaskStatus.Canceling => "取消中",
                     TaskStatus.Canceled => "已取消",
@@ -196,9 +204,6 @@ namespace YiboFile.Controls
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
     }
 
-    /// <summary>
-    /// 将进度值转换为实际宽度
-    /// </summary>
     public class ProgressWidthConverter : IMultiValueConverter
     {
         public static readonly ProgressWidthConverter Instance = new ProgressWidthConverter();
@@ -219,5 +224,24 @@ namespace YiboFile.Controls
         public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
             => throw new NotImplementedException();
     }
-}
 
+    public class StatusToVisibilityConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is TaskStatus status)
+            {
+                string action = parameter as string;
+                return action switch
+                {
+                    "CanPause" => (status == TaskStatus.Running || status == TaskStatus.Paused) ? Visibility.Visible : Visibility.Collapsed,
+                    "CanCancel" => (status == TaskStatus.Running || status == TaskStatus.Paused || status == TaskStatus.Pending) ? Visibility.Visible : Visibility.Collapsed,
+                    _ => Visibility.Collapsed
+                };
+            }
+            return Visibility.Collapsed;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
+    }
+}

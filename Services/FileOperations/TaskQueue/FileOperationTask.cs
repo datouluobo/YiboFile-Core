@@ -34,6 +34,8 @@ namespace YiboFile.Services.FileOperations.TaskQueue
         private long _processedBytes;
         private int _totalItems;
         private int _processedItems;
+        private bool _isSilent;
+        private DateTime _startTime;
 
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -41,6 +43,24 @@ namespace YiboFile.Services.FileOperations.TaskQueue
         /// 任务唯一ID
         /// </summary>
         public Guid Id { get; } = Guid.NewGuid();
+
+        /// <summary>
+        /// 是否静默运行（不自动弹出任务面板）
+        /// </summary>
+        public bool IsSilent
+        {
+            get => _isSilent;
+            set => SetProperty(ref _isSilent, value);
+        }
+
+        /// <summary>
+        /// 任务开始时间
+        /// </summary>
+        public DateTime StartTime
+        {
+            get => _startTime;
+            set => SetProperty(ref _startTime, value);
+        }
 
         /// <summary>
         /// 任务描述（如"复制到 X"）

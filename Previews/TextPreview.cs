@@ -65,7 +65,7 @@ namespace YiboFile.Previews
                         if (fileInfo.Length > maxBytes)
                         {
                             bytes = new byte[maxBytes];
-                            using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                            using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
                             {
                                 fs.Read(bytes, 0, maxBytes);
                             }
@@ -183,7 +183,7 @@ namespace YiboFile.Previews
                         if (fileInfo.Length > maxBytes)
                         {
                             bytes = new byte[maxBytes];
-                            using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                            using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
                             {
                                 fs.Read(bytes, 0, maxBytes);
                             }

@@ -188,7 +188,7 @@ namespace YiboFile
             var taskQueueService = App.ServiceProvider.GetService(typeof(YiboFile.Services.FileOperations.TaskQueue.TaskQueueService)) as YiboFile.Services.FileOperations.TaskQueue.TaskQueueService;
 
             // 初始化 FileOperationHandler
-            _fileOperationHandler = new Handlers.FileOperationHandler(this, undoService);
+            _fileOperationHandler = new Handlers.FileOperationHandler(this, undoService, _fileOperationService);
 
             // Wire up Undo/Redo events from FileBrowser
             if (FileBrowser != null)
@@ -254,6 +254,8 @@ namespace YiboFile
                 _secondFileListHandler.Initialize(SecondFileBrowser.FilesList);
             }
 
+            var backupService = App.ServiceProvider.GetService(typeof(YiboFile.Services.Backup.IBackupService)) as YiboFile.Services.Backup.IBackupService;
+
             _fileOperationService = new Services.FileOperations.FileOperationService(
                 () =>
                 {
@@ -268,9 +270,11 @@ namespace YiboFile
                 },
                 errorService,
                 undoService,
-                taskQueueService
+                taskQueueService,
+                backupService
             );
 
+            // 监听撤销/重做事件以刷新UI
             // 监听撤销/重做事件以刷新UI
             if (undoService != null)
             {
@@ -282,6 +286,27 @@ namespace YiboFile
                 {
                     Application.Current?.Dispatcher?.Invoke(() => RefreshActiveFileList());
                 };
+
+                // 定义更新 Undo/Redo 按钮状态的方法
+                void UpdateUndoUI()
+                {
+                    Application.Current?.Dispatcher?.Invoke(() =>
+                    {
+                        if (FileBrowser != null)
+                        {
+                            FileBrowser.UndoEnabled = undoService.CanUndo;
+                            FileBrowser.RedoEnabled = undoService.CanRedo;
+                            FileBrowser.UndoToolTipText = undoService.CanUndo ? $"撤销 {undoService.NextUndoDescription}" : "撤销";
+                            FileBrowser.RedoToolTipText = undoService.CanRedo ? $"重做 {undoService.NextRedoDescription}" : "重做";
+                        }
+                    });
+                }
+
+                // 订阅 StackChanged 事件
+                undoService.StackChanged += (s, e) => UpdateUndoUI();
+
+                // 初始化状态
+                UpdateUndoUI();
             }
 
             // 初始化 MenuEventHandler

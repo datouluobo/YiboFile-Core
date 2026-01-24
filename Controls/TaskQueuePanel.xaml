@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:YiboFile.Controls"
              xmlns:tq="clr-namespace:YiboFile.Services.FileOperations.TaskQueue"
              mc:Ignorable="d" 
-             d:DesignHeight="300" d:DesignWidth="360">
+             d:DesignHeight="300" d:DesignWidth="320">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
         <!-- 状态转换器 -->
@@ -14,20 +14,19 @@
         <local:TaskStatusToTextConverter x:Key="StatusToText"/>
         <local:PauseResumeTextConverter x:Key="PauseResumeTextConverter"/>
         
-        <!-- 现代化圆角进度条样式 -->
-        <Style x:Key="ModernProgressBarStyle" TargetType="ProgressBar">
-            <Setter Property="Height" Value="6"/>
+        <!-- 现代化极简进度条 -->
+        <Style x:Key="CompactProgressBarStyle" TargetType="ProgressBar">
+            <Setter Property="Height" Value="4"/>
             <Setter Property="Background" Value="{DynamicResource ControlDefaultBackgroundBrush}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ProgressBar">
-                        <Border Background="{TemplateBinding Background}" CornerRadius="3" ClipToBounds="True">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="2" ClipToBounds="True">
                             <Grid>
-                                <!-- Progress indicator using scale transform based on percentage -->
                                 <Border x:Name="PART_Indicator" 
                                         Background="{TemplateBinding Foreground}" 
-                                        CornerRadius="3"
+                                        CornerRadius="2"
                                         HorizontalAlignment="Left">
                                     <Border.Width>
                                         <MultiBinding Converter="{x:Static local:ProgressWidthConverter.Instance}">
@@ -44,19 +43,21 @@
             </Setter>
         </Style>
         
-        <!-- 小型操作按钮样式 -->
-        <Style x:Key="TaskActionButtonStyle" TargetType="Button">
+        <!-- 极简按钮样式 -->
+        <Style x:Key="IconButtonButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="8,4"/>
-            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Padding" Value="4"/>
+            <Setter Property="FontSize" Value="12"/>
             <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Width" Value="24"/>
+            <Setter Property="Height" Value="24"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="border" Background="{TemplateBinding Background}" 
-                                CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                CornerRadius="12" Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
@@ -74,30 +75,50 @@
         </Style>
     </UserControl.Resources>
     
-    <!-- 外层容器带阴影和圆角 -->
+    <UserControl.Triggers>
+        <EventTrigger RoutedEvent="UserControl.IsVisibleChanged">
+            <BeginStoryboard>
+                <Storyboard>
+                    <DoubleAnimation Storyboard.TargetName="MainBorder" 
+                                     Storyboard.TargetProperty="Opacity"
+                                     From="0" To="1" Duration="0:0:0.3"/>
+                    <DoubleAnimation Storyboard.TargetName="PanelTranslateTransform" 
+                                     Storyboard.TargetProperty="Y"
+                                     From="40" To="0" Duration="0:0:0.4">
+                        <DoubleAnimation.EasingFunction>
+                            <CubicEase EasingMode="EaseOut"/>
+                        </DoubleAnimation.EasingFunction>
+                    </DoubleAnimation>
+                </Storyboard>
+            </BeginStoryboard>
+        </EventTrigger>
+    </UserControl.Triggers>
+    
+    <!-- 面板容器：使用云端玻璃感（半透明） -->
     <Border x:Name="MainBorder" Background="{DynamicResource CardBackgroundBrush}" 
             BorderBrush="{DynamicResource BorderDefaultBrush}" 
             BorderThickness="1" 
-            CornerRadius="8"
-            MinWidth="320"
-            VerticalAlignment="Top"
-            MaxWidth="400">
+            CornerRadius="12"
+            MinWidth="300"
+            VerticalAlignment="Bottom"
+            Margin="0,0,20,60"
+            MaxWidth="340">
         <Border.RenderTransform>
             <TranslateTransform x:Name="PanelTranslateTransform"/>
         </Border.RenderTransform>
         <Border.Effect>
-            <DropShadowEffect BlurRadius="20" ShadowDepth="4" Opacity="0.2" Direction="270"/>
+            <DropShadowEffect BlurRadius="30" ShadowDepth="8" Opacity="0.15" Direction="270"/>
         </Border.Effect>
         
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto" MaxHeight="300"/>
+                <RowDefinition Height="Auto" MaxHeight="320"/>
             </Grid.RowDefinitions>
             
-            <!-- Header -->
-            <Border x:Name="HeaderBorder" Grid.Row="0" Background="{DynamicResource ControlDefaultBackgroundBrush}" 
-                    CornerRadius="8,8,0,0" Padding="12,10"
+            <!-- Header: 更加轻量化 -->
+            <Border x:Name="HeaderBorder" Grid.Row="0" Background="Transparent" 
+                    CornerRadius="12,12,0,0" Padding="14,12"
                     MouseLeftButtonDown="HeaderBorder_MouseLeftButtonDown"
                     MouseLeftButtonUp="HeaderBorder_MouseLeftButtonUp"
                     MouseMove="HeaderBorder_MouseMove">
@@ -108,118 +129,106 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     
-                    <!-- 图标 -->
-                    <TextBlock Grid.Column="0" Text="📋" FontSize="14" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBlock Grid.Column="0" Text="⚡" FontSize="14" VerticalAlignment="Center" Margin="0,0,8,0"/>
                     
-                    <!-- 标题 -->
-                    <TextBlock Grid.Column="1" Text="任务队列" FontWeight="SemiBold" FontSize="13"
+                    <TextBlock Grid.Column="1" Text="后台任务" FontWeight="SemiBold" FontSize="13"
                                VerticalAlignment="Center" Foreground="{DynamicResource TextPrimaryBrush}"/>
                     
-                    <!-- 操作按钮 -->
-                    <StackPanel Grid.Column="2" Orientation="Horizontal">
-                        <Button Content="清理" Click="ClearCompleted_Click" 
-                                Style="{StaticResource TaskActionButtonStyle}" 
-                                ToolTip="清理已完成的任务"/>
-                        <Button Content="全清" Click="ForceRemoveAll_Click" 
-                                Style="{StaticResource TaskActionButtonStyle}" 
-                                ToolTip="强制清除所有任务（包括运行中）"/>
+                    <!-- 操作按钮组 -->
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Opacity="0.8">
+                        <Button Content="" FontFamily="Segoe MDL2 Assets" Click="ClearCompleted_Click" 
+                                Style="{StaticResource IconButtonButtonStyle}" 
+                                ToolTip="清理已完成" Margin="0,0,4,0"/>
                         <Button Content="✕" Click="Close_Click" 
-                                Style="{StaticResource TaskActionButtonStyle}" 
-                                FontSize="12" Padding="6,4"
-                                ToolTip="关闭面板"/>
+                                Style="{StaticResource IconButtonButtonStyle}" 
+                                FontSize="10" FontWeight="Bold"
+                                ToolTip="关闭"/>
                     </StackPanel>
                 </Grid>
             </Border>
             
-            <!-- Task List -->
-            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0">
+            <!-- 列表区域 -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="12,0,12,14">
                 <ItemsControl x:Name="TasksList">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type tq:FileOperationTask}">
-                            <Border x:Name="taskBorder" Background="Transparent" 
-                                    BorderBrush="{DynamicResource BorderSubtleBrush}" 
-                                    BorderThickness="0,0,0,1" 
-                                    Padding="12,10">
-                                <Border.Triggers>
-                                    <EventTrigger RoutedEvent="Border.MouseEnter">
-                                        <BeginStoryboard>
-                                            <Storyboard>
-                                                <ColorAnimation Storyboard.TargetName="taskBorder"
-                                                                Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
-                                                                To="#08000000" Duration="0:0:0.15"/>
-                                            </Storyboard>
-                                        </BeginStoryboard>
-                                    </EventTrigger>
-                                    <EventTrigger RoutedEvent="Border.MouseLeave">
-                                        <BeginStoryboard>
-                                            <Storyboard>
-                                                <ColorAnimation Storyboard.TargetName="taskBorder"
-                                                                Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
-                                                                To="Transparent" Duration="0:0:0.15"/>
-                                            </Storyboard>
-                                        </BeginStoryboard>
-                                    </EventTrigger>
-                                </Border.Triggers>
+                            <Grid Margin="0,4,0,8">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
                                 
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
+                                <!-- 标题行 -->
+                                <Grid x:Name="TopLine" Grid.Row="0" Margin="0,0,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
                                     
-                                    <!-- 描述和状态 -->
-                                    <Grid Grid.Row="0" Margin="0,0,0,6">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
+                                    <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="{Binding Description}" 
                                                    FontWeight="Medium" FontSize="12"
                                                    Foreground="{DynamicResource TextPrimaryBrush}"
-                                                   TextTrimming="CharacterEllipsis"/>
-                                        <Border Grid.Column="1" CornerRadius="4" Padding="6,2"
-                                                Background="{Binding Status, Converter={StaticResource StatusToColor}}"
-                                                Opacity="0.15">
-                                            <TextBlock Text="{Binding Status, Converter={StaticResource StatusToText}}" 
-                                                       FontSize="10" FontWeight="Medium"
-                                                       Foreground="{Binding Status, Converter={StaticResource StatusToColor}}"/>
-                                        </Border>
-                                    </Grid>
-                                    
-                                    <!-- 进度条 -->
-                                    <ProgressBar Grid.Row="1" 
-                                                 Value="{Binding Progress}" Maximum="100" 
-                                                 Margin="0,0,0,6"
-                                                 Style="{StaticResource ModernProgressBarStyle}"
-                                                 Foreground="{Binding Status, Converter={StaticResource StatusToColor}}"/>
-                                    
-                                    <!-- 当前文件和操作按钮 -->
-                                    <Grid Grid.Row="2">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Text="{Binding CurrentFile}" 
-                                                   FontSize="11" 
-                                                   Foreground="{DynamicResource TextTertiaryBrush}" 
-                                                   TextTrimming="CharacterEllipsis" 
-                                                   VerticalAlignment="Center"/>
+                                                   MaxWidth="180" TextTrimming="CharacterEllipsis"/>
                                         
-                                        <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="8,0,0,0">
-                                            <!-- Pause/Resume Button -->
-                                            <Button Content="{Binding IsPaused, Converter={StaticResource PauseResumeTextConverter}}" 
-                                                    Tag="{Binding}" Click="PauseResume_Click" 
-                                                    Style="{StaticResource TaskActionButtonStyle}" 
-                                                    Margin="0,0,4,0"/>
-                                            
-                                            <!-- Cancel Button -->
-                                            <Button Content="取消" Tag="{Binding}" Click="CancelTask_Click" 
-                                                    Style="{StaticResource TaskActionButtonStyle}"/>
-                                        </StackPanel>
-                                    </Grid>
+                                        <!-- 进度百分比文字 -->
+                                        <TextBlock Text="{Binding Progress, StringFormat=' ({0:0}%)'}" 
+                                                   FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
+                                                   VerticalAlignment="Center" Margin="4,0,0,0"/>
+                                    </StackPanel>
+
+                                    <!-- 状态标签 (极简点状) -->
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Ellipse Width="6" Height="6" Margin="0,0,4,0"
+                                                 Fill="{Binding Status, Converter={StaticResource StatusToColor}}"/>
+                                        <TextBlock Text="{Binding Status, Converter={StaticResource StatusToText}}" 
+                                                   FontSize="10" Foreground="{DynamicResource TextTertiaryBrush}"/>
+                                    </StackPanel>
                                 </Grid>
-                            </Border>
+                                
+                                <!-- 进度条 -->
+                                <ProgressBar Grid.Row="1" 
+                                             Value="{Binding Progress}" Maximum="100" 
+                                             Style="{StaticResource CompactProgressBarStyle}"
+                                             Foreground="{Binding Status, Converter={StaticResource StatusToColor}}"
+                                             Margin="0,2,0,6"/>
+                                
+                                <!-- 当前详情行 -->
+                                <Grid Grid.Row="2">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    
+                                    <TextBlock Text="{Binding CurrentFile}" 
+                                               FontSize="11" Opacity="0.6"
+                                               Foreground="{DynamicResource TextSecondaryBrush}" 
+                                               TextTrimming="PathEllipsis" 
+                                               VerticalAlignment="Center"/>
+                                    
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="8,0,0,0">
+                                        <!-- 暂停/继续 -->
+                                        <Button Content="" FontFamily="Segoe MDL2 Assets" 
+                                                Tag="{Binding}" Click="PauseResume_Click" 
+                                                Style="{StaticResource IconButtonButtonStyle}" 
+                                                FontSize="10" Width="20" Height="20"
+                                                Visibility="{Binding Status, Converter={local:StatusToVisibilityConverter Parameter=CanPause}}"/>
+                                        
+                                        <!-- 取消 -->
+                                        <Button Content="" FontFamily="Segoe MDL2 Assets" 
+                                                Tag="{Binding}" Click="CancelTask_Click" 
+                                                Style="{StaticResource IconButtonButtonStyle}" 
+                                                FontSize="10" Width="20" Height="20"
+                                                Visibility="{Binding Status, Converter={local:StatusToVisibilityConverter Parameter=CanCancel}}"/>
+                                    </StackPanel>
+                                </Grid>
+                                
+                                <!-- 底部分割线 (不是最后一条才显示，XAML循环中很难判断，通常用Margin控制) -->
+                                <Border Grid.Row="2" VerticalAlignment="Bottom" Height="1" 
+                                        Background="{DynamicResource BorderSubtleBrush}" 
+                                        Margin="0,8,-12,0" Opacity="0.5"/>
+                            </Grid>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
@@ -227,4 +236,3 @@
         </Grid>
     </Border>
 </UserControl>
-

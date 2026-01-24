@@ -511,6 +511,42 @@ namespace YiboFile.Controls
             catch { }
         }
 
+        public bool UndoEnabled
+        {
+            get => UndoBtn?.IsEnabled ?? false;
+            set
+            {
+                if (UndoBtn != null) UndoBtn.IsEnabled = value;
+            }
+        }
+
+        public bool RedoEnabled
+        {
+            get => RedoBtn?.IsEnabled ?? false;
+            set
+            {
+                if (RedoBtn != null) RedoBtn.IsEnabled = value;
+            }
+        }
+
+        public string UndoToolTipText
+        {
+            get => UndoBtn?.ToolTip as string;
+            set
+            {
+                if (UndoBtn != null) UndoBtn.ToolTip = value;
+            }
+        }
+
+        public string RedoToolTipText
+        {
+            get => RedoBtn?.ToolTip as string;
+            set
+            {
+                if (RedoBtn != null) RedoBtn.ToolTip = value;
+            }
+        }
+
         private void Sv_ScrollChanged(object sender, ScrollChangedEventArgs e)
         {
             try

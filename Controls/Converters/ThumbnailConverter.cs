@@ -261,18 +261,21 @@ namespace YiboFile.Controls.Converters
                         case ".ico":
                             try
                             {
-                                // 使用文件流加载，避免URI路径解析问题（特别是包含特殊字符的路径）
+                                // 使用文件流加载，避免URI路径解析问题，并设置共享模式
                                 if (!File.Exists(path))
                                 {
                                     return null;
                                 }
 
                                 var bmp = new BitmapImage();
-                                bmp.BeginInit();
-                                bmp.StreamSource = new FileStream(path, FileMode.Open, FileAccess.Read);
-                                bmp.CacheOption = BitmapCacheOption.OnLoad;
-                                bmp.DecodePixelWidth = targetSize;
-                                bmp.EndInit();
+                                using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+                                {
+                                    bmp.BeginInit();
+                                    bmp.StreamSource = fs;
+                                    bmp.CacheOption = BitmapCacheOption.OnLoad;
+                                    bmp.DecodePixelWidth = targetSize;
+                                    bmp.EndInit();
+                                }
                                 bmp.Freeze();
                                 return bmp;
                             }

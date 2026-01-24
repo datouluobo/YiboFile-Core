@@ -91,18 +91,27 @@ namespace YiboFile.Services.FileOperations.Undo
             var action = _undoStack.Pop();
             FileLogger.Log($"[UndoService] 撤销: {action.Description}");
 
-            if (action.Undo())
+            try
             {
-                _redoStack.Push(action);
-                StackChanged?.Invoke(this, EventArgs.Empty);
-                ActionUndone?.Invoke(this, EventArgs.Empty);
-                return true;
+                if (action.Undo())
+                {
+                    _redoStack.Push(action);
+                    StackChanged?.Invoke(this, EventArgs.Empty);
+                    ActionUndone?.Invoke(this, EventArgs.Empty);
+                    NotificationService.ShowSuccess($"已撤销: {action.Description}");
+                    return true;
+                }
+                else
+                {
+                    _undoStack.Push(action);
+                    NotificationService.ShowError($"撤销失败: {action.Description}");
+                    return false;
+                }
             }
-            else
+            catch (Exception ex)
             {
-                // 撤销失败，放回栈中
                 _undoStack.Push(action);
-                FileLogger.Log($"[UndoService] 撤销失败: {action.Description}");
+                NotificationService.ShowError($"撤销异常: {ex.Message}");
                 return false;
             }
         }
@@ -119,18 +128,27 @@ namespace YiboFile.Services.FileOperations.Undo
             var action = _redoStack.Pop();
             FileLogger.Log($"[UndoService] 重做: {action.Description}");
 
-            if (action.Redo())
+            try
             {
-                _undoStack.Push(action);
-                StackChanged?.Invoke(this, EventArgs.Empty);
-                ActionRedone?.Invoke(this, EventArgs.Empty);
-                return true;
+                if (action.Redo())
+                {
+                    _undoStack.Push(action);
+                    StackChanged?.Invoke(this, EventArgs.Empty);
+                    ActionRedone?.Invoke(this, EventArgs.Empty);
+                    NotificationService.ShowSuccess($"已重做: {action.Description}");
+                    return true;
+                }
+                else
+                {
+                    _redoStack.Push(action);
+                    NotificationService.ShowError($"重做失败: {action.Description}");
+                    return false;
+                }
             }
-            else
+            catch (Exception ex)
             {
-                // 重做失败，放回栈中
                 _redoStack.Push(action);
-                FileLogger.Log($"[UndoService] 重做失败: {action.Description}");
+                NotificationService.ShowError($"重做异常: {ex.Message}");
                 return false;
             }
         }
