@@ -308,11 +308,12 @@ namespace YiboFile.Services.Favorite
 
         public List<FavoriteGroup> GetAllGroups() => DatabaseManager.GetAllFavoriteGroups();
 
-        public void CreateGroup(string name)
+        public int CreateGroup(string name)
         {
-            if (string.IsNullOrEmpty(name)) return;
-            DatabaseManager.CreateFavoriteGroup(name);
+            if (string.IsNullOrEmpty(name)) return -1;
+            int newId = DatabaseManager.CreateFavoriteGroup(name);
             FavoritesLoaded?.Invoke(this, EventArgs.Empty);
+            return newId;
         }
 
         public void RenameGroup(int id, string name)

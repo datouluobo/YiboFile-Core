@@ -51,20 +51,20 @@
 ### 📅 阶段一：短期速赢与代码清理 (Quick Wins & Cleanup)
 **目标**：消除最明显的代码异味，提高 `FileBrowserControl` 的可维护性。
 
-1.  **UI 层数据库解耦 (高优先级)**
+1.  **UI 层数据库解耦 (高优先级) (已完成)**
     *   **问题**：`FileBrowserControl` 直接调用 `DatabaseManager`。
     *   **行动**：
-        *   检查 `FavoriteService`，确保其包含必要的数据获取方法。
-        *   修改 `FileBrowserControl`，使其通过 `App.ServiceProvider.GetService<FavoriteService>()` 获取数据，严禁直接访问数据库层。
+        *   检查 `FavoriteService`，确保其包含必要的数据获取方法。(已完成)
+        *   修改 `FileBrowserControl`，使其通过 `App.ServiceProvider.GetService<FavoriteService>()` 获取数据，严禁直接访问数据库层。(已完成)
 
-2.  **右键菜单 (Context Menu) 重构**
+2.  **右键菜单 (Context Menu) 重构 (已完成)**
     *   **问题**：C# 硬编码构建菜单，难以维护。
     *   **行动**：
-        *   **方案 A (推荐)**：将静态菜单项移回 `FileBrowserControl.xaml` 的 `<ContextMenu>` 资源。
-        *   **方案 B**：对于动态项（标签、收藏），创建 `MenuBuilderService` 专门负责生成逻辑。
+        *   **方案 A (推荐)**：将静态菜单项移回 `FileBrowserControl.xaml` 的 `<ContextMenu>` 资源。(已完成)
+        *   **方案 B**：对于动态项（标签、收藏），创建 `MenuBuilderService` 专门负责生成逻辑。(已完成 - 已创建 `ContextMenuBuilder`)
 
-3.  **对话框样式统一**
-    *   **行动**：确保所有弹窗（如 `ConfirmDialog`, `InputPathDialog`）继承自 `BaseDialogStyle.xaml`，统一视觉语言。
+3.  **对话框样式统一 (已完成)**
+    *   **行动**：确保所有弹窗（如 `ConfirmDialog`, `InputPathDialog`）继承自 `BaseDialogStyle.xaml`，统一视觉语言。(已完成)
 
 ### 📅 阶段二：架构加固 (Architecture Hardening)
 **目标**：减轻 `MainWindow` 的负担，引入轻量级 MVVM。

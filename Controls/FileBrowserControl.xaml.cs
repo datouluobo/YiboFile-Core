@@ -11,6 +11,7 @@ using YiboFile.Controls.Converters;
 using YiboFile.Models;
 using YiboFile.Services.Favorite;
 using YiboFile.Services.Search;
+using YiboFile.Services.UI;
 
 namespace YiboFile.Controls
 {
@@ -112,8 +113,6 @@ namespace YiboFile.Controls
                         }
                     }
 
-                    // 右键菜单：与预览窗口一致的列显示/隐藏
-                    SetupFileContextMenu();
                 }
 
                 FileList.TagClicked += (s, e) => TagClicked?.Invoke(s, e);
@@ -129,9 +128,27 @@ namespace YiboFile.Controls
                 TitleActionBar.DeleteClicked += (s, e) => FileDelete?.Invoke(s, e);
                 TitleActionBar.RefreshClicked += (s, e) => FileRefresh?.Invoke(s, e);
                 TitleActionBar.NewTagClicked += (s, e) => FileAddTag?.Invoke(s, e);
-                // TitleActionBar.ManageTagsClicked += ... (Pending implementation if needed)
-                // TitleActionBar.ManageTagsClicked += ... (Pending implementation if needed)
-                // TitleActionBar.BatchAddTagsClicked += ...
+            }
+
+            this.Loaded += FileBrowserControl_Loaded;
+        }
+
+        private void FileBrowserControl_Loaded(object sender, RoutedEventArgs e)
+        {
+            // 确保 ContextMenu 正确绑定
+            if (FileList?.FilesList != null)
+            {
+                if (FileList.FilesList.ContextMenu == null)
+                {
+                    try
+                    {
+                        FileList.FilesList.ContextMenu = (ContextMenu)FindResource("FileListContextMenu");
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Failed to load ContextMenu: {ex.Message}");
+                    }
+                }
             }
         }
 
@@ -575,6 +592,72 @@ namespace YiboFile.Controls
             return null;
         }
 
+        private void FileListContextMenu_Opened(object sender, RoutedEventArgs e)
+        {
+            if (sender is ContextMenu cm)
+            {
+                var selectedItems = FileList?.SelectedItems?.Cast<FileSystemItem>().ToList();
+                bool hasSelection = selectedItems != null && selectedItems.Count > 0;
+                bool isSingleSelection = hasSelection && selectedItems.Count == 1;
+
+                // Update Static Items Visibility
+                SetMenuItemVisibility(cm, "CopyItem", hasSelection);
+                SetMenuItemVisibility(cm, "CutItem", hasSelection);
+                SetMenuItemVisibility(cm, "DeleteItem", hasSelection);
+                SetMenuItemVisibility(cm, "RenameItem", isSingleSelection);
+                SetMenuItemVisibility(cm, "PropertiesItem", isSingleSelection);
+
+                // Refresh Action
+                Action refreshAction = () => FileRefresh?.Invoke(this, new RoutedEventArgs());
+
+                // Update Dynamic Items via Builder
+                var addTagItem = cm.Items.OfType<MenuItem>().FirstOrDefault(x => x.Name == "AddTagMenuItem");
+                ContextMenuBuilder.UpdateTagSubMenu(addTagItem, selectedItems, refreshAction);
+
+                var addFavoriteItem = cm.Items.OfType<MenuItem>().FirstOrDefault(x => x.Name == "AddFavoriteMenuItem");
+                ContextMenuBuilder.UpdateFavoritesSubMenu(addFavoriteItem, selectedItems, refreshAction);
+
+                var addToLibraryItem = cm.Items.OfType<MenuItem>().FirstOrDefault(x => x.Name == "AddToLibraryMenuItem");
+                ContextMenuBuilder.UpdateLibrarySubMenu(addToLibraryItem, selectedItems, refreshAction);
+
+                // Update Separators
+                UpdateSeparators(cm);
+            }
+        }
+
+        private void SetMenuItemVisibility(ContextMenu cm, string name, bool visible)
+        {
+            var item = cm.Items.OfType<MenuItem>().FirstOrDefault(x => x.Name == name);
+            if (item != null) item.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        private void UpdateSeparators(ContextMenu cm)
+        {
+            var sep1 = cm.Items.OfType<Separator>().FirstOrDefault(x => x.Name == "Separator1");
+            var sep2 = cm.Items.OfType<Separator>().FirstOrDefault(x => x.Name == "Separator2");
+            var sep3 = cm.Items.OfType<Separator>().FirstOrDefault(x => x.Name == "Separator3");
+
+            bool IsVisible(string name)
+            {
+                var item = cm.Items.OfType<MenuItem>().FirstOrDefault(x => x.Name == name);
+                return item != null && item.Visibility == Visibility.Visible;
+            }
+
+            if (sep1 != null) sep1.Visibility = (IsVisible("CopyItem") || IsVisible("CutItem") || IsVisible("PasteItem")) ? Visibility.Visible : Visibility.Collapsed;
+            if (sep2 != null) sep2.Visibility = (IsVisible("DeleteItem") || IsVisible("RenameItem")) ? Visibility.Visible : Visibility.Collapsed;
+            if (sep3 != null) sep3.Visibility = (IsVisible("AddFavoriteMenuItem") || IsVisible("AddToLibraryMenuItem") || IsVisible("AddTagMenuItem")) ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        private void CopyItem_Click(object sender, RoutedEventArgs e) => FileCopy?.Invoke(this, e);
+        private void CutItem_Click(object sender, RoutedEventArgs e) => FileCut?.Invoke(this, e);
+        private void PasteItem_Click(object sender, RoutedEventArgs e) => FilePaste?.Invoke(this, e);
+        private void DeleteItem_Click(object sender, RoutedEventArgs e) => FileDelete?.Invoke(this, e);
+        private void RenameItem_Click(object sender, RoutedEventArgs e) => FileRename?.Invoke(this, e);
+        private void RefreshItem_Click(object sender, RoutedEventArgs e) => FileRefresh?.Invoke(this, e);
+        private void PropertiesItem_Click(object sender, RoutedEventArgs e) => FileProperties?.Invoke(this, e);
+
+        /* Old replaced code */
+        /*
         private void SetupFileContextMenu()
         {
             if (FileList?.FilesList == null) return;
@@ -595,6 +678,7 @@ namespace YiboFile.Controls
             var pasteItem = new MenuItem { Header = "粘贴", Name = "PasteItem" };
             pasteItem.Click += (s, e) => FilePaste?.Invoke(this, e);
             cm.Items.Add(pasteItem);
+
 
             var separator1 = new Separator { Name = "Separator1" };
             cm.Items.Add(separator1);
@@ -749,7 +833,8 @@ namespace YiboFile.Controls
                     addFavoriteItem.Items.Clear();
                     try
                     {
-                        var groups = DatabaseManager.GetAllFavoriteGroups();
+                        var favoriteService = App.ServiceProvider?.GetService(typeof(FavoriteService)) as FavoriteService;
+                        var groups = favoriteService?.GetAllGroups();
                         var selectedItemsList = FileList?.SelectedItems?.Cast<FileSystemItem>().ToList();
 
                         if (groups != null && groups.Count > 0)
@@ -767,7 +852,6 @@ namespace YiboFile.Controls
                                     var groupId = (int)mi.Tag;
                                     if (selectedItemsList != null)
                                     {
-                                        var favoriteService = App.ServiceProvider?.GetService(typeof(FavoriteService)) as FavoriteService;
                                         favoriteService?.AddFavorite(selectedItemsList, groupId);
                                     }
                                 };
@@ -786,10 +870,11 @@ namespace YiboFile.Controls
                                 var name = inputName.Trim();
                                 if (!string.IsNullOrEmpty(name))
                                 {
-                                    int newGroupId = DatabaseManager.CreateFavoriteGroup(name);
-                                    if (selectedItemsList != null)
+                                    // 使用 Service 创建分组并获取 ID
+                                    int newGroupId = favoriteService != null ? favoriteService.CreateGroup(name) : -1;
+
+                                    if (newGroupId != -1 && selectedItemsList != null)
                                     {
-                                        var favoriteService = App.ServiceProvider?.GetService(typeof(FavoriteService)) as FavoriteService;
                                         favoriteService?.AddFavorite(selectedItemsList, newGroupId);
                                     }
                                 }
@@ -813,7 +898,8 @@ namespace YiboFile.Controls
 
                     try
                     {
-                        var allLibraries = DatabaseManager.GetAllLibraries();
+                        var libService = App.ServiceProvider?.GetService(typeof(YiboFile.Services.LibraryService)) as YiboFile.Services.LibraryService;
+                        var allLibraries = libService?.LoadLibraries();
                         var selectedFolders = FileList.SelectedItems.Cast<FileSystemItem>().Where(item => item.IsDirectory).ToList();
 
                         if (allLibraries != null && allLibraries.Count > 0)
@@ -828,7 +914,7 @@ namespace YiboFile.Controls
                                     Header = library.Name
                                 };
 
-                                // 判断是否勾选：如果所有选中的文件夹都已在该库中，则勾选
+                                // 判断是否勾选
                                 bool allInLibrary = selectedFolders.All(folder =>
                                     library.Paths != null && library.Paths.Contains(folder.Path));
                                 libraryMenuItem.IsChecked = allInLibrary;
@@ -839,14 +925,17 @@ namespace YiboFile.Controls
                                     var libId = (int)mi.Tag;
                                     bool shouldAdd = mi.IsChecked;
 
-                                    foreach (var folder in selectedFolders)
+                                    if (libService != null)
                                     {
-                                        if (!string.IsNullOrEmpty(folder.Path))
+                                        foreach (var folder in selectedFolders)
                                         {
-                                            if (shouldAdd)
-                                                DatabaseManager.AddLibraryPath(libId, folder.Path);
-                                            else
-                                                DatabaseManager.RemoveLibraryPath(libId, folder.Path);
+                                            if (!string.IsNullOrEmpty(folder.Path))
+                                            {
+                                                if (shouldAdd)
+                                                    libService.AddLibraryPath(libId, folder.Path);
+                                                else
+                                                    libService.RemoveLibraryPath(libId, folder.Path);
+                                            }
                                         }
                                     }
                                 };
@@ -863,50 +952,30 @@ namespace YiboFile.Controls
 
                         var newLibraryItem = new MenuItem { Header = "新建库..." };
                         newLibraryItem.Click += (sender, args) =>
-                    {
-                        var dialog = new YiboFile.Controls.Dialogs.InputDialog("新建库", "请输入库名称:") { Owner = Window.GetWindow(this) };
-                        if (dialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(dialog.InputText))
                         {
-                            var libService = App.ServiceProvider?.GetService(typeof(YiboFile.Services.LibraryService)) as YiboFile.Services.LibraryService;
-                            if (libService != null)
+                            var dialog = new YiboFile.Controls.Dialogs.InputDialog("新建库", "请输入库名称:") { Owner = Window.GetWindow(this) };
+                            if (dialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(dialog.InputText))
                             {
-                                // 创建新库并添加所有选中的文件夹
-                                int newLibId = libService.AddLibrary(dialog.InputText);
-                                if (newLibId > 0 || newLibId < 0) // if < 0 it already exists, libId is -existingId
+                                if (libService != null)
                                 {
-                                    int targetId = Math.Abs(newLibId);
-                                    foreach (var folder in selectedFolders)
+                                    // 创建新库并添加所有选中的文件夹
+                                    int newLibId = libService.AddLibrary(dialog.InputText);
+                                    if (newLibId > 0 || newLibId < 0)
                                     {
-                                        if (!string.IsNullOrEmpty(folder.Path))
+                                        int targetId = Math.Abs(newLibId);
+                                        foreach (var folder in selectedFolders)
                                         {
-                                            DatabaseManager.AddLibraryPath(targetId, folder.Path);
+                                            if (!string.IsNullOrEmpty(folder.Path))
+                                            {
+                                                libService.AddLibraryPath(targetId, folder.Path);
+                                            }
                                         }
+                                        // 再次刷新确保显示
+                                        libService.LoadLibraries();
                                     }
-                                    // 再次刷新确保显示
-                                    libService.LoadLibraries();
                                 }
                             }
-                            else
-                            {
-                                // 直接使用 DatabaseManager
-                                int newLibId = DatabaseManager.AddLibrary(dialog.InputText);
-                                if (newLibId != 0)
-                                {
-                                    int targetId = Math.Abs(newLibId);
-                                    foreach (var folder in selectedFolders)
-                                    {
-                                        if (!string.IsNullOrEmpty(folder.Path))
-                                        {
-                                            DatabaseManager.AddLibraryPath(targetId, folder.Path);
-                                        }
-                                    }
-
-                                    // 如果没有服务，可能无法自动刷新，这里尝试手动同步(如果可能)
-                                    // 这里通常是代码回退路径，主流程应该走上面的 libService
-                                }
-                            }
-                        }
-                    };
+                        };
                         addToLibraryItem.Items.Add(newLibraryItem);
                     }
                     catch
@@ -941,6 +1010,7 @@ namespace YiboFile.Controls
             FileList.FilesList.ContextMenu = cm;
         }
 
+        */
         /// <summary>
         /// 解析颜色字符串为 Color 对象
         /// </summary>

@@ -193,6 +193,44 @@ namespace YiboFile.Services
         }
 
         /// <summary>
+        /// 添加库路径
+        /// </summary>
+        public bool AddLibraryPath(int libraryId, string path)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(path)) return false;
+                DatabaseManager.AddLibraryPath(libraryId, path);
+                LoadLibraries();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                YiboFile.DialogService.Error($"添加库路径失败: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 移除库路径
+        /// </summary>
+        public bool RemoveLibraryPath(int libraryId, string path)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(path)) return false;
+                DatabaseManager.RemoveLibraryPath(libraryId, path);
+                LoadLibraries();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                YiboFile.DialogService.Error($"移除库路径失败: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
         /// 在资源管理器中打开库
         /// </summary>
         public bool OpenLibraryInExplorer(int libraryId)
