@@ -31,11 +31,7 @@ namespace YiboFile
 
         private void UpdateNavigationButtonsState(string mode)
         {
-            if (NavPathBtn == null || NavLibraryBtn == null) return;
-
-            NavPathBtn.Tag = mode == "Path" ? "Selected" : null;
-            NavLibraryBtn.Tag = mode == "Library" ? "Selected" : null;
-
+            NavigationRail?.SetActiveMode(mode);
         }
 
         private void NavPathBtn_Click(object sender, RoutedEventArgs e)
@@ -633,18 +629,20 @@ namespace YiboFile
         {
             Dispatcher.BeginInvoke(new Action(() =>
             {
-                try
+                // Update main list
+                var mainItem = _currentFiles.FirstOrDefault(f => f.Path == item.Path);
+                if (mainItem != null)
                 {
-                    var existingItem = _currentFiles.FirstOrDefault(f => f.Path == item.Path);
-                    if (existingItem != null)
-                    {
-                        existingItem.Size = item.Size;
-                        var collectionView = System.Windows.Data.CollectionViewSource.GetDefaultView(FileBrowser?.FilesItemsSource);
-                        collectionView?.Refresh();
-                    }
+                    mainItem.Size = item.Size;
+                    mainItem.SizeBytes = item.SizeBytes;
                 }
-                catch (Exception)
+
+                // Update second list
+                var secondItem = _secondCurrentFiles.FirstOrDefault(f => f.Path == item.Path);
+                if (secondItem != null)
                 {
+                    secondItem.Size = item.Size;
+                    secondItem.SizeBytes = item.SizeBytes;
                 }
             }), System.Windows.Threading.DispatcherPriority.Background);
         }
@@ -658,19 +656,40 @@ namespace YiboFile
             {
                 try
                 {
-                    // 更新现有项的元素数据（标签和备注）
                     foreach (var enrichedItem in items)
                     {
-                        var existingItem = _currentFiles.FirstOrDefault(f => f.Path == enrichedItem.Path);
-                        if (existingItem != null)
+                        // Update Main Files
+                        var mainItem = _currentFiles.FirstOrDefault(f => f.Path == enrichedItem.Path);
+                        if (mainItem != null)
                         {
-                            existingItem.Tags = enrichedItem.Tags;
-                            existingItem.Notes = enrichedItem.Notes;
+                            mainItem.Tags = enrichedItem.Tags;
+                            mainItem.TagList = enrichedItem.TagList;
+                            mainItem.Notes = enrichedItem.Notes;
+                            mainItem.NotifyTagsChanged();
+                        }
+
+                        // Update Second Files (Dual List Mode)
+                        var secondItem = _secondCurrentFiles.FirstOrDefault(f => f.Path == enrichedItem.Path);
+                        if (secondItem != null)
+                        {
+                            secondItem.Tags = enrichedItem.Tags;
+                            secondItem.TagList = enrichedItem.TagList;
+                            secondItem.Notes = enrichedItem.Notes;
+                            secondItem.NotifyTagsChanged();
                         }
                     }
 
-                    var collectionView = System.Windows.Data.CollectionViewSource.GetDefaultView(FileBrowser?.FilesItemsSource);
-                    collectionView?.Refresh();
+                    // Refresh both views
+                    if (FileBrowser != null)
+                    {
+                        var view = System.Windows.Data.CollectionViewSource.GetDefaultView(FileBrowser.FilesItemsSource);
+                        view?.Refresh();
+                    }
+                    if (SecondFileBrowser != null)
+                    {
+                        var secondView = System.Windows.Data.CollectionViewSource.GetDefaultView(SecondFileBrowser.FilesItemsSource);
+                        secondView?.Refresh();
+                    }
                 }
                 catch (Exception)
                 {

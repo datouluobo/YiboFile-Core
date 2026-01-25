@@ -301,7 +301,7 @@ namespace YiboFile.Services.Preview
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"无法打开文件: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    YiboFile.DialogService.Error($"无法打开文件: {ex.Message}");
                 }
             }
         }
@@ -378,12 +378,12 @@ namespace YiboFile.Services.Preview
                                 }
                                 else
                                 {
-                                    MessageBox.Show($"文件夹路径不存在: {folderPath}", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                                    YiboFile.DialogService.Warning($"文件夹路径不存在: {folderPath}");
                                 }
                             }
                             catch (Exception ex)
                             {
-                                MessageBox.Show($"无法打开文件夹: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                                YiboFile.DialogService.Error($"无法打开文件夹: {ex.Message}");
                             }
                         };
 

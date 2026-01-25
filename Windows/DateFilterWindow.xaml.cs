@@ -14,12 +14,12 @@ namespace YiboFile.Windows
         public DateFilterWindow()
         {
             InitializeComponent();
-            
+
             // 初始化日期
             SingleDatePicker.SelectedDate = DateTime.Today;
             StartDatePicker.SelectedDate = DateTime.Today;
             EndDatePicker.SelectedDate = DateTime.Today;
-            
+
             // 初始化单选按钮状态
             UpdateDatePickerState();
         }
@@ -44,7 +44,7 @@ namespace YiboFile.Windows
             {
                 if (!SingleDatePicker.SelectedDate.HasValue)
                 {
-                    MessageBox.Show("请选择日期", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    YiboFile.DialogService.Info("请选择日期", owner: this);
                     return;
                 }
                 SelectedStartDate = SingleDatePicker.SelectedDate.Value.Date;
@@ -54,16 +54,16 @@ namespace YiboFile.Windows
             {
                 if (!StartDatePicker.SelectedDate.HasValue || !EndDatePicker.SelectedDate.HasValue)
                 {
-                    MessageBox.Show("请选择完整的日期范围", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    YiboFile.DialogService.Info("请选择完整的日期范围", owner: this);
                     return;
                 }
-                
+
                 SelectedStartDate = StartDatePicker.SelectedDate.Value.Date;
                 SelectedEndDate = EndDatePicker.SelectedDate.Value.Date;
-                
+
                 if (SelectedStartDate > SelectedEndDate)
                 {
-                    MessageBox.Show("开始日期不能晚于结束日期", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    YiboFile.DialogService.Warning("开始日期不能晚于结束日期", owner: this);
                     return;
                 }
             }
@@ -71,7 +71,7 @@ namespace YiboFile.Windows
             // 验证至少选择一个搜索类型
             if (!SearchCreatedDateCheckBox.IsChecked.Value && !SearchModifiedDateCheckBox.IsChecked.Value)
             {
-                MessageBox.Show("请至少选择一种搜索类型（创建日期或修改日期）", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                YiboFile.DialogService.Info("请至少选择一种搜索类型（创建日期或修改日期）", owner: this);
                 return;
             }
 

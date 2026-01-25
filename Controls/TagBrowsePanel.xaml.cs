@@ -38,11 +38,21 @@ namespace YiboFile.Controls
             set { SetValue(ShowFooterProperty, value); }
         }
 
+        public static readonly DependencyProperty TagGroupsProperty =
+            DependencyProperty.Register("TagGroups", typeof(System.Collections.ObjectModel.ObservableCollection<TagGroupViewModel>), typeof(TagBrowsePanel), new PropertyMetadata(null));
+
+        public System.Collections.ObjectModel.ObservableCollection<TagGroupViewModel> TagGroups
+        {
+            get { return (System.Collections.ObjectModel.ObservableCollection<TagGroupViewModel>)GetValue(TagGroupsProperty); }
+            set { SetValue(TagGroupsProperty, value); }
+        }
+
         private ITagService _tagService;
 
         public TagBrowsePanel()
         {
             InitializeComponent();
+            TagGroups = new System.Collections.ObjectModel.ObservableCollection<TagGroupViewModel>();
             this.Loaded += TagBrowsePanel_Loaded;
         }
 
@@ -64,10 +74,10 @@ namespace YiboFile.Controls
                     return;
                 }
 
-                var groups = _tagService.GetTagGroups().ToList();
+                // Temporary list to build then swap to avoid UI flicker
+                var newGroupsList = new List<TagGroupViewModel>();
 
-                // Create ViewModels for binding
-                var viewModels = new List<TagGroupViewModel>();
+                var groups = _tagService.GetTagGroups().ToList();
 
                 // 1. Process defined groups
                 foreach (var group in groups)
@@ -79,7 +89,7 @@ namespace YiboFile.Controls
                         Color = t.Color
                     }).ToList();
 
-                    viewModels.Add(new TagGroupViewModel
+                    newGroupsList.Add(new TagGroupViewModel
                     {
                         Id = group.Id,
                         Name = group.Name,
@@ -97,7 +107,7 @@ namespace YiboFile.Controls
 
                 if (ungroupedTags.Any())
                 {
-                    viewModels.Add(new TagGroupViewModel
+                    newGroupsList.Add(new TagGroupViewModel
                     {
                         Id = 0,
                         Name = "未分组",
@@ -105,8 +115,14 @@ namespace YiboFile.Controls
                     });
                 }
 
-                TagGroupsControl.ItemsSource = viewModels;
-                EmptyStateText.Visibility = viewModels.Any() ? Visibility.Collapsed : Visibility.Visible;
+                // Update the ObservableCollection
+                TagGroups.Clear();
+                foreach (var g in newGroupsList)
+                {
+                    TagGroups.Add(g);
+                }
+
+                EmptyStateText.Visibility = TagGroups.Any() ? Visibility.Collapsed : Visibility.Visible;
 
                 // Subscribe to events (avoid duplicate)
                 _tagService.TagUpdated -= OnTagUpdated;
@@ -123,17 +139,12 @@ namespace YiboFile.Controls
         {
             Dispatcher.Invoke(() =>
             {
-                if (TagGroupsControl.ItemsSource is List<TagGroupViewModel> groups)
+                foreach (var group in TagGroups)
                 {
-                    foreach (var group in groups)
+                    var tag = group.Tags.FirstOrDefault(t => t.Id == tagId);
+                    if (tag != null)
                     {
-                        var tag = group.Tags.FirstOrDefault(t => t.Id == tagId);
-                        if (tag != null)
-                        {
-                            tag.Color = newColor;
-                            // Force refresh if needed, but PropertyChanged should handle it
-                            // Assuming TagViewModel implements INotifyPropertyChanged
-                        }
+                        tag.Color = newColor;
                     }
                 }
             });

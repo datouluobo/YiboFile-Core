@@ -143,6 +143,9 @@ namespace YiboFile.Services
         }
 
         private ListViewItem _lastTargetItem;
+        private Point _lastDragOverPoint;
+        private long _lastDragCheckTicks;
+        private bool _isLastTargetDirectory;
 
         private void ListView_DragOver(object sender, DragEventArgs e)
         {
@@ -151,35 +154,56 @@ namespace YiboFile.Services
                 // 修饰键优先级: Alt=快捷方式 > Ctrl=复制 > 默认=移动
                 DragDropEffects effect = GetDragDropEffect(e.KeyStates);
 
-                // 检查是否悬停在目录上
-                var targetItem = GetItemAtLocation(_associatedListView, e.GetPosition(_associatedListView));
+                Point currentPos = e.GetPosition(_associatedListView);
+                long currentTicks = DateTime.Now.Ticks;
 
-                // 更新高亮状态
-                if (targetItem != _lastTargetItem)
+                // Throttle HitTesting: Check only if moved > 5 pixels or elapsed > 50ms
+                bool shouldHitTest = (_lastTargetItem == null) ||
+                                     (Math.Abs(currentPos.X - _lastDragOverPoint.X) > 5 || Math.Abs(currentPos.Y - _lastDragOverPoint.Y) > 5) ||
+                                     (currentTicks - _lastDragCheckTicks > 500000); // 50ms
+
+                if (shouldHitTest)
                 {
-                    if (_lastTargetItem != null)
+                    _lastDragOverPoint = currentPos;
+                    _lastDragCheckTicks = currentTicks;
+
+                    // 检查是否悬停在目录上
+                    var targetItem = GetItemAtLocation(_associatedListView, currentPos);
+
+                    // 更新高亮状态
+                    if (targetItem != _lastTargetItem)
                     {
-                        DragAttachedProperties.SetIsDragTarget(_lastTargetItem, false);
+                        if (_lastTargetItem != null)
+                        {
+                            DragAttachedProperties.SetIsDragTarget(_lastTargetItem, false);
+                        }
+                        _lastTargetItem = targetItem;
+
+                        if (_lastTargetItem != null && _lastTargetItem.Content is FileSystemItem fsItem && fsItem.IsDirectory)
+                        {
+                            _isLastTargetDirectory = true;
+                            DragAttachedProperties.SetIsDragTarget(_lastTargetItem, true);
+                        }
+                        else
+                        {
+                            _isLastTargetDirectory = false;
+                            if (_lastTargetItem != null) DragAttachedProperties.SetIsDragTarget(_lastTargetItem, false);
+                        }
                     }
-                    _lastTargetItem = targetItem;
                 }
 
-                if (targetItem != null && targetItem.Content is FileSystemItem fsItem && fsItem.IsDirectory)
+                // Apply effects based on cached state
+                if (_isLastTargetDirectory)
                 {
-                    // 仅当目标是文件夹时才高亮
-                    DragAttachedProperties.SetIsDragTarget(targetItem, true);
                     e.Effects = effect;
                 }
                 else
                 {
-                    if (targetItem != null)
-                    {
-                        DragAttachedProperties.SetIsDragTarget(targetItem, false);
-                    }
                     e.Effects = effect;
                 }
 
-                // 更新视觉反馈提示
+                // 更新视觉反馈提示 (Let the adornment logic handle visual throttling if needed, or we throttle here)
+                // We update position every frame for smoothness, but text only changes with effect
                 UpdateDragFeedback(e, effect);
 
                 e.Handled = true;
@@ -391,7 +415,7 @@ namespace YiboFile.Services
                     task.Status = FileOperations.TaskQueue.TaskStatus.Failed;
                     task.CurrentFile = ex.Message;
                     System.Windows.Application.Current?.Dispatcher?.Invoke(() =>
-                        MessageBox.Show($"操作失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error));
+                        YiboFile.DialogService.Error($"操作失败: {ex.Message}"));
                 }
             });
         }
@@ -554,7 +578,7 @@ namespace YiboFile.Services
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"创建快捷方式失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                YiboFile.DialogService.Error($"创建快捷方式失败: {ex.Message}");
             }
         }
     }

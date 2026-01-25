@@ -31,11 +31,11 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlHoverBackgroundBrush}"/>
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlHoverBrush}"/>
                                 <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource AccentDefaultBrush}"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlPressedBackgroundBrush}"/>
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlPressedBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -59,7 +59,7 @@
 
         <!-- 图标和标题 -->
         <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,16">
-            <TextBlock Text="⚠" FontSize="28" Foreground="{DynamicResource SemanticWarningBrush}" 
+            <TextBlock Text="⚠" FontSize="28" Foreground="{DynamicResource StatusWarningBrush}" 
                        VerticalAlignment="Center" Margin="0,0,12,0"/>
             <TextBlock Text="目标位置已存在同名文件" FontSize="18" FontWeight="SemiBold"
                        Foreground="{DynamicResource ForegroundPrimaryBrush}" VerticalAlignment="Center"/>
@@ -86,12 +86,12 @@
                 <TextBlock Text="仅当前文件" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"/>
                 <Button Content="📋 覆盖" Tag="Overwrite" Click="DirectButton_Click"
                         Style="{StaticResource ConflictButtonStyle}"
-                        Background="{DynamicResource ControlDefaultBackgroundBrush}"
+                        Background="{DynamicResource ControlDefaultBrush}"
                         Foreground="{DynamicResource ForegroundPrimaryBrush}"
                         BorderBrush="{DynamicResource BorderSubtleBrush}"/>
                 <Button Content="⏭ 跳过" Tag="Skip" Click="DirectButton_Click"
                         Style="{StaticResource ConflictButtonStyle}"
-                        Background="{DynamicResource ControlDefaultBackgroundBrush}"
+                        Background="{DynamicResource ControlDefaultBrush}"
                         Foreground="{DynamicResource ForegroundPrimaryBrush}"
                         BorderBrush="{DynamicResource BorderSubtleBrush}"/>
                 <Button Content="📄 保留两者" Tag="Rename" Click="DirectButton_Click"
@@ -104,12 +104,12 @@
                 <TextBlock Text="所有冲突文件" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"/>
                 <Button Content="📋 覆盖全部" Tag="OverwriteAll" Click="DirectButton_Click"
                         Style="{StaticResource ConflictButtonStyle}"
-                        Background="{DynamicResource ControlDefaultBackgroundBrush}"
+                        Background="{DynamicResource ControlDefaultBrush}"
                         Foreground="{DynamicResource ForegroundPrimaryBrush}"
                         BorderBrush="{DynamicResource BorderSubtleBrush}"/>
                 <Button Content="⏭ 跳过全部" Tag="SkipAll" Click="DirectButton_Click"
                         Style="{StaticResource ConflictButtonStyle}"
-                        Background="{DynamicResource ControlDefaultBackgroundBrush}"
+                        Background="{DynamicResource ControlDefaultBrush}"
                         Foreground="{DynamicResource ForegroundPrimaryBrush}"
                         BorderBrush="{DynamicResource BorderSubtleBrush}"/>
                 <Button Content="📄 保留全部" Tag="RenameAll" Click="DirectButton_Click"
@@ -124,7 +124,7 @@
                     Padding="16,8"
                     Click="CancelAll_Click"
                     Background="Transparent"
-                    Foreground="{DynamicResource SemanticErrorBrush}"
+                    Foreground="{DynamicResource StatusErrorBrush}"
                     BorderThickness="0" Cursor="Hand"/>
         </StackPanel>
     </Grid>

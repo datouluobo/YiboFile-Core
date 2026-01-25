@@ -131,6 +131,9 @@ namespace YiboFile
 
         // 自定义快捷键 (Description -> KeyCombination)
         public System.Collections.Generic.Dictionary<string, string> CustomHotkeys { get; set; } = new System.Collections.Generic.Dictionary<string, string>();
+
+        // 中键打开标签页行为
+        public bool ActivateNewTabOnMiddleClick { get; set; } = true;
     }
 
     public class AllSettingsConfig

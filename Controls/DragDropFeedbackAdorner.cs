@@ -24,9 +24,15 @@ namespace YiboFile.Controls
             _border = new SolidColorBrush(Color.FromArgb(255, 100, 100, 100));
         }
 
+        private FormattedText _formattedText;
+
         public void UpdateFeedback(string text, Point position)
         {
-            _text = text;
+            if (_text != text)
+            {
+                _text = text;
+                _formattedText = null; // Invalidate cache
+            }
             _position = position;
             InvalidateVisual();
         }
@@ -35,14 +41,17 @@ namespace YiboFile.Controls
         {
             if (string.IsNullOrEmpty(_text)) return;
 
-            var formattedText = new FormattedText(
-                _text,
-                System.Globalization.CultureInfo.CurrentCulture,
-                FlowDirection.LeftToRight,
-                _typeface,
-                12,
-                _foreground,
-                VisualTreeHelper.GetDpi(this).PixelsPerDip);
+            if (_formattedText == null)
+            {
+                _formattedText = new FormattedText(
+                    _text,
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    FlowDirection.LeftToRight,
+                    _typeface,
+                    12,
+                    _foreground,
+                    VisualTreeHelper.GetDpi(this).PixelsPerDip);
+            }
 
             double padding = 6;
             double cornerRadius = 4;
@@ -52,14 +61,14 @@ namespace YiboFile.Controls
             var rect = new Rect(
                 _position.X + offsetX,
                 _position.Y + offsetY,
-                formattedText.Width + padding * 2,
-                formattedText.Height + padding * 2);
+                _formattedText.Width + padding * 2,
+                _formattedText.Height + padding * 2);
 
             // 边框和背景
             drawingContext.DrawRoundedRectangle(_background, new Pen(_border, 1), rect, cornerRadius, cornerRadius);
 
             // 文本
-            drawingContext.DrawText(formattedText, new Point(rect.X + padding, rect.Y + padding));
+            drawingContext.DrawText(_formattedText, new Point(rect.X + padding, rect.Y + padding));
         }
     }
 }

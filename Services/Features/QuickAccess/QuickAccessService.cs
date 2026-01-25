@@ -94,11 +94,12 @@ namespace YiboFile.Services.QuickAccess
                     (Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "图片", "Icon_Image"),
                     (Environment.GetFolderPath(Environment.SpecialFolder.MyMusic), "音乐", "Icon_Music"),
                     (Environment.GetFolderPath(Environment.SpecialFolder.MyVideos), "视频", "Icon_Video"),
-                    (Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "用户", "Icon_User")
+                    (Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "用户", "Icon_User"),
+                    ("shell:RecycleBinFolder", "回收站", "Icon_Trash")
                 };
 
                 var accessItems = quickAccessPaths
-                    .Where(item => Directory.Exists(item.Path))
+                    .Where(item => Directory.Exists(item.Path) || item.Path.StartsWith("shell:", StringComparison.OrdinalIgnoreCase))
                     .Select(item => new QuickAccessItem
                     {
                         DisplayName = item.Name,
@@ -290,7 +291,7 @@ namespace YiboFile.Services.QuickAccess
                             {
                                 try
                                 {
-                                    if (Directory.Exists(path))
+                                    if (Directory.Exists(path) || path.StartsWith("shell:", StringComparison.OrdinalIgnoreCase))
                                     {
                                         CreateTabRequested?.Invoke(this, path);
                                         e.Handled = true;
@@ -353,7 +354,7 @@ namespace YiboFile.Services.QuickAccess
                                 }
                                 catch (Exception ex)
                                 {
-                                    MessageBox.Show($"无法打开驱动器: {path}\n\n{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                                    YiboFile.DialogService.Warning($"无法打开驱动器: {path}\n\n{ex.Message}");
                                     e.Handled = true;
                                     return;
                                 }

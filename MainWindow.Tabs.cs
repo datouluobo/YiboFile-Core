@@ -21,31 +21,37 @@ namespace YiboFile
         /// <summary>
         /// 创建新标签页
         /// </summary>
-        internal void CreateTab(string path, bool forceNewTab = false)
+        internal void CreateTab(string path, bool forceNewTab = false, bool? activate = null)
         {
+            // Determine activation behavior (default to Config if null, or true if Config unavailable)
+            bool shouldActivate = activate ?? _configService?.Config?.ActivateNewTabOnMiddleClick ?? true;
+
             // 在双列表模式下，根据焦点判断在哪个列表创建标签
             if (_isDualListMode && _isSecondPaneFocused && _secondTabService != null)
             {
-                _secondTabService.CreatePathTab(path, forceNewTab);
+                _secondTabService.CreatePathTab(path, forceNewTab, shouldActivate);
             }
             else
             {
-                _tabService?.CreatePathTab(path, forceNewTab);
+                _tabService?.CreatePathTab(path, forceNewTab, shouldActivate);
             }
         }
 
         /// <summary>
         /// 在标签页中打开库
         /// </summary>
-        internal void OpenLibraryInTab(Library library, bool forceNewTab = false)
+        internal void OpenLibraryInTab(Library library, bool forceNewTab = false, bool? activate = null)
         {
+            // Determine activation behavior (default to Config if null, or true if Config unavailable)
+            bool shouldActivate = activate ?? _configService?.Config?.ActivateNewTabOnMiddleClick ?? true;
+
             if (_isDualListMode && _isSecondPaneFocused && _secondTabService != null)
             {
-                _secondTabService.OpenLibraryTab(library, forceNewTab);
+                _secondTabService.OpenLibraryTab(library, forceNewTab, shouldActivate);
             }
             else
             {
-                _tabService?.OpenLibraryTab(library, forceNewTab);
+                _tabService?.OpenLibraryTab(library, forceNewTab, shouldActivate);
             }
         }
 

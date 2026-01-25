@@ -122,18 +122,18 @@ namespace YiboFile.ViewModels
                 // Refresh or remove from list? 
                 // Restore removes from manifest, so we should refresh UI
                 RemoveRecordFromUI(record);
-                MessageBox.Show($"已恢复: {System.IO.Path.GetFileName(record.OriginalPath)}", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                YiboFile.DialogService.Info($"已恢复: {System.IO.Path.GetFileName(record.OriginalPath)}");
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"恢复失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                YiboFile.DialogService.Error($"恢复失败: {ex.Message}");
             }
         }
 
         private async Task DeleteFileAsync(BackupRecord record)
         {
             if (record == null) return;
-            if (MessageBox.Show($"确定要永久删除备份文件 \"{System.IO.Path.GetFileName(record.OriginalPath)}\" 吗?", "确认删除", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes)
+            if (!YiboFile.DialogService.Ask($"确定要永久删除备份文件 \"{System.IO.Path.GetFileName(record.OriginalPath)}\" 吗?", "确认删除"))
                 return;
 
             try
@@ -143,7 +143,7 @@ namespace YiboFile.ViewModels
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"删除失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                YiboFile.DialogService.Error($"删除失败: {ex.Message}");
             }
         }
 
@@ -152,7 +152,7 @@ namespace YiboFile.ViewModels
             int days = _config?.BackupRetentionDays ?? 30;
             if (days <= 0) days = 30;
 
-            if (MessageBox.Show($"确定要清理超过 {days} 天的旧备份吗?", "清理确认", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+            if (YiboFile.DialogService.Ask($"确定要清理超过 {days} 天的旧备份吗?", "清理确认"))
             {
                 await _backupService.CleanOldBackupsAsync(days);
                 await LoadBackupsAsync();
@@ -175,7 +175,7 @@ namespace YiboFile.ViewModels
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"还原失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                YiboFile.DialogService.Error($"还原失败: {ex.Message}");
             }
             finally
             {
@@ -187,8 +187,7 @@ namespace YiboFile.ViewModels
         {
             if (SelectedFiles == null || SelectedFiles.Count == 0 || SelectedBackup == null) return;
 
-            if (MessageBox.Show($"确定要永久删除这 {SelectedFiles.Count} 个备份文件吗？", "确认删除",
-                MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
+            if (!YiboFile.DialogService.Ask($"确定要永久删除这 {SelectedFiles.Count} 个备份文件吗？", "确认删除")) return;
 
             IsLoading = true;
             try
@@ -202,7 +201,7 @@ namespace YiboFile.ViewModels
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"删除失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                YiboFile.DialogService.Error($"删除失败: {ex.Message}");
             }
             finally
             {

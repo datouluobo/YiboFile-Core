@@ -52,7 +52,7 @@ namespace YiboFile
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"加载库文件失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                DialogService.Error($"加载库文件失败: {ex.Message}", owner: this);
             }
         }
 
@@ -189,7 +189,7 @@ namespace YiboFile
         /// </summary>
         private void ExportLibrary_Click_Logic()
         {
-            MessageBox.Show("导出库功能待实现", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            DialogService.Info("导出库功能待实现", owner: this);
         }
 
         #endregion

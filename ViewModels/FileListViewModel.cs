@@ -192,7 +192,7 @@ namespace YiboFile.ViewModels
             {
                 await _dispatcher.InvokeAsync(() =>
                 {
-                    MessageBox.Show(_ownerWindow, $"加载文件列表失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    YiboFile.DialogService.Error($"加载文件列表失败: {ex.Message}", owner: _ownerWindow);
                 }, DispatcherPriority.Normal);
             }
             finally

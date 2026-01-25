@@ -74,7 +74,7 @@ namespace YiboFile.Services
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"加载库列表失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                YiboFile.DialogService.Error($"加载库列表失败: {ex.Message}");
                 return new List<Library>();
             }
         }
@@ -105,18 +105,18 @@ namespace YiboFile.Services
                 {
                     // 库已存在，刷新列表
                     LoadLibraries();
-                    MessageBox.Show($"库名称已存在，已刷新库列表", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    YiboFile.DialogService.Info($"库名称已存在，已刷新库列表");
                     return libraryId;
                 }
                 else
                 {
-                    MessageBox.Show("创建库失败", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    YiboFile.DialogService.Error("创建库失败");
                     return 0;
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"创建库失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                YiboFile.DialogService.Error($"创建库失败: {ex.Message}");
                 return 0;
             }
         }
@@ -151,7 +151,7 @@ namespace YiboFile.Services
             {
                 if (string.IsNullOrWhiteSpace(newName))
                 {
-                    MessageBox.Show("库名称不能为空", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    YiboFile.DialogService.Warning("库名称不能为空");
                     return false;
                 }
 
@@ -161,7 +161,7 @@ namespace YiboFile.Services
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"重命名失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                YiboFile.DialogService.Error($"重命名失败: {ex.Message}");
                 return false;
             }
         }
@@ -179,7 +179,7 @@ namespace YiboFile.Services
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"删除库失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                YiboFile.DialogService.Error($"删除库失败: {ex.Message}");
                 return false;
             }
         }
@@ -202,7 +202,7 @@ namespace YiboFile.Services
                 var library = DatabaseManager.GetLibrary(libraryId);
                 if (library == null || library.Paths == null || library.Paths.Count == 0)
                 {
-                    MessageBox.Show("该库没有添加任何位置", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    YiboFile.DialogService.Info("该库没有添加任何位置");
                     return false;
                 }
 
@@ -215,13 +215,13 @@ namespace YiboFile.Services
                 }
                 else
                 {
-                    MessageBox.Show($"路径不存在: {firstPath}", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    YiboFile.DialogService.Warning($"路径不存在: {firstPath}");
                     return false;
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"无法打开文件夹: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                YiboFile.DialogService.Error($"无法打开文件夹: {ex.Message}");
                 return false;
             }
         }
@@ -306,7 +306,7 @@ namespace YiboFile.Services
                         await _dispatcher.InvokeAsync(() =>
                         {
                             _loadFilesSemaphore.Release();
-                            MessageBox.Show($"加载库文件失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                            YiboFile.DialogService.Error($"加载库文件失败: {ex.Message}");
                         }, DispatcherPriority.Background);
                     }
                 });
@@ -315,7 +315,7 @@ namespace YiboFile.Services
             {
                 // 确保释放锁
                 _loadFilesSemaphore.Release();
-                MessageBox.Show($"加载库文件失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                YiboFile.DialogService.Error($"加载库文件失败: {ex.Message}");
             }
         }
 
@@ -363,7 +363,7 @@ namespace YiboFile.Services
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"导出库配置失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                YiboFile.DialogService.Error($"导出库配置失败: {ex.Message}");
                 return null;
             }
         }
@@ -387,7 +387,7 @@ namespace YiboFile.Services
 
                 if (importList == null || importList.Count == 0)
                 {
-                    MessageBox.Show("导入的数据为空或格式不正确", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    YiboFile.DialogService.Warning("导入的数据为空或格式不正确");
                     return false;
                 }
 
@@ -426,12 +426,12 @@ namespace YiboFile.Services
                 }
 
                 LoadLibraries();
-                MessageBox.Show($"成功导入 {successCount} 个库配置", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                YiboFile.DialogService.Info($"成功导入 {successCount} 个库配置");
                 return true;
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"导入库配置失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                YiboFile.DialogService.Error($"导入库配置失败: {ex.Message}");
                 return false;
             }
         }

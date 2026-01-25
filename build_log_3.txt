@@ -1,0 +1,27 @@
+f:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.ButtonEvents.cs(275,17): error CS0103: 当前上下文中不存在名称“TitleBarSeparator” [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_iueb1oxp_wpftmp.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.ButtonEvents.cs(280,34): error CS0103: 当前上下文中不存在名称“TitleBarSeparator” [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_iueb1oxp_wpftmp.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.ButtonEvents.cs(287,34): error CS0103: 当前上下文中不存在名称“TitleBarSeparator” [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_iueb1oxp_wpftmp.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.ButtonEvents.cs(309,17): error CS0103: 当前上下文中不存在名称“TitleBarSeparator” [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_iueb1oxp_wpftmp.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.ButtonEvents.cs(310,41): error CS0103: 当前上下文中不存在名称“TitleBarSeparator” [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_iueb1oxp_wpftmp.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.ButtonEvents.cs(310,77): error CS0103: 当前上下文中不存在名称“TitleBarSeparator” [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_iueb1oxp_wpftmp.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.ButtonEvents.cs(310,109): error CS0103: 当前上下文中不存在名称“TitleBarSeparator” [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_iueb1oxp_wpftmp.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.ButtonEvents.cs(318,17): error CS0103: 当前上下文中不存在名称“TitleBarSeparator” [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_iueb1oxp_wpftmp.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.Drives.cs(35,13): error CS0103: 当前上下文中不存在名称“ClearOtherNavigationSelections” [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_iueb1oxp_wpftmp.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.Drives.cs(73,17): error CS0103: 当前上下文中不存在名称“ClearOtherNavigationSelections” [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_iueb1oxp_wpftmp.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.Input.cs(114,17): error CS0103: 当前上下文中不存在名称“Refresh_Click” [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_iueb1oxp_wpftmp.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.Navigation.cs(34,17): error CS0103: 当前上下文中不存在名称“NavPathBtn” [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_iueb1oxp_wpftmp.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.Navigation.cs(34,39): error CS0103: 当前上下文中不存在名称“NavLibraryBtn” [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_iueb1oxp_wpftmp.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.Navigation.cs(36,13): error CS0103: 当前上下文中不存在名称“NavPathBtn” [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_iueb1oxp_wpftmp.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.Navigation.cs(37,13): error CS0103: 当前上下文中不存在名称“NavLibraryBtn” [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_iueb1oxp_wpftmp.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.QuickAccess.cs(23,13): error CS0103: 当前上下文中不存在名称“ClearOtherNavigationSelections” [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_iueb1oxp_wpftmp.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.xaml.cs(199,91): error CS1061: “WindowStateManager”未包含“UpdateWindowStateUI”的定义，并且找不到可接受第一个“WindowStateManager”类型参数的可访问扩展方法“UpdateWindowStateUI”(是否缺少 using 指令或程序集引用?) [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_iueb1oxp_wpftmp.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.xaml.cs(355,36): error CS1061: “ColumnService”未包含“SetLayoutMode”的定义，并且找不到可接受第一个“ColumnService”类型参数的可访问扩展方法“SetLayoutMode”(是否缺少 using 指令或程序集引用?) [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_iueb1oxp_wpftmp.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.xaml.cs(364,36): error CS1061: “ColumnService”未包含“SetLayoutMode”的定义，并且找不到可接受第一个“ColumnService”类型参数的可访问扩展方法“SetLayoutMode”(是否缺少 using 指令或程序集引用?) [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_iueb1oxp_wpftmp.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.xaml.cs(375,40): error CS1061: “SettingsOverlayController”未包含“ToggleSettingsOverlay”的定义，并且找不到可接受第一个“SettingsOverlayController”类型参数的可访问扩展方法“ToggleSettingsOverlay”(是否缺少 using 指令或程序集引用?) [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_iueb1oxp_wpftmp.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.xaml(274,101): error CS1061: “MainWindow”未包含“SettingsOverlay_MouseDown”的定义，并且找不到可接受第一个“MainWindow”类型参数的可访问扩展方法“SettingsOverlay_MouseDown”(是否缺少 using 指令或程序集引用?) [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_iueb1oxp_wpftmp.csproj]
+
+生成失败。
+    0 个警告
+    21 个错误
+
+已用时间 00:00:03.06

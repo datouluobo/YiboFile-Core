@@ -221,7 +221,7 @@ namespace YiboFile
                 () => { _menuEventHandler?.Rename_Click(null, null); },
                 () => RefreshActiveFileList(),
                 () => ShowSelectedFileProperties(),
-                (path, force) => CreateTab(path, force) // Main Browser CreateTab
+                (path, force, activate) => CreateTab(path, force, activate) // Main Browser CreateTab
             );
             _mainFileListHandler.Initialize(FileBrowser.FilesList);
 
@@ -249,7 +249,11 @@ namespace YiboFile
                     () => { _menuEventHandler?.Rename_Click(null, null); },
                     () => LoadSecondFileBrowserDirectory(_secondCurrentPath),
                     () => ShowSelectedFileProperties(), // Use the new method
-                    (path, force) => _secondTabService?.CreatePathTab(path, force) // Second Browser CreateTab
+                    (path, force, activate) => // Second Browser CreateTab
+                    {
+                        bool shouldActivate = activate ?? _configService?.Config?.ActivateNewTabOnMiddleClick ?? true;
+                        _secondTabService?.CreatePathTab(path, force, false, shouldActivate);
+                    }
                 );
                 _secondFileListHandler.Initialize(SecondFileBrowser.FilesList);
             }
@@ -681,6 +685,7 @@ namespace YiboFile
                 fileList,
                 (sortedFiles) =>
                 {
+                    _secondCurrentFiles = sortedFiles;
                     SecondFileBrowser.FilesItemsSource = sortedFiles;
                 },
                 SecondFileBrowser.FilesGrid
@@ -743,7 +748,7 @@ namespace YiboFile
                     }
                     if (i == MaxRetries - 1)
                     {
-                        System.Windows.MessageBox.Show("剪贴板被占用，请稍后再试。", "复制失败", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                        DialogService.Warning("剪贴板被占用，请稍后再试。", owner: this);
                         return;
                     }
                     System.Threading.Thread.Sleep(DelayMs);

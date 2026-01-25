@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
+using YiboFile.Dialogs;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -779,13 +780,10 @@ namespace YiboFile.Controls
                         var createGroupItem = new MenuItem { Header = "+ 新建分组..." };
                         createGroupItem.Click += (sender, args) =>
                         {
-                            var dialog = new PathInputDialog("请输入新分组名称：");
-                            dialog.InputText = "新分组";
-                            var owner = Window.GetWindow(this);
-                            dialog.Owner = owner;
-                            if (dialog.ShowDialog() == true)
+                            var inputName = YiboFile.DialogService.ShowInput("请输入新分组名称：", "新分组", "新建分组", owner: Window.GetWindow(this));
+                            if (inputName != null)
                             {
-                                var name = dialog.InputText?.Trim();
+                                var name = inputName.Trim();
                                 if (!string.IsNullOrEmpty(name))
                                 {
                                     int newGroupId = DatabaseManager.CreateFavoriteGroup(name);
@@ -865,43 +863,50 @@ namespace YiboFile.Controls
 
                         var newLibraryItem = new MenuItem { Header = "新建库..." };
                         newLibraryItem.Click += (sender, args) =>
+                    {
+                        var dialog = new YiboFile.Controls.Dialogs.InputDialog("新建库", "请输入库名称:") { Owner = Window.GetWindow(this) };
+                        if (dialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(dialog.InputText))
                         {
-                            var dialog = new YiboFile.Controls.Dialogs.InputDialog("新建库", "请输入库名称:");
-                            if (dialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(dialog.InputText))
+                            var libService = App.ServiceProvider?.GetService(typeof(YiboFile.Services.LibraryService)) as YiboFile.Services.LibraryService;
+                            if (libService != null)
                             {
-                                var libService = App.ServiceProvider?.GetService(typeof(YiboFile.Services.LibraryService)) as YiboFile.Services.LibraryService;
-                                if (libService != null)
+                                // 创建新库并添加所有选中的文件夹
+                                int newLibId = libService.AddLibrary(dialog.InputText);
+                                if (newLibId > 0 || newLibId < 0) // if < 0 it already exists, libId is -existingId
                                 {
-                                    // 创建新库并添加所有选中的文件夹
-                                    int newLibId = libService.AddLibrary(dialog.InputText);
-                                    if (newLibId > 0)
+                                    int targetId = Math.Abs(newLibId);
+                                    foreach (var folder in selectedFolders)
                                     {
-                                        foreach (var folder in selectedFolders)
+                                        if (!string.IsNullOrEmpty(folder.Path))
                                         {
-                                            if (!string.IsNullOrEmpty(folder.Path))
-                                            {
-                                                DatabaseManager.AddLibraryPath(newLibId, folder.Path);
-                                            }
+                                            DatabaseManager.AddLibraryPath(targetId, folder.Path);
                                         }
                                     }
-                                }
-                                else
-                                {
-                                    // 直接使用 DatabaseManager
-                                    int newLibId = DatabaseManager.AddLibrary(dialog.InputText);
-                                    if (newLibId > 0)
-                                    {
-                                        foreach (var folder in selectedFolders)
-                                        {
-                                            if (!string.IsNullOrEmpty(folder.Path))
-                                            {
-                                                DatabaseManager.AddLibraryPath(newLibId, folder.Path);
-                                            }
-                                        }
-                                    }
+                                    // 再次刷新确保显示
+                                    libService.LoadLibraries();
                                 }
                             }
-                        };
+                            else
+                            {
+                                // 直接使用 DatabaseManager
+                                int newLibId = DatabaseManager.AddLibrary(dialog.InputText);
+                                if (newLibId != 0)
+                                {
+                                    int targetId = Math.Abs(newLibId);
+                                    foreach (var folder in selectedFolders)
+                                    {
+                                        if (!string.IsNullOrEmpty(folder.Path))
+                                        {
+                                            DatabaseManager.AddLibraryPath(targetId, folder.Path);
+                                        }
+                                    }
+
+                                    // 如果没有服务，可能无法自动刷新，这里尝试手动同步(如果可能)
+                                    // 这里通常是代码回退路径，主流程应该走上面的 libService
+                                }
+                            }
+                        }
+                    };
                         addToLibraryItem.Items.Add(newLibraryItem);
                     }
                     catch
@@ -917,8 +922,20 @@ namespace YiboFile.Controls
                 refreshItem.Visibility = Visibility.Visible;
 
                 // 更新分隔符可见性
-                separator1.Visibility = (hasSelection || pasteItem.Visibility == Visibility.Visible) ? Visibility.Visible : Visibility.Collapsed;
-                separator2.Visibility = (hasSelection || refreshItem.Visibility == Visibility.Visible || propertiesItem.Visibility == Visibility.Visible) ? Visibility.Visible : Visibility.Collapsed;
+                bool anyAboveSep1 = copyItem.Visibility == Visibility.Visible ||
+                                    cutItem.Visibility == Visibility.Visible ||
+                                    pasteItem.Visibility == Visibility.Visible;
+                bool anyInGroup2 = deleteItem.Visibility == Visibility.Visible ||
+                                   renameItem.Visibility == Visibility.Visible;
+                bool anyInGroup3 = addFavoriteItem.Visibility == Visibility.Visible ||
+                                   addToLibraryItem.Visibility == Visibility.Visible ||
+                                   (addTagItem != null && addTagItem.Visibility == Visibility.Visible);
+                bool anyInGroup4 = refreshItem.Visibility == Visibility.Visible ||
+                                   propertiesItem.Visibility == Visibility.Visible;
+
+                separator1.Visibility = anyAboveSep1 && (anyInGroup2 || anyInGroup3 || anyInGroup4) ? Visibility.Visible : Visibility.Collapsed;
+                separator2.Visibility = anyInGroup2 && (anyInGroup3 || anyInGroup4) ? Visibility.Visible : Visibility.Collapsed;
+                separator3.Visibility = anyInGroup3 && anyInGroup4 ? Visibility.Visible : Visibility.Collapsed;
             };
 
             FileList.FilesList.ContextMenu = cm;

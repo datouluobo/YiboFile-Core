@@ -276,7 +276,7 @@ namespace YiboFile.Services.Favorite
         {
             if (selectedItems == null || selectedItems.Count == 0)
             {
-                MessageBox.Show("请先选择要收藏的文件或文件夹", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                YiboFile.DialogService.Info("请先选择要收藏的文件或文件夹");
                 return;
             }
 
@@ -293,7 +293,7 @@ namespace YiboFile.Services.Favorite
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"收藏失败: {item.Name} - {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    YiboFile.DialogService.Error($"收藏失败: {item.Name} - {ex.Message}");
                 }
             }
 
@@ -326,7 +326,7 @@ namespace YiboFile.Services.Favorite
         {
             if (id == 1)
             {
-                MessageBox.Show("默认分组不能删除", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                YiboFile.DialogService.Info("默认分组不能删除");
                 return;
             }
             DatabaseManager.DeleteFavoriteGroup(id);
@@ -364,7 +364,7 @@ namespace YiboFile.Services.Favorite
             }
             else
             {
-                if (MessageBox.Show($"路径不存在: {favorite.Path}\n\n是否从收藏中移除？", "提示", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+                if (YiboFile.DialogService.Ask($"路径不存在: {favorite.Path}\n\n是否从收藏中移除？", "提示"))
                 {
                     DatabaseManager.RemoveFavorite(favorite.Path);
                     FavoritesLoaded?.Invoke(this, EventArgs.Empty);
@@ -420,20 +420,20 @@ namespace YiboFile.Services.Favorite
                                     }
                                     else
                                     {
-                                        MessageBox.Show($"路径不存在: {favorite.Path}", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                                        YiboFile.DialogService.Warning($"路径不存在: {favorite.Path}");
                                         e.Handled = true;
                                         return;
                                     }
                                 }
                                 catch (UnauthorizedAccessException ex)
                                 {
-                                    MessageBox.Show($"无法访问路径: {favorite.Path}\n\n{ex.Message}", "权限错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                                    YiboFile.DialogService.Warning($"无法访问路径: {favorite.Path}\n\n{ex.Message}");
                                     e.Handled = true;
                                     return;
                                 }
                                 catch (Exception ex)
                                 {
-                                    MessageBox.Show($"无法打开路径: {favorite.Path}\n\n{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                                    YiboFile.DialogService.Warning($"无法打开路径: {favorite.Path}\n\n{ex.Message}");
                                     e.Handled = true;
                                     return;
                                 }

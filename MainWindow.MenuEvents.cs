@@ -78,7 +78,7 @@ namespace YiboFile
                     // 库模式：使用库的第一个位置
                     if (_currentLibrary.Paths == null || _currentLibrary.Paths.Count == 0)
                     {
-                        MessageBox.Show("当前库没有添加任何位置，请先在管理库中添加位置", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                        DialogService.Info("当前库没有添加任何位置，请先在管理库中添加位置", owner: this);
                         return;
                     }
 
@@ -86,13 +86,10 @@ namespace YiboFile
                     if (_currentLibrary.Paths.Count > 1)
                     {
                         var paths = string.Join("\n", _currentLibrary.Paths.Select((p, i) => $"{i + 1}. {p}"));
-                        var result = MessageBox.Show(
+                        if (!DialogService.Ask(
                             $"当前库有多个位置，将在第一个位置创建文件：\n\n{_currentLibrary.Paths[0]}\n\n是否继续？\n\n所有位置：\n{paths}",
                             "选择位置",
-                            MessageBoxButton.YesNo,
-                            MessageBoxImage.Question);
-
-                        if (result != MessageBoxResult.Yes)
+                            this))
                         {
                             return;
                         }
@@ -101,7 +98,7 @@ namespace YiboFile
                     targetPath = _currentLibrary.Paths[0];
                     if (!Directory.Exists(targetPath))
                     {
-                        MessageBox.Show($"库位置不存在: {targetPath}", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        DialogService.Warning($"库位置不存在: {targetPath}", owner: this);
                         return;
                     }
                 }
@@ -112,7 +109,7 @@ namespace YiboFile
                 }
                 else
                 {
-                    MessageBox.Show("当前没有可用的路径", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    DialogService.Warning("当前没有可用的路径", owner: this);
                     return;
                 }
 
@@ -143,7 +140,7 @@ namespace YiboFile
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"创建文件失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                DialogService.Error($"创建文件失败: {ex.Message}", owner: this);
             }
         }
         private void CreateFileWithProperFormat(string filePath, string extension)
@@ -384,7 +381,7 @@ namespace YiboFile
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"创建图片文件失败: {ex.Message}\n将创建空文件", "警告", MessageBoxButton.OK, MessageBoxImage.Warning);
+                DialogService.Warning($"创建图片文件失败: {ex.Message}\n将创建空文件", owner: this);
                 File.WriteAllText(filePath, string.Empty);
             }
         }
@@ -405,7 +402,7 @@ namespace YiboFile
                             if (wordType == null)
                             {
                                 CreateBasicDocx(filePath);
-                                MessageBox.Show("未检测到 Microsoft Word，已创建基本 DOCX 模板。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                                DialogService.Info("未检测到 Microsoft Word，已创建基本 DOCX 模板。", owner: this);
                                 return;
                             }
 
@@ -419,7 +416,7 @@ namespace YiboFile
                         catch (Exception ex)
                         {
                             CreateBasicDocx(filePath);
-                            MessageBox.Show($"创建文件失败，已回退为基本 DOCX: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                            DialogService.Warning($"创建文件失败，已回退为基本 DOCX: {ex.Message}", owner: this);
                         }
                         finally
                         {
@@ -437,7 +434,7 @@ namespace YiboFile
                             var excelType = Type.GetTypeFromProgID("Excel.Application");
                             if (excelType == null)
                             {
-                                MessageBox.Show("未检测到 Microsoft Excel，将创建空文件", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                                DialogService.Info("未检测到 Microsoft Excel，将创建空文件", owner: this);
                                 File.WriteAllText(filePath, string.Empty);
                                 return;
                             }
@@ -465,7 +462,7 @@ namespace YiboFile
                             var pptType = Type.GetTypeFromProgID("PowerPoint.Application");
                             if (pptType == null)
                             {
-                                MessageBox.Show("未检测到 Microsoft PowerPoint，将创建空文件", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                                DialogService.Info("未检测到 Microsoft PowerPoint，将创建空文件", owner: this);
                                 File.WriteAllText(filePath, string.Empty);
                                 return;
                             }
@@ -496,7 +493,7 @@ namespace YiboFile
                 {
                     File.WriteAllText(filePath, string.Empty);
                 }
-                MessageBox.Show($"创建 Office 文件失败: {ex.Message}\n已写入占位文件", "警告", MessageBoxButton.OK, MessageBoxImage.Warning);
+                DialogService.Warning($"创建 Office 文件失败: {ex.Message}\n已写入占位文件", owner: this);
             }
         }
 

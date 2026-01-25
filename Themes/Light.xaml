@@ -24,6 +24,7 @@
     <!-- 1. 背景类 (4个) -->
     <SolidColorBrush x:Key="BackgroundPrimaryBrush" Color="#FFFFFF"/>      <!-- 主背景 -->
     <SolidColorBrush x:Key="BackgroundSecondaryBrush" Color="#F8F9FA"/>    <!-- 次背景/面板 -->
+    <SolidColorBrush x:Key="NavigationRegionBrush" Color="#F2F2F2"/>       <!-- 导航区背景 (新增) -->
     <SolidColorBrush x:Key="BackgroundTertiaryBrush" Color="#F5F5F5"/>     <!-- 三级背景/卡片 -->
     <SolidColorBrush x:Key="BackgroundElevatedBrush" Color="#FFFFFF"/>     <!-- 对话框/浮动 -->
     <SolidColorBrush x:Key="TitleBarBackgroundBrush" Color="#F8F9FA"/>     <!-- 标题栏背景 (与次背景一致) -->

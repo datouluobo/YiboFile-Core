@@ -6,6 +6,7 @@ using System.Linq;
 using System.Windows;
 using YiboFile.Controls;
 using YiboFile.Services;
+using YiboFile.Dialogs;
 
 namespace YiboFile.Services.FileOperations
 {
@@ -72,7 +73,28 @@ namespace YiboFile.Services.FileOperations
 
         public MessageBoxResult ShowMessage(string message, string title, MessageBoxButton buttons, MessageBoxImage icon)
         {
-            return MessageBox.Show(_ownerWindow, message, title, buttons, icon);
+            if (buttons == MessageBoxButton.YesNo || buttons == MessageBoxButton.YesNoCancel)
+            {
+                return YiboFile.DialogService.Ask(message, title, _ownerWindow) ? MessageBoxResult.Yes : MessageBoxResult.No;
+            }
+            if (buttons == MessageBoxButton.OKCancel)
+            {
+                return YiboFile.DialogService.Ask(message, title, _ownerWindow) ? MessageBoxResult.OK : MessageBoxResult.Cancel;
+            }
+
+            if (icon == MessageBoxImage.Error)
+            {
+                YiboFile.DialogService.Error(message, title, _ownerWindow);
+            }
+            else if (icon == MessageBoxImage.Warning)
+            {
+                YiboFile.DialogService.Warning(message, title, _ownerWindow);
+            }
+            else
+            {
+                YiboFile.DialogService.Info(message, title, _ownerWindow);
+            }
+            return MessageBoxResult.OK;
         }
 
         public bool ShowConfirm(string message, string title)

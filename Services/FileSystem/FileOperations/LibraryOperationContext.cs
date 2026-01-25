@@ -6,6 +6,7 @@ using System.Linq;
 using System.Windows;
 using YiboFile.Controls;
 using YiboFile.Services;
+using YiboFile.Dialogs;
 
 namespace YiboFile.Services.FileOperations
 {
@@ -47,14 +48,12 @@ namespace YiboFile.Services.FileOperations
             if (_currentLibrary.Paths.Count > 1)
             {
                 var paths = string.Join("\n", _currentLibrary.Paths.Select((p, i) => $"{i + 1}. {p}"));
-                var result = MessageBox.Show(
-                    _ownerWindow,
+                bool confirm = YiboFile.DialogService.Ask(
                     $"当前库有多个位置，将在第一个位置执行操作：\n\n{firstPath}\n\n是否继续？\n\n所有位置：\n{paths}",
                     "选择位置",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Question);
+                    _ownerWindow);
 
-                if (result != MessageBoxResult.Yes)
+                if (!confirm)
                 {
                     return null;
                 }
@@ -69,7 +68,7 @@ namespace YiboFile.Services.FileOperations
             {
                 if (operation == "NewFolder" || operation == "NewFile" || operation == "Paste")
                 {
-                    MessageBox.Show(_ownerWindow, "当前库没有添加任何位置，请先在管理库中添加位置", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    YiboFile.DialogService.Info("当前库没有添加任何位置，请先在管理库中添加位置", "提示", _ownerWindow);
                 }
                 return false;
             }
@@ -98,7 +97,28 @@ namespace YiboFile.Services.FileOperations
 
         public MessageBoxResult ShowMessage(string message, string title, MessageBoxButton buttons, MessageBoxImage icon)
         {
-            return MessageBox.Show(_ownerWindow, message, title, buttons, icon);
+            if (buttons == MessageBoxButton.YesNo || buttons == MessageBoxButton.YesNoCancel)
+            {
+                return YiboFile.DialogService.Ask(message, title, _ownerWindow) ? MessageBoxResult.Yes : MessageBoxResult.No;
+            }
+            if (buttons == MessageBoxButton.OKCancel)
+            {
+                return YiboFile.DialogService.Ask(message, title, _ownerWindow) ? MessageBoxResult.OK : MessageBoxResult.Cancel;
+            }
+
+            if (icon == MessageBoxImage.Error)
+            {
+                YiboFile.DialogService.Error(message, title, _ownerWindow);
+            }
+            else if (icon == MessageBoxImage.Warning)
+            {
+                YiboFile.DialogService.Warning(message, title, _ownerWindow);
+            }
+            else
+            {
+                YiboFile.DialogService.Info(message, title, _ownerWindow);
+            }
+            return MessageBoxResult.OK;
         }
 
         public bool ShowConfirm(string message, string title)

@@ -166,6 +166,8 @@ namespace YiboFile.ViewModels
             _colTagsWidth = config.ColTagsWidth > 0 ? config.ColTagsWidth : 150;
             _colNotesWidth = config.ColNotesWidth > 0 ? config.ColNotesWidth : 200;
 
+            _activateNewTabOnMiddleClick = config.ActivateNewTabOnMiddleClick;
+
             // Appearance settings
             _windowOpacity = config.WindowOpacity > 0 ? config.WindowOpacity : 1.0;
             _enableAnimations = config.AnimationsEnabled;
@@ -244,7 +246,7 @@ namespace YiboFile.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    System.Windows.MessageBox.Show("添加库失败: " + ex.Message);
+                    YiboFile.DialogService.Error("添加库失败: " + ex.Message);
                 }
             }
         }
@@ -252,7 +254,7 @@ namespace YiboFile.ViewModels
         private void RemoveLibrary(LibraryItemViewModel item)
         {
             if (item == null) return;
-            if (System.Windows.MessageBox.Show($"确定要移除库 \"{item.Name}\" 吗？", "确认", System.Windows.MessageBoxButton.YesNo) == System.Windows.MessageBoxResult.Yes)
+            if (YiboFile.DialogService.Ask($"确定要移除库 \"{item.Name}\" 吗？", "确认"))
             {
                 try
                 {
@@ -261,7 +263,7 @@ namespace YiboFile.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    System.Windows.MessageBox.Show("移除库失败: " + ex.Message);
+                    YiboFile.DialogService.Error("移除库失败: " + ex.Message);
                 }
             }
         }
@@ -472,6 +474,17 @@ namespace YiboFile.ViewModels
             {
                 if (SetProperty(ref _colNotesWidth, value))
                     ConfigurationService.Instance.Update(c => c.ColNotesWidth = value);
+            }
+        }
+
+        private bool _activateNewTabOnMiddleClick;
+        public bool ActivateNewTabOnMiddleClick
+        {
+            get => _activateNewTabOnMiddleClick;
+            set
+            {
+                if (SetProperty(ref _activateNewTabOnMiddleClick, value))
+                    ConfigurationService.Instance.Update(c => c.ActivateNewTabOnMiddleClick = value);
             }
         }
         #endregion

@@ -118,18 +118,31 @@ namespace YiboFile
             { }
         }
 
+        private Point _lastTabDragPoint;
+        private long _lastTabDragTime;
+        private Button _lastHoveredTabButton;
+
         private void TabPanel_DragOver(object sender, DragEventArgs e)
         {
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
             {
-                // Check if hovering over a specific tab button
-                var tabButton = FindTabButtonAtPoint(sender as Panel, e.GetPosition(sender as IInputElement));
-                if (tabButton != null)
+                Point currentPos = e.GetPosition(sender as IInputElement);
+                long currentTicks = DateTime.Now.Ticks;
+
+                // Throttle HitTest
+                if (Math.Abs(currentPos.X - _lastTabDragPoint.X) > 5 ||
+                    Math.Abs(currentPos.Y - _lastTabDragPoint.Y) > 5 ||
+                    (currentTicks - _lastTabDragTime) > 500000) // 50ms
+                {
+                    _lastHoveredTabButton = FindTabButtonAtPoint(sender as Panel, currentPos);
+
+                    _lastTabDragPoint = currentPos;
+                    _lastTabDragTime = currentTicks;
+                }
+
+                if (_lastHoveredTabButton != null)
                 {
                     e.Effects = DragDropEffects.Copy | DragDropEffects.Move;
-
-                    // Optional: Highlight tab?
-                    // Tabs usually have hover states, DragOver might not trigger hover VSM optionally.
                 }
                 else
                 {

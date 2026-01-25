@@ -62,9 +62,12 @@ namespace YiboFile
             _currentLayoutMode = mode;
 
             // 更新按钮激活状态
-            LayoutFocusBtn.Tag = mode == LayoutMode.Focus ? "Active" : null;
-            LayoutWorkBtn.Tag = mode == LayoutMode.Work ? "Active" : null;
-            LayoutFullBtn.Tag = mode == LayoutMode.Full ? "Active" : null;
+            if (NavigationRail != null)
+            {
+                NavigationRail.FocusModeButton.Tag = mode == LayoutMode.Focus ? "Active" : null;
+                NavigationRail.WorkModeButton.Tag = mode == LayoutMode.Work ? "Active" : null;
+                NavigationRail.FullModeButton.Tag = mode == LayoutMode.Full ? "Active" : null;
+            }
 
             // 应用布局
             ApplyLayout(mode);
@@ -202,8 +205,17 @@ namespace YiboFile
             RightPanel.Visibility = _isDualListMode ? Visibility.Collapsed : Visibility.Visible;
             SecondFileBrowserContainer.Visibility = _isDualListMode ? Visibility.Visible : Visibility.Collapsed;
 
+            // 如果开启双列表，确保右侧栏展开
+            if (_isDualListMode)
+            {
+                EnsureExpanded(SplitterRight, false);
+            }
+
             // 更新按钮状态
-            DualListToggleBtn.Tag = _isDualListMode ? "Active" : null;
+            if (NavigationRail != null)
+            {
+                NavigationRail.DualListButton.Tag = _isDualListMode ? "Active" : null;
+            }
 
             // 调整标签页布局
             UpdateTabManagerLayout();
@@ -263,27 +275,16 @@ namespace YiboFile
         /// <summary>
         /// 调整标签页管理器布局
         /// </summary>
+        /// <summary>
+        /// 调整标签页管理器布局
+        /// </summary>
         private void UpdateTabManagerLayout()
         {
-            if (_isDualListMode)
+            // 无论何种模式，TabManager 均应位于 Column 3 (Center)，与文件列表对齐
+            if (TabManager.Parent is Grid grid)
             {
-                // 双列表模式：主标签页限制在列1-3 (Gap + Center + Gap)
-                // 这样避免触碰到列4（副列表所在）
-                // 之前代码设为列2 Span 1，可能导致左侧有间隙，这里改为列1 Span 3 更自然
-                if (TabManager.Parent is Grid grid)
-                {
-                    Grid.SetColumn(TabManager, 1);
-                    Grid.SetColumnSpan(TabManager, 3);
-                }
-            }
-            else
-            {
-                // 单列表模式：标签页跨越列1-4（全部）
-                if (TabManager.Parent is Grid grid)
-                {
-                    Grid.SetColumn(TabManager, 1);
-                    Grid.SetColumnSpan(TabManager, 4);
-                }
+                Grid.SetColumn(TabManager, 3);
+                Grid.SetColumnSpan(TabManager, 1);
             }
 
             // 统一调用 Margin 更新逻辑
@@ -376,8 +377,8 @@ namespace YiboFile
                 GetCurrentNavigationMode = () => "Path",
                 GetSearchCacheService = () => _searchCacheService,
                 GetSearchOptions = () => null,
-                GetCurrentFiles = () => SecondFileBrowser.FilesItemsSource as List<FileSystemItem>,
-                SetCurrentFiles = (files) => SecondFileBrowser.FilesItemsSource = files,
+                GetCurrentFiles = () => _secondCurrentFiles,
+                SetCurrentFiles = (files) => { _secondCurrentFiles = files; if (SecondFileBrowser != null) SecondFileBrowser.FilesItemsSource = files; },
                 ClearFilter = () => { },
                 FindResource = (key) => this.TryFindResource(key)
             };
@@ -673,6 +674,7 @@ namespace YiboFile
             try
             {
                 var items = await _secondFileListService.LoadFileSystemItemsAsync(path);
+                _secondCurrentFiles = items;
                 SecondFileBrowser.FilesItemsSource = items;
                 SecondFileBrowser.UpdateBreadcrumb(path);
                 SecondFileBrowser.NavBackEnabled = _secondNavHistory.Count > 0;
@@ -828,7 +830,7 @@ namespace YiboFile
                 _isDualListMode = _configService.Config.IsDualListMode;
                 RightPanel.Visibility = _isDualListMode ? Visibility.Collapsed : Visibility.Visible;
                 SecondFileBrowserContainer.Visibility = _isDualListMode ? Visibility.Visible : Visibility.Collapsed;
-                DualListToggleBtn.Tag = _isDualListMode ? "Active" : null;
+                if (NavigationRail != null) NavigationRail.DualListButton.Tag = _isDualListMode ? "Active" : null;
 
                 if (_isDualListMode)
                 {

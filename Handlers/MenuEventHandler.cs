@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using YiboFile.Dialogs;
 using System.Windows.Controls;
 using Microsoft.Win32;
 using YiboFile.Controls;
@@ -159,22 +160,22 @@ namespace YiboFile.Handlers
 
         public void ViewLargeIcons_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("大图标视图功能待实现", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            YiboFile.DialogService.Info("大图标视图功能待实现", owner: _getOwnerWindow());
         }
 
         public void ViewSmallIcons_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("小图标视图功能待实现", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            YiboFile.DialogService.Info("小图标视图功能待实现", owner: _getOwnerWindow());
         }
 
         public void ViewList_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("列表视图功能待实现", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            YiboFile.DialogService.Info("列表视图功能待实现", owner: _getOwnerWindow());
         }
 
         public void ViewDetails_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("详细信息视图功能待实现", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            YiboFile.DialogService.Info("详细信息视图功能待实现", owner: _getOwnerWindow());
         }
 
         public void Settings_Click(object sender, RoutedEventArgs e)
@@ -195,11 +196,11 @@ namespace YiboFile.Handlers
                     ConfigManager.Import(ofd.FileName);
                     var config = ConfigManager.Load();
                     _applyConfig(config);
-                    MessageBox.Show("配置已导入并应用。", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                    YiboFile.DialogService.Info("配置已导入并应用。", owner: _getOwnerWindow());
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"导入失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    YiboFile.DialogService.Error($"导入失败: {ex.Message}", owner: _getOwnerWindow());
                 }
             }
         }
@@ -217,11 +218,11 @@ namespace YiboFile.Handlers
                 {
                     _saveCurrentConfig();
                     ConfigManager.Export(sfd.FileName);
-                    MessageBox.Show("配置已导出。", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                    YiboFile.DialogService.Info("配置已导出。", owner: _getOwnerWindow());
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"导出失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    YiboFile.DialogService.Error($"导出失败: {ex.Message}", owner: _getOwnerWindow());
                 }
             }
         }
@@ -304,7 +305,7 @@ namespace YiboFile.Handlers
                     // 库模式：使用库的第一个位置
                     if (currentLibrary.Paths == null || currentLibrary.Paths.Count == 0)
                     {
-                        MessageBox.Show("当前库没有添加任何位置，请先在管理库中添加位置", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                        YiboFile.DialogService.Info("当前库没有添加任何位置，请先在管理库中添加位置", owner: _getOwnerWindow());
                         return;
                     }
 
@@ -312,13 +313,10 @@ namespace YiboFile.Handlers
                     if (currentLibrary.Paths.Count > 1)
                     {
                         var paths = string.Join("\n", currentLibrary.Paths.Select((p, i) => $"{i + 1}. {p}"));
-                        var result = MessageBox.Show(
+                        if (!YiboFile.DialogService.Ask(
                             $"当前库有多个位置，将在第一个位置创建文件夹：\n\n{currentLibrary.Paths[0]}\n\n是否继续？\n\n所有位置：\n{paths}",
                             "选择位置",
-                            MessageBoxButton.YesNo,
-                            MessageBoxImage.Question);
-
-                        if (result != MessageBoxResult.Yes)
+                            _getOwnerWindow()))
                         {
                             return;
                         }
@@ -327,7 +325,7 @@ namespace YiboFile.Handlers
                     targetPath = currentLibrary.Paths[0];
                     if (!Directory.Exists(targetPath))
                     {
-                        MessageBox.Show($"库位置不存在: {targetPath}", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        YiboFile.DialogService.Warning($"库位置不存在: {targetPath}", owner: _getOwnerWindow());
                         return;
                     }
                 }
@@ -341,28 +339,22 @@ namespace YiboFile.Handlers
                     }
                     else
                     {
-                        MessageBox.Show("当前没有可用的路径", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        YiboFile.DialogService.Warning("当前没有可用的路径", owner: _getOwnerWindow());
                         return;
                     }
                 }
 
                 // 使用简单的输入对话框
-                var dialog = new PathInputDialog
-                {
-                    Title = "新建文件夹",
-                    PromptText = "请输入文件夹名称：",
-                    InputText = "新建文件夹",
-                    Owner = _getOwnerWindow()
-                };
+                string inputName = DialogService.ShowInput("请输入文件夹名称：", "新建文件夹", "新建文件夹", owner: _getOwnerWindow());
 
-                if (dialog.ShowDialog() == true)
+                if (inputName != null)
                 {
-                    var folderName = dialog.InputText.Trim();
+                    var folderName = inputName.Trim();
 
                     // 验证文件夹名称
                     if (string.IsNullOrEmpty(folderName))
                     {
-                        MessageBox.Show("文件夹名称不能为空", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        YiboFile.DialogService.Warning("文件夹名称不能为空", owner: _getOwnerWindow());
                         return;
                     }
 
@@ -370,7 +362,7 @@ namespace YiboFile.Handlers
                     char[] invalidChars = Path.GetInvalidFileNameChars();
                     if (folderName.IndexOfAny(invalidChars) >= 0)
                     {
-                        MessageBox.Show("文件夹名称包含非法字符", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        YiboFile.DialogService.Warning("文件夹名称包含非法字符", owner: _getOwnerWindow());
                         return;
                     }
 
@@ -406,7 +398,7 @@ namespace YiboFile.Handlers
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"创建文件夹失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                YiboFile.DialogService.Error($"创建文件夹失败: {ex.Message}", owner: _getOwnerWindow());
             }
         }
 
@@ -472,17 +464,11 @@ namespace YiboFile.Handlers
                 };
                 customMenuItem.Click += (s, args) =>
                 {
-                    var dialog = new PathInputDialog
-                    {
-                        Title = "新建文件",
-                        PromptText = "请输入文件扩展名（如 .txt）：",
-                        InputText = ".txt",
-                        Owner = _getOwnerWindow()
-                    };
+                    var inputExtension = DialogService.ShowInput("请输入文件扩展名（如 .txt）：", ".txt", "新建文件", owner: _getOwnerWindow());
 
-                    if (dialog.ShowDialog() == true)
+                    if (inputExtension != null)
                     {
-                        var extension = dialog.InputText.Trim();
+                        var extension = inputExtension.Trim();
                         if (!extension.StartsWith("."))
                         {
                             extension = "." + extension;
@@ -497,7 +483,7 @@ namespace YiboFile.Handlers
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"创建文件失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                YiboFile.DialogService.Error($"创建文件失败: {ex.Message}", owner: _getOwnerWindow());
             }
         }
 
@@ -534,13 +520,16 @@ namespace YiboFile.Handlers
             var librariesListBox = _getLibrariesListBox();
             if (librariesListBox?.SelectedItem is Library selectedLibrary)
             {
-                var dialog = new PathInputDialog("请输入新的库名称:");
-                dialog.InputText = selectedLibrary.Name;
-                var owner = _getOwnerWindow();
-                dialog.Owner = owner;
-                if (dialog.ShowDialog() == true)
+                var newName = DialogService.ShowInput("请输入新的库名称:", selectedLibrary.Name, "输入", owner: _getOwnerWindow());
+
+                if (newName != null)
                 {
-                    var newName = dialog.InputText.Trim();
+                    var name = newName.Trim(); // Using local var to avoid conflict if any, but code uses newName again below or inside. 
+                                               // Actually the original code was: var newName = dialog.InputText.Trim();
+                                               // So I should just use `newName = newName.Trim();` or use a different var name if needed.
+                                               // But wait, I declared `newName` in the replacement content above. So I can just reassign or use it.
+                                               // To follow original logic:
+                    newName = newName.Trim();
                     if (_libraryService.UpdateLibraryName(selectedLibrary.Id, newName))
                     {
                         // 如果当前库被重命名，更新当前库引用并恢复选中状态

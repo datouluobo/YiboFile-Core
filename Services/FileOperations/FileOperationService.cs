@@ -339,12 +339,6 @@ namespace YiboFile.Services.FileOperations
             {
                 task.Status = TaskStatus.Completed;
                 task.Progress = 100;
-
-                // 静默任务完成时显示通知
-                if (task.IsSilent)
-                {
-                    YiboFile.Services.Core.NotificationService.ShowSuccess($"{task.Description} 已完成");
-                }
             }
 
             OperationCompleted?.Invoke(result);
@@ -438,10 +432,6 @@ namespace YiboFile.Services.FileOperations
             if (task != null)
             {
                 task.Status = TaskStatus.Completed;
-                if (task.IsSilent)
-                {
-                    YiboFile.Services.Core.NotificationService.ShowSuccess("文件删除成功");
-                }
             }
             OperationCompleted?.Invoke(result);
 

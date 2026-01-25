@@ -1,4 +1,5 @@
 using System.Windows;
+using YiboFile.Dialogs;
 
 namespace YiboFile
 {
@@ -22,6 +23,23 @@ namespace YiboFile
         public static bool Ask(string message, string title = "确认", Window owner = null)
         {
             return ConfirmDialog.Show(message, title, ConfirmDialog.DialogType.Question, owner, showCancel: true);
+        }
+
+        public static string ShowInput(string prompt, string defaultText = "", string title = "输入", bool selectFileNameOnly = false, Window owner = null)
+        {
+            var dialog = new PathInputDialog(prompt)
+            {
+                InputText = defaultText,
+                SelectFileNameOnly = selectFileNameOnly,
+                Owner = owner,
+                Title = title
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                return dialog.InputText;
+            }
+            return null;
         }
     }
 }

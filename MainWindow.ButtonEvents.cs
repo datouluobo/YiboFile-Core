@@ -202,10 +202,12 @@ namespace YiboFile
         }
 
 
-        private void WindowMinimize_Click(object sender, RoutedEventArgs e)
+        internal void WindowMinimize_Click(object sender, RoutedEventArgs e)
         {
             _windowLifecycleHandler?.HandleMinimize();
         }
+
+
 
 
 
@@ -271,55 +273,7 @@ namespace YiboFile
 
         internal void UpdateSeparatorPosition()
         {
-            // 更新分隔符位置，使其与列1和列2之间的分割器对齐
-            if (TitleBarSeparator == null || ColLeft == null) return;
-
-            try
-            {
-                // 获取包含分隔符的StackPanel
-                var stackPanel = TitleBarSeparator.Parent as StackPanel;
-                if (stackPanel == null) return;
-
-                // 计算导航按钮的总宽度
-                double navButtonsWidth = 0;
-                foreach (var child in stackPanel.Children)
-                {
-                    if (child == TitleBarSeparator) break; // 遇到分隔符就停止
-                    if (child is FrameworkElement fe)
-                    {
-                        // 使用ActualWidth，如果为0则使用DesiredSize
-                        double width = fe.ActualWidth;
-                        if (width <= 0)
-                        {
-                            fe.Measure(new System.Windows.Size(double.PositiveInfinity, double.PositiveInfinity));
-                            width = fe.DesiredSize.Width;
-                        }
-                        navButtonsWidth += width;
-                    }
-                }
-
-                // 计算分隔符应该的左边距
-                // 目标：分隔符右边缘 = ColLeft右边缘
-                // 分隔符右边缘 = StackPanel左边距 + 导航按钮宽度 + 分隔符左边距 + 分隔符宽度
-                // 所以：分隔符左边距 = ColLeft宽度 - StackPanel左边距 - 导航按钮宽度 - 分隔符宽度
-
-                double stackPanelLeftMargin = 8; // StackPanel的Margin="8,0"
-
-                // 测量分隔符宽度
-                TitleBarSeparator.Measure(new System.Windows.Size(double.PositiveInfinity, double.PositiveInfinity));
-                double separatorWidth = TitleBarSeparator.ActualWidth > 0 ? TitleBarSeparator.ActualWidth : TitleBarSeparator.DesiredSize.Width;
-                if (separatorWidth <= 0) separatorWidth = 1; // 默认宽度
-
-                double targetSeparatorLeftMargin = ColLeft.ActualWidth - stackPanelLeftMargin - navButtonsWidth - separatorWidth;
-
-                // 确保左边距不为负，最小值为0
-                targetSeparatorLeftMargin = Math.Max(0, targetSeparatorLeftMargin);
-
-                TitleBarSeparator.Margin = new Thickness(targetSeparatorLeftMargin, 0, 0, 0);
-            }
-            catch (Exception)
-            {
-            }
+            // TitleBarSeparator removed in new layout
         }
 
         // 鼠标事件桥接方法 - 已迁移到 MouseEventHandler

@@ -347,23 +347,24 @@ namespace YiboFile.Services.Config
             if (leftWidth > 0)
             {
                 leftWidth = Math.Max(_uiHelper.ColLeft.MinWidth, leftWidth);
-                _uiHelper.RootGrid.ColumnDefinitions[0].Width = new GridLength(leftWidth);
+                _uiHelper.ColLeft.Width = new GridLength(leftWidth);
             }
             else
             {
-                // 如果为0，使用Star模式（自适应）
-                _uiHelper.RootGrid.ColumnDefinitions[0].Width = new GridLength(1, GridUnitType.Star);
+                // 如果为0，使用默认宽度
+                _uiHelper.ColLeft.Width = new GridLength(220);
             }
 
             // 如果要支持中间列自适应(Star)且右边列固定，这里应该强制中间列为Star
             // 之前的逻辑是如果 centerWidth > 0 就设为 Fixed，但这会导致启动后无法自适应填充
             // 为了配合之前的 Gap Fix (中间列自适应)，这里我们不再恢复中间列的固定宽度，而是强制设为 Star
-            _uiHelper.RootGrid.ColumnDefinitions[2].Width = new GridLength(1, GridUnitType.Star);
+            // 强制中间列为 Star
+            _uiHelper.ColCenter.Width = new GridLength(1, GridUnitType.Star);
 
-            // 右侧(列4)恢复固定宽度
+            // 右侧恢复固定宽度
             var rightWidth = cfg.ColRightWidth > 0 ? cfg.ColRightWidth : 360;
             rightWidth = Math.Max(_uiHelper.ColRight.MinWidth, rightWidth);
-            _uiHelper.RootGrid.ColumnDefinitions[4].Width = new GridLength(rightWidth);
+            _uiHelper.ColRight.Width = new GridLength(rightWidth);
 
             // #region agent log
             var logPath = @"f:\Download\GitHub\YiboFile\.cursor\debug.log";
@@ -410,7 +411,7 @@ namespace YiboFile.Services.Config
                 // 最好是确保 RightPanelControl 处于隐藏状态如果 IsRightPanelVisible=false
                 // 不过 ToggleRightPanel 实际上是操作 ColRight.Width。
                 // 简单处理：如果不可见，将列宽设为 0。
-                _uiHelper.RootGrid.ColumnDefinitions[4].Width = new GridLength(0);
+                _uiHelper.ColRight.Width = new GridLength(0);
 
                 // 同时需要更新 TitleActionBar 的状态 (如果能访问到)
                 if (_uiHelper.TitleActionBar != null)

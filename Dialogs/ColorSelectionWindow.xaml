@@ -1,7 +1,7 @@
-<Window x:Class="YiboFile.ColorSelectionWindow"
+<Window x:Class="YiboFile.Dialogs.ColorSelectionWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="选择颜色" Height="300" Width="400"
+        Title="选择颜色" Style="{StaticResource BaseDialogWindowStyle}"
         WindowStartupLocation="CenterOwner">
     
     <Grid Margin="10">
@@ -49,8 +49,8 @@
         </UniformGrid>
         
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
-            <Button Content="确定" Click="OK_Click" Margin="0,0,10,0" Width="60"/>
-            <Button Content="取消" Click="Cancel_Click" Width="60"/>
+            <Button Content="确定" Click="OK_Click" Style="{StaticResource PrimaryDialogButtonStyle}"/>
+            <Button Content="取消" Click="Cancel_Click" Style="{StaticResource DialogButtonStyle}"/>
         </StackPanel>
     </Grid>
 </Window>

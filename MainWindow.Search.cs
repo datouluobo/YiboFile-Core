@@ -30,7 +30,7 @@ namespace YiboFile
                 // 确保至少有一个搜索选项
                 if (!searchNames && !searchNotes)
                 {
-                    MessageBox.Show("请至少选择一个搜索选项", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    DialogService.Info("请至少选择一个搜索选项", owner: this);
                     return;
                 }
 
@@ -119,7 +119,7 @@ namespace YiboFile
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show($"全文搜索出错: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        DialogService.Error($"全文搜索出错: {ex.Message}", owner: this);
                         return;
                     }
                 }
@@ -261,7 +261,7 @@ namespace YiboFile
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"搜索时发生错误: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    DialogService.Error($"搜索时发生错误: {ex.Message}", owner: this);
                     Debug.WriteLine($"搜索失败: {ex.Message}");
                 }
             }

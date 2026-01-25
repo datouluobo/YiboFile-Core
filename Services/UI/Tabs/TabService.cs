@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using YiboFile.Dialogs;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -62,6 +63,7 @@ namespace YiboFile.Services.Tabs
     /// </summary>
     public class TabService
     {
+        private static readonly List<TabService> _allInstances = new List<TabService>();
         private readonly List<PathTab> _tabs = new List<PathTab>();
         private PathTab _activeTab;
         private AppConfig _config;
@@ -88,6 +90,12 @@ namespace YiboFile.Services.Tabs
         public TabService(AppConfig config)
         {
             _config = config;
+            lock (_allInstances) { _allInstances.Add(this); }
+        }
+
+        ~TabService()
+        {
+            lock (_allInstances) { _allInstances.Remove(this); }
         }
 
         /// <summary>
@@ -533,7 +541,7 @@ namespace YiboFile.Services.Tabs
 
             if (!skipValidation && !ValidatePath(path, out string errorMessage))
             {
-                MessageBox.Show(errorMessage, "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                YiboFile.DialogService.Warning(errorMessage);
                 return;
             }
 
@@ -717,20 +725,20 @@ namespace YiboFile.Services.Tabs
                 // 使用 ProtocolManager 检查虚拟路径
                 if (!ProtocolManager.IsVirtual(tab.Path) && !Directory.Exists(tab.Path))
                 {
-                    MessageBox.Show($"路径不存在: {tab.Path}\n\n标签页将被关闭。", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    YiboFile.DialogService.Warning($"路径不存在: {tab.Path}\n\n标签页将被关闭。");
                     CloseTab(tab);
                     return;
                 }
             }
             catch (UnauthorizedAccessException ex)
             {
-                MessageBox.Show($"无法访问路径: {tab.Path}\n\n{ex.Message}\n\n标签页将被关闭。", "权限错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                YiboFile.DialogService.Warning($"无法访问路径: {tab.Path}\n\n{ex.Message}\n\n标签页将被关闭。");
                 CloseTab(tab);
                 return;
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"无法访问路径: {tab.Path}\n\n{ex.Message}\n\n标签页将被关闭。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                YiboFile.DialogService.Error($"无法访问路径: {tab.Path}\n\n{ex.Message}\n\n标签页将被关闭。");
                 CloseTab(tab);
                 return;
             }
@@ -745,11 +753,11 @@ namespace YiboFile.Services.Tabs
             }
             catch (UnauthorizedAccessException ex)
             {
-                MessageBox.Show($"无法加载路径: {tab.Path}\n\n{ex.Message}", "权限错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                YiboFile.DialogService.Warning($"无法加载路径: {tab.Path}\n\n{ex.Message}");
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"无法加载路径: {tab.Path}\n\n{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                YiboFile.DialogService.Error($"无法加载路径: {tab.Path}\n\n{ex.Message}");
             }
         }
 
@@ -793,23 +801,20 @@ namespace YiboFile.Services.Tabs
 
         public void ClearTabsInLibraryMode()
         {
+            // 此方法已被证明过于破坏性，改为仅在确实需要重置所有标签页时调用。
+            // 库模式切换现在不再强制关闭路径标签页，除非明确要求。
             EnsureUi();
             if (_ui.TabManager == null || _ui.TabManager.TabsPanelControl == null) return;
 
+            // 检查配置，看是否允许在切换到库时保留标签页
+            // 默认为保留。如果确实需要全部清理，则保留此逻辑：
+            /*
             var tabsToRemove = _tabs.ToList();
             foreach (var tab in tabsToRemove)
             {
                 CloseTab(tab);
             }
-
-            if (TabCount == 0)
-            {
-                var desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-                if (Directory.Exists(desktopPath))
-                {
-                    CreatePathTab(desktopPath);
-                }
-            }
+            */
         }
 
         public void CloseTab(PathTab tab)
@@ -909,14 +914,10 @@ namespace YiboFile.Services.Tabs
             EnsureUi();
             try
             {
-                var dlg = new PathInputDialog("请输入新的显示标题：")
+                var newTitle = DialogService.ShowInput("请输入新的显示标题：", GetEffectiveTitle(tab), "输入", owner: _ui.OwnerWindow);
+                if (newTitle != null)
                 {
-                    Owner = _ui.OwnerWindow,
-                    InputText = GetEffectiveTitle(tab)
-                };
-                if (dlg.ShowDialog() == true)
-                {
-                    var newTitle = dlg.InputText?.Trim() ?? string.Empty;
+                    newTitle = newTitle.Trim();
                     SetTabOverrideTitle(tab, newTitle);
                     ApplyPinVisual(tab);
                     if (tab.TitleTextBlock != null) tab.TitleTextBlock.Text = GetEffectiveTitle(tab);
@@ -1161,6 +1162,7 @@ namespace YiboFile.Services.Tabs
                         var data = new DataObject();
                         data.SetData("YiboFile_TabKey", GetTabKey(tab));
                         data.SetData("YiboFile_TabPinned", tab.IsPinned);
+                        data.SetData("YiboFile_SourceServiceHash", this.GetHashCode());
                         DragDrop.DoDragDrop(button, data, DragDropEffects.Move);
                         if (button.IsMouseCaptured)
                         {
@@ -1435,12 +1437,12 @@ namespace YiboFile.Services.Tabs
                                 PathTab newTab = null;
                                 if (otherTab.Type == TabType.Library && otherTab.Library != null)
                                 {
-                                    OpenLibraryTab(otherTab.Library, forceNewTab: true);
+                                    OpenLibraryTab(otherTab.Library, forceNewTab: true, activate: true);
                                     newTab = ActiveTab;
                                 }
                                 else
                                 {
-                                    CreatePathTab(otherTab.Path, forceNewTab: true);
+                                    CreatePathTab(otherTab.Path, forceNewTab: true, skipValidation: true, activate: true);
                                     newTab = ActiveTab;
                                 }
 
@@ -1459,14 +1461,60 @@ namespace YiboFile.Services.Tabs
 
                                 // 4. 调整位置到 Drop 目标位
                                 int pinnedCount = _tabs.Count(t => t.IsPinned);
-                                if (newTab.IsPinned) targetIndex = Math.Min(targetIndex, pinnedCount); // 固定标签不能超过固定区
-                                else targetIndex = Math.Max(targetIndex, pinnedCount); // 非固定标签不能进入固定区
+                                if (newTab.IsPinned) targetIndex = Math.Min(targetIndex, pinnedCount);
+                                else targetIndex = Math.Max(targetIndex, pinnedCount);
 
                                 UpdateTabOrderAfterDrag(newTab, targetIndex, pinnedCount);
                                 ReorderTabs();
                                 UpdateTabStyles();
+                                UpdateTabWidths();
                                 return;
                             }
+                        }
+                    }
+
+                    // 检查全局其他 TabService 实例 (跨窗口拖拽)
+                    TabService globalSourceService = null;
+                    if (e.Data.GetDataPresent("YiboFile_SourceServiceHash"))
+                    {
+                        var hash = (int)e.Data.GetData("YiboFile_SourceServiceHash");
+                        lock (_allInstances)
+                        {
+                            globalSourceService = _allInstances.FirstOrDefault(s => s.GetHashCode() == hash);
+                        }
+                    }
+
+                    if (globalSourceService != null && globalSourceService != this)
+                    {
+                        var otherTab = globalSourceService.Tabs.FirstOrDefault(t => globalSourceService.GetTabKey(t) == key);
+                        if (otherTab != null)
+                        {
+                            bool isCopy = (e.KeyStates & DragDropKeyStates.ControlKey) == DragDropKeyStates.ControlKey;
+                            if (!isCopy) globalSourceService.RemoveTab(otherTab);
+
+                            PathTab newTab = null;
+                            if (otherTab.Type == TabType.Library && otherTab.Library != null)
+                            {
+                                OpenLibraryTab(otherTab.Library, forceNewTab: true, activate: true);
+                                newTab = ActiveTab;
+                            }
+                            else
+                            {
+                                CreatePathTab(otherTab.Path, forceNewTab: true, skipValidation: true, activate: true);
+                                newTab = ActiveTab;
+                            }
+
+                            if (newTab != null)
+                            {
+                                if (e.Data.GetDataPresent("YiboFile_TabPinned") && (bool)e.Data.GetData("YiboFile_TabPinned") && !newTab.IsPinned)
+                                    TogglePinTab(newTab);
+
+                                int pinnedCount = _tabs.Count(t => t.IsPinned);
+                                UpdateTabOrderAfterDrag(newTab, targetIndex, pinnedCount);
+                                ReorderTabs();
+                                UpdateTabWidths();
+                            }
+                            return;
                         }
                     }
                     return;
@@ -1526,7 +1574,7 @@ namespace YiboFile.Services.Tabs
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"无法打开资源管理器: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                YiboFile.DialogService.Error($"无法打开资源管理器: {ex.Message}");
             }
         }
 

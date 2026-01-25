@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using YiboFile.Dialogs;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -98,17 +99,11 @@ namespace YiboFile.Services.FileOperations
                 };
                 customMenuItem.Click += (s, args) =>
                 {
-                    var dialog = new PathInputDialog
-                    {
-                        Title = "新建文件",
-                        PromptText = "请输入文件扩展名（如 .txt）：",
-                        InputText = ".txt",
-                        Owner = _ownerWindow
-                    };
+                    var inputExtension = DialogService.ShowInput("请输入文件扩展名（如 .txt）：", ".txt", "新建文件", owner: _ownerWindow);
 
-                    if (dialog.ShowDialog() == true)
+                    if (inputExtension != null)
                     {
-                        var extension = dialog.InputText.Trim();
+                        var extension = inputExtension.Trim();
                         if (!extension.StartsWith("."))
                         {
                             extension = "." + extension;
@@ -175,6 +170,7 @@ namespace YiboFile.Services.FileOperations
 
                 // 刷新显示
                 _context.RefreshAfterOperation();
+                YiboFile.Services.Core.NotificationService.ShowSuccess($"已创建文件: {Path.GetFileName(filePath)}");
             }
             catch (Exception ex)
             {

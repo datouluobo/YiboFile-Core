@@ -3,7 +3,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Forms;
 
-namespace YiboFile
+namespace YiboFile.Dialogs
 {
     /// <summary>
     /// LibraryDialog.xaml 的交互逻辑
@@ -18,6 +18,7 @@ namespace YiboFile
             InitializeComponent();
             LibraryNameTextBox.Focus();
             this.KeyDown += LibraryDialog_KeyDown;
+            this.MouseLeftButtonDown += (s, e) => { if (e.LeftButton == System.Windows.Input.MouseButtonState.Pressed) this.DragMove(); };
         }
 
         private void LibraryDialog_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
@@ -39,7 +40,7 @@ namespace YiboFile
             {
                 dialog.Description = "选择库的文件夹:";
                 dialog.ShowNewFolderButton = false;
-                
+
                 // 如果已有路径，从该路径开始浏览
                 if (!string.IsNullOrEmpty(LibraryPathTextBox.Text) && Directory.Exists(LibraryPathTextBox.Text))
                 {
@@ -54,7 +55,7 @@ namespace YiboFile
                 {
                     var path = dialog.SelectedPath;
                     LibraryPathTextBox.Text = path;
-                    
+
                     // 如果库名称为空，自动填充文件夹名称
                     if (string.IsNullOrWhiteSpace(LibraryNameTextBox.Text))
                     {

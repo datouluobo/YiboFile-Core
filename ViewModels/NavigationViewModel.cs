@@ -167,7 +167,7 @@ namespace YiboFile.ViewModels
             }
             catch (Exception ex)
             {
-                MessageBox.Show(_ownerWindow, $"无法导航到父目录: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                YiboFile.DialogService.Error($"无法导航到父目录: {ex.Message}", owner: _ownerWindow);
             }
         }
 

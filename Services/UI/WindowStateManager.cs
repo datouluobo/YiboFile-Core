@@ -283,8 +283,8 @@ namespace YiboFile.Services
 
             if (_uiHelper.RootGrid == null || !_uiHelper.RootGrid.IsLoaded) return;
 
-            var leftCol = _uiHelper.RootGrid.ColumnDefinitions[0];
-            var middleCol = _uiHelper.RootGrid.ColumnDefinitions[2];
+            var leftCol = _uiHelper.ColLeft;
+            var middleCol = _uiHelper.ColCenter;
 
             double leftWidth = 0;
             double middleWidth = 0;
@@ -330,7 +330,7 @@ namespace YiboFile.Services
             }
 
             // 新增：保存右侧列宽度
-            var rightCol = _uiHelper.RootGrid.ColumnDefinitions[4];
+            var rightCol = _uiHelper.ColRight;
             double rightWidth = rightCol.ActualWidth;
             if (rightWidth > 0 && rightWidth >= rightCol.MinWidth)
             {

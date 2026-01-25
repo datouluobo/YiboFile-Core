@@ -1,6 +1,7 @@
 using System.Windows;
+using System.Windows.Input;
 
-namespace YiboFile
+namespace YiboFile.Dialogs
 {
     /// <summary>
     /// PathInputDialog.xaml 的交互逻辑
@@ -16,6 +17,7 @@ namespace YiboFile
             PromptTextBlock.Text = prompt;
             PathTextBox.Focus();
             this.KeyDown += PathInputDialog_KeyDown;
+            this.MouseLeftButtonDown += (s, e) => { if (e.LeftButton == MouseButtonState.Pressed) this.DragMove(); };
         }
 
         private void PathInputDialog_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
@@ -39,12 +41,12 @@ namespace YiboFile
         protected override void OnContentRendered(System.EventArgs e)
         {
             base.OnContentRendered(e);
-            
+
             // 设置初始文本
             if (!string.IsNullOrEmpty(InputText))
             {
                 PathTextBox.Text = InputText;
-                
+
                 if (SelectFileNameOnly)
                 {
                     // 只选中文件名部分（不包含扩展名）
@@ -71,7 +73,7 @@ namespace YiboFile
                     PathTextBox.SelectAll();
                 }
             }
-            
+
             PathTextBox.Focus();
         }
 

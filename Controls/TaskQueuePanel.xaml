@@ -13,11 +13,12 @@
         <local:TaskStatusToColorConverter x:Key="StatusToColor"/>
         <local:TaskStatusToTextConverter x:Key="StatusToText"/>
         <local:PauseResumeTextConverter x:Key="PauseResumeTextConverter"/>
+        <local:StatusToVisibilityConverter x:Key="StatusToVis"/>
         
         <!-- 现代化极简进度条 -->
         <Style x:Key="CompactProgressBarStyle" TargetType="ProgressBar">
             <Setter Property="Height" Value="4"/>
-            <Setter Property="Background" Value="{DynamicResource ControlDefaultBackgroundBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource ControlDefaultBrush}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -62,11 +63,11 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlHoverBackgroundBrush}"/>
+                                 <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlHoverBrush}"/>
                                 <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlPressedBackgroundBrush}"/>
+                                 <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlPressedBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -75,24 +76,7 @@
         </Style>
     </UserControl.Resources>
     
-    <UserControl.Triggers>
-        <EventTrigger RoutedEvent="UserControl.IsVisibleChanged">
-            <BeginStoryboard>
-                <Storyboard>
-                    <DoubleAnimation Storyboard.TargetName="MainBorder" 
-                                     Storyboard.TargetProperty="Opacity"
-                                     From="0" To="1" Duration="0:0:0.3"/>
-                    <DoubleAnimation Storyboard.TargetName="PanelTranslateTransform" 
-                                     Storyboard.TargetProperty="Y"
-                                     From="40" To="0" Duration="0:0:0.4">
-                        <DoubleAnimation.EasingFunction>
-                            <CubicEase EasingMode="EaseOut"/>
-                        </DoubleAnimation.EasingFunction>
-                    </DoubleAnimation>
-                </Storyboard>
-            </BeginStoryboard>
-        </EventTrigger>
-    </UserControl.Triggers>
+    <!-- Animation Trigger Removed to fix IsVisibleChanged not being a RoutedEvent crash -->
     
     <!-- 面板容器：使用云端玻璃感（半透明） -->
     <Border x:Name="MainBorder" Background="{DynamicResource CardBackgroundBrush}" 
@@ -213,20 +197,20 @@
                                                 Tag="{Binding}" Click="PauseResume_Click" 
                                                 Style="{StaticResource IconButtonButtonStyle}" 
                                                 FontSize="10" Width="20" Height="20"
-                                                Visibility="{Binding Status, Converter={local:StatusToVisibilityConverter Parameter=CanPause}}"/>
+                                                Visibility="{Binding Status, Converter={StaticResource StatusToVis}, ConverterParameter=CanPause}"/>
                                         
                                         <!-- 取消 -->
                                         <Button Content="" FontFamily="Segoe MDL2 Assets" 
                                                 Tag="{Binding}" Click="CancelTask_Click" 
                                                 Style="{StaticResource IconButtonButtonStyle}" 
                                                 FontSize="10" Width="20" Height="20"
-                                                Visibility="{Binding Status, Converter={local:StatusToVisibilityConverter Parameter=CanCancel}}"/>
+                                                Visibility="{Binding Status, Converter={StaticResource StatusToVis}, ConverterParameter=CanCancel}"/>
                                     </StackPanel>
                                 </Grid>
                                 
                                 <!-- 底部分割线 (不是最后一条才显示，XAML循环中很难判断，通常用Margin控制) -->
                                 <Border Grid.Row="2" VerticalAlignment="Bottom" Height="1" 
-                                        Background="{DynamicResource BorderSubtleBrush}" 
+                                        Background="{DynamicResource ControlDefaultBrush}" 
                                         Margin="0,8,-12,0" Opacity="0.5"/>
                             </Grid>
                         </DataTemplate>

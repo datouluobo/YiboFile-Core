@@ -55,7 +55,7 @@ namespace YiboFile.ViewModels
         {
             var libraries = DatabaseManager.GetAllLibraries();
             var currentSelected = _librariesListBox.SelectedItem;
-            
+
             Libraries.Clear();
             foreach (var lib in libraries)
             {
@@ -97,14 +97,14 @@ namespace YiboFile.ViewModels
                 else if (libraryId < 0)
                 {
                     LoadLibraries();
-                    MessageBox.Show(_ownerWindow, "库名称已存在，已刷新库列表", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    YiboFile.DialogService.Info("库名称已存在，已刷新库列表", owner: _ownerWindow);
                     return false;
                 }
                 return false;
             }
             catch (Exception ex)
             {
-                MessageBox.Show(_ownerWindow, $"创建库失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                YiboFile.DialogService.Error($"创建库失败: {ex.Message}", owner: _ownerWindow);
                 return false;
             }
         }
@@ -136,7 +136,7 @@ namespace YiboFile.ViewModels
             }
             catch (Exception ex)
             {
-                MessageBox.Show(_ownerWindow, $"重命名失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                YiboFile.DialogService.Error($"重命名失败: {ex.Message}", owner: _ownerWindow);
                 return false;
             }
         }
@@ -164,7 +164,7 @@ namespace YiboFile.ViewModels
             }
             catch (Exception ex)
             {
-                MessageBox.Show(_ownerWindow, $"删除库失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                YiboFile.DialogService.Error($"删除库失败: {ex.Message}", owner: _ownerWindow);
                 return false;
             }
         }

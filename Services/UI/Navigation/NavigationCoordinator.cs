@@ -40,13 +40,15 @@ namespace YiboFile.Services.Navigation
 
         /// <summary>
         /// 路径导航请求事件
+        /// path, forceNewTab, activate (null=use config)
         /// </summary>
-        public event Action<string, bool> PathNavigateRequested; // path, forceNewTab
+        public event Action<string, bool, bool?> PathNavigateRequested;
 
         /// <summary>
         /// 库导航请求事件
+        /// library, forceNewTab, activate (null=use config)
         /// </summary>
-        public event Action<Library, bool> LibraryNavigateRequested; // library, forceNewTab
+        public event Action<Library, bool, bool?> LibraryNavigateRequested;
 
         /// <summary>
         /// 文件打开请求事件
@@ -88,7 +90,7 @@ namespace YiboFile.Services.Navigation
 
             if (!isVirtual && !Directory.Exists(path) && !File.Exists(path))
             {
-                MessageBox.Show($"路径不存在: {path}", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                YiboFile.DialogService.Warning($"路径不存在: {path}");
                 return;
             }
 
@@ -102,8 +104,11 @@ namespace YiboFile.Services.Navigation
             // 判断是否需要强制打开新标签页
             bool forceNewTab = clickType == ClickType.MiddleClick || clickType == ClickType.CtrlLeftClick;
 
+            // Determine activation: MiddleClick -> Use config (null); Others -> True
+            bool? activate = clickType == ClickType.MiddleClick ? null : true;
+
             // 触发路径导航请求
-            PathNavigateRequested?.Invoke(path, forceNewTab);
+            PathNavigateRequested?.Invoke(path, forceNewTab, activate);
         }
 
         /// <summary>
@@ -122,8 +127,11 @@ namespace YiboFile.Services.Navigation
             // 判断是否需要强制打开新标签页
             bool forceNewTab = clickType == ClickType.MiddleClick || clickType == ClickType.CtrlLeftClick;
 
+            // Determine activation
+            bool? activate = clickType == ClickType.MiddleClick ? null : true;
+
             // 触发库导航请求
-            LibraryNavigateRequested?.Invoke(library, forceNewTab);
+            LibraryNavigateRequested?.Invoke(library, forceNewTab, activate);
         }
 
         /// <summary>

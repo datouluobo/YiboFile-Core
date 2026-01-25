@@ -281,7 +281,7 @@ namespace YiboFile.Windows
 
             if (string.IsNullOrWhiteSpace(_theme.Name))
             {
-                MessageBox.Show("请输入主题名称", "警告", MessageBoxButton.OK, MessageBoxImage.Warning);
+                YiboFile.DialogService.Warning("请输入主题名称", owner: this);
                 return;
             }
 
@@ -304,7 +304,7 @@ namespace YiboFile.Windows
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"保存失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                YiboFile.DialogService.Error($"保存失败: {ex.Message}", owner: this);
             }
         }
 

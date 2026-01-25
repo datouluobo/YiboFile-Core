@@ -22,6 +22,7 @@ namespace YiboFile.Controls.Settings
         private CheckBox _rememberWindowPositionCheckBox;
         private CheckBox _startMaximizedCheckBox;
         private CheckBox _enableMultiWindowCheckBox;
+        private CheckBox _activateTabOnMiddleClickCheckBox;
         private TextBox _baseDirectoryTextBox;
         private TextBox _uiFontSizeTextBox;
         private TextBox _tagFontSizeTextBox;
@@ -104,9 +105,18 @@ namespace YiboFile.Controls.Settings
                 Content = "启用多窗口支持 (Ctrl+Shift+N)",
                 FontSize = 14,
                 MinHeight = 32,
-                Margin = new Thickness(0, 0, 0, 24)
+                Margin = new Thickness(0, 0, 0, 10)
             };
             stackPanel.Children.Add(_enableMultiWindowCheckBox);
+
+            _activateTabOnMiddleClickCheckBox = new CheckBox
+            {
+                Content = "中键打开新标签页时立即激活 (否则在后台打开)",
+                FontSize = 14,
+                MinHeight = 32,
+                Margin = new Thickness(0, 0, 0, 24)
+            };
+            stackPanel.Children.Add(_activateTabOnMiddleClickCheckBox);
 
             // 标签页宽度模式
             var tabWidthModeLabel = new TextBlock
@@ -491,6 +501,7 @@ namespace YiboFile.Controls.Settings
         {
             _startMaximizedCheckBox.SetBinding(CheckBox.IsCheckedProperty, new Binding(nameof(SettingsViewModel.IsMaximized)) { Mode = BindingMode.TwoWay });
             _enableMultiWindowCheckBox.SetBinding(CheckBox.IsCheckedProperty, new Binding(nameof(SettingsViewModel.EnableMultiWindow)) { Mode = BindingMode.TwoWay });
+            _activateTabOnMiddleClickCheckBox.SetBinding(CheckBox.IsCheckedProperty, new Binding(nameof(SettingsViewModel.ActivateNewTabOnMiddleClick)) { Mode = BindingMode.TwoWay });
 
             _uiFontSizeTextBox.SetBinding(TextBox.TextProperty, new Binding(nameof(SettingsViewModel.UIFontSize)) { Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged });
             _tagFontSizeTextBox.SetBinding(TextBox.TextProperty, new Binding(nameof(SettingsViewModel.TagFontSize)) { Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged });

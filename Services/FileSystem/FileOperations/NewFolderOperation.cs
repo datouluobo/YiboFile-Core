@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using YiboFile.Dialogs;
 using YiboFile;
 
 namespace YiboFile.Services.FileOperations
@@ -36,19 +37,13 @@ namespace YiboFile.Services.FileOperations
             }
 
             // 使用简单的输入对话框
-            var dialog = new PathInputDialog
-            {
-                Title = "新建文件夹",
-                PromptText = "请输入文件夹名称：",
-                InputText = "新建文件夹",
-                Owner = _ownerWindow
-            };
+            string inputName = DialogService.ShowInput("请输入文件夹名称：", "新建文件夹", "新建文件夹", owner: _ownerWindow);
 
-            if (dialog.ShowDialog() == true)
+            if (inputName != null)
             {
                 try
                 {
-                    var folderName = dialog.InputText.Trim();
+                    var folderName = inputName.Trim();
 
                     // 验证文件夹名称
                     if (string.IsNullOrEmpty(folderName))
@@ -86,6 +81,7 @@ namespace YiboFile.Services.FileOperations
 
                     // 刷新显示
                     _context.RefreshAfterOperation();
+                    YiboFile.Services.Core.NotificationService.ShowSuccess($"已创建文件夹: {folderName}");
                 }
                 catch (Exception ex)
                 {

@@ -114,8 +114,16 @@ namespace YiboFile.Controls
             _newTabButton.Style = style;
             _newTabButton.Click += NewTabButton_Click;
 
-            // 添加到TabsPanel末尾
-            TabsPanel.Children.Add(_newTabButton);
+            // 添加到专用容器，使其在滚动时依然可见
+            var host = FindName("NewTabButtonHost") as Border;
+            if (host != null)
+            {
+                host.Child = _newTabButton;
+            }
+            else
+            {
+                TabsPanel.Children.Add(_newTabButton);
+            }
         }
 
         /// <summary>
@@ -124,15 +132,12 @@ namespace YiboFile.Controls
         /// </summary>
         public void EnsureNewTabButtonLast()
         {
-            if (_newTabButton != null)
+            // 在现在的布局中，按钮固定在右侧，无需在Children中移动
+            // 此方法保留为空或仅做布局检查以兼容现有调用
+            var host = FindName("NewTabButtonHost") as Border;
+            if (_newTabButton != null && host != null && host.Child != _newTabButton)
             {
-                // 如果已经在Children中,先移除
-                if (TabsPanel.Children.Contains(_newTabButton))
-                {
-                    TabsPanel.Children.Remove(_newTabButton);
-                }
-                // 总是添加到最后
-                TabsPanel.Children.Add(_newTabButton);
+                host.Child = _newTabButton;
             }
         }
 

@@ -43,7 +43,7 @@ namespace YiboFile.Handlers
         private readonly Action _renameClick;
         private readonly Action _refreshClick;
         private readonly Action _showPropertiesClick;
-        private readonly Action<string, bool> _createTabAction;
+        private readonly Action<string, bool, bool?> _createTabAction;
 
 
         private System.Windows.Point _mouseDownPoint;
@@ -72,7 +72,7 @@ namespace YiboFile.Handlers
             Action renameClick,
             Action refreshClick,
             Action showPropertiesClick,
-            Action<string, bool> createTabAction) // Added explicit CreateTab action
+            Action<string, bool, bool?> createTabAction) // Added explicit CreateTab action
 
         {
             _fileBrowser = fileBrowser ?? throw new ArgumentNullException(nameof(fileBrowser));
@@ -204,7 +204,7 @@ namespace YiboFile.Handlers
                             if (e.ChangedButton == MouseButton.Middle)
                             {
                                 // 使用注入的 createTabAction
-                                _createTabAction(selectedItem.Path, true);
+                                _createTabAction(selectedItem.Path, true, null);
                             }
                             else
                             {
@@ -441,7 +441,7 @@ namespace YiboFile.Handlers
                         {
                             // 中键点击：在新标签页打开文件夹
                             // 使用注入的 createTabAction，不再依赖 NavigationCoordinator 的隐式上下文
-                            _createTabAction(selectedItem.Path, true);
+                            _createTabAction(selectedItem.Path, true, null);
                             e.Handled = true;
                             return;
                         }

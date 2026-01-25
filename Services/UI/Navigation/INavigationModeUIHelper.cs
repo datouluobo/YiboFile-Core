@@ -119,6 +119,11 @@ namespace YiboFile.Services.Navigation
         /// </summary>
         System.Windows.Controls.Button NavTagButton { get; }
 
+        /// <summary>
+        /// 刷新标签列表
+        /// </summary>
+        void RefreshTagList();
+
         //     Browse,
         //     Edit
         // }

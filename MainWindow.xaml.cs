@@ -158,9 +158,10 @@ namespace YiboFile
         Controls.FileBrowserControl Services.Navigation.INavigationModeUIHelper.FileBrowser => FileBrowser;
         ListBox Services.Navigation.INavigationModeUIHelper.LibrariesListBox => LibrariesListBox;
         Controls.NavigationPanelControl Services.Navigation.INavigationModeUIHelper.NavigationPanelControl => NavigationPanelControl;
-        System.Windows.Controls.Button Services.Navigation.INavigationModeUIHelper.NavPathButton => NavPathBtn;
-        System.Windows.Controls.Button Services.Navigation.INavigationModeUIHelper.NavLibraryButton => NavLibraryBtn;
-        System.Windows.Controls.Button Services.Navigation.INavigationModeUIHelper.NavTagButton => NavTagBtn;
+        // Legacy buttons removed, UIHelper should rely on NavigationModeService or Rail events
+        System.Windows.Controls.Button Services.Navigation.INavigationModeUIHelper.NavPathButton => NavigationRail?.PathButton;
+        System.Windows.Controls.Button Services.Navigation.INavigationModeUIHelper.NavLibraryButton => NavigationRail?.LibraryButton;
+        System.Windows.Controls.Button Services.Navigation.INavigationModeUIHelper.NavTagButton => NavigationRail?.TagButton;
 
 
         // INavigationModeUIHelper 方法实现
@@ -174,10 +175,30 @@ namespace YiboFile
         void Services.Navigation.INavigationModeUIHelper.ApplyVisibleColumnsForCurrentMode() => ApplyVisibleColumnsForCurrentMode();
         void Services.Navigation.INavigationModeUIHelper.EnsureHeaderContextMenuHook() => EnsureHeaderContextMenuHook();
         void Services.Navigation.INavigationModeUIHelper.RefreshFileList() => RefreshFileList();
+        void Services.Navigation.INavigationModeUIHelper.RefreshTagList() => NavigationPanelControl?.TagBrowsePanelControl?.RefreshTags();
 
         // IConfigUIHelper 实现 (部分属性已经是隐式实现，这里补充显式实现或新增属性)
+        // IConfigUIHelper 实现 (显式实现以支持 internal 字段)
         Controls.FileBrowserControl Services.Config.IConfigUIHelper.FileBrowser => FileBrowser;
         RightPanelControl Services.Config.IConfigUIHelper.RightPanelControl => RightPanel;
+        System.Windows.Window Services.Config.IConfigUIHelper.Window => this;
+        System.Windows.Controls.Grid Services.Config.IConfigUIHelper.RootGrid => RootGrid;
+        System.Windows.Controls.ColumnDefinition Services.Config.IConfigUIHelper.ColLeft => ColLeft;
+        System.Windows.Controls.ColumnDefinition Services.Config.IConfigUIHelper.ColCenter => ColCenter;
+        System.Windows.Controls.ColumnDefinition Services.Config.IConfigUIHelper.ColRight => ColRight;
+        Controls.TitleActionBar Services.Config.IConfigUIHelper.TitleActionBar => FileBrowser?.ActionBar;
+        string Services.Config.IConfigUIHelper.CurrentPath
+        {
+            get => _currentPath;
+            set => _currentPath = value;
+        }
+        object Services.Config.IConfigUIHelper.CurrentLibrary => _currentLibrary;
+
+        void Services.Config.IConfigUIHelper.AdjustColumnWidths() => _windowLifecycleHandler?.AdjustColumnWidths();
+        void Services.Config.IConfigUIHelper.EnsureColumnMinWidths() => _windowLifecycleHandler?.EnsureColumnMinWidths();
+        System.Windows.Threading.Dispatcher Services.Config.IConfigUIHelper.Dispatcher => this.Dispatcher;
+        void Services.Config.IConfigUIHelper.UpdateWindowStateUI() => _windowLifecycleHandler?.UpdateWindowStateUI();
+
 
         public MainWindow()
         {
@@ -210,7 +231,9 @@ namespace YiboFile
             InitializeHandlers();
 
             // Step 3: Initialize Events (UI interactions)
+            // Step 3: Initialize Events (UI interactions)
             InitializeEvents();
+            InitializeRailEvents(); // Hook up Rail events
 
             // Step 3.5: Initialize Clipboard History (must be after window handle is available)
             InitializeClipboardHistory();
@@ -278,10 +301,127 @@ namespace YiboFile
             });
         }
 
-        private void NavTagBtn_Click(object sender, RoutedEventArgs e)
+        private void InitializeRailEvents()
         {
-            _navigationModeService.SwitchNavigationMode("Tag");
+            if (NavigationRail != null)
+            {
+                NavigationRail.NavigationModeChanged += OnRailNavigationModeChanged;
+                NavigationRail.LayoutFocusRequested += (s, e) => SwitchLayoutMode(LayoutMode.Focus);
+                NavigationRail.LayoutWorkRequested += (s, e) => SwitchLayoutMode(LayoutMode.Work);
+                NavigationRail.LayoutFullRequested += (s, e) => SwitchLayoutMode(LayoutMode.Full);
+                NavigationRail.DualListToggleRequested += (s, e) => DualListToggle_Click(s, null);
+                NavigationRail.SettingsRequested += OnRailSettingsRequested;
+                NavigationRail.AboutRequested += OnRailAboutRequested;
+                NavigationRail.SetActiveMode("Path"); // Default
+            }
         }
+
+        private void OnRailNavigationModeChanged(object sender, string mode)
+        {
+            // Reset all special panels first
+            if (TaskQueuePanel != null) TaskQueuePanel.Visibility = Visibility.Collapsed;
+            if (ClipboardHistoryPanelControl != null) ClipboardHistoryPanelControl.Visibility = Visibility.Collapsed;
+            if (BackupBrowser != null) BackupBrowser.Visibility = Visibility.Collapsed;
+
+            if (mode == "Path" || mode == "Library" || mode == "Tag")
+            {
+                _navigationModeService.SwitchNavigationMode(mode);
+
+                // Restore Main View (FileBrowser)
+                if (FileBrowser != null) FileBrowser.Visibility = Visibility.Visible;
+
+                // Ensure NavigationPanel is visible
+                if (NavigationPanelControl != null) NavigationPanelControl.Visibility = Visibility.Visible;
+
+                // Restore Side Panel (Standard Work Layout)
+                if (SplitterLeft != null) SplitterLeft.Visibility = Visibility.Visible;
+                if (ColLeft != null && ColLeft.Width.Value == 0) ColLeft.Width = new GridLength(220);
+
+                // Restore Right Panel or Second File Browser based on mode
+                if (RightPanel != null)
+                    RightPanel.Visibility = _isDualListMode ? Visibility.Collapsed : Visibility.Visible;
+
+                if (SecondFileBrowserContainer != null)
+                    SecondFileBrowserContainer.Visibility = _isDualListMode ? Visibility.Visible : Visibility.Collapsed;
+
+                if (SplitterRight != null) SplitterRight.Visibility = Visibility.Visible;
+                if (ColRight != null && ColRight.Width.Value == 0) ColRight.Width = new GridLength(360);
+            }
+            else
+            {
+                // For Backup, Tasks, Clipboard:
+                // 1. Show Navigation Side Panel (Column 1)
+                if (NavigationPanelControl != null) NavigationPanelControl.Visibility = Visibility.Visible;
+                if (SplitterLeft != null) SplitterLeft.Visibility = Visibility.Visible;
+                if (ColLeft != null && ColLeft.Width.Value == 0) ColLeft.Width = new GridLength(220);
+
+                // 2. Hide Main File Browser
+                if (FileBrowser != null) FileBrowser.Visibility = Visibility.Collapsed;
+
+                // 3. Hide Right Panel & Second Browser (occupied by special panel)
+                if (RightPanel != null) RightPanel.Visibility = Visibility.Collapsed;
+                if (SecondFileBrowserContainer != null) SecondFileBrowserContainer.Visibility = Visibility.Collapsed;
+                if (SplitterRight != null) SplitterRight.Visibility = Visibility.Collapsed;
+                // Don't set ColRight width to 0, just let the Grid.ColumnSpan="4" element take over, 
+                // but we should ensure the column definitions allow it. 
+                // Actually if we hide SplitterRight and RightPanel contents, and the BackupBrowser spans to Col 5, it works.
+
+                // 4. Show Specific Panel
+                if (mode == "Tasks")
+                {
+                    if (TaskQueuePanel != null) TaskQueuePanel.Visibility = Visibility.Visible;
+                }
+                else if (mode == "Backup")
+                {
+                    if (BackupBrowser != null) BackupBrowser.Visibility = Visibility.Visible;
+                }
+                else if (mode == "Clipboard")
+                {
+                    if (ClipboardHistoryPanelControl != null) ClipboardHistoryPanelControl.Visibility = Visibility.Visible;
+                }
+            }
+        }
+
+        private void OnRailSettingsRequested(object sender, EventArgs e) => _settingsOverlayController?.Toggle();
+
+        private void OnRailAboutRequested(object sender, EventArgs e)
+        {
+            if (AboutOverlay != null)
+            {
+                AboutOverlay.Visibility = AboutOverlay.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
+            }
+        }
+
+
+
+        // Legacy handlers removed
+
+        internal void Refresh_Click(object sender, RoutedEventArgs e) => RefreshFileList();
+
+        /// <summary>
+        /// 清除其他导航区域的选择状态，确保同时只有一个区域显示选中
+        /// </summary>
+        /// <param name="exceptSource">不清除哪个源 ("Drives", "QuickAccess", "Favorites")</param>
+        private void ClearOtherNavigationSelections(string exceptSource)
+        {
+            if (exceptSource != "Drives")
+            {
+                ClearDriveSelection();
+            }
+            if (exceptSource != "QuickAccess" && QuickAccessListBox != null)
+            {
+                QuickAccessListBox.SelectedItem = null;
+            }
+        }
+
+        private void SettingsOverlay_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.OriginalSource == sender)
+            {
+                _settingsOverlayController?.Hide();
+            }
+        }
+
 
         private void OnTagSelected(int tagId, string tagName)
         {
@@ -290,53 +430,7 @@ namespace YiboFile
             CreateTab($"tag://{tagName}");
         }
 
-        private async void LoadFilesByTag(int tagId, string tagName)
-        {
-            ShowEmptyStateMessage("正在加载标签文件...");
-            try
-            {
-                if (_tagService == null) return;
-                var files = _tagService.GetFilesByTag(tagId);
 
-                var items = new List<FileSystemItem>();
-                foreach (var file in files)
-                {
-                    if (File.Exists(file))
-                    {
-                        items.Add(new FileSystemItem
-                        {
-                            Path = file,
-                            Name = System.IO.Path.GetFileName(file),
-                            IsDirectory = false
-                        });
-                    }
-                    else if (Directory.Exists(file))
-                    {
-                        items.Add(new FileSystemItem
-                        {
-                            Path = file,
-                            Name = System.IO.Path.GetFileName(file),
-                            IsDirectory = true
-                        });
-                    }
-                }
-
-                FileBrowser.FilesItemsSource = items;
-
-                if (items.Count == 0)
-                {
-                    ShowEmptyStateMessage($"标签 \"{tagName}\" 下没有文件");
-                }
-                else
-                {
-                    HideEmptyStateMessage();
-                }
-            }
-            catch (Exception ex)
-            {
-                ShowEmptyStateMessage($"加载失败: {ex.Message}");
-            }
-        }
 
 
         private void UpdateTabManagerMargin()
@@ -360,15 +454,22 @@ namespace YiboFile
             {
                 if (isDualMode)
                 {
-                    // Dual Mode: TabManager is in Left/Center columns.
-                    // It typically doesn't reach the far right (where window controls are), unless columns are weird.
-                    // Safest is to set 0 or small margin.
+                    // 双列表模式：右侧面板 (Col 5) 可见。标签页管理器位于 (Col 3) 是安全的，无需边距。
                     TabManager.Margin = new Thickness(0, 0, 0, 0);
                 }
                 else
                 {
-                    // Single Mode: TabManager spans entire width. Needs to avoid window controls.
-                    TabManager.Margin = new Thickness(0, 0, rightMargin, 0);
+                    // 单列表模式
+                    // 如果是完整模式，右侧面板可见 -> 无需边距
+                    // 如果是工作/专注模式，右侧面板折叠 -> 标签页管理器延伸到最右侧边缘 -> 需要避开窗口控制按钮的边距
+                    if (_currentLayoutMode == LayoutMode.Full)
+                    {
+                        TabManager.Margin = new Thickness(0, 0, 0, 0);
+                    }
+                    else
+                    {
+                        TabManager.Margin = new Thickness(0, 0, rightMargin, 0);
+                    }
                 }
             }
 
@@ -538,8 +639,9 @@ namespace YiboFile
 
 
         // 菜单事件桥接方法 - 已迁移到 MenuEventHandler
-        internal void Refresh_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.Refresh_Click(sender, e);
-        private void ClearFilter_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.ClearFilter_Click(sender, e);
+        // internal void Refresh_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.Refresh_Click(sender, e);
+        // private void ClearFilter_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.ClearFilter_Click(sender, e);
+
 
         internal void ClearFilter()
         {
@@ -768,8 +870,11 @@ namespace YiboFile
         /// </summary>
         internal async Task PasteFilesAsync(CancellationToken ct = default)
         {
-            await _fileOperationService.PasteAsync(ct);
-            Services.Core.NotificationService.ShowSuccess("粘贴完成");
+            var result = await _fileOperationService.PasteAsync(ct);
+            if (result.Success && result.ProcessedCount > 0)
+            {
+                Services.Core.NotificationService.ShowSuccess("粘贴完成");
+            }
         }
 
         /// <summary>
@@ -885,83 +990,8 @@ namespace YiboFile
 
 
 
-    #region IConfigUIHelper 实现
-
-    /// <summary>
-    /// IConfigUIHelper 接口实现
-    /// </summary>
-    public partial class MainWindow
-    {
-        Window IConfigUIHelper.Window => this;
-
-        Grid IConfigUIHelper.RootGrid => this.RootGrid;
-
-        ColumnDefinition IConfigUIHelper.ColLeft => this.ColLeft;
-
-        ColumnDefinition IConfigUIHelper.ColCenter => this.ColCenter;
-
-        ColumnDefinition IConfigUIHelper.ColRight => this.ColRight;
-
-        Controls.TitleActionBar IConfigUIHelper.TitleActionBar => this.FileBrowser?.ActionBar;
-
-        string IConfigUIHelper.CurrentPath
-        {
-            get => _currentPath;
-            set => _currentPath = value;
-        }
-
-        object IConfigUIHelper.CurrentLibrary => _currentLibrary;
 
 
 
 
-
-        void IConfigUIHelper.AdjustColumnWidths()
-        {
-            AdjustColumnWidths();
-        }
-
-        void IConfigUIHelper.EnsureColumnMinWidths()
-        {
-            EnsureColumnMinWidths();
-        }
-
-        System.Windows.Threading.Dispatcher IConfigUIHelper.Dispatcher => this.Dispatcher;
-
-
-
-        void IConfigUIHelper.UpdateWindowStateUI()
-        {
-            UpdateWindowStateUI();
-        }
-
-        /// <summary>
-        /// 清除其他导航区域的选择状态，确保同时只有一个区域显示选中
-        /// </summary>
-        /// <param name="exceptSource">不清除哪个源 ("Drives", "QuickAccess", "Favorites")</param>
-        private void ClearOtherNavigationSelections(string exceptSource)
-        {
-            if (exceptSource != "Drives")
-            {
-                ClearDriveSelection();
-            }
-            if (exceptSource != "QuickAccess" && QuickAccessListBox != null)
-            {
-                QuickAccessListBox.SelectedItem = null;
-            }
-        }
-
-        private void SettingsOverlay_MouseDown(object sender, MouseButtonEventArgs e)
-        {
-            if (e.OriginalSource == sender)
-            {
-                _settingsOverlayController?.Hide();
-            }
-        }
-    }
-
-    #endregion
 }
-
-
-

@@ -1,0 +1,23 @@
+  正在确定要还原的项目…
+  所有项目均是最新的，无法还原。
+F:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.Favorites.cs(64,34): error CS0246: 未能找到类型或命名空间名“PathInputDialog”(是否缺少 using 指令或程序集引用?) [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_cf3lpzap_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\Services\FileSystem\FileOperations\LibraryOperationContext.cs(106,20): error CS0103: 当前上下文中不存在名称“ConfirmDialog” [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_cf3lpzap_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\Services\FileSystem\FileOperations\LibraryOperationContext.cs(106,55): error CS0103: 当前上下文中不存在名称“ConfirmDialog” [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_cf3lpzap_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\Services\FileSystem\FileOperations\PathOperationContext.cs(84,21): error CS0103: 当前上下文中不存在名称“ConfirmDialog” [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_cf3lpzap_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\Services\FileSystem\FileOperations\PathOperationContext.cs(84,56): error CS0103: 当前上下文中不存在名称“ConfirmDialog” [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_cf3lpzap_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\Services\FileSystem\FileOperations\PathOperationContext.cs(86,20): error CS0103: 当前上下文中不存在名称“ConfirmDialog” [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_cf3lpzap_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\Services\FileSystem\FileOperations\PathOperationContext.cs(86,55): error CS0103: 当前上下文中不存在名称“ConfirmDialog” [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_cf3lpzap_wpftmp.csproj]
+
+生成失败。
+
+F:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.Favorites.cs(64,34): error CS0246: 未能找到类型或命名空间名“PathInputDialog”(是否缺少 using 指令或程序集引用?) [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_cf3lpzap_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\Services\FileSystem\FileOperations\LibraryOperationContext.cs(106,20): error CS0103: 当前上下文中不存在名称“ConfirmDialog” [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_cf3lpzap_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\Services\FileSystem\FileOperations\LibraryOperationContext.cs(106,55): error CS0103: 当前上下文中不存在名称“ConfirmDialog” [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_cf3lpzap_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\Services\FileSystem\FileOperations\PathOperationContext.cs(84,21): error CS0103: 当前上下文中不存在名称“ConfirmDialog” [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_cf3lpzap_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\Services\FileSystem\FileOperations\PathOperationContext.cs(84,56): error CS0103: 当前上下文中不存在名称“ConfirmDialog” [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_cf3lpzap_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\Services\FileSystem\FileOperations\PathOperationContext.cs(86,20): error CS0103: 当前上下文中不存在名称“ConfirmDialog” [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_cf3lpzap_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\Services\FileSystem\FileOperations\PathOperationContext.cs(86,55): error CS0103: 当前上下文中不存在名称“ConfirmDialog” [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_cf3lpzap_wpftmp.csproj]
+    0 个警告
+    7 个错误
+
+已用时间 00:00:05.49

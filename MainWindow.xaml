@@ -44,12 +44,13 @@
                 </Style.Triggers>
             </Style>
         </Grid.Style>
-        <!-- 左中右3列布局 -->
+        <!-- 左中右4列布局 (Rail + Side + Main + Right) -->
         <Grid.ColumnDefinitions>
+            <ColumnDefinition x:Name="ColRail" Width="60" MinWidth="60" MaxWidth="60"/>
             <ColumnDefinition x:Name="ColLeft" Width="220" MinWidth="220"/>
-            <ColumnDefinition Width="12"/>
+            <ColumnDefinition Width="12"/> <!-- 对齐水平分割器的宽度 -->
             <ColumnDefinition x:Name="ColCenter" Width="*" MinWidth="250"/>
-            <ColumnDefinition Width="12"/>
+            <ColumnDefinition Width="12"/> <!-- 对齐水平分割器的宽度 -->
             <ColumnDefinition x:Name="ColRight" Width="360" MinWidth="360"/>
         </Grid.ColumnDefinitions>
         
@@ -62,162 +63,37 @@
         </Grid.RowDefinitions>
         
         <!-- 标题栏背景（包含底部边框） -->
-        <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="5"
+        <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="6"
                 Background="Transparent"
                 BorderBrush="{DynamicResource BorderSubtleBrush}"
                 BorderThickness="0,0,0,1"
                 Panel.ZIndex="1000"/>
+
+        <!-- ========== 列0：导航侧栏 ========== -->
+        <controls:NavigationRailControl x:Name="NavigationRail"
+                                      Grid.Row="0" Grid.RowSpan="4"
+                                      Grid.Column="0"
+                                      Panel.ZIndex="2000"
+                                      WindowChrome.IsHitTestVisibleInChrome="True"/>
         
         <!-- 导航按钮：位于列0 (随列0宽度自动调整) -->
-        <Grid Name="NavButtonsContainer" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Margin="0" Panel.ZIndex="1001">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-            
-            <!-- 导航按钮区域：固定宽度，左对齐 -->
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="8,0" WindowChrome.IsHitTestVisibleInChrome="True">
-                <Button Name="NavPathBtn" Click="NavPathBtn_Click" Margin="2,0" Height="32" Width="60"
-                        Tag="Selected"> <!-- 默认选中路径 -->
-                    <Button.Style>
-                        <Style TargetType="Button">
-                            <Setter Property="Height" Value="36"/>
-                            <Setter Property="Margin" Value="2,0"/>
-                            <Setter Property="Padding" Value="8,0"/>
-                            <Setter Property="Cursor" Value="Hand"/>
-                            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-                            <Setter Property="HorizontalContentAlignment" Value="Center"/>
-                            <Setter Property="VerticalContentAlignment" Value="Center"/>
-                            <Setter Property="Background" Value="Transparent"/>
-                            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="Button">
-                                        <Border x:Name="border"
-                                                Background="{TemplateBinding Background}" 
-                                                BorderBrush="Transparent" 
-                                                BorderThickness="0"
-                                                CornerRadius="4">
-                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
-                                        <ControlTemplate.Triggers>
-                                            <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter Property="Background" Value="{DynamicResource ButtonHoverBackgroundBrush}"/>
-                                            </Trigger>
-                                            <Trigger Property="Tag" Value="Selected">
-                                                 <Setter Property="Background" Value="Transparent"/>
-                                                 <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
-                                                 <Setter Property="FontWeight" Value="SemiBold"/>
-                                            </Trigger>
-                                        </ControlTemplate.Triggers>
-                                    </ControlTemplate>
-                                </Setter.Value>
-                            </Setter>
-                        </Style>
-                    </Button.Style>
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                        <TextBlock Text="{DynamicResource Icon_Nav_Path}" FontFamily="{DynamicResource IconFontFamily}" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                        <TextBlock Text="路径" VerticalAlignment="Center"/>
-                    </StackPanel>
-                </Button>
-                <Button Name="NavLibraryBtn" Click="NavLibraryBtn_Click" Margin="2,0" Height="32" Width="60">
-                    <Button.Style>
-                        <Style TargetType="Button">
-                            <Setter Property="Height" Value="36"/>
-                            <Setter Property="Margin" Value="2,0"/>
-                            <Setter Property="Padding" Value="8,0"/>
-                            <Setter Property="Cursor" Value="Hand"/>
-                            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-                            <Setter Property="HorizontalContentAlignment" Value="Center"/>
-                            <Setter Property="VerticalContentAlignment" Value="Center"/>
-                            <Setter Property="Background" Value="Transparent"/>
-                            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="Button">
-                                        <Border x:Name="border"
-                                                Background="{TemplateBinding Background}" 
-                                                BorderBrush="Transparent" 
-                                                BorderThickness="0"
-                                                CornerRadius="4">
-                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
-                                        <ControlTemplate.Triggers>
-                                            <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter Property="Background" Value="{DynamicResource ButtonHoverBackgroundBrush}"/>
-                                            </Trigger>
-                                            <Trigger Property="Tag" Value="Selected">
-                                                 <Setter Property="Background" Value="Transparent"/>
-                                                 <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
-                                                 <Setter Property="FontWeight" Value="SemiBold"/>
-                                            </Trigger>
-                                        </ControlTemplate.Triggers>
-                                    </ControlTemplate>
-                                </Setter.Value>
-                            </Setter>
-                        </Style>
-                    </Button.Style>
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                        <TextBlock Text="{DynamicResource Icon_Nav_Library}" FontFamily="{DynamicResource IconFontFamily}" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                        <TextBlock Text="库" VerticalAlignment="Center"/>
-                    </StackPanel>
-                </Button>
 
-                <!-- NavTagBtn Phase 2 将重新引入 -->
-                <Button Name="NavTagBtn" Click="NavTagBtn_Click" Margin="2,0" Height="32" Width="60"
-                        Tag="Unselected" Visibility="Collapsed">
-                    <Button.Style>
-                        <Style TargetType="Button">
-                            <Setter Property="Height" Value="36"/>
-                            <Setter Property="Margin" Value="2,0"/>
-                            <Setter Property="Padding" Value="8,0"/>
-                            <Setter Property="Cursor" Value="Hand"/>
-                            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-                            <Setter Property="HorizontalContentAlignment" Value="Center"/>
-                            <Setter Property="VerticalContentAlignment" Value="Center"/>
-                            <Setter Property="Background" Value="Transparent"/>
-                            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="Button">
-                                        <Border x:Name="border"
-                                                Background="{TemplateBinding Background}" 
-                                                BorderBrush="Transparent" 
-                                                BorderThickness="0"
-                                                CornerRadius="4">
-                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
-                                        <ControlTemplate.Triggers>
-                                            <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter Property="Background" Value="{DynamicResource ButtonHoverBackgroundBrush}"/>
-                                            </Trigger>
-                                            <Trigger Property="Tag" Value="Selected">
-                                                 <Setter Property="Background" Value="Transparent"/>
-                                                 <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
-                                                 <Setter Property="FontWeight" Value="SemiBold"/>
-                                            </Trigger>
-                                        </ControlTemplate.Triggers>
-                                    </ControlTemplate>
-                                </Setter.Value>
-                            </Setter>
-                        </Style>
-                    </Button.Style>
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                        <TextBlock Text="{DynamicResource Icon_Nav_Tag}" FontFamily="{DynamicResource IconFontFamily}" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                        <TextBlock Text="标签" VerticalAlignment="Center"/>
-                    </StackPanel>
-                </Button>
-            </StackPanel>
-            
-            <!-- 分隔符 (隐藏保留) -->
-            <Separator Name="TitleBarSeparator" Visibility="Collapsed" Grid.Column="0" HorizontalAlignment="Right" VerticalAlignment="Center" Height="24" Width="1"/>
-        </Grid>
 
         <!-- 标签页管理器：从列1(Splitter)开始，跨越剩余列 -->
-        <controls:TabManagerControl Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="4"
+        <!-- 主标签页管理器：主文件列表正上方 -->
+        <controls:TabManagerControl Grid.Row="0" Grid.Column="3"
                                     x:Name="TabManager" 
-                                    Margin="0,0,380,0"
+                                    Margin="0"
                                     VerticalAlignment="Center"
-                                    Panel.ZIndex="1001"/>
+                                    Panel.ZIndex="1001"
+                                    WindowChrome.IsHitTestVisibleInChrome="True"/>
+
+        <!-- 列1（左侧辅助面板）背景：贯穿主标题栏 -->
+        <Border Grid.Column="1" Grid.Row="0" Grid.RowSpan="4"
+                Background="{DynamicResource NavigationRegionBrush}"
+                BorderBrush="{DynamicResource BorderSubtleBrush}"
+                BorderThickness="0,0,1,0"
+                Panel.ZIndex="50"/>
 
 
 
@@ -226,25 +102,29 @@
 
         <!-- 垂直分割器（从Row 2开始，跨越2行：Row 2和Row 3） -->
         <!-- 左侧导航与中间文件列表之间的分割器 -->
-        <controls:CollapsibleGridSplitter x:Name="SplitterLeft" Grid.Row="2" Grid.Column="1" Grid.RowSpan="2"
+        <!-- 左侧导航与中间文件列表之间的分割器 (Col 2) -->
+        <controls:CollapsibleGridSplitter x:Name="SplitterLeft" Grid.Row="0" Grid.Column="2" Grid.RowSpan="4"
                       Style="{StaticResource VerticalCollapsibleGridSplitterStyle}"
+                      HorizontalAlignment="Stretch"
                       CollapseMode="Previous"
                       ShowsPreview="True"
                       Panel.ZIndex="2000"
                       DragCompleted="GridSplitter_DragCompleted"/>
         
         <!-- 中间文件列表与右侧预览之间的分割器 -->
-        <controls:CollapsibleGridSplitter x:Name="SplitterRight" Grid.Row="2" Grid.Column="3" Grid.RowSpan="2"
+        <!-- 中间文件列表与右侧预览之间的分割器 (Col 4) -->
+        <controls:CollapsibleGridSplitter x:Name="SplitterRight" Grid.Row="0" Grid.Column="4" Grid.RowSpan="4"
                       Style="{StaticResource VerticalCollapsibleGridSplitterStyle}"
+                      HorizontalAlignment="Stretch"
                       CollapseMode="Both"
                       ShowsPreview="True"
                       Panel.ZIndex="2000"
                       AutoFillNeighbor="True"
                       DragCompleted="GridSplitter_DragCompleted"/>
 
-        <!-- ========== 列1：导航区（独立控件） ========== -->
-        <!-- ========== 列1：导航区（独立控件） + 底部全局按钮 ========== -->
-        <Grid Grid.Row="2" Grid.Column="0" Grid.RowSpan="2">
+        <!-- ========== 列1：左侧导航内容区域（从顶端 Row 0 开始） ========== -->
+        <Grid Grid.Row="0" Grid.Column="1" Grid.RowSpan="4" Panel.ZIndex="2001"
+              WindowChrome.IsHitTestVisibleInChrome="True">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
@@ -252,113 +132,55 @@
             
             <controls:NavigationPanelControl Grid.Row="0" x:Name="NavigationPanelControl"/>
             
-            <!-- 底部全局按钮区域 -->
-            <Border Grid.Row="1" Background="{DynamicResource PanelBackgroundBrush}" 
-                    BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,1,0,0"
-                    Padding="4">
-                <Grid>
-                    <!-- 左对齐：布局模式 -->
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                        <!-- 专注模式 -->
-                        <Button x:Name="LayoutFocusBtn" Width="32" Height="32"
-                                Content="{DynamicResource Icon_Layout_Focus}"
-                                ToolTip="专注模式 (Ctrl+Shift+F)&#x0a;折叠左右，最大化文件列表"
-                                Click="LayoutFocus_Click"
-                                Background="Transparent" Padding="0" Cursor="Hand"
-                                FontSize="14" FontFamily="{DynamicResource IconFontFamily}"
-                                Style="{StaticResource ModernButtonStyle}">
-                        </Button>
-                        
-                        <!-- 工作模式 -->
-                        <Button x:Name="LayoutWorkBtn" Width="32" Height="32"
-                                Content="{DynamicResource Icon_Layout_Work}"
-                                ToolTip="工作模式 (Ctrl+Shift+W)&#x0a;左导航+文件列表"
-                                Click="LayoutWork_Click"
-                                Background="Transparent" Padding="0" Cursor="Hand"
-                                FontSize="14" FontFamily="{DynamicResource IconFontFamily}"
-                                Style="{StaticResource ModernButtonStyle}">
-                        </Button>
-                        
-                        <!-- 完整模式 -->
-                        <Button x:Name="LayoutFullBtn" Width="32" Height="32"
-                                Content="{DynamicResource Icon_Layout_Full}"
-                                ToolTip="完整模式 (Ctrl+Shift+A)&#x0a;三栏完整布局"
-                                Click="LayoutFull_Click"
-                                Background="Transparent" Padding="0" Cursor="Hand"
-                                FontSize="14" FontFamily="{DynamicResource IconFontFamily}"
-                                Tag="Active"
-                                Style="{StaticResource ModernButtonStyle}">
-                        </Button>
-
-                        <!-- 双列表模式 (分隔线 + 按钮) -->
-                        <Border Width="1" Height="16" Background="{DynamicResource BorderSubtleBrush}" Margin="4,0"/>
-                        
-                        <Button x:Name="DualListToggleBtn" Width="32" Height="32"
-                                Content="|  |"
-                                ToolTip="双列表模式&#x0a;切换预览/副文件列表"
-                                Click="DualListToggle_Click"
-                                Background="Transparent" Padding="0" Cursor="Hand"
-                                FontSize="12" FontWeight="Bold"
-                                Style="{StaticResource ModernButtonStyle}">
-                        </Button>
-                        
-                        <!-- 剪切板历史 (分隔线 + 按钮) -->
-                        <Border Width="1" Height="16" Background="{DynamicResource BorderSubtleBrush}" Margin="4,0"/>
-                        
-                        <Button x:Name="ClipboardHistoryBtn" Width="32" Height="32"
-                                Content="📋"
-                                ToolTip="剪切板历史 (Ctrl+Shift+V)"
-                                Click="ClipboardHistoryBtn_Click"
-                                Background="Transparent" Padding="0" Cursor="Hand"
-                                FontSize="14"
-                                Style="{StaticResource ModernButtonStyle}">
-                        </Button>
-                    </StackPanel>
-                    
-                    <!-- 右对齐：设置/关于 -->
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                        <Button x:Name="TitleBarSettingsButton" Content="{DynamicResource Icon_Window_Settings}" 
-                                Width="32" Height="32"
-                                Click="Settings_Click" 
-                                ToolTip="设置" FontSize="16" FontFamily="{DynamicResource IconFontFamily}"
-                                Background="Transparent" Padding="0" Cursor="Hand"
-                                Style="{StaticResource ModernButtonStyle}">
-                        </Button>
-                        
-                        <Button x:Name="TitleBarAboutButton" Content="{DynamicResource Icon_Window_About}" 
-                                Width="32" Height="32"
-                                Click="About_Click" 
-                                ToolTip="关于" FontSize="16" FontFamily="{DynamicResource IconFontFamily}"
-                                Background="Transparent" Padding="0" Cursor="Hand"
-                                Style="{StaticResource ModernButtonStyle}">
-                        </Button>
-                    </StackPanel>
-                </Grid>
-            </Border>
+            <!-- 底部占位（如果需要背景贯穿，可以在这里放一个简单的 Border，或者直接移除） -->
+            <!-- 原底部全局按钮区域已移至侧边栏 -->
+            <Border Grid.Row="1" Height="0"/>
             
             <!-- 剪切板历史 Popup -->
-            <Popup x:Name="ClipboardHistoryPopup" 
-                   PlacementTarget="{Binding ElementName=ClipboardHistoryBtn}"
-                   Placement="Top" 
-                   StaysOpen="False"
-                   AllowsTransparency="True"
-                   HorizontalOffset="-100"
-                   VerticalOffset="-4">
-                <controls:ClipboardHistoryPanel x:Name="ClipboardHistoryPanelControl"/>
-            </Popup>
+
         </Grid>
 
-        <!-- ========== 列2：文件显示区 ========== -->
+        <!-- ========== 列3：文件显示区 ========== -->
         <controls:FileBrowserControl x:Name="FileBrowser"
-                                     Grid.Column="2" 
+                                     Grid.Column="3" 
                                      Grid.Row="1" 
                                      Grid.RowSpan="3"
                                      HorizontalAlignment="Stretch" 
                                      VerticalAlignment="Stretch"
                                      Margin="0,0,0,0"/>
 
-        <!-- ========== 列3：可切换区域（预览/副文件列表） ========== -->
-        <Grid Grid.Row="0" Grid.Column="4" Grid.RowSpan="4" 
+        <!-- 备份管理器 -->
+        <controls:BackupBrowserControl x:Name="BackupBrowser"
+                                     Grid.Column="2" Grid.ColumnSpan="4"
+                                     Grid.Row="1" 
+                                     Grid.RowSpan="3"
+                                     HorizontalAlignment="Stretch" 
+                                     VerticalAlignment="Stretch"
+                                     Visibility="Collapsed"
+                                     Panel.ZIndex="100"/>
+
+        <!-- 任务队列 (列2-5) -->
+        <controls:TaskQueuePanel x:Name="TaskQueuePanel" 
+                                 Grid.Column="2" Grid.ColumnSpan="4"
+                                 Grid.Row="1" Grid.RowSpan="3"
+                                 HorizontalAlignment="Stretch" 
+                                 VerticalAlignment="Stretch" 
+                                 Margin="0" 
+                                 Visibility="Collapsed"
+                                 Panel.ZIndex="100"/>
+
+        <!-- 剪贴板历史 (列2-5) -->
+        <controls:ClipboardHistoryPanel x:Name="ClipboardHistoryPanelControl" 
+                                 Grid.Column="2" Grid.ColumnSpan="4"
+                                 Grid.Row="1" Grid.RowSpan="3"
+                                 HorizontalAlignment="Stretch" 
+                                 VerticalAlignment="Stretch" 
+                                 Margin="0" 
+                                 Visibility="Collapsed"
+                                 Panel.ZIndex="100"/>
+
+        <!-- ========== 列5：可切换区域（预览/副文件列表） ========== -->
+        <Grid Grid.Row="0" Grid.Column="5" Grid.RowSpan="4" 
               WindowChrome.IsHitTestVisibleInChrome="True"
               Panel.ZIndex="1001">
             <!-- 预览面板（默认显示） -->
@@ -391,10 +213,10 @@
             </Grid>
         </Grid>
 
-        <!-- 设置覆盖层:覆盖所有内容列,不包括标题栏 -->
+        <!-- 设置覆盖层:覆盖所有内容列 -->
         <Grid Name="SettingsOverlay"
               Grid.Row="1" Grid.RowSpan="3"
-              Grid.Column="0" Grid.ColumnSpan="5"
+              Grid.Column="0" Grid.ColumnSpan="6"
               Background="{DynamicResource AppBackgroundBrush}"
               Panel.ZIndex="5000"
               Visibility="Collapsed"
@@ -405,7 +227,7 @@
         <!-- 关于覆盖层 -->
         <Grid Name="AboutOverlay"
               Grid.Row="1" Grid.RowSpan="3"
-              Grid.Column="0" Grid.ColumnSpan="5"
+              Grid.Column="0" Grid.ColumnSpan="6"
               Background="{DynamicResource AppBackgroundBrush}"
               Panel.ZIndex="5000"
               Visibility="Collapsed">
@@ -416,16 +238,16 @@
 
         <!-- 通知容器: 位于底部中央，覆盖在最上层 -->
         <StackPanel x:Name="NotificationContainer"
-                    Grid.Row="1" Grid.RowSpan="3" Grid.Column="0" Grid.ColumnSpan="5"
+                    Grid.Row="1" Grid.RowSpan="3" Grid.Column="0" Grid.ColumnSpan="6"
                     VerticalAlignment="Bottom" HorizontalAlignment="Center"
                     Margin="0,0,0,20"
                     Panel.ZIndex="9000"/>
 
 
 
-        <!-- 右上角窗口控制按钮：放回 RootGrid 内部以自动适配 Margin -->
+        <!-- 右上角窗口控制按钮 -->
         <Grid Name="WindowControlButtonsContainer" 
-              Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="5"
+              Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="6"
               HorizontalAlignment="Right" VerticalAlignment="Top"
               Margin="0,-4,-12,0"
               Height="51"
@@ -533,21 +355,7 @@
             </StackPanel>
         </Grid>
 
+
     </Grid>
-        <!-- 现有的其他控件 -->
-
-        <!-- 任务队列面板 (悬浮在右下角) -->
-        <controls:TaskQueuePanel x:Name="TaskQueuePanel" 
-                              Grid.Row="1" Grid.RowSpan="3" Grid.Column="0" Grid.ColumnSpan="5"
-                              HorizontalAlignment="Right" 
-                              VerticalAlignment="Bottom" 
-                              Margin="0,0,20,60" 
-                              Width="300" Height="Auto"
-                              MaxHeight="400"
-                              Panel.ZIndex="8000"
-                              Visibility="Collapsed"/>
-        
-
     </Grid>
 </Window>
-

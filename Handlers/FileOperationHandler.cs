@@ -78,7 +78,7 @@ namespace YiboFile.Handlers
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"复制操作失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                YiboFile.DialogService.Error($"复制操作失败: {ex.Message}", owner: _mainWindow);
             }
         }
 
@@ -100,7 +100,7 @@ namespace YiboFile.Handlers
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"剪切操作失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                YiboFile.DialogService.Error($"剪切操作失败: {ex.Message}", owner: _mainWindow);
             }
         }
 
@@ -131,7 +131,7 @@ namespace YiboFile.Handlers
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"删除操作失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                YiboFile.DialogService.Error($"删除操作失败: {ex.Message}", owner: _mainWindow);
             }
         }
 

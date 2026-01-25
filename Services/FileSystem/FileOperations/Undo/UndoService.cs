@@ -98,7 +98,6 @@ namespace YiboFile.Services.FileOperations.Undo
                     _redoStack.Push(action);
                     StackChanged?.Invoke(this, EventArgs.Empty);
                     ActionUndone?.Invoke(this, EventArgs.Empty);
-                    NotificationService.ShowSuccess($"已撤销: {action.Description}");
                     return true;
                 }
                 else
@@ -135,7 +134,6 @@ namespace YiboFile.Services.FileOperations.Undo
                     _undoStack.Push(action);
                     StackChanged?.Invoke(this, EventArgs.Empty);
                     ActionRedone?.Invoke(this, EventArgs.Empty);
-                    NotificationService.ShowSuccess($"已重做: {action.Description}");
                     return true;
                 }
                 else

@@ -246,6 +246,12 @@ namespace YiboFile
                         command.CommandText = "ALTER TABLE Tags ADD COLUMN GroupId INTEGER DEFAULT 0";
                         command.ExecuteNonQuery();
                     }
+                    else
+                    {
+                        // 确保没有 NULL 值
+                        command.CommandText = "UPDATE Tags SET GroupId = 0 WHERE GroupId IS NULL";
+                        command.ExecuteNonQuery();
+                    }
                 }
             }
             catch
@@ -299,6 +305,46 @@ namespace YiboFile
             {
                 // 记录错误但不中断初始化
             }
+            // 数据库初始化默认标签
+            try
+            {
+                command.CommandText = "SELECT COUNT(*) FROM TagGroups";
+                if (Convert.ToInt32(command.ExecuteScalar()) == 0)
+                {
+                    // 创建默认分组
+                    command.CommandText = "INSERT INTO TagGroups (Name, Color) VALUES ('核心', '#FFB3BA')";
+                    command.ExecuteNonQuery();
+                    var coreGroupId = 0;
+                    command.CommandText = "SELECT last_insert_rowid()";
+                    coreGroupId = Convert.ToInt32(command.ExecuteScalar());
+
+                    command.CommandText = "INSERT INTO TagGroups (Name, Color) VALUES ('工作', '#BAE1FF')";
+                    command.ExecuteNonQuery();
+                    var workGroupId = 0;
+                    command.CommandText = "SELECT last_insert_rowid()";
+                    workGroupId = Convert.ToInt32(command.ExecuteScalar());
+
+                    // 添加默认标签
+                    var defaultTags = new[]
+                    {
+                        (coreGroupId, "重要", "#FFB3BA"),
+                        (coreGroupId, "待办", "#FFDFBA"),
+                        (workGroupId, "文档", "#BAE1FF"),
+                        (workGroupId, "项目", "#BAFFC9")
+                    };
+
+                    foreach (var tag in defaultTags)
+                    {
+                        command.CommandText = "INSERT INTO Tags (GroupId, Name, Color) VALUES (@gid, @name, @color)";
+                        command.Parameters.Clear();
+                        command.Parameters.AddWithValue("@gid", tag.Item1);
+                        command.Parameters.AddWithValue("@name", tag.Item2);
+                        command.Parameters.AddWithValue("@color", tag.Item3);
+                        command.ExecuteNonQuery();
+                    }
+                }
+            }
+            catch { }
         }
 
 
@@ -421,7 +467,7 @@ namespace YiboFile
             using var connection = new SqliteConnection(_connectionString);
             connection.Open();
             using var command = connection.CreateCommand();
-            command.CommandText = "SELECT Id, Name, Color, GroupId FROM Tags WHERE GroupId = @groupId ORDER BY Id";
+            command.CommandText = "SELECT Id, Name, Color, IFNULL(GroupId, 0) FROM Tags WHERE IFNULL(GroupId, 0) = @groupId ORDER BY Id";
             command.Parameters.AddWithValue("@groupId", groupId);
             using var reader = command.ExecuteReader();
             while (reader.Read())
@@ -610,7 +656,7 @@ namespace YiboFile
             using var connection = new SqliteConnection(_connectionString);
             connection.Open();
             using var command = connection.CreateCommand();
-            command.CommandText = "SELECT Id, Name, Color, GroupId FROM Tags WHERE GroupId = 0 OR GroupId NOT IN (SELECT Id FROM TagGroups) ORDER BY Name";
+            command.CommandText = "SELECT Id, Name, Color, IFNULL(GroupId, 0) FROM Tags WHERE IFNULL(GroupId, 0) = 0 OR IFNULL(GroupId, 0) NOT IN (SELECT Id FROM TagGroups) ORDER BY Name";
             using var reader = command.ExecuteReader();
             while (reader.Read())
             {

@@ -45,7 +45,7 @@
                          Maximum="100"
                          Value="0"
                          Foreground="{DynamicResource AccentDefaultBrush}"
-                         Background="{DynamicResource ControlDefaultBackgroundBrush}"
+                         Background="{DynamicResource ControlDefaultBrush}"
                          Margin="0,0,0,8"/>
             
             <!-- 底部：进度文本 + 取消按钮 -->

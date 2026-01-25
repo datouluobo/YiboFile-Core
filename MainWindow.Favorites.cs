@@ -13,6 +13,7 @@ using YiboFile.Services.FileList;
 using YiboFile.Models.UI;
 using YiboFile.Services.Config;
 using YiboFile.Controls;
+using YiboFile.Dialogs;
 
 namespace YiboFile
 {
@@ -42,7 +43,7 @@ namespace YiboFile
         private void ManageFavorites_Click(object sender, RoutedEventArgs e)
         {
             // TODO: 实现分组管理窗口或弹窗
-            MessageBox.Show("分组管理功能即将推出！可通过文件夹右键菜单直接管理收藏。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            DialogService.Info("分组管理功能即将推出！可通过文件夹右键菜单直接管理收藏。", owner: this);
         }
 
         private void AddFavorite_Click(object sender, RoutedEventArgs e)
@@ -61,12 +62,10 @@ namespace YiboFile
         {
             if (groupItem is FavoriteService.FavoriteGroupItem group)
             {
-                var dialog = new PathInputDialog("请输入新的分组名称：");
-                dialog.InputText = group.Name;
-                dialog.Owner = this;
-                if (dialog.ShowDialog() == true)
+                var inputName = DialogService.ShowInput("请输入新的分组名称：", group.Name, "重命名分组", owner: this);
+                if (inputName != null)
                 {
-                    var newName = dialog.InputText?.Trim();
+                    var newName = inputName?.Trim();
                     if (!string.IsNullOrEmpty(newName))
                     {
                         _favoriteService.RenameGroup(group.Id, newName);
@@ -82,12 +81,11 @@ namespace YiboFile
             {
                 if (group.Id == 1)
                 {
-                    MessageBox.Show("默认分组不能删除", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    DialogService.Info("默认分组不能删除", owner: this);
                     return;
                 }
 
-                var result = MessageBox.Show($"确定要删除分组 \"{group.Name}\" 吗？\n其中的内容将被移动到默认分组中。", "确认删除", MessageBoxButton.YesNo, MessageBoxImage.Question);
-                if (result == MessageBoxResult.Yes)
+                if (DialogService.Ask($"确定要删除分组 \"{group.Name}\" 吗？\n其中的内容将被移动到默认分组中。", "确认删除", this))
                 {
                     _favoriteService.DeleteGroup(group.Id);
                     LoadFavorites();

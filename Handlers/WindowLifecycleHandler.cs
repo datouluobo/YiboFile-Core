@@ -97,7 +97,7 @@ namespace YiboFile.Handlers
         {
             if (_mainWindow.RootGrid == null) return;
 
-            double total = _mainWindow.RootGrid.ActualWidth - 12; // 减去两个分割器宽度 (6+6)
+            double total = _mainWindow.RootGrid.ActualWidth - _mainWindow.ColRail.ActualWidth - 10; // 减去Rail (60) 和 两个分割器 (5+5)
             double left = _mainWindow.ColLeft.ActualWidth;
             double center = _mainWindow.ColCenter.ActualWidth;
             double right = _mainWindow.ColRight.ActualWidth;
@@ -176,17 +176,20 @@ namespace YiboFile.Handlers
             bool needAdjust = false;
 
             // 检查列2（中间列）是否小于最小宽度
-            if (centerActual < minCenter)
-            {
-                _mainWindow.ColCenter.Width = new GridLength(minCenter);
-                needAdjust = true;
-            }
+            // 检查列2（中间列）是否小于最小宽度
+            // Fix: 不要在代码中强制设置 Width，因为这会覆盖 Star Sizing。
+            // MinWidth 在 XAML 中已定义，Grid 会自动处理。
+            // if (centerActual < minCenter)
+            // {
+            //    _mainWindow.ColCenter.Width = new GridLength(minCenter);
+            //    needAdjust = true;
+            // }
 
             // 检查列3（右侧面板）是否小于最小宽度
             if (rightActual < minRight)
             {
                 // 计算可用空间
-                double totalWidth = _mainWindow.RootGrid.ActualWidth - 12; // 减去两个分割器宽度
+                double totalWidth = _mainWindow.RootGrid.ActualWidth - _mainWindow.ColRail.ActualWidth - 10; // 减去Rail和分割器
                 double availableWidth = totalWidth - minLeft - (centerActual >= minCenter ? centerActual : minCenter);
 
                 // 确保右侧面板至少达到最小宽度

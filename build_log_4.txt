@@ -1,0 +1,11 @@
+  正在确定要还原的项目…
+  所有项目均是最新的，无法还原。
+F:\Download\GitHub\YiboFile\YiboFile-Core\Controls\TaskQueuePanel.xaml(216,49): error MC3048: “{local:StatusToVisibilityConverter Parameter=CanPause}”值不是有效的 MarkupExtension 表达式。无法解析命名空间“clr-namespace:YiboFile.Controls”中的“StatusToVisibilityConverter”。“StatusToVisibilityConverter”必须是 MarkupExtension 的子类。 行 216 位置 49. [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core.csproj]
+
+生成失败。
+
+F:\Download\GitHub\YiboFile\YiboFile-Core\Controls\TaskQueuePanel.xaml(216,49): error MC3048: “{local:StatusToVisibilityConverter Parameter=CanPause}”值不是有效的 MarkupExtension 表达式。无法解析命名空间“clr-namespace:YiboFile.Controls”中的“StatusToVisibilityConverter”。“StatusToVisibilityConverter”必须是 MarkupExtension 的子类。 行 216 位置 49. [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core.csproj]
+    0 个警告
+    1 个错误
+
+已用时间 00:00:03.58

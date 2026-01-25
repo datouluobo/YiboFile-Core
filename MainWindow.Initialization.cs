@@ -201,7 +201,7 @@ namespace YiboFile
                 {
                     if (e.Severity == YiboFile.Services.Core.Error.ErrorSeverity.Critical)
                     {
-                        MessageBox.Show(this, e.Message, "严重错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        DialogService.Error(e.Message, "严重错误", this);
                     }
                     else
                     {
@@ -241,23 +241,7 @@ namespace YiboFile
                 RightPanel.NotesHeightChanged += RightPanel_NotesHeightChanged;
             }
 
-            // 订阅 FileBrowser 导航事件
-            if (FileBrowser != null)
-            {
-                FileBrowser.InfoHeightChanged += FileBrowser_InfoHeightChanged;
-                FileBrowser.NavigationBack += NavigateBack_Click;
-                FileBrowser.NavigationForward += NavigateForward_Click;
-                FileBrowser.NavigationUp += NavigateUp_Click;
-                FileBrowser.ViewModeChanged += FileBrowser_ViewModeChanged;
 
-                // Subscribe to File Operations from TitleActionBar
-                FileBrowser.FileNewFolder += (s, e) => _menuEventHandler?.NewFolder_Click(s, e);
-                FileBrowser.FileNewFile += (s, e) => _menuEventHandler?.NewFile_Click(s, e);
-                FileBrowser.FileCopy += async (s, e) => await CopySelectedFilesAsync();
-                FileBrowser.FilePaste += async (s, e) => await PasteFilesAsync();
-                FileBrowser.FileDelete += async (s, e) => await DeleteSelectedFilesAsync();
-                FileBrowser.FileRefresh += (s, e) => RefreshActiveFileList();
-            }
 
             // 订阅 NavigationService 事件
             _navigationService.NavigateRequested += OnNavigationServiceNavigateRequested;
@@ -321,9 +305,15 @@ namespace YiboFile
             };
 
             // 订阅 FileListService 事件
-            // _fileListService.FilesLoaded += OnFileListServiceFilesLoaded; // 已改为直接在 LoadFilesAsync 中处理
             _fileListService.FolderSizeCalculated += OnFileListServiceFolderSizeCalculated;
             _fileListService.MetadataEnriched += OnFileListServiceMetadataEnriched;
+
+            // 订阅副文件列表服务事件
+            if (_secondFileListService != null)
+            {
+                _secondFileListService.FolderSizeCalculated += OnFileListServiceFolderSizeCalculated;
+                _secondFileListService.MetadataEnriched += OnFileListServiceMetadataEnriched;
+            }
 
 
             // 订阅 FileSystemWatcherService 事件
@@ -359,10 +349,10 @@ namespace YiboFile
                         FileBrowser.FilesItemsSource = null;
                         FileBrowser.AddressText = e.Library.Name + " (无位置)";
                     }
-                    ShowEmptyLibraryMessage(e.Library.Name);
-                    ClearPreviewAndInfo();
-                    ClearItemHighlights();
-                    ClearTabsInLibraryMode();
+                    // ShowEmptyLibraryMessage(e.Library.Name);
+                    // ClearPreviewAndInfo();
+                    // ClearItemHighlights();
+                    // ClearTabsInLibraryMode(); // 移除此调用，避免清空所有标签页
                 }
                 else
                 {
@@ -394,7 +384,7 @@ namespace YiboFile
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"无法打开文件: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    DialogService.Error($"无法打开文件: {ex.Message}", owner: this);
                 }
             };
 
@@ -421,20 +411,20 @@ namespace YiboFile
                 CreateTab(path, true);
             };
 
-            _navigationCoordinator.PathNavigateRequested += (path, forceNewTab) =>
+            _navigationCoordinator.PathNavigateRequested += (path, forceNewTab, activate) =>
             {
                 if (forceNewTab)
                 {
-                    CreateTab(path, true);
+                    CreateTab(path, true, activate);
                 }
                 else
                 {
                     NavigateToPath(path);
                 }
             };
-            _navigationCoordinator.LibraryNavigateRequested += (library, forceNewTab) =>
+            _navigationCoordinator.LibraryNavigateRequested += (library, forceNewTab, activate) =>
             {
-                OpenLibraryInTab(library, forceNewTab);
+                OpenLibraryInTab(library, forceNewTab, activate);
             };
             _navigationCoordinator.FileOpenRequested += (filePath) =>
             {
@@ -448,18 +438,12 @@ namespace YiboFile
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"无法打开文件: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    DialogService.Error($"无法打开文件: {ex.Message}", owner: this);
                 }
             };
             _navigationCoordinator.FavoritePathNotFound += (favorite) =>
             {
-                var result = MessageBox.Show(
-                    $"路径不存在: {favorite.Path}\n\n是否从收藏中移除？",
-                    "提示",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Question);
-
-                if (result == MessageBoxResult.Yes)
+                if (DialogService.Ask($"路径不存在: {favorite.Path}\n\n是否从收藏中移除？", "提示", this))
                 {
                     DatabaseManager.RemoveFavorite(favorite.Path);
                     LoadFavorites();
@@ -509,21 +493,21 @@ namespace YiboFile
                     };
                 }
 
-                // Initialize NavTagBtn visibility
-                // Check if Tag Service is available (Pro feature)
-                if (App.IsTagTrainAvailable)
-                {
-                    var navTagBtn = this.FindName("NavTagBtn") as Button;
-                    if (navTagBtn != null) navTagBtn.Visibility = Visibility.Visible;
-                }
-
                 // NavigationPanelControl.TagEditPanelTagClicked += TagEditPanel_TagClicked;
             }
 
             // 订阅 FileBrowser 事件
             if (FileBrowser != null)
             {
-                // 右键菜单文件操作事件
+                FileBrowser.InfoHeightChanged += FileBrowser_InfoHeightChanged;
+                FileBrowser.NavigationBack += NavigateBack_Click;
+                FileBrowser.NavigationForward += NavigateForward_Click;
+                FileBrowser.NavigationUp += NavigateUp_Click;
+                FileBrowser.ViewModeChanged += FileBrowser_ViewModeChanged;
+
+                // Toolbar & Context Menu operations
+                FileBrowser.FileNewFolder += (s, e) => _menuEventHandler?.NewFolder_Click(s, e);
+                FileBrowser.FileNewFile += (s, e) => _menuEventHandler?.NewFile_Click(s, e);
                 FileBrowser.FileCopy += (s, e) => _menuEventHandler?.Copy_Click(s, e);
                 FileBrowser.FileCut += (s, e) => _menuEventHandler?.Cut_Click(s, e);
                 FileBrowser.FilePaste += (s, e) => _menuEventHandler?.Paste_Click(s, e);
@@ -535,7 +519,7 @@ namespace YiboFile
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show($"删除操作失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        DialogService.Error($"删除操作失败: {ex.Message}", owner: this);
                     }
                 };
                 FileBrowser.FileRename += (s, e) => _menuEventHandler?.Rename_Click(s, e);

@@ -1,0 +1,157 @@
+<UserControl x:Class="YiboFile.Controls.NavigationRailControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:YiboFile.Controls"
+             mc:Ignorable="d" 
+             d:DesignHeight="600" d:DesignWidth="60"
+             Background="{DynamicResource PanelBackgroundBrush}"
+             BorderBrush="{DynamicResource BorderSubtleBrush}"
+             BorderThickness="0,0,1,0">
+
+    <UserControl.Resources>
+        <!-- Rail Button Style -->
+        <Style x:Key="RailButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="48"/>
+            <Setter Property="Width" Value="48"/>
+            <Setter Property="Margin" Value="0,4"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border"
+                                Background="{TemplateBinding Background}" 
+                                BorderBrush="Transparent" 
+                                BorderThickness="0"
+                                CornerRadius="8">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource ButtonHoverBackgroundBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                            </Trigger>
+                            <Trigger Property="Tag" Value="Active">
+                                <Setter Property="Background" Value="{DynamicResource AccountBackgroundBrush}"/> <!-- Slight tint -->
+                                <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/> <!-- Top: Navigation -->
+            <RowDefinition Height="*"/>    <!-- Middle: Tools (Spacer) -->
+            <RowDefinition Height="Auto"/> <!-- Bottom: Global -->
+        </Grid.RowDefinitions>
+
+        <!-- Top Section: Navigation Modes -->
+        <StackPanel Grid.Row="0" Margin="0,12,0,0">
+            <!-- Path Nav -->
+            <Button x:Name="NavPathBtn" Click="NavPathBtn_Click" 
+                    Style="{StaticResource RailButtonStyle}"
+                    ToolTip="文件路径">
+                <TextBlock Text="{DynamicResource Icon_Nav_Path}" FontFamily="{DynamicResource IconFontFamily}" FontSize="20"/>
+            </Button>
+            
+            <!-- Library Nav -->
+            <Button x:Name="NavLibraryBtn" Click="NavLibraryBtn_Click" 
+                    Style="{StaticResource RailButtonStyle}"
+                    ToolTip="库">
+                <TextBlock Text="{DynamicResource Icon_Nav_Library}" FontFamily="{DynamicResource IconFontFamily}" FontSize="20"/>
+            </Button>
+            
+            <!-- Tag Nav -->
+            <Button x:Name="NavTagBtn" Click="NavTagBtn_Click" 
+                    Style="{StaticResource RailButtonStyle}"
+                    ToolTip="标签">
+                <TextBlock Text="{DynamicResource Icon_Nav_Tag}" FontFamily="{DynamicResource IconFontFamily}" FontSize="20"/>
+            </Button>
+            
+            <Separator Height="1" Margin="12,8" Background="{DynamicResource BorderSubtleBrush}" Opacity="0.5"/>
+
+            <!-- Tools: Task Queue -->
+            <Button x:Name="TaskQueueBtn" Click="TaskQueueBtn_Click"
+                    Style="{StaticResource RailButtonStyle}"
+                    ToolTip="任务队列">
+                <Grid>
+                    <TextBlock Text="{DynamicResource Icon_Window_Tasks}" FontFamily="{DynamicResource IconFontFamily}" FontSize="18"/>
+                    <!-- Badge for active tasks (Optional, can impl later) -->
+                </Grid>
+            </Button>
+
+            <!-- Tools: Backup -->
+            <Button x:Name="BackupBtn" Click="BackupBtn_Click"
+                    Style="{StaticResource RailButtonStyle}"
+                    ToolTip="备份管理器">
+                 <TextBlock Text="🛡️" FontFamily="Segoe UI Emoji" FontSize="18"/> 
+                 <!-- Placeholder Icon until we have a proper resource -->
+            </Button>
+            
+            <!-- Tools: Clipboard -->
+            <Button x:Name="ClipboardBtn" Click="ClipboardBtn_Click"
+                    Style="{StaticResource RailButtonStyle}"
+                    ToolTip="剪贴板历史">
+                <TextBlock Text="📋" FontFamily="Segoe UI Emoji" FontSize="18"/>
+            </Button>
+        </StackPanel>
+
+        <!-- Bottom Section: Global Settings & Layout -->
+        <StackPanel Grid.Row="2" Margin="0,0,0,12">
+            <!-- Focus Mode -->
+            <Button x:Name="LayoutFocusBtn" Click="LayoutFocusBtn_Click"
+                    Style="{StaticResource RailButtonStyle}"
+                    ToolTip="专注模式 (Ctrl+Shift+F)">
+                <TextBlock Text="{DynamicResource Icon_Layout_Focus}" FontFamily="{DynamicResource IconFontFamily}" FontSize="18"/>
+            </Button>
+            
+            <!-- Work Mode -->
+            <Button x:Name="LayoutWorkBtn" Click="LayoutWorkBtn_Click"
+                    Style="{StaticResource RailButtonStyle}"
+                    ToolTip="工作模式 (Ctrl+Shift+W)">
+                <TextBlock Text="{DynamicResource Icon_Layout_Work}" FontFamily="{DynamicResource IconFontFamily}" FontSize="18"/>
+            </Button>
+
+            <!-- Full Mode -->
+            <Button x:Name="LayoutFullBtn" Click="LayoutFullBtn_Click"
+                    Style="{StaticResource RailButtonStyle}"
+                    ToolTip="完整模式 (Ctrl+Shift+A)">
+                <TextBlock Text="{DynamicResource Icon_Layout_Full}" FontFamily="{DynamicResource IconFontFamily}" FontSize="18"/>
+            </Button>
+
+            <Separator Height="1" Margin="12,4" Background="{DynamicResource BorderSubtleBrush}" Opacity="0.5"/>
+
+            <!-- Dual List Toggle -->
+            <Button x:Name="DualListToggleBtn" Click="DualListToggleBtn_Click"
+                    Style="{StaticResource RailButtonStyle}"
+                    ToolTip="双列表模式">
+                <TextBlock Text="||" FontWeight="Bold" FontSize="14"/>
+            </Button>
+
+            <Separator Height="1" Margin="12,4" Background="{DynamicResource BorderSubtleBrush}" Opacity="0.5"/>
+
+            <!-- Settings -->
+            <Button x:Name="SettingsBtn" Click="SettingsBtn_Click"
+                    Style="{StaticResource RailButtonStyle}"
+                    ToolTip="设置">
+                <TextBlock Text="{DynamicResource Icon_Window_Settings}" FontFamily="{DynamicResource IconFontFamily}" FontSize="20"/>
+            </Button>
+            
+            <!-- About -->
+            <Button x:Name="AboutBtn" Click="AboutBtn_Click"
+                    Style="{StaticResource RailButtonStyle}"
+                    ToolTip="关于">
+                <TextBlock Text="{DynamicResource Icon_Window_About}" FontFamily="{DynamicResource IconFontFamily}" FontSize="20"/>
+            </Button>
+        </StackPanel>
+    </Grid>
+</UserControl>

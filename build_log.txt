@@ -1,0 +1,7 @@
+f:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.xaml.cs(1044,6): error CS1513: 应输入 } [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_nzjpqepw_wpftmp.csproj]
+
+生成失败。
+    0 个警告
+    1 个错误
+
+已用时间 00:00:02.45

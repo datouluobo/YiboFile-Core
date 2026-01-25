@@ -76,6 +76,9 @@ namespace YiboFile.Services.Navigation
                 case "Library":
                     HandleLibraryMode(skipRefresh);
                     break;
+                case "Tag":
+                    HandleTagMode(skipRefresh);
+                    break;
 
             }
 
@@ -262,13 +265,30 @@ namespace YiboFile.Services.Navigation
         }
 
         /// <summary>
-        /// 处理标签模式切换（Phase 2将重新实现）
+        /// 处理标签模式切换
         /// </summary>
         /// <param name="skipRefresh">是否跳过刷新操作（启动时恢复状态使用）</param>
         private void HandleTagMode(bool skipRefresh = false)
         {
-            // 标签功能已移除，切换到路径模式
-            SwitchNavigationMode("Path", skipRefresh);
+            if (_uiHelper.FileBrowser != null)
+            {
+                _uiHelper.FileBrowser.TabsVisible = true;
+            }
+
+            // 切换到标签模式时，通知 UI 显示标签面板
+            if (!skipRefresh)
+            {
+                _uiHelper.Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    // NavigationService.SwitchNavigationMode("Tag") handles hiding/showing grids 
+                    // like NavPathContent/NavLibraryContent/NavTagContent usually.
+                    // But we ensure the side bar is in the right state.
+
+                    // If no path is active, we might want to stay on current path 
+                    // but show the tag cloud on the left.
+                    _uiHelper.RefreshTagList();
+                }), System.Windows.Threading.DispatcherPriority.Loaded);
+            }
         }
 
         #endregion

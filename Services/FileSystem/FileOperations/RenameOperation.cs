@@ -2,6 +2,7 @@ using System;
 using YiboFile.Models;
 using System.Collections.Generic;
 using System.IO;
+using YiboFile.Dialogs;
 using YiboFile;
 
 namespace YiboFile.Services.FileOperations
@@ -31,18 +32,11 @@ namespace YiboFile.Services.FileOperations
             if (item == null) return;
             if (!_context.CanPerformOperation("Rename")) return;
 
-            var dialog = new PathInputDialog
-            {
-                Title = "重命名",
-                PromptText = "请输入新名称：",
-                InputText = item.Name,
-                SelectFileNameOnly = true,
-                Owner = _ownerWindow
-            };
+            var newName = DialogService.ShowInput("请输入新名称：", item.Name, "重命名", selectFileNameOnly: true, owner: _ownerWindow);
 
-            if (dialog.ShowDialog() == true)
+            if (newName != null)
             {
-                var newName = dialog.InputText.Trim();
+                newName = newName.Trim();
                 Execute(item, newName);
             }
         }
@@ -63,7 +57,9 @@ namespace YiboFile.Services.FileOperations
             {
                 try
                 {
-                    await _fileOperationService.RenameAsync(item, newName); _context.RefreshAfterOperation();
+                    await _fileOperationService.RenameAsync(item, newName);
+                    _context.RefreshAfterOperation();
+                    YiboFile.Services.Core.NotificationService.ShowSuccess($"已重命名为: {newName}");
                 }
                 catch (Exception)
                 { }
@@ -76,6 +72,7 @@ namespace YiboFile.Services.FileOperations
                     if (item.IsDirectory) Directory.Move(item.Path, newPath);
                     else File.Move(item.Path, newPath);
                     _context.RefreshAfterOperation();
+                    YiboFile.Services.Core.NotificationService.ShowSuccess($"已重命名为: {newName}");
                 }
                 catch (Exception ex)
                 {

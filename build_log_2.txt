@@ -1,0 +1,10 @@
+f:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.xaml.cs(386,22): error CS0111: 类型“MainWindow”已定义了一个名为“OnRailNavigationModeChanged”的具有相同参数类型的成员 [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_o4zaptmu_wpftmp.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.xaml.cs(416,22): error CS0111: 类型“MainWindow”已定义了一个名为“OnRailLayoutToggleRequested”的具有相同参数类型的成员 [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_o4zaptmu_wpftmp.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.xaml.cs(432,22): error CS0111: 类型“MainWindow”已定义了一个名为“OnRailSettingsRequested”的具有相同参数类型的成员 [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_o4zaptmu_wpftmp.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.xaml.cs(437,22): error CS0111: 类型“MainWindow”已定义了一个名为“OnRailAboutRequested”的具有相同参数类型的成员 [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_o4zaptmu_wpftmp.csproj]
+
+生成失败。
+    0 个警告
+    4 个错误
+
+已用时间 00:00:03.01
