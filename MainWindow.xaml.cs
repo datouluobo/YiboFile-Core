@@ -44,6 +44,7 @@ using YiboFile.ViewModels;
 using YiboFile.ViewModels.Messaging;
 using YiboFile.ViewModels.Messaging.Messages;
 using YiboFile.ViewModels.Modules;
+using YiboFile.Services.Core.Error;
 
 namespace YiboFile
 {
@@ -113,6 +114,10 @@ namespace YiboFile
         private NavigationModule _navigationModule;
         private TabsModule _tabsModule;
         private FileListModule _fileListModule;
+        private LayoutModule _layoutModule;
+        private FileOperationModule _fileOperationModule;
+        private NotesModule _notesModule;
+        private TagsModule _tagsModule;
 
         /// <summary>
         /// 主窗口 ViewModel
@@ -316,10 +321,14 @@ namespace YiboFile
             _viewModel.RegisterModule(_navigationModule);
 
             // 创建并注册标签页模块
+            // 注入双列表支持所需的 Service 和 状态判断委托
             _tabsModule = new TabsModule(
                 _messageBus,
                 _tabService,
-                (path, activate) => CreateTab(path, activate),
+                _secondTabService,
+                () => this.IsDualListMode,
+                () => _isSecondPaneFocused,
+                (path, activate) => CreateTab(path, activate), // Keep callback for now just in case
                 tabId => { /* SwitchToTab logic */ });
             _viewModel.RegisterModule(_tabsModule);
 
@@ -342,6 +351,36 @@ namespace YiboFile
             // 关联模块到 ViewModel (方便直接访问)
             _viewModel.Navigation = _navigationModule;
             _viewModel.Tabs = _tabsModule;
+
+            // 创建并注册布局模块
+            _layoutModule = new LayoutModule(_messageBus);
+            _viewModel.Layout = _layoutModule;
+            _viewModel.RegisterModule(_layoutModule);
+
+            // 创建并注册文件操作模块
+            var undoService = App.ServiceProvider.GetService<UndoService>();
+            var errorService = App.ServiceProvider.GetService<ErrorService>();
+            _fileOperationModule = new FileOperationModule(_messageBus, _fileOperationService, undoService, errorService);
+            _viewModel.FileOperation = _fileOperationModule;
+            _viewModel.RegisterModule(_fileOperationModule);
+
+            // 创建并注册备注模块
+            var notesService = App.ServiceProvider.GetService<Services.Features.FileNotes.INotesService>();
+            if (notesService != null)
+            {
+                _notesModule = new NotesModule(_messageBus, notesService);
+                _viewModel.Notes = _notesModule;
+                _viewModel.RegisterModule(_notesModule);
+            }
+
+            // 创建并注册标签模块
+            var tagService = App.ServiceProvider.GetService<Services.Features.ITagService>();
+            if (tagService != null)
+            {
+                _tagsModule = new TagsModule(_messageBus, tagService);
+                _viewModel.Tags = _tagsModule;
+                _viewModel.RegisterModule(_tagsModule);
+            }
 
             // 初始化所有模块
             _viewModel.InitializeModules();

@@ -9,6 +9,8 @@ using YiboFile.Models;
 using YiboFile.Services.FileNotes;
 using YiboFile.Services.FileSystem;
 using YiboFile.Services.Core;
+using YiboFile.Services.Features;
+using YiboFile;
 
 namespace YiboFile.Services.FileList
 {
@@ -23,6 +25,7 @@ namespace YiboFile.Services.FileList
 
         private readonly Dispatcher _dispatcher;
         private readonly YiboFile.Services.Core.Error.ErrorService _errorService;
+        private readonly ITagService _tagService;
         private readonly FolderSizeCalculator _folderSizeCalculator;
         private readonly FileMetadataEnricher _metadataEnricher;
         private readonly FolderSizeCalculationService _folderSizeCalculationService;
@@ -87,10 +90,12 @@ namespace YiboFile.Services.FileList
         /// </summary>
         /// <param name="dispatcher">UI线程调度器，用于更新UI</param>
         /// <param name="errorService">统一错误处理服务</param>
-        public FileListService(Dispatcher dispatcher, YiboFile.Services.Core.Error.ErrorService errorService)
+        /// <param name="tagService">标签服务（可选）</param>
+        public FileListService(Dispatcher dispatcher, YiboFile.Services.Core.Error.ErrorService errorService, ITagService tagService = null)
         {
             _dispatcher = dispatcher ?? throw new ArgumentNullException(nameof(dispatcher));
             _errorService = errorService ?? throw new ArgumentNullException(nameof(errorService));
+            _tagService = tagService;
             _folderSizeCalculator = new FolderSizeCalculator();
             _metadataEnricher = new FileMetadataEnricher();
             _folderSizeCalculationService = new FolderSizeCalculationService();
@@ -289,6 +294,7 @@ namespace YiboFile.Services.FileList
             Func<List<int>, List<string>> orderTagNames = null,
             CancellationToken cancellationToken = default)
         {
+
             // 拦截搜索路径，防止 Directory.GetDirectories 抛出异常
             var protocolInfo = ProtocolManager.Parse(path);
             if (protocolInfo.Type == ProtocolType.Search ||
@@ -304,6 +310,23 @@ namespace YiboFile.Services.FileList
                 return await _archiveService.GetArchiveContentAsync(protocolInfo.TargetPath, protocolInfo.ExtraData);
             }
 
+            // Case 1.5: Path is "library://..." -> Virtual Path
+            if (protocolInfo.Type == ProtocolType.Library)
+            {
+                var libraryName = protocolInfo.TargetPath;
+                var allLibs = await Task.Run(() => DatabaseManager.GetAllLibraries(), cancellationToken);
+                var lib = allLibs.FirstOrDefault(l => l.Name.Equals(libraryName, StringComparison.OrdinalIgnoreCase));
+                if (lib != null && lib.Paths != null)
+                {
+                    return await LoadFileSystemItemsFromMultiplePathsAsync(
+                        lib.Paths,
+                        p => DatabaseManager.GetFolderSize(p),
+                        FormatFileSize,
+                        cancellationToken);
+                }
+                return new List<FileSystemItem>();
+            }
+
             // Case 2: Path is "tag://..." -> Virtual Path
             if (protocolInfo.Type == ProtocolType.Tag)
             {
@@ -315,35 +338,74 @@ namespace YiboFile.Services.FileList
                     List<string> filePaths;
 
                     // Primary: Query by tag name
-                    filePaths = await Task.Run(() => DatabaseManager.GetFilesByTagName(tagName), cancellationToken);
-
-                    // Fallback: If no results and it looks like an ID, try by ID for backward compatibility
-                    if ((filePaths == null || filePaths.Count == 0) && int.TryParse(tagName, out int tagId))
+                    if (_tagService != null)
                     {
-                        filePaths = await Task.Run(() => DatabaseManager.GetFilesByTagId(tagId), cancellationToken);
+                        var filesEnumerable = await _tagService.GetFilesByTagNameAsync(tagName);
+                        filePaths = filesEnumerable.ToList();
+
+                        // Fallback: If no results and it looks like an ID, try by ID for backward compatibility
+                        if ((filePaths == null || filePaths.Count == 0) && int.TryParse(tagName, out int tagId))
+                        {
+                            var filesById = await _tagService.GetFilesByTagAsync(tagId);
+                            filePaths = filesById.ToList();
+                        }
+                    }
+                    else
+                    {
+                        // Fallback to static manager if service not available
+                        filePaths = await Task.Run(() => DatabaseManager.GetFilesByTagName(tagName), cancellationToken);
+                        if ((filePaths == null || filePaths.Count == 0) && int.TryParse(tagName, out int tagId))
+                        {
+                            filePaths = await Task.Run(() => DatabaseManager.GetFilesByTagId(tagId), cancellationToken);
+                        }
                     }
                     foreach (var filePath in filePaths)
                     {
                         if (cancellationToken.IsCancellationRequested) break;
-                        if (!File.Exists(filePath)) continue; // Skip if file no longer exists
+
+                        bool itemIsFile = File.Exists(filePath);
+                        bool itemIsDir = !itemIsFile && Directory.Exists(filePath);
+
+                        if (!itemIsFile && !itemIsDir) continue;
 
                         try
                         {
-                            var fileInfo = new System.IO.FileInfo(filePath);
-                            files.Add(new FileSystemItem
+                            if (itemIsFile)
                             {
-                                Name = GetDisplayFileName(filePath, ShowFullFileName),
-                                Path = fileInfo.FullName,
-                                Type = !string.IsNullOrEmpty(fileInfo.Extension) ? fileInfo.Extension : "文件",
-                                Size = FormatFileSize(fileInfo.Length),
-                                ModifiedDate = fileInfo.LastWriteTime.ToString("yyyy-MM-dd"),
-                                CreatedTime = FileSystemItem.FormatTimeAgo(fileInfo.CreationTime),
-                                IsDirectory = false,
-                                SourcePath = path,
-                                SizeBytes = fileInfo.Length,
-                                ModifiedDateTime = fileInfo.LastWriteTime,
-                                CreatedDateTime = fileInfo.CreationTime
-                            });
+                                var fileInfo = new System.IO.FileInfo(filePath);
+                                files.Add(new FileSystemItem
+                                {
+                                    Name = GetDisplayFileName(filePath, ShowFullFileName),
+                                    Path = fileInfo.FullName,
+                                    Type = !string.IsNullOrEmpty(fileInfo.Extension) ? fileInfo.Extension : "文件",
+                                    Size = FormatFileSize(fileInfo.Length),
+                                    ModifiedDate = fileInfo.LastWriteTime.ToString("yyyy-MM-dd"),
+                                    CreatedTime = FileSystemItem.FormatTimeAgo(fileInfo.CreationTime),
+                                    IsDirectory = false,
+                                    SourcePath = path,
+                                    SizeBytes = fileInfo.Length,
+                                    ModifiedDateTime = fileInfo.LastWriteTime,
+                                    CreatedDateTime = fileInfo.CreationTime
+                                });
+                            }
+                            else if (itemIsDir)
+                            {
+                                var dirInfo = new System.IO.DirectoryInfo(filePath);
+                                files.Add(new FileSystemItem
+                                {
+                                    Name = dirInfo.Name,
+                                    Path = dirInfo.FullName,
+                                    Type = "文件夹",
+                                    Size = "-",
+                                    ModifiedDate = dirInfo.LastWriteTime.ToString("yyyy-MM-dd"),
+                                    CreatedTime = FileSystemItem.FormatTimeAgo(dirInfo.CreationTime),
+                                    IsDirectory = true,
+                                    SourcePath = path,
+                                    SizeBytes = 0,
+                                    ModifiedDateTime = dirInfo.LastWriteTime,
+                                    CreatedDateTime = dirInfo.CreationTime
+                                });
+                            }
                         }
                         catch { }
                     }

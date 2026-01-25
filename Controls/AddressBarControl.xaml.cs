@@ -230,6 +230,12 @@ namespace YiboFile.Controls
                 specialContent = protocolInfo.TargetPath;
                 isSpecial = true;
             }
+            else if (protocolInfo.Type == ProtocolType.Tag)
+            {
+                identifier = "tag ";
+                specialContent = protocolInfo.TargetPath;
+                isSpecial = true;
+            }
 
             // 添加标签 Run (Standard Handling)
             var prefixRunStandard = new System.Windows.Documents.Run(identifier)

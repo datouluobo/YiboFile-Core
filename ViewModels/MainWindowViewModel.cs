@@ -50,6 +50,10 @@ namespace YiboFile.ViewModels
 
         public Modules.NavigationModule Navigation { get; set; }
         public Modules.TabsModule Tabs { get; set; }
+        public Modules.LayoutModule Layout { get; set; }
+        public Modules.FileOperationModule FileOperation { get; set; }
+        public Modules.NotesModule Notes { get; set; }
+        public Modules.TagsModule Tags { get; set; }
         public FileListViewModel FileList { get; set; }
 
         #endregion

@@ -192,58 +192,12 @@ namespace YiboFile
             bool isVirtualPath = ProtocolManager.IsVirtual(path);
             if (!isVirtualPath && !Directory.Exists(path)) return;
 
-            // 双列表模式：如果焦点在副列表，则在副列表导航
-            if (_isDualListMode && _isSecondPaneFocused && _secondTabService != null)
-            {
-                var secondActiveTab = _secondTabService.ActiveTab;
-                // 规则1：同类型标签页直接更新
-                if (secondActiveTab != null && secondActiveTab.Type == Services.Tabs.TabType.Path)
-                {
-                    secondActiveTab.Path = path;
-                    _secondTabService.UpdateTabTitle(secondActiveTab, path);
-                    SecondFileBrowser_PathChanged(this, path);
-                    return;
-                }
-
-                // 规则2：查找最近访问的相同Path标签页
-                var secondRecentTab = _secondTabService.FindRecentTab(t => t.Type == Services.Tabs.TabType.Path && string.Equals(t.Path, path, StringComparison.OrdinalIgnoreCase), TimeSpan.FromSeconds(10));
-                if (secondRecentTab != null)
-                {
-                    _secondTabService.SwitchToTab(secondRecentTab);
-                }
-                else
-                {
-                    // CreateTab(path) is better because it checks for focus again, which is redundant but safe.
-                    // But to be explicit and consistent with logic above:
-                    _secondTabService.CreatePathTab(path);
-                }
-                return;
-            }
-
-            var activeTab = _tabService.ActiveTab;
-            // 规则1：同类型标签页直接更新
-            if (activeTab != null && activeTab.Type == Services.Tabs.TabType.Path)
-            {
-                // 先更新标题，确保标签页显示同步
-                _tabService?.UpdateActiveTabPath(path);
-                activeTab.Path = path;
-                NavigateToPathInternal(path);
-                return;
-            }
-
-            // 规则2：查找最近访问的相同Path标签页（使用配置时间窗口）
-            var recentTab = _tabService.FindRecentTab(t => t.Type == Services.Tabs.TabType.Path && string.Equals(t.Path, path, StringComparison.OrdinalIgnoreCase), TimeSpan.FromSeconds(10));
-
-            if (recentTab != null)
-            {
-                // 找到了最近访问的标签页，切换到它
-                _tabService.SwitchToTab(recentTab);
-            }
-            else
-            {
-                // 没有找到或不够新鲜，创建新标签页
-                CreateTab(path);
-            }
+            // MVVM 迁移: 将标签页选择/创建逻辑委托给 TabsModule
+            _viewModel?.Tabs?.NavigateTo(
+                path,
+                onReuseCurrent: () => NavigateToPathInternal(path),
+                onReuseSecond: () => SecondFileBrowser_PathChanged(this, path)
+            );
         }
 
         private void NavigateToPathInternal(string path)

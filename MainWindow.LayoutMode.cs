@@ -12,6 +12,7 @@ using YiboFile.Controls;
 using YiboFile.Services.Tabs;
 using YiboFile.Services.FileOperations;
 using YiboFile.Services.Core;
+using YiboFile.ViewModels.Messaging.Messages;
 
 namespace YiboFile
 {
@@ -37,15 +38,19 @@ namespace YiboFile
         #endregion
 
         #region 布局模式切换
-
-        /// <summary>
-        /// 切换布局模式（供 KeyboardEventHandler 调用）
-        /// </summary>
         internal void SwitchLayoutModeByIndex(int modeIndex)
         {
-            if (modeIndex >= 0 && modeIndex <= 2)
+            string mode = modeIndex switch
             {
-                SwitchLayoutMode((LayoutMode)modeIndex);
+                0 => "Focus",
+                1 => "Work",
+                2 => "Full",
+                _ => null
+            };
+
+            if (mode != null)
+            {
+                _layoutModule?.SwitchLayoutMode(mode);
             }
         }
 
@@ -163,17 +168,17 @@ namespace YiboFile
 
         private void LayoutFocus_Click(object sender, RoutedEventArgs e)
         {
-            SwitchLayoutMode(LayoutMode.Focus);
+            _layoutModule?.SwitchLayoutMode("Focus");
         }
 
         private void LayoutWork_Click(object sender, RoutedEventArgs e)
         {
-            SwitchLayoutMode(LayoutMode.Work);
+            _layoutModule?.SwitchLayoutMode("Work");
         }
 
         private void LayoutFull_Click(object sender, RoutedEventArgs e)
         {
-            SwitchLayoutMode(LayoutMode.Full);
+            _layoutModule?.SwitchLayoutMode("Full");
         }
 
         #endregion
@@ -191,7 +196,7 @@ namespace YiboFile
         /// </summary>
         private void DualListToggle_Click(object sender, RoutedEventArgs e)
         {
-            ToggleDualListMode();
+            _layoutModule?.ToggleDualListMode();
         }
 
         /// <summary>
@@ -338,18 +343,8 @@ namespace YiboFile
         {
             if (!_isDualListMode) return;
 
-            _isSecondPaneFocused = !_isSecondPaneFocused;
-            UpdateFocusBorders();
-
-            // 将焦点设置到对应的文件列表
-            if (_isSecondPaneFocused)
-            {
-                SecondFileBrowser.FilesList?.Focus();
-            }
-            else
-            {
-                FileBrowser.FilesList?.Focus();
-            }
+            // 调用模块进行状态切换，模块会发布消息触发 UI 更新 (UpdateFocusBorders)
+            _layoutModule?.SwitchFocusedPane();
         }
 
         /// <summary>
@@ -492,22 +487,20 @@ namespace YiboFile
             {
                 if (!_isSecondPaneFocused)
                 {
-                    _isSecondPaneFocused = true;
-                    UpdateFocusBorders();
+                    _layoutModule?.SetFocusedPane(true);
                 }
             };
             FileBrowser.PreviewMouseDown += (s, e) =>
             {
                 if (_isSecondPaneFocused)
                 {
-                    _isSecondPaneFocused = false;
-                    UpdateFocusBorders();
+                    _layoutModule?.SetFocusedPane(false);
                 }
             };
 
             // 保留原有 GotFocus 以防键盘导航触发
-            SecondFileBrowser.GotFocus += (s, e) => { if (!_isSecondPaneFocused) { _isSecondPaneFocused = true; UpdateFocusBorders(); } };
-            FileBrowser.GotFocus += (s, e) => { if (_isSecondPaneFocused) { _isSecondPaneFocused = false; UpdateFocusBorders(); } };
+            SecondFileBrowser.GotFocus += (s, e) => { if (!_isSecondPaneFocused) { _layoutModule?.SetFocusedPane(true); } };
+            FileBrowser.GotFocus += (s, e) => { if (_isSecondPaneFocused) { _layoutModule?.SetFocusedPane(false); } };
 
             // 绑定文件操作事件 (右键菜单支持)
             // Copy/Paste/Refresh handled below with Toolbar support
@@ -939,6 +932,54 @@ namespace YiboFile
             // 初始恢复配置
             RestoreLayoutMode();
             RestoreDualListMode();
+
+            // 同步初始状态到模块
+            _layoutModule?.InitializeState(_currentLayoutMode.ToString(), _isDualListMode, _isSecondPaneFocused);
+
+            // 订阅 MVVM 消息，实现桥接
+            _messageBus?.Subscribe<LayoutModeChangedMessage>(m =>
+            {
+                if (Enum.TryParse<LayoutMode>(m.Mode, out var mode))
+                {
+                    SwitchLayoutMode(mode);
+                }
+            });
+
+            _messageBus?.Subscribe<DualListModeChangedMessage>(m =>
+            {
+                if (_isDualListMode != m.IsEnabled)
+                {
+                    ToggleDualListMode();
+                }
+            });
+
+            _messageBus?.Subscribe<FocusedPaneChangedMessage>(m =>
+            {
+                // 同步本地状态并更新 UI
+                if (_isSecondPaneFocused != m.IsSecondPaneFocused)
+                {
+                    _isSecondPaneFocused = m.IsSecondPaneFocused;
+                    UpdateFocusBorders();
+
+                    // 将焦点设置到对应的文件列表
+                    if (_isSecondPaneFocused)
+                    {
+                        SecondFileBrowser?.FilesList?.Focus();
+                    }
+                    else
+                    {
+                        FileBrowser?.FilesList?.Focus();
+                    }
+                }
+            });
+        }
+
+        /// <summary>
+        /// 供 KeyboardEventHandler 调用的快捷切换桥接
+        /// </summary>
+        internal void SwitchFocusedPaneFromKeyboard()
+        {
+            _layoutModule?.SwitchFocusedPane();
         }
 
         #endregion

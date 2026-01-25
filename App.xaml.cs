@@ -80,7 +80,8 @@ namespace YiboFile
             services.AddTransient<FileListService>(provider =>
                 new FileListService(
                     Application.Current.Dispatcher,
-                    provider.GetRequiredService<YiboFile.Services.Core.Error.ErrorService>()));
+                    provider.GetRequiredService<YiboFile.Services.Core.Error.ErrorService>(),
+                    provider.GetRequiredService<ITagService>()));
 
             // LibraryService 也需要 Dispatcher
             services.AddSingleton<LibraryService>(provider =>
@@ -116,6 +117,7 @@ namespace YiboFile
             // services.AddTransient<MainWindow>();
 
             // 注册标签服务 (Core Implementation)
+            services.AddSingleton<Services.Data.Repositories.ITagsRepository, Services.Data.Repositories.SqliteTagsRepository>();
             services.AddSingleton<ITagService, TagService>();
 
             // UI Logic Services
@@ -128,6 +130,10 @@ namespace YiboFile
             // MVVM Messaging Infrastructure (Mediator Pattern)
             services.AddSingleton<ViewModels.Messaging.IMessageBus>(provider =>
                 new ViewModels.Messaging.MessageBus(provider.GetRequiredService<System.Windows.Threading.Dispatcher>()));
+
+            // 备注模块 - 现代化架构示范
+            services.AddSingleton<Services.Data.Repositories.INotesRepository, Services.Data.Repositories.SqliteNotesRepository>();
+            services.AddSingleton<Services.Features.FileNotes.INotesService, Services.Features.FileNotes.NotesService>();
         }
 
 

@@ -26,15 +26,8 @@ namespace YiboFile
             // Determine activation behavior (default to Config if null, or true if Config unavailable)
             bool shouldActivate = activate ?? _configService?.Config?.ActivateNewTabOnMiddleClick ?? true;
 
-            // 在双列表模式下，根据焦点判断在哪个列表创建标签
-            if (_isDualListMode && _isSecondPaneFocused && _secondTabService != null)
-            {
-                _secondTabService.CreatePathTab(path, forceNewTab, shouldActivate);
-            }
-            else
-            {
-                _tabService?.CreatePathTab(path, forceNewTab, shouldActivate);
-            }
+            // Delegate to MVVM Module
+            _viewModel?.Tabs?.CreateTab(path, forceNewTab, shouldActivate);
         }
 
         /// <summary>
@@ -45,14 +38,8 @@ namespace YiboFile
             // Determine activation behavior (default to Config if null, or true if Config unavailable)
             bool shouldActivate = activate ?? _configService?.Config?.ActivateNewTabOnMiddleClick ?? true;
 
-            if (_isDualListMode && _isSecondPaneFocused && _secondTabService != null)
-            {
-                _secondTabService.OpenLibraryTab(library, forceNewTab, shouldActivate);
-            }
-            else
-            {
-                _tabService?.OpenLibraryTab(library, forceNewTab, shouldActivate);
-            }
+            // Delegate to MVVM Module
+            _viewModel?.Tabs?.OpenLibraryInTab(library, forceNewTab, shouldActivate);
         }
 
 
@@ -62,7 +49,8 @@ namespace YiboFile
         /// </summary>
         internal void SwitchToTab(PathTab tab)
         {
-            _tabService?.SwitchToTab(tab);
+            // Delegate to MVVM Module
+            _viewModel?.Tabs?.SwitchToTab(tab);
         }
 
         private async void CheckAndRefreshSearchTab(string searchTabPath)

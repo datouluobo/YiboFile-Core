@@ -184,17 +184,9 @@
                                 </StackPanel.Resources>
 
                                 <!-- Buttons initialized with default directions -->
-                                <Button x:Name="PART_CollapsePreviousButton" Content="Left">
-                                    <Button.ToolTip>
-                                        <ToolTip x:Name="TipPrev" Content="折叠左/上侧面板"/>
-                                    </Button.ToolTip>
-                                </Button>
+                                <Button x:Name="PART_CollapsePreviousButton" Content="Left" ToolTip="折叠左/上侧面板"/>
                                 
-                                <Button x:Name="PART_CollapseNextButton" Content="Right">
-                                    <Button.ToolTip>
-                                        <ToolTip x:Name="TipNext" Content="折叠右/下侧面板"/>
-                                    </Button.ToolTip>
-                                </Button>
+                                <Button x:Name="PART_CollapseNextButton" Content="Right" ToolTip="折叠右/下侧面板"/>
                             </StackPanel>
                         </Grid>
                     </Border>
@@ -298,7 +290,7 @@
                                 <Condition Property="IsPreviousCollapsed" Value="True"/>
                             </MultiTrigger.Conditions>
                             <Setter TargetName="PART_CollapsePreviousButton" Property="Content" Value="Right"/>
-                            <Setter TargetName="TipPrev" Property="Content" Value="展开左/上侧面板"/>
+                            <Setter TargetName="PART_CollapsePreviousButton" Property="ToolTip" Value="展开左/上侧面板"/>
                         </MultiTrigger>
 
                         <!-- Vertical: Next Collapsed => Show Left Arrow to Expand -->
@@ -308,7 +300,7 @@
                                 <Condition Property="IsNextCollapsed" Value="True"/>
                             </MultiTrigger.Conditions>
                             <Setter TargetName="PART_CollapseNextButton" Property="Content" Value="Left"/>
-                            <Setter TargetName="TipNext" Property="Content" Value="展开右/下侧面板"/>
+                            <Setter TargetName="PART_CollapseNextButton" Property="ToolTip" Value="展开右/下侧面板"/>
                         </MultiTrigger>
 
                         <!-- Horizontal: Previous Collapsed => Show Down Arrow to Expand -->
@@ -318,7 +310,7 @@
                                 <Condition Property="IsPreviousCollapsed" Value="True"/>
                             </MultiTrigger.Conditions>
                             <Setter TargetName="PART_CollapsePreviousButton" Property="Content" Value="Down"/>
-                            <Setter TargetName="TipPrev" Property="Content" Value="展开上/左侧面板"/>
+                            <Setter TargetName="PART_CollapsePreviousButton" Property="ToolTip" Value="展开上/左侧面板"/>
                         </MultiTrigger>
 
                         <!-- Horizontal: Next Collapsed => Show Up Arrow to Expand -->
@@ -328,7 +320,7 @@
                                 <Condition Property="IsNextCollapsed" Value="True"/>
                             </MultiTrigger.Conditions>
                             <Setter TargetName="PART_CollapseNextButton" Property="Content" Value="Up"/>
-                            <Setter TargetName="TipNext" Property="Content" Value="展开下/右侧面板"/>
+                            <Setter TargetName="PART_CollapseNextButton" Property="ToolTip" Value="展开下/右侧面板"/>
                         </MultiTrigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

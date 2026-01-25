@@ -447,8 +447,8 @@ namespace YiboFile
                 () => Undo_Click(null, null),
                 () => Redo_Click(null, null),
                 SwitchLayoutModeByIndex,  // 添加布局切换回调
-                () => IsDualListMode,     // isDualListMode 检查
-                () => SwitchFocusedPane() // switchDualPaneFocus 回调
+                () => _layoutModule?.IsDualListMode ?? false, // isDualListMode 检查
+                () => _layoutModule?.SwitchFocusedPane() // switchDualPaneFocus 回调
             );
 
             // 初始化 MouseEventHandler

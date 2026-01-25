@@ -15,6 +15,7 @@ using YiboFile.Services.ColumnManagement;
 using YiboFile.Services.FileList;
 using YiboFile.Models;
 using Microsoft.Extensions.DependencyInjection;
+using YiboFile.Services.Core;
 
 namespace YiboFile.ViewModels
 {
@@ -127,7 +128,12 @@ namespace YiboFile.ViewModels
                 var cancellationToken = _loadCancellationTokenSource.Token;
 
                 _currentPath = path;
-                if (string.IsNullOrEmpty(path) || !Directory.Exists(path))
+
+                // Check for virtual protocols to bypass Directory.Exists check
+                var protocol = ProtocolManager.Parse(path);
+                bool isVirtual = protocol.Type != ProtocolType.Local;
+
+                if (string.IsNullOrEmpty(path) || (!isVirtual && !Directory.Exists(path)))
                 {
                     await _dispatcher.InvokeAsync(() =>
                     {
@@ -268,7 +274,14 @@ namespace YiboFile.ViewModels
                 _fileWatcher = null;
             }
 
-            if (string.IsNullOrEmpty(path) || !Directory.Exists(path))
+            if (string.IsNullOrEmpty(path)) return;
+
+            // Only watch local directories
+            var protocol = ProtocolManager.Parse(path);
+            if (protocol.Type != ProtocolType.Local)
+                return;
+
+            if (!Directory.Exists(path))
                 return;
 
             try
