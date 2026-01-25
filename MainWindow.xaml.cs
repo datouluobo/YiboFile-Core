@@ -40,6 +40,10 @@ using System.Text;
 
 using YiboFile.Models.UI;
 using YiboFile.Models;
+using YiboFile.ViewModels;
+using YiboFile.ViewModels.Messaging;
+using YiboFile.ViewModels.Messaging.Messages;
+using YiboFile.ViewModels.Modules;
 
 namespace YiboFile
 {
@@ -103,8 +107,17 @@ namespace YiboFile
         // 统一文件操作服务 (新架构)
         internal Services.FileOperations.FileOperationService _fileOperationService;
 
+        // MVVM 架构
+        private MainWindowViewModel _viewModel;
+        private IMessageBus _messageBus;
+        private NavigationModule _navigationModule;
+        private TabsModule _tabsModule;
+        private FileListModule _fileListModule;
 
-
+        /// <summary>
+        /// 主窗口 ViewModel
+        /// </summary>
+        public MainWindowViewModel ViewModel => _viewModel;
 
         // 定时器管理
         // 定时器管理
@@ -278,6 +291,63 @@ namespace YiboFile
                 _tagService.TagUpdated += OnTagUpdated;
             }
             // LoadTagsToSidebar(); // Phase 2 - 标签 UI 控件已移至 Pro 模块
+
+            // 初始化 MVVM 架构
+            InitializeMvvmModules();
+        }
+
+        /// <summary>
+        /// 初始化 MVVM 模块
+        /// </summary>
+        private void InitializeMvvmModules()
+        {
+            // 获取消息总线
+            _messageBus = App.ServiceProvider?.GetService<IMessageBus>() ?? MessageBus.Instance;
+
+            // 创建 ViewModel
+            _viewModel = new MainWindowViewModel(_messageBus);
+            this.DataContext = _viewModel;
+
+            // 创建并注册导航模块
+            _navigationModule = new NavigationModule(
+                _messageBus,
+                _navigationService,
+                path => NavigateToPathFromModule(path));
+            _viewModel.RegisterModule(_navigationModule);
+
+            // 创建并注册标签页模块
+            _tabsModule = new TabsModule(
+                _messageBus,
+                _tabService,
+                (path, activate) => CreateTab(path, activate),
+                tabId => { /* SwitchToTab logic */ });
+            _viewModel.RegisterModule(_tabsModule);
+
+            // 创建并注册文件列表模块
+            _fileListModule = new FileListModule(
+                _messageBus,
+                () => RefreshFileList(),
+                () => ClearFilter());
+            _viewModel.RegisterModule(_fileListModule);
+
+            // 初始化所有模块
+            _viewModel.InitializeModules();
+
+            System.Diagnostics.Debug.WriteLine("[MainWindow] MVVM modules initialized");
+        }
+
+        /// <summary>
+        /// 从模块导航到路径（桥接方法）
+        /// </summary>
+        private void NavigateToPathFromModule(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return;
+
+            _currentPath = path;
+            _tabService?.UpdateActiveTabPath(path);
+            ClearFilter();
+            LoadCurrentDirectory();
+            UpdateNavigationButtonsState();
         }
 
         private void OnTagUpdated(int tagId, string newColor)

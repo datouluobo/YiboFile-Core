@@ -25,7 +25,6 @@
 *   **评价**：这是典型的“为了拆分而拆分”。虽然文件分开了，但逻辑内存中依然共享同一个 `this` 上下文，变量和状态随意互相修改，导致模块间隐式耦合极高。
 *   **建议**：
     *   **引入 MVVM**: 必须开始将逻辑剥离到 ViewModels (`MainViewModel`, `FileListViewModel` 等)。
-    *   **拆分 Controller**: 如果不想完全重构为 MVVM，至少应将 `MainWindow` 的部分逻辑提取为独立的 `Controller` 类（如 `TabController`）。
 
 #### ⚠️ 混合职责 (Mixed Concerns)
 在 `FileBrowserControl.xaml.cs` 中，发现了直接调用 `DatabaseManager` 的代码。

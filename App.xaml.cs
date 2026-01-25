@@ -124,6 +124,10 @@ namespace YiboFile
 
             // Register Dispatcher
             services.AddSingleton(System.Windows.Application.Current.Dispatcher);
+
+            // MVVM Messaging Infrastructure (Mediator Pattern)
+            services.AddSingleton<ViewModels.Messaging.IMessageBus>(provider =>
+                new ViewModels.Messaging.MessageBus(provider.GetRequiredService<System.Windows.Threading.Dispatcher>()));
         }
 
 
