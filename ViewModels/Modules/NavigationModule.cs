@@ -1,5 +1,6 @@
 using System;
 using YiboFile.Services.Navigation;
+using YiboFile.Services.Core;
 using YiboFile.ViewModels.Messaging;
 using YiboFile.ViewModels.Messaging.Messages;
 
@@ -100,6 +101,34 @@ namespace YiboFile.ViewModels.Modules
                 Publish(new PathChangedMessage(parentPath, oldPath));
                 _onNavigateCallback?.Invoke(parentPath);
             }
+        }
+
+        #endregion
+
+        #region 辅助方法
+
+        /// <summary>
+        /// 解析路径（处理归档文件重定向等）
+        /// </summary>
+        public string ResolvePath(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return path;
+
+            // 识别虚拟路径
+            bool isVirtualPath = ProtocolManager.IsVirtual(path);
+
+            // [Archive Support] Check if path is an archive file
+            if (!isVirtualPath && !System.IO.Directory.Exists(path) && System.IO.File.Exists(path))
+            {
+                var ext = System.IO.Path.GetExtension(path).ToLowerInvariant();
+                if (ext == ".zip" || ext == ".7z" || ext == ".rar" || ext == ".tar" || ext == ".gz")
+                {
+                    // Redirect to archive schema
+                    return $"zip://{path}|";
+                }
+            }
+
+            return path;
         }
 
         #endregion

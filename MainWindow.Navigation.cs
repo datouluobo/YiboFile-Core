@@ -110,199 +110,35 @@ namespace YiboFile
         /// </summary>
         private async Task LoadCurrentDirectoryAsync()
         {
+            if (_viewModel?.FileList == null) return;
+
             try
             {
-                // 识别虚拟路径 (宽松检测)
-                bool isVirtualPath = false;
-                if (!string.IsNullOrEmpty(_currentPath))
-                {
-                    isVirtualPath = ProtocolManager.IsVirtual(_currentPath);
-                }
-
+                // 更新 UI 状态
                 if (FileBrowser != null)
                 {
                     FileBrowser.AddressText = _currentPath;
                     FileBrowser.IsAddressReadOnly = false;
                     FileBrowser.UpdateBreadcrumb(_currentPath);
-                    // 隐藏搜索状态
                     FileBrowser.SetSearchStatus(false);
                 }
 
-                // 检查目录是否存在（跳过虚拟路径）
-                // 彻底移除 DirectoryNotFoundException 抛出，改为内联提示
-                if (!isVirtualPath && !string.IsNullOrEmpty(_currentPath))
-                {
-                    if (!Directory.Exists(_currentPath))
-                    {
-                        // 路径不存在：显示空状态，不弹窗
-                        _currentFiles.Clear();
-                        if (FileBrowser != null)
-                            FileBrowser.FilesItemsSource = null;
-
-                        ShowEmptyStateMessage($"路径不存在：\n{_currentPath}");
-                        return; // 中止后续加载
-                    }
-                }
-
-                // 使用 FileListService 异步加载文件
-                // 对于虚拟路径，LoadFilesAsync 可能会返回空或由 Search 逻辑单独处理
-                if (!isVirtualPath)
-                {
-                    await LoadFilesAsync();
-
-                    // 设置文件系统监控
-                    _fileSystemWatcherService.SetupFileWatcher(_currentPath);
-                }
-                else
-                {
-                    // Handle Virtual Paths (like Archives)
-                    var protocol = ProtocolManager.Parse(_currentPath);
-                    if (protocol.Type == ProtocolType.Archive)
-                    {
-                        var items = await _archiveService.GetArchiveContentAsync(protocol.TargetPath, protocol.ExtraData);
-
-                        // Update UI on background priority
-                        await Dispatcher.BeginInvoke(new Action(() =>
-                       {
-                           try
-                           {
-                               _currentFiles.Clear();
-                               _currentFiles.AddRange(items);
-
-                               if (FileBrowser != null)
-                               {
-                                   FileBrowser.FilesItemsSource = _currentFiles;
-                                   // Trigger updates if necessary
-                                   _selectionEventHandler?.HandleNoSelection();
-
-                                   // Archives are read-only-ish, hide search status
-                                   FileBrowser.SetSearchStatus(false);
-                               }
-                           }
-                           catch (Exception) { }
-                       }), System.Windows.Threading.DispatcherPriority.Background);
-                    }
-                    else if (protocol.Type == ProtocolType.Tag)
-                    {
-                        // Handle Tag Protocol - TargetPath is TAG NAME (e.g., "111" from "tag://111")
-                        var tagName = protocol.TargetPath;
-                        if (!string.IsNullOrEmpty(tagName))
-                        {
-                            var files = await Task.Run(() => DatabaseManager.GetFilesByTagName(tagName));
-
-                            // Update UI on background priority
-                            await Dispatcher.BeginInvoke(new Action(() =>
-                            {
-                                try
-                                {
-                                    _currentFiles.Clear();
-
-                                    foreach (var file in files)
-                                    {
-                                        if (File.Exists(file))
-                                        {
-                                            var fileInfo = new FileInfo(file);
-                                            _currentFiles.Add(new FileSystemItem
-                                            {
-                                                Path = file,
-                                                Name = System.IO.Path.GetFileName(file),
-                                                IsDirectory = false,
-                                                ModifiedDateTime = fileInfo.LastWriteTime,
-                                                ModifiedDate = fileInfo.LastWriteTime.ToString("yyyy-MM-dd"),
-                                                CreatedDateTime = fileInfo.CreationTime,
-                                                CreatedTime = FileSystemItem.FormatTimeAgo(fileInfo.CreationTime),
-                                                SizeBytes = fileInfo.Length,
-                                                Size = _fileListService.FormatFileSize(fileInfo.Length),
-                                                Type = !string.IsNullOrEmpty(fileInfo.Extension) ? fileInfo.Extension : "文件"
-                                            });
-                                        }
-                                        else if (Directory.Exists(file))
-                                        {
-                                            var dirInfo = new DirectoryInfo(file);
-                                            _currentFiles.Add(new FileSystemItem
-                                            {
-                                                Path = file,
-                                                Name = System.IO.Path.GetFileName(file),
-                                                IsDirectory = true,
-                                                ModifiedDateTime = dirInfo.LastWriteTime,
-                                                ModifiedDate = dirInfo.LastWriteTime.ToString("yyyy-MM-dd"),
-                                                CreatedDateTime = dirInfo.CreationTime,
-                                                CreatedTime = FileSystemItem.FormatTimeAgo(dirInfo.CreationTime),
-                                                Type = "文件夹"
-                                            });
-                                        }
-                                    }
-
-                                    if (FileBrowser != null)
-                                    {
-                                        FileBrowser.FilesItemsSource = _currentFiles;
-                                        _selectionEventHandler?.HandleNoSelection();
-                                        FileBrowser.SetSearchStatus(false);
-                                    }
-                                }
-                                catch (Exception) { }
-                            }), System.Windows.Threading.DispatcherPriority.Background);
-
-                            // Trigger metadata enrichment to populate Tags and Notes
-                            _ = Task.Run(async () =>
-                            {
-                                try
-                                {
-                                    using var cts = new CancellationTokenSource();
-                                    await _fileListService.EnrichMetadataAsync(_currentFiles, null, cts.Token);
-                                }
-                                catch { }
-                            });
-                        }
-                    }
-                }
-
-                // 高亮匹配当前路径的列表项
+                // 高亮匹配项
                 HighlightMatchingItems(_currentPath);
 
-                // 隐藏空状态提示
-                HideEmptyStateMessage();
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                // 友好的错误消息
-                string errorMessage = $"无法访问路径: {_currentPath}\n";
-                if (ex.Message.Contains("Access to the path") && ex.Message.Contains("is denied"))
-                {
-                    errorMessage += "访问被拒绝。请检查文件夹权限。";
-                }
-                else
-                {
-                    errorMessage += ex.Message;
-                }
-                // 不弹窗，只显示空状态
-                // MessageBox.Show(errorMessage, "权限错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                // MVVM 迁移: 委托给 FileListViewModel 加载
+                await _viewModel.FileList.LoadPathAsync(_currentPath);
 
-                // 清空文件列表
-                _currentFiles.Clear();
-                if (FileBrowser != null)
-                    FileBrowser.FilesItemsSource = null;
-                ShowEmptyStateMessage($"无法访问此路径：\n{_currentPath}\n(访问被拒绝)");
-            }
-            catch (DirectoryNotFoundException)
-            {
-                // MessageBox.Show($"路径不存在: {_currentPath}\n\n{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
-                System.Diagnostics.Debug.WriteLine($"[LoadCurrentDirectoryAsync] 路径不存在: {_currentPath}");
-                // 清空文件列表
-                _currentFiles.Clear();
-                if (FileBrowser != null)
-                    FileBrowser.FilesItemsSource = null;
-                ShowEmptyStateMessage($"路径不存在：\n{_currentPath}");
+                // 更新空状态无需显示
+                HideEmptyStateMessage();
+
+                // 触发选择状态更新
+                _selectionEventHandler?.HandleNoSelection();
             }
             catch (Exception ex)
             {
-                // MessageBox.Show($"无法加载目录: {_currentPath}\n\n{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                System.Diagnostics.Debug.WriteLine($"[LoadCurrentDirectoryAsync] 无法加载目录: {_currentPath} Error: {ex.Message}");
-                // 清空文件列表
-                _currentFiles.Clear();
-                if (FileBrowser != null)
-                    FileBrowser.FilesItemsSource = null;
-                ShowEmptyStateMessage($"加载失败：\n{ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[LoadCurrentDirectoryAsync] Error: {ex.Message}");
+                // ShowEmptyStateMessage($"加载失败：\n{ex.Message}");
             }
         }
 
@@ -347,25 +183,13 @@ namespace YiboFile
 
         internal void NavigateToPath(string path)
         {
-            // 识别虚拟路径
-            bool isVirtualPath = false;
-            if (!string.IsNullOrEmpty(path))
+            // MVVM 迁移: 使用 NavigationModule 解析路径
+            if (_viewModel?.Navigation != null)
             {
-                isVirtualPath = ProtocolManager.IsVirtual(path);
+                path = _viewModel.Navigation.ResolvePath(path);
             }
 
-            // [Archive Support] Check if path is an archive file
-            if (!isVirtualPath && !Directory.Exists(path) && File.Exists(path))
-            {
-                var ext = System.IO.Path.GetExtension(path).ToLowerInvariant();
-                if (ext == ".zip" || ext == ".7z" || ext == ".rar" || ext == ".tar" || ext == ".gz")
-                {
-                    // Redirect to archive schema
-                    NavigateToPath($"zip://{path}|");
-                    return;
-                }
-            }
-
+            bool isVirtualPath = ProtocolManager.IsVirtual(path);
             if (!isVirtualPath && !Directory.Exists(path)) return;
 
             // 双列表模式：如果焦点在副列表，则在副列表导航
@@ -450,11 +274,11 @@ namespace YiboFile
             }
 
             // 如果进入的是文件夹，计算并更新其大小缓存（驱动器根目录跳过，避免耗时）
-            // 虚拟也不计算
-            if (!isVirtualPath && !isDriveRoot)
-            {
-                Task.Run(() => _folderSizeCalculationService.CalculateAndUpdateFolderSizeAsync(path));
-            }
+            // MVVM 迁移: FileListViewModel 现已处理文件夹大小计算，此处移除重复调用
+            // if (!isVirtualPath && !isDriveRoot)
+            // {
+            //     Task.Run(() => _folderSizeCalculationService.CalculateAndUpdateFolderSizeAsync(path));
+            // }
 
             LoadCurrentDirectory();
 

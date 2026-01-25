@@ -48,6 +48,10 @@ namespace YiboFile.ViewModels
             set => SetProperty(ref _isLoading, value);
         }
 
+        public Modules.NavigationModule Navigation { get; set; }
+        public Modules.TabsModule Tabs { get; set; }
+        public FileListViewModel FileList { get; set; }
+
         #endregion
 
         public MainWindowViewModel(IMessageBus messageBus)

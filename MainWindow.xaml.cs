@@ -330,6 +330,19 @@ namespace YiboFile
                 () => ClearFilter());
             _viewModel.RegisterModule(_fileListModule);
 
+            // 初始化 FileListViewModel (用于数据绑定和加载)
+            // 注意：FileBrowser 是 MainWindow 中的控件名称
+            var fileListVM = new FileListViewModel(
+                FileBrowser,
+                this,
+                () => RefreshFileList(),
+                _columnService);
+            _viewModel.FileList = fileListVM;
+
+            // 关联模块到 ViewModel (方便直接访问)
+            _viewModel.Navigation = _navigationModule;
+            _viewModel.Tabs = _tabsModule;
+
             // 初始化所有模块
             _viewModel.InitializeModules();
 

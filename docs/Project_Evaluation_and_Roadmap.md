@@ -96,7 +96,8 @@
 
 | 优先级 | 任务 | 工作量 | 状态 |
 |--------|------|--------|------|
-| **P1** | 迁移 `MainWindow.Navigation.cs` → `NavigationModule` | 2-3天 | 待开始 |
+| **P1** | 迁移 `MainWindow.Navigation.cs` (Loading Logic) | 1天 | ✅ 已完成 |
+| **P1** | 迁移 `MainWindow.Navigation.cs` (Tab Selection) | 1-2天 | 🟡 进行中 |
 | **P1** | 迁移 `MainWindow.Tabs.cs` → `TabsModule` | 2-3天 | 待开始 |
 | **P2** | 拆分 `DocumentPreview.cs` | 1天 | 待开始 |
 | **P2** | 拆分 `TabService.cs` | 1-2天 | 待开始 |
