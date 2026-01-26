@@ -52,7 +52,7 @@ namespace YiboFile
             else
             {
                 // 让用户选择库
-                var libraries = DatabaseManager.GetAllLibraries();
+                var libraries = _libraryService.LoadLibraries();
                 if (libraries.Count == 0)
                 {
                     MessageBox.Show("当前没有可用的库，请先创建一个库", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -166,10 +166,10 @@ namespace YiboFile
                     string pathToAdd = item.IsDirectory ? item.Path : System.IO.Path.GetDirectoryName(item.Path);
 
                     // 检查路径是否已存在
-                    var existingPaths = DatabaseManager.GetLibraryPaths(targetLibrary.Id);
+                    var existingPaths = _libraryService.GetLibraryPaths(targetLibrary.Id);
                     if (!existingPaths.Any(p => p.Path.Equals(pathToAdd, StringComparison.OrdinalIgnoreCase)))
                     {
-                        DatabaseManager.AddLibraryPath(targetLibrary.Id, pathToAdd);
+                        _libraryService.AddLibraryPath(targetLibrary.Id, pathToAdd);
                         successCount++;
                     }
                     else

@@ -16,13 +16,8 @@
         </Grid.RowDefinitions>
         
         <Grid Name="NavContentGrid" Grid.Row="0">
-            <!-- 路径导航内容 -->
-            <!-- 路径导航内容 -->
             <!-- 路径面板 -->
             <Grid Name="NavPathContent" Margin="8">
-                <!-- 基础层：路径平铺列表 -->
-                <!-- 基础层：路径平铺列表 -->
-                
                 <!-- 基础层：路径可滚动内容 -->
                 <Grid Margin="0,8,0,0">
                 <Grid.Resources>
@@ -432,8 +427,40 @@
                             WindowChrome.IsHitTestVisibleInChrome="True"/>
                 </Grid>
                 
-                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                    <ListBox Name="LibrariesListBox" 
+                <Grid Grid.Row="1">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Button Grid.Row="0" Name="LibraryOverviewBtn" 
+                            Click="LibraryOverviewBtn_Click"
+                            Margin="2,2,2,4"
+                            Height="32" 
+                            HorizontalContentAlignment="Left"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Padding="8,0"
+                            ToolTip="查看所有库卡片">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource FramelessNavButtonStyle}">
+                                <Setter Property="FontSize" Value="13"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CurrentPath, RelativeSource={RelativeSource AncestorType={x:Type local:NavigationPanelControl}}}" Value="lib://">
+                                        <Setter Property="Background" Value="{DynamicResource AccentSubtleBrush}"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="📚" Margin="0,0,8,0" VerticalAlignment="Center" FontSize="16"/>
+                            <TextBlock Text="库概览" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <ListBox Name="LibrariesListBox" 
                              Margin="2"
                              BorderThickness="0"
                              Background="Transparent"
@@ -453,6 +480,7 @@
                         </ListBox.ContextMenu>
                     </ListBox>
                 </ScrollViewer>
+            </Grid>
             </Grid>
 
             <!-- 标签导航内容 -->

@@ -46,7 +46,8 @@ namespace YiboFile.ViewModels
                 }
             }
 
-            var groups = DatabaseManager.GetAllFavoriteGroups();
+            var favoriteRepo = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<YiboFile.Services.Data.Repositories.IFavoriteRepository>(App.ServiceProvider);
+            var groups = favoriteRepo.GetAllGroups();
             foreach (var group in groups)
             {
                 string key = $"FavoriteGroup_{group.Id}";
@@ -67,7 +68,8 @@ namespace YiboFile.ViewModels
             {
                 if (int.TryParse(key.Substring("FavoriteGroup_".Length), out int groupId))
                 {
-                    var group = DatabaseManager.GetAllFavoriteGroups().FirstOrDefault(g => g.Id == groupId);
+                    var favoriteRepo = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<YiboFile.Services.Data.Repositories.IFavoriteRepository>(App.ServiceProvider);
+                    var group = favoriteRepo.GetAllGroups().FirstOrDefault(g => g.Id == groupId);
                     if (group != null) return group.Name;
                 }
                 return "收藏项";

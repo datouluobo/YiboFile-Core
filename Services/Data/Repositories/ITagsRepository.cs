@@ -66,5 +66,8 @@ namespace YiboFile.Services.Data.Repositories
 
         List<string> GetFilesByTagName(string tagName);
         Task<List<string>> GetFilesByTagNameAsync(string tagName);
+
+        string GetTagColorByName(string tagName);
+        Task<string> GetTagColorByNameAsync(string tagName);
     }
 }

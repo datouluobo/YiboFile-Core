@@ -445,7 +445,7 @@ namespace YiboFile
             {
                 if (DialogService.Ask($"路径不存在: {favorite.Path}\n\n是否从收藏中移除？", "提示", this))
                 {
-                    DatabaseManager.RemoveFavorite(favorite.Path);
+                    _favoriteService.RemoveFavorite(favorite.Path);
                     LoadFavorites();
                 }
             };
@@ -470,6 +470,7 @@ namespace YiboFile
                 NavigationPanelControl.LibrariesListBoxSelectionChanged += LibrariesListBox_SelectionChanged;
                 NavigationPanelControl.LibrariesListBoxContextMenuOpening += LibrariesListBox_ContextMenuOpening;
                 NavigationPanelControl.LibraryManageClick += ManageLibraries_Click;
+                NavigationPanelControl.LibraryOverviewClick += LibraryOverviewBtn_Click;
 
                 NavigationPanelControl.PathManageClick += (s, e) =>
                 {
@@ -478,11 +479,6 @@ namespace YiboFile
                     window.ShowDialog();
                 };
 
-                // NavigationPanelControl.LibraryRefreshClick
-
-                // Tag panel event subscriptions combined - Phase 2 restored
-                // NavigationPanelControl.TagClickModeClick += TagClickModeBtn_Click;
-                // NavigationPanelControl.TagCategoryManageClick += TagCategoryManageBtn_Click;
                 if (NavigationPanelControl.TagBrowsePanelControl != null)
                 {
                     NavigationPanelControl.TagBrowsePanelControl.TagClicked += OnTagSelected;
@@ -492,8 +488,6 @@ namespace YiboFile
                         NavigateBack_Click(null, null);
                     };
                 }
-
-                // NavigationPanelControl.TagEditPanelTagClicked += TagEditPanel_TagClicked;
             }
 
             // 订阅 FileBrowser 事件

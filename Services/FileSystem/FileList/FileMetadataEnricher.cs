@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using System.Windows.Threading;
 using YiboFile.Models;
 using YiboFile.Services.FileNotes;
+using YiboFile.Services.Features;
+using YiboFile.Services.Navigation;
 
 namespace YiboFile.Services.FileList
 {
@@ -14,6 +16,13 @@ namespace YiboFile.Services.FileList
     /// </summary>
     public class FileMetadataEnricher
     {
+        private readonly ITagService _tagService;
+
+        public FileMetadataEnricher(ITagService tagService = null)
+        {
+            _tagService = tagService ?? App.ServiceProvider?.GetService(typeof(ITagService)) as ITagService;
+        }
+
         /// <summary>
         /// 异步为文件填充标签与备注。
         /// </summary>
@@ -146,7 +155,9 @@ namespace YiboFile.Services.FileList
         {
             try
             {
-                var dbTags = DatabaseManager.GetFileTags(path);
+                if (_tagService == null) return string.Empty;
+
+                var dbTags = _tagService.GetFileTags(path)?.ToList();
                 if (dbTags == null || dbTags.Count == 0)
                 {
                     item.TagList = new List<TagViewModel>();

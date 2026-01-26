@@ -29,6 +29,7 @@ namespace YiboFile.Services.Features
         int AddTagGroup(string name, string color = null);
         void RenameTagGroup(int groupId, string newName);
         void DeleteTagGroup(int groupId);
+        string GetTagColorByName(string tagName);
 
         event Action<int, string> TagUpdated;
 
@@ -51,6 +52,7 @@ namespace YiboFile.Services.Features
         Task<int> AddTagGroupAsync(string name, string color = null);
         Task RenameTagGroupAsync(int groupId, string newName);
         Task DeleteTagGroupAsync(int groupId);
+        Task<string> GetTagColorByNameAsync(string tagName);
     }
 
     public interface ITagGroup

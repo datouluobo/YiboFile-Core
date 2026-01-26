@@ -97,7 +97,7 @@ namespace YiboFile.Services.FileList
             _errorService = errorService ?? throw new ArgumentNullException(nameof(errorService));
             _tagService = tagService;
             _folderSizeCalculator = new FolderSizeCalculator();
-            _metadataEnricher = new FileMetadataEnricher();
+            _metadataEnricher = new FileMetadataEnricher(_tagService);
             _folderSizeCalculationService = new FolderSizeCalculationService();
         }
 
@@ -314,7 +314,24 @@ namespace YiboFile.Services.FileList
             if (protocolInfo.Type == ProtocolType.Library)
             {
                 var libraryName = protocolInfo.TargetPath;
-                var allLibs = await Task.Run(() => DatabaseManager.GetAllLibraries(), cancellationToken);
+                var libRepo = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<YiboFile.Services.Data.Repositories.ILibraryRepository>(App.ServiceProvider);
+                var allLibs = await Task.Run(() => libRepo.GetAllLibraries(), cancellationToken);
+
+                if (string.IsNullOrEmpty(libraryName))
+                {
+                    // Return all libraries as items
+                    var libItems = allLibs.Select(l => new FileSystemItem
+                    {
+                        Name = l.Name,
+                        Path = $"lib://{l.Name}",
+                        Type = "Lib", // Special type for Library items
+                        IsDirectory = true,
+                        ModifiedDate = "" // Libraries don't have a single modified date easily
+                    }).ToList();
+
+                    return libItems;
+                }
+
                 var lib = allLibs.FirstOrDefault(l => l.Name.Equals(libraryName, StringComparison.OrdinalIgnoreCase));
                 if (lib != null && lib.Paths != null)
                 {
@@ -352,12 +369,7 @@ namespace YiboFile.Services.FileList
                     }
                     else
                     {
-                        // Fallback to static manager if service not available
-                        filePaths = await Task.Run(() => DatabaseManager.GetFilesByTagName(tagName), cancellationToken);
-                        if ((filePaths == null || filePaths.Count == 0) && int.TryParse(tagName, out int tagId))
-                        {
-                            filePaths = await Task.Run(() => DatabaseManager.GetFilesByTagId(tagId), cancellationToken);
-                        }
+                        filePaths = new List<string>();
                     }
                     foreach (var filePath in filePaths)
                     {

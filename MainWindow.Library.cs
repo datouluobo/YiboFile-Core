@@ -80,7 +80,7 @@ namespace YiboFile
                 if (current is ListBoxItem item && item.DataContext is Library library)
                 {
                     e.Handled = true;
-                    var updatedLibrary = DatabaseManager.GetLibrary(library.Id);
+                    var updatedLibrary = _libraryService.GetLibrary(library.Id);
                     if (updatedLibrary != null)
                     {
                         _navigationCoordinator.HandleLibraryNavigation(updatedLibrary, clickType);
@@ -99,7 +99,7 @@ namespace YiboFile
             if (LibrariesListBox.SelectedItem is Library selectedLibrary)
             {
                 // 重新从数据库加载库信息，确保路径信息是最新的
-                var updatedLibrary = DatabaseManager.GetLibrary(selectedLibrary.Id);
+                var updatedLibrary = _libraryService.GetLibrary(selectedLibrary.Id);
                 if (updatedLibrary != null)
                 {
                     // 使用统一导航协调器处理库导航（左键点击）
@@ -141,6 +141,24 @@ namespace YiboFile
                 // 清除所有库的高亮
                 _navigationService.ClearItemHighlights();
             }
+        }
+
+        /// <summary>
+        /// 点击库概览按钮，进入 lib:// 概览视图
+        /// </summary>
+        private void LibraryOverviewBtn_Click(object sender, RoutedEventArgs e)
+        {
+            _currentLibrary = null;
+            if (LibrariesListBox != null)
+                LibrariesListBox.SelectedItem = null;
+
+            // 切换到缩略图模式以便显示库卡片
+            if (FileBrowser != null && FileBrowser.GetFileListControl() != null)
+            {
+                FileBrowser.GetFileListControl().SetViewMode("Thumbnail");
+            }
+
+            _navigationCoordinator.HandlePathNavigation("lib://", NavigationCoordinator.NavigationSource.Library, NavigationCoordinator.ClickType.LeftClick);
         }
 
         /// <summary>

@@ -184,7 +184,8 @@ namespace YiboFile.ViewModels
 
                     if (scanPaths == null || !scanPaths.Any())
                     {
-                        var libraries = YiboFile.DatabaseManager.GetAllLibraries();
+                        var libRepo = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<YiboFile.Services.Data.Repositories.ILibraryRepository>(App.ServiceProvider);
+                        var libraries = libRepo.GetAllLibraries();
                         scanPaths = libraries?.SelectMany(l => l.Paths ?? Enumerable.Empty<string>()) ?? Enumerable.Empty<string>();
                     }
 

@@ -192,6 +192,14 @@ namespace YiboFile.Handlers
                 {
                     if (item.Content is FileSystemItem selectedItem)
                     {
+                        // Special Handling for Library Cards
+                        if (selectedItem.Type == "Lib")
+                        {
+                            _navigateToPath(selectedItem.Path);
+                            e.Handled = true;
+                            return;
+                        }
+
                         if (selectedItem.IsDirectory)
                         {
                             if (_isLibraryMode())

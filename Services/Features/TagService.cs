@@ -60,6 +60,7 @@ namespace YiboFile.Services.Features
         public int AddTagGroup(string name, string color = null) => _repository.AddTagGroup(name, color);
         public void RenameTagGroup(int groupId, string newName) => _repository.RenameTagGroup(groupId, newName);
         public void DeleteTagGroup(int groupId) => _repository.DeleteTagGroup(groupId);
+        public string GetTagColorByName(string tagName) => _repository.GetTagColorByName(tagName);
 
         #endregion
 
@@ -89,6 +90,7 @@ namespace YiboFile.Services.Features
         public async Task<int> AddTagGroupAsync(string name, string color = null) => await _repository.AddTagGroupAsync(name, color);
         public async Task RenameTagGroupAsync(int groupId, string newName) => await _repository.RenameTagGroupAsync(groupId, newName);
         public async Task DeleteTagGroupAsync(int groupId) => await _repository.DeleteTagGroupAsync(groupId);
+        public async Task<string> GetTagColorByNameAsync(string tagName) => await _repository.GetTagColorByNameAsync(tagName);
 
         #endregion
     }

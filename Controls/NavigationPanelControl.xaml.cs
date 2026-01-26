@@ -14,6 +14,16 @@ namespace YiboFile.Controls
     /// </summary>
     public partial class NavigationPanelControl : UserControl
     {
+        // Dependency Properties
+        public static readonly DependencyProperty CurrentPathProperty =
+            DependencyProperty.Register("CurrentPath", typeof(string), typeof(NavigationPanelControl), new PropertyMetadata(null));
+
+        public string CurrentPath
+        {
+            get => (string)GetValue(CurrentPathProperty);
+            set => SetValue(CurrentPathProperty, value);
+        }
+
         // 事件定义
         public event MouseButtonEventHandler DrivesListBoxPreviewMouseDown;
         public event SelectionChangedEventHandler DrivesListBoxSelectionChanged;
@@ -39,6 +49,12 @@ namespace YiboFile.Controls
         public event RoutedEventHandler LibraryContextMenuClick;
 
         public event RoutedEventHandler DrivesTreeViewItemClick;
+        public event RoutedEventHandler LibraryOverviewClick;
+
+        private void LibraryOverviewBtn_Click(object sender, RoutedEventArgs e)
+        {
+            LibraryOverviewClick?.Invoke(this, e);
+        }
 
         public NavigationPanelControl()
         {

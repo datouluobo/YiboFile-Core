@@ -6,6 +6,7 @@ using System.Windows.Controls;
 using YiboFile.Services.Tabs;
 using YiboFile.Services.Config;
 using YiboFile.Services.Navigation;
+using YiboFile.Services.Data.Repositories;
 
 
 namespace YiboFile.Services.Navigation
@@ -22,6 +23,7 @@ namespace YiboFile.Services.Navigation
         private readonly NavigationService _navigationService;
         private readonly TabService _tabService;
         private readonly ConfigService _configService;
+        private readonly ILibraryRepository _libraryRepository;
 
         #endregion
 
@@ -34,12 +36,14 @@ namespace YiboFile.Services.Navigation
             INavigationModeUIHelper uiHelper,
             NavigationService navigationService,
             TabService tabService,
-            ConfigService configService)
+            ConfigService configService,
+            ILibraryRepository libraryRepository = null)
         {
             _uiHelper = uiHelper ?? throw new ArgumentNullException(nameof(uiHelper));
             _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
             _tabService = tabService ?? throw new ArgumentNullException(nameof(tabService));
             _configService = configService ?? throw new ArgumentNullException(nameof(configService));
+            _libraryRepository = libraryRepository ?? App.ServiceProvider?.GetService(typeof(ILibraryRepository)) as ILibraryRepository;
         }
 
         #endregion
@@ -242,7 +246,7 @@ namespace YiboFile.Services.Navigation
                 {
                     if (_uiHelper.CurrentLibrary == null && _configService?.Config.LastLibraryId > 0)
                     {
-                        var lastLibrary = DatabaseManager.GetLibrary(_configService.Config.LastLibraryId);
+                        var lastLibrary = _libraryRepository?.GetLibrary(_configService.Config.LastLibraryId);
                         if (lastLibrary != null)
                         {
                             _uiHelper.CurrentLibrary = lastLibrary;
@@ -253,11 +257,23 @@ namespace YiboFile.Services.Navigation
                             // 确保文件列表被加载
                             _uiHelper.LoadLibraryFiles(lastLibrary);
                         }
+                        else
+                        {
+                            // If last library not found, go to lib:// root
+                            _uiHelper.CurrentPath = "lib://";
+                            _uiHelper.RefreshFileList();
+                        }
                     }
                     else if (_uiHelper.CurrentLibrary != null)
                     {
                         // 如果已有当前库，高亮它
                         _uiHelper.HighlightMatchingLibrary(_uiHelper.CurrentLibrary);
+                    }
+                    else
+                    {
+                        // No selection, show overview
+                        _uiHelper.CurrentPath = "lib://";
+                        _uiHelper.RefreshFileList();
                     }
                     _uiHelper.InitializeLibraryDragDrop();
                 }), System.Windows.Threading.DispatcherPriority.Loaded);

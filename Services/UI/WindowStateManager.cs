@@ -26,6 +26,7 @@ namespace YiboFile.Services
         private readonly AppConfig _config;
         private readonly NavigationService _navigationService;
         private readonly Navigation.NavigationModeService _navigationModeService;
+        private readonly Data.Repositories.ILibraryRepository _libraryRepository;
         private bool _isInitialized = false;
 
         #endregion
@@ -35,7 +36,7 @@ namespace YiboFile.Services
         /// <summary>
         /// 初始化窗口状态管理器
         /// </summary>
-        public WindowStateManager(IConfigUIHelper uiHelper, TabService tabService, ConfigService configService, AppConfig config, NavigationService navigationService = null, Navigation.NavigationModeService navigationModeService = null, TabService secondTabService = null)
+        public WindowStateManager(IConfigUIHelper uiHelper, TabService tabService, ConfigService configService, AppConfig config, NavigationService navigationService = null, Navigation.NavigationModeService navigationModeService = null, TabService secondTabService = null, Data.Repositories.ILibraryRepository libraryRepository = null)
         {
             _uiHelper = uiHelper ?? throw new ArgumentNullException(nameof(uiHelper));
             _tabService = tabService ?? throw new ArgumentNullException(nameof(tabService));
@@ -44,6 +45,7 @@ namespace YiboFile.Services
             _config = config ?? throw new ArgumentNullException(nameof(config));
             _navigationService = navigationService;
             _navigationModeService = navigationModeService;
+            _libraryRepository = libraryRepository ?? App.ServiceProvider?.GetService(typeof(Data.Repositories.ILibraryRepository)) as Data.Repositories.ILibraryRepository;
         }
 
         #endregion
@@ -747,7 +749,7 @@ namespace YiboFile.Services
                 var libraryIdStr = tabKey.Substring("library:".Length);
                 if (int.TryParse(libraryIdStr, out int libraryId))
                 {
-                    var library = DatabaseManager.GetLibrary(libraryId);
+                    var library = _libraryRepository?.GetLibrary(libraryId);
                     if (library != null)
                     {
                         service.OpenLibraryTab(library, false, activate: false); // 允许复用已存在的标签页

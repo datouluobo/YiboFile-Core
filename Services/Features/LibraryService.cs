@@ -46,14 +46,16 @@ namespace YiboFile.Services
         private readonly Dispatcher _dispatcher;
         private readonly SemaphoreSlim _loadFilesSemaphore = new SemaphoreSlim(1, 1);
         private readonly FileListService _fileListService;
+        private readonly YiboFile.Services.Data.Repositories.ILibraryRepository _repository;
 
         #endregion
 
         #region 构造函数
 
-        public LibraryService(Dispatcher dispatcher, YiboFile.Services.Core.Error.ErrorService errorService)
+        public LibraryService(Dispatcher dispatcher, YiboFile.Services.Core.Error.ErrorService errorService, YiboFile.Services.Data.Repositories.ILibraryRepository repository = null)
         {
             _dispatcher = dispatcher ?? Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
+            _repository = repository ?? App.ServiceProvider?.GetService(typeof(YiboFile.Services.Data.Repositories.ILibraryRepository)) as YiboFile.Services.Data.Repositories.ILibraryRepository;
             _fileListService = new FileListService(_dispatcher, errorService);
         }
 
@@ -68,7 +70,7 @@ namespace YiboFile.Services
         {
             try
             {
-                var libraries = DatabaseManager.GetAllLibraries();
+                var libraries = _repository.GetAllLibraries();
                 LibrariesLoaded?.Invoke(this, libraries);
                 return libraries;
             }
@@ -86,13 +88,13 @@ namespace YiboFile.Services
         {
             try
             {
-                var libraryId = DatabaseManager.AddLibrary(name);
+                var libraryId = _repository.AddLibrary(name);
                 if (libraryId > 0)
                 {
                     // 如果提供了初始路径，添加到库中
                     if (!string.IsNullOrWhiteSpace(initialPath))
                     {
-                        DatabaseManager.AddLibraryPath(libraryId, initialPath);
+                        _repository.AddLibraryPath(libraryId, initialPath);
                     }
 
                     // 触发库列表已加载事件
@@ -155,7 +157,7 @@ namespace YiboFile.Services
                     return false;
                 }
 
-                DatabaseManager.UpdateLibraryName(libraryId, newName);
+                _repository.UpdateLibraryName(libraryId, newName);
                 LoadLibraries();
                 return true;
             }
@@ -173,7 +175,7 @@ namespace YiboFile.Services
         {
             try
             {
-                DatabaseManager.DeleteLibrary(libraryId);
+                _repository.DeleteLibrary(libraryId);
                 LoadLibraries();
                 return true;
             }
@@ -189,7 +191,15 @@ namespace YiboFile.Services
         /// </summary>
         public Library GetLibrary(int libraryId)
         {
-            return DatabaseManager.GetLibrary(libraryId);
+            return _repository.GetLibrary(libraryId);
+        }
+
+        /// <summary>
+        /// 获取库路径列表
+        /// </summary>
+        public List<LibraryPath> GetLibraryPaths(int libraryId)
+        {
+            return _repository.GetLibraryPaths(libraryId);
         }
 
         /// <summary>
@@ -200,7 +210,7 @@ namespace YiboFile.Services
             try
             {
                 if (string.IsNullOrWhiteSpace(path)) return false;
-                DatabaseManager.AddLibraryPath(libraryId, path);
+                _repository.AddLibraryPath(libraryId, path);
                 LoadLibraries();
                 return true;
             }
@@ -219,7 +229,7 @@ namespace YiboFile.Services
             try
             {
                 if (string.IsNullOrWhiteSpace(path)) return false;
-                DatabaseManager.RemoveLibraryPath(libraryId, path);
+                _repository.RemoveLibraryPath(libraryId, path);
                 LoadLibraries();
                 return true;
             }
@@ -237,7 +247,7 @@ namespace YiboFile.Services
         {
             try
             {
-                var library = DatabaseManager.GetLibrary(libraryId);
+                var library = _repository.GetLibrary(libraryId);
                 if (library == null || library.Paths == null || library.Paths.Count == 0)
                 {
                     YiboFile.DialogService.Info("该库没有添加任何位置");
@@ -455,7 +465,7 @@ namespace YiboFile.Services
                         {
                             if (!string.IsNullOrWhiteSpace(path))
                             {
-                                DatabaseManager.AddLibraryPath(libId, path);
+                                _repository.AddLibraryPath(libId, path);
                             }
                         }
                     }

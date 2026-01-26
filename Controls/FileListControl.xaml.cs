@@ -219,7 +219,12 @@ namespace YiboFile.Controls
         private void ApplyWrapPanelView(string templateKey, bool loadThumbnails)
         {
             FilesListView.View = null;
-            FilesListView.ItemTemplate = (DataTemplate)FindResource(templateKey);
+            var selector = (FileListTemplateSelector)FindResource("FileListItemSelector");
+            selector.DefaultTemplate = (DataTemplate)FindResource(templateKey);
+
+            FilesListView.ItemTemplate = null;
+            FilesListView.ItemTemplateSelector = selector;
+
             FilesListView.ItemsPanel = (ItemsPanelTemplate)FindResource("WrapPanelTemplate");
             ScrollViewer.SetHorizontalScrollBarVisibility(FilesListView, ScrollBarVisibility.Disabled);
 
@@ -239,7 +244,12 @@ namespace YiboFile.Controls
         private void ApplyStackPanelView(string templateKey, bool loadThumbnails)
         {
             FilesListView.View = null;
-            FilesListView.ItemTemplate = (DataTemplate)FindResource(templateKey);
+            var selector = (FileListTemplateSelector)FindResource("FileListItemSelector");
+            selector.DefaultTemplate = (DataTemplate)FindResource(templateKey);
+
+            FilesListView.ItemTemplate = null;
+            FilesListView.ItemTemplateSelector = selector;
+
             FilesListView.ItemsPanel = (ItemsPanelTemplate)FindResource("StackPanelTemplate");
             ScrollViewer.SetHorizontalScrollBarVisibility(FilesListView, ScrollBarVisibility.Disabled);
 
@@ -259,6 +269,7 @@ namespace YiboFile.Controls
         private void ApplyListView()
         {
             FilesListView.ItemTemplate = null;
+            FilesListView.ItemTemplateSelector = null;
             FilesListView.ItemsPanel = (ItemsPanelTemplate)FindResource("StackPanelTemplate");
             if (FilesGridView != null) FilesListView.View = FilesGridView;
             ScrollViewer.SetHorizontalScrollBarVisibility(FilesListView, ScrollBarVisibility.Auto);

@@ -364,5 +364,26 @@ namespace YiboFile.Services.Data.Repositories
         }
 
         #endregion
+        public string GetTagColorByName(string tagName)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "SELECT Color FROM Tags WHERE Name = @name";
+            command.Parameters.AddWithValue("@name", tagName);
+            var result = command.ExecuteScalar();
+            return result != null && result != DBNull.Value ? result.ToString() : null;
+        }
+
+        public async Task<string> GetTagColorByNameAsync(string tagName)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync();
+            using var command = connection.CreateCommand();
+            command.CommandText = "SELECT Color FROM Tags WHERE Name = @name";
+            command.Parameters.AddWithValue("@name", tagName);
+            var result = await command.ExecuteScalarAsync();
+            return result != null && result != DBNull.Value ? result.ToString() : null;
+        }
     }
 }

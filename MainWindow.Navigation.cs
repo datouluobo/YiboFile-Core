@@ -72,9 +72,9 @@ namespace YiboFile
                 // 库模式：刷新库文件
                 LoadLibraryFiles(_currentLibrary);
             }
-            else if (!string.IsNullOrEmpty(_currentPath) && Directory.Exists(_currentPath))
+            else if (!string.IsNullOrEmpty(_currentPath) && (Directory.Exists(_currentPath) || ProtocolManager.IsVirtual(_currentPath)))
             {
-                // 路径模式：加载目录
+                // 路径模式或虚拟路径：加载目录
                 LoadCurrentDirectory();
             }
             else
@@ -84,7 +84,7 @@ namespace YiboFile
                 {
                     if (_configService?.Config.LastLibraryId > 0)
                     {
-                        var lastLibrary = DatabaseManager.GetLibrary(_configService.Config.LastLibraryId);
+                        var lastLibrary = _libraryService.GetLibrary(_configService.Config.LastLibraryId);
                         if (lastLibrary != null)
                         {
                             _currentLibrary = lastLibrary;
@@ -95,6 +95,10 @@ namespace YiboFile
                         }
                     }
 
+                    // 如果在库模式但没有选中库，且无法恢复上一次的库，则显示库概览视图
+                    _currentPath = "lib://";
+                    LoadCurrentDirectory();
+                    return;
                 }
 
                 // 其他模式：清空列表
@@ -125,6 +129,11 @@ namespace YiboFile
 
                 // 高亮匹配项
                 HighlightMatchingItems(_currentPath);
+
+                if (_currentPath == "lib://" && FileBrowser != null)
+                {
+                    FileBrowser.GetFileListControl()?.SetViewMode("Thumbnail");
+                }
 
                 // MVVM 迁移: 委托给 FileListViewModel 加载
                 await _viewModel.FileList.LoadPathAsync(_currentPath);
@@ -217,6 +226,7 @@ namespace YiboFile
             {
                 _navigationService.CurrentPath = path;
             }
+            if (NavigationPanelControl != null) NavigationPanelControl.CurrentPath = path;
 
             var isDriveRoot = false;
             if (!isVirtualPath)

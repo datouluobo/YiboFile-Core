@@ -22,6 +22,8 @@ namespace YiboFile.Services.FileInfo
 
         private readonly FileBrowserControl _fileBrowser;
         private readonly FileListService _fileListService;
+        private readonly YiboFile.Services.Navigation.NavigationCoordinator _navigationCoordinator;
+        private readonly YiboFile.Services.Features.ITagService _tagService;
 
         #endregion
 
@@ -33,14 +35,14 @@ namespace YiboFile.Services.FileInfo
         /// <param name="fileBrowser">文件浏览器控件</param>
         /// <param name="fileListService">文件列表服务</param>
         /// <param name="navigationCoordinator">导航协调器</param>
-        public FileInfoService(FileBrowserControl fileBrowser, FileListService fileListService, YiboFile.Services.Navigation.NavigationCoordinator navigationCoordinator)
+        /// <param name="tagService">标签服务</param>
+        public FileInfoService(FileBrowserControl fileBrowser, FileListService fileListService, YiboFile.Services.Navigation.NavigationCoordinator navigationCoordinator, YiboFile.Services.Features.ITagService tagService = null)
         {
             _fileBrowser = fileBrowser ?? throw new ArgumentNullException(nameof(fileBrowser));
             _fileListService = fileListService ?? throw new ArgumentNullException(nameof(fileListService));
             _navigationCoordinator = navigationCoordinator ?? throw new ArgumentNullException(nameof(navigationCoordinator));
+            _tagService = tagService ?? App.ServiceProvider?.GetService(typeof(YiboFile.Services.Features.ITagService)) as YiboFile.Services.Features.ITagService;
         }
-
-        private readonly YiboFile.Services.Navigation.NavigationCoordinator _navigationCoordinator;
 
         #endregion
 
@@ -370,8 +372,8 @@ namespace YiboFile.Services.FileInfo
                     var cleanTag = tag.Trim();
                     if (string.IsNullOrEmpty(cleanTag)) continue;
 
-                    var tagColor = null as string;
-                    try { tagColor = DatabaseManager.GetTagColorByName(cleanTag); } catch { }
+                    string tagColor = null;
+                    try { if (_tagService != null) tagColor = _tagService.GetTagColorByName(cleanTag); } catch { }
                     bool hasColor = !string.IsNullOrEmpty(tagColor);
 
                     var tagBorder = new Border
@@ -422,7 +424,7 @@ namespace YiboFile.Services.FileInfo
             string dbColor = null;
             try
             {
-                dbColor = DatabaseManager.GetTagColorByName(tag);
+                if (_tagService != null) dbColor = _tagService.GetTagColorByName(tag);
             }
             catch { }
 

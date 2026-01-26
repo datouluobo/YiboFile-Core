@@ -102,7 +102,7 @@ namespace YiboFile.Services.Tabs
                 var tab = new PathTab
                 {
                     Type = TabType.Library,
-                    Path = library.Name,
+                    Path = $"lib://{library.Name}",
                     Title = library.Name,
                     Library = library
                 };
@@ -126,7 +126,7 @@ namespace YiboFile.Services.Tabs
             if (currentMode == "Library" && _activeTab != null && _activeTab.Type == TabType.Library)
             {
                 _activeTab.Library = library;
-                _activeTab.Path = library.Name;
+                _activeTab.Path = $"lib://{library.Name}";
                 _activeTab.Title = library.Name;
                 if (_activeTab.TitleTextBlock != null) _activeTab.TitleTextBlock.Text = library.Name;
                 if (_activeTab.TabButton != null) _activeTab.TabButton.ToolTip = library.Name;
@@ -137,7 +137,7 @@ namespace YiboFile.Services.Tabs
             var newTab = new PathTab
             {
                 Type = TabType.Library,
-                Path = library.Name,
+                Path = $"lib://{library.Name}",
                 Title = library.Name,
                 Library = library
             };

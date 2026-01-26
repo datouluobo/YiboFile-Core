@@ -136,7 +136,8 @@ namespace YiboFile.Services.FullTextSearch
                     else
                     {
                         // 默认扫描所有库
-                        var libraries = YiboFile.DatabaseManager.GetAllLibraries();
+                        var libRepo = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<YiboFile.Services.Data.Repositories.ILibraryRepository>(App.ServiceProvider);
+                        var libraries = libRepo.GetAllLibraries();
                         scanPaths = libraries?.SelectMany(l => l.Paths ?? Enumerable.Empty<string>()) ?? Enumerable.Empty<string>();
                     }
 

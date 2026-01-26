@@ -24,10 +24,12 @@ namespace YiboFile.Controls.Settings
         }
 
         private List<LibraryUiModel> _libraries;
+        private readonly YiboFile.Services.Data.Repositories.ILibraryRepository _repository;
 
         public LibraryManagementPanel()
         {
             InitializeComponent();
+            _repository = App.ServiceProvider?.GetService(typeof(YiboFile.Services.Data.Repositories.ILibraryRepository)) as YiboFile.Services.Data.Repositories.ILibraryRepository;
             RefreshLibraries();
         }
 
@@ -35,13 +37,14 @@ namespace YiboFile.Controls.Settings
         {
             try
             {
-                var coreLibraries = DatabaseManager.GetAllLibraries();
+                if (_repository == null) return;
+                var coreLibraries = _repository.GetAllLibraries();
                 _libraries = new List<LibraryUiModel>();
 
                 foreach (var lib in coreLibraries)
                 {
                     // Fetch proper LibraryPath objects which include DisplayName
-                    var paths = DatabaseManager.GetLibraryPaths(lib.Id) ?? new List<LibraryPath>();
+                    var paths = _repository.GetLibraryPaths(lib.Id) ?? new List<LibraryPath>();
 
                     // Ensure DisplayName is populated for UI
                     foreach (var path in paths)
@@ -115,7 +118,7 @@ namespace YiboFile.Controls.Settings
 
             try
             {
-                var libraryId = DatabaseManager.AddLibrary(categoryName);
+                var libraryId = _repository.AddLibrary(categoryName);
                 if (libraryId > 0)
                 {
                     NewLibraryNameTextBox.Text = "";
@@ -151,7 +154,7 @@ namespace YiboFile.Controls.Settings
                     var newName = dialog.InputText.Trim();
                     try
                     {
-                        DatabaseManager.UpdateLibraryName(library.Id, newName);
+                        _repository.UpdateLibraryName(library.Id, newName);
                         RefreshLibraries();
                     }
                     catch (Exception ex)
@@ -174,7 +177,7 @@ namespace YiboFile.Controls.Settings
                 {
                     try
                     {
-                        DatabaseManager.DeleteLibrary(library.Id);
+                        _repository.DeleteLibrary(library.Id);
                         RefreshLibraries();
                     }
                     catch (Exception ex)
@@ -191,7 +194,7 @@ namespace YiboFile.Controls.Settings
             {
                 try
                 {
-                    DatabaseManager.MoveLibraryUp(library.Id);
+                    _repository.MoveLibraryUp(library.Id);
                     RefreshLibraries();
                 }
                 catch (Exception ex)
@@ -207,7 +210,7 @@ namespace YiboFile.Controls.Settings
             {
                 try
                 {
-                    DatabaseManager.MoveLibraryDown(library.Id);
+                    _repository.MoveLibraryDown(library.Id);
                     RefreshLibraries();
                 }
                 catch (Exception ex)
@@ -235,14 +238,14 @@ namespace YiboFile.Controls.Settings
                         try
                         {
                             // Check duplicates
-                            var existingPaths = DatabaseManager.GetLibraryPaths(library.Id);
+                            var existingPaths = _repository.GetLibraryPaths(library.Id);
                             if (existingPaths.Any(p => p.Path.Equals(path, StringComparison.OrdinalIgnoreCase)))
                             {
                                 ShowError("该路径已存在于库中");
                                 return;
                             }
 
-                            DatabaseManager.AddLibraryPath(library.Id, path);
+                            _repository.AddLibraryPath(library.Id, path);
                             RefreshLibraries();
                         }
                         catch (Exception ex)
@@ -267,7 +270,7 @@ namespace YiboFile.Controls.Settings
 
                     try
                     {
-                        DatabaseManager.UpdateLibraryPathDisplayName(path.LibraryId, path.Path, newName);
+                        _repository.UpdateLibraryPathDisplayName(path.LibraryId, path.Path, newName);
                         RefreshLibraries();
                     }
                     catch (Exception ex)
@@ -290,7 +293,7 @@ namespace YiboFile.Controls.Settings
                 {
                     try
                     {
-                        DatabaseManager.RemoveLibraryPath(path.LibraryId, path.Path);
+                        _repository.RemoveLibraryPath(path.LibraryId, path.Path);
                         RefreshLibraries();
                     }
                     catch (Exception ex)
@@ -315,7 +318,7 @@ namespace YiboFile.Controls.Settings
                 try
                 {
                     string json = System.IO.File.ReadAllText(dialog.FileName);
-                    var libraryService = new YiboFile.Services.LibraryService(Dispatcher, null);
+                    var libraryService = new YiboFile.Services.LibraryService(Dispatcher, null, _repository);
                     libraryService.ImportLibrariesFromJson(json);
                     RefreshLibraries(); // Refresh after import
                 }
@@ -339,7 +342,7 @@ namespace YiboFile.Controls.Settings
             {
                 try
                 {
-                    var libraryService = new YiboFile.Services.LibraryService(Dispatcher, null);
+                    var libraryService = new YiboFile.Services.LibraryService(Dispatcher, null, _repository);
                     string json = libraryService.ExportLibrariesToJson();
                     if (!string.IsNullOrEmpty(json))
                     {

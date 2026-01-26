@@ -1,53 +1,17 @@
-  姝ｅ湪纭畾瑕佽繕鍘熺殑椤圭洰鈥?
-  鎵€鏈夐」鐩潎鏄渶鏂扮殑锛屾棤娉曡繕鍘熴€?
-f:\Download\GitHub\YiboFile\YiboFile-Core\Services\Core\Abstractions\NavigationContracts.cs(2,26): error CS0234: 鍛藉悕绌洪棿鈥淵iboFile鈥濅腑涓嶅瓨鍦ㄧ被鍨嬫垨鍛藉悕绌洪棿鍚嶁€淟ibrary鈥?鏄惁缂哄皯绋嬪簭闆嗗紩鐢?) [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_f0kgp0q2_wpftmp.csproj]
-f:\Download\GitHub\YiboFile\YiboFile-Core\Services\UI\Navigation\NavigationCoordinator.cs(6,31): error CS0234: 鍛藉悕绌洪棿鈥淵iboFile鈥濅腑涓嶅瓨鍦ㄧ被鍨嬫垨鍛藉悕绌洪棿鍚嶁€淔avorite鈥?鏄惁缂哄皯绋嬪簭闆嗗紩鐢?) [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_f0kgp0q2_wpftmp.csproj]
-f:\Download\GitHub\YiboFile\YiboFile-Core\Services\UI\Navigation\INavigationModeUIHelper.cs(22,9): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淟ibrary鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_f0kgp0q2_wpftmp.csproj]
-f:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.xaml.cs(156,61): error CS0539: 鍦ㄥ彲瀹炵幇鐨勬帴鍙ｇ殑鎴愬憳涓壘涓嶅埌鏄惧紡鎺ュ彛澹版槑涓殑 "MainWindow.CurrentLibrary" [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_f0kgp0q2_wpftmp.csproj]
-f:\Download\GitHub\YiboFile\YiboFile-Core\LibraryManagementWindow.xaml.cs(22,25): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淟ibraryPath鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_f0kgp0q2_wpftmp.csproj]
-f:\Download\GitHub\YiboFile\YiboFile-Core\Services\UI\Navigation\INavigationModeUIHelper.cs(70,39): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淟ibrary鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_f0kgp0q2_wpftmp.csproj]
-f:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.xaml.cs(184,58): error CS0539: 鍦ㄥ彲瀹炵幇鐨勬帴鍙ｇ殑鎴愬憳涓壘涓嶅埌鏄惧紡鎺ュ彛澹版槑涓殑 "MainWindow.HighlightMatchingLibrary(Library)" [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_f0kgp0q2_wpftmp.csproj]
-f:\Download\GitHub\YiboFile\YiboFile-Core\Services\UI\Navigation\INavigationModeUIHelper.cs(80,31): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淟ibrary鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_f0kgp0q2_wpftmp.csproj]
-f:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.xaml.cs(186,58): error CS0539: 鍦ㄥ彲瀹炵幇鐨勬帴鍙ｇ殑鎴愬憳涓壘涓嶅埌鏄惧紡鎺ュ彛澹版槑涓殑 "MainWindow.LoadLibraryFiles(Library)" [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_f0kgp0q2_wpftmp.csproj]
-f:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.xaml.cs(53,64): error CS0535: 鈥淢ainWindow鈥濅笉瀹炵幇鎺ュ彛鎴愬憳鈥淚NavigationModeUIHelper.CurrentLibrary鈥?[f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_f0kgp0q2_wpftmp.csproj]
-f:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.xaml.cs(53,64): error CS0535: 鈥淢ainWindow鈥濅笉瀹炵幇鎺ュ彛鎴愬憳鈥淚NavigationModeUIHelper.HighlightMatchingLibrary(Library)鈥?[f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_f0kgp0q2_wpftmp.csproj]
-f:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.xaml.cs(53,64): error CS0535: 鈥淢ainWindow鈥濅笉瀹炵幇鎺ュ彛鎴愬憳鈥淚NavigationModeUIHelper.LoadLibraryFiles(Library)鈥?[f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_f0kgp0q2_wpftmp.csproj]
-f:\Download\GitHub\YiboFile\YiboFile-Core\Handlers\MouseEventHandler.cs(20,33): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淔avorite鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_f0kgp0q2_wpftmp.csproj]
-f:\Download\GitHub\YiboFile\YiboFile-Core\Handlers\MouseEventHandler.cs(28,20): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淔avorite鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_f0kgp0q2_wpftmp.csproj]
-f:\Download\GitHub\YiboFile\YiboFile-Core\Services\Features\Favorite\FavoriteService.cs(50,26): error CS0234: 鍛藉悕绌洪棿鈥淵iboFile鈥濅腑涓嶅瓨鍦ㄧ被鍨嬫垨鍛藉悕绌洪棿鍚嶁€淔avorite鈥?鏄惁缂哄皯绋嬪簭闆嗗紩鐢?) [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_f0kgp0q2_wpftmp.csproj]
-f:\Download\GitHub\YiboFile\YiboFile-Core\Services\Features\Favorite\FavoriteService.cs(73,29): error CS0234: 鍛藉悕绌洪棿鈥淵iboFile鈥濅腑涓嶅瓨鍦ㄧ被鍨嬫垨鍛藉悕绌洪棿鍚嶁€淔avorite鈥?鏄惁缂哄皯绋嬪簭闆嗗紩鐢?) [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_f0kgp0q2_wpftmp.csproj]
-f:\Download\GitHub\YiboFile\YiboFile-Core\Services\FileOperations\Core\FileOperationContext.cs(21,16): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淟ibrary鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_f0kgp0q2_wpftmp.csproj]
-f:\Download\GitHub\YiboFile\YiboFile-Core\Controls\Settings\LibraryManagementPanel.xaml.cs(23,25): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淟ibraryPath鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_f0kgp0q2_wpftmp.csproj]
-f:\Download\GitHub\YiboFile\YiboFile-Core\Services\UI\Navigation\NavigationCoordinator.cs(51,29): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淟ibrary鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_f0kgp0q2_wpftmp.csproj]
-f:\Download\GitHub\YiboFile\YiboFile-Core\Services\UI\Navigation\NavigationCoordinator.cs(122,45): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淟ibrary鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_f0kgp0q2_wpftmp.csproj]
-f:\Download\GitHub\YiboFile\YiboFile-Core\Services\UI\NavigationStateManager.cs(25,20): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淟ibrary鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_f0kgp0q2_wpftmp.csproj]
-f:\Download\GitHub\YiboFile\YiboFile-Core\Services\UI\Tabs\TabModels.cs(27,16): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淟ibrary鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_f0kgp0q2_wpftmp.csproj]
+  正在确定要还原的项目…
+  所有项目均是最新的，无法还原。
+F:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.Initialization.cs(448,37): error CS0117: “DatabaseManager”未包含“RemoveFavorite”的定义 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_klnkei1c_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\Services\FileSystem\FileList\FileMetadataEnricher.cs(149,46): error CS0117: “DatabaseManager”未包含“GetFileTags”的定义 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_klnkei1c_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\Services\FileSystem\FileInfo\FileInfoService.cs(374,54): error CS0117: “DatabaseManager”未包含“GetTagColorByName”的定义 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_klnkei1c_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\Services\FileSystem\FileInfo\FileInfoService.cs(425,43): error CS0117: “DatabaseManager”未包含“GetTagColorByName”的定义 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_klnkei1c_wpftmp.csproj]
 
-鐢熸垚澶辫触銆?
+生成失败。
 
-f:\Download\GitHub\YiboFile\YiboFile-Core\Services\Core\Abstractions\NavigationContracts.cs(2,26): error CS0234: 鍛藉悕绌洪棿鈥淵iboFile鈥濅腑涓嶅瓨鍦ㄧ被鍨嬫垨鍛藉悕绌洪棿鍚嶁€淟ibrary鈥?鏄惁缂哄皯绋嬪簭闆嗗紩鐢?) [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_f0kgp0q2_wpftmp.csproj]
-f:\Download\GitHub\YiboFile\YiboFile-Core\Services\UI\Navigation\NavigationCoordinator.cs(6,31): error CS0234: 鍛藉悕绌洪棿鈥淵iboFile鈥濅腑涓嶅瓨鍦ㄧ被鍨嬫垨鍛藉悕绌洪棿鍚嶁€淔avorite鈥?鏄惁缂哄皯绋嬪簭闆嗗紩鐢?) [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_f0kgp0q2_wpftmp.csproj]
-f:\Download\GitHub\YiboFile\YiboFile-Core\Services\UI\Navigation\INavigationModeUIHelper.cs(22,9): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淟ibrary鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_f0kgp0q2_wpftmp.csproj]
-f:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.xaml.cs(156,61): error CS0539: 鍦ㄥ彲瀹炵幇鐨勬帴鍙ｇ殑鎴愬憳涓壘涓嶅埌鏄惧紡鎺ュ彛澹版槑涓殑 "MainWindow.CurrentLibrary" [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_f0kgp0q2_wpftmp.csproj]
-f:\Download\GitHub\YiboFile\YiboFile-Core\LibraryManagementWindow.xaml.cs(22,25): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淟ibraryPath鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_f0kgp0q2_wpftmp.csproj]
-f:\Download\GitHub\YiboFile\YiboFile-Core\Services\UI\Navigation\INavigationModeUIHelper.cs(70,39): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淟ibrary鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_f0kgp0q2_wpftmp.csproj]
-f:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.xaml.cs(184,58): error CS0539: 鍦ㄥ彲瀹炵幇鐨勬帴鍙ｇ殑鎴愬憳涓壘涓嶅埌鏄惧紡鎺ュ彛澹版槑涓殑 "MainWindow.HighlightMatchingLibrary(Library)" [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_f0kgp0q2_wpftmp.csproj]
-f:\Download\GitHub\YiboFile\YiboFile-Core\Services\UI\Navigation\INavigationModeUIHelper.cs(80,31): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淟ibrary鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_f0kgp0q2_wpftmp.csproj]
-f:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.xaml.cs(186,58): error CS0539: 鍦ㄥ彲瀹炵幇鐨勬帴鍙ｇ殑鎴愬憳涓壘涓嶅埌鏄惧紡鎺ュ彛澹版槑涓殑 "MainWindow.LoadLibraryFiles(Library)" [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_f0kgp0q2_wpftmp.csproj]
-f:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.xaml.cs(53,64): error CS0535: 鈥淢ainWindow鈥濅笉瀹炵幇鎺ュ彛鎴愬憳鈥淚NavigationModeUIHelper.CurrentLibrary鈥?[f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_f0kgp0q2_wpftmp.csproj]
-f:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.xaml.cs(53,64): error CS0535: 鈥淢ainWindow鈥濅笉瀹炵幇鎺ュ彛鎴愬憳鈥淚NavigationModeUIHelper.HighlightMatchingLibrary(Library)鈥?[f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_f0kgp0q2_wpftmp.csproj]
-f:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.xaml.cs(53,64): error CS0535: 鈥淢ainWindow鈥濅笉瀹炵幇鎺ュ彛鎴愬憳鈥淚NavigationModeUIHelper.LoadLibraryFiles(Library)鈥?[f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_f0kgp0q2_wpftmp.csproj]
-f:\Download\GitHub\YiboFile\YiboFile-Core\Handlers\MouseEventHandler.cs(20,33): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淔avorite鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_f0kgp0q2_wpftmp.csproj]
-f:\Download\GitHub\YiboFile\YiboFile-Core\Handlers\MouseEventHandler.cs(28,20): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淔avorite鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_f0kgp0q2_wpftmp.csproj]
-f:\Download\GitHub\YiboFile\YiboFile-Core\Services\Features\Favorite\FavoriteService.cs(50,26): error CS0234: 鍛藉悕绌洪棿鈥淵iboFile鈥濅腑涓嶅瓨鍦ㄧ被鍨嬫垨鍛藉悕绌洪棿鍚嶁€淔avorite鈥?鏄惁缂哄皯绋嬪簭闆嗗紩鐢?) [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_f0kgp0q2_wpftmp.csproj]
-f:\Download\GitHub\YiboFile\YiboFile-Core\Services\Features\Favorite\FavoriteService.cs(73,29): error CS0234: 鍛藉悕绌洪棿鈥淵iboFile鈥濅腑涓嶅瓨鍦ㄧ被鍨嬫垨鍛藉悕绌洪棿鍚嶁€淔avorite鈥?鏄惁缂哄皯绋嬪簭闆嗗紩鐢?) [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_f0kgp0q2_wpftmp.csproj]
-f:\Download\GitHub\YiboFile\YiboFile-Core\Services\FileOperations\Core\FileOperationContext.cs(21,16): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淟ibrary鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_f0kgp0q2_wpftmp.csproj]
-f:\Download\GitHub\YiboFile\YiboFile-Core\Controls\Settings\LibraryManagementPanel.xaml.cs(23,25): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淟ibraryPath鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_f0kgp0q2_wpftmp.csproj]
-f:\Download\GitHub\YiboFile\YiboFile-Core\Services\UI\Navigation\NavigationCoordinator.cs(51,29): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淟ibrary鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_f0kgp0q2_wpftmp.csproj]
-f:\Download\GitHub\YiboFile\YiboFile-Core\Services\UI\Navigation\NavigationCoordinator.cs(122,45): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淟ibrary鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_f0kgp0q2_wpftmp.csproj]
-f:\Download\GitHub\YiboFile\YiboFile-Core\Services\UI\NavigationStateManager.cs(25,20): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淟ibrary鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_f0kgp0q2_wpftmp.csproj]
-f:\Download\GitHub\YiboFile\YiboFile-Core\Services\UI\Tabs\TabModels.cs(27,16): error CS0246: 鏈兘鎵惧埌绫诲瀷鎴栧懡鍚嶇┖闂村悕鈥淟ibrary鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_f0kgp0q2_wpftmp.csproj]
-    0 涓鍛?
-    22 涓敊璇?
+F:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.Initialization.cs(448,37): error CS0117: “DatabaseManager”未包含“RemoveFavorite”的定义 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_klnkei1c_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\Services\FileSystem\FileList\FileMetadataEnricher.cs(149,46): error CS0117: “DatabaseManager”未包含“GetFileTags”的定义 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_klnkei1c_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\Services\FileSystem\FileInfo\FileInfoService.cs(374,54): error CS0117: “DatabaseManager”未包含“GetTagColorByName”的定义 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_klnkei1c_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\Services\FileSystem\FileInfo\FileInfoService.cs(425,43): error CS0117: “DatabaseManager”未包含“GetTagColorByName”的定义 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_klnkei1c_wpftmp.csproj]
+    0 个警告
+    4 个错误
 
-宸茬敤鏃堕棿 00:00:05.77
+已用时间 00:00:03.46
