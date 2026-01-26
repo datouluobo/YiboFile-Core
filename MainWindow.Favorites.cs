@@ -21,13 +21,6 @@ namespace YiboFile
     {
         #region 收藏功能
 
-        internal void LoadFavorites()
-        {
-            if (NavigationPanelControl == null || _favoriteService == null) return;
-            // 使用 ItemsControl 加载动态分组
-            _favoriteService.LoadFavorites(NavigationPanelControl.FavoritesGroupsControl);
-        }
-
         private void OnFavoriteListBoxLoaded(NavigationPanelControl sender, ListBox listBox)
         {
             // 当 DataTemplate 中的 ListBox 加载时，配置其事件（点击导航、右键菜单、拖拽等）
@@ -54,8 +47,8 @@ namespace YiboFile
             // 获取选中的文件或文件夹
             var selectedItems = activeBrowser?.FilesSelectedItems?.Cast<FileSystemItem>().ToList() ?? new List<FileSystemItem>();
 
-            // 使用 Service 添加到默认分组 (1)
-            _favoriteService.AddFavorite(selectedItems, 1);
+            // 使用 Module 添加到默认分组 (1)
+            _viewModel?.Favorites?.AddFavorite(selectedItems, 1);
         }
 
         private void OnRenameFavoriteGroupRequested(object groupItem)
@@ -68,8 +61,7 @@ namespace YiboFile
                     var newName = inputName?.Trim();
                     if (!string.IsNullOrEmpty(newName))
                     {
-                        _favoriteService.RenameGroup(group.Id, newName);
-                        LoadFavorites();
+                        _viewModel?.Favorites?.RenameGroup(group.Id, newName);
                     }
                 }
             }
@@ -87,8 +79,7 @@ namespace YiboFile
 
                 if (DialogService.Ask($"确定要删除分组 \"{group.Name}\" 吗？\n其中的内容将被移动到默认分组中。", "确认删除", this))
                 {
-                    _favoriteService.DeleteGroup(group.Id);
-                    LoadFavorites();
+                    _viewModel?.Favorites?.DeleteGroup(group.Id);
                 }
             }
         }

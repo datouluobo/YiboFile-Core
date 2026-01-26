@@ -227,14 +227,7 @@ namespace YiboFile.Services
             {
             }
 
-            // 加载收藏列表  
-            try
-            {
-                _mainWindow.LoadFavorites();
-            }
-            catch (Exception)
-            {
-            }
+
 
             // 加载快速访问列表
             if (_mainWindow.QuickAccessListBox != null)

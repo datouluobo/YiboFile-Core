@@ -118,6 +118,7 @@ namespace YiboFile
         private FileOperationModule _fileOperationModule;
         private NotesModule _notesModule;
         private TagsModule _tagsModule;
+        private FavoritesModule _favoritesModule;
 
         /// <summary>
         /// 主窗口 ViewModel
@@ -381,6 +382,11 @@ namespace YiboFile
                 _viewModel.Tags = _tagsModule;
                 _viewModel.RegisterModule(_tagsModule);
             }
+
+            // 创建并注册收藏模块
+            _favoritesModule = new FavoritesModule(_messageBus, _favoriteService);
+            _viewModel.Favorites = _favoritesModule;
+            _viewModel.RegisterModule(_favoritesModule);
 
             // 初始化所有模块
             _viewModel.InitializeModules();

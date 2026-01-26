@@ -393,11 +393,7 @@ namespace YiboFile
                 CreateTab(path, true);
             };
 
-            _favoriteService.FavoritesLoaded += (s, e) =>
-            {
-                // 收藏列表已变更，重新加载UI
-                LoadFavorites();
-            };
+
 
             // 订阅快速访问服务事件
             _quickAccessService.NavigateRequested += (s, path) =>
@@ -446,7 +442,6 @@ namespace YiboFile
                 if (DialogService.Ask($"路径不存在: {favorite.Path}\n\n是否从收藏中移除？", "提示", this))
                 {
                     _favoriteService.RemoveFavorite(favorite.Path);
-                    LoadFavorites();
                 }
             };
 

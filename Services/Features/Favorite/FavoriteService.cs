@@ -91,73 +91,86 @@ namespace YiboFile.Services.Favorite
         /// <summary>
         /// 加载收藏列表 (按分组加载)
         /// </summary>
+        /// <summary>
+        /// 获取所有收藏分组数据 (MVVM)
+        /// </summary>
+        public List<FavoriteGroupItem> GetFavoriteGroups()
+        {
+            try
+            {
+                var allFavorites = _favoriteRepository.GetAllFavorites();
+                var groups = _favoriteRepository.GetAllGroups();
+
+                // 分组同名项
+                var nameGroups = allFavorites.GroupBy(f =>
+                {
+                    string name = f.DisplayName ?? Path.GetFileName(f.Path);
+                    if (string.IsNullOrEmpty(name)) name = f.Path;
+                    return name;
+                }).ToList();
+
+                var displayGroups = groups.Select(group =>
+                {
+                    var groupFavorites = allFavorites.Where(f => f.GroupId == group.Id).OrderBy(f => f.SortOrder).ToList();
+
+                    var items = groupFavorites.Select(favorite =>
+                    {
+                        string iconKey = favorite.IsDirectory ? "Icon_Folder" : "Icon_Document";
+                        string displayName = favorite.DisplayName ?? Path.GetFileName(favorite.Path);
+                        if (string.IsNullOrEmpty(displayName))
+                            displayName = favorite.Path;
+
+                        // 同名项区分逻辑
+                        var sameNameGroup = nameGroups.FirstOrDefault(g => (favorite.DisplayName ?? Path.GetFileName(favorite.Path)) == g.Key);
+                        if (sameNameGroup != null && sameNameGroup.Count() > 1)
+                        {
+                            var parentDir = Path.GetDirectoryName(favorite.Path);
+                            if (!string.IsNullOrEmpty(parentDir))
+                            {
+                                var parentName = Path.GetFileName(parentDir);
+                                if (!string.IsNullOrEmpty(parentName))
+                                    displayName = $"{displayName} ({parentName})";
+                            }
+                        }
+
+                        return new FavoriteItem
+                        {
+                            Favorite = favorite,
+                            IconKey = iconKey,
+                            DisplayName = displayName,
+                            Path = favorite.Path
+                        };
+                    }).ToList();
+
+                    return new FavoriteGroupItem
+                    {
+                        Id = group.Id,
+                        Name = group.Name,
+                        Items = items
+                    };
+                }).ToList();
+
+                return displayGroups;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error getting favorite groups: {ex.Message}");
+                return new List<FavoriteGroupItem>();
+            }
+        }
+
+        /// <summary>
+        /// 加载收藏列表 (按分组加载)
+        /// 已废弃: 请使用 GetFavoriteGroups 并通过 MVVM 绑定
+        /// </summary>
+        [Obsolete("Use GetFavoriteGroups() and bind to ViewModel instead.")]
         public void LoadFavorites(ItemsControl groupsControl)
         {
             if (groupsControl == null) return;
 
             _dispatcher.Invoke(() =>
             {
-                try
-                {
-                    var allFavorites = _favoriteRepository.GetAllFavorites();
-                    var groups = _favoriteRepository.GetAllGroups();
-
-                    // 分组同名项
-                    var nameGroups = allFavorites.GroupBy(f =>
-                    {
-                        string name = f.DisplayName ?? Path.GetFileName(f.Path);
-                        if (string.IsNullOrEmpty(name)) name = f.Path;
-                        return name;
-                    }).ToList();
-
-                    var displayGroups = groups.Select(group =>
-                    {
-                        var groupFavorites = allFavorites.Where(f => f.GroupId == group.Id).OrderBy(f => f.SortOrder).ToList();
-
-                        var items = groupFavorites.Select(favorite =>
-                        {
-                            string iconKey = favorite.IsDirectory ? "Icon_Folder" : "Icon_Document";
-                            string displayName = favorite.DisplayName ?? Path.GetFileName(favorite.Path);
-                            if (string.IsNullOrEmpty(displayName))
-                                displayName = favorite.Path;
-
-                            // 同名项区分逻辑
-                            var sameNameGroup = nameGroups.FirstOrDefault(g => (favorite.DisplayName ?? Path.GetFileName(favorite.Path)) == g.Key);
-                            if (sameNameGroup != null && sameNameGroup.Count() > 1)
-                            {
-                                var parentDir = Path.GetDirectoryName(favorite.Path);
-                                if (!string.IsNullOrEmpty(parentDir))
-                                {
-                                    var parentName = Path.GetFileName(parentDir);
-                                    if (!string.IsNullOrEmpty(parentName))
-                                        displayName = $"{displayName} ({parentName})";
-                                }
-                            }
-
-                            return new FavoriteItem
-                            {
-                                Favorite = favorite,
-                                IconKey = iconKey,
-                                DisplayName = displayName,
-                                Path = favorite.Path
-                            };
-                        }).ToList();
-
-                        return new FavoriteGroupItem
-                        {
-                            Id = group.Id,
-                            Name = group.Name,
-                            Items = items
-                        };
-                    }).ToList();
-
-                    groupsControl.ItemsSource = displayGroups;
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Error loading favorites: {ex.Message}");
-                    groupsControl.ItemsSource = null;
-                }
+                groupsControl.ItemsSource = GetFavoriteGroups();
             });
         }
 
