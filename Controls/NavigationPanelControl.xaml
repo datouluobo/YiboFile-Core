@@ -1,0 +1,477 @@
+<UserControl x:Class="YiboFile.Controls.NavigationPanelControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:helpers="clr-namespace:YiboFile.Helpers"
+             xmlns:local="clr-namespace:YiboFile.Controls"
+             xmlns:converters="clr-namespace:YiboFile.Controls.Converters"
+             Background="{DynamicResource PanelBackgroundBrush}">
+    <UserControl.Resources>
+        <helpers:ResourceKeyConverter x:Key="ResourceKeyConverter"/>
+        <converters:WidthToVisibilityConverter x:Key="WidthToVisibilityConverter"/>
+    </UserControl.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <Grid Name="NavContentGrid" Grid.Row="0">
+            <!-- 路径导航内容 -->
+            <Grid Name="NavPathContent" Margin="8">
+                <Grid.Resources>
+                    <!-- 递归数据模板 -->
+                    <HierarchicalDataTemplate x:Key="FolderTemplate" ItemsSource="{Binding Children}">
+                        <StackPanel Orientation="Horizontal" Margin="2,4">
+                            <TextBlock Text="{Binding IconKey, Converter={StaticResource ResourceKeyConverter}}" 
+                                       FontFamily="{DynamicResource IconFontFamily}" 
+                                       Margin="0,0,6,0" 
+                                       VerticalAlignment="Center"
+                                       FontSize="14"
+                                       Foreground="{DynamicResource AccentBrush}"/>
+                            <TextBlock Text="{Binding Header}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </HierarchicalDataTemplate>
+
+                    <!-- 驱动器根节点模板 -->
+                    <HierarchicalDataTemplate x:Key="DriveTemplate" ItemsSource="{Binding Children}">
+                        <Grid Margin="0,2,0,2">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            
+                            <Grid Grid.Row="0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <TextBlock Grid.Column="0" 
+                                           Text="{Binding IconKey, Converter={StaticResource ResourceKeyConverter}}" 
+                                           FontFamily="{DynamicResource IconFontFamily}" 
+                                           Margin="0,0,8,0" 
+                                           VerticalAlignment="Center"
+                                           FontSize="18"/>
+                                           
+                                <DockPanel x:Name="DriveInfoPanel" Grid.Column="1" VerticalAlignment="Center" LastChildFill="True">
+                                    <!-- 容量信息 (必须完整显示，优先固定在右侧) -->
+                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="8,0,0,0">
+                                        <TextBlock Text="{Binding UsedSizeText}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" FontWeight="Bold"/>
+                                        <TextBlock Text=" / " FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                        <TextBlock Text="{Binding TotalSizeText}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" FontWeight="Bold"/>
+                                    </StackPanel>
+                                    <!-- 盘符 + 别名 (别名在空间不足时完全隐藏) -->
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding DriveLetter}" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{Binding DriveLabel}" FontWeight="SemiBold" Margin="4,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}"
+                                                   Visibility="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=DockPanel}, Converter={StaticResource WidthToVisibilityConverter}, ConverterParameter=200}"/>
+                                    </StackPanel>
+                                </DockPanel>
+                            </Grid>
+
+                            <!-- 进度条 -->
+                            <ProgressBar Grid.Row="1" 
+                                         Minimum="0" Maximum="1.0" 
+                                         Value="{Binding UsagePercentage}" 
+                                         Height="4" 
+                                         Margin="0,4,0,0"
+                                         BorderThickness="0"
+                                         Background="{DynamicResource ControlSampleBackgroundBrush}">
+                                <ProgressBar.Style>
+                                    <Style TargetType="ProgressBar">
+                                        <Setter Property="Foreground" Value="#2196F3"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding UsagePercentage}" Value="0.9">
+                                                <!-- Warning Red for > 90% logic handled via validation converter usually, simplified here -->
+                                                <Setter Property="Foreground" Value="#F44336"/> 
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ProgressBar.Style>
+                            </ProgressBar>
+                        </Grid>
+                    </HierarchicalDataTemplate>
+                    
+                    <!-- 模板选择器 -->
+                    <local:NavigationItemTemplateSelector x:Key="NavigationItemTemplateSelector"
+                                                        DriveTemplate="{StaticResource DriveTemplate}"
+                                                        FolderTemplate="{StaticResource FolderTemplate}"/>
+
+                    <!-- 覆盖式 ScrollViewer 样式 -->
+                    <Style x:Key="OverlayScrollViewerStyle" TargetType="{x:Type ScrollViewer}">
+                        <Setter Property="OverridesDefaultStyle" Value="True"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="{x:Type ScrollViewer}">
+                                    <Grid>
+                                        <ScrollContentPresenter x:Name="PART_ScrollContentPresenter" 
+                                                                CanContentScroll="{TemplateBinding CanContentScroll}"/>
+                                        <ScrollBar x:Name="PART_VerticalScrollBar" 
+                                                   HorizontalAlignment="Right" 
+                                                   Maximum="{TemplateBinding ScrollableHeight}" 
+                                                   Orientation="Vertical" 
+                                                   Style="{DynamicResource ModernScrollBarStyle}"
+                                                   ViewportSize="{TemplateBinding ViewportHeight}" 
+                                                   Value="{Binding VerticalOffset, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}" 
+                                                   Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}"/>
+                                    </Grid>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+
+                    <Style x:Key="ModernScrollBarStyle" TargetType="{x:Type ScrollBar}">
+                        <Setter Property="Stylus.IsPressAndHoldEnabled" Value="false"/>
+                        <Setter Property="Stylus.IsFlicksEnabled" Value="false"/>
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="Width" Value="6"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="{x:Type ScrollBar}">
+                                    <Grid x:Name="Bg" SnapsToDevicePixels="true">
+                                        <Track x:Name="PART_Track" IsDirectionReversed="true">
+                                            <Track.Thumb>
+                                                <Thumb Style="{DynamicResource ScrollThumbStyle}"/>
+                                            </Track.Thumb>
+                                        </Track>
+                                    </Grid>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Style.Triggers>
+                            <Trigger Property="Orientation" Value="Horizontal">
+                                <Setter Property="Width" Value="Auto"/>
+                                <Setter Property="Height" Value="6"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+
+                    <Style x:Key="ScrollThumbStyle" TargetType="{x:Type Thumb}">
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="{x:Type Thumb}">
+                                    <Border x:Name="thumbBorder" Background="{DynamicResource AccentBrush}" CornerRadius="3" Opacity="0.4" Width="4"/>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="thumbBorder" Property="Background" Value="{DynamicResource AccentBrush}"/>
+                                            <Setter TargetName="thumbBorder" Property="Opacity" Value="0.8"/>
+                                            <Setter TargetName="thumbBorder" Property="Width" Value="8"/>
+                                        </Trigger>
+                                        <Trigger Property="IsDragging" Value="True">
+                                            <Setter TargetName="thumbBorder" Property="Background" Value="{DynamicResource AccentBrush}"/>
+                                            <Setter TargetName="thumbBorder" Property="Opacity" Value="1.0"/>
+                                            <Setter TargetName="thumbBorder" Property="Width" Value="8"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+
+                    <!-- TreeViewItem 样式：自定义展开按钮 -->
+                     <Style x:Key="DriveTreeViewItemStyle" TargetType="TreeViewItem">
+                        <EventSetter Event="PreviewMouseLeftButtonDown" Handler="DrivesTreeViewItem_PreviewMouseLeftButtonDown"/>
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="HorizontalContentAlignment" Value="{Binding HorizontalContentAlignment, RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}"/>
+                        <Setter Property="VerticalContentAlignment" Value="{Binding VerticalContentAlignment, RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}"/>
+                        <Setter Property="Padding" Value="1,0,0,0"/>
+                        <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+                        <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="{x:Type TreeViewItem}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition MinWidth="19" Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition/>
+                                        </Grid.RowDefinitions>
+                                        
+                                        <!-- 展开按钮 (Chevron) -->
+                                        <ToggleButton x:Name="Expander" 
+                                                      ClickMode="Press" 
+                                                      IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}}">
+                                            <ToggleButton.Style>
+                                                <Style TargetType="ToggleButton">
+                                                    <Setter Property="Focusable" Value="False"/>
+                                                    <Setter Property="Width" Value="20"/>
+                                                    <Setter Property="Height" Value="20"/>
+                                                    <Setter Property="Template">
+                                                        <Setter.Value>
+                                                            <ControlTemplate TargetType="ToggleButton">
+                                                                <Border Background="Transparent" Padding="2">
+                                                                    <Path x:Name="Arrow" 
+                                                                          Data="M 6,3 L 12,9 L 6,15" 
+                                                                          Stroke="{DynamicResource TextSecondaryBrush}" 
+                                                                          StrokeThickness="1.5"
+                                                                          HorizontalAlignment="Center"
+                                                                          VerticalAlignment="Center"
+                                                                          RenderTransformOrigin="0.5,0.5">
+                                                                        <Path.RenderTransform>
+                                                                            <RotateTransform Angle="0"/>
+                                                                        </Path.RenderTransform>
+                                                                    </Path>
+                                                                </Border>
+                                                                <ControlTemplate.Triggers>
+                                                                    <Trigger Property="IsChecked" Value="True">
+                                                                        <Setter TargetName="Arrow" Property="RenderTransform">
+                                                                            <Setter.Value>
+                                                                                <RotateTransform Angle="90"/>
+                                                                            </Setter.Value>
+                                                                        </Setter>
+                                                                        <Setter TargetName="Arrow" Property="Stroke" Value="{DynamicResource AccentBrush}"/>
+                                                                    </Trigger>
+                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                        <Setter TargetName="Arrow" Property="Stroke" Value="{DynamicResource TextPrimaryBrush}"/>
+                                                                    </Trigger>
+                                                                </ControlTemplate.Triggers>
+                                                            </ControlTemplate>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </Style>
+                                            </ToggleButton.Style>
+                                        </ToggleButton>
+                                        
+                                        <!-- 内容区域 Border for Selection -->
+                                        <Border x:Name="Bd" 
+                                                Grid.Column="1" 
+                                                Grid.ColumnSpan="2"
+                                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                                BorderThickness="{TemplateBinding BorderThickness}" 
+                                                Background="{TemplateBinding Background}" 
+                                                Padding="{TemplateBinding Padding}" 
+                                                SnapsToDevicePixels="true">
+                                            <ContentPresenter x:Name="PART_Header" 
+                                                            ContentSource="Header" 
+                                                            HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" 
+                                                            SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                                        </Border>
+                                        
+                                        <!-- 子项目 -->
+                                        <ItemsPresenter x:Name="ItemsHost" 
+                                                      Grid.Column="1" 
+                                                      Grid.ColumnSpan="2" 
+                                                      Grid.Row="1"/>
+                                    </Grid>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsExpanded" Value="false">
+                                            <Setter Property="Visibility" TargetName="ItemsHost" Value="Collapsed"/>
+                                        </Trigger>
+                                        <Trigger Property="HasItems" Value="false">
+                                            <Setter Property="Visibility" TargetName="Expander" Value="Hidden"/>
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="true">
+                                            <Setter Property="Background" TargetName="Bd" Value="{DynamicResource SelectionBackgroundBrush}"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                                        </Trigger>
+                                        <Trigger Property="IsMouseOver" Value="true">
+                                            <Setter Property="Background" TargetName="Bd" Value="{DynamicResource ButtonHoverBackgroundBrush}"/>
+                                        </Trigger>
+                                        <Trigger Property="IsEnabled" Value="false">
+                                            <Setter Property="Foreground" Value="{DynamicResource TextDisabledBrush}"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Grid.Resources>
+                
+                <!-- 使用覆盖式 ScrollViewer 包裹整个路径导航区域 -->
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Style="{StaticResource OverlayScrollViewerStyle}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        
+                        <!-- 驱动器列表 (Tree View) -->
+                        <Expander Grid.Row="0" Header="驱动器" Margin="0,0,0,8" IsExpanded="True">
+                            <TreeView Name="DrivesTreeView" 
+                                      Margin="2"
+                                      BorderThickness="0"
+                                      Background="Transparent"
+                                      HorizontalContentAlignment="Stretch"
+                                      ItemTemplateSelector="{StaticResource NavigationItemTemplateSelector}"
+                                      ItemContainerStyle="{StaticResource DriveTreeViewItemStyle}"
+                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                      ScrollViewer.VerticalScrollBarVisibility="Disabled">
+                            </TreeView>
+                        </Expander>
+        
+                        <!-- 快速访问 -->
+                        <Expander Grid.Row="1" Header="快速访问" Margin="0,0,0,8" IsExpanded="True">
+                            <ListBox Name="QuickAccessListBox" 
+                                     Margin="2,0,2,2"
+                                     BorderThickness="0"
+                                     Background="Transparent"
+                                     SelectionMode="Single"
+                                     ItemContainerStyle="{StaticResource NavListBoxItemStyle}"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                     ScrollViewer.VerticalScrollBarVisibility="Disabled">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding IconKey, Converter={StaticResource ResourceKeyConverter}}" 
+                                                       FontFamily="{DynamicResource IconFontFamily}" 
+                                                       Margin="0,0,8,0" 
+                                                       VerticalAlignment="Center"
+                                                       FontSize="16"/>
+                                            <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </Expander>
+                        
+                        <!-- 收藏 -->
+                        <Expander Grid.Row="2" IsExpanded="True" Margin="0,0,0,8">
+                            <Expander.Header>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="收藏" VerticalAlignment="Center"/>
+                                    <Button Content="{DynamicResource Icon_Add}" FontFamily="{DynamicResource IconFontFamily}" Name="AddFavoriteButton" Width="18" Height="18" FontSize="12"
+                                            Margin="8,0,0,0" Padding="0" VerticalAlignment="Center"
+                                            ToolTip="添加收藏" Background="Transparent" BorderThickness="0"/>
+                                </StackPanel>
+                            </Expander.Header>
+                            <ListBox Name="FavoritesListBox" 
+                                     Margin="2,0,2,2"
+                                     BorderThickness="0"
+                                     Background="Transparent"
+                                     SelectionMode="Single"
+                                     ItemContainerStyle="{StaticResource NavListBoxItemStyle}"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                     ScrollViewer.VerticalScrollBarVisibility="Disabled">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding IconKey, Converter={StaticResource ResourceKeyConverter}}" 
+                                                       FontFamily="{DynamicResource IconFontFamily}" 
+                                                       Margin="0,0,8,0" 
+                                                       VerticalAlignment="Center"
+                                                       FontSize="16"/>
+                                            <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </Expander>
+                    </Grid>
+                </ScrollViewer>
+            </Grid>
+            
+            <!-- 库导航内容 -->
+            <Grid Name="NavLibraryContent" Margin="8" Visibility="Collapsed">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <ListBox Name="LibrariesListBox" 
+                             Margin="2"
+                             BorderThickness="0"
+                             Background="Transparent"
+                             SelectionMode="Single"
+                             DisplayMemberPath="Name"
+                             AllowDrop="True"
+                             ItemContainerStyle="{StaticResource NavListBoxItemStyle}">
+                        <ListBox.ContextMenu>
+                            <ContextMenu Name="LibraryContextMenu">
+                                <MenuItem Header="📂 添加到库" Name="AddFileToLibraryMenuItem"/>
+                                <Separator/>
+                                <MenuItem Header="重命名" Name="LibraryRenameMenuItem"/>
+                                <MenuItem Header="删除库" Name="LibraryDeleteMenuItem"/>
+                                <Separator/>
+                                <MenuItem Header="管理库" Name="LibraryManageMenuItem"/>
+                            </ContextMenu>
+                        </ListBox.ContextMenu>
+                    </ListBox>
+                </ScrollViewer>
+            </Grid>
+            
+            <!-- 标签导航内容：Phase 2将重新实现 -->
+            <Grid Name="NavTagContent" Margin="8" Visibility="Collapsed">
+                <!-- TagPanel controls removed -->
+            </Grid>
+        </Grid>
+        
+        <!-- 底部按钮区：系统按钮 + 标签页面按钮 + 库管理按钮 -->
+        <Border Grid.Row="1" Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <!-- 左侧：添加收藏/标签按钮 -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Left" Margin="8,8">
+                    <Button Content="{DynamicResource Icon_Nav_Tag}" FontFamily="{DynamicResource IconFontFamily}" Name="AddTagToFileButton" Width="32" Height="32"
+                            Style="{StaticResource ModernButtonStyle}" ToolTip="添加标签" Margin="0,0,4,0"/>
+                </StackPanel>
+                
+                <!-- 右侧：库管理按钮（仅在库模式显示）+ 标签页面按钮（仅在标签页面显示） -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="8,8">
+                    <!-- 库管理按钮 -->
+                    <StackPanel Orientation="Horizontal" Name="LibraryBottomButtons" Visibility="Collapsed">
+                        <Button Name="LibraryManageBtn"
+                               Content="{DynamicResource Icon_Settings}"
+                               FontFamily="{DynamicResource IconFontFamily}"
+                               Width="32"
+                               Height="32"
+                               Style="{StaticResource ModernButtonStyle}"
+                               ToolTip="管理库（包含新建库功能）"
+                               Margin="4,0"/>
+                    </StackPanel>
+                    
+                    <!-- 标签页面按钮 -->
+                    <StackPanel Orientation="Horizontal" Visibility="Collapsed" Name="TagBottomButtons">
+                        <Button Name="TagClickModeBtn"
+                               Content="{DynamicResource Icon_OpenExternal}"
+                               FontFamily="{DynamicResource IconFontFamily}"
+                               Width="32" Height="32"
+                               Style="{StaticResource ModernButtonStyle}"
+                               ToolTip="切换浏览/编辑模式"
+                               Margin="4,0"/>
+                        <Button Name="TagCategoryManageBtn"
+                               Content="{DynamicResource Icon_Nav_Library}"
+                               FontFamily="{DynamicResource IconFontFamily}"
+                               Width="32" Height="32"
+                               Style="{StaticResource ModernButtonStyle}"
+                               ToolTip="分组管理"
+                               Margin="4,0"/>
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

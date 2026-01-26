@@ -1,0 +1,112 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+    
+    <!-- ========================================
+         主题元数据 (Theme Metadata)
+         ======================================== -->
+    <sys:String x:Key="ThemeId">Purple</sys:String>
+    <sys:String x:Key="ThemeDisplayName">紫色梦幻</sys:String>
+    <sys:String x:Key="ThemeDescription">优雅神秘的紫色主题，体验艺术感</sys:String>
+    <sys:String x:Key="ThemeAuthor">YiboSoft</sys:String>
+    <sys:String x:Key="ThemeVersion">1.0.0</sys:String>
+    
+    <!-- 预览色彩 (Preview Colors) -->
+    <sys:String x:Key="PreviewPrimaryColor">#7B1FA2</sys:String>
+    <sys:String x:Key="PreviewBackgroundColor">#FAFAFA</sys:String>
+    <sys:String x:Key="PreviewSurfaceColor">#F8F5FA</sys:String>
+    <sys:String x:Key="PreviewTextColor">#4A148C</sys:String>
+    
+    <!-- ========================================
+         核心资源 (28个)
+         ======================================== -->
+    
+    <!-- 1. 背景类 (4个) -->
+    <SolidColorBrush x:Key="BackgroundPrimaryBrush" Color="#FAFAFA"/>      <!-- 主背景 -->
+    <SolidColorBrush x:Key="BackgroundSecondaryBrush" Color="#F8F5FA"/>    <!-- 次背景/面板 -->
+    <SolidColorBrush x:Key="TitleBarBackgroundBrush" Color="#F8F5FA"/>     <!-- 标题栏背景 -->
+    <SolidColorBrush x:Key="BackgroundTertiaryBrush" Color="#E1BEE7"/>     <!-- 三级背景/卡片 -->
+    <SolidColorBrush x:Key="BackgroundElevatedBrush" Color="#FFFFFF"/>     <!-- 对话框/浮动 -->
+    
+    <!-- 2. 文本类 (4个) -->
+    <SolidColorBrush x:Key="ForegroundPrimaryBrush" Color="#4A148C"/>      <!-- 主要文本 -->
+    <SolidColorBrush x:Key="ForegroundSecondaryBrush" Color="#6A1B9A"/>    <!-- 次要文本 -->
+    <SolidColorBrush x:Key="ForegroundDisabledBrush" Color="#CE93D8"/>     <!-- 禁用文本 -->
+    <SolidColorBrush x:Key="ForegroundOnAccentBrush" Color="#FFFFFF"/>     <!-- 强调色上的文本 -->
+    
+    <!-- 3. 边框类 (3个) -->
+    <SolidColorBrush x:Key="BorderDefaultBrush" Color="#CE93D8"/>          <!-- 默认边框 -->
+    <SolidColorBrush x:Key="BorderSubtleBrush" Color="#E1BEE7"/>           <!-- 淡边框 -->
+    <SolidColorBrush x:Key="BorderFocusBrush" Color="#7B1FA2"/>            <!-- 聚焦边框 -->
+    
+    <!-- 4. 强调色/交互 (5个) -->
+    <SolidColorBrush x:Key="AccentDefaultBrush" Color="#7B1FA2"/>          <!-- 主强调色 -->
+    <SolidColorBrush x:Key="AccentHoverBrush" Color="#6A1B9A"/>            <!-- 悬停 -->
+    <SolidColorBrush x:Key="AccentPressedBrush" Color="#4A148C"/>          <!-- 按下 -->
+    <SolidColorBrush x:Key="AccentSelectedBrush" Color="#9C27B0"/>         <!-- 选中 -->
+    <SolidColorBrush x:Key="AccentLightBrush" Color="#F3E5F5"/>            <!-- 浅强调色背景 -->
+    
+    <!-- 5. 控件状态 (4个) -->
+    <SolidColorBrush x:Key="ControlDefaultBrush" Color="#F3E5F5"/>         <!-- 控件默认 -->
+    <SolidColorBrush x:Key="ControlHoverBrush" Color="#E1BEE7"/>           <!-- 控件悬停 -->
+    <SolidColorBrush x:Key="ControlPressedBrush" Color="#CE93D8"/>         <!-- 控件按下 -->
+    <SolidColorBrush x:Key="ControlDisabledBrush" Color="#F8F5FA"/>        <!-- 控件禁用 -->
+    
+    <!-- 6. 状态色 (4个) -->
+    <SolidColorBrush x:Key="StatusSuccessBrush" Color="#28A745"/>          <!-- 成功 -->
+    <SolidColorBrush x:Key="StatusWarningBrush" Color="#FFC107"/>          <!-- 警告 -->
+    <SolidColorBrush x:Key="StatusErrorBrush" Color="#DC3545"/>            <!-- 错误 -->
+    <SolidColorBrush x:Key="StatusInfoBrush" Color="#7B1FA2"/>             <!-- 信息 -->
+    
+    <!-- 7. 特殊用途 (4个) -->
+    <SolidColorBrush x:Key="TransparentBrush" Color="Transparent"/>        <!-- 透明 -->
+    <SolidColorBrush x:Key="OverlayBrush" Color="#66000000"/>              <!-- 遮罩 -->
+    <SolidColorBrush x:Key="OverlayLightBrush" Color="#33000000"/>         <!-- 浅遮罩 -->
+    <SolidColorBrush x:Key="DisabledBrush" Color="#CE93D8"/>               <!-- 通用禁用色 -->
+    
+    <!-- ========================================
+         向后兼容别名
+         ======================================== -->
+    
+    <!-- 背景别名 -->
+    <SolidColorBrush x:Key="AppBackgroundBrush" Color="#F8F5FA"/>
+    <SolidColorBrush x:Key="PanelBackgroundBrush" Color="#F8F5FA"/>
+    <SolidColorBrush x:Key="CardBackgroundBrush" Color="#E1BEE7"/>
+    <SolidColorBrush x:Key="DialogBackgroundBrush" Color="#FFFFFF"/>
+    
+    <!-- 文本别名 -->
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="#4A148C"/>
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#6A1B9A"/>
+    <SolidColorBrush x:Key="TextDisabledBrush" Color="#CE93D8"/>
+    <SolidColorBrush x:Key="TextInverseBrush" Color="#FFFFFF"/>
+    
+    <!-- 边框别名 -->
+    <SolidColorBrush x:Key="BorderBrush" Color="#CE93D8"/>
+    <SolidColorBrush x:Key="BorderStrongBrush" Color="#CE93D8"/>
+    
+    <!-- 强调色别名 -->
+    <SolidColorBrush x:Key="AccentBrush" Color="#7B1FA2"/>
+    <SolidColorBrush x:Key="AccentForegroundBrush" Color="#FFFFFF"/>
+    
+    <!-- 按钮别名 -->
+    <SolidColorBrush x:Key="ButtonBackgroundBrush" Color="#F3E5F5"/>
+    <SolidColorBrush x:Key="ButtonBorderBrush" Color="#CE93D8"/>
+    <SolidColorBrush x:Key="ButtonHoverBackgroundBrush" Color="#E1BEE7"/>
+    
+    <!-- 输入框别名 -->
+    <SolidColorBrush x:Key="InputBackgroundBrush" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="InputBorderBrush" Color="#CE93D8"/>
+    
+    <!-- 预览组件别名 -->
+    <SolidColorBrush x:Key="PreviewTitleBackgroundBrush" Color="#F8F5FA"/>
+    <SolidColorBrush x:Key="PreviewTitleForegroundBrush" Color="#4A148C"/>
+    <SolidColorBrush x:Key="PreviewPanelBackgroundBrush" Color="#F8F5FA"/>
+    <SolidColorBrush x:Key="PreviewTextPrimaryBrush" Color="#4A148C"/>
+
+    <!-- 状态色别名 -->
+    <SolidColorBrush x:Key="SuccessBrush" Color="#28A745"/>
+    <SolidColorBrush x:Key="WarningBrush" Color="#FFC107"/>
+    <SolidColorBrush x:Key="ErrorBrush" Color="#DC3545"/>
+    <SolidColorBrush x:Key="InfoBrush" Color="#7B1FA2"/>
+
+</ResourceDictionary>

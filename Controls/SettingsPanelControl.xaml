@@ -1,0 +1,120 @@
+<UserControl x:Class="YiboFile.Controls.SettingsPanelControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:YiboFile.Controls"
+             MinWidth="800" MinHeight="600">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="200"/>
+            <ColumnDefinition Width="1"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        
+        <!-- 左侧导航栏 -->
+        <Border Grid.Column="0" Background="{DynamicResource BackgroundSecondaryBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,1,0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                
+                <!-- 标题栏 -->
+                <Border Grid.Row="0" Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="12,12">
+                    <TextBlock Text="设置" FontSize="18" FontWeight="Bold" VerticalAlignment="Center"/>
+                </Border>
+                
+                <!-- 搜索框 -->
+                <Border Grid.Row="1" Background="{DynamicResource PanelBackgroundBrush}" Padding="10" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
+                    <TextBox Name="SearchTextBox" 
+                             TextChanged="SearchTextBox_TextChanged"
+                             FontSize="14" Padding="10,6"
+                             VerticalContentAlignment="Center"
+                             MinHeight="36"/>
+                </Border>
+                
+                <!-- 设置分类列表 -->
+                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                    <ListBox Name="CategoryListBox"
+                             BorderThickness="0"
+                             Background="Transparent"
+                             SelectionChanged="CategoryListBox_SelectionChanged">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Padding" Value="12,14"/>
+                                <Setter Property="Margin" Value="0"/>
+                                <Setter Property="MinHeight" Value="44"/>
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="Foreground" Value="{DynamicResource ForegroundPrimaryBrush}"/>
+                                <Setter Property="FontSize" Value="14"/>
+                                <Style.Triggers>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource AccentLightBrush}"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource AccentDefaultBrush}"/>
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                    </Trigger>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource BackgroundTertiaryBrush}"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBoxItem Tag="General">通用</ListBoxItem>
+                        <ListBoxItem Tag="Appearance">外观</ListBoxItem>
+                        <ListBoxItem Tag="Search">搜索</ListBoxItem>
+                        <ListBoxItem Tag="FileList">文件列表</ListBoxItem>
+                        <ListBoxItem Tag="Path">路径</ListBoxItem>
+                        <ListBoxItem Tag="Library">库</ListBoxItem>
+                        <!-- <ListBoxItem Tag="Tag">标签</ListBoxItem> -->
+                        <!-- <ListBoxItem Tag="TagTrain">TagTrain</ListBoxItem> -->
+                        <ListBoxItem Tag="Hotkeys">快捷键</ListBoxItem>
+                    </ListBox>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+        
+        <!-- 分割线 -->
+        <Border Grid.Column="1" Background="{DynamicResource DividerBrush}"/>
+        
+        <!-- 右侧内容区 -->
+        <Border Grid.Column="2" Background="{DynamicResource AppBackgroundBrush}">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="20">
+                <StackPanel Name="ContentPanel">
+                    <!-- 设置内容将动态加载到这里 -->
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+        
+        <!-- 右上角关闭按钮：独立的Grid确保可交互，不拦截其他事件 -->
+        <Grid Grid.Column="0" Grid.ColumnSpan="3"
+              HorizontalAlignment="Right" VerticalAlignment="Top"
+              Background="Transparent"
+              Width="50" Height="36"
+              Panel.ZIndex="100">
+            <Button Name="CloseButton" Content="✕" 
+                    Width="40" Height="36"
+                    Background="Transparent" BorderThickness="0"
+                    Cursor="Hand" Click="CloseButton_Click"
+                    ToolTip="关闭设置"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Top">
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="Foreground" Value="{DynamicResource ForegroundSecondaryBrush}"/>
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource ControlHoverBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource ForegroundPrimaryBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource ControlPressedBrush}"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+            </Button>
+        </Grid>
+    </Grid>
+</UserControl>
+
+

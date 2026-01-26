@@ -1,0 +1,72 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+    
+    <!-- Emoji Font Family (System Default) -->
+    <FontFamily x:Key="IconFontFamily">Segoe UI Emoji, Segoe UI Symbol</FontFamily>
+    
+    <!-- Window Control Icon Size (Standardized) -->
+    <sys:Double x:Key="WindowControlIconSize">16</sys:Double>
+
+    <!-- Generic Icon Keys -->
+    <sys:String x:Key="Icon_Copy">📋</sys:String>
+    <sys:String x:Key="Icon_Edit">✏️</sys:String>
+    <sys:String x:Key="Icon_Format">✨</sys:String>
+    <sys:String x:Key="Icon_Render">🎨</sys:String>
+    <sys:String x:Key="Icon_Wrap">📃</sys:String>
+    <sys:String x:Key="Icon_OpenExternal">📂</sys:String>
+    <sys:String x:Key="Icon_ChevronUp">▲</sys:String>
+    <sys:String x:Key="Icon_ChevronDown">▼</sys:String>
+    <sys:String x:Key="Icon_Search">🔍</sys:String>
+    <sys:String x:Key="Icon_Settings">⚙️</sys:String>
+    <sys:String x:Key="Icon_Filter">▼</sys:String>
+    <sys:String x:Key="Icon_Add">➕</sys:String>
+    <sys:String x:Key="Icon_Delete_Outline">🗑️</sys:String>
+    <sys:String x:Key="Icon_NewFolder">📁➕</sys:String>
+    <sys:String x:Key="Icon_NewFile">📄➕</sys:String>
+    <sys:String x:Key="Icon_Refresh">🔄</sys:String>
+    <sys:String x:Key="Icon_Desktop">🖥️</sys:String>
+    <sys:String x:Key="Icon_User">👤</sys:String>
+
+    <!-- Navigation / Toolbar Icons -->
+    <sys:String x:Key="Icon_Back">⬅️</sys:String>
+    <sys:String x:Key="Icon_Forward">➡️</sys:String>
+    <sys:String x:Key="Icon_Up">⬆️</sys:String>
+    <sys:String x:Key="Icon_ViewList">📜</sys:String> <!-- List -->
+    <sys:String x:Key="Icon_ViewThumb">🖼️</sys:String> <!-- Grid -->
+
+    <!-- File/Folder Icons -->
+    <sys:String x:Key="Icon_Drive">💾</sys:String>
+    <sys:String x:Key="Icon_Folder">📁</sys:String>
+    <sys:String x:Key="Icon_File">📄</sys:String>
+    <sys:String x:Key="Icon_Music">🎵</sys:String>
+    <sys:String x:Key="Icon_Video">🎬</sys:String>
+    <sys:String x:Key="Icon_Image">🖼️</sys:String>
+    <sys:String x:Key="Icon_Document">📝</sys:String>
+
+    <!-- Navigation Panel Specific -->
+    <sys:String x:Key="Icon_Nav_Path">🌏</sys:String>           <!-- Globe/Path -->
+    <sys:String x:Key="Icon_Nav_Library">📚</sys:String>        <!-- Books -->
+    <sys:String x:Key="Icon_Nav_Tag">🏷️</sys:String>          <!-- Tag -->
+    
+    <!-- Window Control Icons -->
+    <sys:String x:Key="Icon_Window_Settings">⚙️</sys:String>    <!-- Gear -->
+    <sys:String x:Key="Icon_Window_About">ℹ️</sys:String>       <!-- Info -->
+    <sys:String x:Key="Icon_Window_Minimize">➖</sys:String>    <!-- Minus -->
+    <sys:String x:Key="Icon_Window_Maximize">🔲</sys:String>    <!-- Square -->
+    <sys:String x:Key="Icon_Window_Restore">🔳</sys:String>     <!-- Restore -->
+    <sys:String x:Key="Icon_Window_Close">❌</sys:String>       <!-- Cross -->
+    
+    <!-- Layout Mode Icons -->
+    <sys:String x:Key="Icon_Layout_Focus">▬</sys:String>      <!-- Wide -->
+    <sys:String x:Key="Icon_Layout_Work">▦</sys:String>       <!-- Two Columns -->
+    <sys:String x:Key="Icon_Layout_Full">▦▦</sys:String>      <!-- Three Columns -->
+    
+    <!-- Toast / Status Icons -->
+    <sys:String x:Key="Icon_Success">✓</sys:String>
+    <sys:String x:Key="Icon_Error">✕</sys:String>
+    <sys:String x:Key="Icon_Warning">⚠️</sys:String>
+    <sys:String x:Key="Icon_Info">ℹ️</sys:String>
+    <sys:String x:Key="Icon_Close">✕</sys:String>
+
+</ResourceDictionary>

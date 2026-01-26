@@ -1,0 +1,165 @@
+<UserControl x:Class="YiboFile.Controls.FilterPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:YiboFile.Controls"
+
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="400"
+             Width="400">
+    
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Styles/AppStyles.xaml"/>
+                <ResourceDictionary Source="/Themes/Light.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- 复用/定义的 FilterChipStyle -->
+            <Style x:Key="FilterChipToggleStyle" TargetType="ToggleButton">
+                <Setter Property="Height" Value="28"/>
+                <Setter Property="Padding" Value="10,4"/>
+                <Setter Property="Margin" Value="0,0,6,6"/>
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}"/>
+                <Setter Property="FontSize" Value="12"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ToggleButton">
+                            <Border x:Name="border"
+                                    Background="{TemplateBinding Background}" 
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="{DynamicResource ButtonHoverBackgroundBrush}"/>
+                                    <Setter Property="BorderBrush" Value="{DynamicResource AccentHoverBrush}"/>
+                                </Trigger>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter Property="Background" Value="{DynamicResource AccentSubtleBrush}"/>
+                                    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                                    <Setter TargetName="border" Property="BorderThickness" Value="1"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style TargetType="TextBlock" x:Key="FilterSectionHeaderStyle">
+                <Setter Property="FontSize" Value="13"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="Foreground" Value="{DynamicResource ForegroundSecondaryBrush}"/>
+                <!-- Margin 由容器控制 -->
+            </Style>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid>
+        <Border Background="{DynamicResource AppBackgroundBrush}" CornerRadius="8" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Margin="8">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="8" ShadowDepth="3" Opacity="0.25" Direction="270"/>
+            </Border.Effect>
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="10">
+                    
+                    <!-- 标题栏 -->
+                    <DockPanel LastChildFill="False" Margin="0,0,0,16">
+                        <TextBlock Text="筛选条件" FontSize="16" FontWeight="Bold" DockPanel.Dock="Left"/>
+                    </DockPanel>
+
+                    <!-- 搜索范围 -->
+                    <DockPanel Margin="0,0,0,8" LastChildFill="False">
+                        <TextBlock Text="筛选范围" Style="{StaticResource FilterSectionHeaderStyle}" DockPanel.Dock="Left" VerticalAlignment="Center"/>
+                        <ToggleButton x:Name="ScopeAllBtn" Content="全部" Tag="AllScope" Click="Scope_Click" Style="{StaticResource FilterChipToggleStyle}" DockPanel.Dock="Right" Margin="0"/>
+                    </DockPanel>
+                    <WrapPanel Orientation="Horizontal" Margin="0,0,0,16">
+                        <ToggleButton x:Name="ScopeFolderBtn" Content="按文件夹" Tag="Folder" Click="Scope_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="ScopeFilenameBtn" Content="按文件名" Tag="FileName" Click="Scope_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="ScopeNotesBtn" Content="按备注" Tag="Notes" Click="Scope_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                    </WrapPanel>
+
+                    <!-- 时间范围 -->
+                    <DockPanel Margin="0,0,0,8" LastChildFill="False">
+                         <TextBlock Text="时间范围" Style="{StaticResource FilterSectionHeaderStyle}" DockPanel.Dock="Left" VerticalAlignment="Center"/>
+                         <ToggleButton x:Name="DateAllBtn" Content="全部时间" Tag="All" Click="Date_Click" Style="{StaticResource FilterChipToggleStyle}" DockPanel.Dock="Right" Margin="0"/>
+                    </DockPanel>
+                    <WrapPanel Orientation="Horizontal" Margin="0,0,0,16">
+                        <ToggleButton x:Name="DateTodayBtn" Content="今天" Tag="Today" Click="Date_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="DateWeekBtn" Content="本周" Tag="ThisWeek" Click="Date_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="DateMonthBtn" Content="本月" Tag="ThisMonth" Click="Date_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="DateYearBtn" Content="今年" Tag="ThisYear" Click="Date_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                    </WrapPanel>
+
+                    <!-- 文件大小 -->
+                    <DockPanel Margin="0,0,0,8" LastChildFill="False">
+                        <TextBlock Text="文件大小" Style="{StaticResource FilterSectionHeaderStyle}" DockPanel.Dock="Left" VerticalAlignment="Center"/>
+                        <ToggleButton x:Name="SizeAllBtn" Content="全部大小" Tag="All" Click="Size_Click" Style="{StaticResource FilterChipToggleStyle}" DockPanel.Dock="Right" Margin="0"/>
+                    </DockPanel>
+                    <WrapPanel Orientation="Horizontal" Margin="0,0,0,16">
+                        <ToggleButton x:Name="SizeTinyBtn" Content="微型 (&lt;100KB)" Tag="Tiny" Click="Size_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="SizeSmallBtn" Content="小 (100K-1M)" Tag="Small" Click="Size_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="SizeMediumBtn" Content="中 (1M-10M)" Tag="Medium" Click="Size_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="SizeLargeBtn" Content="大 (10M-100M)" Tag="Large" Click="Size_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="SizeHugeBtn" Content="巨大 (&gt;100M)" Tag="Huge" Click="Size_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                    </WrapPanel>
+
+                    <!-- 文件类型 -->
+                    <DockPanel Margin="0,0,0,8" LastChildFill="False">
+                        <TextBlock Text="文件类型" Style="{StaticResource FilterSectionHeaderStyle}" DockPanel.Dock="Left" VerticalAlignment="Center"/>
+                        <ToggleButton x:Name="TypeAllBtn" Content="全部类型" Tag="All" Click="Type_Click" Style="{StaticResource FilterChipToggleStyle}" DockPanel.Dock="Right" Margin="0"/>
+                    </DockPanel>
+                    <WrapPanel Orientation="Horizontal" Margin="0,0,0,16">
+                        <ToggleButton x:Name="TypeImageBtn" Content="图片" Tag="Images" Click="Type_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="TypeVideoBtn" Content="视频" Tag="Videos" Click="Type_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="TypeAudioBtn" Content="音频" Tag="Audio" Click="Type_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="TypeDocBtn" Content="文档" Tag="Documents" Click="Type_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                    </WrapPanel>
+
+                    <!-- 图片尺寸 (动态显示) -->
+                    <DockPanel x:Name="ImageSizeHeader" Margin="0,0,0,8" LastChildFill="False" Visibility="Collapsed">
+                        <TextBlock Text="图片尺寸" Style="{StaticResource FilterSectionHeaderStyle}" DockPanel.Dock="Left" VerticalAlignment="Center"/>
+                        <ToggleButton x:Name="ImgSizeAllBtn" Content="全部尺寸" Tag="All" Click="ImgSize_Click" Style="{StaticResource FilterChipToggleStyle}" DockPanel.Dock="Right" Margin="0"/>
+                    </DockPanel>
+                    <WrapPanel x:Name="ImageSizeContent" Orientation="Horizontal" Margin="0,0,0,16" Visibility="Collapsed">
+                        <ToggleButton x:Name="ImgSizeSmallBtn" Content="小 (&lt;800px)" Tag="Small" Click="ImgSize_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="ImgSizeMediumBtn" Content="中 (800-1920)" Tag="Medium" Click="ImgSize_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="ImgSizeLargeBtn" Content="大 (&gt;1920)" Tag="Large" Click="ImgSize_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="ImgSizeHugeBtn" Content="超大 (&gt;3840)" Tag="Huge" Click="ImgSize_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                    </WrapPanel>
+
+                    <!-- 媒体时长 (动态显示) -->
+                    <DockPanel x:Name="DurationHeader" Margin="0,0,0,8" LastChildFill="False" Visibility="Collapsed">
+                        <TextBlock Text="媒体时长" Style="{StaticResource FilterSectionHeaderStyle}" DockPanel.Dock="Left" VerticalAlignment="Center"/>
+                        <ToggleButton x:Name="DurationAllBtn" Content="全部时长" Tag="All" Click="Duration_Click" Style="{StaticResource FilterChipToggleStyle}" DockPanel.Dock="Right" Margin="0"/>
+                    </DockPanel>
+                    <WrapPanel x:Name="DurationContent" Orientation="Horizontal" Margin="0,0,0,16" Visibility="Collapsed">
+                        <ToggleButton x:Name="DurationShortBtn" Content="短 (&lt;1m)" Tag="Short" Click="Duration_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="DurationMediumBtn" Content="中 (1-5m)" Tag="Medium" Click="Duration_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="DurationLongBtn" Content="长 (5-20m)" Tag="Long" Click="Duration_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="DurationVeryLongBtn" Content="超长 (&gt;20m)" Tag="VeryLong" Click="Duration_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                    </WrapPanel>
+
+                    <!-- 搜索位置 -->
+                    <DockPanel Margin="0,0,0,8" LastChildFill="False">
+                        <TextBlock Text="搜索位置 (仅搜索)" Style="{StaticResource FilterSectionHeaderStyle}" DockPanel.Dock="Left" VerticalAlignment="Center"/>
+                        <!-- PathAllBtn -->
+                    </DockPanel>
+                    <WrapPanel Orientation="Horizontal" Margin="0,0,0,0">
+                        <ToggleButton x:Name="PathCurrentBtn" Content="当前磁盘" Tag="CurrentDrive" Click="Path_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="PathAllBtn" Content="全部磁盘" Tag="AllDrives" Click="Path_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                    </WrapPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+    </Grid>
+</UserControl>
+

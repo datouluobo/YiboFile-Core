@@ -1,0 +1,57 @@
+<Window x:Class="YiboFile.ColorSelectionWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="选择颜色" Height="300" Width="400"
+        WindowStartupLocation="CenterOwner">
+    
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <TextBlock Grid.Row="0" Text="选择标签颜色:" Margin="0,0,0,10"/>
+        
+        <UniformGrid Grid.Row="1" Columns="8" Rows="4">
+            <Button Background="Red" Click="ColorButton_Click" Margin="2"/>
+            <Button Background="Orange" Click="ColorButton_Click" Margin="2"/>
+            <Button Background="Yellow" Click="ColorButton_Click" Margin="2"/>
+            <Button Background="Green" Click="ColorButton_Click" Margin="2"/>
+            <Button Background="Cyan" Click="ColorButton_Click" Margin="2"/>
+            <Button Background="Blue" Click="ColorButton_Click" Margin="2"/>
+            <Button Background="Purple" Click="ColorButton_Click" Margin="2"/>
+            <Button Background="Pink" Click="ColorButton_Click" Margin="2"/>
+            <Button Background="Brown" Click="ColorButton_Click" Margin="2"/>
+            <Button Background="Gray" Click="ColorButton_Click" Margin="2"/>
+            <Button Background="DarkRed" Click="ColorButton_Click" Margin="2"/>
+            <Button Background="DarkGreen" Click="ColorButton_Click" Margin="2"/>
+            <Button Background="DarkBlue" Click="ColorButton_Click" Margin="2"/>
+            <Button Background="DarkOrange" Click="ColorButton_Click" Margin="2"/>
+            <Button Background="DarkCyan" Click="ColorButton_Click" Margin="2"/>
+            <Button Background="DarkMagenta" Click="ColorButton_Click" Margin="2"/>
+            <Button Background="LightBlue" Click="ColorButton_Click" Margin="2"/>
+            <Button Background="LightGreen" Click="ColorButton_Click" Margin="2"/>
+            <Button Background="LightPink" Click="ColorButton_Click" Margin="2"/>
+            <Button Background="LightYellow" Click="ColorButton_Click" Margin="2"/>
+            <Button Background="LightCoral" Click="ColorButton_Click" Margin="2"/>
+            <Button Background="LightGray" Click="ColorButton_Click" Margin="2"/>
+            <Button Background="Gold" Click="ColorButton_Click" Margin="2"/>
+            <Button Background="Silver" Click="ColorButton_Click" Margin="2"/>
+            <Button Background="Maroon" Click="ColorButton_Click" Margin="2"/>
+            <Button Background="Navy" Click="ColorButton_Click" Margin="2"/>
+            <Button Background="Olive" Click="ColorButton_Click" Margin="2"/>
+            <Button Background="Teal" Click="ColorButton_Click" Margin="2"/>
+            <Button Background="Lime" Click="ColorButton_Click" Margin="2"/>
+            <Button Background="Magenta" Click="ColorButton_Click" Margin="2"/>
+            <Button Background="Aqua" Click="ColorButton_Click" Margin="2"/>
+            <Button Background="Black" Click="ColorButton_Click" Margin="2"/>
+        </UniformGrid>
+        
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+            <Button Content="确定" Click="OK_Click" Margin="0,0,10,0" Width="60"/>
+            <Button Content="取消" Click="Cancel_Click" Width="60"/>
+        </StackPanel>
+    </Grid>
+</Window>
+

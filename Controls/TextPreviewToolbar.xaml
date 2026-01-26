@@ -1,0 +1,279 @@
+<UserControl x:Class="YiboFile.Controls.TextPreviewToolbar"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:YiboFile.Controls"
+             mc:Ignorable="d" 
+             d:DesignHeight="40" d:DesignWidth="800">
+    <UserControl.Resources>
+        <Style x:Key="ToolbarButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="Margin" Value="2,0"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Foreground" Value="{DynamicResource ForegroundPrimaryBrush}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource ControlHoverBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource ControlPressedBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <Style x:Key="ToolbarToggleButtonStyle" TargetType="ToggleButton">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="Margin" Value="2,0"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Foreground" Value="{DynamicResource ForegroundPrimaryBrush}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="border" 
+                                Background="{TemplateBinding Background}" 
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource ControlHoverBrush}" TargetName="border"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource AccentLightBrush}" TargetName="border"/>
+                                <Setter Property="Foreground" Value="{DynamicResource AccentDefaultBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ToolbarSeparator" TargetType="Separator">
+            <Setter Property="Width" Value="1"/>
+            <Setter Property="Margin" Value="6,6,6,0"/>
+            <Setter Property="Background" Value="{DynamicResource DividerBrush}"/>
+            <Setter Property="VerticalAlignment" Value="Stretch"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Separator">
+                        <Border Background="{TemplateBinding Background}" 
+                                Width="{TemplateBinding Width}" 
+                                Height="{TemplateBinding Height}" 
+                                SnapsToDevicePixels="True"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+    </UserControl.Resources>
+
+    <Grid Background="{DynamicResource TitleBarBackgroundBrush}" MinHeight="40">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/> <!-- Title -->
+            <ColumnDefinition Width="Auto"/> <!-- Separator -->
+            <ColumnDefinition Width="*"/>    <!-- Search (Center) -->
+            <ColumnDefinition Width="Auto"/> <!-- Actions -->
+        </Grid.ColumnDefinitions>
+        
+        <Border Grid.ColumnSpan="4" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1" VerticalAlignment="Bottom"/>
+
+        <!-- Title Area -->
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="16,1,0,0">
+            <TextBlock Text="{Binding FileIcon, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                       FontSize="16" 
+                       VerticalAlignment="Center" 
+                       FontFamily="Segoe UI Emoji, Segoe UI Symbol"
+                       Margin="0,0,8,0"/>
+            
+            <TextBlock Text="{Binding FileName, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                       FontSize="13" 
+                       FontWeight="SemiBold"
+                       VerticalAlignment="Center" 
+                       FontFamily="Segoe UI"
+                       TextTrimming="CharacterEllipsis"
+                       MaxWidth="200"
+                       ToolTip="{Binding FileName, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+        </StackPanel>
+        
+        <Separator Grid.Column="1" Style="{StaticResource ToolbarSeparator}" Visibility="{Binding ShowSearch, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+        <!-- Search Bar -->
+        <Border Grid.Column="2" 
+                x:Name="SearchPanel" 
+                VerticalAlignment="Center" 
+                HorizontalAlignment="Left"
+                Margin="0,0,12,0"
+                Visibility="{Binding ShowSearch, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <Border Background="{DynamicResource InputBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="4" Padding="4,4">
+                <StackPanel Orientation="Horizontal">
+                    <TextBox x:Name="SearchBox" 
+                             Width="200" 
+                             BorderThickness="0" 
+                             VerticalAlignment="Center"
+                             VerticalContentAlignment="Center"
+                             FontSize="13"
+                             Background="Transparent"
+                             KeyDown="SearchBox_KeyDown"
+                             TextChanged="SearchBox_TextChanged">
+                        <TextBox.Style>
+                            <Style TargetType="TextBox">
+                                <Style.Resources>
+                                    <VisualBrush x:Key="CueBannerBrush" AlignmentX="Left" AlignmentY="Center" Stretch="None">
+                                        <VisualBrush.Visual>
+                                            <Label Content="搜索..." Foreground="{DynamicResource ForegroundDisabledBrush}" Padding="2,0,0,0" FontSize="13" FontFamily="Segoe UI" FontStyle="Italic"/>
+                                        </VisualBrush.Visual>
+                                    </VisualBrush>
+                                </Style.Resources>
+                                <Style.Triggers>
+                                    <Trigger Property="Text" Value="{x:Null}">
+                                        <Setter Property="Background" Value="{StaticResource CueBannerBrush}"/>
+                                    </Trigger>
+                                    <Trigger Property="Text" Value="">
+                                        <Setter Property="Background" Value="{StaticResource CueBannerBrush}"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBox.Style>
+                    </TextBox>
+                    
+                    <Border Width="1" Background="{DynamicResource DividerBrush}" Margin="4,2"/>
+                    
+                    <TextBlock x:Name="MatchCountText" 
+                               Text="0/0" 
+                               FontSize="12" 
+                               Foreground="{DynamicResource ForegroundSecondaryBrush}" 
+                               VerticalAlignment="Center" 
+                               Margin="4,0"
+                               MinWidth="30"
+                               TextAlignment="Center"/>
+                    
+                    <Button x:Name="PrevMatchButton"
+                            Content="{DynamicResource Icon_ChevronUp}"
+                            FontFamily="{DynamicResource IconFontFamily}"
+                            Width="24" Height="24"
+                            Padding="0"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            FontSize="10"
+                            Click="PrevMatchButton_Click"
+                            ToolTip="上一个 (Shift+Enter)"/>
+
+                    <Button x:Name="NextMatchButton"
+                            Content="{DynamicResource Icon_ChevronDown}"
+                            FontFamily="{DynamicResource IconFontFamily}"
+                            Width="24" Height="24"
+                            Padding="0"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            FontSize="10"
+                            Click="NextMatchButton_Click"
+                            ToolTip="下一个 (Enter)"/>
+                </StackPanel>
+            </Border>
+        </Border>
+
+        <!-- Action Buttons -->
+        <StackPanel Grid.Column="3" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Stretch" Margin="12,0">
+            <!-- Custom Actions -->
+            <ContentPresenter Content="{Binding CustomActionContent, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                              VerticalAlignment="Center" 
+                              Margin="0,0,8,0"/>
+
+            <!-- View Toggle (Source/Render) -->
+            <Button x:Name="ViewToggleButton" 
+                    Content="{DynamicResource Icon_Render}"
+                    ToolTip="渲染/源码切换" 
+                    FontFamily="{DynamicResource IconFontFamily}"
+                    Style="{StaticResource ToolbarButtonStyle}"
+                    Visibility="{Binding ShowViewToggle, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"
+                    Click="ViewToggleButton_Click"/>
+            
+            <!-- Format XML/JSON -->
+            <Button x:Name="FormatButton" 
+                    Content="{DynamicResource Icon_Format}"
+                    ToolTip="格式化代码" 
+                    FontFamily="{DynamicResource IconFontFamily}"
+                    Style="{StaticResource ToolbarButtonStyle}"
+                    Visibility="{Binding ShowFormat, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"
+                    Click="FormatButton_Click"/>
+
+            <!-- Word Wrap -->
+            <ToggleButton x:Name="WrapButton" 
+                          Content="{DynamicResource Icon_Wrap}"
+                          ToolTip="自动换行" 
+                          FontFamily="{DynamicResource IconFontFamily}"
+                          Style="{StaticResource ToolbarToggleButtonStyle}"
+                          Checked="WrapButton_CheckedChanged"
+                          Unchecked="WrapButton_CheckedChanged"
+                          IsChecked="{Binding IsWordWrapEnabled, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}"
+                          Visibility="{Binding ShowWordWrap, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+            <!-- Encoding -->
+            <ComboBox x:Name="EncodingCombo" 
+                      Width="110" 
+                      Height="28"
+                      FontSize="12"
+                      Margin="6,0"
+                      VerticalAlignment="Center"
+                      SelectionChanged="EncodingCombo_SelectionChanged"
+                      Visibility="{Binding ShowEncoding, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+            
+            <Separator Style="{StaticResource ToolbarSeparator}"/>
+
+            <!-- Copy -->
+            <Button x:Name="CopyButton" 
+                    Content="{DynamicResource Icon_Copy}"
+                    ToolTip="复制全文" 
+                    FontFamily="{DynamicResource IconFontFamily}"
+                    Style="{StaticResource ToolbarButtonStyle}"
+                    Click="CopyButton_Click"/>
+
+            <!-- Edit/Save -->
+            <Button x:Name="EditButton" 
+                    Content="{DynamicResource Icon_Edit}"
+                    ToolTip="编辑模式" 
+                    FontFamily="{DynamicResource IconFontFamily}"
+                    Style="{StaticResource ToolbarButtonStyle}"
+                    Click="EditButton_Click"/>
+
+            <!-- Open External -->
+            <Button x:Name="OpenExternalButton" 
+                    Content="{DynamicResource Icon_OpenExternal}"
+                    ToolTip="用外部程序打开" 
+                    FontFamily="{DynamicResource IconFontFamily}"
+                    Style="{StaticResource ToolbarButtonStyle}"
+                    Click="OpenExternalButton_Click"/>
+        </StackPanel>
+    </Grid>
+</UserControl>
+

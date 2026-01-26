@@ -1,0 +1,72 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+    
+    <!-- Fluent System Regular (Uses Windows System Fonts) -->
+    <FontFamily x:Key="IconFontFamily">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
+    
+    <!-- Window Control Icon Size -->
+    <sys:Double x:Key="WindowControlIconSize">16</sys:Double>
+
+    <!-- Generic Icon Keys -->
+    <sys:String x:Key="Icon_Copy">&#xE8C8;</sys:String>
+    <sys:String x:Key="Icon_Edit">&#xE70F;</sys:String>
+    <sys:String x:Key="Icon_Format">&#xE736;</sys:String>
+    <sys:String x:Key="Icon_Render">&#xE790;</sys:String>
+    <sys:String x:Key="Icon_Wrap">&#xBE06;</sys:String> <!-- TextWrap -->
+    <sys:String x:Key="Icon_OpenExternal">&#xE8B7;</sys:String>
+    <sys:String x:Key="Icon_ChevronUp">&#xE70E;</sys:String>
+    <sys:String x:Key="Icon_ChevronDown">&#xE70D;</sys:String>
+    <sys:String x:Key="Icon_Search">&#xE721;</sys:String>
+    <sys:String x:Key="Icon_Settings">&#xE713;</sys:String>
+    <sys:String x:Key="Icon_Filter">&#xE71C;</sys:String>
+    <sys:String x:Key="Icon_Add">&#xE710;</sys:String>
+    <sys:String x:Key="Icon_Delete_Outline">&#xE74D;</sys:String>
+    <sys:String x:Key="Icon_NewFolder">&#xE8F4;</sys:String>
+    <sys:String x:Key="Icon_NewFile">&#xE7C3;</sys:String>
+    <sys:String x:Key="Icon_Refresh">&#xE72C;</sys:String>
+    <sys:String x:Key="Icon_Desktop">&#xE7F4;</sys:String>
+    <sys:String x:Key="Icon_User">&#xE77B;</sys:String>
+
+    <!-- Navigation / Toolbar Icons -->
+    <sys:String x:Key="Icon_Back">&#xE72B;</sys:String>
+    <sys:String x:Key="Icon_Forward">&#xE72A;</sys:String>
+    <sys:String x:Key="Icon_Up">&#xE74A;</sys:String>
+    <sys:String x:Key="Icon_ViewList">&#xE8FD;</sys:String>
+    <sys:String x:Key="Icon_ViewThumb">&#xE80A;</sys:String>
+
+    <!-- File/Folder Icons -->
+    <sys:String x:Key="Icon_Drive">&#xE7B0;</sys:String>
+    <sys:String x:Key="Icon_Folder">&#xE8B7;</sys:String>
+    <sys:String x:Key="Icon_File">&#xE7C3;</sys:String>
+    <sys:String x:Key="Icon_Music">&#xE7F6;</sys:String>
+    <sys:String x:Key="Icon_Video">&#xE714;</sys:String>
+    <sys:String x:Key="Icon_Image">&#xE91B;</sys:String>
+    <sys:String x:Key="Icon_Document">&#xE8A5;</sys:String>
+
+    <!-- Navigation Panel Specific -->
+    <sys:String x:Key="Icon_Nav_Path">&#xE774;</sys:String>           
+    <sys:String x:Key="Icon_Nav_Library">&#xE8F1;</sys:String>        
+    <sys:String x:Key="Icon_Nav_Tag">&#xE8EC;</sys:String>          
+    
+    <!-- Window Control Icons -->
+    <sys:String x:Key="Icon_Window_Settings">&#xE713;</sys:String>
+    <sys:String x:Key="Icon_Window_About">&#xE946;</sys:String>
+    <sys:String x:Key="Icon_Window_Minimize">&#xE921;</sys:String>
+    <sys:String x:Key="Icon_Window_Maximize">&#xE922;</sys:String>
+    <sys:String x:Key="Icon_Window_Restore">&#xE923;</sys:String>
+    <sys:String x:Key="Icon_Window_Close">&#xE8BB;</sys:String>
+    
+    <!-- Layout Mode Icons -->
+    <sys:String x:Key="Icon_Layout_Focus">&#xE7C8;</sys:String>      <!-- SingleColumn -->
+    <sys:String x:Key="Icon_Layout_Work">&#xF0E2;</sys:String>       <!-- DockLeft -->
+    <sys:String x:Key="Icon_Layout_Full">&#xE89E;</sys:String>       <!-- ViewAll -->
+    
+    <!-- Toast / Status Icons -->
+    <sys:String x:Key="Icon_Success">&#xE73E;</sys:String>
+    <sys:String x:Key="Icon_Error">&#xE711;</sys:String>
+    <sys:String x:Key="Icon_Warning">&#xE7BA;</sys:String>
+    <sys:String x:Key="Icon_Info">&#xE946;</sys:String>
+    <sys:String x:Key="Icon_Close">&#xE8BB;</sys:String>
+
+</ResourceDictionary>

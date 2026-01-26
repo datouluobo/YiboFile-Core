@@ -1,0 +1,182 @@
+<UserControl x:Class="YiboFile.Controls.ColorPickerControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d" 
+             d:DesignHeight="350" d:DesignWidth="300">
+    <UserControl.Resources>
+        <!-- 滑块样式 -->
+        <Style x:Key="ColorSliderStyle" TargetType="Slider">
+            <Setter Property="Height" Value="24"/>
+            <Setter Property="Margin" Value="0,4"/>
+        </Style>
+    </UserControl.Resources>
+    
+    <Border Background="{DynamicResource BackgroundPrimaryBrush}"
+            BorderBrush="{DynamicResource BorderDefaultBrush}"
+            BorderThickness="1"
+            CornerRadius="8"
+            Padding="16">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- 颜色预览 -->
+            <Border Grid.Row="0"
+                    Height="60"
+                    CornerRadius="6"
+                    BorderThickness="2"
+                    Margin="0,0,0,16">
+                <Border.BorderBrush>
+                    <SolidColorBrush Color="#E0E0E0"/>
+                </Border.BorderBrush>
+                <Border.Background>
+                    <SolidColorBrush x:Name="PreviewBrush" Color="#007BFF"/>
+                </Border.Background>
+            </Border>
+
+            <!-- 颜色选择区域 -->
+            <Grid Grid.Row="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- RGB滑块 -->
+                <Grid Grid.Row="0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="20"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="50"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Red -->
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="R" VerticalAlignment="Center" 
+                               Foreground="{DynamicResource ForegroundPrimaryBrush}"/>
+                    <Slider x:Name="RedSlider" Grid.Row="0" Grid.Column="1"
+                            Minimum="0" Maximum="255" 
+                            Style="{StaticResource ColorSliderStyle}"
+                            ValueChanged="OnRgbSliderChanged"/>
+                    <TextBox x:Name="RedTextBox" Grid.Row="0" Grid.Column="2"
+                             Text="{Binding Value, ElementName=RedSlider, Mode=TwoWay}"
+                             HorizontalContentAlignment="Center"
+                             VerticalContentAlignment="Center"/>
+
+                    <!-- Green -->
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="G" VerticalAlignment="Center"
+                               Foreground="{DynamicResource ForegroundPrimaryBrush}"/>
+                    <Slider x:Name="GreenSlider" Grid.Row="1" Grid.Column="1"
+                            Minimum="0" Maximum="255"
+                            Style="{StaticResource ColorSliderStyle}"
+                            ValueChanged="OnRgbSliderChanged"/>
+                    <TextBox x:Name="GreenTextBox" Grid.Row="1" Grid.Column="2"
+                             Text="{Binding Value, ElementName=GreenSlider, Mode=TwoWay}"
+                             HorizontalContentAlignment="Center"
+                             VerticalContentAlignment="Center"/>
+
+                    <!-- Blue -->
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="B" VerticalAlignment="Center"
+                               Foreground="{DynamicResource ForegroundPrimaryBrush}"/>
+                    <Slider x:Name="BlueSlider" Grid.Row="2" Grid.Column="1"
+                            Minimum="0" Maximum="255"
+                            Style="{StaticResource ColorSliderStyle}"
+                            ValueChanged="OnRgbSliderChanged"/>
+                    <TextBox x:Name="BlueTextBox" Grid.Row="2" Grid.Column="2"
+                             Text="{Binding Value, ElementName=BlueSlider, Mode=TwoWay}"
+                             HorizontalContentAlignment="Center"
+                             VerticalContentAlignment="Center"/>
+                </Grid>
+
+                <!-- 分隔线 -->
+                <Border Grid.Row="1" Height="1" 
+                        Background="{DynamicResource DividerBrush}"
+                        Margin="0,12"/>
+
+                <!-- HSV滑块 -->
+                <Grid Grid.Row="2">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="20"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="50"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Hue -->
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="H" VerticalAlignment="Center"
+                               Foreground="{DynamicResource ForegroundPrimaryBrush}"/>
+                    <Slider x:Name="HueSlider" Grid.Row="0" Grid.Column="1"
+                            Minimum="0" Maximum="360"
+                            Style="{StaticResource ColorSliderStyle}"
+                            ValueChanged="OnHsvSliderChanged"/>
+                    <TextBox x:Name="HueTextBox" Grid.Row="0" Grid.Column="2"
+                             Text="{Binding Value, ElementName=HueSlider, Mode=TwoWay, StringFormat=F0}"
+                             HorizontalContentAlignment="Center"
+                             VerticalContentAlignment="Center"/>
+
+                    <!-- Saturation -->
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="S" VerticalAlignment="Center"
+                               Foreground="{DynamicResource ForegroundPrimaryBrush}"/>
+                    <Slider x:Name="SaturationSlider" Grid.Row="1" Grid.Column="1"
+                            Minimum="0" Maximum="100"
+                            Style="{StaticResource ColorSliderStyle}"
+                            ValueChanged="OnHsvSliderChanged"/>
+                    <TextBox x:Name="SaturationTextBox" Grid.Row="1" Grid.Column="2"
+                             Text="{Binding Value, ElementName=SaturationSlider, Mode=TwoWay, StringFormat=F0}"
+                             HorizontalContentAlignment="Center"
+                             VerticalContentAlignment="Center"/>
+
+                    <!-- Value -->
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="V" VerticalAlignment="Center"
+                               Foreground="{DynamicResource ForegroundPrimaryBrush}"/>
+                    <Slider x:Name="ValueSlider" Grid.Row="2" Grid.Column="1"
+                            Minimum="0" Maximum="100"
+                            Style="{StaticResource ColorSliderStyle}"
+                            ValueChanged="OnHsvSliderChanged"/>
+                    <TextBox x:Name="ValueTextBox" Grid.Row="2" Grid.Column="2"
+                             Text="{Binding Value, ElementName=ValueSlider, Mode=TwoWay, StringFormat=F0}"
+                             HorizontalContentAlignment="Center"
+                             VerticalContentAlignment="Center"/>
+                </Grid>
+
+                <!-- 分隔线 -->
+                <Border Grid.Row="3" Height="1" 
+                        Background="{DynamicResource DividerBrush}"
+                        Margin="0,12,0,8"/>
+            </Grid>
+
+            <!-- 十六进制输入 -->
+            <Grid Grid.Row="2" Margin="0,8,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0" Text="Hex: " VerticalAlignment="Center"
+                           Foreground="{DynamicResource ForegroundPrimaryBrush}"
+                           Margin="0,0,8,0"/>
+                <TextBox x:Name="HexTextBox" Grid.Column="1"
+                         TextChanged="OnHexTextChanged"
+                         MaxLength="7"
+                         FontFamily="Consolas"
+                         HorizontalContentAlignment="Center"
+                         VerticalContentAlignment="Center"/>
+            </Grid>
+        </Grid>
+    </Border>
+</UserControl>
+

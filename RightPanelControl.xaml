@@ -1,0 +1,119 @@
+<UserControl x:Class="YiboFile.RightPanelControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:YiboFile.Controls"
+             HorizontalAlignment="Stretch"
+             VerticalAlignment="Stretch"
+             MinWidth="100">
+    <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="0">
+        <Grid.RowDefinitions>
+            <!-- 行0：标题栏区域（与列2工具栏对齐） -->
+            <RowDefinition Height="Auto"/>
+            <!-- 行1：预览区 -->
+            <RowDefinition Height="*"/>
+            <!-- 行2：分割器 -->
+            <RowDefinition Height="12"/>
+            <!-- 行3：备注区 -->
+            <RowDefinition Height="200" MinHeight="120"/>
+        </Grid.RowDefinitions>
+        
+        <!-- 行0：标题栏（占位，与列2工具栏对齐） -->
+        <Border Grid.Row="0" Height="50" Background="Transparent" IsHitTestVisible="False"/>
+        
+        <!-- 预览区与备注区之间的水平分割器 -->
+        <controls:CollapsibleGridSplitter Grid.Row="2" 
+                      Style="{StaticResource HorizontalCollapsibleGridSplitterStyle}"
+                      CollapseMode="Both"
+                      HorizontalAlignment="Stretch"
+                      AutoFillNeighbor="True"
+                      DragCompleted="GridSplitter_DragCompleted"/>
+        
+        <!-- 行1：预览区 - 保持原有预览功能，图片时使用TagTrain样式 -->
+        <Border Grid.Row="1" Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1">
+            <Grid Name="PreviewGrid" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ClipToBounds="True">
+                <!-- 原有的预览区域（用于非图片文件） -->
+                <TextBlock Text="选择一个文件进行预览" 
+                           HorizontalAlignment="Center" 
+                           VerticalAlignment="Center"
+                           Foreground="Gray" FontSize="14" Name="DefaultPreviewText"/>
+                
+                <!-- TagTrain样式的图片预览（叠加层，仅在显示图片时可见） -->
+                <Border BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="1" 
+                        Background="{DynamicResource BackgroundTertiaryBrush}" CornerRadius="5" ClipToBounds="True" 
+                        Name="ImagePreviewBorder" Visibility="Collapsed">
+                    <Grid ClipToBounds="True">
+                        <Image Name="ImagePreviewDisplay" 
+                               Stretch="Uniform" 
+                               HorizontalAlignment="Center" 
+                               VerticalAlignment="Center"
+                               StretchDirection="Both"
+                               RenderOptions.BitmapScalingMode="HighQuality"/>
+                        
+                        <!-- 图片导航控件（叠加在图片上方） -->
+                        <Grid VerticalAlignment="Bottom" Margin="0,0,0,10">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            
+                            <!-- 导航按钮 -->
+                            <StackPanel Grid.Row="0" Orientation="Horizontal" 
+                                        HorizontalAlignment="Center" Margin="0,0,0,5">
+                                <Button Name="PrevImageBtn" 
+                                        Padding="10,5" Margin="0,0,5,0" 
+                                        Click="PrevImageBtn_Click" 
+                                        Visibility="Collapsed"
+                                        Background="{DynamicResource BorderDefaultBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}"
+                                        Cursor="Hand">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{DynamicResource Icon_Back}" FontFamily="{DynamicResource IconFontFamily}" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                        <TextBlock Text="上一张" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Name="NextImageBtn" 
+                                        Padding="10,5" 
+                                        Click="NextImageBtn_Click" 
+                                        Visibility="Collapsed"
+                                        Background="{DynamicResource BorderDefaultBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}"
+                                        Cursor="Hand">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="下一张" VerticalAlignment="Center"/>
+                                        <TextBlock Text="{DynamicResource Icon_Forward}" FontFamily="{DynamicResource IconFontFamily}" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                            
+                            <!-- 图片索引显示 -->
+                            <TextBlock Name="ImageIndexText" 
+                                       Text="第 1/10 张" 
+                                       HorizontalAlignment="Center"
+                                       FontSize="12" Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                       Cursor="Hand" 
+                                       MouseLeftButtonDown="ImageIndexText_MouseLeftButtonDown"
+                                       ToolTip="点击跳转到指定图片"
+                                       Visibility="Collapsed"
+                                       Padding="5,2"/>
+                        </Grid>
+                        
+                        <TextBlock Name="NoImagePreviewText" Text="选择一个文件进行预览" 
+                                  HorizontalAlignment="Center" 
+                                  VerticalAlignment="Center"
+                                  FontSize="18" Foreground="Gray" Visibility="Collapsed"/>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Border>
+        
+        <!-- 行3：备注区 -->
+        <Border Grid.Row="3" Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0">
+            <TextBox Name="NotesTextBox" Padding="8,4,8,4" 
+                     AcceptsReturn="True" 
+                     TextWrapping="Wrap"
+                     VerticalScrollBarVisibility="Auto"
+                     HorizontalAlignment="Stretch"
+                     VerticalAlignment="Stretch"
+                     TextChanged="NotesTextBox_TextChanged"
+                     Background="{DynamicResource AppBackgroundBrush}" BorderBrush="Transparent" BorderThickness="0"/>
+        </Border>
+    </Grid>
+</UserControl>

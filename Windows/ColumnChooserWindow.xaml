@@ -1,0 +1,31 @@
+<Window x:Class="YiboFile.Windows.ColumnChooserWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="列显示设置"
+        Width="460"
+        SizeToContent="Height"
+        MinWidth="420"
+        MinHeight="280"
+        WindowStartupLocation="CenterOwner" ResizeMode="CanMinimize"
+        ShowInTaskbar="False">
+    <Grid Margin="12" >
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <!-- 列表加滚动，避免高DPI裁剪按钮 -->
+        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+            <StackPanel x:Name="ColumnsPanel" Margin="2,2,2,2"/>
+        </ScrollViewer>
+        <!-- 使用 UniformGrid 平均分配四个按钮的空间，保持等间距 -->
+        <UniformGrid Grid.Row="1" Margin="8,12,8,0" Rows="1" Columns="4" HorizontalAlignment="Stretch">
+            <Button x:Name="BtnAll" Content="全选" MinWidth="72" Height="32" Margin="6,0" Click="BtnAll_Click"/>
+            <Button x:Name="BtnNone" Content="全不选" MinWidth="84" Height="32" Margin="6,0" Click="BtnNone_Click"/>
+            <Button x:Name="BtnOK" Content="确定" MinWidth="84" Height="32" Margin="6,0" IsDefault="True" Click="BtnOK_Click"/>
+            <Button x:Name="BtnCancel" Content="取消" MinWidth="84" Height="32" Margin="6,0" IsCancel="True"/>
+        </UniformGrid>
+    </Grid>
+</Window>
+
+
+

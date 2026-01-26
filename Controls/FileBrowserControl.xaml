@@ -1,0 +1,238 @@
+<UserControl x:Class="YiboFile.Controls.FileBrowserControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:YiboFile.Controls"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" 
+             d:DesignHeight="600" d:DesignWidth="800">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>  <!-- Row 0: 地址栏 -->
+            <RowDefinition Height="Auto"/>  <!-- Row 1: 工具栏行 -->
+            <RowDefinition Height="Auto"/>  <!-- Row 2: 搜索状态提示 -->
+            <RowDefinition Height="*"/>     <!-- Row 3: 文件列表 -->
+            <RowDefinition Height="12"/>     <!-- Row 4: Splitter -->
+            <RowDefinition Height="180" MinHeight="120"/> <!-- Row 5: Info Panel -->
+        </Grid.RowDefinitions>
+        
+        <Grid.Resources>
+            <!-- 统一使用 AppStyles 中的 ModernToolbarButtonStyle -->
+            <Style x:Key="ToolbarButtonStyle" TargetType="Button" BasedOn="{StaticResource ModernToolbarButtonStyle}"/>
+            
+            <Style x:Key="ToolbarRadioButtonStyle" TargetType="RadioButton">
+                <Setter Property="Height" Value="32"/>
+                <Setter Property="Width" Value="32"/>
+                <Setter Property="Padding" Value="6,0"/>
+                <Setter Property="Margin" Value="1,0"/>
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderBrush" Value="Transparent"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="RadioButton">
+                            <Border x:Name="border"
+                                    Background="{TemplateBinding Background}" 
+                                    BorderBrush="{TemplateBinding BorderBrush}" 
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="4">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="{DynamicResource ButtonHoverBackgroundBrush}"/>
+                                </Trigger>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter Property="Background" Value="{DynamicResource ButtonHoverBackgroundBrush}"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                                    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                    <Setter Property="BorderThickness" Value="1"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            
+            <!-- 分段按钮样式（用于搜索模式切换） -->
+            <Style x:Key="SegmentedButtonStyle" TargetType="RadioButton">
+                <Setter Property="Height" Value="26"/>
+                <Setter Property="Padding" Value="8,4"/>
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="Foreground" Value="{DynamicResource ForegroundSecondaryBrush}"/>
+                <Setter Property="FontSize" Value="12"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="RadioButton">
+                            <Border x:Name="border"
+                                    Background="{TemplateBinding Background}" 
+                                    Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="{DynamicResource ButtonHoverBackgroundBrush}"/>
+                                </Trigger>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter Property="Background" Value="{DynamicResource AccentSubtleBrush}"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            
+            <!-- 过滤器芯片样式 -->
+            <Style x:Key="FilterChipStyle" TargetType="ToggleButton">
+                <Setter Property="Width" Value="28"/>
+                <Setter Property="Height" Value="24"/>
+                <Setter Property="Padding" Value="4"/>
+                <Setter Property="Margin" Value="1,0"/>
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderBrush" Value="Transparent"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ToggleButton">
+                            <Border x:Name="border"
+                                    Background="{TemplateBinding Background}" 
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="{DynamicResource ButtonHoverBackgroundBrush}"/>
+                                </Trigger>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter Property="Background" Value="{DynamicResource AccentSubtleBrush}"/>
+                                    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                    <Setter Property="BorderThickness" Value="1"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </Grid.Resources>
+
+        <!-- Row 0: 地址栏（纯地址输入） -->
+        <Border Grid.Row="0" Background="Transparent" Margin="0,4,0,4">
+            <controls:AddressBarControl x:Name="AddressBarControl" Margin="8,0"/>
+        </Border>
+        
+        <!-- Row 1: 工具栏行（导航 + 操作 + 视图 + 搜索） -->
+        <Border Grid.Row="1" Background="Transparent" Margin="0,0,0,4">
+            <Grid Margin="8,2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>  <!-- 导航按钮 -->
+                    <ColumnDefinition Width="8"/>     <!-- 间距 -->
+                    <ColumnDefinition Width="Auto"/>  <!-- TitleActionBar -->
+                    <ColumnDefinition Width="*"/>     <!-- 填充 -->
+                    <ColumnDefinition Width="Auto"/>  <!-- 视图切换 -->
+                    <ColumnDefinition Width="8"/>     <!-- 间距 -->
+                    <ColumnDefinition Width="Auto"/>  <!-- 搜索/筛选 -->
+                </Grid.ColumnDefinitions>
+                
+                <!-- 导航按钮 (←→↑) -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <Button Name="NavBackBtn" FontFamily="{DynamicResource IconFontFamily}" Content="{DynamicResource Icon_Back}" FontSize="14" Click="NavBackBtn_Click" ToolTip="后退" Style="{StaticResource ModernToolbarButtonStyle}"/>
+                    <Button Name="NavForwardBtn" FontFamily="{DynamicResource IconFontFamily}" Content="{DynamicResource Icon_Forward}" FontSize="14" Click="NavForwardBtn_Click" ToolTip="前进" Style="{StaticResource ModernToolbarButtonStyle}"/>
+                    <Button Name="NavUpBtn" FontFamily="{DynamicResource IconFontFamily}" Content="{DynamicResource Icon_Up}" FontSize="14" Click="NavUpBtn_Click" ToolTip="向上" Style="{StaticResource ModernToolbarButtonStyle}"/>
+                    <!-- Undo/Redo -->
+                    <Rectangle Width="1" Height="20" Fill="{DynamicResource BorderBrush}" Margin="4,0" VerticalAlignment="Center"/>
+                    <Button Name="UndoBtn" FontFamily="Segoe MDL2 Assets" Content="&#xE7A7;" FontSize="14" Click="UndoBtn_Click" ToolTip="撤销" Style="{StaticResource ModernToolbarButtonStyle}"/>
+                    <Button Name="RedoBtn" FontFamily="Segoe MDL2 Assets" Content="&#xE7A6;" FontSize="14" Click="RedoBtn_Click" ToolTip="重做" Style="{StaticResource ModernToolbarButtonStyle}"/>
+                </StackPanel>
+                
+                <!-- TitleActionBar (操作按钮) -->
+                <controls:TitleActionBar Grid.Column="2" x:Name="TitleActionBar" Mode="Path"/>
+                
+                <!-- 视图切换按钮 (下拉菜单) -->
+                <StackPanel Grid.Column="4" Orientation="Horizontal">
+                    <Button Name="PropertiesBtn" Content="&#xE946;" 
+                            FontFamily="Segoe MDL2 Assets" FontSize="14"
+                            Click="PropertiesBtn_Click" Style="{StaticResource ModernToolbarButtonStyle}" ToolTip="属性"
+                            Margin="0,0,4,0"/>
+                    <Button Name="ViewModeBtn" Content="{DynamicResource Icon_ViewList}" 
+                            FontFamily="{DynamicResource IconFontFamily}" FontSize="14"
+                            Click="ViewModeBtn_DropDown" Style="{StaticResource ModernToolbarButtonStyle}" ToolTip="视图模式">
+                        <Button.ContextMenu>
+                            <ContextMenu Name="ViewModeMenu">
+                                <MenuItem Header="📋 列表" Tag="List" Click="ViewModeMenuItem_Click"/>
+                                <MenuItem Header="📝 紧凑列表" Tag="Compact" Click="ViewModeMenuItem_Click"/>
+                                <Separator/>
+                                <MenuItem Header="🖼️ 缩略图" Tag="Thumbnail" Click="ViewModeMenuItem_Click"/>
+                                <MenuItem Header="🔲 平铺" Tag="Tiles" Click="ViewModeMenuItem_Click"/>
+                                <MenuItem Header="📎 小图标" Tag="SmallIcons" Click="ViewModeMenuItem_Click"/>
+                                <Separator/>
+                                <MenuItem Header="📄 内容" Tag="Content" Click="ViewModeMenuItem_Click"/>
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
+                </StackPanel>
+                
+                <!-- 搜索/筛选按钮 -->
+                <StackPanel Grid.Column="6" Orientation="Horizontal">
+                    <Button Name="FilterBtn" Content="&#xE71C;" FontFamily="Segoe MDL2 Assets" FontSize="12"
+                            Click="FilterBtn_Click"
+                            Style="{StaticResource ModernToolbarButtonStyle}" ToolTip="筛选"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+        
+        <!-- Row 2: 搜索状态提示条 -->
+        <Border x:Name="SearchStatusBar" Grid.Row="2" Background="{DynamicResource AccentSubtleBrush}" 
+                Visibility="Collapsed" Padding="8,4" Margin="0,0,0,4">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock x:Name="SearchStatusIcon" Text="🔍" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                <TextBlock x:Name="SearchStatusText" Text="搜索中..." 
+                          Foreground="{DynamicResource ForegroundBrush}" FontSize="12" VerticalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+        
+        <!-- Row 3: 文件列表 -->
+        <controls:FileListControl Grid.Row="3" x:Name="FileList" FocusVisualStyle="{x:Null}"/>
+        
+        <!-- Row 4: 水平分割器（文件列表与信息面板之间） -->
+        <controls:CollapsibleGridSplitter Grid.Row="4" 
+                      Style="{StaticResource HorizontalCollapsibleGridSplitterStyle}"
+                      CollapseMode="Both"
+                      HorizontalAlignment="Stretch"
+                      Panel.ZIndex="999"
+                      AutoFillNeighbor="True"
+                      ShowsPreview="True"/>
+        
+        <!-- Row 5: 右侧信息面板（现在移动到底部作为信息栏） -->
+        <Border Grid.Row="5" Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,1,0,0">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="8,4">
+                <!-- 文件信息面板 -->
+                <StackPanel x:Name="FileInfoPanel" Margin="4"/>
+            </ScrollViewer>
+        </Border>
+
+        <!-- 焦点边框覆盖层 (Grid.RowSpan="5") -->
+        <Border x:Name="FocusBorder"
+                Grid.Row="0" Grid.RowSpan="5"
+                BorderThickness="2"
+                Margin="-2"
+                BorderBrush="Transparent"
+                IsHitTestVisible="False"
+                Panel.ZIndex="1000"/>
+
+        <!-- 筛选弹出面板 -->
+        <Popup x:Name="FilterPopup" PlacementTarget="{Binding ElementName=FilterBtn}" 
+               StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade"
+               Placement="Bottom" VerticalOffset="4">
+            <Border Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8" Effect="{DynamicResource DropShadowEffect}">
+                <controls:FilterPanel x:Name="FilterPanelControl"/>
+            </Border>
+        </Popup>
+    </Grid>
+</UserControl>
+

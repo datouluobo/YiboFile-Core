@@ -1,0 +1,380 @@
+<UserControl x:Class="YiboFile.Controls.FileListControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:vm="clr-namespace:YiboFile.ViewModels"
+             xmlns:colmgr="clr-namespace:YiboFile.Services.UI.ColumnManagement"
+             xmlns:local="clr-namespace:YiboFile.Controls"
+             mc:Ignorable="d" 
+             d:DesignHeight="600" d:DesignWidth="800">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        
+        <!-- 缩略图视图模板 -->
+        <DataTemplate x:Key="ThumbnailTemplate">
+            <Border Width="{Binding ItemWidth, RelativeSource={RelativeSource AncestorType={x:Type local:FileListControl}}}" 
+                    Height="{Binding ItemHeight, RelativeSource={RelativeSource AncestorType={x:Type local:FileListControl}}}" 
+                    Margin="5" Background="Transparent" BorderBrush="Transparent" BorderThickness="0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    
+                    <!-- 缩略图区域 -->
+                    <Image Grid.Row="0"
+                           Source="{Binding Thumbnail}" 
+                           Width="{Binding ThumbnailSize, RelativeSource={RelativeSource AncestorType={x:Type local:FileListControl}}}" 
+                           Height="{Binding ThumbnailSize, RelativeSource={RelativeSource AncestorType={x:Type local:FileListControl}}}"
+                           Stretch="Uniform" 
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"/>
+                    
+                    <!-- 文件名区域 -->
+                    <Grid Grid.Row="1" x:Name="ThumbnailNameGrid">
+                        <TextBlock x:Name="ThumbnailFileName"
+                                   Text="{Binding Name}" 
+                                   TextAlignment="Center" 
+                                   TextWrapping="Wrap" 
+                                   MaxHeight="36" 
+                                   TextTrimming="CharacterEllipsis"
+                                   Margin="4,2"
+                                   FontSize="11"
+                                   ToolTip="{Binding Name}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsRenaming}" Value="True">
+                                            <Setter Property="Visibility" Value="Hidden"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <!-- 缩略图模式重命名 Popup -->
+                        <Popup x:Name="ThumbnailRenamePopup" 
+                               PlacementTarget="{Binding ElementName=ThumbnailNameGrid}"
+                               Placement="Center"
+                               HorizontalOffset="0"
+                               VerticalOffset="0"
+                               StaysOpen="True"
+                               AllowsTransparency="False"
+                               IsOpen="{Binding IsRenaming}">
+                            <Border MinHeight="24"
+                                    Width="{Binding ItemWidth, RelativeSource={RelativeSource AncestorType={x:Type local:FileListControl}}}"
+                                    Background="#FFFFFF"
+                                    BorderBrush="#0078D4"
+                                    BorderThickness="2"
+                                    CornerRadius="2">
+                                <Border.Effect>
+                                    <DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.3"/>
+                                </Border.Effect>
+                                <TextBox x:Name="ThumbnailRenameTextBox"
+                                         Text="{Binding RenameText, UpdateSourceTrigger=PropertyChanged}" 
+                                         VerticalAlignment="Center"
+                                         TextAlignment="Center"
+                                         TextWrapping="Wrap"
+                                         AcceptsReturn="False"
+                                         Background="Transparent"
+                                         Foreground="#000000"
+                                         CaretBrush="#0078D4"
+                                         BorderThickness="0" Padding="4,2"
+                                         KeyDown="RenameTextBox_KeyDown"
+                                         IsVisibleChanged="RenameTextBox_IsVisibleChanged"
+                                         LostFocus="RenameTextBox_LostFocus"/>
+                            </Border>
+                        </Popup>
+                    </Grid>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <!-- 平铺视图模板 (Tiles) - 64x64图标 + 多行详细文本 -->
+        <DataTemplate x:Key="TilesTemplate">
+            <Border Width="250" Height="72" Margin="4" Background="Transparent" 
+                    ToolTip="{Binding Path}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="72"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <!-- 图标/缩略图 -->
+                    <Image Grid.Column="0" Source="{Binding Thumbnail}" Width="64" Height="64" 
+                           Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    <!-- 详细信息 -->
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="8,0">
+                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" 
+                                   Foreground="{DynamicResource ForegroundBrush}"/>
+                        <TextBlock Text="{Binding Type}" Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11"/>
+                        <TextBlock Text="{Binding Size}" Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <!-- 内容视图模板 (Content) - 单行展开式详细信息 -->
+        <DataTemplate x:Key="ContentTemplate">
+            <Border Height="56" Margin="2" Background="Transparent" 
+                    BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1"
+                    ToolTip="{Binding Path}">
+                <Grid Margin="8,4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="48"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <!-- 图标 -->
+                    <Image Grid.Column="0" Source="{Binding Thumbnail}" Width="40" Height="40" 
+                           Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    <!-- 名称 + 类型 -->
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="8,0">
+                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
+                                   Foreground="{DynamicResource ForegroundBrush}"/>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding Type}" Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11"/>
+                            <TextBlock Text=" · " Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11"/>
+                            <TextBlock Text="{Binding Size}" Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11"/>
+                            <TextBlock Text=" · " Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11"/>
+                            <TextBlock Text="{Binding ModifiedDate}" Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11"/>
+                        </StackPanel>
+                    </StackPanel>
+                    <!-- 标签/备注 -->
+                    <TextBlock Grid.Column="2" Text="{Binding Notes}" MaxWidth="200" TextTrimming="CharacterEllipsis" 
+                               Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11" VerticalAlignment="Center" Margin="8,0"/>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <!-- 小图标视图模板 (SmallIcons) - 16px图标 + 文件名 -->
+        <DataTemplate x:Key="SmallIconsTemplate">
+            <Border Width="180" Height="28" Margin="2" Background="Transparent"
+                    ToolTip="{Binding Path}">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="4,0">
+                    <Image Source="{Binding Thumbnail}" Width="16" Height="16" Stretch="Uniform" Margin="0,0,6,0"/>
+                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource ForegroundBrush}"/>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+        <!-- 紧凑列表模板 (Compact) - 单行简化 -->
+        <DataTemplate x:Key="CompactTemplate">
+            <Border Height="24" Margin="0" Background="Transparent" 
+                    BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1"
+                    ToolTip="{Binding Path}">
+                <Grid Margin="8,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="24"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="80"/>
+                        <ColumnDefinition Width="80"/>
+                    </Grid.ColumnDefinitions>
+                    <Image Grid.Column="0" Source="{Binding Thumbnail}" Width="16" Height="16" Stretch="Uniform"/>
+                    <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" Margin="4,0" 
+                               TextTrimming="CharacterEllipsis" Foreground="{DynamicResource ForegroundBrush}"/>
+                    <TextBlock Grid.Column="2" Text="{Binding Size}" HorizontalAlignment="Right" VerticalAlignment="Center" 
+                               Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11"/>
+                    <TextBlock Grid.Column="3" Text="{Binding ModifiedDate}" HorizontalAlignment="Right" VerticalAlignment="Center" 
+                               Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11"/>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <!-- 缩略图视图的 WrapPanel 布局 -->
+        <ItemsPanelTemplate x:Key="WrapPanelTemplate">
+            <WrapPanel Orientation="Horizontal"/>
+        </ItemsPanelTemplate>
+
+        <!-- 列表视图的 VirtualizingStackPanel 布局 -->
+        <ItemsPanelTemplate x:Key="StackPanelTemplate">
+            <VirtualizingStackPanel/>
+        </ItemsPanelTemplate>
+
+
+
+    </UserControl.Resources>
+    <Grid>
+        <!-- 文件列表 -->
+        <Border Background="{DynamicResource AppBackgroundBrush}">
+            <Grid>
+                <!-- 普通列表视图 -->
+                <ListView x:Name="FilesListView" 
+                      SelectionMode="Extended"
+                      Background="{DynamicResource AppBackgroundBrush}"
+                      BorderThickness="0"
+                      FocusVisualStyle="{x:Null}"
+                      VirtualizingPanel.IsVirtualizing="True"
+                      VirtualizingPanel.IsVirtualizingWhenGrouping="True"
+                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListView.ItemContainerStyle>
+                        <StaticResource ResourceKey="FileListItemStyle"/>
+                    </ListView.ItemContainerStyle>
+                    <ListView.GroupStyle>
+                        <GroupStyle>
+                            <GroupStyle.ContainerStyle>
+                                <Style TargetType="{x:Type GroupItem}">
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="{x:Type GroupItem}">
+                                                <Expander IsExpanded="True" BorderThickness="0,0,0,1" BorderBrush="{DynamicResource BorderDefaultBrush}">
+                                                    <Expander.Header>
+                                                        <StackPanel Orientation="Horizontal" Margin="4">
+                                                            <TextBlock Text="{Binding Name}" FontWeight="Bold" Margin="0,0,8,0"
+                                                                       Foreground="{DynamicResource ForegroundBrush}"/>
+                                                            <TextBlock Text="{Binding ItemCount, StringFormat=({0})}" VerticalAlignment="Center" 
+                                                                       Foreground="{DynamicResource ForegroundSecondaryBrush}"/>
+                                                        </StackPanel>
+                                                    </Expander.Header>
+                                                    <ItemsPresenter />
+                                                </Expander>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </GroupStyle.ContainerStyle>
+                        </GroupStyle>
+                    </ListView.GroupStyle>
+                    <ListView.View>
+                        <GridView x:Name="FilesGridView" ColumnHeaderContainerStyle="{StaticResource FileListColumnHeaderStyle}">
+                            <GridViewColumn x:Name="ColName">
+                                <GridViewColumn.Header>
+                                    <TextBlock Text="名称" Tag="Name"/>
+                                </GridViewColumn.Header>
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Grid x:Name="NameCellGrid">
+                                            <TextBlock x:Name="FileNameText" Text="{Binding Name}" Margin="6,0" VerticalAlignment="Center">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsRenaming}" Value="True">
+                                                                <Setter Property="Visibility" Value="Hidden"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                            <!-- 重命名 Popup - 真正的悬浮层，可以遮挡任何内容 -->
+                                            <Popup x:Name="RenamePopup" 
+                                                   PlacementTarget="{Binding ElementName=FileNameText}"
+                                                   Placement="Top"
+                                                   HorizontalOffset="-6"
+                                                   VerticalOffset="20"
+                                                   StaysOpen="True"
+                                                   AllowsTransparency="False"
+                                                   IsOpen="{Binding IsRenaming}">
+                                                <Border MinHeight="24"
+                                                        Background="#FFFFFF"
+                                                        BorderBrush="#0078D4"
+                                                        BorderThickness="2"
+                                                        CornerRadius="2">
+                                                    <Border.Effect>
+                                                        <DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.3"/>
+                                                    </Border.Effect>
+                                                    <TextBox x:Name="RenameTextBox"
+                                                             Text="{Binding RenameText, UpdateSourceTrigger=PropertyChanged}" 
+                                                             MinWidth="350"
+                                                             VerticalAlignment="Center"
+                                                             TextAlignment="Left"
+                                                             Background="Transparent"
+                                                             Foreground="#000000"
+                                                             CaretBrush="#0078D4"
+                                                             BorderThickness="0" Padding="4,2"
+                                                             KeyDown="RenameTextBox_KeyDown"
+                                                             IsVisibleChanged="RenameTextBox_IsVisibleChanged"
+                                                             LostFocus="RenameTextBox_LostFocus"/>
+                                                </Border>
+                                            </Popup>
+                                        </Grid>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                            
+                            <GridViewColumn x:Name="ColType" Width="60" HeaderContainerStyle="{StaticResource NonResizableFileColumnHeaderStyle}" DisplayMemberBinding="{Binding Type}">
+                                <GridViewColumn.Header>
+                                    <TextBlock Text="类型" Tag="Type"/>
+                                </GridViewColumn.Header>
+                            </GridViewColumn>
+
+                            <GridViewColumn x:Name="ColSize" Width="90" HeaderContainerStyle="{StaticResource NonResizableFileColumnHeaderStyle}">
+                                <GridViewColumn.Header>
+                                    <TextBlock Text="大小" Tag="Size"/>
+                                </GridViewColumn.Header>
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Size}" HorizontalAlignment="Right" Margin="0,0,10,0"/>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+
+                            <GridViewColumn x:Name="ColModifiedDate" Width="100" HeaderContainerStyle="{StaticResource NonResizableFileColumnHeaderStyle}" DisplayMemberBinding="{Binding ModifiedDate}">
+                                <GridViewColumn.Header>
+                                    <TextBlock Text="修改日期" Tag="ModifiedDate"/>
+                                </GridViewColumn.Header>
+                            </GridViewColumn>
+
+                            <GridViewColumn Width="60" HeaderContainerStyle="{StaticResource NonResizableFileColumnHeaderStyle}">
+                                <GridViewColumn.Header>
+                                    <TextBlock Text="创建" Tag="CreatedTime"/>
+                                </GridViewColumn.Header>
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Grid ClipToBounds="True">
+                                            <Border Background="{Binding CreatedTimeBrush}" Margin="-6,0" Padding="8,2" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+                                                <TextBlock Text="{Binding CreatedTime}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="Black"/>
+                                            </Border>
+                                        </Grid>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                            
+                            <!-- Tags and Notes columns with configurable widths -->
+                            <!-- Tags column removed as requested -->
+                            <!--
+                            <GridViewColumn x:Name="ColTags" Width="150" HeaderContainerStyle="{StaticResource NonResizableFileColumnHeaderStyle}" DisplayMemberBinding="{Binding Tags}">
+                                <GridViewColumn.Header>
+                                    <TextBlock Text="标签" Tag="Tags"/>
+                                </GridViewColumn.Header>
+                            </GridViewColumn>
+                            -->
+                            <GridViewColumn x:Name="ColNotes" Width="200" HeaderContainerStyle="{StaticResource NonResizableFileColumnHeaderStyle}" DisplayMemberBinding="{Binding Notes}">
+                                <GridViewColumn.Header>
+                                    <TextBlock Text="备注" Tag="Notes"/>
+                                </GridViewColumn.Header>
+                            </GridViewColumn>
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+                
+
+                
+                <!-- 加载更多按钮 -->
+                <Button x:Name="LoadMoreBtn" Content="加载更多" Width="88" Height="28"
+                        HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="8"
+                        Visibility="Collapsed" Click="LoadMoreBtn_Click"/>
+                
+                <!-- 空状态提示 -->
+                <TextBlock x:Name="EmptyStateText" 
+                           Text="暂无文件"
+                           FontSize="16"
+                           Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           Visibility="Collapsed"/>
+                
+                <!-- 框选覆盖层 - 仅用于绘制选择矩形，不拦截鼠标事件 -->
+                <Canvas x:Name="LassoSelectionCanvas" 
+                        Background="Transparent" 
+                        IsHitTestVisible="False"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Stretch"
+                        Panel.ZIndex="100"/>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>
+
+

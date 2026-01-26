@@ -1,0 +1,21 @@
+<UserControl x:Class="YiboFile.Controls.Settings.SearchSettingsPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" 
+             d:DesignHeight="600" d:DesignWidth="600">
+    <UserControl.Resources>
+        <!-- No local resources needed, styles inherit from App.xaml -->
+    </UserControl.Resources>
+    
+    <Grid>
+        <!-- 内容由 Code-Behind 动态构建，与 GeneralSettingsPanel 保持一致的风格 -->
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Name="MainStackPanel" Margin="0">
+                <!-- 动态内容 -->
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>
+

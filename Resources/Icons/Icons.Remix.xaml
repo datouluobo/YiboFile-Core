@@ -1,0 +1,72 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+    
+    <!-- Remix Icon Font (Requires font file in Resources/Fonts/remixicon.ttf) -->
+    <FontFamily x:Key="IconFontFamily">pack://application:,,,/Resources/Fonts/#remixicon</FontFamily>
+    
+    <!-- Window Control Icon Size -->
+    <sys:Double x:Key="WindowControlIconSize">16</sys:Double>
+
+    <!-- Generic Icon Keys -->
+    <sys:String x:Key="Icon_Copy">&#xEE75;</sys:String>   <!-- ri-file-copy-line -->
+    <sys:String x:Key="Icon_Edit">&#xF06C;</sys:String>   <!-- ri-pencil-line -->
+    <sys:String x:Key="Icon_Format">&#xF0E7;</sys:String> <!-- ri-magic-line -->
+    <sys:String x:Key="Icon_Render">&#xEEE1;</sys:String> <!-- ri-brush-line -->
+    <sys:String x:Key="Icon_Wrap">&#xF1D0;</sys:String>   <!-- ri-text-wrap -->
+    <sys:String x:Key="Icon_OpenExternal">&#xF035;</sys:String> <!-- ri-folder-open-line -->
+    <sys:String x:Key="Icon_ChevronUp">&#xEA78;</sys:String>    <!-- ri-arrow-up-s-line -->
+    <sys:String x:Key="Icon_ChevronDown">&#xEA74;</sys:String>  <!-- ri-arrow-down-s-line -->
+    <sys:String x:Key="Icon_Search">&#xF0D1;</sys:String>       <!-- ri-search-line -->
+    <sys:String x:Key="Icon_Settings">&#xF0E1;</sys:String>     <!-- ri-settings-3-line -->
+    <sys:String x:Key="Icon_Filter">&#xEBCA;</sys:String>       <!-- ri-filter-line -->
+    <sys:String x:Key="Icon_Add">&#xEA13;</sys:String>          <!-- ri-add-line -->
+    <sys:String x:Key="Icon_Delete_Outline">&#xEB9A;</sys:String> <!-- ri-delete-bin-line -->
+    <sys:String x:Key="Icon_NewFolder">&#xEF44;</sys:String>      <!-- ri-folder-add-line -->
+    <sys:String x:Key="Icon_NewFile">&#xEEAE;</sys:String>        <!-- ri-file-add-line -->
+    <sys:String x:Key="Icon_Refresh">&#xF01A;</sys:String>        <!-- ri-refresh-line -->
+    <sys:String x:Key="Icon_Desktop">&#xF035;</sys:String>        <!-- ri-computer-line (using generic monitor) -->
+    <sys:String x:Key="Icon_User">&#xF206;</sys:String>           <!-- ri-user-line -->
+
+    <!-- Navigation / Toolbar Icons -->
+    <sys:String x:Key="Icon_Back">&#xEA60;</sys:String>       <!-- ri-arrow-left-line -->
+    <sys:String x:Key="Icon_Forward">&#xEA6C;</sys:String>    <!-- ri-arrow-right-line -->
+    <sys:String x:Key="Icon_Up">&#xEA76;</sys:String>         <!-- ri-arrow-up-line -->
+    <sys:String x:Key="Icon_ViewList">&#xEFC1;</sys:String>   <!-- ri-list-check -->
+    <sys:String x:Key="Icon_ViewThumb">&#xEEFA;</sys:String>  <!-- ri-grid-line -->
+
+    <!-- File/Folder Icons -->
+    <sys:String x:Key="Icon_Drive">&#xED8F;</sys:String>      <!-- ri-hard-drive-line -->
+    <sys:String x:Key="Icon_Folder">&#xEF43;</sys:String>     <!-- ri-folder-line -->
+    <sys:String x:Key="Icon_File">&#xEEAC;</sys:String>       <!-- ri-file-line -->
+    <sys:String x:Key="Icon_Music">&#xF003;</sys:String>      <!-- ri-music-line -->
+    <sys:String x:Key="Icon_Video">&#xF00B;</sys:String>      <!-- ri-movie-line -->
+    <sys:String x:Key="Icon_Image">&#xEEBF;</sys:String>      <!-- ri-image-line -->
+    <sys:String x:Key="Icon_Document">&#xEEB2;</sys:String>   <!-- ri-file-text-line -->
+
+    <!-- Navigation Panel Specific -->
+    <sys:String x:Key="Icon_Nav_Path">&#xEE3D;</sys:String>   <!-- ri-earth-line -->
+    <sys:String x:Key="Icon_Nav_Library">&#xEB1F;</sys:String> <!-- ri-book-open-line -->
+    <sys:String x:Key="Icon_Nav_Tag">&#xF08B;</sys:String>    <!-- ri-price-tag-3-line -->
+    
+    <!-- Window Control Icons -->
+    <sys:String x:Key="Icon_Window_Settings">&#xF0E1;</sys:String>
+    <sys:String x:Key="Icon_Window_About">&#xEECE;</sys:String>
+    <sys:String x:Key="Icon_Window_Minimize">&#xF1AF;</sys:String> <!-- ri-subtract-line -->
+    <sys:String x:Key="Icon_Window_Maximize">&#xEE34;</sys:String> <!-- ri-checkbox-blank-line -->
+    <sys:String x:Key="Icon_Window_Restore">&#xEB7B;</sys:String>  <!-- ri-checkbox-multiple-blank-line -->
+    <sys:String x:Key="Icon_Window_Close">&#xEB99;</sys:String>    <!-- ri-close-line -->
+    
+    <!-- Layout Mode Icons -->
+    <sys:String x:Key="Icon_Layout_Focus">&#xEFC3;</sys:String>     <!-- ri-layout-column-line (single) -->
+    <sys:String x:Key="Icon_Layout_Work">&#xEFC7;</sys:String>      <!-- ri-layout-left-line (two columns) -->
+    <sys:String x:Key="Icon_Layout_Full">&#xEFC1;</sys:String>      <!-- ri-layout-3-line (three columns) -->
+    
+    <!-- Toast / Status Icons -->
+    <sys:String x:Key="Icon_Success">&#xEB7F;</sys:String>    <!-- ri-check-line -->
+    <sys:String x:Key="Icon_Error">&#xEB99;</sys:String>      <!-- ri-close-line -->
+    <sys:String x:Key="Icon_Warning">&#xEA20;</sys:String>    <!-- ri-alert-line -->
+    <sys:String x:Key="Icon_Info">&#xEECE;</sys:String>       <!-- ri-information-line -->
+    <sys:String x:Key="Icon_Close">&#xEB99;</sys:String>      <!-- ri-close-line -->
+
+</ResourceDictionary>

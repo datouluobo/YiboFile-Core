@@ -1,0 +1,132 @@
+<Window x:Class="YiboFile.Dialogs.ConflictResolutionDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="文件冲突" 
+        Width="480"
+        SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        WindowStyle="ToolWindow"
+        Background="{DynamicResource AppBackgroundBrush}">
+    <Window.Resources>
+        <Style x:Key="ConflictButtonStyle" TargetType="Button">
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlHoverBackgroundBrush}"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource AccentDefaultBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlPressedBackgroundBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="AccentConflictButtonStyle" TargetType="Button" BasedOn="{StaticResource ConflictButtonStyle}">
+            <Setter Property="Background" Value="{DynamicResource AccentLightBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource AccentDefaultBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentDefaultBrush}"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+        </Style>
+    </Window.Resources>
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- 图标和标题 -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,16">
+            <TextBlock Text="⚠" FontSize="28" Foreground="{DynamicResource SemanticWarningBrush}" 
+                       VerticalAlignment="Center" Margin="0,0,12,0"/>
+            <TextBlock Text="目标位置已存在同名文件" FontSize="18" FontWeight="SemiBold"
+                       Foreground="{DynamicResource ForegroundPrimaryBrush}" VerticalAlignment="Center"/>
+        </StackPanel>
+
+        <!-- 文件名 -->
+        <TextBlock x:Name="FileNameText" Grid.Row="1" 
+                   Text="filename.txt"
+                   FontSize="14"
+                   Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                   TextWrapping="Wrap"
+                   Margin="0,0,0,24"/>
+
+        <!-- 直接按钮区域 -->
+        <Grid Grid.Row="2" Margin="0,0,0,20">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="16"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            
+            <!-- 单个文件操作 -->
+            <StackPanel Grid.Column="0">
+                <TextBlock Text="仅当前文件" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"/>
+                <Button Content="📋 覆盖" Tag="Overwrite" Click="DirectButton_Click"
+                        Style="{StaticResource ConflictButtonStyle}"
+                        Background="{DynamicResource ControlDefaultBackgroundBrush}"
+                        Foreground="{DynamicResource ForegroundPrimaryBrush}"
+                        BorderBrush="{DynamicResource BorderSubtleBrush}"/>
+                <Button Content="⏭ 跳过" Tag="Skip" Click="DirectButton_Click"
+                        Style="{StaticResource ConflictButtonStyle}"
+                        Background="{DynamicResource ControlDefaultBackgroundBrush}"
+                        Foreground="{DynamicResource ForegroundPrimaryBrush}"
+                        BorderBrush="{DynamicResource BorderSubtleBrush}"/>
+                <Button Content="📄 保留两者" Tag="Rename" Click="DirectButton_Click"
+                        Style="{StaticResource AccentConflictButtonStyle}"
+                        ToolTip="自动重命名"/>
+            </StackPanel>
+
+            <!-- 所有文件操作 -->
+            <StackPanel Grid.Column="2" x:Name="AllFilesPanel" Visibility="Visible">
+                <TextBlock Text="所有冲突文件" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"/>
+                <Button Content="📋 覆盖全部" Tag="OverwriteAll" Click="DirectButton_Click"
+                        Style="{StaticResource ConflictButtonStyle}"
+                        Background="{DynamicResource ControlDefaultBackgroundBrush}"
+                        Foreground="{DynamicResource ForegroundPrimaryBrush}"
+                        BorderBrush="{DynamicResource BorderSubtleBrush}"/>
+                <Button Content="⏭ 跳过全部" Tag="SkipAll" Click="DirectButton_Click"
+                        Style="{StaticResource ConflictButtonStyle}"
+                        Background="{DynamicResource ControlDefaultBackgroundBrush}"
+                        Foreground="{DynamicResource ForegroundPrimaryBrush}"
+                        BorderBrush="{DynamicResource BorderSubtleBrush}"/>
+                <Button Content="📄 保留全部" Tag="RenameAll" Click="DirectButton_Click"
+                        Style="{StaticResource AccentConflictButtonStyle}"
+                        ToolTip="自动重命名所有冲突文件"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- 底部操作 -->
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="取消操作" 
+                    Padding="16,8"
+                    Click="CancelAll_Click"
+                    Background="Transparent"
+                    Foreground="{DynamicResource SemanticErrorBrush}"
+                    BorderThickness="0" Cursor="Hand"/>
+        </StackPanel>
+    </Grid>
+</Window>
+

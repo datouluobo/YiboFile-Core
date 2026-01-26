@@ -1,0 +1,73 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+    
+    <!-- Material Icons (Requires MaterialIcons-Regular.ttf) -->
+    <!-- Font Name is typically 'Material Icons' -->
+    <FontFamily x:Key="IconFontFamily">pack://application:,,,/Resources/Fonts/#Material Icons</FontFamily>
+    
+    <!-- Window Control Icon Size -->
+    <sys:Double x:Key="WindowControlIconSize">16</sys:Double>
+
+    <!-- Generic Icon Keys -->
+    <sys:String x:Key="Icon_Copy">&#xE14D;</sys:String>         <!-- content_copy -->
+    <sys:String x:Key="Icon_Edit">&#xE3C9;</sys:String>         <!-- edit -->
+    <sys:String x:Key="Icon_Format">&#xE254;</sys:String>       <!-- auto_fix_high -->
+    <sys:String x:Key="Icon_Render">&#xE3AE;</sys:String>       <!-- brush -->
+    <sys:String x:Key="Icon_Wrap">&#xE25C;</sys:String>         <!-- wrap_text -->
+    <sys:String x:Key="Icon_OpenExternal">&#xE2C8;</sys:String> <!-- folder_open -->
+    <sys:String x:Key="Icon_ChevronUp">&#xE5C7;</sys:String>    <!-- expand_less -->
+    <sys:String x:Key="Icon_ChevronDown">&#xE5C5;</sys:String>  <!-- expand_more -->
+    <sys:String x:Key="Icon_Search">&#xE8B6;</sys:String>       <!-- search -->
+    <sys:String x:Key="Icon_Settings">&#xE8B8;</sys:String>     <!-- settings -->
+    <sys:String x:Key="Icon_Filter">&#xE152;</sys:String>       <!-- filter_list -->
+    <sys:String x:Key="Icon_Add">&#xE145;</sys:String>          <!-- add -->
+    <sys:String x:Key="Icon_Delete_Outline">&#xE872;</sys:String> <!-- delete -->
+    <sys:String x:Key="Icon_NewFolder">&#xE2CC;</sys:String>      <!-- create_new_folder -->
+    <sys:String x:Key="Icon_NewFile">&#xE24E;</sys:String>        <!-- note_add -->
+    <sys:String x:Key="Icon_Refresh">&#xE5D5;</sys:String>        <!-- refresh -->
+    <sys:String x:Key="Icon_Desktop">&#xE30C;</sys:String>        <!-- computer -->
+    <sys:String x:Key="Icon_User">&#xE853;</sys:String>           <!-- person -->
+
+    <!-- Navigation / Toolbar Icons -->
+    <sys:String x:Key="Icon_Back">&#xE5C4;</sys:String>       <!-- arrow_back -->
+    <sys:String x:Key="Icon_Forward">&#xE5C8;</sys:String>    <!-- arrow_forward -->
+    <sys:String x:Key="Icon_Up">&#xE5D8;</sys:String>         <!-- arrow_upward -->
+    <sys:String x:Key="Icon_ViewList">&#xE896;</sys:String>   <!-- view_list -->
+    <sys:String x:Key="Icon_ViewThumb">&#xE42A;</sys:String>  <!-- grid_view -->
+
+    <!-- File/Folder Icons -->
+    <sys:String x:Key="Icon_Drive">&#xE1DB;</sys:String>      <!-- storage -->
+    <sys:String x:Key="Icon_Folder">&#xE2C7;</sys:String>     <!-- folder -->
+    <sys:String x:Key="Icon_File">&#xE24D;</sys:String>       <!-- description -->
+    <sys:String x:Key="Icon_Music">&#xE405;</sys:String>      <!-- music_note -->
+    <sys:String x:Key="Icon_Video">&#xE04B;</sys:String>      <!-- movie -->
+    <sys:String x:Key="Icon_Image">&#xE3F4;</sys:String>      <!-- image -->
+    <sys:String x:Key="Icon_Document">&#xE873;</sys:String>   <!-- article -->
+
+    <!-- Navigation Panel Specific -->
+    <sys:String x:Key="Icon_Nav_Path">&#xE80B;</sys:String>   <!-- public -->
+    <sys:String x:Key="Icon_Nav_Library">&#xE030;</sys:String> <!-- library_books -->
+    <sys:String x:Key="Icon_Nav_Tag">&#xE54E;</sys:String>    <!-- local_offer -->
+    
+    <!-- Window Control Icons -->
+    <sys:String x:Key="Icon_Window_Settings">&#xE8B8;</sys:String>
+    <sys:String x:Key="Icon_Window_About">&#xE88E;</sys:String> <!-- info_outline -->
+    <sys:String x:Key="Icon_Window_Minimize">&#xE15B;</sys:String> <!-- remove -->
+    <sys:String x:Key="Icon_Window_Maximize">&#xE3C6;</sys:String> <!-- crop_square -->
+    <sys:String x:Key="Icon_Window_Restore">&#xE3C9;</sys:String>  <!-- filter_none (placeholder for restore) -->
+    <sys:String x:Key="Icon_Window_Close">&#xE5CD;</sys:String>    <!-- close -->
+    
+    <!-- Layout Mode Icons -->
+    <sys:String x:Key="Icon_Layout_Focus">&#xE8EF;</sys:String>     <!-- view_week (single column) -->
+    <sys:String x:Key="Icon_Layout_Work">&#xE8EC;</sys:String>      <!-- view_day (two columns) -->
+    <sys:String x:Key="Icon_Layout_Full">&#xE8A9;</sys:String>      <!-- view_quilt (three columns) -->
+    
+    <!-- Toast / Status Icons -->
+    <sys:String x:Key="Icon_Success">&#xE876;</sys:String>    <!-- check -->
+    <sys:String x:Key="Icon_Error">&#xE5CD;</sys:String>      <!-- close -->
+    <sys:String x:Key="Icon_Warning">&#xE002;</sys:String>    <!-- warning -->
+    <sys:String x:Key="Icon_Info">&#xE88E;</sys:String>       <!-- info_outline -->
+    <sys:String x:Key="Icon_Close">&#xE5CD;</sys:String>      <!-- close -->
+
+</ResourceDictionary>

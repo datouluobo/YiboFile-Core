@@ -1,0 +1,713 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Input;
+using System.Windows.Threading;
+using System.Diagnostics;
+using System.IO;
+using YiboFile.Handlers;
+using HandlerMouseEventHandler = YiboFile.Handlers.MouseEventHandler;
+using YiboFile.Services;
+using YiboFile.Services.FileNotes;
+using YiboFile.Services.FileOperations;
+using YiboFile.Services.Navigation;
+using YiboFile.Services.Search;
+using YiboFile.Services.Tabs;
+using Microsoft.Extensions.DependencyInjection;
+using YiboFile.Services.Settings;
+// using YiboFile.Services.TagTrain; // Phase 2
+// using TagTrain.UI; // Phase 2
+using System.Windows.Media;
+using YiboFile.Services.Core;
+
+namespace YiboFile
+{
+    public partial class MainWindow
+    {
+        internal void CloseOverlays()
+        {
+            if (SettingsOverlay != null && SettingsOverlay.Visibility == Visibility.Visible)
+            {
+                SettingsOverlay.Visibility = Visibility.Collapsed;
+            }
+            if (AboutOverlay != null && AboutOverlay.Visibility == Visibility.Visible)
+            {
+                AboutOverlay.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        private void InitializeHandlers()
+        {
+            // 订阅 TabManager 的关闭覆盖层请求
+            if (TabManager != null)
+            {
+                TabManager.CloseOverlayRequested += (s, e) => CloseOverlays();
+            }
+
+            // 初始化 FileBrowserEventHandler
+            _fileBrowserEventHandler = new FileBrowserEventHandler(
+                FileBrowser,
+                _navigationCoordinator,
+                _tabService,
+                _searchService, // searchService
+                _searchCacheService,
+                NavigateToPath,
+                (query) => PerformSearch(query, _searchOptions?.SearchNames ?? true, _searchOptions?.SearchNotes ?? true),
+                SwitchNavigationMode,
+                LoadCurrentDirectory,
+                () => // ClearFilter
+                {
+                    FileBrowser.IsAddressReadOnly = false;
+                    FileBrowser.SetTagBreadcrumb(null);
+                    LoadCurrentDirectory();
+                    // Also hide empty state
+                    HideEmptyStateMessage();
+                },
+                HideEmptyStateMessage,
+                (header) => GridViewColumnHeader_Click(header, null), // Action<GridViewColumnHeader> -> Wrapped
+                FileBrowser_FilesSizeChanged, // Action<SizeChangedEventArgs>
+                FileBrowser_GridSplitterDragDelta, // Action<DragDeltaEventArgs>
+                () => _currentPath,
+                () => _configService?.Config,
+                () => null,
+                (tag) => { },
+                () => _currentFiles,
+                (files) => _currentFiles = files,
+                () => _searchOptions,
+                (e) => { }, // FilesListView_SelectionChanged
+                (e) => { }, // FilesListView_MouseDoubleClick
+                (e) => { }, // PreviewMouseDoubleClick - not used
+                (e) => { }, // PreviewKeyDown - handled by KeyboardEventHandler
+                (e) => { }, // FilesListView_PreviewMouseLeftButtonDown
+                (e) => { }, // FilesListView_MouseLeftButtonUp
+                (e) => { }, // FilesListView_PreviewMouseDown
+                (e) =>
+                {
+                    var result = _navigationService?.NavigateUp();
+                    if (result != null)
+                    {
+                        // Actually perform the UI navigation with the returned path!
+                        NavigateToPath(result);
+                        e.Handled = true;
+                    }
+                }, // FilesListView_PreviewMouseDoubleClickForBlank
+                (e) => { }, // FilesListView_PreviewMouseMove handled by DragDropManager directly
+                () => ColLeft, // Func<ColumnDefinition>
+                (e) => // CommitRename
+                {
+                    var (browser, path, library) = GetActiveContext();
+                    Services.FileOperations.IFileOperationContext context = null;
+                    if (library != null)
+                        context = new Services.FileOperations.LibraryOperationContext(library, browser, this, RefreshActiveFileList);
+                    else
+                        context = new Services.FileOperations.PathOperationContext(path, browser, this, RefreshActiveFileList);
+
+                    var op = new Services.FileOperations.RenameOperation(context, this, _fileOperationService);
+                    op.Execute(e.Item, e.NewName);
+                }
+            );
+            _fileBrowserEventHandler.Initialize();
+
+            _selectionEventHandler = new SelectionEventHandler(
+                this,
+                _previewService, // Was _filePreviewService, but InitializeServices uses _previewService
+                _fileNotesUIHandler,
+                item => _fileInfoService?.ShowFileInfo(item), // Was UpdateFileInfoPanel(item)
+                () => ClearPreviewAndInfo(),
+                _fileListService,
+                () => _currentFiles,
+                () => _currentPath
+            );
+
+            // 初始化 ColumnInteractionHandler
+            _columnInteractionHandler = new Handlers.ColumnInteractionHandler(this, FileBrowser, _columnService, _configService);
+            _columnInteractionHandler.Initialize();
+            _columnInteractionHandler.HookHeaderThumbs(); // 挂载列头拖拽事件
+
+            // 初始化 Second ColumnInteractionHandler
+            if (SecondFileBrowser != null)
+            {
+                _secondColumnInteractionHandler = new Handlers.ColumnInteractionHandler(this, SecondFileBrowser, _columnService, _configService);
+                _secondColumnInteractionHandler.Initialize();
+                _secondColumnInteractionHandler.Initialize();
+                _secondColumnInteractionHandler.HookHeaderThumbs();
+
+                // Wire up SecondFileBrowser Sorting
+                SecondFileBrowser.GridViewColumnHeaderClick += SecondGridViewColumnHeader_Click;
+
+                // Wire up SecondFileBrowser Filter Click
+                SecondFileBrowser.FilterClicked += (s, e) =>
+                {
+                    try
+                    {
+                        if (_searchOptions == null) return;
+                        SecondFileBrowser.ToggleFilterPanel(_searchOptions, (sender, args) =>
+                        {
+                            var view = System.Windows.Data.CollectionViewSource.GetDefaultView(SecondFileBrowser.FilesItemsSource);
+                            if (view != null)
+                            {
+                                view.Filter = obj =>
+                                {
+                                    if (obj is not FileSystemItem item) return true;
+                                    var opts = _searchOptions;
+                                    // Reuse static logic from FileBrowserEventHandler
+                                    if (opts.Type != FileTypeFilter.All && !Handlers.FileBrowserEventHandler.MatchesTypeFilter(item, opts.Type)) return false;
+                                    if (opts.DateRange != DateRangeFilter.All && !Handlers.FileBrowserEventHandler.MatchesDateFilter(item, opts.DateRange)) return false;
+                                    if (opts.SizeRange != SizeRangeFilter.All && !Handlers.FileBrowserEventHandler.MatchesSizeFilter(item, opts.SizeRange)) return false;
+                                    return true;
+                                };
+                                view.Refresh();
+                            }
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[SecondFilterClicked] Error: {ex.Message}");
+                    }
+                };
+            }
+
+            // 初始化 WindowLifecycleHandler
+            _windowLifecycleHandler = new Handlers.WindowLifecycleHandler(this, _windowStateManager, _configService, _columnService);
+
+            // 初始化统一文件操作服务 (新架构) - 逐步迁移中
+            var errorService = App.ServiceProvider.GetRequiredService<YiboFile.Services.Core.Error.ErrorService>();
+            var undoService = App.ServiceProvider.GetService(typeof(YiboFile.Services.FileOperations.Undo.UndoService)) as YiboFile.Services.FileOperations.Undo.UndoService;
+            var taskQueueService = App.ServiceProvider.GetService(typeof(YiboFile.Services.FileOperations.TaskQueue.TaskQueueService)) as YiboFile.Services.FileOperations.TaskQueue.TaskQueueService;
+
+            // 初始化 FileOperationHandler
+            _fileOperationHandler = new Handlers.FileOperationHandler(this, undoService);
+
+            // Wire up Undo/Redo events from FileBrowser
+            if (FileBrowser != null)
+            {
+                FileBrowser.FileUndo += (s, e) => _fileOperationHandler.PerformUndo();
+                FileBrowser.FileRedo += (s, e) => _fileOperationHandler.PerformRedo();
+            }
+
+
+
+            // 初始化 Main FileListEventHandler
+            _mainFileListHandler = new Handlers.FileListEventHandler(
+                FileBrowser,
+                _navigationCoordinator,
+                item => _fileInfoService?.ShowFileInfo(item),
+                item => _previewService?.LoadFilePreview(item),
+                item => _fileNotesUIHandler?.LoadFileNotes(item), // Fixed: Pass item, not item.Path
+                path => { _folderSizeCalculationService?.CalculateAndUpdateFolderSizeAsync(path); }, // Fixed: Fire-and-forget async update
+                () => ClearPreviewAndInfo(),
+                () => _currentLibrary != null, // IsLibraryMode
+                mode => SwitchNavigationMode(mode),
+                path => NavigateToPath(path),
+                () => Back_Click_Logic(),
+                col => AutoSizeGridViewColumn(col),
+                () => _currentPath,
+                () => CopySelectedFilesAsync().Wait(), // Simple wrapper, async void fire-and-forget style for events usually
+                () => PasteFilesAsync().Wait(),
+                () => { _menuEventHandler?.Cut_Click(null, null); },
+                () => DeleteSelectedFilesAsync().Wait(),
+                () => { _menuEventHandler?.Rename_Click(null, null); },
+                () => RefreshActiveFileList(),
+                () => ShowSelectedFileProperties(),
+                (path, force) => CreateTab(path, force) // Main Browser CreateTab
+            );
+            _mainFileListHandler.Initialize(FileBrowser.FilesList);
+
+            // 初始化 Second FileListEventHandler
+            if (SecondFileBrowser != null)
+            {
+                _secondFileListHandler = new Handlers.FileListEventHandler(
+                    SecondFileBrowser,
+                    _navigationCoordinator,
+                    item => _secondFileInfoService?.ShowFileInfo(item), // Assuming generic or specific service
+                    item => { }, // Second browser preview might not be supported or same preview service
+                    item => { }, // Notes?
+                    path => { _folderSizeCalculationService?.CalculateAndUpdateFolderSizeAsync(path); },
+                    () => { }, // Clear preview?
+                    () => false, // Second browser usually Path mode only for now
+                    mode => { }, // Switch mode?
+                    path => LoadSecondFileBrowserDirectory(path),
+                    () => { /* Second Browser Back Logic? */ },
+                    col => AutoSizeGridViewColumn(col), // Helper might need adjustment for second browser context
+                    () => _secondCurrentPath,
+                    () => CopySelectedFilesAsync().Wait(),
+                    () => PasteFilesAsync().Wait(),
+                    () => { _menuEventHandler?.Cut_Click(null, null); }, // Context aware?
+                    () => { /* Delete logic specific to second browser? Handled by GetActiveContext */ DeleteSelectedFilesAsync().Wait(); },
+                    () => { _menuEventHandler?.Rename_Click(null, null); },
+                    () => LoadSecondFileBrowserDirectory(_secondCurrentPath),
+                    () => ShowSelectedFileProperties(), // Use the new method
+                    (path, force) => _secondTabService?.CreatePathTab(path, force) // Second Browser CreateTab
+                );
+                _secondFileListHandler.Initialize(SecondFileBrowser.FilesList);
+            }
+
+            _fileOperationService = new Services.FileOperations.FileOperationService(
+                () =>
+                {
+                    var (browser, path, library) = GetActiveContext();
+                    return new Services.FileOperations.FileOperationContext
+                    {
+                        TargetPath = path,
+                        CurrentLibrary = library,
+                        OwnerWindow = this,
+                        RefreshCallback = RefreshActiveFileList
+                    };
+                },
+                errorService,
+                undoService,
+                taskQueueService
+            );
+
+            // 监听撤销/重做事件以刷新UI
+            if (undoService != null)
+            {
+                undoService.ActionUndone += (s, e) =>
+                {
+                    Application.Current?.Dispatcher?.Invoke(() => RefreshActiveFileList());
+                };
+                undoService.ActionRedone += (s, e) =>
+                {
+                    Application.Current?.Dispatcher?.Invoke(() => RefreshActiveFileList());
+                };
+            }
+
+            // 初始化 MenuEventHandler
+            _menuEventHandler = new MenuEventHandler(
+                FileBrowser,
+                _libraryService,
+                RefreshActiveFileList,
+                LoadCurrentDirectory,
+                () => // ClearFilter
+                {
+                    FileBrowser.IsAddressReadOnly = false;
+                    FileBrowser.SetTagBreadcrumb(null);
+                    LoadCurrentDirectory();
+                    HideEmptyStateMessage();
+                },
+                () => Close(),
+                () => // settings
+                {
+                    if (SettingsOverlay == null) return;
+                    if (SettingsOverlay.Visibility == Visibility.Visible)
+                    {
+                        SettingsOverlay.Visibility = Visibility.Collapsed;
+                    }
+                    else
+                    {
+                        CloseOverlays(); // Close About if open
+                        _settingsOverlayController?.Show();
+                    }
+                },
+                () => // about
+                {
+                    if (AboutOverlay == null) return;
+                    if (AboutOverlay.Visibility == Visibility.Visible)
+                    {
+                        AboutOverlay.Visibility = Visibility.Collapsed;
+                    }
+                    else
+                    {
+                        CloseOverlays(); // Close Settings if open
+                        AboutOverlay.Visibility = Visibility.Visible;
+                    }
+                },
+                EditNotes_Click_Logic, // Action editNotes
+                () => { }, // BatchAddTags_Click_Logic - Phase 2
+                () => { }, // showTagStatistics - Phase 2
+                ImportLibrary_Click_Logic, // importLibrary
+                ExportLibrary_Click_Logic, // exportLibrary
+                () => { }, // addFileToLibrary - Implement logic if needed
+                async () => await CopySelectedFilesAsync(), // Copy - 使用统一服务
+                async () => await CutSelectedFilesAsync(), // Cut - 使用统一服务
+                async () => await PasteFilesAsync(), // Paste - 使用统一服务
+                async () => await DeleteSelectedFilesAsync(), // Delete - 使用统一服务
+                () => // Rename
+                {
+                    var (browser, path, library) = GetActiveContext();
+                    var item = browser?.FilesSelectedItem as FileSystemItem;
+                    if (item != null)
+                    {
+                        // Trigger inline rename
+                        item.IsRenaming = true;
+                    }
+                },
+                () => ShowSelectedFileProperties(), // ShowProperties
+                NavigateToPath,
+                SwitchNavigationMode,
+                () => GetActiveContext().path,
+                () => GetActiveContext().library,
+                () => GetActiveContext().browser?.FilesItemsSource as System.Collections.Generic.List<FileSystemItem>,
+                (files) =>
+                {
+                    var b = GetActiveContext().browser;
+                    if (b != null) b.FilesItemsSource = files;
+                    if (b == FileBrowser) _currentFiles = files;
+                },
+                () => this,
+                (lib) => _tabService.OpenLibraryTab(lib),
+                (lib) => { }, // HighlightMatchingLibrary
+                () => _libraryService.LoadLibraries(), // LoadLibraries
+                () => LibrariesListBox, // Func<ListBox>
+                () => LibraryContextMenu, // Func<ContextMenu>
+                (ext) => // CreateNewFileWithExtension
+                {
+                    var (browser, path, library) = GetActiveContext();
+                    Services.FileOperations.IFileOperationContext context;
+                    if (library != null)
+                        context = new Services.FileOperations.LibraryOperationContext(library, browser, this, RefreshActiveFileList);
+                    else
+                        context = new Services.FileOperations.PathOperationContext(path, browser, this, RefreshActiveFileList);
+
+                    var op = new Services.FileOperations.NewFileOperation(context, this, _fileOperationService);
+                    op.Execute(ext);
+                },
+                async (path) => // CreateNewFolder
+                {
+                    if (_fileOperationService != null)
+                    {
+                        var parent = System.IO.Path.GetDirectoryName(path);
+                        var name = System.IO.Path.GetFileName(path);
+                        var result = await _fileOperationService.CreateFolderAsync(parent, name);
+                        return result != null;
+                    }
+                    return false;
+                },
+                 () => _configService?.Config,
+                 (cfg) => _configService?.ApplyConfig(cfg),
+                 () => _configService?.SaveCurrentConfig()
+            );
+
+            // 定义获取当前活动标签页服务的逻辑
+            Func<Services.Tabs.TabService> getActiveTabService = () =>
+                (_isDualListMode && _isSecondPaneFocused && _secondTabService != null) ? _secondTabService : _tabService;
+
+            // 初始化 KeyboardEventHandler
+            _keyboardEventHandler = new YiboFile.Handlers.KeyboardEventHandler(
+                FileBrowser,
+                () => GetActiveContext().browser, // NEW: Active browser delegate
+                getActiveTabService,
+                (tab) => getActiveTabService().RemoveTab(tab),
+                (path) => CreateTab(path),
+                (tab) => getActiveTabService().SwitchToTab(tab),
+                () => _menuEventHandler.NewFolder_Click(null, null), // NewFolderClick
+                RefreshFileList,
+                () => _menuEventHandler.Copy_Click(null, null),
+                () => _menuEventHandler.Paste_Click(null, null),
+                () => _menuEventHandler.Cut_Click(null, null),
+                () => _menuEventHandler.Delete_Click(null, null),
+                async () => await DeleteSelectedFilesAsync(permanent: true), // Shift+Delete 永久删除
+                () => _menuEventHandler.Rename_Click(null, null),
+                NavigateToPath,
+                SwitchNavigationMode,
+                () => _currentLibrary != null,
+                Back_Click_Logic, // navigateBack
+                () => Undo_Click(null, null),
+                () => Redo_Click(null, null),
+                SwitchLayoutModeByIndex,  // 添加布局切换回调
+                () => IsDualListMode,     // isDualListMode 检查
+                () => SwitchFocusedPane() // switchDualPaneFocus 回调
+            );
+
+            // 初始化 MouseEventHandler
+            _mouseEventHandler = new HandlerMouseEventHandler(
+                () => WindowMaximize_Click(null, null),
+                () => DragMove(),
+                () => FavoritesListBox,
+                () => QuickAccessListBox,
+                _navigationCoordinator,
+                (fav) => _navigationCoordinator.HandleFavoriteNavigation(fav, NavigationCoordinator.ClickType.LeftClick),
+                (path) => _navigationCoordinator.HandlePathNavigation(path, NavigationCoordinator.NavigationSource.QuickAccess, NavigationCoordinator.ClickType.LeftClick)
+            );
+
+            // TagTrainEventHandler 初始化已移除 - Phase 2将重新实现
+
+            // Initialize Drag & Drop
+            InitializeDragDrop();
+            if (AboutPanel != null)
+            {
+                AboutPanel.CloseRequested += (s, e) =>
+                {
+                    if (AboutOverlay != null) AboutOverlay.Visibility = Visibility.Collapsed;
+                };
+            }
+        }
+
+
+
+
+        private string ExtractPathFromListBoxItem(ListBox listBox, System.Windows.Point position)
+        {
+            var hitResult = VisualTreeHelper.HitTest(listBox, position);
+            if (hitResult == null) return null;
+
+            DependencyObject current = hitResult.VisualHit;
+            while (current != null && current != listBox)
+            {
+                if (current is ListBoxItem item && item.DataContext != null)
+                {
+                    var pathProperty = item.DataContext.GetType().GetProperty("Path");
+                    if (pathProperty != null)
+                    {
+                        return pathProperty.GetValue(item.DataContext) as string;
+                    }
+                }
+                current = VisualTreeHelper.GetParent(current);
+            }
+            return null;
+        }
+
+        private Favorite ExtractFavoriteFromListBoxItem(ListBox listBox, System.Windows.Point position)
+        {
+            var hitResult = VisualTreeHelper.HitTest(listBox, position);
+            if (hitResult == null) return null;
+
+            DependencyObject current = hitResult.VisualHit;
+            while (current != null && current != listBox)
+            {
+                if (current is ListBoxItem item && item.DataContext != null)
+                {
+                    var favoriteProperty = item.DataContext.GetType().GetProperty("Favorite");
+                    if (favoriteProperty != null)
+                    {
+                        return favoriteProperty.GetValue(item.DataContext) as Favorite;
+                    }
+                }
+                current = VisualTreeHelper.GetParent(current);
+            }
+            return null;
+        }
+
+        private void TitleBar_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            // 如果是在全屏覆盖层打开的情况下点击标题栏空白处，关闭覆盖层
+            if (SettingsOverlay != null && SettingsOverlay.Visibility == Visibility.Visible)
+            {
+                SettingsOverlay.Visibility = Visibility.Collapsed;
+            }
+            if (AboutOverlay != null && AboutOverlay.Visibility == Visibility.Visible)
+            {
+                AboutOverlay.Visibility = Visibility.Collapsed;
+            }
+
+            // 双击最大化/还原
+            if (e.ClickCount == 2 && e.ChangedButton == MouseButton.Left)
+            {
+                if (WindowState == WindowState.Maximized)
+                    WindowState = WindowState.Normal;
+                else
+                    WindowState = WindowState.Maximized;
+                return;
+            }
+
+            // 支持通过拖动标题栏移动窗口
+            if (e.ChangedButton == MouseButton.Left)
+            {
+                try { this.DragMove(); } catch { }
+            }
+        }
+
+
+
+        private void QuickAccessListBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            var listBox = sender as ListBox;
+            if (listBox == null) return;
+
+            var clickType = NavigationCoordinator.GetClickType(e);
+            if (clickType == NavigationCoordinator.ClickType.LeftClick) return; // 左键由SelectionChanged处理
+
+            var path = ExtractPathFromListBoxItem(listBox, e.GetPosition(listBox));
+            if (!string.IsNullOrEmpty(path))
+            {
+                _navigationService.LastLeftNavSource = "QuickAccess";
+                _navigationCoordinator.HandlePathNavigation(path, NavigationCoordinator.NavigationSource.QuickAccess, clickType);
+                e.Handled = true;
+            }
+        }
+
+        private void FavoritesListBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            var listBox = sender as ListBox;
+            if (listBox == null) return;
+
+            var clickType = NavigationCoordinator.GetClickType(e);
+            if (clickType == NavigationCoordinator.ClickType.LeftClick) return; // 左键由SelectionChanged处理
+
+            var favorite = ExtractFavoriteFromListBoxItem(listBox, e.GetPosition(listBox));
+            if (favorite != null)
+            {
+                _navigationService.LastLeftNavSource = "Favorites";
+                _navigationCoordinator.HandleFavoriteNavigation(favorite, clickType);
+                e.Handled = true;
+            }
+        }
+
+        private void ShowSelectedFileProperties()
+        {
+            var (browser, path, library) = GetActiveContext();
+            var item = browser?.FilesSelectedItem as FileSystemItem;
+
+            // 目标路径：优先选中项，否则当前文件夹
+            string targetPath = null;
+            if (item != null && !string.IsNullOrEmpty(item.Path))
+            {
+                targetPath = item.Path;
+            }
+            else if (!string.IsNullOrEmpty(path) && Directory.Exists(path) && !ProtocolManager.IsVirtual(path))
+            {
+                // 注意：只有物理路径才支持文件夹属性
+                targetPath = path;
+            }
+
+            if (!string.IsNullOrEmpty(targetPath))
+            {
+                // 如果是虚拟路径（如 zip 内部），可能无法显示系统属性，给予提示或处理
+                if (ProtocolManager.IsVirtual(targetPath))
+                {
+                    // 暂时不支持压缩包内文件的系统属性
+                    MessageBox.Show($"暂不支持查看此类型的系统属性：\n{targetPath}", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                Services.Core.ShellNative.ShowFileProperties(targetPath);
+            }
+        }
+
+
+
+
+
+        private DateTime _lastColumnClickTime = DateTime.MinValue;
+        private string _lastClickedColumn = null;
+
+        internal void GridViewColumnHeader_Click(object sender, RoutedEventArgs e)
+        {
+            var header = sender as GridViewColumnHeader;
+            if (header == null || FileBrowser == null) return;
+
+            // 防抖：忽略200ms内的重复点击
+            var now = DateTime.Now;
+            var columnTag = header.Tag?.ToString();
+            if ((now - _lastColumnClickTime).TotalMilliseconds < 200 && columnTag == _lastClickedColumn)
+            {
+                return;
+            }
+            _lastColumnClickTime = now;
+            _lastClickedColumn = columnTag;
+
+            _columnService?.HandleColumnHeaderClick(
+                header,
+                _currentFiles,
+                (sortedFiles) =>
+                {
+                    _currentFiles = sortedFiles;
+                    FileBrowser.FilesItemsSource = _currentFiles;
+                },
+                FileBrowser.FilesGrid
+            );
+        }
+
+        internal void SecondGridViewColumnHeader_Click(object sender, RoutedEventArgs e)
+        {
+            var header = sender as GridViewColumnHeader;
+            if (header == null || SecondFileBrowser == null) return;
+
+            // Simple debounce (optional, but good practice)
+            // Reusing same variables might be tricky if dual clicking, but explicit click is serial.
+            // Let's use local debounce if needed or shared - shared is fine for UI clicks.
+            var now = DateTime.Now;
+            var columnTag = header.Tag?.ToString();
+            if ((now - _lastColumnClickTime).TotalMilliseconds < 200 && columnTag == _lastClickedColumn)
+            {
+                return;
+            }
+            _lastColumnClickTime = now;
+            _lastClickedColumn = columnTag;
+
+            var currentFiles = SecondFileBrowser.FilesItemsSource as IEnumerable<FileSystemItem>;
+            if (currentFiles == null) return;
+            var fileList = currentFiles.ToList();
+
+            _columnService?.HandleColumnHeaderClick(
+                header,
+                fileList,
+                (sortedFiles) =>
+                {
+                    SecondFileBrowser.FilesItemsSource = sortedFiles;
+                },
+                SecondFileBrowser.FilesGrid
+            );
+        }
+
+        // ==================== Existing but separate ====================
+
+        private void FileBrowser_FilesSizeChanged(SizeChangedEventArgs e)
+        {
+            _columnService?.AdjustListViewColumnWidths(FileBrowser);
+        }
+
+        private void FileBrowser_GridSplitterDragDelta(DragDeltaEventArgs e)
+        {
+            if (ColLeft != null)
+            {
+                double newWidth = ColLeft.Width.Value + e.HorizontalChange;
+                if (newWidth < 150) newWidth = 150; // Minimum width
+                ColLeft.Width = new GridLength(newWidth);
+            }
+        }
+
+
+
+        // Helpers for MenuEventHandler
+        private void EditNotes_Click_Logic() => _fileNotesUIHandler?.ToggleNotesPanel();
+
+
+
+
+
+        private void Back_Click_Logic()
+        {
+            if (_navigationService != null && _navigationService.CanNavigateBack)
+            {
+                _navigationService.NavigateBack();
+            }
+        }
+
+        private void SetClipboardDataObjectWithRetry(System.Windows.DataObject data)
+        {
+            const int MaxRetries = 10;    // 从50减少到10
+            const int DelayMs = 50;        // 从100ms减少到50ms
+
+            for (int i = 0; i < MaxRetries; i++)
+            {
+                try
+                {
+                    System.Windows.Clipboard.SetDataObject(data, true);
+                    return;
+                }
+                catch (System.Runtime.InteropServices.COMException ex)
+                {
+                    // CLIPBRD_E_CANT_OPEN = 0x800401D0
+                    const uint CLIPBRD_E_CANT_OPEN = 0x800401D0;
+                    if ((uint)ex.ErrorCode != CLIPBRD_E_CANT_OPEN)
+                    {
+                        throw;
+                    }
+                    if (i == MaxRetries - 1)
+                    {
+                        System.Windows.MessageBox.Show("剪贴板被占用，请稍后再试。", "复制失败", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                        return;
+                    }
+                    System.Threading.Thread.Sleep(DelayMs);
+                }
+            }
+        }
+    }
+}
+
