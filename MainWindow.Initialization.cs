@@ -480,7 +480,7 @@ namespace YiboFile
                     NavigationPanelControl.TagBrowsePanelControl.BackRequested += (s, e) =>
                     {
                         // Navigate back when back button is clicked in TagBrowsePanel
-                        NavigateBack_Click(null, null);
+                        _viewModel?.Navigation?.NavigateBackCommand?.Execute(null);
                     };
                 }
             }
@@ -489,9 +489,9 @@ namespace YiboFile
             if (FileBrowser != null)
             {
                 FileBrowser.InfoHeightChanged += FileBrowser_InfoHeightChanged;
-                FileBrowser.NavigationBack += NavigateBack_Click;
-                FileBrowser.NavigationForward += NavigateForward_Click;
-                FileBrowser.NavigationUp += NavigateUp_Click;
+                FileBrowser.NavigationBack += (s, e) => _viewModel?.Navigation?.NavigateBackCommand?.Execute(null);
+                FileBrowser.NavigationForward += (s, e) => _viewModel?.Navigation?.NavigateForwardCommand?.Execute(null);
+                FileBrowser.NavigationUp += (s, e) => _viewModel?.Navigation?.NavigateUpCommand?.Execute(null);
                 FileBrowser.ViewModeChanged += FileBrowser_ViewModeChanged;
 
                 // Toolbar & Context Menu operations
@@ -548,7 +548,7 @@ namespace YiboFile
                 SetCurrentPath = path => _currentPath = path,
                 SetNavigationCurrentPath = path => _navigationService.CurrentPath = path,
                 LoadLibraryFiles = lib => LoadLibraryFiles(lib),
-                NavigateToPathInternal = NavigateToPathInternal,
+                NavigateToPathInternal = NavigateToPathFromModule,
                 UpdateNavigationButtonsState = UpdateNavigationButtonsState,
 
                 SearchService = _searchService,

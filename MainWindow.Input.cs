@@ -127,7 +127,7 @@ namespace YiboFile
             // Backspace - 返回上一级
             if (_keyboardEventHandler.IsActionTriggered(e, "返回上级目录", "Backspace"))
             {
-                NavigateBack_Click(null, null);
+                _viewModel?.Navigation?.NavigateBackCommand?.Execute(null);
                 e.Handled = true;
                 return;
             }
@@ -226,7 +226,7 @@ namespace YiboFile
                     else
                     {
                         // 返回上一级
-                        NavigateBack_Click(null, null);
+                        _viewModel?.Navigation?.NavigateBackCommand?.Execute(null);
                     }
                     e.Handled = true;
                 }

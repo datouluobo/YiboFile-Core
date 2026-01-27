@@ -204,50 +204,9 @@ namespace YiboFile
             // MVVM 迁移: 将标签页选择/创建逻辑委托给 TabsModule
             _viewModel?.Tabs?.NavigateTo(
                 path,
-                onReuseCurrent: () => NavigateToPathInternal(path),
+                onReuseCurrent: () => _viewModel?.Navigation?.NavigateTo(path),
                 onReuseSecond: () => SecondFileBrowser_PathChanged(this, path)
             );
-        }
-
-        private void NavigateToPathInternal(string path)
-        {
-            // 识别虚拟路径
-            bool isVirtualPath = false;
-            if (!string.IsNullOrEmpty(path))
-            {
-                isVirtualPath = ProtocolManager.IsVirtual(path);
-            }
-
-            if (!isVirtualPath && !Directory.Exists(path)) return;
-
-            // ALWAYS sync navigation service state FIRST for all valid paths (including virtual)
-            _currentPath = path;
-            if (_navigationService != null)
-            {
-                _navigationService.CurrentPath = path;
-            }
-            if (NavigationPanelControl != null) NavigationPanelControl.CurrentPath = path;
-
-            var isDriveRoot = false;
-            if (!isVirtualPath)
-            {
-                isDriveRoot = string.Equals(
-                    System.IO.Path.GetPathRoot(path)?.TrimEnd('\\'),
-                    path.TrimEnd('\\'),
-                    StringComparison.OrdinalIgnoreCase);
-            }
-
-            // 如果进入的是文件夹，计算并更新其大小缓存（驱动器根目录跳过，避免耗时）
-            // MVVM 迁移: FileListViewModel 现已处理文件夹大小计算，此处移除重复调用
-            // if (!isVirtualPath && !isDriveRoot)
-            // {
-            //     Task.Run(() => _folderSizeCalculationService.CalculateAndUpdateFolderSizeAsync(path));
-            // }
-
-            LoadCurrentDirectory();
-
-            // 更新属性按钮可见性
-            UpdatePropertiesButtonVisibility();
         }
 
         private void UpdatePropertiesButtonVisibility()

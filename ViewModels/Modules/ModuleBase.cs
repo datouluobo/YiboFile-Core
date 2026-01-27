@@ -8,7 +8,7 @@ namespace YiboFile.ViewModels.Modules
     /// 模块基类
     /// 提供消息订阅管理和生命周期支持
     /// </summary>
-    public abstract class ModuleBase : IModule
+    public abstract class ModuleBase : BaseViewModel, IModule
     {
         private readonly List<IDisposable> _subscriptions = new();
         private bool _disposed;

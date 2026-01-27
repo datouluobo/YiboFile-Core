@@ -1,4 +1,5 @@
 using System;
+using System.Windows.Input;
 using YiboFile.Services.Navigation;
 using YiboFile.Services.Core;
 using YiboFile.ViewModels.Messaging;
@@ -32,6 +33,12 @@ namespace YiboFile.ViewModels.Modules
         /// </summary>
         public bool CanNavigateForward => _navigationService.CanNavigateForward;
 
+        public ICommand NavigateBackCommand { get; private set; }
+        public ICommand NavigateForwardCommand { get; private set; }
+        public ICommand NavigateUpCommand { get; private set; }
+        public ICommand RefreshCommand { get; private set; }
+        public ICommand NavigateToCommand { get; private set; }
+
         public NavigationModule(
             IMessageBus messageBus,
             NavigationService navigationService,
@@ -40,6 +47,38 @@ namespace YiboFile.ViewModels.Modules
         {
             _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
             _onNavigateCallback = onNavigateCallback;
+
+            InitializeCommands();
+        }
+
+        private void InitializeCommands()
+        {
+            NavigateBackCommand = new RelayCommand(
+                () => NavigateBack(),
+                () => CanNavigateBack);
+
+            NavigateForwardCommand = new RelayCommand(
+                () => NavigateForward(),
+                () => CanNavigateForward);
+
+            NavigateUpCommand = new RelayCommand(
+                () => NavigateUp(),
+                () => !string.IsNullOrEmpty(CurrentPath)); // Simple check, could be more complex
+
+            RefreshCommand = new RelayCommand(
+                () => Publish(new RefreshFileListMessage())); // Need to define this message or use callback
+
+            NavigateToCommand = new RelayCommand<string>(
+                path => NavigateTo(path));
+        }
+
+        private void UpdateCommandStates()
+        {
+            OnPropertyChanged(nameof(CanNavigateBack));
+            OnPropertyChanged(nameof(CanNavigateForward));
+            OnPropertyChanged(nameof(CurrentPath));
+
+            System.Windows.Input.CommandManager.InvalidateRequerySuggested();
         }
 
         protected override void OnInitialize()
@@ -65,6 +104,8 @@ namespace YiboFile.ViewModels.Modules
 
             // 回调（过渡期使用）
             _onNavigateCallback?.Invoke(message.Path);
+
+            UpdateCommandStates();
         }
 
         private void OnNavigateBack(NavigateBackMessage message)
@@ -77,6 +118,7 @@ namespace YiboFile.ViewModels.Modules
                 Publish(new PathChangedMessage(newPath, oldPath));
                 _onNavigateCallback?.Invoke(newPath);
             }
+            UpdateCommandStates();
         }
 
         private void OnNavigateForward(NavigateForwardMessage message)
@@ -89,6 +131,7 @@ namespace YiboFile.ViewModels.Modules
                 Publish(new PathChangedMessage(newPath, oldPath));
                 _onNavigateCallback?.Invoke(newPath);
             }
+            UpdateCommandStates();
         }
 
         private void OnNavigateUp(NavigateUpMessage message)
@@ -101,6 +144,7 @@ namespace YiboFile.ViewModels.Modules
                 Publish(new PathChangedMessage(parentPath, oldPath));
                 _onNavigateCallback?.Invoke(parentPath);
             }
+            UpdateCommandStates();
         }
 
         #endregion
@@ -168,5 +212,12 @@ namespace YiboFile.ViewModels.Modules
         }
 
         #endregion
+    }
+
+    // Define simple refresh message if not exists, or just omit RefreshCommand implementation detail for now
+    public class RefreshFileListMessage
+    {
+        public string Path { get; }
+        public RefreshFileListMessage(string path = null) => Path = path;
     }
 }

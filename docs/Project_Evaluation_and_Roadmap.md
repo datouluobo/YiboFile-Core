@@ -99,6 +99,7 @@
 | **P1** | 迁移 `MainWindow.Navigation.cs` (Loading Logic) | 1天 | ✅ 已完成 |
 | **P1** | 迁移 `MainWindow.Navigation.cs` (Tab Selection) | 1-2天 | ✅ 已完成 |
 | **P1** | 迁移 `MainWindow.Tabs.cs` → `TabsModule` | 2-3天 | ✅ 已完成 |
+| **P1** | 迁移 MainWindow 导航事件到 Command | 1天 | ✅ 已完成 |
 | **P2** | 拆分 `DocumentPreview.cs` | 1天 | ✅ 已完成 |
 | **P2** | 拆分 `TabService.cs` | 1-2天 | ✅ 已完成 |
 | **P3** | 拆分 `SettingsViewModel.cs` | 1天 | ✅ 已完成 |

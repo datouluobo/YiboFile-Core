@@ -250,56 +250,15 @@ namespace YiboFile
             InitializeHandlers();
 
             // Step 3: Initialize Events (UI interactions)
+            // 初始化 MVVM 架构 (Before Events to ensure ViewModel is ready for command binding)
+            InitializeMvvmModules();
+
             // Step 3: Initialize Events (UI interactions)
             InitializeEvents();
-            InitializeRailEvents(); // Hook up Rail events
+            InitializeRailEvents();
 
-            // Step 3.5: Initialize Clipboard History (must be after window handle is available)
-            InitializeClipboardHistory();
-
-            // Step 4: Apply Initial State (Logic/UI Update Phase)
+            // Step 4: Apply Initial State (Load data, Restore persistence)
             initializer.ApplyInitialState();
-
-            // 订阅标签页管理器的新建标签页事件
-            TabManager.NewTabRequested += (s, e) =>
-            {
-                // 创建空白标签页
-                CreateTab(Environment.GetFolderPath(Environment.SpecialFolder.Desktop));
-            };
-
-            // 订阅剪切状态变化事件，更新文件半透明效果
-            Services.FileOperations.ClipboardService.Instance.CutStateChanged += (cutPaths) =>
-            {
-                Dispatcher.BeginInvoke(new Action(() => UpdateCutItemsVisualState(cutPaths)));
-            };
-
-            // Hook up dynamic tab margin adjustment
-            if (WindowButtonsStackPanel != null)
-            {
-                // 订阅窗口按钮栏size变化以调整TabManager的Margin
-                WindowButtonsStackPanel.SizeChanged += (s, e) => UpdateTabManagerMargin();
-            }
-
-            // 初始化时和窗口状态/大小变化时更新TabManager的Margin
-            this.Loaded += (s, e) => UpdateTabManagerMargin();
-            this.Loaded += (s, e) => InitializeLayoutMode(); // 初始化布局(仅恢复)
-            this.StateChanged += (s, e) => UpdateTabManagerMargin();
-            this.SizeChanged += (s, e) => UpdateTabManagerMargin();
-
-            // 立即更新一次
-            UpdateTabManagerMargin();
-
-            // 标签服务将通过依赖注入获取接口实现
-            _tagService = App.ServiceProvider?.GetService<YiboFile.Services.Features.ITagService>();
-
-            if (_tagService != null)
-            {
-                _tagService.TagUpdated += OnTagUpdated;
-            }
-            // LoadTagsToSidebar(); // Phase 2 - 标签 UI 控件已移至 Pro 模块
-
-            // 初始化 MVVM 架构
-            InitializeMvvmModules();
         }
 
         /// <summary>
@@ -321,6 +280,7 @@ namespace YiboFile
                 path => NavigateToPathFromModule(path));
             _viewModel.RegisterModule(_navigationModule);
 
+
             // 创建并注册标签页模块
             // 注入双列表支持所需的 Service 和 状态判断委托
             _tabsModule = new TabsModule(
@@ -332,6 +292,10 @@ namespace YiboFile
                 (path, activate) => CreateTab(path, activate), // Keep callback for now just in case
                 tabId => { /* SwitchToTab logic */ });
             _viewModel.RegisterModule(_tabsModule);
+
+            // 初始化 NavigationModeService (必需，否则侧栏导航无效)
+            _navigationModeService = new NavigationModeService(this, _navigationService, _tabService, _configService);
+
 
             // 创建并注册文件列表模块
             _fileListModule = new FileListModule(
@@ -357,6 +321,9 @@ namespace YiboFile
             _layoutModule = new LayoutModule(_messageBus);
             _viewModel.Layout = _layoutModule;
             _viewModel.RegisterModule(_layoutModule);
+
+            // 初始化 LayoutMode，订阅 MVVM 消息 (必需，否则布局切换无效)
+            InitializeLayoutMode();
 
             // 创建并注册文件操作模块
             var undoService = App.ServiceProvider.GetService<UndoService>();
@@ -402,10 +369,13 @@ namespace YiboFile
             if (string.IsNullOrEmpty(path)) return;
 
             _currentPath = path;
+            if (NavigationPanelControl != null) NavigationPanelControl.CurrentPath = path;
+
             _tabService?.UpdateActiveTabPath(path);
             ClearFilter();
             LoadCurrentDirectory();
             UpdateNavigationButtonsState();
+            UpdatePropertiesButtonVisibility();
         }
 
         private void OnTagUpdated(int tagId, string newColor)
@@ -647,33 +617,9 @@ namespace YiboFile
 
         #region 事件处理
 
-        internal void NavigateBack_Click(object sender, RoutedEventArgs e)
-        {
-            string path = _navigationService.NavigateBack();
-            if (!string.IsNullOrEmpty(path))
-            {
-                _currentPath = path;
-                // 更新标签页标题
-                _tabService?.UpdateActiveTabPath(path);
-                ClearFilter();
-                LoadCurrentDirectory();
-                UpdateNavigationButtonsState();
-            }
-        }
-
-        private void NavigateForward_Click(object sender, RoutedEventArgs e)
-        {
-            string path = _navigationService.NavigateForward();
-            if (!string.IsNullOrEmpty(path))
-            {
-                _currentPath = path;
-                // 更新标签页标题
-                _tabService?.UpdateActiveTabPath(path);
-                ClearFilter();
-                LoadCurrentDirectory();
-                UpdateNavigationButtonsState();
-            }
-        }
+        // Legacy handlers NavigateBack_Click and NavigateForward_Click have been migrated to MVVM Commands
+        // private void NavigateBack_Click(object sender, RoutedEventArgs e) { ... }
+        // private void NavigateForward_Click(object sender, RoutedEventArgs e) { ... }
 
         private void FileBrowser_ViewModeChanged(object sender, string mode)
         {
@@ -720,24 +666,6 @@ namespace YiboFile
             {
                 _configService.Config.CenterPanelInfoHeight = height;
                 _configService.SaveCurrentConfig();
-            }
-        }
-
-        private void MainWindow_Unloaded(object sender, RoutedEventArgs e)
-        {
-            string parentPath = _navigationService.NavigateUp();
-            if (!string.IsNullOrEmpty(parentPath))
-            {
-                NavigateToPath(parentPath);
-            }
-        }
-
-        private void NavigateUp_Click(object sender, RoutedEventArgs e)
-        {
-            string parentPath = _navigationService.NavigateUp();
-            if (!string.IsNullOrEmpty(parentPath))
-            {
-                NavigateToPath(parentPath);
             }
         }
 

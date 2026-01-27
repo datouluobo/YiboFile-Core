@@ -199,12 +199,14 @@ namespace YiboFile
             _layoutModule?.ToggleDualListMode();
         }
 
+
         /// <summary>
-        /// 切换双列表模式：在预览面板和副文件列表之间切换
+        /// 设置双列表模式
         /// </summary>
-        private void ToggleDualListMode()
+        private void SetDualListMode(bool enable)
         {
-            _isDualListMode = !_isDualListMode;
+            if (_isDualListMode == enable) return;
+            _isDualListMode = enable;
 
             // 切换可见性
             RightPanel.Visibility = _isDualListMode ? Visibility.Collapsed : Visibility.Visible;
@@ -255,9 +257,6 @@ namespace YiboFile
                         _windowStateManager.RestoreSecondaryTabs();
                     }
                 }
-
-                // 移除错误的 UpdateBreadcrumb(_currentPath) 调用，避免覆盖副列表的独立路径
-                // SecondFileBrowser.UpdateBreadcrumb(_currentPath); 
 
                 InitializeSecondFileBrowserEvents();
                 LoadSecondFileBrowserContent();
@@ -949,7 +948,7 @@ namespace YiboFile
             {
                 if (_isDualListMode != m.IsEnabled)
                 {
-                    ToggleDualListMode();
+                    SetDualListMode(m.IsEnabled);
                 }
             });
 
