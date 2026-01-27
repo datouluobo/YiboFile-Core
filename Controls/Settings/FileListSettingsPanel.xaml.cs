@@ -6,6 +6,7 @@ using System.Windows.Data;
 using YiboFile;
 using YiboFile.Services.Config;
 using YiboFile.ViewModels;
+using YiboFile.ViewModels.Settings;
 
 namespace YiboFile.Controls.Settings
 {
@@ -13,7 +14,7 @@ namespace YiboFile.Controls.Settings
     {
         public event EventHandler SettingsChanged;
 
-        private SettingsViewModel _viewModel;
+        private FileListSettingsViewModel _viewModel;
 
         private TextBox _tagsWidthTextBox;
         private Button _tagsWidthUpButton;
@@ -25,14 +26,14 @@ namespace YiboFile.Controls.Settings
         public FileListSettingsPanel()
         {
             InitializeComponent();
-            _viewModel = new SettingsViewModel();
+            _viewModel = new FileListSettingsViewModel();
             this.DataContext = _viewModel;
 
             // Bridge ViewModel changes to SettingsChanged event and refresh columns
             _viewModel.PropertyChanged += (s, e) =>
             {
-                if (e.PropertyName == nameof(SettingsViewModel.ColTagsWidth) ||
-                    e.PropertyName == nameof(SettingsViewModel.ColNotesWidth))
+                if (e.PropertyName == nameof(FileListSettingsViewModel.ColTagsWidth) ||
+                    e.PropertyName == nameof(FileListSettingsViewModel.ColNotesWidth))
                 {
                     RefreshFileListColumns();
                 }
@@ -103,13 +104,13 @@ namespace YiboFile.Controls.Settings
 
         private void InitializeBindings()
         {
-            _tagsWidthTextBox.SetBinding(TextBox.TextProperty, new Binding(nameof(SettingsViewModel.ColTagsWidth))
+            _tagsWidthTextBox.SetBinding(TextBox.TextProperty, new Binding(nameof(FileListSettingsViewModel.ColTagsWidth))
             {
                 Mode = BindingMode.TwoWay,
                 UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged
             });
 
-            _notesWidthTextBox.SetBinding(TextBox.TextProperty, new Binding(nameof(SettingsViewModel.ColNotesWidth))
+            _notesWidthTextBox.SetBinding(TextBox.TextProperty, new Binding(nameof(FileListSettingsViewModel.ColNotesWidth))
             {
                 Mode = BindingMode.TwoWay,
                 UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged

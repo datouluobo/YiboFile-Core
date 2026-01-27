@@ -3,14 +3,15 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Windows.Input;
+using Microsoft.Extensions.DependencyInjection;
 using YiboFile.Services.Config;
 using YiboFile.Services.FullTextSearch;
 
-namespace YiboFile.ViewModels
+namespace YiboFile.ViewModels.Settings
 {
-    public partial class SettingsViewModel
+    public class SearchSettingsViewModel : BaseViewModel
     {
-        #region Search Settings
         private bool _isEnableFullTextSearch;
         public bool IsEnableFullTextSearch
         {
@@ -89,7 +90,30 @@ namespace YiboFile.ViewModels
             get => _isIndexing;
             set => SetProperty(ref _isIndexing, value);
         }
-        #endregion
+
+        public ICommand RebuildIndexCommand { get; }
+        public ICommand ClearHistoryCommand { get; }
+
+        public SearchSettingsViewModel()
+        {
+            RebuildIndexCommand = new RelayCommand(RebuildIndex);
+            ClearHistoryCommand = new RelayCommand(ClearHistory);
+
+            LoadFromConfig();
+        }
+
+        ~SearchSettingsViewModel()
+        {
+            if (FullTextSearchService.Instance?.IndexingService != null)
+            {
+                FullTextSearchService.Instance.IndexingService.ProgressChanged -= OnIndexingProgressChanged;
+            }
+        }
+
+        public void LoadFromConfig()
+        {
+            InitializeSearchSettings(ConfigurationService.Instance.GetSnapshot());
+        }
 
         private void InitializeSearchSettings(AppConfig config)
         {
@@ -184,7 +208,7 @@ namespace YiboFile.ViewModels
 
                     if (scanPaths == null || !scanPaths.Any())
                     {
-                        var libRepo = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<YiboFile.Services.Data.Repositories.ILibraryRepository>(App.ServiceProvider);
+                        var libRepo = App.ServiceProvider.GetRequiredService<YiboFile.Services.Data.Repositories.ILibraryRepository>();
                         var libraries = libRepo.GetAllLibraries();
                         scanPaths = libraries?.SelectMany(l => l.Paths ?? Enumerable.Empty<string>()) ?? Enumerable.Empty<string>();
                     }

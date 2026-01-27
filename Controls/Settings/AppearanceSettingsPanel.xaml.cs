@@ -13,6 +13,7 @@ using YiboFile.Services.Theming;
 using YiboFile.Windows;
 using System.Windows.Controls.Primitives;
 using YiboFile.ViewModels;
+using YiboFile.ViewModels.Settings;
 
 namespace YiboFile.Controls.Settings
 {
@@ -20,7 +21,7 @@ namespace YiboFile.Controls.Settings
     {
         public event EventHandler SettingsChanged;
 
-        private SettingsViewModel _viewModel;
+        private AppearanceSettingsViewModel _appearanceViewModel;
 
         private ComboBox _themeComboBox;
         private ComboBox _iconStyleComboBox; // New
@@ -34,7 +35,7 @@ namespace YiboFile.Controls.Settings
         private Border _previewSurfaceColor;
         private Border _previewTextColor;
 
-        private bool _isLoadingSettings = false;
+
 
         // 详细颜色编辑相关
         private Popup _colorPickerPopup;
@@ -112,9 +113,9 @@ namespace YiboFile.Controls.Settings
 
         public AppearanceSettingsPanel()
         {
-            _viewModel = new SettingsViewModel();
-            _viewModel.PropertyChanged += (s, e) => SettingsChanged?.Invoke(this, EventArgs.Empty);
-            DataContext = _viewModel;
+            _appearanceViewModel = new AppearanceSettingsViewModel();
+            _appearanceViewModel.PropertyChanged += (s, e) => SettingsChanged?.Invoke(this, EventArgs.Empty);
+            DataContext = _appearanceViewModel;
             InitializeComponent();
             LoadSettings();
         }
@@ -178,13 +179,13 @@ namespace YiboFile.Controls.Settings
             _themeComboBox.SetResourceReference(ComboBox.BorderBrushProperty, "BorderDefaultBrush");
 
             // Bind ItemsSource
-            var themeItemsBinding = new System.Windows.Data.Binding("Themes") { Source = _viewModel };
+            var themeItemsBinding = new System.Windows.Data.Binding("Themes") { Source = _appearanceViewModel };
             _themeComboBox.SetBinding(ComboBox.ItemsSourceProperty, themeItemsBinding);
 
             // Bind SelectedItem
             var themeSelectedBinding = new System.Windows.Data.Binding("SelectedTheme")
             {
-                Source = _viewModel,
+                Source = _appearanceViewModel,
                 Mode = System.Windows.Data.BindingMode.TwoWay
             };
             _themeComboBox.SetBinding(ComboBox.SelectedItemProperty, themeSelectedBinding);
@@ -218,13 +219,13 @@ namespace YiboFile.Controls.Settings
             _iconStyleComboBox.SetResourceReference(ComboBox.BorderBrushProperty, "BorderDefaultBrush");
 
             // Bind ItemsSource
-            var iconItemsBinding = new System.Windows.Data.Binding("IconStyles") { Source = _viewModel };
+            var iconItemsBinding = new System.Windows.Data.Binding("IconStyles") { Source = _appearanceViewModel };
             _iconStyleComboBox.SetBinding(ComboBox.ItemsSourceProperty, iconItemsBinding);
 
             // Bind SelectedItem
             var iconSelectedBinding = new System.Windows.Data.Binding("SelectedIconStyle")
             {
-                Source = _viewModel,
+                Source = _appearanceViewModel,
                 Mode = System.Windows.Data.BindingMode.TwoWay
             };
             _iconStyleComboBox.SetBinding(ComboBox.SelectedItemProperty, iconSelectedBinding);
@@ -353,7 +354,7 @@ namespace YiboFile.Controls.Settings
 
             var opacityBinding = new System.Windows.Data.Binding("WindowOpacity")
             {
-                Source = _viewModel,
+                Source = _appearanceViewModel,
                 Mode = System.Windows.Data.BindingMode.TwoWay
             };
             _opacitySlider.SetBinding(Slider.ValueProperty, opacityBinding);
@@ -372,7 +373,7 @@ namespace YiboFile.Controls.Settings
 
             var opacityTextBinding = new System.Windows.Data.Binding("WindowOpacity")
             {
-                Source = _viewModel,
+                Source = _appearanceViewModel,
                 Mode = System.Windows.Data.BindingMode.OneWay,
                 StringFormat = "{0:P0}"
             };
@@ -395,7 +396,7 @@ namespace YiboFile.Controls.Settings
 
             var animationBinding = new System.Windows.Data.Binding("EnableAnimations")
             {
-                Source = _viewModel,
+                Source = _appearanceViewModel,
                 Mode = System.Windows.Data.BindingMode.TwoWay
             };
             _animationsEnabledCheckBox.SetBinding(CheckBox.IsCheckedProperty, animationBinding);
@@ -546,60 +547,12 @@ namespace YiboFile.Controls.Settings
 
         public void LoadSettings()
         {
-            _isLoadingSettings = true;
-            try
-            {
-                var config = ConfigurationService.Instance.GetSnapshot();
-
-                // 加载主题模式 (Handled by ViewModel)
-                // var themeMode = config.ThemeMode ?? "FollowSystem";
-
-                // Load Icon Style (Handled by ViewModel)
-                // var iconStyle = config.IconStyle ?? "Emoji";
-
-                // 加载窗口透明度
-                // _opacitySlider.Value = config.WindowOpacity > 0 ? config.WindowOpacity : 1.0; // ViewModel Binding
-
-                // 加载动画设置
-                // _animationsEnabledCheckBox.IsChecked = config.AnimationsEnabled; // ViewModel Binding
-
-                // 刷新颜色块状态
-                // RefreshColorBlocks(); -> No longer needed with DynamicResource
-            }
-            finally
-            {
-                _isLoadingSettings = false;
-            }
+            _appearanceViewModel?.LoadFromConfig();
         }
 
         public void SaveSettings()
         {
-            if (_isLoadingSettings) return;
-
-            ConfigurationService.Instance.Update(config =>
-            {
-                // 保存主题模式
-                if (_themeComboBox.SelectedItem is ThemeComboBoxItem selectedItem)
-                {
-                    config.ThemeMode = selectedItem.ThemeId;
-                }
-                else
-                {
-                    config.ThemeMode = "FollowSystem";
-                }
-
-                // 保存窗口透明度
-                config.WindowOpacity = _opacitySlider.Value;
-
-                // 保存动画设置
-                config.AnimationsEnabled = _animationsEnabledCheckBox.IsChecked ?? true;
-
-                // Save Icon Style
-                if (_iconStyleComboBox.SelectedItem is ComboBoxItem iconItem && iconItem.Tag is string style)
-                {
-                    config.IconStyle = style;
-                }
-            });
+            // Bindings handle updates automatically
         }
 
 
@@ -658,7 +611,7 @@ namespace YiboFile.Controls.Settings
                     MessageBox.Show($"应用主题失败: {ex.Message}",
                         "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
-                _viewModel.RefreshThemes();
+                _appearanceViewModel.RefreshThemes();
             }
         }
 
@@ -727,7 +680,9 @@ namespace YiboFile.Controls.Settings
             dialog.Content = stackPanel;
             dialog.ShowDialog();
 
-            _viewModel.RefreshThemes();
+            dialog.ShowDialog();
+
+            _appearanceViewModel.RefreshThemes();
         }
 
         private Border CreateThemeCard(CustomTheme theme, Window parentDialog)
@@ -938,11 +893,11 @@ namespace YiboFile.Controls.Settings
                 CustomThemeManager.Apply(theme);
 
                 // 5. 更新配置为使用该自定义主题
-                UpdateThemeComboBoxSelection(theme);
+                _appearanceViewModel.RefreshThemes();
                 ConfigurationService.Instance.Update(config => config.ThemeMode = theme.Id);
 
                 // 6. 刷新 ViewModel 以同步 ComboBox
-                _viewModel.RefreshThemes();
+                _appearanceViewModel.RefreshThemes();
             }
             catch (Exception ex)
             {
@@ -952,60 +907,11 @@ namespace YiboFile.Controls.Settings
 
         private void ResetTheme_Click(object sender, RoutedEventArgs e)
         {
-            try
-            {
-                // 1. 恢复到跟随系统，或者默认为Light
-                var defaultTheme = "FollowSystem";
-
-                // 2. 更新配置
-                ConfigurationService.Instance.Update(config => config.ThemeMode = defaultTheme);
-
-                // 3. 触发主题切换逻辑 (LoadSettings会处理ComboBox选中，SelectionChanged会触发ThemeManager)
-                LoadSettings();
-
-                // 4. 强制刷新ComboBox选定项的事件以应用主题
-                if (_themeComboBox.SelectedItem is ThemeComboBoxItem item && item.ThemeId == defaultTheme)
-                {
-                    ThemeManager.EnableSystemThemeFollowing(); // 显式调用以防ComboBox没触发
-                }
-
-                MessageBox.Show("主题已恢复默认设置。", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"重置失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+            _appearanceViewModel.ResetThemeCommand.Execute(null);
+            MessageBox.Show("主题已恢复默认设置。", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
-        private void UpdateThemeComboBoxSelection(CustomTheme customTheme)
-        {
-            // 检查ComboBox中是否已有该项
-            bool found = false;
-            foreach (ThemeComboBoxItem item in _themeComboBox.Items)
-            {
-                if (item.ThemeId == customTheme.Id)
-                {
-                    _themeComboBox.SelectedItem = item;
-                    found = true;
-                    break;
-                }
-            }
 
-            if (!found)
-            {
-                // 如果是新创建的自定义主题，添加到列表
-                var newItem = new ThemeComboBoxItem
-                {
-                    DisplayName = "🎨 " + customTheme.Name,
-                    ThemeId = customTheme.Id,
-                    Description = "用户自定义主题"
-                };
-
-                // 插入到'创建自定义主题'分隔线之前，或者直接添加到最后
-                _themeComboBox.Items.Add(newItem);
-                _themeComboBox.SelectedItem = newItem;
-            }
-        }
 
         /// <summary>
         /// 创建单个颜色调节块UI
@@ -1129,8 +1035,10 @@ namespace YiboFile.Controls.Settings
                 CustomThemeManager.Apply(theme);
 
                 // 5. 更新配置
-                UpdateThemeComboBoxSelection(theme);
                 ConfigurationService.Instance.Update(config => config.ThemeMode = theme.Id);
+
+                // 6. 刷新
+                _appearanceViewModel.RefreshThemes();
 
                 // UI update is handled automatically by DynamicResource bindings on the border
             }
@@ -1170,21 +1078,4 @@ namespace YiboFile.Controls.Settings
             return $"#{((byte)r):X2}{((byte)g):X2}{((byte)b):X2}";
         }
     }
-
-    /// <summary>
-    /// 主题ComboBox项
-    /// </summary>
-    public class ThemeComboBoxItem
-    {
-        public string DisplayName { get; set; }
-        public string ThemeId { get; set; }
-        public string Description { get; set; }
-        public bool IsEnabled { get; set; } = true;
-
-        public override string ToString()
-        {
-            return DisplayName;
-        }
-    }
 }
-

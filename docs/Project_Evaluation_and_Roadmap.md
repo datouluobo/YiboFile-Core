@@ -1,6 +1,6 @@
 # YiboFile 项目评估与行动计划
 
-> **版本**: v1.0.13 | **更新日期**: 2026-01-25
+> **版本**: v1.0.170 | **更新日期**: 2026-01-27
 
 ---
 
@@ -88,7 +88,7 @@
 | `DocumentPreview.cs` | 88.9 KB | 按文档类型拆分 |
 | `TabService.cs` | 62.9 KB | 分离 UI/业务逻辑 |
 | `DatabaseManager.cs` | 60.5 KB | 拆分为多个 Repository |
-| `SettingsViewModel.cs` | 50.6 KB | 按设置类别拆分 |
+| `SettingsViewModel.cs` | 50.6 KB | ✅ 已拆分 (Split into specific ViewModels) |
 
 ---
 
@@ -101,7 +101,7 @@
 | **P1** | 迁移 `MainWindow.Tabs.cs` → `TabsModule` | 2-3天 | ✅ 已完成 |
 | **P2** | 拆分 `DocumentPreview.cs` | 1天 | ✅ 已完成 |
 | **P2** | 拆分 `TabService.cs` | 1-2天 | ✅ 已完成 |
-| **P3** | 拆分 `SettingsViewModel.cs` | 1天 | 待开始 |
+| **P3** | 拆分 `SettingsViewModel.cs` | 1天 | ✅ 已完成 |
 | **P3** | 拆分 `DatabaseManager.cs` | 2天 | 待开始 |
 
 ---

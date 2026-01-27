@@ -6,6 +6,7 @@ using System.Windows.Media;
 using System.Windows.Shapes;
 using System.Windows.Input;
 using YiboFile.ViewModels;
+using YiboFile.ViewModels.Settings;
 
 namespace YiboFile.Controls.Settings
 {
@@ -16,12 +17,12 @@ namespace YiboFile.Controls.Settings
         public event EventHandler SettingsChanged;
 #pragma warning restore CS0067
 
-        private SettingsViewModel _viewModel;
+        private LibrarySettingsViewModel _viewModel;
 
         public LibrarySettingsPanel()
         {
             InitializeComponent();
-            _viewModel = new SettingsViewModel();
+            _viewModel = new LibrarySettingsViewModel();
             this.DataContext = _viewModel;
         }
 

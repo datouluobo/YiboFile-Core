@@ -1,15 +1,39 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Windows.Input;
 using System.Windows.Media;
 using YiboFile.Services.Config;
 using YiboFile.Services.Theming;
 
-namespace YiboFile.ViewModels
+namespace YiboFile.ViewModels.Settings
 {
-    public partial class SettingsViewModel
+    public class AppearanceSettingsViewModel : BaseViewModel
     {
-        #region Appearance Settings
+        public ObservableCollection<ThemeItemViewModel> Themes { get; set; }
+        public ObservableCollection<IconStyleItemViewModel> IconStyles { get; set; }
+
+        public ICommand ResetThemeCommand { get; }
+        public ICommand ApplyAccentColorCommand { get; }
+
+        public AppearanceSettingsViewModel()
+        {
+            ResetThemeCommand = new RelayCommand(ResetTheme);
+            ApplyAccentColorCommand = new RelayCommand<string>(ApplyAccentColor);
+
+            LoadFromConfig();
+        }
+
+        public void LoadFromConfig()
+        {
+            var config = ConfigurationService.Instance.GetSnapshot();
+            _windowOpacity = config.WindowOpacity > 0 ? config.WindowOpacity : 1.0;
+            _enableAnimations = config.AnimationsEnabled;
+
+            InitializeThemes(config);
+            InitializeIconStyles(config);
+        }
+
         private double _windowOpacity;
         public double WindowOpacity
         {
@@ -36,13 +60,6 @@ namespace YiboFile.ViewModels
             }
         }
 
-        private ObservableCollection<ThemeItemViewModel> _themes;
-        public ObservableCollection<ThemeItemViewModel> Themes
-        {
-            get => _themes;
-            set => SetProperty(ref _themes, value);
-        }
-
         private ThemeItemViewModel _selectedTheme;
         public ThemeItemViewModel SelectedTheme
         {
@@ -63,13 +80,6 @@ namespace YiboFile.ViewModels
             }
         }
 
-        private ObservableCollection<IconStyleItemViewModel> _iconStyles;
-        public ObservableCollection<IconStyleItemViewModel> IconStyles
-        {
-            get => _iconStyles;
-            set => SetProperty(ref _iconStyles, value);
-        }
-
         private IconStyleItemViewModel _selectedIconStyle;
         public IconStyleItemViewModel SelectedIconStyle
         {
@@ -82,13 +92,6 @@ namespace YiboFile.ViewModels
                     ConfigurationService.Instance.Update(c => c.IconStyle = value.Id);
                 }
             }
-        }
-        #endregion
-
-        public void RefreshThemes()
-        {
-            var config = ConfigurationService.Instance.GetSnapshot();
-            InitializeThemes(config);
         }
 
         private void InitializeThemes(AppConfig config)
@@ -111,6 +114,8 @@ namespace YiboFile.ViewModels
 
             var currentTheme = config.ThemeMode ?? "FollowSystem";
             _selectedTheme = Themes.FirstOrDefault(x => x.Id == currentTheme) ?? Themes.First();
+            OnPropertyChanged(nameof(Themes));
+            OnPropertyChanged(nameof(SelectedTheme));
         }
 
         private void InitializeIconStyles(AppConfig config)
@@ -124,6 +129,14 @@ namespace YiboFile.ViewModels
             };
             var currentIconStyle = config.IconStyle ?? "Emoji";
             _selectedIconStyle = IconStyles.FirstOrDefault(x => x.Id == currentIconStyle) ?? IconStyles.First();
+            OnPropertyChanged(nameof(IconStyles));
+            OnPropertyChanged(nameof(SelectedIconStyle));
+        }
+
+        public void RefreshThemes()
+        {
+            var config = ConfigurationService.Instance.GetSnapshot();
+            InitializeThemes(config);
         }
 
         private void ResetTheme()
@@ -157,7 +170,7 @@ namespace YiboFile.ViewModels
 
                 var config = ConfigurationService.Instance.GetSnapshot();
                 InitializeThemes(config);
-                OnPropertyChanged(nameof(Themes));
+                RefreshThemes(); // Force refresh UI list
                 SelectedTheme = Themes.FirstOrDefault(t => t.Id == theme.Id);
 
                 ConfigurationService.Instance.Update(c => c.ThemeMode = theme.Id);

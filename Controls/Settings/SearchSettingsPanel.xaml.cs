@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using YiboFile.Services.Config;
 using YiboFile.Services.FullTextSearch;
 using YiboFile.ViewModels;
+using YiboFile.ViewModels.Settings;
 
 namespace YiboFile.Controls.Settings
 {
@@ -18,7 +19,7 @@ namespace YiboFile.Controls.Settings
         public event EventHandler SettingsChanged;
 #pragma warning restore CS0067
 
-        private SettingsViewModel _viewModel;
+        private SearchSettingsViewModel _viewModel;
 
         private CheckBox _enableFtsCheckBox;
         private TextBlock _indexLocationText;
@@ -37,7 +38,7 @@ namespace YiboFile.Controls.Settings
         public SearchSettingsPanel()
         {
             InitializeComponent();
-            _viewModel = new SettingsViewModel();
+            _viewModel = new SearchSettingsViewModel();
             this.DataContext = _viewModel;
 
             InitializeUI();
@@ -127,7 +128,7 @@ namespace YiboFile.Controls.Settings
                 MinHeight = 32,
                 Margin = new Thickness(0, 0, 0, 24)
             };
-            _enableFtsCheckBox.SetBinding(CheckBox.IsCheckedProperty, new System.Windows.Data.Binding(nameof(SettingsViewModel.IsEnableFullTextSearch)));
+            _enableFtsCheckBox.SetBinding(CheckBox.IsCheckedProperty, new System.Windows.Data.Binding(nameof(SearchSettingsViewModel.IsEnableFullTextSearch)));
             stackPanel.Children.Add(_enableFtsCheckBox);
 
             // 索引状态区域
@@ -163,7 +164,7 @@ namespace YiboFile.Controls.Settings
                 VerticalAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(0, 0, 10, 0)
             };
-            _indexLocationText.SetBinding(TextBlock.TextProperty, new System.Windows.Data.Binding(nameof(SettingsViewModel.IndexLocation)));
+            _indexLocationText.SetBinding(TextBlock.TextProperty, new System.Windows.Data.Binding(nameof(SearchSettingsViewModel.IndexLocation)));
             Grid.SetColumn(_indexLocationText, 1);
             indexLocationGrid.Children.Add(_indexLocationText);
 
@@ -181,16 +182,16 @@ namespace YiboFile.Controls.Settings
 
             // 已索引数量
             statusStack.Children.Add(CreateInfoRow("已索引文档数:", out _indexedCountText));
-            _indexedCountText.SetBinding(TextBlock.TextProperty, new System.Windows.Data.Binding(nameof(SettingsViewModel.IndexedFileCount)));
+            _indexedCountText.SetBinding(TextBlock.TextProperty, new System.Windows.Data.Binding(nameof(SearchSettingsViewModel.IndexedFileCount)));
 
             // 索引进度
             var progressBox = new StackPanel { Margin = new Thickness(0, 5, 0, 0) };
             _indexProgressBar = new ProgressBar { Height = 6, Margin = new Thickness(0, 5, 0, 5), Maximum = 100 };
-            _indexProgressBar.SetBinding(ProgressBar.ValueProperty, new System.Windows.Data.Binding(nameof(SettingsViewModel.IndexingProgress)));
+            _indexProgressBar.SetBinding(ProgressBar.ValueProperty, new System.Windows.Data.Binding(nameof(SearchSettingsViewModel.IndexingProgress)));
             // 可选: 绑定 IsIndeterminate 
 
             _indexProgressText = new TextBlock { FontSize = 12, Opacity = 0.7 };
-            _indexProgressText.SetBinding(TextBlock.TextProperty, new System.Windows.Data.Binding(nameof(SettingsViewModel.IndexingStatusText)));
+            _indexProgressText.SetBinding(TextBlock.TextProperty, new System.Windows.Data.Binding(nameof(SearchSettingsViewModel.IndexingStatusText)));
 
             progressBox.Children.Add(_indexProgressBar);
             progressBox.Children.Add(_indexProgressText);
@@ -216,7 +217,7 @@ namespace YiboFile.Controls.Settings
                 FontSize = 14,
                 Margin = new Thickness(0, 0, 0, 10)
             };
-            _autoExpandHistoryCheck.SetBinding(CheckBox.IsCheckedProperty, new System.Windows.Data.Binding(nameof(SettingsViewModel.AutoExpandHistory)));
+            _autoExpandHistoryCheck.SetBinding(CheckBox.IsCheckedProperty, new System.Windows.Data.Binding(nameof(SearchSettingsViewModel.AutoExpandHistory)));
             historyStack.Children.Add(_autoExpandHistoryCheck);
 
             // 记录数量限制
@@ -238,7 +239,7 @@ namespace YiboFile.Controls.Settings
                 VerticalContentAlignment = VerticalAlignment.Center,
                 Padding = new Thickness(4)
             };
-            _historyMaxCountBox.SetBinding(TextBox.TextProperty, new System.Windows.Data.Binding(nameof(SettingsViewModel.HistoryMaxCount)));
+            _historyMaxCountBox.SetBinding(TextBox.TextProperty, new System.Windows.Data.Binding(nameof(SearchSettingsViewModel.HistoryMaxCount)));
             Grid.SetColumn(_historyMaxCountBox, 1);
             countGrid.Children.Add(_historyMaxCountBox);
 
@@ -285,7 +286,7 @@ namespace YiboFile.Controls.Settings
                 Margin = new Thickness(0, 0, 0, 5),
                 SelectionMode = SelectionMode.Extended
             };
-            _scopeListBox.SetBinding(ListBox.ItemsSourceProperty, new System.Windows.Data.Binding(nameof(SettingsViewModel.IndexScopes)));
+            _scopeListBox.SetBinding(ListBox.ItemsSourceProperty, new System.Windows.Data.Binding(nameof(SearchSettingsViewModel.IndexScopes)));
             actionStack.Children.Add(_scopeListBox);
 
             var scopeButtons = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 15) };

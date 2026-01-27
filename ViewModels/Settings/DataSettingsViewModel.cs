@@ -1,29 +1,29 @@
 using System;
+using System.Windows.Input;
 using YiboFile.Services.Config;
 
-namespace YiboFile.ViewModels
+namespace YiboFile.ViewModels.Settings
 {
-    public partial class SettingsViewModel
+    public class DataSettingsViewModel : BaseViewModel
     {
-        #region Data & Config Management
-        private void ChangeBaseDirectory(string newDir)
+        public ICommand ExportConfigsCommand { get; }
+        public ICommand ImportConfigsCommand { get; }
+        public ICommand ExportDataCommand { get; }
+        public ICommand ImportDataCommand { get; }
+        public ICommand ExportAllCommand { get; }
+        public ICommand ImportAllCommand { get; }
+
+        // Event to notify parent to reload settings if needed
+        public event EventHandler SettingsReloadRequested;
+
+        public DataSettingsViewModel()
         {
-            if (string.IsNullOrWhiteSpace(newDir)) return;
-
-            var oldDir = ConfigManager.GetBaseDirectory();
-            try
-            {
-                if (string.Equals(System.IO.Path.GetFullPath(oldDir.Trim()), System.IO.Path.GetFullPath(newDir.Trim()), StringComparison.OrdinalIgnoreCase))
-                    return;
-            }
-            catch { return; }
-
-            ConfigManager.SetBaseDirectory(newDir, copyMissingFromOld: true);
-
-            try { DatabaseManager.Initialize(); } catch { }
-
-            LoadFromConfig();
-            OnPropertyChanged(nameof(BaseDirectory));
+            ExportConfigsCommand = new RelayCommand<string>(ExportConfigs);
+            ImportConfigsCommand = new RelayCommand<string>(ImportConfigs);
+            ExportDataCommand = new RelayCommand<string>(ExportData);
+            ImportDataCommand = new RelayCommand<string>(ImportData);
+            ExportAllCommand = new RelayCommand<string>(ExportAll);
+            ImportAllCommand = new RelayCommand<string>(ImportAll);
         }
 
         private void ExportConfigs(string fileName)
@@ -38,7 +38,7 @@ namespace YiboFile.ViewModels
             try
             {
                 ConfigManager.ImportConfigsZip(fileName);
-                LoadFromConfig();
+                SettingsReloadRequested?.Invoke(this, EventArgs.Empty);
             }
             catch (Exception ex) { throw new Exception($"导入配置失败: {ex.Message}"); }
         }
@@ -55,7 +55,7 @@ namespace YiboFile.ViewModels
             try
             {
                 ConfigManager.ImportDataZip(fileName);
-                LoadFromConfig();
+                SettingsReloadRequested?.Invoke(this, EventArgs.Empty);
             }
             catch (Exception ex) { throw new Exception($"导入数据失败: {ex.Message}"); }
         }
@@ -72,10 +72,9 @@ namespace YiboFile.ViewModels
             try
             {
                 ConfigManager.ImportAllZip(fileName);
-                LoadFromConfig();
+                SettingsReloadRequested?.Invoke(this, EventArgs.Empty);
             }
             catch (Exception ex) { throw new Exception($"导入全部失败: {ex.Message}"); }
         }
-        #endregion
     }
 }

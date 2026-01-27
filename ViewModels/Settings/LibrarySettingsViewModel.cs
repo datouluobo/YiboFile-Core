@@ -1,13 +1,14 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Windows.Input;
 using Microsoft.Extensions.DependencyInjection;
 using YiboFile.Services;
+using WinForms = System.Windows.Forms;
 
-namespace YiboFile.ViewModels
+namespace YiboFile.ViewModels.Settings
 {
-    public partial class SettingsViewModel
+    public class LibrarySettingsViewModel : BaseViewModel
     {
-        #region Library Management
         private ObservableCollection<LibraryItemViewModel> _libraries;
         public ObservableCollection<LibraryItemViewModel> Libraries
         {
@@ -16,6 +17,30 @@ namespace YiboFile.ViewModels
         }
 
         private LibraryService _libraryService;
+
+        public ICommand ImportLibrariesCommand { get; }
+        public ICommand ExportLibrariesCommand { get; }
+        public ICommand OpenLibraryManagerCommand { get; }
+        public ICommand AddLibraryCommand { get; }
+        public ICommand RemoveLibraryCommand { get; }
+
+        public event EventHandler OpenLibraryManagerRequested;
+
+        public LibrarySettingsViewModel()
+        {
+            ImportLibrariesCommand = new RelayCommand<string>(ImportLibraries);
+            ExportLibrariesCommand = new RelayCommand<string>(ExportLibraries);
+            OpenLibraryManagerCommand = new RelayCommand(OpenLibraryManager);
+            AddLibraryCommand = new RelayCommand(AddLibrary);
+            RemoveLibraryCommand = new RelayCommand<LibraryItemViewModel>(RemoveLibrary);
+
+            LoadFromConfig();
+        }
+
+        public void LoadFromConfig()
+        {
+            InitializeLibraryManagement();
+        }
 
         private void InitializeLibraryManagement()
         {
@@ -43,12 +68,12 @@ namespace YiboFile.ViewModels
 
         private void AddLibrary()
         {
-            var dialog = new System.Windows.Forms.FolderBrowserDialog();
+            var dialog = new WinForms.FolderBrowserDialog();
             dialog.Description = "选择文件夹作为新的库";
             dialog.UseDescriptionForTitle = true;
             dialog.ShowNewFolderButton = true;
 
-            if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            if (dialog.ShowDialog() == WinForms.DialogResult.OK)
             {
                 string path = dialog.SelectedPath;
                 string name = new System.IO.DirectoryInfo(path).Name;
@@ -98,6 +123,7 @@ namespace YiboFile.ViewModels
                 string json = System.IO.File.ReadAllText(file);
                 var libraryService = new YiboFile.Services.LibraryService(System.Windows.Application.Current.Dispatcher, null);
                 libraryService.ImportLibrariesFromJson(json);
+                RefreshLibraries();
             }
             catch (Exception ex)
             {
@@ -122,6 +148,5 @@ namespace YiboFile.ViewModels
                 throw new Exception($"导出库配置失败: {ex.Message}");
             }
         }
-        #endregion
     }
 }

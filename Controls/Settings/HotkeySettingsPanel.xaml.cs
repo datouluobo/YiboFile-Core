@@ -9,6 +9,7 @@ using System.Windows.Media;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media.Effects; // Added
 using YiboFile.ViewModels;
+using YiboFile.ViewModels.Settings;
 
 namespace YiboFile.Controls.Settings
 {
@@ -19,12 +20,12 @@ namespace YiboFile.Controls.Settings
         public event EventHandler SettingsChanged;
 #pragma warning restore CS0067
 
-        private SettingsViewModel _viewModel;
+        private HotkeySettingsViewModel _viewModel;
 
         public HotkeySettingsPanel()
         {
             InitializeComponent();
-            _viewModel = new SettingsViewModel();
+            _viewModel = new HotkeySettingsViewModel();
             this.DataContext = _viewModel;
             // LoadSettings will be called by Interface or initial binding
         }
@@ -65,7 +66,7 @@ namespace YiboFile.Controls.Settings
                 MinWidth = 100,
                 Cursor = Cursors.Hand
             };
-            resetBtn.SetBinding(Button.CommandProperty, new Binding(nameof(SettingsViewModel.ResetHotkeysCommand)));
+            resetBtn.SetBinding(Button.CommandProperty, new Binding(nameof(HotkeySettingsViewModel.ResetHotkeysCommand)));
             btnPanel.Children.Add(resetBtn);
             Grid.SetRow(btnPanel, 1);
             grid.Children.Add(btnPanel);
@@ -78,7 +79,7 @@ namespace YiboFile.Controls.Settings
             };
 
             var itemsControl = new ItemsControl();
-            itemsControl.SetBinding(ItemsControl.ItemsSourceProperty, new Binding(nameof(SettingsViewModel.Hotkeys)));
+            itemsControl.SetBinding(ItemsControl.ItemsSourceProperty, new Binding(nameof(HotkeySettingsViewModel.Hotkeys)));
 
             // Horizontal spacing between columns
             var itemsPanelFactory = new FrameworkElementFactory(typeof(UniformGrid));
@@ -398,7 +399,7 @@ namespace YiboFile.Controls.Settings
         {
             if (sender is Button button && button.Tag is HotkeyItemViewModel item)
             {
-                if (DataContext is SettingsViewModel viewModel)
+                if (DataContext is HotkeySettingsViewModel viewModel)
                 {
                     viewModel.ResetSingleHotkeyCommand.Execute(item);
                 }

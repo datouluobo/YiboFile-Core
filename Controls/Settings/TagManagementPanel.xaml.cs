@@ -5,6 +5,7 @@ using System.Windows.Data;
 using System.Windows.Media;
 using System.Windows.Input;
 using YiboFile.ViewModels;
+using YiboFile.ViewModels.Settings;
 
 namespace YiboFile.Controls.Settings
 {
@@ -14,7 +15,7 @@ namespace YiboFile.Controls.Settings
 #pragma warning disable CS0067
         public event EventHandler SettingsChanged;
 #pragma warning restore CS0067
-        private SettingsViewModel _viewModel;
+        private TagSettingsViewModel _viewModel;
 
         public TagManagementPanel()
         {
@@ -24,18 +25,18 @@ namespace YiboFile.Controls.Settings
             // Auto-initialize if DataContext is not set externally (Common for independent panels)
             if (this.DataContext == null)
             {
-                // Try to get from ServiceProvider or create new
-                var vm = (SettingsViewModel)App.ServiceProvider?.GetService(typeof(SettingsViewModel)) ?? new SettingsViewModel();
+                // Create new view model
+                var vm = new TagSettingsViewModel();
                 this.DataContext = vm;
                 _viewModel = vm;
                 SubscribeEvents();
-                _viewModel.RefreshTagGroups();
+                // Refresh handled by constructor
             }
         }
 
         private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
-            if (e.NewValue is SettingsViewModel vm)
+            if (e.NewValue is TagSettingsViewModel vm)
             {
                 _viewModel = vm;
                 SubscribeEvents();

@@ -1,17 +1,33 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Windows.Input;
 using YiboFile.Services.Config;
 
-namespace YiboFile.ViewModels
+namespace YiboFile.ViewModels.Settings
 {
-    public partial class SettingsViewModel
+    public class HotkeySettingsViewModel : BaseViewModel
     {
-        #region Hotkey Settings
         private ObservableCollection<HotkeyItemViewModel> _hotkeys;
         public ObservableCollection<HotkeyItemViewModel> Hotkeys
         {
             get => _hotkeys;
             set => SetProperty(ref _hotkeys, value);
+        }
+
+        public ICommand ResetHotkeysCommand { get; }
+        public ICommand ResetSingleHotkeyCommand { get; }
+
+        public HotkeySettingsViewModel()
+        {
+            ResetHotkeysCommand = new RelayCommand(ResetHotkeys);
+            ResetSingleHotkeyCommand = new RelayCommand<HotkeyItemViewModel>(ResetSingleHotkey);
+            LoadFromConfig();
+        }
+
+        public void LoadFromConfig()
+        {
+            InitializeHotkeySettings(ConfigurationService.Instance.GetSnapshot());
         }
 
         private void InitializeHotkeySettings(AppConfig config)
@@ -73,6 +89,7 @@ namespace YiboFile.ViewModels
 
         private void ResetHotkeys()
         {
+            if (Hotkeys == null) return;
             foreach (var item in Hotkeys)
             {
                 item.KeyCombination = item.DefaultKey;
@@ -92,15 +109,17 @@ namespace YiboFile.ViewModels
         private void SaveHotkeySettings()
         {
             var customs = new Dictionary<string, string>();
-            foreach (var item in Hotkeys)
+            if (Hotkeys != null)
             {
-                if (item.IsModified)
+                foreach (var item in Hotkeys)
                 {
-                    customs[item.Description] = item.KeyCombination;
+                    if (item.IsModified)
+                    {
+                        customs[item.Description] = item.KeyCombination;
+                    }
                 }
             }
             ConfigurationService.Instance.Update(c => c.CustomHotkeys = customs);
         }
-        #endregion
     }
 }

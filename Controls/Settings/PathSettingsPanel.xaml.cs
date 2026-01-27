@@ -5,6 +5,7 @@ using System.Windows.Data;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using YiboFile.ViewModels;
+using YiboFile.ViewModels.Settings;
 
 namespace YiboFile.Controls.Settings
 {
@@ -15,12 +16,12 @@ namespace YiboFile.Controls.Settings
         public event EventHandler SettingsChanged;
 #pragma warning restore CS0067
 
-        private SettingsViewModel _viewModel;
+        private NavigationSettingsViewModel _viewModel;
 
         public PathSettingsPanel()
         {
             InitializeComponent();
-            _viewModel = new SettingsViewModel();
+            _viewModel = new NavigationSettingsViewModel();
             this.DataContext = _viewModel;
         }
 
@@ -66,7 +67,7 @@ namespace YiboFile.Controls.Settings
 
             // ItemsControl
             var itemsControl = new ItemsControl();
-            itemsControl.SetBinding(ItemsControl.ItemsSourceProperty, new Binding(nameof(SettingsViewModel.NavigationSections)));
+            itemsControl.SetBinding(ItemsControl.ItemsSourceProperty, new Binding(nameof(NavigationSettingsViewModel.NavigationSections)));
 
             // Item Template
             string itemTemplateXaml = @"

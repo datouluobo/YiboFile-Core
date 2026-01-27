@@ -1,14 +1,14 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Windows.Input;
 using Microsoft.Extensions.DependencyInjection;
 using YiboFile.Services.Features;
 
-namespace YiboFile.ViewModels
+namespace YiboFile.ViewModels.Settings
 {
-    public partial class SettingsViewModel
+    public class TagSettingsViewModel : BaseViewModel
     {
-        #region Tag Settings
         private ObservableCollection<TagGroupManageViewModel> _tagGroups;
         public ObservableCollection<TagGroupManageViewModel> TagGroups
         {
@@ -24,6 +24,41 @@ namespace YiboFile.ViewModels
         }
 
         private ITagService _tagService;
+
+        public ICommand RefreshTagGroupsCommand { get; }
+        public ICommand AddTagGroupCommand { get; }
+        public ICommand RenameTagGroupCommand { get; }
+        public ICommand DeleteTagGroupCommand { get; }
+        public ICommand AddTagCommand { get; }
+        public ICommand RenameTagCommand { get; }
+        public ICommand DeleteTagCommand { get; }
+        public ICommand UpdateTagColorCommand { get; }
+
+        public event EventHandler<TagGroupManageViewModel> RenameTagGroupRequested;
+        public event EventHandler<TagItemManageViewModel> RenameTagRequested;
+        public event EventHandler<TagItemManageViewModel> UpdateTagColorRequested;
+
+        public TagSettingsViewModel()
+        {
+            RefreshTagGroupsCommand = new RelayCommand(RefreshTagGroups);
+            AddTagGroupCommand = new RelayCommand(AddTagGroup);
+            RenameTagGroupCommand = new RelayCommand<TagGroupManageViewModel>(g => RenameTagGroupRequested?.Invoke(this, g));
+            DeleteTagGroupCommand = new RelayCommand<TagGroupManageViewModel>(DeleteTagGroup);
+            AddTagCommand = new RelayCommand<TagGroupManageViewModel>(AddTag);
+            RenameTagCommand = new RelayCommand<TagItemManageViewModel>(t => RenameTagRequested?.Invoke(this, t));
+            DeleteTagCommand = new RelayCommand<TagItemManageViewModel>(DeleteTag);
+            UpdateTagColorCommand = new RelayCommand<TagItemManageViewModel>(t => UpdateTagColorRequested?.Invoke(this, t));
+
+            InitializeTagManagement();
+        }
+
+        ~TagSettingsViewModel()
+        {
+            if (_tagService != null)
+            {
+                _tagService.TagUpdated -= OnTagServiceTagUpdated;
+            }
+        }
 
         private void InitializeTagManagement()
         {
@@ -93,7 +128,7 @@ namespace YiboFile.ViewModels
             TagGroups = list;
         }
 
-        public void AddTagGroup()
+        private void AddTagGroup()
         {
             if (string.IsNullOrWhiteSpace(NewGroupName)) return;
             try
@@ -116,7 +151,7 @@ namespace YiboFile.ViewModels
             catch (Exception ex) { throw new Exception(ex.Message); }
         }
 
-        public void DeleteTagGroup(TagGroupManageViewModel group)
+        private void DeleteTagGroup(TagGroupManageViewModel group)
         {
             if (group == null) return;
             try
@@ -127,7 +162,7 @@ namespace YiboFile.ViewModels
             catch (Exception ex) { throw new Exception(ex.Message); }
         }
 
-        public void AddTag(TagGroupManageViewModel group)
+        private void AddTag(TagGroupManageViewModel group)
         {
             if (group == null || string.IsNullOrWhiteSpace(group.NewTagText)) return;
             try
@@ -150,7 +185,7 @@ namespace YiboFile.ViewModels
             catch (Exception ex) { throw new Exception(ex.Message); }
         }
 
-        public void DeleteTag(TagItemManageViewModel tag)
+        private void DeleteTag(TagItemManageViewModel tag)
         {
             if (tag == null) return;
             try
@@ -171,6 +206,5 @@ namespace YiboFile.ViewModels
             }
             catch (Exception ex) { throw new Exception(ex.Message); }
         }
-        #endregion
     }
 }

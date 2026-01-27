@@ -10,6 +10,7 @@ using Forms = System.Windows.Forms;
 using YiboFile.Services;
 using YiboFile.Services.Config;
 using YiboFile.ViewModels;
+using YiboFile.ViewModels.Settings;
 
 namespace YiboFile.Controls.Settings
 {
@@ -17,7 +18,8 @@ namespace YiboFile.Controls.Settings
     {
         public event EventHandler SettingsChanged;
 
-        private SettingsViewModel _viewModel;
+        private GeneralSettingsViewModel _generalViewModel;
+        private DataSettingsViewModel _dataViewModel;
 
         private CheckBox _rememberWindowPositionCheckBox;
         private CheckBox _startMaximizedCheckBox;
@@ -37,11 +39,15 @@ namespace YiboFile.Controls.Settings
         public GeneralSettingsPanel()
         {
             InitializeComponent();
-            _viewModel = new SettingsViewModel();
-            this.DataContext = _viewModel;
+            _generalViewModel = new GeneralSettingsViewModel();
+            _dataViewModel = new DataSettingsViewModel();
+            this.DataContext = _generalViewModel;
 
             // Bridge ViewModel changes to SettingsChanged event for legacy support
-            _viewModel.PropertyChanged += (s, e) => SettingsChanged?.Invoke(this, EventArgs.Empty);
+            _generalViewModel.PropertyChanged += (s, e) => SettingsChanged?.Invoke(this, EventArgs.Empty);
+
+            // Reload settings when data is imported
+            _dataViewModel.SettingsReloadRequested += (s, e) => _generalViewModel.LoadFromConfig();
 
             InitializeBindings();
             InitializeState(); // Initial state for non-bound controls like RadioButtons
@@ -187,7 +193,7 @@ namespace YiboFile.Controls.Settings
                 Margin = new Thickness(0, 0, 0, 2),
                 Style = (Style)Application.Current.Resources["ModernButtonStyle"]
             };
-            _pinnedTabWidthUpButton.Click += (s, e) => AdjustValue(_viewModel.PinnedTabWidth, 10, 50, 300, v => _viewModel.PinnedTabWidth = v);
+            _pinnedTabWidthUpButton.Click += (s, e) => AdjustValue(_generalViewModel.PinnedTabWidth, 10, 50, 300, v => _generalViewModel.PinnedTabWidth = v);
             pinnedWidthButtonPanel.Children.Add(_pinnedTabWidthUpButton);
 
             _pinnedTabWidthDownButton = new Button
@@ -199,7 +205,7 @@ namespace YiboFile.Controls.Settings
                 Padding = new Thickness(0),
                 Style = (Style)Application.Current.Resources["ModernButtonStyle"]
             };
-            _pinnedTabWidthDownButton.Click += (s, e) => AdjustValue(_viewModel.PinnedTabWidth, -10, 50, 300, v => _viewModel.PinnedTabWidth = v);
+            _pinnedTabWidthDownButton.Click += (s, e) => AdjustValue(_generalViewModel.PinnedTabWidth, -10, 50, 300, v => _generalViewModel.PinnedTabWidth = v);
             pinnedWidthButtonPanel.Children.Add(_pinnedTabWidthDownButton);
 
             fixedWidthPanel.Children.Add(pinnedWidthButtonPanel);
@@ -275,7 +281,7 @@ namespace YiboFile.Controls.Settings
                 VerticalAlignment = VerticalAlignment.Center,
                 Style = (Style)Application.Current.Resources["ModernButtonStyle"]
             };
-            fontSizeUpButton.Click += (s, e) => AdjustValue(_viewModel.UIFontSize, 1, 10, 48, v => _viewModel.UIFontSize = v);
+            fontSizeUpButton.Click += (s, e) => AdjustValue(_generalViewModel.UIFontSize, 1, 10, 48, v => _generalViewModel.UIFontSize = v);
 
             var fontSizeDownButton = new Button
             {
@@ -287,7 +293,7 @@ namespace YiboFile.Controls.Settings
                 VerticalAlignment = VerticalAlignment.Center,
                 Style = (Style)Application.Current.Resources["ModernButtonStyle"]
             };
-            fontSizeDownButton.Click += (s, e) => AdjustValue(_viewModel.UIFontSize, -1, 10, 48, v => _viewModel.UIFontSize = v);
+            fontSizeDownButton.Click += (s, e) => AdjustValue(_generalViewModel.UIFontSize, -1, 10, 48, v => _generalViewModel.UIFontSize = v);
 
             buttonPanel.Children.Add(fontSizeUpButton);
             buttonPanel.Children.Add(fontSizeDownButton);
@@ -345,7 +351,7 @@ namespace YiboFile.Controls.Settings
                 VerticalAlignment = VerticalAlignment.Center,
                 Style = (Style)Application.Current.Resources["ModernButtonStyle"]
             };
-            tagFontSizeUpButton.Click += (s, e) => AdjustValue(_viewModel.TagFontSize, 1, 10, 48, v => _viewModel.TagFontSize = v);
+            tagFontSizeUpButton.Click += (s, e) => AdjustValue(_generalViewModel.TagFontSize, 1, 10, 48, v => _generalViewModel.TagFontSize = v);
 
             var tagFontSizeDownButton = new Button
             {
@@ -357,7 +363,7 @@ namespace YiboFile.Controls.Settings
                 VerticalAlignment = VerticalAlignment.Center,
                 Style = (Style)Application.Current.Resources["ModernButtonStyle"]
             };
-            tagFontSizeDownButton.Click += (s, e) => AdjustValue(_viewModel.TagFontSize, -1, 10, 48, v => _viewModel.TagFontSize = v);
+            tagFontSizeDownButton.Click += (s, e) => AdjustValue(_generalViewModel.TagFontSize, -1, 10, 48, v => _generalViewModel.TagFontSize = v);
 
             tagButtonPanel.Children.Add(tagFontSizeUpButton);
             tagButtonPanel.Children.Add(tagFontSizeDownButton);
@@ -415,7 +421,7 @@ namespace YiboFile.Controls.Settings
                 VerticalAlignment = VerticalAlignment.Center,
                 Style = (Style)Application.Current.Resources["ModernButtonStyle"]
             };
-            tagBoxWidthUpButton.Click += (s, e) => AdjustValue(_viewModel.TagBoxWidth, 5, 0, 500, v => _viewModel.TagBoxWidth = v);
+            tagBoxWidthUpButton.Click += (s, e) => AdjustValue(_generalViewModel.TagBoxWidth, 5, 0, 500, v => _generalViewModel.TagBoxWidth = v);
 
             var tagBoxWidthDownButton = new Button
             {
@@ -427,7 +433,7 @@ namespace YiboFile.Controls.Settings
                 VerticalAlignment = VerticalAlignment.Center,
                 Style = (Style)Application.Current.Resources["ModernButtonStyle"]
             };
-            tagBoxWidthDownButton.Click += (s, e) => AdjustValue(_viewModel.TagBoxWidth, -10, 50, 500, v => _viewModel.TagBoxWidth = v);
+            tagBoxWidthDownButton.Click += (s, e) => AdjustValue(_generalViewModel.TagBoxWidth, -10, 50, 500, v => _generalViewModel.TagBoxWidth = v);
 
             tagBoxWidthButtonPanel.Children.Add(tagBoxWidthUpButton);
             tagBoxWidthButtonPanel.Children.Add(tagBoxWidthDownButton);
@@ -481,17 +487,18 @@ namespace YiboFile.Controls.Settings
             };
             stackPanel.Children.Add(configTitle);
 
+
             stackPanel.Children.Add(CreateImportExportRow("仅配置（ooi_config.json + tt_settings.txt）",
-                (s, e) => ExportFileAndExecute(_viewModel.ExportConfigsCommand, "configs.zip"),
-                (s, e) => ImportFileAndExecute(_viewModel.ImportConfigsCommand)));
+                (s, e) => ExportFileAndExecute(_dataViewModel.ExportConfigsCommand, "configs.zip"),
+                (s, e) => ImportFileAndExecute(_dataViewModel.ImportConfigsCommand)));
 
             stackPanel.Children.Add(CreateImportExportRow("仅数据（ooi_data.db + tt_training.db + tt_model.zip）",
-                (s, e) => ExportFileAndExecute(_viewModel.ExportDataCommand, "data.zip"),
-                (s, e) => ImportFileAndExecute(_viewModel.ImportDataCommand)));
+                (s, e) => ExportFileAndExecute(_dataViewModel.ExportDataCommand, "data.zip"),
+                (s, e) => ImportFileAndExecute(_dataViewModel.ImportDataCommand)));
 
             stackPanel.Children.Add(CreateImportExportRow("全部（配置 + 数据）",
-                (s, e) => ExportFileAndExecute(_viewModel.ExportAllCommand, "all.zip"),
-                (s, e) => ImportFileAndExecute(_viewModel.ImportAllCommand)));
+                (s, e) => ExportFileAndExecute(_dataViewModel.ExportAllCommand, "all.zip"),
+                (s, e) => ImportFileAndExecute(_dataViewModel.ImportAllCommand)));
 
             // 不使用内部 ScrollViewer，外部 SettingsPanelControl 已有 ScrollViewer 处理滚动
             Content = stackPanel;
@@ -499,22 +506,22 @@ namespace YiboFile.Controls.Settings
 
         private void InitializeBindings()
         {
-            _startMaximizedCheckBox.SetBinding(CheckBox.IsCheckedProperty, new Binding(nameof(SettingsViewModel.IsMaximized)) { Mode = BindingMode.TwoWay });
-            _enableMultiWindowCheckBox.SetBinding(CheckBox.IsCheckedProperty, new Binding(nameof(SettingsViewModel.EnableMultiWindow)) { Mode = BindingMode.TwoWay });
-            _activateTabOnMiddleClickCheckBox.SetBinding(CheckBox.IsCheckedProperty, new Binding(nameof(SettingsViewModel.ActivateNewTabOnMiddleClick)) { Mode = BindingMode.TwoWay });
+            _startMaximizedCheckBox.SetBinding(CheckBox.IsCheckedProperty, new Binding(nameof(GeneralSettingsViewModel.IsMaximized)) { Mode = BindingMode.TwoWay });
+            _enableMultiWindowCheckBox.SetBinding(CheckBox.IsCheckedProperty, new Binding(nameof(GeneralSettingsViewModel.EnableMultiWindow)) { Mode = BindingMode.TwoWay });
+            _activateTabOnMiddleClickCheckBox.SetBinding(CheckBox.IsCheckedProperty, new Binding(nameof(GeneralSettingsViewModel.ActivateNewTabOnMiddleClick)) { Mode = BindingMode.TwoWay });
 
-            _uiFontSizeTextBox.SetBinding(TextBox.TextProperty, new Binding(nameof(SettingsViewModel.UIFontSize)) { Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged });
-            _tagFontSizeTextBox.SetBinding(TextBox.TextProperty, new Binding(nameof(SettingsViewModel.TagFontSize)) { Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged });
-            _tagBoxWidthTextBox.SetBinding(TextBox.TextProperty, new Binding(nameof(SettingsViewModel.TagBoxWidth)) { Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged });
+            _uiFontSizeTextBox.SetBinding(TextBox.TextProperty, new Binding(nameof(GeneralSettingsViewModel.UIFontSize)) { Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged });
+            _tagFontSizeTextBox.SetBinding(TextBox.TextProperty, new Binding(nameof(GeneralSettingsViewModel.TagFontSize)) { Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged });
+            _tagBoxWidthTextBox.SetBinding(TextBox.TextProperty, new Binding(nameof(GeneralSettingsViewModel.TagBoxWidth)) { Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged });
 
-            _pinnedTabWidthTextBox.SetBinding(TextBox.TextProperty, new Binding(nameof(SettingsViewModel.PinnedTabWidth)) { Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged });
+            _pinnedTabWidthTextBox.SetBinding(TextBox.TextProperty, new Binding(nameof(GeneralSettingsViewModel.PinnedTabWidth)) { Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged });
 
-            _baseDirectoryTextBox.SetBinding(TextBox.TextProperty, new Binding(nameof(SettingsViewModel.BaseDirectory)) { Mode = BindingMode.OneWay });
+            _baseDirectoryTextBox.SetBinding(TextBox.TextProperty, new Binding(nameof(GeneralSettingsViewModel.BaseDirectory)) { Mode = BindingMode.OneWay });
         }
 
         private void InitializeState()
         {
-            if (_viewModel.TabWidthMode == TabWidthMode.DynamicWidth)
+            if (_generalViewModel.TabWidthMode == TabWidthMode.DynamicWidth)
                 _tabWidthDynamicRadio.IsChecked = true;
             else
                 _tabWidthFixedRadio.IsChecked = true;
@@ -525,16 +532,16 @@ namespace YiboFile.Controls.Settings
         private void TabWidthMode_Changed(object sender, RoutedEventArgs e)
         {
             if (_tabWidthDynamicRadio.IsChecked == true)
-                _viewModel.TabWidthMode = TabWidthMode.DynamicWidth;
+                _generalViewModel.TabWidthMode = TabWidthMode.DynamicWidth;
             else
-                _viewModel.TabWidthMode = TabWidthMode.FixedWidth;
+                _generalViewModel.TabWidthMode = TabWidthMode.FixedWidth;
 
             UpdatePinnedTabWidthUIState();
         }
 
         private void UpdatePinnedTabWidthUIState()
         {
-            bool isFixedMode = _viewModel.TabWidthMode != TabWidthMode.DynamicWidth;
+            bool isFixedMode = _generalViewModel.TabWidthMode != TabWidthMode.DynamicWidth;
             if (_pinnedTabWidthLabel != null) _pinnedTabWidthLabel.Opacity = isFixedMode ? 1.0 : 0.5;
             if (_pinnedTabWidthTextBox != null) _pinnedTabWidthTextBox.IsEnabled = isFixedMode;
             if (_pinnedTabWidthUpButton != null) _pinnedTabWidthUpButton.IsEnabled = isFixedMode;
@@ -645,12 +652,12 @@ namespace YiboFile.Controls.Settings
             var dialog = new Forms.FolderBrowserDialog
             {
                 Description = "选择配置/数据存储目录（默认 .\\AppData）",
-                SelectedPath = _viewModel.BaseDirectory // Use VM property
+                SelectedPath = _generalViewModel.BaseDirectory // Use VM property
             };
 
             if (dialog.ShowDialog() == Forms.DialogResult.OK)
             {
-                _viewModel.ChangeBaseDirectoryCommand.Execute(dialog.SelectedPath);
+                _generalViewModel.ChangeBaseDirectoryCommand.Execute(dialog.SelectedPath);
             }
         }
 
@@ -699,7 +706,7 @@ namespace YiboFile.Controls.Settings
 
         public void LoadSettings()
         {
-            _viewModel?.LoadFromConfig();
+            _generalViewModel?.LoadFromConfig();
             InitializeState();
         }
 

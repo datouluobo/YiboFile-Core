@@ -1,18 +1,37 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Windows.Input;
+using Microsoft.Extensions.DependencyInjection;
 using YiboFile.Services.Config;
+using YiboFile.ViewModels;
 
-namespace YiboFile.ViewModels
+namespace YiboFile.ViewModels.Settings
 {
-    public partial class SettingsViewModel
+    public class NavigationSettingsViewModel : BaseViewModel
     {
-        #region Path Settings
         private ObservableCollection<NavigationSectionItemViewModel> _navigationSections;
         public ObservableCollection<NavigationSectionItemViewModel> NavigationSections
         {
             get => _navigationSections;
             set => SetProperty(ref _navigationSections, value);
+        }
+
+        public ICommand MoveSectionUpCommand { get; }
+        public ICommand MoveSectionDownCommand { get; }
+
+        public NavigationSettingsViewModel()
+        {
+            MoveSectionUpCommand = new RelayCommand<NavigationSectionItemViewModel>(MoveSectionUp);
+            MoveSectionDownCommand = new RelayCommand<NavigationSectionItemViewModel>(MoveSectionDown);
+            LoadFromConfig();
+        }
+
+        public void LoadFromConfig()
+        {
+            var config = ConfigurationService.Instance.GetSnapshot();
+            InitializePathSettings(config);
         }
 
         private void InitializePathSettings(AppConfig config)
@@ -46,16 +65,20 @@ namespace YiboFile.ViewModels
                 }
             }
 
-            var favoriteRepo = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<YiboFile.Services.Data.Repositories.IFavoriteRepository>(App.ServiceProvider);
-            var groups = favoriteRepo.GetAllGroups();
-            foreach (var group in groups)
+            try
             {
-                string key = $"FavoriteGroup_{group.Id}";
-                if (!sections.Any(s => s.Key == key))
+                var favoriteRepo = App.ServiceProvider.GetRequiredService<YiboFile.Services.Data.Repositories.IFavoriteRepository>();
+                var groups = favoriteRepo.GetAllGroups();
+                foreach (var group in groups)
                 {
-                    sections.Add(new NavigationSectionItemViewModel(key, group.Name));
+                    string key = $"FavoriteGroup_{group.Id}";
+                    if (!sections.Any(s => s.Key == key))
+                    {
+                        sections.Add(new NavigationSectionItemViewModel(key, group.Name));
+                    }
                 }
             }
+            catch { }
 
             NavigationSections = sections;
         }
@@ -68,9 +91,13 @@ namespace YiboFile.ViewModels
             {
                 if (int.TryParse(key.Substring("FavoriteGroup_".Length), out int groupId))
                 {
-                    var favoriteRepo = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<YiboFile.Services.Data.Repositories.IFavoriteRepository>(App.ServiceProvider);
-                    var group = favoriteRepo.GetAllGroups().FirstOrDefault(g => g.Id == groupId);
-                    if (group != null) return group.Name;
+                    try
+                    {
+                        var favoriteRepo = App.ServiceProvider.GetRequiredService<YiboFile.Services.Data.Repositories.IFavoriteRepository>();
+                        var group = favoriteRepo.GetAllGroups().FirstOrDefault(g => g.Id == groupId);
+                        if (group != null) return group.Name;
+                    }
+                    catch { }
                 }
                 return "收藏项";
             }
@@ -106,6 +133,5 @@ namespace YiboFile.ViewModels
             var newOrder = NavigationSections.Select(s => s.Key).ToList();
             ConfigurationService.Instance.Update(c => c.NavigationSectionsOrder = newOrder);
         }
-        #endregion
     }
 }
