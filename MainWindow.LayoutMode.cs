@@ -77,6 +77,9 @@ namespace YiboFile
             // 应用布局
             ApplyLayout(mode);
 
+            // 更新标签页边距
+            UpdateTabManagerMargin();
+
             // 保存配置
             if (_configService?.Config != null)
             {

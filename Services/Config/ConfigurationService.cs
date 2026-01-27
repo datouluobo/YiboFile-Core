@@ -93,11 +93,16 @@ namespace YiboFile.Services.Config
             }
         }
 
+        private int _recursionDepth = 0;
+        private const int MaxRecursionDepth = 10;
+
         /// <summary>
         /// 设置单个配置值（原子操作）
         /// </summary>
         public void Set<T>(Expression<Func<AppConfig, T>> propertyExpression, T value)
         {
+            if (_recursionDepth > MaxRecursionDepth) return;
+
             lock (_configLock)
             {
                 var memberExpr = propertyExpression.Body as MemberExpression;
@@ -108,13 +113,25 @@ namespace YiboFile.Services.Config
                 if (propInfo == null)
                     throw new ArgumentException("Expression must be a property access");
 
-                propInfo.SetValue(_config, value);
-                _isDirty = true;
+                // Check for equality to prevent infinite loops and unnecessary updates
+                var currentValue = propInfo.GetValue(_config);
+                if (Equals(currentValue, value)) return;
 
-                // 触发变更事件
-                SettingChanged?.Invoke(this, propInfo.Name);
+                _recursionDepth++;
+                try
+                {
+                    propInfo.SetValue(_config, value);
+                    _isDirty = true;
 
-                TriggerDebouncedSave();
+                    // 触发变更事件
+                    SettingChanged?.Invoke(this, propInfo.Name);
+
+                    TriggerDebouncedSave();
+                }
+                finally
+                {
+                    _recursionDepth--;
+                }
             }
         }
 
@@ -123,15 +140,27 @@ namespace YiboFile.Services.Config
         /// </summary>
         public void Update(Action<AppConfig> updateAction)
         {
+            if (_recursionDepth > MaxRecursionDepth) return;
+
             lock (_configLock)
             {
-                updateAction(_config);
-                _isDirty = true;
+                _recursionDepth++;
+                try
+                {
+                    // For Update, we can't easily check equality before applying, 
+                    // but the recursion guard will prevent stack overflow.
+                    updateAction(_config);
+                    _isDirty = true;
 
-                // 批量更新时触发通配符事件或特定事件(这里简化为null或"All")
-                SettingChanged?.Invoke(this, "All");
+                    // 批量更新时触发通配符事件或特定事件(这里简化为null或"All")
+                    SettingChanged?.Invoke(this, "All");
 
-                TriggerDebouncedSave();
+                    TriggerDebouncedSave();
+                }
+                finally
+                {
+                    _recursionDepth--;
+                }
             }
         }
 

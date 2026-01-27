@@ -85,7 +85,8 @@ namespace YiboFile.ViewModels
             _dispatcher = ownerWindow.Dispatcher;
 
             var errorService = App.ServiceProvider.GetRequiredService<YiboFile.Services.Core.Error.ErrorService>();
-            _fileListService = new FileListService(_dispatcher, errorService);
+            var tagService = App.ServiceProvider.GetService<Services.Features.ITagService>();
+            _fileListService = new FileListService(_dispatcher, errorService, tagService);
 
             _columnService = columnService;
             _metadataEnricher = metadataEnricher ?? new FileMetadataEnricher();

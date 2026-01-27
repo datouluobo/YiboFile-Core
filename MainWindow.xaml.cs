@@ -119,6 +119,7 @@ namespace YiboFile
         private NotesModule _notesModule;
         private TagsModule _tagsModule;
         private FavoritesModule _favoritesModule;
+        private LibraryModule _libraryModule;
 
         /// <summary>
         /// 主窗口 ViewModel
@@ -161,8 +162,15 @@ namespace YiboFile
         System.Windows.Threading.Dispatcher Services.Navigation.INavigationModeUIHelper.Dispatcher => this.Dispatcher;
         Library Services.Navigation.INavigationModeUIHelper.CurrentLibrary
         {
-            get => _currentLibrary;
-            set => _currentLibrary = value;
+            get => _libraryModule?.SelectedLibrary ?? _currentLibrary;
+            set
+            {
+                _currentLibrary = value;
+                if (_libraryModule != null && _libraryModule.SelectedLibrary != value)
+                {
+                    _libraryModule.SelectedLibrary = value;
+                }
+            }
         }
         string Services.Navigation.INavigationModeUIHelper.CurrentPath
         {
@@ -238,6 +246,9 @@ namespace YiboFile
             };
 
             InitializeServices();
+
+            this.SizeChanged += (s, e) => UpdateTabManagerMargin();
+            this.StateChanged += (s, e) => UpdateTabManagerMargin();
 
             // Step 1: Initialize services and config (Service Initialization Phase)
             var initializer = new Services.MainWindowInitializer(this);
@@ -349,6 +360,26 @@ namespace YiboFile
                 _viewModel.Tags = _tagsModule;
                 _viewModel.RegisterModule(_tagsModule);
             }
+
+            _libraryModule = new LibraryModule(_messageBus, _libraryService);
+            _viewModel.Library = _libraryModule;
+            _viewModel.RegisterModule(_libraryModule);
+
+            // 订阅库选择消息，处理 UI 到逻辑的导航触发
+            _messageBus.Subscribe<LibrarySelectedMessage>(m =>
+            {
+                if (m.Library != null)
+                {
+                    // 重新从数据库加载库信息，确保路径信息是最新的
+                    var updatedLibrary = _libraryService.GetLibrary(m.Library.Id);
+                    if (updatedLibrary != null)
+                    {
+                        // 使用统一导航协调器处理库导航（左键点击）
+                        _navigationCoordinator.HandleLibraryNavigation(updatedLibrary, NavigationCoordinator.ClickType.LeftClick);
+                        HighlightMatchingLibrary(updatedLibrary);
+                    }
+                }
+            });
 
             // 创建并注册收藏模块
             _favoritesModule = new FavoritesModule(_messageBus, _favoriteService);
@@ -545,28 +576,30 @@ namespace YiboFile
             double rightMargin = WindowButtonsStackPanel.ActualWidth + 15;
 
             // Check if we are in Dual List Mode (using the property from LayoutMode.cs)
-            // Note: Since this logic is in partial MainWindow, we can access _isDualListMode or use the property
             bool isDualMode = this.IsDualListMode;
+
+            // Check if rights panel is collapsed (even in single mode, if not collapsed, it provides enough space for buttons)
+            bool isRightPanelCollapsed = SplitterRight != null && SplitterRight.IsNextCollapsed;
 
             if (TabManager != null)
             {
                 if (isDualMode)
                 {
-                    // 双列表模式：右侧面板 (Col 5) 可见。标签页管理器位于 (Col 3) 是安全的，无需边距。
+                    // 双列表模式：右侧面板 (Col 5) 可见且作为副列表容器。主标签页管理器位于 (Col 3) 是安全的，无需边距。
                     TabManager.Margin = new Thickness(0, 0, 0, 0);
                 }
                 else
                 {
                     // 单列表模式
-                    // 如果是完整模式，右侧面板可见 -> 无需边距
-                    // 如果是工作/专注模式，右侧面板折叠 -> 标签页管理器延伸到最右侧边缘 -> 需要避开窗口控制按钮的边距
-                    if (_currentLayoutMode == LayoutMode.Full)
+                    // 如果右面板折叠 -> 标签页管理器延伸到最右侧边缘 -> 需要避开窗口控制按钮的边距
+                    // 如果右面板展开 (显示预览面板) -> 标签页管理器在中间 -> 安全
+                    if (isRightPanelCollapsed)
                     {
-                        TabManager.Margin = new Thickness(0, 0, 0, 0);
+                        TabManager.Margin = new Thickness(0, 0, rightMargin, 0);
                     }
                     else
                     {
-                        TabManager.Margin = new Thickness(0, 0, rightMargin, 0);
+                        TabManager.Margin = new Thickness(0, 0, 0, 0);
                     }
                 }
             }
@@ -575,12 +608,12 @@ namespace YiboFile
             {
                 if (isDualMode)
                 {
-                    // SecondTabManager is visible and at the right. Needs to avoid window controls.
+                    // 副标签页始终在右侧，始终需要避开按钮
                     SecondTabManager.Margin = new Thickness(0, 0, rightMargin, 0);
                 }
                 else
                 {
-                    // Not visible, margin doesn't matter much, but keep cleaner.
+                    // 不显示，边距无关紧要
                     SecondTabManager.Margin = new Thickness(0);
                 }
             }

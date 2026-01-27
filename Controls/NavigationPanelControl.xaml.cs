@@ -49,12 +49,8 @@ namespace YiboFile.Controls
         public event RoutedEventHandler LibraryContextMenuClick;
 
         public event RoutedEventHandler DrivesTreeViewItemClick;
-        public event RoutedEventHandler LibraryOverviewClick;
 
-        private void LibraryOverviewBtn_Click(object sender, RoutedEventArgs e)
-        {
-            LibraryOverviewClick?.Invoke(this, e);
-        }
+
 
         public NavigationPanelControl()
         {

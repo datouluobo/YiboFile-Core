@@ -244,36 +244,32 @@ namespace YiboFile.Services.Navigation
             {
                 _uiHelper.Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    if (_uiHelper.CurrentLibrary == null && _configService?.Config.LastLibraryId > 0)
+                    if (_uiHelper.CurrentLibrary == null)
                     {
-                        var lastLibrary = _libraryRepository?.GetLibrary(_configService.Config.LastLibraryId);
-                        if (lastLibrary != null)
+                        Library libraryToSelect = null;
+                        if (_configService?.Config.LastLibraryId > 0)
                         {
-                            _uiHelper.CurrentLibrary = lastLibrary;
-                            // 使用辅助方法确保选中状态正确显示
-                            _uiHelper.EnsureSelectedItemVisible(_uiHelper.LibrariesListBox, lastLibrary);
-                            // 高亮当前库
-                            _uiHelper.HighlightMatchingLibrary(lastLibrary);
-                            // 确保文件列表被加载
-                            _uiHelper.LoadLibraryFiles(lastLibrary);
+                            libraryToSelect = _libraryRepository?.GetLibrary(_configService.Config.LastLibraryId);
                         }
-                        else
+
+                        // If last library not found, pick the first one
+                        if (libraryToSelect == null)
                         {
-                            // If last library not found, go to lib:// root
-                            _uiHelper.CurrentPath = "lib://";
-                            _uiHelper.RefreshFileList();
+                            libraryToSelect = _libraryRepository?.GetAllLibraries().FirstOrDefault();
                         }
-                    }
-                    else if (_uiHelper.CurrentLibrary != null)
-                    {
-                        // 如果已有当前库，高亮它
-                        _uiHelper.HighlightMatchingLibrary(_uiHelper.CurrentLibrary);
+
+                        if (libraryToSelect != null)
+                        {
+                            _uiHelper.CurrentLibrary = libraryToSelect;
+                            _uiHelper.EnsureSelectedItemVisible(_uiHelper.LibrariesListBox, libraryToSelect);
+                            _uiHelper.HighlightMatchingLibrary(libraryToSelect);
+                            _uiHelper.LoadLibraryFiles(libraryToSelect);
+                        }
                     }
                     else
                     {
-                        // No selection, show overview
-                        _uiHelper.CurrentPath = "lib://";
-                        _uiHelper.RefreshFileList();
+                        // 如果已有当前库，高亮它
+                        _uiHelper.HighlightMatchingLibrary(_uiHelper.CurrentLibrary);
                     }
                     _uiHelper.InitializeLibraryDragDrop();
                 }), System.Windows.Threading.DispatcherPriority.Loaded);

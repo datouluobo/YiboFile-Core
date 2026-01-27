@@ -132,12 +132,28 @@ namespace YiboFile.Controls
         /// </summary>
         public void EnsureNewTabButtonLast()
         {
-            // 在现在的布局中，按钮固定在右侧，无需在Children中移动
-            // 此方法保留为空或仅做布局检查以兼容现有调用
             var host = FindName("NewTabButtonHost") as Border;
-            if (_newTabButton != null && host != null && host.Child != _newTabButton)
+            if (host != null)
             {
-                host.Child = _newTabButton;
+                // Ensure button is in host
+                if (host.Child != _newTabButton)
+                {
+                    host.Child = _newTabButton;
+                }
+
+                // Ensure host is in TabsPanel
+                if (!TabsPanel.Children.Contains(host))
+                {
+                    TabsPanel.Children.Add(host);
+                }
+
+                // Ensure host is at the end of TabsPanel
+                int lastIndex = TabsPanel.Children.Count - 1;
+                if (TabsPanel.Children.IndexOf(host) != lastIndex)
+                {
+                    TabsPanel.Children.Remove(host);
+                    TabsPanel.Children.Add(host);
+                }
             }
         }
 

@@ -120,20 +120,17 @@
 
     <Border x:Name="TabsBorder" Background="Transparent" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0" Visibility="Visible"
             shell:WindowChrome.IsHitTestVisibleInChrome="True">
-        <DockPanel x:Name="TabsDock" shell:WindowChrome.IsHitTestVisibleInChrome="True" LastChildFill="True">
-            <!-- 新建标签页按钮容器 - 固定在右侧 -->
-            <Border x:Name="NewTabButtonHost" DockPanel.Dock="Right" VerticalAlignment="Center" shell:WindowChrome.IsHitTestVisibleInChrome="True"/>
-            
-            <!-- 标签页滚动区域 -->
-            <ScrollViewer x:Name="TabScrollViewer" 
-                          Style="{StaticResource OverlayScrollViewerStyle}"
-                          PanningMode="HorizontalOnly"
-                          HorizontalScrollBarVisibility="Hidden"
-                          VerticalScrollBarVisibility="Disabled"
-                          shell:WindowChrome.IsHitTestVisibleInChrome="True">
-                <StackPanel x:Name="TabsPanel" Orientation="Horizontal" shell:WindowChrome.IsHitTestVisibleInChrome="True"/>
-            </ScrollViewer>
-        </DockPanel>
+        <ScrollViewer x:Name="TabScrollViewer" 
+                      Style="{StaticResource OverlayScrollViewerStyle}"
+                      PanningMode="HorizontalOnly"
+                      HorizontalScrollBarVisibility="Hidden"
+                      VerticalScrollBarVisibility="Disabled"
+                      shell:WindowChrome.IsHitTestVisibleInChrome="True">
+            <StackPanel x:Name="TabsPanel" Orientation="Horizontal" shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                <!-- 新建标签页按钮容器 - 将紧跟在最后一个标签页之后 -->
+                <Border x:Name="NewTabButtonHost" VerticalAlignment="Center" shell:WindowChrome.IsHitTestVisibleInChrome="True"/>
+            </StackPanel>
+        </ScrollViewer>
     </Border>
 </UserControl>
 

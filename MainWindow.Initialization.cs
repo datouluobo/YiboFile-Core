@@ -462,10 +462,9 @@ namespace YiboFile
                 NavigationPanelControl.FavoriteListBoxLoaded += OnFavoriteListBoxLoaded;
                 NavigationPanelControl.RenameFavoriteGroupRequested += OnRenameFavoriteGroupRequested;
                 NavigationPanelControl.DeleteFavoriteGroupRequested += OnDeleteFavoriteGroupRequested;
-                NavigationPanelControl.LibrariesListBoxSelectionChanged += LibrariesListBox_SelectionChanged;
                 NavigationPanelControl.LibrariesListBoxContextMenuOpening += LibrariesListBox_ContextMenuOpening;
                 NavigationPanelControl.LibraryManageClick += ManageLibraries_Click;
-                NavigationPanelControl.LibraryOverviewClick += LibraryOverviewBtn_Click;
+
 
                 NavigationPanelControl.PathManageClick += (s, e) =>
                 {
@@ -528,6 +527,12 @@ namespace YiboFile
 
             // 初始化主题切换事件
             InitializeThemeEvents();
+
+            // 订阅分割器折叠事件，动态调整标签页边距
+            if (SplitterRight != null)
+            {
+                SplitterRight.CollapsedStateChanged += (s, e) => UpdateTabManagerMargin();
+            }
         }
 
         private void AttachTabServiceUiContext()

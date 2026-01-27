@@ -1,3 +1,5 @@
+using YiboFile;
+
 namespace YiboFile.ViewModels.Messaging.Messages
 {
     /// <summary>
@@ -7,7 +9,7 @@ namespace YiboFile.ViewModels.Messaging.Messages
     /// <summary>
     /// 库已选择通知
     /// </summary>
-    public record LibrarySelectedMessage(int LibraryId, string LibraryName);
+    public record LibrarySelectedMessage(Library Library);
 
     /// <summary>
     /// 请求打开库

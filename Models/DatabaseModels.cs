@@ -11,8 +11,6 @@ namespace YiboFile
         public List<string> Paths { get; set; } = new List<string>();
         public int DisplayOrder { get; set; }
 
-        // 兼容旧代码
-        [Obsolete("Use Paths property instead")]
         public string Path
         {
             get => Paths?.FirstOrDefault() ?? "";
@@ -21,6 +19,20 @@ namespace YiboFile
                 if (Paths == null) Paths = new List<string>();
                 if (!Paths.Contains(value)) Paths.Add(value);
             }
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is Library other)
+            {
+                return this.Id == other.Id;
+            }
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            return Id.GetHashCode();
         }
     }
 

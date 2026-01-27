@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Data.Sqlite;
 using YiboFile.Models;
@@ -201,70 +202,98 @@ namespace YiboFile.Services.Data.Repositories
             return libraries;
         }
 
+        [ThreadStatic]
+        private static int _recursionDepth;
+        private const int MaxRecursionDepth = 5;
+
         public Library GetLibrary(int libraryId)
         {
-            using var connection = new SqliteConnection(_connectionString);
-            connection.Open();
+            if (_recursionDepth > MaxRecursionDepth) return null;
 
-            string name;
-            int displayOrder;
-
-            using (var command = connection.CreateCommand())
+            try
             {
-                command.CommandText = "SELECT Name, DisplayOrder FROM Libraries WHERE Id = @libraryId";
-                command.Parameters.AddWithValue("@libraryId", libraryId);
-                using var reader = command.ExecuteReader();
-                if (!reader.Read()) return null;
-                name = reader.GetString(0);
-                displayOrder = reader.IsDBNull(1) ? 0 : reader.GetInt32(1);
-            }
+                _recursionDepth++;
 
-            var paths = new List<string>();
-            using (var pathCommand = connection.CreateCommand())
-            {
-                pathCommand.CommandText = "SELECT Path FROM LibraryPaths WHERE LibraryId = @libraryId ORDER BY Id";
-                pathCommand.Parameters.AddWithValue("@libraryId", libraryId);
-                using var pathReader = pathCommand.ExecuteReader();
-                while (pathReader.Read())
+                using var connection = new SqliteConnection(_connectionString);
+                connection.Open();
+
+                string name;
+                int displayOrder;
+
+                using (var command = connection.CreateCommand())
                 {
-                    paths.Add(pathReader.GetString(0));
+                    command.CommandText = "SELECT Name, DisplayOrder FROM Libraries WHERE Id = @libraryId";
+                    command.Parameters.AddWithValue("@libraryId", libraryId);
+                    using var reader = command.ExecuteReader();
+                    if (!reader.Read()) return null;
+                    name = reader.GetString(0);
+                    displayOrder = reader.IsDBNull(1) ? 0 : reader.GetInt32(1);
                 }
-            }
 
-            return new Library { Id = libraryId, Name = name, Paths = paths, DisplayOrder = displayOrder };
+                var paths = new List<string>();
+                using (var pathCommand = connection.CreateCommand())
+                {
+                    pathCommand.CommandText = "SELECT Path FROM LibraryPaths WHERE LibraryId = @libraryId ORDER BY Id";
+                    pathCommand.Parameters.AddWithValue("@libraryId", libraryId);
+                    using var pathReader = pathCommand.ExecuteReader();
+                    while (pathReader.Read())
+                    {
+                        paths.Add(pathReader.GetString(0));
+                    }
+                }
+
+                return new Library { Id = libraryId, Name = name, Paths = paths, DisplayOrder = displayOrder };
+            }
+            finally
+            {
+                _recursionDepth--;
+            }
         }
+
+        private static readonly AsyncLocal<int> _asyncRecursionDepth = new AsyncLocal<int>();
 
         public async Task<Library> GetLibraryAsync(int libraryId)
         {
-            using var connection = new SqliteConnection(_connectionString);
-            await connection.OpenAsync();
+            if (_asyncRecursionDepth.Value > MaxRecursionDepth) return null;
 
-            string name;
-            int displayOrder;
-
-            using (var command = connection.CreateCommand())
+            try
             {
-                command.CommandText = "SELECT Name, DisplayOrder FROM Libraries WHERE Id = @libraryId";
-                command.Parameters.AddWithValue("@libraryId", libraryId);
-                using var reader = await command.ExecuteReaderAsync();
-                if (!await reader.ReadAsync()) return null;
-                name = reader.GetString(0);
-                displayOrder = reader.IsDBNull(1) ? 0 : reader.GetInt32(1);
-            }
+                _asyncRecursionDepth.Value++;
 
-            var paths = new List<string>();
-            using (var pathCommand = connection.CreateCommand())
-            {
-                pathCommand.CommandText = "SELECT Path FROM LibraryPaths WHERE LibraryId = @libraryId ORDER BY Id";
-                pathCommand.Parameters.AddWithValue("@libraryId", libraryId);
-                using var pathReader = await pathCommand.ExecuteReaderAsync();
-                while (await pathReader.ReadAsync())
+                using var connection = new SqliteConnection(_connectionString);
+                await connection.OpenAsync();
+
+                string name;
+                int displayOrder;
+
+                using (var command = connection.CreateCommand())
                 {
-                    paths.Add(pathReader.GetString(0));
+                    command.CommandText = "SELECT Name, DisplayOrder FROM Libraries WHERE Id = @libraryId";
+                    command.Parameters.AddWithValue("@libraryId", libraryId);
+                    using var reader = await command.ExecuteReaderAsync();
+                    if (!await reader.ReadAsync()) return null;
+                    name = reader.GetString(0);
+                    displayOrder = reader.IsDBNull(1) ? 0 : reader.GetInt32(1);
                 }
-            }
 
-            return new Library { Id = libraryId, Name = name, Paths = paths, DisplayOrder = displayOrder };
+                var paths = new List<string>();
+                using (var pathCommand = connection.CreateCommand())
+                {
+                    pathCommand.CommandText = "SELECT Path FROM LibraryPaths WHERE LibraryId = @libraryId ORDER BY Id";
+                    pathCommand.Parameters.AddWithValue("@libraryId", libraryId);
+                    using var pathReader = await pathCommand.ExecuteReaderAsync();
+                    while (await pathReader.ReadAsync())
+                    {
+                        paths.Add(pathReader.GetString(0));
+                    }
+                }
+
+                return new Library { Id = libraryId, Name = name, Paths = paths, DisplayOrder = displayOrder };
+            }
+            finally
+            {
+                _asyncRecursionDepth.Value--;
+            }
         }
 
         public void MoveLibraryUp(int libraryId)

@@ -143,23 +143,7 @@ namespace YiboFile
             }
         }
 
-        /// <summary>
-        /// 点击库概览按钮，进入 lib:// 概览视图
-        /// </summary>
-        private void LibraryOverviewBtn_Click(object sender, RoutedEventArgs e)
-        {
-            _currentLibrary = null;
-            if (LibrariesListBox != null)
-                LibrariesListBox.SelectedItem = null;
 
-            // 切换到缩略图模式以便显示库卡片
-            if (FileBrowser != null && FileBrowser.GetFileListControl() != null)
-            {
-                FileBrowser.GetFileListControl().SetViewMode("Thumbnail");
-            }
-
-            _navigationCoordinator.HandlePathNavigation("lib://", NavigationCoordinator.NavigationSource.Library, NavigationCoordinator.ClickType.LeftClick);
-        }
 
         /// <summary>
         /// 库列表上下文菜单打开事件

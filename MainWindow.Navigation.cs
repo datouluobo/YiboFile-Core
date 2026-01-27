@@ -95,9 +95,20 @@ namespace YiboFile
                         }
                     }
 
-                    // 如果在库模式但没有选中库，且无法恢复上一次的库，则显示库概览视图
-                    _currentPath = "lib://";
-                    LoadCurrentDirectory();
+                    // 如果在库模式但没有选中库，获取第一个库作为默认
+                    var firstLibrary = _libraryService.LoadLibraries().FirstOrDefault();
+                    if (firstLibrary != null)
+                    {
+                        _currentLibrary = firstLibrary;
+                        _uiHelperService?.EnsureSelectedItemVisible(LibrariesListBox, firstLibrary);
+                        LoadLibraryFiles(firstLibrary);
+                        return;
+                    }
+
+                    // 如果连一个库都没有
+                    _currentFiles.Clear();
+                    if (FileBrowser != null)
+                        FileBrowser.FilesItemsSource = null;
                     return;
                 }
 
@@ -130,10 +141,7 @@ namespace YiboFile
                 // 高亮匹配项
                 HighlightMatchingItems(_currentPath);
 
-                if (_currentPath == "lib://" && FileBrowser != null)
-                {
-                    FileBrowser.GetFileListControl()?.SetViewMode("Thumbnail");
-                }
+
 
                 // MVVM 迁移: 委托给 FileListViewModel 加载
                 await _viewModel.FileList.LoadPathAsync(_currentPath);

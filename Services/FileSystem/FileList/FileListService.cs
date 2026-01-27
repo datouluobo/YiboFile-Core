@@ -319,17 +319,7 @@ namespace YiboFile.Services.FileList
 
                 if (string.IsNullOrEmpty(libraryName))
                 {
-                    // Return all libraries as items
-                    var libItems = allLibs.Select(l => new FileSystemItem
-                    {
-                        Name = l.Name,
-                        Path = $"lib://{l.Name}",
-                        Type = "Lib", // Special type for Library items
-                        IsDirectory = true,
-                        ModifiedDate = "" // Libraries don't have a single modified date easily
-                    }).ToList();
-
-                    return libItems;
+                    return new List<FileSystemItem>();
                 }
 
                 var lib = allLibs.FirstOrDefault(l => l.Name.Equals(libraryName, StringComparison.OrdinalIgnoreCase));
