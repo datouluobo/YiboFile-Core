@@ -27,7 +27,7 @@
             </Grid.ColumnDefinitions>
             <Button Grid.Column="0" x:Name="BackBtn" Content="←" ToolTip="返回" 
                     Width="24" Height="24" Click="BackBtn_Click"
-                    Style="{StaticResource ModernButtonStyle}"
+                    Style="{DynamicResource ModernButtonStyle}"
                     Background="Transparent" Margin="-5,0,5,0"
                     Padding="0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
             
@@ -38,13 +38,13 @@
                     FontFamily="{DynamicResource IconFontFamily}"
                     ToolTip="管理标签" 
                     Width="24" Height="24" Click="ManageTagsBtn_Click"
-                    Style="{StaticResource ModernButtonStyle}"
+                    Style="{DynamicResource ModernButtonStyle}"
                     Background="Transparent" Margin="0,0,-5,0"
                     Padding="0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
                     WindowChrome.IsHitTestVisibleInChrome="True"/>
         </Grid>
 
-        <!-- Tags List - Simplified version without complex styles -->
+        <!-- Tags List -->
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
             <ItemsControl x:Name="TagGroupsControl" 
                           ItemsSource="{Binding TagGroups, RelativeSource={RelativeSource AncestorType=UserControl}}">
@@ -53,7 +53,7 @@
                         <Expander IsExpanded="True" BorderThickness="0" Background="Transparent">
                             <Expander.Header>
                                 <Border AllowDrop="True" Drop="GroupHeader_Drop" Background="Transparent" Padding="0,4">
-                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13" 
+                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="12" 
                                                Foreground="{DynamicResource TextSecondaryBrush}"/>
                                 </Border>
                             </Expander.Header>
@@ -65,15 +65,17 @@
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Border Background="{Binding ColorBrush}" 
-                                                BorderBrush="#CCCCCC"
-                                                BorderThickness="{Binding Color, Converter={StaticResource NullToThicknessConverter}}"
+                                        <Border x:Name="TagBorder" 
+                                                Background="{Binding ColorBrush}" 
+                                                BorderBrush="Transparent"
+                                                BorderThickness="1"
                                                 CornerRadius="4" 
-                                                Padding="8,4" 
+                                                Padding="10,4" 
                                                 Margin="0,0,6,6"
                                                 Cursor="Hand"
                                                 MouseLeftButtonDown="TagItem_MouseLeftButtonDown"
                                                 AllowDrop="True" Drop="TagItem_Drop" PreviewMouseMove="TagItem_PreviewMouseMove">
+                                            <Border.Opacity>0.8</Border.Opacity>
                                             <Border.ContextMenu>
                                                 <ContextMenu>
                                                     <MenuItem Header="修改颜色" Click="ChangeTagColor_Click"/>
@@ -86,12 +88,19 @@
                                                        FontSize="12"
                                                        VerticalAlignment="Center"/>
                                         </Border>
+                                        <DataTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True" SourceName="TagBorder">
+                                                <Setter TargetName="TagBorder" Property="Opacity" Value="1.0"/>
+                                                <Setter TargetName="TagBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                            </Trigger>
+                                        </DataTemplate.Triggers>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
                         </Expander>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
+
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
                         <StackPanel/>

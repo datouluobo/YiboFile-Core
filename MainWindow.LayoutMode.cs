@@ -489,20 +489,40 @@ namespace YiboFile
             {
                 if (!_isSecondPaneFocused)
                 {
+                    _isSecondPaneFocused = true;
                     _layoutModule?.SetFocusedPane(true);
+                    UpdateFocusBorders();
                 }
             };
             FileBrowser.PreviewMouseDown += (s, e) =>
             {
                 if (_isSecondPaneFocused)
                 {
+                    _isSecondPaneFocused = false;
                     _layoutModule?.SetFocusedPane(false);
+                    UpdateFocusBorders();
                 }
             };
 
             // 保留原有 GotFocus 以防键盘导航触发
-            SecondFileBrowser.GotFocus += (s, e) => { if (!_isSecondPaneFocused) { _layoutModule?.SetFocusedPane(true); } };
-            FileBrowser.GotFocus += (s, e) => { if (_isSecondPaneFocused) { _layoutModule?.SetFocusedPane(false); } };
+            SecondFileBrowser.GotFocus += (s, e) =>
+            {
+                if (!_isSecondPaneFocused)
+                {
+                    _isSecondPaneFocused = true;
+                    _layoutModule?.SetFocusedPane(true);
+                    UpdateFocusBorders();
+                }
+            };
+            FileBrowser.GotFocus += (s, e) =>
+            {
+                if (_isSecondPaneFocused)
+                {
+                    _isSecondPaneFocused = false;
+                    _layoutModule?.SetFocusedPane(false);
+                    UpdateFocusBorders();
+                }
+            };
 
             // 绑定文件操作事件 (右键菜单支持)
             // Copy/Paste/Refresh handled below with Toolbar support

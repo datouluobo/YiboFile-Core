@@ -1,6 +1,6 @@
 # YiboFile 项目评估与行动计划
 
-> **版本**: v1.0.170 | **更新日期**: 2026-01-27
+> **版本**: v1.0.200 | **更新日期**: 2026-01-29
 
 ---
 
@@ -8,98 +8,61 @@
 
 ### 1.1 总体评价
 
-**YiboFile** 是一个功能丰富的现代文件管理器，重构 Windows 文件资源管理器的核心体验。
+**YiboFile** 是一个功能丰富的现代文件管理器，重构 Windows 文件资源管理器的核心体验。本项目目前正处于从传统架构向 **MVVM 架构** 迁移的关键阵痛期。
 
 | 维度 | 评价 |
 |------|------|
 | ✅ **功能** | 多标签、双栏窗口、标签系统、全文搜索等高级功能 |
-| ✅ **UI** | 完整的主题/皮肤系统（基于 `DynamicResource`） |
+| ✅ **UI** | 完整的主题/皮肤系统（目前已实现滚动条和标签美化补丁） |
 | ✅ **服务层** | 划分细致，业务逻辑封装意识强 |
-| ⚠️ **架构** | 传统 WinForm 与现代 WPF 思想的混合体 |
-| ⚠️ **技术债** | `MainWindow` 过于庞大，UI 与业务逻辑耦合 |
+| ⚠️ **架构** | 正在稳步实施 MVVM。由于导航重构过于复杂，已采取“撤销并分步重构”策略 |
+| ⚠️ **技术债** | `MainWindow` 依然是上帝类，代码膨胀严重 |
 
 ### 1.2 核心问题
 
 | 问题 | 描述 | 状态 |
 |------|------|------|
-| **God Class** | `MainWindow` 20+ partial class，~280KB 代码 | 🔴 严重 |
-| **混合职责** | UI 控件直接访问数据库 | ✅ 已修复 |
-| **硬编码 UI** | 右键菜单通过 C# 代码构建 | ✅ 已修复 |
+| ** God Class** | `MainWindow` 逻辑重度耦合 | 🔴 严重 |
+| **导航稳定性** | 之前的重构出现死循环，已回滚到 v1.0.190 | 🟠 修正中 |
+| **混合职责** | UI 与业务交互正在逐步分离 | 🟡 进行中 |
 
 ---
 
-## 二、已完成工作
+## 二、已完成工作 (稳定版)
 
-### 2.1 阶段一：代码清理 ✅
+### 2.1 UI 补丁与细节美化 ✅
+- [x] **现代滚动条**: 在 `AppStyles.xaml` 中实现简洁窄化滚动条。
+- [x] **标签视觉优化**: 标签列表改为方框容器样式，增强识别度。
+- [x] **对话框样式统一**: 采用 `BaseDialogStyle.xaml` 实现扁平化 UI。
 
-- [x] UI 层数据库解耦（`FileBrowserControl` 改用 `FavoriteService`）
-- [x] 右键菜单重构（创建 `ContextMenuBuilder`）
-- [x] 对话框样式统一（继承 `BaseDialogStyle.xaml`）
-
-### 2.2 阶段二：MVVM 架构 (v1.0.13) ✅
-
-#### Mediator 消息驱动架构
-
-```
-┌─────────────────────────────────────────┐
-│              IMessageBus                │
-├─────────────────────────────────────────┤
-│  NavigationModule  TabsModule  FileListModule
-├─────────────────────────────────────────┤
-│           MainWindowViewModel           │
-└─────────────────────────────────────────┘
-```
-
-| 组件 | 文件 |
-|------|------|
-| 消息总线 | `IMessageBus.cs`, `MessageBus.cs` |
-| 消息类型 | `NavigationMessages.cs`, `TabMessages.cs`, `FileListMessages.cs`, `SearchMessages.cs`, `LibraryMessages.cs` |
-| 模块框架 | `IModule.cs`, `ModuleBase.cs`, `MainWindowViewModel.cs` |
-| 核心模块 | `NavigationModule.cs`, `TabsModule.cs`, `FileListModule.cs` |
-
-#### 废弃代码清理
-
-- [x] 删除 `NavigationViewModel.cs`（与 NavigationModule 重复）
-- [x] 删除 `LibraryViewModel.cs`（未使用）
-- [x] 删除 `SearchResultGroupViewModel.cs`（未使用）
+### 2.2 服务层优化 ✅
+- [x] **文档预览异常捕获**: 增强了 PDF/Office 扫描时的稳定性。
+- [x] **窗口状态记忆**: 修正了双屏显示下的窗口位置记忆。
 
 ---
 
 ## 三、待解决问题
 
-### 3.1 MainWindow 上帝类 🔴
+### 3.1 导航与列表重构 (待重新分步实施) 🔴
 
-**当前状态**：MVVM 模块已创建，但 partial class 逻辑**仅桥接调用**，尚未真正迁移。
+**策略调整**：放弃“全量迁移”，改为“微步更新”。
 
-| 文件 | 大小 | 迁移目标 |
-|------|------|----------|
-| `MainWindow.xaml.cs` | 41.8 KB | 主协调者 |
-| `MainWindow.LayoutMode.cs` | 37.2 KB | LayoutModule |
-| `MainWindow.Handlers.cs` | 34.0 KB | 各 Module |
-| `MainWindow.Navigation.cs` | 30.3 KB | NavigationModule |
-| `MainWindow.Tabs.cs` | 10.9 KB | TabsModule |
-| **其他 15 个文件** | ~125 KB | -- |
-| **总计** | **~280 KB** | -- |
-
-### 3.2 其他大文件 🟡
-
-| 文件 | 大小 | 建议 |
+| 子任务 | 描述 | 状态 |
 |------|------|------|
-| `DocumentPreview.cs` | 88.9 KB | 按文档类型拆分 |
-| `TabService.cs` | 62.9 KB | 分离 UI/业务逻辑 |
-| `DatabaseManager.cs` | 60.5 KB | 拆分为多个 Repository |
-| `SettingsViewModel.cs` | 50.6 KB | ✅ 已拆分 (Split into specific ViewModels) |
+| **分步一：列表 ViewModel 化** | 仅将文件列表数据流改为 Binding，导航逻辑先留在 MainWindow | ⏳ 待开始 |
+| **分步二：地址栏解耦** | 路径同步逻辑迁移 | ⚪ 等待中 |
+| **分步三：Pane 抽象** | 最终实现主副栏完全独立模型 | ⚪ 等待中 |
 
 ---
 
-## 四、行动计划
+## 四、下一阶段行动计划
 
 | 优先级 | 任务 | 工作量 | 状态 |
 |--------|------|--------|------|
-| **P1** | 迁移 `MainWindow.Navigation.cs` (Loading Logic) | 1天 | ✅ 已完成 |
-| **P1** | 迁移 `MainWindow.Navigation.cs` (Tab Selection) | 1-2天 | ✅ 已完成 |
-| **P1** | 迁移 `MainWindow.Tabs.cs` → `TabsModule` | 2-3天 | ✅ 已完成 |
-| **P1** | 迁移 MainWindow 导航事件到 Command | 1天 | ✅ 已完成 |
+| **P0** | **修复双栏焦点失灵 Bug** | 0.5天 | 🔴 处理中 |
+| **P1** | 恢复 UI 视觉美化补丁 | 0.5天 | 🔴 处理中 |
+| **P1** | **实施：分步一（FileList ViewModel 挂载）** | 2天 | ⚪ 准备中 |
+| **P2** | 菜单与右键逻辑彻底剥离 | 2天 | ⚪ 暂停中 |
 | **P2** | 拆分 `DocumentPreview.cs` | 1天 | ✅ 已完成 |
 | **P2** | 拆分 `TabService.cs` | 1-2天 | ✅ 已完成 |
 | **P3** | 拆分 `SettingsViewModel.cs` | 1天 | ✅ 已完成 |
