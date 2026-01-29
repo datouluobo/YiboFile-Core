@@ -321,26 +321,36 @@ namespace YiboFile.Controls
         // GroupedHeaderListView 和 GroupedHeaderGridView 在XAML中定义
 
         // 文件列表数据源
+        // 文件列表数据源
+        public static readonly DependencyProperty ItemsSourceProperty =
+            DependencyProperty.Register("ItemsSource", typeof(System.Collections.IEnumerable), typeof(FileListControl),
+                new PropertyMetadata(null, OnItemsSourceChanged));
+
         public System.Collections.IEnumerable ItemsSource
         {
-            get => FilesListView?.ItemsSource;
-            set
+            get => (System.Collections.IEnumerable)GetValue(ItemsSourceProperty);
+            set => SetValue(ItemsSourceProperty, value);
+        }
+
+        private static void OnItemsSourceChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            var control = (FileListControl)d;
+            var value = (System.Collections.IEnumerable)e.NewValue;
+
+            if (control.FilesListView != null)
             {
-                if (FilesListView != null)
+                control.FilesListView.ItemsSource = value;
+
+                // 触发缩略图加载
+                if (value != null)
                 {
-                    FilesListView.ItemsSource = value;
+                    // 确定图标大小
+                    int size = 32;
+                    if (control._currentViewMode == "Thumbnail") size = (int)control.ThumbnailSize;
+                    else if (control._currentViewMode == "Tiles") size = 64;
+                    else if (control._currentViewMode == "Content") size = 48;
 
-                    // 触发缩略图加载
-                    if (value != null)
-                    {
-                        // 确定图标大小
-                        int size = 32;
-                        if (_currentViewMode == "Thumbnail") size = (int)ThumbnailSize; // 使用当前设定的缩略图大小
-                        else if (_currentViewMode == "Tiles") size = 64;
-                        else if (_currentViewMode == "Content") size = 48; // Content视图图标约40-48
-
-                        _thumbnailService?.LoadThumbnailsAsync(value, size);
-                    }
+                    control._thumbnailService?.LoadThumbnailsAsync(value, size);
                 }
             }
         }
@@ -708,39 +718,20 @@ namespace YiboFile.Controls
         /// </summary>
         public System.Collections.IEnumerable FilesItemsSource
         {
-            get => FilesListView?.ItemsSource;
+            get => ItemsSource;
             set
             {
                 if (_isGroupedMode)
                 {
-                    // If manually setting ItemsSource in Grouped Mode implies resetting to normal?
-                    // Or we just update the list but keep grouping.
-                    // Given previous logic blocked it, let's assume we allow it now but clear grouping flag 
-                    // if it's a raw assignment not via SetGroupedSearchResults.
-                    // Actually SetGroupedSearchResults sets FileList.ItemsSource directly.
-                    // So this setter is used by external navigation.
                     SwitchToNormalView();
                 }
 
+                ItemsSource = value;
+
+                // 强制刷新ListView
                 if (FilesListView != null)
                 {
-                    FilesListView.ItemsSource = value;
-                    // 强制刷新ListView，确保排序后UI更新
                     FilesListView.Items.Refresh();
-
-                    // 触发缩略图加载
-                    if (value != null)
-                    {
-                        // 确定图标大小
-                        int size = 16;
-                        if (_currentViewMode == "Thumbnail") size = (int)ThumbnailSize; // 使用当前设定的缩略图大小
-                        else if (_currentViewMode == "Tiles") size = 64;
-                        else if (_currentViewMode == "Content") size = 48; // Content视图图标约40-48
-                        else if (_currentViewMode == "SmallIcons") size = 16;
-                        else if (_currentViewMode == "Compact") size = 16;
-
-                        _thumbnailService?.LoadThumbnailsAsync(value, size);
-                    }
                 }
             }
         }
