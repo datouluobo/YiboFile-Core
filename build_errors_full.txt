@@ -1,0 +1,53 @@
+  姝ｅ湪纭畾瑕佽繕鍘熺殑椤圭洰鈥?
+  鎵€鏈夐」鐩潎鏄渶鏂扮殑锛屾棤娉曡繕鍘熴€?
+F:\Download\GitHub\YiboFile\YiboFile-Core\Handlers\FileBrowserEventHandler.cs(150,47): error CS0117: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淣avigationSource鈥濈殑瀹氫箟 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_e51a0w3i_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\Handlers\FileBrowserEventHandler.cs(151,47): error CS0117: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淐lickType鈥濈殑瀹氫箟 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_e51a0w3i_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\Handlers\FileBrowserEventHandler.cs(169,89): error CS0117: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淣avigationSource鈥濈殑瀹氫箟 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_e51a0w3i_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\Handlers\FileBrowserEventHandler.cs(169,140): error CS0117: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淐lickType鈥濈殑瀹氫箟 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_e51a0w3i_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\Handlers\FileBrowserEventHandler.cs(199,85): error CS0117: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淣avigationSource鈥濈殑瀹氫箟 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_e51a0w3i_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\Handlers\FileBrowserEventHandler.cs(199,136): error CS0117: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淐lickType鈥濈殑瀹氫箟 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_e51a0w3i_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\Handlers\FileBrowserEventHandler.cs(210,85): error CS0117: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淣avigationSource鈥濈殑瀹氫箟 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_e51a0w3i_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\Handlers\FileBrowserEventHandler.cs(210,136): error CS0117: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淐lickType鈥濈殑瀹氫箟 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_e51a0w3i_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\Handlers\MouseEventHandler.cs(66,52): error CS0117: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淐lickType鈥濈殑瀹氫箟 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_e51a0w3i_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.Handlers.cs(461,101): error CS0117: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淐lickType鈥濈殑瀹氫箟 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_e51a0w3i_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.Handlers.cs(462,99): error CS0117: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淣avigationSource鈥濈殑瀹氫箟 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_e51a0w3i_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.Handlers.cs(462,151): error CS0117: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淐lickType鈥濈殑瀹氫箟 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_e51a0w3i_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.Handlers.cs(560,52): error CS0117: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淐lickType鈥濈殑瀹氫箟 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_e51a0w3i_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.Handlers.cs(566,89): error CS0117: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淣avigationSource鈥濈殑瀹氫箟 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_e51a0w3i_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.Handlers.cs(586,52): error CS0117: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淐lickType鈥濈殑瀹氫箟 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_e51a0w3i_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.Input.cs(257,114): error CS0117: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淣avigationSource鈥濈殑瀹氫箟 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_e51a0w3i_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.Input.cs(257,163): error CS0117: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淐lickType鈥濈殑瀹氫箟 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_e51a0w3i_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.Input.cs(285,110): error CS0117: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淣avigationSource鈥濈殑瀹氫箟 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_e51a0w3i_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.Input.cs(285,159): error CS0117: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淐lickType鈥濈殑瀹氫箟 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_e51a0w3i_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\Services\FileSystem\FileInfo\FileInfoService.cs(399,80): error CS0117: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淣avigationSource鈥濈殑瀹氫箟 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_e51a0w3i_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\Services\FileSystem\FileInfo\FileInfoService.cs(400,80): error CS0117: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淐lickType鈥濈殑瀹氫箟 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_e51a0w3i_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.xaml.cs(378,110): error CS0117: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淐lickType鈥濈殑瀹氫箟 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_e51a0w3i_wpftmp.csproj]
+
+鐢熸垚澶辫触銆?
+
+F:\Download\GitHub\YiboFile\YiboFile-Core\Handlers\FileBrowserEventHandler.cs(150,47): error CS0117: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淣avigationSource鈥濈殑瀹氫箟 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_e51a0w3i_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\Handlers\FileBrowserEventHandler.cs(151,47): error CS0117: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淐lickType鈥濈殑瀹氫箟 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_e51a0w3i_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\Handlers\FileBrowserEventHandler.cs(169,89): error CS0117: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淣avigationSource鈥濈殑瀹氫箟 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_e51a0w3i_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\Handlers\FileBrowserEventHandler.cs(169,140): error CS0117: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淐lickType鈥濈殑瀹氫箟 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_e51a0w3i_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\Handlers\FileBrowserEventHandler.cs(199,85): error CS0117: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淣avigationSource鈥濈殑瀹氫箟 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_e51a0w3i_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\Handlers\FileBrowserEventHandler.cs(199,136): error CS0117: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淐lickType鈥濈殑瀹氫箟 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_e51a0w3i_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\Handlers\FileBrowserEventHandler.cs(210,85): error CS0117: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淣avigationSource鈥濈殑瀹氫箟 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_e51a0w3i_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\Handlers\FileBrowserEventHandler.cs(210,136): error CS0117: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淐lickType鈥濈殑瀹氫箟 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_e51a0w3i_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\Handlers\MouseEventHandler.cs(66,52): error CS0117: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淐lickType鈥濈殑瀹氫箟 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_e51a0w3i_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.Handlers.cs(461,101): error CS0117: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淐lickType鈥濈殑瀹氫箟 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_e51a0w3i_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.Handlers.cs(462,99): error CS0117: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淣avigationSource鈥濈殑瀹氫箟 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_e51a0w3i_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.Handlers.cs(462,151): error CS0117: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淐lickType鈥濈殑瀹氫箟 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_e51a0w3i_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.Handlers.cs(560,52): error CS0117: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淐lickType鈥濈殑瀹氫箟 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_e51a0w3i_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.Handlers.cs(566,89): error CS0117: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淣avigationSource鈥濈殑瀹氫箟 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_e51a0w3i_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.Handlers.cs(586,52): error CS0117: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淐lickType鈥濈殑瀹氫箟 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_e51a0w3i_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.Input.cs(257,114): error CS0117: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淣avigationSource鈥濈殑瀹氫箟 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_e51a0w3i_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.Input.cs(257,163): error CS0117: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淐lickType鈥濈殑瀹氫箟 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_e51a0w3i_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.Input.cs(285,110): error CS0117: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淣avigationSource鈥濈殑瀹氫箟 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_e51a0w3i_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.Input.cs(285,159): error CS0117: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淐lickType鈥濈殑瀹氫箟 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_e51a0w3i_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\Services\FileSystem\FileInfo\FileInfoService.cs(399,80): error CS0117: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淣avigationSource鈥濈殑瀹氫箟 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_e51a0w3i_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\Services\FileSystem\FileInfo\FileInfoService.cs(400,80): error CS0117: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淐lickType鈥濈殑瀹氫箟 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_e51a0w3i_wpftmp.csproj]
+F:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.xaml.cs(378,110): error CS0117: 鈥淣avigationCoordinator鈥濇湭鍖呭惈鈥淐lickType鈥濈殑瀹氫箟 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_e51a0w3i_wpftmp.csproj]
+    0 涓鍛?
+    22 涓敊璇?
+
+宸茬敤鏃堕棿 00:00:02.80

@@ -69,7 +69,7 @@ namespace YiboFile
             if (listBox == null) return;
 
             var clickType = NavigationCoordinator.GetClickType(e);
-            if (clickType == NavigationCoordinator.ClickType.LeftClick) return; // 左键由SelectionChanged处理
+            if (clickType == ClickType.LeftClick) return; // 左键由SelectionChanged处理
 
             var hitResult = VisualTreeHelper.HitTest(listBox, e.GetPosition(listBox));
             if (hitResult == null) return;
@@ -80,11 +80,7 @@ namespace YiboFile
                 if (current is ListBoxItem item && item.DataContext is Library library)
                 {
                     e.Handled = true;
-                    var updatedLibrary = _libraryService.GetLibrary(library.Id);
-                    if (updatedLibrary != null)
-                    {
-                        _navigationCoordinator.HandleLibraryNavigation(updatedLibrary, clickType);
-                    }
+                    _navigationCoordinator.HandleLibraryNavigation(library, clickType);
                     return;
                 }
                 current = VisualTreeHelper.GetParent(current);
@@ -98,30 +94,8 @@ namespace YiboFile
         {
             if (LibrariesListBox.SelectedItem is Library selectedLibrary)
             {
-                // 重新从数据库加载库信息，确保路径信息是最新的
-                var updatedLibrary = _libraryService.GetLibrary(selectedLibrary.Id);
-                if (updatedLibrary != null)
-                {
-                    // 使用统一导航协调器处理库导航（左键点击）
-                    _navigationCoordinator.HandleLibraryNavigation(updatedLibrary, NavigationCoordinator.ClickType.LeftClick);
-
-                    // 高亮当前选中的库（作为匹配当前库）- 在加载文件后执行，确保库列表已更新
-                    HighlightMatchingLibrary(updatedLibrary);
-                }
-                else
-                {
-                    _currentLibrary = null;
-                    if (_configService != null)
-                    {
-                        _configService.Config.LastLibraryId = 0;
-                        _configService.SaveCurrentConfig();
-                    }
-                    _currentFiles.Clear();
-                    if (FileBrowser != null)
-                        FileBrowser.FilesItemsSource = null;
-                    if (FileBrowser != null)
-                        FileBrowser.AddressText = "";
-                }
+                // 使用统一导航协调器处理库导航（左键点击）
+                _navigationCoordinator.HandleLibraryNavigation(selectedLibrary, ClickType.LeftClick);
             }
             else
             {

@@ -253,7 +253,8 @@ namespace YiboFile
                     {
                         bool shouldActivate = activate ?? _configService?.Config?.ActivateNewTabOnMiddleClick ?? true;
                         _secondTabService?.CreatePathTab(path, force, false, shouldActivate);
-                    }
+                    },
+                    YiboFile.Services.Navigation.PaneId.Second
                 );
                 _secondFileListHandler.Initialize(SecondFileBrowser.FilesList);
             }
@@ -458,8 +459,8 @@ namespace YiboFile
                 // () => FavoritesListBox, // Removed
                 () => QuickAccessListBox,
                 _navigationCoordinator,
-                (fav) => _navigationCoordinator.HandleFavoriteNavigation(fav, NavigationCoordinator.ClickType.LeftClick),
-                (path) => _navigationCoordinator.HandlePathNavigation(path, NavigationCoordinator.NavigationSource.QuickAccess, NavigationCoordinator.ClickType.LeftClick)
+                (fav) => _navigationCoordinator.HandleFavoriteNavigation(fav, ClickType.LeftClick),
+                (path) => _navigationCoordinator.HandlePathNavigation(path, NavigationSource.QuickAccess, ClickType.LeftClick)
             );
 
             // TagTrainEventHandler 初始化已移除 - Phase 2将重新实现
@@ -557,13 +558,13 @@ namespace YiboFile
             if (listBox == null) return;
 
             var clickType = NavigationCoordinator.GetClickType(e);
-            if (clickType == NavigationCoordinator.ClickType.LeftClick) return; // 左键由SelectionChanged处理
+            if (clickType == ClickType.LeftClick) return; // 左键由SelectionChanged处理
 
             var path = ExtractPathFromListBoxItem(listBox, e.GetPosition(listBox));
             if (!string.IsNullOrEmpty(path))
             {
                 _navigationService.LastLeftNavSource = "QuickAccess";
-                _navigationCoordinator.HandlePathNavigation(path, NavigationCoordinator.NavigationSource.QuickAccess, clickType);
+                _navigationCoordinator.HandlePathNavigation(path, NavigationSource.QuickAccess, clickType);
                 e.Handled = true;
             }
         }
@@ -583,7 +584,7 @@ namespace YiboFile
             if (listBox == null) return;
 
             var clickType = NavigationCoordinator.GetClickType(e);
-            if (clickType == NavigationCoordinator.ClickType.LeftClick) return; // 左键由SelectionChanged处理
+            if (clickType == ClickType.LeftClick) return; // 左键由SelectionChanged处理
 
             var favorite = ExtractFavoriteFromListBoxItem(listBox, e.GetPosition(listBox));
             if (favorite != null)

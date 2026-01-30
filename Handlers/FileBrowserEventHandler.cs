@@ -147,8 +147,8 @@ namespace YiboFile.Handlers
                 {
                     _navigationCoordinator.HandlePathNavigation(
                         $"tag://{tag.Name}",
-                        NavigationCoordinator.NavigationSource.AddressBar,
-                        NavigationCoordinator.ClickType.LeftClick
+                        NavigationSource.AddressBar,
+                        ClickType.LeftClick
                     );
                 }
             };
@@ -166,7 +166,7 @@ namespace YiboFile.Handlers
             if (isPath)
             {
                 // 使用统一导航协调器处理路径导航（左键点击）
-                _navigationCoordinator.HandlePathNavigation(path, NavigationCoordinator.NavigationSource.AddressBar, NavigationCoordinator.ClickType.LeftClick);
+                _navigationCoordinator.HandlePathNavigation(path, NavigationSource.AddressBar, ClickType.LeftClick);
                 return;
             }
 
@@ -196,7 +196,7 @@ namespace YiboFile.Handlers
             }
 
             // 使用统一导航协调器处理面包屑中键点击（中键打开新标签页）
-            _navigationCoordinator.HandlePathNavigation(path, NavigationCoordinator.NavigationSource.Breadcrumb, NavigationCoordinator.ClickType.MiddleClick);
+            _navigationCoordinator.HandlePathNavigation(path, NavigationSource.Breadcrumb, ClickType.MiddleClick);
         }
 
         public void FileBrowser_BreadcrumbClicked(object sender, string path)
@@ -207,7 +207,7 @@ namespace YiboFile.Handlers
             }
 
             // 使用统一导航协调器处理面包屑左键点击
-            _navigationCoordinator.HandlePathNavigation(path, NavigationCoordinator.NavigationSource.Breadcrumb, NavigationCoordinator.ClickType.LeftClick);
+            _navigationCoordinator.HandlePathNavigation(path, NavigationSource.Breadcrumb, ClickType.LeftClick);
         }
 
 

@@ -63,7 +63,7 @@ namespace YiboFile.Handlers
             if (listBox == null) return;
 
             var clickType = NavigationCoordinator.GetClickType(e);
-            if (clickType == NavigationCoordinator.ClickType.LeftClick) return; // 左键由SelectionChanged处理
+            if (clickType == ClickType.LeftClick) return; // 左键由SelectionChanged处理
 
             var hitResult = System.Windows.Media.VisualTreeHelper.HitTest(listBox, e.GetPosition(listBox));
             if (hitResult == null) return;

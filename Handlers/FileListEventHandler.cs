@@ -44,6 +44,7 @@ namespace YiboFile.Handlers
         private readonly Action _refreshClick;
         private readonly Action _showPropertiesClick;
         private readonly Action<string, bool, bool?> _createTabAction;
+        private readonly PaneId _paneId;
 
 
         private System.Windows.Point _mouseDownPoint;
@@ -72,7 +73,8 @@ namespace YiboFile.Handlers
             Action renameClick,
             Action refreshClick,
             Action showPropertiesClick,
-            Action<string, bool, bool?> createTabAction) // Added explicit CreateTab action
+            Action<string, bool, bool?> createTabAction, // Added explicit CreateTab action
+            PaneId paneId = PaneId.Main)
 
         {
             _fileBrowser = fileBrowser ?? throw new ArgumentNullException(nameof(fileBrowser));
@@ -97,6 +99,7 @@ namespace YiboFile.Handlers
             _refreshClick = refreshClick ?? throw new ArgumentNullException(nameof(refreshClick));
             _showPropertiesClick = showPropertiesClick ?? throw new ArgumentNullException(nameof(showPropertiesClick));
             _createTabAction = createTabAction ?? throw new ArgumentNullException(nameof(createTabAction));
+            _paneId = paneId;
 
         }
 
@@ -202,23 +205,8 @@ namespace YiboFile.Handlers
 
                         if (selectedItem.IsDirectory)
                         {
-                            if (_isLibraryMode())
-                            {
-                                _switchNavigationMode("Path");
-                            }
-
-                            // 双击时，只有中键才在新标签页打开，Ctrl+左键双击应该正常打开（不阻止多选）
-                            // 检查是否是中键双击
-                            if (e.ChangedButton == MouseButton.Middle)
-                            {
-                                // 使用注入的 createTabAction
-                                _createTabAction(selectedItem.Path, true, null);
-                            }
-                            else
-                            {
-                                // 普通双击或Ctrl+左键双击，都在当前标签页打开
-                                _navigationCoordinator.HandlePathNavigation(selectedItem.Path, NavigationCoordinator.NavigationSource.FileList, NavigationCoordinator.ClickType.LeftClick);
-                            }
+                            // 文件夹导航：全部交给中枢处理。中枢会自动根据点击类型识别是否需要开新标签。
+                            _navigationCoordinator.HandlePathNavigation(selectedItem.Path, NavigationSource.FolderClick, NavigationCoordinator.GetClickType(e), pane: _paneId);
                             e.Handled = true;
                             return;
                         }
@@ -447,9 +435,8 @@ namespace YiboFile.Handlers
                     {
                         if (selectedItem.IsDirectory)
                         {
-                            // 中键点击：在新标签页打开文件夹
-                            // 使用注入的 createTabAction，不再依赖 NavigationCoordinator 的隐式上下文
-                            _createTabAction(selectedItem.Path, true, null);
+                            // 中键点击：交给中枢处理
+                            _navigationCoordinator.HandlePathNavigation(selectedItem.Path, NavigationSource.FolderClick, NavigationCoordinator.GetClickType(e), pane: _paneId);
                             e.Handled = true;
                             return;
                         }
@@ -818,11 +805,7 @@ namespace YiboFile.Handlers
                     {
                         if (listView.SelectedItem is FileSystemItem selectedItem && selectedItem.IsDirectory)
                         {
-                            if (_isLibraryMode())
-                            {
-                                _switchNavigationMode("Path");
-                            }
-                            _navigationCoordinator.HandlePathNavigation(selectedItem.Path, NavigationCoordinator.NavigationSource.FileList, NavigationCoordinator.ClickType.LeftClick);
+                            _navigationCoordinator.HandlePathNavigation(selectedItem.Path, NavigationSource.FolderClick, ClickType.LeftClick);
                         }
                     }
                     e.Handled = true;
@@ -841,11 +824,7 @@ namespace YiboFile.Handlers
 
                     if (selectedItem.IsDirectory)
                     {
-                        if (_isLibraryMode())
-                        {
-                            _switchNavigationMode("Path");
-                        }
-                        _navigationCoordinator.HandlePathNavigation(selectedItem.Path, NavigationCoordinator.NavigationSource.FileList, NavigationCoordinator.ClickType.LeftClick);
+                        _navigationCoordinator.HandlePathNavigation(selectedItem.Path, NavigationSource.FolderClick, ClickType.LeftClick);
                     }
                     else
                     {

@@ -136,6 +136,15 @@ namespace YiboFile
             _tabService = App.ServiceProvider.GetRequiredService<TabService>();
             _secondTabService = App.ServiceProvider.GetRequiredService<TabService>();
 
+            // 初始化协调器与服务的关联
+            _navigationCoordinator.Initialize(
+                _tabService,
+                _secondTabService,
+                _navigationService,
+                _libraryService,
+                (path) => NavigateToPath(path),
+                (path) => SecondFileBrowser_PathChanged(this, path));
+
             // 初始化搜索服务
             // 注意：SearchResultBuilder 已在 DI 中注册但需要 FileListService 的依赖，这里通过 DI 获取 SearchService
             // 虽然 SearchResultBuilder 是 Transient 的，但 SearchService 是 Transient (or Singleton? App.xaml.cs says Transient)，
@@ -368,8 +377,7 @@ namespace YiboFile
             // 订阅收藏服务事件
             _favoriteService.NavigateRequested += (s, path) =>
             {
-                _navigationService.LastLeftNavSource = "Favorites";
-                _navigationCoordinator.HandlePathNavigation(path, NavigationCoordinator.NavigationSource.Favorite, NavigationCoordinator.ClickType.LeftClick);
+                _navigationCoordinator.HandlePathNavigation(path, NavigationSource.Favorite, ClickType.LeftClick);
             };
 
             _favoriteService.FileOpenRequested += (s, filePath) =>
@@ -390,7 +398,7 @@ namespace YiboFile
 
             _favoriteService.CreateTabRequested += (s, path) =>
             {
-                CreateTab(path, true);
+                _navigationCoordinator.HandlePathNavigation(path, NavigationSource.Favorite, ClickType.LeftClick, forceNewTab: true);
             };
 
 
@@ -398,13 +406,12 @@ namespace YiboFile
             // 订阅快速访问服务事件
             _quickAccessService.NavigateRequested += (s, path) =>
             {
-                _navigationService.LastLeftNavSource = "QuickAccess";
-                _navigationCoordinator.HandlePathNavigation(path, NavigationCoordinator.NavigationSource.QuickAccess, NavigationCoordinator.ClickType.LeftClick);
+                _navigationCoordinator.HandlePathNavigation(path, NavigationSource.QuickAccess, ClickType.LeftClick);
             };
 
             _quickAccessService.CreateTabRequested += (s, path) =>
             {
-                CreateTab(path, true);
+                _navigationCoordinator.HandlePathNavigation(path, NavigationSource.QuickAccess, ClickType.LeftClick, forceNewTab: true);
             };
 
             _navigationCoordinator.PathNavigateRequested += (path, forceNewTab, activate) =>
@@ -415,6 +422,7 @@ namespace YiboFile
                 }
                 else
                 {
+                    // 统一使用 NavigateToPath，该方法会根据当前标签页状态决定是激活还是刷新
                     NavigateToPath(path);
                 }
             };
@@ -572,6 +580,9 @@ namespace YiboFile
             };
             _tabService.AttachUiContext(context);
 
+            // [SSOT] 核心订阅：当活动标签页改变时同步UI
+            _tabService.ActiveTabChanged += (s, tab) => SyncUiWithActiveTab(tab);
+
             // 订阅新建标签页事件
             TabManager.NewTabRequested += (s, e) =>
             {
@@ -584,6 +595,59 @@ namespace YiboFile
                     // 忽略错误
                 }
             };
+        }
+
+        /// <summary>
+        /// [SSOT] 基于当前活动标签页状态同步全屏 UI
+        /// </summary>
+        private void SyncUiWithActiveTab(PathTab tab)
+        {
+            if (tab == null) return;
+
+            // 1. 同步库/路径上下文
+            if (tab.Type == TabType.Library)
+            {
+                _currentLibrary = tab.Library;
+                _currentPath = null;
+                if (tab.Library != null)
+                {
+                    HighlightMatchingLibrary(tab.Library);
+                    LoadLibraryFiles(tab.Library);
+                }
+            }
+            else
+            {
+                _currentLibrary = null;
+                _currentPath = tab.Path;
+                _navigationService.CurrentPath = tab.Path;
+                HighlightMatchingLibrary(null); // 清除库高亮
+
+                // 2. 只有在不处于搜索模式时才执行地址栏同步
+                // 搜索模式下 AddressText 由搜索逻辑动态维护
+                if (tab.Path != null && !tab.Path.StartsWith("search://", StringComparison.OrdinalIgnoreCase))
+                {
+                    NavigateToPathFromModule(tab.Path);
+                }
+            }
+
+            // 3. 监听标签页内部状态变更（例如路径在后台加载完成或重命名）
+            tab.PropertyChanged -= OnActiveTabPropertyChanged; // 防重复
+            tab.PropertyChanged += OnActiveTabPropertyChanged;
+
+            // 4. 更新导航按钮（前进/后退等）
+            UpdateNavigationButtonsState();
+        }
+
+        private void OnActiveTabPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (sender is PathTab tab && tab == _tabService.ActiveTab)
+            {
+                if (e.PropertyName == nameof(PathTab.Path) || e.PropertyName == nameof(PathTab.Library))
+                {
+                    // 当标签页路径变更时，重新同步 UI
+                    SyncUiWithActiveTab(tab);
+                }
+            }
         }
 
         private FileOperationContext GetActiveFileOperationContext()

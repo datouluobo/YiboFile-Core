@@ -368,7 +368,7 @@ namespace YiboFile
                 GetCurrentPath = () => _secondCurrentPath ?? _currentPath,
                 SetCurrentPath = (path) => _secondCurrentPath = path,
                 SetNavigationCurrentPath = (path) => _secondCurrentPath = path,
-                LoadLibraryFiles = (_) => { },
+                LoadLibraryFiles = (lib) => LoadSecondFileBrowserLibrary(lib),
                 NavigateToPathInternal = (path) => SecondFileBrowser_PathChanged(this, path),
                 UpdateNavigationButtonsState = () => { },
                 GetCurrentNavigationMode = () => "Path",
@@ -386,6 +386,9 @@ namespace YiboFile
             if (!_secondTabEventsSubscribed)
             {
                 _secondTabEventsSubscribed = true;
+
+                // [SSOT] 副列表同步
+                _secondTabService.ActiveTabChanged += (s, tab) => SyncSecondUiWithActiveTab(tab);
 
                 // 订阅新建标签页事件
                 SecondTabManager.NewTabRequested += (s, e) =>
@@ -1002,6 +1005,99 @@ namespace YiboFile
         internal void SwitchFocusedPaneFromKeyboard()
         {
             _layoutModule?.SwitchFocusedPane();
+        }
+
+        #endregion
+
+        #region 副面板 SSOT 同步
+
+        /// <summary>
+        /// [SSOT] 基于当前副活动标签页状态同步 UI
+        /// </summary>
+        private void SyncSecondUiWithActiveTab(PathTab tab)
+        {
+            if (tab == null || SecondFileBrowser == null) return;
+
+            // 1. 同步库/路径上下文
+            if (tab.Type == TabType.Library)
+            {
+                // 设置当前路径为空，表示在库模式
+                _secondCurrentPath = null;
+                // 加载库
+                if (tab.Library != null)
+                {
+                    LoadSecondFileBrowserLibrary(tab.Library);
+                }
+            }
+            else
+            {
+                // 路径模式
+                _secondCurrentPath = tab.Path;
+
+                // 加载路径
+                if (tab.Path != null && !tab.Path.StartsWith("search://", StringComparison.OrdinalIgnoreCase))
+                {
+                    // 只有非搜索路径才直接加载 (搜索由搜索逻辑驱动)
+                    LoadSecondFileBrowserDirectory(tab.Path);
+                }
+            }
+
+            // 监听标签页属性变更 
+            tab.PropertyChanged -= OnSecondActiveTabPropertyChanged;
+            tab.PropertyChanged += OnSecondActiveTabPropertyChanged;
+        }
+
+        private void OnSecondActiveTabPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (sender is PathTab tab && tab == _secondTabService?.ActiveTab)
+            {
+                if (e.PropertyName == nameof(PathTab.Path) || e.PropertyName == nameof(PathTab.Library))
+                {
+                    SyncSecondUiWithActiveTab(tab);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 加载副文件列表的库内容
+        /// </summary>
+        private async void LoadSecondFileBrowserLibrary(Library library)
+        {
+            if (library == null || SecondFileBrowser == null) return;
+
+            try
+            {
+                // 更新 UI 状态
+                SecondFileBrowser.NavUpEnabled = false;
+                SecondFileBrowser.SetSearchStatus(false);
+                SecondFileBrowser.AddressText = library.Name;
+                // 使用 SetLibraryBreadcrumb 确保面包屑显示库名
+                SecondFileBrowser.SetLibraryBreadcrumb(library.Name);
+
+                // 设置属性按钮可见性
+                SecondFileBrowser.SetPropertiesButtonVisibility(true);
+
+                // 加载文件
+                if (library.Paths == null || library.Paths.Count == 0)
+                {
+                    SecondFileBrowser.FilesItemsSource = new List<FileSystemItem>();
+                    return;
+                }
+
+                // 调用 FileListService 加载
+                var items = await _fileListService.LoadFileSystemItemsFromMultiplePathsAsync(
+                     library.Paths,
+                     (path) => DatabaseManager.GetFolderSize(path),
+                     (bytes) => _fileListService.FormatFileSize(bytes)
+                );
+
+                _secondCurrentFiles = items;
+                SecondFileBrowser.FilesItemsSource = items;
+            }
+            catch (Exception ex)
+            {
+                DialogService.Error($"加载库文件失败: {ex.Message}", owner: this);
+            }
         }
 
         #endregion

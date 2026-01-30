@@ -375,7 +375,7 @@ namespace YiboFile
                     if (updatedLibrary != null)
                     {
                         // 使用统一导航协调器处理库导航（左键点击）
-                        _navigationCoordinator.HandleLibraryNavigation(updatedLibrary, NavigationCoordinator.ClickType.LeftClick);
+                        _navigationCoordinator.HandleLibraryNavigation(updatedLibrary, ClickType.LeftClick);
                         HighlightMatchingLibrary(updatedLibrary);
                     }
                 }

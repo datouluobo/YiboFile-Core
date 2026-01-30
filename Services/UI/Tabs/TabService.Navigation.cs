@@ -109,111 +109,30 @@ namespace YiboFile.Services.Tabs
             EnsureUi();
             if (tab == null) return;
 
-            if (tab.Type == TabType.Library)
-            {
-                if (tab.Library != null)
-                {
-                    _ui.SetCurrentLibrary?.Invoke(tab.Library);
-                    _ui.SetCurrentPath?.Invoke(null);
-
-                    var cfg = _ui.GetConfig?.Invoke();
-                    if (cfg != null)
-                    {
-                        ConfigurationService.Instance.Set(c => c.LastLibraryId, tab.Library.Id);
-                    }
-                }
-            }
-            else
-            {
-                _ui.SetCurrentLibrary?.Invoke(null);
-                _ui.SetCurrentPath?.Invoke(tab.Path);
-                _ui.SetNavigationCurrentPath?.Invoke(tab.Path);
-            }
-
+            // [SSOT] 只负责更新业务状态，不再通过委托强推 UI 更新
+            // UI 同步由 MainWindow 订阅 ActiveTabChanged 实现
             tab.LastAccessTime = DateTime.Now;
             SetActiveTab(tab);
             UpdateTabStyles();
 
-            if (_ui.FileBrowser != null)
+            // 如果路径无效，则关闭标签页（保留原有安全性逻辑）
+            if (tab.Type == TabType.Path)
             {
-                _ui.FileBrowser.FilesItemsSource = null;
-                _ui.GetCurrentFiles?.Invoke()?.Clear();
-            }
-
-            if (tab.Type == TabType.Library)
-            {
-                if (tab.Library != null)
+                try
                 {
-                    if (_ui.FileBrowser != null)
+                    if (tab.Path != null && !ProtocolManager.IsVirtual(tab.Path) && !Directory.Exists(tab.Path))
                     {
-                        _ui.FileBrowser.NavUpEnabled = false;
-                        _ui.FileBrowser.IsAddressReadOnly = false;
+                        YiboFile.DialogService.Warning($"路径不存在: {tab.Path}\n\n标签页将被关闭。");
+                        CloseTab(tab);
+                        return;
                     }
-                    _ui.LoadLibraryFiles?.Invoke(tab.Library);
                 }
-                return;
-            }
-
-            _ui.SetCurrentLibrary?.Invoke(null);
-
-            if (tab.Path != null && (tab.Path.StartsWith("search://", StringComparison.OrdinalIgnoreCase) ||
-                                     tab.Path.StartsWith("content://", StringComparison.OrdinalIgnoreCase)))
-            {
-                string rawKeyword;
-                if (tab.Path.StartsWith("search://", StringComparison.OrdinalIgnoreCase))
-                    rawKeyword = tab.Path.Substring("search://".Length);
-                else
-                    rawKeyword = tab.Path.Substring("content://".Length);
-                var normalizedKeyword = SearchService.NormalizeKeyword(rawKeyword);
-                _ui.SetCurrentPath?.Invoke(null);
-                if (_ui.FileBrowser != null)
+                catch (Exception ex)
                 {
-                    _ui.FileBrowser.AddressText = normalizedKeyword;
-                    _ui.FileBrowser.IsAddressReadOnly = false;
-                    _ui.FileBrowser.SetSearchBreadcrumb(normalizedKeyword);
-                    _ui.FileBrowser.NavUpEnabled = false;
-                }
-                _ = _ui.RefreshSearchTab?.Invoke(tab.Path);
-                return;
-            }
-
-            try
-            {
-                if (!ProtocolManager.IsVirtual(tab.Path) && !Directory.Exists(tab.Path))
-                {
-                    YiboFile.DialogService.Warning($"路径不存在: {tab.Path}\n\n标签页将被关闭。");
+                    YiboFile.DialogService.Error($"标签页路径检测异常: {ex.Message}");
                     CloseTab(tab);
                     return;
                 }
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                YiboFile.DialogService.Warning($"无法访问路径: {tab.Path}\n\n{ex.Message}\n\n标签页将被关闭。");
-                CloseTab(tab);
-                return;
-            }
-            catch (Exception ex)
-            {
-                YiboFile.DialogService.Error($"无法访问路径: {tab.Path}\n\n{ex.Message}\n\n标签页将被关闭。");
-                CloseTab(tab);
-                return;
-            }
-
-            _ui.SetCurrentPath?.Invoke(tab.Path);
-            _ui.SetNavigationCurrentPath?.Invoke(tab.Path);
-            try
-            {
-                _ui.NavigateToPathInternal?.Invoke(tab.Path);
-                if (_ui.FileBrowser != null) _ui.FileBrowser.NavUpEnabled = true;
-                _ui.UpdateNavigationButtonsState?.Invoke();
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                YiboFile.DialogService.Warning($"无法加载路径: {tab.Path}\n\n{ex.Message}");
-            }
-            catch (Exception ex)
-            {
-                YiboFile.DialogService.Error($"无法加载路径: {tab.Path}\n\n{ex.Message}");
             }
         }
 

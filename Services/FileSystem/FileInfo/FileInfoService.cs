@@ -9,6 +9,7 @@ using System.Windows.Media;
 using System.Threading.Tasks;
 using YiboFile.Controls;
 using YiboFile.Services.FileList;
+using YiboFile.Services.Navigation;
 
 namespace YiboFile.Services.FileInfo
 {
@@ -396,8 +397,8 @@ namespace YiboFile.Services.FileInfo
                     {
                         _navigationCoordinator.HandlePathNavigation(
                             $"tag://{cleanTag}",
-                            YiboFile.Services.Navigation.NavigationCoordinator.NavigationSource.AddressBar,
-                            YiboFile.Services.Navigation.NavigationCoordinator.ClickType.LeftClick
+                            NavigationSource.AddressBar,
+                            ClickType.LeftClick
                         );
                     };
 

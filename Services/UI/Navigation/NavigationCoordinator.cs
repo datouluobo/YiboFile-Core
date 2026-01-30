@@ -1,63 +1,165 @@
 using System;
 using System.IO;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
-using YiboFile.Controls;
-using FavoriteType = YiboFile.Favorite;
-using YiboFile.Services.Core;
+using YiboFile.Models;
+using YiboFile.Models.Navigation;
+using YiboFile.Services.Tabs;
 
 namespace YiboFile.Services.Navigation
 {
+    public enum NavigationSource
+    {
+        AddressBar,
+        Breadcrumb,
+        SidebarLibrary,
+        FileList,
+        Favorite,
+        QuickAccess,
+        FolderClick,
+        History,
+        External
+    }
+
+    public enum ClickType
+    {
+        LeftClick,
+        CtrlLeftClick,
+        MiddleClick,
+        RightClick
+    }
+
     /// <summary>
     /// 统一导航协调器
     /// 负责处理所有导航模式的链接打开行为，确保行为一致性
     /// </summary>
-    public class NavigationCoordinator
+    public class NavigationCoordinator : INavigationCoordinator
     {
-        /// <summary>
-        /// 导航来源
-        /// </summary>
-        public enum NavigationSource
-        {
-            Drive,          // 驱动器
-            QuickAccess,   // 快速访问
-            Favorite,       // 收藏夹
-            Library,        // 库
-            Breadcrumb,     // 面包屑
-            AddressBar,     // 地址栏
-            FileList        // 文件列表
-        }
+        private TabService _mainTabService;
+        private TabService _secondTabService;
+        private NavigationService _navigationService;
+        private LibraryService _libraryService;
 
-        /// <summary>
-        /// 点击类型
-        /// </summary>
-        public enum ClickType
-        {
-            LeftClick,      // 左键点击
-            MiddleClick,    // 中键点击
-            CtrlLeftClick   // Ctrl+左键点击
-        }
+        // Pane-specific navigation delegates
+        private Action<string> _navigateMain;
+        private Action<string> _navigateSecond;
 
-        /// <summary>
-        /// 路径导航请求事件
-        /// path, forceNewTab, activate (null=use config)
-        /// </summary>
+        // 兼容旧代码的事件，直到迁移完成
         public event Action<string, bool, bool?> PathNavigateRequested;
-
-        /// <summary>
-        /// 库导航请求事件
-        /// library, forceNewTab, activate (null=use config)
-        /// </summary>
         public event Action<Library, bool, bool?> LibraryNavigateRequested;
+        public event Action<string> FileOpenRequested;
+        public event Action<YiboFile.Favorite> FavoritePathNotFound;
 
         /// <summary>
-        /// 文件打开请求事件
+        /// 初始化协调器
         /// </summary>
-        public event Action<string> FileOpenRequested; // filePath
+        public void Initialize(
+            TabService mainTab,
+            TabService secondTab,
+            NavigationService navService,
+            LibraryService libService,
+            Action<string> navigateMain = null,
+            Action<string> navigateSecond = null)
+        {
+            _mainTabService = mainTab;
+            _secondTabService = secondTab;
+            _navigationService = navService;
+            _libraryService = libService;
+            _navigateMain = navigateMain;
+            _navigateSecond = navigateSecond;
+        }
 
-        /// <summary>
-        /// 从鼠标事件判断点击类型
-        /// </summary>
+        public async Task NavigateAsync(NavigationRequest request)
+        {
+            if (request?.Target == null) return;
+
+            var tabService = request.Pane == PaneId.Second ? _secondTabService : _mainTabService;
+            if (tabService == null) return;
+
+            switch (request.Target.Type)
+            {
+                case NavigationTargetType.Path:
+                    HandlePathRequest(request, tabService);
+                    break;
+                case NavigationTargetType.Library:
+                    HandleLibraryRequest(request, tabService);
+                    break;
+            }
+
+            await Task.CompletedTask;
+        }
+
+        private void HandlePathRequest(NavigationRequest request, TabService tabService)
+        {
+            var path = request.Target.Path;
+            if (string.IsNullOrEmpty(path)) return;
+
+            // [FIX] 如果当前标签页是库，当导航到普通路径时，强制新建标签页，避免覆盖库标签页
+            bool forceNewTab = request.ForceNewTab;
+            if (!forceNewTab && tabService.ActiveTab != null && tabService.ActiveTab.Type == TabType.Library)
+            {
+                forceNewTab = true;
+            }
+
+            if (forceNewTab)
+            {
+                tabService.CreatePathTab(path, forceNewTab: true, activate: request.Activate);
+            }
+            else
+            {
+                // 使用面板特定的导航委托
+                if (request.Pane == PaneId.Main && _navigateMain != null)
+                {
+                    _navigateMain(path);
+                }
+                else if (request.Pane == PaneId.Second && _navigateSecond != null)
+                {
+                    _navigateSecond(path);
+                }
+                else
+                {
+                    // 回退到全局事件 (主要针对 MainWindow 处理)
+                    // 注意：这可能无法正确处理副面板，因此应尽量使用 Initialize 传入的委托
+                    PathNavigateRequested?.Invoke(path, false, request.Activate);
+                }
+            }
+        }
+
+        private void HandleLibraryRequest(NavigationRequest request, TabService tabService)
+        {
+            var library = request.Target.Library;
+            if (library == null) return;
+
+            if (request.ForceNewTab)
+            {
+                tabService.OpenLibraryTab(library, forceNewTab: true, activate: request.Activate);
+            }
+            else
+            {
+                // 库导航通常比较特殊，暂时保持使用事件或后续扩展委托
+                // 目前 MainWindow 监听 LibraryNavigateRequested 并处理 OpenLibraryInTab (通常是 Main logic?)
+                // 如果需要支持副面板库切换，这里也需要增强
+                if (request.Pane == PaneId.Second)
+                {
+                    // 副面板库切换，直接操作 TabService
+                    tabService.OpenLibraryTab(library, forceNewTab: false, activate: request.Activate);
+                }
+                else
+                {
+                    LibraryNavigateRequested?.Invoke(library, false, request.Activate);
+                }
+            }
+        }
+
+        public string GetActivePath(PaneId pane)
+        {
+            var tabService = pane == PaneId.Second ? _secondTabService : _mainTabService;
+            return tabService?.ActiveTab?.Path;
+        }
+
+        #region 静态工具与兼容方法
+
         public static ClickType GetClickType(MouseButtonEventArgs e)
         {
             if (e.ChangedButton == MouseButton.Middle)
@@ -70,82 +172,32 @@ namespace YiboFile.Services.Navigation
             return ClickType.LeftClick;
         }
 
-        /// <summary>
-        /// 处理路径导航
-        /// 判断顺序：
-        /// 1. 如果是forceNewTab（中键或Ctrl+左键），直接创建新标签页
-        /// 2. 否则查找是否已存在该路径的标签页，如果有则切换
-        /// 3. 如果当前标签页是路径类型，更新它
-        /// 4. 否则创建新标签页
-        /// </summary>
-        public void HandlePathNavigation(string path, NavigationSource source, ClickType clickType)
+        public void HandlePathNavigation(string path, NavigationSource source, ClickType clickType, bool forceNewTab = false, PaneId pane = PaneId.Main)
         {
-            if (string.IsNullOrEmpty(path))
-                return;
-
-            // 验证路径是否存在
-            bool isVirtual = ProtocolManager.IsVirtual(path) ||
-                           path.StartsWith("content://", StringComparison.OrdinalIgnoreCase) ||
-                           path.StartsWith("search://", StringComparison.OrdinalIgnoreCase);
-
-            if (!isVirtual && !Directory.Exists(path) && !File.Exists(path))
+            var request = new NavigationRequest
             {
-                YiboFile.DialogService.Warning($"路径不存在: {path}");
-                return;
-            }
-
-            // 如果是文件，打开文件
-            if (File.Exists(path) && !Directory.Exists(path))
-            {
-                FileOpenRequested?.Invoke(path);
-                return;
-            }
-
-            // 判断是否需要强制打开新标签页
-            bool forceNewTab = clickType == ClickType.MiddleClick || clickType == ClickType.CtrlLeftClick;
-
-            // Determine activation: MiddleClick -> Use config (null); Others -> True
-            bool? activate = clickType == ClickType.MiddleClick ? null : true;
-
-            // 触发路径导航请求
-            PathNavigateRequested?.Invoke(path, forceNewTab, activate);
+                Target = NavigationTarget.FromPath(path),
+                ForceNewTab = forceNewTab || clickType == ClickType.MiddleClick || clickType == ClickType.CtrlLeftClick,
+                Source = source.ToString(),
+                Pane = pane
+            };
+            _ = NavigateAsync(request);
         }
 
-        /// <summary>
-        /// 处理库导航
-        /// 判断顺序：
-        /// 1. 如果是forceNewTab（中键或Ctrl+左键），直接创建新标签页
-        /// 2. 否则查找是否已存在该库的标签页（按库ID），如果有则切换
-        /// 3. 如果当前标签页是库页，用当前页打开
-        /// 4. 否则创建新标签页
-        /// </summary>
-        public void HandleLibraryNavigation(Library library, ClickType clickType)
+        public void HandleLibraryNavigation(Library library, ClickType clickType, PaneId pane = PaneId.Main)
         {
-            if (library == null)
-                return;
-
-            // 判断是否需要强制打开新标签页
-            bool forceNewTab = clickType == ClickType.MiddleClick || clickType == ClickType.CtrlLeftClick;
-
-            // Determine activation
-            bool? activate = clickType == ClickType.MiddleClick ? null : true;
-
-            // 触发库导航请求
-            LibraryNavigateRequested?.Invoke(library, forceNewTab, activate);
+            var request = new NavigationRequest
+            {
+                Target = NavigationTarget.FromLibrary(library),
+                ForceNewTab = clickType == ClickType.MiddleClick || clickType == ClickType.CtrlLeftClick,
+                Pane = pane
+            };
+            _ = NavigateAsync(request);
         }
 
-        /// <summary>
-        /// 收藏夹路径不存在事件
-        /// </summary>
-        public event Action<FavoriteType> FavoritePathNotFound; // favorite
-
-        /// <summary>
-        /// 处理收藏夹导航（可能是路径或文件）
-        /// </summary>
-        public void HandleFavoriteNavigation(FavoriteType favorite, ClickType clickType)
+        public void HandleFavoriteNavigation(YiboFile.Favorite favorite, ClickType clickType)
         {
-            if (favorite == null)
-                return;
+            if (favorite == null) return;
 
             if (favorite.IsDirectory && Directory.Exists(favorite.Path))
             {
@@ -157,10 +209,10 @@ namespace YiboFile.Services.Navigation
             }
             else
             {
-                // 路径不存在，触发事件由MainWindow处理移除逻辑
                 FavoritePathNotFound?.Invoke(favorite);
             }
         }
+        #endregion
     }
 }
 
