@@ -22,8 +22,8 @@
 
 | 问题 | 描述 | 状态 |
 |------|------|------|
-| ** God Class** | `MainWindow` 逻辑重度耦合 | 🔴 严重 |
-| **导航稳定性** | 之前的重构出现死循环，已回滚到 v1.0.190 | 🟠 修正中 |
+| ** God Class** | `MainWindow` 逻辑重度耦合 | � 改善中 |
+| **导航稳定性** | 之前的重构出现死循环，已回滚到 v1.0.190 | ✅ 已修复 |
 | **混合职责** | UI 与业务交互正在逐步分离 | 🟡 进行中 |
 
 ---
@@ -43,33 +43,32 @@
 
 ## 三、待解决问题
 
-### 3.1 导航与列表重构 (待重新分步实施) 🔴
+### 3.1 导航与列表重构 (已阶段性完成) ✅
 
-**策略调整**：放弃“全量迁移”，改为“微步更新”。
+**实施情况**：采用了 **SSOT (单一数据源)** + **NavigationCoordinator (导航协调器)** 模式，成功解决了主副列表同步冲突。
 
 | 子任务 | 描述 | 状态 |
 |------|------|------|
-| **分步一：列表 ViewModel 化** | 仅将文件列表数据流改为 Binding，导航逻辑先留在 MainWindow | ⏳ 待开始 |
-| **分步二：地址栏解耦** | 路径同步逻辑迁移 | ⚪ 等待中 |
-| **分步三：Pane 抽象** | 最终实现主副栏完全独立模型 | ⚪ 等待中 |
+| **分步一：列表 ViewModel 化** | 使用 FileListEventHandler + PaneId 实现逻辑分离，为 VM 绑定做好了准备 | ✅ 已就绪 |
+| **分步二：地址栏解耦** | 已通过 SSOT (PathTab.ActiveTab) 实现完全的地址栏与导航状态同步 | ✅ 已完成 |
+| **分步三：Pane 抽象** | 引入 `PaneId` 枚举与独立委托，主副面板拥有同等且独立的导航能力 | ✅ 已完成 |
 
 ---
 
-## 四、下一阶段行动计划
+## 四、下一阶段行动计划 (MVVM 解耦攻坚)
 
-| 优先级 | 任务 | 工作量 | 状态 |
-|--------|------|--------|------|
-| **P0** | **修复双栏焦点失灵 Bug** | 0.5天 | 🔴 处理中 |
-| **P1** | 恢复 UI 视觉美化补丁 | 0.5天 | 🔴 处理中 |
-| **P1** | **实施：分步一（FileList ViewModel 挂载）** | 2天 | ⚪ 准备中 |
-| **P2** | 菜单与右键逻辑彻底剥离 | 2天 | ⚪ 暂停中 |
-| **P2** | 拆分 `DocumentPreview.cs` | 1天 | ✅ 已完成 |
-| **P2** | 拆分 `TabService.cs` | 1-2天 | ✅ 已完成 |
-| **P3** | 拆分 `SettingsViewModel.cs` | 1天 | ✅ 已完成 |
-| **P3** | 拆分 `DatabaseManager.cs` | 2天 | 待开始 |
+**目标**：彻底移除 `MainWindow.Handlers.cs` 和 `MainWindow.Navigation.cs` 中的业务逻辑，实现真正的 MVVM 数据绑定。
+
+| 优先级 | 任务 | 描述 | 状态 |
+|--------|------|------|------|
+| **P0** | **数据绑定 (FileListViewModel)** | 将 `FileBrowser.FilesItemsSource` 绑定到 `FileListViewModel.Files`，废除代码后置手动赋值 | ⏳ 待开始 |
+| **P1** | **加载逻辑迁移 (LoadFiles)** | 将 `LoadFilesAsync` 从 `MainWindow` 迁移到 `FileListViewModel`，利用 `LoadingState` 控制 UI | ⏳ 待开始 |
+| **P1** | **库逻辑迁移 (LibraryViewModel)** | 将 `LoadLibraryFiles` 逻辑迁移至 `LibraryViewModel`，实现主副面板复用 | ⏳ 待开始 |
+| **P2** | **右侧面板解耦 (FileInfo)** | 将 `RightPanelControl` 绑定到独立 VM，移除主窗口中的更新代码 | ⚪ 暂停中 |
+| **P3** | **菜单逻辑清理** | 将 Command 绑定到 VM，移除 `MainWindow.MenuEvents.cs` | ⚪ 暂停中 |
 
 ---
 
 ## 五、总结
 
-**YiboFile** 服务层架构良好，MVVM 消息驱动基础设施已就绪。下一步重点是将 `MainWindow` partial class 中的逻辑真正迁移到对应 Module，实现完全解耦。
+**YiboFile** 导航系统重构已完成，**SSOT + Coordinator** 架构表现稳定，双面板问题已解决。现在是时候由于 “核心稳定性” 问题解决，转向 **架构现代化 (MVVM)**，这是 v1.1.0 版本的核心目标。

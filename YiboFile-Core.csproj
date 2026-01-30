@@ -10,9 +10,9 @@
     <AssemblyName>YiboFile-Core</AssemblyName>
     <AssemblyTitle>YiboFile - 文件资源管理器</AssemblyTitle>
     <AssemblyDescription>Windows文件资源管理器程序，用于管理、归档、浏览各种格式的文档、图片、视频</AssemblyDescription>
-    <AssemblyVersion>1.0.210.0</AssemblyVersion>
-    <FileVersion>1.0.210.0</FileVersion>
-    <Version>1.0.210.0</Version>
+    <AssemblyVersion>1.0.220.0</AssemblyVersion>
+    <FileVersion>1.0.220.0</FileVersion>
+    <Version>1.0.220.0</Version>
     <NoWarn>$(NoWarn);NU1701</NoWarn>
     <!-- 构建优化 -->
     <UseSharedCompilation>true</UseSharedCompilation>
@@ -93,12 +93,15 @@
   </Target>
   
   <Target Name="MoveLibVLC" AfterTargets="Build">
+    <PropertyGroup>
+        <LibVlcDest>$(OutputPath)Dependencies\libvlc</LibVlcDest>
+    </PropertyGroup>
     <ItemGroup>
       <LibVlcFiles Include="$(OutputPath)libvlc\**\*.*" Exclude="$(OutputPath)libvlc\win-x86\**\*.*" />
     </ItemGroup>
-    <!-- Move files to Dependencies/libvlc -->
-    <Move SourceFiles="@(LibVlcFiles)" DestinationFolder="$(OutputPath)Dependencies\libvlc\%(RecursiveDir)" />
-    <!-- Remove the empty source directory if successful -->
+    <!-- Move files to Dependencies/libvlc ONLY if libvlc.dll doesn't exist in destination (saves time) -->
+    <Move SourceFiles="@(LibVlcFiles)" DestinationFolder="$(LibVlcDest)\%(RecursiveDir)" Condition="!Exists('$(LibVlcDest)\libvlc.dll')" />
+    <!-- Remove the empty source directory if successful (or if we skipped move, we still want to clean up the source) -->
     <RemoveDir Directories="$(OutputPath)libvlc" />
   </Target>
   
