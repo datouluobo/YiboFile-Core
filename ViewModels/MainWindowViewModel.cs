@@ -56,7 +56,12 @@ namespace YiboFile.ViewModels
         public Modules.TagsModule Tags { get; set; }
         public Modules.FavoritesModule Favorites { get; set; }
         public Modules.LibraryModule Library { get; set; }
-        public FileListViewModel FileList { get; set; }
+        private FileListViewModel _fileList;
+        public new FileListViewModel FileList
+        {
+            get => _fileList;
+            set => SetProperty(ref _fileList, value);
+        }
 
         #endregion
 

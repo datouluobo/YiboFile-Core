@@ -229,6 +229,7 @@ namespace YiboFile
 
         public MainWindow()
         {
+            try { System.IO.File.AppendAllText(@"f:\Download\GitHub\YiboFile\YiboFile-Core\debug_log.txt", $"[MainWindow] Constructor called at {DateTime.Now}\n"); } catch { }
             InitializeComponent();
             this.Title += " [FIXED]";
 
@@ -737,7 +738,7 @@ namespace YiboFile
             // 清除过滤状态，恢复正常的文件浏览
             _currentFiles.Clear();
             if (FileBrowser != null)
-                FileBrowser.FilesItemsSource = null;
+                _viewModel?.FileList?.UpdateFiles(new List<FileSystemItem>());
             HideEmptyStateMessage();
         }
 

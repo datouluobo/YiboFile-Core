@@ -82,8 +82,9 @@ namespace YiboFile
                 () => _configService?.Config,
                 () => null,
                 (tag) => { },
-                () => _currentFiles,
-                (files) => _currentFiles = files,
+                // MVVM 迁移: Handler 现在读取和更新 VM 数据
+                () => _viewModel?.FileList?.Files?.ToList() ?? new List<FileSystemItem>(),
+                (files) => { _viewModel?.FileList?.UpdateFiles(files); },
                 () => _searchOptions,
                 (e) => { }, // FilesListView_SelectionChanged
                 (e) => { }, // FilesListView_MouseDoubleClick
@@ -383,7 +384,11 @@ namespace YiboFile
                 (files) =>
                 {
                     var b = GetActiveContext().browser;
-                    if (b != null) b.FilesItemsSource = files;
+                    if (b != null)
+                    {
+                        if (b == FileBrowser) _viewModel?.FileList?.UpdateFiles(files);
+                        else b.FilesItemsSource = files;
+                    }
                     if (b == FileBrowser) _currentFiles = files;
                 },
                 () => this,
@@ -654,7 +659,7 @@ namespace YiboFile
                 (sortedFiles) =>
                 {
                     _currentFiles = sortedFiles;
-                    FileBrowser.FilesItemsSource = _currentFiles;
+                    _viewModel?.FileList?.UpdateFiles(_currentFiles);
                 },
                 FileBrowser.FilesGrid
             );

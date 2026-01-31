@@ -140,14 +140,15 @@
 
         </Grid>
 
-        <!-- ========== 列3：文件显示区 ========== -->
+        <!-- 列3：主文件浏览器 -->
+        <!-- Z-Index 100 on Grid to stay above background but below Overlay -->
         <controls:FileBrowserControl x:Name="FileBrowser"
+                                     Grid.Row="1" Grid.RowSpan="3"
                                      Grid.Column="3" 
-                                     Grid.Row="1" 
-                                     Grid.RowSpan="3"
-                                     HorizontalAlignment="Stretch" 
                                      VerticalAlignment="Stretch"
-                                     Margin="0,0,0,0"/>
+                                     Margin="0,0,0,0"
+                                     Panel.ZIndex="100"
+                                     FilesItemsSource="{Binding FileList.Files}"/>
 
         <!-- 备份管理器 -->
         <controls:BackupBrowserControl x:Name="BackupBrowser"

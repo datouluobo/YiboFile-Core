@@ -108,14 +108,14 @@ namespace YiboFile
                     // 如果连一个库都没有
                     _currentFiles.Clear();
                     if (FileBrowser != null)
-                        FileBrowser.FilesItemsSource = null;
+                        _viewModel?.FileList?.Files?.Clear();
                     return;
                 }
 
                 // 其他模式：清空列表
                 _currentFiles.Clear();
                 if (FileBrowser != null)
-                    FileBrowser.FilesItemsSource = null;
+                    _viewModel?.FileList?.Files?.Clear();
                 HideEmptyStateMessage();
             }
         }
@@ -307,13 +307,13 @@ namespace YiboFile
                             {
                                 try
                                 {
-                                    FileBrowser.FilesItemsSource = _currentFiles;
+                                    _viewModel?.FileList?.UpdateFiles(_currentFiles);
                                 }
                                 catch (ArgumentException)
                                 {
                                     // 尝试重建集合以规避可能的 CollectionView 内部错误
                                     var freshList = new List<FileSystemItem>(items);
-                                    FileBrowser.FilesItemsSource = freshList;
+                                    _viewModel?.FileList?.UpdateFiles(freshList);
                                 }
 
                                 // 主动触发空选状态下的信息面板更新（修复首次进入目录不显示信息的问题）
@@ -369,7 +369,7 @@ namespace YiboFile
                     }
 
                     if (FileBrowser != null)
-                        FileBrowser.FilesItemsSource = _currentFiles;
+                        _viewModel?.FileList?.UpdateFiles(_currentFiles);
                 }
                 catch (Exception)
                 {

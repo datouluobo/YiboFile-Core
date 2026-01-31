@@ -345,6 +345,8 @@ namespace YiboFile.Controls
             }
         }
 
+
+
         // 加载更多按钮可见性
         public bool LoadMoreVisible
         {
@@ -431,6 +433,22 @@ namespace YiboFile.Controls
                 FilesListView.ItemsSource = flatList;
 
                 // 启用分组
+                var view = System.Windows.Data.CollectionViewSource.GetDefaultView(FilesListView.ItemsSource);
+                if (view != null)
+                {
+                    view.GroupDescriptions.Clear();
+                    view.GroupDescriptions.Add(new System.Windows.Data.PropertyGroupDescription(nameof(FileSystemItem.GroupingKey)));
+                }
+            }
+        }
+
+        public void ApplyGrouping()
+        {
+            if (FilesListView != null)
+            {
+                _isGroupedMode = true;
+                FilesListView.Visibility = Visibility.Visible;
+
                 var view = System.Windows.Data.CollectionViewSource.GetDefaultView(FilesListView.ItemsSource);
                 if (view != null)
                 {

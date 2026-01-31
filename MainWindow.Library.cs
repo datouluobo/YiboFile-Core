@@ -108,7 +108,7 @@ namespace YiboFile
                 _currentFiles.Clear();
                 if (FileBrowser != null)
                 {
-                    FileBrowser.FilesItemsSource = null;
+                    _viewModel?.FileList?.UpdateFiles(new List<FileSystemItem>());
                     FileBrowser.AddressText = "";
                 }
 
@@ -200,9 +200,10 @@ namespace YiboFile
             // 确保UI控件存在
             if (FileBrowser != null)
             {
-                FileBrowser.FilesItemsSource = null; // 先清空
-                FileBrowser.FilesItemsSource = _currentFiles; // 再设置
-                FileBrowser.FilesList?.Items.Refresh(); // 强制刷新
+                // FileBrowser.FilesItemsSource = null; // Do not break binding
+                // FileBrowser.FilesItemsSource = _currentFiles; // Do not break binding
+                _viewModel?.FileList?.UpdateFiles(_currentFiles);
+                // FileBrowser.FilesList?.Items.Refresh(); // Binding handles this
                 // 隐藏搜索状态
                 FileBrowser.SetSearchStatus(false);
             }

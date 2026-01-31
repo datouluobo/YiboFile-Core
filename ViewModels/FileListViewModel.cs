@@ -51,7 +51,10 @@ namespace YiboFile.ViewModels
         public ObservableCollection<FileSystemItem> Files
         {
             get => _files;
-            set => SetProperty(ref _files, value);
+            set
+            {
+                SetProperty(ref _files, value);
+            }
         }
 
         public bool IsLoading
@@ -70,6 +73,14 @@ namespace YiboFile.ViewModels
         {
             get => _sortAscending;
             set => SetProperty(ref _sortAscending, value);
+        }
+
+        public void UpdateFiles(IEnumerable<FileSystemItem> items)
+        {
+            _dispatcher.Invoke(() =>
+            {
+                Files = new ObservableCollection<FileSystemItem>(items);
+            });
         }
 
         public FileListViewModel(
@@ -139,7 +150,6 @@ namespace YiboFile.ViewModels
                     await _dispatcher.InvokeAsync(() =>
                     {
                         Files.Clear();
-                        _fileBrowser.FilesItemsSource = Files;
                     }, DispatcherPriority.Background);
                     SetupFileWatcher(null);
                     return;
@@ -166,10 +176,6 @@ namespace YiboFile.ViewModels
                 await _dispatcher.InvokeAsync(() =>
                 {
                     Files = new ObservableCollection<FileSystemItem>(sortedFiles);
-                    if (_fileBrowser != null)
-                    {
-                        _fileBrowser.FilesItemsSource = Files;
-                    }
                 }, DispatcherPriority.Background);
 
                 await _dispatcher.InvokeAsync(() => SetupFileWatcher(_currentPath), DispatcherPriority.Background);
@@ -234,7 +240,7 @@ namespace YiboFile.ViewModels
                 Files = new ObservableCollection<FileSystemItem>(sorted);
                 if (_fileBrowser != null)
                 {
-                    _fileBrowser.FilesItemsSource = Files;
+                    // _fileBrowser.FilesItemsSource = Files; // Do not break binding
                 }
                 SetupFileWatcher(null);
                 RefreshCollectionView();

@@ -355,7 +355,7 @@ namespace YiboFile
                     _currentFiles.Clear();
                     if (FileBrowser != null)
                     {
-                        FileBrowser.FilesItemsSource = null;
+                        _viewModel?.FileList?.Files?.Clear();
                         FileBrowser.AddressText = e.Library.Name + " (无位置)";
                     }
                     // ShowEmptyLibraryMessage(e.Library.Name);
@@ -568,7 +568,7 @@ namespace YiboFile
                 GetSearchCacheService = () => _searchCacheService,
                 GetSearchOptions = () => _searchOptions,
                 GetCurrentFiles = () => _currentFiles,
-                SetCurrentFiles = files => _currentFiles = files,
+                SetCurrentFiles = files => { _currentFiles = files; _viewModel?.FileList?.UpdateFiles(files); },
                 ClearFilter = ClearFilter,
                 RefreshSearchTab = path => { CheckAndRefreshSearchTab(path); return Task.CompletedTask; },
                 FindResource = key => FindResource(key),

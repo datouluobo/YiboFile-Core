@@ -93,7 +93,7 @@ namespace YiboFile
                         // 更新 UI
                         if (FileBrowser != null)
                         {
-                            FileBrowser.FilesItemsSource = results;
+                            _viewModel?.FileList?.UpdateFiles(results);
 
                             if (results.Count == 0)
                             {
@@ -184,11 +184,14 @@ namespace YiboFile
                             // 使用分组显示
                             if (groupedItems != null && groupedItems.Count > 0)
                             {
-                                FileBrowser.SetGroupedSearchResults(groupedItems);
+                                var flatList = FlattenGroupedItems(groupedItems);
+                                _viewModel?.FileList?.UpdateFiles(flatList);
+                                FileBrowser.ApplyGrouping();
                             }
                             else
                             {
-                                FileBrowser.FilesItemsSource = results;
+                                // FileBrowser.FilesItemsSource = results; // Do not break binding
+                                _viewModel?.FileList?.UpdateFiles(results);
                                 if (results.Count == 0) FileBrowser.ShowEmptyState("未找到匹配项");
                                 else FileBrowser.HideEmptyState();
                             }
@@ -213,12 +216,14 @@ namespace YiboFile
                             if (groupedItems != null && groupedItems.Count > 0)
                             {
                                 Debug.WriteLine($"[PerformSearch] 设置分组搜索结果，分组数: {groupedItems.Count}");
-                                FileBrowser.SetGroupedSearchResults(groupedItems);
+                                var flatList = FlattenGroupedItems(groupedItems);
+                                _viewModel?.FileList?.UpdateFiles(flatList);
+                                FileBrowser.ApplyGrouping();
                             }
                             else
                             {
                                 Debug.WriteLine($"[PerformSearch] 设置 FilesItemsSource，结果数: {results.Count}");
-                                FileBrowser.FilesItemsSource = results;
+                                _viewModel?.FileList?.UpdateFiles(results);
                                 if (results.Count == 0) FileBrowser.ShowEmptyState("未找到匹配项");
                                 else FileBrowser.HideEmptyState();
                             }
@@ -246,11 +251,13 @@ namespace YiboFile
                                 // 恢复文件列表
                                 if (groupedItems != null && groupedItems.Count > 0)
                                 {
-                                    FileBrowser.SetGroupedSearchResults(groupedItems);
+                                    var flatList = FlattenGroupedItems(groupedItems);
+                                    _viewModel?.FileList?.UpdateFiles(flatList);
+                                    FileBrowser.ApplyGrouping();
                                 }
                                 else
                                 {
-                                    FileBrowser.FilesItemsSource = results;
+                                    _viewModel?.FileList?.UpdateFiles(results);
                                 }
                                 Debug.WriteLine($"[PerformSearch] 恢复后数量: {(FileBrowser.FilesItemsSource as System.Collections.IList)?.Count ?? 0}");
                             }
@@ -270,6 +277,49 @@ namespace YiboFile
                 _isProcessingSearch = false;
             }
 
+        }
+
+        private List<FileSystemItem> FlattenGroupedItems(Dictionary<SearchResultType, List<FileSystemItem>> groupedItems)
+        {
+            var flatList = new List<FileSystemItem>();
+
+            // 按优先级顺序显示：备注 > 文件夹 > 文件 > 其他
+            var displayOrder = new[]
+            {
+                SearchResultType.Notes,
+                SearchResultType.Folder,
+                SearchResultType.File,
+                SearchResultType.Tag,
+                SearchResultType.Date,
+                SearchResultType.Other
+            };
+
+            foreach (var type in displayOrder)
+            {
+                if (groupedItems.ContainsKey(type) && groupedItems[type].Count > 0)
+                {
+                    string groupName = GetGroupName(type);
+                    foreach (var item in groupedItems[type])
+                    {
+                        item.GroupingKey = groupName;
+                        flatList.Add(item);
+                    }
+                }
+            }
+            return flatList;
+        }
+
+        private string GetGroupName(SearchResultType type)
+        {
+            return type switch
+            {
+                SearchResultType.Notes => "备注匹配",
+                SearchResultType.Folder => "文件夹匹配",
+                SearchResultType.File => "文件匹配",
+                SearchResultType.Tag => "标签匹配",
+                SearchResultType.Date => "日期匹配",
+                _ => "其他"
+            };
         }
     }
 }

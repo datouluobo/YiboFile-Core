@@ -104,8 +104,9 @@ namespace YiboFile
                     }
                     else
                     {
-                        FileBrowser.FilesItemsSource = null;
-                        FileBrowser.FilesItemsSource = _currentFiles;
+                        // FileBrowser.FilesItemsSource = null;
+                        // FileBrowser.FilesItemsSource = _currentFiles;
+                        _viewModel?.FileList?.UpdateFiles(_currentFiles);
                     }
                     FileBrowser.LoadMoreVisible = cache.HasMore;
 
@@ -145,7 +146,8 @@ namespace YiboFile
 
                     if (FileBrowser != null)
                     {
-                        FileBrowser.FilesItemsSource = _currentFiles;
+                        // FileBrowser.FilesItemsSource = _currentFiles;
+                        _viewModel?.FileList?.UpdateFiles(_currentFiles);
                         if (_currentFiles.Count == 0)
                         {
                             FileBrowser.ShowEmptyState("未找到包含该内容的文件");
@@ -192,8 +194,9 @@ namespace YiboFile
                         }
                         else
                         {
-                            FileBrowser.FilesItemsSource = null;
-                            FileBrowser.FilesItemsSource = _currentFiles;
+                            // FileBrowser.FilesItemsSource = null;
+                            // FileBrowser.FilesItemsSource = _currentFiles;
+                            _viewModel?.FileList?.UpdateFiles(_currentFiles);
                         }
                         // 更新地址栏和面包屑，确保显示规范化关键词
                         FileBrowser.SetSearchBreadcrumb(normalizedKeyword);

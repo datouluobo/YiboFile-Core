@@ -452,8 +452,6 @@ namespace YiboFile.Handlers
 
                     if (_fileBrowser != null)
                     {
-                        _fileBrowser.FilesItemsSource = null;
-                        _fileBrowser.FilesItemsSource = currentFiles;
                         _fileBrowser.LoadMoreVisible = moreResult.HasMore;
                     }
                 }

@@ -1,0 +1,1 @@
+[MainWindow] Constructor called at 2026-01-31 07:54:16

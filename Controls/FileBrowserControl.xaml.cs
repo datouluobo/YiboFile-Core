@@ -230,17 +230,21 @@ namespace YiboFile.Controls
             AddressBarControl?.SetLibraryBreadcrumb(libraryName);
         }
 
-        // 文件列表相关方法
+        // 文件列表相关属性 (DependencyProperty for Binding)
+        public static readonly DependencyProperty FilesItemsSourceProperty =
+            DependencyProperty.Register("FilesItemsSource", typeof(System.Collections.IEnumerable), typeof(FileBrowserControl), new PropertyMetadata(null, OnFilesItemsSourceChanged));
+
         public System.Collections.IEnumerable FilesItemsSource
         {
-            get => FileList?.FilesItemsSource;
-            set
+            get { return (System.Collections.IEnumerable)GetValue(FilesItemsSourceProperty); }
+            set { SetValue(FilesItemsSourceProperty, value); }
+        }
+
+        private static void OnFilesItemsSourceChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is FileBrowserControl control && control.FileList != null)
             {
-                if (FileList != null)
-                {
-                    // 使用FilesItemsSource属性，它会自动调用Items.Refresh()
-                    FileList.FilesItemsSource = value;
-                }
+                control.FileList.FilesItemsSource = e.NewValue as System.Collections.IEnumerable;
             }
         }
 
@@ -266,6 +270,11 @@ namespace YiboFile.Controls
         public void SetGroupedSearchResults(Dictionary<SearchResultType, List<FileSystemItem>> groupedItems)
         {
             FileList?.SetGroupedSearchResults(groupedItems);
+        }
+
+        public void ApplyGrouping()
+        {
+            FileList?.ApplyGrouping();
         }
 
         public object FilesSelectedItem

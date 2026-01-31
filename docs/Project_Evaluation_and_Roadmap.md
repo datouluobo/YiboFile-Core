@@ -61,7 +61,10 @@
 
 | 优先级 | 任务 | 描述 | 状态 |
 |--------|------|------|------|
-| **P0** | **数据绑定 (FileListViewModel)** | 将 `FileBrowser.FilesItemsSource` 绑定到 `FileListViewModel.Files`，废除代码后置手动赋值 | ⏳ 待开始 |
+| **P0** | **数据绑定 (FileListViewModel)** | 将 `FileBrowser.FilesItemsSource` 绑定到 `FileListViewModel.Files`，废除代码后置手动赋值 | ✅ 已完成 |
+|      | - 步骤 1: 重定向 `FileBrowserEventHandler` 数据源至 VM | 确保 Handler 读写 VM 数据而非 `_currentFiles` | ✅ 已完成 |
+|      | - 步骤 2: XAML 数据绑定 | 修改 `MainWindow.xaml` 绑定 `FilesItemsSource` | ✅ 已完成 |
+|      | - 步骤 3: 移除手动赋值 | 清理 `FileListViewModel` 中的 `FilesItemsSource` 赋值代码 | ✅ 已完成 |
 | **P1** | **加载逻辑迁移 (LoadFiles)** | 将 `LoadFilesAsync` 从 `MainWindow` 迁移到 `FileListViewModel`，利用 `LoadingState` 控制 UI | ⏳ 待开始 |
 | **P1** | **库逻辑迁移 (LibraryViewModel)** | 将 `LoadLibraryFiles` 逻辑迁移至 `LibraryViewModel`，实现主副面板复用 | ⏳ 待开始 |
 | **P2** | **右侧面板解耦 (FileInfo)** | 将 `RightPanelControl` 绑定到独立 VM，移除主窗口中的更新代码 | ⚪ 暂停中 |
