@@ -56,7 +56,22 @@ namespace YiboFile.ViewModels
         public Modules.TagsModule Tags { get; set; }
         public Modules.FavoritesModule Favorites { get; set; }
         public Modules.LibraryModule Library { get; set; }
+        /// <summary>
+        /// 主面板（左侧/上方）
+        /// </summary>
+        public PaneViewModel PrimaryPane { get; set; }
+
+        /// <summary>
+        /// 副面板（右侧/下方，仅在双栏模式启用）
+        /// </summary>
+        public PaneViewModel SecondaryPane { get; set; }
+
+        /// <summary>
+        /// 兼容旧代码的文件列表 VM (将逐步迁移到 PrimaryPane)
+        /// </summary>
         private FileListViewModel _fileList;
+
+        [Obsolete("Use PrimaryPane instead")]
         public new FileListViewModel FileList
         {
             get => _fileList;

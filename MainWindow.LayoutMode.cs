@@ -368,7 +368,14 @@ namespace YiboFile
                 GetCurrentPath = () => _secondCurrentPath ?? _currentPath,
                 SetCurrentPath = (path) => _secondCurrentPath = path,
                 SetNavigationCurrentPath = (path) => _secondCurrentPath = path,
+<<<<<<< HEAD
                 LoadLibraryFiles = (lib) => LoadSecondFileBrowserLibrary(lib),
+=======
+                LoadLibraryFiles = (library) =>
+                {
+                    if (library != null) _viewModel.SecondaryPane.NavigateTo(library);
+                },
+>>>>>>> 7dac39ba702cb37d835f9bead87ead7a1a3a71bc
                 NavigateToPathInternal = (path) => SecondFileBrowser_PathChanged(this, path),
                 UpdateNavigationButtonsState = () => { },
                 GetCurrentNavigationMode = () => "Path",
@@ -685,51 +692,48 @@ namespace YiboFile
             LoadSecondFileBrowserDirectory(_secondCurrentPath);
         }
 
-        private async void LoadSecondFileBrowserDirectory(string path)
+        private void LoadSecondFileBrowserDirectory(string path)
         {
             if (string.IsNullOrEmpty(path) || SecondFileBrowser == null) return;
 
-            try
+            // 委托给 ViewModel 加载
+            _viewModel.SecondaryPane.NavigateTo(path);
+
+            // 更新导航按钮状态
+            SecondFileBrowser.NavBackEnabled = _secondNavHistory.Count > 0;
+            SecondFileBrowser.NavForwardEnabled = _secondNavForward.Count > 0;
+            SecondFileBrowser.NavUpEnabled = !string.IsNullOrEmpty(System.IO.Path.GetDirectoryName(path));
+
+            // 更新文件信息面板 (需要等待加载完成? 其实可以监听 SelectionChanged, 这里主要是为了初始显示文件夹信息)
+            if (_secondFileInfoService == null && SecondFileBrowser != null)
             {
-                var items = await _secondFileListService.LoadFileSystemItemsAsync(path);
-                _secondCurrentFiles = items;
-                SecondFileBrowser.FilesItemsSource = items;
-                SecondFileBrowser.UpdateBreadcrumb(path);
-                SecondFileBrowser.NavBackEnabled = _secondNavHistory.Count > 0;
-                SecondFileBrowser.NavForwardEnabled = _secondNavForward.Count > 0;
-                SecondFileBrowser.NavUpEnabled = !string.IsNullOrEmpty(System.IO.Path.GetDirectoryName(path));
-
-                // 显示当前文件夹信息（与主面板行为一致）
-                if (_secondFileInfoService == null && SecondFileBrowser != null)
-                {
-                    _secondFileInfoService = new Services.FileInfo.FileInfoService(SecondFileBrowser, _secondFileListService, _navigationCoordinator);
-                }
-
-                if (Directory.Exists(path))
-                {
-                    try
-                    {
-                        var dirInfo = new DirectoryInfo(path);
-                        var folderItem = new FileSystemItem
-                        {
-                            Name = dirInfo.Name,
-                            Path = dirInfo.FullName,
-                            Type = "文件夹",
-                            IsDirectory = true,
-                            ModifiedDateTime = dirInfo.LastWriteTime,
-                            ModifiedDate = dirInfo.LastWriteTime.ToString("yyyy/M/d HH:mm"),
-                            CreatedDateTime = dirInfo.CreationTime,
-                            CreatedTime = dirInfo.CreationTime.ToString("yyyy/M/d HH:mm"),
-                            Size = "-",
-                            Tags = ""
-                        };
-                        _secondFileInfoService?.ShowFileInfo(folderItem);
-                    }
-                    catch { }
-                }
+                _secondFileInfoService = new Services.FileInfo.FileInfoService(SecondFileBrowser, _secondFileListService, _navigationCoordinator);
             }
-            catch (Exception)
-            { }
+
+            // 显示当前文件夹信息
+            if (Directory.Exists(path))
+            {
+                // ... same logic ...
+                try
+                {
+                    var dirInfo = new DirectoryInfo(path);
+                    var folderItem = new FileSystemItem
+                    {
+                        Name = dirInfo.Name,
+                        Path = dirInfo.FullName,
+                        Type = "文件夹",
+                        IsDirectory = true,
+                        ModifiedDateTime = dirInfo.LastWriteTime,
+                        ModifiedDate = dirInfo.LastWriteTime.ToString("yyyy/M/d HH:mm"),
+                        CreatedDateTime = dirInfo.CreationTime,
+                        CreatedTime = dirInfo.CreationTime.ToString("yyyy/M/d HH:mm"),
+                        Size = "-",
+                        Tags = ""
+                    };
+                    _secondFileInfoService?.ShowFileInfo(folderItem);
+                }
+                catch { }
+            }
         }
 
         private void SecondFileBrowser_PathChanged(object sender, string newPath)

@@ -12,6 +12,8 @@ using YiboFile.Models;
 using YiboFile.Services.Favorite;
 using YiboFile.Services.Search;
 using YiboFile.Services.UI;
+using YiboFile.Models;
+using YiboFile; // For Library class
 
 namespace YiboFile.Controls
 {
@@ -131,6 +133,100 @@ namespace YiboFile.Controls
             }
 
             this.Loaded += FileBrowserControl_Loaded;
+
+            // 监听 DataContext 变更以连接到 PaneViewModel
+            this.DataContextChanged += OnDataContextChanged;
+        }
+
+        private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (e.OldValue is ViewModels.PaneViewModel oldVm)
+            {
+                oldVm.FilesLoaded -= OnViewModelFilesLoaded;
+                oldVm.PathChanged -= OnViewModelPathChanged;
+                oldVm.LibraryChanged -= OnViewModelLibraryChanged;
+                oldVm.TagChanged -= OnViewModelTagChanged;
+            }
+
+            if (e.NewValue is ViewModels.PaneViewModel newVm)
+            {
+                newVm.FilesLoaded += OnViewModelFilesLoaded;
+                newVm.PathChanged += OnViewModelPathChanged;
+                newVm.LibraryChanged += OnViewModelLibraryChanged;
+                newVm.TagChanged += OnViewModelTagChanged;
+
+                // 初始同步
+                Dispatcher.InvokeAsync(() =>
+                {
+                    if (newVm.Files != null)
+                    {
+                        FileList.ItemsSource = newVm.Files;
+                    }
+                    RefreshBreadcrumbFromViewModel(newVm);
+                });
+            }
+        }
+
+        private void OnViewModelFilesLoaded(object sender, System.Collections.ObjectModel.ObservableCollection<Models.FileSystemItem> files)
+        {
+            Dispatcher.InvokeAsync(() =>
+            {
+                FileList.ItemsSource = files;
+            });
+        }
+
+        private void OnViewModelPathChanged(object sender, string path)
+        {
+            Dispatcher.InvokeAsync(() =>
+            {
+                UpdateBreadcrumb(path);
+                if (AddressBarControl != null)
+                {
+                    AddressBarControl.AddressText = path;
+                }
+            });
+        }
+
+        private void OnViewModelLibraryChanged(object sender, Library library)
+        {
+            Dispatcher.InvokeAsync(() =>
+            {
+                if (library != null)
+                {
+                    SetLibraryBreadcrumb(library.Name);
+                }
+            });
+        }
+
+        private void OnViewModelTagChanged(object sender, Models.TagViewModel tag)
+        {
+            Dispatcher.InvokeAsync(() =>
+            {
+                if (tag != null)
+                {
+                    SetTagBreadcrumb(tag.Name);
+                }
+            });
+        }
+
+        private void RefreshBreadcrumbFromViewModel(ViewModels.PaneViewModel vm)
+        {
+            if (vm.NavigationMode == "Library" && vm.CurrentLibrary != null)
+            {
+                SetLibraryBreadcrumb(vm.CurrentLibrary.Name);
+            }
+            else if (vm.NavigationMode == "Tag" && vm.CurrentTag != null)
+            {
+                SetTagBreadcrumb(vm.CurrentTag.Name);
+            }
+            else if (!string.IsNullOrEmpty(vm.CurrentPath))
+            {
+                UpdateBreadcrumb(vm.CurrentPath);
+                if (AddressBarControl != null)
+                {
+                    AddressBarControl.AddressText = vm.CurrentPath;
+                }
+            }
         }
 
         private void FileBrowserControl_Loaded(object sender, RoutedEventArgs e)

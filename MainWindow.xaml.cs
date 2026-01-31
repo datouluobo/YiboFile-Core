@@ -325,6 +325,10 @@ namespace YiboFile
                 _columnService);
             _viewModel.FileList = fileListVM;
 
+            // 初始化主/副面板 MVVM (新的架构)
+            _viewModel.PrimaryPane = new ViewModels.PaneViewModel(Dispatcher);
+            _viewModel.SecondaryPane = new ViewModels.PaneViewModel(Dispatcher, isSecondary: true);
+
             // 关联模块到 ViewModel (方便直接访问)
             _viewModel.Navigation = _navigationModule;
             _viewModel.Tabs = _tabsModule;
