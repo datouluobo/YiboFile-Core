@@ -89,7 +89,6 @@ namespace YiboFile
         internal Services.Archive.ArchiveService _archiveService; // ARCHIVE SERVICE
         internal Services.Features.ITagService _tagService;
 
-        private Services.FileNotes.FileNotesUIHandler _fileNotesUIHandler;
 
 
         // 事件处理器
@@ -258,14 +257,13 @@ namespace YiboFile
             // Initialize Notification Service
             Services.Core.NotificationService.Instance.Initialize(NotificationContainer);
 
-            // Step 2: Initialize Handlers (now they have access to _configService)
-            InitializeHandlers();
-
-            // Step 3: Initialize Events (UI interactions)
+            // Step 2: Initialize Events (UI interactions)
             // 初始化 MVVM 架构 (Before Events to ensure ViewModel is ready for command binding)
             InitializeMvvmModules();
 
-            // Step 3: Initialize Events (UI interactions)
+            // Step 3: Initialize Handlers (now they have access to _configService and _messageBus)
+            InitializeHandlers();
+
             InitializeEvents();
             InitializeRailEvents();
 
@@ -281,8 +279,11 @@ namespace YiboFile
             // 获取消息总线
             _messageBus = App.ServiceProvider?.GetService<IMessageBus>() ?? MessageBus.Instance;
 
+            // 创建 RightPanelViewModel
+            var rightPanelVM = new RightPanelViewModel(_messageBus, _configService, _fileListService);
+
             // 创建 ViewModel
-            _viewModel = new MainWindowViewModel(_messageBus);
+            _viewModel = new MainWindowViewModel(_messageBus, rightPanelVM);
             this.DataContext = _viewModel;
 
             // 创建并注册导航模块
@@ -316,6 +317,10 @@ namespace YiboFile
                 () => ClearFilter());
             _viewModel.RegisterModule(_fileListModule);
 
+            // 初始化主/副面板 MVVM (新的架构)
+            _viewModel.PrimaryPane = new ViewModels.PaneViewModel(Dispatcher);
+            _viewModel.SecondaryPane = new ViewModels.PaneViewModel(Dispatcher, isSecondary: true);
+
             // 初始化 FileListViewModel (用于数据绑定和加载)
             // 注意：FileBrowser 是 MainWindow 中的控件名称
             var fileListVM = new FileListViewModel(
@@ -323,11 +328,7 @@ namespace YiboFile
                 this,
                 () => RefreshFileList(),
                 _columnService);
-            _viewModel.FileList = fileListVM;
-
-            // 初始化主/副面板 MVVM (新的架构)
-            _viewModel.PrimaryPane = new ViewModels.PaneViewModel(Dispatcher);
-            _viewModel.SecondaryPane = new ViewModels.PaneViewModel(Dispatcher, isSecondary: true);
+            _viewModel.PrimaryPane.FileList = fileListVM;
 
             // 关联模块到 ViewModel (方便直接访问)
             _viewModel.Navigation = _navigationModule;
@@ -742,7 +743,7 @@ namespace YiboFile
             // 清除过滤状态，恢复正常的文件浏览
             _currentFiles.Clear();
             if (FileBrowser != null)
-                _viewModel?.FileList?.UpdateFiles(new List<FileSystemItem>());
+                _viewModel?.PrimaryPane?.FileList?.UpdateFiles(new List<FileSystemItem>());
             HideEmptyStateMessage();
         }
 

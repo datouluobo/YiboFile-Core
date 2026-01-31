@@ -56,6 +56,7 @@ namespace YiboFile.ViewModels
         public Modules.TagsModule Tags { get; set; }
         public Modules.FavoritesModule Favorites { get; set; }
         public Modules.LibraryModule Library { get; set; }
+        public RightPanelViewModel RightPanel { get; set; }
         /// <summary>
         /// 主面板（左侧/上方）
         /// </summary>
@@ -66,23 +67,13 @@ namespace YiboFile.ViewModels
         /// </summary>
         public PaneViewModel SecondaryPane { get; set; }
 
-        /// <summary>
-        /// 兼容旧代码的文件列表 VM (将逐步迁移到 PrimaryPane)
-        /// </summary>
-        private FileListViewModel _fileList;
-
-        [Obsolete("Use PrimaryPane instead")]
-        public new FileListViewModel FileList
-        {
-            get => _fileList;
-            set => SetProperty(ref _fileList, value);
-        }
 
         #endregion
 
-        public MainWindowViewModel(IMessageBus messageBus)
+        public MainWindowViewModel(IMessageBus messageBus, RightPanelViewModel rightPanel)
         {
             _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
+            RightPanel = rightPanel ?? throw new ArgumentNullException(nameof(rightPanel));
 
             // 订阅核心消息
             _messageBus.Subscribe<Messaging.Messages.PathChangedMessage>(OnPathChanged);

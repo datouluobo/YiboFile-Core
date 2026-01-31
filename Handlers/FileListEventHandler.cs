@@ -26,7 +26,6 @@ namespace YiboFile.Handlers
         private readonly NavigationCoordinator _navigationCoordinator;
         private readonly Action<FileSystemItem> _showFileInfo;
         private readonly Action<FileSystemItem> _loadFilePreview;
-        private readonly Action<FileSystemItem> _loadFileNotes;
         private readonly Action<string> _calculateFolderSizeImmediately;
         private readonly Action _clearPreviewAndInfo;
 
@@ -56,7 +55,6 @@ namespace YiboFile.Handlers
             NavigationCoordinator navigationCoordinator,
             Action<FileSystemItem> showFileInfo,
             Action<FileSystemItem> loadFilePreview,
-            Action<FileSystemItem> loadFileNotes,
             Action<string> calculateFolderSizeImmediately,
             Action clearPreviewAndInfo,
 
@@ -81,7 +79,6 @@ namespace YiboFile.Handlers
             _navigationCoordinator = navigationCoordinator ?? throw new ArgumentNullException(nameof(navigationCoordinator));
             _showFileInfo = showFileInfo ?? throw new ArgumentNullException(nameof(showFileInfo));
             _loadFilePreview = loadFilePreview ?? throw new ArgumentNullException(nameof(loadFilePreview));
-            _loadFileNotes = loadFileNotes ?? throw new ArgumentNullException(nameof(loadFileNotes));
             _calculateFolderSizeImmediately = calculateFolderSizeImmediately ?? throw new ArgumentNullException(nameof(calculateFolderSizeImmediately));
             _clearPreviewAndInfo = clearPreviewAndInfo ?? throw new ArgumentNullException(nameof(clearPreviewAndInfo));
 
@@ -126,7 +123,6 @@ namespace YiboFile.Handlers
             {
                 _showFileInfo(selectedItem);
                 _loadFilePreview(selectedItem);
-                _loadFileNotes(selectedItem);
 
                 // 标签页AI预测已移除 - Phase 2将重新实现
                 // try { ... } catch { }

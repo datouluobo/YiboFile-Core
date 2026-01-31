@@ -93,7 +93,7 @@ namespace YiboFile
                         // 更新 UI
                         if (FileBrowser != null)
                         {
-                            _viewModel?.FileList?.UpdateFiles(results);
+                            _viewModel?.PrimaryPane?.FileList?.UpdateFiles(results);
 
                             if (results.Count == 0)
                             {
@@ -185,13 +185,13 @@ namespace YiboFile
                             if (groupedItems != null && groupedItems.Count > 0)
                             {
                                 var flatList = FlattenGroupedItems(groupedItems);
-                                _viewModel?.FileList?.UpdateFiles(flatList);
+                                _viewModel?.PrimaryPane?.FileList?.UpdateFiles(flatList);
                                 FileBrowser.ApplyGrouping();
                             }
                             else
                             {
                                 // FileBrowser.FilesItemsSource = results; // Do not break binding
-                                _viewModel?.FileList?.UpdateFiles(results);
+                                _viewModel?.PrimaryPane?.FileList?.UpdateFiles(results);
                                 if (results.Count == 0) FileBrowser.ShowEmptyState("未找到匹配项");
                                 else FileBrowser.HideEmptyState();
                             }
@@ -217,13 +217,13 @@ namespace YiboFile
                             {
                                 Debug.WriteLine($"[PerformSearch] 设置分组搜索结果，分组数: {groupedItems.Count}");
                                 var flatList = FlattenGroupedItems(groupedItems);
-                                _viewModel?.FileList?.UpdateFiles(flatList);
+                                _viewModel?.PrimaryPane?.FileList?.UpdateFiles(flatList);
                                 FileBrowser.ApplyGrouping();
                             }
                             else
                             {
                                 Debug.WriteLine($"[PerformSearch] 设置 FilesItemsSource，结果数: {results.Count}");
-                                _viewModel?.FileList?.UpdateFiles(results);
+                                _viewModel?.PrimaryPane?.FileList?.UpdateFiles(results);
                                 if (results.Count == 0) FileBrowser.ShowEmptyState("未找到匹配项");
                                 else FileBrowser.HideEmptyState();
                             }
@@ -252,12 +252,12 @@ namespace YiboFile
                                 if (groupedItems != null && groupedItems.Count > 0)
                                 {
                                     var flatList = FlattenGroupedItems(groupedItems);
-                                    _viewModel?.FileList?.UpdateFiles(flatList);
+                                    _viewModel?.PrimaryPane?.FileList?.UpdateFiles(flatList);
                                     FileBrowser.ApplyGrouping();
                                 }
                                 else
                                 {
-                                    _viewModel?.FileList?.UpdateFiles(results);
+                                    _viewModel?.PrimaryPane?.FileList?.UpdateFiles(results);
                                 }
                                 Debug.WriteLine($"[PerformSearch] 恢复后数量: {(FileBrowser.FilesItemsSource as System.Collections.IList)?.Count ?? 0}");
                             }

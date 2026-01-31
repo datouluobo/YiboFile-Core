@@ -1,6 +1,6 @@
 # YiboFile 项目评估与行动计划
 
-> **版本**: v1.0.200 | **更新日期**: 2026-01-29
+> **版本**: v1.0.230 | **更新日期**: 2026-01-31
 
 ---
 
@@ -38,6 +38,12 @@
 ### 2.2 服务层优化 ✅
 - [x] **文档预览异常捕获**: 增强了 PDF/Office 扫描时的稳定性。
 - [x] **窗口状态记忆**: 修正了双屏显示下的窗口位置记忆。
+- [x] **Git 历史清理**: 完成了存储库历史的深度清理与优化，确立了以 YiboFile 为核心的提交历史。
+
+### 2.3 核心逻辑 VM 化 (v1.0.230 突破) ✅
+- [x] **导航逻辑解耦 (TabsModule)**: 标签管理逻辑（创建、切换、关闭）已从 `MainWindow.Tabs.cs` 彻底迁移至 `TabsModule`。
+- [x] **文件列表同步 (SSOT)**: 解决了主副面板列表在切换/刷新时的步调不一致问题，通过 `FileListViewModel` 统一管理。
+- [x] **库与收藏模块**: 逻辑已封装在 `LibraryModule` 与 `FavoritesModule` 中。
 
 ---
 
@@ -55,23 +61,44 @@
 
 ---
 
-## 四、下一阶段行动计划 (MVVM 解耦攻坚)
+## 四、下一阶段行动计划 (MVVM 深度解耦)
 
-**目标**：彻底移除 `MainWindow.Handlers.cs` 和 `MainWindow.Navigation.cs` 中的业务逻辑，实现真正的 MVVM 数据绑定。
+**核心原则**：大方向拆分，小步快跑，每步必测。
 
-| 优先级 | 任务 | 描述 | 状态 |
-|--------|------|------|------|
-| **P0** | **数据绑定 (FileListViewModel)** | 将 `FileBrowser.FilesItemsSource` 绑定到 `FileListViewModel.Files`，废除代码后置手动赋值 | ✅ 已完成 |
-|      | - 步骤 1: 重定向 `FileBrowserEventHandler` 数据源至 VM | 确保 Handler 读写 VM 数据而非 `_currentFiles` | ✅ 已完成 |
-|      | - 步骤 2: XAML 数据绑定 | 修改 `MainWindow.xaml` 绑定 `FilesItemsSource` | ✅ 已完成 |
-|      | - 步骤 3: 移除手动赋值 | 清理 `FileListViewModel` 中的 `FilesItemsSource` 赋值代码 | ✅ 已完成 |
-| **P1** | **加载逻辑迁移 (LoadFiles)** | 将 `LoadFilesAsync` 从 `MainWindow` 迁移到 `FileListViewModel`，利用 `LoadingState` 控制 UI | ⏳ 待开始 |
-| **P1** | **库逻辑迁移 (LibraryViewModel)** | 将 `LoadLibraryFiles` 逻辑迁移至 `LibraryViewModel`，实现主副面板复用 | ⏳ 待开始 |
-| **P2** | **右侧面板解耦 (FileInfo)** | 将 `RightPanelControl` 绑定到独立 VM，移除主窗口中的更新代码 | ⚪ 暂停中 |
-| **P3** | **菜单逻辑清理** | 将 Command 绑定到 VM，移除 `MainWindow.MenuEvents.cs` | ⚪ 暂停中 |
+### 4.1 方向一：右侧面板 (FileInfo) 解耦 ⏳ (当前重点)
+将 `RightPanelControl` 及其关联逻辑从 `MainWindow` 剥离，实现数据驱动的视图更新。
+
+| 步骤 | 任务描述 | 验证方法 (可测试性) | 状态 |
+|------|----------|-------------------|------|
+| **1.1** | **创建 RightPanelViewModel** | 在 `ViewModels` 目录创建类并注册 DI | 检查 DI 容器能否成功解析该 VM | ✅ 已完成 |
+| **1.2** | **迁移文件信息提取逻辑** | 将元数据提取、缩略图路径获取等逻辑移入 VM | 选中文件后，VM 属性正确反映文件元数据 | ⏳ 下一步 |
+| **1.3** | **迁移备注 (Notes) 处理逻辑** | 将备注的加载与保存从 `MainWindow` 迁移至 VM 或 Module | 修改并保存备注，观察文件 `.notes` 或数据库是否更新 | ⚪ 计划中 |
+| **1.4** | **XAML 数据绑定实现** | 修改 `RightPanelControl.xaml` 绑定至 VM 属性 | UI 元素（文件名、大小、备注区）能够实时更新 | ⚪ 计划中 |
+| **1.5** | **移除 MainWindow 后置代码** | 清理 `MainWindow` 中所有操作 `RightPanel` 的 legacy 代码 | 编译通过且右侧面板功能完整（无 UI 手动赋值） | ⚪ 计划中 |
 
 ---
 
-## 五、总结
+### 4.2 方向二：全局命令 (Commands) 与菜单重构 🟡
+将硬编码的菜单事件迁移为标准 XAML Commands。
 
-**YiboFile** 导航系统重构已完成，**SSOT + Coordinator** 架构表现稳定，双面板问题已解决。现在是时候由于 “核心稳定性” 问题解决，转向 **架构现代化 (MVVM)**，这是 v1.1.0 版本的核心目标。
+| 步骤 | 任务描述 | 验证方法 (可测试性) | 状态 |
+|------|----------|-------------------|------|
+| **2.1** | **设计 Command 管理机制** | 在 `MainWindowViewModel` 或独立 Module 中定义核心命令 | 调试确认 Command 对象已正确初始化 | ⚪ 计划中 |
+| **2.2** | **迁移文件操作命令** | 复制、粘贴、删除逻辑绑定到 VM 命令 | 点击菜单或按快捷键，功能执行正常且 UI 同步 | ⚪ 计划中 |
+| **2.3** | **视图切换逻辑重构** | 这里的“双栏模式”、“紧凑模式”切换通过命令实现 | 切换视图后，UI 状态与 VM 属性保持一致 | ⚪ 计划中 |
+
+---
+
+### 4.3 方向三：设置系统 (Settings) MVVM 化 ⚪
+废除手动 UI 赋值，实现配置项与 UI 的双向绑定。
+
+| 步骤 | 任务描述 | 验证方法 (可测试性) | 状态 |
+|------|----------|-------------------|------|
+| **3.1** | **建立 SettingsViewModel** | 封装 `ConfigManager` 的属性为 VM 可观察属性 | 修改 VM 属性，配置文件内容同步更新 | ⚪ 计划中 |
+| **3.2** | **设置面板 XAML 绑定** | 直接将 `SettingsOverlay` 中的控件绑定到 VM | 在设置界面修改选项，即时改变程序行为（如主题） | ⚪ 计划中 |
+
+---
+
+## 五、总结与展望
+
+**YiboFile** 已跨越了最困难的导航架构调整期。接下来的工作将进入**模块化治理**阶段。通过上述“分而治之”的策略，我们将确保每次更新都是稳定且可验证的。

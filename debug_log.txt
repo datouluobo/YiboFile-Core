@@ -1,1 +1,5 @@
 [MainWindow] Constructor called at 2026-01-31 07:54:16
+[MainWindow] Constructor called at 2026-01-31 10:07:51
+[MainWindow] Constructor called at 2026-01-31 11:25:28
+[MainWindow] Constructor called at 2026-01-31 11:28:29
+[MainWindow] Constructor called at 2026-01-31 11:31:46

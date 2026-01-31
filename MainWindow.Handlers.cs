@@ -25,6 +25,7 @@ using YiboFile.Services.Settings;
 // using TagTrain.UI; // Phase 2
 using System.Windows.Media;
 using YiboFile.Services.Core;
+using YiboFile.ViewModels.Messaging.Messages;
 
 namespace YiboFile
 {
@@ -83,8 +84,8 @@ namespace YiboFile
                 () => null,
                 (tag) => { },
                 // MVVM 迁移: Handler 现在读取和更新 VM 数据
-                () => _viewModel?.FileList?.Files?.ToList() ?? new List<FileSystemItem>(),
-                (files) => { _viewModel?.FileList?.UpdateFiles(files); },
+                () => _viewModel?.PrimaryPane?.FileList?.Files?.ToList() ?? new List<FileSystemItem>(),
+                (files) => { _viewModel?.PrimaryPane?.FileList?.UpdateFiles(files); },
                 () => _searchOptions,
                 (e) => { }, // FilesListView_SelectionChanged
                 (e) => { }, // FilesListView_MouseDoubleClick
@@ -122,14 +123,11 @@ namespace YiboFile
 
             _selectionEventHandler = new SelectionEventHandler(
                 this,
-                _previewService, // Was _filePreviewService, but InitializeServices uses _previewService
-                _fileNotesUIHandler,
-                item => _fileInfoService?.ShowFileInfo(item), // Was UpdateFileInfoPanel(item)
-                () => ClearPreviewAndInfo(),
+                _previewService,
+                _messageBus,
                 _fileListService,
                 () => _currentFiles,
-                () => _currentPath,
-                lib => _fileInfoService?.ShowLibraryInfo(lib)
+                () => _currentPath
             );
 
             // 初始化 ColumnInteractionHandler
@@ -204,11 +202,10 @@ namespace YiboFile
             _mainFileListHandler = new Handlers.FileListEventHandler(
                 FileBrowser,
                 _navigationCoordinator,
-                item => _fileInfoService?.ShowFileInfo(item),
+                item => _messageBus.Publish(new FileSelectionChangedMessage(new List<FileSystemItem> { item })),
                 item => _previewService?.LoadFilePreview(item),
-                item => _fileNotesUIHandler?.LoadFileNotes(item), // Fixed: Pass item, not item.Path
                 path => { _folderSizeCalculationService?.CalculateAndUpdateFolderSizeAsync(path); }, // Fixed: Fire-and-forget async update
-                () => ClearPreviewAndInfo(),
+                () => _messageBus.Publish(new FileSelectionChangedMessage(null)),
                 () => _currentLibrary != null, // IsLibraryMode
                 mode => SwitchNavigationMode(mode),
                 path => NavigateToPath(path),
@@ -234,7 +231,6 @@ namespace YiboFile
                     _navigationCoordinator,
                     item => _secondFileInfoService?.ShowFileInfo(item), // Assuming generic or specific service
                     item => { }, // Second browser preview might not be supported or same preview service
-                    item => { }, // Notes?
                     path => { _folderSizeCalculationService?.CalculateAndUpdateFolderSizeAsync(path); },
                     () => { }, // Clear preview?
                     () => false, // Second browser usually Path mode only for now
@@ -355,7 +351,7 @@ namespace YiboFile
                         AboutOverlay.Visibility = Visibility.Visible;
                     }
                 },
-                EditNotes_Click_Logic, // Action editNotes
+                () => { }, // Action editNotes (Deprecated)
                 () => { }, // BatchAddTags_Click_Logic - Phase 2
                 () => { }, // showTagStatistics - Phase 2
                 ImportLibrary_Click_Logic, // importLibrary
@@ -386,7 +382,7 @@ namespace YiboFile
                     var b = GetActiveContext().browser;
                     if (b != null)
                     {
-                        if (b == FileBrowser) _viewModel?.FileList?.UpdateFiles(files);
+                        if (b == FileBrowser) _viewModel?.PrimaryPane?.FileList?.UpdateFiles(files);
                         else b.FilesItemsSource = files;
                     }
                     if (b == FileBrowser) _currentFiles = files;
@@ -659,7 +655,7 @@ namespace YiboFile
                 (sortedFiles) =>
                 {
                     _currentFiles = sortedFiles;
-                    _viewModel?.FileList?.UpdateFiles(_currentFiles);
+                    _viewModel?.PrimaryPane?.FileList?.UpdateFiles(_currentFiles);
                 },
                 FileBrowser.FilesGrid
             );
@@ -718,7 +714,6 @@ namespace YiboFile
 
 
         // Helpers for MenuEventHandler
-        private void EditNotes_Click_Logic() => _fileNotesUIHandler?.ToggleNotesPanel();
 
 
 

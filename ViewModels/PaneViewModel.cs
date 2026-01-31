@@ -134,6 +134,8 @@ namespace YiboFile.ViewModels
             set => SetProperty(ref _isLoading, value);
         }
 
+        public FileListViewModel FileList { get; set; }
+
         public bool IsSecondary => _isSecondary;
 
         #endregion

@@ -368,14 +368,10 @@ namespace YiboFile
                 GetCurrentPath = () => _secondCurrentPath ?? _currentPath,
                 SetCurrentPath = (path) => _secondCurrentPath = path,
                 SetNavigationCurrentPath = (path) => _secondCurrentPath = path,
-<<<<<<< HEAD
-                LoadLibraryFiles = (lib) => LoadSecondFileBrowserLibrary(lib),
-=======
                 LoadLibraryFiles = (library) =>
                 {
                     if (library != null) _viewModel.SecondaryPane.NavigateTo(library);
                 },
->>>>>>> 7dac39ba702cb37d835f9bead87ead7a1a3a71bc
                 NavigateToPathInternal = (path) => SecondFileBrowser_PathChanged(this, path),
                 UpdateNavigationButtonsState = () => { },
                 GetCurrentNavigationMode = () => "Path",

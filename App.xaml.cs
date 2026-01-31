@@ -137,6 +137,9 @@ namespace YiboFile
             // 备注模块 - 现代化架构示范
             services.AddSingleton<Services.Data.Repositories.INotesRepository, Services.Data.Repositories.SqliteNotesRepository>();
             services.AddSingleton<Services.Features.FileNotes.INotesService, Services.Features.FileNotes.NotesService>();
+
+            // ViewModels
+            services.AddSingleton<ViewModels.RightPanelViewModel>();
         }
 
 

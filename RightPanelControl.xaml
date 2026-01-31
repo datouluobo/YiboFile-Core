@@ -13,6 +13,8 @@
             <RowDefinition Height="*"/>
             <!-- 行2：分割器 -->
             <RowDefinition Height="Auto"/>
+            <!-- 行3：信息区 -->
+            <RowDefinition Height="Auto"/>
             <!-- 行4：备注区 -->
             <RowDefinition Height="200" MinHeight="120"/>
         </Grid.RowDefinitions>
@@ -98,7 +100,22 @@
                 </Border>
             </Grid>
         </Border>
-        
+
+        <!-- 行3：信息区 -->
+        <Border Grid.Row="3" Padding="8,4" Background="{DynamicResource AppBackgroundBrush}">
+            <ItemsControl ItemsSource="{Binding InfoItems}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal" Margin="0,2">
+                            <TextBlock Text="{Binding Label}" FontWeight="Bold" Width="80" 
+                                       Foreground="{DynamicResource ForegroundPrimaryBrush}"/>
+                            <TextBlock Text="{Binding Value}" TextWrapping="Wrap"
+                                       Foreground="{DynamicResource ForegroundSecondaryBrush}"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </Border>
 
         <!-- 行4：备注区 -->
         <Border Grid.Row="4" Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,1,0,0">
@@ -108,7 +125,7 @@
                      VerticalScrollBarVisibility="Auto"
                      HorizontalAlignment="Stretch"
                      VerticalAlignment="Stretch"
-                     TextChanged="NotesTextBox_TextChanged"
+                     Text="{Binding CurrentNotes, UpdateSourceTrigger=PropertyChanged}"
                      Background="{DynamicResource AppBackgroundBrush}" BorderBrush="Transparent" BorderThickness="0"/>
         </Border>
     </Grid>

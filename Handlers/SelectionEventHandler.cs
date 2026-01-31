@@ -1,15 +1,16 @@
 using System;
-using YiboFile.Models;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using YiboFile.Models;
 using YiboFile.Models.UI;
 using YiboFile.Services;
-using YiboFile.Services.FileNotes; // Corrected namespace
+using YiboFile.Services.FileNotes;
 using YiboFile.Services.FileOperations;
-
+using YiboFile.ViewModels.Messaging;
+using YiboFile.ViewModels.Messaging.Messages;
 
 namespace YiboFile.Handlers
 {
@@ -20,11 +21,7 @@ namespace YiboFile.Handlers
     {
         private readonly MainWindow _mainWindow;
         private readonly YiboFile.Services.Preview.PreviewService _filePreviewService;
-        private readonly FileNotesUIHandler _fileNotesUIHandler;
-
-        private readonly Action<FileSystemItem> _updateFileInfoPanel;
-        private readonly Action<Library> _updateLibraryInfoPanel;
-        private readonly Action _clearPreviewAndInfo;
+        private readonly IMessageBus _messageBus;
 
         private readonly YiboFile.Services.FileList.FileListService _fileListService;
         private readonly Func<List<FileSystemItem>> _getCurrentFiles;
@@ -34,25 +31,16 @@ namespace YiboFile.Handlers
         public SelectionEventHandler(
             MainWindow mainWindow,
             YiboFile.Services.Preview.PreviewService filePreviewService,
-            FileNotesUIHandler fileNotesUIHandler,
-
-            Action<FileSystemItem> updateFileInfoPanel,
-            Action clearPreviewAndInfo,
-
+            IMessageBus messageBus,
             YiboFile.Services.FileList.FileListService fileListService,
             Func<List<FileSystemItem>> getCurrentFiles,
-            Func<string> getCurrentPath,
-            Action<Library> updateLibraryInfoPanel = null)
+            Func<string> getCurrentPath)
         {
             _mainWindow = mainWindow ?? throw new ArgumentNullException(nameof(mainWindow));
             _filePreviewService = filePreviewService ?? throw new ArgumentNullException(nameof(filePreviewService));
-            _fileNotesUIHandler = fileNotesUIHandler ?? throw new ArgumentNullException(nameof(fileNotesUIHandler));
+            _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
 
-            _updateFileInfoPanel = updateFileInfoPanel ?? throw new ArgumentNullException(nameof(updateFileInfoPanel));
-            _updateLibraryInfoPanel = updateLibraryInfoPanel;
-            _clearPreviewAndInfo = clearPreviewAndInfo ?? throw new ArgumentNullException(nameof(clearPreviewAndInfo));
-
-            _fileListService = fileListService ?? throw new ArgumentNullException(nameof(_fileListService));
+            _fileListService = fileListService ?? throw new ArgumentNullException(nameof(fileListService));
             _getCurrentFiles = getCurrentFiles ?? throw new ArgumentNullException(nameof(getCurrentFiles));
             _getCurrentPath = getCurrentPath ?? throw new ArgumentNullException(nameof(getCurrentPath));
         }
@@ -63,17 +51,17 @@ namespace YiboFile.Handlers
 
             if (selectedItems.Count > 0)
             {
+                // 1. 发送消息通知所有依赖项（MVVM 模式）
+                _messageBus.Publish(new FileSelectionChangedMessage(selectedItems));
+
                 var selectedItem = selectedItems[0] as FileSystemItem;
                 if (selectedItem != null)
                 {
-                    // 2. 更新右侧文件信息面板（仅触发加载）
-                    _updateFileInfoPanel(selectedItem);
+                    // 2. 传统逻辑同步（保留部分无法即刻迁移的 UI 逻辑）
 
                     // 3. 加载预览
                     _filePreviewService?.LoadFilePreview(selectedItem);
 
-                    // 4. 加载备注
-                    _fileNotesUIHandler?.LoadFileNotes(selectedItem);
 
                     // 5. 检查剪贴板状态（如果是剪切，调整透明度）
                     try
@@ -91,17 +79,14 @@ namespace YiboFile.Handlers
                     }
                     catch { }
 
-
-
                     // 7. 文件夹大小计算
                     if (selectedItem.IsDirectory)
                     {
-                        // 检查大小是否已计算（Size为空、"-"、"计算中..."或null表示未计算）
+                        // 检查大小是否已计算
                         if (string.IsNullOrEmpty(selectedItem.Size) ||
                             selectedItem.Size == "-" ||
                             selectedItem.Size == "计算中...")
                         {
-                            // 立即计算该文件夹的大小
                             CalculateFolderSizeImmediately(selectedItem.Path);
                         }
                     }
@@ -116,12 +101,11 @@ namespace YiboFile.Handlers
         public void HandleNoSelection()
         {
             // 8. 没有选择文件时：
+            _messageBus.Publish(new FileSelectionChangedMessage(null));
+
             // 清除预览区
             _filePreviewService?.ClearPreview();
-            // 清除预测结果
 
-            // 清除备注
-            try { _fileNotesUIHandler?.LoadFileNotes(null); } catch { }
 
             // 显示当前文件夹信息
             try
@@ -140,27 +124,17 @@ namespace YiboFile.Handlers
                         ModifiedDate = dirInfo.LastWriteTime.ToString("yyyy/M/d HH:mm"),
                         CreatedDateTime = dirInfo.CreationTime,
                         CreatedTime = dirInfo.CreationTime.ToString("yyyy/M/d HH:mm"),
-                        Size = "-", // 将在 ShowDirectoryInfo 中计算
-                        Tags = "" // 文件夹没有标签? 或者需要获取标签? 目前暂留空
+                        Size = "-",
+                        Tags = ""
                     };
-                    _updateFileInfoPanel(item);
-                }
-                else
-                {
-                    // 库模式支持：如果没有当前路径，但有当前库，则显示库信息
-                    if (string.IsNullOrEmpty(currentPath) && _mainWindow._currentLibrary != null)
-                    {
-                        _updateLibraryInfoPanel?.Invoke(_mainWindow._currentLibrary);
-                        return;
-                    }
 
-                    // 如果路径无效（例如搜索结果页面），则清除信息面板
-                    _clearPreviewAndInfo();
+                    // 通过消息发送
+                    _messageBus.Publish(new FileSelectionChangedMessage(new List<FileSystemItem> { item }));
                 }
             }
             catch
             {
-                _clearPreviewAndInfo();
+                // Ignore
             }
         }
 
@@ -183,7 +157,7 @@ namespace YiboFile.Handlers
                 if (currentFiles == null) return;
 
                 var item = currentFiles.FirstOrDefault(f => f.Path == folderPath);
-                if (item != null && (string.IsNullOrEmpty(item.Size) || item.Size == "-" || item.Size == "计算中..."))
+                if (item != null && (string.IsNullOrEmpty(item.Size) || item.Size == "-" || item.Size == "计算?中..."))
                 {
                     item.Size = "计算中...";
                     _ = _fileListService.CalculateFolderSizeAsync(item, token);

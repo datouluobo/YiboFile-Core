@@ -108,14 +108,14 @@ namespace YiboFile
                     // 如果连一个库都没有
                     _currentFiles.Clear();
                     if (FileBrowser != null)
-                        _viewModel?.FileList?.Files?.Clear();
+                        _viewModel?.PrimaryPane?.FileList?.Files?.Clear();
                     return;
                 }
 
                 // 其他模式：清空列表
                 _currentFiles.Clear();
                 if (FileBrowser != null)
-                    _viewModel?.FileList?.Files?.Clear();
+                    _viewModel?.PrimaryPane?.FileList?.Files?.Clear();
                 HideEmptyStateMessage();
             }
         }
@@ -125,7 +125,7 @@ namespace YiboFile
         /// </summary>
         private async Task LoadCurrentDirectoryAsync()
         {
-            if (_viewModel?.FileList == null) return;
+            if (_viewModel?.PrimaryPane?.FileList == null) return;
 
             try
             {
@@ -144,7 +144,7 @@ namespace YiboFile
 
 
                 // MVVM 迁移: 委托给 FileListViewModel 加载
-                await _viewModel.FileList.LoadPathAsync(_currentPath);
+                await _viewModel.PrimaryPane.FileList.LoadPathAsync(_currentPath);
 
                 // 更新空状态无需显示
                 HideEmptyStateMessage();
@@ -307,13 +307,13 @@ namespace YiboFile
                             {
                                 try
                                 {
-                                    _viewModel?.FileList?.UpdateFiles(_currentFiles);
+                                    _viewModel?.PrimaryPane?.FileList?.UpdateFiles(_currentFiles);
                                 }
                                 catch (ArgumentException)
                                 {
                                     // 尝试重建集合以规避可能的 CollectionView 内部错误
                                     var freshList = new List<FileSystemItem>(items);
-                                    _viewModel?.FileList?.UpdateFiles(freshList);
+                                    _viewModel?.PrimaryPane?.FileList?.UpdateFiles(freshList);
                                 }
 
                                 // 主动触发空选状态下的信息面板更新（修复首次进入目录不显示信息的问题）
@@ -369,7 +369,7 @@ namespace YiboFile
                     }
 
                     if (FileBrowser != null)
-                        _viewModel?.FileList?.UpdateFiles(_currentFiles);
+                        _viewModel?.PrimaryPane?.FileList?.UpdateFiles(_currentFiles);
                 }
                 catch (Exception)
                 {

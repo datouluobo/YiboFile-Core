@@ -174,8 +174,6 @@ namespace YiboFile
             // 初始化文件信息服务（需要在 InitializeComponent 之后，因为需要 FileBrowser）
             _fileInfoService = new Services.FileInfo.FileInfoService(FileBrowser, _fileListService, _navigationCoordinator);
 
-            // 初始化备注UI处理器（需要在 InitializeComponent 之后，因为需要 RightPanel 和 FileBrowser）
-            _fileNotesUIHandler = new Services.FileNotes.FileNotesUIHandler(RightPanel, FileBrowser);
 
             // tagUIHandler 初始化已注释 - Phase 2将重新实现
             // var tagUIHandlerContext = new TagUIHandlerContextImpl(this);
@@ -243,8 +241,6 @@ namespace YiboFile
             // 订阅 RightPanel 事件
             if (RightPanel != null)
             {
-                RightPanel.NotesTextChanged += NotesTextBox_TextChanged;
-                RightPanel.NotesAutoSaved += NotesAutoSaved_Handler;
                 RightPanel.PreviewOpenFileRequested += RightPanel_PreviewOpenFileRequested;
                 RightPanel.PreviewMiddleClickRequested += RightPanel_PreviewMiddleClickRequested;
                 RightPanel.NotesHeightChanged += RightPanel_NotesHeightChanged;
@@ -355,7 +351,7 @@ namespace YiboFile
                     _currentFiles.Clear();
                     if (FileBrowser != null)
                     {
-                        _viewModel?.FileList?.Files?.Clear();
+                        _viewModel?.PrimaryPane?.FileList?.Files?.Clear();
                         FileBrowser.AddressText = e.Library.Name + " (无位置)";
                     }
                     // ShowEmptyLibraryMessage(e.Library.Name);
@@ -568,7 +564,7 @@ namespace YiboFile
                 GetSearchCacheService = () => _searchCacheService,
                 GetSearchOptions = () => _searchOptions,
                 GetCurrentFiles = () => _currentFiles,
-                SetCurrentFiles = files => { _currentFiles = files; _viewModel?.FileList?.UpdateFiles(files); },
+                SetCurrentFiles = files => { _currentFiles = files; _viewModel?.PrimaryPane?.FileList?.UpdateFiles(files); },
                 ClearFilter = ClearFilter,
                 RefreshSearchTab = path => { CheckAndRefreshSearchTab(path); return Task.CompletedTask; },
                 FindResource = key => FindResource(key),

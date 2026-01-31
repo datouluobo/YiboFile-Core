@@ -148,7 +148,7 @@
                                      VerticalAlignment="Stretch"
                                      Margin="0,0,0,0"
                                      Panel.ZIndex="100"
-                                     FilesItemsSource="{Binding FileList.Files}"/>
+                                     FilesItemsSource="{Binding PrimaryPane.FileList.Files}"/>
 
         <!-- 备份管理器 -->
         <controls:BackupBrowserControl x:Name="BackupBrowser"
@@ -184,8 +184,9 @@
         <Grid Grid.Row="0" Grid.Column="5" Grid.RowSpan="4" 
               WindowChrome.IsHitTestVisibleInChrome="True"
               Panel.ZIndex="1001">
-            <!-- 预览面板（默认显示） -->
+            <!-- 预览区面板 -->
             <local:RightPanelControl x:Name="RightPanel"
+                                     DataContext="{Binding RightPanel}"
                                      HorizontalAlignment="Stretch"
                                      VerticalAlignment="Stretch"
                                      Visibility="Visible"/>

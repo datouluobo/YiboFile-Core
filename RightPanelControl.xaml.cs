@@ -15,8 +15,6 @@ namespace YiboFile
     {
         // PreviewGrid 和 NotesTextBox 由 XAML 自动生成
 
-        public event TextChangedEventHandler NotesTextChanged;
-        public event RoutedEventHandler NotesAutoSaved;
         public event RoutedEventHandler WindowMinimize;
         public event RoutedEventHandler WindowMaximize;
         public event RoutedEventHandler WindowClose;
@@ -27,23 +25,9 @@ namespace YiboFile
         public event EventHandler NavigateNextImageRequested;  // 下一张图片请求
         public event EventHandler<int> NavigateToImageIndexRequested;  // 跳转到指定图片索引请求
 
-        private System.Windows.Threading.DispatcherTimer _autoSaveTimer;
-        private bool _hasPendingChanges = false;
-
         public RightPanelControl()
         {
             InitializeComponent();
-
-            // 设置自动保存定时器
-            _autoSaveTimer = new System.Windows.Threading.DispatcherTimer();
-            _autoSaveTimer.Interval = TimeSpan.FromMilliseconds(500); // 停止输入0.5秒后自动保存，提升保存速度
-            _autoSaveTimer.Tick += AutoSaveTimer_Tick;
-
-            // 订阅文本变化事件
-            if (NotesTextBox != null)
-            {
-                NotesTextBox.TextChanged += NotesTextBox_TextChanged;
-            }
 
             // 订阅预览区中键事件（使用Border容器）
             if (ImagePreviewDisplay != null)
@@ -299,47 +283,6 @@ namespace YiboFile
             // 实际的按钮更新在 MainWindow.UpdateWindowStateUI() 中处理
         }
 
-        public void ForceSaveNotes()
-        {
-            if (_hasPendingChanges)
-            {
-                NotesAutoSaved?.Invoke(this, new RoutedEventArgs());
-                _hasPendingChanges = false;
-            }
-        }
-
-        private void AutoSaveTimer_Tick(object sender, EventArgs e)
-        {
-            _autoSaveTimer.Stop();
-            if (_hasPendingChanges)
-            {
-                try
-                {
-                    NotesAutoSaved?.Invoke(this, new RoutedEventArgs());
-                    _hasPendingChanges = false;
-                }
-                catch
-                {
-                    // 忽略保存错误，继续工作
-                }
-            }
-        }
-
-        private void NotesTextBox_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            _hasPendingChanges = true;
-
-            // 重新启动定时器
-            if (_autoSaveTimer != null)
-            {
-                _autoSaveTimer.Stop();
-                _autoSaveTimer.Start();
-            }
-
-            // 触发事件
-            NotesTextChanged?.Invoke(sender, e);
-        }
-
         private void WindowMinimize_Click(object sender, RoutedEventArgs e)
         {
             WindowMinimize?.Invoke(sender, e);
@@ -410,7 +353,6 @@ namespace YiboFile
             NavigateToImageIndexRequested?.Invoke(this, -1);
         }
 
-
         public event EventHandler<double> NotesHeightChanged;
 
         private void GridSplitter_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
@@ -423,5 +365,3 @@ namespace YiboFile
         }
     }
 }
-
-
