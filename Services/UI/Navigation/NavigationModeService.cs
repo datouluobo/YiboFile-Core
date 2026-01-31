@@ -7,6 +7,7 @@ using YiboFile.Services.Tabs;
 using YiboFile.Services.Config;
 using YiboFile.Services.Navigation;
 using YiboFile.Services.Data.Repositories;
+using YiboFile.Services.Core;
 
 
 namespace YiboFile.Services.Navigation
@@ -316,6 +317,26 @@ namespace YiboFile.Services.Navigation
             {
                 _uiHelper.FileBrowser.NavBackEnabled = _navigationService.CanGoBack;
                 _uiHelper.FileBrowser.NavForwardEnabled = _navigationService.CanGoForward;
+
+                // 更新“向上”按钮状态
+                string currentPath = _navigationService.CurrentPath;
+                bool canGoUp = false;
+                if (!string.IsNullOrEmpty(currentPath))
+                {
+                    var protocol = ProtocolManager.Parse(currentPath);
+                    if (protocol.Type == ProtocolType.Local)
+                    {
+                        string dir = null;
+                        try { dir = Path.GetDirectoryName(currentPath); } catch { }
+                        canGoUp = !string.IsNullOrEmpty(dir);
+                    }
+                    else if (protocol.Type == ProtocolType.Archive)
+                    {
+                        // 压缩包内总是可以向上（返回上一级文件夹或返回到文件系统）
+                        canGoUp = true;
+                    }
+                }
+                _uiHelper.FileBrowser.NavUpEnabled = canGoUp;
             }
         }
 

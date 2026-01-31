@@ -330,6 +330,22 @@ namespace YiboFile
                 _columnService);
             _viewModel.PrimaryPane.FileList = fileListVM;
 
+            // Initialize FileListViewModel for Secondary Pane
+            if (SecondFileBrowser != null)
+            {
+                var secondFileListVM = new FileListViewModel(
+                    SecondFileBrowser,
+                    this,
+                    () =>
+                    {
+                        // Refresh logic for secondary pane
+                        if (SecondFileBrowser != null && !string.IsNullOrEmpty(SecondFileBrowser.AddressText))
+                            LoadSecondFileBrowserDirectory(SecondFileBrowser.AddressText);
+                    },
+                    _columnService);
+                _viewModel.SecondaryPane.FileList = secondFileListVM;
+            }
+
             // 关联模块到 ViewModel (方便直接访问)
             _viewModel.Navigation = _navigationModule;
             _viewModel.Tabs = _tabsModule;

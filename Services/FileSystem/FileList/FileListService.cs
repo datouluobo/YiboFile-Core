@@ -294,9 +294,12 @@ namespace YiboFile.Services.FileList
             Func<List<int>, List<string>> orderTagNames = null,
             CancellationToken cancellationToken = default)
         {
+            System.Diagnostics.Debug.WriteLine($"[FileListService] LoadFileSystemItemsAsync called for: {path}");
 
             // 拦截搜索路径，防止 Directory.GetDirectories 抛出异常
             var protocolInfo = ProtocolManager.Parse(path);
+            System.Diagnostics.Debug.WriteLine($"[FileListService] Protocol parsed: Type={protocolInfo.Type}, Target={protocolInfo.TargetPath}");
+
             if (protocolInfo.Type == ProtocolType.Search ||
                 protocolInfo.Type == ProtocolType.ContentSearch)
             {
@@ -337,6 +340,7 @@ namespace YiboFile.Services.FileList
             // Case 2: Path is "tag://..." -> Virtual Path
             if (protocolInfo.Type == ProtocolType.Tag)
             {
+                System.Diagnostics.Debug.WriteLine($"[FileListService] Handling Tag protocol: {protocolInfo.TargetPath}");
                 var files = new List<FileSystemItem>();
                 try
                 {
@@ -460,11 +464,14 @@ namespace YiboFile.Services.FileList
             // 等待获取信号量，支持取消
             try
             {
+                System.Diagnostics.Debug.WriteLine($"[FileListService] Waiting for semaphore for: {path}");
                 await _loadingSemaphore.WaitAsync(cancellationToken);
+                System.Diagnostics.Debug.WriteLine($"[FileListService] Semaphore acquired for: {path}");
             }
             catch (OperationCanceledException)
             {
-                return new List<FileSystemItem>();
+                System.Diagnostics.Debug.WriteLine($"[FileListService] Semaphore wait cancelled for: {path}");
+                throw;
             }
 
             try
@@ -568,7 +575,7 @@ namespace YiboFile.Services.FileList
             }
             catch (OperationCanceledException)
             {
-                return new List<FileSystemItem>();
+                throw;
             }
             catch (Exception ex)
             {

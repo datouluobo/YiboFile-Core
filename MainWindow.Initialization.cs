@@ -603,6 +603,13 @@ namespace YiboFile
             // 1. 同步库/路径上下文
             if (tab.Type == TabType.Library)
             {
+                if (_currentLibrary == tab.Library && _currentFiles.Count > 0)
+                {
+                    // 已经是当前库且有文件，跳过重新加载
+                    HighlightMatchingLibrary(tab.Library);
+                    return;
+                }
+
                 _currentLibrary = tab.Library;
                 _currentPath = null;
                 if (tab.Library != null)
@@ -613,6 +620,15 @@ namespace YiboFile
             }
             else
             {
+                if (_currentPath == tab.Path && _currentFiles.Count > 0)
+                {
+                    // 已经是当前路径且有文件，跳过重新加载
+                    // 但需要确保导航服务路径同步
+                    _navigationService.CurrentPath = tab.Path;
+                    HighlightMatchingLibrary(null);
+                    return;
+                }
+
                 _currentLibrary = null;
                 _currentPath = tab.Path;
                 _navigationService.CurrentPath = tab.Path;

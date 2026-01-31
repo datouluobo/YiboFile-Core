@@ -141,6 +141,14 @@ namespace YiboFile
                 // 高亮匹配项
                 HighlightMatchingItems(_currentPath);
 
+                // 更新导航按钮状态
+                if (FileBrowser != null)
+                {
+                    string dirName = null;
+                    try { dirName = System.IO.Path.GetDirectoryName(_currentPath); } catch { }
+                    FileBrowser.NavUpEnabled = !string.IsNullOrEmpty(_currentPath) && !ProtocolManager.IsVirtual(_currentPath) && !string.IsNullOrEmpty(dirName);
+                }
+
 
 
                 // MVVM 迁移: 委托给 FileListViewModel 加载

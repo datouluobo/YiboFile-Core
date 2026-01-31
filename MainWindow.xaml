@@ -148,7 +148,7 @@
                                      VerticalAlignment="Stretch"
                                      Margin="0,0,0,0"
                                      Panel.ZIndex="100"
-                                     FilesItemsSource="{Binding PrimaryPane.FileList.Files}"/>
+                                     FilesItemsSource="{Binding PrimaryPane.Files}"/>
 
         <!-- 备份管理器 -->
         <controls:BackupBrowserControl x:Name="BackupBrowser"
@@ -211,7 +211,8 @@
                 <controls:FileBrowserControl x:Name="SecondFileBrowser"
                                              Grid.Row="1"
                                              HorizontalAlignment="Stretch" 
-                                             VerticalAlignment="Stretch"/>
+                                             VerticalAlignment="Stretch"
+                                             FilesItemsSource="{Binding SecondaryPane.Files}"/>
             </Grid>
         </Grid>
 

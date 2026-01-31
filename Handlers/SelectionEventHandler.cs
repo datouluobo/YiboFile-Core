@@ -26,6 +26,10 @@ namespace YiboFile.Handlers
         private readonly YiboFile.Services.FileList.FileListService _fileListService;
         private readonly Func<List<FileSystemItem>> _getCurrentFiles;
         private readonly Func<string> _getCurrentPath;
+        private readonly Action<FileSystemItem> _updateInfoPanel;
+        private readonly Func<Library> _getCurrentLibrary;
+        private readonly Action<Library> _showLibraryInfo;
+        private readonly Func<bool> _isDualMode;
         private System.Threading.CancellationTokenSource _folderSizeCts;
 
         public SelectionEventHandler(
@@ -34,7 +38,11 @@ namespace YiboFile.Handlers
             IMessageBus messageBus,
             YiboFile.Services.FileList.FileListService fileListService,
             Func<List<FileSystemItem>> getCurrentFiles,
-            Func<string> getCurrentPath)
+            Func<string> getCurrentPath,
+            Action<FileSystemItem> updateInfoPanel = null,
+            Func<Library> getCurrentLibrary = null,
+            Action<Library> showLibraryInfo = null,
+            Func<bool> isDualMode = null)
         {
             _mainWindow = mainWindow ?? throw new ArgumentNullException(nameof(mainWindow));
             _filePreviewService = filePreviewService ?? throw new ArgumentNullException(nameof(filePreviewService));
@@ -43,6 +51,10 @@ namespace YiboFile.Handlers
             _fileListService = fileListService ?? throw new ArgumentNullException(nameof(fileListService));
             _getCurrentFiles = getCurrentFiles ?? throw new ArgumentNullException(nameof(getCurrentFiles));
             _getCurrentPath = getCurrentPath ?? throw new ArgumentNullException(nameof(getCurrentPath));
+            _updateInfoPanel = updateInfoPanel;
+            _getCurrentLibrary = getCurrentLibrary;
+            _showLibraryInfo = showLibraryInfo;
+            _isDualMode = isDualMode;
         }
 
         public void HandleSelectionChanged(System.Collections.IList selectedItems)
@@ -59,8 +71,20 @@ namespace YiboFile.Handlers
                 {
                     // 2. 传统逻辑同步（保留部分无法即刻迁移的 UI 逻辑）
 
-                    // 3. 加载预览
-                    _filePreviewService?.LoadFilePreview(selectedItem);
+                    // 3. 加载预览 (仅在非双栏模式下)
+                    bool isPreviewEnabled = _isDualMode == null || !_isDualMode();
+                    if (isPreviewEnabled)
+                    {
+                        _filePreviewService?.LoadFilePreview(selectedItem);
+                    }
+                    else
+                    {
+                        // 确保清除旧的预览
+                        _filePreviewService?.ClearPreview();
+                    }
+
+                    // 4. 更新底部信息栏
+                    _updateInfoPanel?.Invoke(selectedItem);
 
 
                     // 5. 检查剪贴板状态（如果是剪切，调整透明度）
@@ -106,6 +130,17 @@ namespace YiboFile.Handlers
             // 清除预览区
             _filePreviewService?.ClearPreview();
 
+            // 优先检查库信息
+            Library currentLib = _getCurrentLibrary?.Invoke();
+            if (currentLib != null)
+            {
+                // 更新底部信息栏显示库信息
+                _showLibraryInfo?.Invoke(currentLib);
+                // 库模式下也应该清空消息中的Item（或发送库Item，暂时保持为了null）
+                _messageBus.Publish(new FileSelectionChangedMessage(null));
+                return;
+            }
+
 
             // 显示当前文件夹信息
             try
@@ -130,6 +165,9 @@ namespace YiboFile.Handlers
 
                     // 通过消息发送
                     _messageBus.Publish(new FileSelectionChangedMessage(new List<FileSystemItem> { item }));
+
+                    // 更新底部信息栏
+                    _updateInfoPanel?.Invoke(item);
                 }
             }
             catch

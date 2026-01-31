@@ -124,8 +124,7 @@ namespace YiboFile.ViewModels
 
         public ObservableCollection<FileSystemItem> Files
         {
-            get => _files;
-            private set => SetProperty(ref _files, value);
+            get => FileList?.Files ?? _files;
         }
 
         public bool IsLoading
@@ -134,7 +133,35 @@ namespace YiboFile.ViewModels
             set => SetProperty(ref _isLoading, value);
         }
 
-        public FileListViewModel FileList { get; set; }
+        private FileListViewModel _fileList;
+        public FileListViewModel FileList
+        {
+            get => _fileList;
+            set
+            {
+                var oldFileList = _fileList;
+                if (SetProperty(ref _fileList, value))
+                {
+                    if (oldFileList != null)
+                    {
+                        oldFileList.PropertyChanged -= OnFileListPropertyChanged;
+                    }
+                    if (_fileList != null)
+                    {
+                        _fileList.PropertyChanged += OnFileListPropertyChanged;
+                    }
+                    OnPropertyChanged(nameof(Files));
+                }
+            }
+        }
+
+        private void OnFileListPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(FileListViewModel.Files))
+            {
+                OnPropertyChanged(nameof(Files));
+            }
+        }
 
         public bool IsSecondary => _isSecondary;
 
@@ -203,9 +230,17 @@ namespace YiboFile.ViewModels
 
             NavigationMode = "Library";
             CurrentTag = null;
+            CurrentPath = null;
             CurrentLibrary = library;
 
-            _ = LoadLibraryAsync(library);
+            if (FileList != null)
+            {
+                _ = FileList.LoadPathAsync($"lib://{library.Name}");
+            }
+            else
+            {
+                _ = LoadLibraryAsync(library);
+            }
         }
 
         /// <summary>
@@ -217,9 +252,17 @@ namespace YiboFile.ViewModels
 
             NavigationMode = "Tag";
             CurrentLibrary = null;
+            CurrentPath = null;
             CurrentTag = tag;
 
-            _ = LoadTagAsync(tag);
+            if (FileList != null)
+            {
+                _ = FileList.LoadPathAsync($"tag://{tag.Name}");
+            }
+            else
+            {
+                _ = LoadTagAsync(tag);
+            }
         }
 
         /// <summary>
@@ -271,24 +314,59 @@ namespace YiboFile.ViewModels
 
             try
             {
+                if (FileList != null)
+                {
+                    // Delegate to FileListViewModel which handles threading/IO robustly
+                    await FileList.LoadPathAsync(path);
+                    return;
+                }
+
+                System.Diagnostics.Debug.WriteLine($"[PaneViewModel] LoadPathAsync started for: {path}, IsSecondary: {_isSecondary}");
                 IsLoading = true;
 
-                var items = await Task.Run(() =>
+                var items = await Task.Run(async () =>
                 {
-                    token.ThrowIfCancellationRequested();
-#pragma warning disable CS0618 // 暂时使用同步方法
-                    return _fileListService.LoadFileSystemItems(path);
-#pragma warning restore CS0618
+                    try
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[PaneViewModel] Task.Run started for: {path}");
+                        var result = await _fileListService.LoadFileSystemItemsAsync(path, null, token);
+                        System.Diagnostics.Debug.WriteLine($"[PaneViewModel] LoadFileSystemItemsAsync returned {result?.Count ?? 0} items for: {path}");
+                        if ((result == null || result.Count == 0) && path.StartsWith("tag://", StringComparison.OrdinalIgnoreCase) && _tagService != null)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[PaneViewModel] Fallback check for tag: {path}");
+                            // Fallback: try loading tags directly if service returned empty
+                            System.Diagnostics.Debug.WriteLine($"[LoadPathAsync] Fallback for tag: {path}");
+                            var tagName = path.Substring(6); // len(tag://)
+                            var files = await _tagService.GetFilesByTagNameAsync(tagName);
+                            // Convert paths to items... manually?
+                            // This confirms if service is failing.
+                        }
+                        return result;
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[PaneViewModel] Background Error in LoadPathAsync: {ex}");
+                        System.Diagnostics.Debug.WriteLine($"[LoadPathAsync] Background Error: {ex}");
+                        return new System.Collections.Generic.List<FileSystemItem>();
+                    }
                 }, token);
 
-                if (token.IsCancellationRequested) return;
+                if (token.IsCancellationRequested)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[PaneViewModel] LoadPathAsync cancelled for: {path}");
+                    return;
+                }
 
                 await _dispatcher.InvokeAsync(() =>
                 {
+                    System.Diagnostics.Debug.WriteLine($"[PaneViewModel] UI update started for: {path}, Items: {items?.Count ?? 0}");
                     Files.Clear();
-                    foreach (var item in items)
+                    if (items != null)
                     {
-                        Files.Add(item);
+                        foreach (var item in items)
+                        {
+                            Files.Add(item);
+                        }
                     }
                     FilesLoaded?.Invoke(this, Files);
                 });
@@ -303,6 +381,7 @@ namespace YiboFile.ViewModels
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[PaneViewModel.LoadPathAsync] Error: {ex.Message}");
+                // _errorService?.ReportError($"Load error: {ex.Message}"); 
             }
             finally
             {
@@ -336,12 +415,10 @@ namespace YiboFile.ViewModels
                     return;
                 }
 
-                var items = await Task.Run(() =>
+                var items = await Task.Run(async () =>
                 {
                     token.ThrowIfCancellationRequested();
-#pragma warning disable CS0618 // 暂时使用同步方法
-                    return _fileListService.LoadFileSystemItemsFromMultiplePaths(paths);
-#pragma warning restore CS0618
+                    return await _fileListService.LoadFileSystemItemsFromMultiplePathsAsync(paths, null, null, token);
                 }, token);
 
                 if (token.IsCancellationRequested) return;

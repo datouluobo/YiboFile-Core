@@ -370,15 +370,31 @@ namespace YiboFile
                 SetNavigationCurrentPath = (path) => _secondCurrentPath = path,
                 LoadLibraryFiles = (library) =>
                 {
-                    if (library != null) _viewModel.SecondaryPane.NavigateTo(library);
+                    // 委托给 ViewModel 加载
+                    // Prevent redundant calls if ViewModel already has this library AND mode
+                    if (_viewModel.SecondaryPane.CurrentLibrary != library || _viewModel.SecondaryPane.NavigationMode != "Library")
+                    {
+                        _viewModel.SecondaryPane.NavigateTo(library);
+                    }
                 },
-                NavigateToPathInternal = (path) => SecondFileBrowser_PathChanged(this, path),
+                NavigateToPathInternal = (path) =>
+                {
+                    // 避免重复加载相同路径，并确保模式正确
+                    if (_viewModel.SecondaryPane.CurrentPath != path || _viewModel.SecondaryPane.NavigationMode != "Path")
+                    {
+                        SecondFileBrowser_PathChanged(this, path);
+                    }
+                },
                 UpdateNavigationButtonsState = () => { },
                 GetCurrentNavigationMode = () => "Path",
                 GetSearchCacheService = () => _searchCacheService,
                 GetSearchOptions = () => null,
                 GetCurrentFiles = () => _secondCurrentFiles,
-                SetCurrentFiles = (files) => { _secondCurrentFiles = files; if (SecondFileBrowser != null) SecondFileBrowser.FilesItemsSource = files; },
+                SetCurrentFiles = (files) =>
+                {
+                    _secondCurrentFiles = files;
+                    _viewModel?.SecondaryPane?.FileList?.UpdateFiles(files);
+                },
                 ClearFilter = () => { },
                 FindResource = (key) => this.TryFindResource(key)
             };
@@ -693,12 +709,25 @@ namespace YiboFile
             if (string.IsNullOrEmpty(path) || SecondFileBrowser == null) return;
 
             // 委托给 ViewModel 加载
-            _viewModel.SecondaryPane.NavigateTo(path);
+            // Prevent redundant calls if ViewModel already has this path AND mode
+            if (_viewModel.SecondaryPane.CurrentPath != path || _viewModel.SecondaryPane.NavigationMode != "Path")
+            {
+                _viewModel.SecondaryPane.NavigateTo(path);
+            }
+
+            // 立即同步 UI 状态，避免等待事件回调导致的延迟或在路径相同时不刷新的问题
+            SecondFileBrowser.AddressText = path;
+            SecondFileBrowser.UpdateBreadcrumb(path);
+            SecondFileBrowser.IsAddressReadOnly = false;
+            SecondFileBrowser.SetSearchStatus(false);
+            SecondFileBrowser.SetPropertiesButtonVisibility(!ProtocolManager.IsVirtual(path));
 
             // 更新导航按钮状态
             SecondFileBrowser.NavBackEnabled = _secondNavHistory.Count > 0;
             SecondFileBrowser.NavForwardEnabled = _secondNavForward.Count > 0;
-            SecondFileBrowser.NavUpEnabled = !string.IsNullOrEmpty(System.IO.Path.GetDirectoryName(path));
+            string dirName = null;
+            try { dirName = System.IO.Path.GetDirectoryName(path); } catch { }
+            SecondFileBrowser.NavUpEnabled = !string.IsNullOrEmpty(path) && !ProtocolManager.IsVirtual(path) && !string.IsNullOrEmpty(dirName);
 
             // 更新文件信息面板 (需要等待加载完成? 其实可以监听 SelectionChanged, 这里主要是为了初始显示文件夹信息)
             if (_secondFileInfoService == null && SecondFileBrowser != null)
@@ -1065,12 +1094,20 @@ namespace YiboFile
         {
             if (library == null || SecondFileBrowser == null) return;
 
+            // 委托给 ViewModel 加载
+            // Prevent redundant calls if ViewModel already has this library AND mode
+            if (_viewModel.SecondaryPane.CurrentLibrary != library || _viewModel.SecondaryPane.NavigationMode != "Library")
+            {
+                _viewModel.SecondaryPane.NavigateTo(library);
+            }
+
             try
             {
                 // 更新 UI 状态
                 SecondFileBrowser.NavUpEnabled = false;
                 SecondFileBrowser.SetSearchStatus(false);
                 SecondFileBrowser.AddressText = library.Name;
+                SecondFileBrowser.IsAddressReadOnly = true;
                 // 使用 SetLibraryBreadcrumb 确保面包屑显示库名
                 SecondFileBrowser.SetLibraryBreadcrumb(library.Name);
 
@@ -1080,7 +1117,7 @@ namespace YiboFile
                 // 加载文件
                 if (library.Paths == null || library.Paths.Count == 0)
                 {
-                    SecondFileBrowser.FilesItemsSource = new List<FileSystemItem>();
+                    _viewModel?.SecondaryPane?.FileList?.UpdateFiles(new List<FileSystemItem>());
                     return;
                 }
 
@@ -1092,7 +1129,7 @@ namespace YiboFile
                 );
 
                 _secondCurrentFiles = items;
-                SecondFileBrowser.FilesItemsSource = items;
+                _viewModel?.SecondaryPane?.FileList?.UpdateFiles(items);
             }
             catch (Exception ex)
             {

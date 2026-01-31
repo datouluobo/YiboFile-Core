@@ -130,6 +130,8 @@ namespace YiboFile.ViewModels
             {
                 _loadFilesPending = true;
                 _pendingPath = path;
+                // 如果有新的请求排队，立即取消当前正在进行的操作，提高响应速度
+                CancelOngoingOperations();
                 return;
             }
 

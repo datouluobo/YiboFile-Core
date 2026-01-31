@@ -87,7 +87,7 @@ namespace YiboFile
                 () => _viewModel?.PrimaryPane?.FileList?.Files?.ToList() ?? new List<FileSystemItem>(),
                 (files) => { _viewModel?.PrimaryPane?.FileList?.UpdateFiles(files); },
                 () => _searchOptions,
-                (e) => { }, // FilesListView_SelectionChanged
+                (e) => _selectionEventHandler?.HandleSelectionChanged(e.AddedItems), // FilesListView_SelectionChanged
                 (e) => { }, // FilesListView_MouseDoubleClick
                 (e) => { }, // PreviewMouseDoubleClick - not used
                 (e) => { }, // PreviewKeyDown - handled by KeyboardEventHandler
@@ -127,7 +127,11 @@ namespace YiboFile
                 _messageBus,
                 _fileListService,
                 () => _currentFiles,
-                () => _currentPath
+                () => _currentPath,
+                (item) => _fileInfoService?.ShowFileInfo(item),
+                () => _currentLibrary,
+                (lib) => _fileInfoService?.ShowLibraryInfo(lib),
+                () => IsDualListMode // Pass dual mode status check
             );
 
             // 初始化 ColumnInteractionHandler
@@ -142,6 +146,21 @@ namespace YiboFile
                 _secondColumnInteractionHandler.Initialize();
                 _secondColumnInteractionHandler.Initialize();
                 _secondColumnInteractionHandler.HookHeaderThumbs();
+
+                // Wire up SecondFileBrowser Tag Click
+                SecondFileBrowser.TagClicked += (s, tag) =>
+                {
+                    if (tag != null && !string.IsNullOrEmpty(tag.Name))
+                    {
+                        // Navigate in Second Pane
+                        _navigationCoordinator.HandlePathNavigation(
+                            $"tag://{tag.Name}",
+                            NavigationSource.AddressBar,
+                            ClickType.LeftClick,
+                            pane: YiboFile.Services.Navigation.PaneId.Second
+                        );
+                    }
+                };
 
                 // Wire up SecondFileBrowser Sorting
                 SecondFileBrowser.GridViewColumnHeaderClick += SecondGridViewColumnHeader_Click;
@@ -383,9 +402,11 @@ namespace YiboFile
                     if (b != null)
                     {
                         if (b == FileBrowser) _viewModel?.PrimaryPane?.FileList?.UpdateFiles(files);
+                        else if (b == SecondFileBrowser) _viewModel?.SecondaryPane?.FileList?.UpdateFiles(files);
                         else b.FilesItemsSource = files;
                     }
                     if (b == FileBrowser) _currentFiles = files;
+                    else if (b == SecondFileBrowser) _secondCurrentFiles = files;
                 },
                 () => this,
                 (lib) => _tabService.OpenLibraryTab(lib),
@@ -688,7 +709,7 @@ namespace YiboFile
                 (sortedFiles) =>
                 {
                     _secondCurrentFiles = sortedFiles;
-                    SecondFileBrowser.FilesItemsSource = sortedFiles;
+                    _viewModel?.SecondaryPane?.FileList?.UpdateFiles(sortedFiles);
                 },
                 SecondFileBrowser.FilesGrid
             );

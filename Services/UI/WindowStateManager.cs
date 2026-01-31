@@ -731,6 +731,11 @@ namespace YiboFile.Services
                     {
                         service.CreatePathTab(path, true, skipValidation: true, activate: false);
                     }
+                    else if (path.StartsWith("tag://"))
+                    {
+                        // 增加对 tag:// 协议的支持
+                        service.CreatePathTab(path, true, skipValidation: true, activate: false);
+                    }
                     else if (System.IO.Path.IsPathRooted(path) || (path.Length >= 2 && path[1] == ':'))
                     {
                         // 对于有效路径格式（绝对路径或驱动器路径），即使暂时不存在也尝试恢复（跳过验证）
