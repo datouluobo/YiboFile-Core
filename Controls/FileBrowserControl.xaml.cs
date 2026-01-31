@@ -12,7 +12,6 @@ using YiboFile.Models;
 using YiboFile.Services.Favorite;
 using YiboFile.Services.Search;
 using YiboFile.Services.UI;
-using YiboFile.Models;
 using YiboFile; // For Library class
 
 namespace YiboFile.Controls

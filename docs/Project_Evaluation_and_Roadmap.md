@@ -58,6 +58,7 @@
 | **分步一：列表 ViewModel 化** | 使用 FileListEventHandler + PaneId 实现逻辑分离，为 VM 绑定做好了准备 | ✅ 已就绪 |
 | **分步二：地址栏解耦** | 已通过 SSOT (PathTab.ActiveTab) 实现完全的地址栏与导航状态同步 | ✅ 已完成 |
 | **分步三：Pane 抽象** | 引入 `PaneId` 枚举与独立委托，主副面板拥有同等且独立的导航能力 | ✅ 已完成 |
+| **修复：底部信息面板** | 修正了样式资源过时导致的文本不可见，并未 SelectionHandler 重新接线 | ✅ 已修复 |
 
 ---
 

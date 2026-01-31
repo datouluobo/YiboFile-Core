@@ -121,6 +121,15 @@ namespace YiboFile
             );
             _fileBrowserEventHandler.Initialize();
 
+            // Initialize Info Services
+            var tagService = App.ServiceProvider?.GetService<YiboFile.Services.Features.ITagService>();
+            var localFileInfoService = new Services.FileInfo.FileInfoService(FileBrowser, _fileListService, _navigationCoordinator, tagService);
+            Services.FileInfo.FileInfoService localSecondFileInfoService = null;
+            if (SecondFileBrowser != null)
+            {
+                localSecondFileInfoService = new Services.FileInfo.FileInfoService(SecondFileBrowser, _fileListService, _navigationCoordinator, tagService);
+            }
+
             _selectionEventHandler = new SelectionEventHandler(
                 this,
                 _previewService,
@@ -128,10 +137,10 @@ namespace YiboFile
                 _fileListService,
                 () => _currentFiles,
                 () => _currentPath,
-                (item) => _fileInfoService?.ShowFileInfo(item),
+                (item) => localFileInfoService.ShowFileInfo(item), // Update Primary Info Panel
                 () => _currentLibrary,
-                (lib) => _fileInfoService?.ShowLibraryInfo(lib),
-                () => IsDualListMode // Pass dual mode status check
+                (lib) => localFileInfoService.ShowLibraryInfo(lib), // Update Primary Library Info
+                () => IsDualListMode
             );
 
             // 初始化 ColumnInteractionHandler
@@ -224,7 +233,11 @@ namespace YiboFile
                 item => _messageBus.Publish(new FileSelectionChangedMessage(new List<FileSystemItem> { item })),
                 item => _previewService?.LoadFilePreview(item),
                 path => { _folderSizeCalculationService?.CalculateAndUpdateFolderSizeAsync(path); }, // Fixed: Fire-and-forget async update
-                () => _messageBus.Publish(new FileSelectionChangedMessage(null)),
+                () =>
+                {
+                    _messageBus.Publish(new FileSelectionChangedMessage(null));
+                    localFileInfoService.ShowFileInfo(null); // Clear info
+                },
                 () => _currentLibrary != null, // IsLibraryMode
                 mode => SwitchNavigationMode(mode),
                 path => NavigateToPath(path),
@@ -248,10 +261,18 @@ namespace YiboFile
                 _secondFileListHandler = new Handlers.FileListEventHandler(
                     SecondFileBrowser,
                     _navigationCoordinator,
-                    item => _secondFileInfoService?.ShowFileInfo(item), // Assuming generic or specific service
+                    item =>
+                    {
+                        _messageBus.Publish(new FileSelectionChangedMessage(new List<FileSystemItem> { item }));
+                        localSecondFileInfoService?.ShowFileInfo(item); // Update Second Info Panel
+                    },
                     item => { }, // Second browser preview might not be supported or same preview service
                     path => { _folderSizeCalculationService?.CalculateAndUpdateFolderSizeAsync(path); },
-                    () => { }, // Clear preview?
+                    () =>
+                    {
+                        // Clear selection/info logic for second pane?
+                        localSecondFileInfoService?.ShowFileInfo(null);
+                    },
                     () => false, // Second browser usually Path mode only for now
                     mode => { }, // Switch mode?
                     path => LoadSecondFileBrowserDirectory(path),

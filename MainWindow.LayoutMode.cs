@@ -236,11 +236,7 @@ namespace YiboFile
             // 如果切换到双列表模式，初始化副列表
             if (_isDualListMode && SecondFileBrowser != null)
             {
-                // 初始化副列表的 FileInfoService（首次进入时）
-                if (_secondFileInfoService == null)
-                {
-                    _secondFileInfoService = new Services.FileInfo.FileInfoService(SecondFileBrowser, _secondFileListService, _navigationCoordinator);
-                }
+                // (FileInfoService migration is handled via MVVM messages)
 
                 // 初始化副标签页服务（首次进入时）
                 if (_secondTabService == null && SecondTabManager != null)
@@ -635,23 +631,11 @@ namespace YiboFile
         {
             if (SecondFileBrowser?.FilesSelectedItem is FileSystemItem item)
             {
-                // 确保 _secondFileInfoService 已初始化
-                if (_secondFileInfoService == null && SecondFileBrowser != null)
-                {
-                    _secondFileInfoService = new Services.FileInfo.FileInfoService(SecondFileBrowser, _secondFileListService, _navigationCoordinator);
-                }
-
-                // 使用共享的 FileInfoService 实例更新文件信息
-                _secondFileInfoService?.ShowFileInfo(item);
+                _messageBus.Publish(new FileSelectionChangedMessage(new List<FileSystemItem> { item }));
             }
             else
             {
                 // 处理无选择的情况：显示当前文件夹信息
-                if (_secondFileInfoService == null && SecondFileBrowser != null)
-                {
-                    _secondFileInfoService = new Services.FileInfo.FileInfoService(SecondFileBrowser, _secondFileListService, _navigationCoordinator);
-                }
-
                 if (!string.IsNullOrEmpty(_secondCurrentPath) && Directory.Exists(_secondCurrentPath))
                 {
                     try
@@ -670,7 +654,7 @@ namespace YiboFile
                             Size = "-", // 将在 ShowDirectoryInfo 中异步计算
                             Tags = ""
                         };
-                        _secondFileInfoService?.ShowFileInfo(folderItem);
+                        _messageBus.Publish(new FileSelectionChangedMessage(new List<FileSystemItem> { folderItem }));
                     }
                     catch
                     {
@@ -729,11 +713,7 @@ namespace YiboFile
             try { dirName = System.IO.Path.GetDirectoryName(path); } catch { }
             SecondFileBrowser.NavUpEnabled = !string.IsNullOrEmpty(path) && !ProtocolManager.IsVirtual(path) && !string.IsNullOrEmpty(dirName);
 
-            // 更新文件信息面板 (需要等待加载完成? 其实可以监听 SelectionChanged, 这里主要是为了初始显示文件夹信息)
-            if (_secondFileInfoService == null && SecondFileBrowser != null)
-            {
-                _secondFileInfoService = new Services.FileInfo.FileInfoService(SecondFileBrowser, _secondFileListService, _navigationCoordinator);
-            }
+            // (FileInfo Service logic migrated to MVVM messages)
 
             // 显示当前文件夹信息
             if (Directory.Exists(path))
@@ -755,7 +735,7 @@ namespace YiboFile
                         Size = "-",
                         Tags = ""
                     };
-                    _secondFileInfoService?.ShowFileInfo(folderItem);
+                    _messageBus.Publish(new FileSelectionChangedMessage(new List<FileSystemItem> { folderItem }));
                 }
                 catch { }
             }
@@ -884,11 +864,7 @@ namespace YiboFile
                     // 同样需要初始化服务，否则重启恢复模式时会报错或功能缺失
                     if (_secondTabService == null && SecondTabManager != null)
                     {
-                        // 初始化副列表的 FileInfoService
-                        if (_secondFileInfoService == null)
-                        {
-                            _secondFileInfoService = new Services.FileInfo.FileInfoService(SecondFileBrowser, _secondFileListService, _navigationCoordinator);
-                        }
+                        // (FileInfoService migration is handled via MVVM messages)
 
                         _secondTabService = new TabService(new AppConfig());
                         AttachSecondTabServiceUiContext();

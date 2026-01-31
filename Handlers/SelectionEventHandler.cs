@@ -26,10 +26,9 @@ namespace YiboFile.Handlers
         private readonly YiboFile.Services.FileList.FileListService _fileListService;
         private readonly Func<List<FileSystemItem>> _getCurrentFiles;
         private readonly Func<string> _getCurrentPath;
-        private readonly Action<FileSystemItem> _updateInfoPanel;
         private readonly Func<Library> _getCurrentLibrary;
-        private readonly Action<Library> _showLibraryInfo;
         private readonly Func<bool> _isDualMode;
+        private readonly Action<FileSystemItem> _updateInfoPanel;
         private System.Threading.CancellationTokenSource _folderSizeCts;
 
         public SelectionEventHandler(
@@ -53,7 +52,6 @@ namespace YiboFile.Handlers
             _getCurrentPath = getCurrentPath ?? throw new ArgumentNullException(nameof(getCurrentPath));
             _updateInfoPanel = updateInfoPanel;
             _getCurrentLibrary = getCurrentLibrary;
-            _showLibraryInfo = showLibraryInfo;
             _isDualMode = isDualMode;
         }
 
@@ -69,7 +67,8 @@ namespace YiboFile.Handlers
                 var selectedItem = selectedItems[0] as FileSystemItem;
                 if (selectedItem != null)
                 {
-                    // 2. 传统逻辑同步（保留部分无法即刻迁移的 UI 逻辑）
+                    // 2. 更新信息面板 (如果提供了回调)
+                    _updateInfoPanel?.Invoke(selectedItem);
 
                     // 3. 加载预览 (仅在非双栏模式下)
                     bool isPreviewEnabled = _isDualMode == null || !_isDualMode();
@@ -83,8 +82,7 @@ namespace YiboFile.Handlers
                         _filePreviewService?.ClearPreview();
                     }
 
-                    // 4. 更新底部信息栏
-                    _updateInfoPanel?.Invoke(selectedItem);
+                    // 4. 更新底部信息栏 (已通过消息由 MVVM 订阅)
 
 
                     // 5. 检查剪贴板状态（如果是剪切，调整透明度）
@@ -134,8 +132,9 @@ namespace YiboFile.Handlers
             Library currentLib = _getCurrentLibrary?.Invoke();
             if (currentLib != null)
             {
-                // 更新底部信息栏显示库信息
-                _showLibraryInfo?.Invoke(currentLib);
+                // (库信息显示已迁移至消息订阅)
+                _messageBus.Publish(new LibrarySelectedMessage(currentLib));
+
                 // 库模式下也应该清空消息中的Item（或发送库Item，暂时保持为了null）
                 _messageBus.Publish(new FileSelectionChangedMessage(null));
                 return;
@@ -166,8 +165,7 @@ namespace YiboFile.Handlers
                     // 通过消息发送
                     _messageBus.Publish(new FileSelectionChangedMessage(new List<FileSystemItem> { item }));
 
-                    // 更新底部信息栏
-                    _updateInfoPanel?.Invoke(item);
+                    // (底部信息栏更新已由消息订阅驱动)
                 }
             }
             catch

@@ -46,7 +46,7 @@ namespace YiboFile.ViewModels.Modules
             _notesService.NotesUpdated += OnServiceNotesUpdated;
 
             // 订阅文件选择变化
-            Subscribe<FileSelectionChangedMessage>(OnFileSelectionChanged);
+
         }
 
         #region 消息处理
@@ -96,22 +96,7 @@ namespace YiboFile.ViewModels.Modules
             // 搜索结果可以通过专门的消息发送，或结合现有的搜索架构
         }
 
-        private async void OnFileSelectionChanged(FileSelectionChangedMessage message)
-        {
-            // 当文件选择变化时，自动加载备注
-            if (message.SelectedItems != null && message.SelectedItems.Count == 1)
-            {
-                var item = message.SelectedItems[0] as Models.FileSystemItem;
-                if (item != null && !string.IsNullOrEmpty(item.Path))
-                {
-                    var notes = await _notesService.GetNotesAsync(item.Path);
-                    CurrentFilePath = item.Path;
-                    CurrentNotes = notes;
 
-                    Publish(new NotesLoadedMessage(item.Path, notes));
-                }
-            }
-        }
 
         private void OnServiceNotesUpdated(object sender, NotesUpdatedEventArgs e)
         {

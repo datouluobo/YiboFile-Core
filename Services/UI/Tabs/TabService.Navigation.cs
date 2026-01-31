@@ -120,7 +120,8 @@ namespace YiboFile.Services.Tabs
             {
                 try
                 {
-                    if (tab.Path != null && !ProtocolManager.IsVirtual(tab.Path) && !Directory.Exists(tab.Path))
+                    string p = tab.Path;
+                    if (!string.IsNullOrEmpty(p) && !ProtocolManager.IsVirtual(p) && !Directory.Exists(p))
                     {
                         YiboFile.DialogService.Warning($"路径不存在: {tab.Path}\n\n标签页将被关闭。");
                         CloseTab(tab);

@@ -84,8 +84,6 @@ namespace YiboFile
         internal Services.Navigation.NavigationModeService _navigationModeService;
         internal Services.UIHelper.UIHelperService _uiHelperService;
         internal Services.WindowStateManager _windowStateManager;
-        private Services.FileInfo.FileInfoService _fileInfoService;
-        private Services.FileInfo.FileInfoService _secondFileInfoService;
         internal Services.Archive.ArchiveService _archiveService; // ARCHIVE SERVICE
         internal Services.Features.ITagService _tagService;
 
@@ -280,7 +278,7 @@ namespace YiboFile
             _messageBus = App.ServiceProvider?.GetService<IMessageBus>() ?? MessageBus.Instance;
 
             // 创建 RightPanelViewModel
-            var rightPanelVM = new RightPanelViewModel(_messageBus, _configService, _fileListService);
+            var rightPanelVM = new RightPanelViewModel(_messageBus, _configService, _fileListService, _navigationCoordinator);
 
             // 创建 ViewModel
             _viewModel = new MainWindowViewModel(_messageBus, rightPanelVM);
@@ -1088,6 +1086,7 @@ namespace YiboFile
             { }
         }
 
+
         #endregion
 
         #region 列表排序
@@ -1096,7 +1095,10 @@ namespace YiboFile
 
         #endregion
 
+        private void NavigationRail_Loaded(object sender, RoutedEventArgs e)
+        {
 
+        }
     }
 
 

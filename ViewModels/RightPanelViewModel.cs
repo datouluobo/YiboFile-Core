@@ -10,28 +10,54 @@ using YiboFile.ViewModels.Messaging.Messages;
 using System.IO;
 using YiboFile.Services.FileList;
 using YiboFile.Services.Features;
+using System.Windows.Input;
+using YiboFile.Services.Navigation;
+using YiboFile.Models.Navigation;
 
 namespace YiboFile.ViewModels
 {
     /// <summary>
     /// 右侧面板信息项
     /// </summary>
-    public class InfoItem : BaseViewModel
+    /// <summary>
+    /// 信息项基类
+    /// </summary>
+    public abstract class BaseInfoItem : BaseViewModel
     {
         private string _label;
-        private string _value;
-
         public string Label
         {
             get => _label;
             set => SetProperty(ref _label, value);
         }
+    }
 
+    /// <summary>
+    /// 文本信息项
+    /// </summary>
+    public class TextInfoItem : BaseInfoItem
+    {
+        private string _value;
         public string Value
         {
             get => _value;
             set => SetProperty(ref _value, value);
         }
+    }
+
+    /// <summary>
+    /// 标签信息项
+    /// </summary>
+    public class TagsInfoItem : BaseInfoItem
+    {
+        private ObservableCollection<TagViewModel> _tags;
+        public ObservableCollection<TagViewModel> Tags
+        {
+            get => _tags;
+            set => SetProperty(ref _tags, value);
+        }
+
+        public ICommand TagClickCommand { get; set; }
     }
 
     /// <summary>
@@ -44,6 +70,7 @@ namespace YiboFile.ViewModels
         private readonly ConfigService _configService;
         private readonly FileListService _fileListService;
         private readonly ITagService _tagService;
+        private readonly INavigationCoordinator _navigationCoordinator;
 
         private bool _isVisible;
         private double _notesHeight;
@@ -51,7 +78,8 @@ namespace YiboFile.ViewModels
         private System.Windows.Threading.DispatcherTimer _autoSaveTimer;
         private bool _isUpdatingNotes;
         private FileSystemItem _selectedItem;
-        private ObservableCollection<InfoItem> _infoItems = new ObservableCollection<InfoItem>();
+        private Library _selectedLibrary;
+        private ObservableCollection<BaseInfoItem> _infoItems = new ObservableCollection<BaseInfoItem>();
 
         /// <summary>
         /// 右侧面板是否可见
@@ -110,12 +138,11 @@ namespace YiboFile.ViewModels
             }
         }
 
-        public ObservableCollection<InfoItem> InfoItems
-        {
-            get => _infoItems;
-            set => SetProperty(ref _infoItems, value);
-        }
+        public ObservableCollection<BaseInfoItem> InfoItems => _infoItems;
 
+        /// <summary>
+        /// 当前选中项
+        /// </summary>
         public FileSystemItem SelectedItem
         {
             get => _selectedItem;
@@ -123,16 +150,68 @@ namespace YiboFile.ViewModels
             {
                 if (SetProperty(ref _selectedItem, value))
                 {
-                    UpdateInfoItems();
+                    if (value != null)
+                    {
+                        if (_selectedLibrary != null)
+                        {
+                            _selectedLibrary = null;
+                            OnPropertyChanged(nameof(SelectedLibrary));
+                        }
+
+                        UpdateInfoItems();
+
+                        // 加载备注
+                        _messageBus.Publish(new GetNotesRequestMessage(value.Path));
+                    }
+                    else
+                    {
+                        _isUpdatingNotes = true;
+                        CurrentNotes = string.Empty;
+                        _isUpdatingNotes = false;
+                        UpdateInfoItems();
+                    }
                 }
             }
         }
 
-        public RightPanelViewModel(IMessageBus messageBus, ConfigService configService, FileListService fileListService, ITagService tagService = null)
+        /// <summary>
+        /// 当前选中库
+        /// </summary>
+        public Library SelectedLibrary
+        {
+            get => _selectedLibrary;
+            set
+            {
+                if (SetProperty(ref _selectedLibrary, value))
+                {
+                    if (value != null)
+                    {
+                        if (_selectedItem != null)
+                        {
+                            _selectedItem = null;
+                            OnPropertyChanged(nameof(SelectedItem));
+                        }
+
+                        _isUpdatingNotes = true;
+                        CurrentNotes = string.Empty; // 库目前不支持备注
+                        _isUpdatingNotes = false;
+                        UpdateInfoItems();
+                    }
+                    else
+                    {
+                        UpdateInfoItems();
+                    }
+                }
+            }
+        }
+        public ICommand TagClickedCommand { get; private set; }
+
+        public RightPanelViewModel(IMessageBus messageBus, ConfigService configService, FileListService fileListService, INavigationCoordinator navigationCoordinator, ITagService tagService = null)
         {
             _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
             _configService = configService ?? throw new ArgumentNullException(nameof(configService));
             _fileListService = fileListService ?? throw new ArgumentNullException(nameof(fileListService));
+            _navigationCoordinator = navigationCoordinator ?? throw new ArgumentNullException(nameof(navigationCoordinator));
             _tagService = tagService ?? App.ServiceProvider?.GetService(typeof(ITagService)) as ITagService;
 
             // 初始化初始值
@@ -140,8 +219,11 @@ namespace YiboFile.ViewModels
             _isVisible = cfg.IsRightPanelVisible;
             _notesHeight = cfg.RightPanelNotesHeight;
 
+            TagClickedCommand = new RelayCommand<TagViewModel>(OnTagClicked);
+
             // 订阅消息
             _messageBus.Subscribe<FileSelectionChangedMessage>(OnSelectionChanged);
+            _messageBus.Subscribe<LibrarySelectedMessage>(OnLibrarySelected);
             _messageBus.Subscribe<NotesLoadedMessage>(OnNotesLoaded);
             _messageBus.Subscribe<NotesUpdatedMessage>(OnNotesUpdated);
 
@@ -150,11 +232,28 @@ namespace YiboFile.ViewModels
             _autoSaveTimer.Interval = TimeSpan.FromMilliseconds(500);
             _autoSaveTimer.Tick += (s, e) => SaveNotes();
 
+
+
             System.Diagnostics.Debug.WriteLine($"[RightPanelViewModel] Initialized. Visible={IsVisible}, NotesHeight={NotesHeight}");
+        }
+
+        private void OnTagClicked(TagViewModel tag)
+        {
+            if (tag == null) return;
+
+            var request = new NavigationRequest
+            {
+                Target = NavigationTarget.FromPath($"tag://{tag.Name}"),
+                Source = "AddressBar",
+                Pane = PaneId.Main
+            };
+
+            _navigationCoordinator.NavigateAsync(request);
         }
 
         private void OnSelectionChanged(FileSelectionChangedMessage message)
         {
+            System.Diagnostics.Debug.WriteLine($"[RightPanelViewModel] OnSelectionChanged received. Items: {message.SelectedItems?.Count ?? 0}");
             if (message.SelectedItems != null && message.SelectedItems.Count > 0)
             {
                 // Force save pending notes before switching
@@ -168,8 +267,23 @@ namespace YiboFile.ViewModels
             }
             else
             {
-                SelectedItem = null;
+                // Only clear if no library is currently selected
+                if (SelectedLibrary == null)
+                {
+                    SelectedItem = null;
+                }
             }
+        }
+
+        private void OnLibrarySelected(LibrarySelectedMessage message)
+        {
+            // Force save pending notes before switching
+            if (_autoSaveTimer.IsEnabled && SelectedItem != null)
+            {
+                _autoSaveTimer.Stop();
+                SaveNotes();
+            }
+            SelectedLibrary = message.Library;
         }
 
         private void OnNotesLoaded(NotesLoadedMessage message)
@@ -210,35 +324,67 @@ namespace YiboFile.ViewModels
 
         private void UpdateInfoItems()
         {
-            InfoItems.Clear();
-            if (SelectedItem == null)
-            {
-                System.Diagnostics.Debug.WriteLine("[RightPanelViewModel] Selection cleared.");
-                return;
-            }
+            if (App.Current == null) return;
 
-            System.Diagnostics.Debug.WriteLine($"[RightPanelViewModel] Updating info for: {SelectedItem.Name}");
-
-            if (SelectedItem.IsDirectory)
+            App.Current.Dispatcher.Invoke(() =>
             {
-                LoadDirectoryInfo();
+                _infoItems.Clear();
+                System.Diagnostics.Debug.WriteLine($"[RightPanelViewModel] UpdateInfoItems called. SelectedItem: {SelectedItem?.Name}, SelectedLibrary: {SelectedLibrary?.Name}");
+
+
+
+                if (SelectedItem != null)
+                {
+                    LoadFileSystemItemInfo(SelectedItem);
+                }
+                else if (SelectedLibrary != null)
+                {
+                    LoadLibraryInfo(SelectedLibrary);
+                }
+                else
+                {
+                    // Optional: Show "No Selection" state if needed, or leave empty
+                    // _infoItems.Add(new TextInfoItem { Label = "信息", Value = "未选择项目" });
+                }
+            });
+        }
+
+        private void LoadFileSystemItemInfo(FileSystemItem item)
+        {
+            // Existing logic for FileSystemItem...
+            _infoItems.Add(new TextInfoItem { Label = "名称", Value = item.Name });
+            _infoItems.Add(new TextInfoItem { Label = "路径", Value = item.Path });
+            _infoItems.Add(new TextInfoItem { Label = "类型", Value = item.Type ?? (item.IsDirectory ? "文件夹" : "文件") });
+            _infoItems.Add(new TextInfoItem { Label = "修改日期", Value = item.ModifiedDate });
+            _infoItems.Add(new TextInfoItem { Label = "创建日期", Value = item.CreatedTime });
+
+            if (!item.IsDirectory)
+            {
+                _infoItems.Add(new TextInfoItem { Label = "大小", Value = item.Size });
+                LoadFileDetails(item);
             }
             else
             {
-                LoadFileDetails();
+                _infoItems.Add(new TextInfoItem { Label = "项目数", Value = item.Size == "-" ? "正在计算..." : item.Size });
+                if (item.Size == "-" || item.Size == "计算中...")
+                {
+                    LoadDirectoryInfo(item.Path);
+                }
             }
+
+            // Tags
+            var tagsItem = CreateTagsItem(item.Tags);
+            if (tagsItem != null) _infoItems.Add(tagsItem);
         }
 
-        private void LoadFileDetails()
+        private void LoadLibraryInfo(Library library)
         {
-            var item = SelectedItem;
-            InfoItems.Add(new InfoItem { Label = "名称", Value = item.Name });
-            InfoItems.Add(new InfoItem { Label = "路径", Value = item.Path });
-            InfoItems.Add(new InfoItem { Label = "类型", Value = item.Type });
-            InfoItems.Add(new InfoItem { Label = "大小", Value = item.Size });
-            InfoItems.Add(new InfoItem { Label = "修改日期", Value = item.ModifiedDate });
-            InfoItems.Add(new InfoItem { Label = "标签", Value = string.IsNullOrWhiteSpace(item.Tags) ? "-" : item.Tags });
+            _infoItems.Add(new TextInfoItem { Label = "库名称", Value = library.Name });
+            _infoItems.Add(new TextInfoItem { Label = "包含路径", Value = string.Join(", ", library.Paths) });
+        }
 
+        private void LoadFileDetails(FileSystemItem item)
+        {
             var fileExtension = Path.GetExtension(item.Path)?.ToLowerInvariant();
 
             // 媒体时长
@@ -250,7 +396,18 @@ namespace YiboFile.ViewModels
                 {
                     TimeSpan t = TimeSpan.FromMilliseconds(item.DurationMs);
                     string durationStr = (t.TotalHours >= 1) ? t.ToString(@"hh\:mm\:ss") : t.ToString(@"mm\:ss");
-                    InfoItems.Insert(4, new InfoItem { Label = "时长", Value = durationStr });
+                    // Find where to insert (try after Size)
+                    int insertIndex = -1;
+                    for (int i = 0; i < InfoItems.Count; i++)
+                    {
+                        if (InfoItems[i] is TextInfoItem ti && ti.Label == "大小")
+                        {
+                            insertIndex = i + 1;
+                            break;
+                        }
+                    }
+                    if (insertIndex == -1) insertIndex = InfoItems.Count; // Fallback to end if "大小" not found
+                    InfoItems.Insert(insertIndex, new TextInfoItem { Label = "时长", Value = durationStr });
                 }
             }
 
@@ -258,16 +415,30 @@ namespace YiboFile.ViewModels
             var imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".webp", ".tiff", ".tif", ".svg", ".psd", ".ico" };
             if (!string.IsNullOrEmpty(fileExtension) && imageExtensions.Contains(fileExtension))
             {
+                var capturedItem = item; // Capture for lambda
                 Task.Run(() =>
                 {
-                    string dimensions = GetImageDimensions(item.Path);
+                    string dimensions = GetImageDimensions(capturedItem.Path);
                     if (!string.IsNullOrEmpty(dimensions))
                     {
                         App.Current.Dispatcher.Invoke(() =>
                         {
-                            if (SelectedItem == item) // 确保选择没变
+                            if (SelectedItem == capturedItem) // 确保选择没变
                             {
-                                InfoItems.Insert(4, new InfoItem { Label = "尺寸", Value = dimensions });
+                                // Find where to insert (try after Size)
+                                int insertIndex = -1;
+                                for (int i = 0; i < InfoItems.Count; i++)
+                                {
+                                    if (InfoItems[i] is TextInfoItem ti && ti.Label == "大小")
+                                    {
+                                        insertIndex = i + 1;
+                                        break;
+                                    }
+                                }
+                                if (insertIndex == -1) insertIndex = InfoItems.Count; // Fallback to end if "大小" not found
+                                if (insertIndex > InfoItems.Count) insertIndex = InfoItems.Count;
+
+                                InfoItems.Insert(insertIndex, new TextInfoItem { Label = "尺寸", Value = dimensions });
                             }
                         });
                     }
@@ -275,29 +446,28 @@ namespace YiboFile.ViewModels
             }
         }
 
-        private void LoadDirectoryInfo()
+        private void LoadDirectoryInfo(string directoryPath)
         {
-            var item = SelectedItem;
-            InfoItems.Add(new InfoItem { Label = "名称", Value = item.Name });
-            InfoItems.Add(new InfoItem { Label = "路径", Value = item.Path });
-            InfoItems.Add(new InfoItem { Label = "类型", Value = "文件夹" });
-            InfoItems.Add(new InfoItem { Label = "修改日期", Value = item.ModifiedDate });
-            InfoItems.Add(new InfoItem { Label = "标签", Value = string.IsNullOrWhiteSpace(item.Tags) ? "-" : item.Tags });
+            var filesCountItem = new TextInfoItem { Label = "文件数", Value = "计算中..." };
+            var dirsCountItem = new TextInfoItem { Label = "文件夹数", Value = "计算中..." };
+            var totalSizeItem = new TextInfoItem { Label = "总大小", Value = "计算中..." };
 
-            var filesCountItem = new InfoItem { Label = "文件数", Value = "计算中..." };
-            var dirsCountItem = new InfoItem { Label = "文件夹数", Value = "计算中..." };
-            var totalSizeItem = new InfoItem { Label = "总大小", Value = "计算中..." };
+            // Insert before Tags if possible, or append
+            // Tags is last added.
+            int insertIndex = InfoItems.Count; // Append to end for now, or find a better place
 
-            InfoItems.Add(filesCountItem);
-            InfoItems.Add(dirsCountItem);
-            InfoItems.Add(totalSizeItem);
+            InfoItems.Insert(insertIndex, totalSizeItem);
+            InfoItems.Insert(insertIndex, dirsCountItem);
+            InfoItems.Insert(insertIndex, filesCountItem);
 
+
+            var capturedPath = directoryPath;
             Task.Run(() =>
             {
                 try
                 {
-                    var files = Directory.GetFiles(item.Path);
-                    var directories = Directory.GetDirectories(item.Path);
+                    var files = Directory.GetFiles(capturedPath);
+                    var directories = Directory.GetDirectories(capturedPath);
                     long totalSize = 0;
 
                     foreach (var file in files)
@@ -307,11 +477,11 @@ namespace YiboFile.ViewModels
 
                     var filesCountStr = files.Length.ToString();
                     var dirsCountStr = directories.Length.ToString();
-                    var totalSizeStr = _fileListService.FormatFileSize(totalSize);
+                    string totalSizeStr = _fileListService.FormatFileSize(totalSize);
 
-                    App.Current.Dispatcher.Invoke(() =>
+                    System.Windows.Application.Current.Dispatcher.Invoke(() =>
                     {
-                        if (SelectedItem == item)
+                        if (capturedPath == SelectedItem?.Path)
                         {
                             filesCountItem.Value = filesCountStr;
                             dirsCountItem.Value = dirsCountStr;
@@ -319,8 +489,61 @@ namespace YiboFile.ViewModels
                         }
                     });
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[RightPanelViewModel] Error calculating directory info: {ex.Message}");
+                    System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        if (capturedPath == SelectedItem?.Path)
+                        {
+                            filesCountItem.Value = "错误";
+                            dirsCountItem.Value = "错误";
+                            totalSizeItem.Value = "-";
+                        }
+                    });
+                }
             });
+        }
+
+        private TagsInfoItem CreateTagsItem(string tagsString)
+        {
+            var item = new TagsInfoItem
+            {
+                Label = "标签",
+                Tags = new ObservableCollection<TagViewModel>(),
+                TagClickCommand = TagClickedCommand
+            };
+
+            if (!string.IsNullOrWhiteSpace(tagsString))
+            {
+                var tags = tagsString.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                foreach (var tagName in tags)
+                {
+                    var cleanTag = tagName.Trim();
+                    if (string.IsNullOrEmpty(cleanTag)) continue;
+
+                    string tagColor = null;
+                    try
+                    {
+                        if (_tagService != null) tagColor = _tagService.GetTagColorByName(cleanTag);
+                    }
+                    catch { }
+
+                    item.Tags.Add(new TagViewModel
+                    {
+                        Name = cleanTag,
+                        Color = tagColor
+                    });
+                }
+            }
+            // Even if empty, return the item (it will show empty list or "-" handled by UI ideally, or we add dummy)
+            if (item.Tags.Count == 0)
+            {
+                // UI can handle empty tags, or we add placeholder? 
+                // Let's leave empty and handle in UI Triggers if needed
+            }
+
+            return item;
         }
 
         private string GetImageDimensions(string imagePath)

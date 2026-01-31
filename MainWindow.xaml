@@ -17,7 +17,7 @@
         PreviewKeyDown="MainWindow_PreviewKeyDown"
         Closing="Window_Closing"
         LocationChanged="Window_LocationChanged">
-    
+
     <WindowChrome.WindowChrome>
         <WindowChrome CaptionHeight="50" 
                       ResizeBorderThickness="4" 
@@ -29,67 +29,69 @@
     <Window.Resources>
         <local:TimeUnitConverter x:Key="TimeUnitConverter"/>
     </Window.Resources>
-    
+
     <!-- 主容器：包含标题栏和窗口内容 -->
     <Grid Name="MainContainer">
         <!-- 窗口内容容器 -->
-    <Grid Name="RootGrid" Background="{DynamicResource AppBackgroundBrush}">
-        <Grid.Style>
-            <Style TargetType="Grid">
-                <Setter Property="Margin" Value="4"/>
-                <Style.Triggers>
-                    <DataTrigger Binding="{Binding WindowState, RelativeSource={RelativeSource AncestorType=Window}}" Value="Maximized">
-                        <Setter Property="Margin" Value="8"/>
-                    </DataTrigger>
-                </Style.Triggers>
-            </Style>
-        </Grid.Style>
-        <!-- 左中右4列布局 (Rail + Side + Main + Right) -->
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition x:Name="ColRail" Width="60" MinWidth="60" MaxWidth="60"/>
-            <ColumnDefinition x:Name="ColLeft" Width="220" MinWidth="220"/>
-            <ColumnDefinition Width="12"/> <!-- 对齐水平分割器的宽度 -->
-            <ColumnDefinition x:Name="ColCenter" Width="*" MinWidth="250"/>
-            <ColumnDefinition Width="12"/> <!-- 对齐水平分割器的宽度 -->
-            <ColumnDefinition x:Name="ColRight" Width="360" MinWidth="360"/>
-        </Grid.ColumnDefinitions>
-        
-        <!-- 布局：标题栏行 + 标签页行 + 内容行 -->
-        <Grid.RowDefinitions>
-            <RowDefinition Height="51"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
-        
-        <!-- 标题栏背景（包含底部边框） -->
-        <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="6"
+        <Grid Name="RootGrid" Background="{DynamicResource AppBackgroundBrush}">
+            <Grid.Style>
+                <Style TargetType="Grid">
+                    <Setter Property="Margin" Value="4"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding WindowState, RelativeSource={RelativeSource AncestorType=Window}}" Value="Maximized">
+                            <Setter Property="Margin" Value="8"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Grid.Style>
+            <!-- 左中右4列布局 (Rail + Side + Main + Right) -->
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="ColRail" Width="60" MinWidth="60" MaxWidth="60"/>
+                <ColumnDefinition x:Name="ColLeft" Width="220" MinWidth="220"/>
+                <ColumnDefinition Width="12"/>
+                <!-- 对齐水平分割器的宽度 -->
+                <ColumnDefinition x:Name="ColCenter" Width="*" MinWidth="250"/>
+                <ColumnDefinition Width="12"/>
+                <!-- 对齐水平分割器的宽度 -->
+                <ColumnDefinition x:Name="ColRight" Width="360" MinWidth="360"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- 布局：标题栏行 + 标签页行 + 内容行 -->
+            <Grid.RowDefinitions>
+                <RowDefinition Height="51"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- 标题栏背景（包含底部边框） -->
+            <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="6"
                 Background="Transparent"
                 BorderBrush="{DynamicResource BorderSubtleBrush}"
                 BorderThickness="0,0,0,1"
                 Panel.ZIndex="1000"/>
 
-        <!-- ========== 列0：导航侧栏 ========== -->
-        <controls:NavigationRailControl x:Name="NavigationRail"
+            <!-- ========== 列0：导航侧栏 ========== -->
+            <controls:NavigationRailControl x:Name="NavigationRail"
                                       Grid.Row="0" Grid.RowSpan="4"
                                       Grid.Column="0"
                                       Panel.ZIndex="2000"
-                                      WindowChrome.IsHitTestVisibleInChrome="True"/>
-        
-        <!-- 导航按钮：位于列0 (随列0宽度自动调整) -->
+                                      WindowChrome.IsHitTestVisibleInChrome="True" Loaded="NavigationRail_Loaded" Width="50"/>
+
+            <!-- 导航按钮：位于列0 (随列0宽度自动调整) -->
 
 
-        <!-- 标签页管理器：从列1(Splitter)开始，跨越剩余列 -->
-        <!-- 主标签页管理器：主文件列表正上方 -->
-        <controls:TabManagerControl Grid.Row="0" Grid.Column="3"
+            <!-- 标签页管理器：从列1(Splitter)开始，跨越剩余列 -->
+            <!-- 主标签页管理器：主文件列表正上方 -->
+            <controls:TabManagerControl Grid.Row="0" Grid.Column="3"
                                     x:Name="TabManager" 
                                     Margin="0"
                                     VerticalAlignment="Center"
                                     Panel.ZIndex="1001"
                                     WindowChrome.IsHitTestVisibleInChrome="True"/>
 
-        <!-- 列1（左侧辅助面板）背景：贯穿主标题栏 -->
-        <Border Grid.Column="1" Grid.Row="0" Grid.RowSpan="4"
+            <!-- 列1（左侧辅助面板）背景：贯穿主标题栏 -->
+            <Border Grid.Column="1" Grid.Row="0" Grid.RowSpan="4"
                 Background="{DynamicResource NavigationRegionBrush}"
                 BorderBrush="{DynamicResource BorderSubtleBrush}"
                 BorderThickness="0,0,1,0"
@@ -97,23 +99,23 @@
 
 
 
-        <!-- ========== 标签页管理器 ========== -->
+            <!-- ========== 标签页管理器 ========== -->
 
 
-        <!-- 垂直分割器（从Row 2开始，跨越2行：Row 2和Row 3） -->
-        <!-- 左侧导航与中间文件列表之间的分割器 -->
-        <!-- 左侧导航与中间文件列表之间的分割器 (Col 2) -->
-        <controls:CollapsibleGridSplitter x:Name="SplitterLeft" Grid.Row="0" Grid.Column="2" Grid.RowSpan="4"
+            <!-- 垂直分割器（从Row 2开始，跨越2行：Row 2和Row 3） -->
+            <!-- 左侧导航与中间文件列表之间的分割器 -->
+            <!-- 左侧导航与中间文件列表之间的分割器 (Col 2) -->
+            <controls:CollapsibleGridSplitter x:Name="SplitterLeft" Grid.Row="0" Grid.Column="2" Grid.RowSpan="4"
                       Style="{StaticResource VerticalCollapsibleGridSplitterStyle}"
                       HorizontalAlignment="Stretch"
                       CollapseMode="Previous"
                       ShowsPreview="True"
                       Panel.ZIndex="2000"
                       DragCompleted="GridSplitter_DragCompleted"/>
-        
-        <!-- 中间文件列表与右侧预览之间的分割器 -->
-        <!-- 中间文件列表与右侧预览之间的分割器 (Col 4) -->
-        <controls:CollapsibleGridSplitter x:Name="SplitterRight" Grid.Row="0" Grid.Column="4" Grid.RowSpan="4"
+
+            <!-- 中间文件列表与右侧预览之间的分割器 -->
+            <!-- 中间文件列表与右侧预览之间的分割器 (Col 4) -->
+            <controls:CollapsibleGridSplitter x:Name="SplitterRight" Grid.Row="0" Grid.Column="4" Grid.RowSpan="4"
                       Style="{StaticResource VerticalCollapsibleGridSplitterStyle}"
                       HorizontalAlignment="Stretch"
                       CollapseMode="Both"
@@ -122,27 +124,29 @@
                       AutoFillNeighbor="True"
                       DragCompleted="GridSplitter_DragCompleted"/>
 
-        <!-- ========== 列1：左侧导航内容区域（从顶端 Row 0 开始） ========== -->
-        <Grid Grid.Row="0" Grid.Column="1" Grid.RowSpan="4" Panel.ZIndex="2001"
+            <!-- ========== 列1：左侧导航内容区域（从顶端 Row 0 开始） ========== -->
+            <Grid Grid.Row="0" Grid.Column="1" Grid.RowSpan="4" Panel.ZIndex="2001"
               WindowChrome.IsHitTestVisibleInChrome="True">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="*"/>
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
-            
-            <controls:NavigationPanelControl Grid.Row="0" x:Name="NavigationPanelControl"/>
-            
-            <!-- 底部占位（如果需要背景贯穿，可以在这里放一个简单的 Border，或者直接移除） -->
-            <!-- 原底部全局按钮区域已移至侧边栏 -->
-            <Border Grid.Row="1" Height="0"/>
-            
-            <!-- 剪切板历史 Popup -->
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="217*"/>
+                    <RowDefinition Height="31*"/>
+                    <RowDefinition Height="529*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
-        </Grid>
+                <controls:NavigationPanelControl Grid.Row="0" x:Name="NavigationPanelControl" Grid.RowSpan="3"/>
 
-        <!-- 列3：主文件浏览器 -->
-        <!-- Z-Index 100 on Grid to stay above background but below Overlay -->
-        <controls:FileBrowserControl x:Name="FileBrowser"
+                <!-- 底部占位（如果需要背景贯穿，可以在这里放一个简单的 Border，或者直接移除） -->
+                <!-- 原底部全局按钮区域已移至侧边栏 -->
+                <Border Grid.Row="3" Height="0"/>
+
+                <!-- 剪切板历史 Popup -->
+
+            </Grid>
+
+            <!-- 列3：主文件浏览器 -->
+            <!-- Z-Index 100 on Grid to stay above background but below Overlay -->
+            <controls:FileBrowserControl x:Name="FileBrowser"
                                      Grid.Row="1" Grid.RowSpan="3"
                                      Grid.Column="3" 
                                      VerticalAlignment="Stretch"
@@ -150,8 +154,8 @@
                                      Panel.ZIndex="100"
                                      FilesItemsSource="{Binding PrimaryPane.Files}"/>
 
-        <!-- 备份管理器 -->
-        <controls:BackupBrowserControl x:Name="BackupBrowser"
+            <!-- 备份管理器 -->
+            <controls:BackupBrowserControl x:Name="BackupBrowser"
                                      Grid.Column="2" Grid.ColumnSpan="4"
                                      Grid.Row="1" 
                                      Grid.RowSpan="3"
@@ -160,8 +164,8 @@
                                      Visibility="Collapsed"
                                      Panel.ZIndex="100"/>
 
-        <!-- 任务队列 (列2-5) -->
-        <controls:TaskQueuePanel x:Name="TaskQueuePanel" 
+            <!-- 任务队列 (列2-5) -->
+            <controls:TaskQueuePanel x:Name="TaskQueuePanel" 
                                  Grid.Column="2" Grid.ColumnSpan="4"
                                  Grid.Row="1" Grid.RowSpan="3"
                                  HorizontalAlignment="Stretch" 
@@ -170,8 +174,8 @@
                                  Visibility="Collapsed"
                                  Panel.ZIndex="100"/>
 
-        <!-- 剪贴板历史 (列2-5) -->
-        <controls:ClipboardHistoryPanel x:Name="ClipboardHistoryPanelControl" 
+            <!-- 剪贴板历史 (列2-5) -->
+            <controls:ClipboardHistoryPanel x:Name="ClipboardHistoryPanelControl" 
                                  Grid.Column="2" Grid.ColumnSpan="4"
                                  Grid.Row="1" Grid.RowSpan="3"
                                  HorizontalAlignment="Stretch" 
@@ -180,67 +184,69 @@
                                  Visibility="Collapsed"
                                  Panel.ZIndex="100"/>
 
-        <!-- ========== 列5：可切换区域（预览/副文件列表） ========== -->
-        <Grid Grid.Row="0" Grid.Column="5" Grid.RowSpan="4" 
+            <!-- ========== 列5：可切换区域（预览/副文件列表） ========== -->
+            <Grid Grid.Row="0" Grid.Column="5" Grid.RowSpan="4" 
               WindowChrome.IsHitTestVisibleInChrome="True"
               Panel.ZIndex="1001">
-            <!-- 预览区面板 -->
-            <local:RightPanelControl x:Name="RightPanel"
+                <!-- 预览区面板 -->
+                <local:RightPanelControl x:Name="RightPanel"
                                      DataContext="{Binding RightPanel}"
                                      HorizontalAlignment="Stretch"
                                      VerticalAlignment="Stretch"
                                      Visibility="Visible"/>
-            
-            <!-- 副文件列表区域（默认隐藏） -->
-            <Grid x:Name="SecondFileBrowserContainer" Visibility="Collapsed" 
+
+                <!-- 副文件列表区域（默认隐藏） -->
+                <Grid x:Name="SecondFileBrowserContainer" Visibility="Collapsed" 
                   WindowChrome.IsHitTestVisibleInChrome="True">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="51"/>  <!-- 标签页行 -->
-                    <RowDefinition Height="*"/>   <!-- 文件列表 -->
-                </Grid.RowDefinitions>
-                
-                <!-- 副标签页管理器 -->
-                <!-- Margin-Right=430: 为了避开右上角的窗口控制按钮区域(~422px) -->
-                <controls:TabManagerControl x:Name="SecondTabManager" 
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="51"/>
+                        <!-- 标签页行 -->
+                        <RowDefinition Height="*"/>
+                        <!-- 文件列表 -->
+                    </Grid.RowDefinitions>
+
+                    <!-- 副标签页管理器 -->
+                    <!-- Margin-Right=430: 为了避开右上角的窗口控制按钮区域(~422px) -->
+                    <controls:TabManagerControl x:Name="SecondTabManager" 
                                             Grid.Row="0"
                                             VerticalAlignment="Center"
                                             IsHitTestVisible="True"
                                             WindowChrome.IsHitTestVisibleInChrome="True"/>
-                
-                <!-- 副文件浏览器 -->
-                <controls:FileBrowserControl x:Name="SecondFileBrowser"
+
+                    <!-- 副文件浏览器 -->
+                    <controls:FileBrowserControl x:Name="SecondFileBrowser"
                                              Grid.Row="1"
                                              HorizontalAlignment="Stretch" 
                                              VerticalAlignment="Stretch"
                                              FilesItemsSource="{Binding SecondaryPane.Files}"/>
+                </Grid>
             </Grid>
-        </Grid>
 
-        <!-- 设置覆盖层:覆盖所有内容列 -->
-        <Grid Name="SettingsOverlay"
+            <!-- 设置覆盖层:覆盖所有内容列 -->
+            <Grid Name="SettingsOverlay"
               Grid.Row="1" Grid.RowSpan="3"
               Grid.Column="0" Grid.ColumnSpan="6"
               Background="{DynamicResource AppBackgroundBrush}"
               Panel.ZIndex="5000"
               Visibility="Collapsed"
               MouseDown="SettingsOverlay_MouseDown">
-            <controls:SettingsPanelControl x:Name="SettingsPanel"/>
-        </Grid>
+                <controls:SettingsPanelControl x:Name="SettingsPanel"/>
+            </Grid>
 
-        <!-- 关于覆盖层 -->
-        <Grid Name="AboutOverlay"
+            <!-- 关于覆盖层 -->
+            <Grid Name="AboutOverlay"
               Grid.Row="1" Grid.RowSpan="3"
               Grid.Column="0" Grid.ColumnSpan="6"
               Background="{DynamicResource AppBackgroundBrush}"
               Panel.ZIndex="5000"
               Visibility="Collapsed">
-            <controls:AboutPanelControl x:Name="AboutPanel"/>
-        </Grid>
+                <controls:AboutPanelControl x:Name="AboutPanel"/>
+            </Grid>
             <!-- 右上角窗口控制按钮：移动到 RootGrid 内部以保持 Margin 一致性 -->
 
 
-        <!-- 通知容器: 位于底部中央，覆盖在最上层 -->
-        <StackPanel x:Name="NotificationContainer"
+            <!-- 通知容器: 位于底部中央，覆盖在最上层 -->
+            <StackPanel x:Name="NotificationContainer"
                     Grid.Row="1" Grid.RowSpan="3" Grid.Column="0" Grid.ColumnSpan="6"
                     VerticalAlignment="Bottom" HorizontalAlignment="Center"
                     Margin="0,0,0,20"
@@ -248,117 +254,117 @@
 
 
 
-        <!-- 右上角窗口控制按钮 -->
-        <Grid Name="WindowControlButtonsContainer" 
+            <!-- 右上角窗口控制按钮 -->
+            <Grid Name="WindowControlButtonsContainer" 
               Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="6"
               HorizontalAlignment="Right" VerticalAlignment="Top"
               Margin="0,-4,-12,0"
               Height="51"
               Panel.ZIndex="10000"
               PreviewMouseDown="WindowControlButtonsContainer_PreviewMouseDown">
-            
-            <!-- 按钮区域 -->
-            <StackPanel x:Name="WindowButtonsStackPanel" 
+
+                <!-- 按钮区域 -->
+                <StackPanel x:Name="WindowButtonsStackPanel" 
                        Orientation="Horizontal"
                        HorizontalAlignment="Right" VerticalAlignment="Stretch"
                        WindowChrome.IsHitTestVisibleInChrome="True">
-                <StackPanel.Style>
-                    <Style TargetType="StackPanel">
-                        <Setter Property="Margin" Value="0,0,0,0"/>
-                        <Style.Triggers>
-                            <!-- 最大化时添加右边距，避免贴合屏幕边缘 -->
-                            <DataTrigger Binding="{Binding WindowState, RelativeSource={RelativeSource AncestorType=Window}}" Value="Maximized">
-                                <Setter Property="Margin" Value="0,0,8,0"/>
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </StackPanel.Style>
-                
-                <!-- 之前的按钮已移动到左下角 -->
-                <Grid Width="0" Height="0"/>
-                <!-- 最小化按钮 -->
-                <Button x:Name="TitleBarMinimizeButton" Content="{DynamicResource Icon_Window_Minimize}" 
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="Margin" Value="0,0,0,0"/>
+                            <Style.Triggers>
+                                <!-- 最大化时添加右边距，避免贴合屏幕边缘 -->
+                                <DataTrigger Binding="{Binding WindowState, RelativeSource={RelativeSource AncestorType=Window}}" Value="Maximized">
+                                    <Setter Property="Margin" Value="0,0,8,0"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+
+                    <!-- 之前的按钮已移动到左下角 -->
+                    <Grid Width="0" Height="0"/>
+                    <!-- 最小化按钮 -->
+                    <Button x:Name="TitleBarMinimizeButton" Content="{DynamicResource Icon_Window_Minimize}" 
                         Width="46"
                         Click="WindowMinimize_Click" 
                         ToolTip="最小化" FontSize="{DynamicResource WindowControlIconSize}" FontFamily="{DynamicResource IconFontFamily}"
                         Background="Transparent" BorderThickness="0" Cursor="Hand">
-                    <Button.Style>
-                        <Style TargetType="Button">
-                            <Setter Property="Padding" Value="0"/>
-                            <Setter Property="Margin" Value="0"/>
-                            <Setter Property="Background" Value="Transparent"/>
-                            <Setter Property="BorderBrush" Value="Transparent"/>
-                            <Setter Property="BorderThickness" Value="0"/>
-                            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-                            <Setter Property="HorizontalContentAlignment" Value="Center"/>
-                            <Setter Property="VerticalContentAlignment" Value="Center"/>
-                            <Style.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="{DynamicResource ControlHoverBackgroundBrush}"/>
-                                </Trigger>
-                                <Trigger Property="IsPressed" Value="True">
-                                    <Setter Property="Background" Value="{DynamicResource ControlPressedBackgroundBrush}"/>
-                                </Trigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Button.Style>
-                </Button>
-                <Button x:Name="TitleBarMaxRestoreButton" Content="{DynamicResource Icon_Window_Maximize}" 
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Padding" Value="0"/>
+                                <Setter Property="Margin" Value="0"/>
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="BorderBrush" Value="Transparent"/>
+                                <Setter Property="BorderThickness" Value="0"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                                <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                                <Setter Property="VerticalContentAlignment" Value="Center"/>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource ControlHoverBackgroundBrush}"/>
+                                    </Trigger>
+                                    <Trigger Property="IsPressed" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource ControlPressedBackgroundBrush}"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    <Button x:Name="TitleBarMaxRestoreButton" Content="{DynamicResource Icon_Window_Maximize}" 
                         Width="46"
                         Click="WindowMaximize_Click" 
                         ToolTip="最大化" FontSize="{DynamicResource WindowControlIconSize}" FontFamily="{DynamicResource IconFontFamily}"
                         Background="Transparent" BorderThickness="0" Cursor="Hand">
-                    <Button.Style>
-                        <Style TargetType="Button">
-                            <Setter Property="Padding" Value="0"/>
-                            <Setter Property="Margin" Value="0"/>
-                            <Setter Property="Background" Value="Transparent"/>
-                            <Setter Property="BorderBrush" Value="Transparent"/>
-                            <Setter Property="BorderThickness" Value="0"/>
-                            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-                            <Setter Property="HorizontalContentAlignment" Value="Center"/>
-                            <Setter Property="VerticalContentAlignment" Value="Center"/>
-                            <Style.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="{DynamicResource ControlHoverBackgroundBrush}"/>
-                                </Trigger>
-                                <Trigger Property="IsPressed" Value="True">
-                                    <Setter Property="Background" Value="{DynamicResource ControlPressedBackgroundBrush}"/>
-                                </Trigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Button.Style>
-                </Button>
-                <!-- 关闭按钮 -->
-                <Button x:Name="TitleBarCloseButton"
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Padding" Value="0"/>
+                                <Setter Property="Margin" Value="0"/>
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="BorderBrush" Value="Transparent"/>
+                                <Setter Property="BorderThickness" Value="0"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                                <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                                <Setter Property="VerticalContentAlignment" Value="Center"/>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource ControlHoverBackgroundBrush}"/>
+                                    </Trigger>
+                                    <Trigger Property="IsPressed" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource ControlPressedBackgroundBrush}"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    <!-- 关闭按钮 -->
+                    <Button x:Name="TitleBarCloseButton"
                         Width="46"
                         Click="WindowClose_Click" 
                         ToolTip="关闭" Cursor="Hand">
-                    <Button.Template>
-                        <ControlTemplate TargetType="Button">
-                            <Border x:Name="ButtonBorder" 
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="ButtonBorder" 
                                     Background="Transparent" 
                                     BorderThickness="0">
-                                <TextBlock x:Name="ButtonIcon"
+                                    <TextBlock x:Name="ButtonIcon"
                                            Text="{DynamicResource Icon_Window_Close}" 
                                            FontSize="{DynamicResource WindowControlIconSize}" 
                                            FontFamily="{DynamicResource IconFontFamily}"
                                            Foreground="{DynamicResource TextPrimaryBrush}"
                                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Border>
-                            <ControlTemplate.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="ButtonBorder" Property="Background" Value="#E81123"/>
-                                    <Setter TargetName="ButtonIcon" Property="Foreground" Value="White"/>
-                                </Trigger>
-                            </ControlTemplate.Triggers>
-                        </ControlTemplate>
-                    </Button.Template>
-                </Button>
-            </StackPanel>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="ButtonBorder" Property="Background" Value="#E81123"/>
+                                        <Setter TargetName="ButtonIcon" Property="Foreground" Value="White"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+
         </Grid>
-
-
-    </Grid>
     </Grid>
 </Window>

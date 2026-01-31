@@ -2,6 +2,7 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:controls="clr-namespace:YiboFile.Controls"
+             xmlns:viewModels="clr-namespace:YiboFile.ViewModels"
              HorizontalAlignment="Stretch"
              VerticalAlignment="Stretch"
              MinWidth="100">
@@ -104,16 +105,59 @@
         <!-- 行3：信息区 -->
         <Border Grid.Row="3" Padding="8,4" Background="{DynamicResource AppBackgroundBrush}">
             <ItemsControl ItemsSource="{Binding InfoItems}">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
+                <ItemsControl.Resources>
+                    <!-- 文本信息模板 -->
+                    <DataTemplate DataType="{x:Type viewModels:TextInfoItem}">
                         <StackPanel Orientation="Horizontal" Margin="0,2">
                             <TextBlock Text="{Binding Label}" FontWeight="Bold" Width="80" 
-                                       Foreground="{DynamicResource ForegroundPrimaryBrush}"/>
+                                       Foreground="{DynamicResource TextPrimaryBrush}"/>
                             <TextBlock Text="{Binding Value}" TextWrapping="Wrap"
-                                       Foreground="{DynamicResource ForegroundSecondaryBrush}"/>
+                                       Foreground="{DynamicResource TextSecondaryBrush}"/>
                         </StackPanel>
                     </DataTemplate>
-                </ItemsControl.ItemTemplate>
+                    
+                    <!-- 标签信息模板 -->
+                    <DataTemplate DataType="{x:Type viewModels:TagsInfoItem}">
+                        <StackPanel Orientation="Horizontal" Margin="0,2">
+                            <TextBlock Text="{Binding Label}" FontWeight="Bold" Width="80" VerticalAlignment="Top" Margin="0,4,0,0"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"/>
+                            
+                            <!-- 标签列表 -->
+                            <ItemsControl ItemsSource="{Binding Tags}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel Orientation="Horizontal" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border CornerRadius="4" Padding="6,2" Margin="0,0,6,4" 
+                                                BorderThickness="1" Cursor="Hand"
+                                                Background="{Binding ColorBrush}"
+                                                BorderBrush="{DynamicResource BorderDefaultBrush}">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Opacity" Value="1.0" />
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Opacity" Value="0.8" />
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <Border.InputBindings>
+                                                <MouseBinding MouseAction="LeftClick" 
+                                                              Command="{Binding DataContext.TagClickedCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                                                              CommandParameter="{Binding}" />
+                                            </Border.InputBindings>
+                                            <TextBlock Text="{Binding Name}" FontSize="11" Foreground="#282828" />
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.Resources>
             </ItemsControl>
         </Border>
 
