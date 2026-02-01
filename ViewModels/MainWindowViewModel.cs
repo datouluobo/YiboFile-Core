@@ -56,6 +56,7 @@ namespace YiboFile.ViewModels
         public Modules.TagsModule Tags { get; set; }
         public Modules.FavoritesModule Favorites { get; set; }
         public Modules.LibraryModule Library { get; set; }
+        public Modules.SearchModule Search { get; set; }
         public RightPanelViewModel RightPanel { get; set; }
         /// <summary>
         /// 主面板（左侧/上方）

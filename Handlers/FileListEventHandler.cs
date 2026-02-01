@@ -122,7 +122,6 @@ namespace YiboFile.Handlers
             if (_fileBrowser?.FilesSelectedItem is FileSystemItem selectedItem)
             {
                 _showFileInfo(selectedItem);
-                _loadFilePreview(selectedItem);
 
                 // 标签页AI预测已移除 - Phase 2将重新实现
                 // try { ... } catch { }

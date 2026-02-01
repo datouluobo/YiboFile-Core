@@ -74,7 +74,7 @@ namespace YiboFile.ViewModels
             {
                 if (SetProperty(ref _selectedItem, value))
                 {
-                    UpdatePreview(value?.Path);
+                    // UpdatePreview logic is now handled in message subscription or explicitly called
                 }
             }
         }
@@ -91,10 +91,28 @@ namespace YiboFile.ViewModels
 
             _messageBus.Subscribe<FileSelectionChangedMessage>(m =>
             {
+                System.Diagnostics.Debug.WriteLine($"[RightPanelViewModel] Received FileSelectionChangedMessage. Items: {m.SelectedItems?.Count}, RequestPreview: {m.RequestPreview}");
                 if (m.SelectedItems?.Count > 0)
+                {
                     SelectedItem = m.SelectedItems[0] as FileSystemItem;
+                    System.Diagnostics.Debug.WriteLine($"[RightPanelViewModel] SelectedItem check: Path={SelectedItem?.Path}, RequestPreview={m.RequestPreview}");
+
+                    if (m.RequestPreview)
+                    {
+                        UpdatePreview(SelectedItem?.Path);
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine("[RightPanelViewModel] RequestPreview is false. Clearing ActivePreview.");
+                        ActivePreview = null;
+                    }
+                }
                 else
+                {
+                    System.Diagnostics.Debug.WriteLine("[RightPanelViewModel] No items selected. Clearing SelectedItem and ActivePreview.");
                     SelectedItem = null;
+                    ActivePreview = null;
+                }
             });
 
             _messageBus.Subscribe<PreviewChangedMessage>(m =>
@@ -105,9 +123,10 @@ namespace YiboFile.ViewModels
 
         private void UpdatePreview(string path)
         {
+            System.Diagnostics.Debug.WriteLine($"[RightPanelViewModel] UpdatePreview called for: '{path}'");
             if (string.IsNullOrEmpty(path))
             {
-                ActivePreview = new ErrorPreviewViewModel { ErrorMessage = "选择文件以预览" };
+                ActivePreview = null;
                 return;
             }
 

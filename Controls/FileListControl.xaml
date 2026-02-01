@@ -283,7 +283,7 @@
                       BorderThickness="0"
                       FocusVisualStyle="{x:Null}"
                       VirtualizingPanel.IsVirtualizing="True"
-                      VirtualizingPanel.IsVirtualizingWhenGrouping="True"
+                      VirtualizingPanel.IsVirtualizingWhenGrouping="False"
                       ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                     <ListView.ItemContainerStyle>
                         <StaticResource ResourceKey="FileListItemStyle"/>

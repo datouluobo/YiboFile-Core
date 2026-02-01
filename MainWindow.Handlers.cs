@@ -58,13 +58,14 @@ namespace YiboFile
 
             // 初始化 FileBrowserEventHandler
             _fileBrowserEventHandler = new FileBrowserEventHandler(
+                _messageBus,
+                "Primary",
                 FileBrowser,
                 _navigationCoordinator,
                 _tabService,
                 _searchService, // searchService
                 _searchCacheService,
                 NavigateToPath,
-                (query) => PerformSearch(query, _searchOptions?.SearchNames ?? true, _searchOptions?.SearchNotes ?? true),
                 SwitchNavigationMode,
                 LoadCurrentDirectory,
                 () => // ClearFilter
@@ -131,16 +132,16 @@ namespace YiboFile
             }
 
             _selectionEventHandler = new SelectionEventHandler(
-                this,
                 _previewService,
                 _messageBus,
                 _fileListService,
                 () => _currentFiles,
                 () => _currentPath,
-                (item) => localFileInfoService.ShowFileInfo(item), // Update Primary Info Panel
                 () => _currentLibrary,
-                (lib) => localFileInfoService.ShowLibraryInfo(lib), // Update Primary Library Info
-                () => IsDualListMode
+                () => IsDualListMode,
+                path => _folderSizeCalculationService != null ? _folderSizeCalculationService.CalculateAndUpdateFolderSizeAsync(path) : Task.CompletedTask,
+                item => localFileInfoService?.ShowFileInfo(item),
+                lib => localFileInfoService?.ShowLibraryInfo(lib)
             );
 
             // Subscribe to Preview Navigation Requests
@@ -289,7 +290,8 @@ namespace YiboFile
                 () =>
                 {
                     _messageBus.Publish(new FileSelectionChangedMessage(null));
-                    localFileInfoService.ShowFileInfo(null); // Clear info
+                    // 修复：取消选择时显示当前文件夹/标签信息，而不是清空
+                    _selectionEventHandler?.HandleNoSelection();
                 },
                 () => _currentLibrary != null, // IsLibraryMode
                 mode => SwitchNavigationMode(mode),
@@ -323,8 +325,72 @@ namespace YiboFile
                     path => { _folderSizeCalculationService?.CalculateAndUpdateFolderSizeAsync(path); },
                     () =>
                     {
-                        // Clear selection/info logic for second pane?
-                        localSecondFileInfoService?.ShowFileInfo(null);
+                        // 修复：取消选择时显示当前文件夹/标签信息，而不是清空
+                        // 由于 SelectionEventHandler 目前绑定到 PrimaryPane，我们需要在这里手动执行类似的逻辑
+
+                        try
+                        {
+                            // 1. 获取当前 Secondary 路径和上下文
+                            string currentPath = _secondCurrentPath;
+
+                            // 2. 也是先清除预览
+                            // 注意：双栏模式下，Secondary 的预览请求应该也会更新 RightPanelViewModel
+                            // 如果 RightPanelViewModel 是全局唯一的，我们需要告诉它“现在没选中文件了，但也别清空如果是文件夹信息的话”
+                            // 但在这里，我们显式构建一个 Container Item 并显示它。
+
+                            FileSystemItem containerItem = null;
+
+                            // 处理 Tag 模式
+                            if (!string.IsNullOrEmpty(currentPath) && currentPath.StartsWith("tag://", StringComparison.OrdinalIgnoreCase))
+                            {
+                                var tagName = currentPath.Substring(6);
+                                containerItem = new FileSystemItem
+                                {
+                                    Name = tagName,
+                                    Path = currentPath,
+                                    Type = "标签",
+                                    IsDirectory = true,
+                                    Size = "-",
+                                    ModifiedDate = "-",
+                                    Tags = tagName
+                                };
+                            }
+                            // 处理 Path 模式
+                            else if (!string.IsNullOrEmpty(currentPath) && Directory.Exists(currentPath))
+                            {
+                                var dirInfo = new System.IO.DirectoryInfo(currentPath);
+                                containerItem = new FileSystemItem
+                                {
+                                    Name = dirInfo.Name,
+                                    Path = dirInfo.FullName,
+                                    Type = "文件夹",
+                                    IsDirectory = true,
+                                    ModifiedDateTime = dirInfo.LastWriteTime,
+                                    ModifiedDate = dirInfo.LastWriteTime.ToString("yyyy/M/d HH:mm"),
+                                    Size = "-",
+                                    Tags = ""
+                                };
+                            }
+
+                            if (containerItem != null)
+                            {
+                                // 更新 Secondary 信息面板
+                                localSecondFileInfoService?.ShowFileInfo(containerItem);
+
+                                // 发布消息以更新预览面板（显示文件夹预览或空）
+                                _messageBus.Publish(new FileSelectionChangedMessage(new List<FileSystemItem> { containerItem }, RequestPreview: false));
+                            }
+                            else
+                            {
+                                localSecondFileInfoService?.ShowFileInfo(null);
+                                _messageBus.Publish(new FileSelectionChangedMessage(null));
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[SecondBrowser] HandleNoSelection Error: {ex.Message}");
+                            localSecondFileInfoService?.ShowFileInfo(null);
+                        }
                     },
                     () => false, // Second browser usually Path mode only for now
                     mode => { }, // Switch mode?

@@ -71,7 +71,7 @@ namespace YiboFile.ViewModels.Previews
             Icon = "📊";
         }
 
-        public async Task LoadAsync(string filePath)
+        public async Task LoadAsync(string filePath, System.Threading.CancellationToken token = default)
         {
             FilePath = filePath;
             Title = System.IO.Path.GetFileName(filePath);
@@ -275,3 +275,4 @@ namespace YiboFile.ViewModels.Previews
         }
     }
 }
+

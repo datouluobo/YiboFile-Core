@@ -42,21 +42,45 @@ namespace YiboFile.Services.Preview
             _messageBus.Subscribe<PreviewRequestMessage>(m => LoadFilePreviewAsync(m.FilePath));
         }
 
+        private long _currentGeneration = 0;
+        private System.Threading.CancellationTokenSource _currentCts;
+
         /// <summary>
         /// 加载文件预览 (异步)
         /// </summary>
         public async void LoadFilePreviewAsync(string filePath)
         {
+            System.Diagnostics.Debug.WriteLine($"[PreviewService] LoadFilePreviewAsync called for: '{filePath}'");
+            System.Diagnostics.Debug.WriteLine($"[PreviewService] Call Stack: {new System.Diagnostics.StackTrace()}");
+
+            // Cancel previous request
+            _currentCts?.Cancel();
+            _currentCts?.Dispose();
+            _currentCts = new System.Threading.CancellationTokenSource();
+            var token = _currentCts.Token;
+
+            // Increment generation to invalidate previous requests
+            long generation = ++_currentGeneration;
+
             try
             {
                 // Create the ViewModel via factory
-                var viewModel = await YiboFile.Previews.PreviewFactory.CreateViewModelAsync(filePath);
+                var viewModel = await YiboFile.Previews.PreviewFactory.CreateViewModelAsync(filePath, token);
+
+                // Check if this request is still valid
+                if (generation != _currentGeneration || token.IsCancellationRequested) return;
 
                 // Publish the change message
                 _messageBus.Publish(new PreviewChangedMessage(viewModel));
             }
+            catch (OperationCanceledException)
+            {
+                // Ignore cancellation
+            }
             catch (Exception ex)
             {
+                if (generation != _currentGeneration || token.IsCancellationRequested) return;
+
                 _messageBus.Publish(new PreviewChangedMessage(new ErrorPreviewViewModel
                 {
                     ErrorMessage = $"预览加载异常: {ex.Message}"
@@ -77,6 +101,13 @@ namespace YiboFile.Services.Preview
         /// </summary>
         public void ClearPreview()
         {
+            // Cancel pending loads
+            _currentCts?.Cancel();
+            _currentCts?.Dispose();
+            _currentCts = null;
+
+            // Increment generation to invalidate pending loads
+            _currentGeneration++;
             _messageBus.Publish(new PreviewChangedMessage(null));
         }
 

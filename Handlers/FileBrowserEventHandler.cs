@@ -14,6 +14,8 @@ using YiboFile.Services.Search;
 using YiboFile.Services.Core;
 using YiboFile.Services.Tabs;
 using System.Windows.Media;
+using YiboFile.ViewModels.Messaging;
+using YiboFile.ViewModels.Messaging.Messages;
 
 namespace YiboFile.Handlers
 {
@@ -28,8 +30,9 @@ namespace YiboFile.Handlers
         private readonly TabService _tabService;
         private readonly SearchService _searchService;
         private readonly SearchCacheService _searchCacheService;
+        private readonly IMessageBus _messageBus;
+        private readonly string _paneId;
         private readonly Action<string> _navigateToPath;
-        private readonly Action<string> _performSearch;
         private readonly Action<string> _switchNavigationMode;
         private readonly Action _loadCurrentDirectory;
         private readonly Action _clearFilter;
@@ -54,13 +57,14 @@ namespace YiboFile.Handlers
         private readonly Func<ColumnDefinition> _getColLeft;
 
         public FileBrowserEventHandler(
+            IMessageBus messageBus,
+            string paneId,
             FileBrowserControl fileBrowser,
             NavigationCoordinator navigationCoordinator,
             TabService tabService,
             SearchService searchService,
             SearchCacheService searchCacheService,
             Action<string> navigateToPath,
-            Action<string> performSearch,
             Action<string> switchNavigationMode,
             Action loadCurrentDirectory,
             Action clearFilter,
@@ -87,13 +91,14 @@ namespace YiboFile.Handlers
             Func<ColumnDefinition> getColLeft,
             Action<RenameEventArgs> commitRename)
         {
+            _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
+            _paneId = paneId ?? "Primary";
             _fileBrowser = fileBrowser ?? throw new ArgumentNullException(nameof(fileBrowser));
             _navigationCoordinator = navigationCoordinator ?? throw new ArgumentNullException(nameof(navigationCoordinator));
             _tabService = tabService ?? throw new ArgumentNullException(nameof(tabService));
             _searchService = searchService ?? throw new ArgumentNullException(nameof(searchService));
             _searchCacheService = searchCacheService ?? throw new ArgumentNullException(nameof(searchCacheService));
             _navigateToPath = navigateToPath ?? throw new ArgumentNullException(nameof(navigateToPath));
-            _performSearch = performSearch ?? throw new ArgumentNullException(nameof(performSearch));
             _switchNavigationMode = switchNavigationMode ?? throw new ArgumentNullException(nameof(switchNavigationMode));
             _loadCurrentDirectory = loadCurrentDirectory ?? throw new ArgumentNullException(nameof(loadCurrentDirectory));
             _clearFilter = clearFilter ?? throw new ArgumentNullException(nameof(clearFilter));
@@ -171,17 +176,16 @@ namespace YiboFile.Handlers
             }
 
             // 非有效路径：按搜索关键词处理（支持回车触发搜索）
-
-            // 非有效路径：按搜索关键词处理（支持回车触发搜索）
-
-            // 使用统一的规范化方法剥离前缀"搜索:"
             var normalizedKeyword = SearchService.NormalizeKeyword(path);
             if (!string.IsNullOrEmpty(normalizedKeyword))
             {
-                _performSearch(normalizedKeyword);
-            }
-            else
-            {
+                // 使用新的 MVVM 搜索消息
+                var searchOptions = _getSearchOptions();
+                _messageBus.Publish(new ExecuteSearchMessage(
+                    normalizedKeyword,
+                    searchOptions?.SearchNames ?? true,
+                    searchOptions?.SearchNotes ?? true,
+                    _paneId));
             }
         }
 
@@ -222,7 +226,12 @@ namespace YiboFile.Handlers
                 {
                     if (!string.IsNullOrEmpty(protocolInfo.TargetPath))
                     {
-                        _performSearch(protocolInfo.TargetPath);
+                        var searchOptions = _getSearchOptions();
+                        _messageBus.Publish(new ExecuteSearchMessage(
+                            protocolInfo.TargetPath,
+                            searchOptions?.SearchNames ?? true,
+                            searchOptions?.SearchNotes ?? true,
+                            _paneId));
                     }
                 }
             }

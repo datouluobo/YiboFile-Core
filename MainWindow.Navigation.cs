@@ -151,6 +151,13 @@ namespace YiboFile
 
 
 
+                // MVVM 迁移: 确保 ViewModel 状态同步
+                if (_viewModel?.PrimaryPane != null && _viewModel.PrimaryPane.CurrentPath != _currentPath)
+                {
+                    // 直接设置属性以触发 PathChanged 从而更新地址栏绑定
+                    _viewModel.PrimaryPane.CurrentPath = _currentPath;
+                }
+
                 // MVVM 迁移: 委托给 FileListViewModel 加载
                 await _viewModel.PrimaryPane.FileList.LoadPathAsync(_currentPath);
 

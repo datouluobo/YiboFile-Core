@@ -528,8 +528,14 @@
         // ==================== C# 桥接 ====================
 
         /**
-         * 从C#调用此函数以加载PDF
-         * @param {string} pdfPath - PDF文件路径
+         * 从URL加载PDF (通常配合 VirtualHostMapping 使用)
+         */
+        window.loadPdfFromUrl = function (url) {
+            loadPDF(url);
+        };
+
+        /**
+         * 从C#调用此函数以加载PDF (Legacy)
          */
         window.loadPdfFromPath = function (pdfPath) {
             loadPDF(pdfPath);
@@ -538,7 +544,7 @@
         /**
          * 从Base64字符串加载PDF
          */
-        window.loadPdfFromBase64 = function(base64) {
+        window.loadPdfFromBase64 = function (base64) {
             try {
                 var binary_string = window.atob(base64);
                 var len = binary_string.length;

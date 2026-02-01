@@ -19,7 +19,7 @@ namespace YiboFile.ViewModels.Messaging.Messages
     /// <summary>
     /// 文件选择变更通知
     /// </summary>
-    public record FileSelectionChangedMessage(IList SelectedItems);
+    public record FileSelectionChangedMessage(IList SelectedItems, bool RequestPreview = true);
 
     /// <summary>
     /// 请求清除过滤器

@@ -117,6 +117,7 @@ namespace YiboFile
         private TagsModule _tagsModule;
         private FavoritesModule _favoritesModule;
         private LibraryModule _libraryModule;
+        private SearchModule _searchModule;
 
         /// <summary>
         /// 主窗口 ViewModel
@@ -316,8 +317,8 @@ namespace YiboFile
             _viewModel.RegisterModule(_fileListModule);
 
             // 初始化主/副面板 MVVM (新的架构)
-            _viewModel.PrimaryPane = new ViewModels.PaneViewModel(Dispatcher);
-            _viewModel.SecondaryPane = new ViewModels.PaneViewModel(Dispatcher, isSecondary: true);
+            _viewModel.PrimaryPane = new ViewModels.PaneViewModel(Dispatcher, _messageBus);
+            _viewModel.SecondaryPane = new ViewModels.PaneViewModel(Dispatcher, _messageBus, isSecondary: true);
 
             // 初始化 FileListViewModel (用于数据绑定和加载)
             // 注意：FileBrowser 是 MainWindow 中的控件名称
@@ -384,6 +385,18 @@ namespace YiboFile
             _libraryModule = new LibraryModule(_messageBus, _libraryService);
             _viewModel.Library = _libraryModule;
             _viewModel.RegisterModule(_libraryModule);
+
+            // 创建并注册搜索模块
+            _searchModule = new SearchModule(
+                _messageBus,
+                _searchService,
+                _searchCacheService,
+                _tabService,
+                _secondTabService,
+                () => this.IsDualListMode,
+                () => _isSecondPaneFocused);
+            _viewModel.Search = _searchModule;
+            _viewModel.RegisterModule(_searchModule);
 
             // 订阅库选择消息，处理 UI 到逻辑的导航触发
             _messageBus.Subscribe<LibrarySelectedMessage>(m =>

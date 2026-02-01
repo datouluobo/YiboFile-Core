@@ -13,6 +13,8 @@ using YiboFile.Services.Core;
 using YiboFile.Services.Features;
 using YiboFile.Services.FileList;
 using Microsoft.Extensions.DependencyInjection;
+using YiboFile.ViewModels.Messaging;
+using YiboFile.ViewModels.Messaging.Messages;
 
 namespace YiboFile.ViewModels
 {
@@ -29,6 +31,7 @@ namespace YiboFile.ViewModels
         private readonly FileListService _fileListService;
         private readonly LibraryService _libraryService;
         private readonly ITagService _tagService;
+        private readonly IMessageBus _messageBus;
 
         private string _currentPath;
         private Library _currentLibrary;
@@ -40,6 +43,8 @@ namespace YiboFile.ViewModels
         private CancellationTokenSource _loadCts;
         private FileSystemWatcher _fileWatcher;
         private DispatcherTimer _refreshDebounceTimer;
+        private string _searchStatusText;
+        private bool _isSearching;
 
         #endregion
 
@@ -165,6 +170,20 @@ namespace YiboFile.ViewModels
 
         public bool IsSecondary => _isSecondary;
 
+        public string SearchStatusText
+        {
+            get => _searchStatusText;
+            set => SetProperty(ref _searchStatusText, value);
+        }
+
+        public bool IsSearching
+        {
+            get => _isSearching;
+            set => SetProperty(ref _isSearching, value);
+        }
+
+        public SearchViewModel Search { get; }
+
         #endregion
 
         #region Constructor
@@ -174,11 +193,18 @@ namespace YiboFile.ViewModels
         /// </summary>
         /// <param name="dispatcher">UI 调度器</param>
         /// <param name="isSecondary">是否为次要面板</param>
-        public PaneViewModel(Dispatcher dispatcher, bool isSecondary = false)
+        public PaneViewModel(Dispatcher dispatcher, IMessageBus messageBus, bool isSecondary = false)
         {
             _dispatcher = dispatcher ?? throw new ArgumentNullException(nameof(dispatcher));
+            _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
             _isSecondary = isSecondary;
             _files = new ObservableCollection<FileSystemItem>();
+
+            Search = new SearchViewModel(_messageBus);
+            Search.SetTargetPane(isSecondary ? "Secondary" : "Primary");
+
+            // 订阅搜索结果消息
+            _messageBus.Subscribe<SearchResultUpdatedMessage>(OnSearchResultUpdated);
 
             // 获取服务
             var errorService = App.ServiceProvider?.GetService<YiboFile.Services.Core.Error.ErrorService>();
@@ -573,6 +599,36 @@ namespace YiboFile.ViewModels
         {
             // 使用防抖刷新
             _dispatcher.BeginInvoke(new Action(RequestRefresh));
+        }
+
+        #endregion
+
+        #region Message Handlers
+
+        private void OnSearchResultUpdated(SearchResultUpdatedMessage message)
+        {
+            // 检查目标面板是否匹配
+            bool isTargetSecondary = message.TargetPaneId == "Secondary";
+            if (isTargetSecondary != _isSecondary) return;
+
+            _dispatcher.Invoke(() =>
+            {
+                if (message.Results != null)
+                {
+                    SetFiles(message.Results);
+                    if (!string.IsNullOrEmpty(message.SearchTabPath))
+                    {
+                        // 这是一个搜索路径 (search:// 或 content://)
+                        // 设置当前路径但不触发普通加载，因为结果已经传过来了
+                        _currentPath = message.SearchTabPath;
+                        OnPropertyChanged(nameof(CurrentPath));
+                        PathChanged?.Invoke(this, message.SearchTabPath);
+                    }
+                }
+
+                SearchStatusText = message.StatusMessage;
+                IsSearching = message.IsSearching;
+            });
         }
 
         #endregion

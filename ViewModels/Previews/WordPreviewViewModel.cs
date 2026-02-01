@@ -57,8 +57,9 @@ namespace YiboFile.ViewModels.Previews
             OpenExternalCommand = new RelayCommand(() => PreviewHelper.OpenInDefaultApp(FilePath));
         }
 
-        public async Task LoadAsync(string filePath)
+        public async Task LoadAsync(string filePath, System.Threading.CancellationToken token = default)
         {
+            if (token.IsCancellationRequested) return;
             FilePath = filePath;
             Title = Path.GetFileName(filePath);
             Icon = "📝";

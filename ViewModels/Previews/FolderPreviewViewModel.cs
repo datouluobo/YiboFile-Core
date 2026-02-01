@@ -42,7 +42,7 @@ namespace YiboFile.ViewModels.Previews
             OpenExternalCommand = new RelayCommand(() => PreviewHelper.OpenInDefaultApp(FilePath));
         }
 
-        public async Task LoadAsync(string folderPath)
+        public async Task LoadAsync(string folderPath, System.Threading.CancellationToken token = default)
         {
             FilePath = folderPath;
             Title = Path.GetFileName(folderPath);
@@ -53,7 +53,7 @@ namespace YiboFile.ViewModels.Previews
             {
                 await Task.Run(() =>
                 {
-                    if (!Directory.Exists(folderPath)) return;
+                    if (!Directory.Exists(folderPath) || token.IsCancellationRequested) return;
 
                     var di = new DirectoryInfo(folderPath);
                     var items = di.GetFileSystemInfos()
@@ -68,12 +68,14 @@ namespace YiboFile.ViewModels.Previews
                         })
                         .ToList();
 
+                    if (token.IsCancellationRequested) return;
+
                     Application.Current.Dispatcher.Invoke(() =>
                     {
                         Items.Clear();
                         foreach (var item in items) Items.Add(item);
                     });
-                });
+                }, token);
             }
             catch (Exception ex)
             {

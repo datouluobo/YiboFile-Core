@@ -80,7 +80,7 @@ namespace YiboFile.ViewModels.Previews
             Icon = "📐";
         }
 
-        public async Task LoadAsync(string filePath)
+        public async Task LoadAsync(string filePath, System.Threading.CancellationToken token = default)
         {
             FilePath = filePath;
             Title = Path.GetFileName(filePath);
@@ -97,7 +97,7 @@ namespace YiboFile.ViewModels.Previews
                 if (IsDwg)
                 {
                     // Try to extract thumbnail first for fast preview
-                    var thumbnail = await Task.Run(() => Services.DwgThumbnailExtractor.ExtractThumbnail(filePath));
+                    var thumbnail = await Task.Run(() => Services.DwgThumbnailExtractor.ExtractThumbnail(filePath), token);
                     if (thumbnail != null)
                     {
                         ImageSource = thumbnail;
@@ -107,7 +107,7 @@ namespace YiboFile.ViewModels.Previews
                     }
                 }
 
-                await LoadVectorViewAsync();
+                await LoadVectorViewAsync(token);
             }
             catch (Exception ex)
             {
@@ -118,7 +118,7 @@ namespace YiboFile.ViewModels.Previews
             }
         }
 
-        private async Task LoadVectorViewAsync()
+        private async Task LoadVectorViewAsync(System.Threading.CancellationToken token = default)
         {
             IsLoading = true;
             IsShowingThumbnail = false;
@@ -137,11 +137,13 @@ namespace YiboFile.ViewModels.Previews
                     }
 
                     StatusText = "正在转换 DWG 到 DXF...";
-                    dxfPath = await DwgConverter.ConvertToDxfAsync(FilePath);
+                    dxfPath = await DwgConverter.ConvertToDxfAsync(FilePath, token);
                 }
 
+                if (token.IsCancellationRequested) return;
+
                 StatusText = "正在解析图纸...";
-                var svgContent = await Task.Run(() => YiboFile.Rendering.DxfSvgConverter.ConvertToSvg(dxfPath));
+                var svgContent = await Task.Run(() => YiboFile.Rendering.DxfSvgConverter.ConvertToSvg(dxfPath), token);
                 HtmlContent = WrapSvgInHtml(svgContent);
                 ReloadRequested?.Invoke(this, EventArgs.Empty);
             }

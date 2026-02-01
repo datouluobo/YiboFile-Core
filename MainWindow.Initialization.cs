@@ -252,6 +252,12 @@ namespace YiboFile
             {
                 if (tab != null)
                 {
+                    // 同步 MainWindow 的状态以确保 SelectionEventHandler 使用正确的上下文
+                    _currentPath = tab.Path;
+                    _currentLibrary = tab.Library;
+
+                    if (NavigationPanelControl != null) NavigationPanelControl.CurrentPath = tab.Path;
+
                     UpdateTabStyles();
 
                     // 切换标签页时自动刷新信息面板（处理空选状态）

@@ -33,27 +33,52 @@ namespace YiboFile.Controls
             UpdateSearchModeUI();
         }
 
+        public static readonly DependencyProperty AddressTextProperty =
+            DependencyProperty.Register("AddressText", typeof(string), typeof(AddressBarControl),
+                new FrameworkPropertyMetadata("", FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnAddressTextChanged));
+
         public string AddressText
         {
-            get => AddressTextBox.Text;
-            set
+            get => (string)GetValue(AddressTextProperty);
+            set => SetValue(AddressTextProperty, value);
+        }
+
+        private static void OnAddressTextChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is AddressBarControl control)
             {
-                AddressTextBox.Text = value;
-                _currentPath = value;
-                if (!_isEditMode)
+                string newValue = (string)e.NewValue ?? "";
+                if (control.AddressTextBox != null)
                 {
-                    if (!string.IsNullOrEmpty(_breadcrumbCustomText))
-                        UpdateBreadcrumbText(_breadcrumbCustomText);
+                    control.AddressTextBox.Text = newValue;
+                }
+                control._currentPath = newValue;
+                if (!control._isEditMode)
+                {
+                    if (!string.IsNullOrEmpty(control._breadcrumbCustomText))
+                        control.UpdateBreadcrumbText(control._breadcrumbCustomText);
                     else
-                        UpdateBreadcrumb(value);
+                        control.UpdateBreadcrumb(newValue);
                 }
             }
         }
 
+        public static readonly DependencyProperty IsReadOnlyProperty =
+            DependencyProperty.Register("IsReadOnly", typeof(bool), typeof(AddressBarControl),
+                new PropertyMetadata(false, OnIsReadOnlyChanged));
+
         public bool IsReadOnly
         {
-            get => AddressTextBox.IsReadOnly;
-            set => AddressTextBox.IsReadOnly = value;
+            get => (bool)GetValue(IsReadOnlyProperty);
+            set => SetValue(IsReadOnlyProperty, value);
+        }
+
+        private static void OnIsReadOnlyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is AddressBarControl control && control.AddressTextBox != null)
+            {
+                control.AddressTextBox.IsReadOnly = (bool)e.NewValue;
+            }
         }
 
         /// <summary>
@@ -701,6 +726,9 @@ namespace YiboFile.Controls
                         path = "content://" + path;
                     }
                 }
+
+                // Update the DP to sync with bound ViewModel
+                AddressText = path;
 
                 PathChanged?.Invoke(this, path);
 

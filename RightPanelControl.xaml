@@ -8,6 +8,11 @@
              HorizontalAlignment="Stretch"
              VerticalAlignment="Stretch"
              MinWidth="100">
+    <UserControl.Resources>
+        <converters:DoubleToGridLengthConverter x:Key="DoubleToGridLengthConverter"/>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
+    </UserControl.Resources>
     <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="0">
         <Grid.RowDefinitions>
             <!-- 行0：标题栏区域（与列2工具栏对齐） -->
@@ -17,7 +22,7 @@
             <!-- 行2：分割器 -->
             <RowDefinition Height="Auto"/>
             <!-- 行3：备注区 -->
-            <RowDefinition Height="{Binding NotesHeight, Mode=TwoWay, FallbackValue=200}" MinHeight="100"/>
+            <RowDefinition Height="{Binding NotesHeight, Mode=TwoWay, Converter={StaticResource DoubleToGridLengthConverter}, FallbackValue=200}" MinHeight="100"/>
         </Grid.RowDefinitions>
         
         <!-- 行0：标题栏（占位，与列2工具栏对齐） -->
@@ -27,8 +32,6 @@
         <Border Grid.Row="1" Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1">
             <Grid Name="PreviewGrid" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ClipToBounds="True">
                 <Grid.Resources>
-                    <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
-                    <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
                     
                     <Style x:Key="ToolbarToggleButtonStyle" TargetType="ToggleButton">
                         <Setter Property="Padding" Value="8,4"/>
@@ -400,7 +403,7 @@
                 <ContentPresenter Content="{Binding ActivePreview}"/>
 
                 <!-- Loading Overlay -->
-                <Grid Visibility="{Binding ActivePreview.IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}" Background="#88FFFFFF">
+                <Grid Visibility="{Binding ActivePreview.IsLoading, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}" Background="#88FFFFFF">
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                         <ProgressBar IsIndeterminate="True" Width="200" Height="4" Margin="0,0,0,10"/>
                         <TextBlock Text="正在加载..." HorizontalAlignment="Center"/>

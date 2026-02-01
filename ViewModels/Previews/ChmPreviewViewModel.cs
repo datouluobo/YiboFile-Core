@@ -56,7 +56,7 @@ namespace YiboFile.ViewModels.Previews
             });
         }
 
-        public async Task LoadAsync(string filePath)
+        public async Task LoadAsync(string filePath, System.Threading.CancellationToken token = default)
         {
             FilePath = filePath;
             Title = Path.GetFileName(filePath);
@@ -272,3 +272,4 @@ namespace YiboFile.ViewModels.Previews
         }
     }
 }
+
