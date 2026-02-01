@@ -242,12 +242,6 @@ namespace YiboFile
             return GetFileTypeInfo(filePath).Category;
         }
 
-        // 预览功能已移至Previews目录，此方法保留用于向后兼容
-        [Obsolete("请使用YiboFile.Previews.PreviewFactory.CreatePreview代替")]
-        public static UIElement CreatePreview(string filePath)
-        {
-            return YiboFile.Previews.PreviewFactory.CreatePreview(filePath);
-        }
 
         // 所有预览方法已移至Previews目录
     }

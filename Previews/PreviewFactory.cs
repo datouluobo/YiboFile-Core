@@ -1,7 +1,10 @@
 using System;
 using System.IO;
+using System.Threading.Tasks;
 using System.Windows;
 using YiboFile.Services.Core;
+using YiboFile.ViewModels.Previews;
+using YiboFile.Services.Preview;
 
 namespace YiboFile.Previews
 {
@@ -21,109 +24,142 @@ namespace YiboFile.Previews
         public static Action<string> OnOpenFolderInNewTab { get; set; }
 
         /// <summary>
-        /// 创建文件预览
+        /// 创建文件预览 ViewModel
         /// </summary>
-        public static UIElement CreatePreview(string filePath)
+        public static async System.Threading.Tasks.Task<IPreviewViewModel> CreateViewModelAsync(string filePath)
         {
             try
             {
                 if (string.IsNullOrEmpty(filePath))
                 {
-                    return PreviewHelper.CreateErrorPreview("文件不存在");
+                    return new ErrorPreviewViewModel { ErrorMessage = "文件路径为空" };
                 }
 
-                // Check if this is a file inside an archive (virtual path)
                 var protocolInfo = ProtocolManager.Parse(filePath);
                 if (protocolInfo.Type == ProtocolType.Archive && !string.IsNullOrEmpty(protocolInfo.ExtraData))
                 {
-                    // This is a file inside an archive, not at the root
-                    return PreviewHelper.CreateInfoPreview("📦 压缩包内文件", "此文件位于压缩包内，暂不支持预览。\n\n如需预览，请先将文件解压到本地。");
+                    return new ErrorPreviewViewModel { ErrorMessage = "压缩包内文件暂不支持直接预览" };
                 }
 
-                if (!File.Exists(filePath) && !Directory.Exists(filePath))
-                {
-                    return PreviewHelper.CreateErrorPreview("文件不存在");
-                }
-
-                // 处理文件夹
                 if (Directory.Exists(filePath))
                 {
-                    return new FolderPreview().CreatePreview(filePath);
+                    var vm = new FolderPreviewViewModel();
+                    await vm.LoadAsync(filePath);
+                    return vm;
+                }
+
+                if (!File.Exists(filePath))
+                {
+                    return new ErrorPreviewViewModel { ErrorMessage = "文件不存在" };
                 }
 
                 var extension = Path.GetExtension(filePath)?.ToLower();
-
-                if (string.IsNullOrEmpty(extension))
-                {
-                    return PreviewHelper.CreateNoPreview(filePath);
-                }
-
-                // 特殊处理快捷方式文件
-                if (extension == ".lnk")
-                {
-                    return new LnkPreview().CreatePreview(filePath);
-                }
-
-                // Web页面预览 (WebView2)
-                if (extension == ".html" || extension == ".htm")
-                {
-                    return new HtmlPreview().CreatePreview(filePath);
-                }
-
-                // 注意：GetFileTypeInfo需要完整的文件路径，它会内部处理扩展名
                 var fileTypeInfo = FileTypeManager.GetFileTypeInfo(filePath);
 
                 if (fileTypeInfo == null || !fileTypeInfo.CanPreview)
                 {
-                    return PreviewHelper.CreateNoPreview(filePath);
+                    return new ErrorPreviewViewModel { ErrorMessage = "暂不支持此文件类型的预览" };
                 }
 
-                // 根据文件类型选择预览提供者
-                IPreviewProvider provider = fileTypeInfo.PreviewType switch
-                {
-                    PreviewType.Image => new ImagePreview(),
-                    PreviewType.Text => new TextPreview(),
-                    PreviewType.Video => new VideoPreview(),
-                    PreviewType.Audio => new AudioPreview(),
-                    PreviewType.Archive => new ArchivePreview(),
-                    PreviewType.Document => GetDocumentProvider(extension),
-                    _ => null
-                };
+                IPreviewViewModel previewVm = null;
 
-                if (provider != null)
+                switch (fileTypeInfo.PreviewType)
                 {
-                    return provider.CreatePreview(filePath);
+                    case PreviewType.Image:
+                        var ivm = new ImagePreviewViewModel();
+                        await ivm.LoadAsync(filePath);
+                        previewVm = ivm;
+                        break;
+                    case PreviewType.Text:
+                        if (extension == ".html" || extension == ".htm" || extension == ".xhtml")
+                        {
+                            var hvm = new HtmlPreviewViewModel();
+                            await hvm.LoadAsync(filePath);
+                            previewVm = hvm;
+                        }
+                        else if (extension == ".md" || extension == ".markdown")
+                        {
+                            var mdvm = new MarkdownPreviewViewModel();
+                            await mdvm.LoadAsync(filePath);
+                            previewVm = mdvm;
+                        }
+                        else
+                        {
+                            var tvm = new TextPreviewViewModel();
+                            await tvm.LoadAsync(filePath);
+                            previewVm = tvm;
+                        }
+                        break;
+                    case PreviewType.Video:
+                    case PreviewType.Audio:
+                        var mvm = new MediaPreviewViewModel();
+                        mvm.IsVideo = fileTypeInfo.PreviewType == PreviewType.Video;
+                        await mvm.LoadAsync(filePath);
+                        previewVm = mvm;
+                        break;
+                    case PreviewType.Archive:
+                        var avm = new ArchivePreviewViewModel();
+                        await avm.LoadAsync(filePath);
+                        previewVm = avm;
+                        break;
+                    case PreviewType.Document:
+                        if (extension == ".pdf")
+                        {
+                            var pvm = new PdfPreviewViewModel();
+                            await pvm.LoadAsync(filePath);
+                            previewVm = pvm;
+                        }
+                        else if (extension == ".xls" || extension == ".xlsx" || extension == ".xlsm")
+                        {
+                            var evm = new ExcelPreviewViewModel();
+                            await evm.LoadAsync(filePath);
+                            previewVm = evm;
+                        }
+                        else if (extension == ".dwg" || extension == ".dxf")
+                        {
+                            var cvm = new CadPreviewViewModel();
+                            await cvm.LoadAsync(filePath);
+                            previewVm = cvm;
+                        }
+                        else if (extension == ".ppt" || extension == ".pptx" || extension == ".pptm")
+                        {
+                            var pvm = new PowerPointPreviewViewModel();
+                            await pvm.LoadAsync(filePath);
+                            previewVm = pvm;
+                        }
+                        else if (extension == ".doc" || extension == ".docx" || extension == ".docm" || extension == ".rtf")
+                        {
+                            var wvm = new WordPreviewViewModel();
+                            await wvm.LoadAsync(filePath);
+                            previewVm = wvm;
+                        }
+                        else if (extension == ".chm")
+                        {
+                            var cvm = new ChmPreviewViewModel();
+                            await cvm.LoadAsync(filePath);
+                            previewVm = cvm;
+                        }
+                        else
+                        {
+                            // Fallback to generic document viewmodel or Word if appropriate
+                            var dvm = new WordPreviewViewModel();
+                            await dvm.LoadAsync(filePath);
+                            previewVm = dvm;
+                        }
+                        break;
+                    case PreviewType.Shortcut:
+                        // Fallback for shortcuts
+                        break;
                 }
 
-                return PreviewHelper.CreateNoPreview(filePath);
+                return previewVm ?? new ErrorPreviewViewModel { ErrorMessage = "无法为该文件创建预览" };
             }
             catch (Exception ex)
             {
-                return PreviewHelper.CreateErrorPreview($"预览失败: {ex.Message}");
+                return new ErrorPreviewViewModel { ErrorMessage = $"预览创建失败: {ex.Message}" };
             }
         }
 
-        private static IPreviewProvider GetDocumentProvider(string extension)
-        {
-            return extension switch
-            {
-                ".docx" => new DocumentPreview(),
-                ".docm" => new DocumentPreview(),
-                ".doc" => new DocumentPreview(),
-                ".pdf" => new PdfPreview(),  // 使用专门的PdfPreview
-                ".rtf" => new DocumentPreview(),
-                ".chm" => new DocumentPreview(),  // CHM帮助文件
-                ".xlsx" => new ExcelPreview(),
-                ".xlsm" => new ExcelPreview(),
-                ".xls" => new ExcelPreview(),
-                ".pptx" => new PowerPointPreview(),
-                ".pptm" => new PowerPointPreview(),
-                ".ppt" => new PowerPointPreview(),
-                ".dwg" => new CadPreview(),
-                ".dxf" => new CadPreview(),
-                _ => null
-            };
-        }
     }
 }
 

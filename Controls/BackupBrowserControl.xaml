@@ -102,7 +102,19 @@
                 <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1,0,0,0">
                     <Grid>
                         <!-- Preview Content -->
-                        <ContentControl Content="{Binding PreviewElement}"/>
+                        <ContentControl Content="{Binding PreviewViewModel}">
+                            <ContentControl.Resources>
+                                <DataTemplate DataType="{x:Type vm:Previews.ImagePreviewViewModel}">
+                                    <Image Source="{Binding ImageSource}" Stretch="Uniform"/>
+                                </DataTemplate>
+                                <DataTemplate DataType="{x:Type vm:Previews.TextPreviewViewModel}">
+                                    <TextBox Text="{Binding Content}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" FontFamily="Consolas"/>
+                                </DataTemplate>
+                                <DataTemplate DataType="{x:Type vm:Previews.ErrorPreviewViewModel}">
+                                    <TextBlock Text="{Binding ErrorMessage}" Foreground="Red" TextWrapping="Wrap" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </DataTemplate>
+                            </ContentControl.Resources>
+                        </ContentControl>
                         
                         <!-- Empty State -->
                         <TextBlock Text="选择一个文件进行预览" 
@@ -112,7 +124,7 @@
                                 <Style TargetType="TextBlock">
                                     <Setter Property="Visibility" Value="Collapsed"/>
                                     <Style.Triggers>
-                                        <DataTrigger Binding="{Binding PreviewElement}" Value="{x:Null}">
+                                        <DataTrigger Binding="{Binding PreviewViewModel}" Value="{x:Null}">
                                             <Setter Property="Visibility" Value="Visible"/>
                                         </DataTrigger>
                                     </Style.Triggers>

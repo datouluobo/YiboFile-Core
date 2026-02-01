@@ -176,11 +176,10 @@ namespace YiboFile
             // var tagUIHandlerContext = new TagUIHandlerContextImpl(this);
             // _tagUIHandler = new Services.Tag.TagUIHandler(tagUIHandlerContext);
 
-            // 初始化预览服务（需要在 InitializeComponent 之后，因为需要 RightPanel 和 FileBrowser）
-            // 初始化预览服务（需要在 InitializeComponent 之后，因为需要 RightPanel 和 FileBrowser）
+            // 初始化预览服务（使用 MVVM 模式）
+            var messageBus = App.ServiceProvider.GetRequiredService<YiboFile.ViewModels.Messaging.IMessageBus>();
             _previewService = new Services.Preview.PreviewService(
-                RightPanel,
-                FileBrowser,
+                messageBus,
                 this.Dispatcher,
                 LoadCurrentDirectory,
                 path => CreateTab(path, true)
@@ -238,8 +237,6 @@ namespace YiboFile
             // 订阅 RightPanel 事件
             if (RightPanel != null)
             {
-                RightPanel.PreviewOpenFileRequested += RightPanel_PreviewOpenFileRequested;
-                RightPanel.PreviewMiddleClickRequested += RightPanel_PreviewMiddleClickRequested;
                 RightPanel.NotesHeightChanged += RightPanel_NotesHeightChanged;
             }
 

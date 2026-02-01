@@ -278,7 +278,7 @@ namespace YiboFile
             _messageBus = App.ServiceProvider?.GetService<IMessageBus>() ?? MessageBus.Instance;
 
             // 创建 RightPanelViewModel
-            var rightPanelVM = new RightPanelViewModel(_messageBus, _configService, _fileListService, _navigationCoordinator);
+            var rightPanelVM = new RightPanelViewModel(_messageBus, _configService, _fileListService);
 
             // 创建 ViewModel
             _viewModel = new MainWindowViewModel(_messageBus, rightPanelVM);

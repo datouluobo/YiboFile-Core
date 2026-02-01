@@ -536,6 +536,34 @@
         };
 
         /**
+         * 从Base64字符串加载PDF
+         */
+        window.loadPdfFromBase64 = function(base64) {
+            try {
+                var binary_string = window.atob(base64);
+                var len = binary_string.length;
+                var bytes = new Uint8Array(len);
+                for (var i = 0; i < len; i++) {
+                    bytes[i] = binary_string.charCodeAt(i);
+                }
+                loadPDF(bytes);
+            } catch (e) {
+                showError('PDF数据解析失败: ' + e.message);
+            }
+        };
+
+        // 监听来自C#的消息
+        if (window.chrome && window.chrome.webview) {
+            window.chrome.webview.addEventListener('message', event => {
+                const msg = event.data;
+                // Check if msg is a string (JSON) or object
+                let data = msg;
+                /* If data is string, it might be the base64 content directly or JSON */
+                /* For simplicity, we assume we use specific structure or check text */
+            });
+        }
+
+        /**
          * 获取当前状态信息(供C#调用)
          */
         window.getPdfState = function () {

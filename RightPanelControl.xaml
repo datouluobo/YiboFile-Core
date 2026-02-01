@@ -3,6 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:controls="clr-namespace:YiboFile.Controls"
              xmlns:viewModels="clr-namespace:YiboFile.ViewModels"
+             xmlns:local="clr-namespace:YiboFile"
+             xmlns:converters="clr-namespace:YiboFile.Converters"
              HorizontalAlignment="Stretch"
              VerticalAlignment="Stretch"
              MinWidth="100">
@@ -14,155 +16,411 @@
             <RowDefinition Height="*"/>
             <!-- 行2：分割器 -->
             <RowDefinition Height="Auto"/>
-            <!-- 行3：信息区 -->
-            <RowDefinition Height="Auto"/>
-            <!-- 行4：备注区 -->
-            <RowDefinition Height="200" MinHeight="120"/>
+            <!-- 行3：备注区 -->
+            <RowDefinition Height="{Binding NotesHeight, Mode=TwoWay, FallbackValue=200}" MinHeight="100"/>
         </Grid.RowDefinitions>
         
         <!-- 行0：标题栏（占位，与列2工具栏对齐） -->
         <Border Grid.Row="0" Height="50" Background="Transparent" IsHitTestVisible="False"/>
         
-        <!-- 预览区下方分割线 -->
-        <Border Grid.Row="2" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1"/>
-        
-        <!-- 行1：预览区 - 保持原有预览功能，图片时使用TagTrain样式 -->
+        <!-- Row 1: Preview Area -->
         <Border Grid.Row="1" Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1">
             <Grid Name="PreviewGrid" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ClipToBounds="True">
-                <!-- 原有的预览区域（用于非图片文件） -->
-                <TextBlock Text="选择一个文件进行预览" 
-                           HorizontalAlignment="Center" 
-                           VerticalAlignment="Center"
-                           Foreground="Gray" FontSize="14" Name="DefaultPreviewText"/>
-                
-                <!-- TagTrain样式的图片预览（叠加层，仅在显示图片时可见） -->
-                <Border BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="1" 
-                        Background="{DynamicResource BackgroundTertiaryBrush}" CornerRadius="5" ClipToBounds="True" 
-                        Name="ImagePreviewBorder" Visibility="Collapsed">
-                    <Grid ClipToBounds="True">
-                        <Image Name="ImagePreviewDisplay" 
-                               Stretch="Uniform" 
-                               HorizontalAlignment="Center" 
-                               VerticalAlignment="Center"
-                               StretchDirection="Both"
-                               RenderOptions.BitmapScalingMode="HighQuality"/>
-                        
-                        <!-- 图片导航控件（叠加在图片上方） -->
-                        <Grid VerticalAlignment="Bottom" Margin="0,0,0,10">
+                <Grid.Resources>
+                    <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
+                    <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+                    
+                    <Style x:Key="ToolbarToggleButtonStyle" TargetType="ToggleButton">
+                        <Setter Property="Padding" Value="8,4"/>
+                        <Setter Property="Margin" Value="2"/>
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="BorderBrush" Value="{DynamicResource ButtonBorderBrush}"/>
+                        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                        <Setter Property="BorderThickness" Value="1"/>
+                        <Setter Property="FontSize" Value="12"/>
+                        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                        <Setter Property="VerticalContentAlignment" Value="Center"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ToggleButton">
+                                    <Border x:Name="border"
+                                            Background="{TemplateBinding Background}" 
+                                            BorderBrush="{TemplateBinding BorderBrush}" 
+                                            BorderThickness="{TemplateBinding BorderThickness}"
+                                            CornerRadius="4">
+                                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" 
+                                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                          Margin="{TemplateBinding Padding}"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="{DynamicResource ButtonHoverBackgroundBrush}"/>
+                                            <Setter Property="BorderBrush" Value="{DynamicResource AccentHoverBrush}"/>
+                                        </Trigger>
+                                        <Trigger Property="IsChecked" Value="True">
+                                            <Setter Property="Background" Value="{DynamicResource AccentLightBrush}"/>
+                                            <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                                        </Trigger>
+                                        <Trigger Property="IsEnabled" Value="False">
+                                            <Setter Property="Opacity" Value="0.6"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                    
+                    <!-- Previews DataTemplates -->
+                    <DataTemplate DataType="{x:Type viewModels:Previews.ImagePreviewViewModel}">
+                        <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Top Toolbar -->
+                            <Border Grid.Row="0" Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1" Padding="5">
+                                <Grid>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Dimensions}" Foreground="Gray" VerticalAlignment="Center" Margin="5,0" FontSize="12"/>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                        <Button Content="➕" Command="{Binding ZoomInCommand}" CommandParameter="{Binding ElementName=PreviewImage}" Width="34" Height="34" Margin="2" ToolTip="放大"
+                                                Style="{DynamicResource IconButton}" FontSize="12" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                                        <Button Content="➖" Command="{Binding ZoomOutCommand}" CommandParameter="{Binding ElementName=PreviewImage}" Width="34" Height="34" Margin="2" ToolTip="缩小"
+                                                Style="{DynamicResource IconButton}" FontSize="12" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                                        <Button Content="1:1" Command="{Binding ResetZoomCommand}" MinWidth="34" Height="34" Padding="5,0" Margin="2" ToolTip="原始大小"
+                                                Style="{DynamicResource IconButton}" FontSize="12" FontWeight="Bold" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                                        <Button Content="⛶" Command="{Binding FitToWindowCommand}" Width="34" Height="34" Margin="2" ToolTip="适应窗口"
+                                                Style="{DynamicResource IconButton}" FontSize="12" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                                        <Button Content="↻" Command="{Binding RotateCommand}" Width="34" Height="34" Margin="2" ToolTip="旋转"
+                                                Style="{DynamicResource IconButton}" FontSize="12" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                                        <Button Content="打开" Command="{Binding OpenExternalCommand}" Margin="5,0,0,0" Height="34" MinWidth="60" Padding="10,0" FontSize="12" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+
+                            <ScrollViewer Grid.Row="1" PanningMode="Both">
+                                <ScrollViewer.Style>
+                                    <Style TargetType="ScrollViewer">
+                                        <Setter Property="HorizontalScrollBarVisibility" Value="Auto"/>
+                                        <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsFitToWindow}" Value="True">
+                                                <Setter Property="HorizontalScrollBarVisibility" Value="Disabled"/>
+                                                <Setter Property="VerticalScrollBarVisibility" Value="Disabled"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ScrollViewer.Style>
+                                <Image x:Name="PreviewImage" Source="{Binding ImageSource}" RenderOptions.BitmapScalingMode="Fant">
+                                    <Image.LayoutTransform>
+                                        <TransformGroup>
+                                            <ScaleTransform ScaleX="{Binding ZoomLevel}" ScaleY="{Binding ZoomLevel}"/>
+                                            <RotateTransform Angle="{Binding RotationAngle}"/>
+                                        </TransformGroup>
+                                    </Image.LayoutTransform>
+                                    <Image.Style>
+                                        <Style TargetType="Image">
+                                            <Setter Property="Stretch" Value="None"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsFitToWindow}" Value="True">
+                                                    <Setter Property="Stretch" Value="Uniform"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Image.Style>
+                                </Image>
+                            </ScrollViewer>
+                        </Grid>
+                    </DataTemplate>
+
+                    <DataTemplate DataType="{x:Type viewModels:Previews.MarkdownPreviewViewModel}">
+                        <Grid>
+                            <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
                             
-                            <!-- 导航按钮 -->
-                            <StackPanel Grid.Row="0" Orientation="Horizontal" 
-                                        HorizontalAlignment="Center" Margin="0,0,0,5">
-                                <Button Name="PrevImageBtn" 
-                                        Padding="10,5" Margin="0,0,5,0" 
-                                        Click="PrevImageBtn_Click" 
-                                        Visibility="Collapsed"
-                                        Background="{DynamicResource BorderDefaultBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}"
-                                        Cursor="Hand">
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="{DynamicResource Icon_Back}" FontFamily="{DynamicResource IconFontFamily}" Margin="0,0,4,0" VerticalAlignment="Center"/>
-                                        <TextBlock Text="上一张" VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </Button>
-                                <Button Name="NextImageBtn" 
-                                        Padding="10,5" 
-                                        Click="NextImageBtn_Click" 
-                                        Visibility="Collapsed"
-                                        Background="{DynamicResource BorderDefaultBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}"
-                                        Cursor="Hand">
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="下一张" VerticalAlignment="Center"/>
-                                        <TextBlock Text="{DynamicResource Icon_Forward}" FontFamily="{DynamicResource IconFontFamily}" Margin="4,0,0,0" VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </Button>
-                            </StackPanel>
-                            
-                            <!-- 图片索引显示 -->
-                            <TextBlock Name="ImageIndexText" 
-                                       Text="第 1/10 张" 
-                                       HorizontalAlignment="Center"
-                                       FontSize="12" Foreground="{DynamicResource ForegroundSecondaryBrush}"
-                                       Cursor="Hand" 
-                                       MouseLeftButtonDown="ImageIndexText_MouseLeftButtonDown"
-                                       ToolTip="点击跳转到指定图片"
-                                       Visibility="Collapsed"
-                                       Padding="5,2"/>
+                            <!-- Toolbar -->
+                            <Border Grid.Row="0" Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1" Padding="5">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <ToggleButton Content="📄 预览/源码" IsChecked="{Binding IsSourceView}" Style="{StaticResource ToolbarToggleButtonStyle}" Margin="0,0,5,0" Height="34" Padding="10,0" FontSize="12" VerticalContentAlignment="Center"/>
+                                    <ToggleButton Content="自动换行" IsChecked="{Binding IsWordWrap}" Style="{StaticResource ToolbarToggleButtonStyle}" Margin="0,0,5,0" Height="34" Padding="10,0" Visibility="{Binding IsSourceView, Converter={StaticResource BooleanToVisibilityConverter}}" FontSize="12" VerticalContentAlignment="Center"/>
+                                    <Button Content="刷新" Command="{Binding ReloadCommand}" Margin="0,0,5,0" Height="34" Padding="10,0" FontSize="12" VerticalContentAlignment="Center"/>
+                                    <Button Content="打开" Command="{Binding OpenExternalCommand}" Height="34" MinWidth="60" Padding="10,0" FontSize="12" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+
+                            <controls:MarkdownPreviewControl Grid.Row="1"/>
                         </Grid>
-                        
-                        <TextBlock Name="NoImagePreviewText" Text="选择一个文件进行预览" 
-                                  HorizontalAlignment="Center" 
-                                  VerticalAlignment="Center"
-                                  FontSize="18" Foreground="Gray" Visibility="Collapsed"/>
-                    </Grid>
-                </Border>
+                    </DataTemplate>
+
+                    <DataTemplate DataType="{x:Type viewModels:Previews.TextPreviewViewModel}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            
+                            <!-- Toolbar using standard controls to match TextPreviewToolbar features -->
+                            <Border Grid.Row="0" Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1" Padding="5">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <TextBlock Text="{Binding Encoding.EncodingName}" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="Gray" FontSize="12"/>
+                                    <ToggleButton Content="自动换行" IsChecked="{Binding IsWordWrap}" Style="{StaticResource ToolbarToggleButtonStyle}" Margin="0,0,5,0" Height="34" Padding="10,0" FontSize="12" VerticalContentAlignment="Center"/>
+                                    <ToggleButton Content="编辑" IsChecked="{Binding IsEditMode}" Style="{StaticResource ToolbarToggleButtonStyle}" Margin="0,0,5,0" Height="34" Padding="10,0" FontSize="12" VerticalContentAlignment="Center"/>
+                                    <Button Content="保存" Command="{Binding SaveCommand}" Visibility="{Binding IsEditMode, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="0,0,5,0" Height="34" Padding="10,0" FontSize="12" VerticalContentAlignment="Center"/>
+                                    <Button Content="打开" Command="{Binding OpenExternalCommand}" Height="34" MinWidth="60" Padding="10,0" FontSize="12" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+
+                            <TextBox Grid.Row="1" Text="{Binding Content, UpdateSourceTrigger=PropertyChanged}" 
+                                     AcceptsReturn="True" 
+                                     IsReadOnly="{Binding IsEditMode, Converter={StaticResource InverseBooleanConverter}}" 
+                                     TextWrapping="{Binding IsWordWrap, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter='Wrap'}"
+                                     FontFamily="Consolas" 
+                                     VerticalScrollBarVisibility="Auto"
+                                     HorizontalScrollBarVisibility="Auto"
+                                     BorderThickness="0"
+                                     Padding="5"/>
+                        </Grid>
+                    </DataTemplate>
+
+                    <DataTemplate DataType="{x:Type viewModels:Previews.ArchivePreviewViewModel}">
+                        <ListView ItemsSource="{Binding Entries}">
+                            <ListView.View>
+                                <GridView>
+                                    <GridViewColumn Header="名称" DisplayMemberBinding="{Binding Name}" Width="200"/>
+                                    <GridViewColumn Header="大小" DisplayMemberBinding="{Binding Size}" Width="80"/>
+                                </GridView>
+                            </ListView.View>
+                        </ListView>
+                    </DataTemplate>
+
+                    <DataTemplate DataType="{x:Type viewModels:Previews.ChmPreviewViewModel}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <Border Grid.Row="0" Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1" Padding="5">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <ToggleButton Content="目录" IsChecked="{Binding IsTocVisible}" Style="{StaticResource ToolbarToggleButtonStyle}" Margin="0,0,5,0" Height="34" Padding="10,0" FontSize="12" VerticalContentAlignment="Center"/>
+                                    <Button Content="打开" Command="{Binding OpenExternalCommand}" Height="34" MinWidth="60" Padding="10,0" FontSize="12" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+
+                            <controls:ChmPreviewControl Grid.Row="1"/>
+                        </Grid>
+                    </DataTemplate>
+
+                    <DataTemplate DataType="{x:Type viewModels:Previews.WordPreviewViewModel}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            
+                            <!-- Toolbar -->
+                            <Border Grid.Row="0" Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1" Padding="5">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <Button Content="🔄 转换" Command="{Binding ConvertCommand}" Visibility="{Binding NeedsConversion, Converter={StaticResource BooleanToVisibilityConverter}}" IsEnabled="{Binding IsConverting, Converter={StaticResource InverseBooleanConverter}}" Margin="0,0,5,0" Height="34" Padding="10,0" FontSize="12" VerticalContentAlignment="Center"/>
+                                    <Button Content="刷新" Command="{Binding ReloadCommand}" Margin="0,0,5,0" Height="34" Padding="10,0" FontSize="12" VerticalContentAlignment="Center"/>
+                                    <Button Content="打开" Command="{Binding OpenExternalCommand}" Height="34" MinWidth="60" Padding="10,0" FontSize="12" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Grid Grid.Row="1">
+                                <controls:WordPreviewControl/>
+                                
+                                <!-- Conversion Overlay -->
+                                <Border Background="#CCFFFFFF" Visibility="{Binding NeedsConversion, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                        <TextBlock Text="⚠️" FontSize="48" HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                                        <TextBlock Text="{Binding ConversionMessage}" FontSize="16" Foreground="Gray" TextWrapping="Wrap" TextAlignment="Center" MaxWidth="400" Margin="0,0,0,20"/>
+                                        <Button Content="转换为 DOCX 预览" Command="{Binding ConvertCommand}" IsEnabled="{Binding IsConverting, Converter={StaticResource InverseBooleanConverter}}" Padding="20,10" FontSize="16" HorizontalAlignment="Center"/>
+                                        <ProgressBar IsIndeterminate="True" Height="4" Margin="0,20,0,0" Visibility="{Binding IsConverting, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </Grid>
+                    </DataTemplate>
+
+                    <DataTemplate DataType="{x:Type viewModels:Previews.MediaPreviewViewModel}">
+                        <Grid>
+                            <controls:VideoPreviewControl FilePath="{Binding FilePath}">
+                                <controls:VideoPreviewControl.Style>
+                                    <Style TargetType="{x:Type controls:VideoPreviewControl}">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsVideo}" Value="True">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </controls:VideoPreviewControl.Style>
+                            </controls:VideoPreviewControl>
+                            
+                            <controls:AudioPreviewControl FilePath="{Binding FilePath}">
+                                <controls:AudioPreviewControl.Style>
+                                    <Style TargetType="{x:Type controls:AudioPreviewControl}">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsVideo}" Value="False">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </controls:AudioPreviewControl.Style>
+                            </controls:AudioPreviewControl>
+                        </Grid>
+                    </DataTemplate>
+
+                    <DataTemplate DataType="{x:Type viewModels:Previews.FolderPreviewViewModel}">
+                        <ListView ItemsSource="{Binding Items}">
+                            <ListView.View>
+                                <GridView>
+                                    <GridViewColumn Header="名称" DisplayMemberBinding="{Binding Name}" Width="150"/>
+                                    <GridViewColumn Header="大小" DisplayMemberBinding="{Binding Size}" Width="70"/>
+                                    <GridViewColumn Header="修改日期" DisplayMemberBinding="{Binding ModifiedDate}" Width="120"/>
+                                </GridView>
+                            </ListView.View>
+                        </ListView>
+                    </DataTemplate>
+
+                    <DataTemplate DataType="{x:Type viewModels:Previews.DocumentPreviewViewModel}">
+                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                            <TextBlock Text="📄" FontSize="64" HorizontalAlignment="Center" Margin="0,0,0,20"/>
+                            <TextBlock Text="{Binding FileInfo}" TextAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                            <Button Content="使用默认程序打开" Margin="0,20,0,0" Padding="15,5"
+                                    Command="{Binding OpenExternalCommand}"
+                                    Style="{DynamicResource PrimaryButtonStyle}"/>
+                        </StackPanel>
+                    </DataTemplate>
+
+                    <DataTemplate DataType="{x:Type viewModels:Previews.PdfPreviewViewModel}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <!-- Simple Toolbar for PDF -->
+                            <Border Grid.Row="0" Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1" Padding="5">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <Button Content="打开" Command="{Binding OpenExternalCommand}" Height="34" MinWidth="60" Padding="10,0" FontSize="12" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                            <controls:PdfView Grid.Row="1" FilePath="{Binding FilePath}"/>
+                        </Grid>
+                    </DataTemplate>
+                    
+                    <DataTemplate DataType="{x:Type viewModels:Previews.HtmlPreviewViewModel}">
+                        <Grid>
+                             <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <!-- Toolbar -->
+                            <Border Grid.Row="0" Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1" Padding="5">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <ToggleButton Content="📄 源码" IsChecked="{Binding IsSourceView}" Style="{StaticResource ToolbarToggleButtonStyle}" Margin="0,0,5,0" Height="34" Padding="10,0" FontSize="12" VerticalContentAlignment="Center"/>
+                                    <ToggleButton Content="编辑" IsChecked="{Binding IsEditMode}" Style="{StaticResource ToolbarToggleButtonStyle}" Margin="0,0,5,0" Height="34" Padding="10,0" FontSize="12" VerticalContentAlignment="Center"/>
+                                    <ToggleButton Content="自动换行" IsChecked="{Binding IsWordWrap}" Style="{StaticResource ToolbarToggleButtonStyle}" Margin="0,0,5,0" Height="34" Padding="10,0" Visibility="{Binding IsSourceView, Converter={StaticResource BooleanToVisibilityConverter}}" FontSize="12" VerticalContentAlignment="Center"/>
+                                    <Button Content="保存" Command="{Binding SaveCommand}" Visibility="{Binding IsEditMode, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="0,0,5,0" Height="34" Padding="10,0" FontSize="12" VerticalContentAlignment="Center"/>
+                                    <Button Content="刷新" Command="{Binding ReloadCommand}" Margin="0,0,5,0" Height="34" Padding="10,0" FontSize="12" VerticalContentAlignment="Center"/>
+                                    <Button Content="打开" Command="{Binding OpenExternalCommand}" Height="34" MinWidth="60" Padding="10,0" FontSize="12" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                            <controls:HtmlPreviewControl Grid.Row="1" FilePath="{Binding FilePath}"/>
+                        </Grid>
+                    </DataTemplate>
+
+                    <DataTemplate DataType="{x:Type viewModels:Previews.ExcelPreviewViewModel}">
+                        <Grid>
+                             <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                             <!-- Toolbar -->
+                            <Border Grid.Row="0" Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1" Padding="5">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                     <Button Content="打开" Command="{Binding OpenExternalCommand}" Height="34" MinWidth="60" Padding="10,0" FontSize="12" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                            <controls:ExcelPreviewControl Grid.Row="1"/>
+                        </Grid>
+                    </DataTemplate>
+
+                    <DataTemplate DataType="{x:Type viewModels:Previews.CadPreviewViewModel}">
+                        <Grid>
+                             <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                             <!-- Toolbar -->
+                            <Border Grid.Row="0" Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1" Padding="5">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                     <Button Content="{Binding ConvertStatusText}" Command="{Binding ConvertCommand}" Visibility="{Binding IsDwg, Converter={StaticResource BooleanToVisibilityConverter}}" IsEnabled="{Binding IsConverting, Converter={StaticResource InverseBooleanConverter}}" Margin="0,0,5,0" Height="34" Padding="10,0" FontSize="12" VerticalContentAlignment="Center"/>
+                                     <Button Content="刷新" Command="{Binding RefreshCommand}" Margin="0,0,5,0" Height="34" Padding="10,0" FontSize="12" VerticalContentAlignment="Center"/>
+                                     <Button Content="打开" Command="{Binding OpenExternalCommand}" Height="34" MinWidth="60" Padding="10,0" FontSize="12" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                            <controls:CadPreviewControl Grid.Row="1"/>
+                        </Grid>
+                    </DataTemplate>
+
+                    <DataTemplate DataType="{x:Type viewModels:Previews.PowerPointPreviewViewModel}">
+                        <Grid>
+                             <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                             <!-- Toolbar -->
+                            <Border Grid.Row="0" Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1" Padding="5">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                     <Button Content="刷新" Command="{Binding ReloadCommand}" Margin="0,0,5,0" Height="34" Padding="10,0" FontSize="12" VerticalContentAlignment="Center"/>
+                                     <Button Content="打开" Command="{Binding OpenExternalCommand}" Height="34" MinWidth="60" Padding="10,0" FontSize="12" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                            <controls:PowerPointPreviewControl Grid.Row="1"/>
+                        </Grid>
+                    </DataTemplate>
+
+                    <DataTemplate DataType="{x:Type viewModels:Previews.ErrorPreviewViewModel}">
+                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                            <TextBlock Text="❌" FontSize="48" HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                            <TextBlock Text="{Binding ErrorMessage}" FontSize="16" Foreground="Gray" TextWrapping="Wrap" HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </Grid.Resources>
+
+                <!-- MVVM Preview Content -->
+                <ContentPresenter Content="{Binding ActivePreview}"/>
+
+                <!-- Loading Overlay -->
+                <Grid Visibility="{Binding ActivePreview.IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}" Background="#88FFFFFF">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <ProgressBar IsIndeterminate="True" Width="200" Height="4" Margin="0,0,0,10"/>
+                        <TextBlock Text="正在加载..." HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Grid>
             </Grid>
         </Border>
 
-        <!-- 行3：信息区 -->
-        <Border Grid.Row="3" Padding="8,4" Background="{DynamicResource AppBackgroundBrush}">
-            <ItemsControl ItemsSource="{Binding InfoItems}">
-                <ItemsControl.Resources>
-                    <!-- 文本信息模板 -->
-                    <DataTemplate DataType="{x:Type viewModels:TextInfoItem}">
-                        <StackPanel Orientation="Horizontal" Margin="0,2">
-                            <TextBlock Text="{Binding Label}" FontWeight="Bold" Width="80" 
-                                       Foreground="{DynamicResource TextPrimaryBrush}"/>
-                            <TextBlock Text="{Binding Value}" TextWrapping="Wrap"
-                                       Foreground="{DynamicResource TextSecondaryBrush}"/>
-                        </StackPanel>
-                    </DataTemplate>
-                    
-                    <!-- 标签信息模板 -->
-                    <DataTemplate DataType="{x:Type viewModels:TagsInfoItem}">
-                        <StackPanel Orientation="Horizontal" Margin="0,2">
-                            <TextBlock Text="{Binding Label}" FontWeight="Bold" Width="80" VerticalAlignment="Top" Margin="0,4,0,0"
-                                       Foreground="{DynamicResource TextPrimaryBrush}"/>
-                            
-                            <!-- 标签列表 -->
-                            <ItemsControl ItemsSource="{Binding Tags}">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <WrapPanel Orientation="Horizontal" />
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border CornerRadius="4" Padding="6,2" Margin="0,0,6,4" 
-                                                BorderThickness="1" Cursor="Hand"
-                                                Background="{Binding ColorBrush}"
-                                                BorderBrush="{DynamicResource BorderDefaultBrush}">
-                                            <Border.Style>
-                                                <Style TargetType="Border">
-                                                    <Setter Property="Opacity" Value="1.0" />
-                                                    <Style.Triggers>
-                                                        <Trigger Property="IsMouseOver" Value="True">
-                                                            <Setter Property="Opacity" Value="0.8" />
-                                                        </Trigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Border.Style>
-                                            <Border.InputBindings>
-                                                <MouseBinding MouseAction="LeftClick" 
-                                                              Command="{Binding DataContext.TagClickedCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
-                                                              CommandParameter="{Binding}" />
-                                            </Border.InputBindings>
-                                            <TextBlock Text="{Binding Name}" FontSize="11" Foreground="#282828" />
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </StackPanel>
-                    </DataTemplate>
-                </ItemsControl.Resources>
-            </ItemsControl>
-        </Border>
+        <!-- 行2：分割器 -->
+        <controls:CollapsibleGridSplitter Grid.Row="2" 
+                      Style="{StaticResource HorizontalCollapsibleGridSplitterStyle}"
+                      CollapseMode="Both"
+                      HorizontalAlignment="Stretch"
+                      Panel.ZIndex="999"
+                      AutoFillNeighbor="True"
+                      ShowsPreview="True"/>
+        <Border Grid.Row="2" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,1,0,0" VerticalAlignment="Center"/>
 
-        <!-- 行4：备注区 -->
-        <Border Grid.Row="4" Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,1,0,0">
+        <!-- 行3：备注区 -->
+        <Border Grid.Row="3" Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,0">
             <TextBox Name="NotesTextBox" Padding="8,4,8,4" 
                      AcceptsReturn="True" 
                      TextWrapping="Wrap"

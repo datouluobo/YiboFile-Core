@@ -6,7 +6,7 @@ using System.Windows;
 using System.Windows.Input;
 using YiboFile.Services.Backup;
 using Microsoft.Extensions.DependencyInjection;
-
+using YiboFile.ViewModels.Previews;
 
 namespace YiboFile.ViewModels
 {
@@ -18,7 +18,7 @@ namespace YiboFile.ViewModels
         private ObservableCollection<BackupRecord> _selectedFiles;
         private bool _isLoading;
         private BackupRecord _currentPreviewRecord;
-        private UIElement _previewElement;
+        private IPreviewViewModel _previewViewModel;
         private AppConfig _config;
 
         public BackupViewModel(IBackupService backupService)
@@ -77,10 +77,10 @@ namespace YiboFile.ViewModels
             }
         }
 
-        public UIElement PreviewElement
+        public IPreviewViewModel PreviewViewModel
         {
-            get => _previewElement;
-            set => SetProperty(ref _previewElement, value);
+            get => _previewViewModel;
+            set => SetProperty(ref _previewViewModel, value);
         }
 
         // Commands
@@ -91,13 +91,11 @@ namespace YiboFile.ViewModels
         public ICommand RestoreSelectedCommand { get; }
         public ICommand DeleteSelectedCommand { get; }
 
-
         public async Task LoadBackupsAsync()
         {
             IsLoading = true;
             try
             {
-                // Auto cleanup if enabled
                 if (_config != null && _config.BackupRetentionDays > 0)
                 {
                     await _backupService.CleanOldBackupsAsync(_config.BackupRetentionDays);
@@ -119,8 +117,6 @@ namespace YiboFile.ViewModels
             try
             {
                 await _backupService.RestoreAsync(record);
-                // Refresh or remove from list? 
-                // Restore removes from manifest, so we should refresh UI
                 RemoveRecordFromUI(record);
                 YiboFile.DialogService.Info($"已恢复: {System.IO.Path.GetFileName(record.OriginalPath)}");
             }
@@ -223,15 +219,15 @@ namespace YiboFile.ViewModels
             }
         }
 
-        private void UpdatePreview()
+        private async void UpdatePreview()
         {
             if (CurrentPreviewRecord != null && !CurrentPreviewRecord.IsDirectory && System.IO.File.Exists(CurrentPreviewRecord.BackupPath))
             {
-                PreviewElement = YiboFile.Previews.PreviewFactory.CreatePreview(CurrentPreviewRecord.BackupPath);
+                PreviewViewModel = await YiboFile.Previews.PreviewFactory.CreateViewModelAsync(CurrentPreviewRecord.BackupPath);
             }
             else
             {
-                PreviewElement = null;
+                PreviewViewModel = null;
             }
         }
     }

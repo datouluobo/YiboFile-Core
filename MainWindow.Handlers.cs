@@ -143,6 +143,59 @@ namespace YiboFile
                 () => IsDualListMode
             );
 
+            // Subscribe to Preview Navigation Requests
+            _messageBus.Subscribe<PreviewNavigationRequestMessage>(msg =>
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    var activeBrowser = GetActiveContext().browser;
+                    if (activeBrowser != null && activeBrowser.FilesList != null)
+                    {
+                        var list = activeBrowser.FilesList;
+                        if (list.Items.Count == 0) return;
+
+                        int newIndex = -1;
+                        if (list.SelectedIndex == -1)
+                        {
+                            newIndex = 0;
+                        }
+                        else
+                        {
+                            newIndex = msg.IsNext ? list.SelectedIndex + 1 : list.SelectedIndex - 1;
+                        }
+
+                        if (newIndex >= 0 && newIndex < list.Items.Count)
+                        {
+                            list.SelectedIndex = newIndex;
+                            list.ScrollIntoView(list.Items[newIndex]);
+                        }
+                    }
+                });
+            });
+
+            // Subscribe to Open File Requests
+            _messageBus.Subscribe<OpenFileRequestMessage>(msg =>
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    if (!string.IsNullOrEmpty(msg.FilePath))
+                    {
+                        try
+                        {
+                            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                            {
+                                FileName = msg.FilePath,
+                                UseShellExecute = true
+                            });
+                        }
+                        catch (Exception ex)
+                        {
+                            DialogService.Error($"无法打开文件: {ex.Message}", owner: this);
+                        }
+                    }
+                });
+            });
+
             // 初始化 ColumnInteractionHandler
             _columnInteractionHandler = new Handlers.ColumnInteractionHandler(this, FileBrowser, _columnService, _configService);
             _columnInteractionHandler.Initialize();
