@@ -25,11 +25,13 @@ namespace YiboFile.Controls.Settings
 
         private List<LibraryUiModel> _libraries;
         private readonly YiboFile.Services.Data.Repositories.ILibraryRepository _repository;
+        private readonly YiboFile.Services.LibraryService _libraryService;
 
         public LibraryManagementPanel()
         {
             InitializeComponent();
             _repository = App.ServiceProvider?.GetService(typeof(YiboFile.Services.Data.Repositories.ILibraryRepository)) as YiboFile.Services.Data.Repositories.ILibraryRepository;
+            _libraryService = App.ServiceProvider?.GetService(typeof(YiboFile.Services.LibraryService)) as YiboFile.Services.LibraryService;
             RefreshLibraries();
         }
 
@@ -118,7 +120,13 @@ namespace YiboFile.Controls.Settings
 
             try
             {
-                var libraryId = _repository.AddLibrary(categoryName);
+                if (_libraryService == null)
+                {
+                    ShowError("Library service not available");
+                    return;
+                }
+
+                var libraryId = _libraryService.AddLibrary(categoryName);
                 if (libraryId > 0)
                 {
                     NewLibraryNameTextBox.Text = "";
@@ -126,13 +134,15 @@ namespace YiboFile.Controls.Settings
                 }
                 else if (libraryId < 0)
                 {
-                    ShowError("库名称已存在");
+                    // _libraryService already shows dialog, but we keep this for focus
+                    // ShowError("库名称已存在");
                     NewLibraryNameTextBox.SelectAll();
                     NewLibraryNameTextBox.Focus();
                 }
                 else
                 {
-                    ShowError("创建库失败");
+                    // _libraryService already shows dialog
+                    // ShowError("创建库失败");
                 }
             }
             catch (Exception ex)
@@ -154,7 +164,7 @@ namespace YiboFile.Controls.Settings
                     var newName = dialog.InputText.Trim();
                     try
                     {
-                        _repository.UpdateLibraryName(library.Id, newName);
+                        _libraryService?.UpdateLibraryName(library.Id, newName);
                         RefreshLibraries();
                     }
                     catch (Exception ex)
@@ -177,7 +187,7 @@ namespace YiboFile.Controls.Settings
                 {
                     try
                     {
-                        _repository.DeleteLibrary(library.Id);
+                        _libraryService?.DeleteLibrary(library.Id, library.Name);
                         RefreshLibraries();
                     }
                     catch (Exception ex)
@@ -195,6 +205,7 @@ namespace YiboFile.Controls.Settings
                 try
                 {
                     _repository.MoveLibraryUp(library.Id);
+                    _libraryService?.LoadLibraries();
                     RefreshLibraries();
                 }
                 catch (Exception ex)
@@ -211,6 +222,7 @@ namespace YiboFile.Controls.Settings
                 try
                 {
                     _repository.MoveLibraryDown(library.Id);
+                    _libraryService?.LoadLibraries();
                     RefreshLibraries();
                 }
                 catch (Exception ex)
@@ -245,7 +257,7 @@ namespace YiboFile.Controls.Settings
                                 return;
                             }
 
-                            _repository.AddLibraryPath(library.Id, path);
+                            _libraryService?.AddLibraryPath(library.Id, path);
                             RefreshLibraries();
                         }
                         catch (Exception ex)
@@ -271,6 +283,7 @@ namespace YiboFile.Controls.Settings
                     try
                     {
                         _repository.UpdateLibraryPathDisplayName(path.LibraryId, path.Path, newName);
+                        _libraryService?.LoadLibraries();
                         RefreshLibraries();
                     }
                     catch (Exception ex)
@@ -293,7 +306,7 @@ namespace YiboFile.Controls.Settings
                 {
                     try
                     {
-                        _repository.RemoveLibraryPath(path.LibraryId, path.Path);
+                        _libraryService?.RemoveLibraryPath(path.LibraryId, path.Path);
                         RefreshLibraries();
                     }
                     catch (Exception ex)

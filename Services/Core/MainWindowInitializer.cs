@@ -44,22 +44,10 @@ namespace YiboFile.Services
         {
             try
             {
-                FileLogger.Log("InitializeConfigServices started.");
-                // 加载配置（Load 方法内部会自动执行迁移）
-                var config = ConfigManager.Load();
                 FileLogger.Log("Configuration loaded.");
 
-                // 初始化配置服务
-                if (_mainWindow._configService == null)
-                {
-                    var errorService = App.ServiceProvider.GetRequiredService<YiboFile.Services.Core.Error.ErrorService>();
-                    _mainWindow._configService = new ConfigService(config, errorService);
-                    _mainWindow._configService.UIHelper = _mainWindow;
-                }
-                else
-                {
-                    _mainWindow._configService.Config = config;
-                }
+                var config = ConfigurationService.Instance.Config;
+
 
                 // 更新 TabService 的配置
                 if (_mainWindow._tabService != null && config != null)
@@ -76,15 +64,13 @@ namespace YiboFile.Services
                 }
 
                 // 初始化窗口状态管理器（需要在RestoreLastState之前创建）
-                if (_mainWindow._configService != null && _mainWindow._tabService != null)
+                if (_mainWindow._tabService != null)
                 {
                     try
                     {
                         _mainWindow._windowStateManager = new WindowStateManager(
                             _mainWindow,
                             _mainWindow._tabService,
-                            _mainWindow._configService,
-                            config,
                             _mainWindow._navigationService,
                             _mainWindow._navigationModeService,
                             _mainWindow._secondTabService
@@ -97,6 +83,7 @@ namespace YiboFile.Services
                     }
                 }
 
+
                 // 初始化导航模式服务
                 if (_mainWindow._navigationModeService == null)
                 {
@@ -106,7 +93,7 @@ namespace YiboFile.Services
                             _mainWindow,
                             _mainWindow._navigationService,
                             _mainWindow._tabService,
-                            _mainWindow._configService
+                            ConfigurationService.Instance
                         );
                     }
                     catch (Exception ex)
@@ -114,6 +101,7 @@ namespace YiboFile.Services
                         FileLogger.LogException("NavigationModeService init", ex);
                     }
                 }
+
 
                 // 初始化设置覆盖控制器
                 if (_mainWindow._settingsOverlayController == null)
@@ -129,8 +117,9 @@ namespace YiboFile.Services
                                 settingsOverlay,
                                 settingsPanel,
                                 rightPanel,
-                                (cfg) => _mainWindow._configService?.ApplyConfig(cfg)
+                                (cfg) => { /* Config is now auto-applied via bound properties or manual triggers */ }
                             );
+
                         }
                     }
                     catch (Exception ex)
@@ -139,25 +128,7 @@ namespace YiboFile.Services
                     }
                 }
 
-                // Subscribe to ConfigApplied event to update TabService when config changes
-                if (_mainWindow._configService != null)
-                {
-                    _mainWindow._configService.ConfigApplied += (sender, cfg) =>
-                    {
-                        try
-                        {
-                            if (_mainWindow._tabService != null && cfg != null)
-                            {
-                                _mainWindow._tabService.UpdateConfig(cfg);
-                                _mainWindow._secondTabService?.UpdateConfig(cfg);
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            FileLogger.LogException("ConfigApplied->TabService.UpdateConfig", ex);
-                        }
-                    };
-                }
+
             }
             catch (Exception ex)
             {
@@ -173,19 +144,17 @@ namespace YiboFile.Services
             try
             {
                 FileLogger.Log("ApplyInitialState started.");
-                // 获取当前配置
-                var config = _mainWindow._configService?.Config ?? ConfigManager.Load();
-
-                // 应用配置
+                // 恢复窗口和布局状态
                 try
                 {
-                    _mainWindow._configService?.ApplyConfig(config);
-                    FileLogger.Log("Configuration applied.");
+                    _mainWindow._windowStateManager?.RestoreAllState();
+                    FileLogger.Log("WindowState restored via WindowStateManager.");
                 }
                 catch (Exception ex)
                 {
-                    FileLogger.LogException("ApplyConfig", ex);
+                    FileLogger.LogException("RestoreAllState", ex);
                 }
+
 
                 // 加载初始数据
                 FileLogger.Log("Loading initial data...");
@@ -193,7 +162,8 @@ namespace YiboFile.Services
                 FileLogger.Log("Initial data loaded.");
 
                 // 恢复最后的状态
-                RestoreLastState(config);
+                RestoreLastState(ConfigurationService.Instance.Config);
+
 
                 // 关键修复：初始化完成后，强制调整列宽逻辑
                 // 这会确保中间列被恢复为 Star (自适应) 宽度，防止启动时出现右侧空白间隙（因为配置中保存的是固定像素宽度）

@@ -49,7 +49,7 @@ namespace YiboFile.Services.FileList
                 // 计算文件大小
                 try
                 {
-                    var files = dirInfo.GetFiles("*", SearchOption.TopDirectoryOnly);
+                    var files = dirInfo.EnumerateFiles("*", SearchOption.TopDirectoryOnly);
                     foreach (var file in files)
                     {
                         if (cancellationToken.IsCancellationRequested)
@@ -69,7 +69,7 @@ namespace YiboFile.Services.FileList
                 // 计算子目录大小（使用缓存）
                 try
                 {
-                    var subDirs = dirInfo.GetDirectories("*", SearchOption.TopDirectoryOnly);
+                    var subDirs = dirInfo.EnumerateDirectories("*", SearchOption.TopDirectoryOnly);
                     foreach (var subDir in subDirs)
                     {
                         if (cancellationToken.IsCancellationRequested)
@@ -159,7 +159,7 @@ namespace YiboFile.Services.FileList
             {
                 // 先尝试从数据库读取子文件夹的缓存大小（如果存在）
                 // 这样可以避免重复计算已缓存的子文件夹
-                var subDirs = dirInfo.GetDirectories("*", SearchOption.TopDirectoryOnly);
+                var subDirs = dirInfo.EnumerateDirectories("*", SearchOption.TopDirectoryOnly);
                 var subDirsToCalculate = new List<DirectoryInfo>();
                 long cachedSubDirSize = 0;
 
@@ -186,7 +186,7 @@ namespace YiboFile.Services.FileList
                 int fileCount = 0;
                 try
                 {
-                    var files = dirInfo.GetFiles("*", SearchOption.TopDirectoryOnly);
+                    var files = dirInfo.EnumerateFiles("*", SearchOption.TopDirectoryOnly);
                     foreach (var file in files)
                     {
                         if (cancellationToken.IsCancellationRequested) return size;
@@ -277,7 +277,7 @@ namespace YiboFile.Services.FileList
             {
                 // 计算当前目录的直接文件
                 int fileCount = 0;
-                foreach (var file in dirInfo.GetFiles("*", SearchOption.TopDirectoryOnly))
+                foreach (var file in dirInfo.EnumerateFiles("*", SearchOption.TopDirectoryOnly))
                 {
                     if (cancellationToken.IsCancellationRequested) return size;
 
@@ -297,7 +297,7 @@ namespace YiboFile.Services.FileList
                 }
 
                 // 递归计算子目录（限制深度）
-                foreach (var subDir in dirInfo.GetDirectories("*", SearchOption.TopDirectoryOnly))
+                foreach (var subDir in dirInfo.EnumerateDirectories("*", SearchOption.TopDirectoryOnly))
                 {
                     if (cancellationToken.IsCancellationRequested) return size;
                     try
@@ -543,11 +543,11 @@ namespace YiboFile.Services.FileList
                     int totalCount = DatabaseManager.GetFolderSizeCacheCount();
                     if (totalCount == 0)
                         return; // 没有缓存，不需要清理
-                    
+
                     // 如果缓存数量较少，清理所有；如果较多，只清理一部分（避免启动时耗时过长）
                     int maxProcessed = totalCount > 5000 ? 1000 : 0; // 超过5000条时，只清理1000条
                     int cleanedCount = DatabaseManager.CleanupNonExistentFolderSizes(batchSize: 100, maxProcessed: maxProcessed);
-                    
+
                     if (cleanedCount > 0)
                     {
                         Debug.WriteLine($"启动时清理了 {cleanedCount} 条不存在的文件夹大小缓存");

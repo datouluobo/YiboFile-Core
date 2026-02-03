@@ -54,7 +54,14 @@ namespace YiboFile.Controls
             // 订阅文件列表控件的事件（转发到外部事件）
             if (FileList != null)
             {
-                FileList.SelectionChanged += (s, e) => FilesSelectionChanged?.Invoke(s, e);
+                FileList.SelectionChanged += (s, e) =>
+                {
+                    if (DataContext is ViewModels.PaneViewModel vm)
+                    {
+                        vm.UpdateSelection(FileList.SelectedItems);
+                    }
+                    FilesSelectionChanged?.Invoke(s, e);
+                };
                 FileList.MouseDoubleClick += (s, e) => FilesMouseDoubleClick?.Invoke(s, e);
                 FileList.PreviewMouseDoubleClick += (s, e) =>
                 {
@@ -122,19 +129,54 @@ namespace YiboFile.Controls
             // 订阅标题操作栏事件
             if (TitleActionBar != null)
             {
-                TitleActionBar.NewFolderClicked += (s, e) => FileNewFolder?.Invoke(s, e);
-                TitleActionBar.NewFileClicked += (s, e) => FileNewFile?.Invoke(s, e);
-                TitleActionBar.CopyClicked += (s, e) => FileCopy?.Invoke(s, e);
-                TitleActionBar.PasteClicked += (s, e) => FilePaste?.Invoke(s, e);
-                TitleActionBar.DeleteClicked += (s, e) => FileDelete?.Invoke(s, e);
-                TitleActionBar.RefreshClicked += (s, e) => FileRefresh?.Invoke(s, e);
+                TitleActionBar.NewFolderClicked += (s, e) =>
+                {
+                    if (NewFolderCommand?.CanExecute(DataContext) == true) NewFolderCommand.Execute(DataContext);
+                    else FileNewFolder?.Invoke(s, e);
+                };
+                TitleActionBar.NewFileClicked += (s, e) =>
+                {
+                    if (NewFileCommand?.CanExecute(DataContext) == true) NewFileCommand.Execute(DataContext);
+                    else FileNewFile?.Invoke(s, e);
+                };
+                TitleActionBar.CopyClicked += (s, e) =>
+                {
+                    if (CopyCommand?.CanExecute(FilesSelectedItems) == true) CopyCommand.Execute(FilesSelectedItems);
+                    else FileCopy?.Invoke(s, e);
+                };
+                TitleActionBar.PasteClicked += (s, e) =>
+                {
+                    if (PasteCommand?.CanExecute(DataContext) == true) PasteCommand.Execute(DataContext);
+                    else FilePaste?.Invoke(s, e);
+                };
+                TitleActionBar.DeleteClicked += (s, e) =>
+                {
+                    if (DeleteCommand?.CanExecute(FilesSelectedItems) == true) DeleteCommand.Execute(FilesSelectedItems);
+                    else FileDelete?.Invoke(s, e);
+                };
+                TitleActionBar.RefreshClicked += (s, e) =>
+                {
+                    if (RefreshCommand?.CanExecute(null) == true) RefreshCommand.Execute(null);
+                    else FileRefresh?.Invoke(s, e);
+                };
                 TitleActionBar.NewTagClicked += (s, e) => FileAddTag?.Invoke(s, e);
             }
+
+            // 监听全局鼠标按下以激活面板
+            this.PreviewMouseDown += (s, e) => RequestActivation();
 
             this.Loaded += FileBrowserControl_Loaded;
 
             // 监听 DataContext 变更以连接到 PaneViewModel
             this.DataContextChanged += OnDataContextChanged;
+        }
+
+        private void RequestActivation()
+        {
+            if (DataContext is ViewModels.PaneViewModel vm)
+            {
+                vm.RequestActivation();
+            }
         }
 
         private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
@@ -343,6 +385,37 @@ namespace YiboFile.Controls
             }
         }
 
+        #region Command Dependency Properties
+
+        public static readonly DependencyProperty CopyCommandProperty = DependencyProperty.Register(nameof(CopyCommand), typeof(ICommand), typeof(FileBrowserControl));
+        public ICommand CopyCommand { get => (ICommand)GetValue(CopyCommandProperty); set => SetValue(CopyCommandProperty, value); }
+
+        public static readonly DependencyProperty CutCommandProperty = DependencyProperty.Register(nameof(CutCommand), typeof(ICommand), typeof(FileBrowserControl));
+        public ICommand CutCommand { get => (ICommand)GetValue(CutCommandProperty); set => SetValue(CutCommandProperty, value); }
+
+        public static readonly DependencyProperty PasteCommandProperty = DependencyProperty.Register(nameof(PasteCommand), typeof(ICommand), typeof(FileBrowserControl));
+        public ICommand PasteCommand { get => (ICommand)GetValue(PasteCommandProperty); set => SetValue(PasteCommandProperty, value); }
+
+        public static readonly DependencyProperty DeleteCommandProperty = DependencyProperty.Register(nameof(DeleteCommand), typeof(ICommand), typeof(FileBrowserControl));
+        public ICommand DeleteCommand { get => (ICommand)GetValue(DeleteCommandProperty); set => SetValue(DeleteCommandProperty, value); }
+
+        public static readonly DependencyProperty RenameCommandProperty = DependencyProperty.Register(nameof(RenameCommand), typeof(ICommand), typeof(FileBrowserControl));
+        public ICommand RenameCommand { get => (ICommand)GetValue(RenameCommandProperty); set => SetValue(RenameCommandProperty, value); }
+
+        public static readonly DependencyProperty NewFolderCommandProperty = DependencyProperty.Register(nameof(NewFolderCommand), typeof(ICommand), typeof(FileBrowserControl));
+        public ICommand NewFolderCommand { get => (ICommand)GetValue(NewFolderCommandProperty); set => SetValue(NewFolderCommandProperty, value); }
+
+        public static readonly DependencyProperty NewFileCommandProperty = DependencyProperty.Register(nameof(NewFileCommand), typeof(ICommand), typeof(FileBrowserControl));
+        public ICommand NewFileCommand { get => (ICommand)GetValue(NewFileCommandProperty); set => SetValue(NewFileCommandProperty, value); }
+
+        public static readonly DependencyProperty RefreshCommandProperty = DependencyProperty.Register(nameof(RefreshCommand), typeof(ICommand), typeof(FileBrowserControl));
+        public ICommand RefreshCommand { get => (ICommand)GetValue(RefreshCommandProperty); set => SetValue(RefreshCommandProperty, value); }
+
+        public static readonly DependencyProperty PropertiesCommandProperty = DependencyProperty.Register(nameof(PropertiesCommand), typeof(ICommand), typeof(FileBrowserControl));
+        public ICommand PropertiesCommand { get => (ICommand)GetValue(PropertiesCommandProperty); set => SetValue(PropertiesCommandProperty, value); }
+
+        #endregion
+
         /// <summary>
         /// 设置搜索状态显示
         /// </summary>
@@ -367,10 +440,16 @@ namespace YiboFile.Controls
             FileList?.SetGroupedSearchResults(groupedItems);
         }
 
-        public void ApplyGrouping()
-        {
-            FileList?.ApplyGrouping();
-        }
+        public static readonly DependencyProperty UndoCommandProperty = DependencyProperty.Register(nameof(UndoCommand), typeof(ICommand), typeof(FileBrowserControl));
+        public ICommand UndoCommand { get => (ICommand)GetValue(UndoCommandProperty); set => SetValue(UndoCommandProperty, value); }
+
+        public static readonly DependencyProperty RedoCommandProperty = DependencyProperty.Register(nameof(RedoCommand), typeof(ICommand), typeof(FileBrowserControl));
+        public ICommand RedoCommand { get => (ICommand)GetValue(RedoCommandProperty); set => SetValue(RedoCommandProperty, value); }
+
+        public static readonly DependencyProperty SearchCommandProperty = DependencyProperty.Register(nameof(SearchCommand), typeof(ICommand), typeof(FileBrowserControl));
+        public ICommand SearchCommand { get => (ICommand)GetValue(SearchCommandProperty); set => SetValue(SearchCommandProperty, value); }
+
+
 
         public object FilesSelectedItem
         {

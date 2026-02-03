@@ -89,13 +89,13 @@ namespace YiboFile.Controls
         public bool IsPreviousCollapsed
         {
             get => (bool)GetValue(IsPreviousCollapsedProperty);
-            private set => SetValue(IsPreviousCollapsedProperty, value);
+            set => SetValue(IsPreviousCollapsedProperty, value);
         }
 
         public bool IsNextCollapsed
         {
             get => (bool)GetValue(IsNextCollapsedProperty);
-            private set => SetValue(IsNextCollapsedProperty, value);
+            set => SetValue(IsNextCollapsedProperty, value);
         }
 
         public bool AutoFillNeighbor
@@ -117,6 +117,7 @@ namespace YiboFile.Controls
         private const double MinSize = 0;
         private double _savedPreviousMinSize;
         private double _savedNextMinSize;
+        private bool _isInternalChange = false;
 
         // Neighbor saving
         private GridLength _savedNeighborSize;
@@ -166,18 +167,12 @@ namespace YiboFile.Controls
 
         private void CollapsePreviousButton_Click(object sender, RoutedEventArgs e)
         {
-            if (IsPreviousCollapsed)
-                ExpandPanel(PanelDirection.Previous);
-            else
-                CollapsePanel(PanelDirection.Previous);
+            IsPreviousCollapsed = !IsPreviousCollapsed;
         }
 
         private void CollapseNextButton_Click(object sender, RoutedEventArgs e)
         {
-            if (IsNextCollapsed)
-                ExpandPanel(PanelDirection.Next);
-            else
-                CollapsePanel(PanelDirection.Next);
+            IsNextCollapsed = !IsNextCollapsed;
         }
 
         private static void OnCollapseModeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -196,6 +191,21 @@ namespace YiboFile.Controls
         {
             if (d is CollapsibleGridSplitter splitter)
             {
+                if (splitter._isInternalChange) return;
+
+                bool isCollapsed = (bool)e.NewValue;
+                PanelDirection direction = (e.Property == IsPreviousCollapsedProperty)
+                    ? PanelDirection.Previous : PanelDirection.Next;
+
+                if (isCollapsed)
+                {
+                    splitter.CollapsePanel(direction);
+                }
+                else
+                {
+                    splitter.ExpandPanel(direction);
+                }
+
                 splitter.UpdateButtonVisibility();
                 splitter.CollapsedStateChanged?.Invoke(splitter, new RoutedEventArgs());
             }
@@ -213,103 +223,103 @@ namespace YiboFile.Controls
             var currentColumn = Grid.GetColumn(this);
             var currentRow = Grid.GetRow(this);
 
-            if (Orientation == Orientation.Vertical)
+            _isInternalChange = true;
+            try
             {
-                // 垂直分割器：折叠列
-                var targetColumnIndex = direction == PanelDirection.Previous ? currentColumn - 1 : currentColumn + 1;
-                if (targetColumnIndex < 0 || targetColumnIndex >= parentGrid.ColumnDefinitions.Count) return;
-
-                var columnDef = parentGrid.ColumnDefinitions[targetColumnIndex];
-
-                // 保存当前大小
-                if (direction == PanelDirection.Previous)
+                if (Orientation == Orientation.Vertical)
                 {
-                    _previousSize = columnDef.Width;
-                    _previousActualLength = columnDef.ActualWidth;
-                    _savedPreviousMinSize = columnDef.MinWidth;
-                    columnDef.MinWidth = 0;
-                    IsPreviousCollapsed = true;
+                    // 垂直分割器：折叠列
+                    var targetColumnIndex = direction == PanelDirection.Previous ? currentColumn - 1 : currentColumn + 1;
+                    if (targetColumnIndex < 0 || targetColumnIndex >= parentGrid.ColumnDefinitions.Count) return;
+
+                    var columnDef = parentGrid.ColumnDefinitions[targetColumnIndex];
+
+                    // 保存当前大小
+                    if (direction == PanelDirection.Previous)
+                    {
+                        _previousSize = columnDef.Width;
+                        _previousActualLength = columnDef.ActualWidth;
+                        _savedPreviousMinSize = columnDef.MinWidth;
+                        columnDef.MinWidth = 0;
+                        IsPreviousCollapsed = true;
+                    }
+                    else
+                    {
+                        _nextSize = columnDef.Width;
+                        _nextActualLength = columnDef.ActualWidth;
+                        _savedNextMinSize = columnDef.MinWidth;
+                        columnDef.MinWidth = 0;
+                        IsNextCollapsed = true;
+                    }
+
+                    // 处理 AutoFillNeighbor
+                    if (AutoFillNeighbor)
+                    {
+                        var neighborIndex = direction == PanelDirection.Previous ? currentColumn + 1 : currentColumn - 1;
+                        if (neighborIndex >= 0 && neighborIndex < parentGrid.ColumnDefinitions.Count)
+                        {
+                            var neighborCol = parentGrid.ColumnDefinitions[neighborIndex];
+                            if (!neighborCol.Width.IsStar)
+                            {
+                                _savedNeighborSize = neighborCol.Width;
+                                _hasSavedNeighborSize = true;
+                                neighborCol.Width = new GridLength(1, GridUnitType.Star);
+                            }
+                        }
+                    }
+
+                    // 执行动画
+                    AnimateColumnWidth(columnDef, columnDef.ActualWidth, MinSize);
                 }
                 else
                 {
-                    _nextSize = columnDef.Width;
-                    _nextActualLength = columnDef.ActualWidth;
-                    _savedNextMinSize = columnDef.MinWidth;
-                    columnDef.MinWidth = 0;
-                    IsNextCollapsed = true;
-                }
+                    // 水平分割器：折叠行
+                    var targetRowIndex = direction == PanelDirection.Previous ? currentRow - 1 : currentRow + 1;
+                    if (targetRowIndex < 0 || targetRowIndex >= parentGrid.RowDefinitions.Count) return;
 
-                // 处理 AutoFillNeighbor
-                if (AutoFillNeighbor)
-                {
-                    var neighborIndex = direction == PanelDirection.Previous ? currentColumn + 1 : currentColumn - 1;
-                    if (neighborIndex >= 0 && neighborIndex < parentGrid.ColumnDefinitions.Count)
+                    var rowDef = parentGrid.RowDefinitions[targetRowIndex];
+
+                    // 保存当前大小
+                    if (direction == PanelDirection.Previous)
                     {
-                        var neighborCol = parentGrid.ColumnDefinitions[neighborIndex];
-                        if (!neighborCol.Width.IsStar)
+                        _previousSize = rowDef.Height;
+                        _previousActualLength = rowDef.ActualHeight;
+                        _savedPreviousMinSize = rowDef.MinHeight;
+                        rowDef.MinHeight = 0;
+                        IsPreviousCollapsed = true;
+                    }
+                    else
+                    {
+                        _nextSize = rowDef.Height;
+                        _nextActualLength = rowDef.ActualHeight;
+                        _savedNextMinSize = rowDef.MinHeight;
+                        rowDef.MinHeight = 0;
+                        IsNextCollapsed = true;
+                    }
+
+                    // 处理 AutoFillNeighbor
+                    if (AutoFillNeighbor)
+                    {
+                        var neighborIndex = direction == PanelDirection.Previous ? currentRow + 1 : currentRow - 1;
+                        if (neighborIndex >= 0 && neighborIndex < parentGrid.RowDefinitions.Count)
                         {
-                            _savedNeighborSize = neighborCol.Width;
-                            _hasSavedNeighborSize = true;
-                            neighborCol.Width = new GridLength(1, GridUnitType.Star);
-                        }
-                        else
-                        {
-                            _hasSavedNeighborSize = false;
+                            var neighborRow = parentGrid.RowDefinitions[neighborIndex];
+                            if (!neighborRow.Height.IsStar)
+                            {
+                                _savedNeighborSize = neighborRow.Height;
+                                _hasSavedNeighborSize = true;
+                                neighborRow.Height = new GridLength(1, GridUnitType.Star);
+                            }
                         }
                     }
-                }
 
-                // 执行动画
-                AnimateColumnWidth(columnDef, columnDef.ActualWidth, MinSize);
+                    // 执行动画
+                    AnimateRowHeight(rowDef, rowDef.ActualHeight, MinSize);
+                }
             }
-            else
+            finally
             {
-                // 水平分割器：折叠行
-                var targetRowIndex = direction == PanelDirection.Previous ? currentRow - 1 : currentRow + 1;
-                if (targetRowIndex < 0 || targetRowIndex >= parentGrid.RowDefinitions.Count) return;
-
-                var rowDef = parentGrid.RowDefinitions[targetRowIndex];
-
-                // 保存当前大小
-                if (direction == PanelDirection.Previous)
-                {
-                    _previousSize = rowDef.Height;
-                    _previousActualLength = rowDef.ActualHeight;
-                    _savedPreviousMinSize = rowDef.MinHeight;
-                    rowDef.MinHeight = 0;
-                    IsPreviousCollapsed = true;
-                }
-                else
-                {
-                    _nextSize = rowDef.Height;
-                    _nextActualLength = rowDef.ActualHeight;
-                    _savedNextMinSize = rowDef.MinHeight;
-                    rowDef.MinHeight = 0;
-                    IsNextCollapsed = true;
-                }
-
-                // 处理 AutoFillNeighbor
-                if (AutoFillNeighbor)
-                {
-                    var neighborIndex = direction == PanelDirection.Previous ? currentRow + 1 : currentRow - 1;
-                    if (neighborIndex >= 0 && neighborIndex < parentGrid.RowDefinitions.Count)
-                    {
-                        var neighborRow = parentGrid.RowDefinitions[neighborIndex];
-                        if (!neighborRow.Height.IsStar)
-                        {
-                            _savedNeighborSize = neighborRow.Height;
-                            _hasSavedNeighborSize = true;
-                            neighborRow.Height = new GridLength(1, GridUnitType.Star);
-                        }
-                        else
-                        {
-                            _hasSavedNeighborSize = false;
-                        }
-                    }
-                }
-
-                // 执行动画
-                AnimateRowHeight(rowDef, rowDef.ActualHeight, MinSize);
+                _isInternalChange = false;
             }
         }
 
@@ -321,83 +331,96 @@ namespace YiboFile.Controls
             var currentColumn = Grid.GetColumn(this);
             var currentRow = Grid.GetRow(this);
 
-            if (Orientation == Orientation.Vertical)
+            _isInternalChange = true;
+            try
             {
-                // 垂直分割器：展开列
-                var targetColumnIndex = direction == PanelDirection.Previous ? currentColumn - 1 : currentColumn + 1;
-                if (targetColumnIndex < 0 || targetColumnIndex >= parentGrid.ColumnDefinitions.Count) return;
-
-                var columnDef = parentGrid.ColumnDefinitions[targetColumnIndex];
-                var targetPixelSize = direction == PanelDirection.Previous ? _previousActualLength : _nextActualLength;
-                var originalSize = direction == PanelDirection.Previous ? _previousSize : _nextSize;
-
-                if (direction == PanelDirection.Previous)
-                    IsPreviousCollapsed = false;
-                else
-                    IsNextCollapsed = false;
-
-                // 恢复 AutoFillNeighbor
-                if (AutoFillNeighbor && _hasSavedNeighborSize)
+                if (Orientation == Orientation.Vertical)
                 {
-                    var neighborIndex = direction == PanelDirection.Previous ? currentColumn + 1 : currentColumn - 1;
-                    if (neighborIndex >= 0 && neighborIndex < parentGrid.ColumnDefinitions.Count)
-                    {
-                        parentGrid.ColumnDefinitions[neighborIndex].Width = _savedNeighborSize;
-                        _hasSavedNeighborSize = false;
-                    }
-                }
+                    // 垂直分割器：展开列
+                    var targetColumnIndex = direction == PanelDirection.Previous ? currentColumn - 1 : currentColumn + 1;
+                    if (targetColumnIndex < 0 || targetColumnIndex >= parentGrid.ColumnDefinitions.Count) return;
 
-                // 执行动画，完成后恢复 MinWidth 和 GridUnitType
-                AnimateColumnWidth(columnDef, MinSize, targetPixelSize, () =>
-                {
-                    columnDef.Width = originalSize; // 恢复原始 GridLength（包括 Star 类型）
+                    var columnDef = parentGrid.ColumnDefinitions[targetColumnIndex];
+                    var targetPixelSize = direction == PanelDirection.Previous ? _previousActualLength : _nextActualLength;
+                    var originalSize = direction == PanelDirection.Previous ? _previousSize : _nextSize;
+
+                    // 如果没有保存过大小（初次展开且不是通过折叠进入），设为一个合理的默认值
+                    if (targetPixelSize <= 0) targetPixelSize = direction == PanelDirection.Previous ? 220 : 360;
+                    if (originalSize.Value <= 0) originalSize = new GridLength(targetPixelSize);
+
                     if (direction == PanelDirection.Previous)
-                        columnDef.MinWidth = _savedPreviousMinSize;
+                        IsPreviousCollapsed = false;
                     else
-                        columnDef.MinWidth = _savedNextMinSize;
+                        IsNextCollapsed = false;
 
-                    // 强制更新按钮可见性，确保状态正确
-                    UpdateButtonVisibility();
-                });
+                    // 恢复 AutoFillNeighbor
+                    if (AutoFillNeighbor && _hasSavedNeighborSize)
+                    {
+                        var neighborIndex = direction == PanelDirection.Previous ? currentColumn + 1 : currentColumn - 1;
+                        if (neighborIndex >= 0 && neighborIndex < parentGrid.ColumnDefinitions.Count)
+                        {
+                            parentGrid.ColumnDefinitions[neighborIndex].Width = _savedNeighborSize;
+                            _hasSavedNeighborSize = false;
+                        }
+                    }
+
+                    // 执行动画
+                    AnimateColumnWidth(columnDef, MinSize, targetPixelSize, () =>
+                    {
+                        columnDef.Width = originalSize;
+                        if (direction == PanelDirection.Previous)
+                            columnDef.MinWidth = _savedPreviousMinSize;
+                        else
+                            columnDef.MinWidth = _savedNextMinSize;
+
+                        UpdateButtonVisibility();
+                    });
+                }
+                else
+                {
+                    // 水平分割器：展开行
+                    var targetRowIndex = direction == PanelDirection.Previous ? currentRow - 1 : currentRow + 1;
+                    if (targetRowIndex < 0 || targetRowIndex >= parentGrid.RowDefinitions.Count) return;
+
+                    var rowDef = parentGrid.RowDefinitions[targetRowIndex];
+                    var targetPixelSize = direction == PanelDirection.Previous ? _previousActualLength : _nextActualLength;
+                    var originalSize = direction == PanelDirection.Previous ? _previousSize : _nextSize;
+
+                    if (targetPixelSize <= 0) targetPixelSize = 200;
+                    if (originalSize.Value <= 0) originalSize = new GridLength(targetPixelSize);
+
+                    if (direction == PanelDirection.Previous)
+                        IsPreviousCollapsed = false;
+                    else
+                        IsNextCollapsed = false;
+
+                    // 恢复 AutoFillNeighbor
+                    if (AutoFillNeighbor && _hasSavedNeighborSize)
+                    {
+                        var neighborIndex = direction == PanelDirection.Previous ? currentRow + 1 : currentRow - 1;
+                        if (neighborIndex >= 0 && neighborIndex < parentGrid.RowDefinitions.Count)
+                        {
+                            parentGrid.RowDefinitions[neighborIndex].Height = _savedNeighborSize;
+                            _hasSavedNeighborSize = false;
+                        }
+                    }
+
+                    // 执行动画
+                    AnimateRowHeight(rowDef, MinSize, targetPixelSize, () =>
+                    {
+                        rowDef.Height = originalSize;
+                        if (direction == PanelDirection.Previous)
+                            rowDef.MinHeight = _savedPreviousMinSize;
+                        else
+                            rowDef.MinHeight = _savedNextMinSize;
+
+                        UpdateButtonVisibility();
+                    });
+                }
             }
-            else
+            finally
             {
-                // 水平分割器：展开行
-                var targetRowIndex = direction == PanelDirection.Previous ? currentRow - 1 : currentRow + 1;
-                if (targetRowIndex < 0 || targetRowIndex >= parentGrid.RowDefinitions.Count) return;
-
-                var rowDef = parentGrid.RowDefinitions[targetRowIndex];
-                var targetPixelSize = direction == PanelDirection.Previous ? _previousActualLength : _nextActualLength;
-                var originalSize = direction == PanelDirection.Previous ? _previousSize : _nextSize;
-
-                if (direction == PanelDirection.Previous)
-                    IsPreviousCollapsed = false;
-                else
-                    IsNextCollapsed = false;
-
-                // 恢复 AutoFillNeighbor
-                if (AutoFillNeighbor && _hasSavedNeighborSize)
-                {
-                    var neighborIndex = direction == PanelDirection.Previous ? currentRow + 1 : currentRow - 1;
-                    if (neighborIndex >= 0 && neighborIndex < parentGrid.RowDefinitions.Count)
-                    {
-                        parentGrid.RowDefinitions[neighborIndex].Height = _savedNeighborSize;
-                        _hasSavedNeighborSize = false;
-                    }
-                }
-
-                // 执行动画，完成后恢复 MinHeight 和 GridUnitType
-                AnimateRowHeight(rowDef, MinSize, targetPixelSize, () =>
-                {
-                    rowDef.Height = originalSize; // 恢复原始 GridLength（包括 Star 类型）
-                    if (direction == PanelDirection.Previous)
-                        rowDef.MinHeight = _savedPreviousMinSize;
-                    else
-                        rowDef.MinHeight = _savedNextMinSize;
-
-                    // 强制更新按钮可见性，确保状态正确
-                    UpdateButtonVisibility();
-                });
+                _isInternalChange = false;
             }
         }
 

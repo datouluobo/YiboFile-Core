@@ -43,4 +43,17 @@ namespace YiboFile.ViewModels.Messaging.Messages
             IsSecondPaneFocused = isSecondPaneFocused;
         }
     }
+
+    /// <summary>
+    /// 请求设置焦点面板
+    /// </summary>
+    public class SetFocusedPaneMessage
+    {
+        public bool IsSecondPane { get; }
+
+        public SetFocusedPaneMessage(bool isSecondPane)
+        {
+            IsSecondPane = isSecondPane;
+        }
+    }
 }

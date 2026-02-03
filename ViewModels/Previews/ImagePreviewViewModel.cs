@@ -98,9 +98,8 @@ namespace YiboFile.ViewModels.Previews
                     Dimensions = $"{(int)bitmap.PixelWidth} × {(int)bitmap.PixelHeight}";
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine($"Error loading image: {ex.Message}");
                 Title = "Error loading image";
             }
             finally
@@ -149,9 +148,8 @@ namespace YiboFile.ViewModels.Previews
                     return CreateBitmapFromBytes(bytes);
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine($"Magick.NET failed: {ex.Message}");
                 throw;
             }
         }

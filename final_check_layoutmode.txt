@@ -1,0 +1,23 @@
+Handlers\KeyboardEventHandler.cs:39:        private readonly Action<int> _switchLayoutMode;
+Handlers\KeyboardEventHandler.cs:67:            Action<int> switchLayoutMode = null,
+Handlers\KeyboardEventHandler.cs:92:            _switchLayoutMode = switchLayoutMode; // 可选参数
+Handlers\KeyboardEventHandler.cs:298:                _switchLayoutMode?.Invoke(0);
+Handlers\KeyboardEventHandler.cs:306:                _switchLayoutMode?.Invoke(1);
+Handlers\KeyboardEventHandler.cs:314:                _switchLayoutMode?.Invoke(2);
+MainWindow.Handlers.cs:612:                SwitchLayoutModeByIndex,  // 添加布局切换回调
+MainWindow.LayoutMode.cs:29:        internal void SwitchLayoutModeByIndex(int modeIndex)
+MainWindow.LayoutMode.cs:41:                _layoutModule?.SwitchLayoutMode(mode);
+MainWindow.LayoutMode.cs:51:            _layoutModule?.SwitchLayoutMode("Focus");
+MainWindow.LayoutMode.cs:56:            _layoutModule?.SwitchLayoutMode("Work");
+MainWindow.LayoutMode.cs:61:            _layoutModule?.SwitchLayoutMode("Full");
+MainWindow.LayoutMode.cs:765:        internal void InitializeLayoutMode()
+MainWindow.LayoutMode.cs:770:                ApplyLayoutModeUI(m.Mode);
+MainWindow.LayoutMode.cs:804:                ApplyLayoutModeUI(_layoutModule.CurrentLayoutMode);
+MainWindow.LayoutMode.cs:814:        private void ApplyLayoutModeUI(string mode)
+MainWindow.xaml.cs:362:                cfg.LayoutMode ?? "Work",
+MainWindow.xaml.cs:368:            // 初始化 LayoutMode，订阅 MVVM 消息 (必需，否则布局切换无效)
+MainWindow.xaml.cs:369:            InitializeLayoutMode();
+MainWindow.xaml.cs:483:                NavigationRail.LayoutFocusRequested += (s, e) => _layoutModule?.SwitchLayoutMode("Focus");
+MainWindow.xaml.cs:484:                NavigationRail.LayoutWorkRequested += (s, e) => _layoutModule?.SwitchLayoutMode("Work");
+MainWindow.xaml.cs:485:                NavigationRail.LayoutFullRequested += (s, e) => _layoutModule?.SwitchLayoutMode("Full");
+MainWindow.xaml.cs:623:            // Check if we are in Dual List Mode (using the property from LayoutMode.cs)

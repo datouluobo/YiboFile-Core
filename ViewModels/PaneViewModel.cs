@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Threading;
 using YiboFile.Models;
 using YiboFile.Controls;
@@ -38,6 +39,7 @@ namespace YiboFile.ViewModels
         private TagViewModel _currentTag;
         private string _navigationMode = "Path";
         private ObservableCollection<FileSystemItem> _files;
+        private ObservableCollection<FileSystemItem> _selectedItems = new ObservableCollection<FileSystemItem>();
         private bool _isLoading;
 
         private CancellationTokenSource _loadCts;
@@ -132,6 +134,38 @@ namespace YiboFile.ViewModels
             get => FileList?.Files ?? _files;
         }
 
+        public ObservableCollection<FileSystemItem> SelectedItems
+        {
+            get => _selectedItems;
+            private set => SetProperty(ref _selectedItems, value);
+        }
+
+        private FileSystemItem _selectedItem;
+        public FileSystemItem SelectedItem
+        {
+            get => _selectedItem;
+            private set => SetProperty(ref _selectedItem, value);
+        }
+
+        public void UpdateSelection(System.Collections.IList items)
+        {
+            _selectedItems.Clear();
+            if (items != null)
+            {
+                foreach (var item in items)
+                {
+                    if (item is FileSystemItem fsItem)
+                    {
+                        _selectedItems.Add(fsItem);
+                    }
+                }
+            }
+            SelectedItem = _selectedItems.FirstOrDefault();
+
+            // Notify commands to re-evaluate
+            // CommandManager.InvalidateRequerySuggested(); // In WPF this is static
+        }
+
         public bool IsLoading
         {
             get => _isLoading;
@@ -170,6 +204,11 @@ namespace YiboFile.ViewModels
 
         public bool IsSecondary => _isSecondary;
 
+        public void RequestActivation()
+        {
+            _messageBus.Publish(new SetFocusedPaneMessage(_isSecondary));
+        }
+
         public string SearchStatusText
         {
             get => _searchStatusText;
@@ -183,6 +222,8 @@ namespace YiboFile.ViewModels
         }
 
         public SearchViewModel Search { get; }
+
+        public ICommand RefreshCommand { get; }
 
         #endregion
 
@@ -200,11 +241,23 @@ namespace YiboFile.ViewModels
             _isSecondary = isSecondary;
             _files = new ObservableCollection<FileSystemItem>();
 
+            RefreshCommand = new RelayCommand(() => RequestRefresh());
+
             Search = new SearchViewModel(_messageBus);
             Search.SetTargetPane(isSecondary ? "Secondary" : "Primary");
 
             // 订阅搜索结果消息
             _messageBus.Subscribe<SearchResultUpdatedMessage>(OnSearchResultUpdated);
+
+            // 订阅实时更新消息
+            _messageBus.Subscribe<NotesUpdatedMessage>(OnNotesUpdated);
+            _messageBus.Subscribe<FileTagsChangedMessage>(OnFileTagsChanged);
+            _messageBus.Subscribe<TagListChangedMessage>(OnTagListChanged);
+            _messageBus.Subscribe<TagListChangedMessage>(OnTagListChanged);
+            // 订阅刷新消息
+            _messageBus.Subscribe<RefreshFileListMessage>(OnRefreshFileList);
+            // 订阅库选择消息
+            _messageBus.Subscribe<LibrarySelectedMessage>(OnLibrarySelected);
 
             // 获取服务
             var errorService = App.ServiceProvider?.GetService<YiboFile.Services.Core.Error.ErrorService>();
@@ -214,6 +267,11 @@ namespace YiboFile.ViewModels
             if (errorService != null)
             {
                 _fileListService = new FileListService(_dispatcher, errorService, _tagService);
+            }
+
+            if (_libraryService != null)
+            {
+                _libraryService.LibrariesLoaded += OnLibrariesLoaded;
             }
 
             // 初始化防抖定时器
@@ -347,21 +405,16 @@ namespace YiboFile.ViewModels
                     return;
                 }
 
-                System.Diagnostics.Debug.WriteLine($"[PaneViewModel] LoadPathAsync started for: {path}, IsSecondary: {_isSecondary}");
                 IsLoading = true;
 
                 var items = await Task.Run(async () =>
                 {
                     try
                     {
-                        System.Diagnostics.Debug.WriteLine($"[PaneViewModel] Task.Run started for: {path}");
                         var result = await _fileListService.LoadFileSystemItemsAsync(path, null, token);
-                        System.Diagnostics.Debug.WriteLine($"[PaneViewModel] LoadFileSystemItemsAsync returned {result?.Count ?? 0} items for: {path}");
                         if ((result == null || result.Count == 0) && path.StartsWith("tag://", StringComparison.OrdinalIgnoreCase) && _tagService != null)
                         {
-                            System.Diagnostics.Debug.WriteLine($"[PaneViewModel] Fallback check for tag: {path}");
                             // Fallback: try loading tags directly if service returned empty
-                            System.Diagnostics.Debug.WriteLine($"[LoadPathAsync] Fallback for tag: {path}");
                             var tagName = path.Substring(6); // len(tag://)
                             var files = await _tagService.GetFilesByTagNameAsync(tagName);
                             // Convert paths to items... manually?
@@ -369,23 +422,19 @@ namespace YiboFile.ViewModels
                         }
                         return result;
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[PaneViewModel] Background Error in LoadPathAsync: {ex}");
-                        System.Diagnostics.Debug.WriteLine($"[LoadPathAsync] Background Error: {ex}");
                         return new System.Collections.Generic.List<FileSystemItem>();
                     }
                 }, token);
 
                 if (token.IsCancellationRequested)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[PaneViewModel] LoadPathAsync cancelled for: {path}");
                     return;
                 }
 
                 await _dispatcher.InvokeAsync(() =>
                 {
-                    System.Diagnostics.Debug.WriteLine($"[PaneViewModel] UI update started for: {path}, Items: {items?.Count ?? 0}");
                     Files.Clear();
                     if (items != null)
                     {
@@ -404,9 +453,8 @@ namespace YiboFile.ViewModels
             {
                 // 正常取消，忽略
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine($"[PaneViewModel.LoadPathAsync] Error: {ex.Message}");
                 // _errorService?.ReportError($"Load error: {ex.Message}"); 
             }
             finally
@@ -589,9 +637,8 @@ namespace YiboFile.ViewModels
                 _fileWatcher.Renamed += OnFileSystemChanged;
                 _fileWatcher.Changed += OnFileSystemChanged;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine($"[PaneViewModel.SetupFileWatcher] Error: {ex.Message}");
             }
         }
 
@@ -603,7 +650,74 @@ namespace YiboFile.ViewModels
 
         #endregion
 
+        private void OnLibrariesLoaded(object sender, System.Collections.Generic.List<Library> libraries)
+        {
+            _dispatcher.Invoke(() =>
+            {
+                if (NavigationMode == "Library" && CurrentLibrary != null)
+                {
+                    var newLib = libraries.FirstOrDefault(l => l.Id == CurrentLibrary.Id);
+                    if (newLib != null)
+                    {
+                        // 更新引用并刷新
+                        // 注意：设置 CurrentLibrary 可能会触发 PathChanged 或其他事件
+                        // 但这里我们主要想确保刷新时使用有效的数据
+                        if (SetProperty(ref _currentLibrary, newLib, nameof(CurrentLibrary)))
+                        {
+                            // 仅在实际更改时刷新？
+                        }
+
+                        RequestRefresh();
+                    }
+                }
+            });
+        }
+
         #region Message Handlers
+
+        private void OnNotesUpdated(NotesUpdatedMessage message)
+        {
+            if (Files == null) return;
+            var item = Files.FirstOrDefault(f => string.Equals(f.Path, message.FilePath, StringComparison.OrdinalIgnoreCase));
+            if (item != null)
+            {
+                _dispatcher.Invoke(() =>
+                {
+                    item.Notes = message.Notes;
+                });
+            }
+        }
+
+        private async void OnFileTagsChanged(FileTagsChangedMessage message)
+        {
+            if (Files == null || _tagService == null) return;
+            var item = Files.FirstOrDefault(f => string.Equals(f.Path, message.FilePath, StringComparison.OrdinalIgnoreCase));
+            if (item != null)
+            {
+                // 刷新该项的标签
+                try
+                {
+                    var tags = await _tagService.GetFileTagsAsync(message.FilePath);
+                    var tagList = tags.Select(t => new TagViewModel { Id = t.Id, Name = t.Name, Color = t.Color }).ToList();
+
+                    await _dispatcher.InvokeAsync(() =>
+                    {
+                        item.TagList = tagList;
+                        item.Tags = string.Join(", ", tagList.Select(t => t.Name));
+                    });
+                }
+                catch { }
+            }
+        }
+
+        private void OnTagListChanged(TagListChangedMessage message)
+        {
+            // 如果正在浏览特定标签，刷新以反映潜在的定义更改（如颜色、名称）
+            if (NavigationMode == "Tag")
+            {
+                RequestRefresh();
+            }
+        }
 
         private void OnSearchResultUpdated(SearchResultUpdatedMessage message)
         {
@@ -631,12 +745,50 @@ namespace YiboFile.ViewModels
             });
         }
 
+        private void OnRefreshFileList(RefreshFileListMessage message)
+        {
+            // 如果指定了路径，检查是否相关
+            if (!string.IsNullOrEmpty(message.Path) && NavigationMode == "Path")
+            {
+                if (!string.Equals(CurrentPath, message.Path, StringComparison.OrdinalIgnoreCase))
+                {
+                    return;
+                }
+            }
+
+            RequestRefresh();
+        }
+
+        private void OnLibrarySelected(LibrarySelectedMessage message)
+        {
+            if (message.Library == null) return;
+            // 仅当当前面板处于活动状态或指定的面板时响应
+            // 此处简化逻辑：活动面板响应该消息
+            // 更好的做法是 NavigationModule 协调分配，或者检查是否是当前聚焦的面板
+
+            // 假设这是主导航操作，我们让当前活动面板（或者默认主面板）响应
+            // 这里简单地全部响应可能导致两个面板都跳转，需结合 ActivePane 逻辑
+
+            // 检查逻辑：如果是主面板且是全局消息
+
+            // 暂时：如果是主面板，则导航
+            if (!_isSecondary)
+            {
+                NavigateTo(message.Library);
+            }
+        }
+
         #endregion
 
         #region IDisposable
 
         public void Dispose()
         {
+            if (_libraryService != null)
+            {
+                _libraryService.LibrariesLoaded -= OnLibrariesLoaded;
+            }
+
             _loadCts?.Cancel();
             _loadCts?.Dispose();
 

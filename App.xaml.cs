@@ -57,9 +57,10 @@ namespace YiboFile
         /// </summary>
         protected virtual void ConfigureServices(IServiceCollection services)
         {
-            // 注册核心服务
-            services.AddSingleton<AppConfig>(provider => ConfigManager.Load() ?? new AppConfig());
-            services.AddSingleton<ConfigService>(); // 配置服务应为单例
+            // 注册核心配置服务 (SSOT)
+            services.AddSingleton<ConfigurationService>(provider => ConfigurationService.Instance);
+            services.AddSingleton<AppConfig>(provider => ConfigurationService.Instance.Config);
+
             services.AddSingleton<YiboFile.Services.Core.Error.ErrorService>(); // 统一错误处理服务
             services.AddSingleton<Services.FileOperations.FileOperationService>();
             services.AddSingleton<Services.FileOperations.TaskQueue.TaskQueueService>(); // Register TaskQueueService

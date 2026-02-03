@@ -11,6 +11,8 @@ using YiboFile.Services.Tabs;
 using YiboFile.Models.UI;
 using YiboFile.Services.Search;
 using YiboFile.Services.FileNotes; // For FileNotesService
+using YiboFile.Services.Config;
+
 
 namespace YiboFile
 {
@@ -24,7 +26,9 @@ namespace YiboFile
         internal void CreateTab(string path, bool forceNewTab = false, bool? activate = null)
         {
             // Determine activation behavior (default to Config if null, or true if Config unavailable)
-            bool shouldActivate = activate ?? _configService?.Config?.ActivateNewTabOnMiddleClick ?? true;
+            bool shouldActivate = activate ?? ConfigurationService.Instance.Config?.ActivateNewTabOnMiddleClick ?? true;
+
+
 
             // Delegate to MVVM Module
             _viewModel?.Tabs?.CreateTab(path, forceNewTab, shouldActivate);
@@ -36,7 +40,9 @@ namespace YiboFile
         internal void OpenLibraryInTab(Library library, bool forceNewTab = false, bool? activate = null)
         {
             // Determine activation behavior (default to Config if null, or true if Config unavailable)
-            bool shouldActivate = activate ?? _configService?.Config?.ActivateNewTabOnMiddleClick ?? true;
+            bool shouldActivate = activate ?? ConfigurationService.Instance.Config?.ActivateNewTabOnMiddleClick ?? true;
+
+
 
             // Delegate to MVVM Module
             _viewModel?.Tabs?.OpenLibraryInTab(library, forceNewTab, shouldActivate);

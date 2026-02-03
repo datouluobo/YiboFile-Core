@@ -1,0 +1,6 @@
+Handlers\KeyboardEventHandler.cs:39:        private readonly Action<int> _switchLayoutMode;
+Handlers\KeyboardEventHandler.cs:67:            Action<int> switchLayoutMode = null,
+Handlers\KeyboardEventHandler.cs:92:            _switchLayoutMode = switchLayoutMode; // 可选参数
+Handlers\KeyboardEventHandler.cs:298:                _switchLayoutMode?.Invoke(0);
+Handlers\KeyboardEventHandler.cs:306:                _switchLayoutMode?.Invoke(1);
+Handlers\KeyboardEventHandler.cs:314:                _switchLayoutMode?.Invoke(2);

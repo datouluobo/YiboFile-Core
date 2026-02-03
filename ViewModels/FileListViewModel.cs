@@ -126,8 +126,10 @@ namespace YiboFile.ViewModels
         /// </summary>
         public async Task LoadPathAsync(string path)
         {
+            System.Diagnostics.Debug.WriteLine($"[FileListViewModel] LoadPathAsync requested for: {path}");
             if (!_loadFilesSemaphore.Wait(0))
             {
+                System.Diagnostics.Debug.WriteLine($"[FileListViewModel] LoadPathAsync locked. Queuing pending path: {path}");
                 _loadFilesPending = true;
                 _pendingPath = path;
                 // 如果有新的请求排队，立即取消当前正在进行的操作，提高响应速度
@@ -142,6 +144,7 @@ namespace YiboFile.ViewModels
                 var cancellationToken = _loadCancellationTokenSource.Token;
 
                 _currentPath = path;
+                System.Diagnostics.Debug.WriteLine($"[FileListViewModel] Starting load for: {path}");
 
                 // Check for virtual protocols to bypass Directory.Exists check
                 var protocol = ProtocolManager.Parse(path);
@@ -149,6 +152,7 @@ namespace YiboFile.ViewModels
 
                 if (string.IsNullOrEmpty(path) || (!isVirtual && !Directory.Exists(path)))
                 {
+                    System.Diagnostics.Debug.WriteLine($"[FileListViewModel] Path Empty or Not Exists (Local). Clearing files.");
                     await _dispatcher.InvokeAsync(() =>
                     {
                         Files.Clear();
@@ -159,6 +163,7 @@ namespace YiboFile.ViewModels
 
                 if (_isLoadingFiles)
                 {
+                    System.Diagnostics.Debug.WriteLine($"[FileListViewModel] Already loading files. Returning.");
                     return;
                 }
 
@@ -173,6 +178,7 @@ namespace YiboFile.ViewModels
                     null,
                     cancellationToken);
 
+                System.Diagnostics.Debug.WriteLine($"[FileListViewModel] Files loaded. Count: {files?.Count ?? 0}");
                 var sortedFiles = ApplySorting(files);
 
                 await _dispatcher.InvokeAsync(() =>
@@ -202,9 +208,11 @@ namespace YiboFile.ViewModels
             }
             catch (OperationCanceledException)
             {
+                System.Diagnostics.Debug.WriteLine($"[FileListViewModel] LoadPathAsync Canceled for: {path}");
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"[FileListViewModel] LoadPathAsync Failed: {ex}");
                 await _dispatcher.InvokeAsync(() =>
                 {
                     YiboFile.DialogService.Error($"加载文件列表失败: {ex.Message}", owner: _ownerWindow);
@@ -254,6 +262,7 @@ namespace YiboFile.ViewModels
         /// </summary>
         public void RefreshFiles()
         {
+            System.Diagnostics.Debug.WriteLine($"[FileListViewModel] RefreshFiles called. CurrentPath: {_currentPath}");
             if (_refreshAction != null)
             {
                 _refreshAction();
@@ -263,6 +272,7 @@ namespace YiboFile.ViewModels
             var targetPath = _currentPath;
             if (string.IsNullOrEmpty(targetPath) || _isLoadingFiles)
             {
+                if (_isLoadingFiles) System.Diagnostics.Debug.WriteLine($"[FileListViewModel] RefreshFiles ignored: IsLoadingFiles=true");
                 return;
             }
 

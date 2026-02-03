@@ -71,6 +71,8 @@ namespace YiboFile
         private FavoriteService _favoriteService;
         private QuickAccessService _quickAccessService;
         internal FileListService _fileListService;
+        internal Services.FileInfo.FileInfoService _fileInfoService;
+        internal Services.FileInfo.FileInfoService _secondFileInfoService;
         private FileSystemWatcherService _fileSystemWatcherService;
         internal FolderSizeCalculationService _folderSizeCalculationService;
         internal TabService _tabService;
@@ -79,7 +81,7 @@ namespace YiboFile
         internal SearchService _searchService;
         internal SearchCacheService _searchCacheService;
         internal Services.ColumnManagement.ColumnService _columnService;
-        internal ConfigService _configService;
+
         internal Services.Settings.SettingsOverlayController _settingsOverlayController;
         internal Services.Navigation.NavigationModeService _navigationModeService;
         internal Services.UIHelper.UIHelperService _uiHelperService;
@@ -227,6 +229,14 @@ namespace YiboFile
 
         public MainWindow()
         {
+            try
+            {
+                string msg = $"{DateTime.Now:O} [MainWindow.Constructor] Start";
+                System.Diagnostics.Debug.WriteLine(msg);
+                System.IO.File.AppendAllText(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "window_debug.log"), msg + "\n");
+            }
+            catch { }
+
             try { System.IO.File.AppendAllText(@"f:\Download\GitHub\YiboFile\YiboFile-Core\debug_log.txt", $"[MainWindow] Constructor called at {DateTime.Now}\n"); } catch { }
             InitializeComponent();
             this.Title += " [FIXED]";
@@ -241,7 +251,41 @@ namespace YiboFile
             // 这对于解决启动时右侧空白间隙至关重要，因为此时 ActualWidth 才有效
             this.ContentRendered += (s, e) =>
             {
+                try
+                {
+                    string msg = $"{DateTime.Now:O} [MainWindow.ContentRendered] WindowState={this.WindowState}, Config.IsMaximized={ConfigurationService.Instance.Config?.IsMaximized}";
+                    System.Diagnostics.Debug.WriteLine(msg);
+                    System.IO.File.AppendAllText(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "window_debug.log"), msg + "\n");
+                }
+                catch { }
+
                 _windowLifecycleHandler?.AdjustColumnWidths();
+
+                // 再次确认窗口最大化状态 (双重保险，解决持久化可能失效的问题)
+                if (ConfigurationService.Instance.Config?.IsMaximized == true && this.WindowState != WindowState.Maximized)
+
+                {
+                    try
+                    {
+                        string msg = $"{DateTime.Now:O} [MainWindow.ContentRendered] Forcing Maximize";
+                        System.Diagnostics.Debug.WriteLine(msg);
+                        System.IO.File.AppendAllText(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "window_debug.log"), msg + "\n");
+                    }
+                    catch { }
+
+                    this.WindowState = WindowState.Maximized;
+                    _windowLifecycleHandler?.UpdateWindowStateUI();
+                }
+
+                // 启动完成，启用配置保存
+                YiboFile.Services.Config.ConfigurationService.Instance.EnableSaving();
+                try
+                {
+                    string msg = $"{DateTime.Now:O} [MainWindow.ContentRendered] Configuration Saving Enabled";
+                    System.Diagnostics.Debug.WriteLine(msg);
+                    System.IO.File.AppendAllText(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "window_debug.log"), msg + "\n");
+                }
+                catch { }
             };
 
             InitializeServices();
@@ -263,6 +307,10 @@ namespace YiboFile
             // Step 3: Initialize Handlers (now they have access to _configService and _messageBus)
             InitializeHandlers();
 
+            // 初始化 LayoutMode，订阅 MVVM 消息 (必需，否则布局切换无效)
+            // 移到 InitializeHandlers 之后，确保 _secondFileInfoService 在双列表模式初始化前已经创建
+            InitializeLayoutMode();
+
             InitializeEvents();
             InitializeRailEvents();
 
@@ -279,11 +327,12 @@ namespace YiboFile
             _messageBus = App.ServiceProvider?.GetService<IMessageBus>() ?? MessageBus.Instance;
 
             // 创建 RightPanelViewModel
-            var rightPanelVM = new RightPanelViewModel(_messageBus, _configService, _fileListService);
+            var rightPanelVM = new RightPanelViewModel(_messageBus, ConfigurationService.Instance, _fileListService);
+
 
             // 创建 ViewModel
             _viewModel = new MainWindowViewModel(_messageBus, rightPanelVM);
-            this.DataContext = _viewModel;
+            // DataContext assignment moved to end of method to ensure all properties are set
 
             // 创建并注册导航模块
             _navigationModule = new NavigationModule(
@@ -293,6 +342,8 @@ namespace YiboFile
             _viewModel.RegisterModule(_navigationModule);
 
 
+            // ... (rest of the method unchanged)
+
             // 创建并注册标签页模块
             // 注入双列表支持所需的 Service 和 状态判断委托
             _tabsModule = new TabsModule(
@@ -300,13 +351,14 @@ namespace YiboFile
                 _tabService,
                 _secondTabService,
                 () => this.IsDualListMode,
-                () => _isSecondPaneFocused,
+                () => this.IsSecondPaneFocused,
                 (path, activate) => CreateTab(path, activate), // Keep callback for now just in case
                 tabId => { /* SwitchToTab logic */ });
             _viewModel.RegisterModule(_tabsModule);
 
             // 初始化 NavigationModeService (必需，否则侧栏导航无效)
-            _navigationModeService = new NavigationModeService(this, _navigationService, _tabService, _configService);
+            _navigationModeService = new NavigationModeService(this, _navigationService, _tabService, ConfigurationService.Instance);
+
 
 
             // 创建并注册文件列表模块
@@ -354,8 +406,18 @@ namespace YiboFile
             _viewModel.Layout = _layoutModule;
             _viewModel.RegisterModule(_layoutModule);
 
-            // 初始化 LayoutMode，订阅 MVVM 消息 (必需，否则布局切换无效)
-            InitializeLayoutMode();
+            // 初始化布局模块状态
+            var cfg = ConfigurationService.Instance.Config;
+
+            _layoutModule.InitializeState(
+                cfg.LayoutMode ?? "Work",
+                cfg.IsDualListMode,
+                false,
+                cfg.IsSidebarCollapsed,
+                cfg.IsPreviewCollapsed);
+
+            // 注意：InitializeLayoutMode() 被移动到 InitializeHandlers() 之后调用
+            // 这是为了确保 _secondFileInfoService 在双列表模式初始化前已经创建
 
             // 创建并注册文件操作模块
             var undoService = App.ServiceProvider.GetService<UndoService>();
@@ -394,7 +456,7 @@ namespace YiboFile
                 _tabService,
                 _secondTabService,
                 () => this.IsDualListMode,
-                () => _isSecondPaneFocused);
+                () => this.IsSecondPaneFocused);
             _viewModel.Search = _searchModule;
             _viewModel.RegisterModule(_searchModule);
 
@@ -422,7 +484,8 @@ namespace YiboFile
             // 初始化所有模块
             _viewModel.InitializeModules();
 
-            System.Diagnostics.Debug.WriteLine("[MainWindow] MVVM modules initialized");
+            // Set DataContext last
+            this.DataContext = _viewModel;
         }
 
         /// <summary>
@@ -468,10 +531,10 @@ namespace YiboFile
             if (NavigationRail != null)
             {
                 NavigationRail.NavigationModeChanged += OnRailNavigationModeChanged;
-                NavigationRail.LayoutFocusRequested += (s, e) => SwitchLayoutMode(LayoutMode.Focus);
-                NavigationRail.LayoutWorkRequested += (s, e) => SwitchLayoutMode(LayoutMode.Work);
-                NavigationRail.LayoutFullRequested += (s, e) => SwitchLayoutMode(LayoutMode.Full);
-                NavigationRail.DualListToggleRequested += (s, e) => DualListToggle_Click(s, null);
+                NavigationRail.LayoutFocusRequested += (s, e) => _layoutModule?.SwitchLayoutMode("Focus");
+                NavigationRail.LayoutWorkRequested += (s, e) => _layoutModule?.SwitchLayoutMode("Work");
+                NavigationRail.LayoutFullRequested += (s, e) => _layoutModule?.SwitchLayoutMode("Full");
+                NavigationRail.DualListToggleRequested += (s, e) => _layoutModule?.ToggleDualListMode();
                 NavigationRail.SettingsRequested += OnRailSettingsRequested;
                 NavigationRail.AboutRequested += OnRailAboutRequested;
                 NavigationRail.SetActiveMode("Path"); // Default
@@ -499,12 +562,11 @@ namespace YiboFile
                 if (SplitterLeft != null) SplitterLeft.Visibility = Visibility.Visible;
                 if (ColLeft != null && ColLeft.Width.Value == 0) ColLeft.Width = new GridLength(220);
 
-                // Restore Right Panel or Second File Browser based on mode
-                if (RightPanel != null)
-                    RightPanel.Visibility = _isDualListMode ? Visibility.Collapsed : Visibility.Visible;
-
-                if (SecondFileBrowserContainer != null)
-                    SecondFileBrowserContainer.Visibility = _isDualListMode ? Visibility.Visible : Visibility.Collapsed;
+                // 通过模块控制主布局可见性（这会自动处理预览面板和副列表的显示逻辑）
+                if (_layoutModule != null)
+                {
+                    _layoutModule.IsMainLayoutVisible = true;
+                }
 
                 if (SplitterRight != null) SplitterRight.Visibility = Visibility.Visible;
                 if (ColRight != null && ColRight.Width.Value == 0) ColRight.Width = new GridLength(360);
@@ -521,8 +583,10 @@ namespace YiboFile
                 if (FileBrowser != null) FileBrowser.Visibility = Visibility.Collapsed;
 
                 // 3. Hide Right Panel & Second Browser (occupied by special panel)
-                if (RightPanel != null) RightPanel.Visibility = Visibility.Collapsed;
-                if (SecondFileBrowserContainer != null) SecondFileBrowserContainer.Visibility = Visibility.Collapsed;
+                if (_layoutModule != null)
+                {
+                    _layoutModule.IsMainLayoutVisible = false;
+                }
                 if (SplitterRight != null) SplitterRight.Visibility = Visibility.Collapsed;
                 // Don't set ColRight width to 0, just let the Grid.ColumnSpan="4" element take over, 
                 // but we should ensure the column definitions allow it. 
@@ -697,11 +761,8 @@ namespace YiboFile
                 _fileListService.ShowFullFileName = (mode == "Thumbnail");
             }
 
-            if (_configService != null)
-            {
-                _configService.Config.FileViewMode = mode;
-                _configService.SaveCurrentConfig();
-            }
+            ConfigurationService.Instance.Set(cfg => cfg.FileViewMode, mode);
+
 
             // 恢复剪切状态的视觉效果
             // 需要延迟执行等待容器生成
@@ -719,20 +780,14 @@ namespace YiboFile
 
         private void RightPanel_NotesHeightChanged(object sender, double height)
         {
-            if (_configService != null)
-            {
-                _configService.Config.RightPanelNotesHeight = height;
-                _configService.SaveCurrentConfig();
-            }
+            ConfigurationService.Instance.Set(cfg => cfg.RightPanelNotesHeight, height);
+
         }
 
         private void FileBrowser_InfoHeightChanged(object sender, double height)
         {
-            if (_configService != null)
-            {
-                _configService.Config.CenterPanelInfoHeight = height;
-                _configService.SaveCurrentConfig();
-            }
+            ConfigurationService.Instance.Set(cfg => cfg.CenterPanelInfoHeight, height);
+
         }
 
         /// <summary>
@@ -898,7 +953,8 @@ namespace YiboFile
 
         internal string GetCurrentModeKey()
         {
-            return _configService?.Config.LastNavigationMode ?? "Path";
+            return ConfigurationService.Instance.Config.LastNavigationMode ?? "Path";
+
         }
 
         internal string GetVisibleColumnsForCurrentMode()

@@ -64,7 +64,7 @@ namespace YiboFile
                         LoadCurrentDirectory();
 
                     // Also refresh second list if in dual mode
-                    if (_isDualListMode && SecondFileBrowser != null)
+                    if (IsDualListMode && SecondFileBrowser != null)
                     {
                         var secondTab = _secondTabService?.ActiveTab;
                         if (secondTab != null && !string.IsNullOrEmpty(secondTab.Path) && Directory.Exists(secondTab.Path))

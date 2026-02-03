@@ -1,6 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
+using System.Threading;
 using YiboFile.Models;
 using YiboFile.Services.Config;
 using YiboFile.Services.FileList;
@@ -13,10 +14,16 @@ namespace YiboFile.ViewModels
     public class RightPanelViewModel : BaseViewModel
     {
         private readonly IMessageBus _messageBus;
-        private readonly ConfigService _configService;
-        private readonly FileListService _fileListService;
+        private readonly ConfigurationService _configService;
 
-        private bool _isVisible;
+        private readonly FileListService _fileListService;
+        private Timer _debounceTimer;
+        private string _pendingPreviewPath;
+
+        private bool _isVisible = true;
+        private bool _isLayoutVisible = true; // 用户可见性设置
+        private bool _isMainLayoutVisible = true; // 布局全局设置（特殊面板）
+        private bool _isDualListActive = false; // 是否处于双列表模式
         public bool IsVisible
         {
             get => _isVisible;
@@ -24,14 +31,55 @@ namespace YiboFile.ViewModels
             {
                 if (SetProperty(ref _isVisible, value))
                 {
-                    var cfg = _configService.Config;
-                    if (cfg.IsRightPanelVisible != value)
-                    {
-                        cfg.IsRightPanelVisible = value;
-                        _configService.StartDelayedSave();
-                    }
+                    NotifyVisibilityChanged();
+                    _configService.Set(x => x.IsRightPanelVisible, value);
+                }
+
+            }
+        }
+
+        public bool IsLayoutVisible
+        {
+            get => _isLayoutVisible;
+            set
+            {
+                if (SetProperty(ref _isLayoutVisible, value))
+                {
+                    NotifyVisibilityChanged();
                 }
             }
+        }
+
+        public bool IsMainLayoutVisible
+        {
+            get => _isMainLayoutVisible;
+            set
+            {
+                if (SetProperty(ref _isMainLayoutVisible, value))
+                {
+                    NotifyVisibilityChanged();
+                }
+            }
+        }
+
+        public bool IsDualListActive
+        {
+            get => _isDualListActive;
+            set
+            {
+                if (SetProperty(ref _isDualListActive, value))
+                {
+                    NotifyVisibilityChanged();
+                }
+            }
+        }
+
+        public bool EffectiveVisibility => IsVisible && IsLayoutVisible && IsMainLayoutVisible && !IsDualListActive;
+
+        private void NotifyVisibilityChanged()
+        {
+            OnPropertyChanged(nameof(EffectiveVisibility));
+            System.Diagnostics.Debug.WriteLine($"[RightPanelViewModel] EffectiveVisibility: {EffectiveVisibility} (Visible={IsVisible}, Layout={IsLayoutVisible}, Main={IsMainLayoutVisible}, Dual={IsDualListActive})");
         }
 
         private double _notesHeight;
@@ -42,13 +90,9 @@ namespace YiboFile.ViewModels
             {
                 if (SetProperty(ref _notesHeight, value))
                 {
-                    var cfg = _configService.Config;
-                    if (Math.Abs(cfg.RightPanelNotesHeight - value) > 0.1)
-                    {
-                        cfg.RightPanelNotesHeight = value;
-                        _configService.StartDelayedSave();
-                    }
+                    _configService.Set(x => x.RightPanelNotesHeight, value);
                 }
+
             }
         }
 
@@ -79,7 +123,8 @@ namespace YiboFile.ViewModels
             }
         }
 
-        public RightPanelViewModel(IMessageBus messageBus, ConfigService configService, FileListService fileListService)
+        public RightPanelViewModel(IMessageBus messageBus, ConfigurationService configService, FileListService fileListService)
+
         {
             _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
             _configService = configService ?? throw new ArgumentNullException(nameof(configService));
@@ -117,24 +162,55 @@ namespace YiboFile.ViewModels
 
             _messageBus.Subscribe<PreviewChangedMessage>(m =>
             {
-                ActivePreview = m.Preview;
+                // Ensure UI update happens on UI thread
+                System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                {
+                    ActivePreview = m.Preview;
+                });
             });
+
+            _messageBus.Subscribe<DualListModeChangedMessage>(m =>
+            {
+                IsDualListActive = m.IsEnabled;
+            });
+
+            _messageBus.Subscribe<MainLayoutVisibilityChangedMessage>(m =>
+            {
+                IsMainLayoutVisible = m.IsVisible;
+            });
+
+            _debounceTimer = new Timer(OnDebounceTick, null, Timeout.Infinite, Timeout.Infinite);
         }
 
         private void UpdatePreview(string path)
         {
             System.Diagnostics.Debug.WriteLine($"[RightPanelViewModel] UpdatePreview called for: '{path}'");
+
+            // Immediate clear if path is null
             if (string.IsNullOrEmpty(path))
             {
+                _pendingPreviewPath = null;
+                _debounceTimer.Change(Timeout.Infinite, Timeout.Infinite);
                 ActivePreview = null;
                 return;
             }
 
-            // Set loading state
+            // Set loading state immediately to give feedback
             ActivePreview = new ErrorPreviewViewModel { ErrorMessage = "正在加载预览...", IsLoading = true };
 
-            // Request preview from service
-            _messageBus.Publish(new PreviewRequestMessage(path));
+            // Debounce request
+            _pendingPreviewPath = path;
+            _debounceTimer.Change(250, Timeout.Infinite);
+        }
+
+        private void OnDebounceTick(object state)
+        {
+            var path = _pendingPreviewPath;
+            if (!string.IsNullOrEmpty(path))
+            {
+                System.Diagnostics.Debug.WriteLine($"[RightPanelViewModel] Debounce Elapsed. Publishing PreviewRequest for: '{path}'");
+                _messageBus.Publish(new PreviewRequestMessage(path));
+            }
         }
     }
 }

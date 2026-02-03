@@ -50,10 +50,8 @@ namespace YiboFile.Services.Preview
         /// </summary>
         public async void LoadFilePreviewAsync(string filePath)
         {
-            System.Diagnostics.Debug.WriteLine($"[PreviewService] LoadFilePreviewAsync called for: '{filePath}'");
-            System.Diagnostics.Debug.WriteLine($"[PreviewService] Call Stack: {new System.Diagnostics.StackTrace()}");
-
-            // Cancel previous request
+            // Cancel previous work
+            // Manual cancellation management to avoid using ClearPreview() which increments generation prematurely for our new logic
             _currentCts?.Cancel();
             _currentCts?.Dispose();
             _currentCts = new System.Threading.CancellationTokenSource();
@@ -64,14 +62,39 @@ namespace YiboFile.Services.Preview
 
             try
             {
-                // Create the ViewModel via factory
-                var viewModel = await YiboFile.Previews.PreviewFactory.CreateViewModelAsync(filePath, token);
+                // Start loading immediately
+                var loadingTask = YiboFile.Previews.PreviewFactory.CreateViewModelAsync(filePath, token);
 
-                // Check if this request is still valid
+                // Wait for either completion or small delay (50ms)
+                // This prevents flickering for fast-loading files
+                var delayTask = System.Threading.Tasks.Task.Delay(50, token);
+
+                var completedTask = await System.Threading.Tasks.Task.WhenAny(loadingTask, delayTask);
+
+                // If generation changed or cancelled, abort
                 if (generation != _currentGeneration || token.IsCancellationRequested) return;
 
-                // Publish the change message
-                _messageBus.Publish(new PreviewChangedMessage(viewModel));
+                if (completedTask == delayTask)
+                {
+                    // Loading is taking longer than 50ms.
+                    // Show "Loading..." / Empty state now.
+                    _messageBus.Publish(new PreviewChangedMessage(null));
+
+                    // Await the actual load
+                    var viewModel = await loadingTask;
+
+                    if (generation != _currentGeneration || token.IsCancellationRequested) return;
+                    _messageBus.Publish(new PreviewChangedMessage(viewModel));
+                }
+                else
+                {
+                    // Loading finished quickly (<50ms).
+                    // Update UI directly without clearing first (prevents flicker).
+                    var viewModel = await loadingTask;
+
+                    if (generation != _currentGeneration || token.IsCancellationRequested) return;
+                    _messageBus.Publish(new PreviewChangedMessage(viewModel));
+                }
             }
             catch (OperationCanceledException)
             {

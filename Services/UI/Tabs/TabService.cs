@@ -104,11 +104,20 @@ namespace YiboFile.Services.Tabs
             return new List<PathTab>(_tabs);
         }
 
+        private bool _isSettingActiveTab = false;
         public void SetActiveTab(PathTab tab)
         {
-            if (_activeTab == tab) return;
-            _activeTab = tab;
-            ActiveTabChanged?.Invoke(this, tab);
+            if (_activeTab == tab || _isSettingActiveTab) return;
+            try
+            {
+                _isSettingActiveTab = true;
+                _activeTab = tab;
+                ActiveTabChanged?.Invoke(this, tab);
+            }
+            finally
+            {
+                _isSettingActiveTab = false;
+            }
         }
 
         public void RemoveTab(PathTab tab)
@@ -125,12 +134,21 @@ namespace YiboFile.Services.Tabs
             return true;
         }
 
+        private bool _isUpdatingPath = false;
         public void UpdateActiveTabPath(string newPath)
         {
-            if (_activeTab != null && _activeTab.Type == TabType.Path)
+            if (_activeTab != null && _activeTab.Type == TabType.Path && !_isUpdatingPath)
             {
-                _activeTab.Path = newPath;
-                UpdateTabTitle(_activeTab, newPath);
+                try
+                {
+                    _isUpdatingPath = true;
+                    _activeTab.Path = newPath;
+                    UpdateTabTitle(_activeTab, newPath);
+                }
+                finally
+                {
+                    _isUpdatingPath = false;
+                }
             }
         }
 

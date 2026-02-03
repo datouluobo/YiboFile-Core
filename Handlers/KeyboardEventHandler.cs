@@ -232,13 +232,15 @@ namespace YiboFile.Handlers
                 }
             }
 
-            // Ctrl+N: 新建文件夹
+            // Ctrl+N: 新建文件夹 (Migrated to InputBindings Ctrl+Shift+N)
+            /*
             if (IsActionTriggered(e, "新建文件夹", "Ctrl+N"))
             {
                 _newFolderClick();
                 e.Handled = true;
                 return;
             }
+            */
 
             // Tab键（无修饰符）：在双列表模式下切换主副面板焦点
             if (IsActionTriggered(e, "切换双面板焦点", "Tab"))
@@ -280,13 +282,15 @@ namespace YiboFile.Handlers
                 }
             }
 
-            // F5: 刷新
+            // F5: 刷新 (Migrated to InputBindings)
+            /*
             if (IsActionTriggered(e, "刷新", "F5"))
             {
                 _refreshClick();
                 e.Handled = true;
                 return;
             }
+            */
 
             // Ctrl+Shift+F: 专注模式
             if (IsActionTriggered(e, "专注模式", "Ctrl+Shift+F"))
@@ -324,7 +328,7 @@ namespace YiboFile.Handlers
                 }
             }
 
-            // Ctrl+A: 全选当前列表
+            // Ctrl+A: 全选当前列表 (Not migrated yet, keep)
             if (IsActionTriggered(e, "全选", "Ctrl+A"))
             {
                 var activeBrowser = _getActiveBrowser();
@@ -336,7 +340,8 @@ namespace YiboFile.Handlers
                 }
             }
 
-            // Ctrl+C: 复制
+            // Ctrl+C: 复制 (Migrated to InputBindings)
+            /*
             if (IsActionTriggered(e, "复制", "Ctrl+C"))
             {
                 var focusedElement = Keyboard.FocusedElement;
@@ -351,8 +356,10 @@ namespace YiboFile.Handlers
                     }
                 }
             }
+            */
 
-            // Ctrl+V: 粘贴
+            // Ctrl+V: 粘贴 (Migrated to InputBindings)
+            /*
             if (IsActionTriggered(e, "粘贴", "Ctrl+V"))
             {
                 var focusedElement = Keyboard.FocusedElement;
@@ -363,8 +370,10 @@ namespace YiboFile.Handlers
                     return;
                 }
             }
+            */
 
-            // Ctrl+X: 剪切
+            // Ctrl+X: 剪切 (Migrated to InputBindings)
+            /*
             if (IsActionTriggered(e, "剪切", "Ctrl+X"))
             {
                 var focusedElement = Keyboard.FocusedElement;
@@ -379,8 +388,10 @@ namespace YiboFile.Handlers
                     }
                 }
             }
+            */
 
-            // Delete: 删除
+            // Delete: 删除 (Migrated to InputBindings)
+            /*
             if (IsActionTriggered(e, "删除 (移到回收站)", "Delete"))
             {
                 // 注意：这里需要确保 Shift+Delete 不会命入这个逻辑，除非 Shift 在 default 字符串中
@@ -396,8 +407,10 @@ namespace YiboFile.Handlers
                     }
                 }
             }
+            */
 
-            // Shift+Delete: 永久删除
+            // Shift+Delete: 永久删除 (Migrated to InputBindings)
+            /*
             if (IsActionTriggered(e, "永久删除", "Shift+Delete"))
             {
                 var focusedElement = Keyboard.FocusedElement;
@@ -413,8 +426,10 @@ namespace YiboFile.Handlers
                     }
                 }
             }
+            */
 
-            // F2: 重命名
+            // F2: 重命名 (Migrated to InputBindings)
+            /*
             if (IsActionTriggered(e, "重命名", "F2"))
             {
                 var activeBrowser = _getActiveBrowser();
@@ -425,8 +440,10 @@ namespace YiboFile.Handlers
                     return;
                 }
             }
+            */
 
-            // Ctrl+Z: 撤销
+            // Ctrl+Z: 撤销 (Migrated to InputBindings)
+            /*
             if (IsActionTriggered(e, "撤销", "Ctrl+Z"))
             {
                 if (_undoClick != null)
@@ -436,8 +453,10 @@ namespace YiboFile.Handlers
                     return;
                 }
             }
+            */
 
-            // Ctrl+Y: 重做
+            // Ctrl+Y: 重做 (Migrated to InputBindings)
+            /*
             if (IsActionTriggered(e, "重做", "Ctrl+Y"))
             {
                 if (_redoClick != null)
@@ -447,6 +466,7 @@ namespace YiboFile.Handlers
                     return;
                 }
             }
+            */
         }
 
         public void MainWindow_KeyDown(object sender, KeyEventArgs e)

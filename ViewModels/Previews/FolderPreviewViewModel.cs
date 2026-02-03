@@ -18,7 +18,12 @@ namespace YiboFile.ViewModels.Previews
         public string Size { get; set; }
         public string ModifiedDate { get; set; }
         public bool IsDirectory { get; set; }
-        public string Icon => IsDirectory ? "📁" : "📄";
+        private string _icon;
+        public string Icon
+        {
+            get => _icon ?? (IsDirectory ? "📁" : "📄");
+            set => _icon = value;
+        }
     }
 
     public class FolderPreviewViewModel : BasePreviewViewModel
@@ -55,19 +60,31 @@ namespace YiboFile.ViewModels.Previews
                 {
                     if (!Directory.Exists(folderPath) || token.IsCancellationRequested) return;
 
-                    var di = new DirectoryInfo(folderPath);
-                    var items = di.GetFileSystemInfos()
-                        .Take(100)
-                        .Select(info => new FolderItemViewModel
-                        {
-                            Name = info.Name,
-                            FullPath = info.FullName,
-                            IsDirectory = (info.Attributes & FileAttributes.Directory) != 0,
-                            Size = (info is FileInfo fi) ? PreviewHelper.FormatFileSize(fi.Length) : "",
-                            ModifiedDate = info.LastWriteTime.ToString("yyyy-MM-dd HH:mm")
-                        })
-                        .ToList();
-
+                    List<FolderItemViewModel> items = new List<FolderItemViewModel>();
+                    try
+                    {
+                        var di = new DirectoryInfo(folderPath);
+                        items = di.GetFileSystemInfos()
+                            .Take(100)
+                            .Select(info => new FolderItemViewModel
+                            {
+                                Name = info.Name,
+                                FullPath = info.FullName,
+                                IsDirectory = (info.Attributes & FileAttributes.Directory) != 0,
+                                Size = (info is FileInfo fi) ? PreviewHelper.FormatFileSize(fi.Length) : "",
+                                ModifiedDate = info.LastWriteTime.ToString("yyyy-MM-dd HH:mm")
+                            })
+                            .ToList();
+                    }
+                    catch (UnauthorizedAccessException)
+                    {
+                        items.Add(new FolderItemViewModel { Name = "Access Denied", Icon = "🔒" });
+                    }
+                    catch (Exception)
+                    {
+                        items.Add(new FolderItemViewModel { Name = "Error loading content", Icon = "⚠️" });
+                    }
+                                                 
                     if (token.IsCancellationRequested) return;
 
                     Application.Current.Dispatcher.Invoke(() =>

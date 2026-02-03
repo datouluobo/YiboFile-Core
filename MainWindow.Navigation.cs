@@ -12,6 +12,8 @@ using YiboFile.Services.Navigation;
 using YiboFile.Models.UI;
 
 using YiboFile.Services.Core;
+using YiboFile.Services.Config;
+
 
 namespace YiboFile
 {
@@ -21,6 +23,8 @@ namespace YiboFile
         {
             // 更新按钮选中状态
             UpdateNavigationButtonsState(mode);
+
+
 
             // 使用 NavigationModeService 处理导航模式切换
             if (_navigationModeService != null)
@@ -82,9 +86,10 @@ namespace YiboFile
                 // 如果是库模式但没有当前库，尝试恢复最后选中的库
                 if (NavLibraryContent != null && NavLibraryContent.Visibility == Visibility.Visible)
                 {
-                    if (_configService?.Config.LastLibraryId > 0)
+                    if (ConfigurationService.Instance.Config.LastLibraryId > 0)
                     {
-                        var lastLibrary = _libraryService.GetLibrary(_configService.Config.LastLibraryId);
+                        var lastLibrary = _libraryService.GetLibrary(ConfigurationService.Instance.Config.LastLibraryId);
+
                         if (lastLibrary != null)
                         {
                             _currentLibrary = lastLibrary;

@@ -9,6 +9,8 @@ using System.Windows.Media;
 using YiboFile.Services;
 using YiboFile.Services.Navigation;
 using YiboFile.Services.FileNotes;
+using YiboFile.Services.Config;
+using YiboFile.Models;
 
 namespace YiboFile
 {
@@ -100,11 +102,11 @@ namespace YiboFile
             else
             {
                 _currentLibrary = null;
-                if (_configService != null)
-                {
-                    _configService.Config.LastLibraryId = 0;
-                    _configService.SaveCurrentConfig();
-                }
+                // Reset last library in config
+                ConfigurationService.Instance.Set(c => c.LastLibraryId, 0);
+                ConfigurationService.Instance.SaveNow();
+
+
                 _currentFiles.Clear();
                 if (FileBrowser != null)
                 {
@@ -279,58 +281,7 @@ namespace YiboFile
                 catch { }
             });
 
-            // 异步计算文件夹大小（使用服务方法，限制数量和延迟，避免资源消耗过大）
-            var dirsToCalculate = _currentFiles.Where(f => f.IsDirectory).ToList();
-            // 只计算前5个文件夹，大幅减少资源消耗
-            int maxCalculations = Math.Min(5, dirsToCalculate.Count);
-
-            // 立即计算前5个文件夹
-            for (int i = 0; i < maxCalculations; i++)
-            {
-                var dir = dirsToCalculate[i];
-                var path = dir.Path;
-                var currentDelay = i * 1000; // 每个任务延迟1秒，避免同时启动
-
-                System.Threading.Tasks.Task.Run(async () =>
-                {
-                    try
-                    {
-                        // 延迟启动，避免同时启动太多任务
-                        if (currentDelay > 0)
-                        {
-                            await System.Threading.Tasks.Task.Delay(currentDelay);
-                        }
-
-                        // 使用服务方法计算文件夹大小
-                        await _folderSizeCalculationService.CalculateAndUpdateFolderSizeAsync(path);
-
-                        // 更新UI
-                        _ = Dispatcher.BeginInvoke(new Action(() =>
-                        {
-                            var item = _currentFiles.FirstOrDefault(f => f.Path == path);
-                            if (item != null)
-                            {
-                                var cachedSize = DatabaseManager.GetFolderSize(path);
-                                if (cachedSize.HasValue)
-                                {
-                                    item.Size = _fileListService.FormatFileSize(cachedSize.Value);
-                                    // 使用低优先级批量更新，减少UI刷新频率
-                                    var collectionView = System.Windows.Data.CollectionViewSource.GetDefaultView(FileBrowser?.FilesItemsSource);
-                                    collectionView?.Refresh();
-                                }
-                            }
-                        }), System.Windows.Threading.DispatcherPriority.SystemIdle);
-                    }
-                    catch { }
-                });
-            }
-
-            // 剩余文件夹通过服务的批量计算方法异步处理
-            if (dirsToCalculate.Count > maxCalculations)
-            {
-                var remainingPaths = dirsToCalculate.Skip(maxCalculations).Select(d => d.Path).ToArray();
-                _folderSizeCalculationService?.CalculateSubfolderSizesBatchAsync(remainingPaths);
-            }
+            // 文件夹大小计算已由 FileListService 处理，此处移除冗余的异步任务以避免资源竞争和泄漏
         }
 
         #endregion

@@ -16,17 +16,29 @@ namespace YiboFile.Handlers
     {
         private readonly MainWindow _mainWindow;
         private readonly Services.WindowStateManager _windowStateManager;
-        private readonly Services.Config.ConfigService _configService;
         private readonly Services.ColumnManagement.ColumnService _columnService;
+
 
         // Legacy fields removed: _isPseudoMaximized, _restoreBounds
 
-        public WindowLifecycleHandler(MainWindow mainWindow, WindowStateManager windowStateManager, ConfigService configService, ColumnService columnService)
+        public WindowLifecycleHandler(MainWindow mainWindow, WindowStateManager windowStateManager, ColumnService columnService)
         {
             _mainWindow = mainWindow ?? throw new ArgumentNullException(nameof(mainWindow));
             _windowStateManager = windowStateManager;
-            _configService = configService;
             _columnService = columnService;
+        }
+
+
+        private static void LogDebug(string msg)
+        {
+            try
+            {
+                string fullMsg = $"{DateTime.Now:O} [WindowLifecycleHandler] {msg}";
+                System.Diagnostics.Debug.WriteLine(fullMsg);
+                System.IO.File.AppendAllText(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "window_debug.log"),
+                    fullMsg + "\n");
+            }
+            catch { }
         }
 
         public void HandleClosing(CancelEventArgs e)
@@ -34,20 +46,24 @@ namespace YiboFile.Handlers
             // 窗口关闭前统一保存所有状态（窗口大小/位置、分割线、导航、标签页）
             try
             {
-                // 第1次SaveNow: 强制保存ConfigurationService中用户设置（跳过去抖）
+                LogDebug($"HandleClosing Entry: WindowState={_mainWindow.WindowState}");
+
+                // 1. 显式保存最大化状态 (Bypassing potential issues in WindowStateManager)
+                bool isMaximized = _mainWindow.WindowState == WindowState.Maximized;
+                LogDebug($"Updating Config IsMaximized={isMaximized}");
+                YiboFile.Services.Config.ConfigurationService.Instance.Update(c => c.IsMaximized = isMaximized);
+
+                // 2. 保存窗口其他状态 (SaveAllState calls ConfigurationService.Update internally)
+                // 使用 force: true 确保在程序关闭时强制保存，即使初始化未完成
+                LogDebug("Calling SaveAllState(force: true)");
+                _windowStateManager?.SaveAllState(force: true);
+
+                // 3. 强制保存到磁盘 (SaveNow)
+                LogDebug("Calling SaveNow()");
                 YiboFile.Services.Config.ConfigurationService.Instance.SaveNow();
-
-                // 保存窗口状态 - 注意：这会调用ConfigurationService.Update()，触发500ms去抖！
-                _windowStateManager?.SaveAllState();
-
-                // 第2次SaveNow: 强制保存窗口状态（SaveAllState触发的去抖还没完成）
-                // 这是关键！确保窗口状态立即写入磁盘
-                YiboFile.Services.Config.ConfigurationService.Instance.SaveNow();
-
-                // 停止并刷新配置服务的定时器（如果有），确保配置落盘
-                _configService?.StopAllTimers();
 
                 // 执行备份清理（程序退出循环）
+
                 YiboFile.Services.FileOperations.Undo.BackupCleanupService.Cleanup();
 
                 // 🔥 BUG FIX: 不要调用SaveCurrentConfig！
@@ -55,8 +71,9 @@ namespace YiboFile.Handlers
                 // ConfigurationService和WindowStateManager已经负责保存所有设置，不需要重复保存
                 // _configService?.SaveCurrentConfig();  // ❌ 注释掉，避免覆盖
             }
-            catch
+            catch (Exception ex)
             {
+                LogDebug($"HandleClosing Exception: {ex.Message}");
                 // 关闭阶段不再向外抛异常，避免影响程序退出
             }
         }

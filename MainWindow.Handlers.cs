@@ -25,7 +25,9 @@ using YiboFile.Services.Settings;
 // using TagTrain.UI; // Phase 2
 using System.Windows.Media;
 using YiboFile.Services.Core;
+using YiboFile.Services.Config;
 using YiboFile.ViewModels.Messaging.Messages;
+
 
 namespace YiboFile
 {
@@ -81,8 +83,9 @@ namespace YiboFile
                 FileBrowser_FilesSizeChanged, // Action<SizeChangedEventArgs>
                 FileBrowser_GridSplitterDragDelta, // Action<DragDeltaEventArgs>
                 () => _currentPath,
-                () => _configService?.Config,
+                () => ConfigurationService.Instance.Config,
                 () => null,
+
                 (tag) => { },
                 // MVVM 迁移: Handler 现在读取和更新 VM 数据
                 () => _viewModel?.PrimaryPane?.FileList?.Files?.ToList() ?? new List<FileSystemItem>(),
@@ -124,11 +127,11 @@ namespace YiboFile
 
             // Initialize Info Services
             var tagService = App.ServiceProvider?.GetService<YiboFile.Services.Features.ITagService>();
-            var localFileInfoService = new Services.FileInfo.FileInfoService(FileBrowser, _fileListService, _navigationCoordinator, tagService);
-            Services.FileInfo.FileInfoService localSecondFileInfoService = null;
+            _fileInfoService = new Services.FileInfo.FileInfoService(FileBrowser, _fileListService, _navigationCoordinator, tagService);
+
             if (SecondFileBrowser != null)
             {
-                localSecondFileInfoService = new Services.FileInfo.FileInfoService(SecondFileBrowser, _fileListService, _navigationCoordinator, tagService);
+                _secondFileInfoService = new Services.FileInfo.FileInfoService(SecondFileBrowser, _fileListService, _navigationCoordinator, tagService);
             }
 
             _selectionEventHandler = new SelectionEventHandler(
@@ -140,8 +143,8 @@ namespace YiboFile
                 () => _currentLibrary,
                 () => IsDualListMode,
                 path => _folderSizeCalculationService != null ? _folderSizeCalculationService.CalculateAndUpdateFolderSizeAsync(path) : Task.CompletedTask,
-                item => localFileInfoService?.ShowFileInfo(item),
-                lib => localFileInfoService?.ShowLibraryInfo(lib)
+                item => _fileInfoService?.ShowFileInfo(item),
+                lib => _fileInfoService?.ShowLibraryInfo(lib)
             );
 
             // Subscribe to Preview Navigation Requests
@@ -198,14 +201,16 @@ namespace YiboFile
             });
 
             // 初始化 ColumnInteractionHandler
-            _columnInteractionHandler = new Handlers.ColumnInteractionHandler(this, FileBrowser, _columnService, _configService);
+            _columnInteractionHandler = new Handlers.ColumnInteractionHandler(this, FileBrowser, _columnService);
+
             _columnInteractionHandler.Initialize();
             _columnInteractionHandler.HookHeaderThumbs(); // 挂载列头拖拽事件
 
             // 初始化 Second ColumnInteractionHandler
             if (SecondFileBrowser != null)
             {
-                _secondColumnInteractionHandler = new Handlers.ColumnInteractionHandler(this, SecondFileBrowser, _columnService, _configService);
+                _secondColumnInteractionHandler = new Handlers.ColumnInteractionHandler(this, SecondFileBrowser, _columnService);
+
                 _secondColumnInteractionHandler.Initialize();
                 _secondColumnInteractionHandler.Initialize();
                 _secondColumnInteractionHandler.HookHeaderThumbs();
@@ -261,7 +266,8 @@ namespace YiboFile
             }
 
             // 初始化 WindowLifecycleHandler
-            _windowLifecycleHandler = new Handlers.WindowLifecycleHandler(this, _windowStateManager, _configService, _columnService);
+            _windowLifecycleHandler = new Handlers.WindowLifecycleHandler(this, _windowStateManager, _columnService);
+
 
             // 初始化统一文件操作服务 (新架构) - 逐步迁移中
             var errorService = App.ServiceProvider.GetRequiredService<YiboFile.Services.Core.Error.ErrorService>();
@@ -319,7 +325,7 @@ namespace YiboFile
                     item =>
                     {
                         _messageBus.Publish(new FileSelectionChangedMessage(new List<FileSystemItem> { item }));
-                        localSecondFileInfoService?.ShowFileInfo(item); // Update Second Info Panel
+                        _secondFileInfoService?.ShowFileInfo(item); // Update Second Info Panel
                     },
                     item => { }, // Second browser preview might not be supported or same preview service
                     path => { _folderSizeCalculationService?.CalculateAndUpdateFolderSizeAsync(path); },
@@ -375,26 +381,34 @@ namespace YiboFile
                             if (containerItem != null)
                             {
                                 // 更新 Secondary 信息面板
-                                localSecondFileInfoService?.ShowFileInfo(containerItem);
+                                _secondFileInfoService?.ShowFileInfo(containerItem);
 
                                 // 发布消息以更新预览面板（显示文件夹预览或空）
                                 _messageBus.Publish(new FileSelectionChangedMessage(new List<FileSystemItem> { containerItem }, RequestPreview: false));
                             }
                             else
                             {
-                                localSecondFileInfoService?.ShowFileInfo(null);
+                                _secondFileInfoService?.ShowFileInfo(null);
                                 _messageBus.Publish(new FileSelectionChangedMessage(null));
                             }
                         }
                         catch (Exception ex)
                         {
                             System.Diagnostics.Debug.WriteLine($"[SecondBrowser] HandleNoSelection Error: {ex.Message}");
-                            localSecondFileInfoService?.ShowFileInfo(null);
+                            _secondFileInfoService?.ShowFileInfo(null);
                         }
                     },
-                    () => false, // Second browser usually Path mode only for now
-                    mode => { }, // Switch mode?
-                    path => LoadSecondFileBrowserDirectory(path),
+                    () => _viewModel?.SecondaryPane?.NavigationMode == "Library", // IsLibraryMode
+                    mode => // SwitchNavigationMode
+                    {
+                        // Basic mode switch if needed, though usually handled by NavigationModeService
+                        if (mode == "Length") { /* handled elsewhere */ }
+                    },
+                    path =>
+                    {
+                        // 直接调用路径加载，避免递归调用 ViewModel
+                        LoadSecondFileBrowserDirectory(path);
+                    },
                     () => { /* Second Browser Back Logic? */ },
                     col => AutoSizeGridViewColumn(col), // Helper might need adjustment for second browser context
                     () => _secondCurrentPath,
@@ -407,9 +421,10 @@ namespace YiboFile
                     () => ShowSelectedFileProperties(), // Use the new method
                     (path, force, activate) => // Second Browser CreateTab
                     {
-                        bool shouldActivate = activate ?? _configService?.Config?.ActivateNewTabOnMiddleClick ?? true;
+                        bool shouldActivate = activate ?? ConfigurationService.Instance.Config?.ActivateNewTabOnMiddleClick ?? true;
                         _secondTabService?.CreatePathTab(path, force, false, shouldActivate);
                     },
+
                     YiboFile.Services.Navigation.PaneId.Second
                 );
                 _secondFileListHandler.Initialize(SecondFileBrowser.FilesList);
@@ -419,21 +434,21 @@ namespace YiboFile
 
             _fileOperationService = new Services.FileOperations.FileOperationService(
                 () =>
-                {
-                    var (browser, path, library) = GetActiveContext();
-                    return new Services.FileOperations.FileOperationContext
                     {
-                        TargetPath = path,
-                        CurrentLibrary = library,
-                        OwnerWindow = this,
-                        RefreshCallback = RefreshActiveFileList
-                    };
-                },
-                errorService,
-                undoService,
-                taskQueueService,
-                backupService
-            );
+                        var (browser, path, library) = GetActiveContext();
+                        return new Services.FileOperations.FileOperationContext
+                        {
+                            TargetPath = path,
+                            CurrentLibrary = library,
+                            OwnerWindow = this,
+                            RefreshCallback = RefreshActiveFileList
+                        };
+                    },
+                    errorService,
+                    undoService,
+                    taskQueueService,
+                    backupService
+                );
 
             // 监听撤销/重做事件以刷新UI
             // 监听撤销/重做事件以刷新UI
@@ -577,14 +592,15 @@ namespace YiboFile
                     }
                     return false;
                 },
-                 () => _configService?.Config,
-                 (cfg) => _configService?.ApplyConfig(cfg),
-                 () => _configService?.SaveCurrentConfig()
+                 () => ConfigurationService.Instance.Config,
+                 (cfg) => { /* ConfigurationService.Instance already handles config updates */ },
+                 () => ConfigurationService.Instance.SaveNow()
             );
+
 
             // 定义获取当前活动标签页服务的逻辑
             Func<Services.Tabs.TabService> getActiveTabService = () =>
-                (_isDualListMode && _isSecondPaneFocused && _secondTabService != null) ? _secondTabService : _tabService;
+                (IsDualListMode && IsSecondPaneFocused && _secondTabService != null) ? _secondTabService : _tabService;
 
             // 初始化 KeyboardEventHandler
             _keyboardEventHandler = new YiboFile.Handlers.KeyboardEventHandler(

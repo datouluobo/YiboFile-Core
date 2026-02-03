@@ -44,7 +44,19 @@ namespace YiboFile.Models
         {
             OnPropertyChanged(nameof(TagList));
         }
-        public string Notes { get; set; }
+        private string _notes;
+        public string Notes
+        {
+            get => _notes;
+            set
+            {
+                if (_notes != value)
+                {
+                    _notes = value;
+                    OnPropertyChanged(nameof(Notes));
+                }
+            }
+        }
         // Metadata
         public int PixelWidth { get; set; } // 0 if N/A
         public int PixelHeight { get; set; } // 0 if N/A

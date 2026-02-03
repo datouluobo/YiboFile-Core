@@ -153,16 +153,13 @@ namespace YiboFile
             _searchCacheService = App.ServiceProvider.GetRequiredService<SearchCacheService>();
             _searchService = App.ServiceProvider.GetRequiredService<SearchService>();
 
-            // 保存 ConfigService 引用并注入 UIHelper
-            _configService = App.ServiceProvider.GetRequiredService<ConfigService>();
-            _configService.UIHelper = this;
-
             // 初始化列管理服务
             _columnService = App.ServiceProvider.GetRequiredService<ColumnService>();
             _columnService.Initialize(
-                () => GetCurrentModeKey(),
-                () => { if (_configService != null) _configService.SaveCurrentConfig(); }
+                () => GetCurrentModeKey()
             );
+
+
 
             AttachTabServiceUiContext();
             AttachSecondTabServiceUiContext();
@@ -264,10 +261,9 @@ namespace YiboFile
                     _selectionEventHandler?.HandleNoSelection();
 
                     // 切换标签页时自动聚焦主文件列表
-                    if (_isDualListMode && _isSecondPaneFocused)
+                    if (IsDualListMode && IsSecondPaneFocused)
                     {
-                        _isSecondPaneFocused = false;
-                        UpdateFocusBorders();
+                        _layoutModule?.SetFocusedPane(false);
                         FileBrowser?.FilesList?.Focus();
                     }
                 }
@@ -279,10 +275,9 @@ namespace YiboFile
                 if (tab != null)
                 {
                     // 切换标签页时自动聚焦副文件列表
-                    if (_isDualListMode && !_isSecondPaneFocused)
+                    if (IsDualListMode && !IsSecondPaneFocused)
                     {
-                        _isSecondPaneFocused = true;
-                        UpdateFocusBorders();
+                        _layoutModule?.SetFocusedPane(true);
                         SecondFileBrowser?.FilesList?.Focus();
                     }
                     _secondTabService?.UpdateTabStyles();
@@ -497,7 +492,8 @@ namespace YiboFile
                 FileBrowser.NavigationUp += (s, e) => _viewModel?.Navigation?.NavigateUpCommand?.Execute(null);
                 FileBrowser.ViewModeChanged += FileBrowser_ViewModeChanged;
 
-                // Toolbar & Context Menu operations
+                // Toolbar & Context Menu operations - Migrated to Commands
+                /*
                 FileBrowser.FileNewFolder += (s, e) => _menuEventHandler?.NewFolder_Click(s, e);
                 FileBrowser.FileNewFile += (s, e) => _menuEventHandler?.NewFile_Click(s, e);
                 FileBrowser.FileCopy += (s, e) => _menuEventHandler?.Copy_Click(s, e);
@@ -516,6 +512,7 @@ namespace YiboFile
                 };
                 FileBrowser.FileRename += (s, e) => _menuEventHandler?.Rename_Click(s, e);
                 FileBrowser.FileRefresh += (s, e) => RefreshFileList();
+                */
                 FileBrowser.FileProperties += (s, e) => ShowSelectedFileProperties();
                 FileBrowser.FileAddTag += FileAddTag_Click;
             }
@@ -549,9 +546,10 @@ namespace YiboFile
 
                 Dispatcher = this.Dispatcher,
                 OwnerWindow = this,
-                GetConfig = () => _configService?.Config ?? new AppConfig(),
+                GetConfig = () => ConfigurationService.Instance.Config ?? new AppConfig(),
                 SaveConfig = ConfigManager.Save,
                 GetCurrentLibrary = () => _currentLibrary,
+
                 SetCurrentLibrary = lib => _currentLibrary = lib,
                 GetCurrentPath = () => _currentPath,
                 SetCurrentPath = path => _currentPath = path,
@@ -570,7 +568,8 @@ namespace YiboFile
                 FindResource = key => FindResource(key),
 
                 // 获取当前导航模式
-                GetCurrentNavigationMode = () => _configService?.Config?.LastNavigationMode ?? "Path",
+                GetCurrentNavigationMode = () => ConfigurationService.Instance.Config?.LastNavigationMode ?? "Path",
+
 
                 TagService = _tagService
             };
@@ -665,7 +664,7 @@ namespace YiboFile
         private FileOperationContext GetActiveFileOperationContext()
         {
             // 确定当前活动的面板
-            bool useSecond = IsDualListMode && _isSecondPaneFocused;
+            bool useSecond = IsDualListMode && IsSecondPaneFocused;
 
             var targetBrowser = useSecond ? SecondFileBrowser : FileBrowser;
             var targetPath = useSecond ? SecondFileBrowser?.AddressText : _currentPath;

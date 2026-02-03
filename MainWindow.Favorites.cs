@@ -42,7 +42,7 @@ namespace YiboFile
         private void AddFavorite_Click(object sender, RoutedEventArgs e)
         {
             // 根据当前焦点判断使用哪个列表
-            var activeBrowser = (_isSecondPaneFocused && SecondFileBrowser != null) ? SecondFileBrowser : FileBrowser;
+            var activeBrowser = (IsSecondPaneFocused && SecondFileBrowser != null) ? SecondFileBrowser : FileBrowser;
 
             // 获取选中的文件或文件夹
             var selectedItems = activeBrowser?.FilesSelectedItems?.Cast<FileSystemItem>().ToList() ?? new List<FileSystemItem>();

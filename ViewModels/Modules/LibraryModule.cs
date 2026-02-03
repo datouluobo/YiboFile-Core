@@ -100,18 +100,25 @@ namespace YiboFile.ViewModels.Modules
 
         private void OnLibrariesLoadedFromService(object sender, System.Collections.Generic.List<Library> libs)
         {
-            UpdateLibrariesCollection(libs);
+            // Ensure UI thread for ObservableCollection update
+            System.Windows.Application.Current.Dispatcher.Invoke(() =>
+            {
+                UpdateLibrariesCollection(libs);
+            });
         }
 
         private void UpdateLibrariesCollection(System.Collections.Generic.List<Library> libs)
         {
-            _libraries.Clear();
+            var newCollection = new ObservableCollection<Library>();
             if (libs != null)
             {
                 foreach (var lib in libs)
-                    _libraries.Add(lib);
+                {
+                    newCollection.Add(lib);
+                }
             }
-            OnPropertyChanged(nameof(Libraries));
+            // Replacing the instance triggers PropertyChanged("Libraries") via SetProperty
+            Libraries = newCollection;
         }
 
         private void OnLibrarySelected(Library library)

@@ -8,6 +8,7 @@ using YiboFile.Controls;
 using YiboFile.Services.Config;
 using YiboFile.Services.Tabs;
 using YiboFile.Services.Navigation;
+using System.Windows.Controls;
 
 namespace YiboFile.Services
 {
@@ -21,13 +22,17 @@ namespace YiboFile.Services
 
         private readonly IConfigUIHelper _uiHelper;
         private readonly TabService _tabService;
-        private TabService _secondTabService; // Removing readonly to allow updates
-        private readonly ConfigService _configService;
-        private readonly AppConfig _config;
+        private TabService _secondTabService;
         private readonly NavigationService _navigationService;
         private readonly Navigation.NavigationModeService _navigationModeService;
         private readonly Data.Repositories.ILibraryRepository _libraryRepository;
+
+        // 快捷访问单例配置
+        private AppConfig _config => ConfigurationService.Instance.Config;
+
         private bool _isInitialized = false;
+        private bool _isApplyingConfig = false; // 用于追踪是否正在恢复状态
+
 
         #endregion
 
@@ -36,13 +41,11 @@ namespace YiboFile.Services
         /// <summary>
         /// 初始化窗口状态管理器
         /// </summary>
-        public WindowStateManager(IConfigUIHelper uiHelper, TabService tabService, ConfigService configService, AppConfig config, NavigationService navigationService = null, Navigation.NavigationModeService navigationModeService = null, TabService secondTabService = null, Data.Repositories.ILibraryRepository libraryRepository = null)
+        public WindowStateManager(IConfigUIHelper uiHelper, TabService tabService, NavigationService navigationService = null, Navigation.NavigationModeService navigationModeService = null, TabService secondTabService = null, Data.Repositories.ILibraryRepository libraryRepository = null)
         {
             _uiHelper = uiHelper ?? throw new ArgumentNullException(nameof(uiHelper));
             _tabService = tabService ?? throw new ArgumentNullException(nameof(tabService));
             _secondTabService = secondTabService;
-            _configService = configService ?? throw new ArgumentNullException(nameof(configService));
-            _config = config ?? throw new ArgumentNullException(nameof(config));
             _navigationService = navigationService;
             _navigationModeService = navigationModeService;
             _libraryRepository = libraryRepository ?? App.ServiceProvider?.GetService(typeof(Data.Repositories.ILibraryRepository)) as Data.Repositories.ILibraryRepository;
@@ -78,13 +81,15 @@ namespace YiboFile.Services
         /// <summary>
         /// 保存所有窗口状态（窗口大小、位置、分割线、导航位置、标签页）
         /// </summary>
-        public void SaveAllState()
+        /// <param name="force">是否强制保存（忽略初始化检查，用于程序关闭时）</param>
+        public void SaveAllState(bool force = false)
         {
-            // 启动阶段或尚未初始化完成时不保存，避免覆盖已有配置
-            if (!_isInitialized || (_configService != null && _configService.IsApplyingConfig))
+            // 启动阶段或正在应用配置时不保存，避开启动时的初始波动
+            if (!force && (!_isInitialized || _isApplyingConfig))
             {
                 return;
             }
+
             try
             {
                 // #region agent log
@@ -182,8 +187,11 @@ namespace YiboFile.Services
             var window = _uiHelper.Window;
             if (window == null) return;
 
-            // 保存最大化状态
-            _config.IsMaximized = window.WindowState == WindowState.Maximized;
+            // 保存最大化状态 (如果是最小化，则保持之前的状态，避免覆盖)
+            if (window.WindowState != WindowState.Minimized)
+            {
+                _config.IsMaximized = window.WindowState == WindowState.Maximized;
+            }
 
             // #region agent log
             try { System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "A", location = "WindowStateManager.cs:88", message = "SaveWindowState窗口属性", data = new { isLoaded = window.IsLoaded, isMaximized = _config.IsMaximized, windowWidth = window.Width, windowHeight = window.Height, windowTop = window.Top, windowLeft = window.Left }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
@@ -274,14 +282,15 @@ namespace YiboFile.Services
         {
             // #region agent log
             var logPath = @"f:\Download\GitHub\YiboFile\.cursor\debug.log";
-            try { System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(logPath)); System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "B", location = "WindowStateManager.cs:147", message = "SaveSplitterPositions开始", data = new { rootGridIsNull = _uiHelper?.RootGrid == null, rootGridIsLoaded = _uiHelper?.RootGrid?.IsLoaded ?? false, isInitialized = _isInitialized, isApplyingConfig = _configService?.IsApplyingConfig ?? false }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
+            try { System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(logPath)); System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "B", location = "WindowStateManager.cs:147", message = "SaveSplitterPositions开始", data = new { rootGridIsNull = _uiHelper?.RootGrid == null, rootGridIsLoaded = _uiHelper?.RootGrid?.IsLoaded ?? false, isInitialized = _isInitialized, isApplyingConfig = _isApplyingConfig }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
             // #endregion
 
-            // 双重保护：启动阶段不保存分割线位置
-            if (!_isInitialized || (_configService != null && _configService.IsApplyingConfig))
+            // 正在应用配置时不保存分割线位置
+            if (!_isInitialized || _isApplyingConfig)
             {
                 return;
             }
+
 
             if (_uiHelper.RootGrid == null || !_uiHelper.RootGrid.IsLoaded) return;
 
@@ -579,8 +588,43 @@ namespace YiboFile.Services
         /// </summary>
         private void RestoreWindowState()
         {
-            // 窗口状态由 ConfigService.ApplyConfig 处理
-            // 这里不需要重复处理
+            var window = _uiHelper.Window;
+            if (window == null || _config == null) return;
+
+            _isApplyingConfig = true;
+            try
+            {
+                if (_config.IsMaximized)
+                {
+                    window.WindowState = WindowState.Maximized;
+                    _uiHelper.UpdateWindowStateUI();
+                }
+                else
+                {
+                    ApplyNonMaximizedWindowState(window, _config);
+                }
+
+                // 应用窗口透明度
+                if (_config.WindowOpacity > 0 && _config.WindowOpacity <= 1.0)
+                {
+                    window.Opacity = _config.WindowOpacity;
+                }
+            }
+            finally
+            {
+                _isApplyingConfig = false;
+            }
+        }
+
+        private void ApplyNonMaximizedWindowState(Window window, AppConfig cfg)
+        {
+            window.WindowState = WindowState.Normal;
+            if (cfg.WindowWidth > 0) window.Width = cfg.WindowWidth;
+            if (cfg.WindowHeight > 0) window.Height = cfg.WindowHeight;
+            if (!double.IsNaN(cfg.WindowTop) && cfg.WindowTop >= -10000) window.Top = cfg.WindowTop;
+            if (!double.IsNaN(cfg.WindowLeft) && cfg.WindowLeft >= -10000) window.Left = cfg.WindowLeft;
+
+            window.ResizeMode = ResizeMode.CanResize;
         }
 
         /// <summary>
@@ -588,9 +632,53 @@ namespace YiboFile.Services
         /// </summary>
         private void RestoreSplitterPositions()
         {
-            // 分割线位置由 ConfigService.ApplyConfig 处理
-            // 这里不需要重复处理
+            if (_uiHelper.RootGrid == null || _config == null) return;
+
+            _isApplyingConfig = true;
+            try
+            {
+                // 应用左中右三列宽度
+                var leftWidth = _config.ColLeftWidth > 0 ? _config.ColLeftWidth : _config.LeftPanelWidth;
+                var rightWidth = _config.ColRightWidth > 0 ? _config.ColRightWidth : 360;
+
+                if (leftWidth > 0)
+                {
+                    _uiHelper.ColLeft.Width = new GridLength(Math.Max(_uiHelper.ColLeft.MinWidth, leftWidth));
+                }
+
+                // 中间列固定为自适应 (Gap Fix)
+                _uiHelper.ColCenter.Width = new GridLength(1, GridUnitType.Star);
+
+                if (rightWidth > 0)
+                {
+                    _uiHelper.ColRight.Width = new GridLength(Math.Max(_uiHelper.ColRight.MinWidth, rightWidth));
+                }
+
+                // 恢复右侧面板可见性
+                if (!_config.IsRightPanelVisible)
+                {
+                    _uiHelper.ColRight.Width = new GridLength(0);
+                }
+
+                // 恢复详细高度
+                if (_config.RightPanelNotesHeight > 0 && _uiHelper.RightPanelControl?.Content is Grid rightGrid && rightGrid.RowDefinitions.Count > 3)
+                {
+                    rightGrid.RowDefinitions[3].Height = new GridLength(_config.RightPanelNotesHeight);
+                }
+
+                if (_config.CenterPanelInfoHeight > 0 && _uiHelper.FileBrowser?.Content is Grid browserGrid && browserGrid.RowDefinitions.Count >= 4)
+                {
+                    browserGrid.RowDefinitions[browserGrid.RowDefinitions.Count - 1].Height = new GridLength(_config.CenterPanelInfoHeight);
+                }
+
+                _uiHelper.RootGrid.UpdateLayout();
+            }
+            finally
+            {
+                _isApplyingConfig = false;
+            }
         }
+
 
         /// <summary>
         /// 恢复标签页状态

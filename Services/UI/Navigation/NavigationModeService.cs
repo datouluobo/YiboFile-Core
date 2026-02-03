@@ -23,7 +23,8 @@ namespace YiboFile.Services.Navigation
         private readonly INavigationModeUIHelper _uiHelper;
         private readonly NavigationService _navigationService;
         private readonly TabService _tabService;
-        private readonly ConfigService _configService;
+        private readonly ConfigurationService _configService;
+
         private readonly ILibraryRepository _libraryRepository;
 
         #endregion
@@ -37,13 +38,15 @@ namespace YiboFile.Services.Navigation
             INavigationModeUIHelper uiHelper,
             NavigationService navigationService,
             TabService tabService,
-            ConfigService configService,
+            ConfigurationService configService,
+
             ILibraryRepository libraryRepository = null)
         {
             _uiHelper = uiHelper ?? throw new ArgumentNullException(nameof(uiHelper));
             _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
             _tabService = tabService ?? throw new ArgumentNullException(nameof(tabService));
             _configService = configService ?? throw new ArgumentNullException(nameof(configService));
+
             _libraryRepository = libraryRepository ?? App.ServiceProvider?.GetService(typeof(ILibraryRepository)) as ILibraryRepository;
         }
 
@@ -90,13 +93,9 @@ namespace YiboFile.Services.Navigation
             // 保存当前模式
             if (_configService != null)
             {
-                _configService.Config.LastNavigationMode = mode;
-                // ❌ 不要调用SaveCurrentConfig！会用旧配置覆盖ConfigurationService保存的新配置
-                // _configService.SaveCurrentConfig();
-
-                // ✅ 使用ConfigurationService保存
-                ConfigurationService.Instance.Set(cfg => cfg.LastNavigationMode, mode);
+                _configService.Set(cfg => cfg.LastNavigationMode, mode);
             }
+
 
             // 应用可见列设置并确保右键菜单绑定
             _uiHelper.ApplyVisibleColumnsForCurrentMode();
@@ -245,34 +244,64 @@ namespace YiboFile.Services.Navigation
             {
                 _uiHelper.Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    if (_uiHelper.CurrentLibrary == null)
+                    // 检查是否应该是副面板操作
+                    if (_uiHelper is MainWindow mw && mw.IsDualListMode)
                     {
-                        Library libraryToSelect = null;
-                        if (_configService?.Config.LastLibraryId > 0)
-                        {
-                            libraryToSelect = _libraryRepository?.GetLibrary(_configService.Config.LastLibraryId);
-                        }
+                        // 如果是副面板，我们应该尝试设置副面板的库
+                        // 但目前 NavigationModeService 没有直接引用 _secondTabService 或类似状态
+                        // 依赖 MainWindow.LoadSecondFileBrowserContent 或类似机制
+                        // 对于副面板，我们暂时简单地保持当前库（如果有），这通常由Tab切换触发
 
-                        // If last library not found, pick the first one
-                        if (libraryToSelect == null)
-                        {
-                            libraryToSelect = _libraryRepository?.GetAllLibraries().FirstOrDefault();
-                        }
+                        // 需要调用 MainWindow 特定的逻辑来加载副列表库？
+                        // 或者这里只是通用 UI 状态切换?
 
-                        if (libraryToSelect != null)
-                        {
-                            _uiHelper.CurrentLibrary = libraryToSelect;
-                            _uiHelper.EnsureSelectedItemVisible(_uiHelper.LibrariesListBox, libraryToSelect);
-                            _uiHelper.HighlightMatchingLibrary(libraryToSelect);
-                            _uiHelper.LoadLibraryFiles(libraryToSelect);
-                        }
+                        // 如果副面板处于焦点，我们让 MainWindow 处理特定加载
+                        // 但为了保持一致性，如果 CurrentLibrary 不为空，我们应该尝试应用到焦点面板？
+                        // 不，CurrentLibrary 属性是指向主面板的库状态
+
+                        // 所以这里如果不做任何事，副面板可能为空。
+                        // 我们应该保留原逻辑（针对主面板），同时扩展支持副面板？
+                        // 暂时保持主面板逻辑不变，因为“库模式”通常是全局的 UI 状态（左侧导航栏高亮）
+                        // 而具体哪个面板显示什么，由面板自己的 ViewModel 决定。
+
+                        // 但是，如果用户点击“库”按钮，且当前焦点在副面板，我们需要导航副面板到库视图。
+                        // NavigationModeService 的 SwitchNavigationMode -> HandleLibraryMode 是响应点击。
+
+                        // Trick: 调用 MainWindow 的辅助方法
+                        mw.NavigateSecondaryPaneToLibrary(null); // null means default or last used
                     }
                     else
                     {
-                        // 如果已有当前库，高亮它
-                        _uiHelper.HighlightMatchingLibrary(_uiHelper.CurrentLibrary);
+                        // 主面板逻辑
+                        if (_uiHelper.CurrentLibrary == null)
+                        {
+                            Library libraryToSelect = null;
+                            if (_configService?.Config.LastLibraryId > 0)
+                            {
+                                libraryToSelect = _libraryRepository?.GetLibrary(_configService.Config.LastLibraryId);
+                            }
+
+                            // If last library not found, pick the first one
+                            if (libraryToSelect == null)
+                            {
+                                libraryToSelect = _libraryRepository?.GetAllLibraries().FirstOrDefault();
+                            }
+
+                            if (libraryToSelect != null)
+                            {
+                                _uiHelper.CurrentLibrary = libraryToSelect;
+                                _uiHelper.EnsureSelectedItemVisible(_uiHelper.LibrariesListBox, libraryToSelect);
+                                _uiHelper.HighlightMatchingLibrary(libraryToSelect);
+                                _uiHelper.LoadLibraryFiles(libraryToSelect);
+                            }
+                        }
+                        else
+                        {
+                            // 如果已有当前库，高亮它
+                            _uiHelper.HighlightMatchingLibrary(_uiHelper.CurrentLibrary);
+                        }
+                        _uiHelper.InitializeLibraryDragDrop();
                     }
-                    _uiHelper.InitializeLibraryDragDrop();
                 }), System.Windows.Threading.DispatcherPriority.Loaded);
             }
         }

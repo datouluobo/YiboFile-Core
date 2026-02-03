@@ -18,6 +18,20 @@
         Closing="Window_Closing"
         LocationChanged="Window_LocationChanged">
 
+    <Window.InputBindings>
+        <KeyBinding Key="C" Modifiers="Ctrl" Command="{Binding FileOperation.CopyCommand}" CommandParameter="{Binding ActivePane.SelectedItems}"/>
+        <KeyBinding Key="X" Modifiers="Ctrl" Command="{Binding FileOperation.CutCommand}" CommandParameter="{Binding ActivePane.SelectedItems}"/>
+        <KeyBinding Key="V" Modifiers="Ctrl" Command="{Binding FileOperation.PasteCommand}" CommandParameter="{Binding ActivePane}"/>
+        <KeyBinding Key="Delete" Command="{Binding FileOperation.DeleteCommand}" CommandParameter="{Binding ActivePane.SelectedItems}"/>
+        <!-- Shift+Delete handled by Command implementation checking modifiers, or separate binding -->
+        <KeyBinding Key="F2" Command="{Binding FileOperation.RenameCommand}" CommandParameter="{Binding ActivePane.SelectedItem}"/>
+        <KeyBinding Key="N" Modifiers="Ctrl+Shift" Command="{Binding FileOperation.NewFolderCommand}" CommandParameter="{Binding ActivePane}"/>
+        <!-- New File? -->
+        <KeyBinding Key="Z" Modifiers="Ctrl" Command="{Binding FileOperation.UndoCommand}"/>
+        <KeyBinding Key="Y" Modifiers="Ctrl" Command="{Binding FileOperation.RedoCommand}"/>
+        <KeyBinding Key="F5" Command="{Binding ActivePane.RefreshCommand}"/>
+    </Window.InputBindings>
+
     <WindowChrome.WindowChrome>
         <WindowChrome CaptionHeight="50" 
                       ResizeBorderThickness="4" 
@@ -27,6 +41,7 @@
     </WindowChrome.WindowChrome>
 
     <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
         <local:TimeUnitConverter x:Key="TimeUnitConverter"/>
     </Window.Resources>
 
@@ -111,6 +126,7 @@
                       CollapseMode="Previous"
                       ShowsPreview="True"
                       Panel.ZIndex="2000"
+                      IsPreviousCollapsed="{Binding Layout.IsLeftPanelCollapsed, Mode=TwoWay}"
                       DragCompleted="GridSplitter_DragCompleted"/>
 
             <!-- 中间文件列表与右侧预览之间的分割器 -->
@@ -122,6 +138,7 @@
                       ShowsPreview="True"
                       Panel.ZIndex="2000"
                       AutoFillNeighbor="True"
+                      IsNextCollapsed="{Binding Layout.IsRightPanelCollapsed, Mode=TwoWay}"
                       DragCompleted="GridSplitter_DragCompleted"/>
 
             <!-- ========== 列1：左侧导航内容区域（从顶端 Row 0 开始） ========== -->
@@ -146,6 +163,8 @@
 
             <!-- 列3：主文件浏览器 -->
             <!-- Z-Index 100 on Grid to stay above background but below Overlay -->
+            <!-- 列3：主文件浏览器 -->
+            <!-- Z-Index 100 on Grid to stay above background but below Overlay -->
             <controls:FileBrowserControl x:Name="FileBrowser"
                                      Grid.Row="1" Grid.RowSpan="3"
                                      Grid.Column="3" 
@@ -153,7 +172,17 @@
                                      Margin="0,0,0,0"
                                      Panel.ZIndex="100"
                                      DataContext="{Binding PrimaryPane}"
-                                     FilesItemsSource="{Binding Files}"/>
+                                     FilesItemsSource="{Binding Files}"
+                                     CopyCommand="{Binding DataContext.FileOperation.CopyCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                     CutCommand="{Binding DataContext.FileOperation.CutCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                     PasteCommand="{Binding DataContext.FileOperation.PasteCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                     DeleteCommand="{Binding DataContext.FileOperation.DeleteCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                     RenameCommand="{Binding DataContext.FileOperation.RenameCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                     NewFolderCommand="{Binding DataContext.FileOperation.NewFolderCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                     NewFileCommand="{Binding DataContext.FileOperation.NewFileCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                     UndoCommand="{Binding DataContext.FileOperation.UndoCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                     RedoCommand="{Binding DataContext.FileOperation.RedoCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                     RefreshCommand="{Binding RefreshCommand}"/>
 
             <!-- 备份管理器 -->
             <controls:BackupBrowserControl x:Name="BackupBrowser"
@@ -194,10 +223,11 @@
                                      DataContext="{Binding RightPanel}"
                                      HorizontalAlignment="Stretch"
                                      VerticalAlignment="Stretch"
-                                     Visibility="Visible"/>
+                                     Visibility="{Binding EffectiveVisibility, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
                 <!-- 副文件列表区域（默认隐藏） -->
-                <Grid x:Name="SecondFileBrowserContainer" Visibility="Collapsed" 
+                <Grid x:Name="SecondFileBrowserContainer" 
+                  Visibility="{Binding Layout.IsDualListEffectivelyVisible, Converter={StaticResource BooleanToVisibilityConverter}}" 
                   WindowChrome.IsHitTestVisibleInChrome="True">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="51"/>
@@ -220,7 +250,17 @@
                                              HorizontalAlignment="Stretch" 
                                              VerticalAlignment="Stretch"
                                              DataContext="{Binding SecondaryPane}"
-                                             FilesItemsSource="{Binding Files}"/>
+                                             FilesItemsSource="{Binding Files}"
+                                             CopyCommand="{Binding DataContext.FileOperation.CopyCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                             CutCommand="{Binding DataContext.FileOperation.CutCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                             PasteCommand="{Binding DataContext.FileOperation.PasteCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                             DeleteCommand="{Binding DataContext.FileOperation.DeleteCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                             RenameCommand="{Binding DataContext.FileOperation.RenameCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                             NewFolderCommand="{Binding DataContext.FileOperation.NewFolderCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                             NewFileCommand="{Binding DataContext.FileOperation.NewFileCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                             UndoCommand="{Binding DataContext.FileOperation.UndoCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                             RedoCommand="{Binding DataContext.FileOperation.RedoCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                             RefreshCommand="{Binding RefreshCommand}"/>
                 </Grid>
             </Grid>
 

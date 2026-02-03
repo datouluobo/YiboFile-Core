@@ -221,8 +221,12 @@ namespace YiboFile.Helpers
 
         public void UpdateActionButtons(string mode)
         {
-            // 使用 ConfigService 更新操作按钮
-            _mainWindow._configService?.UpdateActionButtons(mode);
+            // TitleActionBar已经根据Mode自动显示/隐藏对应的面板，只需要更新Mode属性
+            var titleBar = (_mainWindow as Services.Config.IConfigUIHelper)?.TitleActionBar;
+            if (titleBar != null)
+            {
+                titleBar.Mode = mode;
+            }
         }
 
         public SolidColorBrush GetResourceBrush(string resourceKey)

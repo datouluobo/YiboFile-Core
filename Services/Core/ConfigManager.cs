@@ -100,6 +100,10 @@ namespace YiboFile
         // 标签页宽度模式
         public TabWidthMode TabWidthMode { get; set; } = TabWidthMode.FixedWidth;
 
+        // 布局状态持久化
+        public bool IsSidebarCollapsed { get; set; } = false;
+        public bool IsPreviewCollapsed { get; set; } = true;
+
         // 搜索设置
         public bool IsEnableFullTextSearch { get; set; } = true;
         public System.Collections.Generic.List<string> FullTextIndexPaths { get; set; } = new System.Collections.Generic.List<string>(); // 启用全文搜索
@@ -337,6 +341,15 @@ namespace YiboFile
                     var cfg = JsonSerializer.Deserialize<AppConfig>(json, options);
                     if (cfg != null)
                     {
+                        // Debug Logging
+                        try
+                        {
+                            string msg = $"{DateTime.Now:O} [ConfigManager.Load] Loaded IsMaximized={cfg.IsMaximized}, W={cfg.WindowWidth}";
+                            System.Diagnostics.Debug.WriteLine(msg);
+                            File.AppendAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "window_debug.log"), msg + "\n");
+                        }
+                        catch { }
+
                         // 迁移配置：清理旧字段，确保新字段有值
                         MigrateConfig(cfg);
                         return cfg;
@@ -398,6 +411,23 @@ namespace YiboFile
             if (config.ColRightWidth <= 0) config.ColRightWidth = 360;
             if (config.BackupBrowserWidth <= 0) config.BackupBrowserWidth = 1000;
             if (config.BackupBrowserHeight <= 0) config.BackupBrowserHeight = 650;
+
+            // 根据 LayoutMode 初始化折叠状态（如果是新配置或旧版本升级）
+            if (config.LayoutMode == "Focus")
+            {
+                config.IsSidebarCollapsed = true;
+                config.IsPreviewCollapsed = true;
+            }
+            else if (config.LayoutMode == "Work")
+            {
+                config.IsSidebarCollapsed = false;
+                config.IsPreviewCollapsed = true;
+            }
+            else if (config.LayoutMode == "Full")
+            {
+                config.IsSidebarCollapsed = false;
+                config.IsPreviewCollapsed = false;
+            }
         }
 
         public static void Save(AppConfig config)
@@ -410,6 +440,15 @@ namespace YiboFile
                 var logPath = @"f:\Download\GitHub\YiboFile\.cursor\debug.log";
                 try { System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(logPath)); System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "D", location = "ConfigManager.cs:310", message = "ConfigManager.Save开始", data = new { windowWidth = config.WindowWidth, windowHeight = config.WindowHeight, windowTop = config.WindowTop, windowLeft = config.WindowLeft, isMaximized = config.IsMaximized, colLeftWidth = config.ColLeftWidth, colCenterWidth = config.ColCenterWidth, openTabsCount = config.OpenTabs?.Count ?? 0, activeTabKey = config.ActiveTabKey }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
                 // #endregion
+
+                // Debug Logging
+                try
+                {
+                    string msg = $"{DateTime.Now:O} [ConfigManager.Save] IsMaximized={config.IsMaximized}, W={config.WindowWidth}, H={config.WindowHeight}";
+                    System.Diagnostics.Debug.WriteLine(msg);
+                    File.AppendAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "window_debug.log"), msg + "\n");
+                }
+                catch { }
 
                 MigrateConfig(config);
 
@@ -430,6 +469,13 @@ namespace YiboFile
             }
             catch (Exception ex)
             {
+                // Debug Logging
+                try
+                {
+                    File.AppendAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "window_debug.log"),
+                        $"{DateTime.Now:O} [ConfigManager.Save] EXCEPTION: {ex.Message}\n");
+                }
+                catch { }
                 // #region agent log
                 try { var logPath = @"f:\Download\GitHub\YiboFile\.cursor\debug.log"; System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "D", location = "ConfigManager.cs:327", message = "ConfigManager.Save异常", data = new { error = ex.Message, stackTrace = ex.StackTrace }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
                 // #endregion

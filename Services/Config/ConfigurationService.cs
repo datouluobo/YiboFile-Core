@@ -21,6 +21,20 @@ namespace YiboFile.Services.Config
         private readonly DispatcherTimer _debounceTimer;
         private bool _isDirty = false;
 
+        // 默认为 true，防止启动时的波动触发保存
+        private bool _isSaveSuppressed = true;
+
+        /// <summary>
+        /// 启用配置保存（应在应用初始化完成后调用）
+        /// </summary>
+        public void EnableSaving()
+        {
+            lock (_configLock)
+            {
+                _isSaveSuppressed = false;
+            }
+        }
+
         /// <summary>
         /// 当配置项变更时触发
         /// </summary>
@@ -33,7 +47,7 @@ namespace YiboFile.Services.Config
         private static int _totalSaveCount = 0;
         private static int _debouncedSaveCount = 0;
         private static DateTime _lastSaveTime = DateTime.MinValue;
-        private static readonly string _perfLogPath = @"f:\Download\GitHub\YiboFile\.cursor\config_perf.log";
+
 
         /// <summary>
         /// 单例实例
@@ -197,19 +211,28 @@ namespace YiboFile.Services.Config
             }
         }
 
+        /// <summary>
+        /// 提供对当前配置对象的直接访问
+        /// 警告：直接修改此对象不会自动触发去抖保存，请优先使用 Set 或 Update 方法
+        /// </summary>
+        public AppConfig Config => _config;
+
         #region 辅助方法
 
         private AppConfig DeepCopyConfig(AppConfig source)
         {
             if (source == null) return null;
 
+            var options = new System.Text.Json.JsonSerializerOptions
+            {
+                Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() },
+                PropertyNameCaseInsensitive = true,
+                NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowNamedFloatingPointLiterals
+            };
+
             return System.Text.Json.JsonSerializer.Deserialize<AppConfig>(
-                System.Text.Json.JsonSerializer.Serialize(source),
-                new System.Text.Json.JsonSerializerOptions
-                {
-                    Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() },
-                    PropertyNameCaseInsensitive = true
-                });
+                System.Text.Json.JsonSerializer.Serialize(source, options),
+                options);
         }
 
         /// <summary>
@@ -219,16 +242,10 @@ namespace YiboFile.Services.Config
         {
             var startTime = DateTime.Now;
 
-            // 在保存前，从磁盘读取最新配置并合并 ColumnOrder（避免覆盖 FileListControl 保存的值）
-            try
-            {
-                var latestFromDisk = ConfigManager.Load();
-                if (latestFromDisk != null && !string.IsNullOrEmpty(latestFromDisk.ColumnOrder))
-                {
-                    _config.ColumnOrder = latestFromDisk.ColumnOrder;
-                }
-            }
-            catch { /* 忽略读取错误，继续保存 */ }
+            // ⚠️ 移除此处的 Load 合并逻辑。
+            // 之前的合并逻辑（从磁盘重新加载 ColumnOrder）虽然是为了防止覆盖，
+            // 但在多头管理下反而会引入陈旧数据覆盖内存新数据的风险。
+            // 现在通过统一单例，内存中的 ColumnOrder 高于一切。
 
             ConfigManager.Save(_config);
             var duration = (DateTime.Now - startTime).TotalMilliseconds;
@@ -238,16 +255,6 @@ namespace YiboFile.Services.Config
                 ? 0
                 : (startTime - _lastSaveTime).TotalSeconds;
             _lastSaveTime = startTime;
-
-            // 记录性能日志（只在DEBUG模式下）
-#if DEBUG
-            try
-            {
-                var logMsg = $"[{startTime:HH:mm:ss.fff}] Save #{_totalSaveCount} | Duration: {duration:F2}ms | Since Last: {timeSinceLastSave:F1}s\n";
-                System.IO.File.AppendAllText(_perfLogPath, logMsg);
-            }
-            catch { /* 忽略日志错误 */ }
-#endif
         }
 
         /// <summary>
@@ -270,6 +277,8 @@ namespace YiboFile.Services.Config
         /// </summary>
         private void TriggerDebouncedSave()
         {
+            if (_isSaveSuppressed) return;
+
             // 重启定时器
             _debounceTimer.Stop();
             _debounceTimer.Start();

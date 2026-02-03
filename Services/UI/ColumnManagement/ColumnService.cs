@@ -9,6 +9,7 @@ using System.Windows.Media;
 using YiboFile.Controls;
 using System.Windows.Controls.Primitives;
 using YiboFile.Services.UI.ColumnManagement;
+using YiboFile.Services.Config;
 
 namespace YiboFile.Services.ColumnManagement
 {
@@ -19,9 +20,8 @@ namespace YiboFile.Services.ColumnManagement
     /// </summary>
     public class ColumnService
     {
-        private readonly AppConfig _config;
         private Func<string> _getCurrentModeKey;
-        private Action _saveConfig;
+        private AppConfig Config => ConfigurationService.Instance.Config;
 
         // 排序状态
         private string _lastSortColumn = "Name";
@@ -30,29 +30,27 @@ namespace YiboFile.Services.ColumnManagement
         /// <summary>
         /// 构造函数
         /// </summary>
-        /// <param name="config">应用配置对象</param>
-        public ColumnService(AppConfig config)
+        public ColumnService()
         {
-            _config = config ?? throw new ArgumentNullException(nameof(config));
+            var config = ConfigurationService.Instance.Config;
 
             // Initialize sort state from config
-            if (!string.IsNullOrEmpty(_config.SortColumn))
+            if (!string.IsNullOrEmpty(config.SortColumn))
             {
-                _lastSortColumn = _config.SortColumn;
+                _lastSortColumn = config.SortColumn;
             }
-            if (!string.IsNullOrEmpty(_config.SortDirection))
+            if (!string.IsNullOrEmpty(config.SortDirection))
             {
-                _sortAscending = _config.SortDirection == "Ascending";
+                _sortAscending = config.SortDirection == "Ascending";
             }
         }
 
         /// <summary>
         /// 初始化上下文依赖（委托）
         /// </summary>
-        public void Initialize(Func<string> getCurrentModeKey, Action saveConfig)
+        public void Initialize(Func<string> getCurrentModeKey)
         {
             _getCurrentModeKey = getCurrentModeKey;
-            _saveConfig = saveConfig;
         }
 
         #region 排序功能
@@ -94,9 +92,12 @@ namespace YiboFile.Services.ColumnManagement
             }
 
             // 更新配置并保存
-            _config.SortColumn = _lastSortColumn;
-            _config.SortDirection = _sortAscending ? "Ascending" : "Descending";
-            _saveConfig?.Invoke();
+            ConfigurationService.Instance.Update(cfg =>
+            {
+                cfg.SortColumn = _lastSortColumn;
+                cfg.SortDirection = _sortAscending ? "Ascending" : "Descending";
+            });
+            ConfigurationService.Instance.SaveNow();
 
             // 应用排序
             var sortedFiles = SortFiles(files);
@@ -107,9 +108,6 @@ namespace YiboFile.Services.ColumnManagement
             UpdateSortIndicators(header, gridView);
         }
 
-        /// <summary>
-        /// 排序文件列表（分离文件夹和文件）
-        /// </summary>
         /// <summary>
         /// 排序文件列表（分离文件夹和文件）
         /// 使用List.Sort进行原地排序，减少内存分配
@@ -143,8 +141,6 @@ namespace YiboFile.Services.ColumnManagement
             fileItems.Sort(comparer);
 
             // 合并：文件夹在前，文件在后
-            // 复用传入的list以减少内存分配（如果允许修改传入list）
-            //这里为了安全，还是创建新list返回，如需进一步优化可考虑原地修改传入list
             var result = new List<FileSystemItem>(files.Count);
             result.AddRange(directories);
             result.AddRange(fileItems);
@@ -161,28 +157,24 @@ namespace YiboFile.Services.ColumnManagement
             return SortFiles(files);
         }
 
-        // 移除 SortList 方法，因为已集成到 SortFiles 中
-
         /// <summary>
         /// 自定义文件排序比较器
         /// </summary>
         private class FileSystemItemComparer : IComparer<FileSystemItem>
         {
             private readonly string _column;
-            private readonly bool _ascending;
             private readonly int _direction;
 
             public FileSystemItemComparer(string column, bool ascending)
             {
                 _column = column;
-                _ascending = ascending;
                 _direction = ascending ? 1 : -1;
             }
 
             public int Compare(FileSystemItem x, FileSystemItem y)
             {
                 if (ReferenceEquals(x, y)) return 0;
-                if (x == null) return -1; // null在小端
+                if (x == null) return -1;
                 if (y == null) return 1;
 
                 int result = 0;
@@ -192,33 +184,24 @@ namespace YiboFile.Services.ColumnManagement
                     case "Name":
                         result = string.Compare(x.Name, y.Name, StringComparison.OrdinalIgnoreCase);
                         break;
-
                     case "Size":
                         result = x.SizeBytes.CompareTo(y.SizeBytes);
                         break;
-
                     case "Type":
                         result = string.Compare(x.Type, y.Type, StringComparison.OrdinalIgnoreCase);
                         break;
-
                     case "ModifiedDate":
                         result = x.ModifiedDateTime.CompareTo(y.ModifiedDateTime);
                         break;
-
                     case "CreatedTime":
                         result = x.CreatedDateTime.CompareTo(y.CreatedDateTime);
                         break;
-
                     case "Tags":
-                        // Tags 可能为 null
                         result = string.Compare(x.Tags ?? "", y.Tags ?? "", StringComparison.OrdinalIgnoreCase);
                         break;
-
                     case "Notes":
-                        // Notes 可能为 null
                         result = string.Compare(x.Notes ?? "", y.Notes ?? "", StringComparison.OrdinalIgnoreCase);
                         break;
-
                     default:
                         result = string.Compare(x.Name, y.Name, StringComparison.OrdinalIgnoreCase);
                         break;
@@ -235,16 +218,12 @@ namespace YiboFile.Services.ColumnManagement
         {
             if (gridView == null) return;
 
-            // 清除所有列头的排序指示器（附加属性）
             foreach (var column in gridView.Columns)
             {
                 var header = column.Header as GridViewColumnHeader;
                 if (header != null)
                 {
-                    //清除附加属性
                     ColumnHeaderSortHelper.SetSortDirection(header, null);
-
-                    // 保留对旧逻辑的兼容：移除文本符号
                     if (header.Content != null)
                     {
                         var content = header.Content.ToString();
@@ -254,24 +233,10 @@ namespace YiboFile.Services.ColumnManagement
                 }
             }
 
-            // 为当前列设置排序指示器
             if (clickedHeader != null)
             {
-                // 设置附加属性用于XAML绑定
                 string sortDirection = _sortAscending ? "Ascending" : "Descending";
                 ColumnHeaderSortHelper.SetSortDirection(clickedHeader, sortDirection);
-
-                // 保留对旧逻辑的兼容（文本符号，如果用户喜欢可以保留）
-                // 注释掉以使用纯视觉箭头
-                /*
-                if (clickedHeader.Content != null)
-                {
-                    var content = clickedHeader.Content.ToString();
-                    content = content.Replace(" ▲", "").Replace(" ▼", "");
-                    var newContent = content + (_sortAscending ? " ▲" : " ▼");
-                    clickedHeader.Content = newContent;
-                }
-                */
             }
         }
 
@@ -288,32 +253,17 @@ namespace YiboFile.Services.ColumnManagement
             var width = column.ActualWidth > 0 ? column.ActualWidth : column.Width;
             if (width <= 0) return;
 
-            switch (tag)
+            ConfigurationService.Instance.Update(cfg =>
             {
-                case "Name":
-                    _config.ColNameWidth = width;
-                    break;
-                case "Size":
-                    _config.ColSizeWidth = width;
-                    break;
-                case "Type":
-                    _config.ColTypeWidth = width;
-                    break;
-                case "ModifiedDate":
-                    _config.ColModifiedDateWidth = width;
-                    break;
-                case "CreatedTime":
-                    _config.ColCreatedTimeWidth = width;
-                    break;
-                case "Tags":
-                    // Tags列宽度由设置面板管理
-                    // _config.ColTagsWidth = width;
-                    break;
-                case "Notes":
-                    // Notes列宽度由设置面板管理
-                    // _config.ColNotesWidth = width;
-                    break;
-            }
+                switch (tag)
+                {
+                    case "Name": cfg.ColNameWidth = width; break;
+                    case "Size": cfg.ColSizeWidth = width; break;
+                    case "Type": cfg.ColTypeWidth = width; break;
+                    case "ModifiedDate": cfg.ColModifiedDateWidth = width; break;
+                    case "CreatedTime": cfg.ColCreatedTimeWidth = width; break;
+                }
+            });
         }
 
         /// <summary>
@@ -323,13 +273,13 @@ namespace YiboFile.Services.ColumnManagement
         {
             double width = tag switch
             {
-                "Name" => _config.ColNameWidth,
-                "Size" => _config.ColSizeWidth,
-                "Type" => _config.ColTypeWidth,
-                "ModifiedDate" => _config.ColModifiedDateWidth,
-                "CreatedTime" => _config.ColCreatedTimeWidth,
-                "Tags" => _config.ColTagsWidth,
-                "Notes" => _config.ColNotesWidth,
+                "Name" => Config.ColNameWidth,
+                "Size" => Config.ColSizeWidth,
+                "Type" => Config.ColTypeWidth,
+                "ModifiedDate" => Config.ColModifiedDateWidth,
+                "CreatedTime" => Config.ColCreatedTimeWidth,
+                "Tags" => Config.ColTagsWidth,
+                "Notes" => Config.ColNotesWidth,
                 _ => 0
             };
 
@@ -347,7 +297,7 @@ namespace YiboFile.Services.ColumnManagement
         /// </summary>
         public void LoadColumnWidths(FileBrowserControl fileBrowser)
         {
-            if (fileBrowser?.FilesGrid == null || _config == null) return;
+            if (fileBrowser?.FilesGrid == null) return;
 
             var gridView = fileBrowser.FilesGrid;
 
@@ -356,7 +306,6 @@ namespace YiboFile.Services.ColumnManagement
                 var columns = gridView.Columns;
                 if (columns.Count >= 7)
                 {
-                    // 创建列名到列的映射
                     var columnMap = new Dictionary<string, GridViewColumn>
                     {
                         { "Name", columns[0] },
@@ -368,10 +317,9 @@ namespace YiboFile.Services.ColumnManagement
                         { "Notes", columns[6] }
                     };
 
-                    // 加载保存的列顺序
-                    if (!string.IsNullOrEmpty(_config.ColumnOrder))
+                    if (!string.IsNullOrEmpty(Config.ColumnOrder))
                     {
-                        var savedOrder = _config.ColumnOrder.Split(',');
+                        var savedOrder = Config.ColumnOrder.Split(',');
                         var newColumns = new List<GridViewColumn>();
 
                         foreach (var colName in savedOrder)
@@ -383,7 +331,6 @@ namespace YiboFile.Services.ColumnManagement
                             }
                         }
 
-                        // 添加未在顺序中的列（向后兼容）
                         foreach (var kvp in columnMap)
                         {
                             if (!savedOrder.Any(s => s.Trim() == kvp.Key))
@@ -392,7 +339,6 @@ namespace YiboFile.Services.ColumnManagement
                             }
                         }
 
-                        // 重新排序列
                         if (newColumns.Count == columns.Count)
                         {
                             gridView.Columns.Clear();
@@ -403,7 +349,6 @@ namespace YiboFile.Services.ColumnManagement
                         }
                     }
 
-                    // 加载列宽度并结合"可见列"配置
                     var visibleCsv = GetVisibleColumnsForCurrentMode() ?? "";
                     var visibleSet = new HashSet<string>(visibleCsv.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries), StringComparer.OrdinalIgnoreCase);
                     foreach (var column in gridView.Columns)
@@ -416,21 +361,11 @@ namespace YiboFile.Services.ColumnManagement
                             if (!shouldShow)
                             {
                                 RememberColumnWidth(tag, column);
-                                column.Width = 0; // 隐藏
+                                column.Width = 0;
                                 continue;
                             }
 
-                            double width = tag switch
-                            {
-                                "Name" => _config.ColNameWidth,
-                                "Size" => _config.ColSizeWidth,
-                                "Type" => _config.ColTypeWidth,
-                                "ModifiedDate" => _config.ColModifiedDateWidth,
-                                "CreatedTime" => _config.ColCreatedTimeWidth,
-                                "Tags" => _config.ColTagsWidth,
-                                "Notes" => _config.ColNotesWidth,
-                                _ => 0
-                            };
+                            double width = ResolveColumnWidth(tag, column);
                             if (width > 0) column.Width = width;
                         }
                     }
@@ -444,7 +379,7 @@ namespace YiboFile.Services.ColumnManagement
         /// </summary>
         public void SaveColumnWidths(FileBrowserControl fileBrowser)
         {
-            if (fileBrowser?.FilesGrid == null || _config == null) return;
+            if (fileBrowser?.FilesGrid == null) return;
 
             var gridView = fileBrowser.FilesGrid;
 
@@ -453,7 +388,6 @@ namespace YiboFile.Services.ColumnManagement
                 var columns = gridView.Columns;
                 if (columns.Count >= 7)
                 {
-                    // 保存列顺序
                     var columnOrder = new List<string>();
                     foreach (var column in columns)
                     {
@@ -463,9 +397,9 @@ namespace YiboFile.Services.ColumnManagement
                             columnOrder.Add(header.Tag.ToString());
                         }
                     }
-                    _config.ColumnOrder = string.Join(",", columnOrder);
 
-                    // 保存列宽度
+                    ConfigurationService.Instance.Update(c => c.ColumnOrder = string.Join(",", columnOrder));
+
                     foreach (var column in columns)
                     {
                         var header = column.Header as GridViewColumnHeader;
@@ -473,40 +407,23 @@ namespace YiboFile.Services.ColumnManagement
                         {
                             var tag = header.Tag.ToString();
                             var width = column.ActualWidth;
-
-                            // 如果列被隐藏（宽度=0），不要覆盖之前保存的宽度
                             if (width <= 0) continue;
 
-                            switch (tag)
+                            ConfigurationService.Instance.Update(cfg =>
                             {
-                                case "Name":
-                                    _config.ColNameWidth = width;
-                                    break;
-                                case "Size":
-                                    _config.ColSizeWidth = width;
-                                    break;
-                                case "Type":
-                                    _config.ColTypeWidth = width;
-                                    break;
-                                case "ModifiedDate":
-                                    _config.ColModifiedDateWidth = width;
-                                    break;
-                                case "CreatedTime":
-                                    _config.ColCreatedTimeWidth = width;
-                                    break;
-                                case "Tags":
-                                    // Tags列宽度由设置面板管理，不在这里保存以防覆盖用户设置
-                                    // _config.ColTagsWidth = width;
-                                    break;
-                                case "Notes":
-                                    // Notes列宽度由设置面板管理，不在这里保存以防覆盖用户设置
-                                    // _config.ColNotesWidth = width;
-                                    break;
-                            }
+                                switch (tag)
+                                {
+                                    case "Name": cfg.ColNameWidth = width; break;
+                                    case "Size": cfg.ColSizeWidth = width; break;
+                                    case "Type": cfg.ColTypeWidth = width; break;
+                                    case "ModifiedDate": cfg.ColModifiedDateWidth = width; break;
+                                    case "CreatedTime": cfg.ColCreatedTimeWidth = width; break;
+                                }
+                            });
                         }
                     }
 
-                    _saveConfig?.Invoke();
+                    ConfigurationService.Instance.SaveNow();
                 }
             }
             catch { }
@@ -516,63 +433,44 @@ namespace YiboFile.Services.ColumnManagement
 
         #region 自动适配列宽
 
-        /// <summary>
-        /// 自动调整列宽度以适应内容
-        /// </summary>
         public void AutoSizeGridViewColumn(GridViewColumn column, FileBrowserControl fileBrowser)
         {
             if (fileBrowser?.FilesList == null || column == null) return;
 
             var listView = fileBrowser.FilesList;
-
-            // 若该列在当前模式被设置为隐藏，禁止在双击时把它显示出来
             var headerForTag = column.Header as GridViewColumnHeader;
             var tagName = headerForTag?.Tag?.ToString();
             if (!string.IsNullOrEmpty(tagName))
             {
-                if (!IsColumnVisible(tagName))
-                {
-                    // 保持隐藏状态，直接返回
-                    return;
-                }
+                if (!IsColumnVisible(tagName)) return;
             }
 
-            double padding = 24; // 预留左右内边距和排序箭头空间
+            double padding = 24;
             double maxWidth = 0;
 
-            // 列头文本宽度
             var header = column.Header as GridViewColumnHeader;
             var headerText = header?.Content?.ToString() ?? "";
             maxWidth = Math.Max(maxWidth, MeasureTextWidth(headerText, listView) + padding);
 
-            // 各行文本宽度
             foreach (var item in listView.Items)
             {
                 string cellText = GetCellTextForColumn(item, column, header);
                 maxWidth = Math.Max(maxWidth, MeasureTextWidth(cellText, listView) + padding);
             }
 
-            // 最小宽度保护
             if (maxWidth < 50) maxWidth = 50;
             column.Width = Math.Ceiling(maxWidth);
         }
 
-        /// <summary>
-        /// 获取列的单元格文本
-        /// </summary>
         private string GetCellTextForColumn(object item, GridViewColumn column, GridViewColumnHeader header)
         {
             if (item == null) return "";
-
-            // 优先使用 DisplayMemberBinding
             if (column.DisplayMemberBinding is System.Windows.Data.Binding binding && binding.Path != null)
             {
                 var prop = item.GetType().GetProperty(binding.Path.Path);
                 var val = prop?.GetValue(item);
                 return val?.ToString() ?? "";
             }
-
-            // 退化：使用列头 Tag 作为属性名尝试
             var propName = header?.Tag?.ToString();
             if (!string.IsNullOrEmpty(propName))
             {
@@ -580,13 +478,9 @@ namespace YiboFile.Services.ColumnManagement
                 var val2 = prop2?.GetValue(item);
                 if (val2 != null) return val2.ToString();
             }
-
             return "";
         }
 
-        /// <summary>
-        /// 测量文本宽度
-        /// </summary>
         private double MeasureTextWidth(string text, ListView listView)
         {
             var tb = new TextBlock
@@ -603,20 +497,11 @@ namespace YiboFile.Services.ColumnManagement
 
         #region 调整列表视图列宽度
 
-        /// <summary>
-        /// 调整列表视图列宽度（FileBrowserControl版本）
-        /// </summary>
         public void AdjustListViewColumnWidths(FileBrowserControl fileBrowser)
         {
             if (fileBrowser?.FilesGrid == null) return;
-
-            var gridView = fileBrowser.FilesGrid;
-            var columns = gridView.Columns;
-            if (columns.Count == 0) return;
-
             try
             {
-                // 类似ColumnHeaderService的逻辑，但适配FileBrowserControl
                 LoadColumnWidths(fileBrowser);
             }
             catch { }
@@ -626,43 +511,31 @@ namespace YiboFile.Services.ColumnManagement
 
         #region 列可见性管理
 
-        /// <summary>
-        /// 获取当前模式的可见列配置
-        /// </summary>
         public string GetVisibleColumnsForCurrentMode()
         {
-            var key = _getCurrentModeKey();
+            var key = _getCurrentModeKey?.Invoke();
             return key switch
             {
-                "Library" => _config.VisibleColumns_Library,
-                "Tag" => _config.VisibleColumns_Tag,
-                _ => _config.VisibleColumns_Path
+                "Library" => Config.VisibleColumns_Library,
+                "Tag" => Config.VisibleColumns_Tag,
+                _ => Config.VisibleColumns_Path
             };
         }
 
-        /// <summary>
-        /// 设置当前模式的可见列配置
-        /// </summary>
         public void SetVisibleColumnsForCurrentMode(string csv)
         {
-            var key = _getCurrentModeKey();
-            switch (key)
+            var key = _getCurrentModeKey?.Invoke();
+            ConfigurationService.Instance.Update(cfg =>
             {
-                case "Library":
-                    _config.VisibleColumns_Library = csv;
-                    break;
-                case "Tag":
-                    _config.VisibleColumns_Tag = csv;
-                    break;
-                default:
-                    _config.VisibleColumns_Path = csv;
-                    break;
-            }
+                switch (key)
+                {
+                    case "Library": cfg.VisibleColumns_Library = csv; break;
+                    case "Tag": cfg.VisibleColumns_Tag = csv; break;
+                    default: cfg.VisibleColumns_Path = csv; break;
+                }
+            });
         }
 
-        /// <summary>
-        /// 应用可见列配置到文件列表
-        /// </summary>
         public void ApplyVisibleColumnsForCurrentMode(FileBrowserControl fileBrowser)
         {
             if (fileBrowser?.FilesGrid == null) return;
@@ -680,22 +553,17 @@ namespace YiboFile.Services.ColumnManagement
                 bool shouldShow = set.Contains(tag);
                 if (shouldShow)
                 {
-                    // 恢复保存的宽度
                     double w = ResolveColumnWidth(tag, column);
                     column.Width = Math.Max(40, w);
                 }
                 else
                 {
-                    // 折叠
                     RememberColumnWidth(tag, column);
                     column.Width = 0;
                 }
             }
         }
 
-        /// <summary>
-        /// 检查列是否可见
-        /// </summary>
         public bool IsColumnVisible(string tag)
         {
             if (string.IsNullOrEmpty(tag)) return true;
@@ -704,12 +572,6 @@ namespace YiboFile.Services.ColumnManagement
             return set.Contains(tag);
         }
 
-        private bool IsValidWidth(double width)
-        {
-            return width > 0 && !double.IsNaN(width) && !double.IsInfinity(width);
-        }
-
         #endregion
     }
 }
-

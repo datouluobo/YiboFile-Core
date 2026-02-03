@@ -2,12 +2,14 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:controls="clr-namespace:YiboFile.Controls"
+             xmlns:helpers="clr-namespace:YiboFile.Helpers"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              mc:Ignorable="d" 
              d:DesignHeight="600" d:DesignWidth="800">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <helpers:BindingProxy x:Key="ControlProxy" Data="{Binding RelativeSource={RelativeSource AncestorType=controls:FileBrowserControl}}"/>
         <!-- 统一使用 AppStyles 中的 ModernToolbarButtonStyle -->
         <Style x:Key="ToolbarButtonStyle" TargetType="Button" BasedOn="{StaticResource ModernToolbarButtonStyle}"/>
         
@@ -112,19 +114,39 @@
         </Style>
         <!-- 文件右键菜单 -->
         <ContextMenu x:Key="FileListContextMenu" Opened="FileListContextMenu_Opened">
-            <MenuItem x:Name="CopyItem" Header="复制" Click="CopyItem_Click" Icon="📄"/>
-            <MenuItem x:Name="CutItem" Header="剪切" Click="CutItem_Click" Icon="✂️"/>
-            <MenuItem x:Name="PasteItem" Header="粘贴" Click="PasteItem_Click" Icon="📋"/>
+            <MenuItem x:Name="CopyItem" Header="复制" 
+                      Command="{Binding Data.CopyCommand, Source={StaticResource ControlProxy}}" 
+                      CommandParameter="{Binding Data.FilesSelectedItems, Source={StaticResource ControlProxy}}"
+                      Icon="📄"/>
+            <MenuItem x:Name="CutItem" Header="剪切" 
+                      Command="{Binding Data.CutCommand, Source={StaticResource ControlProxy}}" 
+                      CommandParameter="{Binding Data.FilesSelectedItems, Source={StaticResource ControlProxy}}"
+                      Icon="✂️"/>
+            <MenuItem x:Name="PasteItem" Header="粘贴" 
+                      Command="{Binding Data.PasteCommand, Source={StaticResource ControlProxy}}" 
+                      CommandParameter="{Binding Data.DataContext, Source={StaticResource ControlProxy}}"
+                      Icon="📋"/>
             <Separator x:Name="Separator1"/>
-            <MenuItem x:Name="DeleteItem" Header="删除" Click="DeleteItem_Click" Icon="🗑️"/>
-            <MenuItem x:Name="RenameItem" Header="重命名" Click="RenameItem_Click" Icon="✏️"/>
+            <MenuItem x:Name="DeleteItem" Header="删除" 
+                      Command="{Binding Data.DeleteCommand, Source={StaticResource ControlProxy}}" 
+                      CommandParameter="{Binding Data.FilesSelectedItems, Source={StaticResource ControlProxy}}"
+                      Icon="🗑️"/>
+            <MenuItem x:Name="RenameItem" Header="重命名" 
+                      Command="{Binding Data.RenameCommand, Source={StaticResource ControlProxy}}" 
+                      CommandParameter="{Binding Data.FilesSelectedItem, Source={StaticResource ControlProxy}}"
+                      Icon="✏️"/>
             <Separator x:Name="Separator2"/>
             <MenuItem x:Name="AddFavoriteMenuItem" Header="⭐ 添加到收藏"/>
             <MenuItem x:Name="AddToLibraryMenuItem" Header="📚 添加到库"/>
             <MenuItem x:Name="AddTagMenuItem" Header="🏷️ 添加标签"/>
             <Separator x:Name="Separator3"/>
-            <MenuItem x:Name="RefreshItem" Header="刷新" Click="RefreshItem_Click" Icon="🔄"/>
-            <MenuItem x:Name="PropertiesItem" Header="属性" Click="PropertiesItem_Click" Icon="ℹ️"/>
+            <MenuItem x:Name="RefreshItem" Header="刷新" 
+                      Command="{Binding Data.RefreshCommand, Source={StaticResource ControlProxy}}" 
+                      Icon="🔄"/>
+            <MenuItem x:Name="PropertiesItem" Header="属性" 
+                      Command="{Binding Data.PropertiesCommand, Source={StaticResource ControlProxy}}" 
+                      CommandParameter="{Binding Data.FilesSelectedItems, Source={StaticResource ControlProxy}}"
+                      Icon="ℹ️"/>
         </ContextMenu>
     </UserControl.Resources>
     
@@ -163,8 +185,12 @@
                     <Button Name="NavUpBtn" FontFamily="{DynamicResource IconFontFamily}" Content="{DynamicResource Icon_Up}" FontSize="14" Click="NavUpBtn_Click" ToolTip="向上" Style="{StaticResource ModernToolbarButtonStyle}"/>
                     <!-- Undo/Redo -->
                     <Rectangle Width="1" Height="20" Fill="{DynamicResource BorderBrush}" Margin="4,0" VerticalAlignment="Center"/>
-                    <Button Name="UndoBtn" FontFamily="Segoe MDL2 Assets" Content="&#xE7A7;" FontSize="14" Click="UndoBtn_Click" ToolTip="撤销" Style="{StaticResource ModernToolbarButtonStyle}"/>
-                    <Button Name="RedoBtn" FontFamily="Segoe MDL2 Assets" Content="&#xE7A6;" FontSize="14" Click="RedoBtn_Click" ToolTip="重做" Style="{StaticResource ModernToolbarButtonStyle}"/>
+                    <Button Name="UndoBtn" FontFamily="Segoe MDL2 Assets" Content="&#xE7A7;" FontSize="14" 
+                            Command="{Binding Data.UndoCommand, Source={StaticResource ControlProxy}}" 
+                            ToolTip="撤销" Style="{StaticResource ToolbarButtonStyle}"/>
+                    <Button Name="RedoBtn" FontFamily="Segoe MDL2 Assets" Content="&#xE7A6;" FontSize="14" 
+                            Command="{Binding Data.RedoCommand, Source={StaticResource ControlProxy}}" 
+                            ToolTip="重做" Style="{StaticResource ToolbarButtonStyle}"/>
                 </StackPanel>
                 
                 <!-- TitleActionBar (操作按钮) -->

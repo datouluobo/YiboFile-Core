@@ -204,6 +204,13 @@ namespace YiboFile.Services.FileList
             Func<long, string> formatFileSize = null,
             CancellationToken cancellationToken = default)
         {
+            // Reset ongoing operations once for the entire batch
+            CancelOngoingOperations();
+
+            // Initialize new tokens for the batch if they don't exist
+            _folderSizeCalculationCancellation = new CancellationTokenSource();
+            _metadataEnrichmentCancellation = new CancellationTokenSource();
+
             var allItems = new Dictionary<string, FileSystemItem>();
 
             foreach (var path in paths)
@@ -217,7 +224,8 @@ namespace YiboFile.Services.FileList
                 {
                     // 使用异步方法
                     // 注意：这里串行加载，如果路径很多可能慢，但对于库来说通常只有几个路径
-                    var items = await LoadFileSystemItemsAsync(path, null, cancellationToken);
+                    // Pass resetOngoingOperations = false to prevent overwriting our batch tokens
+                    var items = await LoadFileSystemItemsAsync(path, null, cancellationToken, false);
 
                     foreach (var item in items)
                     {
@@ -292,7 +300,8 @@ namespace YiboFile.Services.FileList
         public async Task<List<FileSystemItem>> LoadFileSystemItemsAsync(
             string path,
             Func<List<int>, List<string>> orderTagNames = null,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            bool resetOngoingOperations = true)
         {
             System.Diagnostics.Debug.WriteLine($"[FileListService] LoadFileSystemItemsAsync called for: {path}");
 
@@ -317,6 +326,7 @@ namespace YiboFile.Services.FileList
             if (protocolInfo.Type == ProtocolType.Library)
             {
                 var libraryName = protocolInfo.TargetPath;
+
                 var libRepo = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<YiboFile.Services.Data.Repositories.ILibraryRepository>(App.ServiceProvider);
                 var allLibs = await Task.Run(() => libRepo.GetAllLibraries(), cancellationToken);
 
@@ -340,7 +350,6 @@ namespace YiboFile.Services.FileList
             // Case 2: Path is "tag://..." -> Virtual Path
             if (protocolInfo.Type == ProtocolType.Tag)
             {
-                System.Diagnostics.Debug.WriteLine($"[FileListService] Handling Tag protocol: {protocolInfo.TargetPath}");
                 var files = new List<FileSystemItem>();
                 try
                 {
@@ -464,14 +473,14 @@ namespace YiboFile.Services.FileList
             // 等待获取信号量，支持取消
             try
             {
-                System.Diagnostics.Debug.WriteLine($"[FileListService] Waiting for semaphore for: {path}");
+                // System.Diagnostics.Debug.WriteLine($"[FileListService] Waiting for semaphore for: {path}");
                 await _loadingSemaphore.WaitAsync(cancellationToken);
-                System.Diagnostics.Debug.WriteLine($"[FileListService] Semaphore acquired for: {path}");
+                // System.Diagnostics.Debug.WriteLine($"[FileListService] Semaphore acquired for: {path}");
             }
             catch (OperationCanceledException)
             {
-                System.Diagnostics.Debug.WriteLine($"[FileListService] Semaphore wait cancelled for: {path}");
-                throw;
+                // System.Diagnostics.Debug.WriteLine($"[FileListService] Semaphore wait cancelled for: {path}");
+                return new List<FileSystemItem>();
             }
 
             try
@@ -503,7 +512,15 @@ namespace YiboFile.Services.FileList
                 FilesLoaded?.Invoke(this, items);
 
                 // 异步计算文件夹大小
-                _folderSizeCalculationCancellation = new CancellationTokenSource();
+                if (resetOngoingOperations)
+                {
+                    _folderSizeCalculationCancellation?.Cancel();
+                    _folderSizeCalculationCancellation = new CancellationTokenSource();
+                }
+                else
+                {
+                    _folderSizeCalculationCancellation ??= new CancellationTokenSource();
+                }
                 var combinedToken = CancellationTokenSource.CreateLinkedTokenSource(
                     cancellationToken,
                     _folderSizeCalculationCancellation.Token).Token;
@@ -527,7 +544,15 @@ namespace YiboFile.Services.FileList
                 }, combinedToken);
 
                 // 异步加载标签和备注
-                _metadataEnrichmentCancellation = new CancellationTokenSource();
+                if (resetOngoingOperations)
+                {
+                    _metadataEnrichmentCancellation?.Cancel();
+                    _metadataEnrichmentCancellation = new CancellationTokenSource();
+                }
+                else
+                {
+                    _metadataEnrichmentCancellation ??= new CancellationTokenSource();
+                }
                 _orderTagNames = orderTagNames;
                 var combinedMetadataToken = CancellationTokenSource.CreateLinkedTokenSource(
                     cancellationToken,
@@ -575,7 +600,8 @@ namespace YiboFile.Services.FileList
             }
             catch (OperationCanceledException)
             {
-                throw;
+                // System.Diagnostics.Debug.WriteLine($"[FileListService] LoadFileSystemItemsAsync Canceled (OperationCanceledException/TaskCanceledException) for: {path}");
+                return new List<FileSystemItem>();
             }
             catch (Exception ex)
             {
@@ -589,7 +615,6 @@ namespace YiboFile.Services.FileList
             }
             finally
             {
-
                 _loadingSemaphore.Release();
             }
         }
@@ -715,7 +740,7 @@ namespace YiboFile.Services.FileList
         /// <summary>
         /// 取消所有正在进行的操作
         /// </summary>
-        private void CancelOngoingOperations()
+        public void CancelOngoingOperations()
         {
             _folderSizeCalculationCancellation?.Cancel();
             _folderSizeCalculationCancellation?.Dispose();

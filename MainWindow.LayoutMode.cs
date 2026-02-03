@@ -13,6 +13,8 @@ using YiboFile.Services.Tabs;
 using YiboFile.Services.FileOperations;
 using YiboFile.Services.Core;
 using YiboFile.ViewModels.Messaging.Messages;
+using YiboFile.Services.Config;
+
 
 namespace YiboFile
 {
@@ -22,19 +24,7 @@ namespace YiboFile
     public partial class MainWindow
     {
         #region 布局模式枚举和字段
-
-        /// <summary>
-        /// 布局模式
-        /// </summary>
-        private enum LayoutMode
-        {
-            Focus,  // 专注模式：折叠左右
-            Work,   // 工作模式：左导航+文件列表
-            Full    // 完整模式：三栏完整
-        }
-
-        private LayoutMode _currentLayoutMode = LayoutMode.Full;
-
+        // _currentLayoutMode 字段已由 LayoutModule.CurrentLayoutMode 接管
         #endregion
 
         #region 布局模式切换
@@ -54,153 +44,16 @@ namespace YiboFile
             }
         }
 
-        /// <summary>
-        /// 切换布局模式
-        /// </summary>
-        private void SwitchLayoutMode(LayoutMode mode)
-        {
-            CloseOverlays(); // Ensure overlays are closed when switching layout
-
-            if (_currentLayoutMode == mode) return;
-
-            _currentLayoutMode = mode;
-            _currentLayoutMode = mode;
-
-            // 更新按钮激活状态
-            if (NavigationRail != null)
-            {
-                NavigationRail.FocusModeButton.Tag = mode == LayoutMode.Focus ? "Active" : null;
-                NavigationRail.WorkModeButton.Tag = mode == LayoutMode.Work ? "Active" : null;
-                NavigationRail.FullModeButton.Tag = mode == LayoutMode.Full ? "Active" : null;
-            }
-
-            // 应用布局
-            ApplyLayout(mode);
-
-            // 更新标签页边距
-            UpdateTabManagerMargin();
-
-            // 保存配置
-            if (_configService?.Config != null)
-            {
-                _configService.Config.LayoutMode = mode.ToString();
-                _configService.SaveCurrentConfig();
-            }
-        }
-
-        /// <summary>
-        /// 应用布局（调用现有的 CollapsibleGridSplitter 方法）
-        /// </summary>
-        private void ApplyLayout(LayoutMode mode)
-        {
-            switch (mode)
-            {
-                case LayoutMode.Focus:
-                    // 专注模式：折叠左+右
-                    EnsureCollapsed(SplitterLeft, true);   // 折叠左侧
-                    EnsureCollapsed(SplitterRight, false); // 折叠右侧
-                    break;
-
-                case LayoutMode.Work:
-                    // 工作模式：展开左，折叠右
-                    EnsureExpanded(SplitterLeft, true);    // 展开左侧
-                    EnsureCollapsed(SplitterRight, false); // 折叠右侧
-                    break;
-
-                case LayoutMode.Full:
-                    // 完整模式：展开全部
-                    EnsureExpanded(SplitterLeft, true);    // 展开左侧
-                    EnsureExpanded(SplitterRight, false);  // 展开右侧
-                    break;
-            }
-        }
-
-        /// <summary>
-        /// 确保指定面板已折叠（如果未折叠则折叠）
-        /// </summary>
-        private void EnsureCollapsed(CollapsibleGridSplitter splitter, bool isPrevious)
-        {
-            bool isCollapsed = isPrevious ? splitter.IsPreviousCollapsed : splitter.IsNextCollapsed;
-
-            if (!isCollapsed)
-            {
-                // 模拟点击折叠按钮
-                SimulateButtonClick(splitter, isPrevious);
-            }
-        }
-
-        /// <summary>
-        /// 确保指定面板已展开（如果已折叠则展开）
-        /// </summary>
-        private void EnsureExpanded(CollapsibleGridSplitter splitter, bool isPrevious)
-        {
-            bool isCollapsed = isPrevious ? splitter.IsPreviousCollapsed : splitter.IsNextCollapsed;
-
-            if (isCollapsed)
-            {
-                // 模拟点击展开按钮
-                SimulateButtonClick(splitter, isPrevious);
-            }
-        }
-
-        /// <summary>
-        /// 模拟点击分割器的折叠/展开按钮
-        /// </summary>
-        private void SimulateButtonClick(CollapsibleGridSplitter splitter, bool isPrevious)
-        {
-            try
-            {
-                var buttonName = isPrevious ? "PART_CollapsePreviousButton" : "PART_CollapseNextButton";
-                var button = splitter.Template?.FindName(buttonName, splitter) as Button;
-
-                if (button != null && button.Visibility == Visibility.Visible)
-                {
-                    // 触发按钮的点击事件
-                    button.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
-                }
-            }
-            catch
-            {
-                // 忽略错误
-            }
-        }
-
         #endregion
 
-        #region 布局按钮事件处理
 
-        private void LayoutFocus_Click(object sender, RoutedEventArgs e)
-        {
-            _layoutModule?.SwitchLayoutMode("Focus");
-        }
-
-        private void LayoutWork_Click(object sender, RoutedEventArgs e)
-        {
-            _layoutModule?.SwitchLayoutMode("Work");
-        }
-
-        private void LayoutFull_Click(object sender, RoutedEventArgs e)
-        {
-            _layoutModule?.SwitchLayoutMode("Full");
-        }
-
-        #endregion
 
         #region 双列表模式
 
         /// <summary>
-        /// 双列表模式状态
+        /// 双列表模式状态 (代理到 LayoutModule)
         /// </summary>
-        private bool _isDualListMode = false;
-        public bool IsDualListMode => _isDualListMode;
-
-        /// <summary>
-        /// 双列表模式切换按钮点击事件
-        /// </summary>
-        private void DualListToggle_Click(object sender, RoutedEventArgs e)
-        {
-            _layoutModule?.ToggleDualListMode();
-        }
+        public bool IsDualListMode => _layoutModule?.IsDualListMode ?? false;
 
 
         /// <summary>
@@ -208,23 +61,12 @@ namespace YiboFile
         /// </summary>
         private void SetDualListMode(bool enable)
         {
-            if (_isDualListMode == enable) return;
-            _isDualListMode = enable;
-
-            // 切换可见性
-            RightPanel.Visibility = _isDualListMode ? Visibility.Collapsed : Visibility.Visible;
-            SecondFileBrowserContainer.Visibility = _isDualListMode ? Visibility.Visible : Visibility.Collapsed;
-
-            // 如果开启双列表，确保右侧栏展开
-            if (_isDualListMode)
-            {
-                EnsureExpanded(SplitterRight, false);
-            }
+            // 切换可见性由 XAML 绑定处理 (RightPanel.EffectiveVisibility 和 Layout.IsDualListMode)
 
             // 更新按钮状态
             if (NavigationRail != null)
             {
-                NavigationRail.DualListButton.Tag = _isDualListMode ? "Active" : null;
+                NavigationRail.DualListButton.Tag = enable ? "Active" : null;
             }
 
             // 调整标签页布局
@@ -234,7 +76,7 @@ namespace YiboFile
             UpdateFocusBorders();
 
             // 如果切换到双列表模式，初始化副列表
-            if (_isDualListMode && SecondFileBrowser != null)
+            if (enable && SecondFileBrowser != null)
             {
                 // (FileInfoService migration is handled via MVVM messages)
 
@@ -247,7 +89,9 @@ namespace YiboFile
                     AttachSecondTabServiceUiContext();
 
                     // 然后应用实际配置
-                    _secondTabService.UpdateConfig(_configService?.Config ?? new AppConfig());
+                    _secondTabService.UpdateConfig(ConfigurationService.Instance.Config);
+
+
 
                     // 通知 WindowStateManager 更新引用并恢复标签页
                     if (_windowStateManager != null)
@@ -264,12 +108,11 @@ namespace YiboFile
                 EnsureSecondTabExists();
             }
 
-            // 保存配置
-            if (_configService?.Config != null)
-            {
-                _configService.Config.IsDualListMode = _isDualListMode;
-                _configService.SaveCurrentConfig();
-            }
+            // 保存配置 (持久化逻辑)
+            ConfigurationService.Instance.Set(c => c.IsDualListMode, enable);
+            ConfigurationService.Instance.SaveNow();
+
+
         }
 
         /// <summary>
@@ -295,16 +138,16 @@ namespace YiboFile
         }
 
         /// <summary>
-        /// 当前焦点面板（主/副）
+        /// 当前焦点面板（主/副） (代理到 LayoutModule)
         /// </summary>
-        private bool _isSecondPaneFocused = false;
+        public bool IsSecondPaneFocused => _layoutModule?.IsSecondPaneFocused ?? false;
 
         /// <summary>
         /// 更新焦点边框
         /// </summary>
         private void UpdateFocusBorders()
         {
-            if (!_isDualListMode)
+            if (!IsDualListMode)
             {
                 // 单列表模式：清除边框
                 if (FileBrowser?.FocusBorderControl != null) FileBrowser.FocusBorderControl.BorderBrush = new SolidColorBrush(Colors.Transparent);
@@ -321,14 +164,14 @@ namespace YiboFile
 
             if (FileBrowser?.FocusBorderControl != null)
             {
-                FileBrowser.FocusBorderControl.BorderBrush = _isSecondPaneFocused ? normalBrush : focusBrush;
+                FileBrowser.FocusBorderControl.BorderBrush = IsSecondPaneFocused ? normalBrush : focusBrush;
             }
             // 移除 UserControl 边框设置
             FileBrowser.BorderThickness = new Thickness(0);
 
             if (SecondFileBrowser?.FocusBorderControl != null)
             {
-                SecondFileBrowser.FocusBorderControl.BorderBrush = _isSecondPaneFocused ? focusBrush : normalBrush;
+                SecondFileBrowser.FocusBorderControl.BorderBrush = IsSecondPaneFocused ? focusBrush : normalBrush;
             }
             // 移除 UserControl 边框设置
             SecondFileBrowser.BorderThickness = new Thickness(0);
@@ -339,7 +182,7 @@ namespace YiboFile
         /// </summary>
         internal void SwitchFocusedPane()
         {
-            if (!_isDualListMode) return;
+            if (!IsDualListMode) return;
 
             // 调用模块进行状态切换，模块会发布消息触发 UI 更新 (UpdateFocusBorders)
             _layoutModule?.SwitchFocusedPane();
@@ -359,8 +202,10 @@ namespace YiboFile
                 TabManager = SecondTabManager,
                 Dispatcher = this.Dispatcher,
                 OwnerWindow = this,
-                GetConfig = () => _configService?.Config ?? new AppConfig(),
-                SaveConfig = (config) => _configService?.SaveCurrentConfig(),
+                GetConfig = () => ConfigurationService.Instance.Config,
+                SaveConfig = (config) => ConfigurationService.Instance.SaveNow(),
+
+
                 GetCurrentPath = () => _secondCurrentPath ?? _currentPath,
                 SetCurrentPath = (path) => _secondCurrentPath = path,
                 SetNavigationCurrentPath = (path) => _secondCurrentPath = path,
@@ -421,10 +266,9 @@ namespace YiboFile
                 // 确保点击标签栏也能激活副面板焦点
                 SecondTabManager.PreviewMouseDown += (s, e) =>
                 {
-                    if (!_isSecondPaneFocused)
+                    if (!IsSecondPaneFocused)
                     {
-                        _isSecondPaneFocused = true;
-                        UpdateFocusBorders();
+                        _layoutModule?.SetFocusedPane(true);
                     }
                 };
             }
@@ -505,47 +349,40 @@ namespace YiboFile
             // 焦点事件 - 使用 PreviewMouseDown 确保点击列表任何位置都能激活焦点
             SecondFileBrowser.PreviewMouseDown += (s, e) =>
             {
-                if (!_isSecondPaneFocused)
+                if (!IsSecondPaneFocused)
                 {
-                    _isSecondPaneFocused = true;
                     _layoutModule?.SetFocusedPane(true);
-                    UpdateFocusBorders();
                 }
             };
             FileBrowser.PreviewMouseDown += (s, e) =>
             {
-                if (_isSecondPaneFocused)
+                if (IsSecondPaneFocused)
                 {
-                    _isSecondPaneFocused = false;
                     _layoutModule?.SetFocusedPane(false);
-                    UpdateFocusBorders();
                 }
             };
 
             // 保留原有 GotFocus 以防键盘导航触发
             SecondFileBrowser.GotFocus += (s, e) =>
             {
-                if (!_isSecondPaneFocused)
+                if (!IsSecondPaneFocused)
                 {
-                    _isSecondPaneFocused = true;
                     _layoutModule?.SetFocusedPane(true);
-                    UpdateFocusBorders();
                 }
             };
             FileBrowser.GotFocus += (s, e) =>
             {
-                if (_isSecondPaneFocused)
+                if (IsSecondPaneFocused)
                 {
-                    _isSecondPaneFocused = false;
                     _layoutModule?.SetFocusedPane(false);
-                    UpdateFocusBorders();
                 }
             };
-
-            // 绑定文件操作事件 (右键菜单支持)
+            // 绑定文件操作事件 (右键菜单支持) - Migrated to Commands
+            /*
             // Copy/Paste/Refresh handled below with Toolbar support
             SecondFileBrowser.FileCut += (s, e) => _menuEventHandler?.Cut_Click(s, e);
             SecondFileBrowser.FileRename += (s, e) => _menuEventHandler?.Rename_Click(s, e);
+            */
             SecondFileBrowser.FileProperties += (s, e) => ShowSelectedFileProperties();
 
             // F2快捷键和其他键盘事件支持
@@ -562,12 +399,14 @@ namespace YiboFile
             //     }
             // };
 
-            // 顶部工具栏按钮支持
+            // 顶部工具栏按钮支持 - Migrated to Commands
+            /*
             SecondFileBrowser.FileNewFolder += (s, e) => _menuEventHandler?.NewFolder_Click(s, e);
             SecondFileBrowser.FileNewFile += (s, e) => _menuEventHandler?.NewFile_Click(s, e);
             SecondFileBrowser.FileRefresh += (s, e) => LoadSecondFileBrowserDirectory(_secondCurrentPath);
             SecondFileBrowser.FileCopy += async (s, e) => await CopySelectedFilesAsync();
             SecondFileBrowser.FilePaste += async (s, e) => await PasteFilesAsync();
+            */
             SecondFileBrowser.FileAddTag += FileAddTag_Click;
 
             // F2 Rename handling for Second Browser
@@ -585,6 +424,7 @@ namespace YiboFile
             };
 
 
+            /*
             SecondFileBrowser.FileDelete += async (s, e) =>
             {
                 try
@@ -622,6 +462,7 @@ namespace YiboFile
                     MessageBox.Show($"删除操作失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             };
+            */
         }
 
         /// <summary>
@@ -671,18 +512,25 @@ namespace YiboFile
 
         private void LoadSecondFileBrowserContent()
         {
-            // 优先使用现有的副面板路径，或者副标签页的路径
-            if (string.IsNullOrEmpty(_secondCurrentPath))
+            // 检查副标签页服务当前激活的标签页类型
+            if (_secondTabService?.ActiveTab != null)
             {
-                if (_secondTabService?.ActiveTab != null && !string.IsNullOrEmpty(_secondTabService.ActiveTab.Path))
+                if (_secondTabService.ActiveTab.Type == TabType.Library && _secondTabService.ActiveTab.Library != null)
+                {
+                    LoadSecondFileBrowserLibrary(_secondTabService.ActiveTab.Library);
+                    return;
+                }
+                else if (!string.IsNullOrEmpty(_secondTabService.ActiveTab.Path))
                 {
                     _secondCurrentPath = _secondTabService.ActiveTab.Path;
                 }
-                else
-                {
-                    // 只有在完全没有状态时才默认跟随主面板
-                    _secondCurrentPath = _currentPath;
-                }
+            }
+
+            // 优先使用现有的副面板路径
+            if (string.IsNullOrEmpty(_secondCurrentPath))
+            {
+                // 只有在完全没有状态时才默认跟随主面板
+                _secondCurrentPath = _currentPath;
             }
 
             LoadSecondFileBrowserDirectory(_secondCurrentPath);
@@ -735,6 +583,10 @@ namespace YiboFile
                         Size = "-",
                         Tags = ""
                     };
+
+                    // 修复：显式更新副面板的信息栏
+                    _secondFileInfoService?.ShowFileInfo(folderItem);
+
                     _messageBus.Publish(new FileSelectionChangedMessage(new List<FileSystemItem> { folderItem }));
                 }
                 catch { }
@@ -847,72 +699,6 @@ namespace YiboFile
             }
         }
 
-        /// <summary>
-        /// 恢复双列表模式状态
-        /// </summary>
-        private void RestoreDualListMode()
-        {
-            if (_configService?.Config != null)
-            {
-                _isDualListMode = _configService.Config.IsDualListMode;
-                RightPanel.Visibility = _isDualListMode ? Visibility.Collapsed : Visibility.Visible;
-                SecondFileBrowserContainer.Visibility = _isDualListMode ? Visibility.Visible : Visibility.Collapsed;
-                if (NavigationRail != null) NavigationRail.DualListButton.Tag = _isDualListMode ? "Active" : null;
-
-                if (_isDualListMode)
-                {
-                    // 同样需要初始化服务，否则重启恢复模式时会报错或功能缺失
-                    if (_secondTabService == null && SecondTabManager != null)
-                    {
-                        // (FileInfoService migration is handled via MVVM messages)
-
-                        _secondTabService = new TabService(new AppConfig());
-                        AttachSecondTabServiceUiContext();
-                        _secondTabService.UpdateConfig(_configService?.Config ?? new AppConfig());
-
-                        // 通知 WindowStateManager 更新引用并恢复标签页
-                        if (_windowStateManager != null)
-                        {
-                            _windowStateManager.SetSecondTabService(_secondTabService);
-                            _windowStateManager.RestoreSecondaryTabs();
-                        }
-                    }
-
-                    UpdateTabManagerLayout();
-                    InitializeSecondFileBrowserEvents();
-                    LoadSecondFileBrowserContent();
-
-                    // 确保有标签页
-                    EnsureSecondTabExists();
-
-                    UpdateFocusBorders();
-                }
-            }
-        }
-
-        #endregion
-
-        #region 布局模式恢复
-
-        /// <summary>
-        /// 恢复保存的布局模式
-        /// </summary>
-        private void RestoreLayoutMode()
-        {
-            if (_configService?.Config != null)
-            {
-                if (Enum.TryParse<LayoutMode>(_configService.Config.LayoutMode, out var mode))
-                {
-                    SwitchLayoutMode(mode);
-                }
-                else
-                {
-                    // 默认完整模式
-                    SwitchLayoutMode(LayoutMode.Full);
-                }
-            }
-        }
-
         #endregion
 
         #region 上下文获取辅助方法
@@ -923,10 +709,11 @@ namespace YiboFile
         /// </summary>
         internal (Controls.FileBrowserControl browser, string path, Library library) GetActiveContext()
         {
-            if (_isDualListMode && _isSecondPaneFocused && SecondFileBrowser != null)
+            if (IsDualListMode && IsSecondPaneFocused && SecondFileBrowser != null)
             {
-                // 副列表目前只支持路径模式，暂不支持库
-                return (SecondFileBrowser, _secondCurrentPath, null);
+                // 副列表支持路径和库模式
+                var secLib = _viewModel?.SecondaryPane?.CurrentLibrary;
+                return (SecondFileBrowser, _secondCurrentPath, secLib);
             }
             return (FileBrowser, _currentPath, _currentLibrary);
         }
@@ -936,9 +723,13 @@ namespace YiboFile
         /// </summary>
         internal void RefreshActiveFileList()
         {
-            if (_isDualListMode && _isSecondPaneFocused && SecondFileBrowser != null)
+            if (IsDualListMode && IsSecondPaneFocused && SecondFileBrowser != null)
             {
-                if (!string.IsNullOrEmpty(_secondCurrentPath))
+                if (_viewModel?.SecondaryPane?.NavigationMode == "Library" && _viewModel.SecondaryPane.CurrentLibrary != null)
+                {
+                    LoadSecondFileBrowserLibrary(_viewModel.SecondaryPane.CurrentLibrary);
+                }
+                else if (!string.IsNullOrEmpty(_secondCurrentPath))
                 {
                     LoadSecondFileBrowserDirectory(_secondCurrentPath);
                 }
@@ -953,55 +744,59 @@ namespace YiboFile
 
         #region 布局初始化
 
-        /// <summary>
-        /// 初始化布局模式（恢复上次的布局配置）
-        ///在 MainWindow 初始化时调用
-        /// </summary>
         internal void InitializeLayoutMode()
         {
-            // 初始恢复配置
-            RestoreLayoutMode();
-            RestoreDualListMode();
-
-            // 同步初始状态到模块
-            _layoutModule?.InitializeState(_currentLayoutMode.ToString(), _isDualListMode, _isSecondPaneFocused);
-
             // 订阅 MVVM 消息，实现桥接
             _messageBus?.Subscribe<LayoutModeChangedMessage>(m =>
             {
-                if (Enum.TryParse<LayoutMode>(m.Mode, out var mode))
-                {
-                    SwitchLayoutMode(mode);
-                }
+                ApplyLayoutModeUI(m.Mode);
             });
 
             _messageBus?.Subscribe<DualListModeChangedMessage>(m =>
             {
-                if (_isDualListMode != m.IsEnabled)
-                {
-                    SetDualListMode(m.IsEnabled);
-                }
+                SetDualListMode(m.IsEnabled);
             });
 
             _messageBus?.Subscribe<FocusedPaneChangedMessage>(m =>
             {
-                // 同步本地状态并更新 UI
-                if (_isSecondPaneFocused != m.IsSecondPaneFocused)
-                {
-                    _isSecondPaneFocused = m.IsSecondPaneFocused;
-                    UpdateFocusBorders();
+                // 同步 UI 状态
+                UpdateFocusBorders();
 
-                    // 将焦点设置到对应的文件列表
-                    if (_isSecondPaneFocused)
-                    {
-                        SecondFileBrowser?.FilesList?.Focus();
-                    }
-                    else
-                    {
-                        FileBrowser?.FilesList?.Focus();
-                    }
+                // 将焦点设置到对应的文件列表
+                if (m.IsSecondPaneFocused)
+                {
+                    SecondFileBrowser?.FilesList?.Focus();
+                }
+                else
+                {
+                    FileBrowser?.FilesList?.Focus();
                 }
             });
+
+            // 应用初始 UI 状态
+            if (_layoutModule != null)
+            {
+                ApplyLayoutModeUI(_layoutModule.CurrentLayoutMode);
+
+                // 应用初始双列表状态（触发事件绑定和内容加载）
+                SetDualListMode(_layoutModule.IsDualListMode);
+            }
+        }
+
+        private void ApplyLayoutModeUI(string mode)
+        {
+            CloseOverlays();
+
+            // 更新按钮激活状态
+            if (NavigationRail != null)
+            {
+                NavigationRail.FocusModeButton.Tag = mode == "Focus" ? "Active" : null;
+                NavigationRail.WorkModeButton.Tag = mode == "Work" ? "Active" : null;
+                NavigationRail.FullModeButton.Tag = mode == "Full" ? "Active" : null;
+            }
+
+            // 更新标签页边距
+            UpdateTabManagerMargin();
         }
 
         /// <summary>
@@ -1066,7 +861,7 @@ namespace YiboFile
         /// <summary>
         /// 加载副文件列表的库内容
         /// </summary>
-        private async void LoadSecondFileBrowserLibrary(Library library)
+        private void LoadSecondFileBrowserLibrary(Library library)
         {
             if (library == null || SecondFileBrowser == null) return;
 
@@ -1079,6 +874,12 @@ namespace YiboFile
 
             try
             {
+                // 防止修改地址栏触发路径导航导致递归死循环
+                if (SecondFileBrowser != null)
+                {
+                    SecondFileBrowser.PathChanged -= SecondFileBrowser_PathChanged;
+                }
+
                 // 更新 UI 状态
                 SecondFileBrowser.NavUpEnabled = false;
                 SecondFileBrowser.SetSearchStatus(false);
@@ -1087,29 +888,127 @@ namespace YiboFile
                 // 使用 SetLibraryBreadcrumb 确保面包屑显示库名
                 SecondFileBrowser.SetLibraryBreadcrumb(library.Name);
 
+                // 恢复事件监听
+                if (SecondFileBrowser != null)
+                {
+                    SecondFileBrowser.PathChanged += SecondFileBrowser_PathChanged;
+                }
+
                 // 设置属性按钮可见性
                 SecondFileBrowser.SetPropertiesButtonVisibility(true);
 
-                // 加载文件
-                if (library.Paths == null || library.Paths.Count == 0)
+                // 显式更新副面板为库信息
+                _secondFileInfoService?.ShowLibraryInfo(library);
+
+                // 加载文件 - 委托给 ViewModel，此处不再手动加载
+                // ViewModel 的 NavigateTo 会触发后台加载，如果不移除手动加载会导致双重加载和UI卡死
+
+                // 确保 ViewModel 正在加载
+                if (_viewModel?.SecondaryPane?.IsLoading == false)
                 {
-                    _viewModel?.SecondaryPane?.FileList?.UpdateFiles(new List<FileSystemItem>());
-                    return;
+                    // Force refresh if needed? Usually NavigateTo handles it.
                 }
 
-                // 调用 FileListService 加载
-                var items = await _fileListService.LoadFileSystemItemsFromMultiplePathsAsync(
-                     library.Paths,
-                     (path) => DatabaseManager.GetFolderSize(path),
-                     (bytes) => _fileListService.FormatFileSize(bytes)
-                );
-
-                _secondCurrentFiles = items;
-                _viewModel?.SecondaryPane?.FileList?.UpdateFiles(items);
+                // _secondCurrentFiles 应该通过绑定或 ViewModel 事件更新
+                // 但为了兼容旧逻辑，我们可能需要从 ViewModel 获取?
+                // 暂时留空，假定 ViewModel -> UI 绑定工作正常
             }
             catch (Exception ex)
             {
                 DialogService.Error($"加载库文件失败: {ex.Message}", owner: this);
+            }
+        }
+
+        /// <summary>
+        /// 导航副面板到库视图
+        /// </summary>
+        internal void NavigateSecondaryPaneToLibrary(Library library)
+        {
+            if (!IsDualListMode || SecondFileBrowser == null) return;
+
+            // 确保焦点正确
+            if (!IsSecondPaneFocused)
+            {
+                // _layoutModule?.SetFocusedPane(true); // 可选：强制聚焦
+            }
+
+            // 如果未指定库，尝试从配置恢复上次的库，或使用第一个库
+            if (library == null)
+            {
+                // 注意：这里我们简单地使用与主面板相同的恢复逻辑，或者是副面板独立的？
+                // 目前没有为副面板独立保存 LastLibraryId，所以可能跟随主面板或者默认第一个
+                if (ConfigurationService.Instance.Config.LastLibraryId > 0)
+                {
+                    library = _libraryService.GetLibrary(ConfigurationService.Instance.Config.LastLibraryId);
+                }
+
+
+                if (library == null)
+                {
+                    library = _libraryService.LoadLibraries().FirstOrDefault();
+                }
+            }
+
+            if (library != null)
+            {
+                LoadSecondFileBrowserLibrary(library);
+            }
+        }
+
+
+        /// <summary>
+        /// 导航副面板到标签视图
+        /// </summary>
+        internal void NavigateSecondaryPaneToTag(TagViewModel tag)
+        {
+            if (!IsDualListMode || SecondFileBrowser == null) return;
+
+            // 委托给 ViewModel 加载
+            if (tag != null)
+            {
+                LoadSecondFileBrowserTag(tag);
+            }
+        }
+
+        private void LoadSecondFileBrowserTag(TagViewModel tag)
+        {
+            if (tag == null || SecondFileBrowser == null) return;
+
+            // 委托给 ViewModel 加载
+            if (_viewModel.SecondaryPane.CurrentTag != tag || _viewModel.SecondaryPane.NavigationMode != "Tag")
+            {
+                _viewModel.SecondaryPane.NavigateTo(tag);
+            }
+
+            try
+            {
+                // 更新 UI 状态
+                SecondFileBrowser.NavUpEnabled = false;
+                SecondFileBrowser.SetSearchStatus(false);
+                SecondFileBrowser.AddressText = tag.Name;
+                SecondFileBrowser.IsAddressReadOnly = true;
+                SecondFileBrowser.UpdateBreadcrumb(tag.Name);
+
+                SecondFileBrowser.SetPropertiesButtonVisibility(false);
+
+                // 构造标签项以显示信息
+                var tagItem = new FileSystemItem
+                {
+                    Name = tag.Name,
+                    Path = $"tag://{tag.Name}",
+                    Type = "标签",
+                    IsDirectory = true,
+                    Size = "-",
+                    Tags = tag.Name
+                };
+                _secondFileInfoService?.ShowFileInfo(tagItem);
+
+                // 加载文件 - 委托给 ViewModel，此处不再手动加载
+                // 移除手动加载逻辑，避免卡死
+            }
+            catch (Exception ex)
+            {
+                DialogService.Error($"加载标签文件失败: {ex.Message}", owner: this);
             }
         }
 

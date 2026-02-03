@@ -20,20 +20,19 @@ namespace YiboFile.Handlers
     {
         private readonly MainWindow _mainWindow;
         private readonly ColumnService _columnService;
-        private readonly ConfigService _configService;
         private readonly FileBrowserControl _fileBrowser;
+
 
         public ColumnInteractionHandler(
             MainWindow mainWindow,
             FileBrowserControl targetBrowser,
-            ColumnService columnService,
-            ConfigService configService)
+            ColumnService columnService)
         {
             _mainWindow = mainWindow ?? throw new ArgumentNullException(nameof(mainWindow));
             _fileBrowser = targetBrowser ?? throw new ArgumentNullException(nameof(targetBrowser));
             _columnService = columnService ?? throw new ArgumentNullException(nameof(columnService));
-            _configService = configService ?? throw new ArgumentNullException(nameof(configService));
         }
+
 
         public void Initialize()
         {
@@ -180,36 +179,41 @@ namespace YiboFile.Handlers
                 // 显示列
                 if (column.Width <= 1)
                 {
+                    var cfg = ConfigurationService.Instance.Config;
                     double w = tag switch
                     {
-                        "Name" => _configService?.Config.ColNameWidth ?? 200,
-                        "Size" => _configService?.Config.ColSizeWidth ?? 100,
-                        "Type" => _configService?.Config.ColTypeWidth ?? 100,
-                        "ModifiedDate" => _configService?.Config.ColModifiedDateWidth ?? 150,
-                        "CreatedTime" => _configService?.Config.ColCreatedTimeWidth ?? 50,
-                        "Tags" => _configService?.Config.ColTagsWidth ?? 150,
-                        "Notes" => _configService?.Config.ColNotesWidth ?? 200,
+                        "Name" => cfg.ColNameWidth,
+                        "Size" => cfg.ColSizeWidth,
+                        "Type" => cfg.ColTypeWidth,
+                        "ModifiedDate" => cfg.ColModifiedDateWidth,
+                        "CreatedTime" => cfg.ColCreatedTimeWidth,
+                        "Tags" => cfg.ColTagsWidth,
+                        "Notes" => cfg.ColNotesWidth,
                         _ => column.ActualWidth > 0 ? column.ActualWidth : 100
                     };
+
                     column.Width = Math.Max(40, w);
                 }
+
             }
             else
             {
                 // Save current width before hiding so we can restore it later
-                if (column.ActualWidth > 1 && _configService?.Config != null)
+                if (column.ActualWidth > 1)
                 {
+                    double width = column.ActualWidth;
                     switch (tag)
                     {
-                        case "Name": _configService.Config.ColNameWidth = column.ActualWidth; break;
-                        case "Size": _configService.Config.ColSizeWidth = column.ActualWidth; break;
-                        case "Type": _configService.Config.ColTypeWidth = column.ActualWidth; break;
-                        case "ModifiedDate": _configService.Config.ColModifiedDateWidth = column.ActualWidth; break;
-                        case "CreatedTime": _configService.Config.ColCreatedTimeWidth = column.ActualWidth; break;
-                        case "Tags": _configService.Config.ColTagsWidth = column.ActualWidth; break;
-                        case "Notes": _configService.Config.ColNotesWidth = column.ActualWidth; break;
+                        case "Name": ConfigurationService.Instance.Set(c => c.ColNameWidth, width); break;
+                        case "Size": ConfigurationService.Instance.Set(c => c.ColSizeWidth, width); break;
+                        case "Type": ConfigurationService.Instance.Set(c => c.ColTypeWidth, width); break;
+                        case "ModifiedDate": ConfigurationService.Instance.Set(c => c.ColModifiedDateWidth, width); break;
+                        case "CreatedTime": ConfigurationService.Instance.Set(c => c.ColCreatedTimeWidth, width); break;
+                        case "Tags": ConfigurationService.Instance.Set(c => c.ColTagsWidth, width); break;
+                        case "Notes": ConfigurationService.Instance.Set(c => c.ColNotesWidth, width); break;
                     }
                 }
+
 
                 // 隐藏列
                 column.Width = 0;

@@ -48,16 +48,75 @@ namespace YiboFile.ViewModels
             set => SetProperty(ref _isLoading, value);
         }
 
-        public Modules.NavigationModule Navigation { get; set; }
-        public Modules.TabsModule Tabs { get; set; }
-        public Modules.LayoutModule Layout { get; set; }
-        public Modules.FileOperationModule FileOperation { get; set; }
-        public Modules.NotesModule Notes { get; set; }
-        public Modules.TagsModule Tags { get; set; }
-        public Modules.FavoritesModule Favorites { get; set; }
-        public Modules.LibraryModule Library { get; set; }
-        public Modules.SearchModule Search { get; set; }
-        public RightPanelViewModel RightPanel { get; set; }
+        private Modules.NavigationModule _navigation;
+        public Modules.NavigationModule Navigation
+        {
+            get => _navigation;
+            set => SetProperty(ref _navigation, value);
+        }
+
+        private Modules.TabsModule _tabs;
+        public Modules.TabsModule Tabs
+        {
+            get => _tabs;
+            set => SetProperty(ref _tabs, value);
+        }
+
+        private Modules.LayoutModule _layout;
+        public Modules.LayoutModule Layout
+        {
+            get => _layout;
+            set => SetProperty(ref _layout, value);
+        }
+
+        private Modules.FileOperationModule _fileOperation;
+        public Modules.FileOperationModule FileOperation
+        {
+            get => _fileOperation;
+            set => SetProperty(ref _fileOperation, value);
+        }
+
+        private Modules.NotesModule _notes;
+        public Modules.NotesModule Notes
+        {
+            get => _notes;
+            set => SetProperty(ref _notes, value);
+        }
+
+        private Modules.TagsModule _tags;
+        public Modules.TagsModule Tags
+        {
+            get => _tags;
+            set => SetProperty(ref _tags, value);
+        }
+
+        private Modules.FavoritesModule _favorites;
+        public Modules.FavoritesModule Favorites
+        {
+            get => _favorites;
+            set => SetProperty(ref _favorites, value);
+        }
+
+        private Modules.LibraryModule _library;
+        public Modules.LibraryModule Library
+        {
+            get => _library;
+            set => SetProperty(ref _library, value);
+        }
+
+        private Modules.SearchModule _search;
+        public Modules.SearchModule Search
+        {
+            get => _search;
+            set => SetProperty(ref _search, value);
+        }
+
+        private RightPanelViewModel _rightPanel;
+        public RightPanelViewModel RightPanel
+        {
+            get => _rightPanel;
+            set => SetProperty(ref _rightPanel, value);
+        }
         /// <summary>
         /// 主面板（左侧/上方）
         /// </summary>
@@ -67,6 +126,13 @@ namespace YiboFile.ViewModels
         /// 副面板（右侧/下方，仅在双栏模式启用）
         /// </summary>
         public PaneViewModel SecondaryPane { get; set; }
+
+        private PaneViewModel _activePane;
+        public PaneViewModel ActivePane
+        {
+            get => _activePane;
+            set => SetProperty(ref _activePane, value);
+        }
 
 
         #endregion
@@ -79,6 +145,19 @@ namespace YiboFile.ViewModels
             // 订阅核心消息
             _messageBus.Subscribe<Messaging.Messages.PathChangedMessage>(OnPathChanged);
             _messageBus.Subscribe<Messaging.Messages.NavigationModeChangedMessage>(OnNavigationModeChanged);
+            _messageBus.Subscribe<Messaging.Messages.FocusedPaneChangedMessage>(OnFocusedPaneChanged);
+        }
+
+        private void OnFocusedPaneChanged(Messaging.Messages.FocusedPaneChangedMessage message)
+        {
+            if (message.IsSecondPaneFocused)
+            {
+                ActivePane = SecondaryPane;
+            }
+            else
+            {
+                ActivePane = PrimaryPane;
+            }
         }
 
         #region 模块管理
@@ -102,7 +181,6 @@ namespace YiboFile.ViewModels
                 try
                 {
                     module.Initialize();
-                    System.Diagnostics.Debug.WriteLine($"[MainWindowViewModel] Module initialized: {module.Name}");
                 }
                 catch (Exception ex)
                 {

@@ -255,10 +255,8 @@ namespace YiboFile.Services.FileList
 
             try
             {
-                var files = dirInfo.GetFiles("*", SearchOption.TopDirectoryOnly)
-                    .Take(maxEntriesPerLevel);
-
-                foreach (var file in files)
+                // 使用 EnumerateFiles 减少大目录的内存占用
+                foreach (var file in dirInfo.EnumerateFiles("*", SearchOption.TopDirectoryOnly))
                 {
                     if (cancellationToken.IsCancellationRequested || stopwatch.ElapsedMilliseconds > maxTimeMs)
                     {
@@ -268,10 +266,8 @@ namespace YiboFile.Services.FileList
                     size += file.Length;
                 }
 
-                var subDirs = dirInfo.GetDirectories("*", SearchOption.TopDirectoryOnly)
-                    .Take(maxEntriesPerLevel);
-
-                foreach (var subDir in subDirs)
+                // Use EnumerateDirectories to reduce memory usage
+                foreach (var subDir in dirInfo.EnumerateDirectories("*", SearchOption.TopDirectoryOnly))
                 {
                     if (cancellationToken.IsCancellationRequested || stopwatch.ElapsedMilliseconds > maxTimeMs)
                     {

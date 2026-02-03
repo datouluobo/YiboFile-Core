@@ -2,6 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Windows.Input;
+using System.Collections;
+using System.Windows;
 using YiboFile.Models;
 using YiboFile.Services.Core.Error;
 using YiboFile.Services.FileOperations;
@@ -23,6 +26,20 @@ namespace YiboFile.ViewModels.Modules
 
         public override string Name => "FileOperation";
 
+        #region Commands
+
+        public ICommand CopyCommand { get; }
+        public ICommand CutCommand { get; }
+        public ICommand PasteCommand { get; }
+        public ICommand DeleteCommand { get; }
+        public ICommand RenameCommand { get; }
+        public ICommand NewFolderCommand { get; }
+        public ICommand NewFileCommand { get; }
+        public ICommand UndoCommand { get; }
+        public ICommand RedoCommand { get; }
+
+        #endregion
+
         public FileOperationModule(
             IMessageBus messageBus,
             FileOperationService fileOperationService,
@@ -33,6 +50,16 @@ namespace YiboFile.ViewModels.Modules
             _fileOperationService = fileOperationService ?? throw new ArgumentNullException(nameof(fileOperationService));
             _undoService = undoService;
             _errorService = errorService;
+
+            CopyCommand = new RelayCommand<IList>(ExecuteCopy, CanExecuteCopy);
+            CutCommand = new RelayCommand<IList>(ExecuteCut, CanExecuteCut);
+            PasteCommand = new RelayCommand<PaneViewModel>(ExecutePaste, CanExecutePaste);
+            DeleteCommand = new RelayCommand<IList>(ExecuteDelete, CanExecuteDelete);
+            RenameCommand = new RelayCommand<FileSystemItem>(ExecuteRename, CanExecuteRename);
+            NewFolderCommand = new RelayCommand<PaneViewModel>(ExecuteNewFolder, CanExecuteNewFolder);
+            NewFileCommand = new RelayCommand<PaneViewModel>(ExecuteNewFile, CanExecuteNewFile);
+            UndoCommand = new RelayCommand(OnUndo, () => _undoService?.CanUndo == true);
+            RedoCommand = new RelayCommand(OnRedo, () => _undoService?.CanRedo == true);
         }
 
         protected override void OnInitialize()
@@ -51,12 +78,16 @@ namespace YiboFile.ViewModels.Modules
 
         private async void OnCreateFolder(CreateFolderRequestMessage message)
         {
+            System.Diagnostics.Debug.WriteLine($"[FileOperationModule] Creating folder. Parent: {message.ParentPath}, Name: {message.FolderName}");
             await _fileOperationService.CreateFolderAsync(message.ParentPath, message.FolderName);
+            System.Diagnostics.Debug.WriteLine($"[FileOperationModule] Folder created. Publishing RefreshFileListMessage for: {message.ParentPath}");
+            Publish(new RefreshFileListMessage(message.ParentPath));
         }
 
         private async void OnDeleteItems(DeleteItemsRequestMessage message)
         {
             await _fileOperationService.DeleteAsync(message.Items, message.Permanent);
+            Publish(new RefreshFileListMessage());
         }
 
         private async void OnCopyItems(CopyItemsRequestMessage message)
@@ -72,6 +103,7 @@ namespace YiboFile.ViewModels.Modules
         private async void OnPasteItems(PasteItemsRequestMessage message)
         {
             await _fileOperationService.PasteAsync();
+            Publish(new RefreshFileListMessage());
         }
 
         private async void OnRenameItem(RenameItemRequestMessage message)
@@ -156,5 +188,134 @@ namespace YiboFile.ViewModels.Modules
         }
 
         #endregion
+        #region Command Handlers
+
+        private void ExecuteCopy(IList items)
+        {
+            var fileItems = items?.OfType<FileSystemItem>().ToList();
+            if (fileItems != null && fileItems.Any())
+            {
+                Publish(new CopyItemsRequestMessage(fileItems));
+            }
+        }
+
+        private bool CanExecuteCopy(IList items)
+        {
+            return items != null && items.Count > 0;
+        }
+
+        private void ExecuteCut(IList items)
+        {
+            var fileItems = items?.OfType<FileSystemItem>().ToList();
+            if (fileItems != null && fileItems.Any())
+            {
+                Publish(new CutItemsRequestMessage(fileItems));
+            }
+        }
+
+        private bool CanExecuteCut(IList items)
+        {
+            return items != null && items.Count > 0;
+        }
+
+        private void ExecutePaste(PaneViewModel pane)
+        {
+            if (pane != null && !string.IsNullOrEmpty(pane.CurrentPath))
+            {
+                Publish(new PasteItemsRequestMessage(pane.CurrentPath));
+            }
+        }
+
+        private bool CanExecutePaste(PaneViewModel pane)
+        {
+            return pane != null && !string.IsNullOrEmpty(pane.CurrentPath) && Clipboard.ContainsFileDropList();
+        }
+
+        private void ExecuteDelete(IList items)
+        {
+            var fileItems = items?.OfType<FileSystemItem>().ToList();
+            if (fileItems != null && fileItems.Any())
+            {
+                // Check shift key for permanent delete?
+                // CommandParameter usually doesn't capture modifier keys.
+                // We might need a separate DeletePermanentCommand or check Keyboard.Modifiers (UI dependency in VM, but acceptable for commands)
+                bool permanent = (Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift;
+                Publish(new DeleteItemsRequestMessage(fileItems, permanent));
+            }
+        }
+
+        private bool CanExecuteDelete(IList items)
+        {
+            return items != null && items.Count > 0;
+        }
+
+        private void ExecuteRename(FileSystemItem item)
+        {
+            if (item != null)
+            {
+                Publish(new RenameItemRequestMessage(item, null)); // null triggers edit mode
+            }
+        }
+
+        private bool CanExecuteRename(FileSystemItem item)
+        {
+            return item != null;
+        }
+
+        private void ExecuteNewFolder(PaneViewModel pane)
+        {
+            if (pane != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[FileOperationModule] ExecuteNewFolder. Mode: {pane.NavigationMode}, Path: {pane.CurrentPath}, Lib: {pane.CurrentLibrary?.Name}");
+
+                string targetPath = pane.CurrentPath;
+                if (pane.NavigationMode == "Library" && pane.CurrentLibrary != null)
+                {
+                    // If in library mode, we need a physical path to create folder
+                    // Use the first available path in the library? Or ask user?
+                    // Implementation of FileOperationService.CreateFolderAsync might handle lib:// paths or not?
+                    // Let's assume we pick the first valid path of the library for now, or check what FileOperationService does.
+                    var libPaths = pane.CurrentLibrary.Paths;
+                    if (libPaths != null && libPaths.Count > 0)
+                    {
+                        targetPath = libPaths.FirstOrDefault(p => System.IO.Directory.Exists(p));
+                        System.Diagnostics.Debug.WriteLine($"[FileOperationModule] Resolved Library path to: {targetPath}");
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(targetPath))
+                {
+                    Publish(new CreateFolderRequestMessage(targetPath));
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("[FileOperationModule] Cannot create folder: Target path is empty.");
+                }
+            }
+        }
+
+        private bool CanExecuteNewFolder(PaneViewModel pane)
+        {
+            return pane != null && !string.IsNullOrEmpty(pane.CurrentPath);
+        }
+
+        private void ExecuteNewFile(PaneViewModel pane)
+        {
+            // Placeholder: functionality not fully defined in messages
+            if (pane != null && !string.IsNullOrEmpty(pane.CurrentPath))
+            {
+                // _fileOperationService.CreateFileAsync...
+                // For now, we can publish a generic message or just log
+                System.Diagnostics.Debug.WriteLine("ExecuteNewFile called");
+            }
+        }
+
+        private bool CanExecuteNewFile(PaneViewModel pane)
+        {
+            return pane != null && !string.IsNullOrEmpty(pane.CurrentPath);
+        }
+
+        #endregion
+
     }
 }

@@ -24,11 +24,13 @@ namespace YiboFile
 
         private List<LibraryUiModel> _libraries;
         private readonly YiboFile.Services.Data.Repositories.ILibraryRepository _repository;
+        private readonly YiboFile.Services.LibraryService _libraryService;
 
         public LibraryManagementWindow()
         {
             InitializeComponent();
             _repository = App.ServiceProvider?.GetService(typeof(YiboFile.Services.Data.Repositories.ILibraryRepository)) as YiboFile.Services.Data.Repositories.ILibraryRepository;
+            _libraryService = App.ServiceProvider?.GetService(typeof(YiboFile.Services.LibraryService)) as YiboFile.Services.LibraryService;
             RefreshLibraries();
             this.KeyDown += LibraryManagementWindow_KeyDown;
         }
@@ -126,21 +128,28 @@ namespace YiboFile
 
             try
             {
-                var libraryId = _repository.AddLibrary(categoryName);
+                if (_libraryService == null)
+                {
+                    ShowError("Library service not available");
+                    return;
+                }
+
+                var libraryId = _libraryService.AddLibrary(categoryName);
                 if (libraryId > 0)
                 {
                     NewLibraryNameTextBox.Text = "";
-                    RefreshLibraries(); // Refresh to show new library
+                    RefreshLibraries(); // Refresh local list (Service triggers main window update)
                 }
                 else if (libraryId < 0)
                 {
-                    ShowError("库名称已存在");
+                    // Service log handles showing dialog, but we show error here too for focused input
+                    // ShowError("库名称已存在"); // Service already shows dialog
                     NewLibraryNameTextBox.SelectAll();
                     NewLibraryNameTextBox.Focus();
                 }
                 else
                 {
-                    ShowError("创建库失败");
+                    // ShowError("创建库失败"); // Service already shows dialog
                 }
             }
             catch (Exception ex)
@@ -160,7 +169,7 @@ namespace YiboFile
                     var newName = dialog.InputText.Trim();
                     try
                     {
-                        _repository.UpdateLibraryName(library.Id, newName);
+                        _libraryService?.UpdateLibraryName(library.Id, newName);
                         RefreshLibraries();
                     }
                     catch (Exception ex)
@@ -183,7 +192,7 @@ namespace YiboFile
                 {
                     try
                     {
-                        _repository.DeleteLibrary(library.Id);
+                        _libraryService?.DeleteLibrary(library.Id, library.Name);
                         RefreshLibraries();
                     }
                     catch (Exception ex)
@@ -200,7 +209,11 @@ namespace YiboFile
             {
                 try
                 {
+                    _repository.MoveLibraryUp(library.Id); // Service might not have Move, but repository is fine if we force refresh? 
+                                                           // Ideally Service should have Move, but let's stick to Repo then force load
                     _repository.MoveLibraryUp(library.Id);
+                    _libraryService?.LoadLibraries(); // Force notify main window
+
                     RefreshLibraries();
                 }
                 catch (Exception ex)
@@ -217,6 +230,7 @@ namespace YiboFile
                 try
                 {
                     _repository.MoveLibraryDown(library.Id);
+                    _libraryService?.LoadLibraries(); // Force notify main window
                     RefreshLibraries();
                 }
                 catch (Exception ex)
@@ -251,7 +265,7 @@ namespace YiboFile
                                 return;
                             }
 
-                            _repository.AddLibraryPath(library.Id, path);
+                            _libraryService?.AddLibraryPath(library.Id, path);
                             RefreshLibraries();
                         }
                         catch (Exception ex)
@@ -276,6 +290,8 @@ namespace YiboFile
                     try
                     {
                         _repository.UpdateLibraryPathDisplayName(path.LibraryId, path.Path, newName);
+                        // Updating display name doesn't change content, but we should probably reload
+                        _libraryService?.LoadLibraries();
                         RefreshLibraries();
                     }
                     catch (Exception ex)
@@ -298,7 +314,7 @@ namespace YiboFile
                 {
                     try
                     {
-                        _repository.RemoveLibraryPath(path.LibraryId, path.Path);
+                        _libraryService?.RemoveLibraryPath(path.LibraryId, path.Path);
                         RefreshLibraries();
                     }
                     catch (Exception ex)
