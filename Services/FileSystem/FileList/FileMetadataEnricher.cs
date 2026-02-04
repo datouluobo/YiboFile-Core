@@ -94,7 +94,7 @@ namespace YiboFile.Services.FileList
                 item.Notes = BuildNotes(item.Path);
 
                 // Enhance: Extract Media Metadata
-                await EnrichMediaMetadataAsync(item);
+                await EnrichMediaMetadataAsync(item, cancellationToken);
             }
             finally
             {
@@ -102,7 +102,7 @@ namespace YiboFile.Services.FileList
             }
         }
 
-        private async Task EnrichMediaMetadataAsync(FileSystemItem item)
+        private async Task EnrichMediaMetadataAsync(FileSystemItem item, CancellationToken cancellationToken)
         {
             if (item.IsDirectory || string.IsNullOrEmpty(item.Path)) return;
 
@@ -111,25 +111,30 @@ namespace YiboFile.Services.FileList
             {
                 try
                 {
-                    // Use System.Drawing.Common for images
-                    // Run in Task to avoid blocking
+                    // 使用 WPF 原生的 BitmapDecoder (基于 WIC)，比 System.Drawing 更轻量且不会导致 GDI+ 崩溃
                     await Task.Run(() =>
                     {
+                        if (cancellationToken.IsCancellationRequested) return;
                         try
                         {
-                            // Use FileStream to avoid locking the file if possible, or just Image.FromFile
-                            // Image.FromFile locks until disposed. 
-                            using (var fs = new System.IO.FileStream(item.Path, System.IO.FileMode.Open, System.IO.FileAccess.Read))
+                            using (var fs = new System.IO.FileStream(item.Path, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.ReadWrite))
                             {
-                                using (var img = System.Drawing.Image.FromStream(fs, false, false))
+                                // 只读取元数据，不解码像素，极快且内存占用低
+                                var decoder = System.Windows.Media.Imaging.BitmapDecoder.Create(
+                                    fs,
+                                    System.Windows.Media.Imaging.BitmapCreateOptions.DelayCreation,
+                                    System.Windows.Media.Imaging.BitmapCacheOption.None);
+
+                                if (decoder.Frames.Count > 0)
                                 {
-                                    item.PixelWidth = img.Width;
-                                    item.PixelHeight = img.Height;
+                                    var frame = decoder.Frames[0];
+                                    item.PixelWidth = frame.PixelWidth;
+                                    item.PixelHeight = frame.PixelHeight;
                                 }
                             }
                         }
-                        catch { }
-                    });
+                        catch (Exception) { /* 忽略无法读取的图片 */ }
+                    }, cancellationToken);
                 }
                 catch { }
             }
@@ -140,6 +145,7 @@ namespace YiboFile.Services.FileList
                 {
                     // Use Native Shell Property (reliable, built-in)
                     // Replaces FFMpegCore which requires external binaries
+                    if (cancellationToken.IsCancellationRequested) return;
                     long duration = YiboFile.Services.Core.ShellPropertyHelper.GetDuration(item.Path);
                     item.DurationMs = duration;
 

@@ -5,8 +5,8 @@ namespace YiboFile.Services.Core
 {
     public static class ShellPropertyHelper
     {
-        [DllImport("shell32.dll", CharSet = CharSet.Unicode, PreserveSig = false)]
-        private static extern void SHCreateItemFromParsingName(
+        [DllImport("shell32.dll", CharSet = CharSet.Unicode, PreserveSig = true)]
+        private static extern int SHCreateItemFromParsingName(
             [In, MarshalAs(UnmanagedType.LPWStr)] string pszPath,
             [In] IntPtr pbc,
             [In] ref Guid riid,
@@ -18,26 +18,44 @@ namespace YiboFile.Services.Core
         private interface IShellItem2 : IShellItem
         {
             // IShellItem methods
-            new void BindToHandler([In] IntPtr pbc, [In] ref Guid bhid, [In] ref Guid riid, [Out, MarshalAs(UnmanagedType.Interface)] out IntPtr ppv);
-            new void GetParent([Out, MarshalAs(UnmanagedType.Interface)] out IShellItem ppsi);
-            new void GetDisplayName([In] SIGDN sigdnName, [Out, MarshalAs(UnmanagedType.LPWStr)] out string ppszName);
-            new void GetAttributes([In] uint sfgaoMask, [Out] out uint psfgaoAttribs);
-            new void Compare([In, MarshalAs(UnmanagedType.Interface)] IShellItem psi, [In] uint hint, [Out] out int piOrder);
+            [PreserveSig]
+            new int BindToHandler([In] IntPtr pbc, [In] ref Guid bhid, [In] ref Guid riid, [Out, MarshalAs(UnmanagedType.Interface)] out IntPtr ppv);
+            [PreserveSig]
+            new int GetParent([Out, MarshalAs(UnmanagedType.Interface)] out IShellItem ppsi);
+            [PreserveSig]
+            new int GetDisplayName([In] SIGDN sigdnName, [Out, MarshalAs(UnmanagedType.LPWStr)] out string ppszName);
+            [PreserveSig]
+            new int GetAttributes([In] uint sfgaoMask, [Out] out uint psfgaoAttribs);
+            [PreserveSig]
+            new int Compare([In, MarshalAs(UnmanagedType.Interface)] IShellItem psi, [In] uint hint, [Out] out int piOrder);
 
             // IShellItem2 methods
-            void GetPropertyStore([In] GETPROPERTYSTOREFLAGS flags, [In] ref Guid riid, [Out, MarshalAs(UnmanagedType.Interface)] out IPropertyStore ppv);
-            void GetPropertyStoreWithCreateObject([In] GETPROPERTYSTOREFLAGS flags, [In, MarshalAs(UnmanagedType.Interface)] object punkCreateObject, [In] ref Guid riid, [Out, MarshalAs(UnmanagedType.Interface)] out IPropertyStore ppv);
-            void GetPropertyStoreForKeys([In] ref PropertyKey rgKeys, [In] uint cKeys, [In] GETPROPERTYSTOREFLAGS flags, [In] ref Guid riid, [Out, MarshalAs(UnmanagedType.Interface)] out IPropertyStore ppv);
-            void GetPropertyDescriptionList([In] ref PropertyKey keyType, [In] ref Guid riid, [Out, MarshalAs(UnmanagedType.Interface)] out IntPtr ppv);
-            void Update([In, MarshalAs(UnmanagedType.Interface)] IntPtr pbc);
-            void GetProperty([In] ref PropertyKey key, [Out] out PropVariant ppropvar);
-            void GetCLSID([In] ref PropertyKey key, [Out] out Guid pclsid);
-            void GetFileTime([In] ref PropertyKey key, [Out] out System.Runtime.InteropServices.ComTypes.FILETIME pft);
-            void GetInt32([In] ref PropertyKey key, [Out] out int pi);
-            void GetString([In] ref PropertyKey key, [Out, MarshalAs(UnmanagedType.LPWStr)] out string ppsz);
-            void GetUInt32([In] ref PropertyKey key, [Out] out uint pui);
-            void GetUInt64([In] ref PropertyKey key, [Out] out ulong pull);
-            void GetBool([In] ref PropertyKey key, [Out] out int pf);
+            [PreserveSig]
+            int GetPropertyStore([In] GETPROPERTYSTOREFLAGS flags, [In] ref Guid riid, [Out, MarshalAs(UnmanagedType.Interface)] out IPropertyStore ppv);
+            [PreserveSig]
+            int GetPropertyStoreWithCreateObject([In] GETPROPERTYSTOREFLAGS flags, [In, MarshalAs(UnmanagedType.Interface)] object punkCreateObject, [In] ref Guid riid, [Out, MarshalAs(UnmanagedType.Interface)] out IPropertyStore ppv);
+            [PreserveSig]
+            int GetPropertyStoreForKeys([In] ref PropertyKey rgKeys, [In] uint cKeys, [In] GETPROPERTYSTOREFLAGS flags, [In] ref Guid riid, [Out, MarshalAs(UnmanagedType.Interface)] out IPropertyStore ppv);
+            [PreserveSig]
+            int GetPropertyDescriptionList([In] ref PropertyKey keyType, [In] ref Guid riid, [Out, MarshalAs(UnmanagedType.Interface)] out IntPtr ppv);
+            [PreserveSig]
+            int Update([In, MarshalAs(UnmanagedType.Interface)] IntPtr pbc);
+            [PreserveSig]
+            int GetProperty([In] ref PropertyKey key, [Out] out PropVariant ppropvar);
+            [PreserveSig]
+            int GetCLSID([In] ref PropertyKey key, [Out] out Guid pclsid);
+            [PreserveSig]
+            int GetFileTime([In] ref PropertyKey key, [Out] out System.Runtime.InteropServices.ComTypes.FILETIME pft);
+            [PreserveSig]
+            int GetInt32([In] ref PropertyKey key, [Out] out int pi);
+            [PreserveSig]
+            int GetString([In] ref PropertyKey key, [Out, MarshalAs(UnmanagedType.LPWStr)] out string ppsz);
+            [PreserveSig]
+            int GetUInt32([In] ref PropertyKey key, [Out] out uint pui);
+            [PreserveSig]
+            int GetUInt64([In] ref PropertyKey key, [Out] out ulong pull);
+            [PreserveSig]
+            int GetBool([In] ref PropertyKey key, [Out] out int pf);
         }
 
         [ComImport]
@@ -45,11 +63,16 @@ namespace YiboFile.Services.Core
         [Guid("43826d1e-e718-42ee-bc55-a1e261c37bfe")]
         private interface IShellItem
         {
-            void BindToHandler([In] IntPtr pbc, [In] ref Guid bhid, [In] ref Guid riid, [Out, MarshalAs(UnmanagedType.Interface)] out IntPtr ppv);
-            void GetParent([Out, MarshalAs(UnmanagedType.Interface)] out IShellItem ppsi);
-            void GetDisplayName([In] SIGDN sigdnName, [Out, MarshalAs(UnmanagedType.LPWStr)] out string ppszName);
-            void GetAttributes([In] uint sfgaoMask, [Out] out uint psfgaoAttribs);
-            void Compare([In, MarshalAs(UnmanagedType.Interface)] IShellItem psi, [In] uint hint, [Out] out int piOrder);
+            [PreserveSig]
+            int BindToHandler([In] IntPtr pbc, [In] ref Guid bhid, [In] ref Guid riid, [Out, MarshalAs(UnmanagedType.Interface)] out IntPtr ppv);
+            [PreserveSig]
+            int GetParent([Out, MarshalAs(UnmanagedType.Interface)] out IShellItem ppsi);
+            [PreserveSig]
+            int GetDisplayName([In] SIGDN sigdnName, [Out, MarshalAs(UnmanagedType.LPWStr)] out string ppszName);
+            [PreserveSig]
+            int GetAttributes([In] uint sfgaoMask, [Out] out uint psfgaoAttribs);
+            [PreserveSig]
+            int Compare([In, MarshalAs(UnmanagedType.Interface)] IShellItem psi, [In] uint hint, [Out] out int piOrder);
         }
 
         [ComImport]
@@ -57,11 +80,16 @@ namespace YiboFile.Services.Core
         [Guid("886d8eeb-8cf2-4446-8d02-cdba1dbdcf99")]
         private interface IPropertyStore
         {
-            void GetCount([Out] out uint cProps);
-            void GetAt([In] uint iProp, [Out] out PropertyKey pkey);
-            void GetValue([In] ref PropertyKey key, [Out] out PropVariant pv);
-            void SetValue([In] ref PropertyKey key, [In] ref PropVariant propvar);
-            void Commit();
+            [PreserveSig]
+            int GetCount([Out] out uint cProps);
+            [PreserveSig]
+            int GetAt([In] uint iProp, [Out] out PropertyKey pkey);
+            [PreserveSig]
+            int GetValue([In] ref PropertyKey key, [Out] out PropVariant pv);
+            [PreserveSig]
+            int SetValue([In] ref PropertyKey key, [In] ref PropVariant propvar);
+            [PreserveSig]
+            int Commit();
         }
 
         [StructLayout(LayoutKind.Sequential, Pack = 4)]
@@ -127,17 +155,20 @@ namespace YiboFile.Services.Core
             {
                 Guid iidShellItem2 = new Guid("7e9fb0d3-919f-4307-ab2e-9b1860310c93");
                 IShellItem2 shellItem;
-                SHCreateItemFromParsingName(filePath, IntPtr.Zero, ref iidShellItem2, out shellItem);
+                int hr = SHCreateItemFromParsingName(filePath, IntPtr.Zero, ref iidShellItem2, out shellItem);
 
-                if (shellItem != null)
+                if (hr >= 0 && shellItem != null)
                 {
                     ulong duration = 0;
-                    // Pass local variable logic? 
-                    // Or just remove readonly.
                     shellItem.GetUInt64(ref PKEY_Media_Duration, out duration);
                     // 100ns units -> ms
                     return (long)(duration / 10000);
                 }
+            }
+            catch (COMException)
+            {
+                // COM errors are expected on some files or threads
+                return 0;
             }
             catch (Exception)
             {

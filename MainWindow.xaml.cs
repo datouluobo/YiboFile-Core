@@ -55,6 +55,7 @@ namespace YiboFile
     {
         internal string _currentPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
         internal List<FileSystemItem> _currentFiles = new List<FileSystemItem>();
+        private bool _isInternalUpdate = false; // 标记是否正在由代码程序化更新UI，从而避免死循环
 
         private DragDropManager _dragDropManager;
 
@@ -369,8 +370,12 @@ namespace YiboFile
             _viewModel.RegisterModule(_fileListModule);
 
             // 初始化主/副面板 MVVM (新的架构)
-            _viewModel.PrimaryPane = new ViewModels.PaneViewModel(Dispatcher, _messageBus);
-            _viewModel.SecondaryPane = new ViewModels.PaneViewModel(Dispatcher, _messageBus, isSecondary: true);
+            _viewModel.PrimaryPane = new ViewModels.PaneViewModel(Dispatcher, _messageBus) { IsActive = true };
+            _viewModel.SecondaryPane = new ViewModels.PaneViewModel(Dispatcher, _messageBus, isSecondary: true)
+            {
+                IsActive = false,
+                IsLoadingDisabled = false
+            };
 
             // 初始化 FileListViewModel (用于数据绑定和加载)
             // 注意：FileBrowser 是 MainWindow 中的控件名称

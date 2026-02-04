@@ -268,7 +268,9 @@ namespace YiboFile.Services.Navigation
                         // NavigationModeService 的 SwitchNavigationMode -> HandleLibraryMode 是响应点击。
 
                         // Trick: 调用 MainWindow 的辅助方法
-                        mw.NavigateSecondaryPaneToLibrary(null); // null means default or last used
+                        // 移除强制导航副面板到库的逻辑，避免死循环
+                        // 副面板应该保持当前状态，除非用户显式在副面板操作
+                        // mw.NavigateSecondaryPaneToLibrary(null);
                     }
                     else
                     {
@@ -287,6 +289,14 @@ namespace YiboFile.Services.Navigation
                                 libraryToSelect = _libraryRepository?.GetAllLibraries().FirstOrDefault();
                             }
 
+                            if (_uiHelper.CurrentLibrary == libraryToSelect)
+                            {
+                                // 已经是当前库，仅确保高亮，不重新加载
+                                _uiHelper.HighlightMatchingLibrary(libraryToSelect);
+                                // 确保不重复触发加载导致取消异常
+                                return;
+                            }
+
                             if (libraryToSelect != null)
                             {
                                 _uiHelper.CurrentLibrary = libraryToSelect;
@@ -297,7 +307,7 @@ namespace YiboFile.Services.Navigation
                         }
                         else
                         {
-                            // 如果已有当前库，高亮它
+                            // 如果已有当前库，仅高亮它，避免重复加载
                             _uiHelper.HighlightMatchingLibrary(_uiHelper.CurrentLibrary);
                         }
                         _uiHelper.InitializeLibraryDragDrop();

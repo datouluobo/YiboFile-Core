@@ -20,6 +20,8 @@ namespace YiboFile
 
         private void DrivesListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            if (_isInternalUpdate) return;
+
             // Note: This matches the event name wired in NavigationPanelControl.xaml.cs
             // We ignore 'e' because it might be null or not contain useful info for TreeView wrapper
             if (sender is TreeView treeView)
@@ -28,6 +30,12 @@ namespace YiboFile
                 {
                     if (!string.IsNullOrEmpty(selectedItem.Path))
                     {
+                        // Guard: If already at this path, don't re-navigate
+                        if (selectedItem.Path.Equals(_currentPath, StringComparison.OrdinalIgnoreCase))
+                            return;
+
+                        // [FIX] Ensure targeted navigation or at least consistent with library logic
+                        // NavigateToPath internally uses TabsModule which handles active pane automatically
                         NavigateToPath(selectedItem.Path);
                     }
                 }

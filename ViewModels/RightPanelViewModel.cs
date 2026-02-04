@@ -137,36 +137,41 @@ namespace YiboFile.ViewModels
             _messageBus.Subscribe<FileSelectionChangedMessage>(m =>
             {
                 System.Diagnostics.Debug.WriteLine($"[RightPanelViewModel] Received FileSelectionChangedMessage. Items: {m.SelectedItems?.Count}, RequestPreview: {m.RequestPreview}");
-                if (m.SelectedItems?.Count > 0)
-                {
-                    SelectedItem = m.SelectedItems[0] as FileSystemItem;
-                    System.Diagnostics.Debug.WriteLine($"[RightPanelViewModel] SelectedItem check: Path={SelectedItem?.Path}, RequestPreview={m.RequestPreview}");
 
-                    if (m.RequestPreview)
+                // 确保 UI 状态更新在调度器线程执行
+                System.Windows.Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    if (m.SelectedItems?.Count > 0)
                     {
-                        UpdatePreview(SelectedItem?.Path);
+                        SelectedItem = m.SelectedItems[0] as FileSystemItem;
+                        System.Diagnostics.Debug.WriteLine($"[RightPanelViewModel] SelectedItem check: Path={SelectedItem?.Path}, RequestPreview={m.RequestPreview}");
+
+                        if (m.RequestPreview)
+                        {
+                            UpdatePreview(SelectedItem?.Path);
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine("[RightPanelViewModel] RequestPreview is false. Clearing ActivePreview.");
+                            ActivePreview = null;
+                        }
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine("[RightPanelViewModel] RequestPreview is false. Clearing ActivePreview.");
+                        System.Diagnostics.Debug.WriteLine("[RightPanelViewModel] No items selected. Clearing SelectedItem and ActivePreview.");
+                        SelectedItem = null;
                         ActivePreview = null;
                     }
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine("[RightPanelViewModel] No items selected. Clearing SelectedItem and ActivePreview.");
-                    SelectedItem = null;
-                    ActivePreview = null;
-                }
+                }));
             });
 
             _messageBus.Subscribe<PreviewChangedMessage>(m =>
             {
                 // Ensure UI update happens on UI thread
-                System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                System.Windows.Application.Current.Dispatcher.BeginInvoke(new Action(() =>
                 {
                     ActivePreview = m.Preview;
-                });
+                }));
             });
 
             _messageBus.Subscribe<DualListModeChangedMessage>(m =>

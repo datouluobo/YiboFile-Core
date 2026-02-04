@@ -46,13 +46,15 @@ namespace YiboFile.Services.UI
 
                         if (item is FileSystemItem fileItem && !string.IsNullOrEmpty(fileItem.Path))
                         {
-                            // 先设置占位符（立即显示）
+                            // 先设置占位符（立即显示，由后台获取，减少UI开销）
                             if (fileItem.Thumbnail == null)
                             {
+                                var placeholder = GetPlaceholder(thumbnailSize);
                                 await Application.Current.Dispatcher.InvokeAsync(() =>
                                 {
-                                    fileItem.Thumbnail = CreatePlaceholder(thumbnailSize);
-                                }, DispatcherPriority.Normal);
+                                    if (fileItem.Thumbnail == null)
+                                        fileItem.Thumbnail = placeholder;
+                                }, DispatcherPriority.Background); // 使用后台优先级
                             }
 
                             // 异步加载真实缩略图
@@ -142,7 +144,7 @@ namespace YiboFile.Services.UI
                     {
                         if (!token.IsCancellationRequested)
                         {
-                            var placeholder = CreatePlaceholder(size);
+                            var placeholder = GetPlaceholder(size);
                             CacheThumbnail(cacheKey, placeholder);
 
                             // 即使已经是占位符了，也更新一下确保使用缓存对象
@@ -168,23 +170,40 @@ namespace YiboFile.Services.UI
             _thumbnailCache.TryAdd(key, image);
         }
 
+        // 静态占位符缓存，避免重复创建
+        private static BitmapSource _placeholderCache;
+        private static readonly object _placeholderLock = new object();
+
         /// <summary>
-        /// 创建占位符图片
+        /// 获取或创建占位符图片（线程安全且高效）
         /// </summary>
-        private BitmapSource CreatePlaceholder(int size)
+        private BitmapSource GetPlaceholder(int size)
         {
-            var renderTarget = new RenderTargetBitmap(size, size, 96, 96, System.Windows.Media.PixelFormats.Pbgra32);
-            var visual = new System.Windows.Media.DrawingVisual();
-            using (var context = visual.RenderOpen())
+            if (_placeholderCache != null &&
+                (int)_placeholderCache.Width == size)
             {
-                context.DrawRectangle(
-                    new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(240, 240, 240)),
-                    new System.Windows.Media.Pen(new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(200, 200, 200)), 1),
-                    new Rect(0, 0, size, size));
+                return _placeholderCache;
             }
-            renderTarget.Render(visual);
-            renderTarget.Freeze();
-            return renderTarget;
+
+            lock (_placeholderLock)
+            {
+                if (_placeholderCache != null && (int)_placeholderCache.Width == size)
+                    return _placeholderCache;
+
+                var renderTarget = new RenderTargetBitmap(size, size, 96, 96, System.Windows.Media.PixelFormats.Pbgra32);
+                var visual = new System.Windows.Media.DrawingVisual();
+                using (var context = visual.RenderOpen())
+                {
+                    context.DrawRectangle(
+                        new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(240, 240, 240)),
+                        new System.Windows.Media.Pen(new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(220, 220, 220)), 1),
+                        new Rect(0, 0, size, size));
+                }
+                renderTarget.Render(visual);
+                renderTarget.Freeze();
+                _placeholderCache = renderTarget;
+                return _placeholderCache;
+            }
         }
 
         /// <summary>

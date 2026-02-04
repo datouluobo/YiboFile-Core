@@ -50,17 +50,17 @@ namespace YiboFile.ViewModels
         /// <summary>
         /// 导航到指定路径
         /// </summary>
-        void NavigateTo(string path);
+        void NavigateTo(string path, bool loadData = true);
 
         /// <summary>
         /// 导航到指定库
         /// </summary>
-        void NavigateTo(Library library);
+        void NavigateTo(Library library, bool loadData = true);
 
         /// <summary>
         /// 导航到指定标签
         /// </summary>
-        void NavigateTo(TagViewModel tag);
+        void NavigateTo(TagViewModel tag, bool loadData = true);
 
         /// <summary>
         /// 刷新当前视图

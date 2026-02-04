@@ -85,7 +85,8 @@ namespace YiboFile.Services.QuickAccess
         {
             if (quickAccessListBox == null) return;
 
-            _dispatcher.Invoke(() =>
+            // [FIX] 将路径存在性检查移出 UI 线程
+            System.Threading.Tasks.Task.Run(() =>
             {
                 var quickAccessPaths = new List<(string Path, string Name, string IconKey)>
                 {
@@ -99,7 +100,11 @@ namespace YiboFile.Services.QuickAccess
                 };
 
                 var accessItems = quickAccessPaths
-                    .Where(item => Directory.Exists(item.Path) || item.Path.StartsWith("shell:", StringComparison.OrdinalIgnoreCase))
+                    .Where(item =>
+                    {
+                        try { return Directory.Exists(item.Path) || item.Path.StartsWith("shell:", StringComparison.OrdinalIgnoreCase); }
+                        catch { return false; }
+                    })
                     .Select(item => new QuickAccessItem
                     {
                         DisplayName = item.Name,
@@ -108,16 +113,18 @@ namespace YiboFile.Services.QuickAccess
                     })
                     .ToList();
 
-                quickAccessListBox.ItemsSource = accessItems;
-                // quickAccessListBox.DisplayMemberPath = "DisplayName"; // Removed, using ItemTemplate in XAML
+                _dispatcher.Invoke(() =>
+                {
+                    quickAccessListBox.ItemsSource = accessItems;
 
-                // 设置选择事件
-                quickAccessListBox.SelectionChanged -= QuickAccessListBox_SelectionChanged;
-                quickAccessListBox.SelectionChanged += QuickAccessListBox_SelectionChanged;
+                    // 设置选择事件
+                    quickAccessListBox.SelectionChanged -= QuickAccessListBox_SelectionChanged;
+                    quickAccessListBox.SelectionChanged += QuickAccessListBox_SelectionChanged;
 
-                // 设置鼠标中键事件
-                quickAccessListBox.PreviewMouseDown -= QuickAccessListBox_PreviewMouseDown;
-                quickAccessListBox.PreviewMouseDown += QuickAccessListBox_PreviewMouseDown;
+                    // 设置鼠标中键事件
+                    quickAccessListBox.PreviewMouseDown -= QuickAccessListBox_PreviewMouseDown;
+                    quickAccessListBox.PreviewMouseDown += QuickAccessListBox_PreviewMouseDown;
+                });
             });
         }
 
@@ -128,49 +135,60 @@ namespace YiboFile.Services.QuickAccess
         {
             if (treeView == null) return;
 
-            _dispatcher.Invoke(() =>
+            // [FIX] 将驱动器信息获取（包括 IsReady 检查）移出 UI 线程
+            System.Threading.Tasks.Task.Run(() =>
             {
                 try
                 {
-                    var items = new System.Collections.ObjectModel.ObservableCollection<YiboFile.Services.Navigation.NavigationItem>();
+                    var driveItems = new List<YiboFile.Services.Navigation.NavigationItem>();
 
-                    var drives = DriveInfo.GetDrives().Where(d => d.IsReady).ToList();
+                    // 警告：DriveInfo.GetDrives() 和 d.IsReady 在有未就绪光驱或挂载网络盘时可能导致耗时阻塞
+                    var drives = DriveInfo.GetDrives().Where(d =>
+                    {
+                        try { return d.IsReady; }
+                        catch { return false; }
+                    }).ToList();
+
                     foreach (var drive in drives)
                     {
-                        long usedSize = drive.TotalSize - drive.AvailableFreeSpace;
-                        double usagePercentage = drive.TotalSize > 0 ? (double)usedSize / drive.TotalSize : 0;
-
-                        var item = new YiboFile.Services.Navigation.NavigationItem
+                        try
                         {
-                            Header = $"{drive.Name} ({drive.VolumeLabel})",
-                            Path = drive.Name,
-                            IsDrive = true,
-                            IconKey = "Icon_Drive",
-                            TotalSize = drive.TotalSize,
-                            UsedSize = usedSize,
-                            UsagePercentage = usagePercentage,
-                            UsageText = $"{formatFileSize(usedSize)} / {formatFileSize(drive.TotalSize)}",
-                            ToolTip = $"总空间: {formatFileSize(drive.TotalSize)}\n可用空间: {formatFileSize(drive.AvailableFreeSpace)}",
-                            // 响应式显示属性
-                            DriveLetter = drive.Name.TrimEnd('\\'),
-                            DriveLabel = !string.IsNullOrEmpty(drive.VolumeLabel) ? $"({drive.VolumeLabel})" : "",
-                            UsedSizeText = formatFileSize(usedSize),
-                            TotalSizeText = formatFileSize(drive.TotalSize)
-                        };
+                            long totalSize = drive.TotalSize;
+                            long freeSpace = drive.AvailableFreeSpace;
+                            long usedSize = totalSize - freeSpace;
+                            double usagePercentage = totalSize > 0 ? (double)usedSize / totalSize : 0;
 
-                        // 默认添加 dummy child 以显示展开箭头（所有驱动器都可能有子文件夹）
-                        item.AddDummyChild();
+                            var item = new YiboFile.Services.Navigation.NavigationItem
+                            {
+                                Header = $"{drive.Name} ({drive.VolumeLabel})",
+                                Path = drive.Name,
+                                IsDrive = true,
+                                IconKey = "Icon_Drive",
+                                TotalSize = totalSize,
+                                UsedSize = usedSize,
+                                UsagePercentage = usagePercentage,
+                                UsageText = $"{formatFileSize(usedSize)} / {formatFileSize(totalSize)}",
+                                ToolTip = $"总空间: {formatFileSize(totalSize)}\n可用空间: {formatFileSize(freeSpace)}",
+                                DriveLetter = drive.Name.TrimEnd('\\'),
+                                DriveLabel = !string.IsNullOrEmpty(drive.VolumeLabel) ? $"({drive.VolumeLabel})" : "",
+                                UsedSizeText = formatFileSize(usedSize),
+                                TotalSizeText = formatFileSize(totalSize)
+                            };
 
-                        items.Add(item);
+                            item.AddDummyChild();
+                            driveItems.Add(item);
+                        }
+                        catch { /* 忽略单个驱动器加载失败 */ }
                     }
 
-                    treeView.ItemsSource = items;
-
-                    // 事件绑定应该在 XAML 或 View 代码中处理，这里仅绑定数据源
+                    _dispatcher.Invoke(() =>
+                    {
+                        treeView.ItemsSource = new System.Collections.ObjectModel.ObservableCollection<YiboFile.Services.Navigation.NavigationItem>(driveItems);
+                    });
                 }
                 catch
                 {
-                    treeView.ItemsSource = null;
+                    _dispatcher.Invoke(() => treeView.ItemsSource = null);
                 }
             });
         }

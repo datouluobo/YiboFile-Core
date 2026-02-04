@@ -6,11 +6,11 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using YiboFile.Services;
 using YiboFile.Services.Navigation;
+using YiboFile.ViewModels;
 using YiboFile.Services.FileNotes;
 using YiboFile.Services.Config;
-using YiboFile.Models;
+
 
 namespace YiboFile
 {
@@ -32,7 +32,7 @@ namespace YiboFile
         /// <summary>
         /// 加载库文件
         /// </summary>
-        internal void LoadLibraryFiles(Library library)
+        internal void LoadLibraryFiles(Library library, PaneId targetPane = PaneId.Main)
         {
             try
             {
@@ -50,7 +50,8 @@ namespace YiboFile
                 // 使用库服务加载文件
                 _libraryService.LoadLibraryFiles(library,
                     (path) => DatabaseManager.GetFolderSize(path),
-                    (bytes) => _fileListService.FormatFileSize(bytes));
+                    (bytes) => _fileListService.FormatFileSize(bytes),
+                    targetPane);
             }
             catch (Exception ex)
             {
@@ -94,10 +95,16 @@ namespace YiboFile
         /// </summary>
         private void LibrariesListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            if (_isInternalUpdate) return; // 内部更新触发的事件，直接跳过
+
             if (LibrariesListBox.SelectedItem is Library selectedLibrary)
             {
+                // 如果当前已经是这个库，不再重复加载
+                if (selectedLibrary == _currentLibrary) return;
+
                 // 使用统一导航协调器处理库导航（左键点击）
-                _navigationCoordinator.HandleLibraryNavigation(selectedLibrary, ClickType.LeftClick);
+                // [FIX] 显式传递目标面板，以便在副栏聚焦时使用副栏逻辑（包含禁用加载的逻辑）
+                _navigationCoordinator.HandleLibraryNavigation(selectedLibrary, ClickType.LeftClick, IsSecondPaneFocused ? PaneId.Second : PaneId.Main);
             }
             else
             {
@@ -188,102 +195,85 @@ namespace YiboFile
         /// <summary>
         /// 显示合并的库文件（所有路径的文件合并显示）
         /// </summary>
-        private void ShowMergedLibraryFiles(List<FileSystemItem> items, Library library)
+        private void ShowMergedLibraryFiles(List<FileSystemItem> items, Library library, PaneId targetPane = PaneId.Main)
         {
             if (library == null) return;
 
+            // 1. 处理副面板更新 (独立逻辑，不使用 _currentFiles)
+            if (targetPane == PaneId.Second)
+            {
+                if (SecondFileBrowser != null && _viewModel?.SecondaryPane?.FileList != null)
+                {
+                    // 即使是空列表也需要更新，以清除旧显示
+                    var filesToUpdate = items ?? new List<FileSystemItem>();
+
+                    // 如果需要排序，且列表非空
+                    if (filesToUpdate.Count > 0 && _columnService != null)
+                    {
+                        // 注意：这里仍在 UI 线程排序，但在副面板IsLoadingDisabled=true情况下，lines通常为0，不会卡顿
+                        // 如果IsLoadingDisabled=false，建议后续优化为后台排序
+                        filesToUpdate = _columnService.SortFiles(filesToUpdate);
+                    }
+
+                    _viewModel.SecondaryPane.FileList.UpdateFiles(filesToUpdate);
+                    SecondFileBrowser.SetSearchStatus(false);
+                    SecondFileBrowser.AddressText = library.Name;
+                    SecondFileBrowser.SetLibraryBreadcrumb(library.Name);
+
+                    if (filesToUpdate.Count == 0)
+                    {
+                        SecondFileBrowser.ShowEmptyState($"库 \"{library.Name}\" 中没有文件或文件夹");
+                    }
+                    else
+                    {
+                        SecondFileBrowser.HideEmptyState();
+                    }
+
+                    // 高亮副面板的库列表项（如果有）
+                    // TODO: 副面板如有独立库列表，需在此通过 Binding 或 Service 更新选中状态
+                }
+                return;
+            }
+
+            // 2. 处理主面板更新 (使用 _currentFiles 保持兼容性)
             _currentFiles.Clear();
             _currentFiles.AddRange(items ?? new List<FileSystemItem>());
+
             // 应用排序
             if (_columnService != null)
             {
                 _currentFiles = _columnService.SortFiles(_currentFiles);
             }
+
             // 确保UI控件存在
             if (FileBrowser != null)
             {
-                // FileBrowser.FilesItemsSource = null; // Do not break binding
-                // FileBrowser.FilesItemsSource = _currentFiles; // Do not break binding
                 _viewModel?.PrimaryPane?.FileList?.UpdateFiles(_currentFiles);
-                // FileBrowser.FilesList?.Items.Refresh(); // Binding handles this
-                // 隐藏搜索状态
                 FileBrowser.SetSearchStatus(false);
+                FileBrowser.AddressText = library.Name;
+                FileBrowser.SetLibraryBreadcrumb(library.Name);
+
+                if (_currentFiles.Count == 0)
+                {
+                    FileBrowser.ShowEmptyState($"库 \"{library.Name}\" 中没有文件或文件夹");
+                }
+                else
+                {
+                    FileBrowser.HideEmptyState();
+                }
             }
 
             // 高亮当前库（作为匹配当前库）
-            HighlightMatchingLibrary(library);
-
-            // 如果文件列表为空，显示空状态提示；否则隐藏
-            if (_currentFiles.Count == 0)
+            try
             {
-                ShowEmptyStateMessage($"库 \"{library.Name}\" 中没有文件或文件夹");
+                _isInternalUpdate = true;
+                HighlightMatchingLibrary(library);
             }
-            else
+            finally
             {
-                HideEmptyStateMessage();
+                _isInternalUpdate = false;
             }
-
-            // 更新地址栏显示库名称
-            if (FileBrowser != null)
-            {
-                FileBrowser.AddressText = library.Name;
-                // 允许在库标签页中进行搜索，不设置为只读
-                FileBrowser.SetLibraryBreadcrumb(library.Name);
-            }
-            // 取消之前的文件夹大小计算任务
-            _folderSizeCalculationService?.Cancel();
-
-            // 异步加载标签和备注（延迟加载，避免阻塞UI）
-            System.Threading.Tasks.Task.Run(() =>
-            {
-                try
-                {
-                    // 批量加载标签和备注（限制并发，减少到2个避免CPU占用过高）
-                    var semaphore = new System.Threading.SemaphoreSlim(2, 2); // 最多2个并发查询
-                    var tasks = _currentFiles.Select(async item =>
-                    {
-                        await semaphore.WaitAsync();
-                        try
-                        {
-                            // Tag加载已移除 - Phase 2将重新实现
-                            item.Tags = "";
-
-                            var notes = FileNotesService.GetFileNotes(item.Path);
-                            if (notes != null && notes.Length > 0)
-                            {
-                                var firstLine = notes.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "";
-                                item.Notes = firstLine.Length > 100 ? firstLine.Substring(0, 100) + "..." : firstLine;
-                            }
-                            else
-                            {
-                                item.Notes = "";
-                            }
-                        }
-                        finally
-                        {
-                            semaphore.Release();
-                        }
-                    }).ToList();
-
-                    try
-                    {
-                        System.Threading.Tasks.Task.WaitAll(tasks.ToArray());
-                    }
-                    catch { }
-
-                    // 批量更新UI（减少刷新次数）
-                    Dispatcher.BeginInvoke(new Action(() =>
-                    {
-                        var collectionView = System.Windows.Data.CollectionViewSource.GetDefaultView(FileBrowser?.FilesItemsSource);
-                        collectionView?.Refresh();
-                    }), System.Windows.Threading.DispatcherPriority.Background);
-                }
-                catch { }
-            });
-
-            // 文件夹大小计算已由 FileListService 处理，此处移除冗余的异步任务以避免资源竞争和泄漏
         }
-
         #endregion
     }
 }

@@ -340,23 +340,33 @@ namespace YiboFile
 
             _libraryService.LibraryFilesLoaded += (s, e) =>
             {
-
                 if (e.IsEmpty)
                 {
-                    _currentFiles.Clear();
-                    if (FileBrowser != null)
+                    if (e.TargetPane == PaneId.Second)
                     {
-                        _viewModel?.PrimaryPane?.FileList?.Files?.Clear();
-                        FileBrowser.AddressText = e.Library.Name + " (无位置)";
+                        if (SecondFileBrowser != null)
+                        {
+                            _viewModel?.SecondaryPane?.FileList?.Files?.Clear();
+                            SecondFileBrowser.AddressText = e.Library.Name + " (无位置)";
+                            SecondFileBrowser.SetLibraryBreadcrumb(e.Library.Name);
+                            SecondFileBrowser.ShowEmptyState($"库 \"{e.Library.Name}\" 中没有文件或文件夹");
+                        }
                     }
-                    // ShowEmptyLibraryMessage(e.Library.Name);
-                    // ClearPreviewAndInfo();
-                    // ClearItemHighlights();
-                    // ClearTabsInLibraryMode(); // 移除此调用，避免清空所有标签页
+                    else
+                    {
+                        _currentFiles.Clear();
+                        if (FileBrowser != null)
+                        {
+                            _viewModel?.PrimaryPane?.FileList?.Files?.Clear();
+                            FileBrowser.AddressText = e.Library.Name + " (无位置)";
+                            FileBrowser.SetLibraryBreadcrumb(e.Library.Name);
+                            FileBrowser.ShowEmptyState($"库 \"{e.Library.Name}\" 中没有文件或文件夹");
+                        }
+                    }
                 }
                 else
                 {
-                    ShowMergedLibraryFiles(e.Files, e.Library);
+                    ShowMergedLibraryFiles(e.Files, e.Library, e.TargetPane);
                 }
             };
 

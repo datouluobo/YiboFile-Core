@@ -33,9 +33,11 @@ namespace YiboFile.Services.Tabs
 
             try
             {
-                if (!Directory.Exists(path))
+                // [FIX] 不要在 UI 线程上进行同步的 Directory.Exists 检查，这在挂载盘或网络路径上极易卡死
+                // 验证逻辑应聚焦于格式合法性，实际存在性检查应由异步加载过程处理
+                if (string.IsNullOrWhiteSpace(path))
                 {
-                    errorMessage = $"路径不存在: {path}";
+                    errorMessage = "路径不能为空";
                     return false;
                 }
                 return true;
@@ -104,7 +106,7 @@ namespace YiboFile.Services.Tabs
             return fileName;
         }
 
-        public void SwitchToTab(PathTab tab)
+        public async void SwitchToTab(PathTab tab)
         {
             EnsureUi();
             if (tab == null) return;
@@ -115,17 +117,26 @@ namespace YiboFile.Services.Tabs
             SetActiveTab(tab);
             UpdateTabStyles();
 
-            // 如果路径无效，则关闭标签页（保留原有安全性逻辑）
+            // 如果路径无效，则在后台检测并关闭标签页
             if (tab.Type == TabType.Path)
             {
                 try
                 {
                     string p = tab.Path;
-                    if (!string.IsNullOrEmpty(p) && !ProtocolManager.IsVirtual(p) && !Directory.Exists(p))
+                    if (!string.IsNullOrEmpty(p) && !ProtocolManager.IsVirtual(p))
                     {
-                        YiboFile.DialogService.Warning($"路径不存在: {tab.Path}\n\n标签页将被关闭。");
-                        CloseTab(tab);
-                        return;
+                        bool exists = await Task.Run(() =>
+                        {
+                            try { return Directory.Exists(p); }
+                            catch { return false; }
+                        });
+
+                        if (!exists)
+                        {
+                            YiboFile.DialogService.Warning($"路径不存在: {tab.Path}\n\n标签页将被关闭。");
+                            CloseTab(tab);
+                            return;
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -142,7 +153,9 @@ namespace YiboFile.Services.Tabs
             if (library == null || library.Paths == null || library.Paths.Count == 0)
                 return new List<string>();
 
-            return library.Paths.Where(p => Directory.Exists(p)).ToList();
+            // [FIX] 避免在 UI 线程直接循环调用 Directory.Exists，这会导致大量同步 IO 阻塞
+            // 暂时返回所有路径，依赖后续的异步加载过程来处理不存在的情况
+            return library.Paths.ToList();
         }
 
         public List<PathTab> GetTabsToRemoveForLibrary(List<string> validPaths)

@@ -76,7 +76,7 @@ namespace YiboFile
                 // 库模式：刷新库文件
                 LoadLibraryFiles(_currentLibrary);
             }
-            else if (!string.IsNullOrEmpty(_currentPath) && (Directory.Exists(_currentPath) || ProtocolManager.IsVirtual(_currentPath)))
+            else if (!string.IsNullOrEmpty(_currentPath))
             {
                 // 路径模式或虚拟路径：加载目录
                 LoadCurrentDirectory();
@@ -144,7 +144,15 @@ namespace YiboFile
                 }
 
                 // 高亮匹配项
-                HighlightMatchingItems(_currentPath);
+                try
+                {
+                    _isInternalUpdate = true;
+                    HighlightMatchingItems(_currentPath);
+                }
+                finally
+                {
+                    _isInternalUpdate = false;
+                }
 
                 // 更新导航按钮状态
                 if (FileBrowser != null)
@@ -218,8 +226,19 @@ namespace YiboFile
             _fileSystemWatcherService?.SetupFileWatcher(path);
         }
 
-        internal void NavigateToPath(string path)
+        internal async void NavigateToPath(string path)
         {
+            // Fix: Prevent recursive loop when updating AddressText in Library mode
+            // If we are already in the library, and the path matches the library name (or lib uri), ignore it.
+            if (_currentLibrary != null && !string.IsNullOrEmpty(path))
+            {
+                if (path.Equals(_currentLibrary.Name, StringComparison.OrdinalIgnoreCase) ||
+                    path.Equals($"lib://{_currentLibrary.Name}", StringComparison.OrdinalIgnoreCase))
+                {
+                    return;
+                }
+            }
+
             // MVVM 迁移: 使用 NavigationModule 解析路径
             if (_viewModel?.Navigation != null)
             {
@@ -227,12 +246,30 @@ namespace YiboFile
             }
 
             bool isVirtualPath = ProtocolManager.IsVirtual(path);
-            if (!isVirtualPath && !Directory.Exists(path)) return;
+            if (!isVirtualPath)
+            {
+                // Offload IO check to background thread to prevent UI freeze (especially for drives/network)
+                bool exists = await Task.Run(() =>
+                {
+                    try { return Directory.Exists(path); }
+                    catch { return false; }
+                });
+                if (!exists) return;
+            }
+
+            // Guard: If already at this path, don't re-navigate
+            if (path.Equals(_currentPath, StringComparison.OrdinalIgnoreCase))
+                return;
 
             // MVVM 迁移: 将标签页选择/创建逻辑委托给 TabsModule
             _viewModel?.Tabs?.NavigateTo(
                 path,
-                onReuseCurrent: () => _viewModel?.Navigation?.NavigateTo(path),
+                onReuseCurrent: () =>
+                {
+                    // Break recursion: Call LoadCurrentDirectory instead of NavigateTo again
+                    _currentPath = path;
+                    LoadCurrentDirectory();
+                },
                 onReuseSecond: () => SecondFileBrowser_PathChanged(this, path)
             );
         }

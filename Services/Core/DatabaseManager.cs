@@ -41,6 +41,13 @@ namespace YiboFile
             using var connection = new SqliteConnection(_connectionString);
             connection.Open();
 
+            // Enable WAL mode for better concurrency
+            using (var pragmaCommand = connection.CreateCommand())
+            {
+                pragmaCommand.CommandText = "PRAGMA journal_mode=WAL;";
+                pragmaCommand.ExecuteNonQuery();
+            }
+
             // 创建文件备注表
             var createFileNotesTable = @"
                 CREATE TABLE IF NOT EXISTS FileNotes (

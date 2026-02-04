@@ -38,6 +38,8 @@ namespace YiboFile.ViewModels
         private Library _currentLibrary;
         private TagViewModel _currentTag;
         private string _navigationMode = "Path";
+        private bool _isActive;
+        private bool _isLoadingDisabled;
         private ObservableCollection<FileSystemItem> _files;
         private ObservableCollection<FileSystemItem> _selectedItems = new ObservableCollection<FileSystemItem>();
         private bool _isLoading;
@@ -166,6 +168,24 @@ namespace YiboFile.ViewModels
             // CommandManager.InvalidateRequerySuggested(); // In WPF this is static
         }
 
+        /// <summary>
+        /// 是否为当前激活的面板
+        /// </summary>
+        public bool IsActive
+        {
+            get => _isActive;
+            set => SetProperty(ref _isActive, value);
+        }
+
+        /// <summary>
+        /// 是否禁用加载功能
+        /// </summary>
+        public bool IsLoadingDisabled
+        {
+            get => _isLoadingDisabled;
+            set => SetProperty(ref _isLoadingDisabled, value);
+        }
+
         public bool IsLoading
         {
             get => _isLoading;
@@ -248,6 +268,7 @@ namespace YiboFile.ViewModels
 
             // 订阅搜索结果消息
             _messageBus.Subscribe<SearchResultUpdatedMessage>(OnSearchResultUpdated);
+            _messageBus.Subscribe<Messaging.Messages.FocusedPaneChangedMessage>(OnFocusedPaneChanged);
 
             // 订阅实时更新消息
             _messageBus.Subscribe<NotesUpdatedMessage>(OnNotesUpdated);
@@ -258,6 +279,8 @@ namespace YiboFile.ViewModels
             _messageBus.Subscribe<RefreshFileListMessage>(OnRefreshFileList);
             // 订阅库选择消息
             _messageBus.Subscribe<LibrarySelectedMessage>(OnLibrarySelected);
+            // 订阅路径导航请求
+            _messageBus.Subscribe<NavigateToPathMessage>(OnNavigateToPath);
 
             // 获取服务
             var errorService = App.ServiceProvider?.GetService<YiboFile.Services.Core.Error.ErrorService>();
@@ -293,7 +316,7 @@ namespace YiboFile.ViewModels
         /// <summary>
         /// 导航到指定路径
         /// </summary>
-        public void NavigateTo(string path)
+        public void NavigateTo(string path, bool loadData = true)
         {
             if (string.IsNullOrEmpty(path)) return;
 
@@ -302,13 +325,20 @@ namespace YiboFile.ViewModels
             CurrentTag = null;
             CurrentPath = path;
 
-            _ = LoadPathAsync(path);
+            if (loadData && !IsLoadingDisabled)
+            {
+                _ = LoadPathAsync(path);
+            }
+            else
+            {
+                FileList?.SetFiles(new System.Collections.Generic.List<FileSystemItem>());
+            }
         }
 
         /// <summary>
         /// 导航到指定库
         /// </summary>
-        public void NavigateTo(Library library)
+        public void NavigateTo(Library library, bool loadData = true)
         {
             if (library == null) return;
 
@@ -317,20 +347,27 @@ namespace YiboFile.ViewModels
             CurrentPath = null;
             CurrentLibrary = library;
 
-            if (FileList != null)
+            if (loadData && !IsLoadingDisabled)
             {
-                _ = FileList.LoadPathAsync($"lib://{library.Name}");
+                if (FileList != null)
+                {
+                    _ = FileList.LoadPathAsync($"lib://{library.Name}");
+                }
+                else
+                {
+                    _ = LoadLibraryAsync(library);
+                }
             }
             else
             {
-                _ = LoadLibraryAsync(library);
+                FileList?.SetFiles(new System.Collections.Generic.List<FileSystemItem>());
             }
         }
 
         /// <summary>
         /// 导航到指定标签
         /// </summary>
-        public void NavigateTo(TagViewModel tag)
+        public void NavigateTo(TagViewModel tag, bool loadData = true)
         {
             if (tag == null) return;
 
@@ -339,13 +376,20 @@ namespace YiboFile.ViewModels
             CurrentPath = null;
             CurrentTag = tag;
 
-            if (FileList != null)
+            if (loadData && !IsLoadingDisabled)
             {
-                _ = FileList.LoadPathAsync($"tag://{tag.Name}");
+                if (FileList != null)
+                {
+                    _ = FileList.LoadPathAsync($"tag://{tag.Name}");
+                }
+                else
+                {
+                    _ = LoadTagAsync(tag);
+                }
             }
             else
             {
-                _ = LoadTagAsync(tag);
+                FileList?.SetFiles(new System.Collections.Generic.List<FileSystemItem>());
             }
         }
 
@@ -354,6 +398,12 @@ namespace YiboFile.ViewModels
         /// </summary>
         public void Refresh()
         {
+            if (IsLoadingDisabled)
+            {
+                FileList?.SetFiles(new System.Collections.Generic.List<FileSystemItem>());
+                return;
+            }
+
             switch (NavigationMode)
             {
                 case "Path":
@@ -389,6 +439,7 @@ namespace YiboFile.ViewModels
         /// </summary>
         private async Task LoadPathAsync(string path)
         {
+            if (IsLoadingDisabled) return;
             if (string.IsNullOrEmpty(path) || _fileListService == null) return;
 
             // 取消之前的加载
@@ -468,6 +519,7 @@ namespace YiboFile.ViewModels
         /// </summary>
         private async Task LoadLibraryAsync(Library library)
         {
+            if (IsLoadingDisabled) return;
             if (library == null || _fileListService == null) return;
 
             // 取消之前的加载
@@ -479,33 +531,30 @@ namespace YiboFile.ViewModels
             {
                 IsLoading = true;
 
-                // 获取库的所有路径
-                var paths = library.Paths?.Where(p => Directory.Exists(p)).ToList()
-                            ?? new System.Collections.Generic.List<string>();
-
-                if (paths.Count == 0)
-                {
-                    await _dispatcher.InvokeAsync(() => Files.Clear());
-                    return;
-                }
-
                 var items = await Task.Run(async () =>
                 {
                     token.ThrowIfCancellationRequested();
-                    return await _fileListService.LoadFileSystemItemsFromMultiplePathsAsync(paths, null, null, token);
+                    // 在后台线程检查路径是否存在，避免在 UI 线程阻塞（特别是针对慢速网络路径）
+                    var validPaths = library.Paths?.Where(p => !string.IsNullOrEmpty(p) && Directory.Exists(p)).ToList()
+                                     ?? new System.Collections.Generic.List<string>();
+
+                    if (validPaths.Count == 0) return new System.Collections.Generic.List<FileSystemItem>();
+
+                    return await _fileListService.LoadFileSystemItemsFromMultiplePathsAsync(validPaths, null, null, token);
                 }, token);
 
                 if (token.IsCancellationRequested) return;
 
+                // 批量更新集合，避免逐个 Add 导致大量 UI 重绘
+                var newCollection = new ObservableCollection<FileSystemItem>(items);
                 await _dispatcher.InvokeAsync(() =>
                 {
-                    Files.Clear();
-                    foreach (var item in items)
-                    {
-                        Files.Add(item);
-                    }
+                    if (FileList != null) FileList.Files = newCollection;
+                    else _files = newCollection;
+
+                    OnPropertyChanged(nameof(Files));
                     FilesLoaded?.Invoke(this, Files);
-                });
+                }, DispatcherPriority.Normal);
             }
             catch (OperationCanceledException)
             {
@@ -526,6 +575,7 @@ namespace YiboFile.ViewModels
         /// </summary>
         private async Task LoadTagAsync(TagViewModel tag)
         {
+            if (IsLoadingDisabled) return;
             if (tag == null || _tagService == null) return;
 
             // 取消之前的加载
@@ -545,32 +595,45 @@ namespace YiboFile.ViewModels
 
                 if (token.IsCancellationRequested) return;
 
-                // 使用 FileListService 创建 FileSystemItem
-                var items = new System.Collections.Generic.List<FileSystemItem>();
-                foreach (var path in filePaths)
+                // 使用 FileListService 创建 FileSystemItem (移至后台线程)
+                var items = await Task.Run(async () =>
                 {
-                    if (File.Exists(path) || Directory.Exists(path))
+                    var result = new System.Collections.Generic.List<FileSystemItem>();
+                    foreach (var path in filePaths)
                     {
-#pragma warning disable CS0618
-                        var fileItems = _fileListService?.LoadFileSystemItems(Path.GetDirectoryName(path));
-                        var item = fileItems?.FirstOrDefault(f => f.Path == path);
-                        if (item != null)
-                        {
-                            items.Add(item);
-                        }
-#pragma warning restore CS0618
-                    }
-                }
+                        if (token.IsCancellationRequested) break;
 
+                        // 统一在后台线程检查并加载，避免 IO 阻塞 UI
+                        if (File.Exists(path) || Directory.Exists(path))
+                        {
+                            var dir = Path.GetDirectoryName(path);
+                            // 注意：此处使用异步方法，确保不阻塞后台工作线程同时也解耦
+                            var fileItems = await _fileListService.LoadFileSystemItemsAsync(dir, null, token);
+                            var item = fileItems?.FirstOrDefault(f => f.Path == path);
+                            if (item != null) result.Add(item);
+                        }
+                    }
+                    return result;
+                }, token);
+
+                if (token.IsCancellationRequested) return;
+
+                var newCollection = new ObservableCollection<FileSystemItem>(items);
                 await _dispatcher.InvokeAsync(() =>
                 {
-                    Files.Clear();
-                    foreach (var item in items)
-                    {
-                        Files.Add(item);
-                    }
+                    if (FileList != null) FileList.Files = newCollection;
+                    else _files = newCollection;
+
+                    OnPropertyChanged(nameof(Files));
                     FilesLoaded?.Invoke(this, Files);
-                });
+                }, DispatcherPriority.Normal);
+
+                // 设置路径，虽然是标签模式，但有时需要一个基准路径（取第一个文件的目录）
+                if (items.Count > 0)
+                {
+                    var firstDir = Path.GetDirectoryName(items[0].Path);
+                    if (Directory.Exists(firstDir)) SetupFileWatcher(firstDir);
+                }
             }
             catch (OperationCanceledException)
             {
@@ -591,18 +654,17 @@ namespace YiboFile.ViewModels
         /// </summary>
         public void SetFiles(System.Collections.Generic.IEnumerable<FileSystemItem> files)
         {
+            var items = files?.ToList() ?? new System.Collections.Generic.List<FileSystemItem>();
+            var newCollection = new ObservableCollection<FileSystemItem>(items);
+
             _dispatcher.Invoke(() =>
             {
-                Files.Clear();
-                if (files != null)
-                {
-                    foreach (var item in files)
-                    {
-                        Files.Add(item);
-                    }
-                }
+                if (FileList != null) FileList.Files = newCollection;
+                else _files = newCollection;
+
+                OnPropertyChanged(nameof(Files));
                 FilesLoaded?.Invoke(this, Files);
-            });
+            }, DispatcherPriority.Normal);
         }
 
         #endregion
@@ -674,6 +736,17 @@ namespace YiboFile.ViewModels
         }
 
         #region Message Handlers
+
+        private void OnFocusedPaneChanged(Messaging.Messages.FocusedPaneChangedMessage message)
+        {
+            IsActive = (message.IsSecondPaneFocused == _isSecondary);
+        }
+
+        private void OnNavigateToPath(NavigateToPathMessage message)
+        {
+            if (!IsActive) return;
+            NavigateTo(message.Path);
+        }
 
         private void OnNotesUpdated(NotesUpdatedMessage message)
         {
@@ -761,21 +834,17 @@ namespace YiboFile.ViewModels
 
         private void OnLibrarySelected(LibrarySelectedMessage message)
         {
-            if (message.Library == null) return;
-            // 仅当当前面板处于活动状态或指定的面板时响应
-            // 此处简化逻辑：活动面板响应该消息
-            // 更好的做法是 NavigationModule 协调分配，或者检查是否是当前聚焦的面板
+            if (message?.Library == null || _fileListService == null) return;
 
-            // 假设这是主导航操作，我们让当前活动面板（或者默认主面板）响应
-            // 这里简单地全部响应可能导致两个面板都跳转，需结合 ActivePane 逻辑
+            // 重要：只有激活的面板才响应全局侧边栏的库选择消息
+            if (!IsActive) return;
 
-            // 检查逻辑：如果是主面板且是全局消息
+            // 如果当前已经在这个库，不再重复加载
+            // 库名匹配 + 导航模式是 Library
+            if (NavigationMode == "Library" && CurrentLibrary?.Name == message.Library.Name)
+                return;
 
-            // 暂时：如果是主面板，则导航
-            if (!_isSecondary)
-            {
-                NavigateTo(message.Library);
-            }
+            NavigateTo(message.Library);
         }
 
         #endregion

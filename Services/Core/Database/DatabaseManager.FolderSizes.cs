@@ -126,6 +126,44 @@ namespace YiboFile
             return result;
         }
 
+        public static Dictionary<string, (long SizeBytes, DateTime LastModified)> GetAllSubFolderSizes(string rootPath)
+        {
+            var result = new Dictionary<string, (long SizeBytes, DateTime LastModified)>(StringComparer.OrdinalIgnoreCase);
+            if (string.IsNullOrEmpty(rootPath))
+                return result;
+
+            try
+            {
+                using var connection = new SqliteConnection(_connectionString);
+                connection.Open();
+                using var command = connection.CreateCommand();
+
+                string searchPattern = rootPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar + "%";
+
+                command.CommandText = @"
+                    SELECT FolderPath, SizeBytes, LastModified 
+                    FROM FolderSizes 
+                    WHERE FolderPath LIKE @searchPattern";
+                command.Parameters.AddWithValue("@searchPattern", searchPattern);
+
+                using var reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    try
+                    {
+                        var folderPath = reader.GetString(0);
+                        var sizeBytes = reader.GetInt64(1);
+                        var lastModified = reader.GetDateTime(2);
+                        result[folderPath] = (sizeBytes, lastModified);
+                    }
+                    catch { }
+                }
+            }
+            catch { }
+
+            return result;
+        }
+
         public static void RemoveFolderSize(string folderPath)
         {
             if (string.IsNullOrEmpty(folderPath))

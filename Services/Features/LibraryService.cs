@@ -10,6 +10,7 @@ using System.Windows.Controls;
 using System.Windows.Threading;
 using YiboFile.Controls;
 using YiboFile.Services.FileList;
+using YiboFile.Services.Navigation;
 
 namespace YiboFile.Services
 {
@@ -282,7 +283,10 @@ namespace YiboFile.Services
         /// <summary>
         /// 加载库文件
         /// </summary>
-        public void LoadLibraryFiles(Library library, Func<string, long?> getFolderSizeCache = null, Func<long, string> formatFileSize = null)
+        public void LoadLibraryFiles(Library library,
+            Func<string, long?> getFolderSizeCache = null,
+            Func<long, string> formatFileSize = null,
+            PaneId targetPane = PaneId.Main)
         {
             if (library == null)
                 return;
@@ -306,7 +310,8 @@ namespace YiboFile.Services
                         {
                             Library = library,
                             Files = new List<FileSystemItem>(),
-                            IsEmpty = true
+                            IsEmpty = true,
+                            TargetPane = targetPane
                         });
                     }), DispatcherPriority.Background);
                     return;
@@ -344,7 +349,8 @@ namespace YiboFile.Services
                                 {
                                     Library = library,
                                     Files = allItems,
-                                    IsEmpty = false
+                                    IsEmpty = allItems.Count == 0,
+                                    TargetPane = targetPane
                                 });
                             }
                             finally
@@ -512,6 +518,7 @@ namespace YiboFile.Services
         public Library Library { get; set; }
         public List<FileSystemItem> Files { get; set; }
         public bool IsEmpty { get; set; }
+        public PaneId TargetPane { get; set; }
     }
 }
 

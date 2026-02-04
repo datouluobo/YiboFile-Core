@@ -35,6 +35,9 @@ namespace YiboFile.Controls.Converters
         private static readonly HashSet<string> _priorityLoadPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private static readonly object _priorityLock = new object();
 
+        // 标记 Magick.NET 是否可用，防止重复尝试损坏的组件
+        private static bool _isMagickDisabled = false;
+
         // 占位符图片缓存（按大小）
         private static readonly Dictionary<int, BitmapSource> _placeholderCache = new Dictionary<int, BitmapSource>();
         [DllImport("shell32.dll", CharSet = CharSet.Auto)]
@@ -43,12 +46,12 @@ namespace YiboFile.Controls.Converters
         [DllImport("user32.dll")]
         private static extern bool DestroyIcon(IntPtr hIcon);
 
-        [DllImport("shell32.dll", CharSet = CharSet.Unicode, PreserveSig = false)]
-        [return: MarshalAs(UnmanagedType.Interface)]
-        private static extern IShellItem SHCreateItemFromParsingName(
+        [DllImport("shell32.dll", CharSet = CharSet.Unicode, PreserveSig = true)]
+        private static extern int SHCreateItemFromParsingName(
             [MarshalAs(UnmanagedType.LPWStr)] string pszPath,
             IntPtr pbc,
-            [MarshalAs(UnmanagedType.LPStruct)] Guid riid);
+            [MarshalAs(UnmanagedType.LPStruct)] Guid riid,
+            out IShellItem ppv);
 
         [DllImport("shell32.dll", CharSet = CharSet.Auto)]
         private static extern int ExtractIconEx(string lpszFile, int nIconIndex, out IntPtr phiconLarge, out IntPtr phiconSmall, int nIcons);
@@ -85,11 +88,16 @@ namespace YiboFile.Controls.Converters
         [Guid("43826d1e-e718-42ee-bc55-a1e261c37bfe")]
         private interface IShellItem
         {
-            void BindToHandler(IntPtr pbc, [MarshalAs(UnmanagedType.LPStruct)] Guid bhid, [MarshalAs(UnmanagedType.LPStruct)] Guid riid, out IntPtr ppv);
-            void GetParent(out IShellItem ppsi);
-            void GetDisplayName(uint sigdnName, out IntPtr ppszName);
-            void GetAttributes(uint sfgaoMask, out uint psfgaoAttribs);
-            void Compare(IShellItem psi, uint hint, out int piOrder);
+            [PreserveSig]
+            int BindToHandler(IntPtr pbc, [MarshalAs(UnmanagedType.LPStruct)] Guid bhid, [MarshalAs(UnmanagedType.LPStruct)] Guid riid, out IntPtr ppv);
+            [PreserveSig]
+            int GetParent(out IShellItem ppsi);
+            [PreserveSig]
+            int GetDisplayName(uint sigdnName, out IntPtr ppszName);
+            [PreserveSig]
+            int GetAttributes(uint sfgaoMask, out uint psfgaoAttribs);
+            [PreserveSig]
+            int Compare(IShellItem psi, uint hint, out int piOrder);
         }
 
         [ComImport]
@@ -97,7 +105,8 @@ namespace YiboFile.Controls.Converters
         [Guid("bcc18b79-ba16-442f-80c4-8a59c30c463b")]
         private interface IShellItemImageFactory
         {
-            void GetImage([MarshalAs(UnmanagedType.Struct)] SIZE size, int flags, out IntPtr phbm);
+            [PreserveSig]
+            int GetImage([MarshalAs(UnmanagedType.Struct)] SIZE size, int flags, out IntPtr phbm);
         }
 
         [ComImport]
@@ -236,6 +245,12 @@ namespace YiboFile.Controls.Converters
         {
             try
             {
+                if (string.IsNullOrEmpty(path)) return null;
+
+                // 快速基本检查
+                string fileName = Path.GetFileName(path);
+                if (string.IsNullOrEmpty(fileName)) return null;
+
                 bool isDirectory = Directory.Exists(path);
                 bool isFile = File.Exists(path);
 
@@ -300,42 +315,39 @@ namespace YiboFile.Controls.Converters
                                         return cached;
                                     }
                                 }
+                                if (_isMagickDisabled) return null;
+
                                 BitmapSource result = null;
-                                using (var mi = new MagickImage(path))
+                                try
                                 {
-                                    var w = mi.Width;
-                                    var h = mi.Height;
-                                    int tw = targetSize;
-                                    int th = targetSize;
-                                    if (w >= h)
-                                    {
-                                        mi.Resize(new MagickGeometry((uint)tw, (uint)0) { IgnoreAspectRatio = false });
-                                    }
-                                    else
-                                    {
-                                        mi.Resize(new MagickGeometry((uint)0, (uint)th) { IgnoreAspectRatio = false });
-                                    }
-                                    var bytes = mi.ToByteArray(MagickFormat.Png);
-                                    var bmp = new BitmapImage();
-                                    bmp.BeginInit();
-                                    bmp.StreamSource = new MemoryStream(bytes);
-                                    bmp.CacheOption = BitmapCacheOption.OnLoad;
-                                    bmp.EndInit();
-                                    bmp.Freeze();
-                                    result = bmp;
+                                    result = DecodeWithMagickSafe(path, targetSize);
                                 }
-                                lock (_cacheLock)
+                                catch (Exception ex)
                                 {
-                                    if (_imageThumbnailCache.Count >= MaxImageCacheSize)
+                                    System.Diagnostics.Debug.WriteLine($"Magick error for {path}: {ex.Message}");
+                                    // 如果是严重的初始化问题，禁用 Magick
+                                    if (ex is TypeInitializationException || ex is DllNotFoundException)
                                     {
-                                        var firstKey = _imageThumbnailCache.Keys.First();
-                                        _imageThumbnailCache.Remove(firstKey);
+                                        _isMagickDisabled = true;
                                     }
-                                    _imageThumbnailCache[key] = result;
+                                    return null;
+                                }
+
+                                if (result != null)
+                                {
+                                    lock (_cacheLock)
+                                    {
+                                        if (_imageThumbnailCache.Count >= MaxImageCacheSize)
+                                        {
+                                            var firstKey = _imageThumbnailCache.Keys.First();
+                                            _imageThumbnailCache.Remove(firstKey);
+                                        }
+                                        _imageThumbnailCache[key] = result;
+                                    }
                                 }
                                 return result;
                             }
-                            catch
+                            catch (Exception)
                             {
                                 return null;
                             }
@@ -535,17 +547,13 @@ namespace YiboFile.Controls.Converters
                 {
                     try
                     {
-                        shellItem = SHCreateItemFromParsingName(tryPath, IntPtr.Zero, shellItemGuid);
-                        if (shellItem != null)
+                        int hr = SHCreateItemFromParsingName(tryPath, IntPtr.Zero, shellItemGuid, out shellItem);
+                        if (hr >= 0 && shellItem != null)
                             break;
-                    }
-                    catch (COMException)
-                    {
-                        // COM 互操作异常，尝试下一个路径格式
                     }
                     catch
                     {
-                        // 其他异常，尝试下一个路径格式
+                        // 异常时尝试下一个路径格式
                     }
                 }
 
@@ -573,10 +581,9 @@ namespace YiboFile.Controls.Converters
                                 // 对于系统缩略图缓存，直接请求目标尺寸
                                 // 系统缩略图缓存通常是256x256或512x512，直接请求目标尺寸即可
                                 // 如果请求太大，可能会失败
-                                int requestSize = size;
-                                imageFactory.GetImage(new SIZE { cx = requestSize, cy = requestSize }, flags, out hBitmap);
+                                int hr = imageFactory.GetImage(new SIZE { cx = size, cy = size }, flags, out hBitmap);
 
-                                if (hBitmap != IntPtr.Zero)
+                                if (hr == 0 && hBitmap != IntPtr.Zero)
                                 {
                                     try
                                     {
@@ -640,14 +647,6 @@ namespace YiboFile.Controls.Converters
                                     }
                                 }
                             }
-                            catch (COMException)
-                            {
-                                if (hBitmap != IntPtr.Zero)
-                                {
-                                    DeleteObject(hBitmap);
-                                    hBitmap = IntPtr.Zero;
-                                }
-                            }
                             catch
                             {
                                 if (hBitmap != IntPtr.Zero)
@@ -659,10 +658,6 @@ namespace YiboFile.Controls.Converters
                         }
                     }
                 }
-            }
-            catch (COMException)
-            {
-                // COM 互操作异常，返回 null 让调用者使用回退方案
             }
             catch { }
             finally
@@ -713,17 +708,13 @@ namespace YiboFile.Controls.Converters
                 {
                     try
                     {
-                        shellItem = SHCreateItemFromParsingName(tryPath, IntPtr.Zero, shellItemGuid);
-                        if (shellItem != null)
+                        int hr = SHCreateItemFromParsingName(tryPath, IntPtr.Zero, shellItemGuid, out shellItem);
+                        if (hr >= 0 && shellItem != null)
                             break;
-                    }
-                    catch (COMException)
-                    {
-                        // COM 互操作异常，尝试下一个路径格式
                     }
                     catch
                     {
-                        // 其他异常，尝试下一个路径格式
+                        // 异常时尝试下一个路径格式
                     }
                 }
 
@@ -919,10 +910,11 @@ namespace YiboFile.Controls.Converters
                                 }
                                 finally
                                 {
-                                    DestroyIcon(hIcon);
+                                    if (hIcon != IntPtr.Zero) DestroyIcon(hIcon);
                                 }
                             }
                         }
+                        return null; // 遍历完所有比例仍未找到合适的图标
                     }
                     catch (COMException)
                     {
@@ -937,6 +929,37 @@ namespace YiboFile.Controls.Converters
             }
             catch { }
             return null;
+        }
+
+        /// <summary>
+        /// 安全地使用 Magick.NET 解码图片。
+        /// 将其放在独立方法中可以防止 JIT 编译器在类加载时就因为缺少原生 DLL 而崩溃。
+        /// </summary>
+        private BitmapSource DecodeWithMagickSafe(string path, int targetSize)
+        {
+            using (var mi = new MagickImage(path))
+            {
+                var w = mi.Width;
+                var h = mi.Height;
+                int tw = targetSize;
+                int th = targetSize;
+                if (w >= h)
+                {
+                    mi.Resize(new MagickGeometry((uint)tw, (uint)0) { IgnoreAspectRatio = false });
+                }
+                else
+                {
+                    mi.Resize(new MagickGeometry((uint)0, (uint)th) { IgnoreAspectRatio = false });
+                }
+                var bytes = mi.ToByteArray(MagickFormat.Png);
+                var bmp = new BitmapImage();
+                bmp.BeginInit();
+                bmp.StreamSource = new MemoryStream(bytes);
+                bmp.CacheOption = BitmapCacheOption.OnLoad;
+                bmp.EndInit();
+                bmp.Freeze();
+                return bmp;
+            }
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

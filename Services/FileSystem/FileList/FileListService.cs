@@ -204,44 +204,53 @@ namespace YiboFile.Services.FileList
             Func<long, string> formatFileSize = null,
             CancellationToken cancellationToken = default)
         {
-            // Reset ongoing operations once for the entire batch
-            CancelOngoingOperations();
+            if (paths == null || !paths.Any()) return new List<FileSystemItem>();
 
-            // Initialize new tokens for the batch if they don't exist
-            _folderSizeCalculationCancellation = new CancellationTokenSource();
-            _metadataEnrichmentCancellation = new CancellationTokenSource();
-
-            var allItems = new Dictionary<string, FileSystemItem>();
-
+            var results = new List<List<FileSystemItem>>();
             foreach (var path in paths)
             {
-                if (!Directory.Exists(path))
-                {
-                    continue;
-                }
+                if (cancellationToken.IsCancellationRequested) break;
 
                 try
                 {
-                    // 使用异步方法
-                    // 注意：这里串行加载，如果路径很多可能慢，但对于库来说通常只有几个路径
-                    // Pass resetOngoingOperations = false to prevent overwriting our batch tokens
-                    var items = await LoadFileSystemItemsAsync(path, null, cancellationToken, false);
-
-                    foreach (var item in items)
+                    // Use Task.Run for Directory.Exists to avoid UI blocking if path is network drive
+                    if (!await Task.Run(() => Directory.Exists(path), cancellationToken).ConfigureAwait(false))
                     {
-                        var key = item.Name.ToLowerInvariant();
-                        if (!allItems.ContainsKey(key))
-                        {
-                            allItems[key] = item;
-                        }
+                        continue;
                     }
+
+                    // 加载文件项
+                    var items = await LoadFileSystemItemsAsync(path, null, cancellationToken, false, true).ConfigureAwait(false);
+                    results.Add(items);
                 }
-                catch (Exception)
+                catch (UnauthorizedAccessException ex)
                 {
+                    System.Diagnostics.Debug.WriteLine($"[FileListService] 路径被拒绝: {path} ({ex.Message}). Skip.");
+                    _errorService.ReportError($"路径被拒绝: {path} ({ex.Message})", YiboFile.Services.Core.Error.ErrorSeverity.Warning, ex);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[FileListService] Error loading path {path} in multiple load: {ex.Message}");
                 }
             }
 
-            return allItems.Values.ToList();
+            // 合并结果并去重
+            var allItems = new Dictionary<string, FileSystemItem>();
+            foreach (var items in results)
+            {
+                if (items == null) continue;
+                foreach (var item in items)
+                {
+                    if (item == null) continue;
+                    var key = item.Name?.ToLowerInvariant() ?? "";
+                    if (!string.IsNullOrEmpty(key) && !allItems.ContainsKey(key))
+                    {
+                        allItems[key] = item;
+                    }
+                }
+            }
+
+            return allItems.Values.OrderBy(i => i.IsDirectory ? 0 : 1).ThenBy(i => i.Name ?? string.Empty).ToList();
         }
 
         /// <summary>
@@ -301,7 +310,8 @@ namespace YiboFile.Services.FileList
             string path,
             Func<List<int>, List<string>> orderTagNames = null,
             CancellationToken cancellationToken = default,
-            bool resetOngoingOperations = true)
+            bool resetOngoingOperations = true,
+            bool skipBackgroundTasks = false)
         {
             System.Diagnostics.Debug.WriteLine($"[FileListService] LoadFileSystemItemsAsync called for: {path}");
 
@@ -319,7 +329,7 @@ namespace YiboFile.Services.FileList
             // Case 1: Path is "zip://..." -> Virtual Path
             if (protocolInfo.Type == ProtocolType.Archive)
             {
-                return await _archiveService.GetArchiveContentAsync(protocolInfo.TargetPath, protocolInfo.ExtraData);
+                return await _archiveService.GetArchiveContentAsync(protocolInfo.TargetPath, protocolInfo.ExtraData).ConfigureAwait(false);
             }
 
             // Case 1.5: Path is "library://..." -> Virtual Path
@@ -328,7 +338,7 @@ namespace YiboFile.Services.FileList
                 var libraryName = protocolInfo.TargetPath;
 
                 var libRepo = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<YiboFile.Services.Data.Repositories.ILibraryRepository>(App.ServiceProvider);
-                var allLibs = await Task.Run(() => libRepo.GetAllLibraries(), cancellationToken);
+                var allLibs = await Task.Run(() => libRepo.GetAllLibraries(), cancellationToken).ConfigureAwait(false);
 
                 if (string.IsNullOrEmpty(libraryName))
                 {
@@ -338,11 +348,14 @@ namespace YiboFile.Services.FileList
                 var lib = allLibs.FirstOrDefault(l => l.Name.Equals(libraryName, StringComparison.OrdinalIgnoreCase));
                 if (lib != null && lib.Paths != null)
                 {
-                    return await LoadFileSystemItemsFromMultiplePathsAsync(
+                    var items = await LoadFileSystemItemsFromMultiplePathsAsync(
                         lib.Paths,
                         p => DatabaseManager.GetFolderSize(p),
                         FormatFileSize,
-                        cancellationToken);
+                        cancellationToken).ConfigureAwait(false);
+
+                    // 触发后续的各种事件和后台任务（大小计算、元数据等）
+                    return ProcessLoadedItems(items, cancellationToken, resetOngoingOperations, skipBackgroundTasks, orderTagNames);
                 }
                 return new List<FileSystemItem>();
             }
@@ -350,114 +363,107 @@ namespace YiboFile.Services.FileList
             // Case 2: Path is "tag://..." -> Virtual Path
             if (protocolInfo.Type == ProtocolType.Tag)
             {
-                var files = new List<FileSystemItem>();
-                try
+                return await Task.Run(async () =>
                 {
-                    // TargetPath is the tag NAME (e.g., "111" from "tag://111")
-                    var tagName = protocolInfo.TargetPath;
-                    List<string> filePaths;
-
-                    // Primary: Query by tag name
-                    if (_tagService != null)
-                    {
-                        var filesEnumerable = await _tagService.GetFilesByTagNameAsync(tagName);
-                        filePaths = filesEnumerable.ToList();
-
-                        // Fallback: If no results and it looks like an ID, try by ID for backward compatibility
-                        if ((filePaths == null || filePaths.Count == 0) && int.TryParse(tagName, out int tagId))
-                        {
-                            var filesById = await _tagService.GetFilesByTagAsync(tagId);
-                            filePaths = filesById.ToList();
-                        }
-                    }
-                    else
-                    {
-                        filePaths = new List<string>();
-                    }
-                    foreach (var filePath in filePaths)
-                    {
-                        if (cancellationToken.IsCancellationRequested) break;
-
-                        bool itemIsFile = File.Exists(filePath);
-                        bool itemIsDir = !itemIsFile && Directory.Exists(filePath);
-
-                        if (!itemIsFile && !itemIsDir) continue;
-
-                        try
-                        {
-                            if (itemIsFile)
-                            {
-                                var fileInfo = new System.IO.FileInfo(filePath);
-                                files.Add(new FileSystemItem
-                                {
-                                    Name = GetDisplayFileName(filePath, ShowFullFileName),
-                                    Path = fileInfo.FullName,
-                                    Type = !string.IsNullOrEmpty(fileInfo.Extension) ? fileInfo.Extension : "文件",
-                                    Size = FormatFileSize(fileInfo.Length),
-                                    ModifiedDate = fileInfo.LastWriteTime.ToString("yyyy-MM-dd"),
-                                    CreatedTime = FileSystemItem.FormatTimeAgo(fileInfo.CreationTime),
-                                    IsDirectory = false,
-                                    SourcePath = path,
-                                    SizeBytes = fileInfo.Length,
-                                    ModifiedDateTime = fileInfo.LastWriteTime,
-                                    CreatedDateTime = fileInfo.CreationTime
-                                });
-                            }
-                            else if (itemIsDir)
-                            {
-                                var dirInfo = new System.IO.DirectoryInfo(filePath);
-                                files.Add(new FileSystemItem
-                                {
-                                    Name = dirInfo.Name,
-                                    Path = dirInfo.FullName,
-                                    Type = "文件夹",
-                                    Size = "-",
-                                    ModifiedDate = dirInfo.LastWriteTime.ToString("yyyy-MM-dd"),
-                                    CreatedTime = FileSystemItem.FormatTimeAgo(dirInfo.CreationTime),
-                                    IsDirectory = true,
-                                    SourcePath = path,
-                                    SizeBytes = 0,
-                                    ModifiedDateTime = dirInfo.LastWriteTime,
-                                    CreatedDateTime = dirInfo.CreationTime
-                                });
-                            }
-                        }
-                        catch { }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    YiboFile.Services.Core.FileLogger.LogException($"[FileListService] Error loading tag files", ex);
-                }
-
-                // Trigger metadata enrichment for these files
-                // We need to do this manually because we return early
-                _metadataEnrichmentCancellation = new CancellationTokenSource();
-                var combinedMetadataToken = CancellationTokenSource.CreateLinkedTokenSource(
-                    cancellationToken,
-                    _metadataEnrichmentCancellation.Token).Token;
-
-                _ = Task.Run(async () =>
-                {
+                    var files = new List<FileSystemItem>();
                     try
                     {
-                        await _metadataEnricher.EnrichAsync(
-                            files,
-                            combinedMetadataToken,
-                            _dispatcher,
-                            orderTagNames,
-                            () => MetadataEnriched?.Invoke(this, files));
-                    }
-                    catch { }
-                }, combinedMetadataToken);
+                        var tagName = protocolInfo.TargetPath;
+                        List<string> filePaths = new List<string>();
 
-                return files;
+                        if (_tagService != null)
+                        {
+                            var filesEnumerable = await _tagService.GetFilesByTagNameAsync(tagName).ConfigureAwait(false);
+                            filePaths = filesEnumerable.ToList();
+
+                            if ((filePaths == null || filePaths.Count == 0) && int.TryParse(tagName, out int tagId))
+                            {
+                                var filesById = await _tagService.GetFilesByTagAsync(tagId).ConfigureAwait(false);
+                                filePaths = filesById.ToList();
+                            }
+                        }
+
+                        foreach (var filePath in filePaths)
+                        {
+                            if (cancellationToken.IsCancellationRequested) break;
+
+                            bool itemIsFile = File.Exists(filePath);
+                            bool itemIsDir = !itemIsFile && Directory.Exists(filePath);
+
+                            if (!itemIsFile && !itemIsDir) continue;
+
+                            try
+                            {
+                                if (itemIsFile)
+                                {
+                                    var fileInfo = new System.IO.FileInfo(filePath);
+                                    files.Add(new FileSystemItem
+                                    {
+                                        Name = GetDisplayFileName(filePath, ShowFullFileName),
+                                        Path = fileInfo.FullName,
+                                        Type = !string.IsNullOrEmpty(fileInfo.Extension) ? fileInfo.Extension : "文件",
+                                        Size = FormatFileSize(fileInfo.Length),
+                                        ModifiedDate = fileInfo.LastWriteTime.ToString("yyyy-MM-dd"),
+                                        CreatedTime = FileSystemItem.FormatTimeAgo(fileInfo.CreationTime),
+                                        IsDirectory = false,
+                                        SourcePath = path,
+                                        SizeBytes = fileInfo.Length,
+                                        ModifiedDateTime = fileInfo.LastWriteTime,
+                                        CreatedDateTime = fileInfo.CreationTime
+                                    });
+                                }
+                                else if (itemIsDir)
+                                {
+                                    var dirInfo = new System.IO.DirectoryInfo(filePath);
+                                    files.Add(new FileSystemItem
+                                    {
+                                        Name = dirInfo.Name,
+                                        Path = dirInfo.FullName,
+                                        Type = "文件夹",
+                                        Size = "-",
+                                        ModifiedDate = dirInfo.LastWriteTime.ToString("yyyy-MM-dd"),
+                                        CreatedTime = FileSystemItem.FormatTimeAgo(dirInfo.CreationTime),
+                                        IsDirectory = true,
+                                        SourcePath = path,
+                                        SizeBytes = 0,
+                                        ModifiedDateTime = dirInfo.LastWriteTime,
+                                        CreatedDateTime = dirInfo.CreationTime
+                                    });
+                                }
+                            }
+                            catch { }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        YiboFile.Services.Core.FileLogger.LogException($"[FileListService] Error loading tag files", ex);
+                    }
+
+                    // Metadata enrichment
+                    _metadataEnrichmentCancellation = new CancellationTokenSource();
+                    var combinedMetadataToken = CancellationTokenSource.CreateLinkedTokenSource(
+                        cancellationToken,
+                        _metadataEnrichmentCancellation.Token).Token;
+
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await _metadataEnricher.EnrichAsync(
+                                files,
+                                combinedMetadataToken,
+                                _dispatcher,
+                                orderTagNames,
+                                () => MetadataEnriched?.Invoke(this, files)).ConfigureAwait(false);
+                        }
+                        catch { }
+                    }, combinedMetadataToken);
+
+                    return files;
+                }, cancellationToken).ConfigureAwait(false);
             }
 
             // Case 3: Path is a physical file that is an archive (User tried to "open" it like a folder)
-            // But FileListService is usually called with a Directory path. 
-            // If the UI passes a File Path here, it means we want to open it.
-            // We need to check if 'path' refers to an existing FILE, and if it is an archive.
             bool isFile = File.Exists(path);
             bool isDir = Directory.Exists(path);
 
@@ -466,117 +472,44 @@ namespace YiboFile.Services.FileList
                 if (_archiveService.IsArchive(path))
                 {
                     // Redirect to root of archive
-                    return await _archiveService.GetArchiveContentAsync(path, "");
+                    return await _archiveService.GetArchiveContentAsync(path, "").ConfigureAwait(false);
                 }
             }
 
-            // 等待获取信号量，支持取消
+            bool semaphoreAcquired = false;
             try
             {
-                // System.Diagnostics.Debug.WriteLine($"[FileListService] Waiting for semaphore for: {path}");
-                await _loadingSemaphore.WaitAsync(cancellationToken);
-                // System.Diagnostics.Debug.WriteLine($"[FileListService] Semaphore acquired for: {path}");
-            }
-            catch (OperationCanceledException)
-            {
-                // System.Diagnostics.Debug.WriteLine($"[FileListService] Semaphore wait cancelled for: {path}");
-                return new List<FileSystemItem>();
-            }
+                // 如果是子路径加载（skipBackgroundTasks = true），跳过信号量获取
+                // 这允许库的多路径并行加载，避免死锁
+                if (!skipBackgroundTasks)
+                {
+                    // 等待获取信号量，支持取消
+                    await _loadingSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+                    semaphoreAcquired = true;
+                }
 
-            try
-            {
                 if (cancellationToken.IsCancellationRequested)
                 {
                     return new List<FileSystemItem>();
                 }
-
-
 
                 // 异步加载文件和文件夹
                 var directories = await LoadDirectoriesAsync(
                     path,
                     p => DatabaseManager.GetFolderSize(p),
                     FormatFileSize,
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
 
                 var files = await LoadFilesAsync(
                     path,
                     FormatFileSize,
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
 
                 var items = new List<FileSystemItem>();
                 items.AddRange(directories);
                 items.AddRange(files);
 
-                // 触发加载完成事件
-                FilesLoaded?.Invoke(this, items);
-
-                // 异步计算文件夹大小
-                if (resetOngoingOperations)
-                {
-                    _folderSizeCalculationCancellation?.Cancel();
-                    _folderSizeCalculationCancellation = new CancellationTokenSource();
-                }
-                else
-                {
-                    _folderSizeCalculationCancellation ??= new CancellationTokenSource();
-                }
-                var combinedToken = CancellationTokenSource.CreateLinkedTokenSource(
-                    cancellationToken,
-                    _folderSizeCalculationCancellation.Token).Token;
-
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await _folderSizeCalculator.CalculateAsync(
-                            items,
-                            combinedToken,
-                            _dispatcher,
-                            FormatFileSize,
-                            () => { });
-                    }
-                    catch (OperationCanceledException) { }
-                    catch (Exception ex)
-                    {
-                        YiboFile.Services.Core.FileLogger.LogException($"[FileListService] 文件夹大小计算失败", ex);
-                    }
-                }, combinedToken);
-
-                // 异步加载标签和备注
-                if (resetOngoingOperations)
-                {
-                    _metadataEnrichmentCancellation?.Cancel();
-                    _metadataEnrichmentCancellation = new CancellationTokenSource();
-                }
-                else
-                {
-                    _metadataEnrichmentCancellation ??= new CancellationTokenSource();
-                }
-                _orderTagNames = orderTagNames;
-                var combinedMetadataToken = CancellationTokenSource.CreateLinkedTokenSource(
-                    cancellationToken,
-                    _metadataEnrichmentCancellation.Token).Token;
-
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await _metadataEnricher.EnrichAsync(
-                            items,
-                            combinedMetadataToken,
-                            _dispatcher,
-                            orderTagNames,
-                            () => MetadataEnriched?.Invoke(this, items));
-                    }
-                    catch (OperationCanceledException) { }
-                    catch (Exception ex)
-                    {
-                        YiboFile.Services.Core.FileLogger.LogException($"[FileListService] 元数据加载失败", ex);
-                    }
-                }, combinedMetadataToken);
-
-                return items;
+                return ProcessLoadedItems(items, cancellationToken, resetOngoingOperations, skipBackgroundTasks, orderTagNames);
             }
             catch (UnauthorizedAccessException ex)
             {
@@ -590,17 +523,10 @@ namespace YiboFile.Services.FileList
             }
             catch (DirectoryNotFoundException)
             {
-                // var errorMessage = $"路径不存在: {path}";
-                // if (!string.IsNullOrEmpty(ex.Message))
-                // {
-                //     errorMessage += $"\n{ex.Message}";
-                // }
-                // _errorService.ReportError(errorMessage);
                 return new List<FileSystemItem>();
             }
             catch (OperationCanceledException)
             {
-                // System.Diagnostics.Debug.WriteLine($"[FileListService] LoadFileSystemItemsAsync Canceled (OperationCanceledException/TaskCanceledException) for: {path}");
                 return new List<FileSystemItem>();
             }
             catch (Exception ex)
@@ -615,8 +541,98 @@ namespace YiboFile.Services.FileList
             }
             finally
             {
-                _loadingSemaphore.Release();
+                if (semaphoreAcquired)
+                {
+                    _loadingSemaphore.Release();
+                }
             }
+        }
+
+        private List<FileSystemItem> ProcessLoadedItems(
+            List<FileSystemItem> items,
+            CancellationToken cancellationToken,
+            bool resetOngoingOperations,
+            bool skipBackgroundTasks,
+            Func<List<int>, List<string>> orderTagNames)
+        {
+            // 触发加载完成事件 (仅当不跳过后台任务时触发，或者是顶层调用)
+            // 如果是库子项加载，我们不触发个别完成事件，以免 flooding
+            if (!skipBackgroundTasks)
+            {
+                FilesLoaded?.Invoke(this, items);
+            }
+
+            if (skipBackgroundTasks)
+            {
+                return items;
+            }
+
+            // 异步计算文件夹大小
+            if (resetOngoingOperations)
+            {
+                _folderSizeCalculationCancellation?.Cancel();
+                _folderSizeCalculationCancellation = new CancellationTokenSource();
+            }
+            else
+            {
+                _folderSizeCalculationCancellation ??= new CancellationTokenSource();
+            }
+            var combinedToken = CancellationTokenSource.CreateLinkedTokenSource(
+                cancellationToken,
+                _folderSizeCalculationCancellation.Token).Token;
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await _folderSizeCalculator.CalculateAsync(
+                        items,
+                        combinedToken,
+                        _dispatcher,
+                        FormatFileSize,
+                        () => { }).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) { }
+                catch (Exception ex)
+                {
+                    YiboFile.Services.Core.FileLogger.LogException($"[FileListService] 文件夹大小计算失败", ex);
+                }
+            }, combinedToken);
+
+            // 异步加载标签和备注
+            if (resetOngoingOperations)
+            {
+                _metadataEnrichmentCancellation?.Cancel();
+                _metadataEnrichmentCancellation = new CancellationTokenSource();
+            }
+            else
+            {
+                _metadataEnrichmentCancellation ??= new CancellationTokenSource();
+            }
+            _orderTagNames = orderTagNames;
+            var combinedMetadataToken = CancellationTokenSource.CreateLinkedTokenSource(
+                cancellationToken,
+                _metadataEnrichmentCancellation.Token).Token;
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await _metadataEnricher.EnrichAsync(
+                        items,
+                        combinedMetadataToken,
+                        _dispatcher,
+                        orderTagNames,
+                        () => MetadataEnriched?.Invoke(this, items)).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) { }
+                catch (Exception ex)
+                {
+                    YiboFile.Services.Core.FileLogger.LogException($"[FileListService] 元数据加载失败", ex);
+                }
+            }, combinedMetadataToken);
+
+            return items;
         }
 
         #endregion
@@ -647,7 +663,7 @@ namespace YiboFile.Services.FileList
                 cancellationToken,
                 _folderSizeCalculationCancellation?.Token ?? CancellationToken.None).Token;
 
-            await _folderSizeCalculationSemaphore.WaitAsync(combinedToken);
+            await _folderSizeCalculationSemaphore.WaitAsync(combinedToken).ConfigureAwait(false);
             try
             {
                 if (combinedToken.IsCancellationRequested)
@@ -658,7 +674,7 @@ namespace YiboFile.Services.FileList
                 var size = await Task.Run(() =>
                 {
                     return _folderSizeCalculationService.CalculateDirectorySize(item.Path, combinedToken);
-                }, combinedToken);
+                }, combinedToken).ConfigureAwait(false);
 
                 if (combinedToken.IsCancellationRequested)
                 {
@@ -725,7 +741,7 @@ namespace YiboFile.Services.FileList
                     {
                         var itemsList = items.ToList();
                         MetadataEnriched?.Invoke(this, itemsList);
-                    });
+                    }).ConfigureAwait(false);
             }
             catch (OperationCanceledException) { }
             catch (Exception)
@@ -784,101 +800,138 @@ namespace YiboFile.Services.FileList
             Func<long, string> formatFileSize,
             CancellationToken cancellationToken = default)
         {
-            var directories = new List<FileSystemItem>();
-            try
+            return await Task.Run(() =>
             {
-                string[] dirPaths;
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] [Thread {Environment.CurrentManagedThreadId}] [FileListService] LoadDirectoriesAsync Started for: {path}");
+
+                var directories = new List<FileSystemItem>();
                 try
                 {
-                    dirPaths = await Task.Run(() => Directory.GetDirectories(path), cancellationToken);
+                    if (!Directory.Exists(path)) return directories;
+
+                    string[] dirPaths = Directory.GetDirectories(path);
+                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] [Thread {Environment.CurrentManagedThreadId}] [FileListService] IO GetDirectories done. Count: {dirPaths.Length}");
+
+                    if (dirPaths.Length > 0)
+                    {
+                        var validDirs = new System.Collections.Generic.List<(string DirPath, string ActualPath, string DisplayName)>();
+
+                        // 1. 预处理：解析路径和符号链接，过滤不存在的文件夹
+                        foreach (var dirPath in dirPaths)
+                        {
+                            if (cancellationToken.IsCancellationRequested) break;
+
+                            try
+                            {
+                                string dirName = Path.GetFileName(dirPath);
+
+                                // 黑名单：主动跳过无权访问的系统目录，避免后续读取 Metadata 抛出异常
+                                if (dirName.Equals("System Volume Information", StringComparison.OrdinalIgnoreCase) ||
+                                    dirName.Equals("$RECYCLE.BIN", StringComparison.OrdinalIgnoreCase) ||
+                                    dirName.Equals("$Recycle.Bin", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    continue;
+                                }
+
+                                string actualPath = dirPath;
+                                string displayName = dirName;
+
+                                // 检测并解析符号链接/Junction Points
+                                if (SymbolicLinkHelper.IsSymbolicLink(dirPath))
+                                {
+                                    string targetPath = SymbolicLinkHelper.GetSymbolicLinkTarget(dirPath);
+                                    if (!string.IsNullOrEmpty(targetPath) && targetPath != dirPath)
+                                    {
+                                        actualPath = targetPath;
+                                    }
+                                }
+
+                                // 检查文件夹是否存在（如果不存在，清理数据库缓存）
+                                if (!Directory.Exists(actualPath))
+                                {
+                                    DatabaseManager.RemoveFolderSize(dirPath);
+                                    continue;
+                                }
+
+                                validDirs.Add((dirPath, actualPath, displayName));
+                            }
+                            catch { }
+                        }
+
+                        // 2. 批量获取文件夹大小缓存
+                        var folderSizeCacheMap = new System.Collections.Generic.Dictionary<string, long>();
+                        if (getFolderSizeCache != null && validDirs.Count > 0)
+                        {
+                            try
+                            {
+                                var swDb = System.Diagnostics.Stopwatch.StartNew();
+                                var pathsToQuery = validDirs.Select(d => d.ActualPath).ToList();
+                                folderSizeCacheMap = DatabaseManager.GetFolderSizesBatch(pathsToQuery);
+                                swDb.Stop();
+                                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] [Thread {Environment.CurrentManagedThreadId}] [FileListService] Batch DB Query done. Count: {pathsToQuery.Count}. Time: {swDb.ElapsedMilliseconds}ms");
+                            }
+                            catch (Exception ex)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"Batch folder size query failed: {ex.Message}");
+                            }
+                        }
+
+                        // 3. 构建 FileSystemItem
+                        foreach (var (dirPath, actualPath, displayName) in validDirs)
+                        {
+                            if (cancellationToken.IsCancellationRequested) break;
+
+                            try
+                            {
+                                var dirInfo = new DirectoryInfo(actualPath);
+
+                                string sizeDisplay = "计算中...";
+                                long? cachedSize = null;
+
+                                if (folderSizeCacheMap.TryGetValue(actualPath, out long size))
+                                {
+                                    cachedSize = size;
+                                    sizeDisplay = formatFileSize(size);
+                                }
+
+                                directories.Add(new FileSystemItem
+                                {
+                                    Name = displayName,
+                                    Path = actualPath,
+                                    Type = "文件夹",
+                                    Size = sizeDisplay,
+                                    ModifiedDate = dirInfo.LastWriteTime.ToString("yyyy-MM-dd"),
+                                    CreatedTime = FileSystemItem.FormatTimeAgo(dirInfo.CreationTime),
+                                    IsDirectory = true,
+                                    SourcePath = path, // 标记来源路径
+                                    SizeBytes = cachedSize ?? -1,
+                                    ModifiedDateTime = dirInfo.LastWriteTime,
+                                    CreatedDateTime = dirInfo.CreationTime
+                                });
+                            }
+                            catch (UnauthorizedAccessException) { /* 跳过无法访问元数据的文件夹 */ }
+                            catch (Exception) { }
+                        }
+                    }
                 }
                 catch (UnauthorizedAccessException ex)
                 {
-                    // 通知用户无权限访问
-                    _errorService.ReportError($"无权限访问文件夹: {path}", YiboFile.Services.Core.Error.ErrorSeverity.Warning, ex);
-                    return directories;
+                    // 已在内部处理，此处仅记录
+                    System.Diagnostics.Debug.WriteLine($"[FileListService] UnauthorizedAccessException (Caught): {ex.Message}");
                 }
-
-                foreach (var dirPath in dirPaths)
+                catch (Exception ex)
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
-
-                    try
-                    {
-                        string actualPath = dirPath;
-                        string displayName = Path.GetFileName(dirPath);
-
-                        // 检测并解析符号链接/Junction Points
-                        if (SymbolicLinkHelper.IsSymbolicLink(dirPath))
-                        {
-                            string targetPath = SymbolicLinkHelper.GetSymbolicLinkTarget(dirPath);
-                            if (!string.IsNullOrEmpty(targetPath) && targetPath != dirPath)
-                            {
-                                actualPath = targetPath;
-                            }
-                        }
-
-                        // 检查文件夹是否存在（如果不存在，清理数据库缓存）
-                        if (!Directory.Exists(actualPath))
-                        {
-                            DatabaseManager.RemoveFolderSize(dirPath);
-                            continue;
-                        }
-
-                        var dirInfo = new DirectoryInfo(actualPath);
-
-                        // 从数据库读取文件夹大小缓存
-                        string sizeDisplay = "计算中...";
-                        long? cachedSize = null;
-                        if (getFolderSizeCache != null)
-                        {
-                            // 移除 Task.Run，直接同步读取缓存以提高加载速度
-                            // loop 中 await Task.Run 会导致严重的性能开销
-                            cachedSize = getFolderSizeCache(actualPath);
-                            if (cachedSize.HasValue)
-                            {
-                                sizeDisplay = formatFileSize(cachedSize.Value);
-                            }
-                        }
-
-                        directories.Add(new FileSystemItem
-                        {
-                            Name = displayName,
-                            Path = actualPath,
-                            Type = "文件夹",
-                            Size = sizeDisplay,
-                            ModifiedDate = dirInfo.LastWriteTime.ToString("yyyy-MM-dd"),
-                            CreatedTime = FileSystemItem.FormatTimeAgo(dirInfo.CreationTime),
-                            IsDirectory = true,
-                            SourcePath = path, // 标记来源路径
-                            SizeBytes = cachedSize ?? -1,
-                            ModifiedDateTime = dirInfo.LastWriteTime,
-                            CreatedDateTime = dirInfo.CreationTime
-                        });
-                    }
-                    catch (UnauthorizedAccessException)
-                    {
-                        continue;
-                    }
-                    catch (Exception)
-                    {
-                        continue;
-                    }
+                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] [Thread {Environment.CurrentManagedThreadId}] [FileListService] LoadDirectoriesAsync Error: {ex.Message}");
                 }
-            }
-            catch (UnauthorizedAccessException)
-            {
-            }
-            catch (OperationCanceledException)
-            {
-                throw;
-            }
-            catch (Exception)
-            {
-            }
 
-            return directories;
+                sw.Stop();
+                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] [Thread {Environment.CurrentManagedThreadId}] [FileListService] LoadDirectoriesAsync Completed for: {path}. Time: {sw.ElapsedMilliseconds}ms. Count: {directories.Count}");
+                return directories;
+            }, cancellationToken).ConfigureAwait(false);
         }
+
+
 
         /// <summary>
         /// 异步加载文件列表
@@ -888,55 +941,76 @@ namespace YiboFile.Services.FileList
             Func<long, string> formatFileSize,
             CancellationToken cancellationToken = default)
         {
-            var files = new List<FileSystemItem>();
-            try
+            return await Task.Run(() =>
             {
-                var filePaths = await Task.Run(() => Directory.GetFiles(path), cancellationToken);
-                foreach (var filePath in filePaths)
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] [Thread {Environment.CurrentManagedThreadId}] [FileListService] LoadFilesAsync Started for: {path}");
 
-                    try
+                var files = new List<FileSystemItem>();
+                try
+                {
+                    if (!Directory.Exists(path)) return files;
+
+                    var filePaths = Directory.GetFiles(path);
+                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] [Thread {Environment.CurrentManagedThreadId}] [FileListService] LoadFilesAsync IO GetFiles done. Count: {filePaths.Length}");
+
+                    foreach (var filePath in filePaths)
                     {
-                        var fileInfo = new System.IO.FileInfo(filePath);
-                        files.Add(new FileSystemItem
+                        cancellationToken.ThrowIfCancellationRequested();
+
+                        try
                         {
-                            // 对于只有扩展名的文件（如.gitconfig），总是显示完整文件名
-                            Name = GetDisplayFileName(filePath, ShowFullFileName),
-                            Path = fileInfo.FullName,
-                            Type = !string.IsNullOrEmpty(fileInfo.Extension) ? fileInfo.Extension : "文件",
-                            Size = formatFileSize(fileInfo.Length),
-                            ModifiedDate = fileInfo.LastWriteTime.ToString("yyyy-MM-dd"),
-                            CreatedTime = FileSystemItem.FormatTimeAgo(fileInfo.CreationTime),
-                            IsDirectory = false,
-                            SourcePath = path, // 标记来源路径
-                            SizeBytes = fileInfo.Length,
-                            ModifiedDateTime = fileInfo.LastWriteTime,
-                            CreatedDateTime = fileInfo.CreationTime
-                        });
-                    }
-                    catch (UnauthorizedAccessException)
-                    {
-                        continue;
-                    }
-                    catch (Exception)
-                    {
-                        continue;
+                            string fileName = Path.GetFileName(filePath);
+
+                            // 移除硬编码的黑名单检查，让后面统一的异常处理来负责
+                            var fileInfo = new System.IO.FileInfo(filePath);
+
+                            // 使用安全访问方法获取属性
+                            long sizeBytes = -1;
+                            try { sizeBytes = fileInfo.Length; } catch { }
+
+                            DateTime lastModified = DateTime.MinValue;
+                            try { lastModified = fileInfo.LastWriteTime; } catch { }
+
+                            DateTime created = DateTime.MinValue;
+                            try { created = fileInfo.CreationTime; } catch { }
+
+                            files.Add(new FileSystemItem
+                            {
+                                // 对于只有扩展名的文件（如.gitconfig），总是显示完整文件名
+                                Name = GetDisplayFileName(filePath, ShowFullFileName),
+                                Path = fileInfo.FullName,
+                                Type = !string.IsNullOrEmpty(fileInfo.Extension) ? fileInfo.Extension : "文件",
+                                Size = sizeBytes >= 0 ? formatFileSize(sizeBytes) : "未知",
+                                ModifiedDate = lastModified != DateTime.MinValue ? lastModified.ToString("yyyy-MM-dd") : "未知",
+                                CreatedTime = created != DateTime.MinValue ? FileSystemItem.FormatTimeAgo(created) : "未知",
+                                IsDirectory = false,
+                                SourcePath = path, // 标记来源路径
+                                SizeBytes = sizeBytes,
+                                ModifiedDateTime = lastModified,
+                                CreatedDateTime = created
+                            });
+                        }
+                        catch (UnauthorizedAccessException ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[FileListService] UnauthorizedAccessException for file {filePath}: {ex.Message}");
+                            continue;
+                        }
+                        catch (Exception)
+                        {
+                            continue;
+                        }
                     }
                 }
-            }
-            catch (UnauthorizedAccessException)
-            {
-            }
-            catch (OperationCanceledException)
-            {
-                throw;
-            }
-            catch (Exception)
-            {
-            }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] [Thread {Environment.CurrentManagedThreadId}] [FileListService] LoadFilesAsync Error: {ex.Message}");
+                }
 
-            return files;
+                sw.Stop();
+                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] [Thread {Environment.CurrentManagedThreadId}] [FileListService] LoadFilesAsync Completed for: {path}. Time: {sw.ElapsedMilliseconds}ms. Count: {files.Count}");
+                return files;
+            }, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>

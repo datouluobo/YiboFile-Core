@@ -27,12 +27,12 @@ namespace YiboFile.Controls.Converters
         [DllImport("shell32.dll")]
         private static extern int SHGetImageList(int iImageList, ref Guid riid, out IImageList ppv);
 
-        [DllImport("shell32.dll", CharSet = CharSet.Unicode, PreserveSig = false)]
-        [return: MarshalAs(UnmanagedType.Interface)]
-        private static extern IShellItem SHCreateItemFromParsingName(
+        [DllImport("shell32.dll", CharSet = CharSet.Unicode, PreserveSig = true)]
+        private static extern int SHCreateItemFromParsingName(
             [MarshalAs(UnmanagedType.LPWStr)] string pszPath,
             IntPtr pbc,
-            [MarshalAs(UnmanagedType.LPStruct)] Guid riid);
+            [MarshalAs(UnmanagedType.LPStruct)] Guid riid,
+            out IShellItem ppv);
 
         [DllImport("gdi32.dll")]
         private static extern bool DeleteObject(IntPtr hObject);
@@ -74,11 +74,16 @@ namespace YiboFile.Controls.Converters
         [Guid("43826d1e-e718-42ee-bc55-a1e261c37bfe")]
         private interface IShellItem
         {
-            void BindToHandler(IntPtr pbc, [MarshalAs(UnmanagedType.LPStruct)] Guid bhid, [MarshalAs(UnmanagedType.LPStruct)] Guid riid, out IntPtr ppv);
-            void GetParent(out IShellItem ppsi);
-            void GetDisplayName(uint sigdnName, out IntPtr ppszName);
-            void GetAttributes(uint sfgaoMask, out uint psfgaoAttribs);
-            void Compare(IShellItem psi, uint hint, out int piOrder);
+            [PreserveSig]
+            int BindToHandler(IntPtr pbc, [MarshalAs(UnmanagedType.LPStruct)] Guid bhid, [MarshalAs(UnmanagedType.LPStruct)] Guid riid, out IntPtr ppv);
+            [PreserveSig]
+            int GetParent(out IShellItem ppsi);
+            [PreserveSig]
+            int GetDisplayName(uint sigdnName, out IntPtr ppszName);
+            [PreserveSig]
+            int GetAttributes(uint sfgaoMask, out uint psfgaoAttribs);
+            [PreserveSig]
+            int Compare(IShellItem psi, uint hint, out int piOrder);
         }
 
         [ComImport]
@@ -86,7 +91,8 @@ namespace YiboFile.Controls.Converters
         [Guid("bcc18b79-ba16-442f-80c4-8a59c30c463b")]
         private interface IShellItemImageFactory
         {
-            void GetImage([MarshalAs(UnmanagedType.Struct)] SIZE size, int flags, out IntPtr phbm);
+            [PreserveSig]
+            int GetImage([MarshalAs(UnmanagedType.Struct)] SIZE size, int flags, out IntPtr phbm);
         }
 
         [StructLayout(LayoutKind.Sequential)]
@@ -116,7 +122,7 @@ namespace YiboFile.Controls.Converters
                 // 如果parameter是double/int且较大（>100），则认为是缩略图大小，需要计算图标大小
                 // 否则认为是直接的图标大小
                 int iconSize = 16; // 默认16x16
-                
+
                 if (parameter != null)
                 {
                     // 尝试作为缩略图大小处理（可能是double或int）
@@ -133,11 +139,11 @@ namespace YiboFile.Controls.Converters
                         // 这是缩略图大小，需要根据文件类型计算图标大小
                         var ext = Path.GetExtension(path)?.ToLowerInvariant();
                         bool isOfficeDocument = !string.IsNullOrEmpty(ext) && Array.IndexOf(OfficeExtensions, ext) >= 0;
-                        
+
                         // Office文档使用10%，其他使用15%
                         double ratio = isOfficeDocument ? 0.10 : 0.15;
                         iconSize = (int)(thumbnailSize * ratio);
-                        
+
                         // 应用范围限制（测试用：2-30px）
                         iconSize = Math.Max(2, Math.Min(30, iconSize));
                     }
@@ -169,7 +175,7 @@ namespace YiboFile.Controls.Converters
                 // 方案1：使用 IShellItemImageFactory 获取最高质量的图标（Windows Vista+）
                 Guid shellItemGuid = new Guid("43826d1e-e718-42ee-bc55-a1e261c37bfe"); // IShellItem
                 IShellItem shellItem = null;
-                
+
                 // 尝试多种路径格式
                 string[] pathsToTry = { path };
                 if (path.StartsWith(@"\\?\"))
@@ -184,25 +190,20 @@ namespace YiboFile.Controls.Converters
                     else
                         pathsToTry = new[] { path, @"\\?\" + path };
                 }
-                
+
                 foreach (var tryPath in pathsToTry)
                 {
                     try
                     {
-                        shellItem = SHCreateItemFromParsingName(tryPath, IntPtr.Zero, shellItemGuid);
-                        if (shellItem != null)
+                        if (SHCreateItemFromParsingName(tryPath, IntPtr.Zero, shellItemGuid, out shellItem) == 0 && shellItem != null)
                             break;
-                    }
-                    catch (COMException)
-                    {
-                        // COM 互操作异常，尝试下一个路径格式
                     }
                     catch
                     {
-                        // 其他异常，尝试下一个路径格式
+                        // Ignore errors
                     }
                 }
-                
+
                 if (shellItem != null)
                 {
                     try
@@ -222,19 +223,18 @@ namespace YiboFile.Controls.Converters
                                     SIIGBF_BIGGERSIZEOK,                       // 仅允许更大尺寸
                                     0                                           // 无标志，使用默认行为
                                 };
-                                
+
                                 // 对于小尺寸图标，请求更大的尺寸然后高质量缩放（类似Office文档的处理方式）
                                 // 这样可以获得更清晰的图标，即使最终显示尺寸很小
                                 int requestSize = Math.Max(size * 2, 32); // 请求至少32px或2倍目标尺寸，确保有足够的细节
-                                
+
                                 foreach (var flagValue in flagCombinations)
                                 {
                                     try
                                     {
-                                        // 请求更大的尺寸，然后高质量缩放到目标尺寸
-                                        imageFactory.GetImage(new SIZE { cx = requestSize, cy = requestSize }, flagValue, out hBitmap);
-                                        
-                                        if (hBitmap != IntPtr.Zero)
+                                        int hr = imageFactory.GetImage(new SIZE { cx = requestSize, cy = requestSize }, flagValue, out hBitmap);
+
+                                        if (hr == 0 && hBitmap != IntPtr.Zero)
                                         {
                                             try
                                             {
@@ -243,11 +243,11 @@ namespace YiboFile.Controls.Converters
                                                     IntPtr.Zero,
                                                     System.Windows.Int32Rect.Empty,
                                                     BitmapSizeOptions.FromWidthAndHeight(requestSize, requestSize));
-                                                
+
                                                 // 设置高质量渲染选项
                                                 RenderOptions.SetBitmapScalingMode(bitmapSource, BitmapScalingMode.HighQuality);
                                                 RenderOptions.SetCachingHint(bitmapSource, CachingHint.Cache);
-                                                
+
                                                 // 强制缩放到目标尺寸，确保所有格式（包括Office文档）都使用相同大小
                                                 // 即使获取的尺寸与目标尺寸相同，也进行缩放以确保一致性
                                                 if (Math.Abs(bitmapSource.PixelWidth - size) > 1 || Math.Abs(bitmapSource.PixelHeight - size) > 1)
@@ -256,37 +256,29 @@ namespace YiboFile.Controls.Converters
                                                         (double)size / bitmapSource.PixelWidth,
                                                         (double)size / bitmapSource.PixelHeight,
                                                         0, 0);
-                                                    
+
                                                     var scaledBitmap = new TransformedBitmap(bitmapSource, scaleTransform);
                                                     RenderOptions.SetBitmapScalingMode(scaledBitmap, BitmapScalingMode.HighQuality);
                                                     RenderOptions.SetCachingHint(scaledBitmap, CachingHint.Cache);
                                                     scaledBitmap.Freeze();
-                                                    
+
                                                     // 释放原始位图
                                                     var tempBitmap = hBitmap;
                                                     hBitmap = IntPtr.Zero;
                                                     DeleteObject(tempBitmap);
-                                                    
+
                                                     return scaledBitmap;
                                                 }
-                                                
+
                                                 // 如果尺寸正好（误差在1px内），直接使用
                                                 bitmapSource.Freeze();
-                                                
+
                                                 // 释放原始位图
                                                 var tempBitmap2 = hBitmap;
                                                 hBitmap = IntPtr.Zero;
                                                 DeleteObject(tempBitmap2);
-                                                
+
                                                 return bitmapSource;
-                                            }
-                                            catch (COMException)
-                                            {
-                                                if (hBitmap != IntPtr.Zero)
-                                                {
-                                                    DeleteObject(hBitmap);
-                                                    hBitmap = IntPtr.Zero;
-                                                }
                                             }
                                             catch
                                             {
@@ -296,14 +288,6 @@ namespace YiboFile.Controls.Converters
                                                     hBitmap = IntPtr.Zero;
                                                 }
                                             }
-                                        }
-                                    }
-                                    catch (COMException)
-                                    {
-                                        if (hBitmap != IntPtr.Zero)
-                                        {
-                                            DeleteObject(hBitmap);
-                                            hBitmap = IntPtr.Zero;
                                         }
                                     }
                                     catch
@@ -329,7 +313,7 @@ namespace YiboFile.Controls.Converters
                     }
                     catch { }
                 }
-                
+
                 // 方案2：如果方案1失败，使用SHGetImageList作为回退（确保始终有图标显示）
                 SHFILEINFO shfi = new SHFILEINFO();
                 uint flags = SHGFI_SYSICONINDEX | SHGFI_ICON | SHGFI_SMALLICON;
@@ -351,10 +335,10 @@ namespace YiboFile.Controls.Converters
                     {
                         Guid iidImageList = new Guid("46EB5926-582E-4017-9FDF-E8998DAA0950");
                         IImageList imageList;
-                        
+
                         // 使用EXTRA_LARGE尺寸（48x48），然后高质量缩放到目标尺寸
                         int imageListType = SHIL_EXTRALARGE;
-                        
+
                         int result = SHGetImageList(imageListType, ref iidImageList, out imageList);
                         if (result == 0 && imageList != null)
                         {
@@ -369,11 +353,11 @@ namespace YiboFile.Controls.Converters
                                             icon.Handle,
                                             System.Windows.Int32Rect.Empty,
                                             BitmapSizeOptions.FromWidthAndHeight(size, size));
-                                        
+
                                         // 设置高质量渲染选项
                                         RenderOptions.SetBitmapScalingMode(bitmapSource, BitmapScalingMode.HighQuality);
                                         RenderOptions.SetCachingHint(bitmapSource, CachingHint.Cache);
-                                        
+
                                         // 如果图标尺寸小于目标尺寸，使用高质量缩放
                                         if (bitmapSource.PixelWidth < size || bitmapSource.PixelHeight < size)
                                         {
@@ -381,14 +365,14 @@ namespace YiboFile.Controls.Converters
                                                 (double)size / bitmapSource.PixelWidth,
                                                 (double)size / bitmapSource.PixelHeight,
                                                 0, 0);
-                                            
+
                                             var scaledBitmap = new TransformedBitmap(bitmapSource, scaleTransform);
                                             RenderOptions.SetBitmapScalingMode(scaledBitmap, BitmapScalingMode.HighQuality);
                                             RenderOptions.SetCachingHint(scaledBitmap, CachingHint.Cache);
                                             scaledBitmap.Freeze();
                                             return scaledBitmap;
                                         }
-                                        
+
                                         bitmapSource.Freeze();
                                         return bitmapSource;
                                     }
@@ -400,19 +384,15 @@ namespace YiboFile.Controls.Converters
                             }
                         }
                     }
-                    catch (COMException)
-                    {
-                        // COM 互操作异常，继续使用回退方案
-                    }
                     catch { }
-                    
+
                     // 如果EXTRA_LARGE失败，尝试使用SMALL或LARGE
                     try
                     {
                         Guid iidImageList = new Guid("46EB5926-582E-4017-9FDF-E8998DAA0950");
                         IImageList imageList;
                         int imageListType = size <= 16 ? SHIL_SMALL : SHIL_LARGE;
-                        
+
                         int result = SHGetImageList(imageListType, ref iidImageList, out imageList);
                         if (result == 0 && imageList != null)
                         {
@@ -427,11 +407,11 @@ namespace YiboFile.Controls.Converters
                                             icon.Handle,
                                             System.Windows.Int32Rect.Empty,
                                             BitmapSizeOptions.FromWidthAndHeight(size, size));
-                                        
+
                                         // 设置高质量渲染选项
                                         RenderOptions.SetBitmapScalingMode(bitmapSource, BitmapScalingMode.HighQuality);
                                         RenderOptions.SetCachingHint(bitmapSource, CachingHint.Cache);
-                                        
+
                                         bitmapSource.Freeze();
                                         return bitmapSource;
                                     }
@@ -461,11 +441,11 @@ namespace YiboFile.Controls.Converters
                                 icon.Handle,
                                 System.Windows.Int32Rect.Empty,
                                 BitmapSizeOptions.FromWidthAndHeight(size, size));
-                            
+
                             // 设置高质量渲染选项
                             RenderOptions.SetBitmapScalingMode(bitmapSource, BitmapScalingMode.HighQuality);
                             RenderOptions.SetCachingHint(bitmapSource, CachingHint.Cache);
-                            
+
                             bitmapSource.Freeze();
                             return bitmapSource;
                         }
@@ -475,10 +455,6 @@ namespace YiboFile.Controls.Converters
                         DestroyIcon(shfi.hIcon);
                     }
                 }
-            }
-            catch (COMException)
-            {
-                // COM 互操作异常，返回 null
             }
             catch { }
             return null;

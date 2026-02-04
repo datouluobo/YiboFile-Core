@@ -77,10 +77,10 @@ namespace YiboFile.ViewModels
 
         public void UpdateFiles(IEnumerable<FileSystemItem> items)
         {
-            _dispatcher.Invoke(() =>
+            _dispatcher.BeginInvoke(new Action(() =>
             {
                 Files = new ObservableCollection<FileSystemItem>(items);
-            });
+            }), DispatcherPriority.Normal);
         }
 
         public FileListViewModel(
@@ -127,19 +127,47 @@ namespace YiboFile.ViewModels
         public async Task LoadPathAsync(string path)
         {
             System.Diagnostics.Debug.WriteLine($"[FileListViewModel] LoadPathAsync requested for: {path}");
-            if (!_loadFilesSemaphore.Wait(0))
+
+            // 如果正在加载相同目录，则忽略以防止循环
+            if (_isLoadingFiles && path == _currentPath)
             {
-                System.Diagnostics.Debug.WriteLine($"[FileListViewModel] LoadPathAsync locked. Queuing pending path: {path}");
-                _loadFilesPending = true;
+                System.Diagnostics.Debug.WriteLine($"[FileListViewModel] LoadPathAsync already loading: {path}. Skipping redundant request.");
+                return;
+            }
+
+            // 如果正在加载其它目录，则取消旧的并排队
+            if (_isLoadingFiles)
+            {
+                System.Diagnostics.Debug.WriteLine($"[FileListViewModel] Already loading, queuing pending path: {path}");
                 _pendingPath = path;
-                // 如果有新的请求排队，立即取消当前正在进行的操作，提高响应速度
-                CancelOngoingOperations();
+                _loadFilesPending = true;
+
+                // 仅在不同路径时取消，防止微小变动导致的频繁重载
+                _loadCancellationTokenSource?.Cancel();
                 return;
             }
 
             try
             {
-                CancelOngoingOperations();
+                // 获取信号量锁，防止并发重入 (加上合理的等待时间)
+                if (!await _loadFilesSemaphore.WaitAsync(5000))
+                {
+                    System.Diagnostics.Debug.WriteLine($"[FileListViewModel] Failed to acquire load semaphore within 5s for {path}. Skipping.");
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[FileListViewModel] Semaphore wait error: {ex.Message}");
+                return;
+            }
+
+            try
+            {
+                // 再次检查重入
+                if (_isLoadingFiles) return;
+
+                _loadCancellationTokenSource?.Cancel();
                 _loadCancellationTokenSource = new CancellationTokenSource();
                 var cancellationToken = _loadCancellationTokenSource.Token;
 
@@ -156,14 +184,8 @@ namespace YiboFile.ViewModels
                     await _dispatcher.InvokeAsync(() =>
                     {
                         Files.Clear();
-                    }, DispatcherPriority.Background);
+                    }, DispatcherPriority.Normal);
                     SetupFileWatcher(null);
-                    return;
-                }
-
-                if (_isLoadingFiles)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[FileListViewModel] Already loading files. Returning.");
                     return;
                 }
 
@@ -171,7 +193,6 @@ namespace YiboFile.ViewModels
                 IsLoading = true;
 
                 // 异步加载文件列表
-                // 使用 Async 方法替换过时的同步方法
                 cancellationToken.ThrowIfCancellationRequested();
                 var files = await _fileListService.LoadFileSystemItemsAsync(
                     path,
@@ -181,30 +202,22 @@ namespace YiboFile.ViewModels
                 System.Diagnostics.Debug.WriteLine($"[FileListViewModel] Files loaded. Count: {files?.Count ?? 0}");
                 var sortedFiles = ApplySorting(files);
 
+                // 设置集合，确保在 UI 线程执行
+                if (cancellationToken.IsCancellationRequested) return;
+
                 await _dispatcher.InvokeAsync(() =>
                 {
-                    Files = new ObservableCollection<FileSystemItem>(sortedFiles);
-                }, DispatcherPriority.Background);
+                    if (!cancellationToken.IsCancellationRequested)
+                    {
+                        Files = new ObservableCollection<FileSystemItem>(sortedFiles);
+                    }
+                }, DispatcherPriority.Normal);
 
-                await _dispatcher.InvokeAsync(() => SetupFileWatcher(_currentPath), DispatcherPriority.Background);
-
-                var enrichmentTargets = Files.Take(MaxMetadataEnrichCount).ToList();
-                if (enrichmentTargets.Count > 0)
+                // 后台设置文件监视
+                if (!cancellationToken.IsCancellationRequested)
                 {
-                    _ = _metadataEnricher.EnrichAsync(
-                        enrichmentTargets,
-                        cancellationToken,
-                        _dispatcher,
-                        null,
-                        RefreshCollectionView);
+                    await _dispatcher.InvokeAsync(() => SetupFileWatcher(_currentPath), DispatcherPriority.Background);
                 }
-
-                _ = _folderSizeCalculator.CalculateAsync(
-                    Files,
-                    cancellationToken,
-                    _dispatcher,
-                    _fileListService.FormatFileSize,
-                    RefreshCollectionView);
             }
             catch (OperationCanceledException)
             {
@@ -213,17 +226,23 @@ namespace YiboFile.ViewModels
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[FileListViewModel] LoadPathAsync Failed: {ex}");
-                await _dispatcher.InvokeAsync(() =>
+                await _dispatcher.BeginInvoke(new Action(() =>
                 {
                     YiboFile.DialogService.Error($"加载文件列表失败: {ex.Message}", owner: _ownerWindow);
-                }, DispatcherPriority.Normal);
+                }), DispatcherPriority.Normal);
             }
             finally
             {
                 _isLoadingFiles = false;
                 IsLoading = false;
                 _loadFilesSemaphore.Release();
-                CheckPendingLoad();
+
+                // 确保信号量已释放后再检查 pending 任务
+                if (_loadFilesPending)
+                {
+                    // 使用非阻塞的 BeginInvoke 避免在 UI 线程同步等待时产生逻辑死锁
+                    _ = _dispatcher.BeginInvoke(new Action(CheckPendingLoad), DispatcherPriority.Normal);
+                }
             }
         }
 
@@ -255,6 +274,11 @@ namespace YiboFile.ViewModels
                 SetupFileWatcher(null);
                 RefreshCollectionView();
             });
+
+            // 对于手动设置的文件列表（如搜索结果），我们在此启动增强和计算
+            var cts = new CancellationTokenSource();
+            _ = _metadataEnricher.EnrichAsync(items, cts.Token, _dispatcher, null, null);
+            _ = _folderSizeCalculator.CalculateAsync(items, cts.Token, _dispatcher, _fileListService.FormatFileSize, null);
         }
 
         /// <summary>
@@ -284,61 +308,57 @@ namespace YiboFile.ViewModels
         /// </summary>
         public void SetupFileWatcher(string path)
         {
-            _currentPath = path;
-
-            if (_fileWatcher != null)
-            {
-                _fileWatcher.EnableRaisingEvents = false;
-                _fileWatcher.Dispose();
-                _fileWatcher = null;
-            }
-
-            if (string.IsNullOrEmpty(path)) return;
-
-            // Only watch local directories
-            var protocol = ProtocolManager.Parse(path);
-            if (protocol.Type != ProtocolType.Local)
-                return;
-
-            if (!Directory.Exists(path))
-                return;
-
             try
             {
+                if (_fileWatcher != null)
+                {
+                    _fileWatcher.EnableRaisingEvents = false;
+                    _fileWatcher.Created -= OnFileSystemChanged;
+                    _fileWatcher.Deleted -= OnFileSystemChanged;
+                    _fileWatcher.Changed -= OnFileSystemChanged;
+                    _fileWatcher.Renamed -= OnFileSystemChanged;
+                    _fileWatcher.Dispose();
+                    _fileWatcher = null;
+                }
+
+                if (string.IsNullOrEmpty(path) || !Directory.Exists(path))
+                {
+                    return;
+                }
+
+                // 虚拟路径不支持监听
+                if (ProtocolManager.IsVirtual(path))
+                {
+                    return;
+                }
+
                 _fileWatcher = new FileSystemWatcher
                 {
                     Path = path,
-                    NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName,
                     Filter = "*.*",
-                    IncludeSubdirectories = false,
-                    InternalBufferSize = 8192
+                    NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.DirectoryName,
+                    EnableRaisingEvents = true
                 };
 
                 _fileWatcher.Created += OnFileSystemChanged;
                 _fileWatcher.Deleted += OnFileSystemChanged;
-                _fileWatcher.Renamed += OnFileSystemChanged;
                 _fileWatcher.Changed += OnFileSystemChanged;
-
-                _fileWatcher.EnableRaisingEvents = true;
+                _fileWatcher.Renamed += OnFileSystemChanged;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"[FileListViewModel] Failed to setup FileWatcher for {path}: {ex.Message}");
             }
         }
 
         private void OnFileSystemChanged(object sender, FileSystemEventArgs e)
         {
-            if (_isLoadingFiles)
-                return;
 
             _dispatcher.BeginInvoke(new Action(() =>
             {
-                if (!_isLoadingFiles && _refreshDebounceTimer != null)
-                {
-                    _refreshDebounceTimer.Stop();
-                    _refreshDebounceTimer.Start();
-                }
-            }), DispatcherPriority.SystemIdle);
+                _refreshDebounceTimer.Stop();
+                _refreshDebounceTimer.Start();
+            }), DispatcherPriority.Background);
         }
 
         /// <summary>
