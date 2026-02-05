@@ -339,7 +339,15 @@ namespace YiboFile.Controls
 
             if (control.FilesListView != null)
             {
+                if (control._isGroupedMode)
+                {
+                    control.SwitchToNormalView();
+                }
+
                 control.FilesListView.ItemsSource = value;
+
+                // 强制刷新ListView
+                control.FilesListView.Items.Refresh();
 
                 // 触发缩略图加载
                 if (value != null)
@@ -731,32 +739,8 @@ namespace YiboFile.Controls
 
 
 
-        /// <summary>
-        /// 文件列表数据源（兼容性方法）
-        /// </summary>
-        public System.Collections.IEnumerable FilesItemsSource
-        {
-            get => ItemsSource;
-            set
-            {
-                if (_isGroupedMode)
-                {
-                    SwitchToNormalView();
-                }
-
-                ItemsSource = value;
-
-                // 强制刷新ListView
-                if (FilesListView != null)
-                {
-                    FilesListView.Items.Refresh();
-                }
-            }
-        }
-
         #region Inline Rename
 
-        public event EventHandler<RenameEventArgs> CommitRename;
 
         private void RenameTextBox_KeyDown(object sender, KeyEventArgs e)
         {
@@ -846,8 +830,9 @@ namespace YiboFile.Controls
                 return;
             }
 
-            // 触发重命名提交事件
-            CommitRename?.Invoke(this, new RenameEventArgs(item, item.RenameText));
+            // 触发重命名提交请求 (MVVM)
+            var messageBus = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService<YiboFile.ViewModels.Messaging.IMessageBus>(App.ServiceProvider);
+            messageBus?.Publish(new YiboFile.ViewModels.Messaging.Messages.RenameItemRequestMessage(item, item.RenameText));
 
             // 重置状态 (实际重命名逻辑完成后，或者失败后，由外部控制或者这里暂时关闭用于UI反馈)
             // 这里先关闭编辑状态，外部逻辑如果失败可以再次重新开启或者报错

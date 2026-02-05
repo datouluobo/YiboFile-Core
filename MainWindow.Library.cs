@@ -133,20 +133,56 @@ namespace YiboFile
         /// </summary>
         private void LibrariesListBox_ContextMenuOpening(object sender, ContextMenuEventArgs e)
         {
-            // 根据是否有选中项来启用/禁用菜单项
-            bool hasSelection = LibrariesListBox.SelectedItem != null;
-
-            if (LibraryContextMenu != null)
+            if (NavigationPanelControl?.LibraryContextMenuControl is ContextMenu cm)
             {
-                var renameItem = LibraryContextMenu.Items.OfType<MenuItem>().FirstOrDefault(m => m.Name == "LibraryRenameMenuItem");
-                var deleteItem = LibraryContextMenu.Items.OfType<MenuItem>().FirstOrDefault(m => m.Name == "LibraryDeleteMenuItem");
-                var manageItem = LibraryContextMenu.Items.OfType<MenuItem>().FirstOrDefault(m => m.Name == "LibraryManageMenuItem");
-                var openItem = LibraryContextMenu.Items.OfType<MenuItem>().FirstOrDefault(m => m.Name == "LibraryOpenInExplorerMenuItem");
+                var selectedLibrary = LibrariesListBox.SelectedItem as Library;
+                bool hasSelection = selectedLibrary != null;
 
-                if (renameItem != null) renameItem.IsEnabled = hasSelection;
-                if (deleteItem != null) deleteItem.IsEnabled = hasSelection;
-                if (manageItem != null) manageItem.IsEnabled = hasSelection;
-                if (openItem != null) openItem.IsEnabled = hasSelection;
+                SetLibraryMenuItemVisibility(cm, "LibraryRefreshItem", !hasSelection);
+                SetLibraryMenuItemAvailability(cm, "LibraryOpenInExplorerItem", hasSelection);
+                SetLibraryMenuItemAvailability(cm, "LibraryRenameItem", hasSelection);
+                SetLibraryMenuItemAvailability(cm, "LibraryDeleteItem", hasSelection);
+                SetLibraryMenuItemAvailability(cm, "LibraryManageItem", true); // 库管理总是可用
+            }
+        }
+
+        private void SetLibraryMenuItemVisibility(ContextMenu cm, string name, bool visible)
+        {
+            var item = cm.Items.OfType<MenuItem>().FirstOrDefault(x => x.Name == name);
+            if (item != null) item.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        private void SetLibraryMenuItemAvailability(ContextMenu cm, string name, bool enabled)
+        {
+            var item = cm.Items.OfType<MenuItem>().FirstOrDefault(x => x.Name == name);
+            if (item != null) item.IsEnabled = enabled;
+        }
+
+        /// <summary>
+        /// 库右键菜单点击分发
+        /// </summary>
+        private void LibraryContextMenu_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuItem menuItem)
+            {
+                switch (menuItem.Name)
+                {
+                    case "LibraryRefreshItem":
+                        LibraryRefresh_Click(sender, e);
+                        break;
+                    case "LibraryOpenInExplorerItem":
+                        LibraryOpenInExplorer_Click(sender, e);
+                        break;
+                    case "LibraryRenameItem":
+                        LibraryRename_Click(sender, e);
+                        break;
+                    case "LibraryDeleteItem":
+                        LibraryDelete_Click(sender, e);
+                        break;
+                    case "LibraryManageItem":
+                        LibraryManage_Click(sender, e);
+                        break;
+                }
             }
         }
 
@@ -215,10 +251,14 @@ namespace YiboFile
                         filesToUpdate = _columnService.SortFiles(filesToUpdate);
                     }
 
+
                     _viewModel.SecondaryPane.FileList.UpdateFiles(filesToUpdate);
-                    SecondFileBrowser.SetSearchStatus(false);
-                    SecondFileBrowser.AddressText = library.Name;
-                    SecondFileBrowser.SetLibraryBreadcrumb(library.Name);
+                    // Update VM state to trigger UI binding
+                    _viewModel.SecondaryPane.NavigationMode = "Library";
+                    _viewModel.SecondaryPane.CurrentLibrary = library;
+                    _viewModel.SecondaryPane.CurrentPath = $"lib://{library.Name}";
+
+                    // Legacy UI updates removed (handled by binding now)
 
                     if (filesToUpdate.Count == 0)
                     {
@@ -248,10 +288,18 @@ namespace YiboFile
             // 确保UI控件存在
             if (FileBrowser != null)
             {
-                _viewModel?.PrimaryPane?.FileList?.UpdateFiles(_currentFiles);
+                _viewModel.PrimaryPane.FileList.UpdateFiles(_currentFiles);
+                // Update VM state just in case it wasn't updated by navigation (e.g. direct load)
+                if (_viewModel.PrimaryPane.NavigationMode != "Library" || _viewModel.PrimaryPane.CurrentLibrary != library)
+                {
+                    _viewModel.PrimaryPane.NavigationMode = "Library";
+                    _viewModel.PrimaryPane.CurrentLibrary = library;
+                    _viewModel.PrimaryPane.CurrentPath = $"lib://{library.Name}";
+                }
+
                 FileBrowser.SetSearchStatus(false);
-                FileBrowser.AddressText = library.Name;
-                FileBrowser.SetLibraryBreadcrumb(library.Name);
+                // FileBrowser.AddressText assignment legacy removed
+                // FileBrowser.SetLibraryBreadcrumb legacy removed
 
                 if (_currentFiles.Count == 0)
                 {

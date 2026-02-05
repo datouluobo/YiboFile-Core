@@ -17,6 +17,13 @@ namespace YiboFile.Controls.Settings
 #pragma warning restore CS0067
         private TagSettingsViewModel _viewModel;
 
+        // UI 元素字段 - 用于水印状态同步
+        private TextBox _newGroupTextBox;
+        private TextBlock _newGroupWatermark;
+        private TextBox _newTagTextBox;
+        private TextBlock _newTagWatermark;
+        private ListBox _groupList;
+
         public TagManagementPanel()
         {
             InitializeUI();
@@ -81,12 +88,13 @@ namespace YiboFile.Controls.Settings
             leftPanel.Margin = new Thickness(0, 0, 20, 0);
 
             // Group List
-            var groupList = new ListBox
+            _groupList = new ListBox
             {
                 Name = "GroupList",
                 BorderThickness = new Thickness(1),
                 ItemContainerStyle = CreateGroupItemStyle()
             };
+            var groupList = _groupList;
             groupList.SetResourceReference(Control.BorderBrushProperty, "BorderBrush");
             groupList.SetResourceReference(Panel.BackgroundProperty, "InputBackgroundBrush");
             ScrollViewer.SetHorizontalScrollBarVisibility(groupList, ScrollBarVisibility.Disabled);
@@ -106,19 +114,20 @@ namespace YiboFile.Controls.Settings
             var addGroupStack = new StackPanel();
 
             // New Group TextBox with Watermark
-            var newGroupTb = new TextBox
+            _newGroupTextBox = new TextBox
             {
                 Margin = new Thickness(0, 0, 0, 5),
                 Padding = new Thickness(5),
                 BorderThickness = new Thickness(1)
             };
+            var newGroupTb = _newGroupTextBox;
             addGroupPanel.SetResourceReference(Border.BackgroundProperty, "BackgroundSecondaryBrush");
             newGroupTb.SetResourceReference(Control.BorderBrushProperty, "InputBorderBrush");
             newGroupTb.SetResourceReference(Control.BackgroundProperty, "InputBackgroundBrush");
             newGroupTb.SetResourceReference(Control.ForegroundProperty, "TextPrimaryBrush");
             newGroupTb.SetBinding(TextBox.TextProperty, new Binding("NewGroupName") { UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged });
 
-            var newGroupWatermark = new TextBlock
+            _newGroupWatermark = new TextBlock
             {
                 Text = "新分组名称...",
                 Margin = new Thickness(8, 0, 0, 5), // Adjust margin to match TextBox
@@ -126,8 +135,11 @@ namespace YiboFile.Controls.Settings
                 IsHitTestVisible = false,
                 Visibility = Visibility.Visible
             };
+            var newGroupWatermark = _newGroupWatermark;
             newGroupWatermark.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
-            newGroupTb.TextChanged += (s, e) => newGroupWatermark.Visibility = string.IsNullOrEmpty(newGroupTb.Text) ? Visibility.Visible : Visibility.Collapsed;
+            newGroupTb.TextChanged += (s, e) => UpdateGroupWatermarkVisibility();
+            newGroupTb.GotFocus += (s, e) => UpdateGroupWatermarkVisibility();
+            newGroupTb.LostFocus += (s, e) => UpdateGroupWatermarkVisibility();
 
             var newGroupGrid = new Grid { Margin = new Thickness(0, 0, 0, 5) };
             newGroupGrid.Children.Add(newGroupTb);
@@ -198,14 +210,15 @@ namespace YiboFile.Controls.Settings
             var addTagPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 20) };
 
             // New Tag TextBox with Watermark
-            var newTagTb = new TextBox
+            _newTagTextBox = new TextBox
             {
                 Padding = new Thickness(5),
                 VerticalContentAlignment = VerticalAlignment.Center
             };
+            var newTagTb = _newTagTextBox;
             newTagTb.SetBinding(TextBox.TextProperty, new Binding("SelectedItem.NewTagText") { Source = groupList, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged });
 
-            var newTagWatermark = new TextBlock
+            _newTagWatermark = new TextBlock
             {
                 Text = "输入标签名称...",
                 Foreground = Brushes.Gray,
@@ -214,7 +227,10 @@ namespace YiboFile.Controls.Settings
                 IsHitTestVisible = false,
                 Visibility = Visibility.Visible
             };
-            newTagTb.TextChanged += (s, e) => newTagWatermark.Visibility = string.IsNullOrEmpty(newTagTb.Text) ? Visibility.Visible : Visibility.Collapsed;
+            var newTagWatermark = _newTagWatermark;
+            newTagTb.TextChanged += (s, e) => UpdateTagWatermarkVisibility();
+            newTagTb.GotFocus += (s, e) => UpdateTagWatermarkVisibility();
+            newTagTb.LostFocus += (s, e) => UpdateTagWatermarkVisibility();
 
             var tagInputGrid = new Grid { Margin = new Thickness(0, 0, 10, 0), Width = 200 };
             tagInputGrid.Children.Add(newTagTb);
@@ -419,6 +435,26 @@ namespace YiboFile.Controls.Settings
         }
 
         public void SaveSettings() { }
+
+        /// <summary>
+        /// 更新分组输入框水印可见性
+        /// </summary>
+        private void UpdateGroupWatermarkVisibility()
+        {
+            if (_newGroupWatermark != null && _newGroupTextBox != null)
+                _newGroupWatermark.Visibility = string.IsNullOrEmpty(_newGroupTextBox.Text)
+                    ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        /// <summary>
+        /// 更新标签输入框水印可见性
+        /// </summary>
+        private void UpdateTagWatermarkVisibility()
+        {
+            if (_newTagWatermark != null && _newTagTextBox != null)
+                _newTagWatermark.Visibility = string.IsNullOrEmpty(_newTagTextBox.Text)
+                    ? Visibility.Visible : Visibility.Collapsed;
+        }
     }
 
     public class NullToVisibilityConverter : IValueConverter

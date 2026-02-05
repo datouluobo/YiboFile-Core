@@ -83,6 +83,22 @@ namespace YiboFile.Services
         }
 
         /// <summary>
+        /// 获取所有库（不触发事件，仅用于数据读取）
+        /// </summary>
+        public List<Library> GetAllLibraries()
+        {
+            try
+            {
+                return _repository.GetAllLibraries();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[LibraryService] GetAllLibraries Error: {ex}");
+                return new List<Library>();
+            }
+        }
+
+        /// <summary>
         /// 添加库
         /// </summary>
         public int AddLibrary(string name, string initialPath = null)

@@ -1,0 +1,7 @@
+f:\Download\GitHub\YiboFile\YiboFile-Core\Handlers\FileBrowserEventHandler.cs(162,26): error CS1061: 鈥淔ileBrowserControl鈥濇湭鍖呭惈鈥淐ommitRename鈥濈殑瀹氫箟锛屽苟涓旀壘涓嶅埌鍙帴鍙楃涓€涓€淔ileBrowserControl鈥濈被鍨嬪弬鏁扮殑鍙闂墿灞曟柟娉曗€淐ommitRename鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_x1gfno4n_wpftmp.csproj]
+
+鐢熸垚澶辫触銆?
+    2 涓鍛?
+    1 涓敊璇?
+
+宸茬敤鏃堕棿 00:00:02.82

@@ -96,4 +96,19 @@ namespace YiboFile.ViewModels.Messaging.Messages
     /// 重做请求
     /// </summary>
     public class RedoRequestMessage { }
+
+    /// <summary>
+    /// 显示属性请求
+    /// </summary>
+    public class ShowPropertiesRequestMessage
+    {
+        public FileSystemItem Item { get; }
+        public string CurrentPath { get; }
+
+        public ShowPropertiesRequestMessage(FileSystemItem item, string currentPath)
+        {
+            Item = item;
+            CurrentPath = currentPath;
+        }
+    }
 }

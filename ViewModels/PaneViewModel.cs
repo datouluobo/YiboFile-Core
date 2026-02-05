@@ -49,6 +49,9 @@ namespace YiboFile.ViewModels
         private DispatcherTimer _refreshDebounceTimer;
         private string _searchStatusText;
         private bool _isSearching;
+        private readonly System.Collections.Generic.Stack<string> _backStack = new System.Collections.Generic.Stack<string>();
+        private readonly System.Collections.Generic.Stack<string> _forwardStack = new System.Collections.Generic.Stack<string>();
+        private bool _isNavigatingHistory; // 内部标志位，防止历史导航时重复入栈
 
         #endregion
 
@@ -88,8 +91,44 @@ namespace YiboFile.ViewModels
             get => _currentPath;
             set
             {
+                // 核心修复：防止路径闪变
+                // 如果当前已经是虚拟路径（如 lib://），且尝试设置的是一个普通物理路径（不含协议头）
+                // 且该物理路径不包含协议标志，则我们应该谨慎对待，或者保持虚拟路径的“身份”
+
+                string oldValue = _currentPath;
                 if (SetProperty(ref _currentPath, value))
                 {
+                    // 自动根据路径前缀同步导航模式
+                    if (value != null)
+                    {
+                        if (value.StartsWith("lib://", StringComparison.OrdinalIgnoreCase))
+                        {
+                            _navigationMode = "Library";
+                            OnPropertyChanged(nameof(NavigationMode));
+                        }
+                        else if (value.StartsWith("tag://", StringComparison.OrdinalIgnoreCase))
+                        {
+                            _navigationMode = "Tag";
+                            OnPropertyChanged(nameof(NavigationMode));
+                        }
+                        else if (value.StartsWith("search://", StringComparison.OrdinalIgnoreCase))
+                        {
+                            _navigationMode = "Search";
+                            OnPropertyChanged(nameof(NavigationMode));
+                        }
+                        else if (!string.IsNullOrEmpty(value) && !ProtocolManager.IsVirtual(value))
+                        {
+                            // 只有在明确不是虚拟路径且非上述特殊协议时才切换到 Path 模式
+                            if (_navigationMode != "Path")
+                            {
+                                _navigationMode = "Path";
+                                OnPropertyChanged(nameof(NavigationMode));
+                                // 切换到普通路径模式时，清除库和标签的选中状态，防止残留
+                                CurrentLibrary = null;
+                                CurrentTag = null;
+                            }
+                        }
+                    }
                     PathChanged?.Invoke(this, value);
                 }
             }
@@ -222,13 +261,6 @@ namespace YiboFile.ViewModels
             }
         }
 
-        public bool IsSecondary => _isSecondary;
-
-        public void RequestActivation()
-        {
-            _messageBus.Publish(new SetFocusedPaneMessage(_isSecondary));
-        }
-
         public string SearchStatusText
         {
             get => _searchStatusText;
@@ -241,9 +273,48 @@ namespace YiboFile.ViewModels
             set => SetProperty(ref _isSearching, value);
         }
 
+        public bool IsSecondary => _isSecondary;
+
+        public void RequestActivation()
+        {
+            _messageBus.Publish(new SetFocusedPaneMessage(_isSecondary));
+        }
+
         public SearchViewModel Search { get; }
 
+        #region Commands
+
         public ICommand RefreshCommand { get; }
+        public ICommand NavigateBackCommand { get; }
+        public ICommand NavigateForwardCommand { get; }
+        public ICommand NavigateUpCommand { get; }
+        public ICommand PropertiesCommand { get; }
+        public ICommand NewFolderCommand { get; }
+        public ICommand NewFileCommand { get; }
+        public ICommand DeleteCommand { get; }
+        public ICommand CopyCommand { get; }
+        public ICommand CutCommand { get; }
+        public ICommand PasteCommand { get; }
+        public ICommand RenameCommand { get; }
+        public ICommand UndoCommand { get; }
+        public ICommand RedoCommand { get; }
+
+        #endregion
+
+        #region Navigation State
+
+        public bool CanNavigateBack => _backStack.Count > 0;
+        public bool CanNavigateForward => _forwardStack.Count > 0;
+        public bool CanNavigateUp
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(CurrentPath) || ProtocolManager.IsVirtual(CurrentPath)) return false;
+                try { return !string.IsNullOrEmpty(Path.GetDirectoryName(CurrentPath)); } catch { return false; }
+            }
+        }
+
+        #endregion
 
         #endregion
 
@@ -261,7 +332,23 @@ namespace YiboFile.ViewModels
             _isSecondary = isSecondary;
             _files = new ObservableCollection<FileSystemItem>();
 
+            // 初始化命令
             RefreshCommand = new RelayCommand(() => RequestRefresh());
+            NavigateBackCommand = new RelayCommand(ExecuteNavigateBack, () => CanNavigateBack);
+            NavigateForwardCommand = new RelayCommand(ExecuteNavigateForward, () => CanNavigateForward);
+            NavigateUpCommand = new RelayCommand(ExecuteNavigateUp, () => CanNavigateUp);
+
+            // 下列命令初步实现，后续可接入 FileOperationService
+            PropertiesCommand = new RelayCommand(ExecuteShowProperties, () => SelectedItem != null);
+            NewFolderCommand = new RelayCommand(ExecuteNewFolder);
+            NewFileCommand = new RelayCommand(ExecuteNewFile);
+            DeleteCommand = new RelayCommand(ExecuteDelete, () => SelectedItems.Count > 0);
+            CopyCommand = new RelayCommand(ExecuteCopy, () => SelectedItems.Count > 0);
+            CutCommand = new RelayCommand(ExecuteCut, () => SelectedItems.Count > 0);
+            PasteCommand = new RelayCommand(ExecutePaste);
+            RenameCommand = new RelayCommand(ExecuteRename, () => SelectedItems.Count == 1);
+            UndoCommand = new RelayCommand(ExecuteUndo);
+            RedoCommand = new RelayCommand(ExecuteRedo);
 
             Search = new SearchViewModel(_messageBus);
             Search.SetTargetPane(isSecondary ? "Secondary" : "Primary");
@@ -273,7 +360,6 @@ namespace YiboFile.ViewModels
             // 订阅实时更新消息
             _messageBus.Subscribe<NotesUpdatedMessage>(OnNotesUpdated);
             _messageBus.Subscribe<FileTagsChangedMessage>(OnFileTagsChanged);
-            _messageBus.Subscribe<TagListChangedMessage>(OnTagListChanged);
             _messageBus.Subscribe<TagListChangedMessage>(OnTagListChanged);
             // 订阅刷新消息
             _messageBus.Subscribe<RefreshFileListMessage>(OnRefreshFileList);
@@ -297,7 +383,7 @@ namespace YiboFile.ViewModels
                 _libraryService.LibrariesLoaded += OnLibrariesLoaded;
             }
 
-            // 初始化防抖定时器
+            // 初始化显示防抖定时器
             _refreshDebounceTimer = new DispatcherTimer(DispatcherPriority.Background, _dispatcher)
             {
                 Interval = TimeSpan.FromMilliseconds(500)
@@ -308,6 +394,67 @@ namespace YiboFile.ViewModels
                 Refresh();
             };
         }
+
+        #region Command Implementations
+
+        private void ExecuteNavigateBack()
+        {
+            if (_backStack.Count == 0) return;
+            _isNavigatingHistory = true;
+            _forwardStack.Push(CurrentPath);
+            var prev = _backStack.Pop();
+            NavigateTo(prev);
+            _isNavigatingHistory = false;
+            OnPropertyChanged(nameof(CanNavigateBack));
+            OnPropertyChanged(nameof(CanNavigateForward));
+        }
+
+        private void ExecuteNavigateForward()
+        {
+            if (_forwardStack.Count == 0) return;
+            _isNavigatingHistory = true;
+            _backStack.Push(CurrentPath);
+            var next = _forwardStack.Pop();
+            NavigateTo(next);
+            _isNavigatingHistory = false;
+            OnPropertyChanged(nameof(CanNavigateBack));
+            OnPropertyChanged(nameof(CanNavigateForward));
+        }
+
+        private void ExecuteNavigateUp()
+        {
+            if (string.IsNullOrEmpty(CurrentPath)) return;
+            var parent = Path.GetDirectoryName(CurrentPath);
+            if (!string.IsNullOrEmpty(parent)) NavigateTo(parent);
+        }
+
+        private void ExecuteShowProperties()
+        {
+            if (SelectedItem != null)
+            {
+                _messageBus.Publish(new ShowPropertiesRequestMessage(SelectedItem, CurrentPath));
+            }
+            else if (!string.IsNullOrEmpty(CurrentPath))
+            {
+                _messageBus.Publish(new ShowPropertiesRequestMessage(null, CurrentPath));
+            }
+        }
+
+        private void ExecuteNewFolder() => _messageBus.Publish(new CreateFolderRequestMessage(CurrentPath));
+        private void ExecuteNewFile()
+        {
+            // 如果没有专用的 NewFileRequestMessage，可以考虑后续添加或发布通用消息
+        }
+
+        private void ExecuteDelete() => _messageBus.Publish(new DeleteItemsRequestMessage(SelectedItems.ToList()));
+        private void ExecuteCopy() => _messageBus.Publish(new CopyItemsRequestMessage(SelectedItems.ToList()));
+        private void ExecuteCut() => _messageBus.Publish(new CutItemsRequestMessage(SelectedItems.ToList()));
+        private void ExecutePaste() => _messageBus.Publish(new PasteItemsRequestMessage(CurrentPath));
+        private void ExecuteRename() => _messageBus.Publish(new RenameItemRequestMessage(SelectedItem));
+        private void ExecuteUndo() => _messageBus.Publish(new UndoRequestMessage());
+        private void ExecuteRedo() => _messageBus.Publish(new RedoRequestMessage());
+
+        #endregion
 
         #endregion
 
@@ -320,10 +467,27 @@ namespace YiboFile.ViewModels
         {
             if (string.IsNullOrEmpty(path)) return;
 
-            NavigationMode = "Path";
+            // 记录历史
+            if (!_isNavigatingHistory && !string.IsNullOrEmpty(CurrentPath) && path != CurrentPath)
+            {
+                _backStack.Push(CurrentPath);
+                _forwardStack.Clear();
+                OnPropertyChanged(nameof(CanNavigateBack));
+                OnPropertyChanged(nameof(CanNavigateForward));
+            }
+
+            // 识别协议并保持模式
+            var protocol = ProtocolManager.Parse(path);
+            if (protocol.Type == ProtocolType.Library) NavigationMode = "Library";
+            else if (protocol.Type == ProtocolType.Tag) NavigationMode = "Tag";
+            else NavigationMode = "Path";
+
             CurrentLibrary = null;
             CurrentTag = null;
             CurrentPath = path;
+
+            // 更新 Up 状态
+            OnPropertyChanged(nameof(CanNavigateUp));
 
             if (loadData && !IsLoadingDisabled)
             {
@@ -338,20 +502,30 @@ namespace YiboFile.ViewModels
         /// <summary>
         /// 导航到指定库
         /// </summary>
+        /// <summary>
+        /// 检查是否需要导航到指定的库
+        /// </summary>
+        public bool ShouldNavigateToLibrary(Library library)
+        {
+            if (library == null) return false;
+            return _currentLibrary != library || _navigationMode != "Library";
+        }
+
         public void NavigateTo(Library library, bool loadData = true)
         {
             if (library == null) return;
 
             NavigationMode = "Library";
             CurrentTag = null;
-            CurrentPath = null;
             CurrentLibrary = library;
+            // 关键修复：确保 CurrentPath 包含协议头，以便地址栏正确识别模式
+            CurrentPath = $"lib://{library.Name}";
 
             if (loadData && !IsLoadingDisabled)
             {
                 if (FileList != null)
                 {
-                    _ = FileList.LoadPathAsync($"lib://{library.Name}");
+                    _ = FileList.LoadPathAsync(CurrentPath);
                 }
                 else
                 {
@@ -373,14 +547,15 @@ namespace YiboFile.ViewModels
 
             NavigationMode = "Tag";
             CurrentLibrary = null;
-            CurrentPath = null;
             CurrentTag = tag;
+            // 关键修复：确保 CurrentPath 包含协议头
+            CurrentPath = $"tag://{tag.Name}";
 
             if (loadData && !IsLoadingDisabled)
             {
                 if (FileList != null)
                 {
-                    _ = FileList.LoadPathAsync($"tag://{tag.Name}");
+                    _ = FileList.LoadPathAsync(CurrentPath);
                 }
                 else
                 {
@@ -590,7 +765,13 @@ namespace YiboFile.ViewModels
                 var filePaths = await Task.Run(() =>
                 {
                     token.ThrowIfCancellationRequested();
-                    return _tagService.GetFilesByTag(tag.Id);
+                    // 优先使用 ID 查询，若无结果则回退到名称查询
+                    var paths = _tagService.GetFilesByTag(tag.Id);
+                    if ((paths == null || !paths.Any()) && !string.IsNullOrEmpty(tag.Name))
+                    {
+                        paths = _tagService.GetFilesByTagName(tag.Name);
+                    }
+                    return paths;
                 }, token);
 
                 if (token.IsCancellationRequested) return;

@@ -140,7 +140,7 @@ namespace YiboFile.Controls
 
             if (protocolInfo.Type == ProtocolType.Library)
             {
-                identifier = "library ";
+                identifier = "lib ";
                 specialContent = protocolInfo.TargetPath;
                 isSpecial = true;
             }
@@ -246,6 +246,12 @@ namespace YiboFile.Controls
             else if (protocolInfo.Type == ProtocolType.Search)
             {
                 identifier = "search ";
+                specialContent = protocolInfo.TargetPath;
+                isSpecial = true;
+            }
+            else if (protocolInfo.Type == ProtocolType.Library)
+            {
+                identifier = "lib ";
                 specialContent = protocolInfo.TargetPath;
                 isSpecial = true;
             }
@@ -601,7 +607,7 @@ namespace YiboFile.Controls
 
             BreadcrumbText.Inlines.Clear();
 
-            var prefixRun = new System.Windows.Documents.Run("library ")
+            var prefixRun = new System.Windows.Documents.Run("lib ")
             {
                 Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 165, 0)),
                 FontWeight = FontWeights.SemiBold
@@ -1136,6 +1142,14 @@ namespace YiboFile.Controls
             }
         }
 
+        private void HistoryListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (HistoryListBox.SelectedItem is HistoryItem item)
+            {
+                NavigateToHistoryItem(item);
+            }
+        }
+
         private void NavigateToHistoryItem(HistoryItem item)
         {
             HistoryPopup.IsOpen = false;
@@ -1175,6 +1189,22 @@ namespace YiboFile.Controls
             // else 默认为 LocalPath
 
             SearchHistoryService.Instance.Add(content, type);
+        }
+
+        private void AddressBarRefresh_Click(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is ViewModels.PaneViewModel vm)
+            {
+                vm.RefreshCommand?.Execute(null);
+            }
+        }
+
+        private void AddressBarCopyPath_Click(object sender, RoutedEventArgs e)
+        {
+            if (!string.IsNullOrEmpty(AddressText))
+            {
+                FastSetClipboardText(AddressText);
+            }
         }
 
         private static T FindAncestor<T>(DependencyObject current) where T : DependencyObject

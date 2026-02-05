@@ -207,9 +207,9 @@ namespace YiboFile
                 SaveConfig = (config) => ConfigurationService.Instance.SaveNow(),
 
 
-                GetCurrentPath = () => _secondCurrentPath ?? _currentPath,
-                SetCurrentPath = (path) => _secondCurrentPath = path,
-                SetNavigationCurrentPath = (path) => _secondCurrentPath = path,
+                GetCurrentPath = () => _viewModel?.SecondaryPane?.CurrentPath ?? _currentPath,
+                SetCurrentPath = (path) => _viewModel?.SecondaryPane?.NavigateTo(path, loadData: false),
+                SetNavigationCurrentPath = (path) => _viewModel?.SecondaryPane?.NavigateTo(path, loadData: false),
                 LoadLibraryFiles = (library) =>
                 {
                     // 委托给 ViewModel 加载
@@ -286,7 +286,7 @@ namespace YiboFile
             // 如果没有标签页，创建一个默认标签页
             if (_secondTabService.Tabs.Count == 0)
             {
-                var path = _secondCurrentPath ?? _currentPath;
+                var path = _viewModel?.SecondaryPane?.CurrentPath ?? _currentPath;
                 // 使用 CreatePathTab 确保创建 UI 元素
                 _secondTabService.CreatePathTab(path, forceNewTab: true, activate: true);
             }
@@ -304,9 +304,6 @@ namespace YiboFile
             // 路径变化事件
             SecondFileBrowser.PathChanged += SecondFileBrowser_PathChanged;
             SecondFileBrowser.BreadcrumbClicked += SecondFileBrowser_BreadcrumbClicked;
-            SecondFileBrowser.NavigationBack += SecondFileBrowser_NavigationBack;
-            SecondFileBrowser.NavigationForward += SecondFileBrowser_NavigationForward;
-            SecondFileBrowser.NavigationUp += SecondFileBrowser_NavigationUp;
 
             // 双击打开事件
             SecondFileBrowser.FilesPreviewMouseDoubleClick += SecondFileBrowser_FilesDoubleClick;
@@ -385,7 +382,6 @@ namespace YiboFile
             SecondFileBrowser.FileCut += (s, e) => _menuEventHandler?.Cut_Click(s, e);
             SecondFileBrowser.FileRename += (s, e) => _menuEventHandler?.Rename_Click(s, e);
             */
-            SecondFileBrowser.FileProperties += (s, e) => ShowSelectedFileProperties();
 
             // F2快捷键和其他键盘事件支持
             // Handled by _secondFileListHandler
@@ -405,25 +401,12 @@ namespace YiboFile
             /*
             SecondFileBrowser.FileNewFolder += (s, e) => _menuEventHandler?.NewFolder_Click(s, e);
             SecondFileBrowser.FileNewFile += (s, e) => _menuEventHandler?.NewFile_Click(s, e);
-            SecondFileBrowser.FileRefresh += (s, e) => LoadSecondFileBrowserDirectory(_secondCurrentPath);
+            SecondFileBrowser.FileRefresh += (s, e) => LoadSecondFileBrowserDirectory(_viewModel.SecondaryPane.CurrentPath);
             SecondFileBrowser.FileCopy += async (s, e) => await CopySelectedFilesAsync();
             SecondFileBrowser.FilePaste += async (s, e) => await PasteFilesAsync();
             */
             SecondFileBrowser.FileAddTag += FileAddTag_Click;
 
-            // F2 Rename handling for Second Browser
-            SecondFileBrowser.CommitRename += (s, e) =>
-            {
-                if (e.Item == null || string.IsNullOrWhiteSpace(e.NewName)) return;
-
-                IFileOperationContext context = null;
-                // Currently only Path mode supported for Second Browser usually?
-                // Or verify if it's library. Assuming Path mode for now or reuse simple context.
-                context = new PathOperationContext(_secondCurrentPath, SecondFileBrowser, this, () => LoadSecondFileBrowserDirectory(_secondCurrentPath));
-
-                var op = new Services.FileOperations.RenameOperation(context, this, _fileOperationService);
-                op.Execute(e.Item, e.NewName);
-            };
 
 
             /*
@@ -479,11 +462,12 @@ namespace YiboFile
             else
             {
                 // 处理无选择的情况：显示当前文件夹信息
-                if (!string.IsNullOrEmpty(_secondCurrentPath) && Directory.Exists(_secondCurrentPath))
+                var currentPath = _viewModel?.SecondaryPane?.CurrentPath;
+                if (!string.IsNullOrEmpty(currentPath) && Directory.Exists(currentPath))
                 {
                     try
                     {
-                        var dirInfo = new DirectoryInfo(_secondCurrentPath);
+                        var dirInfo = new DirectoryInfo(currentPath);
                         var folderItem = new FileSystemItem
                         {
                             Name = dirInfo.Name,
@@ -508,7 +492,6 @@ namespace YiboFile
         }
 
         // 副文件列表导航状态
-        private string _secondCurrentPath;
         private readonly Stack<string> _secondNavHistory = new Stack<string>();
         private readonly Stack<string> _secondNavForward = new Stack<string>();
 
@@ -524,18 +507,20 @@ namespace YiboFile
                 }
                 else if (!string.IsNullOrEmpty(_secondTabService.ActiveTab.Path))
                 {
-                    _secondCurrentPath = _secondTabService.ActiveTab.Path;
+                    LoadSecondFileBrowserDirectory(_secondTabService.ActiveTab.Path);
+                    return;
                 }
             }
 
             // 优先使用现有的副面板路径
-            if (string.IsNullOrEmpty(_secondCurrentPath))
+            string targetPath = _viewModel?.SecondaryPane?.CurrentPath;
+            if (string.IsNullOrEmpty(targetPath))
             {
                 // 只有在完全没有状态时才默认跟随主面板
-                _secondCurrentPath = _currentPath;
+                targetPath = _currentPath;
             }
 
-            LoadSecondFileBrowserDirectory(_secondCurrentPath);
+            LoadSecondFileBrowserDirectory(targetPath);
         }
 
         private async void LoadSecondFileBrowserDirectory(string path)
@@ -611,9 +596,14 @@ namespace YiboFile
                         };
                     });
 
+                    var currentPath = _viewModel?.SecondaryPane?.CurrentPath;
                     // 修复：显式更新副面板的信息栏
-                    _secondFileInfoService?.ShowFileInfo(folderItem);
-                    _messageBus.Publish(new FileSelectionChangedMessage(new List<FileSystemItem> { folderItem }));
+                    if (currentPath == path)
+                    {
+                        // ONLY update if we are still on that path
+                        _secondFileInfoService?.ShowFileInfo(folderItem);
+                        _messageBus.Publish(new FileSelectionChangedMessage(new List<FileSystemItem> { folderItem }));
+                    }
                 }
                 catch { }
             }
@@ -622,7 +612,8 @@ namespace YiboFile
         private void SecondFileBrowser_PathChanged(object sender, string newPath)
         {
             if (string.IsNullOrEmpty(newPath)) return;
-            if (newPath == _secondCurrentPath) return;
+            var currentPath = _viewModel?.SecondaryPane?.CurrentPath;
+            if (newPath == currentPath) return;
 
             // 如果当前在库模式且新路径看起来像库名（非协议也非绝对路径），忽略更新
             // 避免 LoadSecondFileBrowserLibrary 设置 AddressText 触发的误导航
@@ -634,12 +625,12 @@ namespace YiboFile
                 return;
             }
 
-            if (!string.IsNullOrEmpty(_secondCurrentPath))
+            if (!string.IsNullOrEmpty(currentPath))
             {
-                _secondNavHistory.Push(_secondCurrentPath);
+                _secondNavHistory.Push(currentPath);
             }
             _secondNavForward.Clear();
-            _secondCurrentPath = newPath;
+            // _secondCurrentPath = newPath; // Removed MVVM migration
 
             // 同步更新当前激活的标签页路径
             if (_secondTabService != null)
@@ -670,38 +661,6 @@ namespace YiboFile
             SecondFileBrowser_PathChanged(sender, path);
         }
 
-        private void SecondFileBrowser_NavigationBack(object sender, RoutedEventArgs e)
-        {
-            if (_secondNavHistory.Count > 0)
-            {
-                _secondNavForward.Push(_secondCurrentPath);
-                _secondCurrentPath = _secondNavHistory.Pop();
-                // 更新副标签页标题
-                _secondTabService?.UpdateActiveTabPath(_secondCurrentPath);
-                LoadSecondFileBrowserDirectory(_secondCurrentPath);
-            }
-        }
-
-        private void SecondFileBrowser_NavigationForward(object sender, RoutedEventArgs e)
-        {
-            if (_secondNavForward.Count > 0)
-            {
-                _secondNavHistory.Push(_secondCurrentPath);
-                _secondCurrentPath = _secondNavForward.Pop();
-                // 更新副标签页标题
-                _secondTabService?.UpdateActiveTabPath(_secondCurrentPath);
-                LoadSecondFileBrowserDirectory(_secondCurrentPath);
-            }
-        }
-
-        private void SecondFileBrowser_NavigationUp(object sender, RoutedEventArgs e)
-        {
-            var parent = System.IO.Path.GetDirectoryName(_secondCurrentPath);
-            if (!string.IsNullOrEmpty(parent))
-            {
-                SecondFileBrowser_PathChanged(sender, parent);
-            }
-        }
 
         private void SecondFileBrowser_FilesDoubleClick(object sender, MouseButtonEventArgs e)
         {
@@ -752,7 +711,7 @@ namespace YiboFile
             {
                 // 副列表支持路径和库模式
                 var secLib = _viewModel?.SecondaryPane?.CurrentLibrary;
-                return (SecondFileBrowser, _secondCurrentPath, secLib);
+                return (SecondFileBrowser, _viewModel?.SecondaryPane?.CurrentPath, secLib);
             }
             return (FileBrowser, _currentPath, _currentLibrary);
         }
@@ -768,9 +727,9 @@ namespace YiboFile
                 {
                     LoadSecondFileBrowserLibrary(_viewModel.SecondaryPane.CurrentLibrary);
                 }
-                else if (!string.IsNullOrEmpty(_secondCurrentPath))
+                else if (!string.IsNullOrEmpty(_viewModel?.SecondaryPane?.CurrentPath))
                 {
-                    LoadSecondFileBrowserDirectory(_secondCurrentPath);
+                    LoadSecondFileBrowserDirectory(_viewModel.SecondaryPane.CurrentPath);
                 }
             }
             else
@@ -861,7 +820,7 @@ namespace YiboFile
             if (tab.Type == TabType.Library)
             {
                 // 设置当前路径为空，表示在库模式
-                _secondCurrentPath = null;
+                // _secondCurrentPath = null; // Removed MVVM migration
                 // 加载库
                 if (tab.Library != null)
                 {
@@ -871,7 +830,7 @@ namespace YiboFile
             else
             {
                 // 路径模式
-                _secondCurrentPath = tab.Path;
+                // _secondCurrentPath = tab.Path; // Removed MVVM migration
 
                 // 加载路径
                 if (tab.Path != null && !tab.Path.StartsWith("search://", StringComparison.OrdinalIgnoreCase))

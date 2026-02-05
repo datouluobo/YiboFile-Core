@@ -1,17 +1,14 @@
-  正在确定要还原的项目…
-  所有项目均是最新的，无法还原。
-F:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.Initialization.cs(448,37): error CS0117: “DatabaseManager”未包含“RemoveFavorite”的定义 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_klnkei1c_wpftmp.csproj]
-F:\Download\GitHub\YiboFile\YiboFile-Core\Services\FileSystem\FileList\FileMetadataEnricher.cs(149,46): error CS0117: “DatabaseManager”未包含“GetFileTags”的定义 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_klnkei1c_wpftmp.csproj]
-F:\Download\GitHub\YiboFile\YiboFile-Core\Services\FileSystem\FileInfo\FileInfoService.cs(374,54): error CS0117: “DatabaseManager”未包含“GetTagColorByName”的定义 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_klnkei1c_wpftmp.csproj]
-F:\Download\GitHub\YiboFile\YiboFile-Core\Services\FileSystem\FileInfo\FileInfoService.cs(425,43): error CS0117: “DatabaseManager”未包含“GetTagColorByName”的定义 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_klnkei1c_wpftmp.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.Handlers.cs(283,29): error CS1061: 鈥淔ileBrowserControl鈥濇湭鍖呭惈鈥淔ileUndo鈥濈殑瀹氫箟锛屽苟涓旀壘涓嶅埌鍙帴鍙楃涓€涓€淔ileBrowserControl鈥濈被鍨嬪弬鏁扮殑鍙闂墿灞曟柟娉曗€淔ileUndo鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_r4e1hp1b_wpftmp.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.Handlers.cs(284,29): error CS1061: 鈥淔ileBrowserControl鈥濇湭鍖呭惈鈥淔ileRedo鈥濈殑瀹氫箟锛屽苟涓旀壘涓嶅埌鍙帴鍙楃涓€涓€淔ileBrowserControl鈥濈被鍨嬪弬鏁扮殑鍙闂墿灞曟柟娉曗€淔ileRedo鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_r4e1hp1b_wpftmp.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.LayoutMode.cs(307,31): error CS1061: 鈥淔ileBrowserControl鈥濇湭鍖呭惈鈥淣avigationBack鈥濈殑瀹氫箟锛屽苟涓旀壘涓嶅埌鍙帴鍙楃涓€涓€淔ileBrowserControl鈥濈被鍨嬪弬鏁扮殑鍙闂墿灞曟柟娉曗€淣avigationBack鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_r4e1hp1b_wpftmp.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.LayoutMode.cs(308,31): error CS1061: 鈥淔ileBrowserControl鈥濇湭鍖呭惈鈥淣avigationForward鈥濈殑瀹氫箟锛屽苟涓旀壘涓嶅埌鍙帴鍙楃涓€涓€淔ileBrowserControl鈥濈被鍨嬪弬鏁扮殑鍙闂墿灞曟柟娉曗€淣avigationForward鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_r4e1hp1b_wpftmp.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.LayoutMode.cs(309,31): error CS1061: 鈥淔ileBrowserControl鈥濇湭鍖呭惈鈥淣avigationUp鈥濈殑瀹氫箟锛屽苟涓旀壘涓嶅埌鍙帴鍙楃涓€涓€淔ileBrowserControl鈥濈被鍨嬪弬鏁扮殑鍙闂墿灞曟柟娉曗€淣avigationUp鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_r4e1hp1b_wpftmp.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.LayoutMode.cs(388,31): error CS1061: 鈥淔ileBrowserControl鈥濇湭鍖呭惈鈥淔ileProperties鈥濈殑瀹氫箟锛屽苟涓旀壘涓嶅埌鍙帴鍙楃涓€涓€淔ileBrowserControl鈥濈被鍨嬪弬鏁扮殑鍙闂墿灞曟柟娉曗€淔ileProperties鈥?鏄惁缂哄皯 using 鎸囦护鎴栫▼搴忛泦寮曠敤?) [f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_r4e1hp1b_wpftmp.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\ViewModels\PaneViewModel.cs(973,17): error CS0103: 褰撳墠涓婁笅鏂囦腑涓嶅瓨鍦ㄥ悕绉扳€淪earchStatusText鈥?[f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_r4e1hp1b_wpftmp.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\ViewModels\PaneViewModel.cs(974,17): error CS0103: 褰撳墠涓婁笅鏂囦腑涓嶅瓨鍦ㄥ悕绉扳€淚sSearching鈥?[f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_r4e1hp1b_wpftmp.csproj]
 
-生成失败。
+鐢熸垚澶辫触銆?
+    4 涓鍛?
+    8 涓敊璇?
 
-F:\Download\GitHub\YiboFile\YiboFile-Core\MainWindow.Initialization.cs(448,37): error CS0117: “DatabaseManager”未包含“RemoveFavorite”的定义 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_klnkei1c_wpftmp.csproj]
-F:\Download\GitHub\YiboFile\YiboFile-Core\Services\FileSystem\FileList\FileMetadataEnricher.cs(149,46): error CS0117: “DatabaseManager”未包含“GetFileTags”的定义 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_klnkei1c_wpftmp.csproj]
-F:\Download\GitHub\YiboFile\YiboFile-Core\Services\FileSystem\FileInfo\FileInfoService.cs(374,54): error CS0117: “DatabaseManager”未包含“GetTagColorByName”的定义 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_klnkei1c_wpftmp.csproj]
-F:\Download\GitHub\YiboFile\YiboFile-Core\Services\FileSystem\FileInfo\FileInfoService.cs(425,43): error CS0117: “DatabaseManager”未包含“GetTagColorByName”的定义 [F:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_klnkei1c_wpftmp.csproj]
-    0 个警告
-    4 个错误
-
-已用时间 00:00:03.46
+宸茬敤鏃堕棿 00:00:04.11

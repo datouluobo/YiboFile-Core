@@ -3,147 +3,119 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:controls="clr-namespace:YiboFile.Controls"
+             xmlns:local="clr-namespace:YiboFile.Controls"
+             xmlns:helpers="clr-namespace:YiboFile.Helpers"
              mc:Ignorable="d" 
-             d:DesignHeight="30" d:DesignWidth="800">
+             d:DesignHeight="32" d:DesignWidth="800">
+
     <UserControl.Resources>
-        <controls:HistoryTypeToIconConverter x:Key="HistoryTypeToIconConverter"/>
-        <controls:HistoryTypeToTextConverter x:Key="HistoryTypeToTextConverter"/>
-    </UserControl.Resources>
-    
-    <Grid>
-        <!-- 编辑模式容器 -->
-        <Grid x:Name="EditModeContainer" Visibility="Collapsed">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <helpers:ResourceKeyConverter x:Key="ResourceKeyConverter"/>
 
-            <TextBox Name="AddressTextBox" 
-                     Grid.Column="0"
-                     TextChanged="AddressTextBox_TextChanged"
-                     KeyDown="AddressTextBox_KeyDown"
-                     PreviewKeyDown="AddressTextBox_PreviewKeyDown"
-                     LostFocus="AddressTextBox_LostFocus"
-                     GotFocus="AddressTextBox_GotFocus"
-                     PreviewMouseRightButtonDown="AddressTextBox_PreviewMouseRightButtonDown"
-                     ContextMenuOpening="AddressTextBox_ContextMenuOpening"
-                     Visibility="Visible"
-                     VerticalContentAlignment="Center"
-                     VerticalAlignment="Stretch"
-                     Height="30"
-                     Padding="5,3"
-                     MaxLength="100"
-                     AcceptsReturn="False"
-                     AcceptsTab="False">
-                <TextBox.CommandBindings>
-                    <CommandBinding Command="ApplicationCommands.Copy" Executed="CopyCommand_Executed" CanExecute="CopyCommand_CanExecute"/>
-                    <CommandBinding Command="ApplicationCommands.Cut" Executed="CutCommand_Executed" CanExecute="CutCommand_CanExecute"/>
-                    <CommandBinding Command="ApplicationCommands.Paste" Executed="PasteCommand_Executed" CanExecute="PasteCommand_CanExecute"/>
-                    <CommandBinding Command="ApplicationCommands.SelectAll" Executed="SelectAllCommand_Executed"/>
-                </TextBox.CommandBindings>
-            </TextBox>
-
-            <ToggleButton x:Name="SearchModeToggle"
-                          Grid.Column="1"
-                          Width="30"
-                          Height="30"
-                          BorderThickness="0"
-                          Background="Transparent"
-                          Focusable="False"
-                          Click="SearchModeToggle_Click"
-                          FontSize="14"
-                          FontWeight="Bold">
-                <ToggleButton.Style>
-                    <Style TargetType="ToggleButton">
-                        <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
-                        <Style.Triggers>
-                            <Trigger Property="IsChecked" Value="True">
-                                <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}"/>
-                            </Trigger>
-                        </Style.Triggers>
-                    </Style>
-                </ToggleButton.Style>
-            </ToggleButton>
-
-            <!-- 历史记录下拉按钮 -->
-            <ToggleButton x:Name="HistoryDropdownButton"
-                          Grid.Column="2"
-                          Width="20"
-                          Height="30"
-                          BorderThickness="0"
-                          Background="Transparent"
-                          Focusable="False"
-                          Click="HistoryDropdownButton_Click"
-                          Content="▼"
-                          FontSize="10">
-                <ToggleButton.Style>
-                    <Style TargetType="ToggleButton">
-                        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
-                        <Style.Triggers>
+        <Style x:Key="SearchToggleStyle" TargetType="ToggleButton">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="4"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border Background="{TemplateBinding Background}" 
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                Padding="{TemplateBinding Padding}"
+                                CornerRadius="3">
+                            <TextBlock x:Name="Icon"
+                                       Text="&#xE721;" 
+                                       FontFamily="Segoe MDL2 Assets" 
+                                       VerticalAlignment="Center" 
+                                       HorizontalAlignment="Center"
+                                       FontSize="14"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
-                                <Setter Property="Background" Value="{DynamicResource ButtonHoverBackgroundBrush}"/>
+                                <Setter Property="Background" Value="{DynamicResource ControlHoverBrush}"/>
+                                <Setter TargetName="Icon" Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
                             </Trigger>
-                        </Style.Triggers>
-                    </Style>
-                </ToggleButton.Style>
-            </ToggleButton>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource AccentDefaultBrush}"/>
+                                <Setter TargetName="Icon" Property="Foreground" Value="White"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- 背景和边框 -->
+        <Border Grid.ColumnSpan="3"
+                Background="{DynamicResource ControlBackgroundBrush}"
+                BorderBrush="{DynamicResource BorderSubtleBrush}"
+                BorderThickness="1"
+                CornerRadius="6"/>
+
+        <!-- 编辑模式容器 -->
+        <Grid Name="EditModeContainer" Grid.Column="1" Visibility="Collapsed">
+            <TextBox Name="AddressTextBox"
+                     Background="Transparent"
+                     BorderThickness="0"
+                     VerticalContentAlignment="Center"
+                     Padding="8,0"
+                     KeyDown="AddressTextBox_KeyDown"
+                     LostFocus="AddressTextBox_LostFocus"
+                     ContextMenuOpening="AddressTextBox_ContextMenuOpening"/>
+            
+            <ToggleButton Name="SearchModeToggle" 
+                          HorizontalAlignment="Right"
+                          Style="{StaticResource SearchToggleStyle}"
+                          Margin="0,0,4,0"/>
         </Grid>
 
-        <!-- 历史记录弹出窗口 -->
-        <Popup x:Name="HistoryPopup" 
-               PlacementTarget="{Binding ElementName=EditModeContainer}"
-               StaysOpen="True"
-               AllowsTransparency="True"
-               PopupAnimation="Fade"
+        <!-- 地址建议弹出项 -->
+        <Popup Name="HistoryPopup" 
+               PlacementTarget="{Binding ElementName=BreadcrumbContainer}"
                Placement="Bottom"
-               VerticalOffset="4">
-            <Border Background="{DynamicResource AppBackgroundBrush}" 
-                    BorderBrush="{DynamicResource BorderBrush}" 
-                    BorderThickness="1" 
-                    CornerRadius="4" 
-                    Effect="{DynamicResource DropShadowEffect}"
-                    Width="{Binding PlacementTarget.ActualWidth, RelativeSource={RelativeSource AncestorType=Popup}}"
-                    MaxHeight="300">
-                <ListBox x:Name="HistoryListBox"
+               StaysOpen="False"
+               Width="{Binding ActualWidth, ElementName=BreadcrumbContainer}"
+               AllowsTransparency="True">
+            <Border Background="{DynamicResource CardBackgroundBrush}"
+                    BorderBrush="{DynamicResource BorderSubtleBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Margin="0,4,0,0">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="10" Color="Black" Opacity="0.1" ShadowDepth="2"/>
+                </Border.Effect>
+                <ListBox Name="HistoryListBox"
+                         MaxHeight="300"
                          BorderThickness="0"
                          Background="Transparent"
-                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                         PreviewKeyDown="HistoryListBox_PreviewKeyDown"
-                         PreviewMouseLeftButtonUp="HistoryListBox_PreviewMouseLeftButtonUp">
+                         SelectionChanged="HistoryListBox_SelectionChanged">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <Grid Margin="0,4">
+                            <Grid Height="32" Margin="4,0">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="24"/>
+                                    <ColumnDefinition Width="32"/>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                
-                                <!-- 图标 -->
-                                <TextBlock Grid.Column="0" 
-                                           FontFamily="{DynamicResource IconFontFamily}" 
-                                           FontSize="14" 
-                                           VerticalAlignment="Center"
-                                           HorizontalAlignment="Center"
-                                           Text="{Binding Type, Converter={StaticResource HistoryTypeToIconConverter}}"/>
-
-                                <!-- 内容 -->
-                                <TextBlock Grid.Column="1" 
-                                           Text="{Binding Content}" 
-                                           VerticalAlignment="Center" 
-                                           TextTrimming="CharacterEllipsis"
-                                           Margin="4,0"/>
-                                
-                                <!-- 类型提示 -->
-                                <TextBlock Grid.Column="2"
-                                           Text="{Binding Type, Converter={StaticResource HistoryTypeToTextConverter}}"
-                                           FontSize="10"
-                                           Foreground="{DynamicResource TextTertiaryBrush}"
-                                           VerticalAlignment="Center"
-                                           Margin="8,0,4,0"/>
+                                <TextBlock Text="{Binding IconKey, Converter={StaticResource ResourceKeyConverter}}" 
+                                           FontFamily="{DynamicResource IconFontFamily}"
+                                           VerticalAlignment="Center" HorizontalAlignment="Center"
+                                           FontSize="16"/>
+                                <TextBlock Grid.Column="1" Text="{Binding DisplayPath}" 
+                                           VerticalAlignment="Center" Margin="8,0"
+                                           TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Grid.Column="2" Text="{Binding DisplayType}" 
+                                           VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}"
+                                           FontSize="11"/>
                             </Grid>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
@@ -153,12 +125,17 @@
         
         <!-- 面包屑导航（默认显示） -->
         <Border Name="BreadcrumbContainer"
+                Grid.Column="1"
                 Background="Transparent"
                 MouseLeftButtonDown="BreadcrumbContainer_MouseLeftButtonDown"
-                Cursor="Hand"
-                Height="30"
                 VerticalAlignment="Stretch">
-            <Grid>
+            <Border.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="刷新" Click="AddressBarRefresh_Click" Icon="🔄"/>
+                    <MenuItem Header="复制地址" Click="AddressBarCopyPath_Click" Icon="📋"/>
+                </ContextMenu>
+            </Border.ContextMenu>
+            <Grid Name="PathContentGrid">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
@@ -166,21 +143,19 @@
                 
                 <!-- 左侧：path前缀和省略号（或完整路径） -->
                 <TextBlock Name="BreadcrumbText"
-                          Grid.Column="0"
-                          VerticalAlignment="Center"
-                          Padding="5,3"
-                          ToolTipService.ShowOnDisabled="True"/>
+                           Grid.Column="0"
+                           VerticalAlignment="Center"
+                           Padding="5,3"
+                           ToolTipService.ShowOnDisabled="True"/>
                 
                 <!-- 右侧：路径尾部（仅长路径时使用，右对齐） -->
                 <TextBlock Name="BreadcrumbTail"
-                          Grid.Column="1"
-                          VerticalAlignment="Center"
-                          Padding="5,3"
-                          HorizontalAlignment="Right"
-                          Visibility="Collapsed"/>
+                           Grid.Column="1"
+                           VerticalAlignment="Center"
+                           Padding="5,3"
+                           HorizontalAlignment="Right"
+                           Visibility="Collapsed"/>
             </Grid>
         </Border>
     </Grid>
 </UserControl>
-
-

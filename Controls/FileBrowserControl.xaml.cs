@@ -93,10 +93,6 @@ namespace YiboFile.Controls
                 FileList.SizeChanged += (s, e) => FilesSizeChanged?.Invoke(s, e);
                 FileList.GridViewColumnHeaderClick += (s, e) => GridViewColumnHeaderClick?.Invoke(s, e);
                 FileList.LoadMoreClick += (s, e) => LoadMoreBtn_Click(s, e);
-                FileList.CommitRename += (s, e) =>
-                {
-                    CommitRename?.Invoke(s, e);
-                };
 
                 // 订阅列标题点击事件（用于记录默认列宽）
                 if (FileList.FilesGrid != null)
@@ -126,41 +122,8 @@ namespace YiboFile.Controls
                 FileList.TagClicked += (s, e) => TagClicked?.Invoke(s, e);
             }
 
-            // 订阅标题操作栏事件
-            if (TitleActionBar != null)
-            {
-                TitleActionBar.NewFolderClicked += (s, e) =>
-                {
-                    if (NewFolderCommand?.CanExecute(DataContext) == true) NewFolderCommand.Execute(DataContext);
-                    else FileNewFolder?.Invoke(s, e);
-                };
-                TitleActionBar.NewFileClicked += (s, e) =>
-                {
-                    if (NewFileCommand?.CanExecute(DataContext) == true) NewFileCommand.Execute(DataContext);
-                    else FileNewFile?.Invoke(s, e);
-                };
-                TitleActionBar.CopyClicked += (s, e) =>
-                {
-                    if (CopyCommand?.CanExecute(FilesSelectedItems) == true) CopyCommand.Execute(FilesSelectedItems);
-                    else FileCopy?.Invoke(s, e);
-                };
-                TitleActionBar.PasteClicked += (s, e) =>
-                {
-                    if (PasteCommand?.CanExecute(DataContext) == true) PasteCommand.Execute(DataContext);
-                    else FilePaste?.Invoke(s, e);
-                };
-                TitleActionBar.DeleteClicked += (s, e) =>
-                {
-                    if (DeleteCommand?.CanExecute(FilesSelectedItems) == true) DeleteCommand.Execute(FilesSelectedItems);
-                    else FileDelete?.Invoke(s, e);
-                };
-                TitleActionBar.RefreshClicked += (s, e) =>
-                {
-                    if (RefreshCommand?.CanExecute(null) == true) RefreshCommand.Execute(null);
-                    else FileRefresh?.Invoke(s, e);
-                };
-                TitleActionBar.NewTagClicked += (s, e) => FileAddTag?.Invoke(s, e);
-            }
+            // 订阅标题操作栏事件 - 已迁移至 XAML Command 绑定
+            // 不再需要在这里手动路由事件
 
             // 监听全局鼠标按下以激活面板
             this.PreviewMouseDown += (s, e) => RequestActivation();
@@ -183,92 +146,19 @@ namespace YiboFile.Controls
         {
             if (e.OldValue is ViewModels.PaneViewModel oldVm)
             {
-                oldVm.FilesLoaded -= OnViewModelFilesLoaded;
-                oldVm.PathChanged -= OnViewModelPathChanged;
-                oldVm.LibraryChanged -= OnViewModelLibraryChanged;
-                oldVm.TagChanged -= OnViewModelTagChanged;
+                // Removed event unsubscriptions as handlers are removed
             }
 
             if (e.NewValue is ViewModels.PaneViewModel newVm)
             {
-                newVm.FilesLoaded += OnViewModelFilesLoaded;
-                newVm.PathChanged += OnViewModelPathChanged;
-                newVm.LibraryChanged += OnViewModelLibraryChanged;
-                newVm.TagChanged += OnViewModelTagChanged;
+                // Removed manual event subscriptions for Path/Library/Tag changes
+                // AddressText is now two-way bound to CurrentPath in XAML
 
-                // 初始同步
-                Dispatcher.InvokeAsync(() =>
-                {
-                    if (newVm.Files != null)
-                    {
-                        FileList.ItemsSource = newVm.Files;
-                    }
-                    RefreshBreadcrumbFromViewModel(newVm);
-                });
             }
         }
 
-        private void OnViewModelFilesLoaded(object sender, System.Collections.ObjectModel.ObservableCollection<Models.FileSystemItem> files)
-        {
-            Dispatcher.InvokeAsync(() =>
-            {
-                FileList.ItemsSource = files;
-            });
-        }
-
-        private void OnViewModelPathChanged(object sender, string path)
-        {
-            Dispatcher.InvokeAsync(() =>
-            {
-                UpdateBreadcrumb(path);
-                if (AddressBarControl != null)
-                {
-                    AddressBarControl.AddressText = path;
-                }
-            });
-        }
-
-        private void OnViewModelLibraryChanged(object sender, Library library)
-        {
-            Dispatcher.InvokeAsync(() =>
-            {
-                if (library != null)
-                {
-                    SetLibraryBreadcrumb(library.Name);
-                }
-            });
-        }
-
-        private void OnViewModelTagChanged(object sender, Models.TagViewModel tag)
-        {
-            Dispatcher.InvokeAsync(() =>
-            {
-                if (tag != null)
-                {
-                    SetTagBreadcrumb(tag.Name);
-                }
-            });
-        }
-
-        private void RefreshBreadcrumbFromViewModel(ViewModels.PaneViewModel vm)
-        {
-            if (vm.NavigationMode == "Library" && vm.CurrentLibrary != null)
-            {
-                SetLibraryBreadcrumb(vm.CurrentLibrary.Name);
-            }
-            else if (vm.NavigationMode == "Tag" && vm.CurrentTag != null)
-            {
-                SetTagBreadcrumb(vm.CurrentTag.Name);
-            }
-            else if (!string.IsNullOrEmpty(vm.CurrentPath))
-            {
-                UpdateBreadcrumb(vm.CurrentPath);
-                if (AddressBarControl != null)
-                {
-                    AddressBarControl.AddressText = vm.CurrentPath;
-                }
-            }
-        }
+        // Legacy manual synchronization methods removed.
+        // Logic is now handled by TwoWay binding on AddressText property.
 
         private void FileBrowserControl_Loaded(object sender, RoutedEventArgs e)
         {
@@ -365,24 +255,6 @@ namespace YiboFile.Controls
         public void SetLibraryBreadcrumb(string libraryName)
         {
             AddressBarControl?.SetLibraryBreadcrumb(libraryName);
-        }
-
-        // 文件列表相关属性 (DependencyProperty for Binding)
-        public static readonly DependencyProperty FilesItemsSourceProperty =
-            DependencyProperty.Register("FilesItemsSource", typeof(System.Collections.IEnumerable), typeof(FileBrowserControl), new PropertyMetadata(null, OnFilesItemsSourceChanged));
-
-        public System.Collections.IEnumerable FilesItemsSource
-        {
-            get { return (System.Collections.IEnumerable)GetValue(FilesItemsSourceProperty); }
-            set { SetValue(FilesItemsSourceProperty, value); }
-        }
-
-        private static void OnFilesItemsSourceChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        {
-            if (d is FileBrowserControl control && control.FileList != null)
-            {
-                control.FileList.FilesItemsSource = e.NewValue as System.Collections.IEnumerable;
-            }
         }
 
         #region Command Dependency Properties
@@ -487,31 +359,13 @@ namespace YiboFile.Controls
             FileList?.HideEmptyState();
         }
 
-        // 地址栏事件（转发给外部）
+        // 事件定义（保留核心 UI 交互事件，移除逻辑性操作事件）
         public event EventHandler<string> PathChanged;
         public event EventHandler<string> BreadcrumbClicked;
         public event EventHandler<string> BreadcrumbMiddleClicked;
-        public event RoutedEventHandler NavigationBack;
-        public event RoutedEventHandler NavigationForward;
-        public event RoutedEventHandler NavigationUp;
-        // public event RoutedEventHandler SearchClicked; // Removed unused event
         public event RoutedEventHandler FilterClicked;
         public event RoutedEventHandler LoadMoreClicked;
-
-        // 文件操作事件
-        public event RoutedEventHandler FileCopy;
-        public event RoutedEventHandler FileCut;
-        public event RoutedEventHandler FilePaste;
-        public event RoutedEventHandler FileDelete;
-        public event RoutedEventHandler FileRename;
-        public event RoutedEventHandler FileRefresh;
-        public event RoutedEventHandler FileProperties;
         public event RoutedEventHandler FileAddTag;
-        public event RoutedEventHandler FileNewFolder;
-        public event RoutedEventHandler FileNewFile;
-        public event RoutedEventHandler FileUndo;
-        public event RoutedEventHandler FileRedo;
-        public event EventHandler<RenameEventArgs> CommitRename;
         public event EventHandler<TagViewModel> TagClicked;
 
         // 地址栏事件处理
@@ -531,31 +385,7 @@ namespace YiboFile.Controls
             BreadcrumbMiddleClicked?.Invoke(this, path);
         }
 
-        private void NavBackBtn_Click(object sender, RoutedEventArgs e)
-        {
-            NavigationBack?.Invoke(sender, e);
-        }
 
-        private void NavForwardBtn_Click(object sender, RoutedEventArgs e)
-        {
-            NavigationForward?.Invoke(sender, e);
-        }
-
-
-        private void NavUpBtn_Click(object sender, RoutedEventArgs e)
-        {
-            NavigationUp?.Invoke(sender, e);
-        }
-
-        private void UndoBtn_Click(object sender, RoutedEventArgs e)
-        {
-            FileUndo?.Invoke(this, e);
-        }
-
-        private void RedoBtn_Click(object sender, RoutedEventArgs e)
-        {
-            FileRedo?.Invoke(this, e);
-        }
 
 
 
@@ -628,22 +458,7 @@ namespace YiboFile.Controls
 
 
 
-        private void PropertiesBtn_Click(object sender, RoutedEventArgs e)
-        {
-            // Invoke the properties event (same as context menu)
-            // Fix: The event is defined as specific delegate type, or generic routed event?
-            // FileBrowser.FileProperties is defined in MainWindow.Initialization.cs as custom event or RoutedEventHandler?
-            // In FileBrowserControl.xaml.cs, it is NOT defined as an event in the top list?
-            // Actually it IS NOT in the list I read (lines 1-100).
-            // Let me check lines 100+ or if I missed it.
-            // Wait, previous `grep` showed `FileBrowser.FileProperties += ...` in `MainWindow.Initialization.cs`.
-            // So `FileBrowserControl` MUST have `FileProperties` event.
-            // I'll assume it's there (likely further down in file).
-            // Tricky: if I can't see it, I might break build.
-            // Let's assume it follows pattern: `public event RoutedEventHandler FileProperties;`
-            // and invoke it.
-            FileProperties?.Invoke(this, e);
-        }
+
 
         public void SetPropertiesButtonVisibility(bool visible)
         {
@@ -787,11 +602,12 @@ namespace YiboFile.Controls
                 SetMenuItemVisibility(cm, "CopyItem", hasSelection);
                 SetMenuItemVisibility(cm, "CutItem", hasSelection);
                 SetMenuItemVisibility(cm, "DeleteItem", hasSelection);
+                SetMenuItemVisibility(cm, "RefreshItem", !hasSelection);
                 SetMenuItemVisibility(cm, "RenameItem", isSingleSelection);
                 SetMenuItemVisibility(cm, "PropertiesItem", isSingleSelection);
 
                 // Refresh Action
-                Action refreshAction = () => FileRefresh?.Invoke(this, new RoutedEventArgs());
+                Action refreshAction = () => (DataContext as ViewModels.PaneViewModel)?.RefreshCommand?.Execute(null);
 
                 // Update Dynamic Items via Builder
                 var addTagItem = cm.Items.OfType<MenuItem>().FirstOrDefault(x => x.Name == "AddTagMenuItem");
@@ -831,13 +647,7 @@ namespace YiboFile.Controls
             if (sep3 != null) sep3.Visibility = (IsVisible("AddFavoriteMenuItem") || IsVisible("AddToLibraryMenuItem") || IsVisible("AddTagMenuItem")) ? Visibility.Visible : Visibility.Collapsed;
         }
 
-        private void CopyItem_Click(object sender, RoutedEventArgs e) => FileCopy?.Invoke(this, e);
-        private void CutItem_Click(object sender, RoutedEventArgs e) => FileCut?.Invoke(this, e);
-        private void PasteItem_Click(object sender, RoutedEventArgs e) => FilePaste?.Invoke(this, e);
-        private void DeleteItem_Click(object sender, RoutedEventArgs e) => FileDelete?.Invoke(this, e);
-        private void RenameItem_Click(object sender, RoutedEventArgs e) => FileRename?.Invoke(this, e);
-        private void RefreshItem_Click(object sender, RoutedEventArgs e) => FileRefresh?.Invoke(this, e);
-        private void PropertiesItem_Click(object sender, RoutedEventArgs e) => FileProperties?.Invoke(this, e);
+
 
         /// <summary>
         /// 解析颜色字符串为 Color 对象

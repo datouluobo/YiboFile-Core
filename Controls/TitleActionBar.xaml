@@ -9,39 +9,39 @@
 
     <Grid>
         <StackPanel x:Name="PathPanel" Orientation="Horizontal" VerticalAlignment="Center">
-            <Button Click="OnNewFolderClicked" ToolTip="新建文件夹" Margin="0,0,2,0">
+            <Button Command="{Binding NewFolderCommand}" ToolTip="新建文件夹" Margin="0,0,2,0">
                 <TextBlock Text="{DynamicResource Icon_Folder}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center"/>
             </Button>
-            <Button Click="OnNewFileClicked" ToolTip="新建文件" Margin="0,0,2,0">
+            <Button Command="{Binding NewFileCommand}" ToolTip="新建文件" Margin="0,0,2,0">
                 <TextBlock Text="{DynamicResource Icon_File}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center"/>
             </Button>
             <Separator Margin="12,4" Height="20" VerticalAlignment="Center"/>
-            <Button Click="OnCopyClicked" ToolTip="复制" Margin="0,0,2,0">
+            <Button Command="{Binding CopyCommand}" ToolTip="复制" Margin="0,0,2,0">
                 <TextBlock Text="{DynamicResource Icon_Copy}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center"/>
             </Button>
-            <Button Click="OnPasteClicked" ToolTip="粘贴" Margin="0,0,2,0">
+            <Button Command="{Binding PasteCommand}" ToolTip="粘贴" Margin="0,0,2,0">
                 <TextBlock Text="{DynamicResource Icon_Format}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center"/>
             </Button>
-            <Button Click="OnDeleteClicked" ToolTip="删除" Margin="0,0,2,0">
+            <Button Command="{Binding DeleteCommand}" ToolTip="删除" Margin="0,0,2,0">
                 <TextBlock Text="{DynamicResource Icon_Delete_Outline}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center"/>
             </Button>
         </StackPanel>
 
         <StackPanel x:Name="LibraryPanel" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
-            <Button Click="OnNewFolderClicked" ToolTip="新建文件夹" Margin="0,0,2,0">
+            <Button Command="{Binding NewFolderCommand}" ToolTip="新建文件夹" Margin="0,0,2,0">
                 <TextBlock Text="{DynamicResource Icon_Folder}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center"/>
             </Button>
-            <Button Click="OnNewFileClicked" ToolTip="新建文件" Margin="0,0,2,0">
+            <Button Command="{Binding NewFileCommand}" ToolTip="新建文件" Margin="0,0,2,0">
                 <TextBlock Text="{DynamicResource Icon_File}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center"/>
             </Button>
             <Separator Margin="12,4" Height="20" VerticalAlignment="Center"/>
-            <Button Click="OnCopyClicked" ToolTip="复制" Margin="0,0,2,0">
+            <Button Command="{Binding CopyCommand}" ToolTip="复制" Margin="0,0,2,0">
                 <TextBlock Text="{DynamicResource Icon_Copy}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center"/>
             </Button>
-            <Button Click="OnPasteClicked" ToolTip="粘贴" Margin="0,0,2,0">
+            <Button Command="{Binding PasteCommand}" ToolTip="粘贴" Margin="0,0,2,0">
                 <TextBlock Text="{DynamicResource Icon_Format}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center"/>
             </Button>
-            <Button Click="OnDeleteClicked" ToolTip="删除" Margin="0,0,2,0">
+            <Button Command="{Binding DeleteCommand}" ToolTip="删除" Margin="0,0,2,0">
                 <Button.Style>
                     <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
                         <Setter Property="Padding" Value="8,0"/>
@@ -50,7 +50,7 @@
                 </Button.Style>
                 <TextBlock Text="{DynamicResource Icon_Delete_Outline}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center"/>
             </Button>
-            <Button Click="OnRefreshClicked" ToolTip="刷新" Margin="0,0,2,0">
+            <Button Command="{Binding RefreshCommand}" ToolTip="刷新" Margin="0,0,2,0">
                 <Button.Style>
                     <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
                         <Setter Property="Padding" Value="8,0"/>
@@ -96,7 +96,7 @@
                 <TextBlock Text="&#xE9D2;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
             </Button>
             <Separator Margin="12,4" Height="20" VerticalAlignment="Center"/>
-            <Button Click="OnCopyClicked" ToolTip="复制" Margin="0,0,2,0" Height="36">
+            <Button Command="{Binding CopyCommand}" ToolTip="复制" Margin="0,0,2,0" Height="36">
                 <Button.Style>
                     <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
                         <Setter Property="Padding" Value="8,0"/>
@@ -104,7 +104,7 @@
                 </Button.Style>
                 <TextBlock Text="{DynamicResource Icon_Copy}" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center"/>
             </Button>
-            <Button Click="OnPasteClicked" ToolTip="粘贴" Margin="0,0,2,0" Height="36">
+            <Button Command="{Binding PasteCommand}" ToolTip="粘贴" Margin="0,0,2,0" Height="36">
                 <Button.Style>
                     <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
                         <Setter Property="Padding" Value="8,0"/>
@@ -112,7 +112,7 @@
                 </Button.Style>
                 <TextBlock Text="{DynamicResource Icon_Format}" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center"/>
             </Button>
-            <Button Click="OnDeleteClicked" ToolTip="删除" Margin="0,0,2,0" Height="36">
+            <Button Command="{Binding DeleteCommand}" ToolTip="删除" Margin="0,0,2,0" Height="36">
                 <Button.Style>
                     <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
                         <Setter Property="Padding" Value="8,0"/>
@@ -123,7 +123,7 @@
         </StackPanel>
 
         <StackPanel x:Name="SearchPanel" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
-            <Button Click="OnCopyClicked" ToolTip="复制" Margin="0,0,4,0" Height="36">
+            <Button Command="{Binding CopyCommand}" ToolTip="复制" Margin="0,0,4,0" Height="36">
                 <Button.Style>
                     <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
                         <Setter Property="Padding" Value="8,0"/>
@@ -131,7 +131,7 @@
                 </Button.Style>
                 <TextBlock Text="&#xE8C8;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
             </Button>
-            <Button Click="OnPasteClicked" ToolTip="粘贴" Margin="0,0,4,0" Height="36">
+            <Button Command="{Binding PasteCommand}" ToolTip="粘贴" Margin="0,0,4,0" Height="36">
                 <Button.Style>
                     <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
                         <Setter Property="Padding" Value="8,0"/>
@@ -139,7 +139,7 @@
                 </Button.Style>
                 <TextBlock Text="&#xE77F;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
             </Button>
-            <Button Click="OnDeleteClicked" ToolTip="删除" Margin="0,0,4,0" Height="36">
+            <Button Command="{Binding DeleteCommand}" ToolTip="删除" Margin="0,0,4,0" Height="36">
                 <Button.Style>
                     <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
                         <Setter Property="Padding" Value="8,0"/>
@@ -147,7 +147,7 @@
                 </Button.Style>
                 <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
             </Button>
-            <Button Click="OnRefreshClicked" ToolTip="刷新" Margin="0,0,4,0" Height="36">
+            <Button Command="{Binding RefreshCommand}" ToolTip="刷新" Margin="0,0,4,0" Height="36">
                 <Button.Style>
                     <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
                         <Setter Property="Padding" Value="8,0"/>

@@ -91,7 +91,11 @@ namespace YiboFile.Services
             if (Math.Abs(currentPosition.X - _dragStartPoint.X) > SystemParameters.MinimumHorizontalDragDistance ||
                 Math.Abs(currentPosition.Y - _dragStartPoint.Y) > SystemParameters.MinimumVerticalDragDistance)
             {
-                StartDrag(sender as ListView);
+                var listView = sender as ListView;
+                if (listView != null)
+                {
+                    StartDrag(listView);
+                }
             }
         }
 
@@ -118,26 +122,62 @@ namespace YiboFile.Services
             {
                 if (item is FileSystemItem fsItem)
                 {
-                    filePaths.Add(fsItem.Path);
+                    // 核心修复：只有物理路径才允许启动文件系统拖拽
+                    // 如果是虚拟协议路径，需要先通过 ProtocolManager 解析（逻辑待后续增强）
+                    if (string.IsNullOrEmpty(fsItem.Path) ||
+                        fsItem.Path.StartsWith("lib://", StringComparison.OrdinalIgnoreCase) ||
+                        fsItem.Path.StartsWith("tag://", StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    if (File.Exists(fsItem.Path) || Directory.Exists(fsItem.Path))
+                    {
+                        filePaths.Add(fsItem.Path);
+                    }
                 }
             }
 
             if (filePaths.Count > 0)
             {
                 _isDragging = true;
+
+                // [已移除] ShowSourceDragFeedback(listView, filePaths);
+
                 try
                 {
-                    DataObject dataObject = new DataObject(DataFormats.FileDrop, filePaths.ToArray());
-                    // Also set text/plain for compatibility
-                    dataObject.SetData(DataFormats.Text, string.Join(Environment.NewLine, filePaths));
+                    DataObject dataObject = new DataObject();
+                    var collection = new System.Collections.Specialized.StringCollection();
+                    collection.AddRange(filePaths.ToArray());
+                    dataObject.SetFileDropList(collection);
 
-                    // 允许的操作: 复制 | 移动 | 创建快捷方式
+                    // 同时也设置文本格式，以备某些编辑器需要
+                    dataObject.SetText(string.Join(Environment.NewLine, filePaths));
+
                     DragDropEffects allowedEffects = DragDropEffects.Copy | DragDropEffects.Move | DragDropEffects.Link;
+
+                    // 使用线程池或异步包裹可能更安全，但 DoDragDrop 本身是阻塞的。
+                    // 这里我们确保在 UI 线程上，且数据对象是纯物理路径。
                     DragDrop.DoDragDrop(listView, dataObject, allowedEffects);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"DragDrop failed: {ex.Message}");
                 }
                 finally
                 {
+                    // [已移除] RemoveSourceDragFeedback();
                     _isDragging = false;
+
+                    // 关键修复：强制释放鼠标捕获，解决拖拽后UI无法交互的问题
+                    if (listView != null && listView.IsMouseCaptured)
+                    {
+                        listView.ReleaseMouseCapture();
+                    }
+                    if (Mouse.Captured == listView)
+                    {
+                        Mouse.Capture(null);
+                    }
                 }
             }
         }
@@ -199,7 +239,16 @@ namespace YiboFile.Services
                 }
                 else
                 {
-                    e.Effects = effect;
+                    // 核心修复：如果不是悬停在目录上，只有当拖放到空白处（此时 _lastTargetItem 为 null）
+                    // 才会允许拖放（使用当前文件夹路径）。如果明确悬停在一个普通文件上，禁止拖放。
+                    if (_lastTargetItem != null)
+                    {
+                        e.Effects = DragDropEffects.None;
+                    }
+                    else
+                    {
+                        e.Effects = effect;
+                    }
                 }
 
                 // 更新视觉反馈提示 (Let the adornment logic handle visual throttling if needed, or we throttle here)
@@ -581,6 +630,63 @@ namespace YiboFile.Services
                 YiboFile.DialogService.Error($"创建快捷方式失败: {ex.Message}");
             }
         }
+        private Controls.DragDropFeedbackAdorner _sourceDragAdorner;
+
+        private void ListView_GiveFeedback(object sender, GiveFeedbackEventArgs e)
+        {
+            if (_sourceDragAdorner != null)
+            {
+                // 更新位置
+                var pos = Mouse.GetPosition(_associatedListView);
+                _sourceDragAdorner.UpdateFeedback(_sourceDragAdorner.Text, pos);
+
+                // 必须禁用默认的光标，否则我们画的 Adorner 会和系统光标重叠或者很难看
+                // e.UseDefaultCursors = false; 
+                // e.Handled = true;
+                // 但是如果我们想要系统的 Copy/Move 指针，就保留默认光标
+                // 用户的需求是看到“拖拽的是什么文件”，所以 Adorner 只是作为额外信息跟随
+                e.UseDefaultCursors = true;
+                e.Handled = false;
+            }
+        }
+
+        private void ShowSourceDragFeedback(ListView listView, List<string> filePaths)
+        {
+            RemoveSourceDragFeedback(); // 清理旧的
+
+            try
+            {
+                _adornerLayer = AdornerLayer.GetAdornerLayer(listView);
+                if (_adornerLayer != null)
+                {
+                    _sourceDragAdorner = new Controls.DragDropFeedbackAdorner(listView);
+                    _adornerLayer.Add(_sourceDragAdorner);
+
+                    string text = "";
+                    if (filePaths.Count == 1)
+                        text = System.IO.Path.GetFileName(filePaths[0]);
+                    else if (filePaths.Count > 1)
+                        text = $"{System.IO.Path.GetFileName(filePaths[0])} 等 {filePaths.Count} 个项";
+
+                    // 初始位置
+                    _sourceDragAdorner.UpdateFeedback(text, Mouse.GetPosition(listView));
+                }
+            }
+            catch { }
+        }
+
+        private void RemoveSourceDragFeedback()
+        {
+            if (_sourceDragAdorner != null && _adornerLayer != null)
+            {
+                try
+                {
+                    _adornerLayer.Remove(_sourceDragAdorner);
+                }
+                catch { }
+                _sourceDragAdorner = null;
+                // 不要置空 _adornerLayer，因为可能被 DropTarget 逻辑共享
+            }
+        }
     }
 }
-

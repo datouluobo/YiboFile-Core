@@ -115,25 +115,20 @@
         <!-- 文件右键菜单 -->
         <ContextMenu x:Key="FileListContextMenu" Opened="FileListContextMenu_Opened">
             <MenuItem x:Name="CopyItem" Header="复制" 
-                      Command="{Binding Data.CopyCommand, Source={StaticResource ControlProxy}}" 
-                      CommandParameter="{Binding Data.FilesSelectedItems, Source={StaticResource ControlProxy}}"
+                      Command="{Binding CopyCommand}" 
                       Icon="📄"/>
             <MenuItem x:Name="CutItem" Header="剪切" 
-                      Command="{Binding Data.CutCommand, Source={StaticResource ControlProxy}}" 
-                      CommandParameter="{Binding Data.FilesSelectedItems, Source={StaticResource ControlProxy}}"
+                      Command="{Binding CutCommand}" 
                       Icon="✂️"/>
             <MenuItem x:Name="PasteItem" Header="粘贴" 
-                      Command="{Binding Data.PasteCommand, Source={StaticResource ControlProxy}}" 
-                      CommandParameter="{Binding Data.DataContext, Source={StaticResource ControlProxy}}"
+                      Command="{Binding PasteCommand}" 
                       Icon="📋"/>
             <Separator x:Name="Separator1"/>
             <MenuItem x:Name="DeleteItem" Header="删除" 
-                      Command="{Binding Data.DeleteCommand, Source={StaticResource ControlProxy}}" 
-                      CommandParameter="{Binding Data.FilesSelectedItems, Source={StaticResource ControlProxy}}"
+                      Command="{Binding DeleteCommand}" 
                       Icon="🗑️"/>
             <MenuItem x:Name="RenameItem" Header="重命名" 
-                      Command="{Binding Data.RenameCommand, Source={StaticResource ControlProxy}}" 
-                      CommandParameter="{Binding Data.FilesSelectedItem, Source={StaticResource ControlProxy}}"
+                      Command="{Binding RenameCommand}" 
                       Icon="✏️"/>
             <Separator x:Name="Separator2"/>
             <MenuItem x:Name="AddFavoriteMenuItem" Header="⭐ 添加到收藏"/>
@@ -141,11 +136,10 @@
             <MenuItem x:Name="AddTagMenuItem" Header="🏷️ 添加标签"/>
             <Separator x:Name="Separator3"/>
             <MenuItem x:Name="RefreshItem" Header="刷新" 
-                      Command="{Binding Data.RefreshCommand, Source={StaticResource ControlProxy}}" 
+                      Command="{Binding RefreshCommand}" 
                       Icon="🔄"/>
             <MenuItem x:Name="PropertiesItem" Header="属性" 
-                      Command="{Binding Data.PropertiesCommand, Source={StaticResource ControlProxy}}" 
-                      CommandParameter="{Binding Data.FilesSelectedItems, Source={StaticResource ControlProxy}}"
+                      Command="{Binding PropertiesCommand}" 
                       Icon="ℹ️"/>
         </ContextMenu>
     </UserControl.Resources>
@@ -180,27 +174,27 @@
                 
                 <!-- 导航按钮 (←→↑) -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal">
-                    <Button Name="NavBackBtn" FontFamily="{DynamicResource IconFontFamily}" Content="{DynamicResource Icon_Back}" FontSize="14" Click="NavBackBtn_Click" ToolTip="后退" Style="{StaticResource ModernToolbarButtonStyle}"/>
-                    <Button Name="NavForwardBtn" FontFamily="{DynamicResource IconFontFamily}" Content="{DynamicResource Icon_Forward}" FontSize="14" Click="NavForwardBtn_Click" ToolTip="前进" Style="{StaticResource ModernToolbarButtonStyle}"/>
-                    <Button Name="NavUpBtn" FontFamily="{DynamicResource IconFontFamily}" Content="{DynamicResource Icon_Up}" FontSize="14" Click="NavUpBtn_Click" ToolTip="向上" Style="{StaticResource ModernToolbarButtonStyle}"/>
+                    <Button Name="NavBackBtn" FontFamily="{DynamicResource IconFontFamily}" Content="{DynamicResource Icon_Back}" FontSize="14" Command="{Binding NavigateBackCommand}" ToolTip="后退" Style="{StaticResource ModernToolbarButtonStyle}"/>
+                    <Button Name="NavForwardBtn" FontFamily="{DynamicResource IconFontFamily}" Content="{DynamicResource Icon_Forward}" FontSize="14" Command="{Binding NavigateForwardCommand}" ToolTip="前进" Style="{StaticResource ModernToolbarButtonStyle}"/>
+                    <Button Name="NavUpBtn" FontFamily="{DynamicResource IconFontFamily}" Content="{DynamicResource Icon_Up}" FontSize="14" Command="{Binding NavigateUpCommand}" ToolTip="向上" Style="{StaticResource ModernToolbarButtonStyle}"/>
                     <!-- Undo/Redo -->
                     <Rectangle Width="1" Height="20" Fill="{DynamicResource BorderBrush}" Margin="4,0" VerticalAlignment="Center"/>
                     <Button Name="UndoBtn" FontFamily="Segoe MDL2 Assets" Content="&#xE7A7;" FontSize="14" 
-                            Command="{Binding Data.UndoCommand, Source={StaticResource ControlProxy}}" 
+                            Command="{Binding UndoCommand}" 
                             ToolTip="撤销" Style="{StaticResource ToolbarButtonStyle}"/>
                     <Button Name="RedoBtn" FontFamily="Segoe MDL2 Assets" Content="&#xE7A6;" FontSize="14" 
-                            Command="{Binding Data.RedoCommand, Source={StaticResource ControlProxy}}" 
+                            Command="{Binding RedoCommand}" 
                             ToolTip="重做" Style="{StaticResource ToolbarButtonStyle}"/>
                 </StackPanel>
                 
                 <!-- TitleActionBar (操作按钮) -->
-                <controls:TitleActionBar Grid.Column="2" x:Name="TitleActionBar" Mode="Path"/>
+                <controls:TitleActionBar Grid.Column="2" x:Name="TitleActionBar" Mode="{Binding NavigationMode}"/>
                 
                 <!-- 视图切换按钮 (下拉菜单) -->
                 <StackPanel Grid.Column="4" Orientation="Horizontal">
                     <Button Name="PropertiesBtn" Content="&#xE946;" 
                             FontFamily="Segoe MDL2 Assets" FontSize="14"
-                            Click="PropertiesBtn_Click" Style="{StaticResource ModernToolbarButtonStyle}" ToolTip="属性"
+                            Command="{Binding PropertiesCommand}" Style="{StaticResource ModernToolbarButtonStyle}" ToolTip="属性"
                             Margin="0,0,4,0"/>
                     <Button Name="ViewModeBtn" Content="{DynamicResource Icon_ViewList}" 
                             FontFamily="{DynamicResource IconFontFamily}" FontSize="14"
@@ -240,7 +234,9 @@
         </Border>
         
         <!-- Row 3: 文件列表 -->
-        <controls:FileListControl Grid.Row="3" x:Name="FileList" FocusVisualStyle="{x:Null}"/>
+        <controls:FileListControl Grid.Row="3" x:Name="FileList" 
+                                 ItemsSource="{Binding Files}"
+                                 FocusVisualStyle="{x:Null}"/>
         
         <!-- Row 4: 水平分割器（文件列表与信息面板之间） -->
         <controls:CollapsibleGridSplitter Grid.Row="4" 

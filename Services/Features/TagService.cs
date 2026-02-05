@@ -16,6 +16,7 @@ namespace YiboFile.Services.Features
 
         // 兼容旧代码的事件
         public event Action<int, string> TagUpdated;
+        public event Action<string> FileTagsChanged;
 
         /// <summary>
         /// 依赖注入构造函数
@@ -42,10 +43,20 @@ namespace YiboFile.Services.Features
         public IEnumerable<ITag> GetAllTags() => _repository.GetAllTags();
         public IEnumerable<ITag> GetUngroupedTags() => _repository.GetUngroupedTags();
         public IEnumerable<ITag> GetFileTags(string filePath) => _repository.GetFileTags(filePath);
-        public void AddTagToFile(string filePath, int tagId) => _repository.AddTagToFile(filePath, tagId);
-        public void RemoveTagFromFile(string filePath, int tagId) => _repository.RemoveTagFromFile(filePath, tagId);
+        public void AddTagToFile(string filePath, int tagId)
+        {
+            _repository.AddTagToFile(filePath, tagId);
+            FileTagsChanged?.Invoke(filePath);
+        }
+
+        public void RemoveTagFromFile(string filePath, int tagId)
+        {
+            _repository.RemoveTagFromFile(filePath, tagId);
+            FileTagsChanged?.Invoke(filePath);
+        }
         public int AddTag(int groupId, string name, string color = null) => _repository.AddTag(groupId, name, color);
         public IEnumerable<string> GetFilesByTag(int tagId) => _repository.GetFilesByTag(tagId);
+        public IEnumerable<string> GetFilesByTagName(string tagName) => _repository.GetFilesByTagName(tagName);
         public ITag GetTag(int tagId) => _repository.GetTag(tagId);
         public void RenameTag(int tagId, string newName) => _repository.RenameTag(tagId, newName);
 
@@ -71,8 +82,17 @@ namespace YiboFile.Services.Features
         public async Task<IEnumerable<ITag>> GetAllTagsAsync() => await _repository.GetAllTagsAsync();
         public async Task<IEnumerable<ITag>> GetUngroupedTagsAsync() => await _repository.GetUngroupedTagsAsync();
         public async Task<IEnumerable<ITag>> GetFileTagsAsync(string filePath) => await _repository.GetFileTagsAsync(filePath);
-        public async Task AddTagToFileAsync(string filePath, int tagId) => await _repository.AddTagToFileAsync(filePath, tagId);
-        public async Task RemoveTagFromFileAsync(string filePath, int tagId) => await _repository.RemoveTagFromFileAsync(filePath, tagId);
+        public async Task AddTagToFileAsync(string filePath, int tagId)
+        {
+            await _repository.AddTagToFileAsync(filePath, tagId);
+            FileTagsChanged?.Invoke(filePath);
+        }
+
+        public async Task RemoveTagFromFileAsync(string filePath, int tagId)
+        {
+            await _repository.RemoveTagFromFileAsync(filePath, tagId);
+            FileTagsChanged?.Invoke(filePath);
+        }
         public async Task<int> AddTagAsync(int groupId, string name, string color = null) => await _repository.AddTagAsync(groupId, name, color);
         public async Task<IEnumerable<string>> GetFilesByTagAsync(int tagId) => await _repository.GetFilesByTagAsync(tagId);
         public async Task<IEnumerable<string>> GetFilesByTagNameAsync(string tagName) => await _repository.GetFilesByTagNameAsync(tagName);

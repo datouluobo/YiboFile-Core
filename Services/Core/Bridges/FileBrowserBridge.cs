@@ -84,8 +84,21 @@ namespace YiboFile.Services.Bridges
         public void SetFilesSource(IEnumerable itemsSource)
         {
             if (_control == null) return;
-            _control.FilesItemsSource = null;
-            _control.FilesItemsSource = itemsSource;
+
+            // MVVM Adaptor: Update ViewModel
+            if (_control.DataContext is ViewModels.PaneViewModel vm && vm.FileList != null)
+            {
+                var collection = itemsSource as System.Collections.ObjectModel.ObservableCollection<FileSystemItem>;
+                if (collection == null && itemsSource is IEnumerable<FileSystemItem> list)
+                {
+                    collection = new System.Collections.ObjectModel.ObservableCollection<FileSystemItem>(list);
+                }
+
+                if (collection != null)
+                {
+                    vm.FileList.Files = collection;
+                }
+            }
         }
 
         /// <summary>

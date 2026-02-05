@@ -578,7 +578,11 @@ namespace YiboFile.Handlers
                         _setCurrentFiles(currentFiles);
                         if (_fileBrowser != null)
                         {
-                            _fileBrowser.FilesItemsSource = null;
+                            // MVVM Adaptation
+                            if (_fileBrowser.DataContext is ViewModels.PaneViewModel vm)
+                            {
+                                vm.FileList.Files?.Clear();
+                            }
                             _fileBrowser.AddressText = "";
                         }
                     }

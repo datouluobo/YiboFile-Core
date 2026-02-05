@@ -21,6 +21,7 @@ namespace YiboFile.Services.Features
         void RemoveTagFromFile(string filePath, int tagId);
         int AddTag(int groupId, string name, string color = null);
         IEnumerable<string> GetFilesByTag(int tagId);
+        IEnumerable<string> GetFilesByTagName(string tagName);
         ITag GetTag(int tagId);
         void RenameTag(int tagId, string newName);
         void UpdateTagColor(int tagId, string color);
@@ -32,6 +33,7 @@ namespace YiboFile.Services.Features
         string GetTagColorByName(string tagName);
 
         event Action<int, string> TagUpdated;
+        event Action<string> FileTagsChanged;
 
         // 异步方法 (新架构)
         Task<IEnumerable<ITagGroup>> GetTagGroupsAsync();

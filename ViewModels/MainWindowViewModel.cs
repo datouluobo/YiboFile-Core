@@ -117,15 +117,19 @@ namespace YiboFile.ViewModels
             get => _rightPanel;
             set => SetProperty(ref _rightPanel, value);
         }
-        /// <summary>
-        /// 主面板（左侧/上方）
-        /// </summary>
-        public PaneViewModel PrimaryPane { get; set; }
+        private PaneViewModel _primaryPane;
+        public PaneViewModel PrimaryPane
+        {
+            get => _primaryPane;
+            set => SetProperty(ref _primaryPane, value);
+        }
 
-        /// <summary>
-        /// 副面板（右侧/下方，仅在双栏模式启用）
-        /// </summary>
-        public PaneViewModel SecondaryPane { get; set; }
+        private PaneViewModel _secondaryPane;
+        public PaneViewModel SecondaryPane
+        {
+            get => _secondaryPane;
+            set => SetProperty(ref _secondaryPane, value);
+        }
 
         private PaneViewModel _activePane;
         public PaneViewModel ActivePane

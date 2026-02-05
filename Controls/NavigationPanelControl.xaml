@@ -441,12 +441,14 @@
                              ItemContainerStyle="{StaticResource NavListBoxItemStyle}">
                         <ListBox.ContextMenu>
                             <ContextMenu Name="LibraryContextMenu">
-                                <MenuItem Header="📂 添加到库" Name="AddFileToLibraryMenuItem"/>
+                                <MenuItem x:Name="AddFileToLibraryMenuItem" Header="📂 添加到库"/>
+                                <MenuItem x:Name="LibraryRefreshItem" Header="刷新" Icon="🔄"/>
+                                <MenuItem x:Name="LibraryOpenInExplorerItem" Header="在资源管理器中打开" Icon="📂"/>
                                 <Separator/>
-                                <MenuItem Header="重命名" Name="LibraryRenameMenuItem"/>
-                                <MenuItem Header="删除库" Name="LibraryDeleteMenuItem"/>
+                                <MenuItem x:Name="LibraryRenameItem" Header="重命名"/>
+                                <MenuItem x:Name="LibraryDeleteItem" Header="删除"/>
                                 <Separator/>
-                                <MenuItem Header="管理库" Name="LibraryManageMenuItem"/>
+                                <MenuItem x:Name="LibraryManageItem" Header="库管理"/>
                             </ContextMenu>
                         </ListBox.ContextMenu>
                     </ListBox>

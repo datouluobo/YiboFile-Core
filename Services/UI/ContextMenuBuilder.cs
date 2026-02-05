@@ -92,7 +92,7 @@ namespace YiboFile.Services.UI
             try
             {
                 var libService = App.ServiceProvider?.GetService(typeof(LibraryService)) as LibraryService;
-                var allLibraries = libService?.LoadLibraries();
+                var allLibraries = libService?.GetAllLibraries();
                 var selectedFolders = selectedItems.Where(item => item.IsDirectory).ToList();
 
                 if (allLibraries != null && allLibraries.Count > 0)

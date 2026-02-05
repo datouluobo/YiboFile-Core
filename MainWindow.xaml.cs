@@ -501,6 +501,28 @@ namespace YiboFile
             if (string.IsNullOrEmpty(path)) return;
 
             _currentPath = path;
+            var info = YiboFile.Services.Core.ProtocolManager.Parse(path);
+
+            if (_viewModel?.PrimaryPane != null)
+            {
+                // 根据协议类型进行分流导航
+                switch (info.Type)
+                {
+                    case YiboFile.Services.Core.ProtocolType.Library:
+                    case YiboFile.Services.Core.ProtocolType.Tag:
+                    case YiboFile.Services.Core.ProtocolType.Archive:
+                        // 直接通过路径导航，这样可以保留子路径信息 (例如 lib://Lib/Folder)
+                        _viewModel.PrimaryPane.CurrentPath = path;
+                        break;
+
+                    default:
+                        // 标准物理路径
+                        _viewModel.PrimaryPane.CurrentPath = path;
+                        _viewModel.PrimaryPane.NavigationMode = "Path";
+                        break;
+                }
+            }
+
             if (NavigationPanelControl != null) NavigationPanelControl.CurrentPath = path;
 
             _tabService?.UpdateActiveTabPath(path);

@@ -241,7 +241,7 @@ namespace YiboFile
                         if (_searchOptions == null) return;
                         SecondFileBrowser.ToggleFilterPanel(_searchOptions, (sender, args) =>
                         {
-                            var view = System.Windows.Data.CollectionViewSource.GetDefaultView(SecondFileBrowser.FilesItemsSource);
+                            var view = System.Windows.Data.CollectionViewSource.GetDefaultView(_viewModel?.SecondaryPane?.Files);
                             if (view != null)
                             {
                                 view.Filter = obj =>
@@ -277,12 +277,6 @@ namespace YiboFile
             // 初始化 FileOperationHandler
             _fileOperationHandler = new Handlers.FileOperationHandler(this, undoService, _fileOperationService);
 
-            // Wire up Undo/Redo events from FileBrowser
-            if (FileBrowser != null)
-            {
-                FileBrowser.FileUndo += (s, e) => _fileOperationHandler.PerformUndo();
-                FileBrowser.FileRedo += (s, e) => _fileOperationHandler.PerformRedo();
-            }
 
 
 
@@ -337,7 +331,7 @@ namespace YiboFile
                         try
                         {
                             // 1. 获取当前 Secondary 路径和上下文
-                            string currentPath = _secondCurrentPath;
+                            string currentPath = _viewModel?.SecondaryPane?.CurrentPath;
 
                             // 2. 也是先清除预览
                             // 注意：双栏模式下，Secondary 的预览请求应该也会更新 RightPanelViewModel
@@ -411,13 +405,13 @@ namespace YiboFile
                     },
                     () => { /* Second Browser Back Logic? */ },
                     col => AutoSizeGridViewColumn(col), // Helper might need adjustment for second browser context
-                    () => _secondCurrentPath,
+                    () => _viewModel?.SecondaryPane?.CurrentPath,
                     () => CopySelectedFilesAsync().Wait(),
                     () => PasteFilesAsync().Wait(),
                     () => { _menuEventHandler?.Cut_Click(null, null); }, // Context aware?
                     () => { /* Delete logic specific to second browser? Handled by GetActiveContext */ DeleteSelectedFilesAsync().Wait(); },
                     () => { _menuEventHandler?.Rename_Click(null, null); },
-                    () => LoadSecondFileBrowserDirectory(_secondCurrentPath),
+                    () => LoadSecondFileBrowserDirectory(_viewModel?.SecondaryPane?.CurrentPath),
                     () => ShowSelectedFileProperties(), // Use the new method
                     (path, force, activate) => // Second Browser CreateTab
                     {
@@ -550,7 +544,7 @@ namespace YiboFile
                 SwitchNavigationMode,
                 () => GetActiveContext().path,
                 () => GetActiveContext().library,
-                () => GetActiveContext().browser?.FilesItemsSource as System.Collections.Generic.List<FileSystemItem>,
+                () => GetActiveContext().browser?.DataContext is ViewModels.PaneViewModel vm ? vm.Files?.ToList() : null,
                 (files) =>
                 {
                     var b = GetActiveContext().browser;
@@ -558,7 +552,7 @@ namespace YiboFile
                     {
                         if (b == FileBrowser) _viewModel?.PrimaryPane?.FileList?.UpdateFiles(files);
                         else if (b == SecondFileBrowser) _viewModel?.SecondaryPane?.FileList?.UpdateFiles(files);
-                        else b.FilesItemsSource = files;
+                        else if (b.DataContext is ViewModels.PaneViewModel vm && vm.FileList != null) vm.FileList.UpdateFiles(files);
                     }
                     if (b == FileBrowser) _currentFiles = files;
                     else if (b == SecondFileBrowser) _secondCurrentFiles = files;
@@ -855,7 +849,7 @@ namespace YiboFile
             _lastColumnClickTime = now;
             _lastClickedColumn = columnTag;
 
-            var currentFiles = SecondFileBrowser.FilesItemsSource as IEnumerable<FileSystemItem>;
+            var currentFiles = _viewModel?.SecondaryPane?.Files;
             if (currentFiles == null) return;
             var fileList = currentFiles.ToList();
 

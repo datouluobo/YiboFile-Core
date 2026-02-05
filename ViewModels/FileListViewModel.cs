@@ -32,6 +32,7 @@ namespace YiboFile.ViewModels
         private readonly ColumnService _columnService;
         private readonly FileMetadataEnricher _metadataEnricher;
         private readonly FolderSizeCalculator _folderSizeCalculator;
+        private readonly Services.Features.ITagService _tagService;
         private readonly Action _refreshAction;
         private const int MaxMetadataEnrichCount = 500;
 
@@ -96,8 +97,13 @@ namespace YiboFile.ViewModels
             _dispatcher = ownerWindow.Dispatcher;
 
             var errorService = App.ServiceProvider.GetRequiredService<YiboFile.Services.Core.Error.ErrorService>();
-            var tagService = App.ServiceProvider.GetService<Services.Features.ITagService>();
-            _fileListService = new FileListService(_dispatcher, errorService, tagService);
+            _tagService = App.ServiceProvider.GetService<Services.Features.ITagService>();
+            _fileListService = new FileListService(_dispatcher, errorService, _tagService);
+
+            if (_tagService != null)
+            {
+                _tagService.FileTagsChanged += OnFileTagsChanged;
+            }
 
             _columnService = columnService;
             _metadataEnricher = metadataEnricher ?? new FileMetadataEnricher();
@@ -269,7 +275,7 @@ namespace YiboFile.ViewModels
                 Files = new ObservableCollection<FileSystemItem>(sorted);
                 if (_fileBrowser != null)
                 {
-                    // _fileBrowser.FilesItemsSource = Files; // Do not break binding
+                    // 数据绑定会自动反映变更 (MainWindow.xaml 中已建立绑定)
                 }
                 SetupFileWatcher(null);
                 RefreshCollectionView();
@@ -380,7 +386,7 @@ namespace YiboFile.ViewModels
                 Files = new ObservableCollection<FileSystemItem>(sorted);
                 if (_fileBrowser != null)
                 {
-                    _fileBrowser.FilesItemsSource = Files;
+                    // 数据绑定会自动反映变更
                 }
                 RefreshCollectionView();
             });
@@ -488,8 +494,49 @@ namespace YiboFile.ViewModels
         }
 
 
+        private void OnFileTagsChanged(string filePath)
+        {
+            if (string.IsNullOrEmpty(filePath)) return;
+
+            _dispatcher.BeginInvoke(new Action(() =>
+            {
+                var item = _files.FirstOrDefault(f => string.Equals(f.Path, filePath, StringComparison.OrdinalIgnoreCase));
+                if (item != null)
+                {
+                    RefreshItemTags(item);
+                }
+            }), DispatcherPriority.Background);
+        }
+
+        private async void RefreshItemTags(FileSystemItem item)
+        {
+            if (item == null || _tagService == null) return;
+
+            try
+            {
+                var tags = await _tagService.GetFileTagsAsync(item.Path);
+                var tagVms = tags.Select(t => new TagViewModel
+                {
+                    Id = t.Id,
+                    Name = t.Name,
+                    Color = t.Color
+                }).ToList();
+
+                item.TagList = tagVms;
+                item.Tags = string.Join(", ", tagVms.Select(t => t.Name));
+            }
+            catch (Exception ex)
+            {
+                FileLogger.LogException($"Error refreshing tags for {item.Path}", ex);
+            }
+        }
+
         public void Dispose()
         {
+            if (_tagService != null)
+            {
+                _tagService.FileTagsChanged -= OnFileTagsChanged;
+            }
             if (_fileWatcher != null)
             {
                 _fileWatcher.EnableRaisingEvents = false;
@@ -537,7 +584,7 @@ namespace YiboFile.ViewModels
 
         private void RefreshCollectionView()
         {
-            var view = CollectionViewSource.GetDefaultView(_fileBrowser?.FilesItemsSource ?? Files);
+            var view = CollectionViewSource.GetDefaultView(Files);
             view?.Refresh();
         }
     }

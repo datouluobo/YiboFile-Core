@@ -1,3 +1,4 @@
+using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -67,38 +68,20 @@ namespace YiboFile.Dialogs
 
         private void SetConfirmButtonColor(string normal, string hover, string pressed)
         {
-            var style = new Style(typeof(Button));
-            style.Setters.Add(new Setter(Button.BackgroundProperty, new SolidColorBrush((Color)ColorConverter.ConvertFromString(normal))));
-            style.Setters.Add(new Setter(Button.ForegroundProperty, Brushes.White));
-            style.Setters.Add(new Setter(Button.BorderThicknessProperty, new Thickness(0)));
-            style.Setters.Add(new Setter(Button.HeightProperty, 32.0));
-            style.Setters.Add(new Setter(Button.MinWidthProperty, 80.0));
-            style.Setters.Add(new Setter(Button.MarginProperty, new Thickness(8, 0, 0, 0)));
+            try
+            {
+                var normalBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(normal));
+                if (normalBrush.CanFreeze) normalBrush.Freeze();
 
-            var template = new ControlTemplate(typeof(Button));
-            var factory = new FrameworkElementFactory(typeof(Border));
-            factory.SetBinding(Border.BackgroundProperty, new System.Windows.Data.Binding("Background") { RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.TemplatedParent) });
-            factory.SetValue(Border.CornerRadiusProperty, new CornerRadius(6));
-            factory.SetBinding(Border.BorderThicknessProperty, new System.Windows.Data.Binding("BorderThickness") { RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.TemplatedParent) });
-            factory.SetBinding(Border.BorderBrushProperty, new System.Windows.Data.Binding("BorderBrush") { RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.TemplatedParent) });
-
-            var contentPresenter = new FrameworkElementFactory(typeof(ContentPresenter));
-            contentPresenter.SetValue(ContentPresenter.HorizontalAlignmentProperty, HorizontalAlignment.Center);
-            contentPresenter.SetValue(ContentPresenter.VerticalAlignmentProperty, VerticalAlignment.Center);
-            factory.AppendChild(contentPresenter);
-
-            template.VisualTree = factory;
-            style.Setters.Add(new Setter(Button.TemplateProperty, template));
-
-            var mouseOverTrigger = new Trigger { Property = Button.IsMouseOverProperty, Value = true };
-            mouseOverTrigger.Setters.Add(new Setter(Button.BackgroundProperty, new SolidColorBrush((Color)ColorConverter.ConvertFromString(hover))));
-            style.Triggers.Add(mouseOverTrigger);
-
-            var pressedTrigger = new Trigger { Property = Button.IsPressedProperty, Value = true };
-            pressedTrigger.Setters.Add(new Setter(Button.BackgroundProperty, new SolidColorBrush((Color)ColorConverter.ConvertFromString(pressed))));
-            style.Triggers.Add(pressedTrigger);
-
-            ConfirmButton.Style = style;
+                ConfirmButton.Background = normalBrush;
+                // 注意：由于我们使用的是 XAML 中的静态样式，直接修改 Background 
+                // 只会改变默认背景，触发器效果可能消失，但这能彻底避免 XamlParseException
+            }
+            catch (Exception ex)
+            {
+                // 如果转换失败，至少保证不崩
+                ConfirmButton.Background = Brushes.Orange;
+            }
         }
 
         private void Confirm_Click(object sender, RoutedEventArgs e)

@@ -71,12 +71,16 @@ namespace YiboFile
             // 标签模式逻辑已移除
 
             // 检查是否在库模式
-            if (_currentLibrary != null)
+            // 检查是否在库模式
+            var currentLibrary = _viewModel?.PrimaryPane?.CurrentLibrary;
+            var currentPath = _viewModel?.PrimaryPane?.CurrentPath;
+
+            if (currentLibrary != null)
             {
                 // 库模式：刷新库文件
-                LoadLibraryFiles(_currentLibrary);
+                LoadLibraryFiles(currentLibrary);
             }
-            else if (!string.IsNullOrEmpty(_currentPath))
+            else if (!string.IsNullOrEmpty(currentPath))
             {
                 // 路径模式或虚拟路径：加载目录
                 LoadCurrentDirectory();
@@ -92,10 +96,8 @@ namespace YiboFile
 
                         if (lastLibrary != null)
                         {
-                            _currentLibrary = lastLibrary;
-                            // 使用辅助方法确保选中状态正确显示
-                            _uiHelperService?.EnsureSelectedItemVisible(LibrariesListBox, lastLibrary);
-                            LoadLibraryFiles(lastLibrary);
+                            // Delegate to ViewModel
+                            _viewModel?.PrimaryPane?.NavigateTo(lastLibrary, loadData: true);
                             return;
                         }
                     }
@@ -104,9 +106,7 @@ namespace YiboFile
                     var firstLibrary = _libraryService.LoadLibraries().FirstOrDefault();
                     if (firstLibrary != null)
                     {
-                        _currentLibrary = firstLibrary;
-                        _uiHelperService?.EnsureSelectedItemVisible(LibrariesListBox, firstLibrary);
-                        LoadLibraryFiles(firstLibrary);
+                        _viewModel?.PrimaryPane?.NavigateTo(firstLibrary, loadData: true);
                         return;
                     }
 
@@ -128,18 +128,24 @@ namespace YiboFile
         /// <summary>
         /// 异步加载当前目录
         /// </summary>
+        /// <summary>
+        /// 异步加载当前目录
+        /// </summary>
         private async Task LoadCurrentDirectoryAsync()
         {
             if (_viewModel?.PrimaryPane?.FileList == null) return;
+
+            // 获取当前 VM 路径
+            var currentPath = _viewModel.PrimaryPane.CurrentPath;
 
             try
             {
                 // 更新 UI 状态
                 if (FileBrowser != null)
                 {
-                    FileBrowser.AddressText = _currentPath;
+                    FileBrowser.AddressText = currentPath;
                     FileBrowser.IsAddressReadOnly = false;
-                    FileBrowser.UpdateBreadcrumb(_currentPath);
+                    FileBrowser.UpdateBreadcrumb(currentPath);
                     FileBrowser.SetSearchStatus(false);
                 }
 
@@ -147,7 +153,7 @@ namespace YiboFile
                 try
                 {
                     _isInternalUpdate = true;
-                    HighlightMatchingItems(_currentPath);
+                    HighlightMatchingItems(currentPath);
                 }
                 finally
                 {
@@ -158,21 +164,13 @@ namespace YiboFile
                 if (FileBrowser != null)
                 {
                     string dirName = null;
-                    try { dirName = System.IO.Path.GetDirectoryName(_currentPath); } catch { }
-                    FileBrowser.NavUpEnabled = !string.IsNullOrEmpty(_currentPath) && !ProtocolManager.IsVirtual(_currentPath) && !string.IsNullOrEmpty(dirName);
-                }
-
-
-
-                // MVVM 迁移: 确保 ViewModel 状态同步
-                if (_viewModel?.PrimaryPane != null && _viewModel.PrimaryPane.CurrentPath != _currentPath)
-                {
-                    // 直接设置属性以触发 PathChanged 从而更新地址栏绑定
-                    _viewModel.PrimaryPane.CurrentPath = _currentPath;
+                    try { dirName = System.IO.Path.GetDirectoryName(currentPath); } catch { }
+                    FileBrowser.NavUpEnabled = !string.IsNullOrEmpty(currentPath) && !ProtocolManager.IsVirtual(currentPath) && !string.IsNullOrEmpty(dirName);
                 }
 
                 // MVVM 迁移: 委托给 FileListViewModel 加载
-                await _viewModel.PrimaryPane.FileList.LoadPathAsync(_currentPath);
+                // 注意: 此时 ViewModel.PrimaryPane.CurrentPath 应该已经是 target path
+                await _viewModel.PrimaryPane.FileList.LoadPathAsync(currentPath);
 
                 // 更新空状态无需显示
                 HideEmptyStateMessage();
@@ -183,7 +181,6 @@ namespace YiboFile
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[LoadCurrentDirectoryAsync] Error: {ex.Message}");
-                // ShowEmptyStateMessage($"加载失败：\n{ex.Message}");
             }
         }
 
@@ -228,12 +225,15 @@ namespace YiboFile
 
         internal async void NavigateToPath(string path)
         {
+            var currentLibrary = _viewModel?.PrimaryPane.CurrentLibrary;
+            var currentPath = _viewModel?.PrimaryPane.CurrentPath;
+
             // Fix: Prevent recursive loop when updating AddressText in Library mode
             // If we are already in the library, and the path matches the library name (or lib uri), ignore it.
-            if (_currentLibrary != null && !string.IsNullOrEmpty(path))
+            if (currentLibrary != null && !string.IsNullOrEmpty(path))
             {
-                if (path.Equals(_currentLibrary.Name, StringComparison.OrdinalIgnoreCase) ||
-                    path.Equals($"lib://{_currentLibrary.Name}", StringComparison.OrdinalIgnoreCase))
+                if (path.Equals(currentLibrary.Name, StringComparison.OrdinalIgnoreCase) ||
+                    path.Equals($"lib://{currentLibrary.Name}", StringComparison.OrdinalIgnoreCase))
                 {
                     return;
                 }
@@ -258,7 +258,7 @@ namespace YiboFile
             }
 
             // Guard: If already at this path, don't re-navigate
-            if (path.Equals(_currentPath, StringComparison.OrdinalIgnoreCase))
+            if (path.Equals(currentPath, StringComparison.OrdinalIgnoreCase))
                 return;
 
             // MVVM 迁移: 将标签页选择/创建逻辑委托给 TabsModule
@@ -267,7 +267,10 @@ namespace YiboFile
                 onReuseCurrent: () =>
                 {
                     // Break recursion: Call LoadCurrentDirectory instead of NavigateTo again
-                    _currentPath = path;
+                    // Update VM directly
+                    if (_viewModel?.PrimaryPane != null)
+                        _viewModel.PrimaryPane.CurrentPath = path;
+
                     LoadCurrentDirectory();
                 },
                 onReuseSecond: () => SecondFileBrowser_PathChanged(this, path)
@@ -278,17 +281,20 @@ namespace YiboFile
         {
             if (FileBrowser != null)
             {
+                var currentPath = _viewModel?.PrimaryPane?.CurrentPath;
+                var currentLibrary = _viewModel?.PrimaryPane?.CurrentLibrary;
+
                 bool visible = true;
-                if (_currentLibrary != null) visible = false;
-                else if (!string.IsNullOrEmpty(_currentPath))
+                if (currentLibrary != null) visible = false;
+                else if (!string.IsNullOrEmpty(currentPath))
                 {
-                    if (_currentPath.StartsWith("search:", StringComparison.OrdinalIgnoreCase) ||
-                        ProtocolManager.IsVirtual(_currentPath))
+                    if (currentPath.StartsWith("search:", StringComparison.OrdinalIgnoreCase) ||
+                        ProtocolManager.IsVirtual(currentPath))
                     {
                         visible = false;
                     }
                 }
-                else if (_currentPath == null) // Empty path/home
+                else if (currentPath == null) // Empty path/home
                 {
                     // visible = true; // or false? Usually empty path means "This PC" or drives? 
                     // If My Computer, properties of "This PC"? 
@@ -322,8 +328,9 @@ namespace YiboFile
                 List<FileSystemItem> items = null;
                 try
                 {
+                    var currentPath = _viewModel?.PrimaryPane?.CurrentPath;
                     items = await _fileListService.LoadFileSystemItemsAsync(
-                        _currentPath,
+                        currentPath,
                         null, // OrderTagNames - Phase 2将重新实现
                         cts.Token);
                 }
@@ -492,14 +499,14 @@ namespace YiboFile
                     }
 
                     // Refresh both views
-                    if (FileBrowser != null)
+                    if (FileBrowser != null && _viewModel?.PrimaryPane?.Files != null)
                     {
-                        var view = System.Windows.Data.CollectionViewSource.GetDefaultView(FileBrowser.FilesItemsSource);
+                        var view = System.Windows.Data.CollectionViewSource.GetDefaultView(_viewModel.PrimaryPane.Files);
                         view?.Refresh();
                     }
-                    if (SecondFileBrowser != null)
+                    if (SecondFileBrowser != null && _viewModel?.SecondaryPane?.Files != null)
                     {
-                        var secondView = System.Windows.Data.CollectionViewSource.GetDefaultView(SecondFileBrowser.FilesItemsSource);
+                        var secondView = System.Windows.Data.CollectionViewSource.GetDefaultView(_viewModel.SecondaryPane.Files);
                         secondView?.Refresh();
                     }
                 }

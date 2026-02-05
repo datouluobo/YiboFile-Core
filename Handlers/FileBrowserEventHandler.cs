@@ -145,6 +145,7 @@ namespace YiboFile.Handlers
             _fileBrowser.Loaded += FileBrowser_Loaded;
             _fileBrowser.FilesSelectionChanged += FileBrowser_FilesSelectionChanged;
             _fileBrowser.FilesPreviewMouseDoubleClickForBlank += FileBrowser_FilesPreviewMouseDoubleClickForBlank;
+            _fileBrowser.FilesPreviewMouseDoubleClick += OnFilesMouseDoubleClick;
 
             _fileBrowser.TagClicked += (s, tag) =>
             {
@@ -158,7 +159,6 @@ namespace YiboFile.Handlers
                 }
             };
 
-            _fileBrowser.CommitRename += (s, e) => _commitRename(e);
 
         }
 
@@ -244,7 +244,7 @@ namespace YiboFile.Handlers
         {
             try
             {
-                var view = System.Windows.Data.CollectionViewSource.GetDefaultView(_fileBrowser?.FilesItemsSource);
+                var view = System.Windows.Data.CollectionViewSource.GetDefaultView(_fileBrowser?.DataContext is ViewModels.PaneViewModel vm ? vm.Files : null);
                 if (view == null) return;
 
                 var searchOptions = _getSearchOptions();
@@ -642,6 +642,67 @@ namespace YiboFile.Handlers
                     _fileBrowser.AddressBar.SwitchToBreadcrumbMode();
                 }
             }
+        }
+
+        private void OnFilesMouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            // 调用外部传入的处理程序 (Preview)
+            _filesListViewPreviewMouseDoubleClick?.Invoke(e);
+
+            if (e.Handled) return;
+
+            // 获取点击的项
+            if (_fileBrowser?.FileList?.FilesList == null) return;
+
+            var originalSource = e.OriginalSource as DependencyObject;
+            var itemContainer = GetAncestor<ListViewItem>(originalSource);
+
+            if (itemContainer?.Content is FileSystemItem item)
+            {
+                if (item.IsDirectory)
+                {
+                    var currentPath = _getCurrentPath();
+                    if (string.IsNullOrEmpty(currentPath)) return;
+
+                    var protocol = ProtocolManager.Parse(currentPath);
+
+                    // 核心修复：如果是虚拟协议模式，强制使用虚拟路径导航
+                    if (protocol.Type == ProtocolType.Library || protocol.Type == ProtocolType.Tag || protocol.Type == ProtocolType.Archive)
+                    {
+                        string separator = currentPath.Contains("\\") ? "\\" : "/";
+                        string newPath = currentPath.TrimEnd('/', '\\') + separator + item.Name;
+
+                        _navigateToPath(newPath);
+                        e.Handled = true;
+                    }
+                    else
+                    {
+                        // 注意：对于物理路径，我们不再强制拦截，让它通过 Bubble 事件处理，或者在这里也可以 unified 处理。
+                        // 为了保险，我们让它继续冒泡，除非它已经被上面的逻辑处理了。
+                    }
+                }
+                else
+                {
+                    // 文件逻辑不拦截，让它冒泡
+                }
+            }
+        }
+
+        private T GetAncestor<T>(DependencyObject current) where T : DependencyObject
+        {
+            while (current != null)
+            {
+                if (current is T t) return t;
+                if (current is Visual || current is System.Windows.Media.Media3D.Visual3D)
+                {
+                    current = VisualTreeHelper.GetParent(current);
+                }
+                else
+                {
+                    return null;
+                }
+            }
+            return null;
         }
     }
 }

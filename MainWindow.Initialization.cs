@@ -472,6 +472,7 @@ namespace YiboFile
                 NavigationPanelControl.RenameFavoriteGroupRequested += OnRenameFavoriteGroupRequested;
                 NavigationPanelControl.DeleteFavoriteGroupRequested += OnDeleteFavoriteGroupRequested;
                 NavigationPanelControl.LibrariesListBoxContextMenuOpening += LibrariesListBox_ContextMenuOpening;
+                NavigationPanelControl.LibraryContextMenuClick += LibraryContextMenu_Click;
                 NavigationPanelControl.LibraryManageClick += ManageLibraries_Click;
 
 
@@ -497,34 +498,7 @@ namespace YiboFile
             if (FileBrowser != null)
             {
                 FileBrowser.InfoHeightChanged += FileBrowser_InfoHeightChanged;
-                FileBrowser.NavigationBack += (s, e) => _viewModel?.Navigation?.NavigateBackCommand?.Execute(null);
-                FileBrowser.NavigationForward += (s, e) => _viewModel?.Navigation?.NavigateForwardCommand?.Execute(null);
-                FileBrowser.NavigationUp += (s, e) => _viewModel?.Navigation?.NavigateUpCommand?.Execute(null);
                 FileBrowser.ViewModeChanged += FileBrowser_ViewModeChanged;
-
-                // Toolbar & Context Menu operations - Migrated to Commands
-                /*
-                FileBrowser.FileNewFolder += (s, e) => _menuEventHandler?.NewFolder_Click(s, e);
-                FileBrowser.FileNewFile += (s, e) => _menuEventHandler?.NewFile_Click(s, e);
-                FileBrowser.FileCopy += (s, e) => _menuEventHandler?.Copy_Click(s, e);
-                FileBrowser.FileCut += (s, e) => _menuEventHandler?.Cut_Click(s, e);
-                FileBrowser.FilePaste += (s, e) => _menuEventHandler?.Paste_Click(s, e);
-                FileBrowser.FileDelete += async (s, e) =>
-                {
-                    try
-                    {
-                        await DeleteSelectedFilesAsync();
-                    }
-                    catch (Exception ex)
-                    {
-                        DialogService.Error($"删除操作失败: {ex.Message}", owner: this);
-                    }
-                };
-                FileBrowser.FileRename += (s, e) => _menuEventHandler?.Rename_Click(s, e);
-                FileBrowser.FileRefresh += (s, e) => RefreshFileList();
-                */
-                FileBrowser.FileProperties += (s, e) => ShowSelectedFileProperties();
-                FileBrowser.FileAddTag += FileAddTag_Click;
             }
 
             this.Activated += (s, e) =>
@@ -558,27 +532,55 @@ namespace YiboFile
                 OwnerWindow = this,
                 GetConfig = () => ConfigurationService.Instance.Config ?? new AppConfig(),
                 SaveConfig = ConfigManager.Save,
-                GetCurrentLibrary = () => _currentLibrary,
+                GetCurrentLibrary = () => _viewModel?.PrimaryPane?.CurrentLibrary,
 
-                SetCurrentLibrary = lib => _currentLibrary = lib,
-                GetCurrentPath = () => _currentPath,
-                SetCurrentPath = path => _currentPath = path,
-                SetNavigationCurrentPath = path => _navigationService.CurrentPath = path,
-                LoadLibraryFiles = lib => LoadLibraryFiles(lib),
+                SetCurrentLibrary = lib =>
+                {
+                    if (_viewModel?.PrimaryPane != null)
+                    {
+                        _viewModel.PrimaryPane.NavigateTo(lib, loadData: false);
+                    }
+                },
+                GetCurrentPath = () => _viewModel?.PrimaryPane?.CurrentPath,
+                SetCurrentPath = path =>
+                {
+                    if (_viewModel?.PrimaryPane != null)
+                    {
+                        // Update VM state, but maybe loadData:false if caller handles loading?
+                        // Usually TabService expects to just set the property.
+                        _viewModel.PrimaryPane.CurrentPath = path;
+                    }
+                },
+                SetNavigationCurrentPath = path =>
+                {
+                    if (_navigationService != null) _navigationService.CurrentPath = path;
+                    if (_viewModel?.PrimaryPane != null) _viewModel.PrimaryPane.CurrentPath = path;
+                },
+                LoadLibraryFiles = lib =>
+                {
+                    if (_viewModel?.PrimaryPane != null)
+                    {
+                        _viewModel.PrimaryPane.NavigateTo(lib, loadData: true);
+                    }
+                },
                 NavigateToPathInternal = NavigateToPathFromModule,
                 UpdateNavigationButtonsState = UpdateNavigationButtonsState,
 
                 SearchService = _searchService,
                 GetSearchCacheService = () => _searchCacheService,
                 GetSearchOptions = () => _searchOptions,
-                GetCurrentFiles = () => _currentFiles,
-                SetCurrentFiles = files => { _currentFiles = files; _viewModel?.PrimaryPane?.FileList?.UpdateFiles(files); },
+                GetCurrentFiles = () => _viewModel?.PrimaryPane?.FileList?.Files?.ToList() ?? new List<FileSystemItem>(),
+                SetCurrentFiles = files =>
+                {
+                    _viewModel?.PrimaryPane?.FileList?.UpdateFiles(files);
+                    // _currentFiles = files; // Legacy field
+                },
                 ClearFilter = ClearFilter,
                 RefreshSearchTab = path => { CheckAndRefreshSearchTab(path); return Task.CompletedTask; },
                 FindResource = key => FindResource(key),
 
                 // 获取当前导航模式
-                GetCurrentNavigationMode = () => ConfigurationService.Instance.Config?.LastNavigationMode ?? "Path",
+                GetCurrentNavigationMode = () => _viewModel?.PrimaryPane?.NavigationMode ?? "Path",
 
 
                 TagService = _tagService
@@ -624,6 +626,8 @@ namespace YiboFile
                 if (tab.Library != null)
                 {
                     HighlightMatchingLibrary(tab.Library);
+                    // Ensure ViewModel is updated to Library mode so UI binds correctly
+                    _viewModel?.PrimaryPane?.NavigateTo(tab.Library, loadData: false);
                     LoadLibraryFiles(tab.Library);
                 }
             }

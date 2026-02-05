@@ -72,6 +72,7 @@ namespace YiboFile.ViewModels.Modules
             Subscribe<RenameItemRequestMessage>(OnRenameItem);
             Subscribe<UndoRequestMessage>(m => OnUndo());
             Subscribe<RedoRequestMessage>(m => OnRedo());
+            Subscribe<ShowPropertiesRequestMessage>(OnShowProperties);
         }
 
         #region 消息处理
@@ -103,7 +104,28 @@ namespace YiboFile.ViewModels.Modules
         private async void OnPasteItems(PasteItemsRequestMessage message)
         {
             await _fileOperationService.PasteAsync();
-            Publish(new RefreshFileListMessage());
+            Publish(new RefreshFileListMessage(message.TargetPath));
+        }
+
+        private void OnShowProperties(ShowPropertiesRequestMessage message)
+        {
+            string targetPath = message.Item?.Path;
+            if (string.IsNullOrEmpty(targetPath))
+            {
+                targetPath = message.CurrentPath;
+            }
+
+            if (!string.IsNullOrEmpty(targetPath))
+            {
+                if (YiboFile.Services.Core.ProtocolManager.IsVirtual(targetPath))
+                {
+                    // 暂时不支持压缩包内文件的系统属性
+                    YiboFile.DialogService.Info($"暂不支持查看此类型的系统属性：\n{targetPath}");
+                    return;
+                }
+
+                YiboFile.Services.Core.ShellNative.ShowFileProperties(targetPath);
+            }
         }
 
         private async void OnRenameItem(RenameItemRequestMessage message)

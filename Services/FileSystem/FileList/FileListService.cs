@@ -332,27 +332,38 @@ namespace YiboFile.Services.FileList
                 return await _archiveService.GetArchiveContentAsync(protocolInfo.TargetPath, protocolInfo.ExtraData).ConfigureAwait(false);
             }
 
-            // Case 1.5: Path is "library://..." -> Virtual Path
+            // Case 1.5: Path is "lib://..." -> Virtual Path
             if (protocolInfo.Type == ProtocolType.Library)
             {
-                var libraryName = protocolInfo.TargetPath;
+                var fullTarget = protocolInfo.TargetPath;
+                if (string.IsNullOrEmpty(fullTarget)) return new List<FileSystemItem>();
+
+                // 拆分库名和可能的子路径 (例如: lib://MyLib/FolderName -> libName="MyLib", subPath="FolderName")
+                var parts = fullTarget.Split(new[] { '/', '\\' }, 2);
+                var libraryName = parts[0];
+                var subPath = parts.Length > 1 ? parts[1] : "";
 
                 var libRepo = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<YiboFile.Services.Data.Repositories.ILibraryRepository>(App.ServiceProvider);
                 var allLibs = await Task.Run(() => libRepo.GetAllLibraries(), cancellationToken).ConfigureAwait(false);
 
-                if (string.IsNullOrEmpty(libraryName))
-                {
-                    return new List<FileSystemItem>();
-                }
-
                 var lib = allLibs.FirstOrDefault(l => l.Name.Equals(libraryName, StringComparison.OrdinalIgnoreCase));
                 if (lib != null && lib.Paths != null)
                 {
+                    // 如果存在子路径，则将子路径附加到库的每个物理路径后
+                    var actualPaths = string.IsNullOrEmpty(subPath)
+                        ? lib.Paths
+                        : lib.Paths.Select(p => Path.Combine(p, subPath)).Where(Directory.Exists).ToList();
+
+                    if (!actualPaths.Any()) return new List<FileSystemItem>();
+
                     var items = await LoadFileSystemItemsFromMultiplePathsAsync(
-                        lib.Paths,
+                        actualPaths,
                         p => DatabaseManager.GetFolderSize(p),
                         FormatFileSize,
                         cancellationToken).ConfigureAwait(false);
+
+                    // 标记来源，以便之后能正确识别虚拟路径下的层级
+                    foreach (var item in items) item.SourcePath = path;
 
                     // 触发后续的各种事件和后台任务（大小计算、元数据等）
                     return ProcessLoadedItems(items, cancellationToken, resetOngoingOperations, skipBackgroundTasks, orderTagNames);

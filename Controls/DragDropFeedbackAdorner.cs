@@ -10,6 +10,7 @@ namespace YiboFile.Controls
     public class DragDropFeedbackAdorner : Adorner
     {
         private string _text = "";
+        public string Text => _text;
         private Point _position;
         private readonly Typeface _typeface = new Typeface("Segoe UI");
         private readonly Brush _background;
