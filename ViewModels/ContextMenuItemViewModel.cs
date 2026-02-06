@@ -49,5 +49,19 @@ namespace YiboFile.ViewModels
             get => _isSeparator;
             set => SetProperty(ref _isSeparator, value);
         }
+
+        private object _icon;
+        public object Icon
+        {
+            get => _icon;
+            set => SetProperty(ref _icon, value);
+        }
+
+        private string _iconBrush;
+        public string IconBrush
+        {
+            get => _iconBrush;
+            set => SetProperty(ref _iconBrush, value);
+        }
     }
 }

@@ -8,9 +8,6 @@ namespace YiboFile.Services.Tabs
 {
     public partial class TabService
     {
-        private Point _tabDragStartPoint;
-        private PathTab _draggingTab;
-        private bool _isDragging;
 
         #region 拖拽排序
 

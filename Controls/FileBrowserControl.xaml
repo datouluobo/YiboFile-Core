@@ -125,6 +125,11 @@
             <MenuItem x:Name="PasteItem" Header="粘贴" 
                       Command="{Binding PasteCommand}" 
                       Icon="📋"/>
+            <Separator Visibility="{Binding IsNoSelection, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+            <MenuItem Header="新建" Visibility="{Binding IsNoSelection, Converter={StaticResource BooleanToVisibilityConverter}}" Icon="➕">
+                <MenuItem Header="文件夹" Command="{Binding NewFolderCommand}" Icon="📁"/>
+                <MenuItem Header="文本文档" Command="{Binding NewFileCommand}" Icon="📄"/>
+            </MenuItem>
             <Separator Visibility="{Binding HasSelection, Converter={StaticResource BooleanToVisibilityConverter}}"/>
             <MenuItem x:Name="DeleteItem" Header="删除" 
                       Command="{Binding DeleteCommand}" 
@@ -143,6 +148,7 @@
                         <Setter Property="Header" Value="{Binding Header}"/>
                         <Setter Property="Command" Value="{Binding Command}"/>
                         <Setter Property="CommandParameter" Value="{Binding CommandParameter}"/>
+                        <Setter Property="Icon" Value="{Binding Icon}"/>
                         <Setter Property="IsCheckable" Value="{Binding IsCheckable}"/>
                         <Setter Property="IsChecked" Value="{Binding IsChecked}"/>
                         <Style.Triggers>
@@ -168,6 +174,7 @@
                         <Setter Property="Header" Value="{Binding Header}"/>
                         <Setter Property="Command" Value="{Binding Command}"/>
                         <Setter Property="CommandParameter" Value="{Binding CommandParameter}"/>
+                        <Setter Property="Icon" Value="{Binding Icon}"/>
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding IsSeparator}" Value="True">
                                 <Setter Property="Template">
@@ -191,8 +198,14 @@
                         <Setter Property="Header" Value="{Binding Header}"/>
                         <Setter Property="Command" Value="{Binding Command}"/>
                         <Setter Property="CommandParameter" Value="{Binding CommandParameter}"/>
-                        <Setter Property="IsCheckable" Value="{Binding IsCheckable}"/>
+                        <Setter Property="IsCheckable" Value="True"/>
                         <Setter Property="IsChecked" Value="{Binding IsChecked}"/>
+                        <Setter Property="Icon">
+                            <Setter.Value>
+                                <Rectangle Width="10" Height="10" RadiusX="2" RadiusY="2" 
+                                           Fill="{Binding IconBrush, TargetNullValue=Transparent}"/>
+                            </Setter.Value>
+                        </Setter>
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding IsSeparator}" Value="True">
                                 <Setter Property="Template">
@@ -203,6 +216,7 @@
                                     </Setter.Value>
                                 </Setter>
                                 <Setter Property="IsEnabled" Value="False"/>
+                                <Setter Property="Icon" Value="{x:Null}"/>
                             </DataTrigger>
                         </Style.Triggers>
                     </Style>
@@ -271,19 +285,19 @@
                             FontFamily="Segoe MDL2 Assets" FontSize="14"
                             Command="{Binding PropertiesCommand}" Style="{StaticResource ModernToolbarButtonStyle}" ToolTip="属性"
                             Margin="0,0,4,0"/>
-                    <Button Name="ViewModeBtn" Content="{DynamicResource Icon_ViewList}" 
+                    <Button Name="ViewModeBtn" Content="{Binding ViewModeIcon}" 
                             FontFamily="{DynamicResource IconFontFamily}" FontSize="14"
                             Click="ViewModeBtn_DropDown" Style="{StaticResource ModernToolbarButtonStyle}" ToolTip="视图模式">
                         <Button.ContextMenu>
                             <ContextMenu Name="ViewModeMenu">
-                                <MenuItem Header="📋 列表" Tag="List" Click="ViewModeMenuItem_Click"/>
-                                <MenuItem Header="📝 紧凑列表" Tag="Compact" Click="ViewModeMenuItem_Click"/>
+                                <MenuItem Header="📋 列表" Command="{Binding SwitchViewModeCommand}" CommandParameter="List"/>
+                                <MenuItem Header="📝 紧凑列表" Command="{Binding SwitchViewModeCommand}" CommandParameter="Compact"/>
                                 <Separator/>
-                                <MenuItem Header="🖼️ 缩略图" Tag="Thumbnail" Click="ViewModeMenuItem_Click"/>
-                                <MenuItem Header="🔲 平铺" Tag="Tiles" Click="ViewModeMenuItem_Click"/>
-                                <MenuItem Header="📎 小图标" Tag="SmallIcons" Click="ViewModeMenuItem_Click"/>
+                                <MenuItem Header="🖼️ 缩略图" Command="{Binding SwitchViewModeCommand}" CommandParameter="Thumbnail"/>
+                                <MenuItem Header="🔲 平铺" Command="{Binding SwitchViewModeCommand}" CommandParameter="Tiles"/>
+                                <MenuItem Header="📎 小图标" Command="{Binding SwitchViewModeCommand}" CommandParameter="SmallIcons"/>
                                 <Separator/>
-                                <MenuItem Header="📄 内容" Tag="Content" Click="ViewModeMenuItem_Click"/>
+                                <MenuItem Header="📄 内容" Command="{Binding SwitchViewModeCommand}" CommandParameter="Content"/>
                             </ContextMenu>
                         </Button.ContextMenu>
                     </Button>
@@ -311,6 +325,7 @@
         <!-- Row 3: 文件列表 -->
         <controls:FileListControl Grid.Row="3" x:Name="FileList" 
                                  ItemsSource="{Binding Files}"
+                                 CurrentViewMode="{Binding FileViewMode, Mode=TwoWay}"
                                  FocusVisualStyle="{x:Null}"/>
         
         <!-- Row 4: 水平分割器（文件列表与信息面板之间） -->

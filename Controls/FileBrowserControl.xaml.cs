@@ -37,6 +37,7 @@ namespace YiboFile.Controls
 #pragma warning disable CS0067 // Event is never used (used in XAML)
         public event MouseButtonEventHandler FilesPreviewMouseDoubleClickForBlank;
         public event MouseEventHandler FilesPreviewMouseMove;
+        public event EventHandler<string> ViewModeChanged;
 #pragma warning restore CS0067
 
         public FileBrowserControl()
@@ -365,7 +366,6 @@ namespace YiboFile.Controls
         public event EventHandler<string> BreadcrumbMiddleClicked;
         public event RoutedEventHandler FilterClicked;
         public event RoutedEventHandler LoadMoreClicked;
-        public event RoutedEventHandler FileAddTag;
         public event EventHandler<TagViewModel> TagClicked;
 
         // 地址栏事件处理
@@ -612,8 +612,6 @@ namespace YiboFile.Controls
             }
         }
 
-        // 视图模式变更事件
-        public event EventHandler<string> ViewModeChanged;
 
         public event EventHandler<double> InfoHeightChanged;
 
@@ -625,18 +623,7 @@ namespace YiboFile.Controls
                 InfoHeightChanged?.Invoke(this, height);
             }
         }
-        private void ViewModeBtn_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is RadioButton btn && btn.Tag is string mode)
-            {
-                FileList?.SetViewMode(mode);
-                ViewModeChanged?.Invoke(this, mode);
-            }
-        }
 
-        /// <summary>
-        /// 点击视图模式按钮时打开下拉菜单
-        /// </summary>
         private void ViewModeBtn_DropDown(object sender, RoutedEventArgs e)
         {
             if (sender is Button btn && btn.ContextMenu != null)
@@ -644,55 +631,6 @@ namespace YiboFile.Controls
                 btn.ContextMenu.PlacementTarget = btn;
                 btn.ContextMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
                 btn.ContextMenu.IsOpen = true;
-            }
-        }
-
-        /// <summary>
-        /// 视图模式菜单项点击
-        /// </summary>
-        private void ViewModeMenuItem_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is MenuItem menuItem && menuItem.Tag is string mode)
-            {
-                FileList?.SetViewMode(mode);
-                ViewModeChanged?.Invoke(this, mode);
-
-                // 更新按钮图标以反映当前模式
-                UpdateViewModeButtonIcon(mode);
-            }
-        }
-
-        /// <summary>
-        /// 更新视图模式按钮图标
-        /// </summary>
-        private void UpdateViewModeButtonIcon(string mode)
-        {
-            // 查找按钮控件
-            var viewModeBtn = FindName("ViewModeBtn") as Button;
-            if (viewModeBtn == null) return;
-
-            // 根据视图模式更新按钮图标
-            string iconKey = mode switch
-            {
-                "Thumbnail" or "Tiles" => "Icon_ViewThumb",
-                "SmallIcons" => "Icon_ViewThumb",
-                "Content" => "Icon_ViewList",
-                "Compact" => "Icon_ViewList",
-                _ => "Icon_ViewList" // List 或默认
-            };
-
-            // 安全地获取资源
-            try
-            {
-                var icon = FindResource(iconKey);
-                if (icon != null)
-                {
-                    viewModeBtn.Content = icon;
-                }
-            }
-            catch
-            {
-                // 资源不存在，保持默认图标
             }
         }
 

@@ -65,6 +65,7 @@ namespace YiboFile.ViewModels.Modules
         protected override void OnInitialize()
         {
             Subscribe<CreateFolderRequestMessage>(OnCreateFolder);
+            Subscribe<CreateFileRequestMessage>(OnCreateFile);
             Subscribe<DeleteItemsRequestMessage>(OnDeleteItems);
             Subscribe<CopyItemsRequestMessage>(OnCopyItems);
             Subscribe<CutItemsRequestMessage>(OnCutItems);
@@ -82,6 +83,14 @@ namespace YiboFile.ViewModels.Modules
             System.Diagnostics.Debug.WriteLine($"[FileOperationModule] Creating folder. Parent: {message.ParentPath}, Name: {message.FolderName}");
             await _fileOperationService.CreateFolderAsync(message.ParentPath, message.FolderName);
             System.Diagnostics.Debug.WriteLine($"[FileOperationModule] Folder created. Publishing RefreshFileListMessage for: {message.ParentPath}");
+            Publish(new RefreshFileListMessage(message.ParentPath));
+        }
+
+        private async void OnCreateFile(CreateFileRequestMessage message)
+        {
+            System.Diagnostics.Debug.WriteLine($"[FileOperationModule] Creating file. Parent: {message.ParentPath}, Name: {message.FileName}, Ext: {message.Extension}");
+            await _fileOperationService.CreateFileAsync(message.ParentPath, message.FileName, message.Extension);
+            System.Diagnostics.Debug.WriteLine($"[FileOperationModule] File created. Publishing RefreshFileListMessage for: {message.ParentPath}");
             Publish(new RefreshFileListMessage(message.ParentPath));
         }
 
@@ -323,12 +332,22 @@ namespace YiboFile.ViewModels.Modules
 
         private void ExecuteNewFile(PaneViewModel pane)
         {
-            // Placeholder: functionality not fully defined in messages
-            if (pane != null && !string.IsNullOrEmpty(pane.CurrentPath))
+            if (pane != null)
             {
-                // _fileOperationService.CreateFileAsync...
-                // For now, we can publish a generic message or just log
-                System.Diagnostics.Debug.WriteLine("ExecuteNewFile called");
+                string targetPath = pane.CurrentPath;
+                if (pane.NavigationMode == "Library" && pane.CurrentLibrary != null)
+                {
+                    var libPaths = pane.CurrentLibrary.Paths;
+                    if (libPaths != null && libPaths.Count > 0)
+                    {
+                        targetPath = libPaths.FirstOrDefault(p => System.IO.Directory.Exists(p));
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(targetPath))
+                {
+                    Publish(new CreateFileRequestMessage(targetPath));
+                }
             }
         }
 

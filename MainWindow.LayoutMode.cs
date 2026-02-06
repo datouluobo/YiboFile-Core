@@ -253,17 +253,6 @@ namespace YiboFile
                 _secondTabService.ActiveTabChanged += (s, tab) => SyncSecondUiWithActiveTab(tab);
 
                 // 订阅新建标签页事件
-                SecondTabManager.NewTabRequested += (s, e) =>
-                {
-                    try
-                    {
-                        _secondTabService?.CreateBlankTab();
-                    }
-                    catch
-                    {
-                        // 忽略错误
-                    }
-                };
 
                 // 确保点击标签栏也能激活副面板焦点
                 SecondTabManager.PreviewMouseDown += (s, e) =>
@@ -405,7 +394,6 @@ namespace YiboFile
             SecondFileBrowser.FileCopy += async (s, e) => await CopySelectedFilesAsync();
             SecondFileBrowser.FilePaste += async (s, e) => await PasteFilesAsync();
             */
-            SecondFileBrowser.FileAddTag += FileAddTag_Click;
 
 
 

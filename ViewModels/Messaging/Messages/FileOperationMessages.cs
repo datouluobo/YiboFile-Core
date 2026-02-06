@@ -111,4 +111,20 @@ namespace YiboFile.ViewModels.Messaging.Messages
             CurrentPath = currentPath;
         }
     }
+    /// <summary>
+    /// 创建文件请求
+    /// </summary>
+    public class CreateFileRequestMessage
+    {
+        public string ParentPath { get; }
+        public string FileName { get; }
+        public string Extension { get; }
+
+        public CreateFileRequestMessage(string parentPath, string fileName = null, string extension = ".txt")
+        {
+            ParentPath = parentPath;
+            FileName = fileName;
+            Extension = extension;
+        }
+    }
 }

@@ -538,12 +538,13 @@ namespace YiboFile.Services.FileOperations
 
         #endregion
 
-        public async Task<string> CreateFolderAsync(string parentPath, string name)
+        public async Task<string> CreateFolderAsync(string parentPath, string name = null)
         {
-            if (string.IsNullOrEmpty(parentPath) || string.IsNullOrEmpty(name)) return null;
+            if (string.IsNullOrEmpty(parentPath)) return null;
             try
             {
-                string finalPath = FileSystemCoreUtils.GetUniquePath(Path.Combine(parentPath, name));
+                string folderName = string.IsNullOrEmpty(name) ? "新建文件夹" : name;
+                string finalPath = FileSystemCoreUtils.GetUniquePath(Path.Combine(parentPath, folderName));
                 await Task.Run(() => Directory.CreateDirectory(finalPath));
                 if (_undoService != null && _backupService != null)
                 {
@@ -554,6 +555,33 @@ namespace YiboFile.Services.FileOperations
             catch (Exception ex)
             {
                 _errorService?.ReportError($"创建文件夹失败: {ex.Message}", Core.Error.ErrorSeverity.Error);
+                return null;
+            }
+        }
+
+        public async Task<string> CreateFileAsync(string parentPath, string name = null, string extension = ".txt")
+        {
+            if (string.IsNullOrEmpty(parentPath)) return null;
+            try
+            {
+                string fileName = string.IsNullOrEmpty(name) ? "新建文本文档" : name;
+                if (!fileName.EndsWith(extension, StringComparison.OrdinalIgnoreCase))
+                {
+                    fileName += extension;
+                }
+
+                string finalPath = FileSystemCoreUtils.GetUniquePath(Path.Combine(parentPath, fileName));
+                await Task.Run(() => File.WriteAllBytes(finalPath, Array.Empty<byte>()));
+
+                if (_undoService != null && _backupService != null)
+                {
+                    _undoService.RecordAction(new BackupRestoreUndoAction(_backupService, finalPath));
+                }
+                return finalPath;
+            }
+            catch (Exception ex)
+            {
+                _errorService?.ReportError($"创建文件失败: {ex.Message}", Core.Error.ErrorSeverity.Error);
                 return null;
             }
         }

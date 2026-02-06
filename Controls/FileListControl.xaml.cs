@@ -89,6 +89,36 @@ namespace YiboFile.Controls
                 control.ItemHeight = size + 40;
             }
         }
+
+        // 依赖属性：当前视图模式
+        public static readonly DependencyProperty CurrentViewModeProperty =
+            DependencyProperty.Register("CurrentViewMode", typeof(string), typeof(FileListControl),
+                new PropertyMetadata("List", OnViewModeChanged));
+
+        public string CurrentViewMode
+        {
+            get { return (string)GetValue(CurrentViewModeProperty); }
+            set { SetValue(CurrentViewModeProperty, value); }
+        }
+
+        private static void OnViewModeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is FileListControl control)
+            {
+                string mode = e.NewValue as string;
+                control.ApplyViewMode();
+
+                // 触发缩略图刷新
+                if (control.FilesListView?.ItemsSource != null)
+                {
+                    int size = 32;
+                    if (mode == "Thumbnail") size = (int)control.ThumbnailSize;
+                    else if (mode == "Tiles") size = 64;
+                    else if (mode == "Content") size = 48;
+                    control._thumbnailService?.LoadThumbnailsAsync(control.FilesListView.ItemsSource, size);
+                }
+            }
+        }
         #endregion
 
         public FileListControl()
@@ -189,8 +219,9 @@ namespace YiboFile.Controls
         private void ApplyViewMode()
         {
             if (FilesListView == null) return;
+            string currentMode = CurrentViewMode;
 
-            switch (_currentViewMode)
+            switch (currentMode)
             {
                 case "Thumbnail":
                     ApplyWrapPanelView("ThumbnailTemplate", loadThumbnails: true);
@@ -284,7 +315,7 @@ namespace YiboFile.Controls
         private void FilesListView_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
         {
             // 仅在缩略图模式下且按住Ctrl键时处理
-            if (_currentViewMode == "Thumbnail" && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+            if (CurrentViewMode == "Thumbnail" && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
             {
                 e.Handled = true; // 阻止 ScrollViewer 滚动
 
@@ -301,11 +332,7 @@ namespace YiboFile.Controls
 
         public void SetViewMode(string mode)
         {
-            if (_currentViewMode != mode)
-            {
-                _currentViewMode = mode;
-                ApplyViewMode();
-            }
+            CurrentViewMode = mode;
         }
 
 
@@ -315,7 +342,6 @@ namespace YiboFile.Controls
         public TextBlock EmptyStateTextControl => EmptyStateText;
 
         // 缩略图管理器
-        private string _currentViewMode = "List"; // Default to List
 
         // 分组列头控件（由XAML自动生成字段）
         // GroupedHeaderListView 和 GroupedHeaderGridView 在XAML中定义
@@ -354,9 +380,9 @@ namespace YiboFile.Controls
                 {
                     // 确定图标大小
                     int size = 32;
-                    if (control._currentViewMode == "Thumbnail") size = (int)control.ThumbnailSize;
-                    else if (control._currentViewMode == "Tiles") size = 64;
-                    else if (control._currentViewMode == "Content") size = 48;
+                    if (control.CurrentViewMode == "Thumbnail") size = (int)control.ThumbnailSize;
+                    else if (control.CurrentViewMode == "Tiles") size = 64;
+                    else if (control.CurrentViewMode == "Content") size = 48;
 
                     control._thumbnailService?.LoadThumbnailsAsync(value, size);
                 }

@@ -17,6 +17,7 @@ using Microsoft.Extensions.DependencyInjection;
 using YiboFile.Services.Favorite;
 using YiboFile.ViewModels.Messaging;
 using YiboFile.ViewModels.Messaging.Messages;
+using YiboFile.Services.Config;
 
 namespace YiboFile.ViewModels
 {
@@ -58,10 +59,16 @@ namespace YiboFile.ViewModels
         private ObservableCollection<ContextMenuItemViewModel> _libraryMenuItems = new ObservableCollection<ContextMenuItemViewModel>();
         private ObservableCollection<ContextMenuItemViewModel> _favoriteMenuItems = new ObservableCollection<ContextMenuItemViewModel>();
         private ObservableCollection<ContextMenuItemViewModel> _tagMenuItems = new ObservableCollection<ContextMenuItemViewModel>();
+        private string _fileViewMode = "List";
 
         #endregion
 
         #region Events
+
+        /// <summary>
+        /// 视图模式变更事件
+        /// </summary>
+        public event EventHandler<string> ViewModeChanged;
 
         /// <summary>
         /// 路径变更事件
@@ -247,10 +254,37 @@ namespace YiboFile.ViewModels
             set => SetProperty(ref _isLoadingDisabled, value);
         }
 
+        public string FileViewMode
+        {
+            get => _fileViewMode;
+            set
+            {
+                if (SetProperty(ref _fileViewMode, value))
+                {
+                    ViewModeChanged?.Invoke(this, value);
+                    OnPropertyChanged(nameof(ViewModeIcon));
+                    // 同步到全局配置
+                    ConfigurationService.Instance.Set(cfg => cfg.FileViewMode, value);
+                }
+            }
+        }
+
         public bool IsLoading
         {
             get => _isLoading;
             set => SetProperty(ref _isLoading, value);
+        }
+
+        public object ViewModeIcon
+        {
+            get
+            {
+                return FileViewMode switch
+                {
+                    "Thumbnail" or "Tiles" or "SmallIcons" => Application.Current.TryFindResource("Icon_ViewThumb"),
+                    _ => Application.Current.TryFindResource("Icon_ViewList")
+                };
+            }
         }
 
         private FileListViewModel _fileList;
@@ -312,6 +346,7 @@ namespace YiboFile.ViewModels
         public ICommand NavigateBackCommand { get; }
         public ICommand NavigateForwardCommand { get; }
         public ICommand NavigateUpCommand { get; }
+        public ICommand SwitchViewModeCommand { get; }
         public ICommand PropertiesCommand { get; }
         public ICommand NewFolderCommand { get; }
         public ICommand NewFileCommand { get; }
@@ -369,6 +404,7 @@ namespace YiboFile.ViewModels
             NavigateBackCommand = new RelayCommand(ExecuteNavigateBack, () => CanNavigateBack);
             NavigateForwardCommand = new RelayCommand(ExecuteNavigateForward, () => CanNavigateForward);
             NavigateUpCommand = new RelayCommand(ExecuteNavigateUp, () => CanNavigateUp);
+            SwitchViewModeCommand = new RelayCommand<string>(ExecuteSwitchViewMode);
 
             // 下列命令初步实现，后续可接入 FileOperationService
             PropertiesCommand = new RelayCommand(ExecuteShowProperties, () => SelectedItem != null);
@@ -403,6 +439,7 @@ namespace YiboFile.ViewModels
             _messageBus.Subscribe<RefreshFileListMessage>(OnRefreshFileList);
             // 订阅库选择消息
             _messageBus.Subscribe<LibrarySelectedMessage>(OnLibrarySelected);
+            _messageBus.Subscribe<FileSelectionChangedMessage>(OnFileSelectionChanged);
             // 订阅路径导航请求
             _messageBus.Subscribe<NavigateToPathMessage>(OnNavigateToPath);
 
@@ -432,11 +469,20 @@ namespace YiboFile.ViewModels
                 _refreshDebounceTimer.Stop();
                 Refresh();
             };
+
+            // 初始化视图模式
+            _fileViewMode = ConfigurationService.Instance.Get(cfg => cfg.FileViewMode) ?? "List";
         }
 
         #endregion
 
         #region Command Implementations
+
+        private void ExecuteSwitchViewMode(string mode)
+        {
+            if (string.IsNullOrEmpty(mode)) return;
+            FileViewMode = mode;
+        }
 
         private void ExecuteNavigateBack()
         {
@@ -482,10 +528,7 @@ namespace YiboFile.ViewModels
         }
 
         private void ExecuteNewFolder() => _messageBus.Publish(new CreateFolderRequestMessage(CurrentPath));
-        private void ExecuteNewFile()
-        {
-            // 如果没有专用的 NewFileRequestMessage，可以考虑后续添加或发布通用消息
-        }
+        private void ExecuteNewFile() => _messageBus.Publish(new CreateFileRequestMessage(CurrentPath));
 
         private void ExecuteDelete() => _messageBus.Publish(new DeleteItemsRequestMessage(SelectedItems.ToList()));
         private void ExecuteCopy() => _messageBus.Publish(new CopyItemsRequestMessage(SelectedItems.ToList()));
@@ -587,7 +630,8 @@ namespace YiboFile.ViewModels
                         Command = ToggleLibraryCommand,
                         CommandParameter = lib,
                         IsCheckable = true,
-                        IsChecked = isChecked
+                        IsChecked = isChecked,
+                        Icon = Application.Current.TryFindResource("Icon_Library")
                     });
                 }
 
@@ -601,12 +645,15 @@ namespace YiboFile.ViewModels
                     var allTags = _tagService?.GetAllTags() ?? new System.Collections.Generic.List<ITag>();
                     foreach (var tag in allTags)
                     {
+                        bool isChecked = SelectedItems.Count > 0 && SelectedItems.All(i => i.TagList != null && i.TagList.Any(t => t.Id == tag.Id));
                         _tagMenuItems.Add(new ContextMenuItemViewModel
                         {
                             Header = tag.Name,
                             Command = ToggleTagCommand,
                             CommandParameter = tag,
-                            IsCheckable = true
+                            IsCheckable = true,
+                            IsChecked = isChecked,
+                            IconBrush = tag.Color ?? "#808080"
                         });
                     }
                 }
@@ -620,7 +667,8 @@ namespace YiboFile.ViewModels
                     {
                         Header = group.Name,
                         Command = AddToFavoriteCommand,
-                        CommandParameter = group.Id
+                        CommandParameter = group.Id,
+                        Icon = Application.Current.TryFindResource("Icon_Favorite")
                     });
                 }
 
@@ -1184,6 +1232,12 @@ namespace YiboFile.ViewModels
             }
 
             RequestRefresh();
+        }
+
+        private void OnFileSelectionChanged(FileSelectionChangedMessage message)
+        {
+            // 更新动态菜单项（库、标签等）
+            UpdateDynamicMenuItems();
         }
 
         private void OnLibrarySelected(LibrarySelectedMessage message)

@@ -50,7 +50,6 @@ namespace YiboFile.Controls
         #region Event Handlers
 
         public event EventHandler CloseOverlayRequested;
-        public event EventHandler NewTabRequested;
 
         public void RaiseCloseOverlayRequested()
         {
