@@ -45,6 +45,7 @@ namespace YiboFile.Services.Tabs
 
         public PathTab ActiveTab => _activeTab;
         public IReadOnlyList<PathTab> Tabs => _tabs;
+        public int TabCount => _tabs.Count;
         public ICommand NewTabCommand => new RelayCommand(() => CreateBlankTab());
         public ICommand UpdateTabWidthsCommand => new RelayCommand<double>(width =>
         {

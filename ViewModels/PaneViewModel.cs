@@ -14,6 +14,7 @@ using YiboFile.Services.Core;
 using YiboFile.Services.Features;
 using YiboFile.Services.FileList;
 using Microsoft.Extensions.DependencyInjection;
+using YiboFile.Services.Favorite;
 using YiboFile.ViewModels.Messaging;
 using YiboFile.ViewModels.Messaging.Messages;
 
@@ -31,6 +32,7 @@ namespace YiboFile.ViewModels
         private readonly bool _isSecondary;
         private readonly FileListService _fileListService;
         private readonly LibraryService _libraryService;
+        private readonly FavoriteService _favoriteService;
         private readonly ITagService _tagService;
         private readonly IMessageBus _messageBus;
 
@@ -51,7 +53,11 @@ namespace YiboFile.ViewModels
         private bool _isSearching;
         private readonly System.Collections.Generic.Stack<string> _backStack = new System.Collections.Generic.Stack<string>();
         private readonly System.Collections.Generic.Stack<string> _forwardStack = new System.Collections.Generic.Stack<string>();
-        private bool _isNavigatingHistory; // 内部标志位，防止历史导航时重复入栈
+        private bool _isNavigatingHistory;
+
+        private ObservableCollection<ContextMenuItemViewModel> _libraryMenuItems = new ObservableCollection<ContextMenuItemViewModel>();
+        private ObservableCollection<ContextMenuItemViewModel> _favoriteMenuItems = new ObservableCollection<ContextMenuItemViewModel>();
+        private ObservableCollection<ContextMenuItemViewModel> _tagMenuItems = new ObservableCollection<ContextMenuItemViewModel>();
 
         #endregion
 
@@ -185,8 +191,20 @@ namespace YiboFile.ViewModels
         public FileSystemItem SelectedItem
         {
             get => _selectedItem;
-            private set => SetProperty(ref _selectedItem, value);
+            private set
+            {
+                if (SetProperty(ref _selectedItem, value))
+                {
+                    OnPropertyChanged(nameof(HasSelection));
+                    OnPropertyChanged(nameof(IsSingleSelection));
+                    OnPropertyChanged(nameof(IsNoSelection));
+                }
+            }
         }
+
+        public bool HasSelection => SelectedItems != null && SelectedItems.Count > 0;
+        public bool IsSingleSelection => SelectedItems != null && SelectedItems.Count == 1;
+        public bool IsNoSelection => SelectedItems == null || SelectedItems.Count == 0;
 
         public void UpdateSelection(System.Collections.IList items)
         {
@@ -203,8 +221,12 @@ namespace YiboFile.ViewModels
             }
             SelectedItem = _selectedItems.FirstOrDefault();
 
-            // Notify commands to re-evaluate
-            // CommandManager.InvalidateRequerySuggested(); // In WPF this is static
+            OnPropertyChanged(nameof(HasSelection));
+            OnPropertyChanged(nameof(IsSingleSelection));
+            OnPropertyChanged(nameof(IsNoSelection));
+
+            // 更新动态菜单项
+            UpdateDynamicMenuItems();
         }
 
         /// <summary>
@@ -282,6 +304,8 @@ namespace YiboFile.ViewModels
 
         public SearchViewModel Search { get; }
 
+        #endregion
+
         #region Commands
 
         public ICommand RefreshCommand { get; }
@@ -299,7 +323,15 @@ namespace YiboFile.ViewModels
         public ICommand UndoCommand { get; }
         public ICommand RedoCommand { get; }
 
-        #endregion
+        public ICommand ToggleLibraryCommand { get; }
+        public ICommand AddToFavoriteCommand { get; }
+        public ICommand ToggleTagCommand { get; }
+        public ICommand NewLibraryCommand { get; }
+        public ICommand NewFavoriteGroupCommand { get; }
+
+        public ObservableCollection<ContextMenuItemViewModel> LibraryMenuItems => _libraryMenuItems;
+        public ObservableCollection<ContextMenuItemViewModel> FavoriteMenuItems => _favoriteMenuItems;
+        public ObservableCollection<ContextMenuItemViewModel> TagMenuItems => _tagMenuItems;
 
         #region Navigation State
 
@@ -350,6 +382,12 @@ namespace YiboFile.ViewModels
             UndoCommand = new RelayCommand(ExecuteUndo);
             RedoCommand = new RelayCommand(ExecuteRedo);
 
+            ToggleLibraryCommand = new RelayCommand<Library>(ExecuteToggleLibrary);
+            AddToFavoriteCommand = new RelayCommand<int>(ExecuteAddToFavorite);
+            ToggleTagCommand = new RelayCommand<ITag>(ExecuteToggleTag);
+            NewLibraryCommand = new RelayCommand(ExecuteNewLibrary);
+            NewFavoriteGroupCommand = new RelayCommand(ExecuteNewFavoriteGroup);
+
             Search = new SearchViewModel(_messageBus);
             Search.SetTargetPane(isSecondary ? "Secondary" : "Primary");
 
@@ -372,6 +410,7 @@ namespace YiboFile.ViewModels
             var errorService = App.ServiceProvider?.GetService<YiboFile.Services.Core.Error.ErrorService>();
             _tagService = App.ServiceProvider?.GetService<ITagService>();
             _libraryService = App.ServiceProvider?.GetService<LibraryService>();
+            _favoriteService = App.ServiceProvider?.GetService<FavoriteService>();
 
             if (errorService != null)
             {
@@ -394,6 +433,8 @@ namespace YiboFile.ViewModels
                 Refresh();
             };
         }
+
+        #endregion
 
         #region Command Implementations
 
@@ -454,7 +495,139 @@ namespace YiboFile.ViewModels
         private void ExecuteUndo() => _messageBus.Publish(new UndoRequestMessage());
         private void ExecuteRedo() => _messageBus.Publish(new RedoRequestMessage());
 
-        #endregion
+        private void ExecuteToggleLibrary(Library library)
+        {
+            if (library == null || SelectedItems.Count == 0 || _libraryService == null) return;
+
+            bool anyIn = SelectedItems.Any(i => library.Paths != null && library.Paths.Contains(i.Path));
+            bool shouldAdd = !anyIn;
+
+            foreach (var item in SelectedItems)
+            {
+                if (shouldAdd) _libraryService.AddLibraryPath(library.Id, item.Path);
+                else _libraryService.RemoveLibraryPath(library.Id, item.Path);
+            }
+            UpdateDynamicMenuItems();
+        }
+
+        private void ExecuteAddToFavorite(int groupId)
+        {
+            if (SelectedItems.Count == 0 || _favoriteService == null) return;
+            _favoriteService.AddFavorite(SelectedItems.ToList(), groupId);
+        }
+
+        private void ExecuteNewLibrary()
+        {
+            if (_libraryService == null) return;
+            var dialog = new YiboFile.Controls.Dialogs.InputDialog("新建库", "请输入库名称:");
+            if (dialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(dialog.InputText))
+            {
+                int newLibId = _libraryService.AddLibrary(dialog.InputText);
+                if (newLibId != 0 && SelectedItems.Count > 0)
+                {
+                    int targetId = Math.Abs(newLibId);
+                    foreach (var item in SelectedItems.Where(i => i.IsDirectory))
+                    {
+                        _libraryService.AddLibraryPath(targetId, item.Path);
+                    }
+                }
+                UpdateDynamicMenuItems();
+            }
+        }
+
+        private void ExecuteNewFavoriteGroup()
+        {
+            if (_favoriteService == null) return;
+            var inputName = YiboFile.DialogService.ShowInput("请输入新分组名称：", "新分组", "新建分组");
+            if (!string.IsNullOrEmpty(inputName))
+            {
+                int newGroupId = _favoriteService.CreateGroup(inputName.Trim());
+                if (newGroupId != -1 && SelectedItems.Count > 0)
+                {
+                    _favoriteService.AddFavorite(SelectedItems.ToList(), newGroupId);
+                }
+                UpdateDynamicMenuItems();
+            }
+        }
+
+        private async void ExecuteToggleTag(ITag tag)
+        {
+            if (tag == null || SelectedItems.Count == 0 || _tagService == null) return;
+
+            foreach (var item in SelectedItems)
+            {
+                var fileTags = await _tagService.GetFileTagsAsync(item.Path);
+                if (fileTags.Any(t => t.Id == tag.Id))
+                {
+                    await _tagService.RemoveTagFromFileAsync(item.Path, tag.Id);
+                }
+                else
+                {
+                    await _tagService.AddTagToFileAsync(item.Path, tag.Id);
+                }
+            }
+            UpdateDynamicMenuItems();
+        }
+
+        private void UpdateDynamicMenuItems()
+        {
+            if (_dispatcher == null) return;
+
+            _dispatcher.Invoke(() =>
+            {
+                // Libraries
+                var allLibraries = _libraryService?.GetAllLibraries() ?? new System.Collections.Generic.List<Library>();
+                _libraryMenuItems.Clear();
+                foreach (var lib in allLibraries)
+                {
+                    bool isChecked = SelectedItems.Count > 0 && SelectedItems.All(i => lib.Paths != null && lib.Paths.Contains(i.Path));
+                    _libraryMenuItems.Add(new ContextMenuItemViewModel
+                    {
+                        Header = lib.Name,
+                        Command = ToggleLibraryCommand,
+                        CommandParameter = lib,
+                        IsCheckable = true,
+                        IsChecked = isChecked
+                    });
+                }
+
+                if (allLibraries.Count > 0) _libraryMenuItems.Add(new ContextMenuItemViewModel { IsSeparator = true });
+                _libraryMenuItems.Add(new ContextMenuItemViewModel { Header = "新建库...", Command = NewLibraryCommand });
+
+                // Tags
+                _tagMenuItems.Clear();
+                if (App.IsTagTrainAvailable)
+                {
+                    var allTags = _tagService?.GetAllTags() ?? new System.Collections.Generic.List<ITag>();
+                    foreach (var tag in allTags)
+                    {
+                        _tagMenuItems.Add(new ContextMenuItemViewModel
+                        {
+                            Header = tag.Name,
+                            Command = ToggleTagCommand,
+                            CommandParameter = tag,
+                            IsCheckable = true
+                        });
+                    }
+                }
+
+                // Favorites
+                var groups = _favoriteService?.GetAllGroups() ?? new System.Collections.Generic.List<FavoriteGroup>();
+                _favoriteMenuItems.Clear();
+                foreach (var group in groups)
+                {
+                    _favoriteMenuItems.Add(new ContextMenuItemViewModel
+                    {
+                        Header = group.Name,
+                        Command = AddToFavoriteCommand,
+                        CommandParameter = group.Id
+                    });
+                }
+
+                if (groups.Count > 0) _favoriteMenuItems.Add(new ContextMenuItemViewModel { IsSeparator = true });
+                _favoriteMenuItems.Add(new ContextMenuItemViewModel { Header = "+ 新建分组...", Command = NewFavoriteGroupCommand });
+            });
+        }
 
         #endregion
 

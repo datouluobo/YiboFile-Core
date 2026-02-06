@@ -113,30 +113,105 @@
             </Setter>
         </Style>
         <!-- 文件右键菜单 -->
-        <ContextMenu x:Key="FileListContextMenu" Opened="FileListContextMenu_Opened">
+        <ContextMenu x:Key="FileListContextMenu" DataContext="{Binding Data.DataContext, Source={StaticResource ControlProxy}}">
             <MenuItem x:Name="CopyItem" Header="复制" 
                       Command="{Binding CopyCommand}" 
+                      Visibility="{Binding HasSelection, Converter={StaticResource BooleanToVisibilityConverter}}"
                       Icon="📄"/>
             <MenuItem x:Name="CutItem" Header="剪切" 
                       Command="{Binding CutCommand}" 
+                      Visibility="{Binding HasSelection, Converter={StaticResource BooleanToVisibilityConverter}}"
                       Icon="✂️"/>
             <MenuItem x:Name="PasteItem" Header="粘贴" 
                       Command="{Binding PasteCommand}" 
                       Icon="📋"/>
-            <Separator x:Name="Separator1"/>
+            <Separator Visibility="{Binding HasSelection, Converter={StaticResource BooleanToVisibilityConverter}}"/>
             <MenuItem x:Name="DeleteItem" Header="删除" 
                       Command="{Binding DeleteCommand}" 
+                      Visibility="{Binding HasSelection, Converter={StaticResource BooleanToVisibilityConverter}}"
                       Icon="🗑️"/>
             <MenuItem x:Name="RenameItem" Header="重命名" 
                       Command="{Binding RenameCommand}" 
+                      Visibility="{Binding IsSingleSelection, Converter={StaticResource BooleanToVisibilityConverter}}"
                       Icon="✏️"/>
-            <Separator x:Name="Separator2"/>
-            <MenuItem x:Name="AddFavoriteMenuItem" Header="⭐ 添加到收藏"/>
-            <MenuItem x:Name="AddToLibraryMenuItem" Header="📚 添加到库"/>
-            <MenuItem x:Name="AddTagMenuItem" Header="🏷️ 添加标签"/>
-            <Separator x:Name="Separator3"/>
+            <Separator Visibility="{Binding HasSelection, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+            <MenuItem x:Name="AddToLibraryMenuItem" Header="📚 添加到库" 
+                      Visibility="{Binding HasSelection, Converter={StaticResource BooleanToVisibilityConverter}}"
+                      ItemsSource="{Binding LibraryMenuItems}">
+                <MenuItem.ItemContainerStyle>
+                    <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                        <Setter Property="Header" Value="{Binding Header}"/>
+                        <Setter Property="Command" Value="{Binding Command}"/>
+                        <Setter Property="CommandParameter" Value="{Binding CommandParameter}"/>
+                        <Setter Property="IsCheckable" Value="{Binding IsCheckable}"/>
+                        <Setter Property="IsChecked" Value="{Binding IsChecked}"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsSeparator}" Value="True">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="MenuItem">
+                                            <Separator Margin="0,2" Background="{DynamicResource BorderBrush}"/>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter Property="IsEnabled" Value="False"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </MenuItem.ItemContainerStyle>
+            </MenuItem>
+            <MenuItem x:Name="AddFavoriteMenuItem" Header="⭐ 添加到收藏" 
+                      Visibility="{Binding HasSelection, Converter={StaticResource BooleanToVisibilityConverter}}"
+                      ItemsSource="{Binding FavoriteMenuItems}">
+                <MenuItem.ItemContainerStyle>
+                    <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                        <Setter Property="Header" Value="{Binding Header}"/>
+                        <Setter Property="Command" Value="{Binding Command}"/>
+                        <Setter Property="CommandParameter" Value="{Binding CommandParameter}"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsSeparator}" Value="True">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="MenuItem">
+                                            <Separator Margin="0,2" Background="{DynamicResource BorderBrush}"/>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter Property="IsEnabled" Value="False"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </MenuItem.ItemContainerStyle>
+            </MenuItem>
+            <MenuItem x:Name="AddTagMenuItem" Header="🏷️ 添加标签" 
+                      Visibility="{Binding HasSelection, Converter={StaticResource BooleanToVisibilityConverter}}"
+                      ItemsSource="{Binding TagMenuItems}">
+                <MenuItem.ItemContainerStyle>
+                    <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                        <Setter Property="Header" Value="{Binding Header}"/>
+                        <Setter Property="Command" Value="{Binding Command}"/>
+                        <Setter Property="CommandParameter" Value="{Binding CommandParameter}"/>
+                        <Setter Property="IsCheckable" Value="{Binding IsCheckable}"/>
+                        <Setter Property="IsChecked" Value="{Binding IsChecked}"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsSeparator}" Value="True">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="MenuItem">
+                                            <Separator Margin="0,2" Background="{DynamicResource BorderBrush}"/>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter Property="IsEnabled" Value="False"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </MenuItem.ItemContainerStyle>
+            </MenuItem>
+            <Separator Visibility="{Binding HasSelection, Converter={StaticResource BooleanToVisibilityConverter}}"/>
             <MenuItem x:Name="RefreshItem" Header="刷新" 
                       Command="{Binding RefreshCommand}" 
+                      Visibility="{Binding IsNoSelection, Converter={StaticResource BooleanToVisibilityConverter}}"
                       Icon="🔄"/>
             <MenuItem x:Name="PropertiesItem" Header="属性" 
                       Command="{Binding PropertiesCommand}" 

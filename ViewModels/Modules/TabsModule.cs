@@ -23,6 +23,12 @@ namespace YiboFile.ViewModels.Modules
 
         public override string Name => "Tabs";
 
+        public System.Collections.Generic.IEnumerable<PathTab> PrimaryTabs => _tabService?.Tabs;
+        public System.Collections.Generic.IEnumerable<PathTab> SecondaryTabs => _secondTabService?.Tabs;
+
+        public System.Windows.Input.ICommand PrimaryNewTabCommand => _tabService?.NewTabCommand;
+        public System.Windows.Input.ICommand SecondaryNewTabCommand => _secondTabService?.NewTabCommand;
+
         public TabsModule(
             IMessageBus messageBus,
             TabService tabService,

@@ -100,6 +100,8 @@
             <!-- 主标签页管理器：主文件列表正上方 -->
             <controls:TabManagerControl Grid.Row="0" Grid.Column="3"
                                     x:Name="TabManager" 
+                                    DataContext="{Binding Tabs.PrimaryTabs}"
+                                    NewTabCommand="{Binding DataContext.Tabs.PrimaryNewTabCommand, ElementName=RootGrid}"
                                     Margin="0"
                                     VerticalAlignment="Center"
                                     Panel.ZIndex="1001"
@@ -239,6 +241,8 @@
                     <!-- Margin-Right=430: 为了避开右上角的窗口控制按钮区域(~422px) -->
                     <controls:TabManagerControl x:Name="SecondTabManager" 
                                             Grid.Row="0"
+                                            DataContext="{Binding Tabs.SecondaryTabs}"
+                                            NewTabCommand="{Binding DataContext.Tabs.SecondaryNewTabCommand, ElementName=RootGrid}"
                                             VerticalAlignment="Center"
                                             IsHitTestVisible="True"
                                             WindowChrome.IsHitTestVisibleInChrome="True"/>

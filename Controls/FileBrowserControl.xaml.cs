@@ -590,62 +590,7 @@ namespace YiboFile.Controls
             return null;
         }
 
-        private void FileListContextMenu_Opened(object sender, RoutedEventArgs e)
-        {
-            if (sender is ContextMenu cm)
-            {
-                var selectedItems = FileList?.SelectedItems?.Cast<FileSystemItem>().ToList();
-                bool hasSelection = selectedItems != null && selectedItems.Count > 0;
-                bool isSingleSelection = hasSelection && selectedItems.Count == 1;
 
-                // Update Static Items Visibility
-                SetMenuItemVisibility(cm, "CopyItem", hasSelection);
-                SetMenuItemVisibility(cm, "CutItem", hasSelection);
-                SetMenuItemVisibility(cm, "DeleteItem", hasSelection);
-                SetMenuItemVisibility(cm, "RefreshItem", !hasSelection);
-                SetMenuItemVisibility(cm, "RenameItem", isSingleSelection);
-                SetMenuItemVisibility(cm, "PropertiesItem", isSingleSelection);
-
-                // Refresh Action
-                Action refreshAction = () => (DataContext as ViewModels.PaneViewModel)?.RefreshCommand?.Execute(null);
-
-                // Update Dynamic Items via Builder
-                var addTagItem = cm.Items.OfType<MenuItem>().FirstOrDefault(x => x.Name == "AddTagMenuItem");
-                ContextMenuBuilder.UpdateTagSubMenu(addTagItem, selectedItems, refreshAction);
-
-                var addFavoriteItem = cm.Items.OfType<MenuItem>().FirstOrDefault(x => x.Name == "AddFavoriteMenuItem");
-                ContextMenuBuilder.UpdateFavoritesSubMenu(addFavoriteItem, selectedItems, refreshAction);
-
-                var addToLibraryItem = cm.Items.OfType<MenuItem>().FirstOrDefault(x => x.Name == "AddToLibraryMenuItem");
-                ContextMenuBuilder.UpdateLibrarySubMenu(addToLibraryItem, selectedItems, refreshAction);
-
-                // Update Separators
-                UpdateSeparators(cm);
-            }
-        }
-
-        private void SetMenuItemVisibility(ContextMenu cm, string name, bool visible)
-        {
-            var item = cm.Items.OfType<MenuItem>().FirstOrDefault(x => x.Name == name);
-            if (item != null) item.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
-        }
-
-        private void UpdateSeparators(ContextMenu cm)
-        {
-            var sep1 = cm.Items.OfType<Separator>().FirstOrDefault(x => x.Name == "Separator1");
-            var sep2 = cm.Items.OfType<Separator>().FirstOrDefault(x => x.Name == "Separator2");
-            var sep3 = cm.Items.OfType<Separator>().FirstOrDefault(x => x.Name == "Separator3");
-
-            bool IsVisible(string name)
-            {
-                var item = cm.Items.OfType<MenuItem>().FirstOrDefault(x => x.Name == name);
-                return item != null && item.Visibility == Visibility.Visible;
-            }
-
-            if (sep1 != null) sep1.Visibility = (IsVisible("CopyItem") || IsVisible("CutItem") || IsVisible("PasteItem")) ? Visibility.Visible : Visibility.Collapsed;
-            if (sep2 != null) sep2.Visibility = (IsVisible("DeleteItem") || IsVisible("RenameItem")) ? Visibility.Visible : Visibility.Collapsed;
-            if (sep3 != null) sep3.Visibility = (IsVisible("AddFavoriteMenuItem") || IsVisible("AddToLibraryMenuItem") || IsVisible("AddTagMenuItem")) ? Visibility.Visible : Visibility.Collapsed;
-        }
 
 
 
