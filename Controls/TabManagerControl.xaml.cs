@@ -79,39 +79,8 @@ namespace YiboFile.Controls
 
             _newTabButton.Content = iconBlock;
 
-            // 设置样式
-            var style = new Style(typeof(Button));
-            style.Setters.Add(new Setter(BackgroundProperty, Brushes.Transparent));
-            style.Setters.Add(new Setter(BorderBrushProperty, Brushes.Transparent));
-
-            var template = new ControlTemplate(typeof(Button));
-
-            // 边框容器
-            var factory = new FrameworkElementFactory(typeof(Border));
-            factory.SetBinding(Border.BackgroundProperty, new System.Windows.Data.Binding("Background") { RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.TemplatedParent) });
-            factory.SetValue(Border.CornerRadiusProperty, new CornerRadius(6)); // 与标签页一致
-            factory.SetValue(Border.PaddingProperty, new Thickness(0));
-
-            // 内容呈现
-            var contentPresenter = new FrameworkElementFactory(typeof(ContentPresenter));
-            contentPresenter.SetValue(ContentPresenter.HorizontalAlignmentProperty, HorizontalAlignment.Center);
-            contentPresenter.SetValue(ContentPresenter.VerticalAlignmentProperty, VerticalAlignment.Center);
-            factory.AppendChild(contentPresenter);
-
-            template.VisualTree = factory;
-            style.Setters.Add(new Setter(TemplateProperty, template));
-
-            // Trigger: 悬停效果
-            var mouseOverTrigger = new Trigger { Property = Button.IsMouseOverProperty, Value = true };
-            mouseOverTrigger.Setters.Add(new Setter(Button.BackgroundProperty, new DynamicResourceExtension("ControlHoverBrush")));
-            style.Triggers.Add(mouseOverTrigger);
-
-            // Trigger: 按下效果
-            var pressedTrigger = new Trigger { Property = Button.IsPressedProperty, Value = true };
-            pressedTrigger.Setters.Add(new Setter(Button.BackgroundProperty, new DynamicResourceExtension("ControlPressedBrush")));
-            style.Triggers.Add(pressedTrigger);
-
-            _newTabButton.Style = style;
+            // Use the NewTabButtonStyle from resources
+            _newTabButton.SetResourceReference(StyleProperty, "NewTabButtonStyle");
             _newTabButton.Click += NewTabButton_Click;
 
             // 添加到专用容器，使其在滚动时依然可见

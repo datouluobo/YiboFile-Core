@@ -16,6 +16,134 @@
     <!-- =========================
          Modern ScrollBar Style
          ========================= -->
+    <!-- Thumb Style for Overlay ScrollBars -->
+    <Style x:Key="OverlayScrollThumbStyle" TargetType="{x:Type Thumb}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type Thumb}">
+                    <Border x:Name="thumbBorder" Background="{DynamicResource AccentBrush}" CornerRadius="3" Opacity="0.4"/>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="thumbBorder" Property="Opacity" Value="0.8"/>
+                        </Trigger>
+                        <Trigger Property="IsDragging" Value="True">
+                            <Setter TargetName="thumbBorder" Property="Opacity" Value="1.0"/>
+                        </Trigger>
+                        <!-- Orientation handling -->
+                        <DataTrigger Binding="{Binding Orientation, RelativeSource={RelativeSource AncestorType=ScrollBar}}" Value="Vertical">
+                            <Setter TargetName="thumbBorder" Property="Width" Value="4"/>
+                            <Setter TargetName="thumbBorder" Property="Height" Value="NaN"/>
+                            <Setter TargetName="thumbBorder" Property="HorizontalAlignment" Value="Right"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding Orientation, RelativeSource={RelativeSource AncestorType=ScrollBar}}" Value="Horizontal">
+                            <Setter TargetName="thumbBorder" Property="Height" Value="4"/>
+                            <Setter TargetName="thumbBorder" Property="Width" Value="NaN"/>
+                            <Setter TargetName="thumbBorder" Property="VerticalAlignment" Value="Bottom"/>
+                        </DataTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Bar Style for Overlay ScrollBars -->
+    <Style x:Key="OverlayScrollBarStyle" TargetType="{x:Type ScrollBar}">
+        <Setter Property="Stylus.IsPressAndHoldEnabled" Value="false"/>
+        <Setter Property="Stylus.IsFlicksEnabled" Value="false"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Width" Value="10"/>
+        <Setter Property="Height" Value="10"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type ScrollBar}">
+                    <Grid x:Name="Bg" SnapsToDevicePixels="true" Background="Transparent">
+                        <Track x:Name="PART_Track" IsDirectionReversed="true" IsEnabled="{TemplateBinding IsEnabled}">
+                            <Track.Thumb>
+                                <Thumb Style="{StaticResource OverlayScrollThumbStyle}"/>
+                            </Track.Thumb>
+                        </Track>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="Orientation" Value="Horizontal">
+                <Setter Property="Width" Value="Auto"/>
+                <Setter Property="Height" Value="2"/> <!-- Default thin line -->
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="{x:Type ScrollBar}">
+                            <Grid x:Name="Bg" SnapsToDevicePixels="true" Background="Transparent">
+                                <Track x:Name="PART_Track" IsDirectionReversed="False" IsEnabled="{TemplateBinding IsEnabled}">
+                                    <Track.Thumb>
+                                        <Thumb Style="{StaticResource OverlayScrollThumbStyle}"/>
+                                    </Track.Thumb>
+                                </Track>
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Height" Value="8"/> <!-- Thicker on hover -->
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Trigger>
+            <Trigger Property="Orientation" Value="Vertical">
+                <Setter Property="Width" Value="2"/> <!-- Default thin line -->
+            </Trigger>
+            <MultiTrigger>
+                <MultiTrigger.Conditions>
+                    <Condition Property="Orientation" Value="Vertical"/>
+                    <Condition Property="IsMouseOver" Value="True"/>
+                </MultiTrigger.Conditions>
+                <Setter Property="Width" Value="8"/> <!-- Thicker on hover -->
+            </MultiTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- ScrollViewer that places ScrollBars OVER content -->
+    <Style x:Key="OverlayScrollViewerStyle" TargetType="{x:Type ScrollViewer}">
+        <Setter Property="OverridesDefaultStyle" Value="True"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type ScrollViewer}">
+                    <Grid>
+                        <ScrollContentPresenter x:Name="PART_ScrollContentPresenter" 
+                                                CanContentScroll="{TemplateBinding CanContentScroll}"
+                                                Margin="0,0,0,2"/> 
+                        <!-- Vertical ScrollBar -->
+                        <ScrollBar x:Name="PART_VerticalScrollBar" 
+                                   HorizontalAlignment="Right" 
+                                   Maximum="{TemplateBinding ScrollableHeight}" 
+                                   Orientation="Vertical" 
+                                   Style="{StaticResource OverlayScrollBarStyle}"
+                                   ViewportSize="{TemplateBinding ViewportHeight}" 
+                                   Value="{Binding VerticalOffset, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}" 
+                                   Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}"
+                                   Opacity="0"/>
+                        <!-- Horizontal ScrollBar -->
+                        <ScrollBar x:Name="PART_HorizontalScrollBar" 
+                                   VerticalAlignment="Bottom" 
+                                   Maximum="{TemplateBinding ScrollableWidth}" 
+                                   Orientation="Horizontal" 
+                                   Style="{StaticResource OverlayScrollBarStyle}"
+                                   ViewportSize="{TemplateBinding ViewportWidth}" 
+                                   Value="{Binding HorizontalOffset, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}" 
+                                   Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}"
+                                   Opacity="0"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                             <Setter TargetName="PART_HorizontalScrollBar" Property="Opacity" Value="1"/>
+                             <Setter TargetName="PART_VerticalScrollBar" Property="Opacity" Value="1"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style x:Key="ScrollBarThumb" TargetType="{x:Type Thumb}">
         <Setter Property="OverridesDefaultStyle" Value="true"/>
         <Setter Property="IsTabStop" Value="false"/>
@@ -518,6 +646,35 @@
         </Setter>
     </Style>
 
+    <!-- New Tab Button Style -->
+    <Style x:Key="NewTabButtonStyle" TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+        <Setter Property="Width" Value="32"/>
+        <Setter Property="Height" Value="32"/>
+        <Setter Property="Margin" Value="2,0"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="border"
+                            Background="{TemplateBinding Background}" 
+                            CornerRadius="6">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource ButtonHoverBackgroundBrush}" TargetName="border"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource ButtonPressedBackgroundBrush}" TargetName="border"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- Active Frameless Navigation Button Style -->
     <Style x:Key="ActiveNavigationButtonStyle" TargetType="Button" BasedOn="{StaticResource FramelessNavButtonStyle}">
         <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
@@ -586,7 +743,7 @@
 
     <!-- Tab Button Style (Full Rounded Capsule) -->
     <Style x:Key="TabButtonStyle" TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
-        <Setter Property="Height" Value="32"/>
+        <Setter Property="Height" Value="34"/>
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="Margin" Value="1,0"/>
@@ -600,16 +757,16 @@
                                 Background="{TemplateBinding Background}" 
                                 BorderBrush="{TemplateBinding BorderBrush}" 
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="6"> <!-- Full Rounded Corners -->
+                                CornerRadius="6,6,0,0">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
                         </Border>
                         
-                        <!-- Separator Line (Plan A) -->
+                        <!-- Separator Line (Plan B: Simplified) -->
                         <Rectangle x:Name="Separator"
                                    HorizontalAlignment="Right"
                                    VerticalAlignment="Center"
-                                   Width="1" Height="16"
-                                   Fill="#D1D5DB"
+                                   Width="1" Height="14"
+                                   Fill="{DynamicResource DividerBrush}"
                                    Margin="0,0,-1,0" 
                                    Visibility="Visible"/>
                     </Grid>
@@ -617,19 +774,36 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter Property="Background" Value="{DynamicResource ButtonHoverBackgroundBrush}" TargetName="border"/>
-                        </Trigger>
-                        <!-- Selected State (Tag='Selected') -->
-                        <Trigger Property="Tag" Value="Selected">
-                             <Setter Property="Background" Value="#DEE2E6" TargetName="border"/> <!-- Deeper background for selected -->
-                             <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-                             <Setter Property="Visibility" Value="Collapsed" TargetName="Separator"/> <!-- Hide separator when selected -->
-                        </Trigger>
-                        
-                        <!-- Hide separator on hover too, for cleaner look -->
-                        <Trigger Property="IsMouseOver" Value="True">
-                             <Setter Property="Visibility" Value="Collapsed" TargetName="Separator"/>
+                            <Setter Property="Visibility" Value="Collapsed" TargetName="Separator"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Active Tab Button Style -->
+    <Style x:Key="ActiveTabButtonStyle" TargetType="Button" BasedOn="{StaticResource TabButtonStyle}">
+        <Setter Property="Height" Value="34"/>
+        <Setter Property="Background" Value="#F0F5FF"/> <!-- Subtle active bg -->
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid>
+                        <Border x:Name="border"
+                                Background="{TemplateBinding Background}" 
+                                CornerRadius="6,6,0,0">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        
+                        <!-- Top Indicator (New Style) -->
+                        <Rectangle Height="3" 
+                                   VerticalAlignment="Top" 
+                                   Fill="{DynamicResource AccentBrush}" 
+                                   Margin="6,0,6,0"
+                                   RadiusX="1.5" RadiusY="1.5"/>
+                    </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
@@ -1098,34 +1272,7 @@
 
 
     
-    <!-- Active Tab Button Style -->
-    <Style x:Key="ActiveTabButtonStyle" TargetType="Button" BasedOn="{StaticResource TabButtonStyle}">
-        <Setter Property="Background" Value="#DEE2E6"/>
-        <Setter Property="BorderBrush" Value="Transparent"/>
-        <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
-        <Setter Property="FontWeight" Value="SemiBold"/>
-        <Setter Property="Margin" Value="1,0,1,2"/>
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="Button">
-                    <Border x:Name="Border"
-                            Background="{TemplateBinding Background}" 
-                            BorderBrush="{TemplateBinding BorderBrush}" 
-                            BorderThickness="0"
-                            CornerRadius="6">
-                        <ContentPresenter HorizontalAlignment="Center" 
-                                          VerticalAlignment="Center"
-                                          Margin="{TemplateBinding Padding}"/>
-                    </Border>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Border" Property="Background" Value="#CED4DA"/>
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
+
 
     <!-- View Toggle Button Style -->
     <Style x:Key="ViewToggleButtonStyle" TargetType="RadioButton">
