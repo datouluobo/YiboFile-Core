@@ -3,8 +3,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Shell;
-using YiboFile;
 
 namespace YiboFile.Controls
 {
@@ -15,20 +13,41 @@ namespace YiboFile.Controls
     /// </summary>
     public partial class TabManagerControl : UserControl
     {
-        private Window _parentWindow;
-        private Button _newTabButton;
-
-        /// <summary>
-        /// 新建标签页请求事件
-        /// </summary>
-        public event EventHandler NewTabRequested;
-
         public TabManagerControl()
         {
             InitializeComponent();
             TabScrollViewer.PreviewMouseWheel += TabScrollViewer_PreviewMouseWheel;
-            CreateAndAddNewTabButton();
         }
+
+        #region Dependency Properties
+
+        /// <summary>
+        /// 新建标签页命令
+        /// </summary>
+        public static readonly DependencyProperty NewTabCommandProperty =
+            DependencyProperty.Register(nameof(NewTabCommand), typeof(ICommand), typeof(TabManagerControl));
+
+        public ICommand NewTabCommand
+        {
+            get => (ICommand)GetValue(NewTabCommandProperty);
+            set => SetValue(NewTabCommandProperty, value);
+        }
+
+        /// <summary>
+        /// 更新标签页宽度命令
+        /// </summary>
+        public static readonly DependencyProperty UpdateTabWidthsCommandProperty =
+            DependencyProperty.Register(nameof(UpdateTabWidthsCommand), typeof(ICommand), typeof(TabManagerControl));
+
+        public ICommand UpdateTabWidthsCommand
+        {
+            get => (ICommand)GetValue(UpdateTabWidthsCommandProperty);
+            set => SetValue(UpdateTabWidthsCommandProperty, value);
+        }
+
+        #endregion
+
+        #region Event Handlers
 
         private void TabScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
         {
@@ -39,119 +58,21 @@ namespace YiboFile.Controls
             }
         }
 
-        /// <summary>
-        /// 关闭覆盖层请求事件
-        /// </summary>
-        public event EventHandler CloseOverlayRequested;
-
-        public void RaiseCloseOverlayRequested()
+        private void TabsBorder_SizeChanged(object sender, SizeChangedEventArgs e)
         {
-            CloseOverlayRequested?.Invoke(this, EventArgs.Empty);
-        }
-
-        /// <summary>
-        /// 创建并添加新建标签页按钮到TabsPanel末尾
-        /// </summary>
-        private void CreateAndAddNewTabButton()
-        {
-            _newTabButton = new Button
+            if (UpdateTabWidthsCommand != null && UpdateTabWidthsCommand.CanExecute(e.NewSize.Width))
             {
-                Width = 32,
-                Height = 32,
-                Margin = new Thickness(2, 0, 2, 0),
-                ToolTip = "新建标签页",
-                BorderThickness = new Thickness(0),
-                Cursor = Cursors.Hand,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            // 确保按钮在该区域可点击 (WindowChrome)
-            _newTabButton.SetValue(WindowChrome.IsHitTestVisibleInChromeProperty, true);
-
-            // Create TextBlock for Icon
-            var iconBlock = new TextBlock
-            {
-                FontSize = 16,
-                VerticalAlignment = VerticalAlignment.Center,
-                HorizontalAlignment = HorizontalAlignment.Center
-            };
-            iconBlock.SetResourceReference(TextBlock.TextProperty, "Icon_Add");
-            iconBlock.SetResourceReference(TextBlock.FontFamilyProperty, "IconFontFamily");
-
-            _newTabButton.Content = iconBlock;
-
-            // Use the NewTabButtonStyle from resources
-            _newTabButton.SetResourceReference(StyleProperty, "NewTabButtonStyle");
-            _newTabButton.Click += NewTabButton_Click;
-
-            // 添加到专用容器，使其在滚动时依然可见
-            var host = FindName("NewTabButtonHost") as Border;
-            if (host != null)
-            {
-                host.Child = _newTabButton;
-            }
-            else
-            {
-                TabsPanel.Children.Add(_newTabButton);
+                UpdateTabWidthsCommand.Execute(e.NewSize.Width);
             }
         }
 
-        /// <summary>
-        /// 确保新建标签页按钮始终在最后
-        /// TabService在添加/移除标签页后应调用此方法
-        /// </summary>
-        public void EnsureNewTabButtonLast()
-        {
-            var host = FindName("NewTabButtonHost") as Border;
-            if (host != null)
-            {
-                // Ensure button is in host
-                if (host.Child != _newTabButton)
-                {
-                    host.Child = _newTabButton;
-                }
+        #endregion
 
-                // Ensure host is in TabsPanel
-                if (!TabsPanel.Children.Contains(host))
-                {
-                    TabsPanel.Children.Add(host);
-                }
+        #region Obsolete/Compatibility (To be removed if possible)
 
-                // Ensure host is at the end of TabsPanel
-                int lastIndex = TabsPanel.Children.Count - 1;
-                if (TabsPanel.Children.IndexOf(host) != lastIndex)
-                {
-                    TabsPanel.Children.Remove(host);
-                    TabsPanel.Children.Add(host);
-                }
-            }
-        }
-
-        /// <summary>
-        /// 新建标签页按钮点击事件
-        /// </summary>
-        private void NewTabButton_Click(object sender, RoutedEventArgs e)
-        {
-            CloseOverlayRequested?.Invoke(this, EventArgs.Empty);
-            NewTabRequested?.Invoke(this, EventArgs.Empty);
-        }
-
-        /// <summary>
-        /// 设置父窗口（用于对话框等）
-        /// </summary>
-        public void SetParentWindow(Window window)
-        {
-            _parentWindow = window;
-        }
-
-        /// <summary>
-        /// 标签页面板（XAML引用）
-        /// </summary>
-        public StackPanel TabsPanelControl => TabsPanel;
-
-        /// <summary>
-        /// 标签页边框容器（XAML引用）
-        /// </summary>
+        public StackPanel TabsPanelControl => null;
         public Border TabsBorderControl => TabsBorder;
+
+        #endregion
     }
 }
-

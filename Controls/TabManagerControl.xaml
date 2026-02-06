@@ -9,16 +9,42 @@
              shell:WindowChrome.IsHitTestVisibleInChrome="True">
     
     <Border x:Name="TabsBorder" Background="Transparent" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0" Visibility="Visible"
-            shell:WindowChrome.IsHitTestVisibleInChrome="True">
+            shell:WindowChrome.IsHitTestVisibleInChrome="True"
+            SizeChanged="TabsBorder_SizeChanged">
         <ScrollViewer x:Name="TabScrollViewer" 
                       Style="{StaticResource OverlayScrollViewerStyle}"
                       PanningMode="HorizontalOnly"
                       HorizontalScrollBarVisibility="Auto"
                       VerticalScrollBarVisibility="Disabled"
                       shell:WindowChrome.IsHitTestVisibleInChrome="True">
-            <StackPanel x:Name="TabsPanel" Orientation="Horizontal" shell:WindowChrome.IsHitTestVisibleInChrome="True">
-                <!-- 新建标签页按钮容器 - 将紧跟在最后一个标签页之后 -->
-                <Border x:Name="NewTabButtonHost" VerticalAlignment="Center" shell:WindowChrome.IsHitTestVisibleInChrome="True"/>
+            <StackPanel Orientation="Horizontal" shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                <!-- 标签页列表容器 - 数据驱动 -->
+                <ItemsControl x:Name="TabsItemsControl" 
+                              ItemsSource="{Binding}"
+                              ItemTemplate="{StaticResource PathTabDataTemplate}"
+                              shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel x:Name="TabsPanel" Orientation="Horizontal" shell:WindowChrome.IsHitTestVisibleInChrome="True"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+
+                <!-- 新建标签页按钮 - 直接定义在 XAML -->
+                <Button x:Name="NewTabButton"
+                        Style="{StaticResource NewTabButtonStyle}"
+                        Width="32" Height="32"
+                        Margin="2,0,2,0"
+                        VerticalAlignment="Center"
+                        Command="{Binding RelativeSource={RelativeSource AncestorType=UserControl}, Path=NewTabCommand}"
+                        shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                        ToolTip="新建标签页">
+                    <TextBlock FontSize="16" 
+                               FontFamily="{StaticResource IconFontFamily}" 
+                               Text="{StaticResource Icon_Add}"
+                               VerticalAlignment="Center" 
+                               HorizontalAlignment="Center"/>
+                </Button>
             </StackPanel>
         </ScrollViewer>
     </Border>

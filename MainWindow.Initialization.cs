@@ -163,7 +163,6 @@ namespace YiboFile
 
             AttachTabServiceUiContext();
             AttachSecondTabServiceUiContext();
-            _tabService.InitializeTabSizeHandler(); // Enable tab width compression
 
             // 初始化 UI 辅助服务（需要在 InitializeComponent 之后，因为需要 FileBrowser）
             _uiHelperService = new Services.UIHelper.UIHelperService(FileBrowser, this.Dispatcher);
@@ -280,7 +279,6 @@ namespace YiboFile
                         _layoutModule?.SetFocusedPane(true);
                         SecondFileBrowser?.FilesList?.Focus();
                     }
-                    _secondTabService?.UpdateTabStyles();
                 }
             };
 
@@ -587,21 +585,7 @@ namespace YiboFile
             };
             _tabService.AttachUiContext(context);
 
-            // [SSOT] 核心订阅：当活动标签页改变时同步UI
             _tabService.ActiveTabChanged += (s, tab) => SyncUiWithActiveTab(tab);
-
-            // 订阅新建标签页事件
-            TabManager.NewTabRequested += (s, e) =>
-            {
-                try
-                {
-                    _tabService?.CreateBlankTab();
-                }
-                catch
-                {
-                    // 忽略错误
-                }
-            };
         }
 
         /// <summary>

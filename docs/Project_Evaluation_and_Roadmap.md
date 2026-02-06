@@ -45,7 +45,7 @@
 | 步骤 | 任务描述 | 验证方法 | 状态 |
 |------|----------|----------|------|
 | **1.1** | **纯绑定式地址栏** | 将 `AddressText` 与 `CurrentPath` 双向绑定，引入 Converter 处理 `lib://` 显示 | 移除手动 SetText 代码，修复 BUG-001 | ✅ 已完成 |
-| **1.2** | **Tab 系统 UI 解耦** | 重构 `TabService.UI`，使用 ObservableCollection // DataTemplate 驱动 Tab 渲染 | 移除 TabManager 引用，Tab 创建完全数据驱动 | ⚪ 计划中 |
+| **1.2** | **Tab 系统 UI 解耦** | 重构 `TabService.UI`，使用 ObservableCollection // DataTemplate 驱动 Tab 渲染 | 移除 TabManager 引用，Tab 创建完全数据驱动 | ✅ 已完成 |
 | **1.3** | **右键菜单 Command 化** | 将文件/库右键菜单绑定到 VM Command | 移除 `MenuEventHandler` 和 `ContextMenuBuilder` 中的 Click 事件 | ⚪ 计划中 |
 | **1.4** | **工具栏按钮 Command 化** | 将刷新、删除等按钮 Click 事件改为绑定 VM 命令 | 移除 `ButtonEvents.cs` 相关代码 | ⚪ 计划中 |
 

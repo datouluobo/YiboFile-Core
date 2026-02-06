@@ -3,11 +3,14 @@
                     xmlns:controls="clr-namespace:YiboFile.Controls"
                     xmlns:colmgr="clr-namespace:YiboFile.Services.UI.ColumnManagement"
                     xmlns:ui="clr-namespace:YiboFile.Services.UI"
+                    xmlns:tabs="clr-namespace:YiboFile.Services.Tabs"
+                    xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
                     xmlns:converters="clr-namespace:YiboFile.Controls.Converters">
     <!-- Theme resources are now loaded dynamically from Themes/*.xaml -->
     
     <!-- Converters -->
     <converters:UsagePercentageToColorConverter x:Key="UsagePercentageToColorConverter"/>
+    <converters:StringStartsWithConverter x:Key="StringStartsWithConverter"/>
     
     <!-- Window Control Brushes (Defaults) -->
     <SolidColorBrush x:Key="CloseButtonHoverBackgroundBrush" Color="#E81123"/>
@@ -810,6 +813,84 @@
     </Style>
 
     <!-- Active Navigation Button Style (For 'Path', 'Library', 'Tags' in TitleBar) -->
+    
+    <!-- =========================
+         Tab DataTemplate (Core of Decoupling)
+         ========================= -->
+    <!-- 标签页数据模板 - 核心重构 -->
+    <DataTemplate x:Key="PathTabDataTemplate" DataType="{x:Type tabs:PathTab}">
+        <Button x:Name="TabButton" 
+                Style="{StaticResource TabButtonStyle}"
+                Width="{Binding TargetWidth}"
+                Command="{Binding SelectCommand}"
+                ToolTip="{Binding Title}"
+                shell:WindowChrome.IsHitTestVisibleInChrome="True">
+            <Button.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="关闭标签页" Command="{Binding CloseCommand}"/>
+                    <MenuItem Header="固定此标签页" Command="{Binding CloseCommand}" IsEnabled="False"/>
+                </ContextMenu>
+            </Button.ContextMenu>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0">
+                <!-- Icon -->
+                <TextBlock x:Name="IconText" 
+                           Text="📁" 
+                           FontSize="12" 
+                           VerticalAlignment="Center" 
+                           Margin="0,0,8,0"
+                           Opacity="0.7"
+                           IsHitTestVisible="False"/>
+                
+                <!-- Title -->
+                <TextBlock Text="{Binding Title}" 
+                           VerticalAlignment="Center" 
+                           MaxWidth="150" 
+                           TextTrimming="CharacterEllipsis"
+                           IsHitTestVisible="False"/>
+                
+                <!-- Close Button -->
+                <Button x:Name="PART_CloseButton"
+                        Style="{StaticResource FramelessNavButtonStyle}"
+                        Content="&#xE8BB;"
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="9"
+                        Width="20" Height="20"
+                        Margin="6,0,0,0"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Right"
+                        Foreground="{DynamicResource TextPrimaryBrush}"
+                        Command="{Binding CloseCommand}"
+                        shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                        Visibility="Visible"
+                        Opacity="0.8"/>
+            </StackPanel>
+        </Button>
+        <DataTemplate.Triggers>
+            <!-- 激活状态样式 -->
+            <DataTrigger Binding="{Binding IsActive}" Value="True">
+                <Setter TargetName="TabButton" Property="Style" Value="{StaticResource ActiveTabButtonStyle}"/>
+                <Setter TargetName="IconText" Property="Opacity" Value="1.0"/>
+            </DataTrigger>
+            
+            <!-- 动态图标逻辑 -->
+            <DataTrigger Binding="{Binding Path, Converter={StaticResource StringStartsWithConverter}, ConverterParameter='search://'}" Value="True">
+                <Setter TargetName="IconText" Property="Text" Value="🔍"/>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Path, Converter={StaticResource StringStartsWithConverter}, ConverterParameter='tag://'}" Value="True">
+                <Setter TargetName="IconText" Property="Text" Value="🏷️"/>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Path, Converter={StaticResource StringStartsWithConverter}, ConverterParameter='lib://'}" Value="True">
+                <Setter TargetName="IconText" Property="Text" Value="📚"/>
+            </DataTrigger>
+            
+            <!-- 固定状态逻辑 -->
+            <DataTrigger Binding="{Binding IsPinned}" Value="True">
+                <Setter TargetName="PART_CloseButton" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="IconText" Property="Text" Value="📌"/>
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
     <Style x:Key="ActiveNavButtonStyle_Fixed" TargetType="Button">
         <Setter Property="Height" Value="36"/>
         <Setter Property="Margin" Value="2,0"/>

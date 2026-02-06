@@ -234,7 +234,7 @@ namespace YiboFile
         /// </summary>
         private void UpdateTabStyles()
         {
-            _tabService?.UpdateTabStyles();
+            // 数据驱动模式下样式自动更新，无需手动调用
         }
         /// <summary>
         /// 在库模式下设置标签页（为库的每个路径创建标签页）

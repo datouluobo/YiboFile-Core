@@ -1,30 +1,23 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using YiboFile.Models;
 using YiboFile.Services.Config;
 using YiboFile.Services.Core;
+using System.Windows.Input;
+using YiboFile.ViewModels;
+
 
 namespace YiboFile.Services.Tabs
 {
-    /// <summary>
-    /// 标签页管理服务
-    /// 负责标签页的业务逻辑和状态管理
-    /// </summary>
     public partial class TabService
     {
         private static readonly List<TabService> _allInstances = new List<TabService>();
-        private readonly List<PathTab> _tabs = new List<PathTab>();
+        private readonly ObservableCollection<PathTab> _tabs = new ObservableCollection<PathTab>();
         private PathTab _activeTab;
         private AppConfig _config;
         private TabUiContext _ui;
-        // Drag fields moved to .DragDrop.cs, but partial class shares them. 
-        // We declare them in DragDrop.cs (Wait, C# partial classes share fields? 
-        // Yes allowing access, but where are they declared? 
-        // If I put them in DragDrop.cs with 'private', they are visible to other partials.
-        // So I don't need to redeclare them here.)
-
-        // However, _tabs, _activeTab, _config, _ui are used everywhere. I declare them here.
 
         public event EventHandler<PathTab> TabAdded;
         public event EventHandler<PathTab> TabRemoved;
@@ -50,26 +43,19 @@ namespace YiboFile.Services.Tabs
             _config = config;
         }
 
-        public int TabCount => _tabs.Count;
         public PathTab ActiveTab => _activeTab;
         public IReadOnlyList<PathTab> Tabs => _tabs;
+        public ICommand NewTabCommand => new RelayCommand(() => CreateBlankTab());
+        public ICommand UpdateTabWidthsCommand => new RelayCommand<double>(width =>
+        {
+            _widthCalculator?.UpdateTabWidths(width, _tabs);
+        });
         private TabWidthCalculator _widthCalculator;
 
         private void AddTab(PathTab tab)
         {
             _tabs.Add(tab);
             TabAdded?.Invoke(this, tab);
-        }
-
-        public void AttachUiContext(TabUiContext context)
-        {
-            _ui = context;
-            if (_ui?.GetConfig != null)
-            {
-                _config = _ui.GetConfig();
-            }
-            _widthCalculator = new TabWidthCalculator(_config, GetTabKey, GetPinnedTabWidth);
-            InitializeTabsDragDrop();
         }
 
         public string GetEffectiveTitle(PathTab tab)
@@ -129,11 +115,6 @@ namespace YiboFile.Services.Tabs
             }
         }
 
-        private bool CanCloseTab(PathTab tab, bool isLibraryMode)
-        {
-            return true;
-        }
-
         private bool _isUpdatingPath = false;
         public void UpdateActiveTabPath(string newPath)
         {
@@ -155,60 +136,25 @@ namespace YiboFile.Services.Tabs
         public void UpdateTabTitle(PathTab tab, string newPath)
         {
             if (tab == null) return;
-            var newTitle = GetPathDisplayTitle(newPath);
+            var newTitle = CalculateTabDisplayTitle(newPath);
             tab.Title = newTitle;
-            if (tab.TitleTextBlock != null)
-            {
-                tab.TitleTextBlock.Text = GetEffectiveTitle(tab);
-            }
-            if (tab.TabButton != null)
-            {
-                tab.TabButton.ToolTip = GetEffectiveTitle(tab);
-            }
             TabTitleChanged?.Invoke(this, tab);
-        }
-
-        #region 配置应用
-
-        public void ApplyTabOverrides(PathTab tab)
-        {
-            if (tab == null) return;
-
-            var key = GetTabKey(tab);
-
-            if (_config.TabTitleOverrides != null &&
-                _config.TabTitleOverrides.TryGetValue(key, out var overrideTitle) &&
-                !string.IsNullOrWhiteSpace(overrideTitle))
-            {
-                tab.OverrideTitle = overrideTitle;
-            }
-
-            if (_config.PinnedTabs != null && _config.PinnedTabs.Contains(key))
-            {
-                tab.IsPinned = true;
-            }
         }
 
         public void TogglePinTab(PathTab tab)
         {
             if (tab == null) return;
-
             tab.IsPinned = !tab.IsPinned;
             var key = GetTabKey(tab);
-
-            if (_config.PinnedTabs == null)
-                _config.PinnedTabs = new List<string>();
-
+            if (_config.PinnedTabs == null) _config.PinnedTabs = new List<string>();
             if (tab.IsPinned)
             {
-                if (!_config.PinnedTabs.Contains(key))
-                    _config.PinnedTabs.Insert(0, key);
+                if (!_config.PinnedTabs.Contains(key)) _config.PinnedTabs.Insert(0, key);
             }
             else
             {
                 _config.PinnedTabs.Remove(key);
             }
-
             ConfigurationService.Instance.Set(cfg => cfg.PinnedTabs, _config.PinnedTabs);
             TabPinStateChanged?.Invoke(this, tab);
         }
@@ -216,32 +162,54 @@ namespace YiboFile.Services.Tabs
         public void SetTabOverrideTitle(PathTab tab, string overrideTitle)
         {
             if (tab == null) return;
-
             var key = GetTabKey(tab);
-
             if (string.IsNullOrWhiteSpace(overrideTitle))
             {
                 tab.OverrideTitle = null;
-                if (_config.TabTitleOverrides != null)
-                    _config.TabTitleOverrides.Remove(key);
+                if (_config.TabTitleOverrides != null) _config.TabTitleOverrides.Remove(key);
             }
             else
             {
                 tab.OverrideTitle = overrideTitle;
-                if (_config.TabTitleOverrides == null)
-                    _config.TabTitleOverrides = new Dictionary<string, string>();
+                if (_config.TabTitleOverrides == null) _config.TabTitleOverrides = new Dictionary<string, string>();
                 _config.TabTitleOverrides[key] = overrideTitle;
             }
-
             ConfigurationService.Instance.Set(cfg => cfg.TabTitleOverrides, _config.TabTitleOverrides);
             TabTitleChanged?.Invoke(this, tab);
         }
 
-        public double GetPinnedTabWidth()
+        public bool CanCloseTab(PathTab tab, bool isLibraryMode) => true;
+
+        public void ApplyTabOverrides(PathTab tab)
         {
-            return _config.PinnedTabWidth > 0 ? _config.PinnedTabWidth : 120;
+            if (tab == null) return;
+            var key = GetTabKey(tab);
+            if (_config.TabTitleOverrides != null && _config.TabTitleOverrides.TryGetValue(key, out var ot) && !string.IsNullOrWhiteSpace(ot))
+            {
+                tab.OverrideTitle = ot;
+            }
+            if (_config.PinnedTabs != null && _config.PinnedTabs.Contains(key)) tab.IsPinned = true;
         }
 
-        #endregion
+        public double GetPinnedTabWidth() => _config.PinnedTabWidth > 0 ? _config.PinnedTabWidth : 120;
+
+        public string CalculateTabDisplayTitle(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return "新标签页";
+            try { return System.IO.Path.GetFileName(path) ?? path; } catch { return path; }
+        }
+
+        public bool ValidatePath(string path, out string errorMessage)
+        {
+            errorMessage = string.Empty;
+            if (string.IsNullOrWhiteSpace(path)) return true;
+            if (path.StartsWith("search://") || path.StartsWith("tag://") || path.StartsWith("lib://") || path.StartsWith("content://")) return true;
+            if (!System.IO.Directory.Exists(path) && !System.IO.File.Exists(path))
+            {
+                errorMessage = "路径不存在";
+                return false;
+            }
+            return true;
+        }
     }
 }

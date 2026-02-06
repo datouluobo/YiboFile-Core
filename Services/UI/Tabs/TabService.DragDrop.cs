@@ -34,7 +34,7 @@ namespace YiboFile.Services.Tabs
                 ConfigurationService.Instance.Set(cfg => cfg.PinnedTabs, _config.PinnedTabs);
 
                 _tabs.Clear();
-                _tabs.AddRange(pinned.Concat(unpinned));
+                foreach (var t in pinned.Concat(unpinned)) _tabs.Add(t);
             }
             else
             {
@@ -45,7 +45,7 @@ namespace YiboFile.Services.Tabs
                 if (unTarget > unpinned.Count) unTarget = unpinned.Count;
                 unpinned.Insert(unTarget, draggedTab);
                 _tabs.Clear();
-                _tabs.AddRange(pinned.Concat(unpinned));
+                foreach (var t in pinned.Concat(unpinned)) _tabs.Add(t);
             }
         }
 
@@ -164,8 +164,6 @@ namespace YiboFile.Services.Tabs
                                 else targetIndex = Math.Max(targetIndex, pinnedCount);
 
                                 UpdateTabOrderAfterDrag(newTab, targetIndex, pinnedCount);
-                                ReorderTabs();
-                                UpdateTabStyles();
                                 UpdateTabWidths();
                                 return;
                             }
@@ -209,7 +207,6 @@ namespace YiboFile.Services.Tabs
 
                                 int pinnedCount = _tabs.Count(t => t.IsPinned);
                                 UpdateTabOrderAfterDrag(newTab, targetIndex, pinnedCount);
-                                ReorderTabs();
                                 UpdateTabWidths();
                             }
                             return;
@@ -222,13 +219,11 @@ namespace YiboFile.Services.Tabs
                 if (tab.IsPinned) targetIndex = Math.Min(targetIndex, pinnedCountLocal);
                 else targetIndex = Math.Max(targetIndex, pinnedCountLocal);
 
-                int currentIndex = children.IndexOf(tab.TabContainer);
-                if (currentIndex == targetIndex) return;
+                int currentIndex = _tabs.IndexOf(tab);
+                if (currentIndex == -1 || currentIndex == targetIndex) return;
 
                 UpdateTabOrderAfterDrag(tab, targetIndex, pinnedCountLocal);
-
-                ReorderTabs();
-                UpdateTabStyles();
+                UpdateTabWidths();
             }
             catch { }
         }
