@@ -375,7 +375,6 @@ namespace YiboFile.Controls
         public event EventHandler<string> PathChanged;
         public event EventHandler<string> BreadcrumbClicked;
         public event EventHandler<string> BreadcrumbMiddleClicked;
-        public event RoutedEventHandler FilterClicked;
         public event RoutedEventHandler LoadMoreClicked;
         public event EventHandler<TagViewModel> TagClicked;
 
@@ -397,13 +396,6 @@ namespace YiboFile.Controls
         }
 
 
-
-
-
-        private void FilterBtn_Click(object sender, RoutedEventArgs e)
-        {
-            FilterClicked?.Invoke(sender, e);
-        }
 
         public void ShowFilterPopup(SearchOptions options, EventHandler onChange)
         {
@@ -464,7 +456,12 @@ namespace YiboFile.Controls
             FilterPopup.IsOpen = true;
         }
 
+        /// <summary>
+        /// Deprecated: Used by legacy ToggleFilterPanel method. Will be removed when Handler is fully migrated.
+        /// </summary>
+        [Obsolete("This field is deprecated and will be removed after MVVM migration is complete")]
         private EventHandler _filterChangedStub;
+
 
 
 

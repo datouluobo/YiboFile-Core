@@ -12,8 +12,13 @@ using YiboFile.Services.Config;
 namespace YiboFile.Handlers
 {
     /// <summary>
-    /// 键盘事件处理器
+    /// 键盘事件处理器（全局快捷键 Handler - 合理保留）
     /// 处理所有键盘快捷键，包括窗口级和文件列表的键盘事件
+    /// 
+    /// 设计说明：
+    /// - 此 Handler 是合理的 UI 层组件，用于集中管理全局快捷键
+    /// - 支持用户自定义快捷键（通过 ConfigurationService）
+    /// - 所有业务逻辑委托给注入的回调/服务，符合 MVVM
     /// </summary>
     public class KeyboardEventHandler
     {

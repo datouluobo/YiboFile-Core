@@ -17,8 +17,17 @@ using YiboFile.Services.Navigation;
 namespace YiboFile.Handlers
 {
     /// <summary>
-    /// 文件列表事件处理器
+    /// 文件列表事件处理器（复杂 UI Handler - 合理保留）
     /// 统一处理文件列表的所有鼠标、键盘事件，参考 Windows 资源管理器行为
+    /// 
+    /// 设计说明：
+    /// - 此 Handler 是合理的 UI 层组件，处理复杂的交互逻辑
+    /// - 主要职责：
+    ///   1. VisualTree 遍历：精确判断点击位置（ListViewItem/列头/空白区域）
+    ///   2. Tiles 视图导航：方向键需要计算 WrapPanel 列数
+    ///   3. 列头交互：双击分隔线自动调整列宽
+    /// - 所有业务逻辑委托给 NavigationCoordinator 和注入的回调，符合 MVVM
+    /// - 注：Enter 键逻辑与 KeyboardEventHandler 有重复，但此处保留以确保列表聚焦时的响应
     /// </summary>
     public class FileListEventHandler
     {

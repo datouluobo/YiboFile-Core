@@ -317,7 +317,7 @@
                 <!-- 搜索/筛选按钮 -->
                 <StackPanel Grid.Column="6" Orientation="Horizontal">
                     <Button Name="FilterBtn" Content="&#xE71C;" FontFamily="Segoe MDL2 Assets" FontSize="12"
-                            Click="FilterBtn_Click"
+                            Command="{Binding ToggleFilterPanelCommand}"
                             Style="{StaticResource ModernToolbarButtonStyle}" ToolTip="筛选"/>
                 </StackPanel>
             </Grid>

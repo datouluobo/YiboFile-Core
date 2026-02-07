@@ -276,36 +276,6 @@ namespace YiboFile
                 // Wire up SecondFileBrowser Sorting
                 SecondFileBrowser.GridViewColumnHeaderClick += SecondGridViewColumnHeader_Click;
 
-                // Wire up SecondFileBrowser Filter Click
-                SecondFileBrowser.FilterClicked += (s, e) =>
-                {
-                    try
-                    {
-                        if (_searchOptions == null) return;
-                        SecondFileBrowser.ToggleFilterPanel(_searchOptions, (sender, args) =>
-                        {
-                            var view = System.Windows.Data.CollectionViewSource.GetDefaultView(_viewModel?.SecondaryPane?.Files);
-                            if (view != null)
-                            {
-                                view.Filter = obj =>
-                                {
-                                    if (obj is not FileSystemItem item) return true;
-                                    var opts = _searchOptions;
-                                    // Reuse static logic from FileBrowserEventHandler
-                                    if (opts.Type != FileTypeFilter.All && !Handlers.FileBrowserEventHandler.MatchesTypeFilter(item, opts.Type)) return false;
-                                    if (opts.DateRange != DateRangeFilter.All && !Handlers.FileBrowserEventHandler.MatchesDateFilter(item, opts.DateRange)) return false;
-                                    if (opts.SizeRange != SizeRangeFilter.All && !Handlers.FileBrowserEventHandler.MatchesSizeFilter(item, opts.SizeRange)) return false;
-                                    return true;
-                                };
-                                view.Refresh();
-                            }
-                        });
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[SecondFilterClicked] Error: {ex.Message}");
-                    }
-                };
             }
 
             // 初始化 WindowLifecycleHandler

@@ -138,7 +138,6 @@ namespace YiboFile.Handlers
             _fileBrowser.BreadcrumbMiddleClicked += FileBrowser_BreadcrumbMiddleClicked;
             _fileBrowser.BreadcrumbClicked += FileBrowser_BreadcrumbClicked;
 
-            _fileBrowser.FilterClicked += FileBrowser_FilterClicked;
             _fileBrowser.LoadMoreClicked += FileBrowser_LoadMoreClicked;
             _fileBrowser.GridViewColumnHeaderClick += FileBrowser_GridViewColumnHeaderClick;
             _fileBrowser.FilesSizeChanged += FileBrowser_FilesSizeChanged;
@@ -239,6 +238,8 @@ namespace YiboFile.Handlers
 
         /// <summary>
         /// 应用全局过滤器到当前文件列表（对路径/库/搜索模式均生效）
+        /// TODO [MVVM]: 此逻辑已迁移到 PaneViewModel.ApplyFilter()
+        /// 待 XAML 绑定完成后移除此方法
         /// </summary>
         private void ApplyGlobalFilter()
         {
@@ -318,6 +319,7 @@ namespace YiboFile.Handlers
             }
         }
 
+        // TODO [MVVM]: 以下静态方法已迁移到 PaneViewModel，待删除
         public static readonly HashSet<string> ImageExtensions = new(StringComparer.OrdinalIgnoreCase)
         { ".png", ".jpg", ".jpeg", ".bmp", ".gif", ".webp", ".tif", ".tiff", ".ico", ".svg" };
 
@@ -327,6 +329,7 @@ namespace YiboFile.Handlers
         public static readonly HashSet<string> DocumentExtensions = new(StringComparer.OrdinalIgnoreCase)
         { ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".txt", ".md", ".rtf" };
 
+        // TODO [MVVM]: 已迁移到 PaneViewModel.MatchesTypeFilter()
         public static bool MatchesTypeFilter(FileSystemItem item, FileTypeFilter filter)
         {
             switch (filter)
@@ -412,25 +415,6 @@ namespace YiboFile.Handlers
             };
         }
 
-        public void FileBrowser_FilterClicked(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                var searchOptions = _getSearchOptions();
-                if (searchOptions == null) return;
-
-                // Show the modern Filter Panel instead of ContextMenu
-                _fileBrowser.ToggleFilterPanel(searchOptions, (s, ev) =>
-                {
-                    // Filter Changed Handler
-                    ApplyGlobalFilter();
-                });
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[FilterClicked] Error: {ex.Message}");
-            }
-        }
 
         public void FileBrowser_LoadMoreClicked(object sender, RoutedEventArgs e)
         {
@@ -520,36 +504,8 @@ namespace YiboFile.Handlers
         // 文件浏览控件的事件转发
         public void FileBrowser_FilesSelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            // 控制备注区可编辑状态
-            var selectedCount = _fileBrowser?.FilesSelectedItems?.Count ?? 0;
-            var mainWindow = Application.Current.MainWindow;
-
-            if (mainWindow != null)
-            {
-                var mainWindowType = mainWindow.GetType();
-                var rightPanelField = mainWindowType.GetField("RightPanel",
-                    System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-
-                if (rightPanelField != null)
-                {
-                    var rightPanel = rightPanelField.GetValue(mainWindow);
-                    if (rightPanel != null)
-                    {
-                        var rightPanelType = rightPanel.GetType();
-                        var notesTextBoxField = rightPanelType.GetField("NotesTextBox",
-                            System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-
-                        if (notesTextBoxField != null)
-                        {
-                            var notesTextBox = notesTextBoxField.GetValue(rightPanel) as System.Windows.Controls.TextBox;
-                            if (notesTextBox != null)
-                            {
-                                notesTextBox.IsEnabled = (selectedCount == 1);
-                            }
-                        }
-                    }
-                }
-            }
+            // TODO [MVVM]: NotesTextBox.IsEnabled 应通过 XAML 绑定到 PaneViewModel.IsSingleSelection
+            // 反射代码已移除，等待 XAML 绑定实现
 
             _filesListViewSelectionChanged(e);
         }

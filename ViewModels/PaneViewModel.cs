@@ -19,6 +19,7 @@ using YiboFile.ViewModels.Messaging;
 using YiboFile.ViewModels.Messaging.Messages;
 using YiboFile.Services.Config;
 using YiboFile.Services.Navigation;
+using YiboFile.Services.Search;
 
 namespace YiboFile.ViewModels
 {
@@ -62,6 +63,8 @@ namespace YiboFile.ViewModels
         private ObservableCollection<ContextMenuItemViewModel> _favoriteMenuItems = new ObservableCollection<ContextMenuItemViewModel>();
         private ObservableCollection<ContextMenuItemViewModel> _tagMenuItems = new ObservableCollection<ContextMenuItemViewModel>();
         private string _fileViewMode = "List";
+        private SearchOptions _searchOptions = new SearchOptions();
+        private bool _isFilterPanelVisible;
 
         #endregion
 
@@ -360,6 +363,31 @@ namespace YiboFile.ViewModels
 
         public SearchViewModel Search { get; }
 
+        /// <summary>
+        /// 搜索/过滤选项
+        /// </summary>
+        public SearchOptions SearchOptions
+        {
+            get => _searchOptions;
+            set
+            {
+                if (SetProperty(ref _searchOptions, value))
+                {
+                    // 选项变更时自动应用过滤
+                    ApplyFilter();
+                }
+            }
+        }
+
+        /// <summary>
+        /// 过滤面板是否可见
+        /// </summary>
+        public bool IsFilterPanelVisible
+        {
+            get => _isFilterPanelVisible;
+            set => SetProperty(ref _isFilterPanelVisible, value);
+        }
+
         #endregion
 
         #region Commands
@@ -392,6 +420,10 @@ namespace YiboFile.ViewModels
         public ICommand ManageTagsCommand { get; }
         public ICommand BatchAddTagsCommand { get; }
         public ICommand TagStatisticsCommand { get; }
+
+        // Filter Commands
+        public ICommand ApplyFilterCommand { get; }
+        public ICommand ToggleFilterPanelCommand { get; }
 
         public ObservableCollection<ContextMenuItemViewModel> LibraryMenuItems => _libraryMenuItems;
         public ObservableCollection<ContextMenuItemViewModel> FavoriteMenuItems => _favoriteMenuItems;
@@ -459,6 +491,10 @@ namespace YiboFile.ViewModels
             ManageTagsCommand = new RelayCommand(ExecuteManageTags);
             BatchAddTagsCommand = new RelayCommand(ExecuteBatchAddTags, () => SelectedItems.Count > 0);
             TagStatisticsCommand = new RelayCommand(ExecuteTagStatistics);
+
+            // Filter Commands
+            ApplyFilterCommand = new RelayCommand(ApplyFilter);
+            ToggleFilterPanelCommand = new RelayCommand(() => IsFilterPanelVisible = !IsFilterPanelVisible);
 
             SelectAllCommand = new RelayCommand(ExecuteSelectAll);
 
@@ -822,6 +858,196 @@ namespace YiboFile.ViewModels
                 _favoriteMenuItems.Add(new ContextMenuItemViewModel { Header = "+ 新建分组...", Command = NewFavoriteGroupCommand });
             });
         }
+
+        /// <summary>
+        /// 应用全局过滤器到当前文件列表（对路径/库/搜索模式均生效）
+        /// </summary>
+        private void ApplyFilter()
+        {
+            try
+            {
+                var view = System.Windows.Data.CollectionViewSource.GetDefaultView(Files);
+                if (view == null) return;
+
+                var protocolInfo = ProtocolManager.Parse(CurrentPath);
+
+                // 如果是搜索模式，刷新搜索结果（搜索服务会应用过滤）
+                if (protocolInfo.Type == ProtocolType.Search)
+                {
+                    RefreshSearchIfActive();
+                    return;
+                }
+
+                // 对路径/库模式使用 CollectionView.Filter
+                view.Filter = obj =>
+                {
+                    if (obj is not FileSystemItem item) return true;
+
+                    // Scope Filter (SearchMode) for Normal View
+                    switch (_searchOptions.Mode)
+                    {
+                        case SearchMode.Folder:
+                            if (!item.IsDirectory) return false;
+                            break;
+                        case SearchMode.FileName:
+                            if (item.IsDirectory) return false;
+                            break;
+                        case SearchMode.Notes:
+                            if (string.IsNullOrEmpty(item.Notes)) return false;
+                            break;
+                    }
+
+                    // 类型过滤
+                    if (_searchOptions.Type != FileTypeFilter.All)
+                    {
+                        if (!MatchesTypeFilter(item, _searchOptions.Type)) return false;
+                    }
+
+                    // 日期过滤
+                    if (_searchOptions.DateRange != DateRangeFilter.All)
+                    {
+                        if (!MatchesDateFilter(item, _searchOptions.DateRange)) return false;
+                    }
+
+                    // 大小过滤
+                    if (_searchOptions.SizeRange != SizeRangeFilter.All)
+                    {
+                        if (!MatchesSizeFilter(item, _searchOptions.SizeRange)) return false;
+                    }
+
+                    // 图片尺寸过滤
+                    if (_searchOptions.ImageSize != ImageDimensionFilter.All)
+                    {
+                        if (!MatchesImageSizeFilter(item, _searchOptions.ImageSize)) return false;
+                    }
+
+                    // 时长过滤
+                    if (_searchOptions.Duration != AudioDurationFilter.All)
+                    {
+                        if (!MatchesDurationFilter(item, _searchOptions.Duration)) return false;
+                    }
+
+                    return true;
+                };
+
+                view.Refresh();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ApplyFilter] Error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 如果当前处于搜索模式，刷新搜索
+        /// </summary>
+        private void RefreshSearchIfActive()
+        {
+            if (!string.IsNullOrEmpty(CurrentPath))
+            {
+                var protocolInfo = ProtocolManager.Parse(CurrentPath);
+                if (protocolInfo.Type == ProtocolType.Search)
+                {
+                    if (!string.IsNullOrEmpty(protocolInfo.TargetPath))
+                    {
+                        _messageBus.Publish(new ExecuteSearchMessage(
+                            protocolInfo.TargetPath,
+                            _searchOptions?.SearchNames ?? true,
+                            _searchOptions?.SearchNotes ?? true,
+                            _isSecondary ? "Secondary" : "Primary"));
+                    }
+                }
+            }
+        }
+
+        #region Filter Helper Methods
+
+        private static bool MatchesTypeFilter(FileSystemItem item, FileTypeFilter filter)
+        {
+            switch (filter)
+            {
+                case FileTypeFilter.Images:
+                    return !item.IsDirectory && SearchFilterService.ImageExtensions.Contains(System.IO.Path.GetExtension(item.Path));
+                case FileTypeFilter.Videos:
+                    return !item.IsDirectory && SearchFilterService.VideoExtensions.Contains(System.IO.Path.GetExtension(item.Path));
+                case FileTypeFilter.Audio:
+                    return !item.IsDirectory && SearchFilterService.AudioExtensions.Contains(System.IO.Path.GetExtension(item.Path));
+                case FileTypeFilter.Documents:
+                    return !item.IsDirectory && SearchFilterService.DocumentExtensions.Contains(System.IO.Path.GetExtension(item.Path));
+                case FileTypeFilter.Folders:
+                    return item.IsDirectory;
+                default:
+                    return true;
+            }
+        }
+
+        private static bool MatchesDateFilter(FileSystemItem item, DateRangeFilter filter)
+        {
+            var modTime = item.ModifiedDateTime;
+            if (modTime == default) return true;
+
+            var now = DateTime.Now;
+            return filter switch
+            {
+                DateRangeFilter.Today => modTime.Date == now.Date,
+                DateRangeFilter.ThisWeek => modTime >= now.Date.AddDays(-(int)now.DayOfWeek),
+                DateRangeFilter.ThisMonth => modTime >= new DateTime(now.Year, now.Month, 1),
+                DateRangeFilter.ThisYear => modTime >= new DateTime(now.Year, 1, 1),
+                _ => true
+            };
+        }
+
+        private static bool MatchesSizeFilter(FileSystemItem item, SizeRangeFilter filter)
+        {
+            if (item.IsDirectory) return true; // 文件夹不按大小过滤
+            var size = item.SizeBytes >= 0 ? item.SizeBytes : 0;
+
+            const long KB = 1024;
+            const long MB = 1024 * KB;
+
+            return filter switch
+            {
+                SizeRangeFilter.Tiny => size < 100 * KB,
+                SizeRangeFilter.Small => size >= 100 * KB && size < MB,
+                SizeRangeFilter.Medium => size >= MB && size < 10 * MB,
+                SizeRangeFilter.Large => size >= 10 * MB && size < 100 * MB,
+                SizeRangeFilter.Huge => size >= 100 * MB,
+                _ => true
+            };
+        }
+
+        private static bool MatchesImageSizeFilter(FileSystemItem item, ImageDimensionFilter filter)
+        {
+            if (item.IsDirectory) return false;
+            int maxDim = Math.Max(item.PixelWidth, item.PixelHeight); // 0 if N/A
+
+            return filter switch
+            {
+                ImageDimensionFilter.Small => maxDim < 800,
+                ImageDimensionFilter.Medium => maxDim >= 800 && maxDim < 1920,
+                ImageDimensionFilter.Large => maxDim >= 1920 && maxDim < 3840,
+                ImageDimensionFilter.Huge => maxDim >= 3840,
+                _ => true
+            };
+        }
+
+        private static bool MatchesDurationFilter(FileSystemItem item, AudioDurationFilter filter)
+        {
+            if (item.IsDirectory) return false;
+            long duration = item.DurationMs; // 0 if N/A
+            const long Minute = 60 * 1000;
+
+            return filter switch
+            {
+                AudioDurationFilter.Short => duration < Minute,
+                AudioDurationFilter.Medium => duration >= Minute && duration < 5 * Minute,
+                AudioDurationFilter.Long => duration >= 5 * Minute && duration < 20 * Minute,
+                AudioDurationFilter.VeryLong => duration >= 20 * Minute,
+                _ => true
+            };
+        }
+
+        #endregion
 
         #endregion
 

@@ -1,0 +1,49 @@
+# ========== 核心排除：编译产物与版本控制 ==========
+.git/
+bin/
+obj/
+.vs/
+.trae/
+packages/
+TestResults/
+
+# ========== 二进制文件 ==========
+*.pdb
+*.dll
+*.exe
+*.msi
+*.nupkg
+*.zip
+*.7z
+*.rar
+*.iso
+
+# ========== 编译缓存与临时文件 ==========
+*.cache
+*.log
+*.tmp
+*.user
+*.suo
+*.bak
+*.swp
+*~
+build_*.txt
+debug_*.txt
+
+# ========== 第三方依赖（通常不需要索引） ==========
+Dependencies/
+node_modules/
+packages/
+
+# ========== 大型资源目录 ==========
+Resources/Assets/
+Resources/Images/
+Resources/Fonts/
+Assets/
+Themes/Default/
+Themes/Dark/
+
+# ========== 文档构建产物 ==========
+docs/archive/
+*.docx
+*.pdf
