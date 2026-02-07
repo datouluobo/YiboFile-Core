@@ -62,6 +62,12 @@ namespace YiboFile
         /// </summary>
         private void SetDualListMode(bool enable)
         {
+            // 修复：同步 LayoutModule 的状态，否则无法正确响应焦点切换消息
+            if (_layoutModule != null && _layoutModule.IsDualListMode != enable)
+            {
+                _layoutModule.ToggleDualListMode(enable);
+            }
+
             // 切换可见性由 XAML 绑定处理 (RightPanel.EffectiveVisibility 和 Layout.IsDualListMode)
 
             // 更新按钮状态

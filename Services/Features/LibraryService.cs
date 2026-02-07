@@ -110,10 +110,19 @@ namespace YiboFile.Services
 
                 if (libraryId > 0)
                 {
-                    // 如果提供了初始路径，添加到库中
+                    // 如果提供了初始路径,添加到库中
                     if (!string.IsNullOrWhiteSpace(initialPath))
                     {
-                        _repository.AddLibraryPath(libraryId, initialPath);
+                        string fullPath = initialPath;
+                        try
+                        {
+                            fullPath = Path.GetFullPath(initialPath);
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[LibraryService] Path.GetFullPath failed for initial path {initialPath}: {ex.Message}");
+                        }
+                        _repository.AddLibraryPath(libraryId, fullPath);
                     }
 
                     // 触发库列表已加载事件
@@ -231,7 +240,19 @@ namespace YiboFile.Services
             try
             {
                 if (string.IsNullOrWhiteSpace(path)) return false;
-                _repository.AddLibraryPath(libraryId, path);
+
+                // 确保保存为绝对路径，避免由于程序运行目录不同导致路径识别错误
+                string fullPath = path;
+                try
+                {
+                    fullPath = Path.GetFullPath(path);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[LibraryService] Path.GetFullPath failed for {path}: {ex.Message}");
+                }
+
+                _repository.AddLibraryPath(libraryId, fullPath);
                 LoadLibraries();
                 return true;
             }
@@ -492,7 +513,9 @@ namespace YiboFile.Services
                         {
                             if (!string.IsNullOrWhiteSpace(path))
                             {
-                                _repository.AddLibraryPath(libId, path);
+                                string fullPath = path;
+                                try { fullPath = Path.GetFullPath(path); } catch { }
+                                _repository.AddLibraryPath(libId, fullPath);
                             }
                         }
                     }

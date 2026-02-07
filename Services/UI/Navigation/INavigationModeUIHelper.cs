@@ -80,9 +80,9 @@ namespace YiboFile.Services.Navigation
         void LoadLibraryFiles(Library library);
 
         /// <summary>
-        /// 初始化库拖拽
+        /// 初始化导航面板拖拽支持
         /// </summary>
-        void InitializeLibraryDragDrop();
+        void InitializeNavigationPanelDragDrop();
 
         /// <summary>
         /// 应用当前模式的可见列设置

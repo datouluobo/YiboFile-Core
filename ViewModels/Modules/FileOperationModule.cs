@@ -11,6 +11,8 @@ using YiboFile.Services.FileOperations;
 using YiboFile.Services.FileOperations.Undo;
 using YiboFile.ViewModels.Messaging;
 using YiboFile.ViewModels.Messaging.Messages;
+using YiboFile.Services;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace YiboFile.ViewModels.Modules
 {
@@ -23,6 +25,7 @@ namespace YiboFile.ViewModels.Modules
         private readonly FileOperationService _fileOperationService;
         private readonly UndoService _undoService;
         private readonly ErrorService _errorService;
+        private readonly LibraryService _libraryService;
 
         public override string Name => "FileOperation";
 
@@ -44,12 +47,14 @@ namespace YiboFile.ViewModels.Modules
             IMessageBus messageBus,
             FileOperationService fileOperationService,
             UndoService undoService = null,
-            ErrorService errorService = null)
+            ErrorService errorService = null,
+            LibraryService libraryService = null)
             : base(messageBus)
         {
             _fileOperationService = fileOperationService ?? throw new ArgumentNullException(nameof(fileOperationService));
             _undoService = undoService;
             _errorService = errorService;
+            _libraryService = libraryService ?? App.ServiceProvider?.GetService<LibraryService>();
 
             CopyCommand = new RelayCommand<IList>(ExecuteCopy, CanExecuteCopy);
             CutCommand = new RelayCommand<IList>(ExecuteCut, CanExecuteCut);
@@ -97,7 +102,28 @@ namespace YiboFile.ViewModels.Modules
         private async void OnDeleteItems(DeleteItemsRequestMessage message)
         {
             await _fileOperationService.DeleteAsync(message.Items, message.Permanent);
-            Publish(new RefreshFileListMessage());
+
+            // Refresh specific parents instead of global refresh
+            if (message.Items != null && message.Items.Count > 0)
+            {
+                var parents = message.Items
+                    .Select(i => System.IO.Path.GetDirectoryName(i.Path))
+                    .Where(p => !string.IsNullOrEmpty(p))
+                    .Distinct()
+                    .ToList();
+
+                foreach (var parent in parents)
+                {
+                    Publish(new RefreshFileListMessage(parent));
+                }
+
+                // Fallback if no parents found
+                if (parents.Count == 0) Publish(new RefreshFileListMessage());
+            }
+            else
+            {
+                Publish(new RefreshFileListMessage());
+            }
         }
 
         private async void OnCopyItems(CopyItemsRequestMessage message)
@@ -112,8 +138,23 @@ namespace YiboFile.ViewModels.Modules
 
         private async void OnPasteItems(PasteItemsRequestMessage message)
         {
-            await _fileOperationService.PasteAsync();
-            Publish(new RefreshFileListMessage(message.TargetPath));
+            string targetPath = message.TargetPath;
+
+            // 库路径解析逻辑
+            if (!string.IsNullOrEmpty(targetPath) && targetPath.StartsWith("lib://", StringComparison.OrdinalIgnoreCase))
+            {
+                var parts = targetPath.Substring(6).Split('/');
+                var libName = parts[0];
+                var lib = _libraryService?.GetAllLibraries()?.FirstOrDefault(l => string.Equals(l.Name, libName, StringComparison.OrdinalIgnoreCase));
+                if (lib != null && lib.Paths.Count > 0)
+                {
+                    targetPath = lib.Paths.FirstOrDefault(p => System.IO.Directory.Exists(p)) ?? targetPath;
+                }
+            }
+
+            await _fileOperationService.PasteAsync(targetPath);
+            // 延迟一点刷新，或者由 FileOperationService 触发刷新回调
+            Publish(new RefreshFileListMessage(targetPath));
         }
 
         private void OnShowProperties(ShowPropertiesRequestMessage message)
@@ -251,14 +292,16 @@ namespace YiboFile.ViewModels.Modules
 
         private void ExecutePaste(PaneViewModel pane)
         {
-            if (pane != null && !string.IsNullOrEmpty(pane.CurrentPath))
+            if (pane != null)
             {
-                Publish(new PasteItemsRequestMessage(pane.CurrentPath));
+                string targetPath = pane.CurrentPath;
+                Publish(new PasteItemsRequestMessage(targetPath));
             }
         }
 
         private bool CanExecutePaste(PaneViewModel pane)
         {
+            // 在库模式下，CurrentPath 可能是 lib:// 协议
             return pane != null && !string.IsNullOrEmpty(pane.CurrentPath) && Clipboard.ContainsFileDropList();
         }
 

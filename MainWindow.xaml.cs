@@ -96,7 +96,7 @@ namespace YiboFile
         internal Handlers.FileBrowserEventHandler _fileBrowserEventHandler;
         internal Handlers.FileListEventHandler _mainFileListHandler;
         internal Handlers.FileListEventHandler _secondFileListHandler;
-        internal Handlers.MenuEventHandler _menuEventHandler;
+        // _menuEventHandler 已废弃：功能已由 PaneViewModel Command 接管
         internal Handlers.KeyboardEventHandler _keyboardEventHandler;
         internal Handlers.MouseEventHandler _mouseEventHandler;
         internal Handlers.ColumnInteractionHandler _columnInteractionHandler;
@@ -199,7 +199,7 @@ namespace YiboFile
         void Services.Navigation.INavigationModeUIHelper.HighlightMatchingLibrary(Library library) => HighlightMatchingLibrary(library);
         void Services.Navigation.INavigationModeUIHelper.EnsureSelectedItemVisible(ListBox listBox, object selectedItem) => _uiHelperService?.EnsureSelectedItemVisible(listBox, selectedItem);
         void Services.Navigation.INavigationModeUIHelper.LoadLibraryFiles(Library library) => LoadLibraryFiles(library);
-        void Services.Navigation.INavigationModeUIHelper.InitializeLibraryDragDrop() => InitializeLibraryDragDrop();
+        void Services.Navigation.INavigationModeUIHelper.InitializeNavigationPanelDragDrop() => InitializeNavigationPanelDragDrop();
         void Services.Navigation.INavigationModeUIHelper.ApplyVisibleColumnsForCurrentMode() => ApplyVisibleColumnsForCurrentMode();
         void Services.Navigation.INavigationModeUIHelper.EnsureHeaderContextMenuHook() => EnsureHeaderContextMenuHook();
         void Services.Navigation.INavigationModeUIHelper.RefreshFileList() => RefreshFileList();
@@ -1009,37 +1009,9 @@ namespace YiboFile
 
 
 
-        // 文件操作桥接方法 - 已迁移到 FileOperationHandler
-        private void Copy_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.Copy_Click(sender, e);
-        private void Cut_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.Cut_Click(sender, e);
+        // [已移除] 文件操作桥接方法 - 功能已由 PaneViewModel Command 接管
+        // Copy_Click, Cut_Click, Paste_Click, Delete_Click, Rename_Click, ShowProperties_Click
 
-        /// <summary>
-        /// 获取当前操作上下文
-        /// </summary>
-        private IFileOperationContext GetCurrentOperationContext() => _fileOperationHandler?.GetCurrentOperationContext();
-
-        /// <summary>
-        /// 执行复制操作
-        /// </summary>
-        /// <summary>
-        /// 执行复制操作
-        /// </summary>
-        internal async void PerformCopyOperation() => await (_fileOperationHandler?.PerformCopyOperationAsync() ?? Task.CompletedTask);
-
-        /// <summary>
-        /// 执行剪切操作
-        /// </summary>
-        internal async void PerformCutOperation() => await (_fileOperationHandler?.PerformCutOperationAsync() ?? Task.CompletedTask);
-
-        /// <summary>
-        /// 执行删除操作
-        /// </summary>
-        internal async void PerformDeleteOperation() => await (_fileOperationHandler?.PerformDeleteOperationAsync() ?? Task.CompletedTask);
-
-        private void Paste_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.Paste_Click(sender, e);
-        internal void Delete_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.Delete_Click(sender, e);
-        internal void Rename_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.Rename_Click(sender, e);
-        internal void ShowProperties_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.ShowProperties_Click(sender, e);
 
         #region 统一文件操作 (新架构)
 
@@ -1075,7 +1047,7 @@ namespace YiboFile
         /// </summary>
         internal async Task PasteFilesAsync(CancellationToken ct = default)
         {
-            var result = await _fileOperationService.PasteAsync(ct);
+            var result = await _fileOperationService.PasteAsync(null, ct);
             if (result.Success && result.ProcessedCount > 0)
             {
                 Services.Core.NotificationService.ShowSuccess("粘贴完成");

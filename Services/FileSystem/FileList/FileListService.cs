@@ -349,10 +349,16 @@ namespace YiboFile.Services.FileList
                 var lib = allLibs.FirstOrDefault(l => l.Name.Equals(libraryName, StringComparison.OrdinalIgnoreCase));
                 if (lib != null && lib.Paths != null)
                 {
+                    // 确保所有路径都是绝对路径，防止相对路径导致找不到文件
+                    var absoluteLibPaths = lib.Paths?.Select(p =>
+                    {
+                        try { return Path.GetFullPath(p); } catch { return p; }
+                    }).ToList() ?? new List<string>();
+
                     // 如果存在子路径，则将子路径附加到库的每个物理路径后
                     var actualPaths = string.IsNullOrEmpty(subPath)
-                        ? lib.Paths
-                        : lib.Paths.Select(p => Path.Combine(p, subPath)).Where(Directory.Exists).ToList();
+                        ? absoluteLibPaths
+                        : absoluteLibPaths.Select(p => Path.Combine(p, subPath)).Where(Directory.Exists).ToList();
 
                     if (!actualPaths.Any()) return new List<FileSystemItem>();
 

@@ -20,9 +20,8 @@ namespace YiboFile
     {
         #region 菜单事件
 
-        // 文件操作事件桥接方法 - 已迁移到 MenuEventHandler
-        internal void NewFolder_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.NewFolder_Click(sender, e);
-        private void NewFile_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.NewFile_Click(sender, e);
+        // [已移除] 文件操作事件桥接方法 - 功能已由 PaneViewModel Command 接管
+        // NewFolder_Click, NewFile_Click
 
 
         internal void CreateNewFileWithExtension(string extension)

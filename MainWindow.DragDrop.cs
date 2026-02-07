@@ -44,8 +44,8 @@ namespace YiboFile
                 // Initialize tab drop handlers
                 InitializeTabDragDrop();
 
-                // Initialize library drag drop
-                InitializeLibraryDragDrop();
+                // Initialize library and navigation panel drag drop
+                InitializeNavigationPanelDragDrop();
             }
             catch (Exception)
             { }
@@ -57,19 +57,42 @@ namespace YiboFile
             {
                 try
                 {
-                    // Refresh both lists after operation
-                    if (_currentLibrary != null)
-                        LoadLibraryFiles(_currentLibrary);
+                    // Refresh the source panel (the panel where drag dropped)
+                    if (isPrimary)
+                    {
+                        if (_currentLibrary != null)
+                            LoadLibraryFiles(_currentLibrary);
+                        else
+                            LoadCurrentDirectory();
+                    }
                     else
-                        LoadCurrentDirectory();
-
-                    // Also refresh second list if in dual mode
-                    if (IsDualListMode && SecondFileBrowser != null)
                     {
                         var secondTab = _secondTabService?.ActiveTab;
                         if (secondTab != null && !string.IsNullOrEmpty(secondTab.Path) && Directory.Exists(secondTab.Path))
                         {
                             SecondFileBrowser_PathChanged(this, secondTab.Path);
+                        }
+                    }
+
+                    // Also refresh the other panel if in dual mode and it's showing the affected directory
+                    if (IsDualListMode)
+                    {
+                        if (isPrimary && SecondFileBrowser != null)
+                        {
+                            // Refresh second panel
+                            var secondTab = _secondTabService?.ActiveTab;
+                            if (secondTab != null && !string.IsNullOrEmpty(secondTab.Path) && Directory.Exists(secondTab.Path))
+                            {
+                                SecondFileBrowser_PathChanged(this, secondTab.Path);
+                            }
+                        }
+                        else if (!isPrimary && FileBrowser != null)
+                        {
+                            // Refresh main panel
+                            if (_currentLibrary != null)
+                                LoadLibraryFiles(_currentLibrary);
+                            else
+                                LoadCurrentDirectory();
                         }
                     }
                 }
@@ -192,16 +215,123 @@ namespace YiboFile
             return null;
         }
 
-        private void InitializeLibraryDragDrop()
+        private void InitializeNavigationPanelDragDrop()
         {
-            // Placeholder for Library Drag & Drop
-            if (LibrariesListBox != null)
+            if (NavigationPanelControl == null) return;
+
+            // Helper to attach events
+            void AttachDragDrop(UIElement element)
             {
-                LibrariesListBox.AllowDrop = true;
+                if (element == null) return;
+                element.AllowDrop = true;
+                element.DragOver += NavigationItem_DragOver;
+                element.Drop += NavigationItem_Drop;
             }
+
+            AttachDragDrop(NavigationPanelControl.LibrariesListBoxControl);
+            AttachDragDrop(NavigationPanelControl.QuickAccessListBoxControl);
+            AttachDragDrop(NavigationPanelControl.FolderFavoritesListBoxControl);
+            AttachDragDrop(NavigationPanelControl.DrivesTreeViewControl);
+        }
+
+        private void NavigationItem_DragOver(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                var targetPath = GetPathFromDragTarget(sender as FrameworkElement, e.GetPosition(sender as IInputElement));
+
+                // Only allow drop if we found a valid target path that is a directory
+                if (!string.IsNullOrEmpty(targetPath) && (Directory.Exists(targetPath) || targetPath.StartsWith("lib://")))
+                {
+                    e.Effects = DragDropEffects.Copy | DragDropEffects.Move;
+                }
+                else
+                {
+                    e.Effects = DragDropEffects.None;
+                }
+                e.Handled = true;
+            }
+        }
+
+        private void NavigationItem_Drop(object sender, DragEventArgs e)
+        {
+            if (!e.Data.GetDataPresent(DataFormats.FileDrop)) return;
+
+            var files = (string[])e.Data.GetData(DataFormats.FileDrop);
+            if (files == null || files.Length == 0) return;
+
+            var targetPath = GetPathFromDragTarget(sender as FrameworkElement, e.GetPosition(sender as IInputElement));
+
+            if (!string.IsNullOrEmpty(targetPath))
+            {
+                if (targetPath.StartsWith("lib://"))
+                {
+                    var libName = targetPath.Substring(6);
+                    Library lib = null;
+
+                    var libs = LibrariesListBox?.ItemsSource as IEnumerable<Library>;
+                    lib = libs?.FirstOrDefault(l => l.Name == libName);
+
+                    if (lib != null && lib.Paths != null && lib.Paths.Count > 0)
+                    {
+                        // 确保使用绝对路径作为拖拽目标
+                        targetPath = lib.Paths[0];
+                        try
+                        {
+                            targetPath = Path.GetFullPath(targetPath);
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[DragDrop] Path.GetFullPath failed for library path {targetPath}: {ex.Message}");
+                        }
+                    }
+                    else
+                    {
+                        return; // Cannot drop on empty library or invalid lib path
+                    }
+                }
+
+                if (Directory.Exists(targetPath))
+                {
+                    bool isCopy = (e.KeyStates & DragDropKeyStates.ControlKey) == DragDropKeyStates.ControlKey;
+                    _dragDropManager?.PerformFileOperation(files, targetPath, isCopy);
+                }
+            }
+        }
+
+        private string GetPathFromDragTarget(FrameworkElement container, Point point)
+        {
+            if (container == null) return null;
+
+            var hitTest = VisualTreeHelper.HitTest(container, point);
+            var element = hitTest?.VisualHit;
+
+            while (element != null && element != container)
+            {
+                if (element is FrameworkElement fe && fe.DataContext != null)
+                {
+                    // Check for common Path properties
+                    var dc = fe.DataContext;
+
+                    // Library
+                    if (dc is Library lib) return $"lib://{lib.Name}";
+
+                    // QuickAccess / Drives (NavigationItem / NavigationItemViewModel)
+                    // Use reflection or dynamic to be safe
+                    var type = dc.GetType();
+                    var pathProp = type.GetProperty("Path");
+                    if (pathProp != null)
+                    {
+                        var p = pathProp.GetValue(dc) as string;
+                        if (!string.IsNullOrEmpty(p)) return p;
+                    }
+
+                    // Favorite
+                    if (dc is Favorite fav) return fav.Path;
+                }
+                element = VisualTreeHelper.GetParent(element);
+            }
+            return null;
         }
     }
 }
-
-
-

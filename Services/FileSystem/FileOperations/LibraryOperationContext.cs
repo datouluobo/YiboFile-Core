@@ -39,6 +39,17 @@ namespace YiboFile.Services.FileOperations
 
             // 库模式：返回第一个位置
             var firstPath = _currentLibrary.Paths[0];
+
+            // 确保路径是绝对路径，防止库路径是相对路径导致的文件未找到错误
+            try
+            {
+                firstPath = Path.GetFullPath(firstPath);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[LibraryOperationContext] Path.GetFullPath failed for {firstPath}: {ex.Message}");
+            }
+
             if (!Directory.Exists(firstPath))
             {
                 return null;

@@ -2,6 +2,7 @@ using System;
 using YiboFile.Models;
 using System.Collections.Generic;
 using System.Linq;
+using System.IO;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -184,12 +185,10 @@ namespace YiboFile
             // 初始化文件操作服务
             // 此时 UndoService, TaskQueueService 已通过 DI 注入到 FileOperationService 的构造函数中
             // 我们只需要提供 ContextProvider
-            _fileOperationService = new FileOperationService(
-                () => GetActiveFileOperationContext(),
-                App.ServiceProvider.GetRequiredService<YiboFile.Services.Core.Error.ErrorService>(),
-                App.ServiceProvider.GetRequiredService<YiboFile.Services.FileOperations.Undo.UndoService>(),
-                App.ServiceProvider.GetRequiredService<YiboFile.Services.FileOperations.TaskQueue.TaskQueueService>()
-            );
+            // 修复：改为从 DI 获取单例，并为其设置 ContextProvider
+            // 这样 ViewModel 中通过 DI 获取的实例也能正确获取主窗口的上下文
+            _fileOperationService = App.ServiceProvider.GetRequiredService<FileOperationService>();
+            _fileOperationService.SetContextProvider(() => GetActiveFileOperationContext());
 
             // 订阅全局错误事件
             var errorService = App.ServiceProvider.GetRequiredService<YiboFile.Services.Core.Error.ErrorService>();
@@ -465,10 +464,13 @@ namespace YiboFile
                 NavigationPanelControl.DrivesTreeViewItemClick += DrivesTreeViewItem_Click;
                 // NavigationPanelControl.DrivesListBoxPreviewMouseDown += DrivesListBox_PreviewMouseDown;
                 NavigationPanelControl.QuickAccessListBoxPreviewMouseDown += QuickAccessListBox_PreviewMouseDown;
+                NavigationPanelControl.QuickAccessListBoxSelectionChanged += QuickAccessListBox_SelectionChanged; // [FIX] Left click nav
                 NavigationPanelControl.FavoriteListBoxPreviewMouseDown += OnFavoriteListBoxPreviewMouseDown;
+                NavigationPanelControl.FavoriteListBoxSelectionChanged += OnFavoriteListBoxSelectionChanged; // [FIX] Left click nav
                 NavigationPanelControl.FavoriteListBoxLoaded += OnFavoriteListBoxLoaded;
                 NavigationPanelControl.RenameFavoriteGroupRequested += OnRenameFavoriteGroupRequested;
                 NavigationPanelControl.DeleteFavoriteGroupRequested += OnDeleteFavoriteGroupRequested;
+                NavigationPanelControl.LibrariesListBoxSelectionChanged += LibrariesListBox_SelectionChanged; // [FIX] Library selection nav
                 NavigationPanelControl.LibrariesListBoxContextMenuOpening += LibrariesListBox_ContextMenuOpening;
                 NavigationPanelControl.LibraryContextMenuClick += LibraryContextMenu_Click;
                 NavigationPanelControl.LibraryManageClick += ManageLibraries_Click;
@@ -661,14 +663,54 @@ namespace YiboFile
 
         private FileOperationContext GetActiveFileOperationContext()
         {
-            // 确定当前活动的面板
-            bool useSecond = IsDualListMode && IsSecondPaneFocused;
+            // 修复：基于 ViewModel 的 ActivePane 状态来判断，而不是不稳定的控件焦点
+            bool useSecond = _viewModel?.ActivePane == _viewModel?.SecondaryPane;
 
             var targetBrowser = useSecond ? SecondFileBrowser : FileBrowser;
-            var targetPath = useSecond ? SecondFileBrowser?.AddressText : _currentPath;
+            // 修复：使用 ViewModel 的 CurrentPath 而不是 AddressText
+            // AddressText 可能是库名等非绝对路径，而 CurrentPath 才是真实的路径
+            var targetPath = useSecond ? _viewModel?.SecondaryPane?.CurrentPath : _currentPath;
 
-            // TODO: Determine library for second pane if separate
-            var targetLibrary = useSecond ? null : _currentLibrary;
+            // 解析副面板的库信息（如果副面板显示的是库）
+            Library targetLibrary = null;
+            if (useSecond)
+            {
+                // 从副面板的地址栏解析库
+                if (!string.IsNullOrEmpty(targetPath) && targetPath.StartsWith("lib://", StringComparison.OrdinalIgnoreCase))
+                {
+                    var libName = targetPath.Substring(6);
+                    var slashIndex = libName.IndexOf('/');
+                    if (slashIndex > 0)
+                    {
+                        libName = libName.Substring(0, slashIndex);
+                    }
+
+                    // 从 LibraryService 获取库信息
+                    targetLibrary = _libraryService?.GetAllLibraries()?.FirstOrDefault(l =>
+                        string.Equals(l.Name, libName, StringComparison.OrdinalIgnoreCase));
+                }
+            }
+            else
+            {
+                targetLibrary = _currentLibrary;
+            }
+
+            // 确保 targetPath 是绝对路径（修复相对路径问题）
+            if (!string.IsNullOrEmpty(targetPath) && !targetPath.StartsWith("lib://", StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    if (!Path.IsPathRooted(targetPath))
+                    {
+                        targetPath = Path.GetFullPath(targetPath);
+                        System.Diagnostics.Debug.WriteLine($"[GetActiveFileOperationContext] Converted relative path to absolute: {targetPath}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[GetActiveFileOperationContext] Path.GetFullPath failed for {targetPath}: {ex.Message}");
+                }
+            }
 
             return new FileOperationContext
             {
@@ -679,11 +721,12 @@ namespace YiboFile
                 {
                     if (useSecond)
                     {
-                        if (SecondFileBrowser != null && !string.IsNullOrEmpty(SecondFileBrowser.AddressText))
-                            LoadSecondFileBrowserDirectory(SecondFileBrowser.AddressText);
+                        // 只刷新副面板 - 使用 RefreshActiveFileList 确保正确刷新
+                        RefreshActiveFileList();
                     }
                     else
                     {
+                        // 只刷新主面板
                         RefreshFileList();
                     }
                 }

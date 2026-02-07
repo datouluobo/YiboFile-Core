@@ -217,16 +217,53 @@ namespace YiboFile
 
         #region 库显示逻辑
 
-        // 菜单事件桥接方法 - 已迁移到 MenuEventHandler
-        private void AddLibrary_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.AddLibrary_Click(sender, e);
-        private void ManageLibraries_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.ManageLibraries_Click(sender, e);
+        // [临时保留] 库管理功能的事件处理方法
+        // TODO: 这些功能后续需要迁移到 LibraryManagementViewModel 中的 Command
 
-        // 库管理事件桥接方法 - 已迁移到 MenuEventHandler
-        private void LibraryRename_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.LibraryRename_Click(sender, e);
-        private void LibraryDelete_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.LibraryDelete_Click(sender, e);
-        private void LibraryManage_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.LibraryManage_Click(sender, e);
-        private void LibraryOpenInExplorer_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.LibraryOpenInExplorer_Click(sender, e);
-        private void LibraryRefresh_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.LibraryRefresh_Click(sender, e);
+        private void LibraryRefresh_Click(object sender, RoutedEventArgs e)
+        {
+            _libraryService?.LoadLibraries();
+            if (_currentLibrary != null) LoadLibraryFiles(_currentLibrary);
+        }
+
+        private void LibraryOpenInExplorer_Click(object sender, RoutedEventArgs e)
+        {
+            if (LibrariesListBox.SelectedItem is Library lib && lib.Paths != null && lib.Paths.Count > 0)
+            {
+                System.Diagnostics.Process.Start("explorer.exe", lib.Paths[0]);
+            }
+        }
+
+        private void LibraryRename_Click(object sender, RoutedEventArgs e)
+        {
+            if (LibrariesListBox.SelectedItem is Library lib)
+            {
+                var dialog = new YiboFile.Controls.Dialogs.InputDialog("重命名库", "请输入新名称:", lib.Name);
+                if (dialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(dialog.InputText))
+                {
+                    // TODO: 实现库重命名功能（LibraryService需要增加RenameLibrary方法）
+                    DialogService.Info("库重命名功能待实现", owner: this);
+                }
+            }
+        }
+
+        private void LibraryDelete_Click(object sender, RoutedEventArgs e)
+        {
+            if (LibrariesListBox.SelectedItem is Library lib)
+            {
+                if (DialogService.Ask($"确定要删除库 \"{lib.Name}\" 吗？", "确认删除", this))
+                {
+                    _libraryService?.DeleteLibrary(lib.Id, lib.Name);
+                    LoadLibraries();
+                }
+            }
+        }
+
+        private void LibraryManage_Click(object sender, RoutedEventArgs e)
+        {
+            DialogService.Info("库管理功能待完善", owner: this);
+        }
+
 
         /// <summary>
         /// 显示合并的库文件（所有路径的文件合并显示）

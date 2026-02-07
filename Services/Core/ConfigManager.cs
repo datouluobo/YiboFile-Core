@@ -133,6 +133,9 @@ namespace YiboFile
             "Tags"
         };
 
+        // 侧边栏折叠状态持久化
+        public System.Collections.Generic.Dictionary<string, bool> SidebarExpanderStates { get; set; } = new System.Collections.Generic.Dictionary<string, bool>();
+
         // 自定义快捷键 (Description -> KeyCombination)
         public System.Collections.Generic.Dictionary<string, string> CustomHotkeys { get; set; } = new System.Collections.Generic.Dictionary<string, string>();
 

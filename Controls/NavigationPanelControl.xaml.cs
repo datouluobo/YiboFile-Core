@@ -28,6 +28,7 @@ namespace YiboFile.Controls
         public event MouseButtonEventHandler DrivesListBoxPreviewMouseDown;
         public event SelectionChangedEventHandler DrivesListBoxSelectionChanged;
         public event MouseButtonEventHandler QuickAccessListBoxPreviewMouseDown;
+        public event SelectionChangedEventHandler QuickAccessListBoxSelectionChanged;
         public event MouseButtonEventHandler FolderFavoritesListBoxPreviewMouseDown;
         public event MouseButtonEventHandler FileFavoritesListBoxPreviewMouseDown;
         public event SelectionChangedEventHandler LibrariesListBoxSelectionChanged;
@@ -40,12 +41,9 @@ namespace YiboFile.Controls
 
         public event Action<NavigationPanelControl, ListBox> FavoriteListBoxLoaded;
         public event Action<NavigationPanelControl, ListBox, MouseButtonEventArgs> FavoriteListBoxPreviewMouseDown;
+        public event Action<NavigationPanelControl, ListBox, SelectionChangedEventArgs> FavoriteListBoxSelectionChanged;
         public event Action<object> RenameFavoriteGroupRequested;
         public event Action<object> DeleteFavoriteGroupRequested;
-        // public event Action<string, bool> TagBrowsePanelTagClicked;
-        // public event Action TagBrowsePanelCategoryManagementRequested;
-        // public event Action<string, bool> TagEditPanelTagClicked; // Phase 2
-        // public event Action TagEditPanelCategoryManagementRequested; // Phase 2
         public event RoutedEventHandler LibraryContextMenuClick;
 
         public event RoutedEventHandler DrivesTreeViewItemClick;
@@ -116,7 +114,57 @@ namespace YiboFile.Controls
             }
             if (favoritesGroups != null && !navSectionsPanel.Children.Contains(favoritesGroups))
                 navSectionsPanel.Children.Add(favoritesGroups);
+
+            LoadExpanderStates();
         }
+
+        private void LoadExpanderStates()
+        {
+            var states = ConfigurationService.Instance.Config.SidebarExpanderStates;
+            if (states == null) return;
+
+            void Restore(string name)
+            {
+                if (FindName(name) is Expander exp && states.TryGetValue(name, out bool expanded))
+                {
+                    exp.IsExpanded = expanded;
+                }
+            }
+
+            Restore("QuickAccessExpander");
+            Restore("DrivesExpander");
+            // Add listeners to auto-save
+            AttachSaveListener("QuickAccessExpander");
+            AttachSaveListener("DrivesExpander");
+        }
+
+        private void AttachSaveListener(string name)
+        {
+            if (FindName(name) is Expander exp)
+            {
+                // Remove first to avoid double subscription
+                exp.Expanded -= Expander_StateChanged;
+                exp.Collapsed -= Expander_StateChanged;
+                exp.Expanded += Expander_StateChanged;
+                exp.Collapsed += Expander_StateChanged;
+            }
+        }
+
+        private void Expander_StateChanged(object sender, RoutedEventArgs e)
+        {
+            if (sender is Expander exp && !string.IsNullOrEmpty(exp.Name))
+            {
+                var config = ConfigurationService.Instance.Config;
+                if (config.SidebarExpanderStates == null) config.SidebarExpanderStates = new Dictionary<string, bool>();
+
+                config.SidebarExpanderStates[exp.Name] = exp.IsExpanded;
+                // Delay save handled by ConfigurationService
+                ConfigurationService.Instance.Set(c => c.SidebarExpanderStates, config.SidebarExpanderStates);
+            }
+        }
+
+        // Public Property for XAML access
+        // public StackPanel NavSectionsPanelControl => FindName("NavSectionsPanel") as StackPanel;
 
         // Handler for TreeViewItem PreviewMouseLeftButtonDown (defined in Style EventSetter)
         private void DrivesTreeViewItem_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -239,6 +287,7 @@ namespace YiboFile.Controls
             if (quickAccessListBox != null)
             {
                 quickAccessListBox.PreviewMouseDown += (s, e) => QuickAccessListBoxPreviewMouseDown?.Invoke(s, e);
+                quickAccessListBox.SelectionChanged += (s, e) => QuickAccessListBoxSelectionChanged?.Invoke(s, e);
                 quickAccessListBox.PreviewMouseWheel += OnPreviewMouseWheel;
             }
 
@@ -343,6 +392,7 @@ namespace YiboFile.Controls
             if (sender is ListBox listBox)
             {
                 FavoriteListBoxLoaded?.Invoke(this, listBox);
+                listBox.SelectionChanged += FavoritesListBox_SelectionChanged;
             }
         }
 
@@ -356,7 +406,10 @@ namespace YiboFile.Controls
 
         private void FavoritesListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            // Usually handled by FavoriteService directly if hooked in Loaded
+            if (sender is ListBox listBox)
+            {
+                FavoriteListBoxSelectionChanged?.Invoke(this, listBox, e);
+            }
         }
         private void RenameFavoriteGroup_Click(object sender, RoutedEventArgs e)
         {

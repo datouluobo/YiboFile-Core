@@ -62,7 +62,7 @@
         </StackPanel>
 
         <StackPanel x:Name="TagPanel" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
-            <Button Click="OnNewTagClicked" ToolTip="新建标签" Margin="0,0,2,0" Height="36">
+            <Button Command="{Binding NewTagCommand}" ToolTip="新建标签" Margin="0,0,2,0" Height="36">
                 <Button.Style>
                     <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
                         <Setter Property="Padding" Value="8,0"/>
@@ -70,7 +70,7 @@
                 </Button.Style>
                 <TextBlock Text="&#xE8EC;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
             </Button>
-            <Button Click="OnManageTagsClicked" ToolTip="管理标签" Margin="0,0,2,0" Height="36">
+            <Button Command="{Binding ManageTagsCommand}" ToolTip="管理标签" Margin="0,0,2,0" Height="36">
                 <Button.Style>
                     <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
                         <Setter Property="Padding" Value="8,0"/>
@@ -79,7 +79,7 @@
                 <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
             </Button>
             <Separator Margin="12,4" Height="20" VerticalAlignment="Center"/>
-            <Button Click="OnBatchAddTagsClicked" ToolTip="批量添加" Margin="0,0,2,0" Height="36">
+            <Button Command="{Binding BatchAddTagsCommand}" ToolTip="批量添加" Margin="0,0,2,0" Height="36">
                 <Button.Style>
                     <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
                         <Setter Property="Padding" Value="8,0"/>
@@ -87,7 +87,7 @@
                 </Button.Style>
                 <TextBlock Text="&#xE7B8;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
             </Button>
-            <Button Click="OnTagStatisticsClicked" ToolTip="标签统计" Margin="0,0,2,0" Height="36">
+            <Button Command="{Binding TagStatisticsCommand}" ToolTip="标签统计" Margin="0,0,2,0" Height="36">
                 <Button.Style>
                     <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
                         <Setter Property="Padding" Value="8,0"/>

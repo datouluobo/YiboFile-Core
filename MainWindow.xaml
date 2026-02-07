@@ -174,15 +174,6 @@
                                      Margin="0,0,0,0"
                                      Panel.ZIndex="100"
                                      DataContext="{Binding PrimaryPane}"
-                                     CopyCommand="{Binding DataContext.FileOperation.CopyCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                     CutCommand="{Binding DataContext.FileOperation.CutCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                     PasteCommand="{Binding DataContext.FileOperation.PasteCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                     DeleteCommand="{Binding DataContext.FileOperation.DeleteCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                     RenameCommand="{Binding DataContext.FileOperation.RenameCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                     NewFolderCommand="{Binding DataContext.FileOperation.NewFolderCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                     NewFileCommand="{Binding DataContext.FileOperation.NewFileCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                     UndoCommand="{Binding DataContext.FileOperation.UndoCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                     RedoCommand="{Binding DataContext.FileOperation.RedoCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                      RefreshCommand="{Binding RefreshCommand}"/>
 
             <!-- 备份管理器 -->
@@ -253,15 +244,6 @@
                                              HorizontalAlignment="Stretch" 
                                              VerticalAlignment="Stretch"
                                              DataContext="{Binding SecondaryPane}"
-                                             CopyCommand="{Binding DataContext.FileOperation.CopyCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                             CutCommand="{Binding DataContext.FileOperation.CutCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                             PasteCommand="{Binding DataContext.FileOperation.PasteCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                             DeleteCommand="{Binding DataContext.FileOperation.DeleteCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                             RenameCommand="{Binding DataContext.FileOperation.RenameCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                             NewFolderCommand="{Binding DataContext.FileOperation.NewFolderCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                             NewFileCommand="{Binding DataContext.FileOperation.NewFileCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                             UndoCommand="{Binding DataContext.FileOperation.UndoCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                             RedoCommand="{Binding DataContext.FileOperation.RedoCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                              RefreshCommand="{Binding RefreshCommand}"/>
                 </Grid>
             </Grid>

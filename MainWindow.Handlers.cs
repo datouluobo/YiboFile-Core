@@ -301,9 +301,9 @@ namespace YiboFile
                 () => _currentPath,
                 () => CopySelectedFilesAsync().Wait(), // Simple wrapper, async void fire-and-forget style for events usually
                 () => PasteFilesAsync().Wait(),
-                () => { _menuEventHandler?.Cut_Click(null, null); },
+                () => { _viewModel?.ActivePane?.CutCommand?.Execute(null); }, // 触发ViewModel Command
                 () => DeleteSelectedFilesAsync().Wait(),
-                () => { _menuEventHandler?.Rename_Click(null, null); },
+                () => { _viewModel?.ActivePane?.RenameCommand?.Execute(null); }, // 触发ViewModel Command
                 () => RefreshActiveFileList(),
                 () => ShowSelectedFileProperties(),
                 (path, force, activate) => CreateTab(path, force, activate) // Main Browser CreateTab
@@ -408,9 +408,9 @@ namespace YiboFile
                     () => _viewModel?.SecondaryPane?.CurrentPath,
                     () => CopySelectedFilesAsync().Wait(),
                     () => PasteFilesAsync().Wait(),
-                    () => { _menuEventHandler?.Cut_Click(null, null); }, // Context aware?
+                    () => { _viewModel?.SecondaryPane?.CutCommand?.Execute(null); }, // 副面板Command
                     () => { /* Delete logic specific to second browser? Handled by GetActiveContext */ DeleteSelectedFilesAsync().Wait(); },
-                    () => { _menuEventHandler?.Rename_Click(null, null); },
+                    () => { _viewModel?.SecondaryPane?.RenameCommand?.Execute(null); }, // 副面板Command
                     () => LoadSecondFileBrowserDirectory(_viewModel?.SecondaryPane?.CurrentPath),
                     () => ShowSelectedFileProperties(), // Use the new method
                     (path, force, activate) => // Second Browser CreateTab
@@ -479,117 +479,9 @@ namespace YiboFile
                 UpdateUndoUI();
             }
 
-            // 初始化 MenuEventHandler
-            _menuEventHandler = new MenuEventHandler(
-                FileBrowser,
-                _libraryService,
-                RefreshActiveFileList,
-                LoadCurrentDirectory,
-                () => // ClearFilter
-                {
-                    FileBrowser.IsAddressReadOnly = false;
-                    FileBrowser.SetTagBreadcrumb(null);
-                    LoadCurrentDirectory();
-                    HideEmptyStateMessage();
-                },
-                () => Close(),
-                () => // settings
-                {
-                    if (SettingsOverlay == null) return;
-                    if (SettingsOverlay.Visibility == Visibility.Visible)
-                    {
-                        _settingsOverlayController?.Hide();
-                    }
-                    else
-                    {
-                        CloseOverlays(); // Close About if open
-                        _settingsOverlayController?.Show();
-                    }
-                },
-                () => // about
-                {
-                    if (AboutOverlay == null) return;
-                    if (AboutOverlay.Visibility == Visibility.Visible)
-                    {
-                        AboutOverlay.Visibility = Visibility.Collapsed;
-                    }
-                    else
-                    {
-                        CloseOverlays(); // Close Settings if open
-                        AboutOverlay.Visibility = Visibility.Visible;
-                    }
-                },
-                () => { }, // Action editNotes (Deprecated)
-                () => { }, // BatchAddTags_Click_Logic - Phase 2
-                () => { }, // showTagStatistics - Phase 2
-                ImportLibrary_Click_Logic, // importLibrary
-                ExportLibrary_Click_Logic, // exportLibrary
-                () => { }, // addFileToLibrary - Implement logic if needed
-                async () => await CopySelectedFilesAsync(), // Copy - 使用统一服务
-                async () => await CutSelectedFilesAsync(), // Cut - 使用统一服务
-                async () => await PasteFilesAsync(), // Paste - 使用统一服务
-                async () => await DeleteSelectedFilesAsync(), // Delete - 使用统一服务
-                () => // Rename
-                {
-                    var (browser, path, library) = GetActiveContext();
-                    var item = browser?.FilesSelectedItem as FileSystemItem;
-                    if (item != null)
-                    {
-                        // Trigger inline rename
-                        item.IsRenaming = true;
-                    }
-                },
-                () => ShowSelectedFileProperties(), // ShowProperties
-                NavigateToPath,
-                SwitchNavigationMode,
-                () => GetActiveContext().path,
-                () => GetActiveContext().library,
-                () => GetActiveContext().browser?.DataContext is ViewModels.PaneViewModel vm ? vm.Files?.ToList() : null,
-                (files) =>
-                {
-                    var b = GetActiveContext().browser;
-                    if (b != null)
-                    {
-                        if (b == FileBrowser) _viewModel?.PrimaryPane?.FileList?.UpdateFiles(files);
-                        else if (b == SecondFileBrowser) _viewModel?.SecondaryPane?.FileList?.UpdateFiles(files);
-                        else if (b.DataContext is ViewModels.PaneViewModel vm && vm.FileList != null) vm.FileList.UpdateFiles(files);
-                    }
-                    if (b == FileBrowser) _currentFiles = files;
-                    else if (b == SecondFileBrowser) _secondCurrentFiles = files;
-                },
-                () => this,
-                (lib) => _tabService.OpenLibraryTab(lib),
-                (lib) => { }, // HighlightMatchingLibrary
-                () => _libraryService.LoadLibraries(), // LoadLibraries
-                () => LibrariesListBox, // Func<ListBox>
-                () => LibraryContextMenu, // Func<ContextMenu>
-                (ext) => // CreateNewFileWithExtension
-                {
-                    var (browser, path, library) = GetActiveContext();
-                    Services.FileOperations.IFileOperationContext context;
-                    if (library != null)
-                        context = new Services.FileOperations.LibraryOperationContext(library, browser, this, RefreshActiveFileList);
-                    else
-                        context = new Services.FileOperations.PathOperationContext(path, browser, this, RefreshActiveFileList);
 
-                    var op = new Services.FileOperations.NewFileOperation(context, this, _fileOperationService);
-                    op.Execute(ext);
-                },
-                async (path) => // CreateNewFolder
-                {
-                    if (_fileOperationService != null)
-                    {
-                        var parent = System.IO.Path.GetDirectoryName(path);
-                        var name = System.IO.Path.GetFileName(path);
-                        var result = await _fileOperationService.CreateFolderAsync(parent, name);
-                        return result != null;
-                    }
-                    return false;
-                },
-                 () => ConfigurationService.Instance.Config,
-                 (cfg) => { /* ConfigurationService.Instance already handles config updates */ },
-                 () => ConfigurationService.Instance.SaveNow()
-            );
+            // [已移除] MenuEventHandler 初始化 - 功能已由 PaneViewModel Command 接管
+            // 右键菜单和工具栏操作现在完全通过 XAML 绑定到 ViewModel 的 ICommand
 
 
             // 定义获取当前活动标签页服务的逻辑
@@ -604,14 +496,14 @@ namespace YiboFile
                 (tab) => getActiveTabService().RemoveTab(tab),
                 (path) => CreateTab(path),
                 (tab) => getActiveTabService().SwitchToTab(tab),
-                () => _menuEventHandler.NewFolder_Click(null, null), // NewFolderClick
+                () => _viewModel?.ActivePane?.NewFolderCommand?.Execute(null), // 通过ViewModel Command
                 RefreshFileList,
-                () => _menuEventHandler.Copy_Click(null, null),
-                () => _menuEventHandler.Paste_Click(null, null),
-                () => _menuEventHandler.Cut_Click(null, null),
-                () => _menuEventHandler.Delete_Click(null, null),
+                () => _viewModel?.ActivePane?.CopyCommand?.Execute(null),
+                () => _viewModel?.ActivePane?.PasteCommand?.Execute(null),
+                () => _viewModel?.ActivePane?.CutCommand?.Execute(null),
+                () => _viewModel?.ActivePane?.DeleteCommand?.Execute(null),
                 async () => await DeleteSelectedFilesAsync(permanent: true), // Shift+Delete 永久删除
-                () => _menuEventHandler.Rename_Click(null, null),
+                () => _viewModel?.ActivePane?.RenameCommand?.Execute(null),
                 NavigateToPath,
                 SwitchNavigationMode,
                 () => _currentLibrary != null,

@@ -33,6 +33,22 @@ namespace YiboFile
             // 注意：FavoriteService 中已有处理逻辑，这里主要作为桥接
         }
 
+        private void OnFavoriteListBoxSelectionChanged(NavigationPanelControl sender, ListBox listBox, SelectionChangedEventArgs e)
+        {
+            if (_isInternalUpdate) return;
+            // Ignore deselection
+            if (e.AddedItems.Count == 0) return;
+
+            if (listBox.SelectedItem is Favorite favorite && favorite != null)
+            {
+                if (!string.IsNullOrEmpty(favorite.Path))
+                {
+                    // 使用 Coordinator 处理导航
+                    _navigationCoordinator.HandleFavoriteNavigation(favorite, ClickType.LeftClick);
+                }
+            }
+        }
+
         private void ManageFavorites_Click(object sender, RoutedEventArgs e)
         {
             // TODO: 实现分组管理窗口或弹窗

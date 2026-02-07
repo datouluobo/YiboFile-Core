@@ -30,7 +30,15 @@ namespace YiboFile.Services.FileOperations
         private readonly UndoService _undoService;
         private readonly TaskQueueService _taskQueueService;
         private readonly YiboFile.Services.Backup.IBackupService _backupService;
-        private readonly Func<FileOperationContext> _getContext;
+        private Func<FileOperationContext> _getContext;
+
+        /// <summary>
+        /// 设置上下文提供者。用于在单例服务中延迟绑定主窗口的上下文。
+        /// </summary>
+        public void SetContextProvider(Func<FileOperationContext> provider)
+        {
+            _getContext = provider;
+        }
 
         /// <summary>
         /// 进度更新事件
@@ -48,13 +56,13 @@ namespace YiboFile.Services.FileOperations
         public event Action<FileOperationResult> OperationCompleted;
 
         public FileOperationService(
-            Func<FileOperationContext> contextProvider,
+            Func<FileOperationContext> contextProvider = null,
             ErrorService errorService = null,
             UndoService undoService = null,
             TaskQueueService taskQueueService = null,
             YiboFile.Services.Backup.IBackupService backupService = null)
         {
-            _getContext = contextProvider ?? throw new ArgumentNullException(nameof(contextProvider));
+            _getContext = contextProvider;
             _clipboard = ClipboardService.Instance;
             _errorService = errorService;
             _undoService = undoService;
@@ -93,20 +101,28 @@ namespace YiboFile.Services.FileOperations
         /// <summary>
         /// 粘贴剪贴板内容到目标路径
         /// </summary>
-        public async Task<FileOperationResult> PasteAsync(CancellationToken ct = default)
+        public async Task<FileOperationResult> PasteAsync(string overrideTargetPath = null, CancellationToken ct = default)
         {
             var context = _getContext();
-            if (context == null || !context.CanPerformOperation())
+            string targetPath = overrideTargetPath;
+
+            // If no explicit path, try to get from context
+            if (string.IsNullOrEmpty(targetPath))
             {
-                return FileOperationResult.Failed("目标路径无效");
+                if (context == null || !context.CanPerformOperation())
+                {
+                    return FileOperationResult.Failed("目标路径无效");
+                }
+                targetPath = context.GetEffectiveTargetPath();
             }
+
+            if (string.IsNullOrEmpty(targetPath)) return FileOperationResult.Failed("目标路径无效");
+
             var (sourcePaths, isCut) = await _clipboard.GetPathsFromClipboardAsync();
             if (sourcePaths.Count == 0)
             {
                 return FileOperationResult.Failed("剪贴板为空");
             }
-
-            var targetPath = context.GetEffectiveTargetPath();
             OperationStarted?.Invoke(isCut ? "正在移动文件..." : "正在复制文件...");
 
             var failedItems = new List<string>();

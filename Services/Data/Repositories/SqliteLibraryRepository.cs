@@ -152,7 +152,17 @@ namespace YiboFile.Services.Data.Repositories
                 using var pathReader = pathCommand.ExecuteReader();
                 while (pathReader.Read())
                 {
-                    paths.Add(pathReader.GetString(0));
+                    var path = pathReader.GetString(0);
+                    // 确保路径是绝对路径，防止数据库中存储了相对路径
+                    try
+                    {
+                        path = Path.GetFullPath(path);
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[SqliteLibraryRepository] Path.GetFullPath failed for {path}: {ex.Message}");
+                    }
+                    paths.Add(path);
                 }
 
                 libraries.Add(new Library
@@ -188,7 +198,17 @@ namespace YiboFile.Services.Data.Repositories
                 using var pathReader = await pathCommand.ExecuteReaderAsync();
                 while (await pathReader.ReadAsync())
                 {
-                    paths.Add(pathReader.GetString(0));
+                    var path = pathReader.GetString(0);
+                    // 确保路径是绝对路径，防止数据库中存储了相对路径
+                    try
+                    {
+                        path = Path.GetFullPath(path);
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[SqliteLibraryRepository] Path.GetFullPath failed for {path}: {ex.Message}");
+                    }
+                    paths.Add(path);
                 }
 
                 libraries.Add(new Library
@@ -238,7 +258,17 @@ namespace YiboFile.Services.Data.Repositories
                     using var pathReader = pathCommand.ExecuteReader();
                     while (pathReader.Read())
                     {
-                        paths.Add(pathReader.GetString(0));
+                        var path = pathReader.GetString(0);
+                        // 确保路径是绝对路径，防止数据库中存储了相对路径
+                        try
+                        {
+                            path = Path.GetFullPath(path);
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[SqliteLibraryRepository] Path.GetFullPath failed for {path}: {ex.Message}");
+                        }
+                        paths.Add(path);
                     }
                 }
 
@@ -284,7 +314,17 @@ namespace YiboFile.Services.Data.Repositories
                     using var pathReader = await pathCommand.ExecuteReaderAsync();
                     while (await pathReader.ReadAsync())
                     {
-                        paths.Add(pathReader.GetString(0));
+                        var path = pathReader.GetString(0);
+                        // 确保路径是绝对路径，防止数据库中存储了相对路径
+                        try
+                        {
+                            path = Path.GetFullPath(path);
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[SqliteLibraryRepository] Path.GetFullPath failed for {path}: {ex.Message}");
+                        }
+                        paths.Add(path);
                     }
                 }
 

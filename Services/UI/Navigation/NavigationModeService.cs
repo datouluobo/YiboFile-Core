@@ -310,7 +310,7 @@ namespace YiboFile.Services.Navigation
                             // 如果已有当前库，仅高亮它，避免重复加载
                             _uiHelper.HighlightMatchingLibrary(_uiHelper.CurrentLibrary);
                         }
-                        _uiHelper.InitializeLibraryDragDrop();
+                        _uiHelper.InitializeNavigationPanelDragDrop();
                     }
                 }), System.Windows.Threading.DispatcherPriority.Loaded);
             }

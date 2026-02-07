@@ -21,16 +21,6 @@ namespace YiboFile.Controls
             set => SetValue(ModeProperty, value);
         }
 
-        public event RoutedEventHandler NewFolderClicked;
-        public event RoutedEventHandler NewFileClicked;
-        public event RoutedEventHandler CopyClicked;
-        public event RoutedEventHandler PasteClicked;
-        public event RoutedEventHandler DeleteClicked;
-        public event RoutedEventHandler RefreshClicked;
-        public event RoutedEventHandler NewTagClicked;
-        public event RoutedEventHandler ManageTagsClicked;
-        public event RoutedEventHandler BatchAddTagsClicked;
-        public event RoutedEventHandler TagStatisticsClicked;
 
         public TitleActionBar()
         {
@@ -65,16 +55,6 @@ namespace YiboFile.Controls
             }
         }
 
-        private void OnNewFolderClicked(object sender, RoutedEventArgs e) => NewFolderClicked?.Invoke(this, e);
-        private void OnNewFileClicked(object sender, RoutedEventArgs e) => NewFileClicked?.Invoke(this, e);
-        private void OnCopyClicked(object sender, RoutedEventArgs e) => CopyClicked?.Invoke(this, e);
-        private void OnPasteClicked(object sender, RoutedEventArgs e) => PasteClicked?.Invoke(this, e);
-        private void OnDeleteClicked(object sender, RoutedEventArgs e) => DeleteClicked?.Invoke(this, e);
-        private void OnRefreshClicked(object sender, RoutedEventArgs e) => RefreshClicked?.Invoke(this, e);
-        private void OnNewTagClicked(object sender, RoutedEventArgs e) => NewTagClicked?.Invoke(this, e);
-        private void OnManageTagsClicked(object sender, RoutedEventArgs e) => ManageTagsClicked?.Invoke(this, e);
-        private void OnBatchAddTagsClicked(object sender, RoutedEventArgs e) => BatchAddTagsClicked?.Invoke(this, e);
-        private void OnTagStatisticsClicked(object sender, RoutedEventArgs e) => TagStatisticsClicked?.Invoke(this, e);
     }
 }
 

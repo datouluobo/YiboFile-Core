@@ -364,6 +364,12 @@ namespace YiboFile.ViewModels
         public ICommand NewLibraryCommand { get; }
         public ICommand NewFavoriteGroupCommand { get; }
 
+        // Tag Handling Commands
+        public ICommand NewTagCommand { get; }
+        public ICommand ManageTagsCommand { get; }
+        public ICommand BatchAddTagsCommand { get; }
+        public ICommand TagStatisticsCommand { get; }
+
         public ObservableCollection<ContextMenuItemViewModel> LibraryMenuItems => _libraryMenuItems;
         public ObservableCollection<ContextMenuItemViewModel> FavoriteMenuItems => _favoriteMenuItems;
         public ObservableCollection<ContextMenuItemViewModel> TagMenuItems => _tagMenuItems;
@@ -423,6 +429,12 @@ namespace YiboFile.ViewModels
             ToggleTagCommand = new RelayCommand<ITag>(ExecuteToggleTag);
             NewLibraryCommand = new RelayCommand(ExecuteNewLibrary);
             NewFavoriteGroupCommand = new RelayCommand(ExecuteNewFavoriteGroup);
+
+            // Tag Commands
+            NewTagCommand = new RelayCommand(ExecuteManageTags); // Reuse Manage logic for now
+            ManageTagsCommand = new RelayCommand(ExecuteManageTags);
+            BatchAddTagsCommand = new RelayCommand(ExecuteBatchAddTags, () => SelectedItems.Count > 0);
+            TagStatisticsCommand = new RelayCommand(ExecuteTagStatistics);
 
             Search = new SearchViewModel(_messageBus);
             Search.SetTargetPane(isSecondary ? "Secondary" : "Primary");
@@ -610,6 +622,72 @@ namespace YiboFile.ViewModels
                 }
             }
             UpdateDynamicMenuItems();
+        }
+
+
+
+        private void ExecuteManageTags()
+        {
+            var dialog = new YiboFile.Controls.Dialogs.TagManagementDialog();
+            if (Application.Current?.MainWindow != null)
+                dialog.Owner = Application.Current.MainWindow;
+            dialog.ShowDialog();
+
+            // Notify system that tags might have changed
+            _messageBus.Publish(new TagListChangedMessage());
+            UpdateDynamicMenuItems();
+        }
+
+        private void ExecuteBatchAddTags()
+        {
+            if (SelectedItems.Count == 0 || _tagService == null) return;
+
+            var dialog = new YiboFile.Controls.Dialogs.TagSelectionDialog();
+            if (Application.Current?.MainWindow != null)
+                dialog.Owner = Application.Current.MainWindow;
+
+            if (dialog.ShowDialog() == true)
+            {
+                int successCount = 0;
+                Task.Run(async () =>
+                {
+                    int tagId = dialog.SelectedTagId;
+                    foreach (var item in SelectedItems)
+                    {
+                        try
+                        {
+                            await _tagService.AddTagToFileAsync(item.Path, tagId);
+                            successCount++;
+                            _messageBus.Publish(new FileTagsChangedMessage(item.Path));
+                        }
+                        catch { }
+                    }
+
+                    _dispatcher.Invoke(() =>
+                    {
+                        if (successCount > 0)
+                        {
+                            UpdateDynamicMenuItems();
+                        }
+                    });
+                });
+            }
+        }
+
+        private void ExecuteTagStatistics()
+        {
+            if (_tagService == null) return;
+            try
+            {
+                var tags = _tagService.GetAllTags();
+                var groups = _tagService.GetTagGroups();
+                string stats = $"标签总数: {tags.Count()}\n标签分组: {groups.Count()}";
+                MessageBox.Show(stats, "标签统计", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"获取统计失败: {ex.Message}");
+            }
         }
 
         private void UpdateDynamicMenuItems()
@@ -1222,10 +1300,43 @@ namespace YiboFile.ViewModels
 
         private void OnRefreshFileList(RefreshFileListMessage message)
         {
-            // 如果指定了路径，检查是否相关
-            if (!string.IsNullOrEmpty(message.Path) && NavigationMode == "Path")
+            // 如果指定了具体路径
+            if (!string.IsNullOrEmpty(message.Path))
             {
-                if (!string.Equals(CurrentPath, message.Path, StringComparison.OrdinalIgnoreCase))
+                if (NavigationMode == "Path")
+                {
+                    // 路径模式：必须路径完全匹配
+                    if (!string.Equals(CurrentPath, message.Path, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return;
+                    }
+                }
+                else if (NavigationMode == "Library" && CurrentLibrary != null)
+                {
+                    // 库模式：如果变更路径是库包含的路径之一，则刷新
+                    bool isPathInLibrary = false;
+                    try
+                    {
+                        // 统一路径格式以便比较
+                        string normPath = message.Path.TrimEnd('\\');
+                        isPathInLibrary = CurrentLibrary.Paths.Any(p =>
+                            string.Equals(p.TrimEnd('\\'), normPath, StringComparison.OrdinalIgnoreCase));
+                    }
+                    catch { }
+
+                    if (!isPathInLibrary) return;
+                }
+                else
+                {
+                    // 其他虚拟模式（Tag/Search等）通常不响应物理路径的简单刷新消息
+                    return;
+                }
+            }
+            else
+            {
+                // 空路径消息通常意味着“全局强制刷新”
+                // 在双面板模式下，只有当前面板或处于常规路径导航的面板才应该响应全局刷新
+                if (NavigationMode != "Path" && !IsActive)
                 {
                     return;
                 }

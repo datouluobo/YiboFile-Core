@@ -77,7 +77,7 @@ namespace YiboFile.Dialogs
                 // 注意：由于我们使用的是 XAML 中的静态样式，直接修改 Background 
                 // 只会改变默认背景，触发器效果可能消失，但这能彻底避免 XamlParseException
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // 如果转换失败，至少保证不崩
                 ConfirmButton.Background = Brushes.Orange;

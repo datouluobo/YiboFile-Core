@@ -35,21 +35,38 @@ namespace YiboFile.Services.FileOperations
         /// </summary>
         public string GetEffectiveTargetPath()
         {
+            string result = null;
+
             if (!string.IsNullOrEmpty(TargetPath) && Directory.Exists(TargetPath))
             {
-                return TargetPath;
+                result = TargetPath;
             }
-
-            if (CurrentLibrary?.Paths?.Count > 0)
+            else if (CurrentLibrary?.Paths?.Count > 0)
             {
                 foreach (var path in CurrentLibrary.Paths)
                 {
                     if (Directory.Exists(path))
-                        return path;
+                    {
+                        result = path;
+                        break;
+                    }
                 }
             }
 
-            return null;
+            // 确保返回的路径是绝对路径，防止库路径是相对路径导致的文件未找到错误
+            if (!string.IsNullOrEmpty(result))
+            {
+                try
+                {
+                    result = Path.GetFullPath(result);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[FileOperationContext] Path.GetFullPath failed for {result}: {ex.Message}");
+                }
+            }
+
+            return result;
         }
 
         /// <summary>
