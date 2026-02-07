@@ -999,7 +999,7 @@ namespace YiboFile.ViewModels
 
         private static bool MatchesSizeFilter(FileSystemItem item, SizeRangeFilter filter)
         {
-            if (item.IsDirectory) return true; // 文件夹不按大小过滤
+            if (item.IsDirectory) return false; // 启用大小过滤时，不应显示文件夹
             var size = item.SizeBytes >= 0 ? item.SizeBytes : 0;
 
             const long KB = 1024;

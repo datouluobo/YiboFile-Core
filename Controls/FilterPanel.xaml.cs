@@ -15,6 +15,25 @@ namespace YiboFile.Controls
         public FilterPanel()
         {
             InitializeComponent();
+            this.Loaded += (s, e) => UpdateUI();
+        }
+
+        public static readonly DependencyProperty OptionsProperty =
+            DependencyProperty.Register(nameof(Options), typeof(SearchOptions), typeof(FilterPanel),
+                new PropertyMetadata(null, OnOptionsChanged));
+
+        public SearchOptions Options
+        {
+            get => (SearchOptions)GetValue(OptionsProperty);
+            set => SetValue(OptionsProperty, value);
+        }
+
+        private static void OnOptionsChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is FilterPanel panel && e.NewValue is SearchOptions options)
+            {
+                panel.Initialize(options);
+            }
         }
 
         public void Initialize(SearchOptions options)
@@ -25,7 +44,7 @@ namespace YiboFile.Controls
 
         private void UpdateUI()
         {
-            if (_currentOptions == null) return;
+            if (_currentOptions == null || ScopeFolderBtn == null) return;
             _isUpdatingUI = true;
 
             // Scope

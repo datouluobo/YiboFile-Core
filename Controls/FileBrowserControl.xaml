@@ -367,10 +367,11 @@
 
         <!-- 筛选弹出面板 -->
         <Popup x:Name="FilterPopup" PlacementTarget="{Binding ElementName=FilterBtn}" 
+               IsOpen="{Binding IsFilterPanelVisible, Mode=TwoWay}"
                StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade"
                Placement="Bottom" VerticalOffset="4">
             <Border Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8" Effect="{DynamicResource DropShadowEffect}">
-                <controls:FilterPanel x:Name="FilterPanelControl"/>
+                <controls:FilterPanel x:Name="FilterPanelControl" Options="{Binding SearchOptions}"/>
             </Border>
         </Popup>
     </Grid>

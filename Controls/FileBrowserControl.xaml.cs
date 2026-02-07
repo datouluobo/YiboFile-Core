@@ -131,6 +131,18 @@ namespace YiboFile.Controls
             // 监听全局鼠标按下以激活面板
             this.PreviewMouseDown += (s, e) => RequestActivation();
 
+            // 监听筛选面板变更
+            if (FilterPanelControl != null)
+            {
+                FilterPanelControl.FilterChanged += (s, e) =>
+                {
+                    if (DataContext is ViewModels.PaneViewModel vm)
+                    {
+                        vm.ApplyFilterCommand?.Execute(null);
+                    }
+                };
+            }
+
             this.Loaded += FileBrowserControl_Loaded;
 
             // 监听 DataContext 变更以连接到 PaneViewModel
