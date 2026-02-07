@@ -24,24 +24,13 @@ namespace YiboFile.Handlers
     {
         private readonly FileBrowserControl _fileBrowser;
         private readonly NavigationCoordinator _navigationCoordinator;
-        private readonly Action<FileSystemItem> _showFileInfo;
-        private readonly Action<FileSystemItem> _loadFilePreview;
-        private readonly Action<string> _calculateFolderSizeImmediately;
-        private readonly Action _clearPreviewAndInfo;
-
         private readonly Func<bool> _isLibraryMode;
         private readonly Action<string> _switchNavigationMode;
         private readonly Action<string> _navigateToPath;
         private readonly Action _navigateBack;
         private readonly Action<GridViewColumn> _autoSizeGridViewColumn;
         private readonly Func<string> _getCurrentPath;
-        private readonly Action _copyClick;
-        private readonly Action _pasteClick;
-        private readonly Action _cutClick;
-        private readonly Action _deleteClick;
-        private readonly Action _renameClick;
-        private readonly Action _refreshClick;
-        private readonly Action _showPropertiesClick;
+        private readonly Action _showSelectedFilePropertiesClick;
         private readonly Action<string, bool, bool?> _createTabAction;
         private readonly PaneId _paneId;
 
@@ -53,48 +42,26 @@ namespace YiboFile.Handlers
         public FileListEventHandler(
             FileBrowserControl fileBrowser,
             NavigationCoordinator navigationCoordinator,
-            Action<FileSystemItem> showFileInfo,
-            Action<FileSystemItem> loadFilePreview,
-            Action<string> calculateFolderSizeImmediately,
-            Action clearPreviewAndInfo,
-
             Func<bool> isLibraryMode,
             Action<string> switchNavigationMode,
             Action<string> navigateToPath,
             Action navigateBack,
             Action<GridViewColumn> autoSizeGridViewColumn,
             Func<string> getCurrentPath,
-            Action copyClick,
-            Action pasteClick,
-            Action cutClick,
-            Action deleteClick,
-            Action renameClick,
-            Action refreshClick,
-            Action showPropertiesClick,
+            Action showSelectedFilePropertiesClick,
             Action<string, bool, bool?> createTabAction, // Added explicit CreateTab action
             PaneId paneId = PaneId.Main)
 
         {
             _fileBrowser = fileBrowser ?? throw new ArgumentNullException(nameof(fileBrowser));
             _navigationCoordinator = navigationCoordinator ?? throw new ArgumentNullException(nameof(navigationCoordinator));
-            _showFileInfo = showFileInfo ?? throw new ArgumentNullException(nameof(showFileInfo));
-            _loadFilePreview = loadFilePreview ?? throw new ArgumentNullException(nameof(loadFilePreview));
-            _calculateFolderSizeImmediately = calculateFolderSizeImmediately ?? throw new ArgumentNullException(nameof(calculateFolderSizeImmediately));
-            _clearPreviewAndInfo = clearPreviewAndInfo ?? throw new ArgumentNullException(nameof(clearPreviewAndInfo));
-
             _isLibraryMode = isLibraryMode ?? throw new ArgumentNullException(nameof(isLibraryMode));
             _switchNavigationMode = switchNavigationMode ?? throw new ArgumentNullException(nameof(switchNavigationMode));
             _navigateToPath = navigateToPath ?? throw new ArgumentNullException(nameof(navigateToPath));
             _navigateBack = navigateBack ?? throw new ArgumentNullException(nameof(navigateBack));
             _autoSizeGridViewColumn = autoSizeGridViewColumn ?? throw new ArgumentNullException(nameof(autoSizeGridViewColumn));
             _getCurrentPath = getCurrentPath ?? throw new ArgumentNullException(nameof(getCurrentPath));
-            _copyClick = copyClick ?? throw new ArgumentNullException(nameof(copyClick));
-            _pasteClick = pasteClick ?? throw new ArgumentNullException(nameof(pasteClick));
-            _cutClick = cutClick ?? throw new ArgumentNullException(nameof(cutClick));
-            _deleteClick = deleteClick ?? throw new ArgumentNullException(nameof(deleteClick));
-            _renameClick = renameClick ?? throw new ArgumentNullException(nameof(renameClick));
-            _refreshClick = refreshClick ?? throw new ArgumentNullException(nameof(refreshClick));
-            _showPropertiesClick = showPropertiesClick ?? throw new ArgumentNullException(nameof(showPropertiesClick));
+            _showSelectedFilePropertiesClick = showSelectedFilePropertiesClick ?? throw new ArgumentNullException(nameof(showSelectedFilePropertiesClick));
             _createTabAction = createTabAction ?? throw new ArgumentNullException(nameof(createTabAction));
             _paneId = paneId;
 
@@ -107,7 +74,6 @@ namespace YiboFile.Handlers
         {
             if (filesList == null) return;
 
-            filesList.SelectionChanged += FilesListView_SelectionChanged;
             filesList.PreviewMouseDoubleClick += FilesListView_PreviewMouseDoubleClick;
             filesList.MouseDoubleClick += FilesListView_MouseDoubleClick;
             filesList.PreviewMouseLeftButtonDown += FilesListView_PreviewMouseLeftButtonDown;
@@ -115,32 +81,6 @@ namespace YiboFile.Handlers
             filesList.MouseLeftButtonUp += FilesListView_MouseLeftButtonUp;
             filesList.PreviewMouseDoubleClick += FilesListView_PreviewMouseDoubleClickForBlank;
             filesList.PreviewKeyDown += FilesListView_PreviewKeyDown;
-        }
-
-        private void FilesListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (_fileBrowser?.FilesSelectedItem is FileSystemItem selectedItem)
-            {
-                _showFileInfo(selectedItem);
-
-                // 标签页AI预测已移除 - Phase 2将重新实现
-                // try { ... } catch { }
-
-                // 如果选中的是文件夹且大小未计算，立即计算
-                if (selectedItem.IsDirectory)
-                {
-                    if (string.IsNullOrEmpty(selectedItem.Size) ||
-                        selectedItem.Size == "-" ||
-                        selectedItem.Size == "计算中...")
-                    {
-                        _calculateFolderSizeImmediately(selectedItem.Path);
-                    }
-                }
-            }
-            else
-            {
-                _clearPreviewAndInfo();
-            }
         }
 
         private void FilesListView_PreviewMouseDoubleClick(object sender, MouseButtonEventArgs e)
@@ -617,77 +557,9 @@ namespace YiboFile.Handlers
                 return;
             }
 
-            // Ctrl+A - 全选
-            if (e.Key == Key.A && Keyboard.Modifiers == ModifierKeys.Control)
-            {
-                listView.SelectAll();
-                e.Handled = true;
-                return;
-            }
-
-            // Ctrl+C - 复制
-            if (e.Key == Key.C && Keyboard.Modifiers == ModifierKeys.Control)
-            {
-                _copyClick();
-                e.Handled = true;
-                return;
-            }
-
-            // Ctrl+V - 粘贴
-            if (e.Key == Key.V && Keyboard.Modifiers == ModifierKeys.Control)
-            {
-                _pasteClick();
-                e.Handled = true;
-                return;
-            }
-
-            // Ctrl+X - 剪切
-            if (e.Key == Key.X && Keyboard.Modifiers == ModifierKeys.Control)
-            {
-                _cutClick();
-                e.Handled = true;
-                return;
-            }
-
-            // Delete - 删除
-            if (e.Key == Key.Delete)
-            {
-                _deleteClick();
-                e.Handled = true;
-                return;
-            }
-
-            // F2 - 重命名
-            if (e.Key == Key.F2)
-            {
-                _renameClick();
-                e.Handled = true;
-                return;
-            }
-
-            // F5 - 刷新
-            if (e.Key == Key.F5)
-            {
-                _refreshClick();
-                e.Handled = true;
-                return;
-            }
-
-            // Alt+Enter - 属性
-            if (e.Key == Key.Enter && Keyboard.Modifiers == ModifierKeys.Alt)
-            {
-                _showPropertiesClick();
-                e.Handled = true;
-                return;
-            }
-
-            // Backspace - 返回上一级
-            if (e.Key == Key.Back)
-            {
-                _navigateBack();
-                e.Handled = true;
-                return;
-            }
+            // 大部分快捷键（Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X, Delete, F2, F5, Alt+Enter）
+            // 已搬迁至 FileBrowserControl.xaml 的 InputBindings 绑定到 PaneViewModel 命令。
+            // 这里的 PreviewKeyDown 仅保留对正在进行的 UI 状态（如重命名）的阻断逻辑。
 
             // 处理方向键
             if (e.Key == Key.Up || e.Key == Key.Down || e.Key == Key.Left || e.Key == Key.Right || e.Key == Key.Home || e.Key == Key.End)

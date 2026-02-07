@@ -96,7 +96,6 @@ namespace YiboFile
         internal Handlers.FileBrowserEventHandler _fileBrowserEventHandler;
         internal Handlers.FileListEventHandler _mainFileListHandler;
         internal Handlers.FileListEventHandler _secondFileListHandler;
-        // _menuEventHandler 已废弃：功能已由 PaneViewModel Command 接管
         internal Handlers.KeyboardEventHandler _keyboardEventHandler;
         internal Handlers.MouseEventHandler _mouseEventHandler;
         internal Handlers.ColumnInteractionHandler _columnInteractionHandler;

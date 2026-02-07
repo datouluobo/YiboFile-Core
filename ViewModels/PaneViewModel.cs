@@ -18,6 +18,7 @@ using YiboFile.Services.Favorite;
 using YiboFile.ViewModels.Messaging;
 using YiboFile.ViewModels.Messaging.Messages;
 using YiboFile.Services.Config;
+using YiboFile.Services.Navigation;
 
 namespace YiboFile.ViewModels
 {
@@ -36,6 +37,7 @@ namespace YiboFile.ViewModels
         private readonly FavoriteService _favoriteService;
         private readonly ITagService _tagService;
         private readonly IMessageBus _messageBus;
+        private readonly FolderSizeCalculationService _folderSizeService;
 
         private string _currentPath;
         private Library _currentLibrary;
@@ -234,6 +236,24 @@ namespace YiboFile.ViewModels
 
             // 更新动态菜单项
             UpdateDynamicMenuItems();
+
+            // 发送消息以便其他模块（如预览面板）同步
+            if (SelectedItem != null)
+            {
+                // 如果只选择了一个项，请求预览
+                _messageBus.Publish(new FileSelectionChangedMessage(SelectedItems.ToList()));
+
+                // 如果是文件夹且大小未计算，触发计算
+                if (SelectedItem.IsDirectory && (string.IsNullOrEmpty(SelectedItem.Size) || SelectedItem.Size == "-" || SelectedItem.Size == "计算中..."))
+                {
+                    _folderSizeService?.CalculateAndUpdateFolderSizeAsync(SelectedItem.Path);
+                }
+            }
+            else
+            {
+                // 无选择时通知
+                _messageBus.Publish(new FileSelectionChangedMessage(null));
+            }
         }
 
         /// <summary>
@@ -331,6 +351,8 @@ namespace YiboFile.ViewModels
 
         public bool IsSecondary => _isSecondary;
 
+        public IMessageBus MessageBus => _messageBus;
+
         public void RequestActivation()
         {
             _messageBus.Publish(new SetFocusedPaneMessage(_isSecondary));
@@ -355,6 +377,7 @@ namespace YiboFile.ViewModels
         public ICommand CutCommand { get; }
         public ICommand PasteCommand { get; }
         public ICommand RenameCommand { get; }
+        public ICommand SelectAllCommand { get; }
         public ICommand UndoCommand { get; }
         public ICommand RedoCommand { get; }
 
@@ -404,6 +427,7 @@ namespace YiboFile.ViewModels
             _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
             _isSecondary = isSecondary;
             _files = new ObservableCollection<FileSystemItem>();
+            _folderSizeService = App.ServiceProvider.GetService(typeof(FolderSizeCalculationService)) as FolderSizeCalculationService;
 
             // 初始化命令
             RefreshCommand = new RelayCommand(() => RequestRefresh());
@@ -435,6 +459,8 @@ namespace YiboFile.ViewModels
             ManageTagsCommand = new RelayCommand(ExecuteManageTags);
             BatchAddTagsCommand = new RelayCommand(ExecuteBatchAddTags, () => SelectedItems.Count > 0);
             TagStatisticsCommand = new RelayCommand(ExecuteTagStatistics);
+
+            SelectAllCommand = new RelayCommand(ExecuteSelectAll);
 
             Search = new SearchViewModel(_messageBus);
             Search.SetTargetPane(isSecondary ? "Secondary" : "Primary");
@@ -523,8 +549,50 @@ namespace YiboFile.ViewModels
         private void ExecuteNavigateUp()
         {
             if (string.IsNullOrEmpty(CurrentPath)) return;
-            var parent = Path.GetDirectoryName(CurrentPath);
-            if (!string.IsNullOrEmpty(parent)) NavigateTo(parent);
+
+            // 使用统一的智能向上导航逻辑
+            string upPath = null;
+            if (ProtocolManager.IsVirtual(CurrentPath))
+            {
+                // 处理虚拟路径，如 zip://path|/subfolder -> zip://path|
+                int lastSlash = CurrentPath.LastIndexOf('/');
+                if (lastSlash > 0)
+                {
+                    // 如果以 / 结尾，去掉后再找
+                    var pathToCheck = CurrentPath.EndsWith("/") ? CurrentPath.Substring(0, CurrentPath.Length - 1) : CurrentPath;
+                    lastSlash = pathToCheck.LastIndexOf('/');
+                    if (lastSlash > 0)
+                    {
+                        var potential = pathToCheck.Substring(0, lastSlash);
+                        // 如果剩下的是协议头部分 (如 zip://path|)，停止
+                        if (potential.EndsWith("|") || potential.EndsWith("//"))
+                            upPath = potential;
+                        else
+                            upPath = potential;
+                    }
+                }
+
+                // 如果没找到斜杠，或者就在根部
+                if (upPath == null && CurrentPath.Contains("|"))
+                {
+                    // 从压缩包回到物理文件路径
+                    upPath = CurrentPath.Substring(CurrentPath.IndexOf("//") + 2);
+                    if (upPath.Contains("|")) upPath = upPath.Substring(0, upPath.IndexOf("|"));
+                }
+            }
+            else
+            {
+                upPath = Path.GetDirectoryName(CurrentPath);
+            }
+
+            if (!string.IsNullOrEmpty(upPath))
+                NavigateTo(upPath);
+        }
+
+        private void ExecuteSelectAll()
+        {
+            // 发布消息让对应的 ListView 全选
+            _messageBus.Publish(new Messaging.Messages.SelectAllRequestMessage(_isSecondary ? PaneId.Second : PaneId.Main));
         }
 
         private void ExecuteShowProperties()

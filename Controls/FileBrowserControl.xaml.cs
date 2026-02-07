@@ -13,6 +13,8 @@ using YiboFile.Services.Favorite;
 using YiboFile.Services.Search;
 using YiboFile.Services.UI;
 using YiboFile; // For Library class
+using YiboFile.ViewModels.Messaging.Messages;
+using YiboFile.Services.Navigation;
 
 namespace YiboFile.Controls
 {
@@ -152,9 +154,18 @@ namespace YiboFile.Controls
 
             if (e.NewValue is ViewModels.PaneViewModel newVm)
             {
-                // Removed manual event subscriptions for Path/Library/Tag changes
-                // AddressText is now two-way bound to CurrentPath in XAML
+                // 监听全选请求
+                newVm.MessageBus.Subscribe<SelectAllRequestMessage>(msg =>
+                {
+                    // 只有目标面板匹配时才执行
+                    bool isMain = msg.TargetPane == PaneId.Main;
+                    bool isThisMain = !(newVm.IsSecondary);
 
+                    if (isMain == isThisMain)
+                    {
+                        FileList?.FilesList?.SelectAll();
+                    }
+                });
             }
         }
 

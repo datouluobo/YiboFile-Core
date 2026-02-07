@@ -200,11 +200,54 @@ namespace YiboFile
                 });
             });
 
-            // 初始化 ColumnInteractionHandler
-            _columnInteractionHandler = new Handlers.ColumnInteractionHandler(this, FileBrowser, _columnService);
+            // 初始化 KeyboardEventHandler
+            _keyboardEventHandler = new Handlers.KeyboardEventHandler(
+                FileBrowser,
+                () => GetActiveContext().browser,
+                () => (IsDualListMode && IsSecondPaneFocused && _secondTabService != null) ? _secondTabService : _tabService,
+                tab =>
+                {
+                    var service = (IsDualListMode && IsSecondPaneFocused && _secondTabService != null) ? _secondTabService : _tabService;
+                    service?.CloseTab(tab);
+                },
+                path => CreateTab(path),
+                tab =>
+                {
+                    var service = (IsDualListMode && IsSecondPaneFocused && _secondTabService != null) ? _secondTabService : _tabService;
+                    service?.SwitchToTab(tab);
+                },
+                () => _viewModel?.ActivePane?.NewFolderCommand?.Execute(null),
+                () => RefreshActiveFileList(),
+                () => Copy_Click(null, null),
+                () => Paste_Click(null, null),
+                () => Cut_Click(null, null),
+                () => Delete_Click(null, null),
+                () => Delete_Click(null, null), // Shift+Del (Temporary fallback)
+                () => Rename_Click(null, null),
+                path => NavigateToPath(path),
+                mode => SwitchNavigationMode(mode),
+                () => _currentLibrary != null,
+                () => CloseOverlays(),
+                () => Back_Click_Logic(),
+                () => _fileOperationModule?.UndoCommand?.Execute(null),
+                () => _fileOperationModule?.RedoCommand?.Execute(null),
+                mode => SwitchLayoutModeByIndex(mode),
+                () => IsDualListMode,
+                () => SwitchFocusedPaneFromKeyboard()
+            );
 
+            _columnInteractionHandler = new Handlers.ColumnInteractionHandler(this, FileBrowser, _columnService);
             _columnInteractionHandler.Initialize();
             _columnInteractionHandler.HookHeaderThumbs(); // 挂载列头拖拽事件
+
+            _mouseEventHandler = new Handlers.MouseEventHandler(
+                () => WindowMaximize_Click(null, null),
+                () => this.DragMove(),
+                () => NavigationPanelControl?.QuickAccessListBox,
+                _navigationCoordinator,
+                fav => _navigationCoordinator.HandleFavoriteNavigation(fav, Services.Navigation.ClickType.LeftClick),
+                path => NavigateToPath(path)
+            );
 
             // 初始化 Second ColumnInteractionHandler
             if (SecondFileBrowser != null)
@@ -284,27 +327,12 @@ namespace YiboFile
             _mainFileListHandler = new Handlers.FileListEventHandler(
                 FileBrowser,
                 _navigationCoordinator,
-                item => _messageBus.Publish(new FileSelectionChangedMessage(new List<FileSystemItem> { item })),
-                item => _previewService?.LoadFilePreview(item),
-                path => { _folderSizeCalculationService?.CalculateAndUpdateFolderSizeAsync(path); }, // Fixed: Fire-and-forget async update
-                () =>
-                {
-                    _messageBus.Publish(new FileSelectionChangedMessage(null));
-                    // 修复：取消选择时显示当前文件夹/标签信息，而不是清空
-                    _selectionEventHandler?.HandleNoSelection();
-                },
                 () => _currentLibrary != null, // IsLibraryMode
                 mode => SwitchNavigationMode(mode),
                 path => NavigateToPath(path),
                 () => Back_Click_Logic(),
                 col => AutoSizeGridViewColumn(col),
                 () => _currentPath,
-                () => CopySelectedFilesAsync().Wait(), // Simple wrapper, async void fire-and-forget style for events usually
-                () => PasteFilesAsync().Wait(),
-                () => { _viewModel?.ActivePane?.CutCommand?.Execute(null); }, // 触发ViewModel Command
-                () => DeleteSelectedFilesAsync().Wait(),
-                () => { _viewModel?.ActivePane?.RenameCommand?.Execute(null); }, // 触发ViewModel Command
-                () => RefreshActiveFileList(),
                 () => ShowSelectedFileProperties(),
                 (path, force, activate) => CreateTab(path, force, activate) // Main Browser CreateTab
             );
@@ -316,82 +344,6 @@ namespace YiboFile
                 _secondFileListHandler = new Handlers.FileListEventHandler(
                     SecondFileBrowser,
                     _navigationCoordinator,
-                    item =>
-                    {
-                        _messageBus.Publish(new FileSelectionChangedMessage(new List<FileSystemItem> { item }));
-                        _secondFileInfoService?.ShowFileInfo(item); // Update Second Info Panel
-                    },
-                    item => { }, // Second browser preview might not be supported or same preview service
-                    path => { _folderSizeCalculationService?.CalculateAndUpdateFolderSizeAsync(path); },
-                    () =>
-                    {
-                        // 修复：取消选择时显示当前文件夹/标签信息，而不是清空
-                        // 由于 SelectionEventHandler 目前绑定到 PrimaryPane，我们需要在这里手动执行类似的逻辑
-
-                        try
-                        {
-                            // 1. 获取当前 Secondary 路径和上下文
-                            string currentPath = _viewModel?.SecondaryPane?.CurrentPath;
-
-                            // 2. 也是先清除预览
-                            // 注意：双栏模式下，Secondary 的预览请求应该也会更新 RightPanelViewModel
-                            // 如果 RightPanelViewModel 是全局唯一的，我们需要告诉它“现在没选中文件了，但也别清空如果是文件夹信息的话”
-                            // 但在这里，我们显式构建一个 Container Item 并显示它。
-
-                            FileSystemItem containerItem = null;
-
-                            // 处理 Tag 模式
-                            if (!string.IsNullOrEmpty(currentPath) && currentPath.StartsWith("tag://", StringComparison.OrdinalIgnoreCase))
-                            {
-                                var tagName = currentPath.Substring(6);
-                                containerItem = new FileSystemItem
-                                {
-                                    Name = tagName,
-                                    Path = currentPath,
-                                    Type = "标签",
-                                    IsDirectory = true,
-                                    Size = "-",
-                                    ModifiedDate = "-",
-                                    Tags = tagName
-                                };
-                            }
-                            // 处理 Path 模式
-                            else if (!string.IsNullOrEmpty(currentPath) && Directory.Exists(currentPath))
-                            {
-                                var dirInfo = new System.IO.DirectoryInfo(currentPath);
-                                containerItem = new FileSystemItem
-                                {
-                                    Name = dirInfo.Name,
-                                    Path = dirInfo.FullName,
-                                    Type = "文件夹",
-                                    IsDirectory = true,
-                                    ModifiedDateTime = dirInfo.LastWriteTime,
-                                    ModifiedDate = dirInfo.LastWriteTime.ToString("yyyy/M/d HH:mm"),
-                                    Size = "-",
-                                    Tags = ""
-                                };
-                            }
-
-                            if (containerItem != null)
-                            {
-                                // 更新 Secondary 信息面板
-                                _secondFileInfoService?.ShowFileInfo(containerItem);
-
-                                // 发布消息以更新预览面板（显示文件夹预览或空）
-                                _messageBus.Publish(new FileSelectionChangedMessage(new List<FileSystemItem> { containerItem }, RequestPreview: false));
-                            }
-                            else
-                            {
-                                _secondFileInfoService?.ShowFileInfo(null);
-                                _messageBus.Publish(new FileSelectionChangedMessage(null));
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"[SecondBrowser] HandleNoSelection Error: {ex.Message}");
-                            _secondFileInfoService?.ShowFileInfo(null);
-                        }
-                    },
                     () => _viewModel?.SecondaryPane?.NavigationMode == "Library", // IsLibraryMode
                     mode => // SwitchNavigationMode
                     {
@@ -406,12 +358,6 @@ namespace YiboFile
                     () => { /* Second Browser Back Logic? */ },
                     col => AutoSizeGridViewColumn(col), // Helper might need adjustment for second browser context
                     () => _viewModel?.SecondaryPane?.CurrentPath,
-                    () => CopySelectedFilesAsync().Wait(),
-                    () => PasteFilesAsync().Wait(),
-                    () => { _viewModel?.SecondaryPane?.CutCommand?.Execute(null); }, // 副面板Command
-                    () => { /* Delete logic specific to second browser? Handled by GetActiveContext */ DeleteSelectedFilesAsync().Wait(); },
-                    () => { _viewModel?.SecondaryPane?.RenameCommand?.Execute(null); }, // 副面板Command
-                    () => LoadSecondFileBrowserDirectory(_viewModel?.SecondaryPane?.CurrentPath),
                     () => ShowSelectedFileProperties(), // Use the new method
                     (path, force, activate) => // Second Browser CreateTab
                     {
@@ -819,6 +765,17 @@ namespace YiboFile
                 }
             }
         }
+        #region 遗留点击事件处理器 (桥接到 ViewModel Command)
+
+        internal void ManageLibraries_Click(object sender, RoutedEventArgs e) => _viewModel?.ActivePane?.NewLibraryCommand?.Execute(null);
+        internal void Copy_Click(object sender, RoutedEventArgs e) => _viewModel?.ActivePane?.CopyCommand?.Execute(null);
+        internal void Paste_Click(object sender, RoutedEventArgs e) => _viewModel?.ActivePane?.PasteCommand?.Execute(null);
+        internal void Cut_Click(object sender, RoutedEventArgs e) => _viewModel?.ActivePane?.CutCommand?.Execute(null);
+        internal void Delete_Click(object sender, RoutedEventArgs e) => _viewModel?.ActivePane?.DeleteCommand?.Execute(null);
+        internal void Rename_Click(object sender, RoutedEventArgs e) => _viewModel?.ActivePane?.RenameCommand?.Execute(null);
+        internal void ShowProperties_Click(object sender, RoutedEventArgs e) => _viewModel?.ActivePane?.PropertiesCommand?.Execute(null);
+
+        #endregion
     }
 }
 
