@@ -43,8 +43,6 @@ namespace YiboFile
                     FileBrowser.NavUpEnabled = false;
                     // 隐藏搜索状态
                     FileBrowser.SetSearchStatus(false);
-                    // 更新属性按钮可见性
-                    UpdatePropertiesButtonVisibility();
                 }
 
                 // 使用库服务加载文件

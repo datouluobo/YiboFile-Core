@@ -9,12 +9,14 @@ namespace YiboFile.ViewModels.Modules
 {
     /// <summary>
     /// 导航模块
-    /// 处理路径导航、历史记录、前进/后退等功能
+    /// 处理路径导航、历史记录、前进/后退、以及导航模式切换（路径/库/标签）
     /// </summary>
     public class NavigationModule : ModuleBase
     {
         private readonly NavigationService _navigationService;
+        private readonly INavigationCoordinator _navigationCoordinator;
         private readonly Action<string> _onNavigateCallback;
+        private string _currentMode = "Path";
 
         public override string Name => "Navigation";
 
@@ -33,20 +35,39 @@ namespace YiboFile.ViewModels.Modules
         /// </summary>
         public bool CanNavigateForward => _navigationService.CanNavigateForward;
 
+        /// <summary>
+        /// 当前导航模式 (Path, Library, Tag, Search, Tasks, Backup, Clipboard)
+        /// </summary>
+        public string CurrentMode
+        {
+            get => _currentMode;
+            set
+            {
+                if (SetProperty(ref _currentMode, value))
+                {
+                    OnModeChanged(value);
+                }
+            }
+        }
+
         public ICommand NavigateBackCommand { get; private set; }
         public ICommand NavigateForwardCommand { get; private set; }
         public ICommand NavigateUpCommand { get; private set; }
         public ICommand RefreshCommand { get; private set; }
         public ICommand NavigateToCommand { get; private set; }
+        public ICommand SwitchModeCommand { get; private set; }
 
         public NavigationModule(
             IMessageBus messageBus,
             NavigationService navigationService,
+            INavigationCoordinator navigationCoordinator,
             Action<string> onNavigateCallback = null)
             : base(messageBus)
         {
             _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
+            _navigationCoordinator = navigationCoordinator ?? throw new ArgumentNullException(nameof(navigationCoordinator));
             _onNavigateCallback = onNavigateCallback;
+            _currentMode = YiboFile.Services.Config.ConfigurationService.Instance.Config.LastNavigationMode ?? "Path";
 
             InitializeCommands();
         }
@@ -63,13 +84,27 @@ namespace YiboFile.ViewModels.Modules
 
             NavigateUpCommand = new RelayCommand(
                 () => NavigateUp(),
-                () => !string.IsNullOrEmpty(CurrentPath)); // Simple check, could be more complex
+                () => !string.IsNullOrEmpty(_navigationService.CurrentPath));
 
             RefreshCommand = new RelayCommand(
-                () => Publish(new RefreshFileListMessage())); // Need to define this message or use callback
+                () => Publish(new RefreshFileListMessage()));
 
             NavigateToCommand = new RelayCommand<string>(
                 path => NavigateTo(path));
+
+            SwitchModeCommand = new RelayCommand<string>(
+                mode => CurrentMode = mode);
+        }
+
+        private void OnModeChanged(string mode)
+        {
+            // 发布状态变更消息，以便外部 UI 响应 (如侧边栏高亮)
+            // 修正：NavigationStatusChangedMessage 的构造函数可能需要更多参数，
+            // 这里我们发送它以便 MainWindow.Navigation.cs 中的逻辑可以被迁移或触发
+            Publish(new NavigationCompleteMessage(null, PaneId.Main, NavigationSource.External, mode));
+
+            // 同步到全局配置
+            YiboFile.Services.Config.ConfigurationService.Instance.Set(cfg => cfg.LastNavigationMode, mode);
         }
 
         private void UpdateCommandStates()
@@ -78,7 +113,7 @@ namespace YiboFile.ViewModels.Modules
             OnPropertyChanged(nameof(CanNavigateForward));
             OnPropertyChanged(nameof(CurrentPath));
 
-            System.Windows.Input.CommandManager.InvalidateRequerySuggested();
+            CommandManager.InvalidateRequerySuggested();
         }
 
         protected override void OnInitialize()
@@ -88,6 +123,7 @@ namespace YiboFile.ViewModels.Modules
             Subscribe<NavigateBackMessage>(OnNavigateBack);
             Subscribe<NavigateForwardMessage>(OnNavigateForward);
             Subscribe<NavigateUpMessage>(OnNavigateUp);
+            Subscribe<NavigationModeChangedMessage>(m => CurrentMode = m.Mode);
         }
 
         #region 消息处理

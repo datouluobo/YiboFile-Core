@@ -151,6 +151,7 @@ namespace YiboFile.ViewModels
                         }
                     }
                     PathChanged?.Invoke(this, value);
+                    NotifyNavigationPropertiesChanged();
                 }
             }
         }
@@ -187,8 +188,35 @@ namespace YiboFile.ViewModels
                 if (SetProperty(ref _navigationMode, value))
                 {
                     NavigationModeChanged?.Invoke(this, value);
+                    NotifyNavigationPropertiesChanged();
                 }
             }
+        }
+
+        public bool IsAddressReadOnly => NavigationMode == "Library" || NavigationMode == "Tag" || NavigationMode == "Search";
+
+        public bool IsPropertiesButtonVisible
+        {
+            get
+            {
+                if (NavigationMode == "Library") return false;
+                if (!string.IsNullOrEmpty(CurrentPath))
+                {
+                    if (CurrentPath.StartsWith("search:", StringComparison.OrdinalIgnoreCase) ||
+                        ProtocolManager.IsVirtual(CurrentPath))
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            }
+        }
+
+        private void NotifyNavigationPropertiesChanged()
+        {
+            OnPropertyChanged(nameof(IsAddressReadOnly));
+            OnPropertyChanged(nameof(IsPropertiesButtonVisible));
+            UpdateNavigationStates();
         }
 
         public ObservableCollection<FileSystemItem> Files

@@ -9,6 +9,7 @@ using System.Windows;
 using System.Windows.Controls;
 using YiboFile.Services;
 using YiboFile.Services.Navigation;
+using YiboFile.Models.Navigation;
 using YiboFile.Models.UI;
 
 using YiboFile.Services.Core;
@@ -126,71 +127,14 @@ namespace YiboFile
         }
 
         /// <summary>
-        /// 异步加载当前目录
-        /// </summary>
-        /// <summary>
-        /// 异步加载当前目录
-        /// </summary>
-        private async Task LoadCurrentDirectoryAsync()
-        {
-            if (_viewModel?.PrimaryPane?.FileList == null) return;
-
-            // 获取当前 VM 路径
-            var currentPath = _viewModel.PrimaryPane.CurrentPath;
-
-            try
-            {
-                // 更新 UI 状态
-                if (FileBrowser != null)
-                {
-                    FileBrowser.AddressText = currentPath;
-                    FileBrowser.IsAddressReadOnly = false;
-                    FileBrowser.UpdateBreadcrumb(currentPath);
-                    FileBrowser.SetSearchStatus(false);
-                }
-
-                // 高亮匹配项
-                try
-                {
-                    _isInternalUpdate = true;
-                    HighlightMatchingItems(currentPath);
-                }
-                finally
-                {
-                    _isInternalUpdate = false;
-                }
-
-                // 更新导航按钮状态
-                if (FileBrowser != null)
-                {
-                    string dirName = null;
-                    try { dirName = System.IO.Path.GetDirectoryName(currentPath); } catch { }
-                    FileBrowser.NavUpEnabled = !string.IsNullOrEmpty(currentPath) && !ProtocolManager.IsVirtual(currentPath) && !string.IsNullOrEmpty(dirName);
-                }
-
-                // MVVM 迁移: 委托给 FileListViewModel 加载
-                // 注意: 此时 ViewModel.PrimaryPane.CurrentPath 应该已经是 target path
-                await _viewModel.PrimaryPane.FileList.LoadPathAsync(currentPath);
-
-                // 更新空状态无需显示
-                HideEmptyStateMessage();
-
-                // 触发选择状态更新
-                _selectionEventHandler?.HandleNoSelection();
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[LoadCurrentDirectoryAsync] Error: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// 加载当前目录（同步包装器，保持向后兼容）
+        /// 加载当前目录（兼容旧代码，委托给 ViewModel 刷新）
         /// </summary>
         internal void LoadCurrentDirectory()
         {
-            // 使用异步方法，但不等待，避免阻塞UI
-            _ = LoadCurrentDirectoryAsync();
+            if (IsDualListMode && IsSecondPaneFocused)
+                _viewModel?.SecondaryPane?.FileList?.RefreshFiles();
+            else
+                _viewModel?.PrimaryPane?.FileList?.RefreshFiles();
         }
 
         /// <summary>
@@ -223,92 +167,22 @@ namespace YiboFile
             _fileSystemWatcherService?.SetupFileWatcher(path);
         }
 
-        internal async void NavigateToPath(string path)
+        /// <summary>
+        /// 导航到指定路径（兼容旧代码，委托给 NavigationCoordinator）
+        /// </summary>
+        internal void NavigateToPath(string path)
         {
-            var currentLibrary = _viewModel?.PrimaryPane.CurrentLibrary;
-            var currentPath = _viewModel?.PrimaryPane.CurrentPath;
+            if (string.IsNullOrEmpty(path)) return;
 
-            // Fix: Prevent recursive loop when updating AddressText in Library mode
-            // If we are already in the library, and the path matches the library name (or lib uri), ignore it.
-            if (currentLibrary != null && !string.IsNullOrEmpty(path))
+            _navigationCoordinator?.NavigateAsync(new NavigationRequest
             {
-                if (path.Equals(currentLibrary.Name, StringComparison.OrdinalIgnoreCase) ||
-                    path.Equals($"lib://{currentLibrary.Name}", StringComparison.OrdinalIgnoreCase))
-                {
-                    return;
-                }
-            }
-
-            // MVVM 迁移: 使用 NavigationModule 解析路径
-            if (_viewModel?.Navigation != null)
-            {
-                path = _viewModel.Navigation.ResolvePath(path);
-            }
-
-            bool isVirtualPath = ProtocolManager.IsVirtual(path);
-            if (!isVirtualPath)
-            {
-                // Offload IO check to background thread to prevent UI freeze (especially for drives/network)
-                bool exists = await Task.Run(() =>
-                {
-                    try { return Directory.Exists(path); }
-                    catch { return false; }
-                });
-                if (!exists) return;
-            }
-
-            // Guard: If already at this path, don't re-navigate
-            if (path.Equals(currentPath, StringComparison.OrdinalIgnoreCase))
-                return;
-
-            // MVVM 迁移: 将标签页选择/创建逻辑委托给 TabsModule
-            _viewModel?.Tabs?.NavigateTo(
-                path,
-                onReuseCurrent: () =>
-                {
-                    // Break recursion: Call LoadCurrentDirectory instead of NavigateTo again
-                    // Update VM directly
-                    if (_viewModel?.PrimaryPane != null)
-                        _viewModel.PrimaryPane.CurrentPath = path;
-
-                    LoadCurrentDirectory();
-                },
-                onReuseSecond: () => SecondFileBrowser_PathChanged(this, path)
-            );
+                Target = NavigationTarget.FromPath(path),
+                Pane = IsDualListMode && IsSecondPaneFocused ? PaneId.Second : PaneId.Main
+            });
         }
 
-        private void UpdatePropertiesButtonVisibility()
-        {
-            if (FileBrowser != null)
-            {
-                var currentPath = _viewModel?.PrimaryPane?.CurrentPath;
-                var currentLibrary = _viewModel?.PrimaryPane?.CurrentLibrary;
-
-                bool visible = true;
-                if (currentLibrary != null) visible = false;
-                else if (!string.IsNullOrEmpty(currentPath))
-                {
-                    if (currentPath.StartsWith("search:", StringComparison.OrdinalIgnoreCase) ||
-                        ProtocolManager.IsVirtual(currentPath))
-                    {
-                        visible = false;
-                    }
-                }
-                else if (currentPath == null) // Empty path/home
-                {
-                    // visible = true; // or false? Usually empty path means "This PC" or drives? 
-                    // If My Computer, properties of "This PC"? 
-                    // Usually This PC has properties (System properties). 
-                    // But let's keep it visible or hidden?
-                    // If drives list is shown, what is "current folder"? It's virtual "MyComputer".
-                    // ShellProperties might work on "This PC" (CLSID).
-                    // Let's safe default to true, or handle specifically. 
-                    // For now, let's assume true unless virtual/search.
-                }
-
-                FileBrowser.SetPropertiesButtonVisibility(visible ? Visibility.Visible : Visibility.Collapsed);
-            }
-        }
+        // UpdatePropertiesButtonVisibility eliminated.
+        // Handled via XAML binding to PaneViewModel.IsPropertiesButtonVisible.
 
         /// <summary>
         /// 异步加载文件列表

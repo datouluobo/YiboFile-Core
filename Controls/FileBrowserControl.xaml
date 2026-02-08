@@ -256,7 +256,9 @@
 
         <!-- Row 0: 地址栏（纯地址输入） -->
         <Border Grid.Row="0" Background="Transparent" Margin="0,4,0,4">
-            <controls:AddressBarControl x:Name="AddressBarControl" Margin="8,0" AddressText="{Binding CurrentPath, Mode=TwoWay}"/>
+            <controls:AddressBarControl x:Name="AddressBarControl" Margin="8,0" 
+                                       AddressText="{Binding CurrentPath, Mode=TwoWay}"
+                                       IsReadOnly="{Binding IsAddressReadOnly}"/>
         </Border>
         
         <!-- Row 1: 工具栏行（导航 + 操作 + 视图 + 搜索） -->
@@ -294,6 +296,7 @@
                 <StackPanel Grid.Column="4" Orientation="Horizontal">
                     <Button Name="PropertiesBtn" Content="&#xE946;" 
                             FontFamily="Segoe MDL2 Assets" FontSize="14"
+                            Visibility="{Binding IsPropertiesButtonVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
                             Command="{Binding PropertiesCommand}" Style="{StaticResource ModernToolbarButtonStyle}" ToolTip="属性"
                             Margin="0,0,4,0"/>
                     <Button Name="ViewModeBtn" Content="{Binding ViewModeIcon}" 

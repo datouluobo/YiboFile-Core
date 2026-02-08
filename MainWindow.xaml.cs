@@ -338,6 +338,7 @@ namespace YiboFile
             _navigationModule = new NavigationModule(
                 _messageBus,
                 _navigationService,
+                _navigationCoordinator,
                 path => NavigateToPathFromModule(path));
             _viewModel.RegisterModule(_navigationModule);
 
@@ -529,7 +530,6 @@ namespace YiboFile
             ClearFilter();
             LoadCurrentDirectory();
             UpdateNavigationButtonsState();
-            UpdatePropertiesButtonVisibility();
         }
 
         private void OnTagUpdated(int tagId, string newColor)
