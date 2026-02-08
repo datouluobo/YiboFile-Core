@@ -1,4 +1,4 @@
-# OoiMRR -  文件资源管理器
+# YiboFile -  文件资源管理器
 
 一个基于 WPF 的现代化文件资源管理器，提供丰富的文件预览和管理功能。
 
@@ -50,7 +50,7 @@
   - 重复标签合并
   - 批量操作支持
 - **无缝集成**：
-  - 在 OoiMRR 中直接使用标签功能
+  - 在 YiboFile 中直接使用标签功能
   - 图片标注自动保存为训练数据
   - 支持独立训练窗口模式（`--tagtrain` 参数）
   - 标签浏览模式，按标签查看文件
@@ -107,11 +107,9 @@
 git clone <repository-url>
 
 # 进入项目目录
-cd OoiMRR
-
+cd YiboFile
 # 构建项目
 dotnet build
-
 # 运行项目
 dotnet run
 # 或使用脚本
@@ -121,7 +119,7 @@ dotnet run
 ## 项目结构
 
 ```
-OoiMRR/
+YiboFile/
 ├── Previews/                      # 预览功能模块
 │   ├── IPreviewProvider.cs        # 预览提供者接口
 │   ├── PreviewFactory.cs          # 预览工厂
@@ -224,7 +222,7 @@ OoiMRR/
 │   ├── NavigationStateManager.cs  # 导航状态管理
 │   ├── DragDropManager.cs         # 拖拽管理
 │   ├── MainWindowInitializer.cs   # MainWindow 初始化服务
-│   ├── OoiMRRIntegration.cs       # TagTrain 集成接口
+│   ├── YiboFileIntegration.cs       # TagTrain 集成接口
 │   └── ...                        # 其他辅助服务
 ├── ViewModels/                    # 视图模型
 │   ├── BaseViewModel.cs           # 视图模型基类

@@ -8,7 +8,6 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
 using YiboFile.Models;
-using YiboFile.Controls;
 using YiboFile.Services;
 using YiboFile.Services.Core;
 using YiboFile.Services.Features;
@@ -36,7 +35,9 @@ namespace YiboFile.ViewModels
         private readonly FileListService _fileListService;
         private readonly LibraryService _libraryService;
         private readonly FavoriteService _favoriteService;
-        private readonly ITagService _tagService;
+        private SearchService _searchService;
+        private SearchCacheService _searchCacheService;
+        private ITagService _tagService;
         private readonly IMessageBus _messageBus;
         private readonly FolderSizeCalculationService _folderSizeService;
 
@@ -65,6 +66,8 @@ namespace YiboFile.ViewModels
         private string _fileViewMode = "List";
         private SearchOptions _searchOptions = new SearchOptions();
         private bool _isFilterPanelVisible;
+        private bool _isLoadMoreVisible;
+        private int _searchOffset;
 
         #endregion
 
@@ -191,6 +194,13 @@ namespace YiboFile.ViewModels
         public ObservableCollection<FileSystemItem> Files
         {
             get => FileList?.Files ?? _files;
+        }
+
+        private void UpdateNavigationStates()
+        {
+            OnPropertyChanged(nameof(CanNavigateBack));
+            OnPropertyChanged(nameof(CanNavigateForward));
+            OnPropertyChanged(nameof(CanNavigateUp));
         }
 
         public ObservableCollection<FileSystemItem> SelectedItems
@@ -388,6 +398,15 @@ namespace YiboFile.ViewModels
             set => SetProperty(ref _isFilterPanelVisible, value);
         }
 
+        /// <summary>
+        /// 加载更多按钮是否可见
+        /// </summary>
+        public bool IsLoadMoreVisible
+        {
+            get => _isLoadMoreVisible;
+            set => SetProperty(ref _isLoadMoreVisible, value);
+        }
+
         #endregion
 
         #region Commands
@@ -428,6 +447,8 @@ namespace YiboFile.ViewModels
         public ObservableCollection<ContextMenuItemViewModel> LibraryMenuItems => _libraryMenuItems;
         public ObservableCollection<ContextMenuItemViewModel> FavoriteMenuItems => _favoriteMenuItems;
         public ObservableCollection<ContextMenuItemViewModel> TagMenuItems => _tagMenuItems;
+
+        public ICommand LoadMoreCommand { get; }
 
         #region Navigation State
 
@@ -495,6 +516,7 @@ namespace YiboFile.ViewModels
             // Filter Commands
             ApplyFilterCommand = new RelayCommand(ApplyFilter);
             ToggleFilterPanelCommand = new RelayCommand(() => IsFilterPanelVisible = !IsFilterPanelVisible);
+            LoadMoreCommand = new RelayCommand(ExecuteLoadMore);
 
             SelectAllCommand = new RelayCommand(ExecuteSelectAll);
 
@@ -522,6 +544,8 @@ namespace YiboFile.ViewModels
             _tagService = App.ServiceProvider?.GetService<ITagService>();
             _libraryService = App.ServiceProvider?.GetService<LibraryService>();
             _favoriteService = App.ServiceProvider?.GetService<FavoriteService>();
+            _searchService = App.ServiceProvider?.GetService<SearchService>();
+            _searchCacheService = App.ServiceProvider?.GetService<SearchCacheService>();
 
             if (errorService != null)
             {
@@ -1589,7 +1613,60 @@ namespace YiboFile.ViewModels
 
                 SearchStatusText = message.StatusMessage;
                 IsSearching = message.IsSearching;
+
+                // 更新分页状态
+                _searchOffset = message.Offset;
+                IsLoadMoreVisible = message.HasMore;
             });
+        }
+
+        private async void ExecuteLoadMore()
+        {
+            if (_searchService == null || _searchCacheService == null) return;
+
+            try
+            {
+                var protocolInfo = ProtocolManager.Parse(CurrentPath);
+                if (protocolInfo.Type != ProtocolType.Search) return;
+
+                var keyword = protocolInfo.TargetPath;
+                if (string.IsNullOrEmpty(keyword)) return;
+
+                // 从缓存获取当前偏移量
+                var cacheKey = $"search://{keyword}";
+                var cache = _searchCacheService.GetCache(cacheKey);
+                if (cache == null || !cache.HasMore) return;
+
+                IsSearching = true;
+                SearchStatusText = "正在加载更多结果...";
+
+                var moreResult = await Task.Run(() => _searchService.LoadMore(keyword, cache.Offset, _searchOptions, CurrentPath));
+
+                if (moreResult != null && moreResult.Items != null && moreResult.Items.Count > 0)
+                {
+                    await _dispatcher.InvokeAsync(() =>
+                    {
+                        foreach (var item in moreResult.Items)
+                        {
+                            Files.Add(item);
+                        }
+
+                        _searchOffset = moreResult.Offset;
+                        IsLoadMoreVisible = moreResult.HasMore;
+
+                        FilesLoaded?.Invoke(this, Files);
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[LoadMore] Error: {ex.Message}");
+            }
+            finally
+            {
+                IsSearching = false;
+                SearchStatusText = "";
+            }
         }
 
         private void OnRefreshFileList(RefreshFileListMessage message)

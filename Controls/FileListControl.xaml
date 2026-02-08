@@ -481,7 +481,8 @@
                 <!-- 加载更多按钮 -->
                 <Button x:Name="LoadMoreBtn" Content="加载更多" Width="88" Height="28"
                         HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="8"
-                        Visibility="Collapsed" Click="LoadMoreBtn_Click"/>
+                        Visibility="Collapsed" 
+                        Command="{Binding LoadMoreCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                 
                 <!-- 空状态提示 -->
                 <TextBlock x:Name="EmptyStateText" 

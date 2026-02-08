@@ -337,6 +337,8 @@
         <controls:FileListControl Grid.Row="3" x:Name="FileList" 
                                  ItemsSource="{Binding Files}"
                                  CurrentViewMode="{Binding FileViewMode, Mode=TwoWay}"
+                                 LoadMoreCommand="{Binding LoadMoreCommand}"
+                                 IsLoadMoreVisible="{Binding IsLoadMoreVisible}"
                                  FocusVisualStyle="{x:Null}"/>
         
         <!-- Row 4: 水平分割器（文件列表与信息面板之间） -->

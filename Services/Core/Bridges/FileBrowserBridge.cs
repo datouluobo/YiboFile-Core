@@ -115,8 +115,10 @@ namespace YiboFile.Services.Bridges
         /// </summary>
         public void SetLoadMoreVisible(bool visible)
         {
-            if (_control == null) return;
-            _control.LoadMoreVisible = visible;
+            if (_control?.DataContext is ViewModels.PaneViewModel vm)
+            {
+                vm.IsLoadMoreVisible = visible;
+            }
         }
 
         /// <summary>

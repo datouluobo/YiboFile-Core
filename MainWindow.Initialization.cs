@@ -38,7 +38,7 @@ namespace YiboFile
 
         private void MainWindow_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
-            _fileBrowserEventHandler?.HandleGlobalMouseDown(e);
+            // Global mouse down logic is now handled within individual controls (FileBrowserControl)
 
             // Apply the same global mouse down logic for the Secondary File Browser
             // If the Secondary Address Bar is in edit mode and the click is outside it, close edit mode.
@@ -98,7 +98,7 @@ namespace YiboFile
         private void InitializeServices()
         {
             // 初始化统一导航协调器
-            _navigationCoordinator = new NavigationCoordinator();
+            _navigationCoordinator = App.ServiceProvider.GetRequiredService<NavigationCoordinator>();
 
             // 初始化服务实例
             _navigationService = new NavigationService(_currentPath);
@@ -143,8 +143,7 @@ namespace YiboFile
                 _secondTabService,
                 _navigationService,
                 _libraryService,
-                (path) => NavigateToPath(path),
-                (path) => SecondFileBrowser_PathChanged(this, path));
+                (paneId) => paneId == PaneId.Main ? _viewModel?.PrimaryPane : _viewModel?.SecondaryPane);
 
             // 初始化搜索服务
             // 注意：SearchResultBuilder 已在 DI 中注册但需要 FileListService 的依赖，这里通过 DI 获取 SearchService

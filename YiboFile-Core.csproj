@@ -38,16 +38,8 @@
     <PackageReference Include="IxMilia.Dxf" Version="0.8.4" />
     <PackageReference Include="SkiaSharp" Version="3.119.1" />
     <PackageReference Include="SkiaSharp.Views.WPF" Version="3.119.1" />
-    <!-- TagTrain ML dependencies -->
-    <PackageReference Include="Microsoft.ML" Version="2.0.1" />
-    <PackageReference Include="Microsoft.ML.ImageAnalytics" Version="2.0.1" />
-    <PackageReference Include="Microsoft.ML.Vision" Version="2.0.1" />
-    <PackageReference Include="SciSharp.TensorFlow.Redist" Version="2.16.0" />
     <PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.21" />
     <PackageReference Include="WpfAnimatedGif" Version="2.0.2" />
-    <!-- Full Text Search dependencies -->
-    <PackageReference Include="NPOI" Version="2.7.2" />
-    <PackageReference Include="PdfPig" Version="0.1.9" />
   </ItemGroup>
 
   <ItemGroup>
@@ -73,25 +65,6 @@
 
 
 
-  <!-- 创建 TagTrain 快捷方式（使用相对路径） -->
-  <Target Name="CreateTagTrainShortcut" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug' OR '$(Configuration)' == 'Release'">
-    <PropertyGroup>
-      <ShortcutPath>$(OutputPath)TagTrain.lnk</ShortcutPath>
-      <BatchFilePath>$(OutputPath)TagTrain.bat</BatchFilePath>
-      <ExeFileName>$(AssemblyName).exe</ExeFileName>
-      <ExeFilePath>$(OutputPath)$(ExeFileName)</ExeFilePath>
-    </PropertyGroup>
-    <!-- 创建批处理文件：使用相对路径（%~dp0表示批处理文件所在目录） -->
-    <ItemGroup>
-      <BatchLines Include="@echo off" />
-      <BatchLines Include="cd /d &quot;%~dp0&quot;" />
-      <BatchLines Include="&quot;%~dp0$(ExeFileName)&quot; --tagtrain" />
-    </ItemGroup>
-    <WriteLinesToFile File="$(BatchFilePath)" Lines="@(BatchLines)" Overwrite="true" Encoding="UTF-8" />
-    <!-- 创建快捷方式指向批处理文件（仅在exe存在时执行） -->
-    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -Command &quot;$outputPath = [System.IO.Path]::GetFullPath('$(OutputPath)'); $shortcutPath = Join-Path $outputPath 'TagTrain.lnk'; $batchPath = Join-Path $outputPath 'TagTrain.bat'; $exePath = Join-Path $outputPath '$(ExeFileName)'; if (Test-Path $exePath) { $WshShell = New-Object -ComObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut($shortcutPath); $Shortcut.TargetPath = $batchPath; $Shortcut.WorkingDirectory = $outputPath; $Shortcut.Description = 'TagTrain - 图片标签训练系统'; $iconLocation = $exePath + ',0'; $Shortcut.IconLocation = $iconLocation; $Shortcut.Save() }&quot;" ContinueOnError="true" IgnoreExitCode="true" />
-  </Target>
-  
   <Target Name="MoveLibVLC" AfterTargets="Build">
     <PropertyGroup>
         <LibVlcDest>$(OutputPath)Dependencies\libvlc</LibVlcDest>

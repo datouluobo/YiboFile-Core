@@ -306,7 +306,7 @@ namespace YiboFile
                     // For now, let's assume true unless virtual/search.
                 }
 
-                FileBrowser.SetPropertiesButtonVisibility(visible);
+                FileBrowser.SetPropertiesButtonVisibility(visible ? Visibility.Visible : Visibility.Collapsed);
             }
         }
 

@@ -1,122 +1,326 @@
-# YiboFile 项目评估与行动计划
+# YiboFile 项目评估与重构路线图
 
-> **版本**: v1.0.400 | **更新日期**: 2026-02-07
-
----
-
-## 一、项目评估与架构现状
-
-### 1.1 总体评价
-
-**YiboFile** 核心状态管理已基本完成从 WinForms/Code-behind 到 **MVVM 架构** 的大规模迁移。主副双栏面板已实现逻辑对等与状态独立。
-
-| 维度 | 评价 | 迁移进度 |
-|------|------|------|
-| ✅ **数据建模 (Models)** | 完善的文件系统、库、标签实体模型 | 100% |
-| ✅ **展现逻辑 (ViewModels)** | PaneViewModel 与 FileListViewModel 承载核心业务 | 90% |
-| ⚠️ **UI 交互 (View/Events)** | 仍有 Handler 类作为过渡层处理 UI 事件 | 65% |
-| ⚠️ **组件解耦** | 全局设置与右键菜单仍偏向单例/Code-behind | 45% |
-
-### 1.2 核心问题与瓶颈
-
-| 领域 | 描述 | 状态 |
-|------|------|------|
-| **UI 事件驱动** | 部分操作依赖 `FileBrowserEventHandler` 而非 VM 命令 | 🟡 迁移中 |
-| **控件属性同步** | 地址栏与面包屑部分同步依赖 Bridge 而非纯数据绑定 | 🟡 迁移中 |
-| **路径闪变 (Fix)** | 库/虚拟协议在加载完成后被物理路径覆盖的 Bug | ✅ v1.0.310 已修复 |
-| **拖拽稳定性 (Fix)**| 拖拽到文件导致的 Dialog 样式崩溃 | ✅ v1.0.310 已修复 |
+> **当前版本**: v1.0.401 (架构调整阶段) | **更新日期**: 2026-02-08  
+> **下一版本**: v1.1.0 (目标：Core 完全解耦)  
 
 ---
 
-## 二、本次更新 (v1.0.330) ✅
+## 一、架构现状分析
 
-### 2.1 拖拽与导航深度修复
-- [x] **ConfirmDialog 物理隔绝**: 重构确认对话框 XAML，不依赖任何全局样式资源，彻底消除由于 XamlParseException 导致的崩溃。
-- [x] **非法拖拽拦截**: 在 `DragDropManager` 的 `DragOver` 阶段增加类型检查，拖拽到非文件夹目标时显示禁用光标，从源头防止崩溃。
-- [x] **路径闪变拦截**: 在 `PaneViewModel` 增加协议保护逻辑，禁止虚拟路径（`lib://`, `tag://`）被自动加载出的物理路径覆盖，确保地址栏状态稳定。
+### 1.1 代码规模统计
 
-### 2.2 导航面板现代化 (v1.0.330)
-- [x] **交互修复**: 修复了快速访问、收藏夹和库列表的左键点击导航无效问题，现已支持单击直接切换路径。
-- [x] **拖拽支持**: 现在支持将文件直接拖拽到导航面板的任何节点（如库、收藏夹、驱动器）进行复制/移动操作。
-- [x] **状态持久化**: 侧边栏的折叠状态（如驱动器、快速访问的展开/折叠）现在会自动保存，并在下次启动时恢复。
+#### 上帝类分析 (God Class Metrics)
+
+| 组件 | 文件数 | 总行数 | 平均行数/文件 | 健康度评估 |
+|------|--------|--------|---------------|------------|
+| **MainWindow (分部类)** | 20 | ~6,600 | 330 | 🔴 高耦合 |
+| **PaneViewModel** | 1 | 1,770 | 1,770 | 🟡 中耦合 |
+| **FileListViewModel** | 1 | 593 | 593 | 🟢 良好 |
+| **FileOperationModule** | 1 | 405 | 405 | 🟢 良好 |
+| **MainWindowViewModel** | 1 | 241 | 241 | 🟢 优秀 |
+
+**核心问题识别**：
+1.  **MainWindow 仍是事实上的上帝类**：尽管已拆分为20个分部类文件，但它们共享同一个类实例，导致：
+    *   状态分散在多个文件中，难以理清依赖关系。
+    *   各分部类之间互相调用私有成员，形成隐式耦合。
+    *   测试困难：无法单独测试某个子功能模块。
+    
+2.  **PaneViewModel 承载过重**：1770行代码承担了"面板状态 + 文件列表 + 搜索逻辑 + 命令定义"四重职责。
+
+3.  **Logic Services 定位模糊**：`NavigationCoordinator`、`FileInfoService` 等服务当前是由 `MainWindow.Handlers.cs` 初始化的，并通过 Lambda 或事件与 VM 通讯，存在"双轨制"（既有直接调用，又有事件订阅）。
+
+### 1.2 架构演进阶段回顾
+
+| 阶段 | 时间 | 核心目标 | 完成度 |
+|------|------|----------|--------|
+| **Phase 1: Code-Behind** | v0.x | WinForms 风格，所有逻辑在 `MainWindow.xaml.cs` | ✅ 历史阶段 |
+| **Phase 2: Partial MVVM** | v1.0.1 - v1.0.330 | 引入 `PaneViewModel`，部分功能命令化 | ✅ 90% 完成 |
+| **Phase 3: 混合架构** | **v1.0.401 (当前)** | **架构调整阶段** - 控制器驱动 VM + 消息总线副作用 | 🟡 25% 完成 |
+| **Phase 3.5: Core 解耦** | **v1.1.0 (目标)** | MainWindow 上帝类完全解构，模块化重构完成 | ⏳ 规划中 |
+| **Phase 4: 全模块化** | v2.0+ | 所有功能插件化，支持 Pro/Ultra 动态扩展 | ⏳ 规划中 |
 
 ---
 
-## 三、待解决问题与行动计划 (MVVM 深度解耦)
+## 二、混合架构规范 (Hybrid MVVM Architecture)
 
-### 3.1 方向一：主副栏 MVVM 迁移剩余部分 (当前重点) ⏳
+### 2.1 核心原则
 
-#### 现状分析：右键菜单与工具栏
+根据 `.antigravityrules` 文档，YiboFile 采用 **"控制器直接驱动 (Path C) + 消息总线解耦 (MessageBus)"** 的混合模式：
 
-经过代码审查，**右键菜单（Context Menu）和工具栏按钮（Toolbar）已基本完成MVVM化**，但存在"双轨制"问题：
+#### A. 控制逻辑 (Core Navigation/State Control)
+*   **主体**：独立服务类（如 `NavigationCoordinator`, `SearchModule`）。
+*   **行为**：作为"控制器"，直接持有或通过委托操作 `PaneViewModel` 实例。
+*   **原则**：核心状态（路径、加载状态、排序方式）通过直接修改 ViewModel 属性来触发绑定更新。**禁止在逻辑层直接操作控件实例**。
 
-| 组件 | MVVM进度 | 现状描述 | 问题 |
+#### B. 副作用与跨组件通讯 (Side Effects & Notifications)
+*   **主体**：`IMessageBus` (Mediator 模式)。
+*   **行为**：逻辑执行完毕后，发布特定消息（如 `NavigationCompleteMessage`, `FileChangedMessage`）。
+*   **用途**：
+    *   同步非直接绑定的 UI（如全局地址栏、面包屑）。
+    *   触发插件逻辑（特别是在 **Ultra** 版本中）。
+    *   多窗口/多面板间的状态同步。
+
+### 2.2 分层依赖关系
+
+```
+Logic Services (NavigationCoordinator, SearchModule)
+       |
+       v (直接操作)
+ViewModels (PaneViewModel, MainWindowViewModel)
+       |
+       v (数据绑定)
+XAML Views (FileBrowserControl, AddressBarControl)
+       
+       
+Logic Services
+       |
+       v (Publish)
+MessageBus <--- (Subscribe) --- Plugins/Other Modules/UI Components
+```
+
+**严禁模式**：
+*   ❌ Services -> UI Controls (跳过 ViewModel 直接操作控件)
+*   ❌ ViewModels -> Services (VM 不应主动调用服务类的业务方法，应通过消息请求)
+*   ❌ Code-Behind -> ViewModels (XAML.cs 不应直接修改 VM 属性，应通过 Command)
+
+---
+
+## 三、重构路线图 (按优先级排序)
+
+### 🔴 优先级 1：MainWindow 上帝类解构 (当前阻塞点)
+
+**目标**：将 `MainWindow` 从"全能调度中心"降级为"UI 容器 + 依赖注入根"。
+
+| 步骤 | 任务描述 | 涉及文件 | 预计工作量 | 状态 |
+|------|----------|----------|------------|------|
+| **3.1.1** | **提取 NavigationModule**：将 `MainWindow.Navigation.cs` (558行) 完全并入 `NavigationModule.cs`，通过 `MainWindowViewModel` 调度。 | MainWindow.Navigation.cs → NavigationModule.cs | 3h | ⏳ 进行中 |
+| **3.1.2** | **重构 Handler 初始化**：将 `MainWindow.Handlers.cs` (695行) 中的所有服务初始化移至 `App.xaml.cs` 或 `MainWindowViewModel` 的构造函数。 | MainWindow.Handlers.cs → App.xaml.cs | 4h | ⏳ 待启动 |
+| **3.1.3** | **模块化 LayoutMode**：将 `MainWindow.LayoutMode.cs` (1020行) 重构为 `LayoutModule`，由 `MainWindowViewModel` 持有。 | MainWindow.LayoutMode.cs → LayoutModule.cs | 5h | ⏳ 待启动 |
+| **3.1.4** | **清理事件订阅**：删除 `MainWindow` 中所有对 ViewModel 事件的订阅，改用 MessageBus 消息驱动。 | MainWindow.xaml.cs | 2h | ⏳ 待启动 |
+| **3.1.5** | **简化 MainWindow.xaml.cs**：最终目标是将其压缩至 < 150 行（仅保留窗口生命周期管理）。 | MainWindow.xaml.cs | 3h | ⏳ 待启动 |
+
+**成功标准**：
+*   `MainWindow.xaml.cs` 不包含任何业务逻辑。
+*   所有文件操作、导航、布局切换均由 ViewModel 或 Module 驱动。
+*   `MainWindow` 不持有任何 Service 实例（除了 `MainWindowViewModel`）。
+
+---
+
+### 🟡 优先级 2：PaneViewModel 职责拆分
+
+**目标**：将 `PaneViewModel` (1770行) 拆分为更单一职责的子模块。
+
+| 步骤 | 任务描述 | 当前代码行数 | 拆分目标 | 状态 |
+|------|----------|--------------|----------|------|
+| **3.2.1** | **提取 FilterViewModel**：将文件过滤逻辑（类型、大小、日期）独立为可重用的 `FilterViewModel`。 | ~300行 | FilterViewModel.cs | ⏳ 待启动 |
+| **3.2.2** | **提取 SelectionViewModel**：将文件选择、多选、全选逻辑独立。 | ~200行 | SelectionViewModel.cs | ⏳ 待启动 |
+| **3.2.3** | **简化 Command 定义**：将 `ICommand` 封装到 `PaneCommandSet` 类，`PaneViewModel` 只持有该类的实例。 | ~150行 | PaneCommandSet.cs | ⏳ 待启动 |
+
+**成功标准**：
+*   `PaneViewModel.cs` 核心代码压缩至 < 800 行。
+*   每个子 ViewModel 可独立测试。
+
+---
+
+### 🟢 优先级 3：消息驱动架构完善
+
+**目标**：补齐跨组件消息定义，彻底消除"事件订阅 + 委托回调"的双轨制。
+
+| 步骤 | 任务描述 | 消息类型 | 状态 |
 |------|----------|----------|------|
-| **右键菜单** | ✅ 95% | `FileBrowserControl.xaml` 中的右键菜单已全部绑定到 `PaneViewModel` 的 Command | `MenuEventHandler` 仍然存在并被初始化，造成代码冗余 |
-| **工具栏按钮** | ✅ 95% | `TitleActionBar.xaml` 中的按钮已全部绑定到 `PaneViewModel` 的 Command | 同上，Handler 依然在处理旧的文件操作逻辑（第528-531行） |
-| **Command 定义** | ✅ 100% | `PaneViewModel` 中已定义所有必需的 `ICommand` (DeleteCommand, CopyCommand, PasteCommand等) | 无 |
-| **Command 实现** | ✅ 100% | 所有 Command 通过 MessageBus 发布请求消息，由 `FileOperationModule` 统一处理 | 无 |
+| **3.3.1** | **定义导航消息**：`NavigationCompleteMessage`, `NavigationStatusChangedMessage` | ✅ 已完成 | ✅ v1.1.0 |
+| **3.3.2** | **定义文件操作消息**：`FileOperationRequestMessage`, `FileOperationCompleteMessage` | 待定义 | ⏳ 待启动 |
+| **3.3.3** | **定义布局消息**：`LayoutModeChangedMessage`, `PaneFocusChangedMessage` | 待定义 | ⏳ 待启动 |
+| **3.3.4** | **清理遗留事件**：删除 `NavigationCoordinator` 中的 `PathNavigateRequested` 等事件。 | - | ⏳ 待启动 |
 
-**详细发现**：
-1.  **XAML 层面已完成 MVVM 化**：
-    - `FileBrowserControl.xaml` 第116-233行：右键菜单全部通过 `Command="{Binding XXXCommand}"` 绑定。
-    - `TitleActionBar.xaml` 第12-158行：所有工具栏按钮全部通过 `Command="{Binding XXXCommand}"` 绑定。
-2.  **ViewModel 层面已完成**：
-    - `PaneViewModel.cs` 第350-375行：定义了完整的 Command 属性。
-    - `PaneViewModel.cs` 第408-437行：在构造函数中初始化了所有 Command。
-    - `PaneViewModel.cs` 第542-551行：Command 的实现通过 `_messageBus.Publish()` 发送业务消息。
-3.  **冗余代码未清理**：
-    - `MenuEventHandler` 类（644行代码）仍被初始化（`MainWindow.Handlers.cs` 第483行），但其核心方法已被 ViewModel Command 替代。
-    - `MainWindow.Handlers.cs` 第528-531行仍保留了对 `CopySelectedFilesAsync()` 等方法的引用，但这些方法本应由 `FileOperationModule` 接管。
-
-#### 下一步行动计划
-
-| 步骤 | 任务描述 | 预计工作量 | 状态 |
-|------|----------|------------|------|
-| **1.3.1** | **审核并移除 MenuEventHandler 的初始化调用** | 0.5h | ✅ 已完成 |
-| **1.3.2** | **确认所有右键菜单项均已绑定 VM Command，无遗漏** | 0.5h | ✅ 已完成 |
-| **1.3.3** | **移除 MainWindow 中冗余的文件操作桥接方法** (CopySelectedFilesAsync, DeleteSelectedFilesAsync等) | 1h | ✅ 已完成 |
-| **1.3.4** | **删除 MenuEventHandler.cs 文件** | 0.2h | ✅ 已完成 |
-| **1.3.5** | **回归测试：验证所有右键菜单和工具栏功能正常** | 1h | ⏳ 已部分测试（副面板问题已确认暂缓） |
-| **1.4** | **工具栏按钮 Command 化** | 将刷新、删除等按钮 Click 事件改为绑定 VM 命令 | 移除 `ButtonEvents.cs` 相关代码 | ✅ 已完成 |
-
-**已完成工作摘要（v1.0.330后）**：
-- ✅ 删除了 `MenuEventHandler.cs` 文件（644行代码清理）
-- ✅ 移除了 `_menuEventHandler` 字段声明及其110行的初始化代码块
-- ✅ 删除了所有文件操作相关的桥接方法（Copy/Cut/Paste/Delete/Rename等）
-- ✅ 将 `FileListEventHandler` 和 `KeyboardEventHandler` 中对 `_menuEventHandler` 的调用改为直接调用 `PaneViewModel` 的 Command
-- ✅ 为库管理功能添加了临时实现（待后续迁移到LibraryManagementViewModel）
-
-**遗留工作（非阻塞）**：
-- ⚠️ `MainWindow.Menu.cs` 中的顶部菜单栏事件（Settings、About、View模式等）仍有部分代码待迁移，属于全局菜单功能，不影响核心文件操作
-- ⚠️ 其他Handler（FileBrowserEventHandler、FileListEventHandler等）仍作为过渡层存在，后续将逐步迁移
-
-### 3.2 方向二：全局功能模块迁移 🟡
-
-| 模块 | 迁移目标 | 技术难点 |
-|------|----------|----------|
-| **MenuModule** | 将右键菜单（Context Menu）与快捷键逻辑命令化 | 动态菜单项的 Command 绑定 |
-| **ConfigModule** | 实现 SettingsViewModel 与配置文件的响应式关联 | 配置实时生效机制 |
-| **TagManagement** | 标签增删改查完全由 TagManagementViewModel 驱动 | 颜色选择器的 VM 集成 |
-| **DragDrop** | 实现声明式拖拽反馈逻辑 | 跨进程拖拽状态在 VM 中的实时反映 |
-
-### 3.3 迁移过程中的已知 Bug 🐛
-
-| ID | 模块 | 描述 | 状态 |
-|----|------|------|------|
-| **BUG-001** | **UI/AddressBar** | **副地址栏库标识错误**: 在库模式下，主地址栏正确显示 `lib 库名`，但副地址栏仍显示为 `path 库名`。这可能是由于副面板的 ViewModel 或 UI 绑定未能像主面板一样完全更新协议头导致的。 | ⏳ 待迁移后修复 |
-| **BUG-002** | **Logic/Pane** | **副面板刷新与操作混乱** ✅确认: 副面板进行删除/粘贴操作时常导致主面板刷新，或副面板自身不刷新；F5 刷新对副面板无效。根源在于操作上下文（Context）仍重度依赖 WPF 焦点而非 VM 激活状态。 | ⏳ 待 MVVM 彻底解耦后修复 |
-| **BUG-003** | **Logic/Library** | **副面板库路径识别失败** ✅确认: 在库模式下，副面板的文件操作无法正确解析 `lib://` 协议，导致路径指向错误。 | ⏳ 待 MVVM 彻底解耦后修复 |
-| **BUG-004** | **UI/FileList** | **副列表库加载失效** ✅ v1.0.400 已修复 | ✅ 已修复 |
-| **BUG-005** | **Filter/Secondary** | **副列表过滤器不可用** ✅ v1.0.400 已修复 | ✅ 已修复 |
-| **BUG-006** | **Filter/FileSize** | **尺寸过滤器未排除文件夹** ✅ v1.0.400 已修复 | ✅ 已修复 |
-| **BUG-007** | **UI/Sorting** | **文件名排序导致列表变空**: 当按文件名排序时，有时列表会变空。需要检查排序后的 `CollectionView` 刷新逻辑及 `FileListService` 的排序冲突。 | ⏳ 待修复 |
-| **BUG-008** | **UI/Header** | **列头点击误触发双击响应**: 点击列头（用于排序）不应该触发或响应双击事件（双击通常用于返回上层目录或打开文件）。需要优化 `FileListEventHandler` 的事件冒泡拦截。 | ⏳ 待修复 |
+**成功标准**：
+*   所有跨模块通讯通过 `IMessageBus` 实现。
+*   服务类不持有任何 `event` 或 `Action<>` 委托。
 
 ---
 
-## 四、总结与展望
+### 🔵 优先级 4：Pro/Ultra 扩展性准备
 
-**YiboFile** 1.0.400 版本通过 MVVM 深度重构解决了过滤器的稳定性问题，并修复了多处初始化崩溃。下一阶段的目标是进一步增强数据绑定的健壮性，解决排序导致的列表显示异常。
+**目标**：为 Pro 和 Ultra 版本铺设插件化基础。
 
+| 步骤 | 任务描述 | 技术方案 | 状态 |
+|------|----------|----------|------|
+| **3.4.1** | **定义插件接口**：`IYiboFilePlugin`, `IMenuExtension`, `IPreviewExtension` | 使用 MEF 或反射 | ⏳ 待启动 |
+| **3.4.2** | **实现插件加载器**：`PluginManager` 在启动时扫描 `Plugins/` 目录并动态加载。 | DI Container 注入 | ⏳ 待启动 |
+| **3.4.3** | **消息总线开放**：允许插件订阅核心消息（如 `FileSelectionChangedMessage`）。 | 已有 MessageBus 基础 | ⏳ 待启动 |
+
+---
+
+### 🟣 优先级 5：已知 Bug 修复清单
+
+| ID | 模块 | 描述 | 根因分析 | 修复策略 | 状态 |
+|----|------|------|----------|----------|------|
+| **BUG-001** | AddressBar | 副地址栏库标识错误 (显示 `path` 而非 `lib`) | `AddressBarControl` 未正确绑定到 `PaneViewModel.NavigationMode` | 检查 SecondFileBrowser 的 DataContext 绑定 | ⏳ 待修复 |
+| **BUG-002** | Pane | 副面板刷新与操作混乱 | 焦点管理依赖 WPF Focus 而非 VM.IsActive | 使用 `PaneViewModel.IsActive` 驱动所有操作上下文 | ⏳ 待修复 |
+| **BUG-003** | Library | 副面板库路径识别失败 | `FileOperationModule` 未正确解析 `lib://` 协议 | 在 Module 中增加协议解析逻辑 | ⏳ 待修复 |
+| **BUG-007** | Sorting | 文件名排序导致列表变空 | `CollectionView` 与 `ObservableCollection` 同步冲突 | 使用 `BindingOperations.EnableCollectionSynchronization` | ⏳ 待修复 |
+| **BUG-008** | Header | 列头点击误触发双击响应 | 事件冒泡未正确拦截 | 在 `GridViewColumnHeader_Click` 中设置 `e.Handled = true` | ⏳ 待修复 |
+
+---
+
+## 四、当前重构进度 (v1.1.0)
+
+### 4.1 已完成工作 ✅
+
+| 任务 | 涉及文件 | 代码行数变化 | 完成日期 |
+|------|----------|--------------|----------|
+| **删除 MenuEventHandler** | MenuEventHandler.cs (-644行) | -644 | 2026-02-06 |
+| **删除 FileBrowserEventHandler** | FileBrowserEventHandler.cs (-XXX行) | -XXX | 2026-02-07 |
+| **引入混合架构规范** | .antigravityrules (+30行) | +30 | 2026-02-07 |
+| **定义导航消息** | NavigationMessages.cs (+24行) | +24 | 2026-02-08 |
+| **重构 NavigationCoordinator** | NavigationCoordinator.cs (~80行修改) | +80 / -120 | 2026-02-08 |
+| **增强 PaneViewModel 导航状态** | PaneViewModel.cs (+15行) | +15 | 2026-02-08 |
+
+**净效果**：
+*   代码总行数：-615 行
+*   明确了架构方向，为后续迁移奠定基础。
+
+### 4.2 遗留问题 ⚠️
+
+1.  **NavigationCoordinator 初始化未更新**：`MainWindow.Initialization.cs` 中初始化 `NavigationCoordinator` 的方法签名已改变（增加了 `IMessageBus` 参数和 ViewModel 解析器），需要同步更新。
+2.  **FileBrowserControl 的桥接属性**：当前 `FileBrowserControl.xaml.cs` 中添加的 `NavBackEnabled`、`LoadMoreVisible` 等属性是临时兼容措施，在 `NavigationCoordinator` 完全迁移后应删除。
+3.  **编译错误待解决**：`NavigationCompleteMessage` 类型未找到（可能由于项目文件未同步或命名空间引用问题）。
+
+---
+
+## 五、下一步行动 (Next Actions)
+
+### 立即行动 (本周)
+
+1.  **修复编译错误**：
+    *   确保 `NavigationMessages.cs` 被正确包含在 `YiboFile-Core.csproj` 中。
+    *   更新 `MainWindow.Initialization.cs` 中 `NavigationCoordinator` 的初始化代码。
+    
+2.  **完成 NavigationCoordinator 迁移**：
+    *   在 `MainWindowViewModel` 中实现 `PaneViewModel` 解析器。
+    *   测试路径导航和库导航是否正常工作。
+
+3.  **启动 MainWindow.Handlers.cs 重构**：
+    *   将所有 Service 初始化移至 `App.xaml.cs` 的 DI 容器。
+    *   删除 `MainWindow` 中的 Service 字段。
+
+### 中期目标 (本月)
+
+1.  完成 `MainWindow` 上帝类解构（优先级1）。
+2.  拆分 `PaneViewModel`（优先级2）。
+3.  修复所有 BUG-001 至 BUG-008。
+
+### 长期目标 (Q1 2026)
+
+1.  完成消息驱动架构（优先级3）。
+2.  实现 Pro/Ultra 插件化基础（优先级4）。
+3.  发布 v2.0 正式版。
+
+---
+
+## 六、总结
+
+**YiboFile** 当前处于从"部分 MVVM"向"混合架构"演进的关键阶段。通过引入"控制器驱动 VM + 消息总线副作用"的模式，我们在保证核心逻辑稳定性的同时，为 Pro/Ultra 版本的扩展性奠定了坚实基础。
+
+**核心挑战**：
+*   `MainWindow` 上帝类的解构需要谨慎，避免引入新的回归问题。
+*   `PaneViewModel` 的拆分需要在"职责单一"和"使用便捷"之间找到平衡。
+*   消息驱动架构的完善需要制定清晰的消息命名和生命周期规范。
+
+**预期收益**：
+*   代码可测试性提升 80%+。
+*   Pro/Ultra 版本可通过插件机制实现零侵入扩展。
+*   团队协作效率提升（模块边界清晰）。
+
+---
+
+## 七、 版本功能规划路线图
+
+### 7.1 版本定位原则
+
+在分配功能时，核心原则是：
+- **Core (Free)** - 负责留住用户，提供完整的基础文件管理体验
+- **Pro (Professional)** - 负责提高大众效率，引入智能化与自动化能力
+- **Ultra (Intelligence)** - 针对专业用户或特定行业场景，提供极限扩展与定制能力
+
+### 7.2 功能分配矩阵
+
+| 功能模块 | Core (Free) | Pro (Professional) | Ultra (Intelligence) |
+|----------|:-----------:|:------------------:|:--------------------:|
+| **基础管理** | 库、标签、备注、主题 | 全部 Core 功能 | 全部 Pro 功能 |
+| **文件整理** | 基础筛选、手动标签 | AI 批量重命名、自动分类建议 | 全自动化规则工作流 |
+| **搜索能力** | 关键词搜索 (Everything) | 语义搜索、OCR 文字搜索 | 多模态搜索（提描述/提内容） |
+| **图片 AI** | 基础预览、手动标注 | 自动打标签、人脸/场景分类 | 物体检测/圈选（零件识别）、标注导出 |
+| **文档 AI** | 基础查看 | AI 摘要预览、文本提取 | 文档对话 (Local LLM) |
+| **系统集成** | 单一库管理 | 多库关联、跨设备同步 | Docker 远程服务器同步 |
+| **扩展性** | ❌ | ❌ | 全模块插件系统 |
+| **技术支持** | 社区 | 优先 | 专属 |
+
+### 7.3 版本开发路线图
+
+#### v1.0.401 (Current) - 架构调整阶段
+**Core 功能**：
+- ✅ 基础文件管理（库、标签、备注、主题）
+- ✅ Everything 关键词搜索
+- ✅ 多标签页 + 双列表模式
+- ✅ 基础筛选与预览
+- 🟡 混合架构调整中
+
+**Pro 功能**：
+- ✅ 全文搜索服务 (FTS5)
+- ✅ TagTrain 图像智能标签
+- ✅ Office/PDF 深度提取
+
+#### v1.1.0 (Target) - Core 完全解耦
+**目标**：
+- ✅ MainWindow 上帝类完全解构
+- ✅ 所有模块通过 MessageBus 通讯
+- ✅ PaneViewModel 职责拆分
+- ✅ 代码可测试性达 80%+
+
+#### v1.2.0 - Pro 智能化增强
+**Pro 新增功能**：
+- ⏳ AI 批量重命名
+- ⏳ 自动分类建议
+- ⏳ 语义搜索
+- ⏳ OCR 文字搜索
+- ⏳ 自动打标签（基于图像内容）
+- ⏳ 人脸/场景分类
+- ⏳ AI 摘要预览。
+- ⏳ 多库关联
+- ⏳ 跨设备同步
+
+#### v2.0.0 - Ultra 旗舰版发布
+**Ultra 新增功能**：
+- ⏳ 全自动化规则工作流
+- ⏳ 多模态搜索（提描述/提内容）
+- ⏳ 物体检测与圈选（零件识别、工业检测）
+- ⏳ 文档对话 (Local LLM)
+- ⏳ Docker 远程服务器同步
+- ⏳ 全模块插件系统 (IYiboFilePlugin)
+- ⏳ 开放 API 供行业定制（CAD、医疗影像等）
+
+### 7.4 功能开发优先级原则
+
+1.  **Core 优先原则**：保证 Core 版本功能完整且稳定，能够满足 80% 用户的基础需求。
+2.  **Pro 差异化是关键**：智能化功能必须能显著提高效率，而不是鸡肋功能。
+3.  **Ultra 针对垂直场景**：逻辑工作流、物体检测、LLM 对话等功能需要有明确的行业用例敐持。
+4.  **技术实现逐步迭代**：先实现 MVP，验证效果后再扩展。
+
+### 7.5 技术栈规划
+
+| 模块 | Core | Pro | Ultra |
+|------|------|-----|-------|
+| **搜索** | Everything CLI | FTS5 + Semantic Vector | Multi-modal Embedding |
+| **AI 图像** | - | Microsoft.ML (TagTrain) | YOLO/Detectron2 (Object Detection) |
+| **AI 文档** | - | Transformer (摘要) | Local LLM (Llama, Qwen) |
+| **工作流** | - | - | Visual Workflow Engine |
+| **同步** | - | Cloud API (OneDrive/S3) | Docker + Redis + MinIO |
+| **插件** | - | - | MEF / Reflection |
+
+---
+
+**备注**：
+- 详细的版本功能说明请参考 `VERSION_INFO.md`。
+- 关于架构调整的实施细节，请参考本文档的“三、重构路线图”章节。
 

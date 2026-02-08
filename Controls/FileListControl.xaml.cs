@@ -101,6 +101,36 @@ namespace YiboFile.Controls
             set { SetValue(CurrentViewModeProperty, value); }
         }
 
+        // 依赖属性：加载更多可见性
+        public static readonly DependencyProperty IsLoadMoreVisibleProperty =
+            DependencyProperty.Register("IsLoadMoreVisible", typeof(bool), typeof(FileListControl),
+                new PropertyMetadata(false, OnIsLoadMoreVisibleChanged));
+
+        public bool IsLoadMoreVisible
+        {
+            get { return (bool)GetValue(IsLoadMoreVisibleProperty); }
+            set { SetValue(IsLoadMoreVisibleProperty, value); }
+        }
+
+        private static void OnIsLoadMoreVisibleChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is FileListControl control && control.LoadMoreBtn != null)
+            {
+                control.LoadMoreBtn.Visibility = (bool)e.NewValue ? Visibility.Visible : Visibility.Collapsed;
+            }
+        }
+
+        // 依赖属性：加载更多命令
+        public static readonly DependencyProperty LoadMoreCommandProperty =
+            DependencyProperty.Register("LoadMoreCommand", typeof(ICommand), typeof(FileListControl),
+                new PropertyMetadata(null));
+
+        public ICommand LoadMoreCommand
+        {
+            get { return (ICommand)GetValue(LoadMoreCommandProperty); }
+            set { SetValue(LoadMoreCommandProperty, value); }
+        }
+
         private static void OnViewModeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             if (d is FileListControl control)

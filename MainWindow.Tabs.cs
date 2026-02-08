@@ -112,7 +112,11 @@ namespace YiboFile
                     {
                         _viewModel?.PrimaryPane?.FileList?.UpdateFiles(_currentFiles);
                     }
-                    FileBrowser.LoadMoreVisible = cache.HasMore;
+
+                    if (_viewModel?.PrimaryPane != null)
+                    {
+                        _viewModel.PrimaryPane.IsLoadMoreVisible = cache.HasMore;
+                    }
 
                     if (_currentFiles.Count == 0)
                     {
@@ -141,9 +145,9 @@ namespace YiboFile
                 if (isContentSearch)
                 {
                     // 全文搜索刷新
-                    // 注意：FullTextSearchService.Instance.SearchContent 是同步的还是支持异步？
                     // 它是 CPU 密集型，应该在 Task.Run 中运行
-                    var results = await Task.Run(() => YiboFile.Services.FullTextSearch.FullTextSearchService.Instance.SearchContent(keyword));
+                    var ftsService = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService<YiboFile.Services.Features.IFullTextSearchService>(App.ServiceProvider);
+                    var results = await Task.Run(() => ftsService?.SearchContent(keyword));
 
                     if (results == null) results = new List<FileSystemItem>();
                     _currentFiles = results;
@@ -164,7 +168,10 @@ namespace YiboFile
                             FileBrowser.AddressText = $"content://{keyword}";
                             FileBrowser.SetSearchStatus(true, $"找到 {_currentFiles.Count} 个结果");
                         }
-                        FileBrowser.LoadMoreVisible = false;
+                        if (_viewModel?.PrimaryPane != null)
+                        {
+                            _viewModel.PrimaryPane.IsLoadMoreVisible = false;
+                        }
                     }
                     return;
                 }
@@ -202,7 +209,11 @@ namespace YiboFile
                         // 更新地址栏和面包屑，确保显示规范化关键词
                         FileBrowser.SetSearchBreadcrumb(normalizedKeyword);
                         FileBrowser.AddressText = normalizedKeyword;
-                        FileBrowser.LoadMoreVisible = searchResult.HasMore;
+
+                        if (_viewModel?.PrimaryPane != null)
+                        {
+                            _viewModel.PrimaryPane.IsLoadMoreVisible = searchResult.HasMore;
+                        }
 
                         // 统一空状态处理
                         if (_currentFiles.Count == 0)

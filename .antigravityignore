@@ -1,13 +1,52 @@
-# ========== 核心排除：编译产物与版本控制 ==========
+# ========== 1. 核心排除：编译产物与版本控制 (方案 B/C 优化) ==========
 .git/
 bin/
 obj/
 .vs/
 .trae/
+.vscode/
 packages/
 TestResults/
+_UpgradeReport_Files/
+Backup/
 
-# ========== 二进制文件 ==========
+# ========== 2. 数据库与本地存储 (针对 SearchCache 与 Notes 关键优化) ==========
+# 数据库文件是导致索引内存飙升的元凶，AI 无法理解其二进制内容
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+*.db-journal
+*.localstorage
+*.data
+*.index
+
+# ========== 3. 媒体与资源文件 (方案 B：减轻 LSP 扫描压力) ==========
+# 避免 AI 尝试“读取”图片或图标的像素数据
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.ico
+*.svg
+*.mp4
+*.avi
+*.wav
+*.mp3
+*.ttf
+*.otf
+*.woff
+*.woff2
+Resources/Assets/
+Resources/Images/
+Resources/Fonts/
+Resources/pdfjs/
+Assets/
+Dependencies/Everything/
+Dependencies/7-Zip/
+
+# ========== 4. 二进制与打包文件 (保留并强化) ==========
 *.pdb
 *.dll
 *.exe
@@ -16,9 +55,12 @@ TestResults/
 *.zip
 *.7z
 *.rar
+*.tar
+*.gz
 *.iso
+*.min.js
 
-# ========== 编译缓存与临时文件 ==========
+# ========== 5. 编译缓存、日志与临时文件 (包含各类输出 log) ==========
 *.cache
 *.log
 *.tmp
@@ -27,23 +69,20 @@ TestResults/
 *.bak
 *.swp
 *~
+# 针对代码中提到的特定日志文件
+debug_log.txt
 build_*.txt
 debug_*.txt
+*.err
+*.out
 
-# ========== 第三方依赖（通常不需要索引） ==========
+# ========== 6. 第三方依赖与文档 (方案 C：隔离冷数据) ==========
 Dependencies/
 node_modules/
-packages/
-
-# ========== 大型资源目录 ==========
-Resources/Assets/
-Resources/Images/
-Resources/Fonts/
-Assets/
-Themes/Default/
-Themes/Dark/
-
-# ========== 文档构建产物 ==========
+dist/
+out/
 docs/archive/
+docs/old/
 *.docx
 *.pdf
+*.md.bak

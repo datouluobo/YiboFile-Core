@@ -18,6 +18,7 @@ namespace YiboFile.ViewModels.Messaging.Messages
         bool IsSearching,
         string TargetPaneId,
         bool HasMore = false,
+        int Offset = 0,
         string SearchTabPath = null,
         string NormalizedKeyword = null);
 

@@ -11,6 +11,7 @@ using YiboFile.Services.Favorite;
 using YiboFile.Services.QuickAccess;
 using YiboFile.Services.FileList;
 using YiboFile.Services.Search;
+using YiboFile.Services.Navigation;
 
 using YiboFile.Services.FileNotes;
 using YiboFile.Services.Tabs;
@@ -141,6 +142,7 @@ namespace YiboFile
 
             // ViewModels
             services.AddSingleton<ViewModels.RightPanelViewModel>();
+            services.AddSingleton<NavigationCoordinator>();
         }
 
 

@@ -6,6 +6,7 @@ using System.Windows.Input;
 using YiboFile.Models;
 using YiboFile.Models.Navigation;
 using YiboFile.Services.Tabs;
+using YiboFile.ViewModels.Messaging.Messages;
 
 namespace YiboFile.Services.Navigation
 {
@@ -40,10 +41,15 @@ namespace YiboFile.Services.Navigation
         private TabService _secondTabService;
         private NavigationService _navigationService;
         private LibraryService _libraryService;
+        private readonly ViewModels.Messaging.IMessageBus _messageBus;
 
-        // Pane-specific navigation delegates
-        private Action<string> _navigateMain;
-        private Action<string> _navigateSecond;
+        // Pane-specific navigation ViewModel access
+        private Func<PaneId, ViewModels.PaneViewModel> _paneViewModelResolver;
+
+        public NavigationCoordinator(ViewModels.Messaging.IMessageBus messageBus)
+        {
+            _messageBus = messageBus;
+        }
 
         // 兼容旧代码的事件，直到迁移完成
         public event Action<string, bool, bool?> PathNavigateRequested;
@@ -59,15 +65,13 @@ namespace YiboFile.Services.Navigation
             TabService secondTab,
             NavigationService navService,
             LibraryService libService,
-            Action<string> navigateMain = null,
-            Action<string> navigateSecond = null)
+            Func<PaneId, ViewModels.PaneViewModel> paneViewModelResolver)
         {
             _mainTabService = mainTab;
             _secondTabService = secondTab;
             _navigationService = navService;
             _libraryService = libService;
-            _navigateMain = navigateMain;
-            _navigateSecond = navigateSecond;
+            _paneViewModelResolver = paneViewModelResolver;
         }
 
         public async Task NavigateAsync(NavigationRequest request)
@@ -80,7 +84,7 @@ namespace YiboFile.Services.Navigation
             switch (request.Target.Type)
             {
                 case NavigationTargetType.Path:
-                    HandlePathRequest(request, tabService);
+                    await HandlePathRequest(request, tabService);
                     break;
                 case NavigationTargetType.Library:
                     HandleLibraryRequest(request, tabService);
@@ -90,7 +94,7 @@ namespace YiboFile.Services.Navigation
             await Task.CompletedTask;
         }
 
-        private void HandlePathRequest(NavigationRequest request, TabService tabService)
+        private async Task HandlePathRequest(NavigationRequest request, TabService tabService)
         {
             var path = request.Target.Path;
             if (string.IsNullOrEmpty(path)) return;
@@ -108,19 +112,23 @@ namespace YiboFile.Services.Navigation
             }
             else
             {
-                // 使用面板特定的导航委托
-                if (request.Pane == PaneId.Main && _navigateMain != null)
+                // Path C: 直接驱动 ViewModel
+                var vm = _paneViewModelResolver?.Invoke(request.Pane);
+                if (vm != null)
                 {
-                    _navigateMain(path);
-                }
-                else if (request.Pane == PaneId.Second && _navigateSecond != null)
-                {
-                    _navigateSecond(path);
+                    // 这里执行导航
+                    vm.NavigateTo(path);
+
+                    // 副作用消息发送 (MessageBus)
+                    var sourceStr = request.Source ?? NavigationSource.External.ToString();
+                    _messageBus.Publish(new NavigationCompleteMessage(
+                        path,
+                        request.Pane,
+                        Enum.TryParse<NavigationSource>(sourceStr, out var src) ? src : NavigationSource.External,
+                        vm.NavigationMode));
                 }
                 else
                 {
-                    // 回退到全局事件 (主要针对 MainWindow 处理)
-                    // 注意：这可能无法正确处理副面板，因此应尽量使用 Initialize 传入的委托
                     PathNavigateRequested?.Invoke(path, false, request.Activate);
                 }
             }
@@ -137,13 +145,17 @@ namespace YiboFile.Services.Navigation
             }
             else
             {
-                // 库导航通常比较特殊，暂时保持使用事件或后续扩展委托
-                // 目前 MainWindow 监听 LibraryNavigateRequested 并处理 OpenLibraryInTab (通常是 Main logic?)
-                // 如果需要支持副面板库切换，这里也需要增强
-                if (request.Pane == PaneId.Second)
+                // 修改 ViewModel 的库模式
+                var vm = _paneViewModelResolver?.Invoke(request.Pane);
+                if (vm != null)
                 {
-                    // 副面板库切换，直接操作 TabService
-                    tabService.OpenLibraryTab(library, forceNewTab: false, activate: request.Activate);
+                    vm.CurrentLibrary = library;
+                    vm.NavigationMode = "Library";
+
+                    _messageBus.Publish(new NavigationCompleteMessage(
+                        $"lib://{library.Name}",
+                        request.Pane,
+                        NavigationSource.SidebarLibrary));
                 }
                 else
                 {

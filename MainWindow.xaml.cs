@@ -44,6 +44,7 @@ using YiboFile.ViewModels;
 using YiboFile.ViewModels.Messaging;
 using YiboFile.ViewModels.Messaging.Messages;
 using YiboFile.ViewModels.Modules;
+using YiboFile.Services.Features;
 using YiboFile.Services.Core.Error;
 
 namespace YiboFile
@@ -93,7 +94,6 @@ namespace YiboFile
 
 
         // 事件处理器
-        internal Handlers.FileBrowserEventHandler _fileBrowserEventHandler;
         internal Handlers.FileListEventHandler _mainFileListHandler;
         internal Handlers.FileListEventHandler _secondFileListHandler;
         internal Handlers.KeyboardEventHandler _keyboardEventHandler;
@@ -458,6 +458,7 @@ namespace YiboFile
                 _searchService,
                 _searchCacheService,
                 _tabService,
+                App.ServiceProvider.GetService<IFullTextSearchService>(),
                 _secondTabService,
                 () => this.IsDualListMode,
                 () => this.IsSecondPaneFocused);
@@ -743,11 +744,6 @@ namespace YiboFile
         }
 
 
-
-        internal void GridSplitter_DragDelta(object sender, DragDeltaEventArgs e)
-        {
-            _fileBrowserEventHandler?.FileBrowser_GridSplitterDragDelta(sender, e);
-        }
 
         private void GridSplitter_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
         {

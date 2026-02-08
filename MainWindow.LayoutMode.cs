@@ -544,7 +544,7 @@ namespace YiboFile
                 SecondFileBrowser.UpdateBreadcrumb(path);
                 SecondFileBrowser.IsAddressReadOnly = false;
                 SecondFileBrowser.SetSearchStatus(false);
-                SecondFileBrowser.SetPropertiesButtonVisibility(!ProtocolManager.IsVirtual(path));
+                SecondFileBrowser.SetPropertiesButtonVisibility(!ProtocolManager.IsVirtual(path) ? Visibility.Visible : Visibility.Collapsed);
 
                 // 更新导航按钮状态
                 SecondFileBrowser.NavBackEnabled = _secondNavHistory.Count > 0;
@@ -646,7 +646,7 @@ namespace YiboFile
                         visible = false;
                     }
                 }
-                SecondFileBrowser.SetPropertiesButtonVisibility(visible);
+                SecondFileBrowser.SetPropertiesButtonVisibility(visible ? Visibility.Visible : Visibility.Collapsed);
             }
         }
 
@@ -895,7 +895,7 @@ namespace YiboFile
                     SecondFileBrowser.PathChanged += SecondFileBrowser_PathChanged;
 
                     // 设置属性按钮可见性
-                    SecondFileBrowser.SetPropertiesButtonVisibility(true);
+                    SecondFileBrowser.SetPropertiesButtonVisibility(Visibility.Visible);
 
                     // 显式更新副面板为库信息
                     _secondFileInfoService?.ShowLibraryInfo(library);
@@ -989,7 +989,7 @@ namespace YiboFile
                     SecondFileBrowser.AddressText = tag.Name;
                     SecondFileBrowser.IsAddressReadOnly = true;
                     SecondFileBrowser.UpdateBreadcrumb(tag.Name);
-                    SecondFileBrowser.SetPropertiesButtonVisibility(false);
+                    SecondFileBrowser.SetPropertiesButtonVisibility(Visibility.Collapsed); // 标签不支持属性
                     SecondFileBrowser.PathChanged += SecondFileBrowser_PathChanged;
                 }
 

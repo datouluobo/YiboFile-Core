@@ -58,72 +58,8 @@ namespace YiboFile
                 SecondTabManager.CloseOverlayRequested += (s, e) => CloseOverlays();
             }
 
-            // 初始化 FileBrowserEventHandler
-            _fileBrowserEventHandler = new FileBrowserEventHandler(
-                _messageBus,
-                "Primary",
-                FileBrowser,
-                _navigationCoordinator,
-                _tabService,
-                _searchService, // searchService
-                _searchCacheService,
-                NavigateToPath,
-                SwitchNavigationMode,
-                LoadCurrentDirectory,
-                () => // ClearFilter
-                {
-                    FileBrowser.IsAddressReadOnly = false;
-                    FileBrowser.SetTagBreadcrumb(null);
-                    LoadCurrentDirectory();
-                    // Also hide empty state
-                    HideEmptyStateMessage();
-                },
-                HideEmptyStateMessage,
-                (header) => GridViewColumnHeader_Click(header, null), // Action<GridViewColumnHeader> -> Wrapped
-                FileBrowser_FilesSizeChanged, // Action<SizeChangedEventArgs>
-                FileBrowser_GridSplitterDragDelta, // Action<DragDeltaEventArgs>
-                () => _currentPath,
-                () => ConfigurationService.Instance.Config,
-                () => null,
+            // FileBrowserEventHandler migrated to MVVM
 
-                (tag) => { },
-                // MVVM 迁移: Handler 现在读取和更新 VM 数据
-                () => _viewModel?.PrimaryPane?.FileList?.Files?.ToList() ?? new List<FileSystemItem>(),
-                (files) => { _viewModel?.PrimaryPane?.FileList?.UpdateFiles(files); },
-                () => _searchOptions,
-                (e) => _selectionEventHandler?.HandleSelectionChanged(e.AddedItems), // FilesListView_SelectionChanged
-                (e) => { }, // FilesListView_MouseDoubleClick
-                (e) => { }, // PreviewMouseDoubleClick - not used
-                (e) => { }, // PreviewKeyDown - handled by KeyboardEventHandler
-                (e) => { }, // FilesListView_PreviewMouseLeftButtonDown
-                (e) => { }, // FilesListView_MouseLeftButtonUp
-                (e) => { }, // FilesListView_PreviewMouseDown
-                (e) =>
-                {
-                    var result = _navigationService?.NavigateUp();
-                    if (result != null)
-                    {
-                        // Actually perform the UI navigation with the returned path!
-                        NavigateToPath(result);
-                        e.Handled = true;
-                    }
-                }, // FilesListView_PreviewMouseDoubleClickForBlank
-                (e) => { }, // FilesListView_PreviewMouseMove handled by DragDropManager directly
-                () => ColLeft, // Func<ColumnDefinition>
-                (e) => // CommitRename
-                {
-                    var (browser, path, library) = GetActiveContext();
-                    Services.FileOperations.IFileOperationContext context = null;
-                    if (library != null)
-                        context = new Services.FileOperations.LibraryOperationContext(library, browser, this, RefreshActiveFileList);
-                    else
-                        context = new Services.FileOperations.PathOperationContext(path, browser, this, RefreshActiveFileList);
-
-                    var op = new Services.FileOperations.RenameOperation(context, this, _fileOperationService);
-                    op.Execute(e.Item, e.NewName);
-                }
-            );
-            _fileBrowserEventHandler.Initialize();
 
             // Initialize Info Services
             var tagService = App.ServiceProvider?.GetService<YiboFile.Services.Features.ITagService>();
@@ -608,11 +544,19 @@ namespace YiboFile
 
 
 
-
-
         private DateTime _lastColumnClickTime = DateTime.MinValue;
         private string _lastClickedColumn = null;
 
+        internal void GridSplitter_DragDelta(object sender, DragDeltaEventArgs e)
+        {
+            // Migrated logic directly here if still needed, or handled by control
+            if (ColLeft != null)
+            {
+                double newWidth = ColLeft.Width.Value + e.HorizontalChange;
+                if (newWidth < 150) newWidth = 150; // Minimum width
+                ColLeft.Width = new GridLength(newWidth);
+            }
+        }
         internal void GridViewColumnHeader_Click(object sender, RoutedEventArgs e)
         {
             var header = sender as GridViewColumnHeader;

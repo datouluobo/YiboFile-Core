@@ -6,12 +6,14 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using Microsoft.Extensions.DependencyInjection;
 using YiboFile.Services.Config;
-using YiboFile.Services.FullTextSearch;
+using YiboFile.Services.Features;
 
 namespace YiboFile.ViewModels.Settings
 {
     public class SearchSettingsViewModel : BaseViewModel
     {
+        private readonly IFullTextSearchService _ftsService;
+
         private bool _isEnableFullTextSearch;
         public bool IsEnableFullTextSearch
         {
@@ -21,8 +23,8 @@ namespace YiboFile.ViewModels.Settings
                 if (SetProperty(ref _isEnableFullTextSearch, value))
                 {
                     ConfigurationService.Instance.Update(c => c.IsEnableFullTextSearch = value);
-                    if (value && FullTextSearchService.Instance != null)
-                        FullTextSearchService.Instance.StartBackgroundIndexing();
+                    if (value && _ftsService != null)
+                        _ftsService.StartBackgroundIndexing();
                 }
             }
         }
@@ -96,6 +98,7 @@ namespace YiboFile.ViewModels.Settings
 
         public SearchSettingsViewModel()
         {
+            _ftsService = App.ServiceProvider.GetService<IFullTextSearchService>();
             RebuildIndexCommand = new RelayCommand(RebuildIndex);
             ClearHistoryCommand = new RelayCommand(ClearHistory);
 
@@ -104,9 +107,9 @@ namespace YiboFile.ViewModels.Settings
 
         ~SearchSettingsViewModel()
         {
-            if (FullTextSearchService.Instance?.IndexingService != null)
+            if (_ftsService != null)
             {
-                FullTextSearchService.Instance.IndexingService.ProgressChanged -= OnIndexingProgressChanged;
+                _ftsService.ProgressChanged -= OnIndexingProgressChanged;
             }
         }
 
@@ -124,13 +127,13 @@ namespace YiboFile.ViewModels.Settings
             IndexScopes = new ObservableCollection<string>(config.FullTextIndexPaths ?? new List<string>());
 
             IndexLocation = config.FullTextIndexDbPath;
-            IndexedFileCount = FullTextSearchService.Instance.IndexedFileCount;
+            IndexedFileCount = _ftsService?.IndexedFileCount ?? 0;
             IndexingStatusText = "就绪";
 
-            if (FullTextSearchService.Instance.IndexingService != null)
+            if (_ftsService != null)
             {
-                FullTextSearchService.Instance.IndexingService.ProgressChanged -= OnIndexingProgressChanged;
-                FullTextSearchService.Instance.IndexingService.ProgressChanged += OnIndexingProgressChanged;
+                _ftsService.ProgressChanged -= OnIndexingProgressChanged;
+                _ftsService.ProgressChanged += OnIndexingProgressChanged;
             }
         }
 
@@ -167,8 +170,8 @@ namespace YiboFile.ViewModels.Settings
             {
                 try
                 {
-                    int count = FullTextSearchService.Instance.IndexedFileCount;
-                    string path = FullTextSearchService.Instance.IndexDbPath;
+                    int count = _ftsService?.IndexedFileCount ?? 0;
+                    string path = _ftsService?.IndexDbPath;
                     System.Windows.Application.Current.Dispatcher.Invoke(() =>
                     {
                         IndexedFileCount = count;
@@ -191,6 +194,11 @@ namespace YiboFile.ViewModels.Settings
             IndexLocation = newPath;
         }
 
+        public void StartBackgroundIndexing()
+        {
+            _ftsService?.StartBackgroundIndexing();
+        }
+
         private async void RebuildIndex()
         {
             IsIndexing = true;
@@ -201,7 +209,8 @@ namespace YiboFile.ViewModels.Settings
             {
                 await Task.Run(async () =>
                 {
-                    FullTextSearchService.Instance.ClearIndex();
+                    if (_ftsService == null) return;
+                    _ftsService.ClearIndex();
 
                     var config = ConfigurationService.Instance.GetSnapshot();
                     IEnumerable<string> scanPaths = config.FullTextIndexPaths;
@@ -217,7 +226,7 @@ namespace YiboFile.ViewModels.Settings
                     {
                         if (System.IO.Directory.Exists(path))
                         {
-                            await FullTextSearchService.Instance.IndexingService.StartIndexingAsync(path, recursive: true);
+                            await _ftsService.StartIndexingAsync(path, recursive: true);
                         }
                     }
                 });

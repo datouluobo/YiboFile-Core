@@ -173,7 +173,7 @@ namespace YiboFile.Services
                 }, System.Windows.Threading.DispatcherPriority.Loaded);
 
                 // 启动全文搜索后台索引（如果启用）
-                YiboFile.Services.FullTextSearch.FullTextSearchService.Instance.StartBackgroundIndexing();
+                Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService<YiboFile.Services.Features.IFullTextSearchService>(App.ServiceProvider)?.StartBackgroundIndexing();
 
                 FileLogger.Log("ApplyInitialState completed.");
             }

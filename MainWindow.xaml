@@ -173,8 +173,7 @@
                                      VerticalAlignment="Stretch"
                                      Margin="0,0,0,0"
                                      Panel.ZIndex="100"
-                                     DataContext="{Binding PrimaryPane}"
-                                     RefreshCommand="{Binding RefreshCommand}"/>
+                                     DataContext="{Binding PrimaryPane}"/>
 
             <!-- 备份管理器 -->
             <controls:BackupBrowserControl x:Name="BackupBrowser"
@@ -243,8 +242,7 @@
                                              Grid.Row="1"
                                              HorizontalAlignment="Stretch" 
                                              VerticalAlignment="Stretch"
-                                             DataContext="{Binding SecondaryPane}"
-                                             RefreshCommand="{Binding RefreshCommand}"/>
+                                             DataContext="{Binding SecondaryPane}"/>
                 </Grid>
             </Grid>
 

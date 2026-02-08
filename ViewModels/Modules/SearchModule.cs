@@ -8,7 +8,7 @@ using YiboFile.Services;
 using YiboFile.Services.Search;
 using YiboFile.Services.FileNotes;
 using YiboFile.Services.Tabs;
-using YiboFile.Services.FullTextSearch;
+using YiboFile.Services.Features;
 using YiboFile.ViewModels.Messaging;
 using YiboFile.ViewModels.Messaging.Messages;
 
@@ -26,6 +26,7 @@ namespace YiboFile.ViewModels.Modules
         private readonly TabService _secondTabService;
         private readonly Func<bool> _isDualListMode;
         private readonly Func<bool> _isSecondPaneFocused;
+        private readonly IFullTextSearchService _ftsService;
         private bool _isProcessingSearch = false;
 
         public override string Name => "Search";
@@ -35,6 +36,7 @@ namespace YiboFile.ViewModels.Modules
             SearchService searchService,
             SearchCacheService searchCacheService,
             TabService tabService,
+            IFullTextSearchService ftsService,
             TabService secondTabService = null,
             Func<bool> isDualListMode = null,
             Func<bool> isSecondPaneFocused = null)
@@ -43,6 +45,7 @@ namespace YiboFile.ViewModels.Modules
             _searchService = searchService ?? throw new ArgumentNullException(nameof(searchService));
             _searchCacheService = searchCacheService ?? throw new ArgumentNullException(nameof(searchCacheService));
             _tabService = tabService ?? throw new ArgumentNullException(nameof(tabService));
+            _ftsService = ftsService;
             _secondTabService = secondTabService;
             _isDualListMode = isDualListMode ?? (() => false);
             _isSecondPaneFocused = isSecondPaneFocused ?? (() => false);
@@ -81,7 +84,7 @@ namespace YiboFile.ViewModels.Modules
                 var normalizedKeyword = SearchService.NormalizeKeyword(message.SearchText);
 
                 // 检查是否为全文搜索 (content:xxx 或 content://xxx)
-                var (isContentSearch, contentKeyword) = FullTextSearchService.ParseSearchQuery(normalizedKeyword);
+                var (isContentSearch, contentKeyword) = FullTextSearchHelper.ParseSearchQuery(normalizedKeyword);
                 if (isContentSearch)
                 {
                     await PerformContentSearch(contentKeyword, normalizedKeyword, message.TargetPaneId);
@@ -116,7 +119,7 @@ namespace YiboFile.ViewModels.Modules
                 EnsureSearchTab(searchTabPath, targetPaneId);
 
                 // 异步执行全文搜索
-                var results = await Task.Run(() => FullTextSearchService.Instance.SearchContent(contentKeyword));
+                var results = await Task.Run(() => _ftsService?.SearchContent(contentKeyword));
                 if (results == null) results = new List<FileSystemItem>();
 
                 statusMsg = results.Count == 0
@@ -186,6 +189,7 @@ namespace YiboFile.ViewModels.Modules
                     false,
                     targetPaneId,
                     HasMore: searchResult?.HasMore ?? false,
+                    Offset: searchResult?.Offset ?? 0,
                     SearchTabPath: searchTabPath,
                     NormalizedKeyword: normalizedKeyword));
             }

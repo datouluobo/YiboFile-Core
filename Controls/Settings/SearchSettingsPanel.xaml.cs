@@ -6,7 +6,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Threading.Tasks;
 using YiboFile.Services.Config;
-using YiboFile.Services.FullTextSearch;
+using YiboFile.Services.Features;
 using YiboFile.ViewModels;
 using YiboFile.ViewModels.Settings;
 
@@ -364,7 +364,7 @@ namespace YiboFile.Controls.Settings
                     _viewModel.UpdateIndexScopes(_viewModel.IndexScopes);
 
                     // Trigger indexing logic
-                    YiboFile.Services.FullTextSearch.FullTextSearchService.Instance.StartBackgroundIndexing();
+                    _viewModel?.StartBackgroundIndexing();
                 }
             }
         }

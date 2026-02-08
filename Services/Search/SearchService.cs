@@ -6,7 +6,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using YiboFile.Services;
-using YiboFile.Services.FullTextSearch;
+using YiboFile.Services.Features;
 
 namespace YiboFile.Services.Search
 {
