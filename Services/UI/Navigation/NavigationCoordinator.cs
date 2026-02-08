@@ -52,8 +52,7 @@ namespace YiboFile.Services.Navigation
         }
 
         // 兼容旧代码的事件，直到迁移完成
-        public event Action<string, bool, bool?> PathNavigateRequested;
-        public event Action<Library, bool, bool?> LibraryNavigateRequested;
+
         public event Action<string> FileOpenRequested;
         public event Action<YiboFile.Favorite> FavoritePathNotFound;
 
@@ -129,7 +128,9 @@ namespace YiboFile.Services.Navigation
                 }
                 else
                 {
-                    PathNavigateRequested?.Invoke(path, false, request.Activate);
+                    // Fallback removed: PathNavigateRequested legacy event.
+                    // This block should ideally not be reached if resolver is set up correctly.
+                    System.Diagnostics.Debug.WriteLine($"[NavigationCoordinator] Warning: Cannot resolve PaneVM for {request.Pane}. Path: {path}");
                 }
             }
         }
@@ -159,7 +160,8 @@ namespace YiboFile.Services.Navigation
                 }
                 else
                 {
-                    LibraryNavigateRequested?.Invoke(library, false, request.Activate);
+                    // Fallback removed: LibraryNavigateRequested legacy event.
+                    System.Diagnostics.Debug.WriteLine($"[NavigationCoordinator] Warning: Cannot resolve PaneVM for {request.Pane}. Library: {library.Name}");
                 }
             }
         }

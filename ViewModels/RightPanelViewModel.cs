@@ -165,6 +165,18 @@ namespace YiboFile.ViewModels
                 }));
             });
 
+            _messageBus.Subscribe<ShowFileInfoMessage>(m =>
+            {
+                // 如果当前没有选中的文件，则显示背景容器（如当前文件夹）的信息
+                System.Windows.Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    if (SelectedItem == null || m.Item?.Path == SelectedItem?.Path)
+                    {
+                        SelectedItem = m.Item;
+                    }
+                }));
+            });
+
             _messageBus.Subscribe<PreviewChangedMessage>(m =>
             {
                 // Ensure UI update happens on UI thread

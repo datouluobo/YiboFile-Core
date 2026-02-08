@@ -1,7 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
 using YiboFile.ViewModels.Messaging;
+using YiboFile.Services;
+using YiboFile.Services.FileList;
+using YiboFile.Models;
 
 namespace YiboFile.ViewModels
 {
@@ -12,6 +16,7 @@ namespace YiboFile.ViewModels
     public class MainWindowViewModel : BaseViewModel, IDisposable
     {
         private readonly IMessageBus _messageBus;
+        private readonly Handlers.SelectionEventHandler _selectionHandler;
         private readonly List<Modules.IModule> _modules = new();
         private bool _disposed;
 
@@ -138,18 +143,42 @@ namespace YiboFile.ViewModels
             set => SetProperty(ref _activePane, value);
         }
 
+        /// <summary>
+        /// 选择处理器
+        /// </summary>
+        public Handlers.SelectionEventHandler SelectionHandler => _selectionHandler;
 
         #endregion
 
-        public MainWindowViewModel(IMessageBus messageBus, RightPanelViewModel rightPanel)
+        public MainWindowViewModel(
+            IMessageBus messageBus,
+            RightPanelViewModel rightPanel,
+            Services.Preview.PreviewService previewService,
+            FileListService fileListService,
+            FolderSizeCalculationService folderSizeService)
         {
             _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
             RightPanel = rightPanel ?? throw new ArgumentNullException(nameof(rightPanel));
+
+            // Initialize Selection Handler
+            _selectionHandler = new Handlers.SelectionEventHandler(
+                previewService,
+                _messageBus,
+                fileListService,
+                () => ActivePane?.FileList?.Files?.ToList() ?? new List<Models.FileSystemItem>(),
+                () => ActivePane?.CurrentPath,
+                () => ActivePane?.CurrentLibrary,
+                () => PrimaryPane != null && SecondaryPane != null, // Simplified IsDualMode check
+                path => folderSizeService != null ? folderSizeService.CalculateAndUpdateFolderSizeAsync(path) : System.Threading.Tasks.Task.CompletedTask,
+                (item, pane) => _messageBus.Publish(new Messaging.Messages.ShowFileInfoMessage(item, pane)), // Use message instead of direct Action
+                (lib, pane) => _messageBus.Publish(new Messaging.Messages.ShowLibraryInfoMessage(lib, pane))   // Use message instead of direct Action
+            );
 
             // 订阅核心消息
             _messageBus.Subscribe<Messaging.Messages.PathChangedMessage>(OnPathChanged);
             _messageBus.Subscribe<Messaging.Messages.NavigationModeChangedMessage>(OnNavigationModeChanged);
             _messageBus.Subscribe<Messaging.Messages.FocusedPaneChangedMessage>(OnFocusedPaneChanged);
+            _messageBus.Subscribe<Messaging.Messages.FileSelectionChangedMessage>(OnFileSelectionChanged);
         }
 
         private void OnFocusedPaneChanged(Messaging.Messages.FocusedPaneChangedMessage message)
@@ -220,6 +249,11 @@ namespace YiboFile.ViewModels
         private void OnNavigationModeChanged(Messaging.Messages.NavigationModeChangedMessage message)
         {
             CurrentNavigationMode = message.Mode;
+        }
+
+        private void OnFileSelectionChanged(Messaging.Messages.FileSelectionChangedMessage message)
+        {
+            _selectionHandler?.HandleSelectionChanged(message.SelectedItems, message.Pane);
         }
 
         #endregion

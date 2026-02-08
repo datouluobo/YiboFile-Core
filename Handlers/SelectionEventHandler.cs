@@ -9,6 +9,7 @@ using YiboFile.ViewModels.Messaging;
 using YiboFile.ViewModels.Messaging.Messages;
 using YiboFile.Services;
 using YiboFile.Services.FileList;
+using YiboFile;
 
 namespace YiboFile.Handlers
 {
@@ -26,8 +27,8 @@ namespace YiboFile.Handlers
         private readonly Func<Library> _getCurrentLibrary;
         private readonly Func<bool> _isDualMode;
         private readonly Func<string, Task> _calculateFolderSize;
-        private readonly Action<FileSystemItem> _showFileInfo;
-        private readonly Action<Library> _showLibraryInfo;
+        private readonly Action<FileSystemItem, YiboFile.Services.Navigation.PaneId> _showFileInfo;
+        private readonly Action<Library, YiboFile.Services.Navigation.PaneId> _showLibraryInfo;
 
         private CancellationTokenSource _folderSizeCts;
 
@@ -40,8 +41,8 @@ namespace YiboFile.Handlers
             Func<Library> getCurrentLibrary,
             Func<bool> isDualMode,
             Func<string, Task> calculateFolderSize,
-            Action<FileSystemItem> showFileInfo,
-            Action<Library> showLibraryInfo)
+            Action<FileSystemItem, YiboFile.Services.Navigation.PaneId> showFileInfo,
+            Action<Library, YiboFile.Services.Navigation.PaneId> showLibraryInfo)
         {
             _filePreviewService = previewService;
             _messageBus = messageBus;
@@ -55,18 +56,15 @@ namespace YiboFile.Handlers
             _showLibraryInfo = showLibraryInfo;
         }
 
-        public void HandleSelectionChanged(System.Collections.IList selectedItems)
+        public void HandleSelectionChanged(System.Collections.IList selectedItems, YiboFile.Services.Navigation.PaneId paneId = YiboFile.Services.Navigation.PaneId.Main)
         {
             if (selectedItems != null && selectedItems.Count > 0)
             {
                 var selectedItem = selectedItems[0] as FileSystemItem;
                 if (selectedItem != null)
                 {
-                    // 1. 发送选择变更消息 (MVVM 订阅者会收到此消息，更新预览)
-                    _messageBus.Publish(new FileSelectionChangedMessage(new List<FileSystemItem> { selectedItem }, RequestPreview: true));
-
-                    // 2. 更新信息面板 (Legacy UI 操作)
-                    _showFileInfo?.Invoke(selectedItem);
+                    // 1. 更新信息面板 (Legacy UI 操作)
+                    _showFileInfo?.Invoke(selectedItem, paneId);
 
                     // 3. 如果选中的是文件夹，检查是否需要计算大小
                     if (selectedItem.IsDirectory)
@@ -82,11 +80,11 @@ namespace YiboFile.Handlers
             }
             else
             {
-                HandleNoSelection();
+                HandleNoSelection(paneId);
             }
         }
 
-        public void HandleNoSelection()
+        public void HandleNoSelection(YiboFile.Services.Navigation.PaneId paneId = YiboFile.Services.Navigation.PaneId.Main)
         {
             // 清除旧的预览状态
             _filePreviewService?.ClearPreview();
@@ -96,10 +94,15 @@ namespace YiboFile.Handlers
             if (currentLib != null)
             {
                 // 发送库选择消息
-                _messageBus.Publish(new LibrarySelectedMessage(currentLib));
+                // 如果是副面板，我们可能不想触发全局库切换？
+                // 但 LibrarySelectedMessage 主要是为了更新库信息栏
+                if (paneId == YiboFile.Services.Navigation.PaneId.Main)
+                {
+                    _messageBus.Publish(new LibrarySelectedMessage(currentLib));
+                }
 
                 // 更新库信息面板
-                _showLibraryInfo?.Invoke(currentLib);
+                _showLibraryInfo?.Invoke(currentLib, paneId);
 
                 // 在库模式下，直接返回，防止后续逻辑清空面板
                 return;
@@ -111,8 +114,7 @@ namespace YiboFile.Handlers
                 string currentPath = _getCurrentPath?.Invoke();
                 if (string.IsNullOrEmpty(currentPath))
                 {
-                    _messageBus.Publish(new FileSelectionChangedMessage(null));
-                    _showFileInfo?.Invoke(null);
+                    _showFileInfo?.Invoke(null, paneId);
                     return;
                 }
 
@@ -131,9 +133,8 @@ namespace YiboFile.Handlers
                         Tags = tagName
                     };
 
-                    // Publish message with no preview request
-                    _messageBus.Publish(new FileSelectionChangedMessage(new List<FileSystemItem> { tagItem }, RequestPreview: false));
-                    _showFileInfo?.Invoke(tagItem);
+                    // 更新信息面板 (Legacy UI 操作)
+                    _showFileInfo?.Invoke(tagItem, paneId);
                     return;
                 }
 
@@ -157,26 +158,21 @@ namespace YiboFile.Handlers
                         Tags = ""
                     };
 
-                    // 发布文件夹选择消息，RequestPreview: false 确保不启动预览加载
-                    _messageBus.Publish(new FileSelectionChangedMessage(new List<FileSystemItem> { item }, RequestPreview: false));
-
                     // 显示文件夹信息
-                    _showFileInfo?.Invoke(item);
+                    _showFileInfo?.Invoke(item, paneId);
 
                     // 同时也尝试计算一次当前路径的大小（如果需要）
                     CalculateFolderSizeImmediately(item.Path);
                 }
                 else
                 {
-                    _messageBus.Publish(new FileSelectionChangedMessage(null));
-                    _showFileInfo?.Invoke(null);
+                    _showFileInfo?.Invoke(null, paneId);
                 }
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[SelectionEventHandler] HandleNoSelection Error: {ex.Message}");
-                _messageBus.Publish(new FileSelectionChangedMessage(null));
-                _showFileInfo?.Invoke(null);
+                _showFileInfo?.Invoke(null, paneId);
             }
         }
 

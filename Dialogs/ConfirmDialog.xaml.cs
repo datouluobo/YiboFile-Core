@@ -40,19 +40,19 @@ namespace YiboFile.Dialogs
             {
                 case DialogType.Warning:
                     dialog.IconTextBlock.Text = "⚠️";
-                    dialog.SetConfirmButtonColor("#FF9800", "#F57C00", "#EF6C00");
+                    dialog.ConfirmButton.SetResourceReference(Control.BackgroundProperty, "StatusWarningBrush");
                     break;
                 case DialogType.Error:
                     dialog.IconTextBlock.Text = "❌";
-                    dialog.SetConfirmButtonColor("#F44336", "#E53935", "#D32F2F");
+                    dialog.ConfirmButton.SetResourceReference(Control.BackgroundProperty, "StatusErrorBrush");
                     break;
                 case DialogType.Info:
                     dialog.IconTextBlock.Text = "ℹ️";
-                    dialog.SetConfirmButtonColor("#2196F3", "#1976D2", "#1565C0");
+                    dialog.ConfirmButton.SetResourceReference(Control.BackgroundProperty, "StatusInfoBrush");
                     break;
                 case DialogType.Question:
                     dialog.IconTextBlock.Text = "❓";
-                    dialog.SetConfirmButtonColor("#2196F3", "#1976D2", "#1565C0");
+                    dialog.ConfirmButton.SetResourceReference(Control.BackgroundProperty, "AccentBrush");
                     break;
             }
 
@@ -64,24 +64,6 @@ namespace YiboFile.Dialogs
 
             dialog.ShowDialog();
             return dialog.Result;
-        }
-
-        private void SetConfirmButtonColor(string normal, string hover, string pressed)
-        {
-            try
-            {
-                var normalBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(normal));
-                if (normalBrush.CanFreeze) normalBrush.Freeze();
-
-                ConfirmButton.Background = normalBrush;
-                // 注意：由于我们使用的是 XAML 中的静态样式，直接修改 Background 
-                // 只会改变默认背景，触发器效果可能消失，但这能彻底避免 XamlParseException
-            }
-            catch (Exception)
-            {
-                // 如果转换失败，至少保证不崩
-                ConfirmButton.Background = Brushes.Orange;
-            }
         }
 
         private void Confirm_Click(object sender, RoutedEventArgs e)

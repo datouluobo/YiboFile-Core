@@ -1,4 +1,6 @@
 using System;
+using System.Windows.Input;
+using YiboFile.ViewModels;
 using YiboFile.ViewModels.Messaging;
 using YiboFile.ViewModels.Messaging.Messages;
 
@@ -30,6 +32,10 @@ namespace YiboFile.ViewModels.Modules
                 {
                     _currentLayoutMode = value;
                     Publish(new LayoutModeChangedMessage(_currentLayoutMode));
+
+                    // 持久化状态
+                    YiboFile.Services.Config.ConfigurationService.Instance.Set(cfg => cfg.LayoutMode, value);
+                    YiboFile.Services.Config.ConfigurationService.Instance.SaveNow();
                 }
             }
         }
@@ -53,6 +59,10 @@ namespace YiboFile.ViewModels.Modules
                     {
                         IsRightPanelCollapsed = false;
                     }
+
+                    // 持久化状态
+                    YiboFile.Services.Config.ConfigurationService.Instance.Set(c => c.IsDualListMode, value);
+                    YiboFile.Services.Config.ConfigurationService.Instance.SaveNow();
                 }
             }
         }
@@ -120,8 +130,20 @@ namespace YiboFile.ViewModels.Modules
             }
         }
 
+        public ICommand SwitchLayoutModeCommand { get; private set; }
+        public ICommand ToggleDualListModeCommand { get; private set; }
+        public ICommand SwitchFocusedPaneCommand { get; private set; }
+
         public LayoutModule(IMessageBus messageBus) : base(messageBus)
         {
+            InitializeCommands();
+        }
+
+        private void InitializeCommands()
+        {
+            SwitchLayoutModeCommand = new RelayCommand<string>(mode => SwitchLayoutMode(mode));
+            ToggleDualListModeCommand = new RelayCommand(() => ToggleDualListMode());
+            SwitchFocusedPaneCommand = new RelayCommand(() => SwitchFocusedPane());
         }
 
         /// <summary>

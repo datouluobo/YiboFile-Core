@@ -132,9 +132,19 @@ namespace YiboFile
         internal void LoadCurrentDirectory()
         {
             if (IsDualListMode && IsSecondPaneFocused)
-                _viewModel?.SecondaryPane?.FileList?.RefreshFiles();
+            {
+                if (_viewModel?.SecondaryPane?.FileList != null && !string.IsNullOrEmpty(_viewModel.SecondaryPane.CurrentPath))
+                {
+                    _ = _viewModel.SecondaryPane.FileList.LoadPathAsync(_viewModel.SecondaryPane.CurrentPath);
+                }
+            }
             else
-                _viewModel?.PrimaryPane?.FileList?.RefreshFiles();
+            {
+                if (_viewModel?.PrimaryPane?.FileList != null && !string.IsNullOrEmpty(_viewModel.PrimaryPane.CurrentPath))
+                {
+                    _ = _viewModel.PrimaryPane.FileList.LoadPathAsync(_viewModel.PrimaryPane.CurrentPath);
+                }
+            }
         }
 
         /// <summary>
@@ -255,7 +265,7 @@ namespace YiboFile
                                 }
 
                                 // 主动触发空选状态下的信息面板更新（修复首次进入目录不显示信息的问题）
-                                _selectionEventHandler?.HandleNoSelection();
+                                _viewModel?.SelectionHandler?.HandleNoSelection();
                             }
                         }
                         catch (Exception)

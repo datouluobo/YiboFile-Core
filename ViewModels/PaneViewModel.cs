@@ -279,10 +279,11 @@ namespace YiboFile.ViewModels
             UpdateDynamicMenuItems();
 
             // 发送消息以便其他模块（如预览面板）同步
+            var paneId = _isSecondary ? PaneId.Second : PaneId.Main;
             if (SelectedItem != null)
             {
                 // 如果只选择了一个项，请求预览
-                _messageBus.Publish(new FileSelectionChangedMessage(SelectedItems.ToList()));
+                _messageBus.Publish(new FileSelectionChangedMessage(SelectedItems.ToList(), true, paneId));
 
                 // 如果是文件夹且大小未计算，触发计算
                 if (SelectedItem.IsDirectory && (string.IsNullOrEmpty(SelectedItem.Size) || SelectedItem.Size == "-" || SelectedItem.Size == "计算中..."))
@@ -293,7 +294,7 @@ namespace YiboFile.ViewModels
             else
             {
                 // 无选择时通知
-                _messageBus.Publish(new FileSelectionChangedMessage(null));
+                _messageBus.Publish(new FileSelectionChangedMessage(null, true, paneId));
             }
         }
 

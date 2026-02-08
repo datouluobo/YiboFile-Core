@@ -9,10 +9,13 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using YiboFile.Controls;
 using YiboFile.Services.Tabs;
 using YiboFile.Services.FileOperations;
 using YiboFile.Services.Core;
+using YiboFile.Services.Navigation;
+using YiboFile.Models.Navigation;
 using YiboFile.ViewModels.Messaging.Messages;
 using YiboFile.Services.Config;
 
@@ -58,18 +61,10 @@ namespace YiboFile
 
 
         /// <summary>
-        /// 设置双列表模式
+        /// 设置双列表模式 (UI 实现)
         /// </summary>
         private void SetDualListMode(bool enable)
         {
-            // 修复：同步 LayoutModule 的状态，否则无法正确响应焦点切换消息
-            if (_layoutModule != null && _layoutModule.IsDualListMode != enable)
-            {
-                _layoutModule.ToggleDualListMode(enable);
-            }
-
-            // 切换可见性由 XAML 绑定处理 (RightPanel.EffectiveVisibility 和 Layout.IsDualListMode)
-
             // 更新按钮状态
             if (NavigationRail != null)
             {
@@ -85,20 +80,16 @@ namespace YiboFile
             // 如果切换到双列表模式，初始化副列表
             if (enable && SecondFileBrowser != null)
             {
-                // (FileInfoService migration is handled via MVVM messages)
-
                 // 初始化副标签页服务（首次进入时）
                 if (_secondTabService == null && SecondTabManager != null)
                 {
-                    _secondTabService = new TabService(new AppConfig());
+                    _secondTabService = App.ServiceProvider.GetRequiredService<TabService>();
 
                     // 先绑定 UI 上下文，因为 UpdateConfig 会触发 UpdateTabWidths，后者依赖 UI 上下文
                     AttachSecondTabServiceUiContext();
 
                     // 然后应用实际配置
                     _secondTabService.UpdateConfig(ConfigurationService.Instance.Config);
-
-
 
                     // 通知 WindowStateManager 更新引用并恢复标签页
                     if (_windowStateManager != null)
@@ -114,12 +105,6 @@ namespace YiboFile
                 // 为副列表创建初始标签页（如果恢复失败或为空）
                 EnsureSecondTabExists();
             }
-
-            // 保存配置 (持久化逻辑)
-            ConfigurationService.Instance.Set(c => c.IsDualListMode, enable);
-            ConfigurationService.Instance.SaveNow();
-
-
         }
 
         /// <summary>
@@ -226,13 +211,16 @@ namespace YiboFile
                         _viewModel.SecondaryPane.NavigateTo(library, loadData: false);
                     }
                 },
+                // 避免重复加载相同路径，并确保模式正确
                 NavigateToPathInternal = (path) =>
                 {
-                    // 避免重复加载相同路径，并确保模式正确
-                    if (_viewModel.SecondaryPane.CurrentPath != path || _viewModel.SecondaryPane.NavigationMode != "Path")
+                    // 使用 NavigationCoordinator 或直接操作 ViewModel
+                    _navigationCoordinator?.NavigateAsync(new NavigationRequest
                     {
-                        SecondFileBrowser_PathChanged(this, path);
-                    }
+                        Target = NavigationTarget.FromPath(path),
+                        Pane = PaneId.Second,
+                        Source = "Other"
+                    });
                 },
                 UpdateNavigationButtonsState = () => { },
                 GetCurrentNavigationMode = () => "Path",
@@ -449,45 +437,13 @@ namespace YiboFile
         /// </summary>
         private void SecondFileBrowser_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (SecondFileBrowser?.FilesSelectedItem is FileSystemItem item)
+            // 更新 ViewModel 的选中项
+            if (SecondFileBrowser != null)
             {
-                _messageBus.Publish(new FileSelectionChangedMessage(new List<FileSystemItem> { item }));
-            }
-            else
-            {
-                // 处理无选择的情况：显示当前文件夹信息
-                var currentPath = _viewModel?.SecondaryPane?.CurrentPath;
-                if (!string.IsNullOrEmpty(currentPath) && Directory.Exists(currentPath))
-                {
-                    try
-                    {
-                        var dirInfo = new DirectoryInfo(currentPath);
-                        var folderItem = new FileSystemItem
-                        {
-                            Name = dirInfo.Name,
-                            Path = dirInfo.FullName,
-                            Type = "文件夹",
-                            IsDirectory = true,
-                            ModifiedDateTime = dirInfo.LastWriteTime,
-                            ModifiedDate = dirInfo.LastWriteTime.ToString("yyyy/M/d HH:mm"),
-                            CreatedDateTime = dirInfo.CreationTime,
-                            CreatedTime = dirInfo.CreationTime.ToString("yyyy/M/d HH:mm"),
-                            Size = "-", // 将在 ShowDirectoryInfo 中异步计算
-                            Tags = ""
-                        };
-                        _messageBus.Publish(new FileSelectionChangedMessage(new List<FileSystemItem> { folderItem }));
-                    }
-                    catch
-                    {
-                        // 忽略错误
-                    }
-                }
+                _viewModel?.SecondaryPane?.UpdateSelection(SecondFileBrowser.FilesSelectedItems);
             }
         }
 
-        // 副文件列表导航状态
-        private readonly Stack<string> _secondNavHistory = new Stack<string>();
-        private readonly Stack<string> _secondNavForward = new Stack<string>();
 
         private void LoadSecondFileBrowserContent()
         {
@@ -517,89 +473,21 @@ namespace YiboFile
             LoadSecondFileBrowserDirectory(targetPath);
         }
 
-        private async void LoadSecondFileBrowserDirectory(string path)
+        private void LoadSecondFileBrowserDirectory(string path)
         {
             if (string.IsNullOrEmpty(path) || SecondFileBrowser == null) return;
 
-            // 检查 ViewModel 是否已禁用加载
-            if (_viewModel.SecondaryPane.IsLoadingDisabled)
-            {
-                System.Diagnostics.Debug.WriteLine($"[MainWindow] LoadSecondFileBrowserDirectory ignored: SecondaryPane.IsLoadingDisabled=true");
-                return;
-            }
-
             // 委托给 ViewModel 加载
-            // Prevent redundant calls if ViewModel already has this path AND mode
             if (_viewModel.SecondaryPane.CurrentPath != path || _viewModel.SecondaryPane.NavigationMode != "Path")
             {
-                // 设置 loadData: true 以恢复文件加载逻辑
                 _viewModel.SecondaryPane.NavigateTo(path, loadData: true);
             }
 
-            // 立即同步 UI 状态，避免等待事件回调导致的延迟或在路径相同时不刷新的问题
+            // UI 状态由绑定处理，除了一些无法直接绑定的属性
             if (SecondFileBrowser != null)
             {
-                SecondFileBrowser.PathChanged -= SecondFileBrowser_PathChanged;
-                SecondFileBrowser.AddressText = path;
-                SecondFileBrowser.UpdateBreadcrumb(path);
-                SecondFileBrowser.IsAddressReadOnly = false;
-                SecondFileBrowser.SetSearchStatus(false);
-                SecondFileBrowser.SetPropertiesButtonVisibility(!ProtocolManager.IsVirtual(path) ? Visibility.Visible : Visibility.Collapsed);
-
-                // 更新导航按钮状态
-                SecondFileBrowser.NavBackEnabled = _secondNavHistory.Count > 0;
-                SecondFileBrowser.NavForwardEnabled = _secondNavForward.Count > 0;
-
-                SecondFileBrowser.PathChanged += SecondFileBrowser_PathChanged;
-            }
-            string dirName = null;
-            try { dirName = System.IO.Path.GetDirectoryName(path); } catch { }
-            if (SecondFileBrowser != null)
-            {
-                SecondFileBrowser.NavUpEnabled = !string.IsNullOrEmpty(path) && !ProtocolManager.IsVirtual(path) && !string.IsNullOrEmpty(dirName);
-            }
-
-            // (FileInfo Service logic migrated to MVVM messages)
-
-            // 显示当前文件夹信息 - 异步执行 IO 操作
-            bool exists = await Task.Run(() =>
-            {
-                try { return !ProtocolManager.IsVirtual(path) && Directory.Exists(path); }
-                catch { return false; }
-            });
-
-            if (exists)
-            {
-                try
-                {
-                    var folderItem = await Task.Run(() =>
-                    {
-                        var dirInfo = new DirectoryInfo(path);
-                        return new FileSystemItem
-                        {
-                            Name = dirInfo.Name,
-                            Path = dirInfo.FullName,
-                            Type = "文件夹",
-                            IsDirectory = true,
-                            ModifiedDateTime = dirInfo.LastWriteTime,
-                            ModifiedDate = dirInfo.LastWriteTime.ToString("yyyy/M/d HH:mm"),
-                            CreatedDateTime = dirInfo.CreationTime,
-                            CreatedTime = dirInfo.CreationTime.ToString("yyyy/M/d HH:mm"),
-                            Size = "-",
-                            Tags = ""
-                        };
-                    });
-
-                    var currentPath = _viewModel?.SecondaryPane?.CurrentPath;
-                    // 修复：显式更新副面板的信息栏
-                    if (currentPath == path)
-                    {
-                        // ONLY update if we are still on that path
-                        _secondFileInfoService?.ShowFileInfo(folderItem);
-                        _messageBus.Publish(new FileSelectionChangedMessage(new List<FileSystemItem> { folderItem }));
-                    }
-                }
-                catch { }
+                // 注意：NavUpEnabled, NavBackEnabled 等可以在后续重构为绑定
+                UpdateFocusBorders();
             }
         }
 
@@ -619,35 +507,12 @@ namespace YiboFile
                 return;
             }
 
-            if (!string.IsNullOrEmpty(currentPath))
-            {
-                _secondNavHistory.Push(currentPath);
-            }
-            _secondNavForward.Clear();
-            // _secondCurrentPath = newPath; // Removed MVVM migration
-
-            // 同步更新当前激活的标签页路径
             if (_secondTabService != null)
             {
                 _secondTabService.UpdateActiveTabPath(newPath);
             }
 
             LoadSecondFileBrowserDirectory(newPath);
-
-            // 更新副列表属性按钮可见性
-            if (SecondFileBrowser != null)
-            {
-                bool visible = true;
-                if (!string.IsNullOrEmpty(newPath))
-                {
-                    if (newPath.StartsWith("search:", StringComparison.OrdinalIgnoreCase) ||
-                       ProtocolManager.IsVirtual(newPath))
-                    {
-                        visible = false;
-                    }
-                }
-                SecondFileBrowser.SetPropertiesButtonVisibility(visible ? Visibility.Visible : Visibility.Collapsed);
-            }
         }
 
         private void SecondFileBrowser_BreadcrumbClicked(object sender, string path)
@@ -867,43 +732,12 @@ namespace YiboFile
                 _viewModel.SecondaryPane.NavigateTo(library, loadData: true);
             }
 
-            // UI 更新使用低优先级异步执行，避免阻塞数据加载
+            // UI 更新由 XAML 绑定自动处理
+            // 但如果需要触发特定非绑定逻辑（如信息栏刷新），保持异步调用
             Dispatcher.InvokeAsync(() =>
             {
                 if (SecondFileBrowser == null) return;
-
-                // 再次验证当前活动的标签页是否仍然是这个库
-                if (_secondTabService?.ActiveTab?.Library != library)
-                {
-                    return;
-                }
-
-                try
-                {
-                    // 防止修改地址栏触发路径导航导致递归死循环
-                    SecondFileBrowser.PathChanged -= SecondFileBrowser_PathChanged;
-
-                    // 更新 UI 状态
-                    SecondFileBrowser.NavUpEnabled = false;
-                    SecondFileBrowser.SetSearchStatus(false);
-                    SecondFileBrowser.AddressText = library.Name;
-                    SecondFileBrowser.IsAddressReadOnly = true;
-                    // 使用 SetLibraryBreadcrumb 确保面包屑显示库名
-                    SecondFileBrowser.SetLibraryBreadcrumb(library.Name);
-
-                    // 恢复事件监听
-                    SecondFileBrowser.PathChanged += SecondFileBrowser_PathChanged;
-
-                    // 设置属性按钮可见性
-                    SecondFileBrowser.SetPropertiesButtonVisibility(Visibility.Visible);
-
-                    // 显式更新副面板为库信息
-                    _secondFileInfoService?.ShowLibraryInfo(library);
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[MainWindow] LoadSecondFileBrowserLibrary error: {ex.Message}");
-                }
+                _secondFileInfoService?.ShowLibraryInfo(library);
             }, System.Windows.Threading.DispatcherPriority.Background);
         }
 
@@ -980,21 +814,8 @@ namespace YiboFile
 
             try
             {
-                // 更新 UI 状态
-                if (SecondFileBrowser != null)
-                {
-                    SecondFileBrowser.PathChanged -= SecondFileBrowser_PathChanged;
-                    SecondFileBrowser.NavUpEnabled = false;
-                    SecondFileBrowser.SetSearchStatus(false);
-                    SecondFileBrowser.AddressText = tag.Name;
-                    SecondFileBrowser.IsAddressReadOnly = true;
-                    SecondFileBrowser.UpdateBreadcrumb(tag.Name);
-                    SecondFileBrowser.SetPropertiesButtonVisibility(Visibility.Collapsed); // 标签不支持属性
-                    SecondFileBrowser.PathChanged += SecondFileBrowser_PathChanged;
-                }
-
-                // 构造标签项以显示信息
-                var tagItem = new FileSystemItem
+                // UI 更新由 XAML 绑定自动处理
+                _secondFileInfoService?.ShowFileInfo(new FileSystemItem
                 {
                     Name = tag.Name,
                     Path = $"tag://{tag.Name}",
@@ -1002,11 +823,7 @@ namespace YiboFile
                     IsDirectory = true,
                     Size = "-",
                     Tags = tag.Name
-                };
-                _secondFileInfoService?.ShowFileInfo(tagItem);
-
-                // 加载文件 - 委托给 ViewModel，此处不再手动加载
-                // 移除手动加载逻辑，避免卡死
+                });
             }
             catch (Exception ex)
             {

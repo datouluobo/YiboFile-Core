@@ -113,7 +113,7 @@ namespace YiboFile.ViewModels
             // 初始化防抖定时器
             _refreshDebounceTimer = new DispatcherTimer
             {
-                Interval = TimeSpan.FromMilliseconds(3000)
+                Interval = TimeSpan.FromMilliseconds(500)
             };
             _refreshDebounceTimer.Tick += (s, e) =>
             {

@@ -663,12 +663,20 @@ namespace YiboFile.Controls
 
         private void ColumnHeader_Click(object sender, RoutedEventArgs e)
         {
-            // 通过 EventSetter 调用时，sender 就是 GridViewColumnHeader
-            if (sender is GridViewColumnHeader header)
+            // Try to get header from sender (EventSetter) or OriginalSource (Bubbled event)
+            GridViewColumnHeader header = sender as GridViewColumnHeader;
+            if (header == null && e.OriginalSource is GridViewColumnHeader h)
+            {
+                header = h;
+            }
+
+            if (header != null && header.Role != GridViewColumnHeaderRole.Padding)
             {
                 GridViewColumnHeaderClick?.Invoke(header, e);
             }
         }
+
+        // InitializeColumnReorderHeaderListener removed (merged into existing one at bottom)
 
         private void Header_Click(object sender, RoutedEventArgs e)
         {
@@ -887,18 +895,27 @@ namespace YiboFile.Controls
             }
 
             // 触发重命名提交请求 (MVVM)
-            var messageBus = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService<YiboFile.ViewModels.Messaging.IMessageBus>(App.ServiceProvider);
-            messageBus?.Publish(new YiboFile.ViewModels.Messaging.Messages.RenameItemRequestMessage(item, item.RenameText));
+            // 优先尝试从 DataContext 获取 MessageBus (PaneViewModel)
+            if (DataContext is YiboFile.ViewModels.PaneViewModel paneVm)
+            {
+                paneVm.MessageBus.Publish(new YiboFile.ViewModels.Messaging.Messages.RenameItemRequestMessage(item, item.RenameText));
+            }
+            else
+            {
+                // Fallback: 如果 DataContext 设置不正确，使用 ServiceProvider (不推荐，但在重构过渡期保留作为最后手段)
+                var messageBus = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService<YiboFile.ViewModels.Messaging.IMessageBus>(App.ServiceProvider);
+                messageBus?.Publish(new YiboFile.ViewModels.Messaging.Messages.RenameItemRequestMessage(item, item.RenameText));
+            }
 
-            // 重置状态 (实际重命名逻辑完成后，或者失败后，由外部控制或者这里暂时关闭用于UI反馈)
-            // 这里先关闭编辑状态，外部逻辑如果失败可以再次重新开启或者报错
+            // 重置状态
             item.IsRenaming = false;
         }
 
         private void CancelRenameLogic(FileSystemItem item)
         {
+            if (item == null) return;
             item.IsRenaming = false;
-            // Revert text? Actually IsRenaming=false hides the box, so text doesn't matter much unless reused.
+            // Revert text
             item.RenameText = item.Name;
         }
 
@@ -1171,6 +1188,10 @@ namespace YiboFile.Controls
         private void InitializeColumnReorderHeaderListener()
         {
             if (FilesListView == null) return;
+
+            // Register Sorting Click Event
+            FilesListView.RemoveHandler(GridViewColumnHeader.ClickEvent, new RoutedEventHandler(ColumnHeader_Click));
+            FilesListView.AddHandler(GridViewColumnHeader.ClickEvent, new RoutedEventHandler(ColumnHeader_Click));
 
             // 延迟查找 HeaderRowPresenter 并设置事件监听
             this.Dispatcher.BeginInvoke(new Action(() =>

@@ -102,14 +102,13 @@ namespace YiboFile
         internal Handlers.ColumnInteractionHandler _secondColumnInteractionHandler;
         internal Handlers.WindowLifecycleHandler _windowLifecycleHandler;
         internal Handlers.FileOperationHandler _fileOperationHandler;
-        private SelectionEventHandler _selectionEventHandler;
 
         // 统一文件操作服务 (新架构)
         internal Services.FileOperations.FileOperationService _fileOperationService;
 
         // MVVM 架构
         private MainWindowViewModel _viewModel;
-        private IMessageBus _messageBus;
+        internal IMessageBus _messageBus;
         private NavigationModule _navigationModule;
         private TabsModule _tabsModule;
         private FileListModule _fileListModule;
@@ -323,15 +322,17 @@ namespace YiboFile
         /// </summary>
         private void InitializeMvvmModules()
         {
-            // 获取消息总线
-            _messageBus = App.ServiceProvider?.GetService<IMessageBus>() ?? MessageBus.Instance;
-
             // 创建 RightPanelViewModel
             var rightPanelVM = new RightPanelViewModel(_messageBus, ConfigurationService.Instance, _fileListService);
 
 
             // 创建 ViewModel
-            _viewModel = new MainWindowViewModel(_messageBus, rightPanelVM);
+            _viewModel = new MainWindowViewModel(
+                _messageBus,
+                rightPanelVM,
+                _previewService,
+                _fileListService,
+                _folderSizeCalculationService);
             // DataContext assignment moved to end of method to ensure all properties are set
 
             // 创建并注册导航模块
@@ -856,7 +857,7 @@ namespace YiboFile
             if (FileBrowser == null || FileBrowser.FilesList == null) return;
             var selectedItems = FileBrowser.FilesList.SelectedItems;
 
-            _selectionEventHandler?.HandleSelectionChanged(selectedItems);
+            _viewModel?.SelectionHandler?.HandleSelectionChanged(selectedItems);
         }
 
 
@@ -1063,7 +1064,7 @@ namespace YiboFile
             {
                 browser.FilesList.SelectedItem = null;
                 browser.FilesList.SelectedItems.Clear();
-                _selectionEventHandler?.HandleNoSelection();
+                _viewModel?.SelectionHandler?.HandleNoSelection();
             }
 
             var result = await _fileOperationService.DeleteAsync(items, permanent);

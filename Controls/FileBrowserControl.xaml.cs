@@ -386,7 +386,5 @@ namespace YiboFile.Controls
             }
         }
 
-        [Obsolete("This field is deprecated and will be removed after MVVM migration is complete")]
-        private object _filterChangedStub;
     }
 }

@@ -22,6 +22,8 @@ using YiboFile.Services.Preview;
 using YiboFile.Services.ColumnManagement;
 using YiboFile.Services.Config;
 using YiboFile.Services.Archive; // Import Archive Service
+using YiboFile.ViewModels.Messaging;
+using YiboFile.ViewModels.Messaging.Messages;
 
 
 using YiboFile.Helpers;
@@ -97,6 +99,13 @@ namespace YiboFile
 
         private void InitializeServices()
         {
+            // 初始化消息总线 (MVVM 核心)
+            _messageBus = App.ServiceProvider?.GetService<IMessageBus>() ?? ViewModels.Messaging.MessageBus.Instance;
+            if (_messageBus == null)
+            {
+                _messageBus = ViewModels.Messaging.MessageBus.Instance;
+            }
+
             // 初始化统一导航协调器
             _navigationCoordinator = App.ServiceProvider.GetRequiredService<NavigationCoordinator>();
 
@@ -167,15 +176,99 @@ namespace YiboFile
             // 初始化 UI 辅助服务（需要在 InitializeComponent 之后，因为需要 FileBrowser）
             _uiHelperService = new Services.UIHelper.UIHelperService(FileBrowser, this.Dispatcher);
 
+            // Initialize Info Services
+            var tagService = App.ServiceProvider?.GetService<YiboFile.Services.Features.ITagService>();
+            _fileInfoService = new Services.FileInfo.FileInfoService(FileBrowser, _fileListService, _navigationCoordinator, tagService);
+
+            if (SecondFileBrowser != null)
+            {
+                _secondFileInfoService = new Services.FileInfo.FileInfoService(SecondFileBrowser, _fileListService, _navigationCoordinator, tagService);
+            }
+
+            // Subscribe to Information Panel update messages (MVVM Bridge)
+            _messageBus.Subscribe<ShowFileInfoMessage>(msg =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    if (msg.Pane == YiboFile.Services.Navigation.PaneId.Second)
+                        _secondFileInfoService?.ShowFileInfo(msg.Item);
+                    else
+                        _fileInfoService?.ShowFileInfo(msg.Item);
+                });
+            });
+            _messageBus.Subscribe<ShowLibraryInfoMessage>(msg =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    if (msg.Pane == YiboFile.Services.Navigation.PaneId.Second)
+                        _secondFileInfoService?.ShowLibraryInfo(msg.Library);
+                    else
+                        _fileInfoService?.ShowLibraryInfo(msg.Library);
+                });
+            });
+
+            // Subscribe to Preview Navigation Requests
+            _messageBus.Subscribe<PreviewNavigationRequestMessage>(msg =>
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    var activeBrowser = GetActiveFileOperationContext().TargetPath == _viewModel?.SecondaryPane?.CurrentPath
+                                        ? SecondFileBrowser : FileBrowser;
+                    if (activeBrowser != null && activeBrowser.FilesList != null)
+                    {
+                        var list = activeBrowser.FilesList;
+                        if (list.Items.Count == 0) return;
+
+                        int newIndex = -1;
+                        if (list.SelectedIndex == -1)
+                        {
+                            newIndex = 0;
+                        }
+                        else
+                        {
+                            newIndex = msg.IsNext ? list.SelectedIndex + 1 : list.SelectedIndex - 1;
+                        }
+
+                        if (newIndex >= 0 && newIndex < list.Items.Count)
+                        {
+                            list.SelectedIndex = newIndex;
+                            list.ScrollIntoView(list.Items[newIndex]);
+                        }
+                    }
+                });
+            });
+
+            // Subscribe to Open File Requests
+            _messageBus.Subscribe<OpenFileRequestMessage>(msg =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    if (!string.IsNullOrEmpty(msg.FilePath))
+                    {
+                        try
+                        {
+                            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                            {
+                                FileName = msg.FilePath,
+                                UseShellExecute = true
+                            });
+                        }
+                        catch (Exception ex)
+                        {
+                            DialogService.Error($"无法打开文件: {ex.Message}", owner: this);
+                        }
+                    }
+                });
+            });
+
 
             // tagUIHandler 初始化已注释 - Phase 2将重新实现
             // var tagUIHandlerContext = new TagUIHandlerContextImpl(this);
             // _tagUIHandler = new Services.Tag.TagUIHandler(tagUIHandlerContext);
 
             // 初始化预览服务（使用 MVVM 模式）
-            var messageBus = App.ServiceProvider.GetRequiredService<YiboFile.ViewModels.Messaging.IMessageBus>();
             _previewService = new Services.Preview.PreviewService(
-                messageBus,
+                _messageBus,
                 this.Dispatcher,
                 LoadCurrentDirectory,
                 path => CreateTab(path, true)
@@ -255,7 +348,7 @@ namespace YiboFile
                     UpdateTabStyles();
 
                     // 切换标签页时自动刷新信息面板（处理空选状态）
-                    _selectionEventHandler?.HandleNoSelection();
+                    _viewModel?.SelectionHandler?.HandleNoSelection();
 
                     // 切换标签页时自动聚焦主文件列表
                     if (IsDualListMode && IsSecondPaneFocused)
@@ -411,22 +504,7 @@ namespace YiboFile
                 _navigationCoordinator.HandlePathNavigation(path, NavigationSource.QuickAccess, ClickType.LeftClick, forceNewTab: true);
             };
 
-            _navigationCoordinator.PathNavigateRequested += (path, forceNewTab, activate) =>
-            {
-                if (forceNewTab)
-                {
-                    CreateTab(path, true, activate);
-                }
-                else
-                {
-                    // 统一使用 NavigateToPath，该方法会根据当前标签页状态决定是激活还是刷新
-                    NavigateToPath(path);
-                }
-            };
-            _navigationCoordinator.LibraryNavigateRequested += (library, forceNewTab, activate) =>
-            {
-                OpenLibraryInTab(library, forceNewTab, activate);
-            };
+
             _navigationCoordinator.FileOpenRequested += (filePath) =>
             {
                 try

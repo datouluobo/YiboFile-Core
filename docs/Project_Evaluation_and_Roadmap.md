@@ -1,6 +1,6 @@
 # YiboFile 项目评估与重构路线图
 
-> **当前版本**: v1.0.401 (架构调整阶段) | **更新日期**: 2026-02-08  
+> **当前版本**: v1.0.403 (架构调整阶段) | **更新日期**: 2026-02-08  
 > **下一版本**: v1.1.0 (目标：Core 完全解耦)  
 
 ---
@@ -35,7 +35,7 @@
 |------|------|----------|--------|
 | **Phase 1: Code-Behind** | v0.x | WinForms 风格，所有逻辑在 `MainWindow.xaml.cs` | ✅ 历史阶段 |
 | **Phase 2: Partial MVVM** | v1.0.1 - v1.0.330 | 引入 `PaneViewModel`，部分功能命令化 | ✅ 90% 完成 |
-| **Phase 3: 混合架构** | **v1.0.401 (当前)** | **架构调整阶段** - 控制器驱动 VM + 消息总线副作用 | 🟡 25% 完成 |
+| **Phase 3: 混合架构** | **v1.0.403 (当前)** | **架构调整阶段** - 控制器驱动 VM + 消息总线副作用 + 对话框修复 | 🟡 30% 完成 |
 | **Phase 3.5: Core 解耦** | **v1.1.0 (目标)** | MainWindow 上帝类完全解构，模块化重构完成 | ⏳ 规划中 |
 | **Phase 4: 全模块化** | v2.0+ | 所有功能插件化，支持 Pro/Ultra 动态扩展 | ⏳ 规划中 |
 
@@ -93,9 +93,9 @@ MessageBus <--- (Subscribe) --- Plugins/Other Modules/UI Components
 
 | 步骤 | 任务描述 | 涉及文件 | 预计工作量 | 状态 |
 |------|----------|----------|------------|------|
-| **3.1.1** | **提取 NavigationModule**：将 `MainWindow.Navigation.cs` (558行) 完全并入 `NavigationModule.cs`，通过 `MainWindowViewModel` 调度。 | MainWindow.Navigation.cs → NavigationModule.cs | 3h | ⏳ 进行中 |
-| **3.1.2** | **重构 Handler 初始化**：将 `MainWindow.Handlers.cs` (695行) 中的所有服务初始化移至 `App.xaml.cs` 或 `MainWindowViewModel` 的构造函数。 | MainWindow.Handlers.cs → App.xaml.cs | 4h | ⏳ 待启动 |
-| **3.1.3** | **模块化 LayoutMode**：将 `MainWindow.LayoutMode.cs` (1020行) 重构为 `LayoutModule`，由 `MainWindowViewModel` 持有。 | MainWindow.LayoutMode.cs → LayoutModule.cs | 5h | ⏳ 待启动 |
+| **3.1.1** | **提取 NavigationModule**：将 `MainWindow.Navigation.cs` 完全并入 `NavigationModule.cs`。 | MainWindow.Navigation.cs → NavigationModule.cs | 3h | ✅ 已完成 |
+| **3.1.2** | **重构 Handler 初始化**：将 `MainWindow.Handlers.cs` 中的所有服务初始化移至 `App.xaml.cs` 或 `MainWindowViewModel` 的构造函数。 | MainWindow.Handlers.cs → App.xaml.cs | 4h | ⏳ 待启动 |
+| **3.1.3** | **模块化 LayoutMode**：将 `MainWindow.LayoutMode.cs` 重构为 `LayoutModule`，由 `MainWindowViewModel` 持有。 | MainWindow.LayoutMode.cs → LayoutModule.cs | 5h | ⏳ 进行中 |
 | **3.1.4** | **清理事件订阅**：删除 `MainWindow` 中所有对 ViewModel 事件的订阅，改用 MessageBus 消息驱动。 | MainWindow.xaml.cs | 2h | ⏳ 待启动 |
 | **3.1.5** | **简化 MainWindow.xaml.cs**：最终目标是将其压缩至 < 150 行（仅保留窗口生命周期管理）。 | MainWindow.xaml.cs | 3h | ⏳ 待启动 |
 
@@ -131,7 +131,7 @@ MessageBus <--- (Subscribe) --- Plugins/Other Modules/UI Components
 | **3.3.1** | **定义导航消息**：`NavigationCompleteMessage`, `NavigationStatusChangedMessage` | ✅ 已完成 | ✅ v1.1.0 |
 | **3.3.2** | **定义文件操作消息**：`FileOperationRequestMessage`, `FileOperationCompleteMessage` | 待定义 | ⏳ 待启动 |
 | **3.3.3** | **定义布局消息**：`LayoutModeChangedMessage`, `PaneFocusChangedMessage` | 待定义 | ⏳ 待启动 |
-| **3.3.4** | **清理遗留事件**：删除 `NavigationCoordinator` 中的 `PathNavigateRequested` 等事件。 | - | ⏳ 待启动 |
+| **3.3.4** | **清理遗留事件**：删除 `NavigationCoordinator` 中的 `PathNavigateRequested` 等事件。 | - | ✅ 已完成 |
 
 **成功标准**：
 *   所有跨模块通讯通过 `IMessageBus` 实现。
@@ -159,7 +159,7 @@ MessageBus <--- (Subscribe) --- Plugins/Other Modules/UI Components
 | **BUG-002** | Pane | 副面板刷新与操作混乱 | 焦点管理依赖 WPF Focus 而非 VM.IsActive | 使用 `PaneViewModel.IsActive` 驱动所有操作上下文 | ⏳ 待修复 |
 | **BUG-003** | Library | 副面板库路径识别失败 | `FileOperationModule` 未正确解析 `lib://` 协议 | 在 Module 中增加协议解析逻辑 | ⏳ 待修复 |
 | **BUG-007** | Sorting | 文件名排序导致列表变空 | `CollectionView` 与 `ObservableCollection` 同步冲突 | 使用 `BindingOperations.EnableCollectionSynchronization` | ⏳ 待修复 |
-| **BUG-008** | Header | 列头点击误触发双击响应 | 事件冒泡未正确拦截 | 在 `GridViewColumnHeader_Click` 中设置 `e.Handled = true` | ⏳ 待修复 |
+| **BUG-008** | Header | 列头点击误触发双击响应 | 事件冒泡未正确拦截 | 在 `GridViewColumnHeader_Click` 中设置 `e.Handled = true` | ✅ 已修复 |
 
 ---
 
@@ -175,6 +175,11 @@ MessageBus <--- (Subscribe) --- Plugins/Other Modules/UI Components
 | **定义导航消息** | NavigationMessages.cs (+24行) | +24 | 2026-02-08 |
 | **重构 NavigationCoordinator** | NavigationCoordinator.cs (~80行修改) | +80 / -120 | 2026-02-08 |
 | **增强 PaneViewModel 导航状态** | PaneViewModel.cs (+15行) | +15 | 2026-02-08 |
+| **重构 NavigationModule** | NavigationModule.cs (+150行) | +150 / -220 | 2026-02-08 |
+| **重构文件重命名逻辑** | FileOperationModule.cs / FileListControl.xaml.cs | +60 / -40 | 2026-02-08 |
+| **优化文件监视器防抖** | FileListViewModel.cs (3000ms -> 500ms) | 1 | 2026-02-08 |
+| **修复列头事件处理** | FileListControl.xaml.cs (BUG-008) | +20 | 2026-02-08 |
+| **清理 NavigationCoordinator 事件** | NavigationCoordinator.cs / MainWindow.Initialization.cs | -25 | 2026-02-08 |
 
 **净效果**：
 *   代码总行数：-615 行

@@ -190,8 +190,28 @@ namespace YiboFile.ViewModels.Modules
             }
             else
             {
-                // 执行实际重命名逻辑
-                await _fileOperationService.RenameAsync(message.Item, message.NewName);
+                // Optimistic UI Update: 立即更新 UI 显示以获得更好的响应性
+                string oldName = message.Item.Name;
+                message.Item.Name = message.NewName;
+
+                var result = await _fileOperationService.RenameAsync(message.Item, message.NewName);
+
+                if (!result.Success)
+                {
+                    // 失败回退
+                    message.Item.Name = oldName;
+                }
+                else
+                {
+                    // 成功后更新 Path 以保持一致性 (虽然 Refresh 随后会重载列表)
+                    try
+                    {
+                        string dir = System.IO.Path.GetDirectoryName(message.Item.Path);
+                        if (!string.IsNullOrEmpty(dir))
+                            message.Item.Path = System.IO.Path.Combine(dir, message.NewName);
+                    }
+                    catch { }
+                }
             }
         }
 

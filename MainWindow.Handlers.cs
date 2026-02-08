@@ -58,289 +58,12 @@ namespace YiboFile
                 SecondTabManager.CloseOverlayRequested += (s, e) => CloseOverlays();
             }
 
-            // FileBrowserEventHandler migrated to MVVM
+            // [Already moved to Initialization.cs] FileInfoServices and Message Subscriptions
 
-
-            // Initialize Info Services
-            var tagService = App.ServiceProvider?.GetService<YiboFile.Services.Features.ITagService>();
-            _fileInfoService = new Services.FileInfo.FileInfoService(FileBrowser, _fileListService, _navigationCoordinator, tagService);
-
-            if (SecondFileBrowser != null)
-            {
-                _secondFileInfoService = new Services.FileInfo.FileInfoService(SecondFileBrowser, _fileListService, _navigationCoordinator, tagService);
-            }
-
-            _selectionEventHandler = new SelectionEventHandler(
-                _previewService,
-                _messageBus,
-                _fileListService,
-                () => _currentFiles,
-                () => _currentPath,
-                () => _currentLibrary,
-                () => IsDualListMode,
-                path => _folderSizeCalculationService != null ? _folderSizeCalculationService.CalculateAndUpdateFolderSizeAsync(path) : Task.CompletedTask,
-                item => _fileInfoService?.ShowFileInfo(item),
-                lib => _fileInfoService?.ShowLibraryInfo(lib)
-            );
-
-            // Subscribe to Preview Navigation Requests
-            _messageBus.Subscribe<PreviewNavigationRequestMessage>(msg =>
-            {
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    var activeBrowser = GetActiveContext().browser;
-                    if (activeBrowser != null && activeBrowser.FilesList != null)
-                    {
-                        var list = activeBrowser.FilesList;
-                        if (list.Items.Count == 0) return;
-
-                        int newIndex = -1;
-                        if (list.SelectedIndex == -1)
-                        {
-                            newIndex = 0;
-                        }
-                        else
-                        {
-                            newIndex = msg.IsNext ? list.SelectedIndex + 1 : list.SelectedIndex - 1;
-                        }
-
-                        if (newIndex >= 0 && newIndex < list.Items.Count)
-                        {
-                            list.SelectedIndex = newIndex;
-                            list.ScrollIntoView(list.Items[newIndex]);
-                        }
-                    }
-                });
-            });
-
-            // Subscribe to Open File Requests
-            _messageBus.Subscribe<OpenFileRequestMessage>(msg =>
-            {
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    if (!string.IsNullOrEmpty(msg.FilePath))
-                    {
-                        try
-                        {
-                            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                            {
-                                FileName = msg.FilePath,
-                                UseShellExecute = true
-                            });
-                        }
-                        catch (Exception ex)
-                        {
-                            DialogService.Error($"无法打开文件: {ex.Message}", owner: this);
-                        }
-                    }
-                });
-            });
-
-            // 初始化 KeyboardEventHandler
-            _keyboardEventHandler = new Handlers.KeyboardEventHandler(
-                FileBrowser,
-                () => GetActiveContext().browser,
-                () => (IsDualListMode && IsSecondPaneFocused && _secondTabService != null) ? _secondTabService : _tabService,
-                tab =>
-                {
-                    var service = (IsDualListMode && IsSecondPaneFocused && _secondTabService != null) ? _secondTabService : _tabService;
-                    service?.CloseTab(tab);
-                },
-                path => CreateTab(path),
-                tab =>
-                {
-                    var service = (IsDualListMode && IsSecondPaneFocused && _secondTabService != null) ? _secondTabService : _tabService;
-                    service?.SwitchToTab(tab);
-                },
-                () => _viewModel?.ActivePane?.NewFolderCommand?.Execute(null),
-                () => RefreshActiveFileList(),
-                () => Copy_Click(null, null),
-                () => Paste_Click(null, null),
-                () => Cut_Click(null, null),
-                () => Delete_Click(null, null),
-                () => Delete_Click(null, null), // Shift+Del (Temporary fallback)
-                () => Rename_Click(null, null),
-                path => NavigateToPath(path),
-                mode => SwitchNavigationMode(mode),
-                () => _currentLibrary != null,
-                () => CloseOverlays(),
-                () => Back_Click_Logic(),
-                () => _fileOperationModule?.UndoCommand?.Execute(null),
-                () => _fileOperationModule?.RedoCommand?.Execute(null),
-                mode => SwitchLayoutModeByIndex(mode),
-                () => IsDualListMode,
-                () => SwitchFocusedPaneFromKeyboard()
-            );
-
-            _columnInteractionHandler = new Handlers.ColumnInteractionHandler(this, FileBrowser, _columnService);
-            _columnInteractionHandler.Initialize();
-            _columnInteractionHandler.HookHeaderThumbs(); // 挂载列头拖拽事件
-
-            _mouseEventHandler = new Handlers.MouseEventHandler(
-                () => WindowMaximize_Click(null, null),
-                () => this.DragMove(),
-                () => NavigationPanelControl?.QuickAccessListBox,
-                _navigationCoordinator,
-                fav => _navigationCoordinator.HandleFavoriteNavigation(fav, Services.Navigation.ClickType.LeftClick),
-                path => NavigateToPath(path)
-            );
-
-            // 初始化 Second ColumnInteractionHandler
-            if (SecondFileBrowser != null)
-            {
-                _secondColumnInteractionHandler = new Handlers.ColumnInteractionHandler(this, SecondFileBrowser, _columnService);
-
-                _secondColumnInteractionHandler.Initialize();
-                _secondColumnInteractionHandler.Initialize();
-                _secondColumnInteractionHandler.HookHeaderThumbs();
-
-                // Wire up SecondFileBrowser Tag Click
-                SecondFileBrowser.TagClicked += (s, tag) =>
-                {
-                    if (tag != null && !string.IsNullOrEmpty(tag.Name))
-                    {
-                        // Navigate in Second Pane
-                        _navigationCoordinator.HandlePathNavigation(
-                            $"tag://{tag.Name}",
-                            NavigationSource.AddressBar,
-                            ClickType.LeftClick,
-                            pane: YiboFile.Services.Navigation.PaneId.Second
-                        );
-                    }
-                };
-
-                // Wire up SecondFileBrowser Sorting
-                SecondFileBrowser.GridViewColumnHeaderClick += SecondGridViewColumnHeader_Click;
-
-            }
-
-            // 初始化 WindowLifecycleHandler
-            _windowLifecycleHandler = new Handlers.WindowLifecycleHandler(this, _windowStateManager, _columnService);
-
-
-            // 初始化统一文件操作服务 (新架构) - 逐步迁移中
-            var errorService = App.ServiceProvider.GetRequiredService<YiboFile.Services.Core.Error.ErrorService>();
-            var undoService = App.ServiceProvider.GetService(typeof(YiboFile.Services.FileOperations.Undo.UndoService)) as YiboFile.Services.FileOperations.Undo.UndoService;
-            var taskQueueService = App.ServiceProvider.GetService(typeof(YiboFile.Services.FileOperations.TaskQueue.TaskQueueService)) as YiboFile.Services.FileOperations.TaskQueue.TaskQueueService;
-
-            // 初始化 FileOperationHandler
-            _fileOperationHandler = new Handlers.FileOperationHandler(this, undoService, _fileOperationService);
-
-
-
-
-            // 初始化 Main FileListEventHandler
-            _mainFileListHandler = new Handlers.FileListEventHandler(
-                FileBrowser,
-                _navigationCoordinator,
-                () => _currentLibrary != null, // IsLibraryMode
-                mode => SwitchNavigationMode(mode),
-                path => NavigateToPath(path),
-                () => Back_Click_Logic(),
-                col => AutoSizeGridViewColumn(col),
-                () => _currentPath,
-                () => ShowSelectedFileProperties(),
-                (path, force, activate) => CreateTab(path, force, activate) // Main Browser CreateTab
-            );
-            _mainFileListHandler.Initialize(FileBrowser.FilesList);
-
-            // 初始化 Second FileListEventHandler
-            if (SecondFileBrowser != null)
-            {
-                _secondFileListHandler = new Handlers.FileListEventHandler(
-                    SecondFileBrowser,
-                    _navigationCoordinator,
-                    () => _viewModel?.SecondaryPane?.NavigationMode == "Library", // IsLibraryMode
-                    mode => // SwitchNavigationMode
-                    {
-                        // Basic mode switch if needed, though usually handled by NavigationModeService
-                        if (mode == "Length") { /* handled elsewhere */ }
-                    },
-                    path =>
-                    {
-                        // 直接调用路径加载，避免递归调用 ViewModel
-                        LoadSecondFileBrowserDirectory(path);
-                    },
-                    () => { /* Second Browser Back Logic? */ },
-                    col => AutoSizeGridViewColumn(col), // Helper might need adjustment for second browser context
-                    () => _viewModel?.SecondaryPane?.CurrentPath,
-                    () => ShowSelectedFileProperties(), // Use the new method
-                    (path, force, activate) => // Second Browser CreateTab
-                    {
-                        bool shouldActivate = activate ?? ConfigurationService.Instance.Config?.ActivateNewTabOnMiddleClick ?? true;
-                        _secondTabService?.CreatePathTab(path, force, false, shouldActivate);
-                    },
-
-                    YiboFile.Services.Navigation.PaneId.Second
-                );
-                _secondFileListHandler.Initialize(SecondFileBrowser.FilesList);
-            }
-
-            var backupService = App.ServiceProvider.GetService(typeof(YiboFile.Services.Backup.IBackupService)) as YiboFile.Services.Backup.IBackupService;
-
-            _fileOperationService = new Services.FileOperations.FileOperationService(
-                () =>
-                    {
-                        var (browser, path, library) = GetActiveContext();
-                        return new Services.FileOperations.FileOperationContext
-                        {
-                            TargetPath = path,
-                            CurrentLibrary = library,
-                            OwnerWindow = this,
-                            RefreshCallback = RefreshActiveFileList
-                        };
-                    },
-                    errorService,
-                    undoService,
-                    taskQueueService,
-                    backupService
-                );
-
-            // 监听撤销/重做事件以刷新UI
-            // 监听撤销/重做事件以刷新UI
-            if (undoService != null)
-            {
-                undoService.ActionUndone += (s, e) =>
-                {
-                    Application.Current?.Dispatcher?.Invoke(() => RefreshActiveFileList());
-                };
-                undoService.ActionRedone += (s, e) =>
-                {
-                    Application.Current?.Dispatcher?.Invoke(() => RefreshActiveFileList());
-                };
-
-                // 定义更新 Undo/Redo 按钮状态的方法
-                void UpdateUndoUI()
-                {
-                    Application.Current?.Dispatcher?.Invoke(() =>
-                    {
-                        if (FileBrowser != null)
-                        {
-                            FileBrowser.UndoEnabled = undoService.CanUndo;
-                            FileBrowser.RedoEnabled = undoService.CanRedo;
-                            FileBrowser.UndoToolTipText = undoService.CanUndo ? $"撤销 {undoService.NextUndoDescription}" : "撤销";
-                            FileBrowser.RedoToolTipText = undoService.CanRedo ? $"重做 {undoService.NextRedoDescription}" : "重做";
-                        }
-                    });
-                }
-
-                // 订阅 StackChanged 事件
-                undoService.StackChanged += (s, e) => UpdateUndoUI();
-
-                // 初始化状态
-                UpdateUndoUI();
-            }
-
-
-            // [已移除] MenuEventHandler 初始化 - 功能已由 PaneViewModel Command 接管
-            // 右键菜单和工具栏操作现在完全通过 XAML 绑定到 ViewModel 的 ICommand
-
-
-            // 定义获取当前活动标签页服务的逻辑
+            // 初始化 KeyboardEventHandler (SSOT)
             Func<Services.Tabs.TabService> getActiveTabService = () =>
                 (IsDualListMode && IsSecondPaneFocused && _secondTabService != null) ? _secondTabService : _tabService;
 
-            // 初始化 KeyboardEventHandler
             _keyboardEventHandler = new YiboFile.Handlers.KeyboardEventHandler(
                 FileBrowser,
                 () => GetActiveContext().browser, // NEW: Active browser delegate
@@ -368,21 +91,93 @@ namespace YiboFile
                 () => _layoutModule?.SwitchFocusedPane() // switchDualPaneFocus 回调
             );
 
+            _columnInteractionHandler = new Handlers.ColumnInteractionHandler(this, FileBrowser, _columnService);
+            _columnInteractionHandler.Initialize();
+            _columnInteractionHandler.HookHeaderThumbs(); // 挂载列头拖拽事件
+
             // 初始化 MouseEventHandler
-            _mouseEventHandler = new HandlerMouseEventHandler(
+            _mouseEventHandler = new Handlers.MouseEventHandler(
                 () => WindowMaximize_Click(null, null),
-                () => DragMove(),
-                // () => FavoritesListBox, // Removed
-                () => QuickAccessListBox,
+                () => this.DragMove(),
+                () => NavigationPanelControl?.QuickAccessListBox,
                 _navigationCoordinator,
-                (fav) => _navigationCoordinator.HandleFavoriteNavigation(fav, ClickType.LeftClick),
-                (path) => _navigationCoordinator.HandlePathNavigation(path, NavigationSource.QuickAccess, ClickType.LeftClick)
+                fav => _navigationCoordinator.HandleFavoriteNavigation(fav, Services.Navigation.ClickType.LeftClick),
+                path => _navigationCoordinator.HandlePathNavigation(path, NavigationSource.QuickAccess, ClickType.LeftClick)
             );
 
-            // TagTrainEventHandler 初始化已移除 - Phase 2将重新实现
+            // 初始化 Second ColumnInteractionHandler
+            if (SecondFileBrowser != null)
+            {
+                _secondColumnInteractionHandler = new Handlers.ColumnInteractionHandler(this, SecondFileBrowser, _columnService);
+                _secondColumnInteractionHandler.Initialize();
+                _secondColumnInteractionHandler.HookHeaderThumbs();
+
+                // Wire up SecondFileBrowser Tag Click
+                SecondFileBrowser.TagClicked += (s, tag) =>
+                {
+                    if (tag != null && !string.IsNullOrEmpty(tag.Name))
+                    {
+                        // Navigate in Second Pane
+                        _navigationCoordinator.HandlePathNavigation(
+                            $"tag://{tag.Name}",
+                            NavigationSource.AddressBar,
+                            ClickType.LeftClick,
+                            pane: YiboFile.Services.Navigation.PaneId.Second
+                        );
+                    }
+                };
+
+                // Wire up SecondFileBrowser Sorting
+                SecondFileBrowser.GridViewColumnHeaderClick += SecondGridViewColumnHeader_Click;
+            }
+
+            // 初始化 WindowLifecycleHandler
+            _windowLifecycleHandler = new Handlers.WindowLifecycleHandler(this, _windowStateManager, _columnService);
+
+            // 初始化 FileOperationHandler
+            _fileOperationHandler = new Handlers.FileOperationHandler(this, App.ServiceProvider.GetService<YiboFile.Services.FileOperations.Undo.UndoService>(), _fileOperationService);
+
+            // 初始化 Main FileListEventHandler
+            _mainFileListHandler = new Handlers.FileListEventHandler(
+                FileBrowser,
+                _navigationCoordinator,
+                () => _currentLibrary != null, // IsLibraryMode
+                mode => SwitchNavigationMode(mode),
+                path => NavigateToPath(path),
+                () => Back_Click_Logic(),
+                col => AutoSizeGridViewColumn(col),
+                () => _currentPath,
+                () => ShowSelectedFileProperties(),
+                (path, force, activate) => CreateTab(path, force, activate) // Main Browser CreateTab
+            );
+            _mainFileListHandler.Initialize(FileBrowser.FilesList);
+
+            // 初始化 Second FileListEventHandler
+            if (SecondFileBrowser != null)
+            {
+                _secondFileListHandler = new Handlers.FileListEventHandler(
+                    SecondFileBrowser,
+                    _navigationCoordinator,
+                    () => _viewModel?.SecondaryPane?.NavigationMode == "Library", // IsLibraryMode
+                    mode => { /* handled elsewhere */ },
+                    path => LoadSecondFileBrowserDirectory(path),
+                    () => { /* Second Browser Back Logic? */ },
+                    col => AutoSizeGridViewColumn(col),
+                    () => _viewModel?.SecondaryPane?.CurrentPath,
+                    () => ShowSelectedFileProperties(),
+                    (path, force, activate) =>
+                    {
+                        bool shouldActivate = activate ?? ConfigurationService.Instance.Config?.ActivateNewTabOnMiddleClick ?? true;
+                        _secondTabService?.CreatePathTab(path, force, false, shouldActivate);
+                    },
+                    YiboFile.Services.Navigation.PaneId.Second
+                );
+                _secondFileListHandler.Initialize(SecondFileBrowser.FilesList);
+            }
 
             // Initialize Drag & Drop
             InitializeDragDrop();
+
             if (AboutPanel != null)
             {
                 AboutPanel.CloseRequested += (s, e) =>

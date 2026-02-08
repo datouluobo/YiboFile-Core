@@ -39,15 +39,16 @@
         </Style>
     </Window.Resources>
 
-    <Border Background="White" 
+    <Border Background="{DynamicResource DialogBackgroundBrush}" 
             CornerRadius="12" 
-            BorderBrush="#E0E0E0" 
+            BorderBrush="{DynamicResource BorderBrush}" 
             BorderThickness="1"
             Margin="20"
             MinWidth="320"
             MaxWidth="450">
         <Border.Effect>
-            <DropShadowEffect BlurRadius="15" Color="Black" Opacity="0.15" ShadowDepth="0"/>
+            <!-- Shadow color remains fixed as it's an effect, usually not themed differently in light/dark modes for simple shadows, but could use a resource if available -->
+            <DropShadowEffect BlurRadius="15" Color="#000000" Opacity="0.15" ShadowDepth="0"/>
         </Border.Effect>
         
         <Grid Margin="24">
@@ -74,7 +75,7 @@
                            x:Name="ConfirmTitle" 
                            FontSize="18"
                            FontWeight="Bold"
-                           Foreground="#333333"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
                            VerticalAlignment="Center"
                            TextWrapping="Wrap"/>
             </Grid>
@@ -83,7 +84,7 @@
             <TextBlock Grid.Row="1" 
                        x:Name="MessageTextBlock" 
                        FontSize="14"
-                       Foreground="#666666"
+                       Foreground="{DynamicResource TextSecondaryBrush}"
                        TextWrapping="Wrap"
                        LineHeight="20"
                        Margin="0,0,0,24"/>
@@ -95,17 +96,17 @@
                 <Button Content="取消" 
                         x:Name="CancelButton"
                         Click="Cancel_Click" 
-                        Background="#F5F5F5"
-                        Foreground="#333333"
-                        BorderBrush="#E0E0E0"
+                        Background="{DynamicResource BackgroundTertiaryBrush}"
+                        Foreground="{DynamicResource TextPrimaryBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="1"
                         Style="{StaticResource LocalButtonStyle}"/>
                 
                 <Button x:Name="ConfirmButton"
                         Content="确定" 
                         Click="Confirm_Click" 
-                        Background="#0078D4"
-                        Foreground="White"
+                        Background="{DynamicResource AccentBrush}"
+                        Foreground="{DynamicResource TextInverseBrush}"
                         BorderThickness="0"
                         Style="{StaticResource LocalButtonStyle}"/>
             </StackPanel>
