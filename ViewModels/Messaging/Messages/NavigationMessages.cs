@@ -37,6 +37,21 @@ namespace YiboFile.ViewModels.Messaging.Messages
     public record NavigateToPathMessage(string Path, bool AddToHistory = true);
 
     /// <summary>
+    /// 请求切换导航模式
+    /// </summary>
+    public record RequestNavigationModeMessage(string Mode);
+
+    /// <summary>
+    /// 请求切换布局模式
+    /// </summary>
+    public record RequestLayoutModeMessage(string Mode);
+
+    /// <summary>
+    /// 请求切换双列表模式
+    /// </summary>
+    public record RequestDualListToggleMessage();
+
+    /// <summary>
     /// 请求后退
     /// </summary>
     public record NavigateBackMessage();

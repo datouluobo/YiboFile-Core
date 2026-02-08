@@ -56,4 +56,27 @@ namespace YiboFile.ViewModels.Messaging.Messages
             IsSecondPane = isSecondPane;
         }
     }
+
+    /// <summary>
+    /// 双列表模式切换消息
+    /// </summary>
+    public class DualListModeToggledMessage
+    {
+        public bool IsEnabled { get; }
+
+        public DualListModeToggledMessage(bool isEnabled)
+        {
+            IsEnabled = isEnabled;
+        }
+    }
+
+    /// <summary>
+    /// 请求显示设置面板
+    /// </summary>
+    public record ShowSettingsMessage();
+
+    /// <summary>
+    /// 请求显示关于面板
+    /// </summary>
+    public record ShowAboutMessage();
 }

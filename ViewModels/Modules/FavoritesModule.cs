@@ -3,6 +3,8 @@ using System.Collections.ObjectModel;
 using System.Windows;
 using YiboFile.Services.Favorite;
 using YiboFile.ViewModels.Messaging;
+using YiboFile.ViewModels.Messaging.Messages;
+using System.Linq;
 
 namespace YiboFile.ViewModels.Modules
 {
@@ -31,8 +33,27 @@ namespace YiboFile.ViewModels.Modules
             // 订阅 Service 事件
             _favoriteService.FavoritesLoaded += OnFavoritesLoaded;
 
+            Subscribe<AddFavoriteRequestMessage>(OnAddFavoriteRequest);
+            Subscribe<CreateFavoriteGroupRequestMessage>(OnCreateFavoriteGroupRequest);
+
             // 初始加载
             LoadFavorites();
+        }
+
+        private void OnAddFavoriteRequest(AddFavoriteRequestMessage msg)
+        {
+            if (msg.Items == null || msg.Items.Count == 0) return;
+            _favoriteService.AddFavorite(msg.Items, msg.GroupId);
+        }
+
+        private void OnCreateFavoriteGroupRequest(CreateFavoriteGroupRequestMessage msg)
+        {
+            if (string.IsNullOrWhiteSpace(msg.Name)) return;
+            int newGroupId = _favoriteService.CreateGroup(msg.Name.Trim());
+            if (newGroupId != -1 && msg.InitialItems != null && msg.InitialItems.Count > 0)
+            {
+                _favoriteService.AddFavorite(msg.InitialItems, newGroupId);
+            }
         }
 
         protected override void OnShutdown()
@@ -59,6 +80,7 @@ namespace YiboFile.ViewModels.Modules
                 {
                     FavoriteGroups.Add(group);
                 }
+                Publish(new FavoritesUpdatedMessage());
             }
             catch (Exception ex)
             {

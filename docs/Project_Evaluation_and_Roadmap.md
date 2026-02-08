@@ -45,14 +45,85 @@
 
 ### 2.1 核心原则
 
-根据 `.antigravityrules` 文档，YiboFile 采用 **"控制器直接驱动 (Path C) + 消息总线解耦 (MessageBus)"** 的混合模式：
+**重要概念**：混合架构 ≠ 所有地方都用 Controller
 
-#### A. 控制逻辑 (Core Navigation/State Control)
+YiboFile 采用 **"分场景使用不同模式"** 的混合架构策略：
+
+#### 模式选择原则
+
+**Controller-driven 模式**（用于核心业务逻辑）：
+*   **适用场景**：导航控制、搜索执行、文件操作、复杂的状态机管理
+*   **判断标准**：
+    *   需要跨服务协调（如导航需要同时操作历史栈、缓存、文件加载）
+    *   包含复杂业务验证（如权限检查、状态前置条件）
+    *   涉及多个相关状态的联动更新
+    *   需要在 Core/Pro/Ultra 版本中扩展不同逻辑
+*   **实现方式**：创建独立的 Coordinator/Controller 类，通过消息总线接收请求，驱动 ViewModel 更新
+
+**传统 MVVM 模式**（用于简单 UI 状态）：
+*   **适用场景**：过滤器切换、视图模式变更、UI 偏好设置、简单表单输入
+*   **判断标准**：
+    *   逻辑简单，仅涉及单一属性或简单计算
+    *   无需跨服务协调
+    *   不包含复杂的业务规则验证
+    *   纯 UI 状态，不影响核心业务流程
+*   **实现方式**：ViewModel 直接处理属性变更和命令，通过消息总线发布通知消息
+
+#### A. 控制逻辑 (Core Navigation/State Control) - Controller-driven
+
 *   **主体**：独立服务类（如 `NavigationCoordinator`, `SearchModule`）。
 *   **行为**：作为"控制器"，直接持有或通过委托操作 `PaneViewModel` 实例。
 *   **原则**：核心状态（路径、加载状态、排序方式）通过直接修改 ViewModel 属性来触发绑定更新。**禁止在逻辑层直接操作控件实例**。
+*   **示例**：
+    ```csharp
+    // NavigationCoordinator 驱动 ViewModel
+    private void OnNavigateRequested(NavigateToPathMessage message)
+    {
+        // 业务验证
+        if (!IsValidPath(message.Path)) return;
+        
+        // 协调多个服务
+        _historyService.AddToHistory(message.Path);
+        _cacheService.InvalidateCache();
+        
+        // 驱动 ViewModel 更新
+        _paneViewModel.CurrentPath = message.Path;
+        
+        // 发布通知
+        _messageBus.Publish(new NavigationCompleteMessage(...));
+    }
+    ```
 
-#### B. 副作用与跨组件通讯 (Side Effects & Notifications)
+#### B. 简单状态管理 (Simple UI State) - 传统 MVVM
+
+*   **主体**：ViewModel 类（如 `SearchViewModel`, `FilterViewModel`）。
+*   **行为**：直接在 ViewModel 中处理属性变更和简单命令。
+*   **原则**：简单逻辑不需要额外的 Coordinator 层，避免过度设计。
+*   **示例**：
+    ```csharp
+    // SearchViewModel 直接处理过滤器变更
+    public FileTypeFilter TypeFilter
+    {
+        get => _typeFilter;
+        set
+        {
+            if (SetProperty(ref _typeFilter, value))
+            {
+                // ViewModel 直接发布通知消息
+                NotifyOptionsChanged();
+            }
+        }
+    }
+    
+    private void NotifyOptionsChanged()
+    {
+        var options = BuildSearchOptions();
+        _messageBus.Publish(new SearchOptionsChangedMessage(options, _targetPaneId));
+    }
+    ```
+
+#### C. 副作用与跨组件通讯 (Side Effects & Notifications)
+
 *   **主体**：`IMessageBus` (Mediator 模式)。
 *   **行为**：逻辑执行完毕后，发布特定消息（如 `NavigationCompleteMessage`, `FileChangedMessage`）。
 *   **用途**：
@@ -60,28 +131,99 @@
     *   触发插件逻辑（特别是在 **Ultra** 版本中）。
     *   多窗口/多面板间的状态同步。
 
-### 2.2 分层依赖关系
+### 2.2 架构决策矩阵
+
+| 功能场景 | 推荐模式 | 理由 | 实现示例 |
+|---------|---------|------|---------|
+| **导航路径切换** | Controller-driven | 需要协调历史栈、缓存、文件加载等多个服务 | `NavigationCoordinator` |
+| **搜索执行** | Controller-driven | 需要验证索引状态、权限，协调搜索服务和缓存 | `SearchModule` |
+| **文件操作** | Controller-driven | 需要验证权限、处理冲突、更新多个状态 | `FileOperationCoordinator` |
+| **过滤器变更** | 传统 MVVM | 简单 UI 状态，仅需构建选项并发布通知 | `SearchViewModel.TypeFilter` |
+| **视图模式切换** | 传统 MVVM | 简单属性切换，无复杂逻辑 | `PaneViewModel.FileViewMode` |
+| **清空搜索** | 传统 MVVM | 简单属性赋值 | `SearchViewModel.ClearSearchCommand` |
+| **范围预设** | Controller-driven | 需要协调多个相关状态（SearchNames, SearchFolders, TypeFilter） | `SearchCoordinator.SetScopePreset` |
+| **主题切换** | 传统 MVVM | 简单配置更新，无业务验证 | `AppearanceViewModel.CurrentTheme` |
+| **布局模式切换** | 看情况 | 如果仅状态切换→MVVM；如果需要协调面板显示→Controller | 评估后决定 |
+
+### 2.3 分层依赖关系
 
 ```
-Logic Services (NavigationCoordinator, SearchModule)
-       |
-       v (直接操作)
-ViewModels (PaneViewModel, MainWindowViewModel)
-       |
-       v (数据绑定)
-XAML Views (FileBrowserControl, AddressBarControl)
-       
-       
-Logic Services
-       |
-       v (Publish)
-MessageBus <--- (Subscribe) --- Plugins/Other Modules/UI Components
+Controller-driven 场景：
+┌─────────────────────────────────────┐
+│  View (Command/Binding)              │
+└────────────┬────────────────────────┘
+             │ Publish Request
+             ▼
+      ┌─────────────┐
+      │ MessageBus  │
+      └──────┬──────┘
+             │ Subscribe
+             ▼
+┌─────────────────────────────────────┐
+│  Coordinator/Controller              │
+│  - 业务验证                           │
+│  - 服务协调                           │
+│  - 驱动 ViewModel                    │
+└────────┬────────────────────────────┘
+         │ Update State
+         ▼
+┌─────────────────────────────────────┐
+│  ViewModel (仅状态)                  │
+└────────┬────────────────────────────┘
+         │ Data Binding
+         ▼
+┌─────────────────────────────────────┐
+│  View (UI Update)                    │
+└─────────────────────────────────────┘
+
+传统 MVVM 场景：
+┌─────────────────────────────────────┐
+│  View (Command/Binding)              │
+└────────────┬────────────────────────┘
+             │ Data Binding
+             ▼
+┌─────────────────────────────────────┐
+│  ViewModel                           │
+│  - 状态管理                           │
+│  - 简单逻辑                           │
+│  - 发布通知消息                        │
+└────────┬────────────────────────────┘
+         │ Publish Notification
+         ▼
+      ┌─────────────┐
+      │ MessageBus  │
+      └──────┬──────┘
+             │ Subscribe
+             ▼
+┌─────────────────────────────────────┐
+│  Other Components/Subscribers        │
+└─────────────────────────────────────┘
 ```
+
+### 2.4 实现检查清单
+
+在实现新功能或重构现有代码时，使用以下清单判断应采用哪种模式：
+
+**使用 Controller-driven 的信号**：
+- [ ] 需要调用 2 个或以上的服务类
+- [ ] 包含复杂的 if-else 业务规则（超过 3 层嵌套）
+- [ ] 需要在不同版本（Core/Pro/Ultra）中有不同实现
+- [ ] 涉及异步操作的错误处理和重试逻辑
+- [ ] 需要维护复杂的状态机（如上传进度管理）
+
+**使用传统 MVVM 的信号**：
+- [ ] 逻辑可以在 ViewModel 的单个方法中完成（< 20 行代码）
+- [ ] 不需要调用任何服务类，或仅调用 1 个服务的单一方法
+- [ ] 主要是属性的 get/set 或简单计算
+- [ ] 不涉及异步操作
+- [ ] 纯 UI 状态，不影响核心数据流
 
 **严禁模式**：
 *   ❌ Services -> UI Controls (跳过 ViewModel 直接操作控件)
 *   ❌ ViewModels -> Services (VM 不应主动调用服务类的业务方法，应通过消息请求)
 *   ❌ Code-Behind -> ViewModels (XAML.cs 不应直接修改 VM 属性，应通过 Command)
+*   ❌ 过度使用 Coordinator（简单逻辑不要创建 Coordinator）
+*   ❌ 混合使用模式（同一功能不要既用 Coordinator 又在 ViewModel 中处理部分逻辑）
 
 ---
 

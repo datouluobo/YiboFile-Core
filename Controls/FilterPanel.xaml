@@ -4,7 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:YiboFile.Controls"
-
+             xmlns:helpers="clr-namespace:YiboFile.Helpers"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="400"
              Width="400">
@@ -15,6 +15,8 @@
                 <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/AppStyles.xaml"/>
                 <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Themes/Light.xaml"/>
             </ResourceDictionary.MergedDictionaries>
+
+            <helpers:EnumToBooleanConverter x:Key="EnumToBooleanConverter"/>
 
             <!-- 复用/定义的 FilterChipStyle -->
             <Style x:Key="FilterChipToggleStyle" TargetType="ToggleButton">
@@ -79,87 +81,199 @@
                     <!-- 搜索范围 -->
                     <DockPanel Margin="0,0,0,8" LastChildFill="False">
                         <TextBlock Text="筛选范围" Style="{StaticResource FilterSectionHeaderStyle}" DockPanel.Dock="Left" VerticalAlignment="Center"/>
-                        <ToggleButton x:Name="ScopeAllBtn" Content="全部" Tag="AllScope" Click="Scope_Click" Style="{StaticResource FilterChipToggleStyle}" DockPanel.Dock="Right" Margin="0"/>
+                        <ToggleButton x:Name="ScopeAllBtn" Content="全部" 
+                                    IsChecked="{Binding SearchMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=All}"
+                                    Command="{Binding SetScopePresetCommand}" CommandParameter="AllScope"
+                                    Style="{StaticResource FilterChipToggleStyle}" DockPanel.Dock="Right" Margin="0"/>
                     </DockPanel>
                     <WrapPanel Orientation="Horizontal" Margin="0,0,0,16">
-                        <ToggleButton x:Name="ScopeFolderBtn" Content="按文件夹" Tag="Folder" Click="Scope_Click" Style="{StaticResource FilterChipToggleStyle}"/>
-                        <ToggleButton x:Name="ScopeFilenameBtn" Content="按文件名" Tag="FileName" Click="Scope_Click" Style="{StaticResource FilterChipToggleStyle}"/>
-                        <ToggleButton x:Name="ScopeNotesBtn" Content="按备注" Tag="Notes" Click="Scope_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="ScopeFolderBtn" Content="按文件夹" 
+                                    IsChecked="{Binding SearchMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Folder}"
+                                    Command="{Binding SetScopePresetCommand}" CommandParameter="Folder"
+                                    Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="ScopeFilenameBtn" Content="按文件名" 
+                                    IsChecked="{Binding SearchMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=FileName}"
+                                    Command="{Binding SetScopePresetCommand}" CommandParameter="FileName"
+                                    Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="ScopeNotesBtn" Content="按备注" 
+                                    IsChecked="{Binding SearchMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Notes}"
+                                    Command="{Binding SetScopePresetCommand}" CommandParameter="Notes"
+                                    Style="{StaticResource FilterChipToggleStyle}"/>
                     </WrapPanel>
 
                     <!-- 时间范围 -->
                     <DockPanel Margin="0,0,0,8" LastChildFill="False">
                          <TextBlock Text="时间范围" Style="{StaticResource FilterSectionHeaderStyle}" DockPanel.Dock="Left" VerticalAlignment="Center"/>
-                         <ToggleButton x:Name="DateAllBtn" Content="全部时间" Tag="All" Click="Date_Click" Style="{StaticResource FilterChipToggleStyle}" DockPanel.Dock="Right" Margin="0"/>
+                         <ToggleButton x:Name="DateAllBtn" Content="全部时间" 
+                                     IsChecked="{Binding DateFilter, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=All}"
+                                     Style="{StaticResource FilterChipToggleStyle}" DockPanel.Dock="Right" Margin="0"/>
                     </DockPanel>
                     <WrapPanel Orientation="Horizontal" Margin="0,0,0,16">
-                        <ToggleButton x:Name="DateTodayBtn" Content="今天" Tag="Today" Click="Date_Click" Style="{StaticResource FilterChipToggleStyle}"/>
-                        <ToggleButton x:Name="DateWeekBtn" Content="本周" Tag="ThisWeek" Click="Date_Click" Style="{StaticResource FilterChipToggleStyle}"/>
-                        <ToggleButton x:Name="DateMonthBtn" Content="本月" Tag="ThisMonth" Click="Date_Click" Style="{StaticResource FilterChipToggleStyle}"/>
-                        <ToggleButton x:Name="DateYearBtn" Content="今年" Tag="ThisYear" Click="Date_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="DateTodayBtn" Content="今天" 
+                                    IsChecked="{Binding DateFilter, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Today}"
+                                    Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="DateWeekBtn" Content="本周" 
+                                    IsChecked="{Binding DateFilter, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=ThisWeek}"
+                                    Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="DateMonthBtn" Content="本月" 
+                                    IsChecked="{Binding DateFilter, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=ThisMonth}"
+                                    Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="DateYearBtn" Content="今年" 
+                                    IsChecked="{Binding DateFilter, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=ThisYear}"
+                                    Style="{StaticResource FilterChipToggleStyle}"/>
                     </WrapPanel>
 
                     <!-- 文件大小 -->
                     <DockPanel Margin="0,0,0,8" LastChildFill="False">
                         <TextBlock Text="文件大小" Style="{StaticResource FilterSectionHeaderStyle}" DockPanel.Dock="Left" VerticalAlignment="Center"/>
-                        <ToggleButton x:Name="SizeAllBtn" Content="全部大小" Tag="All" Click="Size_Click" Style="{StaticResource FilterChipToggleStyle}" DockPanel.Dock="Right" Margin="0"/>
+                        <ToggleButton x:Name="SizeAllBtn" Content="全部大小" 
+                                    IsChecked="{Binding SizeFilter, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=All}"
+                                    Style="{StaticResource FilterChipToggleStyle}" DockPanel.Dock="Right" Margin="0"/>
                     </DockPanel>
                     <WrapPanel Orientation="Horizontal" Margin="0,0,0,16">
-                        <ToggleButton x:Name="SizeTinyBtn" Content="微型 (&lt;100KB)" Tag="Tiny" Click="Size_Click" Style="{StaticResource FilterChipToggleStyle}"/>
-                        <ToggleButton x:Name="SizeSmallBtn" Content="小 (100K-1M)" Tag="Small" Click="Size_Click" Style="{StaticResource FilterChipToggleStyle}"/>
-                        <ToggleButton x:Name="SizeMediumBtn" Content="中 (1M-10M)" Tag="Medium" Click="Size_Click" Style="{StaticResource FilterChipToggleStyle}"/>
-                        <ToggleButton x:Name="SizeLargeBtn" Content="大 (10M-100M)" Tag="Large" Click="Size_Click" Style="{StaticResource FilterChipToggleStyle}"/>
-                        <ToggleButton x:Name="SizeHugeBtn" Content="巨大 (&gt;100M)" Tag="Huge" Click="Size_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="SizeTinyBtn" Content="微型 (&lt;100KB)" 
+                                    IsChecked="{Binding SizeFilter, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Tiny}"
+                                    Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="SizeSmallBtn" Content="小 (100K-1M)" 
+                                    IsChecked="{Binding SizeFilter, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Small}"
+                                    Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="SizeMediumBtn" Content="中 (1M-10M)" 
+                                    IsChecked="{Binding SizeFilter, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Medium}"
+                                    Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="SizeLargeBtn" Content="大 (10M-100M)" 
+                                    IsChecked="{Binding SizeFilter, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Large}"
+                                    Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="SizeHugeBtn" Content="巨型 (&gt;100M)" 
+                                    IsChecked="{Binding SizeFilter, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Huge}"
+                                    Style="{StaticResource FilterChipToggleStyle}"/>
                     </WrapPanel>
 
                     <!-- 文件类型 -->
                     <DockPanel Margin="0,0,0,8" LastChildFill="False">
                         <TextBlock Text="文件类型" Style="{StaticResource FilterSectionHeaderStyle}" DockPanel.Dock="Left" VerticalAlignment="Center"/>
-                        <ToggleButton x:Name="TypeAllBtn" Content="全部类型" Tag="All" Click="Type_Click" Style="{StaticResource FilterChipToggleStyle}" DockPanel.Dock="Right" Margin="0"/>
+                        <ToggleButton x:Name="TypeAllBtn" Content="全部类型" 
+                                    IsChecked="{Binding TypeFilter, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=All}"
+                                    Style="{StaticResource FilterChipToggleStyle}" DockPanel.Dock="Right" Margin="0"/>
                     </DockPanel>
                     <WrapPanel Orientation="Horizontal" Margin="0,0,0,16">
-                        <ToggleButton x:Name="TypeImageBtn" Content="图片" Tag="Images" Click="Type_Click" Style="{StaticResource FilterChipToggleStyle}"/>
-                        <ToggleButton x:Name="TypeVideoBtn" Content="视频" Tag="Videos" Click="Type_Click" Style="{StaticResource FilterChipToggleStyle}"/>
-                        <ToggleButton x:Name="TypeAudioBtn" Content="音频" Tag="Audio" Click="Type_Click" Style="{StaticResource FilterChipToggleStyle}"/>
-                        <ToggleButton x:Name="TypeDocBtn" Content="文档" Tag="Documents" Click="Type_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="TypeImageBtn" Content="图片" 
+                                    IsChecked="{Binding TypeFilter, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Images}"
+                                    Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="TypeVideoBtn" Content="视频" 
+                                    IsChecked="{Binding TypeFilter, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Videos}"
+                                    Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="TypeAudioBtn" Content="音频" 
+                                    IsChecked="{Binding TypeFilter, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Audio}"
+                                    Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="TypeDocBtn" Content="文档" 
+                                    IsChecked="{Binding TypeFilter, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Documents}"
+                                    Style="{StaticResource FilterChipToggleStyle}"/>
                     </WrapPanel>
 
                     <!-- 图片尺寸 (动态显示) -->
-                    <DockPanel x:Name="ImageSizeHeader" Margin="0,0,0,8" LastChildFill="False" Visibility="Collapsed">
+                    <DockPanel x:Name="ImageSizeHeader" Margin="0,0,0,8" LastChildFill="False">
+                        <DockPanel.Style>
+                            <Style TargetType="DockPanel">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding TypeFilter}" Value="Images">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DockPanel.Style>
                         <TextBlock Text="图片尺寸" Style="{StaticResource FilterSectionHeaderStyle}" DockPanel.Dock="Left" VerticalAlignment="Center"/>
-                        <ToggleButton x:Name="ImgSizeAllBtn" Content="全部尺寸" Tag="All" Click="ImgSize_Click" Style="{StaticResource FilterChipToggleStyle}" DockPanel.Dock="Right" Margin="0"/>
+                        <ToggleButton x:Name="ImgSizeAllBtn" Content="全部尺寸" 
+                                    IsChecked="{Binding ImageSizeFilter, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=All}"
+                                    Style="{StaticResource FilterChipToggleStyle}" DockPanel.Dock="Right" Margin="0"/>
                     </DockPanel>
-                    <WrapPanel x:Name="ImageSizeContent" Orientation="Horizontal" Margin="0,0,0,16" Visibility="Collapsed">
-                        <ToggleButton x:Name="ImgSizeSmallBtn" Content="小 (&lt;800px)" Tag="Small" Click="ImgSize_Click" Style="{StaticResource FilterChipToggleStyle}"/>
-                        <ToggleButton x:Name="ImgSizeMediumBtn" Content="中 (800-1920)" Tag="Medium" Click="ImgSize_Click" Style="{StaticResource FilterChipToggleStyle}"/>
-                        <ToggleButton x:Name="ImgSizeLargeBtn" Content="大 (&gt;1920)" Tag="Large" Click="ImgSize_Click" Style="{StaticResource FilterChipToggleStyle}"/>
-                        <ToggleButton x:Name="ImgSizeHugeBtn" Content="超大 (&gt;3840)" Tag="Huge" Click="ImgSize_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                    <WrapPanel x:Name="ImageSizeContent" Orientation="Horizontal" Margin="0,0,0,16">
+                        <WrapPanel.Style>
+                            <Style TargetType="WrapPanel">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding TypeFilter}" Value="Images">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </WrapPanel.Style>
+                        <ToggleButton x:Name="ImgSizeSmallBtn" Content="小 (&lt;800px)" 
+                                    IsChecked="{Binding ImageSizeFilter, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Small}"
+                                    Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="ImgSizeMediumBtn" Content="中 (800-1920)" 
+                                    IsChecked="{Binding ImageSizeFilter, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Medium}"
+                                    Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="ImgSizeLargeBtn" Content="大 (&gt;1920)" 
+                                    IsChecked="{Binding ImageSizeFilter, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Large}"
+                                    Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="ImgSizeHugeBtn" Content="超大 (&gt;3840)" 
+                                    IsChecked="{Binding ImageSizeFilter, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Huge}"
+                                    Style="{StaticResource FilterChipToggleStyle}"/>
                     </WrapPanel>
 
                     <!-- 媒体时长 (动态显示) -->
-                    <DockPanel x:Name="DurationHeader" Margin="0,0,0,8" LastChildFill="False" Visibility="Collapsed">
+                    <DockPanel x:Name="DurationHeader" Margin="0,0,0,8" LastChildFill="False">
+                        <DockPanel.Style>
+                            <Style TargetType="DockPanel">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding TypeFilter}" Value="Videos">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding TypeFilter}" Value="Audio">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DockPanel.Style>
                         <TextBlock Text="媒体时长" Style="{StaticResource FilterSectionHeaderStyle}" DockPanel.Dock="Left" VerticalAlignment="Center"/>
-                        <ToggleButton x:Name="DurationAllBtn" Content="全部时长" Tag="All" Click="Duration_Click" Style="{StaticResource FilterChipToggleStyle}" DockPanel.Dock="Right" Margin="0"/>
+                        <ToggleButton x:Name="DurationAllBtn" Content="全部时长" 
+                                    IsChecked="{Binding DurationFilter, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=All}"
+                                    Style="{StaticResource FilterChipToggleStyle}" DockPanel.Dock="Right" Margin="0"/>
                     </DockPanel>
-                    <WrapPanel x:Name="DurationContent" Orientation="Horizontal" Margin="0,0,0,16" Visibility="Collapsed">
-                        <ToggleButton x:Name="DurationShortBtn" Content="短 (&lt;1m)" Tag="Short" Click="Duration_Click" Style="{StaticResource FilterChipToggleStyle}"/>
-                        <ToggleButton x:Name="DurationMediumBtn" Content="中 (1-5m)" Tag="Medium" Click="Duration_Click" Style="{StaticResource FilterChipToggleStyle}"/>
-                        <ToggleButton x:Name="DurationLongBtn" Content="长 (5-20m)" Tag="Long" Click="Duration_Click" Style="{StaticResource FilterChipToggleStyle}"/>
-                        <ToggleButton x:Name="DurationVeryLongBtn" Content="超长 (&gt;20m)" Tag="VeryLong" Click="Duration_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                    <WrapPanel x:Name="DurationContent" Orientation="Horizontal" Margin="0,0,0,16">
+                        <WrapPanel.Style>
+                            <Style TargetType="WrapPanel">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding TypeFilter}" Value="Videos">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding TypeFilter}" Value="Audio">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </WrapPanel.Style>
+                        <ToggleButton x:Name="DurationShortBtn" Content="短 (&lt;1m)" 
+                                    IsChecked="{Binding DurationFilter, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Short}"
+                                    Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="DurationMediumBtn" Content="中 (1-5m)" 
+                                    IsChecked="{Binding DurationFilter, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Medium}"
+                                    Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="DurationLongBtn" Content="长 (5-20m)" 
+                                    IsChecked="{Binding DurationFilter, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Long}"
+                                    Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="DurationVeryLongBtn" Content="超长 (&gt;20m)" 
+                                    IsChecked="{Binding DurationFilter, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=VeryLong}"
+                                    Style="{StaticResource FilterChipToggleStyle}"/>
                     </WrapPanel>
 
                     <!-- 搜索位置 -->
                     <DockPanel Margin="0,0,0,8" LastChildFill="False">
                         <TextBlock Text="搜索位置 (仅搜索)" Style="{StaticResource FilterSectionHeaderStyle}" DockPanel.Dock="Left" VerticalAlignment="Center"/>
-                        <!-- PathAllBtn -->
                     </DockPanel>
                     <WrapPanel Orientation="Horizontal" Margin="0,0,0,0">
-                        <ToggleButton x:Name="PathCurrentBtn" Content="当前磁盘" Tag="CurrentDrive" Click="Path_Click" Style="{StaticResource FilterChipToggleStyle}"/>
-                        <ToggleButton x:Name="PathAllBtn" Content="全部磁盘" Tag="AllDrives" Click="Path_Click" Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="PathCurrentBtn" Content="当前磁盘" 
+                                    IsChecked="{Binding PathRange, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=CurrentDrive}"
+                                    Style="{StaticResource FilterChipToggleStyle}"/>
+                        <ToggleButton x:Name="PathAllBtn" Content="全部磁盘" 
+                                    IsChecked="{Binding PathRange, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=AllDrives}"
+                                    Style="{StaticResource FilterChipToggleStyle}"/>
                     </WrapPanel>
                 </StackPanel>
             </ScrollViewer>
         </Border>
     </Grid>
 </UserControl>
-

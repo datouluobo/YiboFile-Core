@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using System.Linq;
 using YiboFile.Services.Features;
 using YiboFile.ViewModels.Messaging;
 using YiboFile.ViewModels.Messaging.Messages;
@@ -25,6 +26,37 @@ namespace YiboFile.ViewModels.Modules
             Subscribe<RenameTagRequestMessage>(OnRenameTagRequest);
             Subscribe<AddTagToFileRequestMessage>(OnAddTagToFileRequest);
             Subscribe<RemoveTagFromFileRequestMessage>(OnRemoveTagFromFileRequest);
+            Subscribe<ToggleTagRequestMessage>(OnToggleTagRequest);
+            Subscribe<AddTagToFilesRequestMessage>(OnAddTagToFilesRequest);
+        }
+
+        private async void OnAddTagToFilesRequest(AddTagToFilesRequestMessage msg)
+        {
+            if (msg.FilePaths == null || msg.FilePaths.Count == 0) return;
+            foreach (var path in msg.FilePaths)
+            {
+                await _tagService.AddTagToFileAsync(path, msg.TagId);
+                Publish(new FileTagsChangedMessage(path));
+            }
+        }
+
+        private async void OnToggleTagRequest(ToggleTagRequestMessage msg)
+        {
+            if (msg.FilePaths == null || msg.FilePaths.Count == 0) return;
+
+            foreach (var path in msg.FilePaths)
+            {
+                var fileTags = await _tagService.GetFileTagsAsync(path);
+                if (fileTags.Any(t => t.Id == msg.TagId))
+                {
+                    await _tagService.RemoveTagFromFileAsync(path, msg.TagId);
+                }
+                else
+                {
+                    await _tagService.AddTagToFileAsync(path, msg.TagId);
+                }
+                Publish(new FileTagsChangedMessage(path));
+            }
         }
 
         private async void OnAddTagRequest(AddTagRequestMessage msg)

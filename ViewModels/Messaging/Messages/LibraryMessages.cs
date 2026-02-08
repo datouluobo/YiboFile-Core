@@ -20,4 +20,18 @@ namespace YiboFile.ViewModels.Messaging.Messages
     /// 库内容已加载
     /// </summary>
     public record LibraryLoadedMessage(int LibraryId, int FileCount);
+
+    /// <summary>
+    /// 请求切换库路径（添加或移除）
+    /// </summary>
+    public record ToggleLibraryPathRequestMessage(Library Library, System.Collections.Generic.List<string> Paths, bool ForceAdd = false);
+
+    /// <summary>
+    /// 请求创建新库
+    /// </summary>
+    public record CreateLibraryRequestMessage(string Name, System.Collections.Generic.List<string> InitialPaths = null);
+    /// <summary>
+    /// 库列表发生变化（添加、删除或内容修改）
+    /// </summary>
+    public record LibraryListChangedMessage();
 }

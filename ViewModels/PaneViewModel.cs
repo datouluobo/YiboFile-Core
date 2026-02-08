@@ -12,6 +12,7 @@ using YiboFile.Services;
 using YiboFile.Services.Core;
 using YiboFile.Services.Features;
 using YiboFile.Services.FileList;
+using YiboFile.Services.ColumnManagement;
 using Microsoft.Extensions.DependencyInjection;
 using YiboFile.Services.Favorite;
 using YiboFile.ViewModels.Messaging;
@@ -19,6 +20,7 @@ using YiboFile.ViewModels.Messaging.Messages;
 using YiboFile.Services.Config;
 using YiboFile.Services.Navigation;
 using YiboFile.Services.Search;
+using YiboFile.Controllers;
 
 namespace YiboFile.ViewModels
 {
@@ -40,6 +42,8 @@ namespace YiboFile.ViewModels
         private ITagService _tagService;
         private readonly IMessageBus _messageBus;
         private readonly FolderSizeCalculationService _folderSizeService;
+        private readonly SearchFilterService _searchFilterService;
+        private SearchCoordinator _searchCoordinator;
 
         private string _currentPath;
         private Library _currentLibrary;
@@ -119,6 +123,12 @@ namespace YiboFile.ViewModels
                 string oldValue = _currentPath;
                 if (SetProperty(ref _currentPath, value))
                 {
+                    // 路径变更时重置过滤器（过滤器只在当前标签页有效）
+                    if (oldValue != value && _searchCoordinator != null)
+                    {
+                        _searchCoordinator.ResetFilters();
+                    }
+
                     // 自动根据路径前缀同步导航模式
                     if (value != null)
                     {
@@ -550,7 +560,10 @@ namespace YiboFile.ViewModels
             SelectAllCommand = new RelayCommand(ExecuteSelectAll);
 
             Search = new SearchViewModel(_messageBus);
-            Search.SetTargetPane(isSecondary ? "Secondary" : "Primary");
+            _searchCoordinator = new SearchCoordinator(_messageBus, Search);
+            _searchCoordinator.SetTargetPane(isSecondary ? "Secondary" : "Primary");
+
+            _messageBus.Subscribe<SearchOptionsChangedMessage>(OnSearchOptionsChanged);
 
             // 订阅搜索结果消息
             _messageBus.Subscribe<SearchResultUpdatedMessage>(OnSearchResultUpdated);
@@ -560,6 +573,8 @@ namespace YiboFile.ViewModels
             _messageBus.Subscribe<NotesUpdatedMessage>(OnNotesUpdated);
             _messageBus.Subscribe<FileTagsChangedMessage>(OnFileTagsChanged);
             _messageBus.Subscribe<TagListChangedMessage>(OnTagListChanged);
+            _messageBus.Subscribe<LibraryListChangedMessage>(OnLibraryListChanged);
+            _messageBus.Subscribe<FavoritesUpdatedMessage>(OnFavoritesUpdated);
             // 订阅刷新消息
             _messageBus.Subscribe<RefreshFileListMessage>(OnRefreshFileList);
             // 订阅库选择消息
@@ -569,12 +584,17 @@ namespace YiboFile.ViewModels
             _messageBus.Subscribe<NavigateToPathMessage>(OnNavigateToPath);
 
             // 获取服务
+            _searchFilterService = App.ServiceProvider?.GetService<SearchFilterService>();
             var errorService = App.ServiceProvider?.GetService<YiboFile.Services.Core.Error.ErrorService>();
             _tagService = App.ServiceProvider?.GetService<ITagService>();
             _libraryService = App.ServiceProvider?.GetService<LibraryService>();
             _favoriteService = App.ServiceProvider?.GetService<FavoriteService>();
             _searchService = App.ServiceProvider?.GetService<SearchService>();
             _searchCacheService = App.ServiceProvider?.GetService<SearchCacheService>();
+
+            // Initialize FileListViewModel
+            var columnService = App.ServiceProvider?.GetService<ColumnService>();
+            FileList = new FileListViewModel(_messageBus, columnService);
 
             if (errorService != null)
             {
@@ -709,76 +729,38 @@ namespace YiboFile.ViewModels
 
         private void ExecuteToggleLibrary(Library library)
         {
-            if (library == null || SelectedItems.Count == 0 || _libraryService == null) return;
-
-            bool anyIn = SelectedItems.Any(i => library.Paths != null && library.Paths.Contains(i.Path));
-            bool shouldAdd = !anyIn;
-
-            foreach (var item in SelectedItems)
-            {
-                if (shouldAdd) _libraryService.AddLibraryPath(library.Id, item.Path);
-                else _libraryService.RemoveLibraryPath(library.Id, item.Path);
-            }
-            UpdateDynamicMenuItems();
+            if (library == null || SelectedItems.Count == 0) return;
+            _messageBus.Publish(new ToggleLibraryPathRequestMessage(library, SelectedItems.Select(i => i.Path).ToList()));
         }
 
         private void ExecuteAddToFavorite(int groupId)
         {
-            if (SelectedItems.Count == 0 || _favoriteService == null) return;
-            _favoriteService.AddFavorite(SelectedItems.ToList(), groupId);
+            if (SelectedItems.Count == 0) return;
+            _messageBus.Publish(new AddFavoriteRequestMessage(SelectedItems.ToList(), groupId));
         }
 
         private void ExecuteNewLibrary()
         {
-            if (_libraryService == null) return;
             var dialog = new YiboFile.Controls.Dialogs.InputDialog("新建库", "请输入库名称:");
             if (dialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(dialog.InputText))
             {
-                int newLibId = _libraryService.AddLibrary(dialog.InputText);
-                if (newLibId != 0 && SelectedItems.Count > 0)
-                {
-                    int targetId = Math.Abs(newLibId);
-                    foreach (var item in SelectedItems.Where(i => i.IsDirectory))
-                    {
-                        _libraryService.AddLibraryPath(targetId, item.Path);
-                    }
-                }
-                UpdateDynamicMenuItems();
+                _messageBus.Publish(new CreateLibraryRequestMessage(dialog.InputText, SelectedItems.Where(i => i.IsDirectory).Select(i => i.Path).ToList()));
             }
         }
 
         private void ExecuteNewFavoriteGroup()
         {
-            if (_favoriteService == null) return;
             var inputName = YiboFile.DialogService.ShowInput("请输入新分组名称：", "新分组", "新建分组");
             if (!string.IsNullOrEmpty(inputName))
             {
-                int newGroupId = _favoriteService.CreateGroup(inputName.Trim());
-                if (newGroupId != -1 && SelectedItems.Count > 0)
-                {
-                    _favoriteService.AddFavorite(SelectedItems.ToList(), newGroupId);
-                }
-                UpdateDynamicMenuItems();
+                _messageBus.Publish(new CreateFavoriteGroupRequestMessage(inputName.Trim(), SelectedItems.ToList()));
             }
         }
 
-        private async void ExecuteToggleTag(ITag tag)
+        private void ExecuteToggleTag(ITag tag)
         {
-            if (tag == null || SelectedItems.Count == 0 || _tagService == null) return;
-
-            foreach (var item in SelectedItems)
-            {
-                var fileTags = await _tagService.GetFileTagsAsync(item.Path);
-                if (fileTags.Any(t => t.Id == tag.Id))
-                {
-                    await _tagService.RemoveTagFromFileAsync(item.Path, tag.Id);
-                }
-                else
-                {
-                    await _tagService.AddTagToFileAsync(item.Path, tag.Id);
-                }
-            }
-            UpdateDynamicMenuItems();
+            if (tag == null || SelectedItems.Count == 0) return;
+            _messageBus.Publish(new ToggleTagRequestMessage(tag.Id, SelectedItems.Select(i => i.Path).ToList()));
         }
 
 
@@ -797,7 +779,7 @@ namespace YiboFile.ViewModels
 
         private void ExecuteBatchAddTags()
         {
-            if (SelectedItems.Count == 0 || _tagService == null) return;
+            if (SelectedItems.Count == 0) return;
 
             var dialog = new YiboFile.Controls.Dialogs.TagSelectionDialog();
             if (Application.Current?.MainWindow != null)
@@ -805,29 +787,7 @@ namespace YiboFile.ViewModels
 
             if (dialog.ShowDialog() == true)
             {
-                int successCount = 0;
-                Task.Run(async () =>
-                {
-                    int tagId = dialog.SelectedTagId;
-                    foreach (var item in SelectedItems)
-                    {
-                        try
-                        {
-                            await _tagService.AddTagToFileAsync(item.Path, tagId);
-                            successCount++;
-                            _messageBus.Publish(new FileTagsChangedMessage(item.Path));
-                        }
-                        catch { }
-                    }
-
-                    _dispatcher.Invoke(() =>
-                    {
-                        if (successCount > 0)
-                        {
-                            UpdateDynamicMenuItems();
-                        }
-                    });
-                });
+                _messageBus.Publish(new AddTagToFilesRequestMessage(SelectedItems.Select(i => i.Path).ToList(), dialog.SelectedTagId));
             }
         }
 
@@ -917,77 +877,60 @@ namespace YiboFile.ViewModels
         /// </summary>
         private void ApplyFilter()
         {
+            if (FileList == null) return;
+
             try
             {
-                var view = System.Windows.Data.CollectionViewSource.GetDefaultView(Files);
-                if (view == null) return;
-
-                var protocolInfo = ProtocolManager.Parse(CurrentPath);
-
-                // 如果是搜索模式，刷新搜索结果（搜索服务会应用过滤）
-                if (protocolInfo.Type == ProtocolType.Search)
+                // 如果所有过滤条件都是默认值，清除过滤
+                if (_searchOptions == null || !IsFilterActive(_searchOptions))
                 {
-                    RefreshSearchIfActive();
+                    FileList.ClearFilter();
                     return;
                 }
 
-                // 对路径/库模式使用 CollectionView.Filter
-                view.Filter = obj =>
+                if (_searchFilterService != null)
                 {
-                    if (obj is not FileSystemItem item) return true;
-
-                    // Scope Filter (SearchMode) for Normal View
-                    switch (_searchOptions.Mode)
+                    FileList.ApplyFilter(item =>
                     {
-                        case SearchMode.Folder:
-                            if (!item.IsDirectory) return false;
-                            break;
-                        case SearchMode.FileName:
-                            if (item.IsDirectory) return false;
-                            break;
-                        case SearchMode.Notes:
-                            if (string.IsNullOrEmpty(item.Notes)) return false;
-                            break;
-                    }
+                        // 排除当前正在加载或状态不确定的项
+                        if (item.Name == "加载中...") return true;
 
-                    // 类型过滤
-                    if (_searchOptions.Type != FileTypeFilter.All)
-                    {
-                        if (!MatchesTypeFilter(item, _searchOptions.Type)) return false;
-                    }
-
-                    // 日期过滤
-                    if (_searchOptions.DateRange != DateRangeFilter.All)
-                    {
-                        if (!MatchesDateFilter(item, _searchOptions.DateRange)) return false;
-                    }
-
-                    // 大小过滤
-                    if (_searchOptions.SizeRange != SizeRangeFilter.All)
-                    {
-                        if (!MatchesSizeFilter(item, _searchOptions.SizeRange)) return false;
-                    }
-
-                    // 图片尺寸过滤
-                    if (_searchOptions.ImageSize != ImageDimensionFilter.All)
-                    {
-                        if (!MatchesImageSizeFilter(item, _searchOptions.ImageSize)) return false;
-                    }
-
-                    // 时长过滤
-                    if (_searchOptions.Duration != AudioDurationFilter.All)
-                    {
-                        if (!MatchesDurationFilter(item, _searchOptions.Duration)) return false;
-                    }
-
-                    return true;
-                };
-
-                view.Refresh();
+                        return _searchFilterService.MatchesOptions(item, _searchOptions);
+                    });
+                }
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[ApplyFilter] Error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 检查是否有任何非默认的过滤条件
+        /// </summary>
+        private bool IsFilterActive(SearchOptions options)
+        {
+            if (options == null) return false;
+
+            return options.Type != FileTypeFilter.All
+                || options.DateRange != DateRangeFilter.All
+                || options.SizeRange != SizeRangeFilter.All
+                || options.ImageSize != ImageDimensionFilter.All
+                || options.Duration != AudioDurationFilter.All;
+        }
+
+        private void OnSearchOptionsChanged(SearchOptionsChangedMessage message)
+        {
+            // 检查消息是否属于当前面板或全局
+            if (message.TargetPaneId == "Any" ||
+                (_isSecondary && message.TargetPaneId == "Secondary") ||
+                (!_isSecondary && message.TargetPaneId == "Primary"))
+            {
+                _searchOptions = message.Options;
+                ApplyFilter();
+
+                // 如果当前处于搜索模式，可能需要重新触发后台搜索以获得更精确的结果（取决于搜索模式）
+                RefreshSearchIfActive();
             }
         }
 
@@ -1012,95 +955,6 @@ namespace YiboFile.ViewModels
                 }
             }
         }
-
-        #region Filter Helper Methods
-
-        private static bool MatchesTypeFilter(FileSystemItem item, FileTypeFilter filter)
-        {
-            switch (filter)
-            {
-                case FileTypeFilter.Images:
-                    return !item.IsDirectory && SearchFilterService.ImageExtensions.Contains(System.IO.Path.GetExtension(item.Path));
-                case FileTypeFilter.Videos:
-                    return !item.IsDirectory && SearchFilterService.VideoExtensions.Contains(System.IO.Path.GetExtension(item.Path));
-                case FileTypeFilter.Audio:
-                    return !item.IsDirectory && SearchFilterService.AudioExtensions.Contains(System.IO.Path.GetExtension(item.Path));
-                case FileTypeFilter.Documents:
-                    return !item.IsDirectory && SearchFilterService.DocumentExtensions.Contains(System.IO.Path.GetExtension(item.Path));
-                case FileTypeFilter.Folders:
-                    return item.IsDirectory;
-                default:
-                    return true;
-            }
-        }
-
-        private static bool MatchesDateFilter(FileSystemItem item, DateRangeFilter filter)
-        {
-            var modTime = item.ModifiedDateTime;
-            if (modTime == default) return true;
-
-            var now = DateTime.Now;
-            return filter switch
-            {
-                DateRangeFilter.Today => modTime.Date == now.Date,
-                DateRangeFilter.ThisWeek => modTime >= now.Date.AddDays(-(int)now.DayOfWeek),
-                DateRangeFilter.ThisMonth => modTime >= new DateTime(now.Year, now.Month, 1),
-                DateRangeFilter.ThisYear => modTime >= new DateTime(now.Year, 1, 1),
-                _ => true
-            };
-        }
-
-        private static bool MatchesSizeFilter(FileSystemItem item, SizeRangeFilter filter)
-        {
-            if (item.IsDirectory) return false; // 启用大小过滤时，不应显示文件夹
-            var size = item.SizeBytes >= 0 ? item.SizeBytes : 0;
-
-            const long KB = 1024;
-            const long MB = 1024 * KB;
-
-            return filter switch
-            {
-                SizeRangeFilter.Tiny => size < 100 * KB,
-                SizeRangeFilter.Small => size >= 100 * KB && size < MB,
-                SizeRangeFilter.Medium => size >= MB && size < 10 * MB,
-                SizeRangeFilter.Large => size >= 10 * MB && size < 100 * MB,
-                SizeRangeFilter.Huge => size >= 100 * MB,
-                _ => true
-            };
-        }
-
-        private static bool MatchesImageSizeFilter(FileSystemItem item, ImageDimensionFilter filter)
-        {
-            if (item.IsDirectory) return false;
-            int maxDim = Math.Max(item.PixelWidth, item.PixelHeight); // 0 if N/A
-
-            return filter switch
-            {
-                ImageDimensionFilter.Small => maxDim < 800,
-                ImageDimensionFilter.Medium => maxDim >= 800 && maxDim < 1920,
-                ImageDimensionFilter.Large => maxDim >= 1920 && maxDim < 3840,
-                ImageDimensionFilter.Huge => maxDim >= 3840,
-                _ => true
-            };
-        }
-
-        private static bool MatchesDurationFilter(FileSystemItem item, AudioDurationFilter filter)
-        {
-            if (item.IsDirectory) return false;
-            long duration = item.DurationMs; // 0 if N/A
-            const long Minute = 60 * 1000;
-
-            return filter switch
-            {
-                AudioDurationFilter.Short => duration < Minute,
-                AudioDurationFilter.Medium => duration >= Minute && duration < 5 * Minute,
-                AudioDurationFilter.Long => duration >= 5 * Minute && duration < 20 * Minute,
-                AudioDurationFilter.VeryLong => duration >= 20 * Minute,
-                _ => true
-            };
-        }
-
-        #endregion
 
         #endregion
 
@@ -1617,6 +1471,21 @@ namespace YiboFile.ViewModels
             {
                 RequestRefresh();
             }
+            UpdateDynamicMenuItems();
+        }
+
+        private void OnLibraryListChanged(LibraryListChangedMessage message)
+        {
+            UpdateDynamicMenuItems();
+            if (NavigationMode == "Library")
+            {
+                RequestRefresh();
+            }
+        }
+
+        private void OnFavoritesUpdated(FavoritesUpdatedMessage message)
+        {
+            UpdateDynamicMenuItems();
         }
 
         private void OnSearchResultUpdated(SearchResultUpdatedMessage message)
@@ -1646,6 +1515,12 @@ namespace YiboFile.ViewModels
                 // 更新分页状态
                 _searchOffset = message.Offset;
                 IsLoadMoreVisible = message.HasMore;
+
+                // 如果搜索结束且有选项，应用过滤
+                if (!message.IsSearching && message.Results != null && _searchOptions != null)
+                {
+                    ApplyFilter();
+                }
             });
         }
 

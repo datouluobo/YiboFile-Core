@@ -16,6 +16,7 @@ using YiboFile.Services.FileList;
 using YiboFile.Models;
 using Microsoft.Extensions.DependencyInjection;
 using YiboFile.Services.Core;
+using YiboFile.ViewModels.Messaging;
 
 namespace YiboFile.ViewModels
 {
@@ -25,15 +26,12 @@ namespace YiboFile.ViewModels
     /// </summary>
     public class FileListViewModel : BaseViewModel, IDisposable
     {
-        private readonly FileBrowserControl _fileBrowser;
-        private readonly Window _ownerWindow;
         private readonly Dispatcher _dispatcher;
         private readonly FileListService _fileListService;
         private readonly ColumnService _columnService;
         private readonly FileMetadataEnricher _metadataEnricher;
         private readonly FolderSizeCalculator _folderSizeCalculator;
         private readonly Services.Features.ITagService _tagService;
-        private readonly Action _refreshAction;
         private const int MaxMetadataEnrichCount = 500;
 
         private string _currentPath = null;
@@ -54,7 +52,10 @@ namespace YiboFile.ViewModels
             get => _files;
             set
             {
-                SetProperty(ref _files, value);
+                if (SetProperty(ref _files, value))
+                {
+                    RefreshFilter();
+                }
             }
         }
 
@@ -84,20 +85,19 @@ namespace YiboFile.ViewModels
             }), DispatcherPriority.Normal);
         }
 
+        private readonly IMessageBus _messageBus;
+
         public FileListViewModel(
-            FileBrowserControl fileBrowser,
-            Window ownerWindow,
-            Action refreshAction = null,
+            IMessageBus messageBus,
             ColumnService columnService = null,
             FileMetadataEnricher metadataEnricher = null,
             FolderSizeCalculator folderSizeCalculator = null)
         {
-            _fileBrowser = fileBrowser ?? throw new ArgumentNullException(nameof(fileBrowser));
-            _ownerWindow = ownerWindow ?? throw new ArgumentNullException(nameof(ownerWindow));
-            _dispatcher = ownerWindow.Dispatcher;
+            _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
+            _dispatcher = System.Windows.Application.Current.Dispatcher;
 
-            var errorService = App.ServiceProvider.GetRequiredService<YiboFile.Services.Core.Error.ErrorService>();
-            _tagService = App.ServiceProvider.GetService<Services.Features.ITagService>();
+            var errorService = App.ServiceProvider?.GetService<YiboFile.Services.Core.Error.ErrorService>();
+            _tagService = App.ServiceProvider?.GetService<Services.Features.ITagService>();
             _fileListService = new FileListService(_dispatcher, errorService, _tagService);
 
             if (_tagService != null)
@@ -108,7 +108,6 @@ namespace YiboFile.ViewModels
             _columnService = columnService;
             _metadataEnricher = metadataEnricher ?? new FileMetadataEnricher();
             _folderSizeCalculator = folderSizeCalculator ?? new FolderSizeCalculator();
-            _refreshAction = refreshAction;
 
             // 初始化防抖定时器
             _refreshDebounceTimer = new DispatcherTimer
@@ -118,12 +117,7 @@ namespace YiboFile.ViewModels
             _refreshDebounceTimer.Tick += (s, e) =>
             {
                 _refreshDebounceTimer.Stop();
-                _refreshAction?.Invoke();
-
-                if (_refreshAction == null && !_isLoadingFiles)
-                {
-                    RefreshFiles();
-                }
+                RefreshFiles();
             };
         }
 
@@ -234,7 +228,7 @@ namespace YiboFile.ViewModels
                 System.Diagnostics.Debug.WriteLine($"[FileListViewModel] LoadPathAsync Failed: {ex}");
                 await _dispatcher.BeginInvoke(new Action(() =>
                 {
-                    YiboFile.DialogService.Error($"加载文件列表失败: {ex.Message}", owner: _ownerWindow);
+                    YiboFile.DialogService.Error($"加载文件列表失败: {ex.Message}");
                 }), DispatcherPriority.Normal);
             }
             finally
@@ -273,10 +267,6 @@ namespace YiboFile.ViewModels
             _dispatcher.Invoke(() =>
             {
                 Files = new ObservableCollection<FileSystemItem>(sorted);
-                if (_fileBrowser != null)
-                {
-                    // 数据绑定会自动反映变更 (MainWindow.xaml 中已建立绑定)
-                }
                 SetupFileWatcher(null);
                 RefreshCollectionView();
             });
@@ -293,11 +283,6 @@ namespace YiboFile.ViewModels
         public void RefreshFiles()
         {
             System.Diagnostics.Debug.WriteLine($"[FileListViewModel] RefreshFiles called. CurrentPath: {_currentPath}");
-            if (_refreshAction != null)
-            {
-                _refreshAction();
-                return;
-            }
 
             var targetPath = _currentPath;
             if (string.IsNullOrEmpty(targetPath) || _isLoadingFiles)
@@ -370,6 +355,9 @@ namespace YiboFile.ViewModels
         /// <summary>
         /// 通过 ColumnService 统一排序入口。
         /// </summary>
+        /// <summary>
+        /// 通过 ColumnService 统一排序入口。
+        /// </summary>
         public void ApplySort(string column, bool ascending)
         {
             if (string.IsNullOrWhiteSpace(column) && string.IsNullOrWhiteSpace(LastSortColumn))
@@ -380,15 +368,55 @@ namespace YiboFile.ViewModels
             LastSortColumn = string.IsNullOrWhiteSpace(column) ? LastSortColumn : column;
             SortAscending = ascending;
 
+            // 如果使用 CollectionView 排序而非修改源集合
+            // 但目前架构似乎是修改源集合顺序
+            // 为了兼容 CollectionView 过滤，最好也使用 CollectionView 排序
+            // 暂时保持修改源集合顺序，但触发 View 刷新
             var sorted = ApplySorting(Files?.ToList() ?? new List<FileSystemItem>());
             _dispatcher.Invoke(() =>
             {
                 Files = new ObservableCollection<FileSystemItem>(sorted);
-                if (_fileBrowser != null)
-                {
-                    // 数据绑定会自动反映变更
-                }
                 RefreshCollectionView();
+            });
+        }
+
+        private Predicate<FileSystemItem> _currentFilter;
+
+        /// <summary>
+        /// 应用过滤 (持久化，直到被清除)
+        /// </summary>
+        public void ApplyFilter(Predicate<FileSystemItem> filter)
+        {
+            _currentFilter = filter;
+            RefreshFilter();
+        }
+
+        /// <summary>
+        /// 清除过滤
+        /// </summary>
+        public void ClearFilter()
+        {
+            _currentFilter = null;
+            RefreshFilter();
+        }
+
+        private void RefreshFilter()
+        {
+            _dispatcher.Invoke(() =>
+            {
+                var view = CollectionViewSource.GetDefaultView(Files);
+                if (view != null)
+                {
+                    view.Filter = _currentFilter == null ? null : (obj) =>
+                    {
+                        if (obj is FileSystemItem item)
+                        {
+                            return _currentFilter(item);
+                        }
+                        return true;
+                    };
+                    view.Refresh();
+                }
             });
         }
 

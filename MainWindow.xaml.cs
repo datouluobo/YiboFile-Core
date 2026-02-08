@@ -364,10 +364,7 @@ namespace YiboFile
 
 
             // 创建并注册文件列表模块
-            _fileListModule = new FileListModule(
-                _messageBus,
-                () => RefreshFileList(),
-                () => ClearFilter());
+            _fileListModule = new FileListModule(_messageBus);
             _viewModel.RegisterModule(_fileListModule);
 
             // 初始化主/副面板 MVVM (新的架构)
@@ -377,31 +374,6 @@ namespace YiboFile
                 IsActive = false,
                 IsLoadingDisabled = false
             };
-
-            // 初始化 FileListViewModel (用于数据绑定和加载)
-            // 注意：FileBrowser 是 MainWindow 中的控件名称
-            var fileListVM = new FileListViewModel(
-                FileBrowser,
-                this,
-                () => RefreshFileList(),
-                _columnService);
-            _viewModel.PrimaryPane.FileList = fileListVM;
-
-            // Initialize FileListViewModel for Secondary Pane
-            if (SecondFileBrowser != null)
-            {
-                var secondFileListVM = new FileListViewModel(
-                    SecondFileBrowser,
-                    this,
-                    () =>
-                    {
-                        // Refresh logic for secondary pane
-                        if (SecondFileBrowser != null && !string.IsNullOrEmpty(SecondFileBrowser.AddressText))
-                            LoadSecondFileBrowserDirectory(SecondFileBrowser.AddressText);
-                    },
-                    _columnService);
-                _viewModel.SecondaryPane.FileList = secondFileListVM;
-            }
 
             // 关联模块到 ViewModel (方便直接访问)
             _viewModel.Navigation = _navigationModule;

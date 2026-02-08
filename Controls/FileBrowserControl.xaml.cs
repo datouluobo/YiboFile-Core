@@ -120,16 +120,6 @@ namespace YiboFile.Controls
 
             this.PreviewMouseDown += OnPreviewMouseDown;
 
-            if (FilterPanelControl != null)
-            {
-                FilterPanelControl.FilterChanged += (s, e) =>
-                {
-                    if (DataContext is ViewModels.PaneViewModel vm)
-                    {
-                        vm.ApplyFilterCommand?.Execute(null);
-                    }
-                };
-            }
 
             this.Loaded += FileBrowserControl_Loaded;
             this.DataContextChanged += OnDataContextChanged;

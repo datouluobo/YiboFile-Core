@@ -253,6 +253,146 @@ namespace YiboFile.Services.Search
                 };
             });
         }
+        /// <summary>
+        /// 检查项是否匹配给定的搜索选项
+        /// </summary>
+        public bool MatchesOptions(FileSystemItem item, SearchOptions options)
+        {
+            if (item == null || options == null) return true;
+
+            // Scope Filter (SearchMode)
+            switch (options.Mode)
+            {
+                case SearchMode.Folder:
+                    if (!item.IsDirectory) return false;
+                    break;
+                case SearchMode.FileName:
+                    if (item.IsDirectory) return false;
+                    break;
+                case SearchMode.Notes:
+                    if (string.IsNullOrEmpty(item.Notes)) return false;
+                    break;
+            }
+
+            // 类型过滤
+            if (options.Type != FileTypeFilter.All)
+            {
+                if (!MatchesType(item, options.Type)) return false;
+            }
+
+            // 日期过滤
+            if (options.DateRange != DateRangeFilter.All)
+            {
+                if (!MatchesDate(item, options.DateRange, options.DateFrom, options.DateTo)) return false;
+            }
+
+            // 大小过滤
+            if (options.SizeRange != SizeRangeFilter.All)
+            {
+                if (!MatchesSize(item, options.SizeRange, options.SizeMin, options.SizeMax)) return false;
+            }
+
+            // 图片尺寸过滤
+            if (options.ImageSize != ImageDimensionFilter.All)
+            {
+                if (!MatchesImageSize(item, options.ImageSize)) return false;
+            }
+
+            // 时长过滤
+            if (options.Duration != AudioDurationFilter.All)
+            {
+                if (!MatchesDuration(item, options.Duration)) return false;
+            }
+
+            return true;
+        }
+
+        private bool MatchesType(FileSystemItem item, FileTypeFilter filter)
+        {
+            switch (filter)
+            {
+                case FileTypeFilter.Images:
+                    return !item.IsDirectory && ImageExtensions.Contains(Path.GetExtension(item.Path));
+                case FileTypeFilter.Videos:
+                    return !item.IsDirectory && VideoExtensions.Contains(Path.GetExtension(item.Path));
+                case FileTypeFilter.Audio:
+                    return !item.IsDirectory && AudioExtensions.Contains(Path.GetExtension(item.Path));
+                case FileTypeFilter.Documents:
+                    return !item.IsDirectory && DocumentExtensions.Contains(Path.GetExtension(item.Path));
+                case FileTypeFilter.Folders:
+                    return item.IsDirectory;
+                default:
+                    return true;
+            }
+        }
+
+        private bool MatchesDate(FileSystemItem item, DateRangeFilter filter, DateTime? from, DateTime? to)
+        {
+            var modTime = item.ModifiedDateTime;
+            if (modTime == default) return true;
+
+            var now = DateTime.Now;
+            return filter switch
+            {
+                DateRangeFilter.Today => modTime.Date == now.Date,
+                DateRangeFilter.ThisWeek => modTime >= now.Date.AddDays(-(int)now.DayOfWeek),
+                DateRangeFilter.ThisMonth => modTime >= new DateTime(now.Year, now.Month, 1),
+                DateRangeFilter.ThisYear => modTime >= new DateTime(now.Year, 1, 1),
+                DateRangeFilter.Custom => (from == null || modTime >= from.Value) && (to == null || modTime <= to.Value),
+                _ => true
+            };
+        }
+
+        private bool MatchesSize(FileSystemItem item, SizeRangeFilter filter, long? min, long? max)
+        {
+            if (item.IsDirectory) return false;
+            var size = item.SizeBytes >= 0 ? item.SizeBytes : 0;
+
+            const long KB = 1024;
+            const long MB = 1024 * KB;
+
+            return filter switch
+            {
+                SizeRangeFilter.Tiny => size < 100 * KB,
+                SizeRangeFilter.Small => size >= 100 * KB && size < MB,
+                SizeRangeFilter.Medium => size >= MB && size < 10 * MB,
+                SizeRangeFilter.Large => size >= 10 * MB && size < 100 * MB,
+                SizeRangeFilter.Huge => size >= 100 * MB,
+                SizeRangeFilter.Custom => (min == null || size >= min.Value) && (max == null || size <= max.Value),
+                _ => true
+            };
+        }
+
+        private bool MatchesImageSize(FileSystemItem item, ImageDimensionFilter filter)
+        {
+            if (item.IsDirectory) return false;
+            int maxDim = Math.Max(item.PixelWidth, item.PixelHeight);
+
+            return filter switch
+            {
+                ImageDimensionFilter.Small => maxDim < 800,
+                ImageDimensionFilter.Medium => maxDim >= 800 && maxDim < 1920,
+                ImageDimensionFilter.Large => maxDim >= 1920 && maxDim < 3840,
+                ImageDimensionFilter.Huge => maxDim >= 3840,
+                _ => true
+            };
+        }
+
+        private bool MatchesDuration(FileSystemItem item, AudioDurationFilter filter)
+        {
+            if (item.IsDirectory) return false;
+            long duration = item.DurationMs;
+            const long Minute = 60 * 1000;
+
+            return filter switch
+            {
+                AudioDurationFilter.Short => duration < Minute,
+                AudioDurationFilter.Medium => duration >= Minute && duration < 5 * Minute,
+                AudioDurationFilter.Long => duration >= 5 * Minute && duration < 20 * Minute,
+                AudioDurationFilter.VeryLong => duration >= 20 * Minute,
+                _ => true
+            };
+        }
     }
 }
 

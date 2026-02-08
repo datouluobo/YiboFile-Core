@@ -91,7 +91,7 @@ namespace YiboFile.ViewModels.Modules
                 }
                 else
                 {
-                    await PerformFileSearch(normalizedKeyword, message.SearchNames, message.SearchNotes, message.TargetPaneId);
+                    await PerformFileSearch(normalizedKeyword, message.SearchNames, message.SearchNotes, message.TargetPaneId, message.Options);
                 }
             }
             catch (Exception ex)
@@ -140,7 +140,7 @@ namespace YiboFile.ViewModels.Modules
             }
         }
 
-        private async Task PerformFileSearch(string normalizedKeyword, bool searchNames, bool searchNotes, string targetPaneId)
+        private async Task PerformFileSearch(string normalizedKeyword, bool searchNames, bool searchNotes, string targetPaneId, SearchOptions searchOptions)
         {
             Publish(new SearchResultUpdatedMessage(null, "搜索中...", true, targetPaneId));
 
@@ -159,7 +159,8 @@ namespace YiboFile.ViewModels.Modules
                 // 这里暂时假设搜索是基于全局上下文的，或者后续在 ExecuteSearchMessage 中传递
                 string currentPath = "";
 
-                var searchOptions = new SearchOptions(); // 临时创建，实际应从 VM 获取
+                if (searchOptions == null) searchOptions = new SearchOptions();
+
                 var searchResult = await _searchService.PerformSearchAsync(
                     keyword: normalizedKeyword,
                     searchOptions: searchOptions,

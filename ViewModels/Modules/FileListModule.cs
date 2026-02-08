@@ -1,4 +1,5 @@
-using System;
+using System.Linq;
+using YiboFile.Models;
 using YiboFile.ViewModels.Messaging;
 using YiboFile.ViewModels.Messaging.Messages;
 
@@ -10,47 +11,16 @@ namespace YiboFile.ViewModels.Modules
     /// </summary>
     public class FileListModule : ModuleBase
     {
-        private readonly Action _onRefreshCallback;
-        private readonly Action _onClearFilterCallback;
-
         public override string Name => "FileList";
 
-        public FileListModule(
-            IMessageBus messageBus,
-            Action onRefreshCallback = null,
-            Action onClearFilterCallback = null)
+        public FileListModule(IMessageBus messageBus)
             : base(messageBus)
         {
-            _onRefreshCallback = onRefreshCallback;
-            _onClearFilterCallback = onClearFilterCallback;
         }
 
         protected override void OnInitialize()
         {
-            Subscribe<RefreshFileListMessage>(OnRefresh);
-            Subscribe<ClearFilterMessage>(OnClearFilter);
-            Subscribe<PathChangedMessage>(OnPathChanged);
         }
-
-        #region 消息处理
-
-        private void OnRefresh(RefreshFileListMessage message)
-        {
-            _onRefreshCallback?.Invoke();
-        }
-
-        private void OnClearFilter(ClearFilterMessage message)
-        {
-            _onClearFilterCallback?.Invoke();
-        }
-
-        private void OnPathChanged(PathChangedMessage message)
-        {
-            // 路径变更时自动刷新文件列表
-            _onRefreshCallback?.Invoke();
-        }
-
-        #endregion
 
         #region 公开方法
 
@@ -75,7 +45,8 @@ namespace YiboFile.ViewModels.Modules
         /// </summary>
         public void NotifySelectionChanged(System.Collections.IList selectedItems)
         {
-            Publish(new FileSelectionChangedMessage(selectedItems));
+            var items = selectedItems?.Cast<YiboFile.Models.FileSystemItem>().ToList();
+            Publish(new FileSelectionChangedMessage(items));
         }
 
         #endregion

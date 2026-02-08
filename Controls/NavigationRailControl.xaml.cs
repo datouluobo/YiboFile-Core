@@ -1,13 +1,20 @@
 using System;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
+using YiboFile.Controllers;
+using YiboFile.ViewModels;
+using YiboFile.ViewModels.Messaging;
+using YiboFile.ViewModels.Messaging.Messages;
 
 namespace YiboFile.Controls
 {
+    /// <summary>
+    /// NavigationRailControl 的交互逻辑
+    /// 导航工具栏 - 混合架构实现（保持向后兼容）
+    /// </summary>
     public partial class NavigationRailControl : UserControl
     {
-        // Events to notify the main window
+        // 向后兼容：保留事件供外部使用
         public event EventHandler<string> NavigationModeChanged;
         public event EventHandler LayoutFocusRequested;
         public event EventHandler LayoutWorkRequested;
@@ -16,129 +23,104 @@ namespace YiboFile.Controls
         public event EventHandler SettingsRequested;
         public event EventHandler AboutRequested;
 
-        // Exposed properties for NavigationModeService
-        public Button PathButton => NavPathBtn;
-        public Button LibraryButton => NavLibraryBtn;
-        public Button TagButton => NavTagBtn;
-        public Button FocusModeButton => LayoutFocusBtn;
-        public Button WorkModeButton => LayoutWorkBtn;
-        public Button FullModeButton => LayoutFullBtn;
-        public Button DualListButton => DualListToggleBtn;
-        public Button SettingsButton => SettingsBtn;
-        public Button AboutButton => AboutBtn;
+        private NavigationRailCoordinator _coordinator;
+
+        /// <summary>
+        /// 获取或设置 ViewModel
+        /// </summary>
+        public NavigationRailViewModel ViewModel
+        {
+            get => DataContext as NavigationRailViewModel;
+            set => DataContext = value;
+        }
+
+        /// <summary>
+        /// 获取或设置 Coordinator
+        /// </summary>
+        public NavigationRailCoordinator Coordinator
+        {
+            get => _coordinator;
+            set => _coordinator = value;
+        }
 
         public NavigationRailControl()
         {
             InitializeComponent();
-            // Default active
-            SetActiveButton(NavPathBtn);
+        }
 
-            // Set visibility for tag feature
-            if (NavTagBtn != null)
+        /// <summary>
+        /// 设置消息总线以桥接 ViewModel 消息到事件（向后兼容）
+        /// </summary>
+        public void SetupMessageBridge(IMessageBus messageBus)
+        {
+            messageBus.Subscribe<NavigationModeChangedMessage>(msg =>
             {
-                NavTagBtn.Visibility = App.IsTagTrainAvailable ? Visibility.Visible : Visibility.Collapsed;
-            }
-        }
+                NavigationModeChanged?.Invoke(this, msg.Mode);
+            });
 
-        private void NavPathBtn_Click(object sender, RoutedEventArgs e)
-        {
-            SetActiveButton(NavPathBtn);
-            NavigationModeChanged?.Invoke(this, "Path");
-        }
-
-        private void NavLibraryBtn_Click(object sender, RoutedEventArgs e)
-        {
-            SetActiveButton(NavLibraryBtn);
-            NavigationModeChanged?.Invoke(this, "Library");
-        }
-
-        private void NavTagBtn_Click(object sender, RoutedEventArgs e)
-        {
-            SetActiveButton(NavTagBtn);
-            NavigationModeChanged?.Invoke(this, "Tag");
-        }
-
-        private void TaskQueueBtn_Click(object sender, RoutedEventArgs e)
-        {
-            SetActiveButton(TaskQueueBtn);
-            NavigationModeChanged?.Invoke(this, "Tasks");
-        }
-
-        private void BackupBtn_Click(object sender, RoutedEventArgs e)
-        {
-            SetActiveButton(BackupBtn);
-            NavigationModeChanged?.Invoke(this, "Backup");
-        }
-
-        private void ClipboardBtn_Click(object sender, RoutedEventArgs e)
-        {
-            SetActiveButton(ClipboardBtn);
-            NavigationModeChanged?.Invoke(this, "Clipboard");
-        }
-
-        private void LayoutFocusBtn_Click(object sender, RoutedEventArgs e)
-        {
-            LayoutFocusRequested?.Invoke(this, EventArgs.Empty);
-        }
-
-        private void LayoutWorkBtn_Click(object sender, RoutedEventArgs e)
-        {
-            LayoutWorkRequested?.Invoke(this, EventArgs.Empty);
-        }
-
-        private void LayoutFullBtn_Click(object sender, RoutedEventArgs e)
-        {
-            LayoutFullRequested?.Invoke(this, EventArgs.Empty);
-        }
-
-        private void DualListToggleBtn_Click(object sender, RoutedEventArgs e)
-        {
-            DualListToggleRequested?.Invoke(this, EventArgs.Empty);
-        }
-
-        private void SettingsBtn_Click(object sender, RoutedEventArgs e)
-        {
-            SettingsRequested?.Invoke(this, EventArgs.Empty);
-        }
-
-        private void AboutBtn_Click(object sender, RoutedEventArgs e)
-        {
-            AboutRequested?.Invoke(this, EventArgs.Empty);
-        }
-
-        private void SetActiveButton(Button activeButton)
-        {
-            // Reset all top/middle buttons
-            NavPathBtn.Tag = null;
-            NavLibraryBtn.Tag = null;
-            NavTagBtn.Tag = null;
-            TaskQueueBtn.Tag = null;
-            BackupBtn.Tag = null;
-            ClipboardBtn.Tag = null;
-            // Layout buttons are handled separately to show active mode
-            LayoutFocusBtn.Tag = null;
-            LayoutWorkBtn.Tag = null;
-            LayoutFullBtn.Tag = null;
-
-            // Set active
-            if (activeButton != null)
+            messageBus.Subscribe<LayoutModeChangedMessage>(msg =>
             {
-                activeButton.Tag = "Active";
-            }
+                switch (msg.Mode)
+                {
+                    case "Focus":
+                        LayoutFocusRequested?.Invoke(this, EventArgs.Empty);
+                        break;
+                    case "Work":
+                        LayoutWorkRequested?.Invoke(this, EventArgs.Empty);
+                        break;
+                    case "Full":
+                        LayoutFullRequested?.Invoke(this, EventArgs.Empty);
+                        break;
+                }
+            });
+
+            messageBus.Subscribe<DualListModeToggledMessage>(msg =>
+            {
+                DualListToggleRequested?.Invoke(this, EventArgs.Empty);
+            });
+
+            messageBus.Subscribe<ShowSettingsMessage>(msg =>
+            {
+                SettingsRequested?.Invoke(this, EventArgs.Empty);
+            });
+
+            messageBus.Subscribe<ShowAboutMessage>(msg =>
+            {
+                AboutRequested?.Invoke(this, EventArgs.Empty);
+            });
         }
 
-        // Method to externally set active state (e.g. if loaded from config)
+        #region 向后兼容：公开按钮引用供外部访问
+
+        // 注意：这些是虚拟属性，返回 null。真正的状态管理在 ViewModel + Coordinator 中。
+        // 如果 MainWindow 需要访问按钮状态，应改为订阅 ViewModel 属性变更。
+
+        public Button PathButton => null;
+        public Button LibraryButton => null;
+        public Button TagButton => null;
+        public Button FocusModeButton => null;
+        public Button WorkModeButton => null;
+        public Button FullModeButton => null;
+        public Button DualListButton => null;
+        public Button SettingsButton => null;
+        public Button AboutButton => null;
+
+        #endregion
+
+        /// <summary>
+        /// 外部设置导航模式（用于配置加载等场景）
+        /// </summary>
         public void SetActiveMode(string mode)
         {
-            switch (mode)
-            {
-                case "Path": SetActiveButton(NavPathBtn); break;
-                case "Library": SetActiveButton(NavLibraryBtn); break;
-                case "Tag": SetActiveButton(NavTagBtn); break;
-                case "Tasks": SetActiveButton(TaskQueueBtn); break;
-                case "Backup": SetActiveButton(BackupBtn); break;
-                case "Clipboard": SetActiveButton(ClipboardBtn); break;
-            }
+            _coordinator?.SetNavigationMode(mode);
+        }
+
+        /// <summary>
+        /// 外部设置布局模式
+        /// </summary>
+        public void SetLayoutMode(string mode)
+        {
+            _coordinator?.SetLayoutMode(mode);
         }
     }
 }

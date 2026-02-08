@@ -41,11 +41,25 @@ namespace YiboFile.ViewModels.Messaging.Messages
         public AddTagToFileRequestMessage(string filePath, int tagId) { FilePath = filePath; TagId = tagId; }
     }
 
+    public class AddTagToFilesRequestMessage
+    {
+        public List<string> FilePaths { get; }
+        public int TagId { get; }
+        public AddTagToFilesRequestMessage(List<string> filePaths, int tagId) { FilePaths = filePaths; TagId = tagId; }
+    }
+
     public class RemoveTagFromFileRequestMessage
     {
         public string FilePath { get; }
         public int TagId { get; }
         public RemoveTagFromFileRequestMessage(string filePath, int tagId) { FilePath = filePath; TagId = tagId; }
+    }
+
+    public class ToggleTagRequestMessage
+    {
+        public int TagId { get; }
+        public List<string> FilePaths { get; }
+        public ToggleTagRequestMessage(int tagId, List<string> filePaths) { TagId = tagId; FilePaths = filePaths; }
     }
 
     // Notifications (Events)

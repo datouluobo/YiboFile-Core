@@ -90,6 +90,42 @@ namespace YiboFile.ViewModels.Modules
                     SelectedLibrary = Libraries.FirstOrDefault();
                 }
             });
+
+            Subscribe<ToggleLibraryPathRequestMessage>(OnToggleLibraryPathRequest);
+            Subscribe<CreateLibraryRequestMessage>(OnCreateLibraryRequest);
+        }
+
+        private void OnToggleLibraryPathRequest(ToggleLibraryPathRequestMessage msg)
+        {
+            if (msg.Library == null || msg.Paths == null || msg.Paths.Count == 0) return;
+
+            bool anyIn = msg.Paths.Any(p => msg.Library.Paths != null && msg.Library.Paths.Contains(p));
+            bool shouldAdd = msg.ForceAdd || !anyIn;
+
+            foreach (var path in msg.Paths)
+            {
+                if (shouldAdd) _libraryService.AddLibraryPath(msg.Library.Id, path);
+                else _libraryService.RemoveLibraryPath(msg.Library.Id, path);
+            }
+
+            // 加载库以更新其内部路径列表
+            LoadLibraries();
+        }
+
+        private void OnCreateLibraryRequest(CreateLibraryRequestMessage msg)
+        {
+            if (string.IsNullOrWhiteSpace(msg.Name)) return;
+
+            int newLibId = _libraryService.AddLibrary(msg.Name);
+            if (newLibId != 0 && msg.InitialPaths != null)
+            {
+                int targetId = Math.Abs(newLibId);
+                foreach (var path in msg.InitialPaths)
+                {
+                    _libraryService.AddLibraryPath(targetId, path);
+                }
+            }
+            LoadLibraries();
         }
 
         public void LoadLibraries()
@@ -119,6 +155,7 @@ namespace YiboFile.ViewModels.Modules
             }
             // Replacing the instance triggers PropertyChanged("Libraries") via SetProperty
             Libraries = newCollection;
+            Publish(new LibraryListChangedMessage());
         }
 
         private void OnLibrarySelected(Library library)
