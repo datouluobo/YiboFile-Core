@@ -5,6 +5,7 @@
              xmlns:viewModels="clr-namespace:YiboFile.ViewModels"
              xmlns:local="clr-namespace:YiboFile"
              xmlns:converters="clr-namespace:YiboFile.Converters"
+             xmlns:previews="clr-namespace:YiboFile.ViewModels.Previews"
              HorizontalAlignment="Stretch"
              VerticalAlignment="Stretch"
              MinWidth="100">
@@ -75,7 +76,7 @@
                     </Style>
                     
                     <!-- Previews DataTemplates -->
-                    <DataTemplate DataType="{x:Type viewModels:Previews.ImagePreviewViewModel}">
+                    <DataTemplate DataType="{x:Type previews:ImagePreviewViewModel}">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
@@ -139,7 +140,7 @@
                         </Grid>
                     </DataTemplate>
 
-                    <DataTemplate DataType="{x:Type viewModels:Previews.MarkdownPreviewViewModel}">
+                    <DataTemplate DataType="{x:Type previews:MarkdownPreviewViewModel}">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
@@ -160,7 +161,7 @@
                         </Grid>
                     </DataTemplate>
 
-                    <DataTemplate DataType="{x:Type viewModels:Previews.TextPreviewViewModel}">
+                    <DataTemplate DataType="{x:Type previews:TextPreviewViewModel}">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
@@ -190,7 +191,7 @@
                         </Grid>
                     </DataTemplate>
 
-                    <DataTemplate DataType="{x:Type viewModels:Previews.ArchivePreviewViewModel}">
+                    <DataTemplate DataType="{x:Type previews:ArchivePreviewViewModel}">
                         <ListView ItemsSource="{Binding Entries}">
                             <ListView.View>
                                 <GridView>
@@ -201,7 +202,7 @@
                         </ListView>
                     </DataTemplate>
 
-                    <DataTemplate DataType="{x:Type viewModels:Previews.ChmPreviewViewModel}">
+                    <DataTemplate DataType="{x:Type previews:ChmPreviewViewModel}">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
@@ -219,7 +220,7 @@
                         </Grid>
                     </DataTemplate>
 
-                    <DataTemplate DataType="{x:Type viewModels:Previews.WordPreviewViewModel}">
+                    <DataTemplate DataType="{x:Type previews:WordPreviewViewModel}">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
@@ -251,7 +252,7 @@
                         </Grid>
                     </DataTemplate>
 
-                    <DataTemplate DataType="{x:Type viewModels:Previews.MediaPreviewViewModel}">
+                    <DataTemplate DataType="{x:Type previews:MediaPreviewViewModel}">
                         <Grid>
                             <controls:VideoPreviewControl FilePath="{Binding FilePath}">
                                 <controls:VideoPreviewControl.Style>
@@ -281,7 +282,7 @@
                         </Grid>
                     </DataTemplate>
 
-                    <DataTemplate DataType="{x:Type viewModels:Previews.FolderPreviewViewModel}">
+                    <DataTemplate DataType="{x:Type previews:FolderPreviewViewModel}">
                         <ListView ItemsSource="{Binding Items}">
                             <ListView.View>
                                 <GridView>
@@ -293,7 +294,7 @@
                         </ListView>
                     </DataTemplate>
 
-                    <DataTemplate DataType="{x:Type viewModels:Previews.DocumentPreviewViewModel}">
+                    <DataTemplate DataType="{x:Type previews:DocumentPreviewViewModel}">
                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                             <TextBlock Text="📄" FontSize="64" HorizontalAlignment="Center" Margin="0,0,0,20"/>
                             <TextBlock Text="{Binding FileInfo}" TextAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}"/>
@@ -303,7 +304,7 @@
                         </StackPanel>
                     </DataTemplate>
 
-                    <DataTemplate DataType="{x:Type viewModels:Previews.PdfPreviewViewModel}">
+                    <DataTemplate DataType="{x:Type previews:PdfPreviewViewModel}">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
@@ -319,7 +320,7 @@
                         </Grid>
                     </DataTemplate>
                     
-                    <DataTemplate DataType="{x:Type viewModels:Previews.HtmlPreviewViewModel}">
+                    <DataTemplate DataType="{x:Type previews:HtmlPreviewViewModel}">
                         <Grid>
                              <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
@@ -340,7 +341,7 @@
                         </Grid>
                     </DataTemplate>
 
-                    <DataTemplate DataType="{x:Type viewModels:Previews.ExcelPreviewViewModel}">
+                    <DataTemplate DataType="{x:Type previews:ExcelPreviewViewModel}">
                         <Grid>
                              <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
@@ -356,7 +357,7 @@
                         </Grid>
                     </DataTemplate>
 
-                    <DataTemplate DataType="{x:Type viewModels:Previews.CadPreviewViewModel}">
+                    <DataTemplate DataType="{x:Type previews:CadPreviewViewModel}">
                         <Grid>
                              <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
@@ -374,7 +375,7 @@
                         </Grid>
                     </DataTemplate>
 
-                    <DataTemplate DataType="{x:Type viewModels:Previews.PowerPointPreviewViewModel}">
+                    <DataTemplate DataType="{x:Type previews:PowerPointPreviewViewModel}">
                         <Grid>
                              <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
@@ -391,7 +392,7 @@
                         </Grid>
                     </DataTemplate>
 
-                    <DataTemplate DataType="{x:Type viewModels:Previews.ErrorPreviewViewModel}">
+                    <DataTemplate DataType="{x:Type previews:ErrorPreviewViewModel}">
                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                             <TextBlock Text="❌" FontSize="48" HorizontalAlignment="Center" Margin="0,0,0,10"/>
                             <TextBlock Text="{Binding ErrorMessage}" FontSize="16" Foreground="Gray" TextWrapping="Wrap" HorizontalAlignment="Center"/>

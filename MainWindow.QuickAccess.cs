@@ -32,7 +32,7 @@ namespace YiboFile
                     if (!string.IsNullOrEmpty(path))
                     {
                         // Navigate
-                        _navigationCoordinator.HandlePathNavigation(path, YiboFile.Services.Navigation.NavigationSource.QuickAccess, YiboFile.Services.Navigation.ClickType.LeftClick);
+                        _navigationCoordinator.HandlePathNavigation(path, YiboFile.Services.Navigation.NavigationSource.QuickAccess, YiboFile.Services.Navigation.ClickType.LeftClick, pane: GetActivePaneId());
                     }
                 }
             }

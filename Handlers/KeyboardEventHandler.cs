@@ -8,6 +8,8 @@ using System.Windows.Input;
 using YiboFile.Controls;
 using YiboFile.Services.Tabs;
 using YiboFile.Services.Config;
+using YiboFile.ViewModels.Messaging;
+using YiboFile.ViewModels.Messaging.Messages;
 
 namespace YiboFile.Handlers
 {
@@ -46,6 +48,7 @@ namespace YiboFile.Handlers
         private readonly Action _switchDualPaneFocus;
         private readonly Action _undoClick;
         private readonly Action _redoClick;
+        private readonly IMessageBus _messageBus;
 
         public KeyboardEventHandler(
             FileBrowserControl fileBrowser, // Keep for backward compatibility or primary ref
@@ -69,6 +72,7 @@ namespace YiboFile.Handlers
             Action navigateBack,
             Action undoClick,
             Action redoClick,
+            IMessageBus messageBus = null,
             Action<int> switchLayoutMode = null,
             Func<bool> isDualListMode = null,
             Action switchDualPaneFocus = null)
@@ -97,6 +101,13 @@ namespace YiboFile.Handlers
             _switchLayoutMode = switchLayoutMode; // 可选参数
             _isDualListMode = isDualListMode;
             _switchDualPaneFocus = switchDualPaneFocus;
+            _messageBus = messageBus;
+
+            if (_messageBus != null)
+            {
+                _messageBus.Subscribe<WindowPreviewKeyDownMessage>(m => MainWindow_PreviewKeyDown(null, m.EventArgs));
+                _messageBus.Subscribe<WindowKeyDownMessage>(m => MainWindow_KeyDown(null, m.EventArgs));
+            }
         }
 
         /// <summary>

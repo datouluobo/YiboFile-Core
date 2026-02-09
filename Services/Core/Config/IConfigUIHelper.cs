@@ -14,7 +14,7 @@ namespace YiboFile.Services.Config
         /// <summary>
         /// 获取窗口实例
         /// </summary>
-        Window Window { get; }
+        System.Windows.Window Window { get; }
 
         /// <summary>
         /// 获取根 Grid

@@ -124,6 +124,7 @@ namespace YiboFile.ViewModels.Modules
             Subscribe<NavigateForwardMessage>(OnNavigateForward);
             Subscribe<NavigateUpMessage>(OnNavigateUp);
             Subscribe<NavigationModeChangedMessage>(m => CurrentMode = m.Mode);
+            Subscribe<TagClickedMessage>(OnTagClicked);
         }
 
         #region 消息处理
@@ -136,7 +137,7 @@ namespace YiboFile.ViewModels.Modules
             _navigationService.NavigateTo(message.Path);
 
             // 发布路径变更通知
-            Publish(new PathChangedMessage(message.Path, oldPath));
+            Publish(new PathChangedMessage(message.Path, PaneId.Main, oldPath));
 
             // 回调（过渡期使用）
             _onNavigateCallback?.Invoke(message.Path);
@@ -151,7 +152,7 @@ namespace YiboFile.ViewModels.Modules
 
             if (!string.IsNullOrEmpty(newPath))
             {
-                Publish(new PathChangedMessage(newPath, oldPath));
+                Publish(new PathChangedMessage(newPath, PaneId.Main, oldPath));
                 _onNavigateCallback?.Invoke(newPath);
             }
             UpdateCommandStates();
@@ -164,7 +165,7 @@ namespace YiboFile.ViewModels.Modules
 
             if (!string.IsNullOrEmpty(newPath))
             {
-                Publish(new PathChangedMessage(newPath, oldPath));
+                Publish(new PathChangedMessage(newPath, PaneId.Main, oldPath));
                 _onNavigateCallback?.Invoke(newPath);
             }
             UpdateCommandStates();
@@ -177,10 +178,23 @@ namespace YiboFile.ViewModels.Modules
 
             if (!string.IsNullOrEmpty(parentPath))
             {
-                Publish(new PathChangedMessage(parentPath, oldPath));
+                Publish(new PathChangedMessage(parentPath, PaneId.Main, oldPath));
                 _onNavigateCallback?.Invoke(parentPath);
             }
             UpdateCommandStates();
+        }
+
+        private void OnTagClicked(TagClickedMessage message)
+        {
+            if (message.Tag != null && !string.IsNullOrEmpty(message.Tag.Name))
+            {
+                _navigationCoordinator.HandlePathNavigation(
+                    $"tag://{message.Tag.Name}",
+                    NavigationSource.AddressBar,
+                    ClickType.LeftClick,
+                    pane: message.TargetPane
+                );
+            }
         }
 
         #endregion

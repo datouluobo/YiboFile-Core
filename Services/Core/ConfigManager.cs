@@ -48,6 +48,7 @@ namespace YiboFile
         // 兼容旧版本的属性名
         public double LeftPanelWidth { get => ColLeftWidth; set => ColLeftWidth = value; }
         public double MiddlePanelWidth { get => ColCenterWidth; set => ColCenterWidth = value; }
+        public double RightPanelWidth { get => ColRightWidth; set => ColRightWidth = value; }
 
         // 列头宽度
         public double ColNameWidth { get; set; } = 200;

@@ -29,7 +29,7 @@ namespace YiboFile.ViewModels.Messaging.Messages
     /// <summary>
     /// 视图模式变更
     /// </summary>
-    public record ViewModeChangedMessage(string Mode);
+    public record ViewModeChangedMessage(string Mode, YiboFile.Services.Navigation.PaneId TargetPane = YiboFile.Services.Navigation.PaneId.Main);
     /// <summary>
     /// 请求在信息面板显示文件信息
     /// </summary>

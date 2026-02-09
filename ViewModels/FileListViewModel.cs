@@ -17,6 +17,7 @@ using YiboFile.Models;
 using Microsoft.Extensions.DependencyInjection;
 using YiboFile.Services.Core;
 using YiboFile.ViewModels.Messaging;
+using YiboFile.ViewModels.Messaging.Messages;
 
 namespace YiboFile.ViewModels
 {
@@ -46,6 +47,8 @@ namespace YiboFile.ViewModels
         private bool _loadFilesPending = false;
         private readonly SemaphoreSlim _loadFilesSemaphore = new SemaphoreSlim(1, 1);
         private CancellationTokenSource _loadCancellationTokenSource = null;
+        private readonly YiboFile.Services.Navigation.PaneId _paneId;
+        private bool _showFullFileName = false;
 
         public ObservableCollection<FileSystemItem> Files
         {
@@ -77,6 +80,21 @@ namespace YiboFile.ViewModels
             set => SetProperty(ref _sortAscending, value);
         }
 
+        public bool ShowFullFileName
+        {
+            get => _showFullFileName;
+            set
+            {
+                if (SetProperty(ref _showFullFileName, value))
+                {
+                    if (_fileListService != null)
+                    {
+                        _fileListService.ShowFullFileName = value;
+                    }
+                }
+            }
+        }
+
         public void UpdateFiles(IEnumerable<FileSystemItem> items)
         {
             _dispatcher.BeginInvoke(new Action(() =>
@@ -89,6 +107,7 @@ namespace YiboFile.ViewModels
 
         public FileListViewModel(
             IMessageBus messageBus,
+            YiboFile.Services.Navigation.PaneId paneId = YiboFile.Services.Navigation.PaneId.Main,
             ColumnService columnService = null,
             FileMetadataEnricher metadataEnricher = null,
             FolderSizeCalculator folderSizeCalculator = null)
@@ -119,6 +138,34 @@ namespace YiboFile.ViewModels
                 _refreshDebounceTimer.Stop();
                 RefreshFiles();
             };
+
+            _paneId = paneId;
+            _messageBus.Subscribe<ViewModeChangedMessage>(m =>
+            {
+                if (m.TargetPane == _paneId)
+                {
+                    ShowFullFileName = (m.Mode == "Thumbnail");
+                    // 重新应用显示名称 (如果当前已有文件)
+                    if (Files != null && Files.Count > 0)
+                    {
+                        foreach (var item in Files)
+                        {
+                            if (!item.IsDirectory)
+                            {
+                                item.Name = GetDisplayFileName(item.Path, ShowFullFileName);
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        private string GetDisplayFileName(string filePath, bool showFullFileName)
+        {
+            string fileName = Path.GetFileName(filePath);
+            if (showFullFileName) return fileName;
+            string nameWithoutExt = Path.GetFileNameWithoutExtension(filePath);
+            return string.IsNullOrEmpty(nameWithoutExt) ? fileName : nameWithoutExt;
         }
 
         /// <summary>

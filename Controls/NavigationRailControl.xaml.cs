@@ -15,13 +15,16 @@ namespace YiboFile.Controls
     public partial class NavigationRailControl : UserControl
     {
         // 向后兼容：保留事件供外部使用
-        public event EventHandler<string> NavigationModeChanged;
         public event EventHandler LayoutFocusRequested;
         public event EventHandler LayoutWorkRequested;
         public event EventHandler LayoutFullRequested;
         public event EventHandler DualListToggleRequested;
         public event EventHandler SettingsRequested;
         public event EventHandler AboutRequested;
+
+        public Button NavPathButton => FindName("PathButton") as Button;
+        public Button NavLibraryButton => FindName("LibraryButton") as Button;
+        public Button NavTagButton => FindName("TagButton") as Button;
 
         private NavigationRailCoordinator _coordinator;
 
@@ -53,10 +56,12 @@ namespace YiboFile.Controls
         /// </summary>
         public void SetupMessageBridge(IMessageBus messageBus)
         {
+            /* 移除可能导致循环的订阅（改为由 Coordinator 直接处理）
             messageBus.Subscribe<NavigationModeChangedMessage>(msg =>
             {
                 NavigationModeChanged?.Invoke(this, msg.Mode);
             });
+            */
 
             messageBus.Subscribe<LayoutModeChangedMessage>(msg =>
             {
@@ -90,22 +95,9 @@ namespace YiboFile.Controls
             });
         }
 
-        #region 向后兼容：公开按钮引用供外部访问
-
-        // 注意：这些是虚拟属性，返回 null。真正的状态管理在 ViewModel + Coordinator 中。
-        // 如果 MainWindow 需要访问按钮状态，应改为订阅 ViewModel 属性变更。
-
-        public Button PathButton => null;
-        public Button LibraryButton => null;
-        public Button TagButton => null;
-        public Button FocusModeButton => null;
-        public Button WorkModeButton => null;
-        public Button FullModeButton => null;
-        public Button DualListButton => null;
-        public Button SettingsButton => null;
-        public Button AboutButton => null;
-
-        #endregion
+        // 按钮字段由 XAML 生成代码自动提供 (Internal 访问)
+        // 外部如需访问，可直接使用 XAML 生成的字段名 (因为它们是 internal 的，且在同一程序集)
+        // 或者保留以下空行以清理冲突
 
         /// <summary>
         /// 外部设置导航模式（用于配置加载等场景）

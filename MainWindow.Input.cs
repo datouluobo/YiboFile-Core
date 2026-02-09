@@ -14,10 +14,6 @@ namespace YiboFile
     {
         #region 键盘交互与快捷键
 
-        // 键盘事件桥接方法 - 已迁移到 KeyboardEventHandler
-        private void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e) => _keyboardEventHandler?.MainWindow_PreviewKeyDown(sender, e);
-        private void MainWindow_KeyDown(object sender, KeyEventArgs e) => _keyboardEventHandler?.MainWindow_KeyDown(sender, e);
-
         internal async void FilesListView_PreviewKeyDown(object sender, KeyEventArgs e)
         {
             var listView = sender as ListView;

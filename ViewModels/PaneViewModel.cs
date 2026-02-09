@@ -162,6 +162,10 @@ namespace YiboFile.ViewModels
                     }
                     PathChanged?.Invoke(this, value);
                     NotifyNavigationPropertiesChanged();
+
+                    // 发布路径变更消息，通知 TabsModule 等组件同步状态
+                    // 使用 _isSecondary 字段确定 PaneId
+                    _messageBus?.Publish(new PathChangedMessage(value, _isSecondary ? PaneId.Second : PaneId.Main, oldValue));
                 }
             }
         }
@@ -594,7 +598,7 @@ namespace YiboFile.ViewModels
 
             // Initialize FileListViewModel
             var columnService = App.ServiceProvider?.GetService<ColumnService>();
-            FileList = new FileListViewModel(_messageBus, columnService);
+            FileList = new FileListViewModel(_messageBus, isSecondary ? YiboFile.Services.Navigation.PaneId.Second : YiboFile.Services.Navigation.PaneId.Main, columnService);
 
             if (errorService != null)
             {

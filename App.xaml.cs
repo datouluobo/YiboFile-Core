@@ -143,6 +143,11 @@ namespace YiboFile
             // ViewModels
             services.AddSingleton<ViewModels.RightPanelViewModel>();
             services.AddSingleton<NavigationCoordinator>();
+            services.AddSingleton<ViewModels.NavigationRailViewModel>();
+            services.AddSingleton<Controllers.NavigationRailCoordinator>();
+
+            // Window Orchestration
+            services.AddSingleton<Services.Orchestration.IWindowOrchestrator, Services.Orchestration.WindowOrchestrator>();
         }
 
 

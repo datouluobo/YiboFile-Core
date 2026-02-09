@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using YiboFile.Models.Navigation;
+using YiboFile;
 
 namespace YiboFile.Services.Navigation
 {
@@ -18,5 +19,15 @@ namespace YiboFile.Services.Navigation
         /// 获取当前指定面板的活动路径
         /// </summary>
         string GetActivePath(PaneId pane);
+
+        /// <summary>
+        /// 统一路径导航处理
+        /// </summary>
+        void HandlePathNavigation(string path, NavigationSource source, ClickType clickType, bool forceNewTab = false, PaneId pane = PaneId.Main);
+
+        /// <summary>
+        /// 统一库导航处理
+        /// </summary>
+        void HandleLibraryNavigation(Library library, ClickType clickType, PaneId pane = PaneId.Main);
     }
 }

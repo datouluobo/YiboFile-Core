@@ -3,6 +3,7 @@ using YiboFile.Services.Config;
 using YiboFile.Services.Core;
 using YiboFile;
 using Microsoft.Extensions.DependencyInjection;
+using YiboFile.Services.UI.Adapters;
 
 namespace YiboFile.Services
 {
@@ -69,7 +70,7 @@ namespace YiboFile.Services
                     try
                     {
                         _mainWindow._windowStateManager = new WindowStateManager(
-                            _mainWindow,
+                            new ConfigUIAdapter(_mainWindow),
                             _mainWindow._tabService,
                             _mainWindow._navigationService,
                             _mainWindow._navigationModeService,
@@ -90,7 +91,7 @@ namespace YiboFile.Services
                     try
                     {
                         _mainWindow._navigationModeService = new Navigation.NavigationModeService(
-                            _mainWindow,
+                            new NavigationModeUIAdapter(_mainWindow),
                             _mainWindow._navigationService,
                             _mainWindow._tabService,
                             ConfigurationService.Instance

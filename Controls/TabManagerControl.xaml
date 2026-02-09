@@ -20,7 +20,7 @@
             <StackPanel Orientation="Horizontal" shell:WindowChrome.IsHitTestVisibleInChrome="True">
                 <!-- 标签页列表容器 - 数据驱动 -->
                 <ItemsControl x:Name="TabsItemsControl" 
-                              ItemsSource="{Binding}"
+                              ItemsSource="{Binding ItemsSource, RelativeSource={RelativeSource AncestorType=UserControl}}"
                               ItemTemplate="{StaticResource PathTabDataTemplate}"
                               shell:WindowChrome.IsHitTestVisibleInChrome="True">
                     <ItemsControl.ItemsPanel>

@@ -52,6 +52,8 @@ namespace YiboFile.Models.Navigation
 
         public static NavigationTarget FromPath(string path) => new() { Type = NavigationTargetType.Path, Path = path };
         public static NavigationTarget FromLibrary(Library library) => new() { Type = NavigationTargetType.Library, Library = library, Path = $"lib://{library?.Name}" };
+        public static NavigationTarget FromTag(string tagName) => new() { Type = NavigationTargetType.Tag, TagName = tagName, Path = $"tag://{tagName}" };
+        public static NavigationTarget FromSearch(string keyword) => new() { Type = NavigationTargetType.Search, SearchKeyword = keyword, Path = $"search://{keyword}" };
     }
 
     /// <summary>

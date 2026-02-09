@@ -238,8 +238,9 @@ Controller-driven 场景：
 | **3.1.1** | **提取 NavigationModule**：将 `MainWindow.Navigation.cs` 完全并入 `NavigationModule.cs`。 | MainWindow.Navigation.cs → NavigationModule.cs | 3h | ✅ 已完成 |
 | **3.1.2** | **重构 Handler 初始化**：将 `MainWindow.Handlers.cs` 中的所有服务初始化移至 `App.xaml.cs` 或 `MainWindowViewModel` 的构造函数。 | MainWindow.Handlers.cs → App.xaml.cs | 4h | ⏳ 待启动 |
 | **3.1.3** | **模块化 LayoutMode**：将 `MainWindow.LayoutMode.cs` 重构为 `LayoutModule`，由 `MainWindowViewModel` 持有。 | MainWindow.LayoutMode.cs → LayoutModule.cs | 5h | ⏳ 进行中 |
-| **3.1.4** | **清理事件订阅**：删除 `MainWindow` 中所有对 ViewModel 事件的订阅，改用 MessageBus 消息驱动。 | MainWindow.xaml.cs | 2h | ⏳ 待启动 |
-| **3.1.5** | **简化 MainWindow.xaml.cs**：最终目标是将其压缩至 < 150 行（仅保留窗口生命周期管理）。 | MainWindow.xaml.cs | 3h | ⏳ 待启动 |
+| **3.1.4** | **清理事件订阅**：删除 MainWindow 中所有对 ViewModel 事件的订阅，改用 MessageBus 消息驱动。 | MainWindow.xaml.cs | 2h | ✅ 已完成 (键盘/基础UI事件) |
+| **3.1.5** | **简化 MainWindow.xaml.cs**：最终目标是将其压缩至 < 150 行（仅保留窗口生命周期管理）。 | MainWindow.xaml.cs | 3h | ⏳ 进行中 |
+| **3.1.6** | **重构键盘事件处理**：将 `KeyboardEventHandler` 转换为消息驱动模式。 | KeyboardEventHandler.cs | 2h | ✅ 已完成 |
 
 **成功标准**：
 *   `MainWindow.xaml.cs` 不包含任何业务逻辑。
@@ -321,7 +322,13 @@ Controller-driven 场景：
 | **重构文件重命名逻辑** | FileOperationModule.cs / FileListControl.xaml.cs | +60 / -40 | 2026-02-08 |
 | **优化文件监视器防抖** | FileListViewModel.cs (3000ms -> 500ms) | 1 | 2026-02-08 |
 | **修复列头事件处理** | FileListControl.xaml.cs (BUG-008) | +20 | 2026-02-08 |
+| **重构键盘事件处理** | KeyboardEventHandler.cs / EventBridgeService.cs | +120 / -150 | 2026-02-09 |
+| **移除 MainWindow 键盘桥接** | MainWindow.Input.cs | -15 | 2026-02-09 |
 | **清理 NavigationCoordinator 事件** | NavigationCoordinator.cs / MainWindow.Initialization.cs | -25 | 2026-02-08 |
+| **修复标签页 UI 显示** | TabManagerControl.xaml (+1行) | +1 | 2026-02-09 |
+| **解决双面板同步干扰** | WindowOrchestrator.cs (-13行) | -13 | 2026-02-09 |
+| **优化驱动器树导航逻辑** | NavigationPanelControl.xaml.cs | +5 / -8 | 2026-02-09 |
+| **移除未使用事件** | NavigationRailControl.xaml.cs (-1行) | -1 | 2026-02-09 |
 
 **净效果**：
 *   代码总行数：-615 行
@@ -332,6 +339,7 @@ Controller-driven 场景：
 1.  **NavigationCoordinator 初始化未更新**：`MainWindow.Initialization.cs` 中初始化 `NavigationCoordinator` 的方法签名已改变（增加了 `IMessageBus` 参数和 ViewModel 解析器），需要同步更新。
 2.  **FileBrowserControl 的桥接属性**：当前 `FileBrowserControl.xaml.cs` 中添加的 `NavBackEnabled`、`LoadMoreVisible` 等属性是临时兼容措施，在 `NavigationCoordinator` 完全迁移后应删除。
 3.  **编译错误待解决**：`NavigationCompleteMessage` 类型未找到（可能由于项目文件未同步或命名空间引用问题）。
+4.  **预览组件兼容性**（记录于 2026-02-09）：观察到部分文件预览失效（文件夹正常），疑似与 Pro 版功能拆分逻辑有关。在 Stage 4 重构中需核对 `PreviewService` 的消息链路。
 
 ---
 

@@ -65,12 +65,6 @@ namespace YiboFile
         /// </summary>
         private void SetDualListMode(bool enable)
         {
-            // 更新按钮状态
-            if (NavigationRail != null)
-            {
-                NavigationRail.DualListButton.Tag = enable ? "Active" : null;
-            }
-
             // 调整标签页布局
             UpdateTabManagerLayout();
 
@@ -475,44 +469,16 @@ namespace YiboFile
 
         private void LoadSecondFileBrowserDirectory(string path)
         {
-            if (string.IsNullOrEmpty(path) || SecondFileBrowser == null) return;
-
-            // 委托给 ViewModel 加载
-            if (_viewModel.SecondaryPane.CurrentPath != path || _viewModel.SecondaryPane.NavigationMode != "Path")
-            {
-                _viewModel.SecondaryPane.NavigateTo(path, loadData: true);
-            }
-
-            // UI 状态由绑定处理，除了一些无法直接绑定的属性
-            if (SecondFileBrowser != null)
-            {
-                // 注意：NavUpEnabled, NavBackEnabled 等可以在后续重构为绑定
-                UpdateFocusBorders();
-            }
+            NavigateToPath(path, Services.Navigation.PaneId.Second);
+            UpdateFocusBorders();
         }
 
         private void SecondFileBrowser_PathChanged(object sender, string newPath)
         {
             if (string.IsNullOrEmpty(newPath)) return;
-            var currentPath = _viewModel?.SecondaryPane?.CurrentPath;
-            if (newPath == currentPath) return;
 
-            // 如果当前在库模式且新路径看起来像库名（非协议也非绝对路径），忽略更新
-            // 避免 LoadSecondFileBrowserLibrary 设置 AddressText 触发的误导航
-            // 同时也忽略 lib:// 和 tag:// 协议路径，防止循环
-            if (_viewModel.SecondaryPane.NavigationMode == "Library" &&
-                (newPath.StartsWith("lib://", StringComparison.OrdinalIgnoreCase) ||
-                 (!ProtocolManager.IsVirtual(newPath) && !Path.IsPathRooted(newPath))))
-            {
-                return;
-            }
-
-            if (_secondTabService != null)
-            {
-                _secondTabService.UpdateActiveTabPath(newPath);
-            }
-
-            LoadSecondFileBrowserDirectory(newPath);
+            // 使用统一导航协调器，显式指定副面板
+            NavigateToPath(newPath, Services.Navigation.PaneId.Second);
         }
 
         private void SecondFileBrowser_BreadcrumbClicked(object sender, string path)
@@ -527,7 +493,7 @@ namespace YiboFile
             {
                 if (item.IsDirectory)
                 {
-                    SecondFileBrowser_PathChanged(sender, item.Path);
+                    NavigateToPath(item.Path, Services.Navigation.PaneId.Second);
                 }
                 else
                 {
@@ -630,6 +596,12 @@ namespace YiboFile
                 }
             });
 
+            _messageBus?.Subscribe<NavigationModeChangedMessage>(m =>
+            {
+                // 桥接到旧有的导航切换逻辑，确保地址栏、列表等非 MVVM 组件同步更新
+                SwitchNavigationMode(m.Mode);
+            });
+
             // 应用初始 UI 状态
             if (_layoutModule != null)
             {
@@ -643,14 +615,6 @@ namespace YiboFile
         private void ApplyLayoutModeUI(string mode)
         {
             CloseOverlays();
-
-            // 更新按钮激活状态
-            if (NavigationRail != null)
-            {
-                NavigationRail.FocusModeButton.Tag = mode == "Focus" ? "Active" : null;
-                NavigationRail.WorkModeButton.Tag = mode == "Work" ? "Active" : null;
-                NavigationRail.FullModeButton.Tag = mode == "Full" ? "Active" : null;
-            }
 
             // 更新标签页边距
             UpdateTabManagerMargin();

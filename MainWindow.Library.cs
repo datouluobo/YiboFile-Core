@@ -81,7 +81,7 @@ namespace YiboFile
                 if (current is ListBoxItem item && item.DataContext is Library library)
                 {
                     e.Handled = true;
-                    _navigationCoordinator.HandleLibraryNavigation(library, clickType);
+                    _navigationCoordinator.HandleLibraryNavigation(library, clickType, GetActivePaneId());
                     return;
                 }
                 current = VisualTreeHelper.GetParent(current);
@@ -102,7 +102,7 @@ namespace YiboFile
 
                 // 使用统一导航协调器处理库导航（左键点击）
                 // [FIX] 显式传递目标面板，以便在副栏聚焦时使用副栏逻辑（包含禁用加载的逻辑）
-                _navigationCoordinator.HandleLibraryNavigation(selectedLibrary, ClickType.LeftClick, IsSecondPaneFocused ? PaneId.Second : PaneId.Main);
+                _navigationCoordinator.HandleLibraryNavigation(selectedLibrary, ClickType.LeftClick, GetActivePaneId());
             }
             else
             {

@@ -211,8 +211,9 @@ namespace YiboFile.Controls
             // when one is expanded.
             if (e.OriginalSource is TreeViewItem expandedItem)
             {
-                // Ensure the event is handled only once per expansion
-                e.Handled = true;
+                // [Optimization] We can optionally handle it here for root items
+                // But do NOT set e.Handled = true for sub-items or even root items unless absolutely necessary
+                // as it can break some WPF internal TreeView behaviors.
 
                 // Get the parent TreeView
                 var treeView = FindAncestor<TreeView>(expandedItem);

@@ -24,7 +24,7 @@ namespace YiboFile.ViewModels.Messaging.Messages
     /// <summary>
     /// 路径已变更消息 (轻量级通知)
     /// </summary>
-    public record PathChangedMessage(string NewPath, string OldPath = null);
+    public record PathChangedMessage(string NewPath, PaneId Pane, string OldPath = null);
 
     /// <summary>
     /// 导航模式已变更消息

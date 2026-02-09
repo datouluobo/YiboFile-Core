@@ -70,7 +70,6 @@ namespace YiboFile.Services.Navigation
 
                     if (_isExpanded && HasDummyChild)
                     {
-                        Children.Clear();
                         LoadChildrenAsync();
                     }
                 }

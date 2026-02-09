@@ -30,13 +30,8 @@ namespace YiboFile
                 {
                     if (!string.IsNullOrEmpty(selectedItem.Path))
                     {
-                        // Guard: If already at this path, don't re-navigate
-                        if (selectedItem.Path.Equals(_currentPath, StringComparison.OrdinalIgnoreCase))
-                            return;
-
-                        // [FIX] Ensure targeted navigation or at least consistent with library logic
-                        // NavigateToPath internally uses TabsModule which handles active pane automatically
-                        NavigateToPath(selectedItem.Path);
+                        // [FIX] 使用统一导航协调器，移除全局 _currentPath 判定（会干扰双面板独立导航）
+                        NavigateToPath(selectedItem.Path, GetActivePaneId());
                     }
                 }
             }
@@ -74,7 +69,7 @@ namespace YiboFile
             {
                 if (!string.IsNullOrEmpty(navItem.Path))
                 {
-                    NavigateToPath(navItem.Path);
+                    NavigateToPath(navItem.Path, GetActivePaneId());
                 }
 
                 // Clear selections in other lists
@@ -109,7 +104,7 @@ namespace YiboFile
                     var item = FindAncestor<TreeViewItem>(obj);
                     if (item != null && item.DataContext is YiboFile.Services.Navigation.NavigationItem navItem)
                     {
-                        CreateTab(navItem.Path);
+                        CreateTab(navItem.Path, targetPane: GetActivePaneId());
                         e.Handled = true;
                     }
                 }

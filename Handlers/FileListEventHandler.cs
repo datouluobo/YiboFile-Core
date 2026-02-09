@@ -681,7 +681,7 @@ namespace YiboFile.Handlers
                     {
                         if (listView.SelectedItem is FileSystemItem selectedItem && selectedItem.IsDirectory)
                         {
-                            _navigationCoordinator.HandlePathNavigation(selectedItem.Path, NavigationSource.FolderClick, ClickType.LeftClick);
+                            _navigationCoordinator.HandlePathNavigation(selectedItem.Path, NavigationSource.FolderClick, ClickType.LeftClick, pane: _paneId);
                         }
                     }
                     e.Handled = true;
@@ -700,7 +700,7 @@ namespace YiboFile.Handlers
 
                     if (selectedItem.IsDirectory)
                     {
-                        _navigationCoordinator.HandlePathNavigation(selectedItem.Path, NavigationSource.FolderClick, ClickType.LeftClick);
+                        _navigationCoordinator.HandlePathNavigation(selectedItem.Path, NavigationSource.FolderClick, ClickType.LeftClick, pane: _paneId);
                     }
                     else
                     {

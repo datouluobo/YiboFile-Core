@@ -1,10 +1,13 @@
 using System;
 using System.Linq;
+using System.Windows.Input;
+using YiboFile.Services.Core;
 using YiboFile.Services.Tabs;
 using YiboFile.ViewModels.Messaging;
 using YiboFile.ViewModels.Messaging.Messages;
 using YiboFile.Models;
 using YiboFile.Models.UI;
+using YiboFile.Services.Navigation;
 
 namespace YiboFile.ViewModels.Modules
 {
@@ -56,7 +59,38 @@ namespace YiboFile.ViewModels.Modules
 
             // 订阅路径变更以更新当前标签页
             Subscribe<PathChangedMessage>(OnPathChanged);
+
+            // 订阅 TabService 的 ActiveTabChanged 事件以处理标签页点击切换
+            if (_tabService != null)
+            {
+                _tabService.ActiveTabChanged += OnActiveTabChanged;
+            }
         }
+
+        private void OnActiveTabChanged(object sender, PathTab tab)
+        {
+            if (tab == null || _isSwitchingTab) return;
+
+            try
+            {
+                _isSwitchingTab = true;
+                if (tab.Type == TabType.Library && tab.Library != null)
+                {
+                    Publish(new LibrarySelectedMessage(tab.Library));
+                }
+                else if (tab.Type == TabType.Path && !string.IsNullOrEmpty(tab.Path))
+                {
+                    // 发布导航消息以更新文件列表
+                    Publish(new NavigateToPathMessage(tab.Path, AddToHistory: false));
+                }
+            }
+            finally
+            {
+                _isSwitchingTab = false;
+            }
+        }
+
+        private bool _isSwitchingTab;
 
         #region 消息处理
 
@@ -72,6 +106,13 @@ namespace YiboFile.ViewModels.Modules
             // 将在后续完全迁移
         }
 
+        public ICommand SwitchTabCommand { get; private set; }
+
+        private void InitializeCommands()
+        {
+            SwitchTabCommand = new RelayCommand<PathTab>(tab => SwitchToTab(tab));
+        }
+
         private void OnSwitchToTab(SwitchToTabMessage message)
         {
             _onSwitchTabCallback?.Invoke(message.TabId);
@@ -79,11 +120,16 @@ namespace YiboFile.ViewModels.Modules
 
         private void OnPathChanged(PathChangedMessage message)
         {
-            // 更新当前标签页的路径
-            _tabService?.UpdateActiveTabPath(message.NewPath);
+            // [SSOT 关键修复] 根据消息中的 Pane 标识更新对应的 TabService
+            // 解决双面板模式下，点击左侧导航导致两侧面板同时发生路径变更的同步 Bug
+            var targetService = (message.Pane == PaneId.Second) ? _secondTabService : _tabService;
+            if (targetService == null) return;
 
-            // 发布标签页路径更新通知
-            var activeTab = _tabService?.ActiveTab;
+            // 更新对应业务服务的当前标签页路径
+            targetService.UpdateActiveTabPath(message.NewPath);
+
+            // 发布标签页路径更新通知 (用于同步地址栏等 UI 组件)
+            var activeTab = targetService.ActiveTab;
             if (activeTab != null)
             {
                 // 使用 Path 作为标签页的唯一标识
@@ -98,10 +144,14 @@ namespace YiboFile.ViewModels.Modules
         /// <summary>
         /// 创建新标签页
         /// </summary>
-        public void CreateTab(string path, bool forceNewTab = false, bool activate = true)
+        public void CreateTab(string path, bool forceNewTab = false, bool activate = true, PaneId? targetPane = null)
         {
-            // 在双列表模式下，根据焦点判断在哪个列表创建标签
-            if (_isDualListMode() && _isSecondPaneFocused() && _secondTabService != null)
+            // Use explicit pane if provided, otherwise fallback to focus-based detection
+            bool useSecond = targetPane.HasValue
+                ? targetPane.Value == PaneId.Second
+                : (_isDualListMode() && _isSecondPaneFocused());
+
+            if (useSecond && _secondTabService != null)
             {
                 _secondTabService.CreatePathTab(path, forceNewTab, activate);
             }
@@ -114,9 +164,14 @@ namespace YiboFile.ViewModels.Modules
         /// <summary>
         /// 在标签页中打开库
         /// </summary>
-        public void OpenLibraryInTab(Library library, bool forceNewTab = false, bool activate = true)
+        public void OpenLibraryInTab(Library library, bool forceNewTab = false, bool activate = true, PaneId? targetPane = null)
         {
-            if (_isDualListMode() && _isSecondPaneFocused() && _secondTabService != null)
+            // Use explicit pane if provided, otherwise fallback to focus-based detection
+            bool useSecond = targetPane.HasValue
+                ? targetPane.Value == PaneId.Second
+                : (_isDualListMode() && _isSecondPaneFocused());
+
+            if (useSecond && _secondTabService != null)
             {
                 _secondTabService.OpenLibraryTab(library, forceNewTab, activate);
             }

@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:YiboFile"
         xmlns:controls="clr-namespace:YiboFile.Controls"
+        xmlns:converters="clr-namespace:YiboFile.Converters"
         Title="YiboFile - 文件资源管理器" 
         Height="800" 
         Width="1200"
@@ -13,10 +14,8 @@
         AllowsTransparency="False"
         ResizeMode="CanResize"
         UseLayoutRounding="True"
-        Background="{DynamicResource AppBackgroundBrush}"
-        PreviewKeyDown="MainWindow_PreviewKeyDown"
-        Closing="Window_Closing"
-        LocationChanged="Window_LocationChanged">
+        Background="{DynamicResource AppBackgroundBrush}">
+
 
     <Window.InputBindings>
         <KeyBinding Key="C" Modifiers="Ctrl" Command="{Binding FileOperation.CopyCommand}" CommandParameter="{Binding ActivePane.SelectedItems}"/>
@@ -43,6 +42,7 @@
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
         <local:TimeUnitConverter x:Key="TimeUnitConverter"/>
+        <converters:EqualityToVisibilityConverter x:Key="EqualityToVisibilityConverter"/>
     </Window.Resources>
 
     <!-- 主容器：包含标题栏和窗口内容 -->
@@ -100,8 +100,9 @@
             <!-- 主标签页管理器：主文件列表正上方 -->
             <controls:TabManagerControl Grid.Row="0" Grid.Column="3"
                                     x:Name="TabManager" 
-                                    DataContext="{Binding Tabs.PrimaryTabs}"
-                                    NewTabCommand="{Binding DataContext.Tabs.PrimaryNewTabCommand, ElementName=RootGrid}"
+                                    DataContext="{Binding Tabs}"
+                                    ItemsSource="{Binding PrimaryTabs}"
+                                    NewTabCommand="{Binding PrimaryNewTabCommand}"
                                     Margin="0"
                                     VerticalAlignment="Center"
                                     Panel.ZIndex="1001"
@@ -128,8 +129,7 @@
                       CollapseMode="Previous"
                       ShowsPreview="True"
                       Panel.ZIndex="2000"
-                      IsPreviousCollapsed="{Binding Layout.IsLeftPanelCollapsed, Mode=TwoWay}"
-                      DragCompleted="GridSplitter_DragCompleted"/>
+                      IsPreviousCollapsed="{Binding Layout.IsLeftPanelCollapsed, Mode=TwoWay}"/>
 
             <!-- 中间文件列表与右侧预览之间的分割器 -->
             <!-- 中间文件列表与右侧预览之间的分割器 (Col 4) -->
@@ -140,8 +140,7 @@
                       ShowsPreview="True"
                       Panel.ZIndex="2000"
                       AutoFillNeighbor="True"
-                      IsNextCollapsed="{Binding Layout.IsRightPanelCollapsed, Mode=TwoWay}"
-                      DragCompleted="GridSplitter_DragCompleted"/>
+                      IsNextCollapsed="{Binding Layout.IsRightPanelCollapsed, Mode=TwoWay}"/>
 
             <!-- ========== 列1：左侧导航内容区域（从顶端 Row 0 开始） ========== -->
             <Grid Grid.Row="0" Grid.Column="1" Grid.RowSpan="4" Panel.ZIndex="2001"
@@ -182,28 +181,28 @@
                                      Grid.RowSpan="3"
                                      HorizontalAlignment="Stretch" 
                                      VerticalAlignment="Stretch"
-                                     Visibility="Collapsed"
+                                     Visibility="{Binding DataContext.Layout.ActiveSpecialPanel, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=Backup}"
                                      Panel.ZIndex="100"/>
 
             <!-- 任务队列 (列2-5) -->
             <controls:TaskQueuePanel x:Name="TaskQueuePanel" 
-                                 Grid.Column="2" Grid.ColumnSpan="4"
-                                 Grid.Row="1" Grid.RowSpan="3"
-                                 HorizontalAlignment="Stretch" 
-                                 VerticalAlignment="Stretch" 
-                                 Margin="0" 
-                                 Visibility="Collapsed"
-                                 Panel.ZIndex="100"/>
+                                  Grid.Column="2" Grid.ColumnSpan="4"
+                                  Grid.Row="1" Grid.RowSpan="3"
+                                  HorizontalAlignment="Stretch" 
+                                  VerticalAlignment="Stretch" 
+                                  Margin="0" 
+                                  Visibility="{Binding DataContext.Layout.ActiveSpecialPanel, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=Tasks}"
+                                  Panel.ZIndex="100"/>
 
             <!-- 剪贴板历史 (列2-5) -->
             <controls:ClipboardHistoryPanel x:Name="ClipboardHistoryPanelControl" 
-                                 Grid.Column="2" Grid.ColumnSpan="4"
-                                 Grid.Row="1" Grid.RowSpan="3"
-                                 HorizontalAlignment="Stretch" 
-                                 VerticalAlignment="Stretch" 
-                                 Margin="0" 
-                                 Visibility="Collapsed"
-                                 Panel.ZIndex="100"/>
+                                  Grid.Column="2" Grid.ColumnSpan="4"
+                                  Grid.Row="1" Grid.RowSpan="3"
+                                  HorizontalAlignment="Stretch" 
+                                  VerticalAlignment="Stretch" 
+                                  Margin="0" 
+                                  Visibility="{Binding DataContext.Layout.ActiveSpecialPanel, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=Clipboard}"
+                                  Panel.ZIndex="100"/>
 
             <!-- ========== 列5：可切换区域（预览/副文件列表） ========== -->
             <Grid Grid.Row="0" Grid.Column="5" Grid.RowSpan="4" 
@@ -231,8 +230,9 @@
                     <!-- Margin-Right=430: 为了避开右上角的窗口控制按钮区域(~422px) -->
                     <controls:TabManagerControl x:Name="SecondTabManager" 
                                             Grid.Row="0"
-                                            DataContext="{Binding Tabs.SecondaryTabs}"
-                                            NewTabCommand="{Binding DataContext.Tabs.SecondaryNewTabCommand, ElementName=RootGrid}"
+                                            DataContext="{Binding Tabs}"
+                                            ItemsSource="{Binding SecondaryTabs}"
+                                            NewTabCommand="{Binding SecondaryNewTabCommand}"
                                             VerticalAlignment="Center"
                                             IsHitTestVisible="True"
                                             WindowChrome.IsHitTestVisibleInChrome="True"/>

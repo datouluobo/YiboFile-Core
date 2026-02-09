@@ -29,8 +29,23 @@ namespace YiboFile
 
         private void OnFavoriteListBoxPreviewMouseDown(NavigationPanelControl sender, ListBox listBox, MouseButtonEventArgs e)
         {
-            // 处理鼠标中键等特殊点击
-            // 注意：FavoriteService 中已有处理逻辑，这里主要作为桥接
+            var clickType = NavigationCoordinator.GetClickType(e);
+            if (clickType == ClickType.LeftClick) return; // 左键由SelectionChanged处理
+
+            var hitResult = VisualTreeHelper.HitTest(listBox, e.GetPosition(listBox));
+            if (hitResult == null) return;
+
+            DependencyObject current = hitResult.VisualHit;
+            while (current != null && current != listBox)
+            {
+                if (current is ListBoxItem item && item.DataContext is Favorite favorite)
+                {
+                    e.Handled = true;
+                    _navigationCoordinator.HandleFavoriteNavigation(favorite, clickType, GetActivePaneId());
+                    return;
+                }
+                current = VisualTreeHelper.GetParent(current);
+            }
         }
 
         private void OnFavoriteListBoxSelectionChanged(NavigationPanelControl sender, ListBox listBox, SelectionChangedEventArgs e)
@@ -44,7 +59,7 @@ namespace YiboFile
                 if (!string.IsNullOrEmpty(favorite.Path))
                 {
                     // 使用 Coordinator 处理导航
-                    _navigationCoordinator.HandleFavoriteNavigation(favorite, ClickType.LeftClick);
+                    _navigationCoordinator.HandleFavoriteNavigation(favorite, ClickType.LeftClick, GetActivePaneId());
                 }
             }
         }

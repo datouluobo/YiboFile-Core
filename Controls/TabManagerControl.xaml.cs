@@ -45,6 +45,15 @@ namespace YiboFile.Controls
             set => SetValue(UpdateTabWidthsCommandProperty, value);
         }
 
+        public static readonly DependencyProperty ItemsSourceProperty =
+            DependencyProperty.Register(nameof(ItemsSource), typeof(System.Collections.IEnumerable), typeof(TabManagerControl));
+
+        public System.Collections.IEnumerable ItemsSource
+        {
+            get => (System.Collections.IEnumerable)GetValue(ItemsSourceProperty);
+            set => SetValue(ItemsSourceProperty, value);
+        }
+
         #endregion
 
         #region Event Handlers

@@ -17,8 +17,18 @@ namespace YiboFile.ViewModels.Modules
         private bool _isLeftPanelCollapsed;
         private bool _isRightPanelCollapsed;
         private bool _isMainLayoutVisible = true;
+        private string _activeSpecialPanel = "None"; // None, Tasks, Backup, Clipboard
 
         public override string Name => "LayoutModule";
+
+        /// <summary>
+        /// 当前激活的特殊面板
+        /// </summary>
+        public string ActiveSpecialPanel
+        {
+            get => _activeSpecialPanel;
+            set => SetProperty(ref _activeSpecialPanel, value);
+        }
 
         /// <summary>
         /// 当前布局模式 (Focus, Work, Full)
@@ -184,6 +194,57 @@ namespace YiboFile.ViewModels.Modules
                     Publish(new FocusedPaneChangedMessage(_isSecondPaneFocused));
                 }
             });
+
+            // 订阅布局变更请求
+            Subscribe<RequestLayoutModeMessage>(m => SwitchLayoutMode(m.Mode));
+            Subscribe<RequestDualListToggleMessage>(m => ToggleDualListMode());
+
+            // 订阅导航模式变更，用于自动显示/隐藏特殊面板
+            Subscribe<NavigationModeChangedMessage>(m =>
+            {
+                // 只有这三个模式需要显示特殊覆盖面板并隐藏主布局
+                if (m.Mode == "Tasks" || m.Mode == "Backup" || m.Mode == "Clipboard")
+                {
+                    ActiveSpecialPanel = m.Mode;
+                    IsMainLayoutVisible = false;
+                }
+                else
+                {
+                    // Path, Library, Tag, Search 等都使用主 FileBrowser，不需要特殊面板
+                    ActiveSpecialPanel = "None";
+                    IsMainLayoutVisible = true;
+                }
+            });
+
+            // 订阅高度和视图模式变更，用于持久化
+            Subscribe<ViewModeChangedMessage>(m =>
+            {
+                // 目前配置是全局的，所以不区分 pane
+                YiboFile.Services.Config.ConfigurationService.Instance.Set(cfg => cfg.FileViewMode, m.Mode);
+                YiboFile.Services.Config.ConfigurationService.Instance.SaveNow();
+            });
+
+            Subscribe<NotesHeightChangedMessage>(m =>
+            {
+                YiboFile.Services.Config.ConfigurationService.Instance.Set(cfg => cfg.RightPanelNotesHeight, m.NewHeight);
+                YiboFile.Services.Config.ConfigurationService.Instance.SaveNow();
+            });
+
+
+            Subscribe<SplitterDragCompletedMessage>(OnSplitterDragCompleted);
+        }
+
+        private void OnSplitterDragCompleted(SplitterDragCompletedMessage message)
+        {
+            if (message.SplitterName == "Left")
+            {
+                YiboFile.Services.Config.ConfigurationService.Instance.Set(c => c.LeftPanelWidth, message.NewValue);
+            }
+            else if (message.SplitterName == "Right")
+            {
+                YiboFile.Services.Config.ConfigurationService.Instance.Set(c => c.RightPanelWidth, message.NewValue);
+            }
+            YiboFile.Services.Config.ConfigurationService.Instance.SaveNow();
         }
 
         /// <summary>

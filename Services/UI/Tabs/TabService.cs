@@ -197,7 +197,15 @@ namespace YiboFile.Services.Tabs
         public string CalculateTabDisplayTitle(string path)
         {
             if (string.IsNullOrEmpty(path)) return "新标签页";
-            try { return System.IO.Path.GetFileName(path) ?? path; } catch { return path; }
+            try
+            {
+                // 处理盘符根目录 (如 C:\), GetFileName 返回空
+                if (path.Length <= 3 && path.EndsWith(":\\")) return path;
+
+                var fileName = System.IO.Path.GetFileName(path);
+                return string.IsNullOrEmpty(fileName) ? path : fileName;
+            }
+            catch { return path; }
         }
 
         public bool ValidatePath(string path, out string errorMessage)

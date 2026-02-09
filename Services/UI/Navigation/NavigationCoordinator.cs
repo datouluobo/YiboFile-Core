@@ -88,6 +88,13 @@ namespace YiboFile.Services.Navigation
                 case NavigationTargetType.Library:
                     HandleLibraryRequest(request, tabService);
                     break;
+                case NavigationTargetType.Tag:
+                    await HandleTagRequest(request, tabService);
+                    break;
+                case NavigationTargetType.Search:
+                    // TODO: Implement HandleSearchRequest
+                    await HandlePathRequest(request, tabService);
+                    break;
             }
 
             await Task.CompletedTask;
@@ -115,10 +122,13 @@ namespace YiboFile.Services.Navigation
                 var vm = _paneViewModelResolver?.Invoke(request.Pane);
                 if (vm != null)
                 {
-                    // 这里执行导航
+                    // 1. 执行导航 (ViewModel)
                     vm.NavigateTo(path);
 
-                    // 副作用消息发送 (MessageBus)
+                    // 2. [关键修复] 同步更新 Tab 状态
+                    tabService.UpdateActiveTabPath(path);
+
+                    // 3. 副作用消息发送 (MessageBus)
                     var sourceStr = request.Source ?? NavigationSource.External.ToString();
                     _messageBus.Publish(new NavigationCompleteMessage(
                         path,
@@ -129,7 +139,6 @@ namespace YiboFile.Services.Navigation
                 else
                 {
                     // Fallback removed: PathNavigateRequested legacy event.
-                    // This block should ideally not be reached if resolver is set up correctly.
                     System.Diagnostics.Debug.WriteLine($"[NavigationCoordinator] Warning: Cannot resolve PaneVM for {request.Pane}. Path: {path}");
                 }
             }
@@ -150,9 +159,21 @@ namespace YiboFile.Services.Navigation
                 var vm = _paneViewModelResolver?.Invoke(request.Pane);
                 if (vm != null)
                 {
-                    vm.CurrentLibrary = library;
-                    vm.NavigationMode = "Library";
+                    // 1. 更新 ViewModel (执行完整的库导航逻辑，确保加载文件)
+                    vm.NavigateTo(library, loadData: true);
 
+                    // 2. [关键修复] 同步更新 Tab 状态
+                    // 注意：TabService 可能需要 UpdateActiveTabLibrary 方法，如果不存在则需要使用 UpdateTab 方法
+                    var activeTab = tabService.ActiveTab;
+                    if (activeTab != null)
+                    {
+                        // 假设 activeTab 属性可写，或使用 Update 方法
+                        activeTab.Type = TabType.Library;
+                        activeTab.Path = $"lib://{library.Name}";
+                        tabService.UpdateTabTitle(activeTab, library.Name);
+                    }
+
+                    // 3. 发布消息
                     _messageBus.Publish(new NavigationCompleteMessage(
                         $"lib://{library.Name}",
                         request.Pane,
@@ -160,7 +181,6 @@ namespace YiboFile.Services.Navigation
                 }
                 else
                 {
-                    // Fallback removed: LibraryNavigateRequested legacy event.
                     System.Diagnostics.Debug.WriteLine($"[NavigationCoordinator] Warning: Cannot resolve PaneVM for {request.Pane}. Library: {library.Name}");
                 }
             }
@@ -209,13 +229,13 @@ namespace YiboFile.Services.Navigation
             _ = NavigateAsync(request);
         }
 
-        public void HandleFavoriteNavigation(YiboFile.Favorite favorite, ClickType clickType)
+        public void HandleFavoriteNavigation(YiboFile.Favorite favorite, ClickType clickType, PaneId pane = PaneId.Main)
         {
             if (favorite == null) return;
 
             if (favorite.IsDirectory && Directory.Exists(favorite.Path))
             {
-                HandlePathNavigation(favorite.Path, NavigationSource.Favorite, clickType);
+                HandlePathNavigation(favorite.Path, NavigationSource.Favorite, clickType, pane: pane);
             }
             else if (!favorite.IsDirectory && File.Exists(favorite.Path))
             {
@@ -227,6 +247,25 @@ namespace YiboFile.Services.Navigation
             }
         }
         #endregion
+        private async Task HandleTagRequest(NavigationRequest request, TabService tabService)
+        {
+            var tagName = request.Target.TagName;
+            if (string.IsNullOrEmpty(tagName)) return;
+
+            var tagPath = $"tag://{tagName}";
+
+            // 标签导航通常强制新建标签页以保持当前浏览上下文
+            var modifiedRequest = new NavigationRequest
+            {
+                Target = NavigationTarget.FromPath(tagPath),
+                Pane = request.Pane,
+                ForceNewTab = true, // Force new tab for tags
+                Activate = request.Activate,
+                Source = request.Source ?? "Tag"
+            };
+
+            await HandlePathRequest(modifiedRequest, tabService);
+        }
     }
 }
 

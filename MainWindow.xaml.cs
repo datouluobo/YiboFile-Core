@@ -28,6 +28,7 @@ using YiboFile.Services.Favorite;
 using YiboFile.Services.QuickAccess;
 using YiboFile.Services.FileList;
 using YiboFile.Services.Tabs;
+using YiboFile.Services.Orchestration;
 using YiboFile.Services.FileOperations.Undo;
 using Microsoft.Extensions.DependencyInjection;
 using YiboFile.Services.Preview;
@@ -36,8 +37,7 @@ using YiboFile.Services.Config;
 using YiboFile.Handlers;
 using System.Threading;
 using System.Text.Json;
-using System.Text;
-
+using YiboFile.Models.Navigation;
 using YiboFile.Models.UI;
 using YiboFile.Models;
 using YiboFile.ViewModels;
@@ -52,7 +52,7 @@ namespace YiboFile
     /// <summary>
     /// MainWindow.xaml 的交互逻辑
     /// </summary>
-    public partial class MainWindow : Window, IConfigUIHelper, Services.Navigation.INavigationModeUIHelper
+    public partial class MainWindow : System.Windows.Window
     {
         internal string _currentPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
         internal List<FileSystemItem> _currentFiles = new List<FileSystemItem>();
@@ -70,7 +70,7 @@ namespace YiboFile
         // 服务实例
         internal NavigationService _navigationService;
         internal LibraryService _libraryService;
-        private FavoriteService _favoriteService;
+        internal FavoriteService _favoriteService;
         private QuickAccessService _quickAccessService;
         internal FileListService _fileListService;
         internal Services.FileInfo.FileInfoService _fileInfoService;
@@ -106,19 +106,19 @@ namespace YiboFile
         // 统一文件操作服务 (新架构)
         internal Services.FileOperations.FileOperationService _fileOperationService;
 
-        // MVVM 架构
-        private MainWindowViewModel _viewModel;
+        // MVVM 架构 (internal 以便 WindowOrchestrator 访问)
+        internal MainWindowViewModel _viewModel;
         internal IMessageBus _messageBus;
-        private NavigationModule _navigationModule;
-        private TabsModule _tabsModule;
-        private FileListModule _fileListModule;
-        private LayoutModule _layoutModule;
-        private FileOperationModule _fileOperationModule;
-        private NotesModule _notesModule;
-        private TagsModule _tagsModule;
-        private FavoritesModule _favoritesModule;
-        private LibraryModule _libraryModule;
-        private SearchModule _searchModule;
+        internal NavigationModule _navigationModule;
+        internal TabsModule _tabsModule;
+        internal FileListModule _fileListModule;
+        internal LayoutModule _layoutModule;
+        internal FileOperationModule _fileOperationModule;
+        internal NotesModule _notesModule;
+        internal TagsModule _tagsModule;
+        internal FavoritesModule _favoritesModule;
+        internal LibraryModule _libraryModule;
+        internal SearchModule _searchModule;
 
         /// <summary>
         /// 主窗口 ViewModel
@@ -157,73 +157,8 @@ namespace YiboFile
 
         internal ContextMenu LibraryContextMenu => NavigationPanelControl?.LibraryContextMenuControl;
 
-        // INavigationModeUIHelper 实现
-        System.Windows.Threading.Dispatcher Services.Navigation.INavigationModeUIHelper.Dispatcher => this.Dispatcher;
-        Library Services.Navigation.INavigationModeUIHelper.CurrentLibrary
-        {
-            get => _libraryModule?.SelectedLibrary ?? _currentLibrary;
-            set
-            {
-                _currentLibrary = value;
-                if (_libraryModule != null && _libraryModule.SelectedLibrary != value)
-                {
-                    _libraryModule.SelectedLibrary = value;
-                }
-            }
-        }
-        string Services.Navigation.INavigationModeUIHelper.CurrentPath
-        {
-            get => _currentPath;
-            set => _currentPath = value;
-        }
+        // UI Adapter implementations removed
 
-
-
-        // TagPanel TagBrowsePanel => NavigationPanelControl?.TagBrowsePanelControl; // Phase 2
-        // TagPanel TagEditPanel => NavigationPanelControl?.TagEditPanelControl; // Phase 2
-        Controls.FileBrowserControl Services.Navigation.INavigationModeUIHelper.FileBrowser => FileBrowser;
-        ListBox Services.Navigation.INavigationModeUIHelper.LibrariesListBox => LibrariesListBox;
-        Controls.NavigationPanelControl Services.Navigation.INavigationModeUIHelper.NavigationPanelControl => NavigationPanelControl;
-        // Legacy buttons removed, UIHelper should rely on NavigationModeService or Rail events
-        System.Windows.Controls.Button Services.Navigation.INavigationModeUIHelper.NavPathButton => NavigationRail?.PathButton;
-        System.Windows.Controls.Button Services.Navigation.INavigationModeUIHelper.NavLibraryButton => NavigationRail?.LibraryButton;
-        System.Windows.Controls.Button Services.Navigation.INavigationModeUIHelper.NavTagButton => NavigationRail?.TagButton;
-
-
-        // INavigationModeUIHelper 方法实现
-
-        void Services.Navigation.INavigationModeUIHelper.SwitchToTab(Services.Tabs.PathTab tab) => SwitchToTab(tab);
-        void Services.Navigation.INavigationModeUIHelper.CreateTab(string path) => CreateTab(path);
-        void Services.Navigation.INavigationModeUIHelper.HighlightMatchingLibrary(Library library) => HighlightMatchingLibrary(library);
-        void Services.Navigation.INavigationModeUIHelper.EnsureSelectedItemVisible(ListBox listBox, object selectedItem) => _uiHelperService?.EnsureSelectedItemVisible(listBox, selectedItem);
-        void Services.Navigation.INavigationModeUIHelper.LoadLibraryFiles(Library library) => LoadLibraryFiles(library);
-        void Services.Navigation.INavigationModeUIHelper.InitializeNavigationPanelDragDrop() => InitializeNavigationPanelDragDrop();
-        void Services.Navigation.INavigationModeUIHelper.ApplyVisibleColumnsForCurrentMode() => ApplyVisibleColumnsForCurrentMode();
-        void Services.Navigation.INavigationModeUIHelper.EnsureHeaderContextMenuHook() => EnsureHeaderContextMenuHook();
-        void Services.Navigation.INavigationModeUIHelper.RefreshFileList() => RefreshFileList();
-        void Services.Navigation.INavigationModeUIHelper.RefreshTagList() => NavigationPanelControl?.TagBrowsePanelControl?.RefreshTags();
-
-        // IConfigUIHelper 实现 (部分属性已经是隐式实现，这里补充显式实现或新增属性)
-        // IConfigUIHelper 实现 (显式实现以支持 internal 字段)
-        Controls.FileBrowserControl Services.Config.IConfigUIHelper.FileBrowser => FileBrowser;
-        RightPanelControl Services.Config.IConfigUIHelper.RightPanelControl => RightPanel;
-        System.Windows.Window Services.Config.IConfigUIHelper.Window => this;
-        System.Windows.Controls.Grid Services.Config.IConfigUIHelper.RootGrid => RootGrid;
-        System.Windows.Controls.ColumnDefinition Services.Config.IConfigUIHelper.ColLeft => ColLeft;
-        System.Windows.Controls.ColumnDefinition Services.Config.IConfigUIHelper.ColCenter => ColCenter;
-        System.Windows.Controls.ColumnDefinition Services.Config.IConfigUIHelper.ColRight => ColRight;
-        Controls.TitleActionBar Services.Config.IConfigUIHelper.TitleActionBar => FileBrowser?.ActionBar;
-        string Services.Config.IConfigUIHelper.CurrentPath
-        {
-            get => _currentPath;
-            set => _currentPath = value;
-        }
-        object Services.Config.IConfigUIHelper.CurrentLibrary => _currentLibrary;
-
-        void Services.Config.IConfigUIHelper.AdjustColumnWidths() => _windowLifecycleHandler?.AdjustColumnWidths();
-        void Services.Config.IConfigUIHelper.EnsureColumnMinWidths() => _windowLifecycleHandler?.EnsureColumnMinWidths();
-        System.Windows.Threading.Dispatcher Services.Config.IConfigUIHelper.Dispatcher => this.Dispatcher;
-        void Services.Config.IConfigUIHelper.UpdateWindowStateUI() => _windowLifecycleHandler?.UpdateWindowStateUI();
 
 
         public MainWindow()
@@ -300,6 +235,7 @@ namespace YiboFile
             Services.Core.NotificationService.Instance.Initialize(NotificationContainer);
 
             // Step 2: Initialize Events (UI interactions)
+            InitializeEvents();
             // 初始化 MVVM 架构 (Before Events to ensure ViewModel is ready for command binding)
             InitializeMvvmModules();
 
@@ -310,8 +246,6 @@ namespace YiboFile
             // 移到 InitializeHandlers 之后，确保 _secondFileInfoService 在双列表模式初始化前已经创建
             InitializeLayoutMode();
 
-            InitializeEvents();
-            InitializeRailEvents();
 
             // Step 4: Apply Initial State (Load data, Restore persistence)
             initializer.ApplyInitialState();
@@ -322,187 +256,30 @@ namespace YiboFile
         /// </summary>
         private void InitializeMvvmModules()
         {
-            // 创建 RightPanelViewModel
-            var rightPanelVM = new RightPanelViewModel(_messageBus, ConfigurationService.Instance, _fileListService);
-
-
-            // 创建 ViewModel
-            _viewModel = new MainWindowViewModel(
-                _messageBus,
-                rightPanelVM,
-                _previewService,
-                _fileListService,
-                _folderSizeCalculationService);
-            // DataContext assignment moved to end of method to ensure all properties are set
-
-            // 创建并注册导航模块
-            _navigationModule = new NavigationModule(
-                _messageBus,
-                _navigationService,
-                _navigationCoordinator,
-                path => NavigateToPathFromModule(path));
-            _viewModel.RegisterModule(_navigationModule);
-
-
-            // ... (rest of the method unchanged)
-
-            // 创建并注册标签页模块
-            // 注入双列表支持所需的 Service 和 状态判断委托
-            _tabsModule = new TabsModule(
-                _messageBus,
-                _tabService,
-                _secondTabService,
-                () => this.IsDualListMode,
-                () => this.IsSecondPaneFocused,
-                (path, activate) => CreateTab(path, activate), // Keep callback for now just in case
-                tabId => { /* SwitchToTab logic */ });
-            _viewModel.RegisterModule(_tabsModule);
-
-            // 初始化 NavigationModeService (必需，否则侧栏导航无效)
-            _navigationModeService = new NavigationModeService(this, _navigationService, _tabService, ConfigurationService.Instance);
-
-
-
-            // 创建并注册文件列表模块
-            _fileListModule = new FileListModule(_messageBus);
-            _viewModel.RegisterModule(_fileListModule);
-
-            // 初始化主/副面板 MVVM (新的架构)
-            _viewModel.PrimaryPane = new ViewModels.PaneViewModel(Dispatcher, _messageBus) { IsActive = true };
-            _viewModel.SecondaryPane = new ViewModels.PaneViewModel(Dispatcher, _messageBus, isSecondary: true)
+            var orchestrator = App.ServiceProvider.GetService<IWindowOrchestrator>();
+            if (orchestrator != null)
             {
-                IsActive = false,
-                IsLoadingDisabled = false
-            };
+                // 首先同步服务引用到编排器
+                orchestrator.InitializeServices(this);
 
-            // 关联模块到 ViewModel (方便直接访问)
-            _viewModel.Navigation = _navigationModule;
-            _viewModel.Tabs = _tabsModule;
-
-            // 创建并注册布局模块
-            _layoutModule = new LayoutModule(_messageBus);
-            _viewModel.Layout = _layoutModule;
-            _viewModel.RegisterModule(_layoutModule);
-
-            // 初始化布局模块状态
-            var cfg = ConfigurationService.Instance.Config;
-
-            _layoutModule.InitializeState(
-                cfg.LayoutMode ?? "Work",
-                cfg.IsDualListMode,
-                false,
-                cfg.IsSidebarCollapsed,
-                cfg.IsPreviewCollapsed);
-
-            // 注意：InitializeLayoutMode() 被移动到 InitializeHandlers() 之后调用
-            // 这是为了确保 _secondFileInfoService 在双列表模式初始化前已经创建
-
-            // 创建并注册文件操作模块
-            var undoService = App.ServiceProvider.GetService<UndoService>();
-            var errorService = App.ServiceProvider.GetService<ErrorService>();
-            _fileOperationModule = new FileOperationModule(_messageBus, _fileOperationService, undoService, errorService);
-            _viewModel.FileOperation = _fileOperationModule;
-            _viewModel.RegisterModule(_fileOperationModule);
-
-            // 创建并注册备注模块
-            var notesService = App.ServiceProvider.GetService<Services.Features.FileNotes.INotesService>();
-            if (notesService != null)
+                // 然后使用编排器接管初始化流程
+                orchestrator.InitializeMvvmModules(this);
+            }
+            else
             {
-                _notesModule = new NotesModule(_messageBus, notesService);
-                _viewModel.Notes = _notesModule;
-                _viewModel.RegisterModule(_notesModule);
+                // Fallback (通常不应发生)
+                Debug.WriteLine("[MainWindow] IWindowOrchestrator not found in DI container.");
             }
 
-            // 创建并注册标签模块
-            var tagService = App.ServiceProvider.GetService<Services.Features.ITagService>();
-            if (tagService != null)
-            {
-                _tagsModule = new TagsModule(_messageBus, tagService);
-                _viewModel.Tags = _tagsModule;
-                _viewModel.RegisterModule(_tagsModule);
-            }
 
-            _libraryModule = new LibraryModule(_messageBus, _libraryService);
-            _viewModel.Library = _libraryModule;
-            _viewModel.RegisterModule(_libraryModule);
-
-            // 创建并注册搜索模块
-            _searchModule = new SearchModule(
-                _messageBus,
-                _searchService,
-                _searchCacheService,
-                _tabService,
-                App.ServiceProvider.GetService<IFullTextSearchService>(),
-                _secondTabService,
-                () => this.IsDualListMode,
-                () => this.IsSecondPaneFocused);
-            _viewModel.Search = _searchModule;
-            _viewModel.RegisterModule(_searchModule);
-
-            // 订阅库选择消息，处理 UI 到逻辑的导航触发
-            _messageBus.Subscribe<LibrarySelectedMessage>(m =>
-            {
-                if (m.Library != null)
-                {
-                    // 重新从数据库加载库信息，确保路径信息是最新的
-                    var updatedLibrary = _libraryService.GetLibrary(m.Library.Id);
-                    if (updatedLibrary != null)
-                    {
-                        // 使用统一导航协调器处理库导航（左键点击）
-                        _navigationCoordinator.HandleLibraryNavigation(updatedLibrary, ClickType.LeftClick);
-                        HighlightMatchingLibrary(updatedLibrary);
-                    }
-                }
-            });
-
-            // 创建并注册收藏模块
-            _favoritesModule = new FavoritesModule(_messageBus, _favoriteService);
-            _viewModel.Favorites = _favoritesModule;
-            _viewModel.RegisterModule(_favoritesModule);
-
-            // 初始化所有模块
-            _viewModel.InitializeModules();
-
-            // Set DataContext last
-            this.DataContext = _viewModel;
         }
 
         /// <summary>
         /// 从模块导航到路径（桥接方法）
         /// </summary>
-        private void NavigateToPathFromModule(string path)
+        internal void NavigateToPathFromModule(string path)
         {
-            if (string.IsNullOrEmpty(path)) return;
-
-            _currentPath = path;
-            var info = YiboFile.Services.Core.ProtocolManager.Parse(path);
-
-            if (_viewModel?.PrimaryPane != null)
-            {
-                // 根据协议类型进行分流导航
-                switch (info.Type)
-                {
-                    case YiboFile.Services.Core.ProtocolType.Library:
-                    case YiboFile.Services.Core.ProtocolType.Tag:
-                    case YiboFile.Services.Core.ProtocolType.Archive:
-                        // 直接通过路径导航，这样可以保留子路径信息 (例如 lib://Lib/Folder)
-                        _viewModel.PrimaryPane.CurrentPath = path;
-                        break;
-
-                    default:
-                        // 标准物理路径
-                        _viewModel.PrimaryPane.CurrentPath = path;
-                        _viewModel.PrimaryPane.NavigationMode = "Path";
-                        break;
-                }
-            }
-
-            if (NavigationPanelControl != null) NavigationPanelControl.CurrentPath = path;
-
-            _tabService?.UpdateActiveTabPath(path);
-            ClearFilter();
-            LoadCurrentDirectory();
-            UpdateNavigationButtonsState();
+            NavigateToPath(path, Services.Navigation.PaneId.Main);
         }
 
         private void OnTagUpdated(int tagId, string newColor)
@@ -526,87 +303,7 @@ namespace YiboFile
             });
         }
 
-        private void InitializeRailEvents()
-        {
-            if (NavigationRail != null)
-            {
-                NavigationRail.NavigationModeChanged += OnRailNavigationModeChanged;
-                NavigationRail.LayoutFocusRequested += (s, e) => _layoutModule?.SwitchLayoutMode("Focus");
-                NavigationRail.LayoutWorkRequested += (s, e) => _layoutModule?.SwitchLayoutMode("Work");
-                NavigationRail.LayoutFullRequested += (s, e) => _layoutModule?.SwitchLayoutMode("Full");
-                NavigationRail.DualListToggleRequested += (s, e) => _layoutModule?.ToggleDualListMode();
-                NavigationRail.SettingsRequested += OnRailSettingsRequested;
-                NavigationRail.AboutRequested += OnRailAboutRequested;
-                NavigationRail.SetActiveMode("Path"); // Default
-            }
-        }
 
-        private void OnRailNavigationModeChanged(object sender, string mode)
-        {
-            // Reset all special panels first
-            if (TaskQueuePanel != null) TaskQueuePanel.Visibility = Visibility.Collapsed;
-            if (ClipboardHistoryPanelControl != null) ClipboardHistoryPanelControl.Visibility = Visibility.Collapsed;
-            if (BackupBrowser != null) BackupBrowser.Visibility = Visibility.Collapsed;
-
-            if (mode == "Path" || mode == "Library" || mode == "Tag")
-            {
-                _navigationModeService.SwitchNavigationMode(mode);
-
-                // Restore Main View (FileBrowser)
-                if (FileBrowser != null) FileBrowser.Visibility = Visibility.Visible;
-
-                // Ensure NavigationPanel is visible
-                if (NavigationPanelControl != null) NavigationPanelControl.Visibility = Visibility.Visible;
-
-                // Restore Side Panel (Standard Work Layout)
-                if (SplitterLeft != null) SplitterLeft.Visibility = Visibility.Visible;
-                if (ColLeft != null && ColLeft.Width.Value == 0) ColLeft.Width = new GridLength(220);
-
-                // 通过模块控制主布局可见性（这会自动处理预览面板和副列表的显示逻辑）
-                if (_layoutModule != null)
-                {
-                    _layoutModule.IsMainLayoutVisible = true;
-                }
-
-                if (SplitterRight != null) SplitterRight.Visibility = Visibility.Visible;
-                if (ColRight != null && ColRight.Width.Value == 0) ColRight.Width = new GridLength(360);
-            }
-            else
-            {
-                // For Backup, Tasks, Clipboard:
-                // 1. Show Navigation Side Panel (Column 1)
-                if (NavigationPanelControl != null) NavigationPanelControl.Visibility = Visibility.Visible;
-                if (SplitterLeft != null) SplitterLeft.Visibility = Visibility.Visible;
-                if (ColLeft != null && ColLeft.Width.Value == 0) ColLeft.Width = new GridLength(220);
-
-                // 2. Hide Main File Browser
-                if (FileBrowser != null) FileBrowser.Visibility = Visibility.Collapsed;
-
-                // 3. Hide Right Panel & Second Browser (occupied by special panel)
-                if (_layoutModule != null)
-                {
-                    _layoutModule.IsMainLayoutVisible = false;
-                }
-                if (SplitterRight != null) SplitterRight.Visibility = Visibility.Collapsed;
-                // Don't set ColRight width to 0, just let the Grid.ColumnSpan="4" element take over, 
-                // but we should ensure the column definitions allow it. 
-                // Actually if we hide SplitterRight and RightPanel contents, and the BackupBrowser spans to Col 5, it works.
-
-                // 4. Show Specific Panel
-                if (mode == "Tasks")
-                {
-                    if (TaskQueuePanel != null) TaskQueuePanel.Visibility = Visibility.Visible;
-                }
-                else if (mode == "Backup")
-                {
-                    if (BackupBrowser != null) BackupBrowser.Visibility = Visibility.Visible;
-                }
-                else if (mode == "Clipboard")
-                {
-                    if (ClipboardHistoryPanelControl != null) ClipboardHistoryPanelControl.Visibility = Visibility.Visible;
-                }
-            }
-        }
 
         private void OnRailSettingsRequested(object sender, EventArgs e) => _settingsOverlayController?.Toggle();
 
@@ -652,8 +349,19 @@ namespace YiboFile
         private void OnTagSelected(int tagId, string tagName)
         {
             // Consistent navigation: Use tag protocol with tag NAME
-            // User requested opening in new tab
-            CreateTab($"tag://{tagName}");
+            NavigateToTag(tagName);
+        }
+
+        internal void NavigateToTag(string tagName, Services.Navigation.PaneId? targetPane = null)
+        {
+            if (string.IsNullOrEmpty(tagName)) return;
+
+            _navigationCoordinator?.NavigateAsync(new YiboFile.Models.Navigation.NavigationRequest
+            {
+                Target = YiboFile.Models.Navigation.NavigationTarget.FromTag(tagName),
+                Pane = targetPane ?? GetActivePaneId(),
+                Source = "TagSidebar"
+            });
         }
 
 
@@ -718,23 +426,6 @@ namespace YiboFile
 
 
 
-        private void GridSplitter_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
-        {
-            // 关键修复：拖拽结束后，强制将中间列恢复为 Star，以消除右侧可能出现的空白间隙
-            // 分割器拖拽会导致列宽变为固定值，如果总宽度小于窗口宽度就会产生空白
-            if (ColCenter != null && !ColCenter.Width.IsStar)
-            {
-                ColCenter.Width = new GridLength(1, GridUnitType.Star);
-            }
-
-            // 拖拽结束后，立即保存（不延迟）
-            if (_windowStateManager != null && this.IsLoaded)
-            {
-                // 强制更新布局
-                RootGrid?.UpdateLayout();
-                _windowStateManager.SaveAllState();
-            }
-        }
 
 
 
@@ -1133,7 +824,7 @@ namespace YiboFile
 
         private void NavigationRail_Loaded(object sender, RoutedEventArgs e)
         {
-
+            _messageBus?.Publish(new NavigationRailLoadedMessage());
         }
     }
 

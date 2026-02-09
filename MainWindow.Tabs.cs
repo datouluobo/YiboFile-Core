@@ -23,29 +23,25 @@ namespace YiboFile
         /// <summary>
         /// 创建新标签页
         /// </summary>
-        internal void CreateTab(string path, bool forceNewTab = false, bool? activate = null)
+        internal void CreateTab(string path, bool forceNewTab = false, bool? activate = null, Services.Navigation.PaneId? targetPane = null)
         {
             // Determine activation behavior (default to Config if null, or true if Config unavailable)
             bool shouldActivate = activate ?? ConfigurationService.Instance.Config?.ActivateNewTabOnMiddleClick ?? true;
 
-
-
             // Delegate to MVVM Module
-            _viewModel?.Tabs?.CreateTab(path, forceNewTab, shouldActivate);
+            _viewModel?.Tabs?.CreateTab(path, forceNewTab, shouldActivate, targetPane);
         }
 
         /// <summary>
         /// 在标签页中打开库
         /// </summary>
-        internal void OpenLibraryInTab(Library library, bool forceNewTab = false, bool? activate = null)
+        internal void OpenLibraryInTab(Library library, bool forceNewTab = false, bool? activate = null, Services.Navigation.PaneId? targetPane = null)
         {
             // Determine activation behavior (default to Config if null, or true if Config unavailable)
             bool shouldActivate = activate ?? ConfigurationService.Instance.Config?.ActivateNewTabOnMiddleClick ?? true;
 
-
-
             // Delegate to MVVM Module
-            _viewModel?.Tabs?.OpenLibraryInTab(library, forceNewTab, shouldActivate);
+            _viewModel?.Tabs?.OpenLibraryInTab(library, forceNewTab, shouldActivate, targetPane);
         }
 
 

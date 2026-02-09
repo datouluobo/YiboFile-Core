@@ -215,7 +215,7 @@ namespace YiboFile
             return null;
         }
 
-        private void InitializeNavigationPanelDragDrop()
+        internal void InitializeNavigationPanelDragDrop()
         {
             if (NavigationPanelControl == null) return;
 

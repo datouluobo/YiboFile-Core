@@ -195,7 +195,6 @@
                                         
                                         <!-- 展开按钮 (Chevron) -->
                                         <ToggleButton x:Name="Expander" 
-                                                      ClickMode="Press" 
                                                       IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}}">
                                             <ToggleButton.Style>
                                                 <Style TargetType="ToggleButton">

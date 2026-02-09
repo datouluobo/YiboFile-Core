@@ -61,7 +61,7 @@
         <!-- Top Section: Navigation Modes -->
         <StackPanel Grid.Row="0" Margin="0,12,0,0">
             <!-- Path Nav -->
-            <Button Command="{Binding NavigateToPathCommand}" 
+            <Button x:Name="PathButton" Command="{Binding NavigateToPathCommand}" 
                     Tag="{Binding ActiveNavigationMode, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Path}"
                     Style="{StaticResource RailButtonStyle}"
                     ToolTip="文件路径">
@@ -69,7 +69,7 @@
             </Button>
             
             <!-- Library Nav -->
-            <Button Command="{Binding NavigateToLibraryCommand}" 
+            <Button x:Name="LibraryButton" Command="{Binding NavigateToLibraryCommand}" 
                     Tag="{Binding ActiveNavigationMode, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Library}"
                     Style="{StaticResource RailButtonStyle}"
                     ToolTip="库">
@@ -77,7 +77,7 @@
             </Button>
             
             <!-- Tag Nav -->
-            <Button Command="{Binding NavigateToTagCommand}" 
+            <Button x:Name="TagButton" Command="{Binding NavigateToTagCommand}" 
                     Tag="{Binding ActiveNavigationMode, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Tag}"
                     Style="{StaticResource RailButtonStyle}"
                     ToolTip="标签"
@@ -88,7 +88,7 @@
             <Separator Height="1" Margin="12,8" Background="{DynamicResource BorderSubtleBrush}" Opacity="0.5"/>
 
             <!-- Tools: Task Queue -->
-            <Button Command="{Binding NavigateToTasksCommand}"
+            <Button x:Name="TasksButton" Command="{Binding NavigateToTasksCommand}"
                     Tag="{Binding ActiveNavigationMode, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Tasks}"
                     Style="{StaticResource RailButtonStyle}"
                     ToolTip="任务队列">
@@ -99,7 +99,7 @@
             </Button>
 
             <!-- Tools: Backup -->
-            <Button Command="{Binding NavigateToBackupCommand}"
+            <Button x:Name="BackupButton" Command="{Binding NavigateToBackupCommand}"
                     Tag="{Binding ActiveNavigationMode, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Backup}"
                     Style="{StaticResource RailButtonStyle}"
                     ToolTip="备份管理器">
@@ -107,7 +107,7 @@
             </Button>
             
             <!-- Tools: Clipboard -->
-            <Button Command="{Binding NavigateToClipboardCommand}"
+            <Button x:Name="ClipboardButton" Command="{Binding NavigateToClipboardCommand}"
                     Tag="{Binding ActiveNavigationMode, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Clipboard}"
                     Style="{StaticResource RailButtonStyle}"
                     ToolTip="剪贴板历史">
@@ -118,7 +118,7 @@
         <!-- Bottom Section: Global Settings & Layout -->
         <StackPanel Grid.Row="2" Margin="0,0,0,12">
             <!-- Focus Mode -->
-            <Button Command="{Binding SetLayoutFocusCommand}"
+            <Button x:Name="FocusModeButton" Command="{Binding SetLayoutFocusCommand}"
                     Tag="{Binding ActiveLayoutMode, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Focus}"
                     Style="{StaticResource RailButtonStyle}"
                     ToolTip="专注模式 (Ctrl+Shift+F)">
@@ -126,7 +126,7 @@
             </Button>
             
             <!-- Work Mode -->
-            <Button Command="{Binding SetLayoutWorkCommand}"
+            <Button x:Name="WorkModeButton" Command="{Binding SetLayoutWorkCommand}"
                     Tag="{Binding ActiveLayoutMode, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Work}"
                     Style="{StaticResource RailButtonStyle}"
                     ToolTip="工作模式 (Ctrl+Shift+W)">
@@ -134,7 +134,7 @@
             </Button>
 
             <!-- Full Mode -->
-            <Button Command="{Binding SetLayoutFullCommand}"
+            <Button x:Name="FullModeButton" Command="{Binding SetLayoutFullCommand}"
                     Tag="{Binding ActiveLayoutMode, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Full}"
                     Style="{StaticResource RailButtonStyle}"
                     ToolTip="完整模式 (Ctrl+Shift+A)">
@@ -144,7 +144,7 @@
             <Separator Height="1" Margin="12,4" Background="{DynamicResource BorderSubtleBrush}" Opacity="0.5"/>
 
             <!-- Dual List Toggle -->
-            <Button Command="{Binding ToggleDualListCommand}"
+            <Button x:Name="DualListButton" Command="{Binding ToggleDualListCommand}"
                     Tag="{Binding IsDualListMode, Converter={StaticResource StringEqualsConverter}, ConverterParameter=True}"
                     Style="{StaticResource RailButtonStyle}"
                     ToolTip="双列表模式">
@@ -154,14 +154,14 @@
             <Separator Height="1" Margin="12,4" Background="{DynamicResource BorderSubtleBrush}" Opacity="0.5"/>
 
             <!-- Settings -->
-            <Button Command="{Binding OpenSettingsCommand}"
+            <Button x:Name="SettingsButton" Command="{Binding OpenSettingsCommand}"
                     Style="{StaticResource RailButtonStyle}"
                     ToolTip="设置">
                 <TextBlock Text="{DynamicResource Icon_Window_Settings}" FontFamily="{DynamicResource IconFontFamily}" FontSize="20"/>
             </Button>
             
             <!-- About -->
-            <Button Command="{Binding OpenAboutCommand}"
+            <Button x:Name="AboutButton" Command="{Binding OpenAboutCommand}"
                     Style="{StaticResource RailButtonStyle}"
                     ToolTip="关于">
                 <TextBlock Text="{DynamicResource Icon_Window_About}" FontFamily="{DynamicResource IconFontFamily}" FontSize="20"/>

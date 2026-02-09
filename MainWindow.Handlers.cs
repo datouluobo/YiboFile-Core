@@ -45,6 +45,23 @@ namespace YiboFile
             }
         }
 
+        private Services.Tabs.TabService GetActiveTabService()
+        {
+            return GetActivePaneId() == Services.Navigation.PaneId.Second ? _secondTabService : _tabService;
+        }
+
+        internal Services.Navigation.PaneId GetActivePaneId()
+        {
+            // 优先检查 ViewModel 状态，因为点击侧边栏会导致列表失去焦点，使 IsSecondPaneFocused 变得不可靠
+            if (_viewModel?.ActivePane != null)
+            {
+                // 使用属性判断而非引用判断，更稳健
+                return _viewModel.ActivePane.IsSecondary ? Services.Navigation.PaneId.Second : Services.Navigation.PaneId.Main;
+            }
+            // 降级使用 LayoutModule/UI 状态
+            return (IsDualListMode && IsSecondPaneFocused) ? Services.Navigation.PaneId.Second : Services.Navigation.PaneId.Main;
+        }
+
         private void InitializeHandlers()
         {
             // 订阅 TabManager 的关闭覆盖层请求
@@ -61,34 +78,32 @@ namespace YiboFile
             // [Already moved to Initialization.cs] FileInfoServices and Message Subscriptions
 
             // 初始化 KeyboardEventHandler (SSOT)
-            Func<Services.Tabs.TabService> getActiveTabService = () =>
-                (IsDualListMode && IsSecondPaneFocused && _secondTabService != null) ? _secondTabService : _tabService;
-
             _keyboardEventHandler = new YiboFile.Handlers.KeyboardEventHandler(
                 FileBrowser,
-                () => GetActiveContext().browser, // NEW: Active browser delegate
-                getActiveTabService,
-                (tab) => getActiveTabService().RemoveTab(tab),
+                () => GetActiveContext().browser,
+                GetActiveTabService,
+                (tab) => GetActiveTabService().RemoveTab(tab),
                 (path) => CreateTab(path),
-                (tab) => getActiveTabService().SwitchToTab(tab),
-                () => _viewModel?.ActivePane?.NewFolderCommand?.Execute(null), // 通过ViewModel Command
+                (tab) => GetActiveTabService().SwitchToTab(tab),
+                () => _viewModel?.ActivePane?.NewFolderCommand?.Execute(null),
                 RefreshFileList,
                 () => _viewModel?.ActivePane?.CopyCommand?.Execute(null),
                 () => _viewModel?.ActivePane?.PasteCommand?.Execute(null),
                 () => _viewModel?.ActivePane?.CutCommand?.Execute(null),
                 () => _viewModel?.ActivePane?.DeleteCommand?.Execute(null),
-                async () => await DeleteSelectedFilesAsync(permanent: true), // Shift+Delete 永久删除
+                async () => await DeleteSelectedFilesAsync(permanent: true),
                 () => _viewModel?.ActivePane?.RenameCommand?.Execute(null),
-                NavigateToPath,
+                path => NavigateToPath(path), // Fix: Use lambda due to optional parameter in NavigateToPath
                 SwitchNavigationMode,
                 () => _currentLibrary != null,
-                () => CloseOverlays(), // closeOverlays
-                Back_Click_Logic, // navigateBack
+                () => CloseOverlays(),
+                Back_Click_Logic,
                 () => Undo_Click(null, null),
                 () => Redo_Click(null, null),
-                SwitchLayoutModeByIndex,  // 添加布局切换回调
-                () => _layoutModule?.IsDualListMode ?? false, // isDualListMode 检查
-                () => _layoutModule?.SwitchFocusedPane() // switchDualPaneFocus 回调
+                messageBus: _messageBus,
+                switchLayoutMode: SwitchLayoutModeByIndex,
+                isDualListMode: () => _layoutModule?.IsDualListMode ?? false,
+                switchDualPaneFocus: () => _layoutModule?.SwitchFocusedPane()
             );
 
             _columnInteractionHandler = new Handlers.ColumnInteractionHandler(this, FileBrowser, _columnService);
@@ -101,8 +116,8 @@ namespace YiboFile
                 () => this.DragMove(),
                 () => NavigationPanelControl?.QuickAccessListBox,
                 _navigationCoordinator,
-                fav => _navigationCoordinator.HandleFavoriteNavigation(fav, Services.Navigation.ClickType.LeftClick),
-                path => _navigationCoordinator.HandlePathNavigation(path, NavigationSource.QuickAccess, ClickType.LeftClick)
+                fav => _navigationCoordinator.HandleFavoriteNavigation(fav, Services.Navigation.ClickType.LeftClick, GetActivePaneId()),
+                path => _navigationCoordinator.HandlePathNavigation(path, NavigationSource.QuickAccess, ClickType.LeftClick, pane: GetActivePaneId())
             );
 
             // 初始化 Second ColumnInteractionHandler
@@ -112,23 +127,7 @@ namespace YiboFile
                 _secondColumnInteractionHandler.Initialize();
                 _secondColumnInteractionHandler.HookHeaderThumbs();
 
-                // Wire up SecondFileBrowser Tag Click
-                SecondFileBrowser.TagClicked += (s, tag) =>
-                {
-                    if (tag != null && !string.IsNullOrEmpty(tag.Name))
-                    {
-                        // Navigate in Second Pane
-                        _navigationCoordinator.HandlePathNavigation(
-                            $"tag://{tag.Name}",
-                            NavigationSource.AddressBar,
-                            ClickType.LeftClick,
-                            pane: YiboFile.Services.Navigation.PaneId.Second
-                        );
-                    }
-                };
-
-                // Wire up SecondFileBrowser Sorting
-                SecondFileBrowser.GridViewColumnHeaderClick += SecondGridViewColumnHeader_Click;
+                // SecondFileBrowser event hooks removed (moved to EventBridgeService)
             }
 
             // 初始化 WindowLifecycleHandler
@@ -143,12 +142,12 @@ namespace YiboFile
                 _navigationCoordinator,
                 () => _currentLibrary != null, // IsLibraryMode
                 mode => SwitchNavigationMode(mode),
-                path => NavigateToPath(path),
-                () => Back_Click_Logic(),
+                path => NavigateToPath(path, Services.Navigation.PaneId.Main),
+                () => _viewModel?.PrimaryPane?.NavigateBackCommand?.Execute(null),
                 col => AutoSizeGridViewColumn(col),
                 () => _currentPath,
                 () => ShowSelectedFileProperties(),
-                (path, force, activate) => CreateTab(path, force, activate) // Main Browser CreateTab
+                (path, force, activate) => CreateTab(path, force, activate, Services.Navigation.PaneId.Main)
             );
             _mainFileListHandler.Initialize(FileBrowser.FilesList);
 
@@ -160,17 +159,12 @@ namespace YiboFile
                     _navigationCoordinator,
                     () => _viewModel?.SecondaryPane?.NavigationMode == "Library", // IsLibraryMode
                     mode => { /* handled elsewhere */ },
-                    path => LoadSecondFileBrowserDirectory(path),
-                    () => { /* Second Browser Back Logic? */ },
+                    path => NavigateToPath(path, Services.Navigation.PaneId.Second),
+                    () => _viewModel?.SecondaryPane?.NavigateBackCommand?.Execute(null),
                     col => AutoSizeGridViewColumn(col),
                     () => _viewModel?.SecondaryPane?.CurrentPath,
                     () => ShowSelectedFileProperties(),
-                    (path, force, activate) =>
-                    {
-                        bool shouldActivate = activate ?? ConfigurationService.Instance.Config?.ActivateNewTabOnMiddleClick ?? true;
-                        _secondTabService?.CreatePathTab(path, force, false, shouldActivate);
-                    },
-                    YiboFile.Services.Navigation.PaneId.Second
+                    (path, force, activate) => CreateTab(path, force, activate, Services.Navigation.PaneId.Second)
                 );
                 _secondFileListHandler.Initialize(SecondFileBrowser.FilesList);
             }
@@ -275,7 +269,7 @@ namespace YiboFile
             if (!string.IsNullOrEmpty(path))
             {
                 _navigationService.LastLeftNavSource = "QuickAccess";
-                _navigationCoordinator.HandlePathNavigation(path, NavigationSource.QuickAccess, clickType);
+                _navigationCoordinator.HandlePathNavigation(path, NavigationSource.QuickAccess, clickType, pane: GetActivePaneId());
                 e.Handled = true;
             }
         }
@@ -301,7 +295,7 @@ namespace YiboFile
             if (favorite != null)
             {
                 _navigationService.LastLeftNavSource = sourceName;
-                _navigationCoordinator.HandleFavoriteNavigation(favorite, clickType);
+                _navigationCoordinator.HandleFavoriteNavigation(favorite, clickType, GetActivePaneId());
                 e.Handled = true;
             }
         }

@@ -404,6 +404,12 @@ namespace YiboFile
                 _secondFileListService.MetadataEnriched += OnFileListServiceMetadataEnriched;
             }
 
+            if (_quickAccessService != null)
+            {
+                _quickAccessService.NavigateRequested += (s, path) => NavigateToPath(path, GetActivePaneId());
+                _quickAccessService.CreateTabRequested += (s, path) => CreateTab(path, targetPane: GetActivePaneId());
+            }
+
 
             // 订阅 FileSystemWatcherService 事件
             _fileSystemWatcherService.FileSystemChanged += OnFileSystemWatcherServiceFileSystemChanged;
@@ -576,6 +582,10 @@ namespace YiboFile
             {
                 FileBrowser.InfoHeightChanged += FileBrowser_InfoHeightChanged;
                 FileBrowser.ViewModeChanged += FileBrowser_ViewModeChanged;
+
+                // [FIX] 显式绑定路径变更事件，确保主面板导航正确
+                FileBrowser.PathChanged += (s, path) => NavigateToPath(path, Services.Navigation.PaneId.Main);
+                FileBrowser.BreadcrumbClicked += (s, path) => NavigateToPath(path, Services.Navigation.PaneId.Main);
             }
 
             this.Activated += (s, e) =>

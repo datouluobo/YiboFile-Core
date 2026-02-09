@@ -22,10 +22,9 @@ namespace YiboFile
     {
         internal void SwitchNavigationMode(string mode)
         {
-            // 更新按钮选中状态
-            UpdateNavigationButtonsState(mode);
-
-
+            // UI 状态更新已由 NavigationRailCoordinator 通过 ViewModel 处理
+            // 移除手动调用 UpdateNavigationButtonsState 避免循环：
+            // SwitchNavigationMode → SetActiveMode → Coordinator.SetNavigationMode → NavigationModeChangedMessage → 再次进入此方法
 
             // 使用 NavigationModeService 处理导航模式切换
             if (_navigationModeService != null)
@@ -180,14 +179,30 @@ namespace YiboFile
         /// <summary>
         /// 导航到指定路径（兼容旧代码，委托给 NavigationCoordinator）
         /// </summary>
-        internal void NavigateToPath(string path)
+        internal void NavigateToPath(string path, Services.Navigation.PaneId? targetPane = null)
         {
             if (string.IsNullOrEmpty(path)) return;
 
             _navigationCoordinator?.NavigateAsync(new NavigationRequest
             {
                 Target = NavigationTarget.FromPath(path),
-                Pane = IsDualListMode && IsSecondPaneFocused ? PaneId.Second : PaneId.Main
+                Pane = targetPane ?? GetActivePaneId(),
+                Source = "PathBar"
+            });
+        }
+
+        /// <summary>
+        /// 导航到指定库
+        /// </summary>
+        internal void NavigateToLibrary(Library library, Services.Navigation.PaneId? targetPane = null)
+        {
+            if (library == null) return;
+
+            _navigationCoordinator?.NavigateAsync(new NavigationRequest
+            {
+                Target = NavigationTarget.FromLibrary(library),
+                Pane = targetPane ?? GetActivePaneId(),
+                Source = "Sidebar"
             });
         }
 
