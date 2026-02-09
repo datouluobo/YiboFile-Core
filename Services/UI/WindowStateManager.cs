@@ -20,12 +20,12 @@ namespace YiboFile.Services
     {
         #region 私有字段
 
-        private readonly IConfigUIHelper _uiHelper;
-        private readonly TabService _tabService;
+        private IConfigUIHelper _uiHelper;
+        private TabService _tabService;
         private TabService _secondTabService;
-        private readonly NavigationService _navigationService;
-        private readonly Navigation.NavigationModeService _navigationModeService;
-        private readonly Data.Repositories.ILibraryRepository _libraryRepository;
+        private NavigationService _navigationService;
+        private Navigation.NavigationModeService _navigationModeService;
+        private Data.Repositories.ILibraryRepository _libraryRepository;
 
         // 快捷访问单例配置
         private AppConfig _config => ConfigurationService.Instance.Config;
@@ -41,14 +41,30 @@ namespace YiboFile.Services
         /// <summary>
         /// 初始化窗口状态管理器
         /// </summary>
-        public WindowStateManager(IConfigUIHelper uiHelper, TabService tabService, NavigationService navigationService = null, Navigation.NavigationModeService navigationModeService = null, TabService secondTabService = null, Data.Repositories.ILibraryRepository libraryRepository = null)
+        public WindowStateManager(IConfigUIHelper uiHelper = null, TabService tabService = null, NavigationService navigationService = null, Navigation.NavigationModeService navigationModeService = null, TabService secondTabService = null, Data.Repositories.ILibraryRepository libraryRepository = null)
+        {
+            if (uiHelper != null)
+            {
+                Initialize(uiHelper, tabService, navigationService, navigationModeService, secondTabService, libraryRepository);
+            }
+            else
+            {
+                _libraryRepository = libraryRepository ?? App.ServiceProvider?.GetService(typeof(Data.Repositories.ILibraryRepository)) as Data.Repositories.ILibraryRepository;
+            }
+        }
+
+        /// <summary>
+        /// 延迟初始化或重新绑定 UI 上下文
+        /// </summary>
+        public void Initialize(IConfigUIHelper uiHelper, TabService tabService, NavigationService navigationService = null, Navigation.NavigationModeService navigationModeService = null, TabService secondTabService = null, Data.Repositories.ILibraryRepository libraryRepository = null)
         {
             _uiHelper = uiHelper ?? throw new ArgumentNullException(nameof(uiHelper));
             _tabService = tabService ?? throw new ArgumentNullException(nameof(tabService));
             _secondTabService = secondTabService;
             _navigationService = navigationService;
             _navigationModeService = navigationModeService;
-            _libraryRepository = libraryRepository ?? App.ServiceProvider?.GetService(typeof(Data.Repositories.ILibraryRepository)) as Data.Repositories.ILibraryRepository;
+            if (libraryRepository != null) _libraryRepository = libraryRepository;
+            _isInitialized = true;
         }
 
         #endregion
@@ -616,7 +632,7 @@ namespace YiboFile.Services
             }
         }
 
-        private void ApplyNonMaximizedWindowState(Window window, AppConfig cfg)
+        private void ApplyNonMaximizedWindowState(System.Windows.Window window, AppConfig cfg)
         {
             window.WindowState = WindowState.Normal;
             if (cfg.WindowWidth > 0) window.Width = cfg.WindowWidth;

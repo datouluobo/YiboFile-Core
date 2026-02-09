@@ -181,7 +181,7 @@
                                      Grid.RowSpan="3"
                                      HorizontalAlignment="Stretch" 
                                      VerticalAlignment="Stretch"
-                                     Visibility="{Binding DataContext.Layout.ActiveSpecialPanel, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=Backup}"
+                                     Visibility="{Binding DataContext.Layout.ActiveSpecialPanel, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=Backup, FallbackValue=Collapsed}"
                                      Panel.ZIndex="100"/>
 
             <!-- 任务队列 (列2-5) -->
@@ -191,7 +191,7 @@
                                   HorizontalAlignment="Stretch" 
                                   VerticalAlignment="Stretch" 
                                   Margin="0" 
-                                  Visibility="{Binding DataContext.Layout.ActiveSpecialPanel, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=Tasks}"
+                                  Visibility="{Binding DataContext.Layout.ActiveSpecialPanel, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=Tasks, FallbackValue=Collapsed}"
                                   Panel.ZIndex="100"/>
 
             <!-- 剪贴板历史 (列2-5) -->
@@ -201,7 +201,7 @@
                                   HorizontalAlignment="Stretch" 
                                   VerticalAlignment="Stretch" 
                                   Margin="0" 
-                                  Visibility="{Binding DataContext.Layout.ActiveSpecialPanel, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=Clipboard}"
+                                  Visibility="{Binding DataContext.Layout.ActiveSpecialPanel, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=Clipboard, FallbackValue=Collapsed}"
                                   Panel.ZIndex="100"/>
 
             <!-- ========== 列5：可切换区域（预览/副文件列表） ========== -->

@@ -18,7 +18,7 @@ namespace YiboFile
     {
         private DragDropManager _secondDragDropManager;
 
-        private void InitializeDragDrop()
+        internal void InitializeDragDrop()
         {
             try
             {

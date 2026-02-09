@@ -19,7 +19,7 @@ namespace YiboFile.Services.Tabs
         public FileBrowserControl FileBrowser { get; init; }
         public TabManagerControl TabManager { get; init; }
         public Dispatcher Dispatcher { get; init; }
-        public Window OwnerWindow { get; init; }
+        public System.Windows.Window OwnerWindow { get; init; }
         public Func<AppConfig> GetConfig { get; init; }
         public Action<AppConfig> SaveConfig { get; init; }
         public Func<Library> GetCurrentLibrary { get; init; }
@@ -140,7 +140,7 @@ namespace YiboFile.Services.Tabs
         {
             EnsureUi();
             if (tab == null) return;
-            if (!CanCloseTab(tab, _ui.GetCurrentLibrary?.Invoke() != null)) return;
+            if (!CanCloseTab(tab, _ui?.GetCurrentLibrary?.Invoke() != null)) return;
 
             bool wasActive = (tab == _activeTab);
             RemoveTab(tab);

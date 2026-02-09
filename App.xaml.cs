@@ -145,6 +145,11 @@ namespace YiboFile
             services.AddSingleton<NavigationCoordinator>();
             services.AddSingleton<ViewModels.NavigationRailViewModel>();
             services.AddSingleton<Controllers.NavigationRailCoordinator>();
+            services.AddSingleton<NavigationService>(provider => new NavigationService(Environment.GetFolderPath(Environment.SpecialFolder.Desktop)));
+
+            // Window Logic Services (Now in DI)
+            services.AddSingleton<WindowStateManager>();
+            services.AddSingleton<YiboFile.Services.Navigation.NavigationModeService>();
 
             // Window Orchestration
             services.AddSingleton<Services.Orchestration.IWindowOrchestrator, Services.Orchestration.WindowOrchestrator>();

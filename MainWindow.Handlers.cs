@@ -62,129 +62,12 @@ namespace YiboFile
             return (IsDualListMode && IsSecondPaneFocused) ? Services.Navigation.PaneId.Second : Services.Navigation.PaneId.Main;
         }
 
-        private void InitializeHandlers()
-        {
-            // 订阅 TabManager 的关闭覆盖层请求
-            if (TabManager != null)
-            {
-                TabManager.CloseOverlayRequested += (s, e) => CloseOverlays();
-            }
-
-            if (SecondTabManager != null)
-            {
-                SecondTabManager.CloseOverlayRequested += (s, e) => CloseOverlays();
-            }
-
-            // [Already moved to Initialization.cs] FileInfoServices and Message Subscriptions
-
-            // 初始化 KeyboardEventHandler (SSOT)
-            _keyboardEventHandler = new YiboFile.Handlers.KeyboardEventHandler(
-                FileBrowser,
-                () => GetActiveContext().browser,
-                GetActiveTabService,
-                (tab) => GetActiveTabService().RemoveTab(tab),
-                (path) => CreateTab(path),
-                (tab) => GetActiveTabService().SwitchToTab(tab),
-                () => _viewModel?.ActivePane?.NewFolderCommand?.Execute(null),
-                RefreshFileList,
-                () => _viewModel?.ActivePane?.CopyCommand?.Execute(null),
-                () => _viewModel?.ActivePane?.PasteCommand?.Execute(null),
-                () => _viewModel?.ActivePane?.CutCommand?.Execute(null),
-                () => _viewModel?.ActivePane?.DeleteCommand?.Execute(null),
-                async () => await DeleteSelectedFilesAsync(permanent: true),
-                () => _viewModel?.ActivePane?.RenameCommand?.Execute(null),
-                path => NavigateToPath(path), // Fix: Use lambda due to optional parameter in NavigateToPath
-                SwitchNavigationMode,
-                () => _currentLibrary != null,
-                () => CloseOverlays(),
-                Back_Click_Logic,
-                () => Undo_Click(null, null),
-                () => Redo_Click(null, null),
-                messageBus: _messageBus,
-                switchLayoutMode: SwitchLayoutModeByIndex,
-                isDualListMode: () => _layoutModule?.IsDualListMode ?? false,
-                switchDualPaneFocus: () => _layoutModule?.SwitchFocusedPane()
-            );
-
-            _columnInteractionHandler = new Handlers.ColumnInteractionHandler(this, FileBrowser, _columnService);
-            _columnInteractionHandler.Initialize();
-            _columnInteractionHandler.HookHeaderThumbs(); // 挂载列头拖拽事件
-
-            // 初始化 MouseEventHandler
-            _mouseEventHandler = new Handlers.MouseEventHandler(
-                () => WindowMaximize_Click(null, null),
-                () => this.DragMove(),
-                () => NavigationPanelControl?.QuickAccessListBox,
-                _navigationCoordinator,
-                fav => _navigationCoordinator.HandleFavoriteNavigation(fav, Services.Navigation.ClickType.LeftClick, GetActivePaneId()),
-                path => _navigationCoordinator.HandlePathNavigation(path, NavigationSource.QuickAccess, ClickType.LeftClick, pane: GetActivePaneId())
-            );
-
-            // 初始化 Second ColumnInteractionHandler
-            if (SecondFileBrowser != null)
-            {
-                _secondColumnInteractionHandler = new Handlers.ColumnInteractionHandler(this, SecondFileBrowser, _columnService);
-                _secondColumnInteractionHandler.Initialize();
-                _secondColumnInteractionHandler.HookHeaderThumbs();
-
-                // SecondFileBrowser event hooks removed (moved to EventBridgeService)
-            }
-
-            // 初始化 WindowLifecycleHandler
-            _windowLifecycleHandler = new Handlers.WindowLifecycleHandler(this, _windowStateManager, _columnService);
-
-            // 初始化 FileOperationHandler
-            _fileOperationHandler = new Handlers.FileOperationHandler(this, App.ServiceProvider.GetService<YiboFile.Services.FileOperations.Undo.UndoService>(), _fileOperationService);
-
-            // 初始化 Main FileListEventHandler
-            _mainFileListHandler = new Handlers.FileListEventHandler(
-                FileBrowser,
-                _navigationCoordinator,
-                () => _currentLibrary != null, // IsLibraryMode
-                mode => SwitchNavigationMode(mode),
-                path => NavigateToPath(path, Services.Navigation.PaneId.Main),
-                () => _viewModel?.PrimaryPane?.NavigateBackCommand?.Execute(null),
-                col => AutoSizeGridViewColumn(col),
-                () => _currentPath,
-                () => ShowSelectedFileProperties(),
-                (path, force, activate) => CreateTab(path, force, activate, Services.Navigation.PaneId.Main)
-            );
-            _mainFileListHandler.Initialize(FileBrowser.FilesList);
-
-            // 初始化 Second FileListEventHandler
-            if (SecondFileBrowser != null)
-            {
-                _secondFileListHandler = new Handlers.FileListEventHandler(
-                    SecondFileBrowser,
-                    _navigationCoordinator,
-                    () => _viewModel?.SecondaryPane?.NavigationMode == "Library", // IsLibraryMode
-                    mode => { /* handled elsewhere */ },
-                    path => NavigateToPath(path, Services.Navigation.PaneId.Second),
-                    () => _viewModel?.SecondaryPane?.NavigateBackCommand?.Execute(null),
-                    col => AutoSizeGridViewColumn(col),
-                    () => _viewModel?.SecondaryPane?.CurrentPath,
-                    () => ShowSelectedFileProperties(),
-                    (path, force, activate) => CreateTab(path, force, activate, Services.Navigation.PaneId.Second)
-                );
-                _secondFileListHandler.Initialize(SecondFileBrowser.FilesList);
-            }
-
-            // Initialize Drag & Drop
-            InitializeDragDrop();
-
-            if (AboutPanel != null)
-            {
-                AboutPanel.CloseRequested += (s, e) =>
-                {
-                    if (AboutOverlay != null) AboutOverlay.Visibility = Visibility.Collapsed;
-                };
-            }
-        }
 
 
 
 
-        private string ExtractPathFromListBoxItem(ListBox listBox, System.Windows.Point position)
+
+        internal string ExtractPathFromListBoxItem(ListBox listBox, System.Windows.Point position)
         {
             var hitResult = VisualTreeHelper.HitTest(listBox, position);
             if (hitResult == null) return null;
@@ -205,7 +88,7 @@ namespace YiboFile
             return null;
         }
 
-        private Favorite ExtractFavoriteFromListBoxItem(ListBox listBox, System.Windows.Point position)
+        internal Favorite ExtractFavoriteFromListBoxItem(ListBox listBox, System.Windows.Point position)
         {
             var hitResult = VisualTreeHelper.HitTest(listBox, position);
             if (hitResult == null) return null;
@@ -300,7 +183,7 @@ namespace YiboFile
             }
         }
 
-        private void ShowSelectedFileProperties()
+        internal void ShowSelectedFileProperties()
         {
             var (browser, path, library) = GetActiveContext();
             var item = browser?.FilesSelectedItem as FileSystemItem;
@@ -431,7 +314,7 @@ namespace YiboFile
 
 
 
-        private void Back_Click_Logic()
+        internal void Back_Click_Logic()
         {
             if (_navigationService != null && _navigationService.CanNavigateBack)
             {

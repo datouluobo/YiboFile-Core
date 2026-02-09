@@ -71,11 +71,11 @@ namespace YiboFile
         internal NavigationService _navigationService;
         internal LibraryService _libraryService;
         internal FavoriteService _favoriteService;
-        private QuickAccessService _quickAccessService;
+        internal QuickAccessService _quickAccessService;
         internal FileListService _fileListService;
         internal Services.FileInfo.FileInfoService _fileInfoService;
         internal Services.FileInfo.FileInfoService _secondFileInfoService;
-        private FileSystemWatcherService _fileSystemWatcherService;
+        internal FileSystemWatcherService _fileSystemWatcherService;
         internal FolderSizeCalculationService _folderSizeCalculationService;
         internal TabService _tabService;
         internal TabService _secondTabService;
@@ -222,56 +222,23 @@ namespace YiboFile
                 catch { }
             };
 
-            InitializeServices();
+
 
             this.SizeChanged += (s, e) => UpdateTabManagerMargin();
             this.StateChanged += (s, e) => UpdateTabManagerMargin();
 
-            // Step 1: Initialize services and config (Service Initialization Phase)
-            var initializer = new Services.MainWindowInitializer(this);
-            initializer.InitializeConfigServices();
-
-            // Initialize Notification Service
+            // 初始化通知服务
             Services.Core.NotificationService.Instance.Initialize(NotificationContainer);
 
-            // Step 2: Initialize Events (UI interactions)
+            // 初始化 UI 事件和布局模式 (Legacy)
             InitializeEvents();
-            // 初始化 MVVM 架构 (Before Events to ensure ViewModel is ready for command binding)
-            InitializeMvvmModules();
-
-            // Step 3: Initialize Handlers (now they have access to _configService and _messageBus)
-            InitializeHandlers();
-
-            // 初始化 LayoutMode，订阅 MVVM 消息 (必需，否则布局切换无效)
-            // 移到 InitializeHandlers 之后，确保 _secondFileInfoService 在双列表模式初始化前已经创建
-            InitializeLayoutMode();
 
 
-            // Step 4: Apply Initial State (Load data, Restore persistence)
-            initializer.ApplyInitialState();
-        }
+            // 使用编排器接管核心逻辑、消息桥接和状态恢复
+            var orchestrator = App.ServiceProvider.GetRequiredService<IWindowOrchestrator>();
 
-        /// <summary>
-        /// 初始化 MVVM 模块
-        /// </summary>
-        private void InitializeMvvmModules()
-        {
-            var orchestrator = App.ServiceProvider.GetService<IWindowOrchestrator>();
-            if (orchestrator != null)
-            {
-                // 首先同步服务引用到编排器
-                orchestrator.InitializeServices(this);
-
-                // 然后使用编排器接管初始化流程
-                orchestrator.InitializeMvvmModules(this);
-            }
-            else
-            {
-                // Fallback (通常不应发生)
-                Debug.WriteLine("[MainWindow] IWindowOrchestrator not found in DI container.");
-            }
-
-
+            // 异步执行完整初始化序列
+            _ = orchestrator.InitializeAsync(this);
         }
 
         /// <summary>
@@ -367,7 +334,7 @@ namespace YiboFile
 
 
 
-        private void UpdateTabManagerMargin()
+        internal void UpdateTabManagerMargin()
         {
             this.Dispatcher.InvokeAsync(UpdateTabManagerMarginLogic, System.Windows.Threading.DispatcherPriority.Loaded);
         }
@@ -626,7 +593,7 @@ namespace YiboFile
 
 
         // 根据内容自动调整列宽（用于双击列分隔条）
-        private void AutoSizeGridViewColumn(GridViewColumn column)
+        internal void AutoSizeGridViewColumn(GridViewColumn column)
         {
             _columnInteractionHandler?.AutoSizeGridViewColumn(column);
         }

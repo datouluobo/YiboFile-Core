@@ -99,219 +99,14 @@ namespace YiboFile
 
         private void InitializeServices()
         {
-            // 初始化消息总线 (MVVM 核心)
-            _messageBus = App.ServiceProvider?.GetService<IMessageBus>() ?? ViewModels.Messaging.MessageBus.Instance;
-            if (_messageBus == null)
-            {
-                _messageBus = ViewModels.Messaging.MessageBus.Instance;
-            }
-
-            // 初始化统一导航协调器
-            _navigationCoordinator = App.ServiceProvider.GetRequiredService<NavigationCoordinator>();
-
-            // 初始化服务实例
-            _navigationService = new NavigationService(_currentPath);
-
-            // 创建并设置 UI Helper
-            var uiHelper = new NavigationUIHelper(this);
-            _navigationService.UIHelper = uiHelper;
-
-            _libraryService = App.ServiceProvider.GetRequiredService<LibraryService>();
-            _favoriteService = App.ServiceProvider.GetRequiredService<FavoriteService>();
-            _quickAccessService = App.ServiceProvider.GetRequiredService<QuickAccessService>();
-            _fileListService = App.ServiceProvider.GetRequiredService<FileListService>();
-
-            // 初始化 TagService
-            if (App.IsTagTrainAvailable)
-            {
-                _tagService = App.ServiceProvider.GetService<Services.Features.ITagService>();
-            }
-
-            // 将 FileListService 传递给 FileListControl
-            FileBrowser?.FileList?.SetFileListService(_fileListService);
-
-            // 初始化副文件列表服务
-            _secondFileListService = App.ServiceProvider.GetRequiredService<FileListService>();
-            SecondFileBrowser?.GetFileListControl()?.SetFileListService(_secondFileListService);
-
-            _fileSystemWatcherService = App.ServiceProvider.GetRequiredService<FileSystemWatcherService>();
-            _folderSizeCalculationService = App.ServiceProvider.GetRequiredService<FolderSizeCalculationService>();
-            _archiveService = App.ServiceProvider.GetRequiredService<ArchiveService>();
-
-
-            // 初始化标签页服务（需要配置，在加载配置后更新）
-            // 注意：_config 将在 InitializeApplication 中加载，这里先创建空配置
-            // 初始化标签页服务（需要配置，在加载配置后更新）
-            // 使用 DI 获取 Transient 实例，分别为两个面板创建独立的服务
-            _tabService = App.ServiceProvider.GetRequiredService<TabService>();
-            _secondTabService = App.ServiceProvider.GetRequiredService<TabService>();
-
-            // 初始化协调器与服务的关联
-            _navigationCoordinator.Initialize(
-                _tabService,
-                _secondTabService,
-                _navigationService,
-                _libraryService,
-                (paneId) => paneId == PaneId.Main ? _viewModel?.PrimaryPane : _viewModel?.SecondaryPane);
-
-            // 初始化搜索服务
-            // 注意：SearchResultBuilder 已在 DI 中注册但需要 FileListService 的依赖，这里通过 DI 获取 SearchService
-            // 虽然 SearchResultBuilder 是 Transient 的，但 SearchService 是 Transient (or Singleton? App.xaml.cs says Transient)，
-            // 且 SearchService 依赖 SearchFilterService (Singleton) 和 SearchCacheService (Singleton) 和 SearchResultBuilder (Transient)
-            // 我们在 App.xaml.cs 中已经注册了 SearchService 及其依赖
-            _searchCacheService = App.ServiceProvider.GetRequiredService<SearchCacheService>();
-            _searchService = App.ServiceProvider.GetRequiredService<SearchService>();
-
-            // 初始化列管理服务
-            _columnService = App.ServiceProvider.GetRequiredService<ColumnService>();
-            _columnService.Initialize(
-                () => GetCurrentModeKey()
-            );
-
-
-
-            AttachTabServiceUiContext();
-            AttachSecondTabServiceUiContext();
-
-            // 初始化 UI 辅助服务（需要在 InitializeComponent 之后，因为需要 FileBrowser）
-            _uiHelperService = new Services.UIHelper.UIHelperService(FileBrowser, this.Dispatcher);
-
-            // Initialize Info Services
-            var tagService = App.ServiceProvider?.GetService<YiboFile.Services.Features.ITagService>();
-            _fileInfoService = new Services.FileInfo.FileInfoService(FileBrowser, _fileListService, _navigationCoordinator, tagService);
-
-            if (SecondFileBrowser != null)
-            {
-                _secondFileInfoService = new Services.FileInfo.FileInfoService(SecondFileBrowser, _fileListService, _navigationCoordinator, tagService);
-            }
-
-            // Subscribe to Information Panel update messages (MVVM Bridge)
-            _messageBus.Subscribe<ShowFileInfoMessage>(msg =>
-            {
-                Dispatcher.Invoke(() =>
-                {
-                    if (msg.Pane == YiboFile.Services.Navigation.PaneId.Second)
-                        _secondFileInfoService?.ShowFileInfo(msg.Item);
-                    else
-                        _fileInfoService?.ShowFileInfo(msg.Item);
-                });
-            });
-            _messageBus.Subscribe<ShowLibraryInfoMessage>(msg =>
-            {
-                Dispatcher.Invoke(() =>
-                {
-                    if (msg.Pane == YiboFile.Services.Navigation.PaneId.Second)
-                        _secondFileInfoService?.ShowLibraryInfo(msg.Library);
-                    else
-                        _fileInfoService?.ShowLibraryInfo(msg.Library);
-                });
-            });
-
-            // Subscribe to Preview Navigation Requests
-            _messageBus.Subscribe<PreviewNavigationRequestMessage>(msg =>
-            {
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    var activeBrowser = GetActiveFileOperationContext().TargetPath == _viewModel?.SecondaryPane?.CurrentPath
-                                        ? SecondFileBrowser : FileBrowser;
-                    if (activeBrowser != null && activeBrowser.FilesList != null)
-                    {
-                        var list = activeBrowser.FilesList;
-                        if (list.Items.Count == 0) return;
-
-                        int newIndex = -1;
-                        if (list.SelectedIndex == -1)
-                        {
-                            newIndex = 0;
-                        }
-                        else
-                        {
-                            newIndex = msg.IsNext ? list.SelectedIndex + 1 : list.SelectedIndex - 1;
-                        }
-
-                        if (newIndex >= 0 && newIndex < list.Items.Count)
-                        {
-                            list.SelectedIndex = newIndex;
-                            list.ScrollIntoView(list.Items[newIndex]);
-                        }
-                    }
-                });
-            });
-
-            // Subscribe to Open File Requests
-            _messageBus.Subscribe<OpenFileRequestMessage>(msg =>
-            {
-                Dispatcher.Invoke(() =>
-                {
-                    if (!string.IsNullOrEmpty(msg.FilePath))
-                    {
-                        try
-                        {
-                            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                            {
-                                FileName = msg.FilePath,
-                                UseShellExecute = true
-                            });
-                        }
-                        catch (Exception ex)
-                        {
-                            DialogService.Error($"无法打开文件: {ex.Message}", owner: this);
-                        }
-                    }
-                });
-            });
-
-
-            // tagUIHandler 初始化已注释 - Phase 2将重新实现
-            // var tagUIHandlerContext = new TagUIHandlerContextImpl(this);
-            // _tagUIHandler = new Services.Tag.TagUIHandler(tagUIHandlerContext);
-
-            // 初始化预览服务（使用 MVVM 模式）
-            _previewService = new Services.Preview.PreviewService(
-                _messageBus,
-                this.Dispatcher,
-                LoadCurrentDirectory,
-                path => CreateTab(path, true)
-            );
-
-            // 初始化文件操作服务
-            // 此时 UndoService, TaskQueueService 已通过 DI 注入到 FileOperationService 的构造函数中
-            // 我们只需要提供 ContextProvider
-            // 修复：改为从 DI 获取单例，并为其设置 ContextProvider
-            // 这样 ViewModel 中通过 DI 获取的实例也能正确获取主窗口的上下文
-            _fileOperationService = App.ServiceProvider.GetRequiredService<FileOperationService>();
-            _fileOperationService.SetContextProvider(() => GetActiveFileOperationContext());
-
-            // 订阅全局错误事件
-            var errorService = App.ServiceProvider.GetRequiredService<YiboFile.Services.Core.Error.ErrorService>();
-            errorService.ErrorOccurred += (s, e) =>
-            {
-                // 确保在UI线程执行
-                this.Dispatcher.Invoke(() =>
-                {
-                    if (e.Severity == YiboFile.Services.Core.Error.ErrorSeverity.Critical)
-                    {
-                        DialogService.Error(e.Message, "严重错误", this);
-                    }
-                    else
-                    {
-                        var notificationType = e.Severity switch
-                        {
-                            YiboFile.Services.Core.Error.ErrorSeverity.Warning => YiboFile.Controls.NotificationType.Warning,
-                            YiboFile.Services.Core.Error.ErrorSeverity.Error => YiboFile.Controls.NotificationType.Error,
-                            _ => YiboFile.Controls.NotificationType.Info
-                        };
-
-                        Services.Core.NotificationService.Show(e.Message, notificationType);
-                    }
-                });
-            };
+            // SERVICE INITIALIZATION MIGRATED TO WINDOWORCHESTRATOR
         }
 
         private void InitializeEvents()
         {
             // 全局鼠标事件
             this.PreviewMouseDown += MainWindow_PreviewMouseDown;
+
 
             // 响应式布局现在由 FileListControl 内部处理，不再需要此事件
             /*
@@ -326,213 +121,6 @@ namespace YiboFile
             {
                 RightPanel.NotesHeightChanged += RightPanel_NotesHeightChanged;
             }
-
-
-
-            // 订阅 NavigationService 事件
-            _navigationService.NavigateRequested += OnNavigationServiceNavigateRequested;
-
-            // 订阅标签页服务事件
-            _tabService.TabAdded += (s, tab) => { /* UI 已通过 CreateTabInternal 处理 */ };
-            _tabService.TabRemoved += (s, tab) => { /* UI 已通过 CloseTab 处理 */ };
-            _tabService.ActiveTabChanged += (s, tab) =>
-            {
-                if (tab != null)
-                {
-                    // 同步 MainWindow 的状态以确保 SelectionEventHandler 使用正确的上下文
-                    _currentPath = tab.Path;
-                    _currentLibrary = tab.Library;
-
-                    if (NavigationPanelControl != null) NavigationPanelControl.CurrentPath = tab.Path;
-
-                    UpdateTabStyles();
-
-                    // 切换标签页时自动刷新信息面板（处理空选状态）
-                    _viewModel?.SelectionHandler?.HandleNoSelection();
-
-                    // 切换标签页时自动聚焦主文件列表
-                    if (IsDualListMode && IsSecondPaneFocused)
-                    {
-                        _layoutModule?.SetFocusedPane(false);
-                        FileBrowser?.FilesList?.Focus();
-                    }
-                }
-            };
-
-            // 订阅副标签页服务事件
-            _secondTabService.ActiveTabChanged += (s, tab) =>
-            {
-                if (tab != null)
-                {
-                    // 切换标签页时自动聚焦副文件列表
-                    if (IsDualListMode && !IsSecondPaneFocused)
-                    {
-                        _layoutModule?.SetFocusedPane(true);
-                        SecondFileBrowser?.FilesList?.Focus();
-                    }
-                }
-            };
-
-            _secondTabService.TabPinStateChanged += (s, tab) =>
-            {
-                _secondTabService.ApplyPinVisual(tab);
-                _secondTabService.ReorderTabs();
-            };
-            _secondTabService.TabTitleChanged += (s, tab) =>
-            {
-                _secondTabService.ApplyPinVisual(tab);
-            };
-
-            _tabService.TabPinStateChanged += (s, tab) =>
-            {
-                _tabService.ApplyPinVisual(tab);
-                _tabService.ReorderTabs();
-            };
-            _tabService.TabTitleChanged += (s, tab) =>
-            {
-                _tabService.ApplyPinVisual(tab);
-            };
-
-            // 订阅 FileListService 事件
-            _fileListService.FolderSizeCalculated += OnFileListServiceFolderSizeCalculated;
-            _fileListService.MetadataEnriched += OnFileListServiceMetadataEnriched;
-
-            // 订阅副文件列表服务事件
-            if (_secondFileListService != null)
-            {
-                _secondFileListService.FolderSizeCalculated += OnFileListServiceFolderSizeCalculated;
-                _secondFileListService.MetadataEnriched += OnFileListServiceMetadataEnriched;
-            }
-
-            if (_quickAccessService != null)
-            {
-                _quickAccessService.NavigateRequested += (s, path) => NavigateToPath(path, GetActivePaneId());
-                _quickAccessService.CreateTabRequested += (s, path) => CreateTab(path, targetPane: GetActivePaneId());
-            }
-
-
-            // 订阅 FileSystemWatcherService 事件
-            _fileSystemWatcherService.FileSystemChanged += OnFileSystemWatcherServiceFileSystemChanged;
-            _fileSystemWatcherService.RefreshRequested += OnFileSystemWatcherServiceRefreshRequested;
-
-            // 订阅库服务事件
-            _libraryService.LibrariesLoaded += (s, libraries) =>
-            {
-                var currentSelected = LibrariesListBox?.SelectedItem;
-                LibrariesListBox.ItemsSource = null;
-                LibrariesListBox.ItemsSource = libraries;
-                LibrariesListBox.Items.Refresh();
-
-                if (currentSelected != null)
-                {
-                    this.Dispatcher.BeginInvoke(new Action(() =>
-                    {
-                        _uiHelperService?.EnsureSelectedItemVisible(LibrariesListBox, currentSelected);
-                        HighlightMatchingLibrary(currentSelected as Library);
-                    }), System.Windows.Threading.DispatcherPriority.Loaded);
-                }
-            };
-
-            _libraryService.LibraryFilesLoaded += (s, e) =>
-            {
-                if (e.IsEmpty)
-                {
-                    if (e.TargetPane == PaneId.Second)
-                    {
-                        if (SecondFileBrowser != null)
-                        {
-                            _viewModel?.SecondaryPane?.FileList?.Files?.Clear();
-                            SecondFileBrowser.AddressText = e.Library.Name + " (无位置)";
-                            SecondFileBrowser.SetLibraryBreadcrumb(e.Library.Name);
-                            SecondFileBrowser.ShowEmptyState($"库 \"{e.Library.Name}\" 中没有文件或文件夹");
-                        }
-                    }
-                    else
-                    {
-                        _currentFiles.Clear();
-                        if (FileBrowser != null)
-                        {
-                            _viewModel?.PrimaryPane?.FileList?.Files?.Clear();
-                            FileBrowser.AddressText = e.Library.Name + " (无位置)";
-                            FileBrowser.SetLibraryBreadcrumb(e.Library.Name);
-                            FileBrowser.ShowEmptyState($"库 \"{e.Library.Name}\" 中没有文件或文件夹");
-                        }
-                    }
-                }
-                else
-                {
-                    ShowMergedLibraryFiles(e.Files, e.Library, e.TargetPane);
-                }
-            };
-
-            _libraryService.LibraryHighlightRequested += (s, library) =>
-            {
-                HighlightMatchingLibrary(library);
-            };
-
-            // 订阅收藏服务事件
-            _favoriteService.NavigateRequested += (s, path) =>
-            {
-                _navigationCoordinator.HandlePathNavigation(path, NavigationSource.Favorite, ClickType.LeftClick);
-            };
-
-            _favoriteService.FileOpenRequested += (s, filePath) =>
-            {
-                try
-                {
-                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                    {
-                        FileName = filePath,
-                        UseShellExecute = true
-                    });
-                }
-                catch (Exception ex)
-                {
-                    DialogService.Error($"无法打开文件: {ex.Message}", owner: this);
-                }
-            };
-
-            _favoriteService.CreateTabRequested += (s, path) =>
-            {
-                _navigationCoordinator.HandlePathNavigation(path, NavigationSource.Favorite, ClickType.LeftClick, forceNewTab: true);
-            };
-
-
-
-            // 订阅快速访问服务事件
-            _quickAccessService.NavigateRequested += (s, path) =>
-            {
-                _navigationCoordinator.HandlePathNavigation(path, NavigationSource.QuickAccess, ClickType.LeftClick);
-            };
-
-            _quickAccessService.CreateTabRequested += (s, path) =>
-            {
-                _navigationCoordinator.HandlePathNavigation(path, NavigationSource.QuickAccess, ClickType.LeftClick, forceNewTab: true);
-            };
-
-
-            _navigationCoordinator.FileOpenRequested += (filePath) =>
-            {
-                try
-                {
-                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                    {
-                        FileName = filePath,
-                        UseShellExecute = true
-                    });
-                }
-                catch (Exception ex)
-                {
-                    DialogService.Error($"无法打开文件: {ex.Message}", owner: this);
-                }
-            };
-            _navigationCoordinator.FavoritePathNotFound += (favorite) =>
-            {
-                if (DialogService.Ask($"路径不存在: {favorite.Path}\n\n是否从收藏中移除？", "提示", this))
-                {
-                    _favoriteService.RemoveFavorite(favorite.Path);
-                }
-            };
 
             // 为库列表添加鼠标事件处理，检测鼠标中键和Ctrl键
             if (NavigationPanelControl?.LibrariesListBoxControl != null)
@@ -588,14 +176,7 @@ namespace YiboFile
                 FileBrowser.BreadcrumbClicked += (s, path) => NavigateToPath(path, Services.Navigation.PaneId.Main);
             }
 
-            this.Activated += (s, e) =>
-            {
-                var activeTab = _tabService.ActiveTab;
-                if (activeTab != null && activeTab.Path != null && activeTab.Path.StartsWith("search://"))
-                {
-                    CheckAndRefreshSearchTab(activeTab.Path);
-                }
-            };
+
 
             // 初始化主题切换事件
             InitializeThemeEvents();
@@ -607,7 +188,238 @@ namespace YiboFile
             }
         }
 
-        private void AttachTabServiceUiContext()
+        internal void InitializeServiceEvents()
+        {
+            if (_navigationService != null)
+                _navigationService.NavigateRequested += OnNavigationServiceNavigateRequested;
+
+            if (_tabService != null)
+            {
+                _tabService.TabAdded += (s, tab) => { /* UI 已通过 CreateTabInternal 处理 */ };
+                _tabService.TabRemoved += (s, tab) => { /* UI 已通过 CloseTab 处理 */ };
+                _tabService.ActiveTabChanged += (s, tab) =>
+                {
+                    if (tab != null)
+                    {
+                        // 同步 MainWindow 的状态以确保 SelectionEventHandler 使用正确的上下文
+                        _currentPath = tab.Path;
+                        _currentLibrary = tab.Library;
+
+                        if (NavigationPanelControl != null) NavigationPanelControl.CurrentPath = tab.Path;
+
+                        UpdateTabStyles();
+
+                        // 切换标签页时自动刷新信息面板（处理空选状态）
+                        _viewModel?.SelectionHandler?.HandleNoSelection();
+
+                        // 切换标签页时自动聚焦主文件列表
+                        if (IsDualListMode && IsSecondPaneFocused)
+                        {
+                            _layoutModule?.SetFocusedPane(false);
+                            FileBrowser?.FilesList?.Focus();
+                        }
+                    }
+                };
+
+                _tabService.TabPinStateChanged += (s, tab) =>
+                {
+                    _tabService.ApplyPinVisual(tab);
+                    _tabService.ReorderTabs();
+                };
+                _tabService.TabTitleChanged += (s, tab) =>
+                {
+                    _tabService.ApplyPinVisual(tab);
+                };
+            }
+
+            if (_secondTabService != null)
+            {
+                _secondTabService.ActiveTabChanged += (s, tab) =>
+                {
+                    if (tab != null)
+                    {
+                        // 1. 同步 ViewModel 状态
+                        _viewModel?.SecondaryPane?.NavigateTo(tab.Path);
+
+                        // 2. 监听属性变更
+                        // 先移除旧的监听以防泄漏（虽然此处是 lambda 捕获，但 tab 实例会变）
+                        // 为简单起见，我们统一在 OnActiveTabPropertyChanged 中处理，需要确保事件源区分
+                        tab.PropertyChanged -= OnActiveTabPropertyChanged;
+                        tab.PropertyChanged += OnActiveTabPropertyChanged;
+
+                        // 3. 切换标签页时自动聚焦副文件列表
+                        if (IsDualListMode && !IsSecondPaneFocused)
+                        {
+                            _layoutModule?.SetFocusedPane(true);
+                            SecondFileBrowser?.FilesList?.Focus();
+                        }
+                    }
+                };
+                _secondTabService.TabPinStateChanged += (s, tab) =>
+                {
+                    _secondTabService.ApplyPinVisual(tab);
+                    _secondTabService.ReorderTabs();
+                };
+                _secondTabService.TabTitleChanged += (s, tab) =>
+                {
+                    _secondTabService.ApplyPinVisual(tab);
+                };
+            }
+
+            // 订阅 FileListService 事件
+            if (_fileListService != null)
+            {
+                _fileListService.FolderSizeCalculated += OnFileListServiceFolderSizeCalculated;
+                _fileListService.MetadataEnriched += OnFileListServiceMetadataEnriched;
+            }
+
+            // 订阅副文件列表服务事件
+            if (_secondFileListService != null)
+            {
+                _secondFileListService.FolderSizeCalculated += OnFileListServiceFolderSizeCalculated;
+                _secondFileListService.MetadataEnriched += OnFileListServiceMetadataEnriched;
+            }
+
+            // 订阅 FileSystemWatcherService 事件
+            if (_fileSystemWatcherService != null)
+            {
+                _fileSystemWatcherService.FileSystemChanged += OnFileSystemWatcherServiceFileSystemChanged;
+                _fileSystemWatcherService.RefreshRequested += OnFileSystemWatcherServiceRefreshRequested;
+            }
+
+            // 订阅库服务事件
+            if (_libraryService != null)
+            {
+                _libraryService.LibrariesLoaded += (s, libraries) =>
+                {
+                    var currentSelected = LibrariesListBox?.SelectedItem;
+                    LibrariesListBox.ItemsSource = null;
+                    LibrariesListBox.ItemsSource = libraries;
+                    LibrariesListBox.Items.Refresh();
+
+                    if (currentSelected != null)
+                    {
+                        this.Dispatcher.BeginInvoke(new Action(() =>
+                        {
+                            _uiHelperService?.EnsureSelectedItemVisible(LibrariesListBox, currentSelected);
+                            HighlightMatchingLibrary(currentSelected as Library);
+                        }), System.Windows.Threading.DispatcherPriority.Loaded);
+                    }
+                };
+
+                _libraryService.LibraryFilesLoaded += (s, e) =>
+                {
+                    if (e.IsEmpty)
+                    {
+                        if (e.TargetPane == PaneId.Second)
+                        {
+                            if (SecondFileBrowser != null)
+                            {
+                                _viewModel?.SecondaryPane?.FileList?.Files?.Clear();
+                                SecondFileBrowser.AddressText = e.Library.Name + " (无位置)";
+                                SecondFileBrowser.SetLibraryBreadcrumb(e.Library.Name);
+                                SecondFileBrowser.ShowEmptyState($"库 \"{e.Library.Name}\" 中没有文件或文件夹");
+                            }
+                        }
+                        else
+                        {
+                            _currentFiles.Clear();
+                            if (FileBrowser != null)
+                            {
+                                _viewModel?.PrimaryPane?.FileList?.Files?.Clear();
+                                FileBrowser.AddressText = e.Library.Name + " (无位置)";
+                                FileBrowser.SetLibraryBreadcrumb(e.Library.Name);
+                                FileBrowser.ShowEmptyState($"库 \"{e.Library.Name}\" 中没有文件或文件夹");
+                            }
+                        }
+                    }
+                    else
+                    {
+                        ShowMergedLibraryFiles(e.Files, e.Library, e.TargetPane);
+                    }
+                };
+
+                _libraryService.LibraryHighlightRequested += (s, library) =>
+                {
+                    HighlightMatchingLibrary(library);
+                };
+            }
+
+            // 订阅收藏服务事件
+            if (_favoriteService != null)
+            {
+                _favoriteService.NavigateRequested += (s, path) =>
+                {
+                    _navigationCoordinator?.HandlePathNavigation(path, NavigationSource.Favorite, ClickType.LeftClick);
+                };
+
+                _favoriteService.FileOpenRequested += (s, filePath) =>
+                {
+                    try
+                    {
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = filePath,
+                            UseShellExecute = true
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        DialogService.Error($"无法打开文件: {ex.Message}", owner: this);
+                    }
+                };
+
+                _favoriteService.CreateTabRequested += (s, path) =>
+                {
+                    _navigationCoordinator?.HandlePathNavigation(path, NavigationSource.Favorite, ClickType.LeftClick, forceNewTab: true);
+                };
+            }
+
+            // 订阅快速访问服务事件
+            if (_quickAccessService != null)
+            {
+                _quickAccessService.NavigateRequested += (s, path) =>
+                {
+                    _navigationCoordinator?.HandlePathNavigation(path, NavigationSource.QuickAccess, ClickType.LeftClick);
+                };
+
+                _quickAccessService.CreateTabRequested += (s, path) =>
+                {
+                    _navigationCoordinator?.HandlePathNavigation(path, NavigationSource.QuickAccess, ClickType.LeftClick, forceNewTab: true);
+                };
+            }
+
+            if (_navigationCoordinator != null)
+            {
+                _navigationCoordinator.FileOpenRequested += (filePath) =>
+                {
+                    try
+                    {
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = filePath,
+                            UseShellExecute = true
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        DialogService.Error($"无法打开文件: {ex.Message}", owner: this);
+                    }
+                };
+                _navigationCoordinator.FavoritePathNotFound += (favorite) =>
+                {
+                    if (DialogService.Ask($"路径不存在: {favorite.Path}\n\n是否从收藏中移除？", "提示", this))
+                    {
+                        _favoriteService?.RemoveFavorite(favorite.Path);
+                    }
+                };
+            }
+
+            // 恢复 Activated 事件订阅 (在服务初始化后)
+            this.Activated += OnActivated;
+        }
+
+        internal void AttachTabServiceUiContext()
         {
             if (_tabService == null) return;
             var context = new TabUiContext
@@ -736,19 +548,40 @@ namespace YiboFile
             UpdateNavigationButtonsState();
         }
 
+        private void OnActivated(object sender, EventArgs e)
+        {
+            var activeTab = _tabService?.ActiveTab;
+            if (activeTab != null && activeTab.Path != null && activeTab.Path.StartsWith("search://"))
+            {
+                CheckAndRefreshSearchTab(activeTab.Path);
+            }
+        }
+
         private void OnActiveTabPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            if (sender is PathTab tab && tab == _tabService.ActiveTab)
+            if (sender is PathTab tab)
             {
-                if (e.PropertyName == nameof(PathTab.Path) || e.PropertyName == nameof(PathTab.Library))
+                // 主标签页变更
+                if (tab == _tabService?.ActiveTab)
                 {
-                    // 当标签页路径变更时，重新同步 UI
-                    SyncUiWithActiveTab(tab);
+                    if (e.PropertyName == nameof(PathTab.Path) || e.PropertyName == nameof(PathTab.Library))
+                    {
+                        SyncUiWithActiveTab(tab);
+                    }
+                }
+                // 副标签页变更
+                else if (tab == _secondTabService?.ActiveTab)
+                {
+                    if (e.PropertyName == nameof(PathTab.Path))
+                    {
+                        // 直接同步 ViewModel (副面板暂不支持库模式)
+                        _viewModel?.SecondaryPane?.NavigateTo(tab.Path);
+                    }
                 }
             }
         }
 
-        private FileOperationContext GetActiveFileOperationContext()
+        internal FileOperationContext GetActiveFileOperationContext()
         {
             // 修复：基于 ViewModel 的 ActivePane 状态来判断，而不是不稳定的控件焦点
             bool useSecond = _viewModel?.ActivePane == _viewModel?.SecondaryPane;

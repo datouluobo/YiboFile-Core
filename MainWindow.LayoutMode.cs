@@ -63,7 +63,7 @@ namespace YiboFile
         /// <summary>
         /// 设置双列表模式 (UI 实现)
         /// </summary>
-        private void SetDualListMode(bool enable)
+        internal void SetDualListMode(bool enable)
         {
             // 调整标签页布局
             UpdateTabManagerLayout();
@@ -131,7 +131,7 @@ namespace YiboFile
         /// <summary>
         /// 更新焦点边框
         /// </summary>
-        private void UpdateFocusBorders()
+        internal void UpdateFocusBorders()
         {
             if (!IsDualListMode)
             {
@@ -178,7 +178,7 @@ namespace YiboFile
         /// 绑定副标签页服务的 UI 上下文
         /// </summary>
         private bool _secondTabEventsSubscribed = false;
-        private void AttachSecondTabServiceUiContext()
+        internal void AttachSecondTabServiceUiContext()
         {
             if (_secondTabService == null || SecondTabManager == null) return;
 
