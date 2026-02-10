@@ -22,6 +22,27 @@ namespace YiboFile.Controls
         #region Dependency Properties
 
         /// <summary>
+        /// 附加属性：用于监听标签激活状态并触发 BringIntoView
+        /// </summary>
+        public static readonly DependencyProperty IsActiveNotifierProperty =
+            DependencyProperty.RegisterAttached("IsActiveNotifier", typeof(bool), typeof(TabManagerControl),
+                new PropertyMetadata(false, OnIsActiveNotifierChanged));
+
+        public static bool GetIsActiveNotifier(DependencyObject obj) => (bool)obj.GetValue(IsActiveNotifierProperty);
+        public static void SetIsActiveNotifier(DependencyObject obj, bool value) => obj.SetValue(IsActiveNotifierProperty, value);
+
+        private static void OnIsActiveNotifierChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is FrameworkElement element && (bool)e.NewValue)
+            {
+                // 延迟到 Loaded 优先级，确保布局完成后再滚动
+                element.Dispatcher.BeginInvoke(
+                    System.Windows.Threading.DispatcherPriority.Loaded,
+                    new Action(() => element.BringIntoView()));
+            }
+        }
+
+        /// <summary>
         /// 新建标签页命令
         /// </summary>
         public static readonly DependencyProperty NewTabCommandProperty =

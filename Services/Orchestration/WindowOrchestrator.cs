@@ -332,6 +332,7 @@ namespace YiboFile.Services.Orchestration
                 _messageBus,
                 _navigationService,
                 _navigationCoordinator,
+                () => window.GetActivePaneId(), // 注入 Pane 解析器
                 path => window.NavigateToPathFromModule(path));
             _viewModel.RegisterModule(_navigationModule);
 

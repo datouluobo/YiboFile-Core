@@ -139,13 +139,20 @@ namespace YiboFile.ViewModels
                         }
                         else if (value.StartsWith("tag://", StringComparison.OrdinalIgnoreCase))
                         {
-                            _navigationMode = "Tag";
-                            OnPropertyChanged(nameof(NavigationMode));
+                            if (_navigationMode != "Tag")
+                            {
+                                _navigationMode = "Tag";
+                                OnPropertyChanged(nameof(NavigationMode));
+                            }
                         }
-                        else if (value.StartsWith("search://", StringComparison.OrdinalIgnoreCase))
+                        else if (value.StartsWith("search://", StringComparison.OrdinalIgnoreCase) ||
+                                 value.StartsWith("content://", StringComparison.OrdinalIgnoreCase))
                         {
-                            _navigationMode = "Search";
-                            OnPropertyChanged(nameof(NavigationMode));
+                            if (_navigationMode != "Search")
+                            {
+                                _navigationMode = "Search";
+                                OnPropertyChanged(nameof(NavigationMode));
+                            }
                         }
                         else if (!string.IsNullOrEmpty(value) && !ProtocolManager.IsVirtual(value))
                         {
@@ -982,12 +989,50 @@ namespace YiboFile.ViewModels
 
             // 识别协议并保持模式
             var protocol = ProtocolManager.Parse(path);
-            if (protocol.Type == ProtocolType.Library) NavigationMode = "Library";
-            else if (protocol.Type == ProtocolType.Tag) NavigationMode = "Tag";
-            else NavigationMode = "Path";
+            if (protocol.Type == ProtocolType.Library)
+            {
+                NavigationMode = "Library";
+                // 尝试解析库对象以同步 UI (Breadcrumb 等)
+                var libName = protocol.TargetPath.Split('/')[0];
+                CurrentLibrary = _libraryService?.GetAllLibraries()?.FirstOrDefault(l =>
+                    string.Equals(l.Name, libName, StringComparison.OrdinalIgnoreCase));
+                CurrentTag = null;
+            }
+            else if (protocol.Type == ProtocolType.Tag)
+            {
+                NavigationMode = "Tag";
+                // 同步当前标签 (侧边栏高亮等)
+                var tagName = protocol.TargetPath;
+                if (CurrentTag == null || CurrentTag.Name != tagName)
+                {
+                    // 尝试从服务中获取完整的标签对象（包含颜色等信息）
+                    var tag = _tagService?.GetAllTags()?.FirstOrDefault(t =>
+                        string.Equals(t.Name, tagName, StringComparison.OrdinalIgnoreCase));
 
-            CurrentLibrary = null;
-            CurrentTag = null;
+                    if (tag != null)
+                    {
+                        CurrentTag = new TagViewModel { Id = tag.Id, Name = tag.Name, Color = tag.Color };
+                    }
+                    else
+                    {
+                        CurrentTag = new TagViewModel { Name = tagName };
+                    }
+                }
+                CurrentLibrary = null;
+            }
+            else if (protocol.Type == ProtocolType.Search || protocol.Type == ProtocolType.ContentSearch)
+            {
+                NavigationMode = "Search";
+                CurrentLibrary = null;
+                CurrentTag = null;
+            }
+            else
+            {
+                NavigationMode = "Path";
+                CurrentLibrary = null;
+                CurrentTag = null;
+            }
+
             CurrentPath = path;
 
             // 更新 Up 状态
@@ -1429,7 +1474,18 @@ namespace YiboFile.ViewModels
 
         private void OnNavigateToPath(NavigateToPathMessage message)
         {
-            if (!IsActive) return;
+            var myPaneId = _isSecondary ? PaneId.Second : PaneId.Main;
+
+            // 如果指定了 Pane，则按 Pane 判断；否则按 IsActive 判断
+            if (message.Pane.HasValue)
+            {
+                if (message.Pane.Value != myPaneId) return;
+            }
+            else
+            {
+                if (!IsActive) return;
+            }
+
             NavigateTo(message.Path);
         }
 
@@ -1614,8 +1670,16 @@ namespace YiboFile.ViewModels
             else
             {
                 // 空路径消息通常意味着“全局强制刷新”
-                // 在双面板模式下，只有当前面板或处于常规路径导航的面板才应该响应全局刷新
-                if (NavigationMode != "Path" && !IsActive)
+                // 在 Path 模式下，我们有本地 FileSystemWatcher 负责监控，因此忽略来自外部的全局刷新信号，
+                // 除非是显式的用户命令（通常不通过空路径消息传递）。
+                // 这能防止 WindowOrchestrator 的全局 watcher 导致的刷新风暴。
+                if (NavigationMode == "Path")
+                {
+                    return;
+                }
+
+                // 其他模式下，如果未激活也不刷新
+                if (!IsActive)
                 {
                     return;
                 }
@@ -1634,8 +1698,18 @@ namespace YiboFile.ViewModels
         {
             if (message?.Library == null || _fileListService == null) return;
 
-            // 重要：只有激活的面板才响应全局侧边栏的库选择消息
-            if (!IsActive) return;
+            var myPaneId = _isSecondary ? PaneId.Second : PaneId.Main;
+
+            // 如果指定了 Pane，则按 Pane 判断；否则按 IsActive 判断
+            if (message.Pane.HasValue)
+            {
+                if (message.Pane.Value != myPaneId) return;
+            }
+            else
+            {
+                // 重要：只有激活的面板才响应全局侧边栏的库选择消息
+                if (!IsActive) return;
+            }
 
             // 如果当前已经在这个库，不再重复加载
             // 库名匹配 + 导航模式是 Library

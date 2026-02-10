@@ -84,6 +84,16 @@ namespace YiboFile.Handlers
 
                 // 应用初始双列表状态（触发事件绑定和内容加载）
                 SetDualListMode(_layoutModule.IsDualListMode);
+
+                // 核心焦点桥接：确保点击主面板任何区域都能同步焦点状态
+                if (_window.FileBrowser != null)
+                {
+                    _window.FileBrowser.PreviewMouseDown += (s, e) => { if (_layoutModule.IsSecondPaneFocused) _layoutModule.SetFocusedPane(false); };
+                }
+                if (_window.TabManager != null)
+                {
+                    _window.TabManager.PreviewMouseDown += (s, e) => { if (_layoutModule.IsSecondPaneFocused) _layoutModule.SetFocusedPane(false); };
+                }
             }
         }
 
@@ -174,11 +184,9 @@ namespace YiboFile.Handlers
             // 如果切换到双列表模式，初始化副列表
             if (enable && _window.SecondFileBrowser != null)
             {
-                // 初始化副标签页服务（首次进入时）
-                if (_window._secondTabService == null && _window.SecondTabManager != null)
+                // 初始化副标签页服务内容（即便服务已由 Orchestrator 创建，仍需绑定 UI 上下文）
+                if (!_secondTabEventsSubscribed && _window.SecondTabManager != null)
                 {
-                    _window._secondTabService = App.ServiceProvider.GetRequiredService<TabService>();
-
                     // 先绑定 UI 上下文
                     AttachSecondTabServiceUiContext();
 
@@ -262,6 +270,17 @@ namespace YiboFile.Handlers
                         _layoutModule.SetFocusedPane(true);
                     }
                 };
+
+                if (_window.SecondFileBrowser != null)
+                {
+                    _window.SecondFileBrowser.PreviewMouseDown += (s, e) =>
+                    {
+                        if (!_layoutModule.IsSecondPaneFocused)
+                        {
+                            _layoutModule.SetFocusedPane(true);
+                        }
+                    };
+                }
             }
         }
 

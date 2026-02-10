@@ -138,18 +138,65 @@ namespace YiboFile.Services.Tabs
 
         public void CloseTab(PathTab tab)
         {
-            EnsureUi();
             if (tab == null) return;
-            if (!CanCloseTab(tab, _ui?.GetCurrentLibrary?.Invoke() != null)) return;
 
-            bool wasActive = (tab == _activeTab);
-            RemoveTab(tab);
-
-            if (wasActive)
+            // Rule: Last tab closure behavior
+            if (TabCount <= 1)
             {
-                var remainingTabs = GetTabsInOrder();
-                if (remainingTabs.Count > 0) SwitchToTab(remainingTabs[0]);
-                else CreatePathTab(Environment.GetFolderPath(Environment.SpecialFolder.Desktop));
+                // Instead of closing the last tab, navigate it to a default "Home" view
+                // UX Spec: "打开一个类似“我的电脑”的视图，显示所有可用驱动器"
+                // For now, we use a safe default like Desktop or a marker that NavigationCoordinator can handle
+                // If we want to truly show drives, we might need a virtual path like "path://drives"
+
+                // Let's use a common system path for now as a robust fallback
+                var homePath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+
+                if (tab.Path != homePath)
+                {
+                    tab.Path = homePath;
+                    tab.Type = TabType.Path;
+                    tab.Title = CalculateTabDisplayTitle(homePath);
+                    SwitchToTab(tab);
+                }
+                return;
+            }
+
+            _tabs.Remove(tab);
+            if (tab.IsActive)
+            {
+                var nextTab = _tabs.LastOrDefault();
+                if (nextTab != null) SwitchToTab(nextTab);
+            }
+        }
+
+        public void CreateDuplicateTab(PathTab sourceTab = null)
+        {
+            var tabToDuplicate = sourceTab ?? ActiveTab;
+            if (tabToDuplicate == null)
+            {
+                // Fallback to Desktop if no active tab
+                CreatePathTab(Environment.GetFolderPath(Environment.SpecialFolder.Desktop));
+                return;
+            }
+
+            if (tabToDuplicate.Type == TabType.Library && tabToDuplicate.Library != null)
+            {
+                OpenLibraryTab(tabToDuplicate.Library, forceNewTab: true, activate: true);
+            }
+            else if (tabToDuplicate.Type == TabType.Tag)
+            {
+                // Assuming Tag support in TabService exists or will be added
+                var newTab = new PathTab
+                {
+                    Type = TabType.Tag,
+                    Path = tabToDuplicate.Path,
+                    Title = tabToDuplicate.Title
+                };
+                CreateTabInternal(newTab, true);
+            }
+            else
+            {
+                CreatePathTab(tabToDuplicate.Path, forceNewTab: true, activate: true);
             }
         }
 

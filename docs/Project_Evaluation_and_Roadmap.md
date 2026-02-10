@@ -1,6 +1,6 @@
 # YiboFile 项目评估与重构路线图
 
-> **当前版本**: v1.0.380 (架构调整阶段) | **更新日期**: 2026-02-10  
+> **当前版本**: v1.0.410 (架构调整阶段) | **更新日期**: 2026-02-11  
 > **下一版本**: v1.1.0 (目标：Core 完全解耦)  
 
 ---
@@ -331,6 +331,7 @@ Controller-driven 场景：
 | **重构 Handler 初始化** | MainWindow.Handlers.cs (-XXX行) | -XXX | 2026-02-10 |
 | **创建 IWindowOrchestrator** | IWindowOrchestrator.cs (New) | +80 | 2026-02-10 |
 | **移除 MainWindow 服务字段** | MainWindow.xaml.cs | (委派模式) | 2026-02-10 |
+| **标签页同步与刷新修复** | TabService.cs / PaneViewModel.cs | +50 / -30 | 2026-02-11 |
 
 **净效果**：
 *   代码总行数：-615 行
@@ -415,7 +416,7 @@ Controller-driven 场景：
 
 ### 7.3 版本开发路线图
 
-#### v1.0.401 (Current) - 架构调整阶段
+#### v1.0.410 (Current) - 架构调整阶段
 **Core 功能**：
 - ✅ 基础文件管理（库、标签、备注、主题）
 - ✅ Everything 关键词搜索

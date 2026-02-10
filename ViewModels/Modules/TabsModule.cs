@@ -86,21 +86,32 @@ namespace YiboFile.ViewModels.Modules
                 // 判断归属 Pane
                 var pane = (sender == _secondTabService) ? PaneId.Second : PaneId.Main;
 
-                if (tab.Type == TabType.Library && tab.Library != null)
+                // 核心：发布导航消息以更新文件列表和地址栏 (SSOT)
+                if (!string.IsNullOrEmpty(tab.Path))
                 {
-                    Publish(new LibrarySelectedMessage(tab.Library));
-                }
-                else if (tab.Type == TabType.Path && !string.IsNullOrEmpty(tab.Path))
-                {
-                    // 发布导航消息以更新文件列表
-                    Publish(new NavigateToPathMessage(tab.Path, AddToHistory: false));
+                    // 统一发布 NavigateToPathMessage，PaneViewModel 会解析协议 (lib://, tag://, search://)
+                    // 并同步更新自己的 NavigationMode, CurrentLibrary, CurrentTag
+                    Publish(new NavigateToPathMessage(tab.Path, AddToHistory: false, Pane: pane));
                 }
 
-                // 发布激活消息供 MainWindow 同步 UI 状态
+                // 对于库，额外发送消息同步侧边栏选中状态 (如果不是通过 side bar 触发的)
+                if (tab.Type == TabType.Library && tab.Library != null)
+                {
+                    Publish(new LibrarySelectedMessage(tab.Library, pane));
+                }
+                // 对于标签，额外发送消息同步侧边栏选中状态
+                else if (tab.Type == TabType.Tag && tab.Path?.StartsWith("tag://") == true)
+                {
+                    // 解析标签名称
+                    var tagName = tab.Path.Substring(6);
+                    // 查找对应的 TagViewModel 并通过消息发布 (如果需要同步侧边栏)
+                    // 目前 PaneViewModel 会在解析 tag:// 时自动更新 CurrentTag
+                }
+
+                // 发布激活消息供 MainWindow 或其他组件（如搜索框）同步局部 UI 状态
                 Publish(new TabActivatedMessage(tab.Path ?? "", tab.Path ?? "", tab.Type == TabType.Library)
                 {
-                    // 这里可以扩展消息携带 Pane 信息，但 TabActivatedMessage 当前没带 Pane
-                    // 暂时保持现状，MainWindow 会根据 CurrentTab 自动判断
+                    // MainWindow 的搜索框等组件会监听此消息同步模式
                 });
             }
             finally
@@ -210,20 +221,24 @@ namespace YiboFile.ViewModels.Modules
         /// <summary>
         /// 创建新标签页
         /// </summary>
-        public void CreateTab(string path, bool forceNewTab = false, bool activate = true, PaneId? targetPane = null)
+        public void CreateTab(string path = null, bool forceNewTab = false, bool activate = true, PaneId? targetPane = null)
         {
             // Use explicit pane if provided, otherwise fallback to focus-based detection
             bool useSecond = targetPane.HasValue
                 ? targetPane.Value == PaneId.Second
                 : (_isDualListMode() && _isSecondPaneFocused());
 
-            if (useSecond && _secondTabService != null)
+            var tabService = useSecond && _secondTabService != null ? _secondTabService : _tabService;
+
+            if (tabService == null) return;
+
+            if (string.IsNullOrEmpty(path))
             {
-                _secondTabService.CreatePathTab(path, forceNewTab, activate);
+                tabService.CreateDuplicateTab();
             }
             else
             {
-                _tabService?.CreatePathTab(path, forceNewTab, activate);
+                tabService.CreatePathTab(path, forceNewTab, activate);
             }
         }
 

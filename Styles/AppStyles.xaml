@@ -824,6 +824,7 @@
                 Width="{Binding TargetWidth}"
                 Command="{Binding SelectCommand}"
                 ToolTip="{Binding Title}"
+                controls:TabManagerControl.IsActiveNotifier="{Binding IsActive}"
                 shell:WindowChrome.IsHitTestVisibleInChrome="True">
             <Button.ContextMenu>
                 <ContextMenu>

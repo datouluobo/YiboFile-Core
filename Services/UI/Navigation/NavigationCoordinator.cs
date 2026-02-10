@@ -105,42 +105,69 @@ namespace YiboFile.Services.Navigation
             var path = request.Target.Path;
             if (string.IsNullOrEmpty(path)) return;
 
-            // [FIX] 如果当前标签页是库，当导航到普通路径时，强制新建标签页，避免覆盖库标签页
-            bool forceNewTab = request.ForceNewTab;
-            if (!forceNewTab && tabService.ActiveTab != null && tabService.ActiveTab.Type == TabType.Library)
+            // 获取当前面板的 ViewModel
+            var vm = _paneViewModelResolver?.Invoke(request.Pane);
+
+            // Rule 1: Drill-down (列表内钻取)
+            // 如果来源是列表点击或 Enter，且强制要求在当前标签页打开（默认行为）
+            bool isDrillDown = request.Source == NavigationSource.FileList.ToString() ||
+                               request.Source == NavigationSource.FolderClick.ToString();
+
+            if (isDrillDown && !request.ForceNewTab)
             {
-                forceNewTab = true;
+                await ExecuteNavigationInViewModel(vm, path, request.Pane, request.Source, tabService);
+                return;
             }
 
-            if (forceNewTab)
+            // Rule 2: Deduplication (排重检测)
+            // 检查当前面板的其他标签页是否已经打开了该路径
+            if (!request.ForceNewTab)
             {
-                tabService.CreatePathTab(path, forceNewTab: true, activate: request.Activate);
+                var existingTab = tabService.FindTabByPath(path);
+                if (existingTab != null)
+                {
+                    if (request.Activate)
+                    {
+                        tabService.SetActiveTab(existingTab);
+                    }
+                    return;
+                }
+            }
+
+            // Rule 3: Type Consistency Reuse (类型一致性复用)
+            // 如果当前标签页是路径类型，且未要求强制新建，则复用
+            if (!request.ForceNewTab && tabService.ActiveTab != null && tabService.ActiveTab.Type == TabType.Path)
+            {
+                await ExecuteNavigationInViewModel(vm, path, request.Pane, request.Source, tabService);
+                return;
+            }
+
+            // Rule 4: New Tab Creation (新建标签页)
+            // 默认新建，或以上规则不适用
+            tabService.CreatePathTab(path, forceNewTab: true, activate: request.Activate);
+        }
+
+        private async Task ExecuteNavigationInViewModel(ViewModels.PaneViewModel vm, string path, PaneId pane, string source, TabService tabService)
+        {
+            if (vm != null)
+            {
+                // 1. 执行导航 (ViewModel)
+                vm.NavigateTo(path);
+
+                // 2. [关键修复] 同步更新 Tab 状态
+                tabService.UpdateActiveTabPath(path);
+
+                // 3. 副作用消息发送 (MessageBus)
+                var sourceStr = source ?? NavigationSource.External.ToString();
+                _messageBus.Publish(new NavigationCompleteMessage(
+                    path,
+                    pane,
+                    Enum.TryParse<NavigationSource>(sourceStr, out var src) ? src : NavigationSource.External,
+                    vm.NavigationMode));
             }
             else
             {
-                // Path C: 直接驱动 ViewModel
-                var vm = _paneViewModelResolver?.Invoke(request.Pane);
-                if (vm != null)
-                {
-                    // 1. 执行导航 (ViewModel)
-                    vm.NavigateTo(path);
-
-                    // 2. [关键修复] 同步更新 Tab 状态
-                    tabService.UpdateActiveTabPath(path);
-
-                    // 3. 副作用消息发送 (MessageBus)
-                    var sourceStr = request.Source ?? NavigationSource.External.ToString();
-                    _messageBus.Publish(new NavigationCompleteMessage(
-                        path,
-                        request.Pane,
-                        Enum.TryParse<NavigationSource>(sourceStr, out var src) ? src : NavigationSource.External,
-                        vm.NavigationMode));
-                }
-                else
-                {
-                    // Fallback removed: PathNavigateRequested legacy event.
-                    System.Diagnostics.Debug.WriteLine($"[NavigationCoordinator] Warning: Cannot resolve PaneVM for {request.Pane}. Path: {path}");
-                }
+                System.Diagnostics.Debug.WriteLine($"[NavigationCoordinator] Warning: Cannot resolve PaneVM for {pane}. Path: {path}");
             }
         }
 
@@ -149,40 +176,54 @@ namespace YiboFile.Services.Navigation
             var library = request.Target.Library;
             if (library == null) return;
 
-            if (request.ForceNewTab)
+            // Rule 2: Deduplication (排重检测)
+            if (!request.ForceNewTab)
             {
-                tabService.OpenLibraryTab(library, forceNewTab: true, activate: request.Activate);
-            }
-            else
-            {
-                // 修改 ViewModel 的库模式
-                var vm = _paneViewModelResolver?.Invoke(request.Pane);
-                if (vm != null)
+                var existingTab = tabService.FindTabByLibraryId(library.Id);
+                if (existingTab != null)
                 {
-                    // 1. 更新 ViewModel (执行完整的库导航逻辑，确保加载文件)
-                    vm.NavigateTo(library, loadData: true);
-
-                    // 2. [关键修复] 同步更新 Tab 状态
-                    // 注意：TabService 可能需要 UpdateActiveTabLibrary 方法，如果不存在则需要使用 UpdateTab 方法
-                    var activeTab = tabService.ActiveTab;
-                    if (activeTab != null)
+                    if (request.Activate)
                     {
-                        // 假设 activeTab 属性可写，或使用 Update 方法
-                        activeTab.Type = TabType.Library;
-                        activeTab.Path = $"lib://{library.Name}";
-                        tabService.UpdateTabTitle(activeTab, library.Name);
+                        tabService.SetActiveTab(existingTab);
                     }
+                    return;
+                }
+            }
 
-                    // 3. 发布消息
-                    _messageBus.Publish(new NavigationCompleteMessage(
-                        $"lib://{library.Name}",
-                        request.Pane,
-                        NavigationSource.SidebarLibrary));
-                }
-                else
+            // Rule 3: Type Consistency (类型一致性复用)
+            // 如果当前标签页已经是 Library 类型且未要求强制新建，则复用
+            if (!request.ForceNewTab && tabService.ActiveTab != null && tabService.ActiveTab.Type == TabType.Library)
+            {
+                ExecuteLibraryNavigationInViewModel(library, request.Pane, tabService);
+                return;
+            }
+
+            // Rule 4: New Tab
+            tabService.OpenLibraryTab(library, forceNewTab: true, activate: request.Activate);
+        }
+
+        private void ExecuteLibraryNavigationInViewModel(Library library, PaneId pane, TabService tabService)
+        {
+            var vm = _paneViewModelResolver?.Invoke(pane);
+            if (vm != null)
+            {
+                // 1. 更新 ViewModel
+                vm.NavigateTo(library, loadData: true);
+
+                // 2. 同步更新 Tab 状态
+                var activeTab = tabService.ActiveTab;
+                if (activeTab != null)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[NavigationCoordinator] Warning: Cannot resolve PaneVM for {request.Pane}. Library: {library.Name}");
+                    activeTab.Type = TabType.Library;
+                    activeTab.Path = $"lib://{library.Name}";
+                    tabService.UpdateTabTitle(activeTab, library.Name);
                 }
+
+                // 3. 发布消息
+                _messageBus.Publish(new NavigationCompleteMessage(
+                    $"lib://{library.Name}",
+                    pane,
+                    NavigationSource.SidebarLibrary));
             }
         }
 
@@ -254,12 +295,12 @@ namespace YiboFile.Services.Navigation
 
             var tagPath = $"tag://{tagName}";
 
-            // 标签导航通常强制新建标签页以保持当前浏览上下文
+            // 标签导航逻辑与路径导航对齐：支持在当前标签页打开
             var modifiedRequest = new NavigationRequest
             {
                 Target = NavigationTarget.FromPath(tagPath),
                 Pane = request.Pane,
-                ForceNewTab = true, // Force new tab for tags
+                ForceNewTab = request.ForceNewTab,
                 Activate = request.Activate,
                 Source = request.Source ?? "Tag"
             };

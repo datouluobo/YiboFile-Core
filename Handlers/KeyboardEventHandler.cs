@@ -201,11 +201,10 @@ namespace YiboFile.Handlers
                 }
             }
 
-            // Ctrl+T: 新建标签页
+            // Ctrl+T: 新建标签页 (UX Spec: 默认新建为当前标签页的副本)
             if (IsActionTriggered(e, "新建标签页", "Ctrl+T"))
             {
-                var desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-                _createTab(desktopPath);
+                _createTab(null);
                 e.Handled = true;
                 return;
             }

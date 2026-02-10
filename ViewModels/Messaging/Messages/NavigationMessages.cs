@@ -34,7 +34,7 @@ namespace YiboFile.ViewModels.Messaging.Messages
     /// <summary>
     /// 请求导航到指定路径
     /// </summary>
-    public record NavigateToPathMessage(string Path, bool AddToHistory = true);
+    public record NavigateToPathMessage(string Path, bool AddToHistory = true, PaneId? Pane = null);
 
     /// <summary>
     /// 请求切换导航模式

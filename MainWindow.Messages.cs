@@ -61,6 +61,24 @@ namespace YiboFile
             {
                 this.Dispatcher.Invoke(() => NavigateToLibrary(msg.Library, msg.Pane));
             });
+
+            // 8. 焦点面板变更 (同步逻辑焦点)
+            _messageBus.Subscribe<FocusedPaneChangedMessage>(msg =>
+            {
+                this.Dispatcher.Invoke(() =>
+                {
+                    if (msg.IsSecondPaneFocused)
+                    {
+                        SecondFileBrowser?.Focus();
+                        SecondFileBrowser?.FilesList?.Focus();
+                    }
+                    else
+                    {
+                        FileBrowser?.Focus();
+                        FileBrowser?.FilesList?.Focus();
+                    }
+                });
+            });
         }
 
         private void HandleLibraryFilesLoaded(LibraryFilesLoadedMessage msg)

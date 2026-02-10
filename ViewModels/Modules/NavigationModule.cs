@@ -15,6 +15,7 @@ namespace YiboFile.ViewModels.Modules
     {
         private readonly NavigationService _navigationService;
         private readonly INavigationCoordinator _navigationCoordinator;
+        private readonly Func<PaneId> _activePaneResolver;
         private readonly Action<string> _onNavigateCallback;
         private string _currentMode = "Path";
 
@@ -61,11 +62,13 @@ namespace YiboFile.ViewModels.Modules
             IMessageBus messageBus,
             NavigationService navigationService,
             INavigationCoordinator navigationCoordinator,
+            Func<PaneId> activePaneResolver,
             Action<string> onNavigateCallback = null)
             : base(messageBus)
         {
             _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
             _navigationCoordinator = navigationCoordinator ?? throw new ArgumentNullException(nameof(navigationCoordinator));
+            _activePaneResolver = activePaneResolver;
             _onNavigateCallback = onNavigateCallback;
             _currentMode = YiboFile.Services.Config.ConfigurationService.Instance.Config.LastNavigationMode ?? "Path";
 
@@ -234,7 +237,22 @@ namespace YiboFile.ViewModels.Modules
         /// </summary>
         public void NavigateTo(string path, bool addToHistory = true)
         {
-            Publish(new NavigateToPathMessage(path, addToHistory));
+            // 获取当前 Active 的 Pane (默认为 Main)
+            var pane = _activePaneResolver?.Invoke() ?? PaneId.Main;
+
+            // 委托给 NavigationCoordinator 处理
+            // 协调器包含 Rule 2: Deduplication (排重检测) 和 Rule 3: Type Reuse (类型复用)
+            _navigationCoordinator.HandlePathNavigation(
+                path,
+                NavigationSource.AddressBar, // 默认假设是从地址栏或外部触发的标准导航
+                ClickType.LeftClick,
+                forceNewTab: !addToHistory, // addToHistory 为 false 时通常意味着某种特殊的非历史导航，但这有点歧义。
+                                            // 实际上，如果不想加历史，我们可以单独控制。
+                                            // HandlePathNavigation 并不直接支持 addToHistory 参数（它由 PaneViewModel 处理）。
+                                            // 这里我们暂时设 forceNewTab 为 false，除非 addToHistory 为 false (可能想新开?)
+                                            // 修正：NavigateToFromAddressBar 通常期望在当前 Tab 跳转 (forceNewTab=false). 
+                pane: pane
+            );
         }
 
         /// <summary>

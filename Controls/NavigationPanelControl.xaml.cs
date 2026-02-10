@@ -338,21 +338,47 @@ namespace YiboFile.Controls
                     if (e.ChangedButton == MouseButton.Middle && OpenInNewTabCommand != null)
                     {
                         var element = e.OriginalSource as FrameworkElement;
-                        var item = element?.DataContext as YiboFile.Services.Navigation.NavigationItem;
-                        if (item != null && !string.IsNullOrEmpty(item.Path))
+                        var dataContext = element?.DataContext;
+                        var path = (dataContext as YiboFile.Services.Navigation.NavigationItem)?.Path
+                                   ?? (dataContext?.GetType().GetProperty("Path")?.GetValue(dataContext) as string);
+                        if (!string.IsNullOrEmpty(path))
                         {
-                            OpenInNewTabCommand.Execute(item.Path);
+                            OpenInNewTabCommand.Execute(path);
                             e.Handled = true;
                         }
+                        return;
                     }
+
+                    // 左键点击支持：即使是已选中的项，再次点击也应触发导航
+                    if (e.ChangedButton == MouseButton.Left && NavigateCommand != null)
+                    {
+                        var element = e.OriginalSource as FrameworkElement;
+                        // QuickAccessItem 和 NavigationItem 都有 Path 属性，用动态获取兼容两者
+                        var dataContext = element?.DataContext;
+                        var path = (dataContext as YiboFile.Services.Navigation.NavigationItem)?.Path
+                                   ?? (dataContext?.GetType().GetProperty("Path")?.GetValue(dataContext) as string);
+                        // 溯源到 ListBoxItem (防止点击空白处触发)
+                        DependencyObject current = e.OriginalSource as DependencyObject;
+                        while (current != null && current != quickAccessListBox)
+                        {
+                            if (current is ListBoxItem)
+                            {
+                                if (!string.IsNullOrEmpty(path))
+                                {
+                                    if (NavigateCommand.CanExecute(path))
+                                        NavigateCommand.Execute(path);
+                                }
+                                break;
+                            }
+                            current = System.Windows.Media.VisualTreeHelper.GetParent(current);
+                        }
+                    }
+
                     QuickAccessListBoxPreviewMouseDown?.Invoke(s, e);
                 };
                 quickAccessListBox.SelectionChanged += (s, e) =>
                 {
-                    if (NavigateCommand != null && s is ListBox lb && lb.SelectedItem is YiboFile.Services.Navigation.NavigationItem item && !string.IsNullOrEmpty(item.Path))
-                    {
-                        if (NavigateCommand.CanExecute(item.Path)) NavigateCommand.Execute(item.Path);
-                    }
+                    // SelectionChanged 仍然保留作为兜底，但主要由 PreviewMouseDown 处理多点击
                     QuickAccessListBoxSelectionChanged?.Invoke(s, e);
                 };
                 quickAccessListBox.PreviewMouseWheel += OnPreviewMouseWheel;
@@ -376,15 +402,6 @@ namespace YiboFile.Controls
             var librariesListBox = LibrariesListBoxControl;
             if (librariesListBox != null)
             {
-                librariesListBox.SelectionChanged += (s, e) =>
-                {
-                    if (NavigateLibraryCommand != null && s is ListBox lb && lb.SelectedItem is YiboFile.Library lib)
-                    {
-                        if (NavigateLibraryCommand.CanExecute(lib)) NavigateLibraryCommand.Execute(lib);
-                    }
-                    LibrariesListBoxSelectionChanged?.Invoke(s, e);
-                };
-                librariesListBox.ContextMenuOpening += (s, e) => LibrariesListBoxContextMenuOpening?.Invoke(s, e);
                 librariesListBox.PreviewMouseDown += (s, e) =>
                 {
                     if (e.ChangedButton == MouseButton.Middle && OpenInNewTabCommand != null)
@@ -396,9 +413,44 @@ namespace YiboFile.Controls
                             OpenInNewTabCommand.Execute($"lib://{lib.Name}");
                             e.Handled = true;
                         }
+                        return;
                     }
+
+                    // 左键点击支持
+                    if (e.ChangedButton == MouseButton.Left && NavigateCommand != null)
+                    {
+                        var element = e.OriginalSource as FrameworkElement;
+                        var item = element?.DataContext as YiboFile.Library;
+                        DependencyObject current = e.OriginalSource as DependencyObject;
+                        while (current != null && current != librariesListBox)
+                        {
+                            if (current is ListBoxItem)
+                            {
+                                if (item != null)
+                                {
+                                    var path = $"lib://{item.Name}";
+                                    if (NavigateCommand.CanExecute(path))
+                                        NavigateCommand.Execute(path);
+                                }
+                                break;
+                            }
+                            current = System.Windows.Media.VisualTreeHelper.GetParent(current);
+                        }
+                    }
+
                     LibrariesListBoxPreviewMouseDown?.Invoke(s, e);
                 };
+
+                librariesListBox.SelectionChanged += (s, e) =>
+                {
+                    // 已在 PreviewMouseDown 中处理多点击，此处仅作为兜底和事件透传
+                    if (NavigateLibraryCommand != null && s is ListBox lb && lb.SelectedItem is YiboFile.Library lib)
+                    {
+                        // 这是一个备用方案
+                    }
+                    LibrariesListBoxSelectionChanged?.Invoke(s, e);
+                };
+                librariesListBox.ContextMenuOpening += (s, e) => LibrariesListBoxContextMenuOpening?.Invoke(s, e);
             }
 
             // 库上下文菜单事件
@@ -480,6 +532,7 @@ namespace YiboFile.Controls
             {
                 FavoriteListBoxLoaded?.Invoke(this, listBox);
                 listBox.SelectionChanged += FavoritesListBox_SelectionChanged;
+                listBox.PreviewMouseDown += FavoritesListBox_PreviewMouseDown;
             }
         }
 
@@ -487,6 +540,28 @@ namespace YiboFile.Controls
         {
             if (sender is ListBox listBox)
             {
+                // 左键点击支持：即使是已选中的项，再次点击也应触发导航
+                if (e.ChangedButton == MouseButton.Left && NavigateCommand != null)
+                {
+                    var element = e.OriginalSource as FrameworkElement;
+                    var item = element?.DataContext as YiboFile.Services.Navigation.NavigationItem;
+                    // 溯源到 ListBoxItem
+                    DependencyObject current = e.OriginalSource as DependencyObject;
+                    while (current != null && current != listBox)
+                    {
+                        if (current is ListBoxItem)
+                        {
+                            if (item != null && !string.IsNullOrEmpty(item.Path))
+                            {
+                                if (NavigateCommand.CanExecute(item.Path))
+                                    NavigateCommand.Execute(item.Path);
+                            }
+                            break;
+                        }
+                        current = System.Windows.Media.VisualTreeHelper.GetParent(current);
+                    }
+                }
+
                 FavoriteListBoxPreviewMouseDown?.Invoke(this, listBox, e);
             }
         }

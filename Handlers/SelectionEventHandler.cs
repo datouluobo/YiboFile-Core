@@ -98,7 +98,7 @@ namespace YiboFile.Handlers
                 // 但 LibrarySelectedMessage 主要是为了更新库信息栏
                 if (paneId == YiboFile.Services.Navigation.PaneId.Main)
                 {
-                    _messageBus.Publish(new LibrarySelectedMessage(currentLib));
+                    _messageBus.Publish(new LibrarySelectedMessage(currentLib, paneId));
                 }
 
                 // 更新库信息面板

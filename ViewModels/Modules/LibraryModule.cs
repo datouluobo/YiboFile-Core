@@ -6,6 +6,7 @@ using YiboFile.Models;
 using YiboFile.Services;
 using YiboFile.ViewModels.Messaging;
 using YiboFile.ViewModels.Messaging.Messages;
+using YiboFile.Services.Navigation;
 
 namespace YiboFile.ViewModels.Modules
 {

@@ -1,5 +1,6 @@
 using YiboFile;
 using YiboFile.Models;
+using YiboFile.Services.Navigation;
 
 namespace YiboFile.ViewModels.Messaging.Messages
 {
@@ -10,7 +11,7 @@ namespace YiboFile.ViewModels.Messaging.Messages
     /// <summary>
     /// 库已选择通知
     /// </summary>
-    public record LibrarySelectedMessage(Library Library);
+    public record LibrarySelectedMessage(Library Library, PaneId? Pane = null);
 
     /// <summary>
     /// 请求打开库
@@ -31,6 +32,7 @@ namespace YiboFile.ViewModels.Messaging.Messages
     /// 请求创建新库
     /// </summary>
     public record CreateLibraryRequestMessage(string Name, System.Collections.Generic.List<string> InitialPaths = null);
+
     /// <summary>
     /// 库列表发生变化（添加、删除或内容修改）
     /// </summary>

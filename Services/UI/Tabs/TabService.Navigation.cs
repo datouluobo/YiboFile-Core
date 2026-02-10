@@ -22,8 +22,8 @@ namespace YiboFile.Services.Tabs
                 t.IsActive = (t == tab);
             }
 
-            // [SSOT] 只负责更新业务状态，不再通过委托强推 UI 更新
-            // UI 同步由 MainWindow 订阅 ActiveTabChanged 实现
+            // [SSOT] 只负责更新业务状态
+            // 导航由 TabsModule.OnActiveTabChanged -> NavigateToPathMessage -> PaneViewModel 处理
             tab.LastAccessTime = DateTime.Now;
             SetActiveTab(tab);
 
@@ -53,20 +53,9 @@ namespace YiboFile.Services.Tabs
                 catch { }
             }
 
-            // 联动更新主界面文件列表
+            // 仅保留 UI 级别的副作用 (不再直接驱动导航)
             if (_ui != null)
             {
-                if (tab.Type == TabType.Library && tab.Library != null)
-                {
-                    _ui.SetCurrentLibrary?.Invoke(tab.Library);
-                    _ui.LoadLibraryFiles?.Invoke(tab.Library);
-                }
-                else if (tab.Type == TabType.Path)
-                {
-                    _ui.SetCurrentLibrary?.Invoke(null);
-                    _ui.NavigateToPathInternal?.Invoke(tab.Path);
-                }
-
                 _ui.UpdateNavigationButtonsState?.Invoke();
                 _ui.TabManager?.RaiseCloseOverlayRequested();
             }

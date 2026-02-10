@@ -73,7 +73,9 @@ namespace YiboFile.Services.Tabs
 
         public PathTab FindTabByPath(string path)
         {
-            return _tabs.FirstOrDefault(t => string.Equals(t.Path, path, StringComparison.OrdinalIgnoreCase));
+            if (string.IsNullOrEmpty(path)) return null;
+            var normalizedTarget = NormalizePath(path);
+            return _tabs.FirstOrDefault(t => NormalizePath(t.Path).Equals(normalizedTarget, StringComparison.OrdinalIgnoreCase));
         }
 
         public PathTab FindTabByLibraryId(int libraryId)
@@ -91,6 +93,46 @@ namespace YiboFile.Services.Tabs
             return new List<PathTab>(_tabs);
         }
 
+        private static string NormalizePath(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path)) return string.Empty;
+            try
+            {
+                // 简单标准化：去除末尾斜杠 (除非是根目录如 C:\)，统一小写
+                // 但为了更稳健，我们尽量补全根目录斜杠
+                // 例如 "C:" -> "C:\"
+
+                var trimmed = path.Trim();
+
+                // 处理盘符特殊情况 "C:" => "C:\"
+                if (trimmed.Length == 2 && trimmed[1] == ':')
+                {
+                    return trimmed.ToUpperInvariant() + "\\";
+                }
+
+                // 统一分隔符
+                trimmed = trimmed.Replace('/', '\\');
+
+                // 去除末尾斜杠 (如果不是 "C:\" 格式)
+                if (trimmed.Length > 3 && trimmed.EndsWith("\\"))
+                {
+                    trimmed = trimmed.Substring(0, trimmed.Length - 1);
+                }
+
+                // 如果是 "C:\" 格式，保持原样（但大写盘符）
+                if (trimmed.Length == 3 && trimmed.EndsWith(":\\"))
+                {
+                    return trimmed.ToUpperInvariant();
+                }
+
+                return trimmed;
+            }
+            catch
+            {
+                return path;
+            }
+        }
+
         private bool _isSettingActiveTab = false;
         public void SetActiveTab(PathTab tab)
         {
@@ -98,7 +140,28 @@ namespace YiboFile.Services.Tabs
             try
             {
                 _isSettingActiveTab = true;
+
+                // Keep the old active tab for reference if needed
+                var oldTab = _activeTab;
+
+                // Deactivate all other tabs (or just the old one for performance)
+                // Iterating all ensures consistency if state got desynced
+                foreach (var t in _tabs)
+                {
+                    if (t != tab && t.IsActive)
+                    {
+                        t.IsActive = false;
+                    }
+                }
+
                 _activeTab = tab;
+
+                if (_activeTab != null)
+                {
+                    _activeTab.IsActive = true;
+                    _activeTab.LastAccessTime = DateTime.Now;
+                }
+
                 ActiveTabChanged?.Invoke(this, tab);
             }
             finally
