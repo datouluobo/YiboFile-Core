@@ -70,7 +70,7 @@ namespace YiboFile
                         var secondTab = _secondTabService?.ActiveTab;
                         if (secondTab != null && !string.IsNullOrEmpty(secondTab.Path) && Directory.Exists(secondTab.Path))
                         {
-                            SecondFileBrowser_PathChanged(this, secondTab.Path);
+                            LoadSecondFileBrowserDirectory(secondTab.Path);
                         }
                     }
 
@@ -83,7 +83,7 @@ namespace YiboFile
                             var secondTab = _secondTabService?.ActiveTab;
                             if (secondTab != null && !string.IsNullOrEmpty(secondTab.Path) && Directory.Exists(secondTab.Path))
                             {
-                                SecondFileBrowser_PathChanged(this, secondTab.Path);
+                                LoadSecondFileBrowserDirectory(secondTab.Path);
                             }
                         }
                         else if (!isPrimary && FileBrowser != null)

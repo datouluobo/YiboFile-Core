@@ -1,4 +1,5 @@
 using System.Collections;
+using YiboFile.Models;
 
 namespace YiboFile.ViewModels.Messaging.Messages
 {
@@ -42,4 +43,19 @@ namespace YiboFile.ViewModels.Messaging.Messages
     /// 请求在信息面板显示库信息
     /// </summary>
     public record ShowLibraryInfoMessage(YiboFile.Library Library, YiboFile.Services.Navigation.PaneId Pane = YiboFile.Services.Navigation.PaneId.Main);
+
+    /// <summary>
+    /// 文件系统发生变更通知
+    /// </summary>
+    public record FileSystemChangedMessage(string Path, string ChangeType);
+
+    /// <summary>
+    /// 文件夹大小计算完成通知
+    /// </summary>
+    public record FolderSizeCalculatedMessage(string Path, long Size, string FormattedSize);
+
+    /// <summary>
+    /// 文件元数据处理完成通知
+    /// </summary>
+    public record MetadataEnrichedMessage(YiboFile.Models.FileSystemItem Item);
 }

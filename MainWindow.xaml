@@ -152,7 +152,10 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <controls:NavigationPanelControl Grid.Row="0" x:Name="NavigationPanelControl" Grid.RowSpan="3"/>
+                <controls:NavigationPanelControl Grid.Row="0" x:Name="NavigationPanelControl" Grid.RowSpan="3"
+                                                 NavigateCommand="{Binding Navigation.NavigateToCommand}"
+                                                 OpenInNewTabCommand="{Binding Tabs.OpenInNewTabCommand}"
+                                                 NavigateLibraryCommand="{Binding Library.OpenLibraryCommand}"/>
 
                 <!-- 底部占位（如果需要背景贯穿，可以在这里放一个简单的 Border，或者直接移除） -->
                 <!-- 原底部全局按钮区域已移至侧边栏 -->

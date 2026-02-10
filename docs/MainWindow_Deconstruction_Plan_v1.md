@@ -2,7 +2,7 @@
 
 | 版本 | 日期 | 作者 | 状态 | 目标版本 |
 |------|------|------|------|---------|
-| v1.1 | 2026-02-09 | Antigravity | 执行中 (40% 完成) | v1.1.0 (Core 解耦) |
+| v1.1 | 2026-02-10 | Antigravity | 执行中 (85% 完成) | v1.1.0 (Core 解耦) |
 
 ## 1. 背景与目标
 
@@ -47,19 +47,18 @@
 *   **遗留任务**：
     *   ⏳ `UIEventMessages.cs`: 分割器拖拽、列宽变更、排序触发消息 (低优先级)
 
-### 阶段 2：WindowOrchestrator 创建 (Orchestration) [✅ 90% 完成]
+### 阶段 2：WindowOrchestrator 创建 (Orchestration) [✅ 100% 完成]
 *   **目标**：接管初始化编排职责。
 *   **已完成任务**：
     *   ✅ 创建 `WindowOrchestrator.cs` 并接管服务初始化
     *   ✅ 迁移所有 MVVM 模块的初始化逻辑
     *   ✅ 实现 ViewModel 创建和关联
     *   ✅ 迁移消息总线订阅逻辑
-*   **当前进展**：
-    *   🟡 删除了全局 `LibrarySelectedMessage` 订阅，实现面板级解耦
-    *   🟡 TabService 双实例机制已建立 (主/副面板各一个)
-*   **遗留任务**：
-    *   ⏳ 将 `MainWindow.Handlers.cs` 中剩余的服务初始化迁移到 DI 容器
-    *   ⏳ 优化初始化顺序，消除潜在的依赖循环
+    *   ✅ 删除了全局 `LibrarySelectedMessage` 订阅，实现面板级解耦
+    *   ✅ TabService 双实例机制已建立 (主/副面板各一个)
+    *   ✅ 将 `MainWindow.Handlers.cs` 中剩余的服务初始化迁移到 DI 容器
+    *   ✅ 优化初始化顺序，消除潜在的依赖循环
+    *   ✅ 建立 `IWindowOrchestrator` 接口，实现 `MainWindow` 服务完全委派
 
 ### 阶段 3：UI 适配器层 (Interface Isolation) [✅ 100% 完成]
 *   **目标**：移除 MainWindow 实现的接口。适配器已在 `Services/UI/Adapters` 实现。
@@ -87,21 +86,24 @@
     *   ⏳ 清理 XAML 中剩余的直接事件绑定 (~15处)
     *   ⏳ 将分割器拖拽、列宽变更转换为消息 (低优先级)
 
-### 阶段 5：MainWindow 终极瘦身 (Deconstruction) [🔴 20% 完成]
+### 阶段 5：MainWindow 终极瘦身 (Deconstruction) [� 60% 完成]
 *   **目标**：执行最终的代码切除。
 *   **当前状态**：
-    *   📊 MainWindow 总行数: ~6,600行 (20个分部类文件)
     *   🎯 目标行数: <2,000行 (压缩率 70%)
 *   **已完成任务**：
     *   ✅ 删除 `MenuEventHandler.cs` (-644行)
     *   ✅ 删除 `FileBrowserEventHandler.cs` (-XXX行)
     *   ✅ 移除部分键盘事件桥接逻辑 (-15行)
+    *   ✅ 重构 `MainWindow.Handlers.cs`: 已将列排序、侧边栏点击逻辑迁入独立 Handler。
+    *   ✅ 移除 internal 字段 (改为 `IWindowOrchestrator` 委派属性)
+    *   ✅ 合并 `MainWindow.LayoutMode.cs` 到 `LayoutModule` (创建了 `LayoutEventHandler`)
+    *   ✅ 重定义 `MainWindow.LayoutMode.cs` 为纯委派包装类 (已缩减至 < 100行)
+    *   ✅ 简化 `MainWindow.Navigation.cs` (已有 `NavigationModule` 接管)
+    *   ✅ 废弃 `MainWindowInitializer.cs` (逻辑并入 Orchestrator)
 *   **待执行任务** (高优先级)：
-    *   🔴 重构 `MainWindow.Handlers.cs`: 将所有服务初始化移至 DI 容器 (预计 -200行)
-    *   🔴 删除已迁移的 `internal` 字段 (~40个字段，预计 -80行)
-    *   🟡 合并 `MainWindow.LayoutMode.cs` 到 `LayoutModule` (预计 -400行)
-    *   🟡 简化 `MainWindow.Navigation.cs` (已有 `NavigationModule` 接管)
-*   **预计剩余工作量**: ~12小时
+    *   ⏳ 物理删除已废弃的分部类文件
+    *   ⏳ 清理 XAML Code-Behind 中剩余的胶水代码
+*   **预计剩余工作量**: ~4小时
 
 ### 阶段 6：清理与优化 (Refinement) [⏳ 5% 完成]
 *   **目标**：完善文档与测试，提升性能。

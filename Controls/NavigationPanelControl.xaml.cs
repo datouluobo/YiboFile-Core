@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using YiboFile.Services.Config;
+using YiboFile.Models;
 // using TagTrain.UI; // Phase 2
 
 namespace YiboFile.Controls
@@ -47,6 +48,34 @@ namespace YiboFile.Controls
         public event RoutedEventHandler LibraryContextMenuClick;
 
         public event RoutedEventHandler DrivesTreeViewItemClick;
+
+        // Dependency Properties for Commands
+        public static readonly DependencyProperty NavigateCommandProperty =
+            DependencyProperty.Register("NavigateCommand", typeof(ICommand), typeof(NavigationPanelControl), new PropertyMetadata(null));
+
+        public ICommand NavigateCommand
+        {
+            get => (ICommand)GetValue(NavigateCommandProperty);
+            set => SetValue(NavigateCommandProperty, value);
+        }
+
+        public static readonly DependencyProperty NavigateLibraryCommandProperty =
+            DependencyProperty.Register("NavigateLibraryCommand", typeof(ICommand), typeof(NavigationPanelControl), new PropertyMetadata(null));
+
+        public ICommand NavigateLibraryCommand
+        {
+            get => (ICommand)GetValue(NavigateLibraryCommandProperty);
+            set => SetValue(NavigateLibraryCommandProperty, value);
+        }
+
+        public static readonly DependencyProperty OpenInNewTabCommandProperty =
+           DependencyProperty.Register("OpenInNewTabCommand", typeof(ICommand), typeof(NavigationPanelControl), new PropertyMetadata(null));
+
+        public ICommand OpenInNewTabCommand
+        {
+            get => (ICommand)GetValue(OpenInNewTabCommandProperty);
+            set => SetValue(OpenInNewTabCommandProperty, value);
+        }
 
 
 
@@ -198,6 +227,16 @@ namespace YiboFile.Controls
                 return;
             }
 
+            // Command Support
+            if (NavigateCommand != null &&
+                sender is TreeViewItem tvi &&
+                tvi.DataContext is YiboFile.Services.Navigation.NavigationItem item &&
+                !string.IsNullOrEmpty(item.Path))
+            {
+                if (NavigateCommand.CanExecute(item.Path))
+                    NavigateCommand.Execute(item.Path);
+            }
+
             // Handle Single Click - Navigate Immediately
             // This ensures maximum responsiveness.
             DrivesTreeViewItemClick?.Invoke(sender, e);
@@ -277,7 +316,14 @@ namespace YiboFile.Controls
             if (drivesTreeView != null)
             {
                 drivesTreeView.PreviewMouseDown += (s, e) => DrivesListBoxPreviewMouseDown?.Invoke(s, e);
-                drivesTreeView.SelectedItemChanged += (s, e) => DrivesListBoxSelectionChanged?.Invoke(s, null);
+                drivesTreeView.SelectedItemChanged += (s, e) =>
+                {
+                    if (NavigateCommand != null && s is TreeView tv && tv.SelectedItem is YiboFile.Services.Navigation.NavigationItem item && !string.IsNullOrEmpty(item.Path))
+                    {
+                        if (NavigateCommand.CanExecute(item.Path)) NavigateCommand.Execute(item.Path);
+                    }
+                    DrivesListBoxSelectionChanged?.Invoke(s, null);
+                };
                 drivesTreeView.PreviewMouseWheel += OnPreviewMouseWheel;
 
                 // Accordion Logic: When a root item is expanded, collapse others
@@ -287,8 +333,28 @@ namespace YiboFile.Controls
             var quickAccessListBox = QuickAccessListBoxControl;
             if (quickAccessListBox != null)
             {
-                quickAccessListBox.PreviewMouseDown += (s, e) => QuickAccessListBoxPreviewMouseDown?.Invoke(s, e);
-                quickAccessListBox.SelectionChanged += (s, e) => QuickAccessListBoxSelectionChanged?.Invoke(s, e);
+                quickAccessListBox.PreviewMouseDown += (s, e) =>
+                {
+                    if (e.ChangedButton == MouseButton.Middle && OpenInNewTabCommand != null)
+                    {
+                        var element = e.OriginalSource as FrameworkElement;
+                        var item = element?.DataContext as YiboFile.Services.Navigation.NavigationItem;
+                        if (item != null && !string.IsNullOrEmpty(item.Path))
+                        {
+                            OpenInNewTabCommand.Execute(item.Path);
+                            e.Handled = true;
+                        }
+                    }
+                    QuickAccessListBoxPreviewMouseDown?.Invoke(s, e);
+                };
+                quickAccessListBox.SelectionChanged += (s, e) =>
+                {
+                    if (NavigateCommand != null && s is ListBox lb && lb.SelectedItem is YiboFile.Services.Navigation.NavigationItem item && !string.IsNullOrEmpty(item.Path))
+                    {
+                        if (NavigateCommand.CanExecute(item.Path)) NavigateCommand.Execute(item.Path);
+                    }
+                    QuickAccessListBoxSelectionChanged?.Invoke(s, e);
+                };
                 quickAccessListBox.PreviewMouseWheel += OnPreviewMouseWheel;
             }
 
@@ -310,9 +376,29 @@ namespace YiboFile.Controls
             var librariesListBox = LibrariesListBoxControl;
             if (librariesListBox != null)
             {
-                librariesListBox.SelectionChanged += (s, e) => LibrariesListBoxSelectionChanged?.Invoke(s, e);
+                librariesListBox.SelectionChanged += (s, e) =>
+                {
+                    if (NavigateLibraryCommand != null && s is ListBox lb && lb.SelectedItem is YiboFile.Library lib)
+                    {
+                        if (NavigateLibraryCommand.CanExecute(lib)) NavigateLibraryCommand.Execute(lib);
+                    }
+                    LibrariesListBoxSelectionChanged?.Invoke(s, e);
+                };
                 librariesListBox.ContextMenuOpening += (s, e) => LibrariesListBoxContextMenuOpening?.Invoke(s, e);
-                librariesListBox.PreviewMouseDown += (s, e) => LibrariesListBoxPreviewMouseDown?.Invoke(s, e);
+                librariesListBox.PreviewMouseDown += (s, e) =>
+                {
+                    if (e.ChangedButton == MouseButton.Middle && OpenInNewTabCommand != null)
+                    {
+                        var element = e.OriginalSource as FrameworkElement;
+                        var item = element?.DataContext;
+                        if (item is YiboFile.Library lib)
+                        {
+                            OpenInNewTabCommand.Execute($"lib://{lib.Name}");
+                            e.Handled = true;
+                        }
+                    }
+                    LibrariesListBoxPreviewMouseDown?.Invoke(s, e);
+                };
             }
 
             // 库上下文菜单事件
@@ -409,6 +495,13 @@ namespace YiboFile.Controls
         {
             if (sender is ListBox listBox)
             {
+                // Command Support
+                if (NavigateCommand != null && listBox.SelectedItem is YiboFile.Services.Navigation.NavigationItem item && !string.IsNullOrEmpty(item.Path))
+                {
+                    if (NavigateCommand.CanExecute(item.Path))
+                        NavigateCommand.Execute(item.Path);
+                }
+
                 FavoriteListBoxSelectionChanged?.Invoke(this, listBox, e);
             }
         }

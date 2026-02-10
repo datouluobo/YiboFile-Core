@@ -65,4 +65,9 @@ namespace YiboFile.ViewModels.Messaging.Messages
     /// 请求向上导航
     /// </summary>
     public record NavigateUpMessage();
+
+    /// <summary>
+    /// 请求导航到指定库
+    /// </summary>
+    public record NavigateToLibraryMessage(YiboFile.Library Library, PaneId? Pane = null);
 }

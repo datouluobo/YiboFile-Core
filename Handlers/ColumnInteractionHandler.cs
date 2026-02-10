@@ -16,11 +16,13 @@ namespace YiboFile.Handlers
     /// 处理文件列表列的交互逻辑
     /// 包括列头点击、拖拽调整大小、右键菜单和列可见性管理
     /// </summary>
-    internal class ColumnInteractionHandler
+    public class ColumnInteractionHandler
     {
         private readonly MainWindow _mainWindow;
         private readonly ColumnService _columnService;
         private readonly FileBrowserControl _fileBrowser;
+        private DateTime _lastColumnClickTime = DateTime.MinValue;
+        private string _lastClickedColumn = null;
 
 
         public ColumnInteractionHandler(
@@ -38,6 +40,62 @@ namespace YiboFile.Handlers
         {
             EnsureHeaderContextMenuHook();
             AttachColumnPropertyObservers();
+            HookColumnHeaderClick();
+        }
+
+        private void HookColumnHeaderClick()
+        {
+            if (_fileBrowser?.FilesList != null)
+            {
+                // 注意：ListView.AddHandler 可以通过路由事件捕获内部 GridViewColumnHeader 的点击
+                _fileBrowser.FilesList.AddHandler(GridViewColumnHeader.ClickEvent, new RoutedEventHandler(OnColumnHeaderClick));
+            }
+        }
+
+        private void OnColumnHeaderClick(object sender, RoutedEventArgs e)
+        {
+            var header = e.OriginalSource as GridViewColumnHeader;
+            if (header == null) return;
+
+            // 防抖：忽略200ms内的重复点击
+            var now = DateTime.Now;
+            var columnTag = header.Tag?.ToString();
+            if ((now - _lastColumnClickTime).TotalMilliseconds < 200 && columnTag == _lastClickedColumn)
+            {
+                return;
+            }
+            _lastColumnClickTime = now;
+            _lastClickedColumn = columnTag;
+
+            // 获取当前文件列表（这里需要适配主/副面板）
+            // 策略：通过 IMessageBus 发送排序请求，或者直接操作绑定的 ViewModel
+            _columnService?.HandleColumnHeaderClick(
+                header,
+                GetCurrentFiles(),
+                (sortedFiles) =>
+                {
+                    UpdateFiles(sortedFiles);
+                },
+                _fileBrowser.FilesGrid
+            );
+        }
+
+        private List<YiboFile.Models.FileSystemItem> GetCurrentFiles()
+        {
+            // 通过 FileBrowser 绑定的 DataContext (PaneViewModel) 获取
+            if (_fileBrowser.DataContext is YiboFile.ViewModels.PaneViewModel vm)
+            {
+                return vm.FileList?.Files?.ToList();
+            }
+            return new List<YiboFile.Models.FileSystemItem>();
+        }
+
+        private void UpdateFiles(List<YiboFile.Models.FileSystemItem> files)
+        {
+            if (_fileBrowser.DataContext is YiboFile.ViewModels.PaneViewModel vm)
+            {
+                vm.FileList?.UpdateFiles(files);
+            }
         }
 
         private void AttachColumnPropertyObservers()

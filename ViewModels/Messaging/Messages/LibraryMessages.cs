@@ -1,4 +1,5 @@
 using YiboFile;
+using YiboFile.Models;
 
 namespace YiboFile.ViewModels.Messaging.Messages
 {
@@ -34,4 +35,9 @@ namespace YiboFile.ViewModels.Messaging.Messages
     /// 库列表发生变化（添加、删除或内容修改）
     /// </summary>
     public record LibraryListChangedMessage();
+
+    /// <summary>
+    /// 库文件列表已加载
+    /// </summary>
+    public record LibraryFilesLoadedMessage(Library Library, System.Collections.Generic.List<FileSystemItem> Files, bool IsEmpty, YiboFile.Services.Navigation.PaneId TargetPane);
 }

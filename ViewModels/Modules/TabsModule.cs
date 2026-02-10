@@ -60,10 +60,18 @@ namespace YiboFile.ViewModels.Modules
             // 订阅路径变更以更新当前标签页
             Subscribe<PathChangedMessage>(OnPathChanged);
 
-            // 订阅 TabService 的 ActiveTabChanged 事件以处理标签页点击切换
             if (_tabService != null)
             {
                 _tabService.ActiveTabChanged += OnActiveTabChanged;
+                _tabService.TabPinStateChanged += OnTabPinStateChanged;
+                _tabService.TabTitleChanged += OnTabTitleChanged;
+            }
+
+            if (_secondTabService != null)
+            {
+                _secondTabService.ActiveTabChanged += OnActiveTabChanged;
+                _secondTabService.TabPinStateChanged += OnTabPinStateChanged;
+                _secondTabService.TabTitleChanged += OnTabTitleChanged;
             }
         }
 
@@ -74,6 +82,10 @@ namespace YiboFile.ViewModels.Modules
             try
             {
                 _isSwitchingTab = true;
+
+                // 判断归属 Pane
+                var pane = (sender == _secondTabService) ? PaneId.Second : PaneId.Main;
+
                 if (tab.Type == TabType.Library && tab.Library != null)
                 {
                     Publish(new LibrarySelectedMessage(tab.Library));
@@ -83,11 +95,47 @@ namespace YiboFile.ViewModels.Modules
                     // 发布导航消息以更新文件列表
                     Publish(new NavigateToPathMessage(tab.Path, AddToHistory: false));
                 }
+
+                // 发布激活消息供 MainWindow 同步 UI 状态
+                Publish(new TabActivatedMessage(tab.Path ?? "", tab.Path ?? "", tab.Type == TabType.Library)
+                {
+                    // 这里可以扩展消息携带 Pane 信息，但 TabActivatedMessage 当前没带 Pane
+                    // 暂时保持现状，MainWindow 会根据 CurrentTab 自动判断
+                });
             }
             finally
             {
                 _isSwitchingTab = false;
             }
+        }
+
+        private void OnTabPinStateChanged(object sender, PathTab tab)
+        {
+            // 发布钉住状态变更消息
+            // Publish(new TabPinStateChangedMessage(tab.Path, tab.IsPinned));
+        }
+
+        private void OnTabTitleChanged(object sender, PathTab tab)
+        {
+            // 发布标题变更消息
+            // Publish(new TabTitleChangedMessage(tab.Path, tab.Title));
+        }
+
+        protected override void OnShutdown()
+        {
+            if (_tabService != null)
+            {
+                _tabService.ActiveTabChanged -= OnActiveTabChanged;
+                _tabService.TabPinStateChanged -= OnTabPinStateChanged;
+                _tabService.TabTitleChanged -= OnTabTitleChanged;
+            }
+            if (_secondTabService != null)
+            {
+                _secondTabService.ActiveTabChanged -= OnActiveTabChanged;
+                _secondTabService.TabPinStateChanged -= OnTabPinStateChanged;
+                _secondTabService.TabTitleChanged -= OnTabTitleChanged;
+            }
+            base.OnShutdown();
         }
 
         private bool _isSwitchingTab;
@@ -97,7 +145,7 @@ namespace YiboFile.ViewModels.Modules
         private void OnCreateTab(CreateTabMessage message)
         {
             // 使用模块内部逻辑创建标签页
-            CreateTab(message.Path, message.Activate);
+            CreateTab(message.Path, forceNewTab: true, activate: message.Activate, targetPane: message.Pane);
         }
 
         private void OnCloseTab(CloseTabMessage message)
@@ -107,10 +155,19 @@ namespace YiboFile.ViewModels.Modules
         }
 
         public ICommand SwitchTabCommand { get; private set; }
+        public ICommand OpenInNewTabCommand { get; private set; }
 
         private void InitializeCommands()
         {
             SwitchTabCommand = new RelayCommand<PathTab>(tab => SwitchToTab(tab));
+
+            OpenInNewTabCommand = new RelayCommand<string>(path =>
+            {
+                if (!string.IsNullOrEmpty(path))
+                {
+                    CreateTab(path, forceNewTab: true, activate: true);
+                }
+            });
         }
 
         private void OnSwitchToTab(SwitchToTabMessage message)
@@ -140,6 +197,15 @@ namespace YiboFile.ViewModels.Modules
         #endregion
 
         #region 公开方法
+
+        /// <summary>
+        /// 更新当前激活标签页的路径
+        /// </summary>
+        public void UpdateActiveTabPath(string path, PaneId pane = PaneId.Main)
+        {
+            var service = (pane == PaneId.Second) ? _secondTabService : _tabService;
+            service?.UpdateActiveTabPath(path);
+        }
 
         /// <summary>
         /// 创建新标签页

@@ -8,7 +8,7 @@ namespace YiboFile.Handlers
 {
     /// <summary>
     /// 鼠标事件处理器（轻量级 UI Handler - 合理保留）
-    /// 处理窗口级别的鼠标交互：标题栏拖拽、最大化、快速访问列表点击
+    /// 处理窗口级别的鼠标交互：标题栏拖拽、最大化、侧边栏列表点击
     /// 设计说明：职责单一，无业务逻辑，导航委托给 NavigationCoordinator，符合 MVVM
     /// </summary>
     public class MouseEventHandler
@@ -20,6 +20,7 @@ namespace YiboFile.Handlers
         private readonly NavigationCoordinator _navigationCoordinator;
         private readonly Action<Favorite> _handleFavoriteNavigation;
         private readonly Action<string> _handleQuickAccessNavigation;
+        private readonly Func<YiboFile.Services.Navigation.PaneId> _getActivePaneId;
 
         public MouseEventHandler(
             Action windowMaximizeClick,
@@ -27,7 +28,8 @@ namespace YiboFile.Handlers
             Func<ListBox> getQuickAccessListBox,
             NavigationCoordinator navigationCoordinator,
             Action<Favorite> handleFavoriteNavigation,
-            Action<string> handleQuickAccessNavigation)
+            Action<string> handleQuickAccessNavigation,
+            Func<YiboFile.Services.Navigation.PaneId> getActivePaneId)
         {
             _windowMaximizeClick = windowMaximizeClick ?? throw new ArgumentNullException(nameof(windowMaximizeClick));
             _windowDragMove = windowDragMove ?? throw new ArgumentNullException(nameof(windowDragMove));
@@ -35,6 +37,7 @@ namespace YiboFile.Handlers
             _navigationCoordinator = navigationCoordinator ?? throw new ArgumentNullException(nameof(navigationCoordinator));
             _handleFavoriteNavigation = handleFavoriteNavigation ?? throw new ArgumentNullException(nameof(handleFavoriteNavigation));
             _handleQuickAccessNavigation = handleQuickAccessNavigation ?? throw new ArgumentNullException(nameof(handleQuickAccessNavigation));
+            _getActivePaneId = getActivePaneId ?? throw new ArgumentNullException(nameof(getActivePaneId));
         }
 
         /// <summary>
@@ -70,20 +73,100 @@ namespace YiboFile.Handlers
             var clickType = NavigationCoordinator.GetClickType(e);
             if (clickType == ClickType.LeftClick) return; // 左键由SelectionChanged处理
 
+            var path = ExtractPathFromListBoxItem(listBox, e.GetPosition(listBox));
+            if (!string.IsNullOrEmpty(path))
+            {
+                e.Handled = true;
+                _navigationCoordinator.HandlePathNavigation(path, NavigationSource.QuickAccess, clickType, pane: _getActivePaneId());
+            }
+        }
+
+        /// <summary>
+        /// 库列表鼠标点击处理
+        /// </summary>
+        public void LibrariesListBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            var listBox = sender as ListBox;
+            if (listBox == null) return;
+
+            var clickType = NavigationCoordinator.GetClickType(e);
+            if (clickType == ClickType.LeftClick) return; // 左键由SelectionChanged处理
+
             var hitResult = System.Windows.Media.VisualTreeHelper.HitTest(listBox, e.GetPosition(listBox));
             if (hitResult == null) return;
 
             DependencyObject current = hitResult.VisualHit;
             while (current != null && current != listBox)
             {
-                if (current is ListBoxItem item && item.DataContext is string path)
+                if (current is ListBoxItem item && item.DataContext is YiboFile.Library library)
                 {
                     e.Handled = true;
-                    _handleQuickAccessNavigation(path);
+                    _navigationCoordinator.HandleLibraryNavigation(library, clickType, _getActivePaneId());
                     return;
                 }
                 current = System.Windows.Media.VisualTreeHelper.GetParent(current);
             }
+        }
+
+        /// <summary>
+        /// 收藏列表点击处理
+        /// </summary>
+        public void HandleFavoriteListBoxPreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            var listBox = sender as ListBox;
+            if (listBox == null) return;
+
+            var clickType = NavigationCoordinator.GetClickType(e);
+            if (clickType == ClickType.LeftClick) return; // 左键由SelectionChanged处理
+
+            var favorite = ExtractFavoriteFromListBoxItem(listBox, e.GetPosition(listBox));
+            if (favorite != null)
+            {
+                e.Handled = true;
+                _navigationCoordinator.HandleFavoriteNavigation(favorite, clickType, _getActivePaneId());
+            }
+        }
+
+        private string ExtractPathFromListBoxItem(ListBox listBox, System.Windows.Point position)
+        {
+            var hitResult = System.Windows.Media.VisualTreeHelper.HitTest(listBox, position);
+            if (hitResult == null) return null;
+
+            DependencyObject current = hitResult.VisualHit;
+            while (current != null && current != listBox)
+            {
+                if (current is ListBoxItem item && item.DataContext != null)
+                {
+                    var pathProperty = item.DataContext.GetType().GetProperty("Path");
+                    if (pathProperty != null)
+                    {
+                        return pathProperty.GetValue(item.DataContext) as string;
+                    }
+                }
+                current = System.Windows.Media.VisualTreeHelper.GetParent(current);
+            }
+            return null;
+        }
+
+        private YiboFile.Favorite ExtractFavoriteFromListBoxItem(ListBox listBox, System.Windows.Point position)
+        {
+            var hitResult = System.Windows.Media.VisualTreeHelper.HitTest(listBox, position);
+            if (hitResult == null) return null;
+
+            DependencyObject current = hitResult.VisualHit;
+            while (current != null && current != listBox)
+            {
+                if (current is ListBoxItem item && item.DataContext != null)
+                {
+                    var favoriteProperty = item.DataContext.GetType().GetProperty("Favorite");
+                    if (favoriteProperty != null)
+                    {
+                        return favoriteProperty.GetValue(item.DataContext) as YiboFile.Favorite;
+                    }
+                }
+                current = System.Windows.Media.VisualTreeHelper.GetParent(current);
+            }
+            return null;
         }
     }
 }

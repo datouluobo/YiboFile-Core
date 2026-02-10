@@ -48,6 +48,7 @@ namespace YiboFile.ViewModels.Modules
         public ICommand LoadLibrariesCommand { get; private set; }
         public ICommand AddLibraryCommand { get; private set; }
         public ICommand DeleteLibraryCommand { get; private set; }
+        public ICommand OpenLibraryCommand { get; private set; }
 
         public LibraryModule(IMessageBus messageBus, LibraryService libraryService)
             : base(messageBus)
@@ -56,8 +57,12 @@ namespace YiboFile.ViewModels.Modules
 
             InitializeCommands();
 
-            // 监听库服务事件
-            _libraryService.LibrariesLoaded += OnLibrariesLoadedFromService;
+            if (_libraryService != null)
+            {
+                _libraryService.LibrariesLoaded += OnLibrariesLoadedFromService;
+                _libraryService.LibraryFilesLoaded += OnLibraryFilesLoadedFromService;
+                _libraryService.LibraryHighlightRequested += OnLibraryHighlightRequestedFromService;
+            }
         }
 
         private void InitializeCommands()
@@ -74,6 +79,15 @@ namespace YiboFile.ViewModels.Modules
             {
                 if (lib != null)
                     _libraryService.DeleteLibrary(lib.Id, lib.Name);
+            });
+
+            OpenLibraryCommand = new RelayCommand<Library>(lib =>
+            {
+                if (lib != null)
+                {
+                    SelectedLibrary = lib;
+                    Publish(new NavigateToLibraryMessage(lib));
+                }
             });
         }
 
@@ -167,9 +181,26 @@ namespace YiboFile.ViewModels.Modules
             Publish(new LibrarySelectedMessage(library));
         }
 
+        private void OnLibraryFilesLoadedFromService(object sender, LibraryFilesLoadedEventArgs e)
+        {
+            Publish(new LibraryFilesLoadedMessage(e.Library, e.Files, e.IsEmpty, e.TargetPane));
+        }
+
+        private void OnLibraryHighlightRequestedFromService(object sender, Library library)
+        {
+            // 这里可以复用 LibrarySelectedMessage 或者定义特定的 HighlightLibraryMessage
+            // 为了最小化变更，我们先发布 LibrarySelectedMessage，如果不合适再区分
+            Publish(new LibrarySelectedMessage(library));
+        }
+
         protected override void OnShutdown()
         {
-            _libraryService.LibrariesLoaded -= OnLibrariesLoadedFromService;
+            if (_libraryService != null)
+            {
+                _libraryService.LibrariesLoaded -= OnLibrariesLoadedFromService;
+                _libraryService.LibraryFilesLoaded -= OnLibraryFilesLoadedFromService;
+                _libraryService.LibraryHighlightRequested -= OnLibraryHighlightRequestedFromService;
+            }
             base.OnShutdown();
         }
     }

@@ -20,6 +20,7 @@ using YiboFile.Services.UI;
 using YiboFile.Services.ColumnManagement;
 using YiboFile.Services.Favorite;
 using YiboFile.Services.QuickAccess;
+using YiboFile.Handlers;
 
 namespace YiboFile.Services.Orchestration
 {
@@ -53,6 +54,16 @@ namespace YiboFile.Services.Orchestration
         private FolderSizeCalculationService _folderSizeCalculationService;
         private ITagService _tagService;
         private Archive.ArchiveService _archiveService;
+        private Services.FileInfo.FileInfoService _fileInfoService;
+        private Services.FileInfo.FileInfoService _secondFileInfoService;
+        private QuickAccess.QuickAccessService _quickAccessService;
+        private FileListService _secondFileListService;
+        private FileSystemWatcherService _fileSystemWatcherService;
+        private Services.ColumnManagement.ColumnService _columnService;
+        private Services.UIHelper.IUIHelperService _uiHelperService;
+
+        // Handlers
+        private KeyboardEventHandler _keyboardEventHandler;
 
         // ViewModel 和模块引用
         private MainWindowViewModel _viewModel;
@@ -66,10 +77,113 @@ namespace YiboFile.Services.Orchestration
         private LibraryModule _libraryModule;
         private SearchModule _searchModule;
         private FavoritesModule _favoritesModule;
+
+        private NavigationModeService _navigationModeService;
+        private WindowStateManager _windowStateManager;
+
+        // Handlers
+        public Handlers.WindowLifecycleHandler LifecycleHandler { get; private set; }
+        public Services.Settings.SettingsOverlayController SettingsController { get; private set; }
+        public Handlers.ColumnInteractionHandler ColumnInteractionHandler { get; private set; }
+        public Handlers.ColumnInteractionHandler SecondColumnInteractionHandler { get; private set; }
+        public Handlers.FileListEventHandler MainFileListHandler { get; private set; }
+        public Handlers.FileListEventHandler SecondFileListHandler { get; private set; }
+        public Handlers.FileOperationHandler FileOperationHandler { get; private set; }
+        public Services.FileOperations.FileOperationService FileOperationService => _fileOperationService;
+        public Services.Navigation.NavigationModeService NavigationModeService => _navigationModeService;
+        public Services.Navigation.NavigationCoordinator NavigationCoordinator => _navigationCoordinator;
+        public NavigationService NavigationService => _navigationService;
+        public TabService TabService => _tabService;
+        public TabService SecondTabService => _secondTabService;
+        public LibraryService LibraryService => _libraryService;
+        public Favorite.FavoriteService FavoriteService => _favoriteService;
+        public QuickAccess.QuickAccessService QuickAccessService => _quickAccessService;
+        public FileListService FileListService => _fileListService;
+        public FileListService SecondFileListService => _secondFileListService;
+        public SearchService SearchService => _searchService;
+        public SearchCacheService SearchCacheService => _searchCacheService;
+        public FileSystemWatcherService FileSystemWatcherService => _fileSystemWatcherService;
+        public Services.WindowStateManager WindowStateManager => _windowStateManager;
+        public KeyboardEventHandler KeyboardEventHandler => _keyboardEventHandler;
+        public Services.ColumnManagement.ColumnService ColumnService => _columnService;
+        public Services.FileInfo.FileInfoService SecondFileInfoService => _secondFileInfoService;
+        public Services.UIHelper.IUIHelperService UIHelperService => _uiHelperService;
+
+        // 服务桥接（用于将 Service 事件转换为 MessageBus 消息）
+        private void SetupServiceMessageBridges(MainWindow window)
+        {
+            // 1. NavigationService -> MessageBus
+            if (_navigationService != null)
+            {
+                _navigationService.NavigateRequested += (s, path) =>
+                {
+                    _messageBus.Publish(new NavigationCompleteMessage(path, PaneId.Main, Services.Navigation.NavigationSource.AddressBar));
+                };
+            }
+
+            // 2. FileListService -> MessageBus
+            Action<object, YiboFile.Models.FileSystemItem> onFolderSizeCalculated = (s, item) =>
+            {
+                var pane = (s == _secondFileListService) ? PaneId.Second : PaneId.Main;
+                _messageBus.Publish(new FolderSizeCalculatedMessage(item.Path, item.SizeBytes, item.Size));
+            };
+
+            Action<object, System.Collections.Generic.List<YiboFile.Models.FileSystemItem>> onMetadataEnriched = (s, items) =>
+            {
+                var pane = (s == _secondFileListService) ? PaneId.Second : PaneId.Main;
+                // 这里可以发布汇总消息
+            };
+
+            if (_fileListService != null)
+            {
+                _fileListService.FolderSizeCalculated += (s, item) => onFolderSizeCalculated(s, item);
+                _fileListService.MetadataEnriched += (s, items) => onMetadataEnriched(s, items);
+            }
+            if (_secondFileListService != null)
+            {
+                _secondFileListService.FolderSizeCalculated += (s, item) => onFolderSizeCalculated(s, item);
+                _secondFileListService.MetadataEnriched += (s, items) => onMetadataEnriched(s, items);
+            }
+
+            // 3. FileSystemWatcherService -> MessageBus
+            if (_fileSystemWatcherService != null)
+            {
+                _fileSystemWatcherService.FileSystemChanged += (s, e) =>
+                {
+                    _messageBus.Publish(new FileSystemChangedMessage(e.FullPath, e.ChangeType.ToString()));
+                };
+                _fileSystemWatcherService.RefreshRequested += (s, e) =>
+                {
+                    _messageBus.Publish(new ViewModels.Messaging.Messages.RefreshFileListMessage());
+                };
+            }
+
+            // 4. LibraryService -> MessageBus (模块已部分桥接，此处补充汇总)
+            if (_libraryService != null)
+            {
+                // LibraryModule 已经处理了 LibraryFilesLoaded 和 LibrariesLoaded
+            }
+
+            // 5. FavoriteService & QuickAccessService
+            if (_favoriteService != null)
+            {
+                _favoriteService.NavigateRequested += (s, path) =>
+                {
+                    _messageBus.Publish(new NavigateToPathMessage(path));
+                };
+
+                _favoriteService.CreateTabRequested += (s, path) =>
+                {
+                    _messageBus.Publish(new CreateTabMessage(path));
+                };
+
+                _favoriteService.FileOpenRequested += (s, path) =>
+                {
+                    _messageBus.Publish(new OpenFileRequestMessage(path));
+                };
+            }
+        }
         private Services.UI.EventBridgeService _eventBridgeService;
-        private FileListService _secondFileListService;
-        private FileSystemWatcherService _fileSystemWatcherService;
-        private QuickAccessService _quickAccessService;
 
         public WindowOrchestrator(IServiceProvider serviceProvider, IMessageBus messageBus)
         {
@@ -93,6 +207,7 @@ namespace YiboFile.Services.Orchestration
 
                 // 迁移消息桥接逻辑 (从 MainWindow.Initialization.cs 迁移)
                 SetupMessageBridges(window);
+                SetupServiceMessageBridges(window); // 新增服务桥接
 
                 // 部分窗口交互需要在 UI 渲染前准备，部分需要异步
                 await ApplyInitialStateAsync(window);
@@ -122,36 +237,48 @@ namespace YiboFile.Services.Orchestration
             _fileSystemWatcherService = _serviceProvider.GetRequiredService<FileSystemWatcherService>();
             _quickAccessService = _serviceProvider.GetRequiredService<QuickAccessService>();
             _secondFileListService = _serviceProvider.GetRequiredService<FileListService>();
+            _columnService = _serviceProvider.GetRequiredService<Services.ColumnManagement.ColumnService>();
+
+            if (window.SecondFileBrowser != null)
+            {
+                _secondFileInfoService = new Services.FileInfo.FileInfoService(
+                    window.SecondFileBrowser,
+                    _secondFileListService,
+                    _navigationCoordinator,
+                    _tagService
+                );
+            }
 
             // 为两个面板创建独立的服务实例 (Transient from DI)
             _tabService = _serviceProvider.GetRequiredService<TabService>();
             _secondTabService = _serviceProvider.GetRequiredService<TabService>();
 
             // 初始化协调器关系
+            // 初始化协调器关系
             _navigationCoordinator.Initialize(
                 _tabService,
                 _secondTabService,
-                window._navigationService, // 暂时保留 MainWindow 的引用
+                _navigationService, // 使用本地通过 DI 获取的服务实例，因为 window._navigationService 此时尚未赋值
                 _libraryService,
                 (paneId) => paneId == PaneId.Main ? _viewModel?.PrimaryPane : _viewModel?.SecondaryPane);
 
             // 初始化列管理服务
             var columnService = _serviceProvider.GetRequiredService<ColumnService>();
             columnService.Initialize(() => window.GetCurrentModeKey());
-            window._columnService = columnService; // 供遗留代码使用
+            // window._columnService = columnService; // 供遗留代码使用 (Removed)
 
             // ========== MainWindow 内部服务初始化 (从 InitializeServices 迁移) ==========
 
             // 1. 设置 NavigationService 并绑定 UIHelper
-            window._navigationService = _navigationService;
+            // window._navigationService = _navigationService; // Removed
             // Assuming Helpers namespace is imported or accessible via YiboFile.Helpers
-            window._navigationService.UIHelper = new YiboFile.Helpers.NavigationUIHelper(window);
+            _navigationService.UIHelper = new YiboFile.Helpers.NavigationUIHelper(window);
 
             // 2. 初始化 UIHelperService
-            window._uiHelperService = new Services.UIHelper.UIHelperService(window.FileBrowser, window.Dispatcher);
+            // window._uiHelperService = new Services.UIHelper.UIHelperService(window.FileBrowser, window.Dispatcher); // Removed
 
-            // 3. 初始化 FileInfoService
-            window._fileInfoService = new Services.FileInfo.FileInfoService(
+            // 3. 初始化 FileInfoService (本地管理，不再挂载到 window)
+            _fileInfoService = new Services.FileInfo.FileInfoService(
                 window.FileBrowser,
                 _fileListService,
                 _navigationCoordinator,
@@ -159,16 +286,16 @@ namespace YiboFile.Services.Orchestration
 
             if (window.SecondFileBrowser != null)
             {
-                window._secondFileInfoService = new Services.FileInfo.FileInfoService(
+                _secondFileInfoService = new Services.FileInfo.FileInfoService(
                     window.SecondFileBrowser,
                     _fileListService,
                     _navigationCoordinator,
                     _tagService);
             }
 
-            // 4. 绑定 TabService UI 上下文 (必需在 TabService 初始化之后)
-            window.AttachTabServiceUiContext();
-            window.AttachSecondTabServiceUiContext();
+            // 4. 绑定 TabService UI 上下文 (已废弃并迁移至消息驱动)
+            // window.AttachTabServiceUiContext();
+            // AttachSecondTabServiceUiContext is now handled by LayoutEventHandler or upon SetDualListMode
         }
 
         public void InitializeMvvmModules(MainWindow window)
@@ -180,17 +307,12 @@ namespace YiboFile.Services.Orchestration
             var navAdapter = new NavigationModeUIAdapter(window);
 
             // 创建 NavigationModeService
-            var navModeService = window._navigationModeService;
-            if (navModeService == null)
-            {
-                // 如果 Initializer 未创建，则在此创建
-                navModeService = new Services.Navigation.NavigationModeService(
+            _navigationModeService = new Services.Navigation.NavigationModeService(
                     navAdapter,
-                    window._navigationService,
+                    _navigationService,
                     _tabService,
                     ConfigurationService.Instance);
-                window._navigationModeService = navModeService;
-            }
+            // window._navigationModeService = navModeService; // Removed
 
             // 创建 RightPanelViewModel
             var rightPanelVM = new RightPanelViewModel(_messageBus, ConfigurationService.Instance, _fileListService);
@@ -344,33 +466,12 @@ namespace YiboFile.Services.Orchestration
 
             window._viewModel = _viewModel;
             window._messageBus = _messageBus;
-            window._navigationModule = _navigationModule;
-            window._tabsModule = _tabsModule;
-            window._fileListModule = _fileListModule;
-            window._layoutModule = _layoutModule;
-            window._fileOperationModule = _fileOperationModule;
-            window._notesModule = _notesModule;
-            window._tagsModule = _tagsModule;
-            window._favoritesModule = _favoritesModule;
-            window._libraryModule = _libraryModule;
-            window._searchModule = _searchModule;
+            window.InitializeMessageSubscriptions(); // 初始化 MainWindow 的消息订阅
 
-            // 同步服务引用
+            // 同步服务引用 (核心且必要的)
             window._navigationCoordinator = _navigationCoordinator;
-            window._tabService = _tabService;
-            window._secondTabService = _secondTabService;
-            window._libraryService = _libraryService;
-            window._favoriteService = _favoriteService;
-            window._fileListService = _fileListService;
-            window._folderSizeCalculationService = _folderSizeCalculationService;
-            window._tagService = _tagService;
-            window._searchService = _searchService;
-            window._searchCacheService = _searchCacheService;
-            window._fileOperationService = _fileOperationService;
-            window._archiveService = _archiveService;
-            window._fileSystemWatcherService = _fileSystemWatcherService;
-            window._quickAccessService = _quickAccessService;
-            window._secondFileListService = _secondFileListService;
+            // window._tabService = _tabService; // Removed: use ViewModel
+            // ... (Removing other window fields)
         }
 
         public void InitializeHandlers(MainWindow window)
@@ -378,24 +479,46 @@ namespace YiboFile.Services.Orchestration
             // 初始化事件桥接服务
             _eventBridgeService = new Services.UI.EventBridgeService(window, _messageBus);
 
+            // LayoutEventHandler (Initialize first to set up UI state like Dual List)
+            var layoutHandler = new Handlers.LayoutEventHandler(window, _messageBus, _layoutModule);
+            layoutHandler.Initialize();
+            window._layoutEventHandler = layoutHandler;
+
+            // Initialize Settings Controller here (migrated from MainWindowInitializer)
+            var settingsOverlay = window.FindName("SettingsOverlay") as System.Windows.Controls.Grid;
+            var settingsPanel = window.FindName("SettingsPanel") as Controls.SettingsPanelControl;
+            var rightPanel = window.FindName("RightPanel") as System.Windows.UIElement;
+            if (settingsOverlay != null && settingsPanel != null)
+            {
+                this.SettingsController = new Services.Settings.SettingsOverlayController(
+                    settingsOverlay,
+                    settingsPanel,
+                    rightPanel,
+                    (cfg) => { /* Auto-handled */ }
+                );
+            }
+
             // ========== Handler 初始化 (从 MainWindow.Handlers.cs 迁移) ==========
 
             // 获取必要的服务
             var undoService = _serviceProvider.GetService<UndoService>();
             var errorService = _serviceProvider.GetService<ErrorService>();
-            var columnService = _serviceProvider.GetRequiredService<ColumnService>();
+            // var columnService = _serviceProvider.GetRequiredService<ColumnService>(); // Already initialized in InitializeServices
 
             // 手动实例化 WindowStateManager (因为它依赖 NavigationModeService，而后者未在 DI 中注册)
+            // Use class field
             var configUIHelper = new Services.UI.Adapters.ConfigUIAdapter(window);
-            var windowStateManager = new WindowStateManager(
+            _uiHelperService = new Services.UIHelper.UIHelperService(window.FileBrowser, window.Dispatcher);
+
+            _windowStateManager = new WindowStateManager(
                 configUIHelper,
                 _tabService,
-                window._navigationService,
-                window._navigationModeService,
+                _navigationService,
+                _navigationModeService,
                 _secondTabService,
                 _serviceProvider.GetService<YiboFile.Services.Data.Repositories.ILibraryRepository>()
             );
-            window._windowStateManager = windowStateManager;
+            // window._windowStateManager = windowStateManager; // Removed
 
             // 1. KeyboardEventHandler
             var keyboardHandler = new Handlers.KeyboardEventHandler(
@@ -425,9 +548,10 @@ namespace YiboFile.Services.Orchestration
                 isDualListMode: () => _layoutModule?.IsDualListMode ?? false,
                 switchDualPaneFocus: () => _layoutModule?.SwitchFocusedPane()
             );
+            _keyboardEventHandler = keyboardHandler;
 
             // 2. ColumnInteractionHandler (主面板)
-            var mainColumnHandler = new Handlers.ColumnInteractionHandler(window, window.FileBrowser, columnService);
+            var mainColumnHandler = new Handlers.ColumnInteractionHandler(window, window.FileBrowser, _columnService);
             mainColumnHandler.Initialize();
             mainColumnHandler.HookHeaderThumbs();
 
@@ -435,7 +559,7 @@ namespace YiboFile.Services.Orchestration
             Handlers.ColumnInteractionHandler secondColumnHandler = null;
             if (window.SecondFileBrowser != null)
             {
-                secondColumnHandler = new Handlers.ColumnInteractionHandler(window, window.SecondFileBrowser, columnService);
+                secondColumnHandler = new Handlers.ColumnInteractionHandler(window, window.SecondFileBrowser, _columnService);
                 secondColumnHandler.Initialize();
                 secondColumnHandler.HookHeaderThumbs();
             }
@@ -447,17 +571,36 @@ namespace YiboFile.Services.Orchestration
                 () => window.NavigationPanelControl?.QuickAccessListBox,
                 _navigationCoordinator,
                 fav => _navigationCoordinator.HandleFavoriteNavigation(fav, ClickType.LeftClick, window.GetActivePaneId()),
-                path => _navigationCoordinator.HandlePathNavigation(path, NavigationSource.QuickAccess, ClickType.LeftClick, pane: window.GetActivePaneId())
+                path => _navigationCoordinator.HandlePathNavigation(path, NavigationSource.QuickAccess, ClickType.LeftClick, pane: window.GetActivePaneId()),
+                () => window.GetActivePaneId()
             );
 
+            // Hook listbox events to decentralized handler
+            if (window.NavigationPanelControl != null)
+            {
+                if (window.NavigationPanelControl.LibrariesListBoxControl != null)
+                    window.NavigationPanelControl.LibrariesListBoxControl.PreviewMouseDown += mouseHandler.LibrariesListBox_PreviewMouseDown;
+
+                if (window.NavigationPanelControl.QuickAccessListBoxControl != null)
+                {
+                    // Existing hook might be in InitializeEvents, we will move it here or ensure no double-hook
+                    window.NavigationPanelControl.QuickAccessListBoxControl.PreviewMouseDown += mouseHandler.QuickAccessListBox_PreviewMouseDown;
+                }
+
+                // Favorite lists are more dynamic, usually OnFavoriteListBoxLoaded handles them.
+                // But we can hook the ones that are already there.
+            }
+
             // 5. WindowLifecycleHandler
-            var lifecycleHandler = new Handlers.WindowLifecycleHandler(window, windowStateManager, columnService);
+            this.LifecycleHandler = new Handlers.WindowLifecycleHandler(window, _windowStateManager, _columnService);
+            this.ColumnInteractionHandler = mainColumnHandler;
+            this.SecondColumnInteractionHandler = secondColumnHandler;
 
             // 6. FileOperationHandler
-            var fileOpHandler = new Handlers.FileOperationHandler(window, undoService, _fileOperationService);
+            this.FileOperationHandler = new Handlers.FileOperationHandler(window, undoService, _fileOperationService);
 
             // 7. FileListEventHandler (主面板)
-            var mainFileListHandler = new Handlers.FileListEventHandler(
+            this.MainFileListHandler = new Handlers.FileListEventHandler(
                 window.FileBrowser,
                 _navigationCoordinator,
                 () => _viewModel?.PrimaryPane?.NavigationMode == "Library",
@@ -469,13 +612,12 @@ namespace YiboFile.Services.Orchestration
                 () => window.ShowSelectedFileProperties(),
                 (path, force, activate) => window.CreateTab(path, force, activate, PaneId.Main)
             );
-            mainFileListHandler.Initialize(window.FileBrowser.FilesList);
+            this.MainFileListHandler.Initialize(window.FileBrowser.FilesList);
 
             // 8. FileListEventHandler (副面板)
-            Handlers.FileListEventHandler secondFileListHandler = null;
             if (window.SecondFileBrowser != null)
             {
-                secondFileListHandler = new Handlers.FileListEventHandler(
+                this.SecondFileListHandler = new Handlers.FileListEventHandler(
                     window.SecondFileBrowser,
                     _navigationCoordinator,
                     () => _viewModel?.SecondaryPane?.NavigationMode == "Library",
@@ -487,18 +629,10 @@ namespace YiboFile.Services.Orchestration
                     () => window.ShowSelectedFileProperties(),
                     (path, force, activate) => window.CreateTab(path, force, activate, PaneId.Second)
                 );
-                secondFileListHandler.Initialize(window.SecondFileBrowser.FilesList);
+                this.SecondFileListHandler.Initialize(window.SecondFileBrowser.FilesList);
             }
 
-            // 存储 Handler 引用到 window (用于生命周期管理)
-            window._keyboardEventHandler = keyboardHandler;
-            window._columnInteractionHandler = mainColumnHandler;
-            window._secondColumnInteractionHandler = secondColumnHandler;
-            window._mouseEventHandler = mouseHandler;
-            window._windowLifecycleHandler = lifecycleHandler;
-            window._fileOperationHandler = fileOpHandler;
-            window._mainFileListHandler = mainFileListHandler;
-            window._secondFileListHandler = secondFileListHandler;
+            // 处理器已通过属性公开，无需再次挂载到 window 字段
 
             // 订阅 TabManager 的关闭覆盖层请求
             if (window.TabManager != null)
@@ -512,6 +646,9 @@ namespace YiboFile.Services.Orchestration
 
             // 初始化拖放
             window.InitializeDragDrop();
+
+            // 初始化布局模式 - handled by LayoutEventHandler.Initialize()
+            // window.InitializeLayoutMode();
 
             // AboutPanel 事件订阅
             if (window.AboutPanel != null)
@@ -539,9 +676,9 @@ namespace YiboFile.Services.Orchestration
                 window.Dispatcher.Invoke(() =>
                 {
                     if (msg.Pane == PaneId.Second)
-                        window._secondFileInfoService?.ShowFileInfo(msg.Item);
+                        _secondFileInfoService?.ShowFileInfo(msg.Item);
                     else
-                        window._fileInfoService?.ShowFileInfo(msg.Item);
+                        _fileInfoService?.ShowFileInfo(msg.Item);
                 });
             });
 
@@ -550,9 +687,9 @@ namespace YiboFile.Services.Orchestration
                 window.Dispatcher.Invoke(() =>
                 {
                     if (msg.Pane == PaneId.Second)
-                        window._secondFileInfoService?.ShowLibraryInfo(msg.Library);
+                        _secondFileInfoService?.ShowLibraryInfo(msg.Library);
                     else
-                        window._fileInfoService?.ShowLibraryInfo(msg.Library);
+                        _fileInfoService?.ShowLibraryInfo(msg.Library);
                 });
             });
 
@@ -579,31 +716,6 @@ namespace YiboFile.Services.Orchestration
                 });
             });
 
-            // 3. 布局变更桥接 (从 MainWindow.LayoutMode.cs 迁移)
-            _messageBus.Subscribe<LayoutModeChangedMessage>(m =>
-            {
-                window.Dispatcher.Invoke(() => window.UpdateTabManagerMargin());
-            });
-
-            _messageBus.Subscribe<DualListModeChangedMessage>(m =>
-            {
-                window.Dispatcher.Invoke(() => window.SetDualListMode(m.IsEnabled));
-            });
-
-            _messageBus.Subscribe<FocusedPaneChangedMessage>(m =>
-            {
-                window.Dispatcher.Invoke(() =>
-                {
-                    window.UpdateFocusBorders();
-                    if (m.IsSecondPaneFocused) window.SecondFileBrowser?.FilesList?.Focus();
-                    else window.FileBrowser?.FilesList?.Focus();
-                });
-            });
-
-            _messageBus.Subscribe<NavigationModeChangedMessage>(m =>
-            {
-                window.Dispatcher.Invoke(() => window.SwitchNavigationMode(m.Mode));
-            });
 
             // 4. 打开文件请求
             _messageBus.Subscribe<OpenFileRequestMessage>(msg =>
@@ -635,7 +747,6 @@ namespace YiboFile.Services.Orchestration
                 window.LoadCurrentDirectory,
                 path => window.CreateTab(path, true)
             );
-            window._previewService = _previewService;
 
             // 6. 设置文件操作上下文提供者
             _fileOperationService.SetContextProvider(() => window.GetActiveFileOperationContext());
@@ -668,20 +779,19 @@ namespace YiboFile.Services.Orchestration
 
         public async Task ApplyInitialStateAsync(MainWindow window)
         {
-            // 模式迁移：将原来的 MainWindowInitializer 逻辑完全集成
             var config = ConfigurationService.Instance.Config;
 
-            // 1. 初始化窗口状态管理器 (WindowStateManager)
-            // 1. 初始化窗口状态管理器 (WindowStateManager)
-            // 已在 InitializeHandlers 中手动创建并赋值
-            var windowStateManager = window._windowStateManager;
+            // 0. Update configs for services
+            if (config != null)
+            {
+                _tabService?.UpdateConfig(config);
+                _secondTabService?.UpdateConfig(config);
+            }
 
+            // 1. 恢复窗口和布局状态
+            _windowStateManager?.RestoreAllState();
 
-            // 2. 恢复窗口和布局状态
-            windowStateManager?.RestoreAllState();
-
-            // 3. 加载初始数据
-            // 加载库列表
+            // 2. 加载初始数据
             _libraryService?.LoadLibraries();
 
             // 加载快速访问列表 (通过反射或直接获取服务)
@@ -697,16 +807,16 @@ namespace YiboFile.Services.Orchestration
             // 4. 恢复最后的状态 (导航模式等)
             if (!string.IsNullOrEmpty(config.LastNavigationMode))
             {
-                window._navigationModeService?.SwitchNavigationMode(config.LastNavigationMode, skipRefresh: true);
+                _navigationModeService?.SwitchNavigationMode(config.LastNavigationMode, skipRefresh: true);
             }
 
             // 恢复标签页
-            windowStateManager?.RestoreTabsState();
+            _windowStateManager?.RestoreTabsState();
 
-            // 5. 强制修正布局 (解决 Star/Pixel 转换问题)
+            // 5. 强制修正布局
             window.Dispatcher.Invoke(() =>
             {
-                window._windowLifecycleHandler?.AdjustColumnWidths();
+                this.LifecycleHandler?.AdjustColumnWidths();
             }, System.Windows.Threading.DispatcherPriority.Loaded);
 
             // 6. 启动后台索引

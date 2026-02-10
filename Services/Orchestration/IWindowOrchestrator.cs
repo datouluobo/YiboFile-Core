@@ -1,4 +1,17 @@
 using System.Threading.Tasks;
+using YiboFile.Handlers;
+using YiboFile.Services.Settings;
+using YiboFile.Services.FileOperations;
+using YiboFile.Services.Navigation;
+using YiboFile.Services.Tabs;
+using YiboFile.Services.Favorite;
+using YiboFile.Services.QuickAccess;
+using YiboFile.Services.FileList;
+using YiboFile.Services.Search;
+using YiboFile.Services.Core;
+using YiboFile.Services.FileInfo; // For FileInfoService
+using YiboFile.Services.ColumnManagement; // For ColumnService
+using YiboFile.Services.UIHelper; // For IUIHelperService
 
 namespace YiboFile.Services.Orchestration
 {
@@ -32,6 +45,38 @@ namespace YiboFile.Services.Orchestration
         /// <summary>
         /// 第四阶段：状态恢复与初始数据加载
         /// </summary>
+        /// <param name="window">关联的 MainWindow 实例</param>
         Task ApplyInitialStateAsync(MainWindow window);
+
+        #region Handler & Controller Access
+
+        WindowLifecycleHandler LifecycleHandler { get; }
+        SettingsOverlayController SettingsController { get; }
+        ColumnInteractionHandler ColumnInteractionHandler { get; }
+        ColumnInteractionHandler SecondColumnInteractionHandler { get; }
+        FileListEventHandler MainFileListHandler { get; }
+        FileListEventHandler SecondFileListHandler { get; }
+        FileOperationHandler FileOperationHandler { get; }
+        FileOperationService FileOperationService { get; }
+        NavigationModeService NavigationModeService { get; }
+        NavigationCoordinator NavigationCoordinator { get; }
+        NavigationService NavigationService { get; }
+        TabService TabService { get; }
+        TabService SecondTabService { get; }
+        Services.FileInfo.FileInfoService SecondFileInfoService { get; } // Requires Services.FileInfo
+        ColumnService ColumnService { get; } // Requires Services.ColumnManagement
+        IUIHelperService UIHelperService { get; } // Requires Services.UI.UIHelper
+        LibraryService LibraryService { get; }
+        FavoriteService FavoriteService { get; }
+        QuickAccessService QuickAccessService { get; }
+        FileListService FileListService { get; }
+        FileListService SecondFileListService { get; }
+        SearchService SearchService { get; }
+        SearchCacheService SearchCacheService { get; }
+        FileSystemWatcherService FileSystemWatcherService { get; }
+        Services.WindowStateManager WindowStateManager { get; }
+        KeyboardEventHandler KeyboardEventHandler { get; }
+
+        #endregion
     }
 }

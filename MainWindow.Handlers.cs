@@ -67,47 +67,7 @@ namespace YiboFile
 
 
 
-        internal string ExtractPathFromListBoxItem(ListBox listBox, System.Windows.Point position)
-        {
-            var hitResult = VisualTreeHelper.HitTest(listBox, position);
-            if (hitResult == null) return null;
 
-            DependencyObject current = hitResult.VisualHit;
-            while (current != null && current != listBox)
-            {
-                if (current is ListBoxItem item && item.DataContext != null)
-                {
-                    var pathProperty = item.DataContext.GetType().GetProperty("Path");
-                    if (pathProperty != null)
-                    {
-                        return pathProperty.GetValue(item.DataContext) as string;
-                    }
-                }
-                current = VisualTreeHelper.GetParent(current);
-            }
-            return null;
-        }
-
-        internal Favorite ExtractFavoriteFromListBoxItem(ListBox listBox, System.Windows.Point position)
-        {
-            var hitResult = VisualTreeHelper.HitTest(listBox, position);
-            if (hitResult == null) return null;
-
-            DependencyObject current = hitResult.VisualHit;
-            while (current != null && current != listBox)
-            {
-                if (current is ListBoxItem item && item.DataContext != null)
-                {
-                    var favoriteProperty = item.DataContext.GetType().GetProperty("Favorite");
-                    if (favoriteProperty != null)
-                    {
-                        return favoriteProperty.GetValue(item.DataContext) as Favorite;
-                    }
-                }
-                current = VisualTreeHelper.GetParent(current);
-            }
-            return null;
-        }
 
         private void TitleBar_MouseDown(object sender, MouseButtonEventArgs e)
         {
@@ -140,48 +100,7 @@ namespace YiboFile
 
 
 
-        private void QuickAccessListBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
-        {
-            var listBox = sender as ListBox;
-            if (listBox == null) return;
-
-            var clickType = NavigationCoordinator.GetClickType(e);
-            if (clickType == ClickType.LeftClick) return; // 左键由SelectionChanged处理
-
-            var path = ExtractPathFromListBoxItem(listBox, e.GetPosition(listBox));
-            if (!string.IsNullOrEmpty(path))
-            {
-                _navigationService.LastLeftNavSource = "QuickAccess";
-                _navigationCoordinator.HandlePathNavigation(path, NavigationSource.QuickAccess, clickType, pane: GetActivePaneId());
-                e.Handled = true;
-            }
-        }
-
-        private void FolderFavoritesListBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
-        {
-            HandleFavoriteListBoxPreviewMouseDown(sender as ListBox, e, "FolderFavorites");
-        }
-
-        private void FileFavoritesListBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
-        {
-            HandleFavoriteListBoxPreviewMouseDown(sender as ListBox, e, "FileFavorites");
-        }
-
-        private void HandleFavoriteListBoxPreviewMouseDown(ListBox listBox, MouseButtonEventArgs e, string sourceName)
-        {
-            if (listBox == null) return;
-
-            var clickType = NavigationCoordinator.GetClickType(e);
-            if (clickType == ClickType.LeftClick) return; // 左键由SelectionChanged处理
-
-            var favorite = ExtractFavoriteFromListBoxItem(listBox, e.GetPosition(listBox));
-            if (favorite != null)
-            {
-                _navigationService.LastLeftNavSource = sourceName;
-                _navigationCoordinator.HandleFavoriteNavigation(favorite, clickType, GetActivePaneId());
-                e.Handled = true;
-            }
-        }
+        // Mouse interaction for Sidebar is now handled by MouseEventHandler via WindowOrchestrator wiring
 
         internal void ShowSelectedFileProperties()
         {
@@ -216,78 +135,7 @@ namespace YiboFile
 
 
 
-        private DateTime _lastColumnClickTime = DateTime.MinValue;
-        private string _lastClickedColumn = null;
-
-        internal void GridSplitter_DragDelta(object sender, DragDeltaEventArgs e)
-        {
-            // Migrated logic directly here if still needed, or handled by control
-            if (ColLeft != null)
-            {
-                double newWidth = ColLeft.Width.Value + e.HorizontalChange;
-                if (newWidth < 150) newWidth = 150; // Minimum width
-                ColLeft.Width = new GridLength(newWidth);
-            }
-        }
-        internal void GridViewColumnHeader_Click(object sender, RoutedEventArgs e)
-        {
-            var header = sender as GridViewColumnHeader;
-            if (header == null || FileBrowser == null) return;
-
-            // 防抖：忽略200ms内的重复点击
-            var now = DateTime.Now;
-            var columnTag = header.Tag?.ToString();
-            if ((now - _lastColumnClickTime).TotalMilliseconds < 200 && columnTag == _lastClickedColumn)
-            {
-                return;
-            }
-            _lastColumnClickTime = now;
-            _lastClickedColumn = columnTag;
-
-            _columnService?.HandleColumnHeaderClick(
-                header,
-                _currentFiles,
-                (sortedFiles) =>
-                {
-                    _currentFiles = sortedFiles;
-                    _viewModel?.PrimaryPane?.FileList?.UpdateFiles(_currentFiles);
-                },
-                FileBrowser.FilesGrid
-            );
-        }
-
-        internal void SecondGridViewColumnHeader_Click(object sender, RoutedEventArgs e)
-        {
-            var header = sender as GridViewColumnHeader;
-            if (header == null || SecondFileBrowser == null) return;
-
-            // Simple debounce (optional, but good practice)
-            // Reusing same variables might be tricky if dual clicking, but explicit click is serial.
-            // Let's use local debounce if needed or shared - shared is fine for UI clicks.
-            var now = DateTime.Now;
-            var columnTag = header.Tag?.ToString();
-            if ((now - _lastColumnClickTime).TotalMilliseconds < 200 && columnTag == _lastClickedColumn)
-            {
-                return;
-            }
-            _lastColumnClickTime = now;
-            _lastClickedColumn = columnTag;
-
-            var currentFiles = _viewModel?.SecondaryPane?.Files;
-            if (currentFiles == null) return;
-            var fileList = currentFiles.ToList();
-
-            _columnService?.HandleColumnHeaderClick(
-                header,
-                fileList,
-                (sortedFiles) =>
-                {
-                    _secondCurrentFiles = sortedFiles;
-                    _viewModel?.SecondaryPane?.FileList?.UpdateFiles(sortedFiles);
-                },
-                SecondFileBrowser.FilesGrid
-            );
-        }
+        // Grid Column Header Click is now handled by ColumnInteractionHandler
 
         // ==================== Existing but separate ====================
 

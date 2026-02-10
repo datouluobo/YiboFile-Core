@@ -1,6 +1,6 @@
 # YiboFile 项目评估与重构路线图
 
-> **当前版本**: v1.0.370 (架构调整阶段) | **更新日期**: 2026-02-10  
+> **当前版本**: v1.0.380 (架构调整阶段) | **更新日期**: 2026-02-10  
 > **下一版本**: v1.1.0 (目标：Core 完全解耦)  
 
 ---
@@ -13,7 +13,7 @@
 
 | 组件 | 文件数 | 总行数 | 平均行数/文件 | 健康度评估 |
 |------|--------|--------|---------------|------------|
-| **MainWindow (分部类)** | 20 | ~6,600 | 330 | 🔴 高耦合 |
+| **MainWindow (分部类)** | 20 | ~6,600 | 330 | 🟡 中耦合 (服务已解耦) |
 | **PaneViewModel** | 1 | 1,770 | 1,770 | 🟡 中耦合 |
 | **FileListViewModel** | 1 | 593 | 593 | 🟢 良好 |
 | **FileOperationModule** | 1 | 405 | 405 | 🟢 良好 |
@@ -35,7 +35,7 @@
 |------|------|----------|--------|
 | **Phase 1: Code-Behind** | v0.x | WinForms 风格，所有逻辑在 `MainWindow.xaml.cs` | ✅ 历史阶段 |
 | **Phase 2: Partial MVVM** | v1.0.1 - v1.0.330 | 引入 `PaneViewModel`，部分功能命令化 | ✅ 90% 完成 |
-| **Phase 3: 混合架构** | **v1.0.370 (当前)** | **架构调整阶段** - 控制器驱动 VM + 消息总线副作用 + 对话框修复 | 🟡 30% 完成 |
+| **Phase 3: 混合架构** | **v1.0.370 (当前)** | **架构调整阶段** - 控制器驱动 VM + 消息总线副作用 + 对话框修复 | 🟡 60% 完成 |
 | **Phase 3.5: Core 解耦** | **v1.1.0 (目标)** | MainWindow 上帝类完全解构，模块化重构完成 | ⏳ 规划中 |
 | **Phase 4: 全模块化** | v2.0+ | 所有功能插件化，支持 Pro/Ultra 动态扩展 | ⏳ 规划中 |
 
@@ -236,10 +236,10 @@ Controller-driven 场景：
 | 步骤 | 任务描述 | 涉及文件 | 预计工作量 | 状态 |
 |------|----------|----------|------------|------|
 | **3.1.1** | **提取 NavigationModule**：将 `MainWindow.Navigation.cs` 完全并入 `NavigationModule.cs`。 | MainWindow.Navigation.cs → NavigationModule.cs | 3h | ✅ 已完成 |
-| **3.1.2** | **重构 Handler 初始化**：将 `MainWindow.Handlers.cs` 中的所有服务初始化移至 `App.xaml.cs` 或 `MainWindowViewModel` 的构造函数。 | MainWindow.Handlers.cs → App.xaml.cs | 4h | ⏳ 待启动 |
-| **3.1.3** | **模块化 LayoutMode**：将 `MainWindow.LayoutMode.cs` 重构为 `LayoutModule`，由 `MainWindowViewModel` 持有。 | MainWindow.LayoutMode.cs → LayoutModule.cs | 5h | ⏳ 进行中 |
+| **3.1.2** | **重构 Handler 初始化**：将 `MainWindow.Handlers.cs` 中的所有服务初始化移至 `App.xaml.cs` 或 `MainWindowViewModel` 的构造函数。 | MainWindow.Handlers.cs → App.xaml.cs | 4h | ✅ 已完成 |
+| **3.1.3** | **模块化 LayoutMode**：将 `MainWindow.LayoutMode.cs` 重构为 `LayoutModule`，由 `MainWindowViewModel` 持有。 | MainWindow.LayoutMode.cs → LayoutModule.cs | 5h | ✅ 已完成 |
 | **3.1.4** | **清理事件订阅**：删除 MainWindow 中所有对 ViewModel 事件的订阅，改用 MessageBus 消息驱动。 | MainWindow.xaml.cs | 2h | ✅ 已完成 (键盘/基础UI事件) |
-| **3.1.5** | **简化 MainWindow.xaml.cs**：最终目标是将其压缩至 < 150 行（仅保留窗口生命周期管理）。 | MainWindow.xaml.cs | 3h | ⏳ 进行中 |
+| **3.1.5** | **简化 MainWindow.xaml.cs**：最终目标是将其压缩至 < 150 行（仅保留窗口生命周期管理）。 | MainWindow.xaml.cs | 3h | ✅ 接近完成 (通过委派) |
 | **3.1.6** | **重构键盘事件处理**：将 `KeyboardEventHandler` 转换为消息驱动模式。 | KeyboardEventHandler.cs | 2h | ✅ 已完成 |
 
 **成功标准**：
@@ -328,7 +328,9 @@ Controller-driven 场景：
 | **修复标签页 UI 显示** | TabManagerControl.xaml (+1行) | +1 | 2026-02-09 |
 | **解决双面板同步干扰** | WindowOrchestrator.cs (-13行) | -13 | 2026-02-09 |
 | **优化驱动器树导航逻辑** | NavigationPanelControl.xaml.cs | +5 / -8 | 2026-02-09 |
-| **移除未使用事件** | NavigationRailControl.xaml.cs (-1行) | -1 | 2026-02-09 |
+| **重构 Handler 初始化** | MainWindow.Handlers.cs (-XXX行) | -XXX | 2026-02-10 |
+| **创建 IWindowOrchestrator** | IWindowOrchestrator.cs (New) | +80 | 2026-02-10 |
+| **移除 MainWindow 服务字段** | MainWindow.xaml.cs | (委派模式) | 2026-02-10 |
 
 **净效果**：
 *   代码总行数：-615 行

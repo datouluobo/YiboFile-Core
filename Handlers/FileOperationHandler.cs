@@ -13,7 +13,7 @@ namespace YiboFile.Handlers
     /// <summary>
     /// 处理文件操作逻辑（复制、剪切、粘贴、删除）
     /// </summary>
-    internal class FileOperationHandler
+    public class FileOperationHandler
     {
         private readonly MainWindow _mainWindow;
         private readonly UndoService _undoService;

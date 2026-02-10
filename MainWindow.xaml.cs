@@ -54,71 +54,65 @@ namespace YiboFile
     /// </summary>
     public partial class MainWindow : System.Windows.Window
     {
-        internal string _currentPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-        internal List<FileSystemItem> _currentFiles = new List<FileSystemItem>();
-        private bool _isInternalUpdate = false; // 标记是否正在由代码程序化更新UI，从而避免死循环
+        // Core state delegating to ViewModel
+        internal string _currentPath
+        {
+            get => _viewModel?.CurrentPath;
+            set { if (_viewModel != null) _viewModel.CurrentPath = value; }
+        }
+        internal List<FileSystemItem> _currentFiles = new List<FileSystemItem>(); // Keep for legacy search logic
+        private bool _isInternalUpdate = false;
 
         private DragDropManager _dragDropManager;
 
-        internal Library _currentLibrary = null;
+        internal Library _currentLibrary
+        {
+            get => _viewModel?.ActivePane?.CurrentLibrary;
+            set { if (_viewModel?.ActivePane != null) _viewModel.ActivePane.CurrentLibrary = value; }
+        }
         internal bool _isUpdatingTagSelection = false;
 
 
         // 统一导航协调器
         internal NavigationCoordinator _navigationCoordinator;
 
-        // 服务实例
-        internal NavigationService _navigationService;
-        internal LibraryService _libraryService;
-        internal FavoriteService _favoriteService;
-        internal QuickAccessService _quickAccessService;
-        internal FileListService _fileListService;
-        internal Services.FileInfo.FileInfoService _fileInfoService;
-        internal Services.FileInfo.FileInfoService _secondFileInfoService;
-        internal FileSystemWatcherService _fileSystemWatcherService;
-        internal FolderSizeCalculationService _folderSizeCalculationService;
-        internal TabService _tabService;
-        internal TabService _secondTabService;
-        internal Services.Preview.PreviewService _previewService;
-        internal SearchService _searchService;
-        internal SearchCacheService _searchCacheService;
-        internal Services.ColumnManagement.ColumnService _columnService;
+        // 窗口编排器
+        internal IWindowOrchestrator _orchestrator;
 
-        internal Services.Settings.SettingsOverlayController _settingsOverlayController;
-        internal Services.Navigation.NavigationModeService _navigationModeService;
-        internal Services.UIHelper.UIHelperService _uiHelperService;
-        internal Services.WindowStateManager _windowStateManager;
-        internal Services.Archive.ArchiveService _archiveService; // ARCHIVE SERVICE
-        internal Services.Features.ITagService _tagService;
-
-
-
-        // 事件处理器
-        internal Handlers.FileListEventHandler _mainFileListHandler;
-        internal Handlers.FileListEventHandler _secondFileListHandler;
-        internal Handlers.KeyboardEventHandler _keyboardEventHandler;
-        internal Handlers.MouseEventHandler _mouseEventHandler;
-        internal Handlers.ColumnInteractionHandler _columnInteractionHandler;
-        internal Handlers.ColumnInteractionHandler _secondColumnInteractionHandler;
-        internal Handlers.WindowLifecycleHandler _windowLifecycleHandler;
-        internal Handlers.FileOperationHandler _fileOperationHandler;
-
-        // 统一文件操作服务 (新架构)
-        internal Services.FileOperations.FileOperationService _fileOperationService;
-
-        // MVVM 架构 (internal 以便 WindowOrchestrator 访问)
+        // MVVM 架构
         internal MainWindowViewModel _viewModel;
         internal IMessageBus _messageBus;
-        internal NavigationModule _navigationModule;
-        internal TabsModule _tabsModule;
-        internal FileListModule _fileListModule;
-        internal LayoutModule _layoutModule;
-        internal FileOperationModule _fileOperationModule;
-        internal NotesModule _notesModule;
-        internal TagsModule _tagsModule;
-        internal FavoritesModule _favoritesModule;
-        internal LibraryModule _libraryModule;
-        internal SearchModule _searchModule;
+
+        // Module 引用委派 (用于分部类兼容)
+        internal NavigationModule _navigationModule => _viewModel?.Navigation;
+        internal TabsModule _tabsModule => _viewModel?.Tabs;
+        internal LayoutModule _layoutModule => _viewModel?.Layout;
+        internal LibraryModule _libraryModule => _viewModel?.Library;
+
+        // 服务引用委派 (由 Orchestrator 管理，此处仅为兼容部分类代码)
+        internal NavigationService _navigationService => _orchestrator?.NavigationService;
+        internal NavigationModeService _navigationModeService => _orchestrator?.NavigationModeService;
+        internal TabService _tabService => _orchestrator?.TabService;
+        internal TabService _secondTabService => _orchestrator?.SecondTabService;
+        internal LibraryService _libraryService => _orchestrator?.LibraryService;
+        internal FavoriteService _favoriteService => _orchestrator?.FavoriteService;
+        internal QuickAccessService _quickAccessService => _orchestrator?.QuickAccessService;
+        internal FileListService _fileListService => _orchestrator?.FileListService;
+        internal FileListService _secondFileListService => _orchestrator?.SecondFileListService;
+        internal SearchService _searchService => _orchestrator?.SearchService;
+        internal SearchCacheService _searchCacheService => _orchestrator?.SearchCacheService;
+        internal FileSystemWatcherService _fileSystemWatcherService => _orchestrator?.FileSystemWatcherService;
+        internal Services.WindowStateManager _windowStateManager => _orchestrator?.WindowStateManager;
+        internal Handlers.WindowLifecycleHandler _windowLifecycleHandler => _orchestrator?.LifecycleHandler;
+        internal Services.Settings.SettingsOverlayController _settingsOverlayController => _orchestrator?.SettingsController;
+        internal Handlers.ColumnInteractionHandler _columnInteractionHandler => _orchestrator?.ColumnInteractionHandler;
+        internal Services.FileOperations.FileOperationService _fileOperationService => _orchestrator?.FileOperationService;
+        internal Handlers.KeyboardEventHandler _keyboardEventHandler => _orchestrator?.KeyboardEventHandler;
+        internal Handlers.FileListEventHandler _mainFileListHandler => _orchestrator?.MainFileListHandler;
+        internal Handlers.FileListEventHandler _secondFileListHandler => _orchestrator?.SecondFileListHandler;
+        internal Services.FileInfo.FileInfoService _secondFileInfoService => _orchestrator?.SecondFileInfoService;
+        internal Services.ColumnManagement.ColumnService _columnService => _orchestrator?.ColumnService;
+        internal Services.UIHelper.IUIHelperService _uiHelperService => _orchestrator?.UIHelperService;
 
         /// <summary>
         /// 主窗口 ViewModel
@@ -126,13 +120,8 @@ namespace YiboFile
         public MainWindowViewModel ViewModel => _viewModel;
 
         // 定时器管理
-        // 定时器管理
-        internal System.Windows.Threading.DispatcherTimer _periodicTimer = new System.Windows.Threading.DispatcherTimer();
-        internal System.Windows.Threading.DispatcherTimer _layoutCheckTimer = new System.Windows.Threading.DispatcherTimer();
-        internal bool _isSplitterDragging = false; // 标记是否正在拖拽分割器
+        internal bool _isSplitterDragging = false;
         internal Services.Search.SearchOptions _searchOptions = new Services.Search.SearchOptions();
-
-
 
         // TagTrain 训练状态
         internal CancellationTokenSource _tagTrainTrainingCancellation = null;
@@ -158,6 +147,7 @@ namespace YiboFile
         internal ContextMenu LibraryContextMenu => NavigationPanelControl?.LibraryContextMenuControl;
 
         // UI Adapter implementations removed
+
 
 
 
@@ -193,7 +183,7 @@ namespace YiboFile
                 }
                 catch { }
 
-                _windowLifecycleHandler?.AdjustColumnWidths();
+                _orchestrator.LifecycleHandler?.AdjustColumnWidths();
 
                 // 再次确认窗口最大化状态 (双重保险，解决持久化可能失效的问题)
                 if (ConfigurationService.Instance.Config?.IsMaximized == true && this.WindowState != WindowState.Maximized)
@@ -208,7 +198,7 @@ namespace YiboFile
                     catch { }
 
                     this.WindowState = WindowState.Maximized;
-                    _windowLifecycleHandler?.UpdateWindowStateUI();
+                    _orchestrator.LifecycleHandler?.UpdateWindowStateUI();
                 }
 
                 // 启动完成，启用配置保存
@@ -235,10 +225,10 @@ namespace YiboFile
 
 
             // 使用编排器接管核心逻辑、消息桥接和状态恢复
-            var orchestrator = App.ServiceProvider.GetRequiredService<IWindowOrchestrator>();
+            _orchestrator = App.ServiceProvider.GetRequiredService<IWindowOrchestrator>();
 
             // 异步执行完整初始化序列
-            _ = orchestrator.InitializeAsync(this);
+            _ = _orchestrator.InitializeAsync(this);
         }
 
         /// <summary>
@@ -272,7 +262,7 @@ namespace YiboFile
 
 
 
-        private void OnRailSettingsRequested(object sender, EventArgs e) => _settingsOverlayController?.Toggle();
+        private void OnRailSettingsRequested(object sender, EventArgs e) => _orchestrator.SettingsController?.Toggle();
 
         private void OnRailAboutRequested(object sender, EventArgs e)
         {
@@ -308,7 +298,7 @@ namespace YiboFile
         {
             if (e.OriginalSource == sender)
             {
-                _settingsOverlayController?.Hide();
+                _orchestrator.SettingsController?.Hide();
             }
         }
 
@@ -407,11 +397,12 @@ namespace YiboFile
         private void FileBrowser_ViewModeChanged(object sender, string mode)
         {
             // 根据视图模式设置文件名显示方式
-            if (_fileListService != null)
+            var fileListService = App.ServiceProvider.GetService<FileListService>();
+            if (fileListService != null)
             {
                 // 缩略图模式：显示完整文件名（包括扩展名）
                 // 列表模式：不显示扩展名（有单独的“类型”列）
-                _fileListService.ShowFullFileName = (mode == "Thumbnail");
+                fileListService.ShowFullFileName = (mode == "Thumbnail");
             }
 
             ConfigurationService.Instance.Set(cfg => cfg.FileViewMode, mode);
@@ -448,10 +439,9 @@ namespace YiboFile
         /// </summary>
         private void OnNavigationServiceNavigateRequested(object sender, string path)
         {
-            // 导航服务已更新 CurrentPath，这里只需要同步 _currentPath
             _currentPath = path;
-            // 同步更新标签页标题
-            _tabService?.UpdateActiveTabPath(path);
+            // 同步更新标签页标题 - 使用 MessageBus 或直接调用 TabsModule
+            _tabsModule?.UpdateActiveTabPath(path);
             UpdateNavigationButtonsState();
         }
 
@@ -461,9 +451,9 @@ namespace YiboFile
         internal void UpdateNavigationButtonsState()
         {
             // 使用 NavigationModeService 更新导航按钮状态
-            if (_navigationModeService != null)
+            if (_orchestrator.NavigationModeService != null)
             {
-                _navigationModeService.UpdateNavigationButtonsState();
+                _orchestrator.NavigationModeService.UpdateNavigationButtonsState();
             }
         }
 
@@ -595,13 +585,13 @@ namespace YiboFile
         // 根据内容自动调整列宽（用于双击列分隔条）
         internal void AutoSizeGridViewColumn(GridViewColumn column)
         {
-            _columnInteractionHandler?.AutoSizeGridViewColumn(column);
+            _orchestrator.ColumnInteractionHandler?.AutoSizeGridViewColumn(column);
         }
 
         // 右键列头 -> 列显示设置
         internal void EnsureHeaderContextMenuHook()
         {
-            _columnInteractionHandler?.EnsureHeaderContextMenuHook();
+            _orchestrator.ColumnInteractionHandler?.EnsureHeaderContextMenuHook();
         }
 
         internal string GetCurrentModeKey()
@@ -612,23 +602,25 @@ namespace YiboFile
 
         internal string GetVisibleColumnsForCurrentMode()
         {
-            return _columnService?.GetVisibleColumnsForCurrentMode() ?? "";
+            var columnService = App.ServiceProvider.GetService<ColumnService>();
+            return columnService?.GetVisibleColumnsForCurrentMode() ?? "";
         }
 
         private void SetVisibleColumnsForCurrentMode(string csv)
         {
-            _columnService?.SetVisibleColumnsForCurrentMode(csv);
+            var columnService = App.ServiceProvider.GetService<ColumnService>();
+            columnService?.SetVisibleColumnsForCurrentMode(csv);
         }
 
         internal void ApplyVisibleColumnsForCurrentMode()
         {
-            _columnInteractionHandler?.ApplyVisibleColumnsForCurrentMode();
+            _orchestrator.ColumnInteractionHandler?.ApplyVisibleColumnsForCurrentMode();
         }
 
         // 绑定列头分隔线双击
         internal void HookHeaderThumbs()
         {
-            _columnInteractionHandler?.HookHeaderThumbs();
+            _orchestrator.ColumnInteractionHandler?.HookHeaderThumbs();
         }
 
         #region 键盘快捷键和文件操作
@@ -650,7 +642,7 @@ namespace YiboFile
             if (browser?.FilesSelectedItems == null) return;
             var items = browser.FilesSelectedItems.Cast<YiboFile.Models.FileSystemItem>().ToList();
             var paths = items.Select(i => i.Path).ToList();
-            await _fileOperationService.CopyAsync(paths);
+            await _orchestrator.FileOperationService.CopyAsync(paths);
             Services.Core.NotificationService.ShowSuccess($"已复制 {items.Count} 个项目");
         }
 
@@ -663,7 +655,7 @@ namespace YiboFile
             if (browser?.FilesSelectedItems == null) return;
             var items = browser.FilesSelectedItems.Cast<YiboFile.Models.FileSystemItem>().ToList();
             var paths = items.Select(i => i.Path).ToList();
-            await _fileOperationService.CutAsync(paths);
+            await _orchestrator.FileOperationService.CutAsync(paths);
             Services.Core.NotificationService.ShowSuccess($"已剪切 {items.Count} 个项目");
         }
 
@@ -673,7 +665,7 @@ namespace YiboFile
         /// </summary>
         internal async Task PasteFilesAsync(CancellationToken ct = default)
         {
-            var result = await _fileOperationService.PasteAsync(null, ct);
+            var result = await _orchestrator.FileOperationService.PasteAsync(null, ct);
             if (result.Success && result.ProcessedCount > 0)
             {
                 Services.Core.NotificationService.ShowSuccess("粘贴完成");
@@ -697,7 +689,7 @@ namespace YiboFile
                 _viewModel?.SelectionHandler?.HandleNoSelection();
             }
 
-            var result = await _fileOperationService.DeleteAsync(items, permanent);
+            var result = await _orchestrator.FileOperationService.DeleteAsync(items, permanent);
 
             if (result.Success && result.ProcessedCount > 0)
             {

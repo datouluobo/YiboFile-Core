@@ -7,7 +7,7 @@ namespace YiboFile.ViewModels.Messaging.Messages
     /// <summary>
     /// 请求创建新标签页
     /// </summary>
-    public record CreateTabMessage(string Path = null, bool Activate = true);
+    public record CreateTabMessage(string Path = null, bool Activate = true, YiboFile.Services.Navigation.PaneId? Pane = null);
 
     /// <summary>
     /// 标签页已激活通知
