@@ -229,7 +229,7 @@ namespace YiboFile.Services
                     }
                     else
                     {
-                        _config.WindowTop = 0; // 如果无效，使用默认值0
+                        _config.WindowTop = null;
                     }
 
                     if (!double.IsNaN(window.Left) && !double.IsInfinity(window.Left) && window.Left >= -10000)
@@ -238,7 +238,7 @@ namespace YiboFile.Services
                     }
                     else
                     {
-                        _config.WindowLeft = 0; // 如果无效，使用默认值0
+                        _config.WindowLeft = null;
                     }
 
                     // #region agent log
@@ -637,8 +637,8 @@ namespace YiboFile.Services
             window.WindowState = WindowState.Normal;
             if (cfg.WindowWidth > 0) window.Width = cfg.WindowWidth;
             if (cfg.WindowHeight > 0) window.Height = cfg.WindowHeight;
-            if (!double.IsNaN(cfg.WindowTop) && cfg.WindowTop >= -10000) window.Top = cfg.WindowTop;
-            if (!double.IsNaN(cfg.WindowLeft) && cfg.WindowLeft >= -10000) window.Left = cfg.WindowLeft;
+            if (cfg.WindowTop.HasValue && cfg.WindowTop.Value >= -10000) window.Top = cfg.WindowTop.Value;
+            if (cfg.WindowLeft.HasValue && cfg.WindowLeft.Value >= -10000) window.Left = cfg.WindowLeft.Value;
 
             window.ResizeMode = ResizeMode.CanResize;
         }

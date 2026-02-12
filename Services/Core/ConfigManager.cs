@@ -26,8 +26,8 @@ namespace YiboFile
         public string TagTrainDataDirectory { get; set; } = string.Empty; // 持久化 TT 数据目录
         public double WindowWidth { get; set; } = 1200;
         public double WindowHeight { get; set; } = 800;
-        public double WindowTop { get; set; } = double.NaN;
-        public double WindowLeft { get; set; } = double.NaN;
+        public double? WindowTop { get; set; } = null;
+        public double? WindowLeft { get; set; } = null;
         public bool IsMaximized { get; set; } = true;
         public string Theme { get; set; } = "Light"; // Light, Dark (保留兼容性)
 
