@@ -31,6 +31,9 @@ namespace YiboFile.ViewModels.Modules
             private set => SetProperty(ref _libraries, value);
         }
 
+        private bool _isSilentUpdate = false;
+        private bool _isInitialLoad = true;
+
         /// <summary>
         /// 当前选中的库
         /// </summary>
@@ -39,10 +42,35 @@ namespace YiboFile.ViewModels.Modules
             get => _selectedLibrary;
             set
             {
+                // [硬核防御] 如果处于模式切换、静默更新、初始加载，或者最重要的：【不是由命令触发的人为操作】
+                // 我们拒绝接受任何非空的赋值。这能彻底封杀 WPF ListBox 的自动选择行为。
+                if (value != null && (_isSilentUpdate || _isModeChanging || _isInitialLoad || !_isUserInitiated))
+                {
+                    System.Diagnostics.Debug.WriteLine($"[NAV-DEBUG] LibraryModule: Rejected automated/silent selection of '{value.Name}'. UserInitiated={_isUserInitiated}, ModeChanging={_isModeChanging}, InitialLoad={_isInitialLoad}");
+                    // 拒绝赋值，直接返回。不触发 SetProperty，也不触发 NotifyPropertyChanged
+                    return;
+                }
+
                 if (SetProperty(ref _selectedLibrary, value))
                 {
+                    System.Diagnostics.Debug.WriteLine($"[NAV-DEBUG] LibraryModule: SelectedLibrary changed to '{(value?.Name ?? "null")}'. UserInitiated={_isUserInitiated}");
                     OnLibrarySelected(value);
                 }
+            }
+        }
+
+        private void SetSelectedLibrarySilently(Library library)
+        {
+            if (library == null || SelectedLibrary == library) return;
+
+            _isSilentUpdate = true;
+            try
+            {
+                SelectedLibrary = library;
+            }
+            finally
+            {
+                _isSilentUpdate = false;
             }
         }
 
@@ -64,6 +92,12 @@ namespace YiboFile.ViewModels.Modules
                 _libraryService.LibraryFilesLoaded += OnLibraryFilesLoadedFromService;
                 _libraryService.LibraryHighlightRequested += OnLibraryHighlightRequestedFromService;
             }
+
+            // 在构造函数末尾，异步标记初始化完成
+            System.Windows.Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                _isInitialLoad = false;
+            }), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
         }
 
         private void InitializeCommands()
@@ -86,28 +120,65 @@ namespace YiboFile.ViewModels.Modules
             {
                 if (lib != null)
                 {
+                    _isUserInitiated = true;
                     SelectedLibrary = lib;
-                    Publish(new NavigateToLibraryMessage(lib));
+                    // 移除 Publish(new NavigateToLibraryMessage(lib));
+                    // 因为 SelectedLibrary 的 Setter 已经会触发带有 PaneId 路由的 LibrarySelectedMessage
                 }
             });
         }
+
+        private Library _lastLoadedLibrary;
+        private bool _isModeChanging = false;
+        private PaneId _activePaneId = PaneId.Main;
 
         protected override void OnInitialize()
         {
             // 初始加载
             LoadLibraries();
 
-            // 订阅导航模式变更，以便在进入库模式时确保有库被选中
+            // 订阅焦点变更，确保侧边栏操作能定向到最后一次激活的面板
+            Subscribe<Messaging.Messages.FocusedPaneChangedMessage>(m =>
+            {
+                _activePaneId = m.IsSecondPaneFocused ? PaneId.Second : PaneId.Main;
+            });
+
+            // 监听导航模式变更
             Subscribe<NavigationModeChangedMessage>(m =>
             {
-                if (m.Mode == "Library" && SelectedLibrary == null)
+                if (m.Mode == "Library")
                 {
-                    SelectedLibrary = Libraries.FirstOrDefault();
+                    // 开启静默屏障，防止模式切换期间产生的任何变更触发导航
+                    _isModeChanging = true;
+                    _isSilentUpdate = true;
+                    try
+                    {
+                        // [移除自动高亮] 不再尝试恢复历史选中项，而是强制设为 null
+                        // 这样进入列表时它是干净的，只有用户点击才会触发导航
+                        SelectedLibrary = null;
+                        _lastLoadedLibrary = null;
+                    }
+                    finally
+                    {
+                        System.Windows.Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                        {
+                            _isSilentUpdate = false;
+                            _isModeChanging = false;
+                        }), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+                    }
                 }
             });
 
             Subscribe<ToggleLibraryPathRequestMessage>(OnToggleLibraryPathRequest);
             Subscribe<CreateLibraryRequestMessage>(OnCreateLibraryRequest);
+
+            // 关键：当库文件加载成功时，记录并同步高亮
+            Subscribe<LibraryFilesLoadedMessage>(msg =>
+            {
+                _lastLoadedLibrary = msg.Library;
+                // 注意：如果当前已经在库侧边栏模式，实时同步高亮
+                SetSelectedLibrarySilently(msg.Library);
+            });
         }
 
         private void OnToggleLibraryPathRequest(ToggleLibraryPathRequestMessage msg)
@@ -160,26 +231,56 @@ namespace YiboFile.ViewModels.Modules
 
         private void UpdateLibrariesCollection(System.Collections.Generic.List<Library> libs)
         {
-            var newCollection = new ObservableCollection<Library>();
-            if (libs != null)
+            _isSilentUpdate = true;
+            try
             {
-                foreach (var lib in libs)
+                var newCollection = new ObservableCollection<Library>();
+                if (libs != null)
                 {
-                    newCollection.Add(lib);
+                    foreach (var lib in libs)
+                    {
+                        newCollection.Add(lib);
+                    }
                 }
+                // Replacing the instance triggers PropertyChanged("Libraries") via SetProperty
+                Libraries = newCollection;
+                Publish(new LibraryListChangedMessage());
+
+                // [已移除自动高亮同步] 彻底移除加载列表后的自动选中逻辑
+                // 确保只有用户主动点击时才触发导航
+                SelectedLibrary = null;
             }
-            // Replacing the instance triggers PropertyChanged("Libraries") via SetProperty
-            Libraries = newCollection;
-            Publish(new LibraryListChangedMessage());
+            finally
+            {
+                // 异步解除屏障
+                System.Windows.Application.Current.Dispatcher.BeginInvoke(new Action(() => _isSilentUpdate = false), System.Windows.Threading.DispatcherPriority.Loaded);
+            }
         }
+
+        private bool _isUserInitiated = false;
 
         private void OnLibrarySelected(Library library)
         {
-            if (library == null) return;
+            // 只有在非静默更新且非正在切换模式且【显式的人为操作】时才触发导航
+            // 这可以防止 WPF ListBox 在 ItemsSource 变化时自动选择第一项导致的误导航
+            if (library == null || _isSilentUpdate || _isModeChanging || _isInitialLoad) return;
 
-            // 发布库选择变更消息，供 MainWindow 或其他模块响应
-            // 此处可以触发 NavigationCoordinator 的逻辑
-            Publish(new LibrarySelectedMessage(library));
+            if (!_isUserInitiated)
+            {
+                // [防御性拦截] 如果不是用户显式点击导致的选中，我们只允许它的视觉高亮（如果屏障已解），
+                // 但拒绝产生任何实际的导航消息
+                return;
+            }
+
+            try
+            {
+                // 发布库选择变更消息，定向到最后活跃的面板
+                Publish(new LibrarySelectedMessage(library, _activePaneId));
+            }
+            finally
+            {
+                _isUserInitiated = false;
+            }
         }
 
         private void OnLibraryFilesLoadedFromService(object sender, LibraryFilesLoadedEventArgs e)
@@ -189,9 +290,10 @@ namespace YiboFile.ViewModels.Modules
 
         private void OnLibraryHighlightRequestedFromService(object sender, Library library)
         {
-            // 这里可以复用 LibrarySelectedMessage 或者定义特定的 HighlightLibraryMessage
-            // 为了最小化变更，我们先发布 LibrarySelectedMessage，如果不合适再区分
-            Publish(new LibrarySelectedMessage(library));
+            if (library != null)
+            {
+                SetSelectedLibrarySilently(library);
+            }
         }
 
         protected override void OnShutdown()

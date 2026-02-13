@@ -569,6 +569,8 @@ namespace YiboFile.Services
 
             switch (tab.Type)
             {
+                case TabType.Tag:
+                case TabType.Search:
                 case TabType.Path:
                     return "path:" + (tab.Path ?? string.Empty);
                 case TabType.Library:
@@ -831,7 +833,7 @@ namespace YiboFile.Services
                     // 这样可以恢复网络路径、USB设备等可能暂时不可用的路径
                     // ValidatePath 已经支持 search:// 路径，可以直接调用 CreatePathTab
                     // 搜索标签页会在切换到该标签页时自动刷新（通过MainWindow的CheckAndRefreshSearchTab）
-                    if (path.StartsWith("search://"))
+                    if (path.StartsWith("search://") || path.StartsWith("content://"))
                     {
                         service.CreatePathTab(path, true, skipValidation: true, activate: false);
                     }

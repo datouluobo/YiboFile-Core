@@ -55,39 +55,56 @@ namespace YiboFile.ViewModels.Messaging
             }
         }
 
+        private readonly System.Threading.ThreadLocal<int> _recursionDepth = new(() => 0);
+
         public void Publish<TMessage>(TMessage message) where TMessage : class
         {
             if (message == null) return;
 
-            List<Delegate> handlers;
-            lock (_lock)
+            try
             {
-                var type = typeof(TMessage);
-                if (!_subscribers.ContainsKey(type) || _subscribers[type].Count == 0)
+                _recursionDepth.Value++;
+                if (_recursionDepth.Value > 20)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[MessageBus] Recursion detected for message: {typeof(TMessage).Name}. Depth: {_recursionDepth.Value}");
+                    // Break the loop
                     return;
-                handlers = new List<Delegate>(_subscribers[type]);
+                }
+
+                List<Delegate> handlers;
+                lock (_lock)
+                {
+                    var type = typeof(TMessage);
+                    if (!_subscribers.ContainsKey(type) || _subscribers[type].Count == 0)
+                        return;
+                    handlers = new List<Delegate>(_subscribers[type]);
+                }
+
+                foreach (var handler in handlers)
+                {
+                    try
+                    {
+                        var action = (Action<TMessage>)handler;
+
+                        // 如果在 UI 线程，直接执行；否则调度到 UI 线程
+                        if (_dispatcher.CheckAccess())
+                        {
+                            action(message);
+                        }
+                        else
+                        {
+                            _dispatcher.BeginInvoke(action, message);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[MessageBus] Error: {ex.Message}");
+                    }
+                }
             }
-
-            foreach (var handler in handlers)
+            finally
             {
-                try
-                {
-                    var action = (Action<TMessage>)handler;
-
-                    // 如果在 UI 线程，直接执行；否则调度到 UI 线程
-                    if (_dispatcher.CheckAccess())
-                    {
-                        action(message);
-                    }
-                    else
-                    {
-                        _dispatcher.BeginInvoke(action, message);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[MessageBus] Error: {ex.Message}");
-                }
+                _recursionDepth.Value--;
             }
         }
 

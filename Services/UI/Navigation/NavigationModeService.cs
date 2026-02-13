@@ -183,40 +183,9 @@ namespace YiboFile.Services.Navigation
             // 启动时恢复状态时跳过，避免与标签页恢复冲突
             if (!skipRefresh)
             {
-                _uiHelper.Dispatcher.BeginInvoke(new Action(() =>
-                {
-                    if (_uiHelper.FileBrowser == null) return;
-
-                    if (string.IsNullOrEmpty(_uiHelper.CurrentPath))
-                    {
-                        // 查找第一个使用路径的标签页
-                        PathTab matchingTab = _tabService.Tabs.FirstOrDefault();
-                        if (matchingTab != null && Directory.Exists(matchingTab.Path))
-                        {
-                            _uiHelper.CurrentPath = matchingTab.Path;
-                            _uiHelper.SwitchToTab(matchingTab);
-                        }
-                        else
-                        {
-                            // 如果没有标签页，创建新标签页，默认路径为桌面
-                            _uiHelper.CurrentPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-                            _uiHelper.CreateTab(_uiHelper.CurrentPath);
-                        }
-                    }
-                    else
-                    {
-                        // 如果已有路径，查找或创建对应的标签页
-                        PathTab existingTab = _tabService.FindTabByPath(_uiHelper.CurrentPath);
-                        if (existingTab != null)
-                        {
-                            _uiHelper.SwitchToTab(existingTab);
-                        }
-                        else
-                        {
-                            _uiHelper.CreateTab(_uiHelper.CurrentPath);
-                        }
-                    }
-                }), System.Windows.Threading.DispatcherPriority.Loaded);
+                // [SSOT 关键修正] 模式切换不应强制切换标签页。
+                // 标签页的激活状态应由用户点击或 TabsModule 的初始化逻辑保持。
+                // 这里的 Dispatcher 异步块会导致在模式切换尚未稳定时发生第二次导航，产生闪烁。
             }
         }
 
@@ -244,72 +213,20 @@ namespace YiboFile.Services.Navigation
             {
                 _uiHelper.Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    // 检查是否应该是副面板操作
                     if (_uiHelper is MainWindow mw && mw.IsDualListMode)
                     {
-                        // 如果是副面板，我们应该尝试设置副面板的库
-                        // 但目前 NavigationModeService 没有直接引用 _secondTabService 或类似状态
-                        // 依赖 MainWindow.LoadSecondFileBrowserContent 或类似机制
-                        // 对于副面板，我们暂时简单地保持当前库（如果有），这通常由Tab切换触发
-
-                        // 需要调用 MainWindow 特定的逻辑来加载副列表库？
-                        // 或者这里只是通用 UI 状态切换?
-
-                        // 如果副面板处于焦点，我们让 MainWindow 处理特定加载
-                        // 但为了保持一致性，如果 CurrentLibrary 不为空，我们应该尝试应用到焦点面板？
-                        // 不，CurrentLibrary 属性是指向主面板的库状态
-
-                        // 所以这里如果不做任何事，副面板可能为空。
-                        // 我们应该保留原逻辑（针对主面板），同时扩展支持副面板？
-                        // 暂时保持主面板逻辑不变，因为“库模式”通常是全局的 UI 状态（左侧导航栏高亮）
-                        // 而具体哪个面板显示什么，由面板自己的 ViewModel 决定。
-
-                        // 但是，如果用户点击“库”按钮，且当前焦点在副面板，我们需要导航副面板到库视图。
-                        // NavigationModeService 的 SwitchNavigationMode -> HandleLibraryMode 是响应点击。
-
-                        // Trick: 调用 MainWindow 的辅助方法
-                        // 移除强制导航副面板到库的逻辑，避免死循环
-                        // 副面板应该保持当前状态，除非用户显式在副面板操作
-                        // mw.NavigateSecondaryPaneToLibrary(null);
+                        // 副面板模式逻辑 (保持现状)
                     }
                     else
                     {
-                        // 主面板逻辑
-                        if (_uiHelper.CurrentLibrary == null)
+                        // 主面板逻辑 - [SSOT 关键修正]
+                        // 切换到库模式时，不应该主动触发库加载。
+                        // 如果当前有标签页是 lib:// 类型，TabsModule 会同步它。
+                        if (_uiHelper.CurrentLibrary != null)
                         {
-                            Library libraryToSelect = null;
-                            if (_configService?.Config.LastLibraryId > 0)
-                            {
-                                libraryToSelect = _libraryRepository?.GetLibrary(_configService.Config.LastLibraryId);
-                            }
-
-                            // If last library not found, pick the first one
-                            if (libraryToSelect == null)
-                            {
-                                libraryToSelect = _libraryRepository?.GetAllLibraries().FirstOrDefault();
-                            }
-
-                            if (_uiHelper.CurrentLibrary == libraryToSelect)
-                            {
-                                // 已经是当前库，仅确保高亮，不重新加载
-                                _uiHelper.HighlightMatchingLibrary(libraryToSelect);
-                                // 确保不重复触发加载导致取消异常
-                                return;
-                            }
-
-                            if (libraryToSelect != null)
-                            {
-                                _uiHelper.CurrentLibrary = libraryToSelect;
-                                _uiHelper.EnsureSelectedItemVisible(_uiHelper.LibrariesListBox, libraryToSelect);
-                                _uiHelper.HighlightMatchingLibrary(libraryToSelect);
-                                _uiHelper.LoadLibraryFiles(libraryToSelect);
-                            }
-                        }
-                        else
-                        {
-                            // 如果已有当前库，仅高亮它，避免重复加载
                             _uiHelper.HighlightMatchingLibrary(_uiHelper.CurrentLibrary);
                         }
+
                         _uiHelper.InitializeNavigationPanelDragDrop();
                     }
                 }), System.Windows.Threading.DispatcherPriority.Loaded);

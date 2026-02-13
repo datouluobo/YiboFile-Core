@@ -440,8 +440,11 @@ namespace YiboFile
         private void OnNavigationServiceNavigateRequested(object sender, string path)
         {
             _currentPath = path;
-            // 同步更新标签页标题 - 使用 MessageBus 或直接调用 TabsModule
-            _tabsModule?.UpdateActiveTabPath(path);
+
+            // [DEPRECATED] 标签页同步现在通过 MessageBus (PathChangedMessage) 自动处理。
+            // 直接调用 UpdateActiveTabPath 会因缺少 PaneId 而默认操作主面板，导致双面板状态串扰。
+            // _tabsModule?.UpdateActiveTabPath(path);
+
             UpdateNavigationButtonsState();
         }
 

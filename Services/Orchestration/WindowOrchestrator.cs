@@ -660,8 +660,8 @@ namespace YiboFile.Services.Orchestration
                 };
             }
 
-            // 初始化 LayoutMode (订阅消息)
-            window.InitializeLayoutMode();
+            // 初始化 LayoutMode (订阅消息) - Already initialized in InitializeHandlers() line 485
+            // window.InitializeLayoutMode();
 
             // 初始化服务事件 (需要所有服务已就绪)
             window.InitializeServiceEvents();

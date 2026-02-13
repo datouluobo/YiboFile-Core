@@ -219,7 +219,7 @@ namespace YiboFile.ViewModels
                 var cancellationToken = _loadCancellationTokenSource.Token;
 
                 _currentPath = path;
-                System.Diagnostics.Debug.WriteLine($"[FileListViewModel] Starting load for: {path}");
+                // System.Diagnostics.Debug.WriteLine($"[FileListViewModel] Starting load for: {path}");
 
                 // Check for virtual protocols to bypass Directory.Exists check
                 var protocol = ProtocolManager.Parse(path);
@@ -227,7 +227,7 @@ namespace YiboFile.ViewModels
 
                 if (string.IsNullOrEmpty(path) || (!isVirtual && !Directory.Exists(path)))
                 {
-                    System.Diagnostics.Debug.WriteLine($"[FileListViewModel] Path Empty or Not Exists (Local). Clearing files.");
+                    // System.Diagnostics.Debug.WriteLine($"[FileListViewModel] Path Empty or Not Exists (Local). Clearing files.");
                     await _dispatcher.InvokeAsync(() =>
                     {
                         Files.Clear();
@@ -246,7 +246,7 @@ namespace YiboFile.ViewModels
                     null,
                     cancellationToken);
 
-                System.Diagnostics.Debug.WriteLine($"[FileListViewModel] Files loaded. Count: {files?.Count ?? 0}");
+                // System.Diagnostics.Debug.WriteLine($"[FileListViewModel] Files loaded. Count: {files?.Count ?? 0}");
                 var sortedFiles = ApplySorting(files);
 
                 // 设置集合，确保在 UI 线程执行
@@ -329,7 +329,7 @@ namespace YiboFile.ViewModels
         /// </summary>
         public void RefreshFiles()
         {
-            System.Diagnostics.Debug.WriteLine($"[FileListViewModel] RefreshFiles called. CurrentPath: {_currentPath}");
+            // System.Diagnostics.Debug.WriteLine($"[FileListViewModel] RefreshFiles called. CurrentPath: {_currentPath}");
 
             var targetPath = _currentPath;
             if (string.IsNullOrEmpty(targetPath) || _isLoadingFiles)

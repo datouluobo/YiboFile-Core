@@ -123,6 +123,8 @@ namespace YiboFile.ViewModels
                 string oldValue = _currentPath;
                 if (SetProperty(ref _currentPath, value))
                 {
+                    System.Diagnostics.Debug.WriteLine($"[NAV-DEBUG] PaneViewModel ({(_isSecondary ? "Second" : "Main")}): CurrentPath changed from '{oldValue}' to '{value}'");
+
                     // 路径变更时重置过滤器（过滤器只在当前标签页有效）
                     if (oldValue != value && _searchCoordinator != null)
                     {
@@ -1070,6 +1072,8 @@ namespace YiboFile.ViewModels
             // 关键修复：确保 CurrentPath 包含协议头，以便地址栏正确识别模式
             CurrentPath = $"lib://{library.Name}";
 
+            System.Diagnostics.Debug.WriteLine($"[NAV-DEBUG] PaneViewModel ({(_isSecondary ? "Second" : "Main")}): NavigateTo(Library: {library.Name}) called. CurrentPath is now {CurrentPath}");
+
             if (loadData && !IsLoadingDisabled)
             {
                 if (FileList != null)
@@ -1710,6 +1714,8 @@ namespace YiboFile.ViewModels
                 // 重要：只有激活的面板才响应全局侧边栏的库选择消息
                 if (!IsActive) return;
             }
+
+            System.Diagnostics.Debug.WriteLine($"[NAV-DEBUG] PaneViewModel ({(_isSecondary ? "Second" : "Main")}): Received LibrarySelectedMessage for '{message.Library.Name}'. PaneSpecified={message.Pane.HasValue}, IsActive={IsActive}");
 
             // 如果当前已经在这个库，不再重复加载
             // 库名匹配 + 导航模式是 Library

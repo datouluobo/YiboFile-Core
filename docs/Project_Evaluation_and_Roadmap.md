@@ -303,6 +303,7 @@ Controller-driven 场景：
 | **BUG-003** | Library | 副面板库路径识别失败 | `FileOperationModule` 未正确解析 `lib://` 协议 | 在 Module 中增加协议解析逻辑 | ⏳ 待修复 |
 | **BUG-007** | Sorting | 文件名排序导致列表变空 | `CollectionView` 与 `ObservableCollection` 同步冲突 | 使用 `BindingOperations.EnableCollectionSynchronization` | ⏳ 待修复 |
 | **BUG-008** | Header | 列头点击误触发双击响应 | 事件冒泡未正确拦截 | 在 `GridViewColumnHeader_Click` 中设置 `e.Handled = true` | ✅ 已修复 |
+| **BUG-009** | Tabs/Nav | 双面板标签页重复打开 | 副面板打开标签时主面板同步创建重复标签 | 需检查 `MainWindow` 事件绑定或 `TabsModule` 的 `PaneId` 过滤逻辑 | ⏳ 待修复 |
 
 ---
 

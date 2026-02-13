@@ -102,9 +102,8 @@ namespace YiboFile.ViewModels.Modules
         private void OnModeChanged(string mode)
         {
             // 发布状态变更消息，以便外部 UI 响应 (如侧边栏高亮)
-            // 修正：NavigationStatusChangedMessage 的构造函数可能需要更多参数，
-            // 这里我们发送它以便 MainWindow.Navigation.cs 中的逻辑可以被迁移或触发
-            Publish(new NavigationCompleteMessage(null, PaneId.Main, NavigationSource.External, mode));
+            var pane = _activePaneResolver?.Invoke() ?? PaneId.Main;
+            Publish(new NavigationCompleteMessage(null, pane, NavigationSource.External, mode));
 
             // 同步到全局配置
             YiboFile.Services.Config.ConfigurationService.Instance.Set(cfg => cfg.LastNavigationMode, mode);
@@ -136,11 +135,18 @@ namespace YiboFile.ViewModels.Modules
         {
             if (string.IsNullOrEmpty(message.Path)) return;
 
+            var pane = message.Pane ?? _activePaneResolver?.Invoke() ?? PaneId.Main;
             var oldPath = _navigationService.CurrentPath;
-            _navigationService.NavigateTo(message.Path);
+
+            // [SSOT 关键修复] 仅当目标面板是主面板时，才同步到传统的 NavigationService
+            // 否则会触发 MainWindow 中基于该服务的事件，导致副面板操作误伤主面板标签页
+            if (pane == PaneId.Main)
+            {
+                _navigationService.NavigateTo(message.Path);
+            }
 
             // 发布路径变更通知
-            Publish(new PathChangedMessage(message.Path, PaneId.Main, oldPath));
+            Publish(new PathChangedMessage(message.Path, pane, oldPath));
 
             // 回调（过渡期使用）
             _onNavigateCallback?.Invoke(message.Path);
@@ -150,39 +156,61 @@ namespace YiboFile.ViewModels.Modules
 
         private void OnNavigateBack(NavigateBackMessage message)
         {
-            var oldPath = _navigationService.CurrentPath;
-            var newPath = _navigationService.NavigateBack();
+            var pane = message.Pane ?? _activePaneResolver?.Invoke() ?? PaneId.Main;
 
-            if (!string.IsNullOrEmpty(newPath))
+            // 传统服务操作限制在主面板
+            if (pane == PaneId.Main)
             {
-                Publish(new PathChangedMessage(newPath, PaneId.Main, oldPath));
-                _onNavigateCallback?.Invoke(newPath);
+                var oldPath = _navigationService.CurrentPath;
+                var newPath = _navigationService.NavigateBack();
+
+                if (!string.IsNullOrEmpty(newPath))
+                {
+                    Publish(new PathChangedMessage(newPath, pane, oldPath));
+                    _onNavigateCallback?.Invoke(newPath);
+                }
+            }
+            else
+            {
+                // 副面板的后退逻辑通常由 PaneViewModel 内部处理，
+                // 如果需要通过此模块统一路由，则应调用协频器或发送特定消息。
+                // 暂时保持现状，避免破坏现有的 PaneViewModel 自主导航。
             }
             UpdateCommandStates();
         }
 
         private void OnNavigateForward(NavigateForwardMessage message)
         {
-            var oldPath = _navigationService.CurrentPath;
-            var newPath = _navigationService.NavigateForward();
+            var pane = message.Pane ?? _activePaneResolver?.Invoke() ?? PaneId.Main;
 
-            if (!string.IsNullOrEmpty(newPath))
+            if (pane == PaneId.Main)
             {
-                Publish(new PathChangedMessage(newPath, PaneId.Main, oldPath));
-                _onNavigateCallback?.Invoke(newPath);
+                var oldPath = _navigationService.CurrentPath;
+                var newPath = _navigationService.NavigateForward();
+
+                if (!string.IsNullOrEmpty(newPath))
+                {
+                    Publish(new PathChangedMessage(newPath, pane, oldPath));
+                    _onNavigateCallback?.Invoke(newPath);
+                }
             }
             UpdateCommandStates();
         }
 
         private void OnNavigateUp(NavigateUpMessage message)
         {
-            var oldPath = _navigationService.CurrentPath;
-            var parentPath = _navigationService.NavigateUp();
+            var pane = message.Pane ?? _activePaneResolver?.Invoke() ?? PaneId.Main;
 
-            if (!string.IsNullOrEmpty(parentPath))
+            if (pane == PaneId.Main)
             {
-                Publish(new PathChangedMessage(parentPath, PaneId.Main, oldPath));
-                _onNavigateCallback?.Invoke(parentPath);
+                var oldPath = _navigationService.CurrentPath;
+                var parentPath = _navigationService.NavigateUp();
+
+                if (!string.IsNullOrEmpty(parentPath))
+                {
+                    Publish(new PathChangedMessage(parentPath, pane, oldPath));
+                    _onNavigateCallback?.Invoke(parentPath);
+                }
             }
             UpdateCommandStates();
         }
@@ -240,6 +268,8 @@ namespace YiboFile.ViewModels.Modules
             // 获取当前 Active 的 Pane (默认为 Main)
             var pane = _activePaneResolver?.Invoke() ?? PaneId.Main;
 
+            System.Diagnostics.Debug.WriteLine($"[NAV-DEBUG] NavigationModule: NavigateTo('{path}') requested for {pane}");
+
             // 委托给 NavigationCoordinator 处理
             // 协调器包含 Rule 2: Deduplication (排重检测) 和 Rule 3: Type Reuse (类型复用)
             _navigationCoordinator.HandlePathNavigation(
@@ -260,6 +290,7 @@ namespace YiboFile.ViewModels.Modules
         /// </summary>
         public void NavigateBack()
         {
+            System.Diagnostics.Debug.WriteLine("[NAV-DEBUG] NavigationModule: NavigateBack triggered");
             Publish(new NavigateBackMessage());
         }
 
@@ -268,6 +299,7 @@ namespace YiboFile.ViewModels.Modules
         /// </summary>
         public void NavigateForward()
         {
+            System.Diagnostics.Debug.WriteLine("[NAV-DEBUG] NavigationModule: NavigateForward triggered");
             Publish(new NavigateForwardMessage());
         }
 

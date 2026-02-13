@@ -66,6 +66,31 @@ namespace YiboFile.Services.Tabs
         public void CreatePathTab(string path, bool forceNewTab = false, bool skipValidation = false, bool activate = true)
         {
             EnsureUi();
+            if (string.IsNullOrEmpty(path)) return;
+
+            // Detect virtual protocols and delegate to specialized methods
+            if (path.StartsWith("tag://", StringComparison.OrdinalIgnoreCase))
+            {
+                CreateTagTab(path.Substring(6), forceNewTab, activate);
+                return;
+            }
+            if (path.StartsWith("lib://", StringComparison.OrdinalIgnoreCase))
+            {
+                // 解析库名称并在专门的库标签页中打开
+                string libraryName = path.Substring(6);
+                // 这里我们假设可以通过名称找到库，或者直接创建一个临时的库标签项
+                // 实际项目中可能需要 LibraryService 配合。
+                // 现有的 OpenLibraryTab 接受 Library 对象，所以我们需要先获取库对象。
+                // 如果库对象不方便获取，我们可以先按路径模式创建但显式指定类型。
+                CreateLibraryTabByName(libraryName, forceNewTab, activate);
+                return;
+            }
+            if (path.StartsWith("search://", StringComparison.OrdinalIgnoreCase) || path.StartsWith("content://", StringComparison.OrdinalIgnoreCase))
+            {
+                CreateSearchTab(path, forceNewTab, activate);
+                return;
+            }
+
             if (!skipValidation && !ValidatePath(path, out string errorMessage))
             {
                 YiboFile.DialogService.Warning(errorMessage);
@@ -75,7 +100,7 @@ namespace YiboFile.Services.Tabs
             if (!forceNewTab)
             {
                 var existingTab = FindTabByPath(path);
-                if (existingTab != null)
+                if (existingTab != null && existingTab.Type == TabType.Path)
                 {
                     if (activate) SwitchToTab(existingTab);
                     return;
@@ -87,6 +112,90 @@ namespace YiboFile.Services.Tabs
                 Type = TabType.Path,
                 Path = path,
                 Title = CalculateTabDisplayTitle(path)
+            };
+
+            CreateTabInternal(newTab, activate);
+        }
+
+        public void CreateTagTab(string tagName, bool forceNewTab = false, bool activate = true)
+        {
+            EnsureUi();
+            if (string.IsNullOrEmpty(tagName)) return;
+
+            string path = $"tag://{tagName}";
+
+            if (!forceNewTab)
+            {
+                // Isomorphic reuse: Find existing Tag tab
+                var existingTab = _tabs.FirstOrDefault(t => t.Type == TabType.Tag && string.Equals(t.Path, path, StringComparison.OrdinalIgnoreCase));
+                if (existingTab != null)
+                {
+                    if (activate) SwitchToTab(existingTab);
+                    return;
+                }
+            }
+
+            var newTab = new PathTab
+            {
+                Type = TabType.Tag,
+                Path = path,
+                Title = tagName
+            };
+
+            CreateTabInternal(newTab, activate);
+        }
+
+        public void CreateSearchTab(string searchPath, bool forceNewTab = false, bool activate = true)
+        {
+            EnsureUi();
+            if (string.IsNullOrEmpty(searchPath)) return;
+
+            if (!forceNewTab)
+            {
+                var existingTab = _tabs.FirstOrDefault(t => t.Type == TabType.Search && string.Equals(t.Path, searchPath, StringComparison.OrdinalIgnoreCase));
+                if (existingTab != null)
+                {
+                    if (activate) SwitchToTab(existingTab);
+                    return;
+                }
+            }
+
+            string title = "搜索结果";
+            if (searchPath.StartsWith("search://", StringComparison.OrdinalIgnoreCase)) title = "搜索: " + searchPath.Substring(9);
+            else if (searchPath.StartsWith("content://", StringComparison.OrdinalIgnoreCase)) title = "内容: " + searchPath.Substring(10);
+
+            var newTab = new PathTab
+            {
+                Type = TabType.Search,
+                Path = searchPath,
+                Title = title
+            };
+
+            CreateTabInternal(newTab, activate);
+        }
+
+        public void CreateLibraryTabByName(string libraryName, bool forceNewTab = false, bool activate = true)
+        {
+            EnsureUi();
+            if (string.IsNullOrEmpty(libraryName)) return;
+
+            string path = $"lib://{libraryName}";
+
+            if (!forceNewTab)
+            {
+                var existingTab = _tabs.FirstOrDefault(t => t.Type == TabType.Library && string.Equals(t.Path, path, StringComparison.OrdinalIgnoreCase));
+                if (existingTab != null)
+                {
+                    if (activate) SwitchToTab(existingTab);
+                    return;
+                }
+            }
+
+            var newTab = new PathTab
+            {
+                Type = TabType.Library,
+                Path = path,
+                Title = libraryName
             };
 
             CreateTabInternal(newTab, activate);
@@ -161,7 +270,7 @@ namespace YiboFile.Services.Tabs
                 return;
             }
 
-            _tabs.Remove(tab);
+            RemoveTab(tab); // Ensure TabRemoved event is fired)
             if (tab.IsActive)
             {
                 var nextTab = _tabs.LastOrDefault();

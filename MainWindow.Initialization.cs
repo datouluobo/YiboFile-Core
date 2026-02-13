@@ -159,15 +159,18 @@ namespace YiboFile
                 }
             }
 
-            // 订阅 FileBrowser 事件
             if (FileBrowser != null)
             {
-                FileBrowser.InfoHeightChanged += FileBrowser_InfoHeightChanged;
-                FileBrowser.ViewModeChanged += FileBrowser_ViewModeChanged;
-
                 // [FIX] 显式绑定路径变更事件，确保主面板导航正确
                 FileBrowser.PathChanged += (s, path) => NavigateToPath(path, Services.Navigation.PaneId.Main);
                 FileBrowser.BreadcrumbClicked += (s, path) => NavigateToPath(path, Services.Navigation.PaneId.Main);
+            }
+
+            if (SecondFileBrowser != null)
+            {
+                // [FIX] 显式绑定路径变更事件，确保副面板导航正确
+                SecondFileBrowser.PathChanged += (s, path) => NavigateToPath(path, Services.Navigation.PaneId.Second);
+                SecondFileBrowser.BreadcrumbClicked += (s, path) => NavigateToPath(path, Services.Navigation.PaneId.Second);
             }
 
 

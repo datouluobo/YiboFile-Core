@@ -63,6 +63,11 @@ namespace YiboFile.Controls
             });
             */
 
+            /* 
+             * 移除 LayoutModeChangedMessage 的事件桥接
+             * 原因：MainWindow 可能监听这些事件并重新发布 Request 消息，导致死循环。
+             * 现代架构中，UI 更新应由 LayoutEventHandler 处理，不再依赖这些事件。
+            
             messageBus.Subscribe<LayoutModeChangedMessage>(msg =>
             {
                 switch (msg.Mode)
@@ -83,6 +88,7 @@ namespace YiboFile.Controls
             {
                 DualListToggleRequested?.Invoke(this, EventArgs.Empty);
             });
+            */
 
             messageBus.Subscribe<ShowSettingsMessage>(msg =>
             {

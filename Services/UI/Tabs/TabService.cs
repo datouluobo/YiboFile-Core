@@ -68,7 +68,7 @@ namespace YiboFile.Services.Tabs
 
         public string GetTabKey(PathTab tab)
         {
-            return tab?.Path ?? string.Empty;
+            return tab?.Path != null ? NormalizePath(tab.Path) : string.Empty;
         }
 
         public PathTab FindTabByPath(string path)
@@ -98,38 +98,59 @@ namespace YiboFile.Services.Tabs
             if (string.IsNullOrWhiteSpace(path)) return string.Empty;
             try
             {
-                // 简单标准化：去除末尾斜杠 (除非是根目录如 C:\)，统一小写
-                // 但为了更稳健，我们尽量补全根目录斜杠
-                // 例如 "C:" -> "C:\"
-
                 var trimmed = path.Trim();
 
-                // 处理盘符特殊情况 "C:" => "C:\"
-                if (trimmed.Length == 2 && trimmed[1] == ':')
+                // Handle virtual paths (lib://, tag://, etc.) - Restore original behavior
+                if (trimmed.StartsWith("lib://", StringComparison.OrdinalIgnoreCase) ||
+                    trimmed.StartsWith("tag://", StringComparison.OrdinalIgnoreCase) ||
+                    trimmed.StartsWith("search://", StringComparison.OrdinalIgnoreCase) ||
+                    trimmed.StartsWith("content://", StringComparison.OrdinalIgnoreCase))
+                {
+                    return trimmed.ToLowerInvariant();
+                }
+
+                // Handle file:// URI scheme
+                if (trimmed.StartsWith("file:///", StringComparison.OrdinalIgnoreCase))
+                {
+                    trimmed = trimmed.Substring(8);
+                }
+                else if (trimmed.StartsWith("file://", StringComparison.OrdinalIgnoreCase))
+                {
+                    trimmed = trimmed.Substring(7);
+                }
+
+                // Handle simple drive letter "C:" -> "C:\"
+                if (trimmed.Length == 2 && trimmed[1] == ':' && char.IsLetter(trimmed[0]))
                 {
                     return trimmed.ToUpperInvariant() + "\\";
                 }
 
-                // 统一分隔符
+                // Unify separators
                 trimmed = trimmed.Replace('/', '\\');
 
-                // 去除末尾斜杠 (如果不是 "C:\" 格式)
+                // Trim trailing slash (unless it is a root drive "C:\")
                 if (trimmed.Length > 3 && trimmed.EndsWith("\\"))
                 {
                     trimmed = trimmed.Substring(0, trimmed.Length - 1);
                 }
 
-                // 如果是 "C:\" 格式，保持原样（但大写盘符）
-                if (trimmed.Length == 3 && trimmed.EndsWith(":\\"))
+                // Normalize drive letter casing for root paths "c:\" -> "C:\"
+                if (trimmed.Length == 3 && trimmed.EndsWith(":\\") && char.IsLetter(trimmed[0]))
                 {
                     return trimmed.ToUpperInvariant();
+                }
+
+                // For longer paths, ensure drive letter is uppercase for consistency
+                if (trimmed.Length > 3 && trimmed.Length >= 2 && trimmed[1] == ':' && char.IsLetter(trimmed[0]))
+                {
+                    return char.ToUpperInvariant(trimmed[0]) + trimmed.Substring(1);
                 }
 
                 return trimmed;
             }
             catch
             {
-                return path;
+                return path?.Trim() ?? string.Empty;
             }
         }
 
@@ -182,12 +203,33 @@ namespace YiboFile.Services.Tabs
         private bool _isUpdatingPath = false;
         public void UpdateActiveTabPath(string newPath)
         {
-            if (_activeTab != null && _activeTab.Type == TabType.Path && !_isUpdatingPath)
+            if (_activeTab != null && !_isUpdatingPath)
             {
+                // 如果是固定标签页，原则上不应通过普通导航改变其路径，但在内部跳转时保持同步
                 try
                 {
                     _isUpdatingPath = true;
                     _activeTab.Path = newPath;
+
+                    // [关键修复] 根据新路径自动同步标签页类型，防止类型滞后导致的错误复用
+                    if (newPath.StartsWith("tag://", StringComparison.OrdinalIgnoreCase))
+                    {
+                        _activeTab.Type = TabType.Tag;
+                    }
+                    else if (newPath.StartsWith("search://", StringComparison.OrdinalIgnoreCase) || newPath.StartsWith("content://", StringComparison.OrdinalIgnoreCase))
+                    {
+                        _activeTab.Type = TabType.Search;
+                    }
+                    else if (newPath.StartsWith("lib://", StringComparison.OrdinalIgnoreCase))
+                    {
+                        _activeTab.Type = TabType.Library;
+                    }
+                    else
+                    {
+                        // 普通物理路径
+                        _activeTab.Type = TabType.Path;
+                    }
+
                     UpdateTabTitle(_activeTab, newPath);
                 }
                 finally

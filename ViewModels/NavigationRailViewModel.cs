@@ -20,9 +20,21 @@ namespace YiboFile.ViewModels
             _messageBus = messageBus;
 
             // ✅ 命令仅发布请求消息，不处理业务逻辑
-            NavigateToPathCommand = new RelayCommand(() => _messageBus.Publish(new RequestNavigationModeMessage("Path")));
-            NavigateToLibraryCommand = new RelayCommand(() => _messageBus.Publish(new RequestNavigationModeMessage("Library")));
-            NavigateToTagCommand = new RelayCommand(() => _messageBus.Publish(new RequestNavigationModeMessage("Tag")));
+            NavigateToPathCommand = new RelayCommand(() =>
+            {
+                System.Diagnostics.Debug.WriteLine("[NAV-DEBUG] NavigationRail: User clicked 'Path' rail button");
+                _messageBus.Publish(new RequestNavigationModeMessage("Path"));
+            });
+            NavigateToLibraryCommand = new RelayCommand(() =>
+            {
+                System.Diagnostics.Debug.WriteLine("[NAV-DEBUG] NavigationRail: User clicked 'Library' rail button");
+                _messageBus.Publish(new RequestNavigationModeMessage("Library"));
+            });
+            NavigateToTagCommand = new RelayCommand(() =>
+            {
+                System.Diagnostics.Debug.WriteLine("[NAV-DEBUG] NavigationRail: User clicked 'Tag' rail button");
+                _messageBus.Publish(new RequestNavigationModeMessage("Tag"));
+            });
             NavigateToTasksCommand = new RelayCommand(() => _messageBus.Publish(new RequestNavigationModeMessage("Tasks")));
             NavigateToBackupCommand = new RelayCommand(() => _messageBus.Publish(new RequestNavigationModeMessage("Backup")));
             NavigateToClipboardCommand = new RelayCommand(() => _messageBus.Publish(new RequestNavigationModeMessage("Clipboard")));

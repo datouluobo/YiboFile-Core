@@ -50,17 +50,21 @@ namespace YiboFile
                 this.Dispatcher.Invoke(() => HighlightMatchingLibrary(msg.Library));
             });
 
-            // 6. 导航请求 (用于跨组件触发导航)
+            // 6. 导航请求 (已废弃 - 改由各 PaneViewModel 独立响应其归属的导航消息)
+            /*
             _messageBus.Subscribe<NavigateToPathMessage>(msg =>
             {
                 this.Dispatcher.Invoke(() => NavigateToPath(msg.Path, PaneId.Main));
             });
+            */
 
-            // 7. 库导航请求
+            // 7. 库导航请求 - 已废弃，改由 PaneViewModel 监听 LibrarySelectedMessage 直接处理
+            /*
             _messageBus.Subscribe<NavigateToLibraryMessage>(msg =>
             {
                 this.Dispatcher.Invoke(() => NavigateToLibrary(msg.Library, msg.Pane));
             });
+            */
 
             // 8. 焦点面板变更 (同步逻辑焦点)
             _messageBus.Subscribe<FocusedPaneChangedMessage>(msg =>

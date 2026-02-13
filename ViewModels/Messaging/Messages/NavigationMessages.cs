@@ -54,17 +54,17 @@ namespace YiboFile.ViewModels.Messaging.Messages
     /// <summary>
     /// 请求后退
     /// </summary>
-    public record NavigateBackMessage();
+    public record NavigateBackMessage(PaneId? Pane = null);
 
     /// <summary>
     /// 请求前进
     /// </summary>
-    public record NavigateForwardMessage();
+    public record NavigateForwardMessage(PaneId? Pane = null);
 
     /// <summary>
     /// 请求向上导航
     /// </summary>
-    public record NavigateUpMessage();
+    public record NavigateUpMessage(PaneId? Pane = null);
 
     /// <summary>
     /// 请求导航到指定库

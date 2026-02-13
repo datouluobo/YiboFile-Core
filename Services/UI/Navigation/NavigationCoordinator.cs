@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
@@ -80,20 +81,25 @@ namespace YiboFile.Services.Navigation
             var tabService = request.Pane == PaneId.Second ? _secondTabService : _mainTabService;
             if (tabService == null) return;
 
+            System.Diagnostics.Debug.WriteLine($"[NAV-DEBUG] NavigationCoordinator: NavigateAsync called. Type={request.Target.Type}, Pane={request.Pane}, Path='{request.Target.Path}'");
+
             switch (request.Target.Type)
             {
                 case NavigationTargetType.Path:
+                    System.Diagnostics.Debug.WriteLine($"[NAV-DEBUG] NavigationCoordinator: Routing to HandlePathRequest");
                     await HandlePathRequest(request, tabService);
                     break;
                 case NavigationTargetType.Library:
+                    System.Diagnostics.Debug.WriteLine($"[NAV-DEBUG] NavigationCoordinator: Routing to HandleLibraryRequest (Library: {request.Target.Library?.Name})");
                     HandleLibraryRequest(request, tabService);
                     break;
                 case NavigationTargetType.Tag:
+                    System.Diagnostics.Debug.WriteLine($"[NAV-DEBUG] NavigationCoordinator: Routing to HandleTagRequest (Tag: {request.Target.TagName})");
                     await HandleTagRequest(request, tabService);
                     break;
                 case NavigationTargetType.Search:
-                    // TODO: Implement HandleSearchRequest
-                    await HandlePathRequest(request, tabService);
+                    System.Diagnostics.Debug.WriteLine($"[NAV-DEBUG] NavigationCoordinator: Routing to HandleSearchRequest (Keyword: {request.Target.SearchKeyword})");
+                    await HandleSearchRequest(request, tabService);
                     break;
             }
 
@@ -135,8 +141,19 @@ namespace YiboFile.Services.Navigation
             }
 
             // Rule 3: Type Consistency Reuse (类型一致性复用)
-            // 如果当前标签页是路径类型，且未要求强制新建，则复用
-            if (!request.ForceNewTab && tabService.ActiveTab != null && tabService.ActiveTab.Type == TabType.Path)
+            // 只有当目标类型与当前标签页类型完全一致时才复用（同构复用）
+            var targetType = request.Target.Type;
+            // 兼容性处理：如果 Target 类型是 Path 但路径是 tag:// / search://，则推断其实际类型
+            if (targetType == NavigationTargetType.Path)
+            {
+                if (path != null)
+                {
+                    if (path.StartsWith("tag://")) targetType = NavigationTargetType.Tag;
+                    else if (path.StartsWith("search://") || path.StartsWith("content://")) targetType = NavigationTargetType.Search;
+                }
+            }
+
+            if (!request.ForceNewTab && tabService.ActiveTab != null && (int)tabService.ActiveTab.Type == (int)targetType)
             {
                 await ExecuteNavigationInViewModel(vm, path, request.Pane, request.Source, tabService);
                 return;
@@ -295,17 +312,49 @@ namespace YiboFile.Services.Navigation
 
             var tagPath = $"tag://{tagName}";
 
-            // 标签导航逻辑与路径导航对齐：支持在当前标签页打开
-            var modifiedRequest = new NavigationRequest
+            // 优先检查面板中是否已有相同的标签页
+            var existingTab = tabService.Tabs.FirstOrDefault(t => t.Type == TabType.Tag && string.Equals(t.Path, tagPath, StringComparison.OrdinalIgnoreCase));
+            if (existingTab != null && !request.ForceNewTab)
             {
-                Target = NavigationTarget.FromPath(tagPath),
-                Pane = request.Pane,
-                ForceNewTab = request.ForceNewTab,
-                Activate = request.Activate,
-                Source = request.Source ?? "Tag"
-            };
+                if (request.Activate) tabService.SetActiveTab(existingTab);
+                return;
+            }
 
-            await HandlePathRequest(modifiedRequest, tabService);
+            // 同构复用：如果当前标签页是 Tag 类型，则直接更新它
+            if (!request.ForceNewTab && tabService.ActiveTab != null && tabService.ActiveTab.Type == TabType.Tag)
+            {
+                var vm = _paneViewModelResolver?.Invoke(request.Pane);
+                await ExecuteNavigationInViewModel(vm, tagPath, request.Pane, request.Source ?? "Tag sidebar", tabService);
+                return;
+            }
+
+            // 否则创建新标签页
+            tabService.CreateTagTab(tagName, forceNewTab: true, activate: request.Activate);
+        }
+
+        private async Task HandleSearchRequest(NavigationRequest request, TabService tabService)
+        {
+            var searchPath = request.Target.Path;
+            if (string.IsNullOrEmpty(searchPath)) return;
+
+            // 优先检查面板中是否已有相同的标签页
+            var existingTab = tabService.Tabs.FirstOrDefault(t => t.Type == TabType.Search && string.Equals(t.Path, searchPath, StringComparison.OrdinalIgnoreCase));
+            if (existingTab != null && !request.ForceNewTab)
+            {
+                if (request.Activate) tabService.SetActiveTab(existingTab);
+                return;
+            }
+
+            // 同构复用：如果当前标签页是 Search 类型，则直接更新它
+            if (!request.ForceNewTab && tabService.ActiveTab != null && tabService.ActiveTab.Type == TabType.Search)
+            {
+                var vm = _paneViewModelResolver?.Invoke(request.Pane);
+                await ExecuteNavigationInViewModel(vm, searchPath, request.Pane, request.Source ?? "Search", tabService);
+                return;
+            }
+
+            // 否则创建新标签页
+            tabService.CreateSearchTab(searchPath, forceNewTab: true, activate: request.Activate);
         }
     }
 }

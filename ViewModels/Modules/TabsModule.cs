@@ -23,6 +23,7 @@ namespace YiboFile.ViewModels.Modules
         private readonly Func<bool> _isSecondPaneFocused;
         private readonly Action<string, bool> _onCreateTabCallback;
         private readonly Action<string> _onSwitchTabCallback;
+        private bool _isSuppressingNavigation = false; // 仅保留用于 OnPathChanged 内部递归抑制
 
         public override string Name => "Tabs";
 
@@ -86,19 +87,18 @@ namespace YiboFile.ViewModels.Modules
                 // 判断归属 Pane
                 var pane = (sender == _secondTabService) ? PaneId.Second : PaneId.Main;
 
-                // 核心：发布导航消息以更新文件列表和地址栏 (SSOT)
-                if (!string.IsNullOrEmpty(tab.Path))
+                System.Diagnostics.Debug.WriteLine($"[NAV-DEBUG] TabsModule ({pane}): Active tab changed to '{(tab.Title ?? "Untitled")}' with path '{(tab.Path ?? "null")}'. Suppressing={_isSuppressingNavigation}");
+
+                // [SSOT 关键修正] 
+                // 1. 如果我们正在执行 OnPathChanged（_isSuppressingNavigation == true），绝对不能反向发消息，否则会死循环。
+                // 2. 如果不是处于同步中，则必须发布消息，哪怕是在程序启动时。
+                if (!_isSuppressingNavigation && !string.IsNullOrEmpty(tab.Path))
                 {
-                    // 统一发布 NavigateToPathMessage，PaneViewModel 会解析协议 (lib://, tag://, search://)
-                    // 并同步更新自己的 NavigationMode, CurrentLibrary, CurrentTag
+                    System.Diagnostics.Debug.WriteLine($"[NAV-DEBUG] TabsModule ({pane}): Publishing NavigateToPathMessage for '{tab.Path}'");
                     Publish(new NavigateToPathMessage(tab.Path, AddToHistory: false, Pane: pane));
                 }
 
-                // 对于库，额外发送消息同步侧边栏选中状态 (如果不是通过 side bar 触发的)
-                if (tab.Type == TabType.Library && tab.Library != null)
-                {
-                    Publish(new LibrarySelectedMessage(tab.Library, pane));
-                }
+
                 // 对于标签，额外发送消息同步侧边栏选中状态
                 else if (tab.Type == TabType.Tag && tab.Path?.StartsWith("tag://") == true)
                 {
@@ -188,20 +188,28 @@ namespace YiboFile.ViewModels.Modules
 
         private void OnPathChanged(PathChangedMessage message)
         {
-            // [SSOT 关键修复] 根据消息中的 Pane 标识更新对应的 TabService
-            // 解决双面板模式下，点击左侧导航导致两侧面板同时发生路径变更的同步 Bug
+            // [SSOT 关键修正] 取消此处的强制抑制标志，改为由各事件处理器内部判断。
+            // 之前的强制抑制导致了启动时（第一次同步）无法触发文件列表加载。
+
+            // 根据消息中的 Pane 标识更新对应的 TabService
             var targetService = (message.Pane == PaneId.Second) ? _secondTabService : _tabService;
             if (targetService == null) return;
 
-            // 更新对应业务服务的当前标签页路径
-            targetService.UpdateActiveTabPath(message.NewPath);
-
-            // 发布标签页路径更新通知 (用于同步地址栏等 UI 组件)
             var activeTab = targetService.ActiveTab;
-            if (activeTab != null)
+
+            // 如果新路径与当前标签页类型兼容，则直接同步路径
+            if (activeTab != null && IsTabCompatibleWithPath(activeTab.Type, message.NewPath))
             {
-                // 使用 Path 作为标签页的唯一标识
+                targetService.UpdateActiveTabPath(message.NewPath);
                 Publish(new TabPathUpdatedMessage(activeTab.Path ?? "", message.NewPath));
+            }
+            else
+            {
+                // [语义隔离] 类型不兼容或无当前页
+                if (message.Pane == PaneId.Second)
+                    CreateTab(message.NewPath, forceNewTab: false, activate: true, targetPane: PaneId.Second);
+                else
+                    CreateTab(message.NewPath, forceNewTab: false, activate: true, targetPane: PaneId.Main);
             }
         }
 
@@ -335,18 +343,19 @@ namespace YiboFile.ViewModels.Modules
             }
 
             var activeTab = _tabService?.ActiveTab;
-            // 规则1：同类型标签页直接更新
-            if (activeTab != null && activeTab.Type == TabType.Path)
+            // 规则1：同构智能复用
+            // 只有当当前标签页类型与目标路径协议兼容时，才允许原地复用。
+            // 例如：Path 标签页不能被 lib:// 导航直接复用（应由 Coordinator 决策是开新页还是找现有库页）
+            if (activeTab != null && IsTabCompatibleWithPath(activeTab.Type, path))
             {
-                // 先更新标题，确保标签页显示同步
+                // 更新路径和类型，确保标签页显示同步
                 _tabService?.UpdateActiveTabPath(path);
-                activeTab.Path = path;
                 onReuseCurrent?.Invoke();
                 return;
             }
 
-            // 规则2：查找最近访问的相同Path标签页（使用配置时间窗口）
-            var recentTab = _tabService?.FindRecentTab(t => t.Type == TabType.Path && string.Equals(t.Path, path, StringComparison.OrdinalIgnoreCase), TimeSpan.FromSeconds(10));
+            // 规则2：查找最近访问的相同Path标签页
+            var recentTab = _tabService?.FindRecentTab(t => IsTabCompatibleWithPath(t.Type, path) && string.Equals(t.Path, path, StringComparison.OrdinalIgnoreCase), TimeSpan.FromSeconds(10));
 
             if (recentTab != null)
             {
@@ -358,6 +367,18 @@ namespace YiboFile.ViewModels.Modules
                 // 没有找到或不够新鲜，创建新标签页
                 CreateTab(path);
             }
+        }
+
+        private bool IsTabCompatibleWithPath(TabType type, string path)
+        {
+            if (string.IsNullOrEmpty(path)) return false;
+
+            if (path.StartsWith("lib://", StringComparison.OrdinalIgnoreCase)) return type == TabType.Library;
+            if (path.StartsWith("tag://", StringComparison.OrdinalIgnoreCase)) return type == TabType.Tag;
+            if (path.StartsWith("search://", StringComparison.OrdinalIgnoreCase) || path.StartsWith("content://", StringComparison.OrdinalIgnoreCase)) return type == TabType.Search;
+
+            // 物理路径
+            return type == TabType.Path;
         }
 
         #endregion
