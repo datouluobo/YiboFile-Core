@@ -25,6 +25,10 @@ namespace YiboFile.Controllers
             _messageBus.Subscribe<RequestNavigationModeMessage>(OnNavigationModeRequested);
             _messageBus.Subscribe<RequestLayoutModeMessage>(OnLayoutModeRequested);
             _messageBus.Subscribe<RequestDualListToggleMessage>(OnDualListToggleRequested);
+
+            // 监听来自 LayoutModule 的状态变更通知以同步 VM
+            _messageBus.Subscribe<LayoutModeChangedMessage>(m => _viewModel.ActiveLayoutMode = m.Mode);
+            _messageBus.Subscribe<DualListModeChangedMessage>(m => _viewModel.IsDualListMode = m.IsEnabled);
         }
 
         /// <summary>
@@ -76,10 +80,10 @@ namespace YiboFile.Controllers
             // ✅ Controller 更新 ViewModel 状态
             _viewModel.ActiveLayoutMode = message.Mode;
 
-            // ✅ 发布状态变更通知
-            _messageBus.Publish(new LayoutModeChangedMessage(message.Mode));
+            // ❌ 不再发布 LayoutModeChangedMessage，因为 LayoutModule 已经处理并发布了
+            // _messageBus.Publish(new LayoutModeChangedMessage(message.Mode));
 
-            System.Diagnostics.Debug.WriteLine($"[NavigationRailCoordinator] Layout mode changed to: {message.Mode}");
+            System.Diagnostics.Debug.WriteLine($"[NavigationRailCoordinator] Layout mode updated in VM: {message.Mode}");
         }
 
         /// <summary>
@@ -93,10 +97,10 @@ namespace YiboFile.Controllers
             // ✅ Controller 更新 ViewModel 状态
             _viewModel.IsDualListMode = newState;
 
-            // ✅ 发布状态变更通知
-            _messageBus.Publish(new DualListModeToggledMessage(newState));
+            // ❌ 不再发布 DualListModeToggledMessage，因为 LayoutModule 已经处理并发布了
+            // _messageBus.Publish(new DualListModeToggledMessage(newState));
 
-            System.Diagnostics.Debug.WriteLine($"[NavigationRailCoordinator] Dual list mode toggled to: {newState}");
+            System.Diagnostics.Debug.WriteLine($"[NavigationRailCoordinator] Dual list mode toggled in VM: {newState}");
         }
 
         #region 业务规则验证
