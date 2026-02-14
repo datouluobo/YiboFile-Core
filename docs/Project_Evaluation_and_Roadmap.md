@@ -1,6 +1,6 @@
 # YiboFile 项目评估与重构路线图
 
-> **当前版本**: v1.0.450 (架构调整阶段) | **更新日期**: 2026-02-14  
+> **当前版本**: v1.0.460 (混合架构重构完成) | **更新日期**: 2026-02-14  
 > **下一版本**: v1.1.0 (目标：Core 完全解耦)  
 
 ---
@@ -35,7 +35,7 @@
 |------|------|----------|--------|
 | **Phase 1: Code-Behind** | v0.x | WinForms 风格，所有逻辑在 `MainWindow.xaml.cs` | ✅ 历史阶段 |
 | **Phase 2: Partial MVVM** | v1.0.1 - v1.0.330 | 引入 `PaneViewModel`，部分功能命令化 | ✅ 90% 完成 |
-| **Phase 3: 混合架构** | **v1.0.430 (当前)** | **架构调整阶段** - 控制器驱动 VM + 消息总线副作用 + 对话框修复 | 🟡 85% 完成 |
+| **Phase 3: 混合架构** | **v1.0.460 (当前)** | **架构重构完成** - 控制器驱动 VM + 消息总线副作用 + 对话框修复 | 🟡 95% 完成 |
 | **Phase 3.5: Core 解耦** | **v1.1.0 (目标)** | MainWindow 上帝类完全解构，模块化重构完成 | ⏳ 规划中 |
 | **Phase 4: 全模块化** | v2.0+ | 所有功能插件化，支持 Pro/Ultra 动态扩展 | ⏳ 规划中 |
 
@@ -304,6 +304,7 @@ Controller-driven 场景：
 | **BUG-007** | Sorting | 文件名排序导致列表变空 | `CollectionView` 与 `ObservableCollection` 同步冲突 | 使用 `BindingOperations.EnableCollectionSynchronization` | ⏳ 待修复 |
 | **BUG-008** | Header | 列头点击误触发双击响应 | 事件冒泡未正确拦截 | 在 `GridViewColumnHeader_Click` 中设置 `e.Handled = true` | ✅ 已修复 |
 | **BUG-009** | Tabs/Nav | 双面板标签页重复打开 | 副面板打开标签时主面板同步创建重复标签 | 需检查 `MainWindow` 事件绑定或 `TabsModule` 的 `PaneId` 过滤逻辑 | ⏳ 待修复 |
+| **BUG-010** | UI/Overlay | 设置和关于页面无法打开 | 重构事件桥接后，设置按钮的点击请求未正确到达 Controller | 检查 `NavigationRail` 的按钮 Command 绑定与 `WindowOrchestrator` 的桥接 | ✅ 已修复 |
 
 ---
 
@@ -339,13 +340,15 @@ Controller-driven 场景：
 | **修复 Region 指令错误** | MainWindow.xaml.cs | +2 | 2026-02-14 |
 
 - **MainWindow 解构 (阶段 5)**: `已完成` (100%). `MainWindow.xaml.cs` 从 >2400 行减少到 <800 行。
-- **移除 MainWindow.LayoutMode.cs**: `已完成`。
-- **移除 MainWindow.Navigation.cs**: `已完成`。
-- **移除 MainWindow 包装方法**: `已完成`。
-- **清理 FileBrowserControl**: `已完成`。
-- **修复 NavigationCoordinator 初始化**: `已完成`。
-- **清理 XAML 事件绑定 (阶段 4)**: `已完成`。
-- **内存审计与优化 (阶段 6)**: `进行中` (80%). 已完成 `MainWindow.xaml.cs` 废弃引用清理。
+- **内存审计与优化 (阶段 6)**: `已完成` (100%).
+    - [x] 移除 `MainWindow.LayoutMode.cs`。
+    - [x] 移除 `MainWindow.Navigation.cs` 和 `MainWindow.MenuEvents.cs`。
+    - [x] 清理 `MainWindow.xaml.cs` 中的废弃事件处理 (`Undo_Click`, `Redo_Click` 等)。
+    - [x] 全面检查未使用的 `using` 引用。
+    - [x] 修复设置与关于页面无法打开的重绑逻辑 (BUG-010)。
+    - [x] 验证所有功能模块的集成测试。
+    - [x] 更新架构文档。
+- **预计剩余工作量**: 0小时
 
 **净效果**：
 *   代码总行数：-1500+ 行
@@ -428,14 +431,15 @@ Controller-driven 场景：
 
 ### 7.3 版本开发路线图
 
-#### v1.0.430 (Current) - 架构调整阶段
+#### v1.0.460 (Current) - 混合架构重构完成
 **Core 功能**：
 - ✅ 状态记忆修复（解决 JSON NaN 故障）
 - ✅ 基础文件管理（库、标签、备注、主题）
 - ✅ Everything 关键词搜索
 - ✅ 多标签页 + 双列表模式
 - ✅ 基础筛选与预览
-- 🟡 混合架构调整中
+- ✅ MainWindow 代码量减少 60%+
+- ✅ 混合架构落地 (Controller + MessageBus)
 
 **Pro 功能**：
 - ✅ 全文搜索服务 (FTS5)

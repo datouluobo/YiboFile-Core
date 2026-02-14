@@ -52,9 +52,7 @@ namespace YiboFile.Services.UI
                 _window.NavigationRail.Loaded += OnNavigationRailLoaded;
                 // NavigationModeChanged 现在通过 MVVM Command 直接发布消息，不再需要事件桥接
                 // _window.NavigationRail.NavigationModeChanged += OnRailNavigationModeChanged;
-
-                _window.NavigationRail.SettingsRequested += OnRailSettingsRequested;
-                _window.NavigationRail.AboutRequested += OnRailAboutRequested;
+                // Settings/About handled via ViewModel Command -> MessageBus -> Orchestrator
             }
 
             // 文件浏览器事件
@@ -109,10 +107,6 @@ namespace YiboFile.Services.UI
             if (_window.NavigationRail != null)
             {
                 _window.NavigationRail.Loaded -= OnNavigationRailLoaded;
-                // _window.NavigationRail.NavigationModeChanged -= OnRailNavigationModeChanged;
-
-                _window.NavigationRail.SettingsRequested -= OnRailSettingsRequested;
-                _window.NavigationRail.AboutRequested -= OnRailAboutRequested;
             }
 
             if (_window.FileBrowser != null)
@@ -228,8 +222,7 @@ namespace YiboFile.Services.UI
         }
 
 
-        private void OnRailSettingsRequested(object sender, EventArgs e) => _messageBus.Publish(new ShowSettingsMessage());
-        private void OnRailAboutRequested(object sender, EventArgs e) => _messageBus.Publish(new ShowAboutMessage());
+
 
         private void OnPrimaryViewModeChanged(object sender, string mode)
         {

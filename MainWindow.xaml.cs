@@ -2,7 +2,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-
 using System.Linq;
 using System.Diagnostics;
 using System.Threading.Tasks;
@@ -10,14 +9,12 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
-
 using System.Windows.Media;
-
 using System.Windows.Controls.Primitives;
-
 using System.ComponentModel;
-using YiboFile.Services;
+using System.Threading;
 
+using YiboFile.Services;
 using YiboFile.Services.Search;
 using YiboFile.Services.Navigation;
 using YiboFile.Services.FileOperations;
@@ -26,13 +23,12 @@ using YiboFile.Services.QuickAccess;
 using YiboFile.Services.FileList;
 using YiboFile.Services.Tabs;
 using YiboFile.Services.Orchestration;
-
-using Microsoft.Extensions.DependencyInjection;
-
 using YiboFile.Services.ColumnManagement;
 using YiboFile.Services.Config;
-using YiboFile.Handlers;
-using System.Threading;
+using YiboFile.Services.Features;
+using YiboFile.Services.Core.Error;
+
+using Microsoft.Extensions.DependencyInjection;
 
 using YiboFile.Models.Navigation;
 using YiboFile.Models.UI;
@@ -41,8 +37,7 @@ using YiboFile.ViewModels;
 using YiboFile.ViewModels.Messaging;
 using YiboFile.ViewModels.Messaging.Messages;
 using YiboFile.ViewModels.Modules;
-using YiboFile.Services.Features;
-using YiboFile.Services.Core.Error;
+using YiboFile.Handlers;
 
 namespace YiboFile
 {
@@ -51,6 +46,8 @@ namespace YiboFile
     /// </summary>
     public partial class MainWindow : System.Windows.Window
     {
+        #region 字段与属性
+
         // Core state delegating to ViewModel
         internal string _currentPath
         {
@@ -68,8 +65,6 @@ namespace YiboFile
             get => _viewModel?.ActivePane?.CurrentLibrary;
             set { if (_viewModel?.ActivePane != null) _viewModel.ActivePane.CurrentLibrary = value; }
         }
-        internal bool _isUpdatingTagSelection = false;
-
 
         // 统一导航协调器
         internal NavigationCoordinator _navigationCoordinator;
@@ -96,20 +91,6 @@ namespace YiboFile
         internal FavoriteService _favoriteService => _orchestrator?.FavoriteService;
         internal QuickAccessService _quickAccessService => _orchestrator?.QuickAccessService;
         internal FileListService _fileListService => _orchestrator?.FileListService;
-
-        public void RefreshFileList()
-        {
-            _viewModel?.PrimaryPane?.FileList?.RefreshFiles();
-        }
-
-        public void RefreshActiveFileList()
-        {
-            _viewModel?.ActivePane?.FileList?.RefreshFiles();
-        }
-
-
-
-
         internal FileListService _secondFileListService => _orchestrator?.SecondFileListService;
         internal SearchService _searchService => _orchestrator?.SearchService;
         internal SearchCacheService _searchCacheService => _orchestrator?.SearchCacheService;
@@ -131,10 +112,10 @@ namespace YiboFile
         /// </summary>
         public MainWindowViewModel ViewModel => _viewModel;
 
-        internal Services.Search.SearchOptions _searchOptions = new Services.Search.SearchOptions();
         internal bool _isSplitterDragging = false;
+        internal Services.Search.SearchOptions _searchOptions = new Services.Search.SearchOptions();
 
-        // NavigationPanelControl控件的便捷访问属性
+        // NavigationPanelControl 控件的便捷访问属性
         internal ListBox LibrariesListBox => NavigationPanelControl?.LibrariesListBoxControl;
         internal TreeView DrivesTreeView => NavigationPanelControl?.DrivesTreeViewControl;
         internal ListBox QuickAccessListBox => NavigationPanelControl?.QuickAccessListBoxControl;
@@ -143,9 +124,19 @@ namespace YiboFile
         internal Grid NavTagContent => NavigationPanelControl?.NavTagContentControl;
         internal ContextMenu LibraryContextMenu => NavigationPanelControl?.LibraryContextMenuControl;
 
-        // 定时器管理 - Restored fields
-        private List<DraggableButton> _currentActionButtons = new List<DraggableButton>();
-        private List<ActionItem> _actionItems = new List<ActionItem>(); // 保存按钮和分隔符的完整顺序
+        #endregion
+
+        #region 公共方法
+
+        public void RefreshFileList()
+        {
+            _viewModel?.PrimaryPane?.FileList?.RefreshFiles();
+        }
+
+        public void RefreshActiveFileList()
+        {
+            _viewModel?.ActivePane?.FileList?.RefreshFiles();
+        }
 
         internal void CloseOverlays()
         {
@@ -164,41 +155,15 @@ namespace YiboFile
             // 优先检查 ViewModel 状态，因为点击侧边栏会导致列表失去焦点，使 IsSecondPaneFocused 变得不可靠
             if (_viewModel?.ActivePane != null)
             {
-                // 使用属性判断而非引用判断，更稳健
                 return _viewModel.ActivePane.IsSecondary ? Services.Navigation.PaneId.Second : Services.Navigation.PaneId.Main;
             }
             // 降级使用 LayoutModule/UI 状态
             return (IsDualListMode && IsSecondPaneFocused) ? Services.Navigation.PaneId.Second : Services.Navigation.PaneId.Main;
         }
 
-        private void TitleBar_MouseDown(object sender, MouseButtonEventArgs e)
-        {
-            // 如果是在全屏覆盖层打开的情况下点击标题栏空白处，关闭覆盖层
-            if (SettingsOverlay != null && SettingsOverlay.Visibility == Visibility.Visible)
-            {
-                _settingsOverlayController?.Hide();
-            }
-            if (AboutOverlay != null && AboutOverlay.Visibility == Visibility.Visible)
-            {
-                AboutOverlay.Visibility = Visibility.Collapsed;
-            }
+        #endregion
 
-            // 双击最大化/还原
-            if (e.ClickCount == 2 && e.ChangedButton == MouseButton.Left)
-            {
-                if (WindowState == WindowState.Maximized)
-                    WindowState = WindowState.Normal;
-                else
-                    WindowState = WindowState.Maximized;
-                return;
-            }
-
-            // 支持通过拖动标题栏移动窗口
-            if (e.ChangedButton == MouseButton.Left)
-            {
-                try { this.DragMove(); } catch { }
-            }
-        }
+        #region 构造函数
 
         public MainWindow()
         {
@@ -270,13 +235,36 @@ namespace YiboFile
             _ = _orchestrator.InitializeAsync(this);
         }
 
-        #region Window Lifecycle Handlers (Delegates to WindowLifecycleHandler)
+        #endregion
 
-        internal void Back_Click_Logic()
+        #region 窗口生命周期 (Delegates to WindowLifecycleHandler)
+
+        private void TitleBar_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (_navigationService != null && _navigationService.CanNavigateBack)
+            // 如果是在全屏覆盖层打开的情况下点击标题栏空白处，关闭覆盖层
+            if (SettingsOverlay != null && SettingsOverlay.Visibility == Visibility.Visible)
             {
-                _navigationService.NavigateBack();
+                _settingsOverlayController?.Hide();
+            }
+            if (AboutOverlay != null && AboutOverlay.Visibility == Visibility.Visible)
+            {
+                AboutOverlay.Visibility = Visibility.Collapsed;
+            }
+
+            // 双击最大化/还原
+            if (e.ClickCount == 2 && e.ChangedButton == MouseButton.Left)
+            {
+                if (WindowState == WindowState.Maximized)
+                    WindowState = WindowState.Normal;
+                else
+                    WindowState = WindowState.Maximized;
+                return;
+            }
+
+            // 支持通过拖动标题栏移动窗口
+            if (e.ChangedButton == MouseButton.Left)
+            {
+                try { this.DragMove(); } catch { }
             }
         }
 
@@ -290,7 +278,6 @@ namespace YiboFile
         private void ListView_SizeChanged(object sender, SizeChangedEventArgs e) => _orchestrator.LifecycleHandler?.HandleListViewSizeChanged(e);
         private void WindowControlButtonsContainer_PreviewMouseDown(object sender, MouseButtonEventArgs e) => _orchestrator.LifecycleHandler?.HandleControlButtonsMouseDown(e, sender);
 
-        // These are helper methods called by XAML or other parts, delegating logic
         internal void AdjustListViewColumnWidths() => _orchestrator.LifecycleHandler?.HandleListViewSizeChanged(null);
         internal void AdjustColumnWidths() => _orchestrator.LifecycleHandler?.AdjustColumnWidths();
         internal void EnsureColumnMinWidths() => _orchestrator.LifecycleHandler?.EnsureColumnMinWidths();
@@ -298,23 +285,11 @@ namespace YiboFile
         internal void UpdateActionButtonsPosition() { /* Layout handled automatically */ }
         internal void UpdateSeparatorPosition() { /* Layout handled automatically */ }
 
-        private static IEnumerable<T> FindVisualChildren<T>(DependencyObject depObj) where T : DependencyObject
+        private void SettingsOverlay_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (depObj != null)
+            if (e.OriginalSource == sender)
             {
-                for (int i = 0; i < VisualTreeHelper.GetChildrenCount(depObj); i++)
-                {
-                    DependencyObject child = VisualTreeHelper.GetChild(depObj, i);
-                    if (child != null && child is T)
-                    {
-                        yield return (T)child;
-                    }
-
-                    foreach (T childOfChild in FindVisualChildren<T>(child))
-                    {
-                        yield return childOfChild;
-                    }
-                }
+                _orchestrator.SettingsController?.Hide();
             }
         }
 
@@ -328,19 +303,14 @@ namespace YiboFile
         public bool IsSecondPaneFocused => _layoutModule?.IsSecondPaneFocused ?? false;
 
         internal void SwitchLayoutModeByIndex(int index) => _layoutEventHandler?.SwitchLayoutModeByIndex(index);
-
         internal void SetDualListMode(bool enable) => _layoutEventHandler?.SetDualListMode(enable);
-
         internal void SwitchFocusedPane() => _layoutEventHandler?.SwitchFocusedPane();
         internal void SwitchFocusedPaneFromKeyboard() => _layoutEventHandler?.SwitchFocusedPaneFromKeyboard();
-
         internal void UpdateFocusBorders() => _layoutEventHandler?.UpdateFocusBorders();
-
         internal void UpdateTabManagerLayout() => _layoutEventHandler?.UpdateTabManagerLayout();
 
         // 仅供 WindowOrchestrator 调用，确保初始化顺序
         internal void AttachSecondTabServiceUiContext() => _layoutEventHandler?.AttachSecondTabServiceUiContext();
-
         internal void InitializeLayoutMode() => _layoutEventHandler?.Initialize();
 
         internal (Controls.FileBrowserControl browser, string path, Library library) GetActiveContext()
@@ -349,31 +319,13 @@ namespace YiboFile
             return (FileBrowser, _currentPath, _currentLibrary);
         }
 
-
         internal void NavigateSecondaryPaneToLibrary(Library library) => _layoutEventHandler?.NavigateSecondaryPaneToLibrary(library);
         internal void NavigateSecondaryPaneToTag(Models.TagViewModel tag) => _layoutEventHandler?.NavigateSecondaryPaneToTag(tag);
         internal void LoadSecondFileBrowserDirectory(string path) => _layoutEventHandler?.LoadSecondFileBrowserDirectory(path);
 
         #endregion
 
-
-
-
-        private void OnRailSettingsRequested(object sender, EventArgs e) => _orchestrator.SettingsController?.Toggle();
-
-        private void OnRailAboutRequested(object sender, EventArgs e)
-        {
-            if (AboutOverlay != null)
-            {
-                AboutOverlay.Visibility = AboutOverlay.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
-            }
-        }
-
-
-
-        // Legacy handlers removed
-
-
+        #region 导航选择管理
 
         /// <summary>
         /// 清除其他导航区域的选择状态，确保同时只有一个区域显示选中
@@ -391,19 +343,9 @@ namespace YiboFile
             }
         }
 
-        private void SettingsOverlay_MouseDown(object sender, MouseButtonEventArgs e)
-        {
-            if (e.OriginalSource == sender)
-            {
-                _orchestrator.SettingsController?.Hide();
-            }
-        }
+        #endregion
 
-
-
-
-
-
+        #region 标签页边距管理
 
         internal void UpdateTabManagerMargin()
         {
@@ -414,166 +356,139 @@ namespace YiboFile
         {
             if (WindowButtonsStackPanel == null) return;
 
-            // Ensure tabs don't overlap with window control buttons
-            // Add a small buffer (e.g. 15px) to the buttons' actual width
             double rightMargin = WindowButtonsStackPanel.ActualWidth + 15;
-
-            // Check if we are in Dual List Mode (using the property from LayoutMode.cs)
             bool isDualMode = this.IsDualListMode;
-
-            // Check if rights panel is collapsed (even in single mode, if not collapsed, it provides enough space for buttons)
             bool isRightPanelCollapsed = SplitterRight != null && SplitterRight.IsNextCollapsed;
 
             if (TabManager != null)
             {
                 if (isDualMode)
                 {
-                    // 双列表模式：右侧面板 (Col 5) 可见且作为副列表容器。主标签页管理器位于 (Col 3) 是安全的，无需边距。
                     TabManager.Margin = new Thickness(0, 0, 0, 0);
                 }
                 else
                 {
-                    // 单列表模式
-                    // 如果右面板折叠 -> 标签页管理器延伸到最右侧边缘 -> 需要避开窗口控制按钮的边距
-                    // 如果右面板展开 (显示预览面板) -> 标签页管理器在中间 -> 安全
-                    if (isRightPanelCollapsed)
-                    {
-                        TabManager.Margin = new Thickness(0, 0, rightMargin, 0);
-                    }
-                    else
-                    {
-                        TabManager.Margin = new Thickness(0, 0, 0, 0);
-                    }
+                    TabManager.Margin = isRightPanelCollapsed
+                        ? new Thickness(0, 0, rightMargin, 0)
+                        : new Thickness(0, 0, 0, 0);
                 }
             }
 
             if (SecondTabManager != null)
             {
-                if (isDualMode)
-                {
-                    // 副标签页始终在右侧，始终需要避开按钮
-                    SecondTabManager.Margin = new Thickness(0, 0, rightMargin, 0);
-                }
-                else
-                {
-                    // 不显示，边距无关紧要
-                    SecondTabManager.Margin = new Thickness(0);
-                }
+                SecondTabManager.Margin = isDualMode
+                    ? new Thickness(0, 0, rightMargin, 0)
+                    : new Thickness(0);
             }
         }
 
+        #endregion
 
+        #region 列管理 (Adapter 层 — 供 NavigationModeUIAdapter 和 WindowOrchestrator 调用)
 
-
-
-
-
-
-        #region 事件处理
-
-        // Legacy handlers NavigateBack_Click and NavigateForward_Click have been migrated to MVVM Commands
-        // private void NavigateBack_Click(object sender, RoutedEventArgs e) { ... }
-        // private void NavigateForward_Click(object sender, RoutedEventArgs e) { ... }
-
-        private void FileBrowser_ViewModeChanged(object sender, string mode)
+        internal void AutoSizeGridViewColumn(GridViewColumn column)
         {
-            // 根据视图模式设置文件名显示方式
-            var fileListService = App.ServiceProvider.GetService<FileListService>();
-            if (fileListService != null)
+            _orchestrator.ColumnInteractionHandler?.AutoSizeGridViewColumn(column);
+        }
+
+        internal void EnsureHeaderContextMenuHook()
+        {
+            _orchestrator.ColumnInteractionHandler?.EnsureHeaderContextMenuHook();
+        }
+
+        internal string GetCurrentModeKey()
+        {
+            return ConfigurationService.Instance.Config.LastNavigationMode ?? "Path";
+        }
+
+        internal void ApplyVisibleColumnsForCurrentMode()
+        {
+            _orchestrator.ColumnInteractionHandler?.ApplyVisibleColumnsForCurrentMode();
+        }
+
+        #endregion
+
+        #region 消息订阅 (Merged from MainWindow.Messages.cs)
+
+        internal void InitializeMessageSubscriptions()
+        {
+            if (_messageBus == null) return;
+
+            // 1. 库高亮请求
+            _messageBus.Subscribe<ViewModels.Messaging.Messages.LibrarySelectedMessage>(msg =>
             {
-                // 缩略图模式：显示完整文件名（包括扩展名）
-                // 列表模式：不显示扩展名（有单独的“类型”列）
-                fileListService.ShowFullFileName = (mode == "Thumbnail");
-            }
+                this.Dispatcher.Invoke(() => _libraryEventHandler?.HighlightMatchingLibrary(msg.Library));
+            });
 
-            ConfigurationService.Instance.Set(cfg => cfg.FileViewMode, mode);
-
-
-            // 恢复剪切状态的视觉效果
-            // 需要延迟执行等待容器生成
-            this.Dispatcher.InvokeAsync(async () =>
+            // 2. 焦点面板变更 (同步逻辑焦点)
+            _messageBus.Subscribe<ViewModels.Messaging.Messages.FocusedPaneChangedMessage>(msg =>
             {
-                // 等待 UI 更新
-                await Task.Delay(100);
-                var (files, isCut) = await YiboFile.Services.FileOperations.ClipboardService.Instance.GetPathsFromClipboardAsync();
-                if (files != null && files.Count > 0)
+                this.Dispatcher.Invoke(() =>
                 {
-                    UpdateCutItemsVisualState(files.ToList().AsReadOnly());
-                }
-            }, System.Windows.Threading.DispatcherPriority.Loaded);
+                    if (msg.IsSecondPaneFocused)
+                    {
+                        SecondFileBrowser?.Focus();
+                        SecondFileBrowser?.FilesList?.Focus();
+                    }
+                    else
+                    {
+                        FileBrowser?.Focus();
+                        FileBrowser?.FilesList?.Focus();
+                    }
+                });
+            });
         }
 
-        private void RightPanel_NotesHeightChanged(object sender, double height)
-        {
-            ConfigurationService.Instance.Set(cfg => cfg.RightPanelNotesHeight, height);
+        #endregion
 
-        }
-
-        private void FileBrowser_InfoHeightChanged(object sender, double height)
-        {
-            ConfigurationService.Instance.Set(cfg => cfg.CenterPanelInfoHeight, height);
-
-        }
-
-
-
-
-        // 菜单事件桥接方法 - 已迁移到 MenuEventHandler
-        // internal void Refresh_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.Refresh_Click(sender, e);
-        // private void ClearFilter_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.ClearFilter_Click(sender, e);
-
-
-
-
-
-
-
-
+        #region 主题事件 (Merged from MainWindow.Theme.cs)
 
         /// <summary>
-        /// 从ListBoxItem中提取路径
+        /// 初始化主题切换事件
         /// </summary>
+        private void InitializeThemeEvents()
+        {
+            // 订阅主题切换事件,刷新导航面板图标
+            Services.Theming.ThemeManager.ThemeChanged += (s, e) =>
+            {
+                RefreshNavigationIcons();
 
+                // 修复：切换主题时，如果有副列表，强制刷新布局以防止地址栏错位
+                if (IsDualListMode && SecondFileBrowserContainer != null)
+                {
+                    this.Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        SecondFileBrowserContainer.InvalidateVisual();
+                        SecondFileBrowserContainer.UpdateLayout();
+                    }), System.Windows.Threading.DispatcherPriority.Render);
+                }
+            };
+        }
 
-
-
-
-
-
-
-
-
-
+        /// <summary>
+        /// 刷新导航面板的图标(用于主题切换)
+        /// </summary>
+        private void RefreshNavigationIcons()
+        {
+            this.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                try
+                {
+                    // 重新加载快速访问、驱动器和收藏列表以刷新图标
+                    if (QuickAccessListBox != null)
+                        _quickAccessService?.LoadQuickAccess(QuickAccessListBox);
+                    if (DrivesTreeView != null)
+                        _quickAccessService?.LoadDriveTree(DrivesTreeView, _fileListService.FormatFileSize);
+                    ViewModel?.Favorites?.LoadFavorites();
+                }
+                catch (Exception)
+                { }
+            }), System.Windows.Threading.DispatcherPriority.Loaded);
+        }
 
         #endregion
 
-
-
-
-
-        #region 库功能
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        #endregion
-
-
-
-
-
-
-
+        #region VisualTree 工具方法
 
         private T FindAncestor<T>(DependencyObject current) where T : DependencyObject
         {
@@ -586,179 +501,6 @@ namespace YiboFile
             return null;
         }
 
-        private T FindDescendant<T>(DependencyObject d) where T : DependencyObject
-        {
-            if (d == null) return null;
-            int count = VisualTreeHelper.GetChildrenCount(d);
-            for (int i = 0; i < count; i++)
-            {
-                var child = VisualTreeHelper.GetChild(d, i);
-                if (child is T t) return t;
-                var deeper = FindDescendant<T>(child);
-                if (deeper != null) return deeper;
-            }
-            return null;
-        }
-
-
-        // 根据内容自动调整列宽（用于双击列分隔条）
-        internal void AutoSizeGridViewColumn(GridViewColumn column)
-        {
-            _orchestrator.ColumnInteractionHandler?.AutoSizeGridViewColumn(column);
-        }
-
-        // 右键列头 -> 列显示设置
-        internal void EnsureHeaderContextMenuHook()
-        {
-            _orchestrator.ColumnInteractionHandler?.EnsureHeaderContextMenuHook();
-        }
-
-        internal string GetCurrentModeKey()
-        {
-            return ConfigurationService.Instance.Config.LastNavigationMode ?? "Path";
-
-        }
-
-        internal string GetVisibleColumnsForCurrentMode()
-        {
-            var columnService = App.ServiceProvider.GetService<ColumnService>();
-            return columnService?.GetVisibleColumnsForCurrentMode() ?? "";
-        }
-
-        private void SetVisibleColumnsForCurrentMode(string csv)
-        {
-            var columnService = App.ServiceProvider.GetService<ColumnService>();
-            columnService?.SetVisibleColumnsForCurrentMode(csv);
-        }
-
-        internal void ApplyVisibleColumnsForCurrentMode()
-        {
-            _orchestrator.ColumnInteractionHandler?.ApplyVisibleColumnsForCurrentMode();
-        }
-
-        // 绑定列头分隔线双击
-        internal void HookHeaderThumbs()
-        {
-            _orchestrator.ColumnInteractionHandler?.HookHeaderThumbs();
-        }
-
-        #region 键盘快捷键和文件操作
-
-
-
-        // [已移除] 文件操作桥接方法 - 功能已由 PaneViewModel Command 接管
-        // Copy_Click, Cut_Click, Paste_Click, Delete_Click, Rename_Click, ShowProperties_Click
-
-
-        #region 统一文件操作 (新架构)
-
-        /// <summary>
-        /// 复制选中文件到剪贴板 (使用 FileOperationService)
-        /// </summary>
-        internal async Task CopySelectedFilesAsync()
-        {
-            var (browser, _, _) = GetActiveContext();
-            if (browser?.FilesSelectedItems == null) return;
-            var items = browser.FilesSelectedItems.Cast<YiboFile.Models.FileSystemItem>().ToList();
-            var paths = items.Select(i => i.Path).ToList();
-            await _orchestrator.FileOperationService.CopyAsync(paths);
-            Services.Core.NotificationService.ShowSuccess($"已复制 {items.Count} 个项目");
-        }
-
-        /// <summary>
-        /// 剪切选中文件到剪贴板 (使用 FileOperationService)
-        /// </summary>
-        internal async Task CutSelectedFilesAsync()
-        {
-            var (browser, _, _) = GetActiveContext();
-            if (browser?.FilesSelectedItems == null) return;
-            var items = browser.FilesSelectedItems.Cast<YiboFile.Models.FileSystemItem>().ToList();
-            var paths = items.Select(i => i.Path).ToList();
-            await _orchestrator.FileOperationService.CutAsync(paths);
-            Services.Core.NotificationService.ShowSuccess($"已剪切 {items.Count} 个项目");
-        }
-
-        /// <summary>
-        /// 粘贴剪贴板内容 (使用 FileOperationService)
-        /// 进度显示由 TaskQueuePanel 统一管理
-        /// </summary>
-        internal async Task PasteFilesAsync(CancellationToken ct = default)
-        {
-            var result = await _orchestrator.FileOperationService.PasteAsync(null, ct);
-            if (result.Success && result.ProcessedCount > 0)
-            {
-                Services.Core.NotificationService.ShowSuccess("粘贴完成");
-            }
-        }
-
-        /// <summary>
-        /// 删除选中文件 (使用 FileOperationService)
-        /// </summary>
-        internal async Task DeleteSelectedFilesAsync(bool permanent = false)
-        {
-            var (browser, _, _) = GetActiveContext();
-            if (browser?.FilesSelectedItems == null) return;
-            var items = browser.FilesSelectedItems.Cast<YiboFile.Models.FileSystemItem>().ToList();
-
-            // 先清除选择，释放文件句柄
-            if (browser?.FilesList != null)
-            {
-                browser.FilesList.SelectedItem = null;
-                browser.FilesList.SelectedItems.Clear();
-                _viewModel?.SelectionHandler?.HandleNoSelection();
-            }
-
-            var result = await _orchestrator.FileOperationService.DeleteAsync(items, permanent);
-
-            if (result.Success && result.ProcessedCount > 0)
-            {
-                var msg = permanent ? "永久删除" : "删除";
-                Services.Core.NotificationService.ShowSuccess($"已{msg} {items.Count} 个项目");
-            }
-        }
-
-        /// <summary>
-        /// 更新剪切文件的视觉状态（半透明效果）
-        /// </summary>
-        private void UpdateCutItemsVisualState(IReadOnlyList<string> cutPaths)
-        {
-            if (FileBrowser?.FilesList == null) return;
-
-            var hashSet = new HashSet<string>(cutPaths ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
-
-            foreach (var item in FileBrowser.FilesList.Items)
-            {
-                if (item is FileSystemItem fileItem)
-                {
-                    var container = FileBrowser.FilesList.ItemContainerGenerator.ContainerFromItem(fileItem) as System.Windows.Controls.ListViewItem;
-                    if (container != null)
-                    {
-                        container.Opacity = hashSet.Contains(fileItem.Path) ? 0.5 : 1.0;
-                    }
-                }
-            }
-        }
-
         #endregion
-
-        #endregion
-
-        #region 列表排序
-
-
-
-        #endregion
-
-        private void NavigationRail_Loaded(object sender, RoutedEventArgs e)
-        {
-            _messageBus?.Publish(new NavigationRailLoadedMessage());
-        }
     }
-
-
-
-
-
-
-
 }

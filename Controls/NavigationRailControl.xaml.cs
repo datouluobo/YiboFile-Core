@@ -19,8 +19,8 @@ namespace YiboFile.Controls
         // public event EventHandler LayoutWorkRequested; // Unused
         // public event EventHandler LayoutFullRequested; // Unused
         // public event EventHandler DualListToggleRequested; // Unused
-        public event EventHandler SettingsRequested;
-        public event EventHandler AboutRequested;
+        // public event EventHandler SettingsRequested; // Moved to MVVM Command
+        // public event EventHandler AboutRequested;    // Moved to MVVM Command
 
         public Button NavPathButton => FindName("PathButton") as Button;
         public Button NavLibraryButton => FindName("LibraryButton") as Button;
@@ -90,15 +90,6 @@ namespace YiboFile.Controls
             });
             */
 
-            messageBus.Subscribe<ShowSettingsMessage>(msg =>
-            {
-                SettingsRequested?.Invoke(this, EventArgs.Empty);
-            });
-
-            messageBus.Subscribe<ShowAboutMessage>(msg =>
-            {
-                AboutRequested?.Invoke(this, EventArgs.Empty);
-            });
         }
 
         // 按钮字段由 XAML 生成代码自动提供 (Internal 访问)

@@ -449,7 +449,7 @@ namespace YiboFile.Services.Orchestration
 
                 window.NavigationRail.ViewModel = railVm;
                 window.NavigationRail.Coordinator = railCoordinator;
-                window.NavigationRail.SetupMessageBridge(_messageBus);
+                // window.NavigationRail.SetupMessageBridge(_messageBus); // Removed: Logic moved to WindowOrchestrator or handled by Coordinator
 
                 // 同步当前状态到 Rail
                 railCoordinator.SetNavigationMode(cfg.LastNavigationMode ?? "Path");
@@ -501,6 +501,18 @@ namespace YiboFile.Services.Orchestration
                     rightPanel,
                     (cfg) => { /* Auto-handled */ }
                 );
+
+                // Subscribe to Settings messages
+                _messageBus.Subscribe<ShowSettingsMessage>(msg => window.Dispatcher.Invoke(() => this.SettingsController?.Show()));
+            }
+
+            // Initialize About overlay logic
+            var aboutOverlay = window.FindName("AboutOverlay") as System.Windows.Controls.Grid;
+            var aboutPanel = window.FindName("AboutPanel") as Controls.AboutPanelControl;
+            if (aboutOverlay != null && aboutPanel != null)
+            {
+                _messageBus.Subscribe<ShowAboutMessage>(msg => window.Dispatcher.Invoke(() => aboutOverlay.Visibility = System.Windows.Visibility.Visible));
+                aboutPanel.CloseRequested += (s, e) => aboutOverlay.Visibility = System.Windows.Visibility.Collapsed;
             }
 
             // ========== Handler 初始化 (从 MainWindow.Handlers.cs 迁移) ==========
@@ -553,7 +565,7 @@ namespace YiboFile.Services.Orchestration
                 mode => _navigationModeService?.SwitchNavigationMode(mode), // Using Service
                 () => _viewModel?.ActivePane?.NavigationMode == "Library",
                 () => window.CloseOverlays(),
-                () => window.Back_Click_Logic(),
+                () => { if (_navigationService?.CanNavigateBack == true) _navigationService.NavigateBack(); },
                 () => _viewModel?.FileOperation?.UndoCommand?.Execute(null),
                 () => _viewModel?.FileOperation?.RedoCommand?.Execute(null),
                 messageBus: _messageBus,

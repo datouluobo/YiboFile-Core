@@ -91,7 +91,7 @@
                                       Grid.Row="0" Grid.RowSpan="4"
                                       Grid.Column="0"
                                       Panel.ZIndex="2000"
-                                      WindowChrome.IsHitTestVisibleInChrome="True" Loaded="NavigationRail_Loaded" Width="50"/>
+                                      WindowChrome.IsHitTestVisibleInChrome="True" Width="50"/>
 
             <!-- 导航按钮：位于列0 (随列0宽度自动调整) -->
 

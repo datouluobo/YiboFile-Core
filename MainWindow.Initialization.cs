@@ -113,11 +113,7 @@ namespace YiboFile
             }
             */
 
-            // 订阅 RightPanel 事件
-            if (RightPanel != null)
-            {
-                RightPanel.NotesHeightChanged += RightPanel_NotesHeightChanged;
-            }
+            // RightPanel.NotesHeightChanged 已由 EventBridgeService 桥接 → NotesHeightChangedMessage
 
             if (NavigationPanelControl != null)
             {
