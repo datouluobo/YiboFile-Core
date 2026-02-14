@@ -158,6 +158,36 @@ namespace YiboFile.ViewModels
                     }
                 }
             });
+
+            // 订阅文件夹大小计算完成消息 (增量更新)
+            _messageBus.Subscribe<FolderSizeCalculatedMessage>(msg =>
+            {
+                _dispatcher.BeginInvoke(new Action(() =>
+                {
+                    var item = Files?.FirstOrDefault(f => string.Equals(f.Path, msg.Path, StringComparison.OrdinalIgnoreCase));
+                    if (item != null)
+                    {
+                        item.Size = msg.FormattedSize;
+                        item.SizeBytes = msg.Size;
+                    }
+                }), DispatcherPriority.Background);
+            });
+
+            // 订阅元数据增强完成消息 (增量更新)
+            _messageBus.Subscribe<MetadataEnrichedMessage>(msg =>
+            {
+                _dispatcher.BeginInvoke(new Action(() =>
+                {
+                    var item = Files?.FirstOrDefault(f => string.Equals(f.Path, msg.Item.Path, StringComparison.OrdinalIgnoreCase));
+                    if (item != null)
+                    {
+                        item.Tags = msg.Item.Tags;
+                        item.TagList = msg.Item.TagList;
+                        item.Notes = msg.Item.Notes;
+                        item.NotifyTagsChanged();
+                    }
+                }), DispatcherPriority.Background);
+            });
         }
 
         private string GetDisplayFileName(string filePath, bool showFullFileName)

@@ -595,6 +595,8 @@ namespace YiboFile.ViewModels
             _messageBus.Subscribe<FileSelectionChangedMessage>(OnFileSelectionChanged);
             // 订阅路径导航请求
             _messageBus.Subscribe<NavigateToPathMessage>(OnNavigateToPath);
+            // 订阅库文件加载完成消息
+            _messageBus.Subscribe<LibraryFilesLoadedMessage>(OnLibraryFilesLoaded);
 
             // 获取服务
             _searchFilterService = App.ServiceProvider?.GetService<SearchFilterService>();
@@ -1723,6 +1725,26 @@ namespace YiboFile.ViewModels
                 return;
 
             NavigateTo(message.Library);
+        }
+
+        private void OnLibraryFilesLoaded(LibraryFilesLoadedMessage message)
+        {
+            // 只有归属于本面板的消息才响应
+            if (message.TargetPane == (_isSecondary ? PaneId.Second : PaneId.Main))
+            {
+                _dispatcher.Invoke(() =>
+                {
+                    if (message.IsEmpty)
+                    {
+                        FileList?.Files?.Clear();
+                    }
+                    else
+                    {
+                        // 库加载通常是全量替换
+                        FileList?.SetFiles(message.Files);
+                    }
+                });
+            }
         }
 
         #endregion

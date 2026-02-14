@@ -39,7 +39,7 @@ namespace YiboFile.Handlers
                     _mainWindow._currentLibrary,
                     _mainWindow.FileBrowser,
                     _mainWindow,
-                    () => _mainWindow.LoadLibraryFiles(_mainWindow._currentLibrary));
+                    () => _mainWindow._libraryEventHandler?.LoadLibraryFiles(_mainWindow._currentLibrary));
             }
             // TagOperationContext removed - Phase 2
             // else if (_mainWindow._currentTagFilter != null)

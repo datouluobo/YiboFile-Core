@@ -61,9 +61,10 @@ namespace YiboFile
             set { if (_viewModel != null) _viewModel.CurrentPath = value; }
         }
         internal List<FileSystemItem> _currentFiles = new List<FileSystemItem>(); // Keep for legacy search logic
-        private bool _isInternalUpdate = false;
+        internal bool _isInternalUpdate = false;
 
-        private DragDropManager _dragDropManager;
+        internal Handlers.DragDropEventHandler _dragDropEventHandler;
+        internal Handlers.LibraryEventHandler _libraryEventHandler;
 
         internal Library _currentLibrary
         {
@@ -98,6 +99,36 @@ namespace YiboFile
         internal FavoriteService _favoriteService => _orchestrator?.FavoriteService;
         internal QuickAccessService _quickAccessService => _orchestrator?.QuickAccessService;
         internal FileListService _fileListService => _orchestrator?.FileListService;
+
+        public void RefreshFileList()
+        {
+            _viewModel?.PrimaryPane?.FileList?.RefreshFiles();
+        }
+
+        public void RefreshActiveFileList()
+        {
+            _viewModel?.ActivePane?.FileList?.RefreshFiles();
+        }
+
+        internal void LoadCurrentDirectory()
+        {
+            _navigationCoordinator?.HandlePathNavigation(_currentPath, NavigationSource.External, ClickType.LeftClick);
+        }
+
+        internal void NavigateToPath(string path, Services.Navigation.PaneId? targetPane = null)
+        {
+            _navigationCoordinator?.HandlePathNavigation(path, YiboFile.Models.Navigation.NavigationSource.External, YiboFile.Models.Navigation.ClickType.LeftClick, pane: targetPane ?? Services.Navigation.PaneId.Main);
+        }
+
+        /// <summary>
+        /// 从模块导航到路径（桥接方法）
+        /// </summary>
+        internal void NavigateToPathFromModule(string path)
+        {
+            NavigateToPath(path, Services.Navigation.PaneId.Main);
+        }
+
+
         internal FileListService _secondFileListService => _orchestrator?.SecondFileListService;
         internal SearchService _searchService => _orchestrator?.SearchService;
         internal SearchCacheService _searchCacheService => _orchestrator?.SearchCacheService;
@@ -119,37 +150,74 @@ namespace YiboFile
         /// </summary>
         public MainWindowViewModel ViewModel => _viewModel;
 
-        // 定时器管理
-        internal bool _isSplitterDragging = false;
         internal Services.Search.SearchOptions _searchOptions = new Services.Search.SearchOptions();
-
-        // TagTrain 训练状态
-        internal CancellationTokenSource _tagTrainTrainingCancellation = null;
-        internal bool _tagTrainIsTraining = false;
-
-
-
-
-        private List<DraggableButton> _currentActionButtons = new List<DraggableButton>();
-        private List<ActionItem> _actionItems = new List<ActionItem>(); // 保存按钮和分隔符的完整顺序
+        internal bool _isSplitterDragging = false;
 
         // NavigationPanelControl控件的便捷访问属性
-        // 改为 internal 以便 NavigationUIHelper 可以访问
         internal ListBox LibrariesListBox => NavigationPanelControl?.LibrariesListBoxControl;
         internal TreeView DrivesTreeView => NavigationPanelControl?.DrivesTreeViewControl;
-        // Obsolete: internal ListBox DrivesListBox => NavigationPanelControl?.DrivesListBoxControl;
         internal ListBox QuickAccessListBox => NavigationPanelControl?.QuickAccessListBoxControl;
         internal Grid NavPathContent => NavigationPanelControl?.NavPathContentControl;
         internal Grid NavLibraryContent => NavigationPanelControl?.NavLibraryContentControl;
         internal Grid NavTagContent => NavigationPanelControl?.NavTagContentControl;
-
-
         internal ContextMenu LibraryContextMenu => NavigationPanelControl?.LibraryContextMenuControl;
 
-        // UI Adapter implementations removed
+        // 定时器管理 - Restored fields
+        private List<DraggableButton> _currentActionButtons = new List<DraggableButton>();
+        private List<ActionItem> _actionItems = new List<ActionItem>(); // 保存按钮和分隔符的完整顺序
 
+        internal void CloseOverlays()
+        {
+            if (SettingsOverlay != null && SettingsOverlay.Visibility == Visibility.Visible)
+            {
+                _settingsOverlayController?.Hide();
+            }
+            if (AboutOverlay != null && AboutOverlay.Visibility == Visibility.Visible)
+            {
+                AboutOverlay.Visibility = Visibility.Collapsed;
+            }
+        }
 
+        internal Services.Navigation.PaneId GetActivePaneId()
+        {
+            // 优先检查 ViewModel 状态，因为点击侧边栏会导致列表失去焦点，使 IsSecondPaneFocused 变得不可靠
+            if (_viewModel?.ActivePane != null)
+            {
+                // 使用属性判断而非引用判断，更稳健
+                return _viewModel.ActivePane.IsSecondary ? Services.Navigation.PaneId.Second : Services.Navigation.PaneId.Main;
+            }
+            // 降级使用 LayoutModule/UI 状态
+            return (IsDualListMode && IsSecondPaneFocused) ? Services.Navigation.PaneId.Second : Services.Navigation.PaneId.Main;
+        }
 
+        private void TitleBar_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            // 如果是在全屏覆盖层打开的情况下点击标题栏空白处，关闭覆盖层
+            if (SettingsOverlay != null && SettingsOverlay.Visibility == Visibility.Visible)
+            {
+                _settingsOverlayController?.Hide();
+            }
+            if (AboutOverlay != null && AboutOverlay.Visibility == Visibility.Visible)
+            {
+                AboutOverlay.Visibility = Visibility.Collapsed;
+            }
+
+            // 双击最大化/还原
+            if (e.ClickCount == 2 && e.ChangedButton == MouseButton.Left)
+            {
+                if (WindowState == WindowState.Maximized)
+                    WindowState = WindowState.Normal;
+                else
+                    WindowState = WindowState.Maximized;
+                return;
+            }
+
+            // 支持通过拖动标题栏移动窗口
+            if (e.ChangedButton == MouseButton.Left)
+            {
+                try { this.DragMove(); } catch { }
+            }
+        }
 
         public MainWindow()
         {
@@ -164,12 +232,6 @@ namespace YiboFile
             try { System.IO.File.AppendAllText(@"f:\Download\GitHub\YiboFile\YiboFile-Core\debug_log.txt", $"[MainWindow] Constructor called at {DateTime.Now}\n"); } catch { }
             InitializeComponent();
             this.Title += " [FIXED]";
-
-
-
-
-
-
 
             // 订阅渲染完成事件，确保在窗口初次显示时强制修正布局
             // 这对于解决启动时右侧空白间隙至关重要，因为此时 ActualWidth 才有效
@@ -187,7 +249,6 @@ namespace YiboFile
 
                 // 再次确认窗口最大化状态 (双重保险，解决持久化可能失效的问题)
                 if (ConfigurationService.Instance.Config?.IsMaximized == true && this.WindowState != WindowState.Maximized)
-
                 {
                     try
                     {
@@ -212,8 +273,6 @@ namespace YiboFile
                 catch { }
             };
 
-
-
             this.SizeChanged += (s, e) => UpdateTabManagerMargin();
             this.StateChanged += (s, e) => UpdateTabManagerMargin();
 
@@ -223,7 +282,6 @@ namespace YiboFile
             // 初始化 UI 事件和布局模式 (Legacy)
             InitializeEvents();
 
-
             // 使用编排器接管核心逻辑、消息桥接和状态恢复
             _orchestrator = App.ServiceProvider.GetRequiredService<IWindowOrchestrator>();
 
@@ -231,34 +289,92 @@ namespace YiboFile
             _ = _orchestrator.InitializeAsync(this);
         }
 
-        /// <summary>
-        /// 从模块导航到路径（桥接方法）
-        /// </summary>
-        internal void NavigateToPathFromModule(string path)
+        #region Window Lifecycle Handlers (Delegates to WindowLifecycleHandler)
+
+        internal void Back_Click_Logic()
         {
-            NavigateToPath(path, Services.Navigation.PaneId.Main);
+            if (_navigationService != null && _navigationService.CanNavigateBack)
+            {
+                _navigationService.NavigateBack();
+            }
         }
 
-        private void OnTagUpdated(int tagId, string newColor)
+        internal void WindowMinimize_Click(object sender, RoutedEventArgs e) => _orchestrator.LifecycleHandler?.HandleMinimize();
+        internal void WindowMaximize_Click(object sender, RoutedEventArgs e) => _orchestrator.LifecycleHandler?.HandleMaximize();
+        internal void WindowClose_Click(object sender, RoutedEventArgs e) => _orchestrator.LifecycleHandler?.HandleClose();
+
+        private void Window_Closing(object sender, CancelEventArgs e) => _orchestrator.LifecycleHandler?.HandleClosing(e);
+        private void Window_SizeChanged(object sender, SizeChangedEventArgs e) => _orchestrator.LifecycleHandler?.HandleSizeChanged(e);
+        private void Window_LocationChanged(object sender, EventArgs e) => _orchestrator.LifecycleHandler?.HandleLocationChanged(e);
+        private void ListView_SizeChanged(object sender, SizeChangedEventArgs e) => _orchestrator.LifecycleHandler?.HandleListViewSizeChanged(e);
+        private void WindowControlButtonsContainer_PreviewMouseDown(object sender, MouseButtonEventArgs e) => _orchestrator.LifecycleHandler?.HandleControlButtonsMouseDown(e, sender);
+
+        // These are helper methods called by XAML or other parts, delegating logic
+        internal void AdjustListViewColumnWidths() => _orchestrator.LifecycleHandler?.HandleListViewSizeChanged(null);
+        internal void AdjustColumnWidths() => _orchestrator.LifecycleHandler?.AdjustColumnWidths();
+        internal void EnsureColumnMinWidths() => _orchestrator.LifecycleHandler?.EnsureColumnMinWidths();
+        public void UpdateWindowStateUI() => _orchestrator.LifecycleHandler?.UpdateWindowStateUI();
+        internal void UpdateActionButtonsPosition() { /* Layout handled automatically */ }
+        internal void UpdateSeparatorPosition() { /* Layout handled automatically */ }
+
+        private static IEnumerable<T> FindVisualChildren<T>(DependencyObject depObj) where T : DependencyObject
         {
-            Dispatcher.Invoke(() =>
+            if (depObj != null)
             {
-                if (_currentFiles != null)
+                for (int i = 0; i < VisualTreeHelper.GetChildrenCount(depObj); i++)
                 {
-                    foreach (var file in _currentFiles)
+                    DependencyObject child = VisualTreeHelper.GetChild(depObj, i);
+                    if (child != null && child is T)
                     {
-                        if (file.TagList != null)
-                        {
-                            var tag = file.TagList.FirstOrDefault(t => t.Id == tagId);
-                            if (tag != null)
-                            {
-                                tag.Color = newColor;
-                            }
-                        }
+                        yield return (T)child;
+                    }
+
+                    foreach (T childOfChild in FindVisualChildren<T>(child))
+                    {
+                        yield return childOfChild;
                     }
                 }
-            });
+            }
         }
+
+        #endregion
+
+        #region Layout Glue Code (Moved from MainWindow.LayoutMode.cs)
+
+        internal Handlers.LayoutEventHandler _layoutEventHandler;
+
+        public bool IsDualListMode => _layoutModule?.IsDualListMode ?? false;
+        public bool IsSecondPaneFocused => _layoutModule?.IsSecondPaneFocused ?? false;
+
+        internal void SwitchLayoutModeByIndex(int index) => _layoutEventHandler?.SwitchLayoutModeByIndex(index);
+
+        internal void SetDualListMode(bool enable) => _layoutEventHandler?.SetDualListMode(enable);
+
+        internal void SwitchFocusedPane() => _layoutEventHandler?.SwitchFocusedPane();
+        internal void SwitchFocusedPaneFromKeyboard() => _layoutEventHandler?.SwitchFocusedPaneFromKeyboard();
+
+        internal void UpdateFocusBorders() => _layoutEventHandler?.UpdateFocusBorders();
+
+        internal void UpdateTabManagerLayout() => _layoutEventHandler?.UpdateTabManagerLayout();
+
+        // 仅供 WindowOrchestrator 调用，确保初始化顺序
+        internal void AttachSecondTabServiceUiContext() => _layoutEventHandler?.AttachSecondTabServiceUiContext();
+
+        internal void InitializeLayoutMode() => _layoutEventHandler?.Initialize();
+
+        internal (Controls.FileBrowserControl browser, string path, Library library) GetActiveContext()
+        {
+            if (_layoutEventHandler != null) return _layoutEventHandler.GetActiveContext();
+            return (FileBrowser, _currentPath, _currentLibrary);
+        }
+
+
+        internal void NavigateSecondaryPaneToLibrary(Library library) => _layoutEventHandler?.NavigateSecondaryPaneToLibrary(library);
+        internal void NavigateSecondaryPaneToTag(Models.TagViewModel tag) => _layoutEventHandler?.NavigateSecondaryPaneToTag(tag);
+        internal void LoadSecondFileBrowserDirectory(string path) => _layoutEventHandler?.LoadSecondFileBrowserDirectory(path);
+
+        #endregion
+
 
 
 
@@ -308,6 +424,27 @@ namespace YiboFile
             // Consistent navigation: Use tag protocol with tag NAME
             NavigateToTag(tagName);
         }
+
+        internal void SwitchNavigationMode(string mode)
+        {
+            if (_navigationModeService != null)
+            {
+                _navigationModeService.SwitchNavigationMode(mode);
+            }
+        }
+
+        private void NavPathBtn_Click(object sender, RoutedEventArgs e)
+        {
+            CloseOverlays();
+            SwitchNavigationMode("Path");
+        }
+
+        private void NavLibraryBtn_Click(object sender, RoutedEventArgs e)
+        {
+            CloseOverlays();
+            SwitchNavigationMode("Library");
+        }
+
 
         internal void NavigateToTag(string tagName, Services.Navigation.PaneId? targetPane = null)
         {

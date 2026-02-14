@@ -8,17 +8,26 @@ using System.IO;
 using YiboFile.Services;
 using YiboFile.Services.FileOperations;
 using YiboFile.Models.UI;
+using YiboFile.Models;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace YiboFile
+namespace YiboFile.Handlers
 {
     /// <summary>
-    /// MainWindow drag and drop logic (Simplified)
+    /// Handles drag and drop logic for MainWindow
     /// </summary>
-    public partial class MainWindow : Window
+    public class DragDropEventHandler
     {
+        private readonly MainWindow _window;
+        private DragDropManager _dragDropManager;
         private DragDropManager _secondDragDropManager;
 
-        internal void InitializeDragDrop()
+        public DragDropEventHandler(MainWindow window)
+        {
+            _window = window;
+        }
+
+        public void Initialize()
         {
             try
             {
@@ -27,18 +36,18 @@ namespace YiboFile
                 SetupDragDropManager(_dragDropManager, isPrimary: true);
 
                 // Enable file list drag and drop for main list
-                if (FileBrowser?.FilesList != null)
+                if (_window.FileBrowser?.FilesList != null)
                 {
-                    _dragDropManager.InitializeFileListDragDrop(FileBrowser.FilesList);
+                    _dragDropManager.InitializeFileListDragDrop(_window.FileBrowser.FilesList);
                 }
 
                 // Initialize DragDropManager for second file list (dual mode)
                 _secondDragDropManager = new DragDropManager();
                 SetupDragDropManager(_secondDragDropManager, isPrimary: false);
 
-                if (SecondFileBrowser?.FilesList != null)
+                if (_window.SecondFileBrowser?.FilesList != null)
                 {
-                    _secondDragDropManager.InitializeFileListDragDrop(SecondFileBrowser.FilesList);
+                    _secondDragDropManager.InitializeFileListDragDrop(_window.SecondFileBrowser.FilesList);
                 }
 
                 // Initialize tab drop handlers
@@ -60,39 +69,39 @@ namespace YiboFile
                     // Refresh the source panel (the panel where drag dropped)
                     if (isPrimary)
                     {
-                        if (_currentLibrary != null)
-                            LoadLibraryFiles(_currentLibrary);
+                        if (_window._currentLibrary != null)
+                            _window._libraryEventHandler?.LoadLibraryFiles(_window._currentLibrary);
                         else
-                            LoadCurrentDirectory();
+                            _window.LoadCurrentDirectory();
                     }
                     else
                     {
-                        var secondTab = _secondTabService?.ActiveTab;
+                        var secondTab = _window._secondTabService?.ActiveTab;
                         if (secondTab != null && !string.IsNullOrEmpty(secondTab.Path) && Directory.Exists(secondTab.Path))
                         {
-                            LoadSecondFileBrowserDirectory(secondTab.Path);
+                            _window.LoadSecondFileBrowserDirectory(secondTab.Path);
                         }
                     }
 
                     // Also refresh the other panel if in dual mode and it's showing the affected directory
-                    if (IsDualListMode)
+                    if (_window.IsDualListMode)
                     {
-                        if (isPrimary && SecondFileBrowser != null)
+                        if (isPrimary && _window.SecondFileBrowser != null)
                         {
                             // Refresh second panel
-                            var secondTab = _secondTabService?.ActiveTab;
+                            var secondTab = _window._secondTabService?.ActiveTab;
                             if (secondTab != null && !string.IsNullOrEmpty(secondTab.Path) && Directory.Exists(secondTab.Path))
                             {
-                                LoadSecondFileBrowserDirectory(secondTab.Path);
+                                _window.LoadSecondFileBrowserDirectory(secondTab.Path);
                             }
                         }
-                        else if (!isPrimary && FileBrowser != null)
+                        else if (!isPrimary && _window.FileBrowser != null)
                         {
                             // Refresh main panel
-                            if (_currentLibrary != null)
-                                LoadLibraryFiles(_currentLibrary);
+                            if (_window._currentLibrary != null)
+                                _window._libraryEventHandler?.LoadLibraryFiles(_window._currentLibrary);
                             else
-                                LoadCurrentDirectory();
+                                _window.LoadCurrentDirectory();
                         }
                     }
                 }
@@ -103,11 +112,11 @@ namespace YiboFile
             {
                 if (isPrimary)
                 {
-                    return _currentLibrary == null ? _currentPath : null;
+                    return _window._currentLibrary == null ? _window._currentPath : null;
                 }
                 else
                 {
-                    var secondTab = _secondTabService?.ActiveTab;
+                    var secondTab = _window._secondTabService?.ActiveTab;
                     return secondTab?.Path;
                 }
             };
@@ -122,19 +131,19 @@ namespace YiboFile
             try
             {
                 // Main tab panel
-                if (TabManager?.TabsPanelControl != null)
+                if (_window.TabManager?.TabsPanelControl != null)
                 {
-                    TabManager.TabsPanelControl.AllowDrop = true;
-                    TabManager.TabsPanelControl.Drop += TabPanel_Drop;
-                    TabManager.TabsPanelControl.DragOver += TabPanel_DragOver;
+                    _window.TabManager.TabsPanelControl.AllowDrop = true;
+                    _window.TabManager.TabsPanelControl.Drop += TabPanel_Drop;
+                    _window.TabManager.TabsPanelControl.DragOver += TabPanel_DragOver;
                 }
 
                 // Second tab panel
-                if (SecondTabManager?.TabsPanelControl != null)
+                if (_window.SecondTabManager?.TabsPanelControl != null)
                 {
-                    SecondTabManager.TabsPanelControl.AllowDrop = true;
-                    SecondTabManager.TabsPanelControl.Drop += TabPanel_Drop;
-                    SecondTabManager.TabsPanelControl.DragOver += TabPanel_DragOver;
+                    _window.SecondTabManager.TabsPanelControl.AllowDrop = true;
+                    _window.SecondTabManager.TabsPanelControl.Drop += TabPanel_Drop;
+                    _window.SecondTabManager.TabsPanelControl.DragOver += TabPanel_DragOver;
                 }
             }
             catch (Exception)
@@ -215,9 +224,9 @@ namespace YiboFile
             return null;
         }
 
-        internal void InitializeNavigationPanelDragDrop()
+        public void InitializeNavigationPanelDragDrop()
         {
-            if (NavigationPanelControl == null) return;
+            if (_window.NavigationPanelControl == null) return;
 
             // Helper to attach events
             void AttachDragDrop(UIElement element)
@@ -228,10 +237,10 @@ namespace YiboFile
                 element.Drop += NavigationItem_Drop;
             }
 
-            AttachDragDrop(NavigationPanelControl.LibrariesListBoxControl);
-            AttachDragDrop(NavigationPanelControl.QuickAccessListBoxControl);
-            AttachDragDrop(NavigationPanelControl.FolderFavoritesListBoxControl);
-            AttachDragDrop(NavigationPanelControl.DrivesTreeViewControl);
+            AttachDragDrop(_window.NavigationPanelControl.LibrariesListBoxControl);
+            AttachDragDrop(_window.NavigationPanelControl.QuickAccessListBoxControl);
+            AttachDragDrop(_window.NavigationPanelControl.FolderFavoritesListBoxControl);
+            AttachDragDrop(_window.NavigationPanelControl.DrivesTreeViewControl);
         }
 
         private void NavigationItem_DragOver(object sender, DragEventArgs e)
@@ -269,7 +278,7 @@ namespace YiboFile
                     var libName = targetPath.Substring(6);
                     Library lib = null;
 
-                    var libs = LibrariesListBox?.ItemsSource as IEnumerable<Library>;
+                    var libs = _window.LibrariesListBox?.ItemsSource as IEnumerable<Library>;
                     lib = libs?.FirstOrDefault(l => l.Name == libName);
 
                     if (lib != null && lib.Paths != null && lib.Paths.Count > 0)

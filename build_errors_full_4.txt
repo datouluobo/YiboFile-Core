@@ -1,0 +1,23 @@
+f:\Download\GitHub\YiboFile\YiboFile-Core\Controls\NavigationRailControl.xaml.cs(20,35): warning CS0067: 浠庝笉浣跨敤浜嬩欢鈥淣avigationRailControl.LayoutFullRequested鈥?[f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_anxmnkhl_wpftmp.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\Controls\NavigationRailControl.xaml.cs(21,35): warning CS0067: 浠庝笉浣跨敤浜嬩欢鈥淣avigationRailControl.DualListToggleRequested鈥?[f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_anxmnkhl_wpftmp.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\Controls\NavigationRailControl.xaml.cs(18,35): warning CS0067: 浠庝笉浣跨敤浜嬩欢鈥淣avigationRailControl.LayoutFocusRequested鈥?[f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_anxmnkhl_wpftmp.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\Controls\NavigationRailControl.xaml.cs(19,35): warning CS0067: 浠庝笉浣跨敤浜嬩欢鈥淣avigationRailControl.LayoutWorkRequested鈥?[f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_anxmnkhl_wpftmp.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\Controls\NavigationRailControl.xaml.cs(21,35): warning CS0067: 浠庝笉浣跨敤浜嬩欢鈥淣avigationRailControl.DualListToggleRequested鈥?[f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\Controls\NavigationRailControl.xaml.cs(18,35): warning CS0067: 浠庝笉浣跨敤浜嬩欢鈥淣avigationRailControl.LayoutFocusRequested鈥?[f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\Controls\NavigationRailControl.xaml.cs(19,35): warning CS0067: 浠庝笉浣跨敤浜嬩欢鈥淣avigationRailControl.LayoutWorkRequested鈥?[f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\Controls\NavigationRailControl.xaml.cs(20,35): warning CS0067: 浠庝笉浣跨敤浜嬩欢鈥淣avigationRailControl.LayoutFullRequested鈥?[f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core.csproj]
+
+宸叉垚鍔熺敓鎴愩€?
+
+f:\Download\GitHub\YiboFile\YiboFile-Core\Controls\NavigationRailControl.xaml.cs(20,35): warning CS0067: 浠庝笉浣跨敤浜嬩欢鈥淣avigationRailControl.LayoutFullRequested鈥?[f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_anxmnkhl_wpftmp.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\Controls\NavigationRailControl.xaml.cs(21,35): warning CS0067: 浠庝笉浣跨敤浜嬩欢鈥淣avigationRailControl.DualListToggleRequested鈥?[f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_anxmnkhl_wpftmp.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\Controls\NavigationRailControl.xaml.cs(18,35): warning CS0067: 浠庝笉浣跨敤浜嬩欢鈥淣avigationRailControl.LayoutFocusRequested鈥?[f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_anxmnkhl_wpftmp.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\Controls\NavigationRailControl.xaml.cs(19,35): warning CS0067: 浠庝笉浣跨敤浜嬩欢鈥淣avigationRailControl.LayoutWorkRequested鈥?[f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core_anxmnkhl_wpftmp.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\Controls\NavigationRailControl.xaml.cs(21,35): warning CS0067: 浠庝笉浣跨敤浜嬩欢鈥淣avigationRailControl.DualListToggleRequested鈥?[f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\Controls\NavigationRailControl.xaml.cs(18,35): warning CS0067: 浠庝笉浣跨敤浜嬩欢鈥淣avigationRailControl.LayoutFocusRequested鈥?[f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\Controls\NavigationRailControl.xaml.cs(19,35): warning CS0067: 浠庝笉浣跨敤浜嬩欢鈥淣avigationRailControl.LayoutWorkRequested鈥?[f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core.csproj]
+f:\Download\GitHub\YiboFile\YiboFile-Core\Controls\NavigationRailControl.xaml.cs(20,35): warning CS0067: 浠庝笉浣跨敤浜嬩欢鈥淣avigationRailControl.LayoutFullRequested鈥?[f:\Download\GitHub\YiboFile\YiboFile-Core\YiboFile-Core.csproj]
+    8 涓鍛?
+    0 涓敊璇?
+
+宸茬敤鏃堕棿 00:00:12.59

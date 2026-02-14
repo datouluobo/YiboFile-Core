@@ -119,27 +119,10 @@ namespace YiboFile
                 RightPanel.NotesHeightChanged += RightPanel_NotesHeightChanged;
             }
 
-            // 为库列表添加鼠标事件处理，检测鼠标中键和Ctrl键
-            if (NavigationPanelControl?.LibrariesListBoxControl != null)
-            {
-                NavigationPanelControl.LibrariesListBoxControl.PreviewMouseDown += LibrariesListBox_PreviewMouseDown;
-            }
-
-            // 订阅NavigationPanelControl的事件
             if (NavigationPanelControl != null)
             {
-                // NavigationPanelControl.LibrariesListBoxPreviewMouseDown += LibrariesListBox_PreviewMouseDown;
-                // NavigationPanelControl.DrivesTreeViewItemClick += DrivesTreeViewItem_Click;
-                // NavigationPanelControl.QuickAccessListBoxSelectionChanged += QuickAccessListBox_SelectionChanged; // Mandled by Command
-                // NavigationPanelControl.FavoriteListBoxPreviewMouseDown += OnFavoriteListBoxPreviewMouseDown;
-                // NavigationPanelControl.FavoriteListBoxSelectionChanged += OnFavoriteListBoxSelectionChanged; // Mandled by Service Event Bridge
-                NavigationPanelControl.FavoriteListBoxLoaded += OnFavoriteListBoxLoaded;
-                NavigationPanelControl.RenameFavoriteGroupRequested += OnRenameFavoriteGroupRequested;
-                NavigationPanelControl.DeleteFavoriteGroupRequested += OnDeleteFavoriteGroupRequested;
-                // NavigationPanelControl.LibrariesListBoxSelectionChanged += LibrariesListBox_SelectionChanged; // Mandled by Command
-                NavigationPanelControl.LibrariesListBoxContextMenuOpening += LibrariesListBox_ContextMenuOpening;
-                NavigationPanelControl.LibraryContextMenuClick += LibraryContextMenu_Click;
-                NavigationPanelControl.LibraryManageClick += ManageLibraries_Click;
+                // Library events handled by LibraryEventHandler
+                NavigationPanelControl.LibraryManageClick += (s, e) => _viewModel?.ActivePane?.NewLibraryCommand?.Execute(null);
 
 
                 NavigationPanelControl.PathManageClick += (s, e) =>

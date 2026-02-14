@@ -48,10 +48,10 @@ namespace YiboFile.Services.UI.Adapters
 
         public void SwitchToTab(PathTab tab) => _window.SwitchToTab(tab);
         public void CreateTab(string path) => _window.CreateTab(path);
-        public void HighlightMatchingLibrary(Library library) => _window.HighlightMatchingLibrary(library);
+        public void HighlightMatchingLibrary(Library library) => _window._libraryEventHandler?.HighlightMatchingLibrary(library);
         public void EnsureSelectedItemVisible(ListBox listBox, object selectedItem) => _window._uiHelperService?.EnsureSelectedItemVisible(listBox, selectedItem);
-        public void LoadLibraryFiles(Library library) => _window.LoadLibraryFiles(library);
-        public void InitializeNavigationPanelDragDrop() => _window.InitializeNavigationPanelDragDrop();
+        public void LoadLibraryFiles(Library library) => _window._libraryEventHandler?.LoadLibraryFiles(library);
+        public void InitializeNavigationPanelDragDrop() => _window._dragDropEventHandler?.InitializeNavigationPanelDragDrop();
         public void ApplyVisibleColumnsForCurrentMode() => _window.ApplyVisibleColumnsForCurrentMode();
         public void EnsureHeaderContextMenuHook() => _window.EnsureHeaderContextMenuHook();
         public void RefreshFileList() => _window.RefreshFileList();

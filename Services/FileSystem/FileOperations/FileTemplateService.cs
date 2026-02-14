@@ -1,108 +1,22 @@
 using System;
 using System.Drawing;
-using System.Drawing.Imaging;
 using System.IO;
 using System.IO.Compression;
-using System.Linq;
 using System.Text;
-using System.Windows;
-using YiboFile.Models;
-using Microsoft.Extensions.DependencyInjection;
 using YiboFile.Services.Features;
-using YiboFile.Controls.Dialogs;
 
-namespace YiboFile
+namespace YiboFile.Services.FileSystem.FileOperations
 {
-    /// <summary>
-    /// MainWindow 菜单事件处理
-    /// </summary>
-    public partial class MainWindow
+    public interface IFileTemplateService
     {
-        #region 菜单事件
+        void CreateFileWithProperFormat(string filePath, string extension);
+    }
 
-        // [已移除] 文件操作事件桥接方法 - 功能已由 PaneViewModel Command 接管
-        // NewFolder_Click, NewFile_Click
-
-
-        internal void CreateNewFileWithExtension(string extension)
+    public class FileTemplateService : IFileTemplateService
+    {
+        public void CreateFileWithProperFormat(string filePath, string extension)
         {
-            try
-            {
-                string targetPath = null;
-
-                // 判断当前模式：库模式还是路径模式
-                if (_currentLibrary != null)
-                {
-                    // 库模式：使用库的第一个位置
-                    if (_currentLibrary.Paths == null || _currentLibrary.Paths.Count == 0)
-                    {
-                        DialogService.Info("当前库没有添加任何位置，请先在管理库中添加位置", owner: this);
-                        return;
-                    }
-
-                    // 如果有多个位置，让用户选择
-                    if (_currentLibrary.Paths.Count > 1)
-                    {
-                        var paths = string.Join("\n", _currentLibrary.Paths.Select((p, i) => $"{i + 1}. {p}"));
-                        if (!DialogService.Ask(
-                            $"当前库有多个位置，将在第一个位置创建文件：\n\n{_currentLibrary.Paths[0]}\n\n是否继续？\n\n所有位置：\n{paths}",
-                            "选择位置",
-                            this))
-                        {
-                            return;
-                        }
-                    }
-
-                    targetPath = _currentLibrary.Paths[0];
-                    if (!Directory.Exists(targetPath))
-                    {
-                        DialogService.Warning($"库位置不存在: {targetPath}", owner: this);
-                        return;
-                    }
-                }
-                else if (!string.IsNullOrEmpty(_currentPath) && Directory.Exists(_currentPath))
-                {
-                    // 路径模式：使用当前路径
-                    targetPath = _currentPath;
-                }
-                else
-                {
-                    DialogService.Warning("当前没有可用的路径", owner: this);
-                    return;
-                }
-
-                // 根据扩展名生成文件名
-                string baseFileName = $"新建文件{extension}";
-                string filePath = Path.Combine(targetPath, baseFileName);
-
-                // 如果已存在，自动添加序号
-                if (File.Exists(filePath))
-                {
-                    string fileNameWithoutExt = Path.GetFileNameWithoutExtension(baseFileName);
-                    int counter = 2;
-
-                    do
-                    {
-                        string candidateFileName = $"{fileNameWithoutExt} ({counter}){extension}";
-                        filePath = Path.Combine(targetPath, candidateFileName);
-                        counter++;
-                    }
-                    while (File.Exists(filePath));
-                }
-
-                // 根据文件类型创建合适的文件内容
-                CreateFileWithProperFormat(filePath, extension.ToLower());
-
-                // 刷新显示
-                RefreshFileList();
-            }
-            catch (Exception ex)
-            {
-                DialogService.Error($"创建文件失败: {ex.Message}", owner: this);
-            }
-        }
-        private void CreateFileWithProperFormat(string filePath, string extension)
-        {
+            extension = extension.ToLower();
             switch (extension)
             {
                 case ".docx":
@@ -306,16 +220,13 @@ namespace YiboFile
         {
             try
             {
-                // 创建一个500x500的空白图片
                 using (var bitmap = new Bitmap(500, 500))
                 {
                     using (var graphics = Graphics.FromImage(bitmap))
                     {
-                        // 填充白色背景
                         graphics.Clear(System.Drawing.Color.White);
                     }
 
-                    // 根据扩展名保存为相应格式
                     switch (extension.ToLower())
                     {
                         case ".png":
@@ -337,9 +248,8 @@ namespace YiboFile
                     }
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                DialogService.Warning($"创建图片文件失败: {ex.Message}\n将创建空文件", owner: this);
                 File.WriteAllText(filePath, string.Empty);
             }
         }
@@ -360,7 +270,6 @@ namespace YiboFile
                             if (wordType == null)
                             {
                                 CreateBasicDocx(filePath);
-                                DialogService.Info("未检测到 Microsoft Word，已创建基本 DOCX 模板。", owner: this);
                                 return;
                             }
 
@@ -371,10 +280,9 @@ namespace YiboFile
                             doc.SaveAs2(filePath);
                             doc.Close(false);
                         }
-                        catch (Exception ex)
+                        catch
                         {
                             CreateBasicDocx(filePath);
-                            DialogService.Warning($"创建文件失败，已回退为基本 DOCX: {ex.Message}", owner: this);
                         }
                         finally
                         {
@@ -392,7 +300,6 @@ namespace YiboFile
                             var excelType = Type.GetTypeFromProgID("Excel.Application");
                             if (excelType == null)
                             {
-                                DialogService.Info("未检测到 Microsoft Excel，将创建空文件", owner: this);
                                 File.WriteAllText(filePath, string.Empty);
                                 return;
                             }
@@ -420,7 +327,6 @@ namespace YiboFile
                             var pptType = Type.GetTypeFromProgID("PowerPoint.Application");
                             if (pptType == null)
                             {
-                                DialogService.Info("未检测到 Microsoft PowerPoint，将创建空文件", owner: this);
                                 File.WriteAllText(filePath, string.Empty);
                                 return;
                             }
@@ -441,7 +347,7 @@ namespace YiboFile
                         break;
                 }
             }
-            catch (Exception ex)
+            catch
             {
                 if (extension.Equals(".docx", StringComparison.OrdinalIgnoreCase))
                 {
@@ -451,7 +357,6 @@ namespace YiboFile
                 {
                     File.WriteAllText(filePath, string.Empty);
                 }
-                DialogService.Warning($"创建 Office 文件失败: {ex.Message}\n已写入占位文件", owner: this);
             }
         }
 
@@ -515,7 +420,7 @@ namespace YiboFile
 </w:document>");
 
                 AddEntry("docProps/core.xml",
-                    @"<?xml version=""1.0"" encoding=""UTF-8""?>
+                    $@"<?xml version=""1.0"" encoding=""UTF-8""?>
 <cp:coreProperties xmlns:cp=""http://schemas.openxmlformats.org/package/2006/core-properties""
  xmlns:dc=""http://purl.org/dc/elements/1.1/""
  xmlns:dcterms=""http://purl.org/dc/terms/""
@@ -536,12 +441,5 @@ namespace YiboFile
 </Properties>");
             }
         }
-
-
-
-
-        #endregion
-
     }
 }
-

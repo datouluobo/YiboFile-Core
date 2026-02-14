@@ -649,6 +649,17 @@ namespace YiboFile.Services.Orchestration
                 this.SecondFileListHandler.Initialize(window.SecondFileBrowser.FilesList);
             }
 
+            // 9. LibraryEventHandler
+            window._libraryEventHandler = new Handlers.LibraryEventHandler(
+                window,
+                _libraryService,
+                _navigationCoordinator,
+                _navigationService,
+                _fileListService,
+                _columnService
+            );
+            window._libraryEventHandler.Initialize();
+
             // 处理器已通过属性公开，无需再次挂载到 window 字段
 
             // 订阅 TabManager 的关闭覆盖层请求
@@ -662,7 +673,8 @@ namespace YiboFile.Services.Orchestration
             }
 
             // 初始化拖放
-            window.InitializeDragDrop();
+            window._dragDropEventHandler = new Handlers.DragDropEventHandler(window);
+            window._dragDropEventHandler.Initialize();
 
             // 初始化布局模式 - handled by LayoutEventHandler.Initialize()
             // window.InitializeLayoutMode();
