@@ -110,23 +110,7 @@ namespace YiboFile
             _viewModel?.ActivePane?.FileList?.RefreshFiles();
         }
 
-        internal void LoadCurrentDirectory()
-        {
-            _navigationCoordinator?.HandlePathNavigation(_currentPath, NavigationSource.External, ClickType.LeftClick);
-        }
 
-        internal void NavigateToPath(string path, Services.Navigation.PaneId? targetPane = null)
-        {
-            _navigationCoordinator?.HandlePathNavigation(path, YiboFile.Models.Navigation.NavigationSource.External, YiboFile.Models.Navigation.ClickType.LeftClick, pane: targetPane ?? Services.Navigation.PaneId.Main);
-        }
-
-        /// <summary>
-        /// 从模块导航到路径（桥接方法）
-        /// </summary>
-        internal void NavigateToPathFromModule(string path)
-        {
-            NavigateToPath(path, Services.Navigation.PaneId.Main);
-        }
 
 
         internal FileListService _secondFileListService => _orchestrator?.SecondFileListService;
@@ -392,7 +376,7 @@ namespace YiboFile
 
         // Legacy handlers removed
 
-        internal void Refresh_Click(object sender, RoutedEventArgs e) => RefreshFileList();
+
 
         /// <summary>
         /// 清除其他导航区域的选择状态，确保同时只有一个区域显示选中
@@ -419,44 +403,7 @@ namespace YiboFile
         }
 
 
-        private void OnTagSelected(int tagId, string tagName)
-        {
-            // Consistent navigation: Use tag protocol with tag NAME
-            NavigateToTag(tagName);
-        }
 
-        internal void SwitchNavigationMode(string mode)
-        {
-            if (_navigationModeService != null)
-            {
-                _navigationModeService.SwitchNavigationMode(mode);
-            }
-        }
-
-        private void NavPathBtn_Click(object sender, RoutedEventArgs e)
-        {
-            CloseOverlays();
-            SwitchNavigationMode("Path");
-        }
-
-        private void NavLibraryBtn_Click(object sender, RoutedEventArgs e)
-        {
-            CloseOverlays();
-            SwitchNavigationMode("Library");
-        }
-
-
-        internal void NavigateToTag(string tagName, Services.Navigation.PaneId? targetPane = null)
-        {
-            if (string.IsNullOrEmpty(tagName)) return;
-
-            _navigationCoordinator?.NavigateAsync(new YiboFile.Models.Navigation.NavigationRequest
-            {
-                Target = YiboFile.Models.Navigation.NavigationTarget.FromTag(tagName),
-                Pane = targetPane ?? GetActivePaneId(),
-                Source = NavigationSource.SidebarTag
-            });
-        }
 
 
 
@@ -571,31 +518,7 @@ namespace YiboFile
 
         }
 
-        /// <summary>
-        /// NavigationService 导航请求事件处理
-        /// </summary>
-        private void OnNavigationServiceNavigateRequested(object sender, string path)
-        {
-            _currentPath = path;
 
-            // [DEPRECATED] 标签页同步现在通过 MessageBus (PathChangedMessage) 自动处理。
-            // 直接调用 UpdateActiveTabPath 会因缺少 PaneId 而默认操作主面板，导致双面板状态串扰。
-            // _tabsModule?.UpdateActiveTabPath(path);
-
-            UpdateNavigationButtonsState();
-        }
-
-        /// <summary>
-        /// 更新导航按钮状态
-        /// </summary>
-        internal void UpdateNavigationButtonsState()
-        {
-            // 使用 NavigationModeService 更新导航按钮状态
-            if (_orchestrator.NavigationModeService != null)
-            {
-                _orchestrator.NavigationModeService.UpdateNavigationButtonsState();
-            }
-        }
 
 
         // 菜单事件桥接方法 - 已迁移到 MenuEventHandler
@@ -603,48 +526,7 @@ namespace YiboFile
         // private void ClearFilter_Click(object sender, RoutedEventArgs e) => _menuEventHandler?.ClearFilter_Click(sender, e);
 
 
-        internal void ClearFilter()
-        {
-            // 清除过滤状态，恢复正常的文件浏览
-            _currentFiles.Clear();
-            if (FileBrowser != null)
-                _viewModel?.PrimaryPane?.FileList?.UpdateFiles(new List<FileSystemItem>());
-            HideEmptyStateMessage();
-        }
 
-        private void FilesListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (FileBrowser == null || FileBrowser.FilesList == null) return;
-            var selectedItems = FileBrowser.FilesList.SelectedItems;
-
-            _viewModel?.SelectionHandler?.HandleSelectionChanged(selectedItems);
-        }
-
-
-
-        private void ShowEmptyLibraryMessage(string libraryName)
-        {
-            if (FileBrowser != null)
-            {
-                FileBrowser.ShowEmptyState($"库 \"{libraryName}\" 没有添加任何位置。\n\n请在管理库中添加位置。");
-            }
-        }
-
-        internal void HideEmptyStateMessage()
-        {
-            if (FileBrowser != null)
-            {
-                FileBrowser.HideEmptyState();
-            }
-        }
-
-        private void ShowEmptyStateMessage(string message)
-        {
-            if (FileBrowser != null)
-            {
-                FileBrowser.ShowEmptyState(message);
-            }
-        }
 
 
 
@@ -861,57 +743,6 @@ namespace YiboFile
         }
 
         #endregion
-
-        /// <summary>
-        /// 撤销操作
-        /// </summary>
-        internal void Undo_Click(object sender, RoutedEventArgs e)
-        {
-            var undoService = App.ServiceProvider.GetService<UndoService>();
-            var errorService = App.ServiceProvider.GetService<YiboFile.Services.Core.Error.ErrorService>();
-
-            if (undoService?.CanUndo == true)
-            {
-                var description = undoService.NextUndoDescription;
-                if (undoService.Undo())
-                {
-                    errorService?.ReportError($"已撤销: {description}", YiboFile.Services.Core.Error.ErrorSeverity.Info);
-                    RefreshFileList();
-                }
-                else
-                {
-                    errorService?.ReportError("撤销失败", YiboFile.Services.Core.Error.ErrorSeverity.Warning);
-                }
-            }
-            else
-            { }
-        }
-
-        /// <summary>
-        /// 重做操作
-        /// </summary>
-        internal void Redo_Click(object sender, RoutedEventArgs e)
-        {
-            var undoService = App.ServiceProvider.GetService<UndoService>();
-            var errorService = App.ServiceProvider.GetService<YiboFile.Services.Core.Error.ErrorService>();
-
-            if (undoService?.CanRedo == true)
-            {
-                var description = undoService.NextRedoDescription;
-                if (undoService.Redo())
-                {
-                    errorService?.ReportError($"已重做: {description}", YiboFile.Services.Core.Error.ErrorSeverity.Info);
-                    RefreshFileList();
-                }
-                else
-                {
-                    errorService?.ReportError("重做失败", YiboFile.Services.Core.Error.ErrorSeverity.Warning);
-                }
-            }
-            else
-            { }
-        }
-
 
         #endregion
 

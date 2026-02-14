@@ -15,10 +15,10 @@ namespace YiboFile.Controls
     public partial class NavigationRailControl : UserControl
     {
         // 向后兼容：保留事件供外部使用
-        public event EventHandler LayoutFocusRequested;
-        public event EventHandler LayoutWorkRequested;
-        public event EventHandler LayoutFullRequested;
-        public event EventHandler DualListToggleRequested;
+        // public event EventHandler LayoutFocusRequested; // Unused
+        // public event EventHandler LayoutWorkRequested; // Unused
+        // public event EventHandler LayoutFullRequested; // Unused
+        // public event EventHandler DualListToggleRequested; // Unused
         public event EventHandler SettingsRequested;
         public event EventHandler AboutRequested;
 

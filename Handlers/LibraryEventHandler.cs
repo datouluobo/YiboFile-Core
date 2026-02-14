@@ -79,7 +79,7 @@ namespace YiboFile.Handlers
                     _window._currentPath = null; // 标记当前在库模式下
                     if (_window.FileBrowser != null)
                     {
-                        _window.FileBrowser.NavUpEnabled = false;
+                        // _window.FileBrowser.NavUpEnabled = false; // Obsolete, handled by ViewModel Command
                         _window.FileBrowser.SetSearchStatus(false);
                     }
                 }

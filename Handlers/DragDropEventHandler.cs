@@ -72,7 +72,7 @@ namespace YiboFile.Handlers
                         if (_window._currentLibrary != null)
                             _window._libraryEventHandler?.LoadLibraryFiles(_window._currentLibrary);
                         else
-                            _window.LoadCurrentDirectory();
+                            _window._orchestrator.NavigationCoordinator.HandlePathNavigation(_window._currentPath, YiboFile.Models.Navigation.NavigationSource.External, YiboFile.Models.Navigation.ClickType.LeftClick);
                     }
                     else
                     {
@@ -101,7 +101,7 @@ namespace YiboFile.Handlers
                             if (_window._currentLibrary != null)
                                 _window._libraryEventHandler?.LoadLibraryFiles(_window._currentLibrary);
                             else
-                                _window.LoadCurrentDirectory();
+                                _window._orchestrator.NavigationCoordinator.HandlePathNavigation(_window._currentPath, YiboFile.Models.Navigation.NavigationSource.External, YiboFile.Models.Navigation.ClickType.LeftClick);
                         }
                     }
                 }

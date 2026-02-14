@@ -1,4 +1,6 @@
 using System;
+using System.Linq;
+using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using System.Windows.Threading;
 using Microsoft.Extensions.DependencyInjection;
@@ -335,7 +337,7 @@ namespace YiboFile.Services.Orchestration
                 _navigationService,
                 _navigationCoordinator,
                 () => window.GetActivePaneId(), // 注入 Pane 解析器
-                path => window.NavigateToPathFromModule(path));
+                path => _navigationCoordinator.HandlePathNavigation(path, NavigationSource.External, ClickType.LeftClick, pane: PaneId.Main));
             _viewModel.RegisterModule(_navigationModule);
 
             // 标签页模块
@@ -537,15 +539,23 @@ namespace YiboFile.Services.Orchestration
                 () => _viewModel?.ActivePane?.PasteCommand?.Execute(null),
                 () => _viewModel?.ActivePane?.CutCommand?.Execute(null),
                 () => _viewModel?.ActivePane?.DeleteCommand?.Execute(null),
-                async () => await window.DeleteSelectedFilesAsync(permanent: true), // Still in MainWindow, but OK for now
+                async () =>
+                {
+                    // Shift+Delete: Permanent Delete
+                    var items = _viewModel?.ActivePane?.SelectedItems?.ToList();
+                    if (items != null && items.Count > 0)
+                    {
+                        await _fileOperationService.DeleteAsync(items, permanent: true);
+                    }
+                },
                 () => _viewModel?.ActivePane?.RenameCommand?.Execute(null),
                 path => _navigationCoordinator.HandlePathNavigation(path, YiboFile.Models.Navigation.NavigationSource.External, YiboFile.Models.Navigation.ClickType.LeftClick, pane: window.GetActivePaneId()), // Using Coordinator
                 mode => _navigationModeService?.SwitchNavigationMode(mode), // Using Service
                 () => _viewModel?.ActivePane?.NavigationMode == "Library",
                 () => window.CloseOverlays(),
                 () => window.Back_Click_Logic(),
-                () => window.Undo_Click(null, null),
-                () => window.Redo_Click(null, null),
+                () => _viewModel?.FileOperation?.UndoCommand?.Execute(null),
+                () => _viewModel?.FileOperation?.RedoCommand?.Execute(null),
                 messageBus: _messageBus,
                 switchLayoutMode: index => window.SwitchLayoutModeByIndex(index),
                 isDualListMode: () => _layoutModule?.IsDualListMode ?? false,
@@ -773,7 +783,7 @@ namespace YiboFile.Services.Orchestration
             _previewService = new Services.Preview.PreviewService(
                 _messageBus,
                 window.Dispatcher,
-                window.LoadCurrentDirectory,
+                () => _navigationCoordinator.HandlePathNavigation(_viewModel.CurrentPath, NavigationSource.External, ClickType.LeftClick),
                 path => _navigationCoordinator.HandlePathNavigation(path, YiboFile.Models.Navigation.NavigationSource.External, YiboFile.Models.Navigation.ClickType.LeftClick, forceNewTab: true)
             );
 

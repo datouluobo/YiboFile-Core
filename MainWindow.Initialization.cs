@@ -134,7 +134,16 @@ namespace YiboFile
 
                 if (NavigationPanelControl.TagBrowsePanelControl != null)
                 {
-                    NavigationPanelControl.TagBrowsePanelControl.TagClicked += OnTagSelected;
+                    NavigationPanelControl.TagBrowsePanelControl.TagClicked += (tagId, tagName) =>
+                    {
+                        if (string.IsNullOrEmpty(tagName)) return;
+                        _ = _navigationCoordinator?.NavigateAsync(new YiboFile.Models.Navigation.NavigationRequest
+                        {
+                            Target = YiboFile.Models.Navigation.NavigationTarget.FromTag(tagName),
+                            Pane = GetActivePaneId(), // Using helper method from MainWindow
+                            Source = NavigationSource.SidebarTag
+                        });
+                    };
                     NavigationPanelControl.TagBrowsePanelControl.BackRequested += (s, e) =>
                     {
                         // Navigate back when back button is clicked in TagBrowsePanel

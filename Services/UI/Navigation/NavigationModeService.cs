@@ -174,10 +174,7 @@ namespace YiboFile.Services.Navigation
             // 隐藏库管理按钮
 
 
-            if (_uiHelper.FileBrowser != null)
-            {
-                _uiHelper.FileBrowser.TabsVisible = true;
-            }
+
 
             // 从库切换到路径时，查找或创建标签页
             // 启动时恢复状态时跳过，避免与标签页恢复冲突
@@ -202,10 +199,7 @@ namespace YiboFile.Services.Navigation
 
 
             // 库模式下也显示标签页
-            if (_uiHelper.FileBrowser != null)
-            {
-                _uiHelper.FileBrowser.TabsVisible = true;
-            }
+
 
             // 切换到库模式时，恢复最后选中的库
             // 启动时恢复状态时跳过，避免与标签页恢复冲突
@@ -239,10 +233,7 @@ namespace YiboFile.Services.Navigation
         /// <param name="skipRefresh">是否跳过刷新操作（启动时恢复状态使用）</param>
         private void HandleTagMode(bool skipRefresh = false)
         {
-            if (_uiHelper.FileBrowser != null)
-            {
-                _uiHelper.FileBrowser.TabsVisible = true;
-            }
+
 
             // 切换到标签模式时，通知 UI 显示标签面板
             if (!skipRefresh)
@@ -269,31 +260,8 @@ namespace YiboFile.Services.Navigation
         /// </summary>
         public void UpdateNavigationButtonsState()
         {
-            if (_uiHelper.FileBrowser != null)
-            {
-                _uiHelper.FileBrowser.NavBackEnabled = _navigationService.CanGoBack;
-                _uiHelper.FileBrowser.NavForwardEnabled = _navigationService.CanGoForward;
-
-                // 更新“向上”按钮状态
-                string currentPath = _navigationService.CurrentPath;
-                bool canGoUp = false;
-                if (!string.IsNullOrEmpty(currentPath))
-                {
-                    var protocol = ProtocolManager.Parse(currentPath);
-                    if (protocol.Type == ProtocolType.Local)
-                    {
-                        string dir = null;
-                        try { dir = Path.GetDirectoryName(currentPath); } catch { }
-                        canGoUp = !string.IsNullOrEmpty(dir);
-                    }
-                    else if (protocol.Type == ProtocolType.Archive)
-                    {
-                        // 压缩包内总是可以向上（返回上一级文件夹或返回到文件系统）
-                        canGoUp = true;
-                    }
-                }
-                _uiHelper.FileBrowser.NavUpEnabled = canGoUp;
-            }
+            // Buttons state is now handled by Command Bindings in ViewModel
+            // _uiHelper.FileBrowser.NavBackEnabled = ... (Obsolete)
         }
 
         #endregion

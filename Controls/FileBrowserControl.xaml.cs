@@ -205,47 +205,11 @@ namespace YiboFile.Controls
             set { if (AddressBarControl != null) AddressBarControl.AddressText = value; }
         }
 
-        public bool TabsVisible
-        {
-            get => false; // Or implement logic if needed
-            set { /* No individual tab manager anymore in FileBrowserControl */ }
-        }
 
-        public bool NavUpEnabled
-        {
-            get => NavUpBtn?.IsEnabled ?? false;
-            set { if (NavUpBtn != null) NavUpBtn.IsEnabled = value; }
-        }
 
-        public bool NavBackEnabled
-        {
-            get => NavBackBtn?.IsEnabled ?? false;
-            set { if (NavBackBtn != null) NavBackBtn.IsEnabled = value; }
-        }
 
-        public bool NavForwardEnabled
-        {
-            get => NavForwardBtn?.IsEnabled ?? false;
-            set { if (NavForwardBtn != null) NavForwardBtn.IsEnabled = value; }
-        }
 
-        public void SetPropertiesButtonVisibility(Visibility visibility)
-        {
-            if (PropertiesBtn != null) PropertiesBtn.Visibility = visibility;
-        }
 
-        public bool LoadMoreVisible
-        {
-            get => FileList?.IsLoadMoreVisible ?? false;
-            set { if (FileList != null) FileList.IsLoadMoreVisible = value; }
-        }
-
-        public event RoutedEventHandler LoadMoreClicked;
-
-        protected virtual void OnLoadMoreClicked()
-        {
-            LoadMoreClicked?.Invoke(this, new RoutedEventArgs());
-        }
 
         public bool IsAddressReadOnly
         {
@@ -281,29 +245,7 @@ namespace YiboFile.Controls
 
         public System.Collections.IList FilesSelectedItems => FileList?.SelectedItems;
 
-        public bool UndoEnabled
-        {
-            get => UndoBtn?.IsEnabled ?? false;
-            set { if (UndoBtn != null) UndoBtn.IsEnabled = value; }
-        }
 
-        public bool RedoEnabled
-        {
-            get => RedoBtn?.IsEnabled ?? false;
-            set { if (RedoBtn != null) RedoBtn.IsEnabled = value; }
-        }
-
-        public string UndoToolTipText
-        {
-            get => UndoBtn?.ToolTip as string;
-            set { if (UndoBtn != null) UndoBtn.ToolTip = value; }
-        }
-
-        public string RedoToolTipText
-        {
-            get => RedoBtn?.ToolTip as string;
-            set { if (RedoBtn != null) RedoBtn.ToolTip = value; }
-        }
 
         public void ShowEmptyState(string message = "暂无文件") => FileList?.ShowEmptyState(message);
         public void HideEmptyState() => FileList?.HideEmptyState();

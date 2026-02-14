@@ -74,7 +74,7 @@ namespace YiboFile.Handlers
             // 桥接到旧有的导航切换逻辑
             _messageBus?.Subscribe<NavigationModeChangedMessage>(m =>
             {
-                _window.Dispatcher.Invoke(() => _window.SwitchNavigationMode(m.Mode));
+                _window.Dispatcher.Invoke(() => _window._orchestrator?.NavigationModeService?.SwitchNavigationMode(m.Mode));
             });
 
             // 应用初始 UI 状态

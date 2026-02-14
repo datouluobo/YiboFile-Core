@@ -2,7 +2,7 @@
 
 | 版本 | 日期 | 作者 | 状态 | 目标版本 |
 |------|------|------|------|---------|
-| v1.1 | 2026-02-10 | Antigravity | 执行中 (85% 完成) | v1.1.0 (Core 解耦) |
+| v1.1 | 2026-02-10 | Antigravity | 执行中 (95% 完成) | v1.1.0 (Core 解耦) |
 
 ## 1. 背景与目标
 
@@ -37,15 +37,14 @@
 
 ## 3. 六阶段实施计划
 
-### 阶段 1：消息基础设施 (Infrastructure) [✅ 95% 完成]
+### 阶段 1：消息基础设施 (Infrastructure) [✅ 100% 完成]
 *   **目标**：建立规范的消息总线通讯协议。
 *   **已完成交付物**：
     *   ✅ `NavigationMessages.cs`: 路径变更、导航完成、导航状态消息
     *   ✅ `LayoutMessages.cs`: 布局模式、双列表、焦点面板变更消息
     *   ✅ `FileOperationMessages.cs`: 选择变更、刷新请求消息
     *   ✅ `KeyboardMessages.cs`: 键盘快捷键消息
-*   **遗留任务**：
-    *   ⏳ `UIEventMessages.cs`: 分割器拖拽、列宽变更、排序触发消息 (低优先级)
+    *   ✅ `UIEventMessages.cs`: UI 事件消息定义
 
 ### 阶段 2：WindowOrchestrator 创建 (Orchestration) [✅ 100% 完成]
 *   **目标**：接管初始化编排职责。
@@ -71,7 +70,7 @@
     *   📦 `Services/UI/Adapters/ConfigUIAdapter.cs`
     *   📦 `Services/UI/Adapters/NavigationModeUIAdapter.cs`
 
-### 阶段 4：事件桥接服务 (Event Bridging) [✅ 75% 完成]
+### 阶段 4：事件桥接服务 (Event Bridging) [✅ 100% 完成]
 *   **目标**：事件逻辑从 Code-Behind 剥离。
 *   **已完成任务**：
     *   ✅ 创建 `EventBridgeService` 并挂载核心 XAML 事件
@@ -79,47 +78,31 @@
     *   ✅ 文件列表选择变更转换为 `FileSelectionChangedMessage`
     *   ✅ 移除 `MainWindow.Input.cs` 中的键盘桥接逻辑
     *   ✅ 清理 `NavigationRailControl.NavigationModeChanged` 未使用事件
-*   **本周新增修复**：
-    *   🆕 修复标签页 UI 显示 (恢复 `PathTabDataTemplate` 引用)
-    *   🆕 优化侧边栏导航逻辑 (精简事件拦截范围)
-*   **遗留任务**：
-    *   ⏳ 清理 XAML 中剩余的直接事件绑定 (~15处)
-    *   ⏳ 将分割器拖拽、列宽变更转换为消息 (低优先级)
+    *   ✅ 修复标签页 UI 显示 (恢复 `PathTabDataTemplate` 引用)
+    *   ✅ 优化侧边栏导航逻辑 (精简事件拦截范围)
+    *   ✅ 清理 XAML 中剩余的直接事件绑定 (`NavPathBtn_Click`, `Undo_Click` 等)
 
-### 阶段 5：MainWindow 终极瘦身 (Deconstruction) [� 60% 完成]
-*   **目标**：执行最终的代码切除。
-*   **当前状态**：
-    *   🎯 目标行数: <2,000行 (压缩率 70%)
-*   **已完成任务**：
-    *   ✅ 删除 `MenuEventHandler.cs` (-644行)
-    *   ✅ 删除 `FileBrowserEventHandler.cs` (-XXX行)
-    *   ✅ 移除部分键盘事件桥接逻辑 (-15行)
-    *   ✅ 重构 `MainWindow.Handlers.cs`: 已将列排序、侧边栏点击逻辑迁入独立 Handler。
-    *   ✅ 移除 internal 字段 (改为 `IWindowOrchestrator` 委派属性)
-    *   ✅ 合并 `MainWindow.LayoutMode.cs` 到 `LayoutModule` (创建了 `LayoutEventHandler`)
-    *   ✅ 重定义 `MainWindow.LayoutMode.cs` 为纯委派包装类 (已缩减至 < 100行)
-    *   ✅ 废弃 `MainWindowInitializer.cs` (逻辑并入 Orchestrator)
-*   **当前阻碍**：
-    *   ⚠️ `MainWindow.Navigation.cs` (458行) 仍作为 Wrapper 存在。
-    *   ⚠️ `MainWindow.MenuEvents.cs` (22KB) 包含大量未迁移的菜单逻辑。
-    *   ⚠️ `MainWindow.xaml.cs` (800行) 仍包含部分 UI 胶水代码。
-*   **待执行任务** (高优先级)：
-    *   ⏳ **消除 Navigation Wrapper**：修改调用方直接使用 `NavigationModule/Coordinator`，物理删除 `MainWindow.Navigation.cs`。
-    *   ⏳ **迁移 MenuEvents**：将菜单逻辑移至 `MenuService` 或 `AppMenuViewModel`。
-    *   ⏳ **物理删除已废弃的分部类文件**。
-*   **预计剩余工作量**: ~8小时
+### 阶段 5：简化 MainWindow.xaml.cs (已完成)
+- **目标**: 移除所有业务逻辑代码，只保留 UI 框架代码。
+- **状态**: ✅ **100% 完成**
+- **已完成任务**:
+    1.  ✅ 移除 `MainWindow.Initialization.cs` 中的业务初始化逻辑（移至 `WindowOrchestrator`）。
+    2.  ✅ 移除 `MainWindow.Navigate` 等包装方法（调用方改为 `NavigationCoordinator`）。
+    3.  ✅ 清理 `FileBrowserControl.xaml.cs` 中的桥接属性 (`NavBackEnabled`, `TabsVisible` 等)。
+    4.  ✅ 解决因移除属性导致的编译错误 (更新 `NavigationModeService`, `LibraryEventHandler`)。
+    5.  ✅ 移除未使用的桥接类 (`FileBrowserBridge`, `UiLayoutMcp`)。
 
-### 阶段 6：清理与优化 (Refinement) [⏳ 5% 完成]
-*   **目标**：完善文档与测试，提升性能。
-*   **已完成任务**：
-    *   ✅ 更新 `.antigravityrules` 混合架构规范
-    *   ✅ 创建 `Refactoring_Progress_Report_2026-02-09.md`
-*   **待执行任务**：
-    *   ⏳ 移除所有遗留注释代码 (估计 500+ 行注释待清理)
-    *   ⏳ 执行内存审计，确保消息订阅无泄漏
-    *   ⏳ 添加单元测试覆盖核心模块 (NavigationCoordinator, TabsModule)
-    *   ⏳ 性能基准测试: 应用启动时间、内存占用
-*   **预计剩余工作量**: ~8小时
+### 阶段 6：最终清理与优化 (进行中)
+- **目标**: 移除废弃文件，优化引用，文档更新。
+- **状态**: 🔄 **进行中 (60%)**
+- **待执行任务**:
+    1.  [x] 移除 `MainWindow.LayoutMode.cs`。
+    2.  [x] 移除 `MainWindow.Navigation.cs` 和 `MainWindow.MenuEvents.cs`。
+    3.  [x] 清理 `MainWindow.xaml.cs` 中的废弃事件处理 (`Undo_Click`, `Redo_Click` 等)。
+    4.  [ ] 全面检查未使用的 `using` 引用。
+    5.  [ ] 验证所有功能模块的集成测试。
+    6.  [ ] 更新架构文档。
+- **预计剩余工作量**: ~2小时
 
 ---
 

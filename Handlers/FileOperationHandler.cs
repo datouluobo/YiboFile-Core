@@ -56,7 +56,7 @@ namespace YiboFile.Handlers
                     _mainWindow._currentPath,
                     _mainWindow.FileBrowser,
                     _mainWindow,
-                    _mainWindow.LoadCurrentDirectory);
+                    () => _mainWindow._orchestrator.NavigationCoordinator.HandlePathNavigation(_mainWindow._currentPath, YiboFile.Models.Navigation.NavigationSource.External, YiboFile.Models.Navigation.ClickType.LeftClick));
             }
         }
 

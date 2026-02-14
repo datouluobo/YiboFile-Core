@@ -52,10 +52,7 @@ namespace YiboFile.Services.UI
                 _window.NavigationRail.Loaded += OnNavigationRailLoaded;
                 // NavigationModeChanged 现在通过 MVVM Command 直接发布消息，不再需要事件桥接
                 // _window.NavigationRail.NavigationModeChanged += OnRailNavigationModeChanged;
-                _window.NavigationRail.LayoutFocusRequested += OnRailLayoutFocusRequested;
-                _window.NavigationRail.LayoutWorkRequested += OnRailLayoutWorkRequested;
-                _window.NavigationRail.LayoutFullRequested += OnRailLayoutFullRequested;
-                _window.NavigationRail.DualListToggleRequested += OnRailDualListToggleRequested;
+
                 _window.NavigationRail.SettingsRequested += OnRailSettingsRequested;
                 _window.NavigationRail.AboutRequested += OnRailAboutRequested;
             }
@@ -113,10 +110,7 @@ namespace YiboFile.Services.UI
             {
                 _window.NavigationRail.Loaded -= OnNavigationRailLoaded;
                 // _window.NavigationRail.NavigationModeChanged -= OnRailNavigationModeChanged;
-                _window.NavigationRail.LayoutFocusRequested -= OnRailLayoutFocusRequested;
-                _window.NavigationRail.LayoutWorkRequested -= OnRailLayoutWorkRequested;
-                _window.NavigationRail.LayoutFullRequested -= OnRailLayoutFullRequested;
-                _window.NavigationRail.DualListToggleRequested -= OnRailDualListToggleRequested;
+
                 _window.NavigationRail.SettingsRequested -= OnRailSettingsRequested;
                 _window.NavigationRail.AboutRequested -= OnRailAboutRequested;
             }
@@ -233,10 +227,7 @@ namespace YiboFile.Services.UI
             _messageBus.Publish(new NavigationModeChangedMessage(mode));
         }
 
-        private void OnRailLayoutFocusRequested(object sender, EventArgs e) => _messageBus.Publish(new RequestLayoutModeMessage("Focus"));
-        private void OnRailLayoutWorkRequested(object sender, EventArgs e) => _messageBus.Publish(new RequestLayoutModeMessage("Work"));
-        private void OnRailLayoutFullRequested(object sender, EventArgs e) => _messageBus.Publish(new RequestLayoutModeMessage("Full"));
-        private void OnRailDualListToggleRequested(object sender, EventArgs e) => _messageBus.Publish(new RequestDualListToggleMessage());
+
         private void OnRailSettingsRequested(object sender, EventArgs e) => _messageBus.Publish(new ShowSettingsMessage());
         private void OnRailAboutRequested(object sender, EventArgs e) => _messageBus.Publish(new ShowAboutMessage());
 
