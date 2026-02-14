@@ -345,7 +345,7 @@ Controller-driven 场景：
 - **清理 FileBrowserControl**: `已完成`。
 - **修复 NavigationCoordinator 初始化**: `已完成`。
 - **清理 XAML 事件绑定 (阶段 4)**: `已完成`。
-- **内存审计与优化 (阶段 6)**: `进行中` (60%)。
+- **内存审计与优化 (阶段 6)**: `进行中` (80%). 已完成 `MainWindow.xaml.cs` 废弃引用清理。
 
 **净效果**：
 *   代码总行数：-1500+ 行

@@ -2,7 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.IO.Compression;
+
 using System.Linq;
 using System.Diagnostics;
 using System.Threading.Tasks;
@@ -10,17 +10,14 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
-using System.Windows.Interop;
+
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
+
 using System.Windows.Controls.Primitives;
-using System.Drawing;
-using System.Drawing.Imaging;
-using Microsoft.Win32;
-using System.Runtime.InteropServices;
+
 using System.ComponentModel;
 using YiboFile.Services;
-using YiboFile.Services.FileNotes;
+
 using YiboFile.Services.Search;
 using YiboFile.Services.Navigation;
 using YiboFile.Services.FileOperations;
@@ -29,14 +26,14 @@ using YiboFile.Services.QuickAccess;
 using YiboFile.Services.FileList;
 using YiboFile.Services.Tabs;
 using YiboFile.Services.Orchestration;
-using YiboFile.Services.FileOperations.Undo;
+
 using Microsoft.Extensions.DependencyInjection;
-using YiboFile.Services.Preview;
+
 using YiboFile.Services.ColumnManagement;
 using YiboFile.Services.Config;
 using YiboFile.Handlers;
 using System.Threading;
-using System.Text.Json;
+
 using YiboFile.Models.Navigation;
 using YiboFile.Models.UI;
 using YiboFile.Models;
