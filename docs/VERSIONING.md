@@ -1,14 +1,13 @@
-# 版本号规范
+# YiboFile 版本号规范
 
-## 版本号格式
-版本号遵循 `Major.Minor.Build.Revision` 格式。
+## ⚠️ 重要说明
 
-## Revision (第4位) 说明
-最后一位数字（Revision）用于区分程序版本：
-- **0**: Core (Free / 核心版)
-- **1**: Pro (专业版)
-- **2**: Ultra (终极版)
+**本文档已废弃 (Legacy)**。
 
-## 发布规则
-- 在发布标签（Tag）时，通常忽略第4位的 `0`。
-- 例如：Core 版的内部版本号为 `1.0.2.0`，发布的 GitHub 标签为 `v1.0.2`。
+从 **v1.0.1460 (Release)** 开始，所有版本号规则请遵循主仓库下的 [VERSIONING.md](../../../VERSIONING.md) 文件。
+
+### 新规则速览 (Base-1000 Alignment)
+
+*   **Core**: `1.0.{1xxx}.0`
+*   **Pro**: `1.0.{2xxx}.0`
+*   **Ultra**: `1.0.{3xxx}.0`
