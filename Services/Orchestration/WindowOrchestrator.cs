@@ -21,6 +21,8 @@ using YiboFile.Services.ColumnManagement;
 using YiboFile.Services.Favorite;
 using YiboFile.Services.QuickAccess;
 using YiboFile.Handlers;
+using YiboFile.Models;
+using YiboFile.Models.Navigation;
 
 namespace YiboFile.Services.Orchestration
 {
@@ -117,7 +119,7 @@ namespace YiboFile.Services.Orchestration
             {
                 _navigationService.NavigateRequested += (s, path) =>
                 {
-                    _messageBus.Publish(new NavigationCompleteMessage(path, PaneId.Main, Services.Navigation.NavigationSource.AddressBar));
+                    _messageBus.Publish(new NavigationCompleteMessage(path, PaneId.Main, YiboFile.Models.Navigation.NavigationSource.AddressBar));
                 };
             }
 
@@ -343,7 +345,7 @@ namespace YiboFile.Services.Orchestration
                 _secondTabService,
                 () => window.IsDualListMode,
                 () => window.GetActivePaneId() == PaneId.Second,
-                (path, activate) => window.CreateTab(path, activate),
+                (path, activate) => _navigationCoordinator?.NavigateAsync(new NavigationRequest { Target = NavigationTarget.FromPath(path), ForceNewTab = true, Activate = activate }),
                 tabId =>
                 {
                     var tab = _tabService.FindTabByPath(tabId);
@@ -527,18 +529,18 @@ namespace YiboFile.Services.Orchestration
                 () => window.GetActivePaneId() == PaneId.Second ? window.SecondFileBrowser : window.FileBrowser,
                 () => window.GetActivePaneId() == PaneId.Second ? _secondTabService : _tabService,
                 tab => (window.GetActivePaneId() == PaneId.Second ? _secondTabService : _tabService).RemoveTab(tab),
-                path => window.CreateTab(path),
-                tab => (window.GetActivePaneId() == PaneId.Second ? _secondTabService : _tabService).SwitchToTab(tab),
+                path => _navigationCoordinator.HandlePathNavigation(path, YiboFile.Models.Navigation.NavigationSource.External, YiboFile.Models.Navigation.ClickType.LeftClick, pane: window.GetActivePaneId()), // Using Coordinator
+                tab => (window.GetActivePaneId() == PaneId.Second ? _secondTabService : _tabService).SetActiveTab(tab), // Consistent method name
                 () => _viewModel?.ActivePane?.NewFolderCommand?.Execute(null),
-                () => window.RefreshFileList(),
+                () => _viewModel?.ActivePane?.Refresh(), // Using ViewModel
                 () => _viewModel?.ActivePane?.CopyCommand?.Execute(null),
                 () => _viewModel?.ActivePane?.PasteCommand?.Execute(null),
                 () => _viewModel?.ActivePane?.CutCommand?.Execute(null),
                 () => _viewModel?.ActivePane?.DeleteCommand?.Execute(null),
-                async () => await window.DeleteSelectedFilesAsync(permanent: true),
+                async () => await window.DeleteSelectedFilesAsync(permanent: true), // Still in MainWindow, but OK for now
                 () => _viewModel?.ActivePane?.RenameCommand?.Execute(null),
-                path => window.NavigateToPath(path),
-                mode => window.SwitchNavigationMode(mode),
+                path => _navigationCoordinator.HandlePathNavigation(path, YiboFile.Models.Navigation.NavigationSource.External, YiboFile.Models.Navigation.ClickType.LeftClick, pane: window.GetActivePaneId()), // Using Coordinator
+                mode => _navigationModeService?.SwitchNavigationMode(mode), // Using Service
                 () => _viewModel?.ActivePane?.NavigationMode == "Library",
                 () => window.CloseOverlays(),
                 () => window.Back_Click_Logic(),
@@ -571,8 +573,8 @@ namespace YiboFile.Services.Orchestration
                 () => window.DragMove(),
                 () => window.NavigationPanelControl?.QuickAccessListBox,
                 _navigationCoordinator,
-                fav => _navigationCoordinator.HandleFavoriteNavigation(fav, ClickType.LeftClick, window.GetActivePaneId()),
-                path => _navigationCoordinator.HandlePathNavigation(path, NavigationSource.QuickAccess, ClickType.LeftClick, pane: window.GetActivePaneId()),
+                fav => _navigationCoordinator.HandleFavoriteNavigation(fav, YiboFile.Models.Navigation.ClickType.LeftClick, window.GetActivePaneId()),
+                path => _navigationCoordinator.HandlePathNavigation(path, YiboFile.Models.Navigation.NavigationSource.QuickAccess, YiboFile.Models.Navigation.ClickType.LeftClick, pane: window.GetActivePaneId()),
                 () => window.GetActivePaneId()
             );
 
@@ -605,13 +607,20 @@ namespace YiboFile.Services.Orchestration
                 window.FileBrowser,
                 _navigationCoordinator,
                 () => _viewModel?.PrimaryPane?.NavigationMode == "Library",
-                mode => window.SwitchNavigationMode(mode),
-                path => window.NavigateToPath(path, PaneId.Main),
+                mode => _navigationModeService?.SwitchNavigationMode(mode), // Using Service
+                path => _navigationCoordinator.HandlePathNavigation(path, YiboFile.Models.Navigation.NavigationSource.FileList, YiboFile.Models.Navigation.ClickType.LeftClick, pane: PaneId.Main), // Using Coordinator
                 () => _viewModel?.PrimaryPane?.NavigateBackCommand?.Execute(null),
                 col => window.AutoSizeGridViewColumn(col),
                 () => _viewModel?.PrimaryPane?.CurrentPath,
-                () => window.ShowSelectedFileProperties(),
-                (path, force, activate) => window.CreateTab(path, force, activate, PaneId.Main)
+                () => _viewModel?.PrimaryPane?.PropertiesCommand?.Execute(null), // Using ViewModel
+                (path, force, activate) => _ = _navigationCoordinator.NavigateAsync(new NavigationRequest
+                {
+                    Target = NavigationTarget.FromPath(path),
+                    ForceNewTab = force,
+                    Activate = activate ?? true,
+                    Pane = PaneId.Main
+                }), // Using Coordinator
+                PaneId.Main
             );
             this.MainFileListHandler.Initialize(window.FileBrowser.FilesList);
 
@@ -622,13 +631,20 @@ namespace YiboFile.Services.Orchestration
                     window.SecondFileBrowser,
                     _navigationCoordinator,
                     () => _viewModel?.SecondaryPane?.NavigationMode == "Library",
-                    mode => { /* handled elsewhere */ },
-                    path => window.NavigateToPath(path, PaneId.Second),
+                    mode => _navigationModeService?.SwitchNavigationMode(mode), // Using Service
+                    path => _navigationCoordinator.HandlePathNavigation(path, YiboFile.Models.Navigation.NavigationSource.FileList, YiboFile.Models.Navigation.ClickType.LeftClick, pane: PaneId.Second), // Using Coordinator
                     () => _viewModel?.SecondaryPane?.NavigateBackCommand?.Execute(null),
                     col => window.AutoSizeGridViewColumn(col),
                     () => _viewModel?.SecondaryPane?.CurrentPath,
-                    () => window.ShowSelectedFileProperties(),
-                    (path, force, activate) => window.CreateTab(path, force, activate, PaneId.Second)
+                    () => _viewModel?.SecondaryPane?.PropertiesCommand?.Execute(null), // Using ViewModel
+                    (path, force, activate) => _ = _navigationCoordinator.NavigateAsync(new NavigationRequest
+                    {
+                        Target = NavigationTarget.FromPath(path),
+                        ForceNewTab = force,
+                        Activate = activate ?? true,
+                        Pane = PaneId.Second
+                    }), // Using Coordinator
+                    PaneId.Second
                 );
                 this.SecondFileListHandler.Initialize(window.SecondFileBrowser.FilesList);
             }
@@ -746,7 +762,7 @@ namespace YiboFile.Services.Orchestration
                 _messageBus,
                 window.Dispatcher,
                 window.LoadCurrentDirectory,
-                path => window.CreateTab(path, true)
+                path => _navigationCoordinator.HandlePathNavigation(path, YiboFile.Models.Navigation.NavigationSource.External, YiboFile.Models.Navigation.ClickType.LeftClick, forceNewTab: true)
             );
 
             // 6. 设置文件操作上下文提供者

@@ -238,7 +238,7 @@ namespace YiboFile.Handlers
                     {
                         Target = NavigationTarget.FromPath(path),
                         Pane = PaneId.Second,
-                        Source = "Other"
+                        Source = NavigationSource.External
                     });
                 },
                 UpdateNavigationButtonsState = () => { },
@@ -359,7 +359,11 @@ namespace YiboFile.Handlers
 
         internal void LoadSecondFileBrowserDirectory(string path)
         {
-            _window.NavigateToPath(path, PaneId.Second);
+            _window._navigationCoordinator?.HandlePathNavigation(
+                path,
+                YiboFile.Models.Navigation.NavigationSource.External,
+                YiboFile.Models.Navigation.ClickType.LeftClick,
+                pane: PaneId.Second);
             UpdateFocusBorders();
         }
 
@@ -456,13 +460,13 @@ namespace YiboFile.Handlers
             browser.PathChanged += (s, newPath) =>
             {
                 if (string.IsNullOrEmpty(newPath)) return;
-                _window.NavigateToPath(newPath, PaneId.Second);
+                _window._navigationCoordinator?.HandlePathNavigation(newPath, YiboFile.Models.Navigation.NavigationSource.AddressBar, YiboFile.Models.Navigation.ClickType.LeftClick, pane: PaneId.Second);
             };
 
             browser.BreadcrumbClicked += (s, path) =>
             {
                 if (string.IsNullOrEmpty(path)) return;
-                _window.NavigateToPath(path, PaneId.Second);
+                _window._navigationCoordinator?.HandlePathNavigation(path, YiboFile.Models.Navigation.NavigationSource.Breadcrumb, YiboFile.Models.Navigation.ClickType.LeftClick, pane: PaneId.Second);
             };
 
             browser.FilesPreviewMouseDoubleClick += SecondFileBrowser_FilesDoubleClick;
@@ -480,7 +484,12 @@ namespace YiboFile.Handlers
                 {
                     if (current is ListViewItem item && item.Content is FileSystemItem selectedItem && selectedItem.IsDirectory)
                     {
-                        _window._secondTabService?.CreatePathTab(selectedItem.Path, forceNewTab: true);
+                        _window._navigationCoordinator?.NavigateAsync(new YiboFile.Models.Navigation.NavigationRequest
+                        {
+                            Target = YiboFile.Models.Navigation.NavigationTarget.FromPath(selectedItem.Path),
+                            ForceNewTab = true,
+                            Pane = PaneId.Second
+                        });
                         e.Handled = true;
                         return;
                     }
@@ -521,7 +530,7 @@ namespace YiboFile.Handlers
             {
                 if (item.IsDirectory)
                 {
-                    _window.NavigateToPath(item.Path, PaneId.Second);
+                    _window._navigationCoordinator?.HandlePathNavigation(item.Path, YiboFile.Models.Navigation.NavigationSource.FolderClick, YiboFile.Models.Navigation.ClickType.LeftClick, pane: PaneId.Second);
                 }
                 else
                 {

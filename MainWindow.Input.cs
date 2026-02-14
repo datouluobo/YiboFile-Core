@@ -250,7 +250,7 @@ namespace YiboFile
                             }
 
                             // 使用统一导航协调器处理Enter键导航（左键点击）
-                            _navigationCoordinator.HandlePathNavigation(selectedItem.Path, NavigationSource.FileList, ClickType.LeftClick);
+                            _navigationCoordinator.HandlePathNavigation(selectedItem.Path, YiboFile.Models.Navigation.NavigationSource.FileList, YiboFile.Models.Navigation.ClickType.LeftClick);
                         }
                     }
                     e.Handled = true;
@@ -278,7 +278,7 @@ namespace YiboFile
                         }
 
                         // 使用统一导航协调器处理Enter键导航（左键点击）
-                        _navigationCoordinator.HandlePathNavigation(selectedItem.Path, NavigationSource.FileList, ClickType.LeftClick);
+                        _navigationCoordinator.HandlePathNavigation(selectedItem.Path, YiboFile.Models.Navigation.NavigationSource.FileList, YiboFile.Models.Navigation.ClickType.LeftClick);
                     }
                     else
                     {

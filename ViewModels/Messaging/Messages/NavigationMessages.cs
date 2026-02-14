@@ -1,3 +1,4 @@
+using YiboFile.Models.Navigation;
 using YiboFile.Services.Navigation;
 
 namespace YiboFile.ViewModels.Messaging.Messages

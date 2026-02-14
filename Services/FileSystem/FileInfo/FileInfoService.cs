@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using YiboFile.Controls;
 using YiboFile.Services.FileList;
 using YiboFile.Services.Navigation;
+using YiboFile.Models.Navigation;
 
 namespace YiboFile.Services.FileInfo
 {

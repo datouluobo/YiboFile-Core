@@ -8,6 +8,7 @@ using YiboFile.ViewModels.Messaging.Messages;
 using YiboFile.Models;
 using YiboFile.Models.UI;
 using YiboFile.Services.Navigation;
+using YiboFile.Models.Navigation;
 
 namespace YiboFile.ViewModels.Modules
 {

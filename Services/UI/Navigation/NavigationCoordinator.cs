@@ -11,27 +11,6 @@ using YiboFile.ViewModels.Messaging.Messages;
 
 namespace YiboFile.Services.Navigation
 {
-    public enum NavigationSource
-    {
-        AddressBar,
-        Breadcrumb,
-        SidebarLibrary,
-        FileList,
-        Favorite,
-        QuickAccess,
-        FolderClick,
-        History,
-        External
-    }
-
-    public enum ClickType
-    {
-        LeftClick,
-        CtrlLeftClick,
-        MiddleClick,
-        RightClick
-    }
-
     /// <summary>
     /// 统一导航协调器
     /// 负责处理所有导航模式的链接打开行为，确保行为一致性
@@ -116,8 +95,8 @@ namespace YiboFile.Services.Navigation
 
             // Rule 1: Drill-down (列表内钻取)
             // 如果来源是列表点击或 Enter，且强制要求在当前标签页打开（默认行为）
-            bool isDrillDown = request.Source == NavigationSource.FileList.ToString() ||
-                               request.Source == NavigationSource.FolderClick.ToString();
+            bool isDrillDown = request.Source == YiboFile.Models.Navigation.NavigationSource.FileList ||
+                               request.Source == YiboFile.Models.Navigation.NavigationSource.FolderClick;
 
             if (isDrillDown && !request.ForceNewTab)
             {
@@ -164,7 +143,7 @@ namespace YiboFile.Services.Navigation
             tabService.CreatePathTab(path, forceNewTab: true, activate: request.Activate);
         }
 
-        private async Task ExecuteNavigationInViewModel(ViewModels.PaneViewModel vm, string path, PaneId pane, string source, TabService tabService)
+        private async Task ExecuteNavigationInViewModel(ViewModels.PaneViewModel vm, string path, PaneId pane, YiboFile.Models.Navigation.NavigationSource source, TabService tabService)
         {
             if (vm != null)
             {
@@ -175,11 +154,10 @@ namespace YiboFile.Services.Navigation
                 tabService.UpdateActiveTabPath(path);
 
                 // 3. 副作用消息发送 (MessageBus)
-                var sourceStr = source ?? NavigationSource.External.ToString();
                 _messageBus.Publish(new NavigationCompleteMessage(
                     path,
                     pane,
-                    Enum.TryParse<NavigationSource>(sourceStr, out var src) ? src : NavigationSource.External,
+                    source,
                     vm.NavigationMode));
             }
             else
@@ -238,9 +216,9 @@ namespace YiboFile.Services.Navigation
 
                 // 3. 发布消息
                 _messageBus.Publish(new NavigationCompleteMessage(
-                    $"lib://{library.Name}",
+                    library.Name,
                     pane,
-                    NavigationSource.SidebarLibrary));
+                    YiboFile.Models.Navigation.NavigationSource.SidebarLibrary));
             }
         }
 
@@ -264,19 +242,19 @@ namespace YiboFile.Services.Navigation
             return ClickType.LeftClick;
         }
 
-        public void HandlePathNavigation(string path, NavigationSource source, ClickType clickType, bool forceNewTab = false, PaneId pane = PaneId.Main)
+        public void HandlePathNavigation(string path, YiboFile.Models.Navigation.NavigationSource source, YiboFile.Models.Navigation.ClickType clickType, bool forceNewTab = false, PaneId pane = PaneId.Main)
         {
             var request = new NavigationRequest
             {
                 Target = NavigationTarget.FromPath(path),
                 ForceNewTab = forceNewTab || clickType == ClickType.MiddleClick || clickType == ClickType.CtrlLeftClick,
-                Source = source.ToString(),
+                Source = source,
                 Pane = pane
             };
             _ = NavigateAsync(request);
         }
 
-        public void HandleLibraryNavigation(Library library, ClickType clickType, PaneId pane = PaneId.Main)
+        public void HandleLibraryNavigation(Library library, YiboFile.Models.Navigation.ClickType clickType, PaneId pane = PaneId.Main)
         {
             var request = new NavigationRequest
             {
@@ -287,7 +265,7 @@ namespace YiboFile.Services.Navigation
             _ = NavigateAsync(request);
         }
 
-        public void HandleFavoriteNavigation(YiboFile.Favorite favorite, ClickType clickType, PaneId pane = PaneId.Main)
+        public void HandleFavoriteNavigation(YiboFile.Favorite favorite, YiboFile.Models.Navigation.ClickType clickType, PaneId pane = PaneId.Main)
         {
             if (favorite == null) return;
 
@@ -324,7 +302,7 @@ namespace YiboFile.Services.Navigation
             if (!request.ForceNewTab && tabService.ActiveTab != null && tabService.ActiveTab.Type == TabType.Tag)
             {
                 var vm = _paneViewModelResolver?.Invoke(request.Pane);
-                await ExecuteNavigationInViewModel(vm, tagPath, request.Pane, request.Source ?? "Tag sidebar", tabService);
+                await ExecuteNavigationInViewModel(vm, tagPath, request.Pane, request.Source, tabService);
                 return;
             }
 
@@ -349,7 +327,7 @@ namespace YiboFile.Services.Navigation
             if (!request.ForceNewTab && tabService.ActiveTab != null && tabService.ActiveTab.Type == TabType.Search)
             {
                 var vm = _paneViewModelResolver?.Invoke(request.Pane);
-                await ExecuteNavigationInViewModel(vm, searchPath, request.Pane, request.Source ?? "Search", tabService);
+                await ExecuteNavigationInViewModel(vm, searchPath, request.Pane, request.Source, tabService);
                 return;
             }
 

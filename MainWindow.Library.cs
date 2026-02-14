@@ -7,6 +7,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using YiboFile.Services.Navigation;
+using YiboFile.Models.Navigation;
 using YiboFile.ViewModels;
 using YiboFile.Services.FileNotes;
 using YiboFile.Services.Config;

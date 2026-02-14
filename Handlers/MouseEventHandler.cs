@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using YiboFile.Services.Navigation;
+using YiboFile.Models.Navigation;
 
 namespace YiboFile.Handlers
 {
@@ -71,13 +72,13 @@ namespace YiboFile.Handlers
             if (listBox == null) return;
 
             var clickType = NavigationCoordinator.GetClickType(e);
-            if (clickType == ClickType.LeftClick) return; // 左键由SelectionChanged处理
+            if (clickType == YiboFile.Models.Navigation.ClickType.LeftClick) return; // 左键由SelectionChanged处理
 
             var path = ExtractPathFromListBoxItem(listBox, e.GetPosition(listBox));
             if (!string.IsNullOrEmpty(path))
             {
                 e.Handled = true;
-                _navigationCoordinator.HandlePathNavigation(path, NavigationSource.QuickAccess, clickType, pane: _getActivePaneId());
+                _navigationCoordinator.HandlePathNavigation(path, YiboFile.Models.Navigation.NavigationSource.QuickAccess, clickType, pane: _getActivePaneId());
             }
         }
 
@@ -90,7 +91,7 @@ namespace YiboFile.Handlers
             if (listBox == null) return;
 
             var clickType = NavigationCoordinator.GetClickType(e);
-            if (clickType == ClickType.LeftClick) return; // 左键由SelectionChanged处理
+            if (clickType == YiboFile.Models.Navigation.ClickType.LeftClick) return; // 左键由SelectionChanged处理
 
             var hitResult = System.Windows.Media.VisualTreeHelper.HitTest(listBox, e.GetPosition(listBox));
             if (hitResult == null) return;
@@ -117,7 +118,7 @@ namespace YiboFile.Handlers
             if (listBox == null) return;
 
             var clickType = NavigationCoordinator.GetClickType(e);
-            if (clickType == ClickType.LeftClick) return; // 左键由SelectionChanged处理
+            if (clickType == YiboFile.Models.Navigation.ClickType.LeftClick) return; // 左键由SelectionChanged处理
 
             var favorite = ExtractFavoriteFromListBoxItem(listBox, e.GetPosition(listBox));
             if (favorite != null)

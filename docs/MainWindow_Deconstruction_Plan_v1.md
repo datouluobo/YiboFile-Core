@@ -98,12 +98,16 @@
     *   ✅ 移除 internal 字段 (改为 `IWindowOrchestrator` 委派属性)
     *   ✅ 合并 `MainWindow.LayoutMode.cs` 到 `LayoutModule` (创建了 `LayoutEventHandler`)
     *   ✅ 重定义 `MainWindow.LayoutMode.cs` 为纯委派包装类 (已缩减至 < 100行)
-    *   ✅ 简化 `MainWindow.Navigation.cs` (已有 `NavigationModule` 接管)
     *   ✅ 废弃 `MainWindowInitializer.cs` (逻辑并入 Orchestrator)
+*   **当前阻碍**：
+    *   ⚠️ `MainWindow.Navigation.cs` (458行) 仍作为 Wrapper 存在。
+    *   ⚠️ `MainWindow.MenuEvents.cs` (22KB) 包含大量未迁移的菜单逻辑。
+    *   ⚠️ `MainWindow.xaml.cs` (800行) 仍包含部分 UI 胶水代码。
 *   **待执行任务** (高优先级)：
-    *   ⏳ 物理删除已废弃的分部类文件
-    *   ⏳ 清理 XAML Code-Behind 中剩余的胶水代码
-*   **预计剩余工作量**: ~4小时
+    *   ⏳ **消除 Navigation Wrapper**：修改调用方直接使用 `NavigationModule/Coordinator`，物理删除 `MainWindow.Navigation.cs`。
+    *   ⏳ **迁移 MenuEvents**：将菜单逻辑移至 `MenuService` 或 `AppMenuViewModel`。
+    *   ⏳ **物理删除已废弃的分部类文件**。
+*   **预计剩余工作量**: ~8小时
 
 ### 阶段 6：清理与优化 (Refinement) [⏳ 5% 完成]
 *   **目标**：完善文档与测试，提升性能。

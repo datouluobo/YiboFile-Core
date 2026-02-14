@@ -9,12 +9,18 @@ namespace YiboFile.Models.Navigation
     public enum NavigationSource
     {
         Drive,          // 驱动器
-        QuickAccess,   // 快速访问
+        QuickAccess,    // 快速访问
         Favorite,       // 收藏夹
         Library,        // 库
         Breadcrumb,     // 面包屑
         AddressBar,     // 地址栏
-        FileList        // 文件列表
+        FileList,       // 文件列表
+        SidebarLibrary, // 侧边栏库
+        FolderClick,    // 文件夹点击
+        History,        // 历史记录
+        SidebarTag,     // 侧边栏标签
+        Search,         // 搜索
+        External        // 外部跳转
     }
 
     /// <summary>
@@ -24,7 +30,8 @@ namespace YiboFile.Models.Navigation
     {
         LeftClick,      // 左键点击
         MiddleClick,    // 中键点击
-        CtrlLeftClick   // Ctrl+左键点击
+        CtrlLeftClick,  // Ctrl+左键点击
+        RightClick      // 右键点击
     }
 
     /// <summary>
@@ -82,8 +89,8 @@ namespace YiboFile.Models.Navigation
         public bool Activate { get; set; } = true;
 
         /// <summary>
-        /// 导航来源标识（可选，用于追溯）
+        /// 导航来源标识
         /// </summary>
-        public string Source { get; set; }
+        public NavigationSource Source { get; set; } = NavigationSource.External;
     }
 }

@@ -187,7 +187,7 @@ namespace YiboFile
             {
                 Target = NavigationTarget.FromPath(path),
                 Pane = targetPane ?? GetActivePaneId(),
-                Source = "PathBar"
+                Source = YiboFile.Models.Navigation.NavigationSource.AddressBar
             });
         }
 
@@ -202,7 +202,7 @@ namespace YiboFile
             {
                 Target = NavigationTarget.FromLibrary(library),
                 Pane = targetPane ?? GetActivePaneId(),
-                Source = "Sidebar"
+                Source = YiboFile.Models.Navigation.NavigationSource.SidebarLibrary
             });
         }
 

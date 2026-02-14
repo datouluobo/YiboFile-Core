@@ -1,6 +1,7 @@
 using System;
 using System.Windows;
 using System.Windows.Controls;
+using YiboFile.Models.Navigation;
 
 namespace YiboFile
 {
@@ -32,7 +33,7 @@ namespace YiboFile
                     if (!string.IsNullOrEmpty(path))
                     {
                         // Navigate
-                        _navigationCoordinator.HandlePathNavigation(path, YiboFile.Services.Navigation.NavigationSource.QuickAccess, YiboFile.Services.Navigation.ClickType.LeftClick, pane: GetActivePaneId());
+                        _navigationCoordinator.HandlePathNavigation(path, YiboFile.Models.Navigation.NavigationSource.QuickAccess, YiboFile.Models.Navigation.ClickType.LeftClick, pane: GetActivePaneId());
                     }
                 }
             }

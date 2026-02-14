@@ -12,6 +12,7 @@ using YiboFile.Controls;
 using YiboFile.Services;
 using YiboFile.Services.Core;
 using YiboFile.Services.Navigation;
+using YiboFile.Models.Navigation;
 
 
 namespace YiboFile.Handlers
@@ -150,7 +151,7 @@ namespace YiboFile.Handlers
                         if (selectedItem.IsDirectory)
                         {
                             // 文件夹导航：全部交给中枢处理。中枢会自动根据点击类型识别是否需要开新标签。
-                            _navigationCoordinator.HandlePathNavigation(selectedItem.Path, NavigationSource.FolderClick, NavigationCoordinator.GetClickType(e), pane: _paneId);
+                            _navigationCoordinator.HandlePathNavigation(selectedItem.Path, YiboFile.Models.Navigation.NavigationSource.FolderClick, NavigationCoordinator.GetClickType(e), pane: _paneId);
                             e.Handled = true;
                             return;
                         }
@@ -380,7 +381,7 @@ namespace YiboFile.Handlers
                         if (selectedItem.IsDirectory)
                         {
                             // 中键点击：交给中枢处理
-                            _navigationCoordinator.HandlePathNavigation(selectedItem.Path, NavigationSource.FolderClick, NavigationCoordinator.GetClickType(e), pane: _paneId);
+                            _navigationCoordinator.HandlePathNavigation(selectedItem.Path, YiboFile.Models.Navigation.NavigationSource.FolderClick, NavigationCoordinator.GetClickType(e), pane: _paneId);
                             e.Handled = true;
                             return;
                         }
@@ -681,7 +682,7 @@ namespace YiboFile.Handlers
                     {
                         if (listView.SelectedItem is FileSystemItem selectedItem && selectedItem.IsDirectory)
                         {
-                            _navigationCoordinator.HandlePathNavigation(selectedItem.Path, NavigationSource.FolderClick, ClickType.LeftClick, pane: _paneId);
+                            _navigationCoordinator.HandlePathNavigation(selectedItem.Path, YiboFile.Models.Navigation.NavigationSource.FolderClick, YiboFile.Models.Navigation.ClickType.LeftClick, pane: _paneId);
                         }
                     }
                     e.Handled = true;
@@ -700,7 +701,7 @@ namespace YiboFile.Handlers
 
                     if (selectedItem.IsDirectory)
                     {
-                        _navigationCoordinator.HandlePathNavigation(selectedItem.Path, NavigationSource.FolderClick, ClickType.LeftClick, pane: _paneId);
+                        _navigationCoordinator.HandlePathNavigation(selectedItem.Path, YiboFile.Models.Navigation.NavigationSource.FolderClick, YiboFile.Models.Navigation.ClickType.LeftClick, pane: _paneId);
                     }
                     else
                     {

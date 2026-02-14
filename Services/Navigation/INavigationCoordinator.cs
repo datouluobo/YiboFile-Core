@@ -23,11 +23,16 @@ namespace YiboFile.Services.Navigation
         /// <summary>
         /// 统一路径导航处理
         /// </summary>
-        void HandlePathNavigation(string path, NavigationSource source, ClickType clickType, bool forceNewTab = false, PaneId pane = PaneId.Main);
+        void HandlePathNavigation(string path, YiboFile.Models.Navigation.NavigationSource source, YiboFile.Models.Navigation.ClickType clickType, bool forceNewTab = false, PaneId pane = PaneId.Main);
 
         /// <summary>
         /// 统一库导航处理
         /// </summary>
-        void HandleLibraryNavigation(Library library, ClickType clickType, PaneId pane = PaneId.Main);
+        void HandleLibraryNavigation(Library library, YiboFile.Models.Navigation.ClickType clickType, PaneId pane = PaneId.Main);
+
+        /// <summary>
+        /// 统一收藏导航处理
+        /// </summary>
+        void HandleFavoriteNavigation(YiboFile.Favorite favorite, YiboFile.Models.Navigation.ClickType clickType, PaneId pane = PaneId.Main);
     }
 }

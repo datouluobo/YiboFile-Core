@@ -317,7 +317,7 @@ namespace YiboFile
             {
                 Target = YiboFile.Models.Navigation.NavigationTarget.FromTag(tagName),
                 Pane = targetPane ?? GetActivePaneId(),
-                Source = "TagSidebar"
+                Source = NavigationSource.SidebarTag
             });
         }
 

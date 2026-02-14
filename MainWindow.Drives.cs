@@ -1,6 +1,7 @@
 using System;
 using System.Windows;
 using System.Windows.Controls;
+using YiboFile.Models.Navigation;
 
 namespace YiboFile
 {
@@ -30,8 +31,12 @@ namespace YiboFile
                 {
                     if (!string.IsNullOrEmpty(selectedItem.Path))
                     {
-                        // [FIX] 使用统一导航协调器，移除全局 _currentPath 判定（会干扰双面板独立导航）
-                        NavigateToPath(selectedItem.Path, GetActivePaneId());
+                        // [FIX] 使用统一导航协调器，移除全部 MainWindow 包装方法
+                        _navigationCoordinator.HandlePathNavigation(
+                            selectedItem.Path,
+                            YiboFile.Models.Navigation.NavigationSource.Drive,
+                            YiboFile.Models.Navigation.ClickType.LeftClick,
+                            pane: GetActivePaneId());
                     }
                 }
             }
@@ -69,7 +74,11 @@ namespace YiboFile
             {
                 if (!string.IsNullOrEmpty(navItem.Path))
                 {
-                    NavigateToPath(navItem.Path, GetActivePaneId());
+                    _navigationCoordinator.HandlePathNavigation(
+                        navItem.Path,
+                        YiboFile.Models.Navigation.NavigationSource.Drive,
+                        YiboFile.Models.Navigation.ClickType.LeftClick,
+                        pane: GetActivePaneId());
                 }
 
                 // Clear selections in other lists
@@ -104,7 +113,12 @@ namespace YiboFile
                     var item = FindAncestor<TreeViewItem>(obj);
                     if (item != null && item.DataContext is YiboFile.Services.Navigation.NavigationItem navItem)
                     {
-                        CreateTab(navItem.Path, targetPane: GetActivePaneId());
+                        _ = _navigationCoordinator.NavigateAsync(new NavigationRequest
+                        {
+                            Target = NavigationTarget.FromPath(navItem.Path),
+                            ForceNewTab = true,
+                            Pane = GetActivePaneId()
+                        });
                         e.Handled = true;
                     }
                 }

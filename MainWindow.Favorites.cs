@@ -9,6 +9,7 @@ using YiboFile.Services.Favorite;
 using YiboFile.Services.Core;
 using YiboFile.Models;
 using YiboFile.Services.Navigation;
+using YiboFile.Models.Navigation;
 using YiboFile.Services.FileList;
 using YiboFile.Models.UI;
 using YiboFile.Services.Config;

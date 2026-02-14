@@ -1,6 +1,6 @@
 # YiboFile 项目评估与重构路线图
 
-> **当前版本**: v1.0.420 (架构调整阶段) | **更新日期**: 2026-02-13  
+> **当前版本**: v1.0.430 (架构调整阶段) | **更新日期**: 2026-02-14  
 > **下一版本**: v1.1.0 (目标：Core 完全解耦)  
 
 ---
@@ -13,7 +13,7 @@
 
 | 组件 | 文件数 | 总行数 | 平均行数/文件 | 健康度评估 |
 |------|--------|--------|---------------|------------|
-| **MainWindow (分部类)** | 20 | ~6,600 | 330 | 🟡 中耦合 (服务已解耦) |
+| **MainWindow (分部类)** | ~18 | ~6,000 | 330 | 🟡 中耦合 (逻辑已委派，代码仍通过 partial 存在) |
 | **PaneViewModel** | 1 | 1,770 | 1,770 | 🟡 中耦合 |
 | **FileListViewModel** | 1 | 593 | 593 | 🟢 良好 |
 | **FileOperationModule** | 1 | 405 | 405 | 🟢 良好 |
@@ -35,7 +35,7 @@
 |------|------|----------|--------|
 | **Phase 1: Code-Behind** | v0.x | WinForms 风格，所有逻辑在 `MainWindow.xaml.cs` | ✅ 历史阶段 |
 | **Phase 2: Partial MVVM** | v1.0.1 - v1.0.330 | 引入 `PaneViewModel`，部分功能命令化 | ✅ 90% 完成 |
-| **Phase 3: 混合架构** | **v1.0.370 (当前)** | **架构调整阶段** - 控制器驱动 VM + 消息总线副作用 + 对话框修复 | 🟡 60% 完成 |
+| **Phase 3: 混合架构** | **v1.0.430 (当前)** | **架构调整阶段** - 控制器驱动 VM + 消息总线副作用 + 对话框修复 | 🟡 85% 完成 |
 | **Phase 3.5: Core 解耦** | **v1.1.0 (目标)** | MainWindow 上帝类完全解构，模块化重构完成 | ⏳ 规划中 |
 | **Phase 4: 全模块化** | v2.0+ | 所有功能插件化，支持 Pro/Ultra 动态扩展 | ⏳ 规划中 |
 
@@ -235,11 +235,11 @@ Controller-driven 场景：
 
 | 步骤 | 任务描述 | 涉及文件 | 预计工作量 | 状态 |
 |------|----------|----------|------------|------|
-| **3.1.1** | **提取 NavigationModule**：将 `MainWindow.Navigation.cs` 完全并入 `NavigationModule.cs`。 | MainWindow.Navigation.cs → NavigationModule.cs | 3h | ✅ 已完成 |
-| **3.1.2** | **重构 Handler 初始化**：将 `MainWindow.Handlers.cs` 中的所有服务初始化移至 `App.xaml.cs` 或 `MainWindowViewModel` 的构造函数。 | MainWindow.Handlers.cs → App.xaml.cs | 4h | ✅ 已完成 |
-| **3.1.3** | **模块化 LayoutMode**：将 `MainWindow.LayoutMode.cs` 重构为 `LayoutModule`，由 `MainWindowViewModel` 持有。 | MainWindow.LayoutMode.cs → LayoutModule.cs | 5h | ✅ 已完成 |
-| **3.1.4** | **清理事件订阅**：删除 MainWindow 中所有对 ViewModel 事件的订阅，改用 MessageBus 消息驱动。 | MainWindow.xaml.cs | 2h | ✅ 已完成 (键盘/基础UI事件) |
-| **3.1.5** | **简化 MainWindow.xaml.cs**：最终目标是将其压缩至 < 150 行（仅保留窗口生命周期管理）。 | MainWindow.xaml.cs | 3h | ✅ 接近完成 (通过委派) |
+| **3.1.1** | **提取 NavigationModule** | MainWindow.Navigation.cs (~450行) → NavigationModule.cs | 3h | ✅ 逻辑已提取 (保留 Wrapper) |
+| **3.1.2** | **重构 Handler 初始化** | MainWindow.Handlers.cs → App.xaml.cs & WindowOrchestrator | 4h | ✅ 已完成 |
+| **3.1.3** | **模块化 LayoutMode** | MainWindow.LayoutMode.cs → LayoutModule.cs | 5h | ✅ 已完成 |
+| **3.1.4** | **清理事件订阅** | 删除 MainWindow 中所有对 ViewModel 事件的订阅 | 2h | ✅ 已完成 (键盘/基础UI事件) |
+| **3.1.5** | **简化 MainWindow.xaml.cs** | 目标：< 150 行（仅保留窗口生命周期管理）。 | MainWindow.xaml.cs (~800行) | 3h | 🟡 逻辑已委派 (Orchestrator接管) |
 | **3.1.6** | **重构键盘事件处理**：将 `KeyboardEventHandler` 转换为消息驱动模式。 | KeyboardEventHandler.cs | 2h | ✅ 已完成 |
 
 **成功标准**：
@@ -340,10 +340,11 @@ Controller-driven 场景：
 
 ### 4.2 遗留问题 ⚠️
 
-1.  **NavigationCoordinator 初始化未更新**：`MainWindow.Initialization.cs` 中初始化 `NavigationCoordinator` 的方法签名已改变（增加了 `IMessageBus` 参数和 ViewModel 解析器），需要同步更新。
-2.  **FileBrowserControl 的桥接属性**：当前 `FileBrowserControl.xaml.cs` 中添加的 `NavBackEnabled`、`LoadMoreVisible` 等属性是临时兼容措施，在 `NavigationCoordinator` 完全迁移后应删除。
-3.  **编译错误待解决**：`NavigationCompleteMessage` 类型未找到（可能由于项目文件未同步或命名空间引用问题）。
-4.  **预览组件兼容性**（记录于 2026-02-09）：观察到部分文件预览失效（文件夹正常），疑似与 Pro 版功能拆分逻辑有关。在 Stage 4 重构中需核对 `PreviewService` 的消息链路。
+1.  **MainWindow 分部类残留**：`MainWindow.Navigation.cs` (458行) 和 `MainWindow.MenuEvents.cs` (22KB) 仍包含大量桥接代码，需彻底移除。
+2.  **NavigationCoordinator 初始化未更新**：`MainWindow.Initialization.cs` 中初始化 `NavigationCoordinator` 的方法签名已改变（增加了 `IMessageBus` 参数和 ViewModel 解析器），需要同步更新。
+3.  **FileBrowserControl 的桥接属性**：当前 `FileBrowserControl.xaml.cs` 中添加的 `NavBackEnabled`、`LoadMoreVisible` 等属性是临时兼容措施，在 `NavigationCoordinator` 完全迁移后应删除。
+4.  **编译错误待解决**：`NavigationCompleteMessage` 类型未找到（可能由于项目文件未同步或命名空间引用问题）。
+5.  **预览组件兼容性**（记录于 2026-02-09）：观察到部分文件预览失效（文件夹正常），疑似与 Pro 版功能拆分逻辑有关。在 Stage 4 重构中需核对 `PreviewService` 的消息链路。
 
 ---
 
@@ -351,17 +352,17 @@ Controller-driven 场景：
 
 ### 立即行动 (本周)
 
-1.  **修复编译错误**：
-    *   确保 `NavigationMessages.cs` 被正确包含在 `YiboFile-Core.csproj` 中。
-    *   更新 `MainWindow.Initialization.cs` 中 `NavigationCoordinator` 的初始化代码。
+1.  **彻底清理 MainWindow 分部类**：
+    *   移除 `MainWindow.Navigation.cs` 中的 Wrapper 方法，更新调用方直接使用 `NavigationModule`。
+    *   重构 `MainWindow.MenuEvents.cs` 里的菜单逻辑。
     
-2.  **完成 NavigationCoordinator 迁移**：
+2.  **启动 PaneViewModel 拆分**：
+    *   提取 `FilterViewModel` 和 `SelectionViewModel`。
+    *   简化 `PaneViewModel` 的体积。
+
+3.  **完成 NavigationCoordinator 迁移**：
     *   在 `MainWindowViewModel` 中实现 `PaneViewModel` 解析器。
     *   测试路径导航和库导航是否正常工作。
-
-3.  **启动 MainWindow.Handlers.cs 重构**：
-    *   将所有 Service 初始化移至 `App.xaml.cs` 的 DI 容器。
-    *   删除 `MainWindow` 中的 Service 字段。
 
 ### 中期目标 (本月)
 
@@ -417,7 +418,7 @@ Controller-driven 场景：
 
 ### 7.3 版本开发路线图
 
-#### v1.0.420 (Current) - 架构调整阶段
+#### v1.0.430 (Current) - 架构调整阶段
 **Core 功能**：
 - ✅ 状态记忆修复（解决 JSON NaN 故障）
 - ✅ 基础文件管理（库、标签、备注、主题）

@@ -24,6 +24,7 @@ using YiboFile.Services.Config;
 using YiboFile.Services.Archive; // Import Archive Service
 using YiboFile.ViewModels.Messaging;
 using YiboFile.ViewModels.Messaging.Messages;
+using YiboFile.Models.Navigation;
 
 
 using YiboFile.Helpers;
@@ -161,16 +162,16 @@ namespace YiboFile
 
             if (FileBrowser != null)
             {
-                // [FIX] 显式绑定路径变更事件，确保主面板导航正确
-                FileBrowser.PathChanged += (s, path) => NavigateToPath(path, Services.Navigation.PaneId.Main);
-                FileBrowser.BreadcrumbClicked += (s, path) => NavigateToPath(path, Services.Navigation.PaneId.Main);
+                // [FIX] 显式绑定路径变更事件，确保主面板导航正确 - 使用统一导航协调器
+                FileBrowser.PathChanged += (s, path) => _navigationCoordinator.HandlePathNavigation(path, YiboFile.Models.Navigation.NavigationSource.AddressBar, YiboFile.Models.Navigation.ClickType.LeftClick, pane: PaneId.Main);
+                FileBrowser.BreadcrumbClicked += (s, path) => _navigationCoordinator.HandlePathNavigation(path, YiboFile.Models.Navigation.NavigationSource.Breadcrumb, YiboFile.Models.Navigation.ClickType.LeftClick, pane: PaneId.Main);
             }
 
             if (SecondFileBrowser != null)
             {
-                // [FIX] 显式绑定路径变更事件，确保副面板导航正确
-                SecondFileBrowser.PathChanged += (s, path) => NavigateToPath(path, Services.Navigation.PaneId.Second);
-                SecondFileBrowser.BreadcrumbClicked += (s, path) => NavigateToPath(path, Services.Navigation.PaneId.Second);
+                // [FIX] 显式绑定路径变更事件，确保副面板导航正确 - 使用统一导航协调器
+                SecondFileBrowser.PathChanged += (s, path) => _navigationCoordinator.HandlePathNavigation(path, YiboFile.Models.Navigation.NavigationSource.AddressBar, YiboFile.Models.Navigation.ClickType.LeftClick, pane: PaneId.Second);
+                SecondFileBrowser.BreadcrumbClicked += (s, path) => _navigationCoordinator.HandlePathNavigation(path, YiboFile.Models.Navigation.NavigationSource.Breadcrumb, YiboFile.Models.Navigation.ClickType.LeftClick, pane: PaneId.Second);
             }
 
 
