@@ -19,6 +19,7 @@ using YiboFile.Services.Search;
 using YiboFile.Services.ColumnManagement;
 using YiboFile.Services.UI;
 using YiboFile.Models;
+using YiboFile.Controls.Helpers;
 
 namespace YiboFile.Controls
 {
@@ -248,116 +249,21 @@ namespace YiboFile.Controls
 
         private void ApplyViewMode()
         {
-            if (FilesListView == null) return;
-            string currentMode = CurrentViewMode;
-
-            switch (currentMode)
-            {
-                case "Thumbnail":
-                    ApplyWrapPanelView("ThumbnailTemplate", loadThumbnails: true);
-                    break;
-                case "Tiles":
-                    ApplyWrapPanelView("TilesTemplate", loadThumbnails: true);
-                    break;
-                case "SmallIcons":
-                    ApplyWrapPanelView("SmallIconsTemplate", loadThumbnails: true);
-                    break;
-                case "Content":
-                    ApplyStackPanelView("ContentTemplate", loadThumbnails: true);
-                    break;
-                case "Compact":
-                    ApplyStackPanelView("CompactTemplate", loadThumbnails: true);
-                    break;
-                default: // "List"
-                    ApplyListView();
-                    break;
-            }
-        }
-
-        /// <summary>
-        /// 应用 WrapPanel 布局视图（缩略图、平铺、小图标）
-        /// </summary>
-        private void ApplyWrapPanelView(string templateKey, bool loadThumbnails)
-        {
-            FilesListView.View = null;
-            var selector = (FileListTemplateSelector)FindResource("FileListItemSelector");
-            selector.DefaultTemplate = (DataTemplate)FindResource(templateKey);
-
-            FilesListView.ItemTemplate = null;
-            FilesListView.ItemTemplateSelector = selector;
-
-            FilesListView.ItemsPanel = (ItemsPanelTemplate)FindResource("WrapPanelTemplate");
-            ScrollViewer.SetHorizontalScrollBarVisibility(FilesListView, ScrollBarVisibility.Disabled);
-
-            if (loadThumbnails && FilesListView.ItemsSource != null)
-            {
-                _thumbnailService?.LoadThumbnailsAsync(FilesListView.ItemsSource);
-            }
-            else
-            {
-                _thumbnailService?.Stop();
-            }
-        }
-
-        /// <summary>
-        /// 应用 StackPanel 布局视图（内容、紧凑）
-        /// </summary>
-        private void ApplyStackPanelView(string templateKey, bool loadThumbnails)
-        {
-            FilesListView.View = null;
-            var selector = (FileListTemplateSelector)FindResource("FileListItemSelector");
-            selector.DefaultTemplate = (DataTemplate)FindResource(templateKey);
-
-            FilesListView.ItemTemplate = null;
-            FilesListView.ItemTemplateSelector = selector;
-
-            FilesListView.ItemsPanel = (ItemsPanelTemplate)FindResource("StackPanelTemplate");
-            ScrollViewer.SetHorizontalScrollBarVisibility(FilesListView, ScrollBarVisibility.Disabled);
-
-            if (loadThumbnails && FilesListView.ItemsSource != null)
-            {
-                _thumbnailService?.LoadThumbnailsAsync(FilesListView.ItemsSource);
-            }
-            else
-            {
-                _thumbnailService?.Stop();
-            }
-        }
-
-        /// <summary>
-        /// 应用列表视图（GridView）
-        /// </summary>
-        private void ApplyListView()
-        {
-            FilesListView.ItemTemplate = null;
-            FilesListView.ItemTemplateSelector = null;
-            FilesListView.ItemsPanel = (ItemsPanelTemplate)FindResource("StackPanelTemplate");
-            if (FilesGridView != null) FilesListView.View = FilesGridView;
-            ScrollViewer.SetHorizontalScrollBarVisibility(FilesListView, ScrollBarVisibility.Auto);
-
-            // 启用缩略图加载 (16px for small icons)
-            if (FilesListView.ItemsSource != null)
-            {
-                _thumbnailService?.LoadThumbnailsAsync(FilesListView.ItemsSource, 16);
-            }
+            FileListViewModeHelper.ApplyViewMode(
+                CurrentViewMode,
+                FilesListView,
+                FilesGridView,
+                _thumbnailService,
+                FindResource);
         }
 
         private void FilesListView_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
         {
-            // 仅在缩略图模式下且按住Ctrl键时处理
-            if (CurrentViewMode == "Thumbnail" && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
-            {
-                e.Handled = true; // 阻止 ScrollViewer 滚动
-
-                double delta = e.Delta > 0 ? 10 : -10; // 每次增减10
-                double newSize = ThumbnailSize + delta;
-
-                // 限制范围: 64 (中等图标) - 256 (超大图标)
-                if (newSize < 64) newSize = 64;
-                if (newSize > 256) newSize = 256;
-
-                ThumbnailSize = newSize;
-            }
+            FileListViewModeHelper.HandlePreviewMouseWheel(
+                e,
+                CurrentViewMode,
+                ThumbnailSize,
+                newSize => ThumbnailSize = newSize);
         }
 
         public void SetViewMode(string mode)
@@ -406,16 +312,11 @@ namespace YiboFile.Controls
                 control.FilesListView.Items.Refresh();
 
                 // 触发缩略图加载
-                if (value != null)
-                {
-                    // 确定图标大小
-                    int size = 32;
-                    if (control.CurrentViewMode == "Thumbnail") size = (int)control.ThumbnailSize;
-                    else if (control.CurrentViewMode == "Tiles") size = 64;
-                    else if (control.CurrentViewMode == "Content") size = 48;
-
-                    control._thumbnailService?.LoadThumbnailsAsync(value, size);
-                }
+                FileListViewModeHelper.TriggerThumbnailLoad(
+                    value,
+                    control.CurrentViewMode,
+                    control.ThumbnailSize,
+                    control._thumbnailService);
             }
         }
 
@@ -465,138 +366,24 @@ namespace YiboFile.Controls
         /// </summary>
         public void SetGroupedSearchResults(Dictionary<SearchResultType, List<FileSystemItem>> groupedItems)
         {
-            if (groupedItems == null || groupedItems.Count == 0)
-            {
-                SwitchToNormalView();
-                return;
-            }
-
-            _isGroupedMode = true;
-
-            // 展平结果并在 FileSystemItem 上设置分组键
-            var flatList = new List<FileSystemItem>();
-
-            // 按优先级顺序显示：备注 > 文件夹 > 文件 > 其他
-            var displayOrder = new[]
-            {
-                SearchResultType.Notes,
-                SearchResultType.Folder,
-                SearchResultType.File,
-                SearchResultType.Tag,
-                SearchResultType.Date,
-                SearchResultType.Other
-            };
-
-            foreach (var type in displayOrder)
-            {
-                if (groupedItems.ContainsKey(type) && groupedItems[type].Count > 0)
-                {
-                    string groupName = GetGroupName(type);
-                    foreach (var item in groupedItems[type])
-                    {
-                        item.GroupingKey = groupName;
-                        flatList.Add(item);
-                    }
-                }
-            }
-
-            // 更新列表
-            if (FilesListView != null)
-            {
-                FilesListView.Visibility = Visibility.Visible;
-                FilesListView.ItemsSource = flatList;
-
-                // 启用分组
-                var view = System.Windows.Data.CollectionViewSource.GetDefaultView(FilesListView.ItemsSource);
-                if (view != null)
-                {
-                    view.GroupDescriptions.Clear();
-                    view.GroupDescriptions.Add(new System.Windows.Data.PropertyGroupDescription(nameof(FileSystemItem.GroupingKey)));
-                }
-            }
+            FileListViewModeHelper.SetGroupedSearchResults(
+                groupedItems,
+                FilesListView,
+                val => _isGroupedMode = val);
         }
 
         public void ApplyGrouping()
         {
-            if (FilesListView != null)
-            {
-                _isGroupedMode = true;
-                FilesListView.Visibility = Visibility.Visible;
-
-                var view = System.Windows.Data.CollectionViewSource.GetDefaultView(FilesListView.ItemsSource);
-                if (view != null)
-                {
-                    view.GroupDescriptions.Clear();
-                    view.GroupDescriptions.Add(new System.Windows.Data.PropertyGroupDescription(nameof(FileSystemItem.GroupingKey)));
-                }
-            }
-        }
-
-        private string GetGroupName(SearchResultType type)
-        {
-            return type switch
-            {
-                SearchResultType.Notes => "备注匹配",
-                SearchResultType.Folder => "文件夹匹配",
-                SearchResultType.File => "文件匹配",
-                SearchResultType.Tag => "标签匹配",
-                SearchResultType.Date => "日期匹配",
-                _ => "其他"
-            };
+            FileListViewModeHelper.ApplyGrouping(
+                FilesListView,
+                val => _isGroupedMode = val);
         }
 
         public void SwitchToNormalView()
         {
-            _isGroupedMode = false;
-
-            if (FilesListView != null)
-            {
-                FilesListView.Visibility = Visibility.Visible;
-                // 清除分组
-                if (FilesListView.ItemsSource != null)
-                {
-                    var view = System.Windows.Data.CollectionViewSource.GetDefaultView(FilesListView.ItemsSource);
-                    view?.GroupDescriptions.Clear();
-                }
-            }
-        }
-
-        /// <summary>
-        /// 当分组列表加载完成后，为每个ListView订阅选择事件
-        /// </summary>
-
-
-        /// <summary>
-        /// 在视觉树中查找所有ListView并订阅事件，同步列宽
-        /// </summary>
-        private void FindAndSubscribeListViews(DependencyObject parent)
-        {
-            /*
-            if (parent == null) return;
-            
-            if (parent is ListView listView && listView != GroupedHeaderListView)
-            {
-                // 移除旧的事件处理（如果存在）
-                listView.SelectionChanged -= GroupedListView_SelectionChanged;
-                // 添加新的事件处理
-                listView.SelectionChanged += GroupedListView_SelectionChanged;
-                // 统一上下文菜单（复用主列表的右键菜单）
-                if (FilesListView?.ContextMenu != null)
-                {
-                    listView.ContextMenu = FilesListView.ContextMenu;
-                }
-                if (!_groupedListViews.Contains(listView))
-                {
-                    _groupedListViews.Add(listView);
-                }
-            }
-            
-            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
-            {
-                var child = VisualTreeHelper.GetChild(parent, i);
-                FindAndSubscribeListViews(child);
-            }
-            */
+            FileListViewModeHelper.SwitchToNormalView(
+                FilesListView,
+                val => _isGroupedMode = val);
         }
 
         private T FindAncestor<T>(DependencyObject current) where T : DependencyObject
@@ -608,44 +395,6 @@ namespace YiboFile.Controls
                 current = VisualTreeHelper.GetParent(current);
             }
             return null;
-        }
-
-        /// <summary>
-        /// 订阅统一列头的点击事件，转发给外部处理（右键菜单/列显示）
-        /// </summary>
-        private void SubscribeGroupedHeaderClicks()
-        {
-            /*
-            if (_headerClickSubscribed || GroupedHeaderListView == null) return;
-
-            if (GroupedHeaderListView.View is GridView headerGridView)
-            {
-                foreach (var column in headerGridView.Columns)
-                {
-                    if (column.Header is GridViewColumnHeader header)
-                    {
-                        header.Click -= Header_Click;
-                        header.Click += Header_Click;
-                        header.MouseRightButtonUp -= Header_RightClick;
-                        header.MouseRightButtonUp += Header_RightClick;
-                    }
-                }
-                _headerClickSubscribed = true;
-            }
-            */
-        }
-
-        /// <summary>
-        /// 捕获分组列头右键，转发给外部（显示列菜单）
-        /// </summary>
-        private void HookGroupedHeaderContextMenu()
-        {
-            /*
-            if (_groupedHeaderContextHooked || GroupedHeaderListView == null) return;
-            GroupedHeaderListView.AddHandler(UIElement.PreviewMouseRightButtonUpEvent,
-                new MouseButtonEventHandler(GroupedHeader_PreviewMouseRightButtonUp), true);
-            _groupedHeaderContextHooked = true;
-            */
         }
 
         private void GroupedHeader_PreviewMouseRightButtonUp(object sender, MouseButtonEventArgs e)
@@ -663,7 +412,6 @@ namespace YiboFile.Controls
 
         private void ColumnHeader_Click(object sender, RoutedEventArgs e)
         {
-            // Try to get header from sender (EventSetter) or OriginalSource (Bubbled event)
             GridViewColumnHeader header = sender as GridViewColumnHeader;
             if (header == null && e.OriginalSource is GridViewColumnHeader h)
             {
@@ -676,8 +424,6 @@ namespace YiboFile.Controls
             }
         }
 
-        // InitializeColumnReorderHeaderListener removed (merged into existing one at bottom)
-
         private void Header_Click(object sender, RoutedEventArgs e)
         {
             GridViewColumnHeaderClick?.Invoke(sender, e);
@@ -689,36 +435,23 @@ namespace YiboFile.Controls
         }
 
         /// <summary>
-        /// 根据列Tag显示/隐藏列（同时作用于分组统一列头与分组数据列）
-        /// </summary>
-        /// <summary>
         /// 根据列Tag显示/隐藏列
         /// </summary>
         public void ApplyColumnVisibility(string tag, bool visible)
         {
             if (string.IsNullOrEmpty(tag)) return;
 
-            // 只需要设置当前列宽，LoadColumnWidths 会处理加载
-            // 但如果需要实时更新：
             var column = FilesGridView?.Columns.FirstOrDefault(c =>
                 c.Header is GridViewColumnHeader h && h.Tag?.ToString() == tag);
 
             if (column != null)
             {
-                if (visible)
-                {
-                    column.Width = GetReferenceWidth(tag);
-                }
-                else
-                {
-                    column.Width = 0;
-                }
+                column.Width = visible ? GetReferenceWidth(tag) : 0;
             }
         }
 
         private double GetReferenceWidth(string tag)
         {
-            // 参考主列表对应列宽，如无则给默认
             if (FilesGridView != null)
             {
                 foreach (var col in FilesGridView.Columns)
@@ -733,73 +466,6 @@ namespace YiboFile.Controls
             return 100;
         }
 
-        private int GetColumnIndexByTag(string tag)
-        {
-            // 与XAML定义顺序一致
-            return tag switch
-            {
-                "Name" => 0,
-                "Size" => 1,
-                "Type" => 2,
-                "ModifiedDate" => 3,
-                "CreatedTime" => 4,
-                "Notes" => 6,
-                _ => -1
-            };
-        }
-
-        /// <summary>
-        /// 将主列表的列宽同步到分组统一列头
-        /// </summary>
-        private void SyncGroupedHeaderWidthsFromMainGrid()
-        {
-            /*
-            if (GroupedHeaderListView?.View is GridView headerGrid && FilesGridView != null)
-            {
-                int count = Math.Min(headerGrid.Columns.Count, FilesGridView.Columns.Count);
-                for (int i = 0; i < count; i++)
-                {
-                    var mainWidth = FilesGridView.Columns[i].ActualWidth > 0 ? FilesGridView.Columns[i].ActualWidth : FilesGridView.Columns[i].Width;
-                    if (mainWidth > 0)
-                    {
-                        headerGrid.Columns[i].Width = mainWidth;
-                    }
-                }
-            }
-            */
-        }
-
-        /// <summary>
-        /// 监听分组列头的宽度变化，并同步回主列表列宽（便于保存）
-        /// </summary>
-        private void SubscribeGroupedHeaderWidthChanges()
-        {
-            /*
-            if (_headerWidthSubscribed || GroupedHeaderListView?.View is not GridView headerGrid || FilesGridView == null) return;
-
-            int count = Math.Min(headerGrid.Columns.Count, FilesGridView.Columns.Count);
-            for (int i = 0; i < count; i++)
-            {
-                var idx = i;
-                var col = headerGrid.Columns[i];
-                var dpd = DependencyPropertyDescriptor.FromProperty(GridViewColumn.WidthProperty, typeof(GridViewColumn));
-                dpd?.AddValueChanged(col, (s, e) =>
-                {
-                    if (idx < FilesGridView.Columns.Count)
-                    {
-                        FilesGridView.Columns[idx].Width = col.Width;
-                    }
-                });
-            }
-
-            _headerWidthSubscribed = true;
-            */
-        }
-
-        /// <summary>
-        /// 绑定分组列头分隔线双击，自适应列宽
-        /// </summary>
-
 
 
 
@@ -808,159 +474,30 @@ namespace YiboFile.Controls
 
         private void RenameTextBox_KeyDown(object sender, KeyEventArgs e)
         {
-            if (sender is TextBox textBox && textBox.DataContext is FileSystemItem item)
-            {
-                if (e.Key == Key.Enter)
-                {                    // Force sync the TextBox text to RenameText in case binding hasn't updated
-                    item.RenameText = textBox.Text;
-                    CommitRenameLogic(item);
-                    e.Handled = true;
-                }
-                else if (e.Key == Key.Escape)
-                {
-                    CancelRenameLogic(item);
-                    e.Handled = true;
-                }
-            }
+            RenameHandler.HandleKeyDown(sender, e, this.DataContext);
         }
 
         private void RenameTextBox_LostFocus(object sender, RoutedEventArgs e)
         {
-            if (sender is TextBox textBox && textBox.DataContext is FileSystemItem item)
-            {
-                // Commit on lost focus
-                if (item.IsRenaming)
-                {
-                    // Delay slightly to allow Cancel to process if Esc was pressed
-                    // But actually, KeyDown happens before LostFocus.
-                    CommitRenameLogic(item);
-                }
-            }
+            RenameHandler.HandleLostFocus(sender, e, this.DataContext);
         }
 
         private void RenameTextBox_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
-            if (sender is TextBox textBox && textBox.DataContext is FileSystemItem item)
-            {
-                // 只在变为可见时处理
-                bool isVisible = (bool)e.NewValue;
-                if (!isVisible || !item.IsRenaming)
-                    return;
-                // 使用 Render 优先级以确保在布局完成后执行
-                Dispatcher.BeginInvoke(new Action(() =>
-                {
-                    // 再次检查 - 可能在调度期间状态已改变
-                    if (!item.IsRenaming || !textBox.IsVisible)
-                        return;
-
-                    // 使用 Keyboard.Focus() 确保键盘焦点设置正确
-                    Keyboard.Focus(textBox);
-                    textBox.Focus();
-
-                    // 从 Path 获取完整文件名（因为 RenameText 可能还没同步）
-                    string name = !string.IsNullOrEmpty(item.RenameText)
-                        ? item.RenameText
-                        : System.IO.Path.GetFileName(item.Path);
-                    if (!string.IsNullOrEmpty(name))
-                    {
-                        // 确保 TextBox 有正确的文本
-                        if (string.IsNullOrEmpty(textBox.Text))
-                        {
-                            textBox.Text = name;
-                        }
-
-                        int lastDotIndex = name.LastIndexOf('.');
-                        if (lastDotIndex > 0 && !item.IsDirectory)
-                        {
-                            // 选中文件名部分（不包含扩展名）
-                            textBox.Select(0, lastDotIndex);
-                        }
-                        else
-                        {
-                            textBox.SelectAll();
-                        }
-                    }
-                }), System.Windows.Threading.DispatcherPriority.Render);
-            }
+            RenameHandler.HandleIsVisibleChanged(sender, e, Dispatcher);
         }
 
         private void CommitRenameLogic(FileSystemItem item)
         {
-            if (!item.IsRenaming) return;
-            // Check if name actually changed
-            if (string.IsNullOrWhiteSpace(item.RenameText) || item.RenameText == item.Name)
-            {
-                item.IsRenaming = false;
-                return;
-            }
-
-            // 触发重命名提交请求 (MVVM)
-            // 优先尝试从 DataContext 获取 MessageBus (PaneViewModel)
-            if (DataContext is YiboFile.ViewModels.PaneViewModel paneVm)
-            {
-                paneVm.MessageBus.Publish(new YiboFile.ViewModels.Messaging.Messages.RenameItemRequestMessage(item, item.RenameText));
-            }
-            else
-            {
-                // Fallback: 如果 DataContext 设置不正确，使用 ServiceProvider (不推荐，但在重构过渡期保留作为最后手段)
-                var messageBus = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService<YiboFile.ViewModels.Messaging.IMessageBus>(App.ServiceProvider);
-                messageBus?.Publish(new YiboFile.ViewModels.Messaging.Messages.RenameItemRequestMessage(item, item.RenameText));
-            }
-
-            // 重置状态
-            item.IsRenaming = false;
+            RenameHandler.CommitRename(item, this.DataContext);
         }
 
         private void CancelRenameLogic(FileSystemItem item)
         {
-            if (item == null) return;
-            item.IsRenaming = false;
-            // Revert text
-            item.RenameText = item.Name;
+            RenameHandler.CancelRename(item);
         }
 
         #endregion
-
-        private string GetCellTextForColumn(object item, GridViewColumn column, GridViewColumnHeader header)
-        {
-            if (item == null) return "";
-
-            if (column.DisplayMemberBinding is System.Windows.Data.Binding binding && binding.Path != null)
-            {
-                var prop = item.GetType().GetProperty(binding.Path.Path);
-                var val = prop?.GetValue(item);
-                return val?.ToString() ?? "";
-            }
-
-            var propName = header?.Tag?.ToString();
-            if (!string.IsNullOrEmpty(propName))
-            {
-                var prop2 = item.GetType().GetProperty(propName);
-                var val2 = prop2?.GetValue(item);
-                if (val2 != null) return val2.ToString();
-            }
-
-            return "";
-        }
-
-        private double MeasureTextWidth(string text, ListView listView)
-        {
-            try
-            {
-                var tb = new TextBlock
-                {
-                    Text = text ?? "",
-                    FontSize = listView?.FontSize ?? 12,
-                    FontFamily = listView?.FontFamily ?? new System.Windows.Media.FontFamily("Segoe UI")
-                };
-                tb.Measure(new System.Windows.Size(double.PositiveInfinity, double.PositiveInfinity));
-                return tb.DesiredSize.Width;
-            }
-            catch (Exception)
-            {
-                return 50; // Fallback
-            }
-        }
 
         /// <summary>
         /// Load column widths from config
@@ -1061,48 +598,6 @@ namespace YiboFile.Controls
         public void SetFileListService(Services.FileList.FileListService fileListService)
         {
             _fileListService = fileListService;
-        }
-
-
-
-        /// <summary>
-        /// 设置列的可见性
-        /// </summary>
-        private void SetColumnVisibility(string columnName, bool isVisible)
-        {
-            var column = FindName(columnName) as GridViewColumn;
-            if (column != null)
-            {
-                if (isVisible)
-                {
-                    // 显示列：恢复宽度
-                    if (column == FindName("ColType"))
-                        column.Width = 60;
-                    else if (column == FindName("ColSize"))
-                        column.Width = 90;
-                    else if (column == FindName("ColModifiedDate"))
-                        column.Width = 100;
-                    else if (column == FindName("ColCreatedTime"))
-                        column.Width = 60;
-                }
-                else
-                {
-                    // 隐藏列：设置宽度为0
-                    column.Width = 0;
-                }
-            }
-        }
-
-        /// <summary>
-        /// 刷新文件列表显示
-        /// </summary>
-        private void RefreshFileList()
-        {
-            // 强制刷新 ListView
-            if (FilesListView != null && FilesListView.Items != null)
-            {
-                FilesListView.Items.Refresh();
-            }
         }
 
         /// <summary>
@@ -1422,29 +917,3 @@ namespace YiboFile.Controls
         }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

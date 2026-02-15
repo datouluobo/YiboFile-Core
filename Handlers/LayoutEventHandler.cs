@@ -223,13 +223,13 @@ namespace YiboFile.Handlers
                 SaveConfig = (config) => ConfigurationService.Instance.SaveNow(),
 
                 GetCurrentPath = () => _window.ViewModel?.SecondaryPane?.CurrentPath ?? _window._currentPath,
-                SetCurrentPath = (path) => _window.ViewModel?.SecondaryPane?.NavigateTo(path, loadData: false),
-                SetNavigationCurrentPath = (path) => _window.ViewModel?.SecondaryPane?.NavigateTo(path, loadData: false),
+                SetCurrentPath = (path) => _window.ViewModel?.SecondaryPane?.NavigateTo(path),
+                SetNavigationCurrentPath = (path) => _window.ViewModel?.SecondaryPane?.NavigateTo(path),
                 LoadLibraryFiles = (library) =>
                 {
                     if (_window.ViewModel.SecondaryPane.CurrentLibrary != library || _window.ViewModel.SecondaryPane.NavigationMode != "Library")
                     {
-                        _window.ViewModel.SecondaryPane.NavigateTo(library, loadData: false);
+                        _window.ViewModel.SecondaryPane.NavigateTo($"lib://{library.Name}");
                     }
                 },
                 NavigateToPathInternal = (path) =>
@@ -391,7 +391,7 @@ namespace YiboFile.Handlers
 
             if (needsDataLoad)
             {
-                _window.ViewModel.SecondaryPane.NavigateTo(library, loadData: true);
+                _window.ViewModel.SecondaryPane.NavigateTo($"lib://{library.Name}");
             }
 
             _window.Dispatcher.InvokeAsync(() =>
@@ -444,7 +444,7 @@ namespace YiboFile.Handlers
 
             if (_window.ViewModel.SecondaryPane.CurrentTag != tag || _window.ViewModel.SecondaryPane.NavigationMode != "Tag")
             {
-                _window.ViewModel.SecondaryPane.NavigateTo(tag, loadData: true);
+                _window.ViewModel.SecondaryPane.NavigateTo($"tag://{tag.Name}");
             }
 
             try

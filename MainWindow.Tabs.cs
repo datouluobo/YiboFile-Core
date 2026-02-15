@@ -111,7 +111,7 @@ namespace YiboFile
 
                     if (_viewModel?.PrimaryPane != null)
                     {
-                        _viewModel.PrimaryPane.IsLoadMoreVisible = cache.HasMore;
+                        _viewModel.PrimaryPane.Filter.IsLoadMoreVisible = cache.HasMore;
                     }
 
                     if (_currentFiles.Count == 0)
@@ -166,7 +166,7 @@ namespace YiboFile
                         }
                         if (_viewModel?.PrimaryPane != null)
                         {
-                            _viewModel.PrimaryPane.IsLoadMoreVisible = false;
+                            _viewModel.PrimaryPane.Filter.IsLoadMoreVisible = false;
                         }
                     }
                     return;
@@ -208,7 +208,7 @@ namespace YiboFile
 
                         if (_viewModel?.PrimaryPane != null)
                         {
-                            _viewModel.PrimaryPane.IsLoadMoreVisible = searchResult.HasMore;
+                            _viewModel.PrimaryPane.Filter.IsLoadMoreVisible = searchResult.HasMore;
                         }
 
                         // 统一空状态处理

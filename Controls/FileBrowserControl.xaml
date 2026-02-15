@@ -8,15 +8,15 @@
              mc:Ignorable="d" 
              d:DesignHeight="600" d:DesignWidth="800">
     <UserControl.InputBindings>
-        <KeyBinding Key="C" Modifiers="Ctrl" Command="{Binding CopyCommand}"/>
-        <KeyBinding Key="V" Modifiers="Ctrl" Command="{Binding PasteCommand}"/>
-        <KeyBinding Key="X" Modifiers="Ctrl" Command="{Binding CutCommand}"/>
-        <KeyBinding Key="Delete" Command="{Binding DeleteCommand}"/>
-        <KeyBinding Key="F2" Command="{Binding RenameCommand}"/>
-        <KeyBinding Key="F5" Command="{Binding RefreshCommand}"/>
-        <KeyBinding Key="Enter" Modifiers="Alt" Command="{Binding PropertiesCommand}"/>
-        <KeyBinding Key="Back" Command="{Binding NavigateUpCommand}"/>
-        <KeyBinding Key="A" Modifiers="Ctrl" Command="{Binding SelectAllCommand}"/>
+        <KeyBinding Key="C" Modifiers="Ctrl" Command="{Binding Commands.CopyCommand}"/>
+        <KeyBinding Key="V" Modifiers="Ctrl" Command="{Binding Commands.PasteCommand}"/>
+        <KeyBinding Key="X" Modifiers="Ctrl" Command="{Binding Commands.CutCommand}"/>
+        <KeyBinding Key="Delete" Command="{Binding Commands.DeleteCommand}"/>
+        <KeyBinding Key="F2" Command="{Binding Commands.RenameCommand}"/>
+        <KeyBinding Key="F5" Command="{Binding Commands.RefreshCommand}"/>
+        <KeyBinding Key="Enter" Modifiers="Alt" Command="{Binding Commands.PropertiesCommand}"/>
+        <KeyBinding Key="Back" Command="{Binding Commands.NavigateUpCommand}"/>
+        <KeyBinding Key="A" Modifiers="Ctrl" Command="{Binding Commands.SelectAllCommand}"/>
     </UserControl.InputBindings>
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
@@ -126,33 +126,33 @@
         <!-- 文件右键菜单 -->
         <ContextMenu x:Key="FileListContextMenu" DataContext="{Binding Data.DataContext, Source={StaticResource ControlProxy}}">
             <MenuItem x:Name="CopyItem" Header="复制" 
-                      Command="{Binding CopyCommand}" 
-                      Visibility="{Binding HasSelection, Converter={StaticResource BooleanToVisibilityConverter}}"
+                      Command="{Binding Commands.CopyCommand}" 
+                      Visibility="{Binding Selection.HasSelection, Converter={StaticResource BooleanToVisibilityConverter}}"
                       Icon="📄"/>
             <MenuItem x:Name="CutItem" Header="剪切" 
-                      Command="{Binding CutCommand}" 
-                      Visibility="{Binding HasSelection, Converter={StaticResource BooleanToVisibilityConverter}}"
+                      Command="{Binding Commands.CutCommand}" 
+                      Visibility="{Binding Selection.HasSelection, Converter={StaticResource BooleanToVisibilityConverter}}"
                       Icon="✂️"/>
             <MenuItem x:Name="PasteItem" Header="粘贴" 
-                      Command="{Binding PasteCommand}" 
+                      Command="{Binding Commands.PasteCommand}" 
                       Icon="📋"/>
-            <Separator Visibility="{Binding IsNoSelection, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-            <MenuItem Header="新建" Visibility="{Binding IsNoSelection, Converter={StaticResource BooleanToVisibilityConverter}}" Icon="➕">
-                <MenuItem Header="文件夹" Command="{Binding NewFolderCommand}" Icon="📁"/>
-                <MenuItem Header="文本文档" Command="{Binding NewFileCommand}" Icon="📄"/>
+            <Separator Visibility="{Binding Selection.IsNoSelection, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+            <MenuItem Header="新建" Visibility="{Binding Selection.IsNoSelection, Converter={StaticResource BooleanToVisibilityConverter}}" Icon="➕">
+                <MenuItem Header="文件夹" Command="{Binding Commands.NewFolderCommand}" Icon="📁"/>
+                <MenuItem Header="文本文档" Command="{Binding Commands.NewFileCommand}" Icon="📄"/>
             </MenuItem>
-            <Separator Visibility="{Binding HasSelection, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+            <Separator Visibility="{Binding Selection.HasSelection, Converter={StaticResource BooleanToVisibilityConverter}}"/>
             <MenuItem x:Name="DeleteItem" Header="删除" 
-                      Command="{Binding DeleteCommand}" 
-                      Visibility="{Binding HasSelection, Converter={StaticResource BooleanToVisibilityConverter}}"
+                      Command="{Binding Commands.DeleteCommand}" 
+                      Visibility="{Binding Selection.HasSelection, Converter={StaticResource BooleanToVisibilityConverter}}"
                       Icon="🗑️"/>
             <MenuItem x:Name="RenameItem" Header="重命名" 
-                      Command="{Binding RenameCommand}" 
-                      Visibility="{Binding IsSingleSelection, Converter={StaticResource BooleanToVisibilityConverter}}"
+                      Command="{Binding Commands.RenameCommand}" 
+                      Visibility="{Binding Selection.IsSingleSelection, Converter={StaticResource BooleanToVisibilityConverter}}"
                       Icon="✏️"/>
-            <Separator Visibility="{Binding HasSelection, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+            <Separator Visibility="{Binding Selection.HasSelection, Converter={StaticResource BooleanToVisibilityConverter}}"/>
             <MenuItem x:Name="AddToLibraryMenuItem" Header="📚 添加到库" 
-                      Visibility="{Binding HasSelection, Converter={StaticResource BooleanToVisibilityConverter}}"
+                      Visibility="{Binding Selection.HasSelection, Converter={StaticResource BooleanToVisibilityConverter}}"
                       ItemsSource="{Binding LibraryMenuItems}">
                 <MenuItem.ItemContainerStyle>
                     <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
@@ -178,7 +178,7 @@
                 </MenuItem.ItemContainerStyle>
             </MenuItem>
             <MenuItem x:Name="AddFavoriteMenuItem" Header="⭐ 添加到收藏" 
-                      Visibility="{Binding HasSelection, Converter={StaticResource BooleanToVisibilityConverter}}"
+                      Visibility="{Binding Selection.HasSelection, Converter={StaticResource BooleanToVisibilityConverter}}"
                       ItemsSource="{Binding FavoriteMenuItems}">
                 <MenuItem.ItemContainerStyle>
                     <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
@@ -202,7 +202,7 @@
                 </MenuItem.ItemContainerStyle>
             </MenuItem>
             <MenuItem x:Name="AddTagMenuItem" Header="🏷️ 添加标签" 
-                      Visibility="{Binding HasSelection, Converter={StaticResource BooleanToVisibilityConverter}}"
+                      Visibility="{Binding Selection.HasSelection, Converter={StaticResource BooleanToVisibilityConverter}}"
                       ItemsSource="{Binding TagMenuItems}">
                 <MenuItem.ItemContainerStyle>
                     <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
@@ -233,13 +233,13 @@
                     </Style>
                 </MenuItem.ItemContainerStyle>
             </MenuItem>
-            <Separator Visibility="{Binding HasSelection, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+            <Separator Visibility="{Binding Selection.HasSelection, Converter={StaticResource BooleanToVisibilityConverter}}"/>
             <MenuItem x:Name="RefreshItem" Header="刷新" 
-                      Command="{Binding RefreshCommand}" 
-                      Visibility="{Binding IsNoSelection, Converter={StaticResource BooleanToVisibilityConverter}}"
+                      Command="{Binding Commands.RefreshCommand}" 
+                      Visibility="{Binding Selection.IsNoSelection, Converter={StaticResource BooleanToVisibilityConverter}}"
                       Icon="🔄"/>
             <MenuItem x:Name="PropertiesItem" Header="属性" 
-                      Command="{Binding PropertiesCommand}" 
+                      Command="{Binding Commands.PropertiesCommand}" 
                       Icon="ℹ️"/>
         </ContextMenu>
     </UserControl.Resources>
@@ -276,16 +276,16 @@
                 
                 <!-- 导航按钮 (←→↑) -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal">
-                    <Button Name="NavBackBtn" FontFamily="{DynamicResource IconFontFamily}" Content="{DynamicResource Icon_Back}" FontSize="14" Command="{Binding NavigateBackCommand}" ToolTip="后退" Style="{StaticResource ModernToolbarButtonStyle}"/>
-                    <Button Name="NavForwardBtn" FontFamily="{DynamicResource IconFontFamily}" Content="{DynamicResource Icon_Forward}" FontSize="14" Command="{Binding NavigateForwardCommand}" ToolTip="前进" Style="{StaticResource ModernToolbarButtonStyle}"/>
-                    <Button Name="NavUpBtn" FontFamily="{DynamicResource IconFontFamily}" Content="{DynamicResource Icon_Up}" FontSize="14" Command="{Binding NavigateUpCommand}" ToolTip="向上" Style="{StaticResource ModernToolbarButtonStyle}"/>
+                    <Button Name="NavBackBtn" FontFamily="{DynamicResource IconFontFamily}" Content="{DynamicResource Icon_Back}" FontSize="14" Command="{Binding Commands.NavigateBackCommand}" ToolTip="后退" Style="{StaticResource ModernToolbarButtonStyle}"/>
+                    <Button Name="NavForwardBtn" FontFamily="{DynamicResource IconFontFamily}" Content="{DynamicResource Icon_Forward}" FontSize="14" Command="{Binding Commands.NavigateForwardCommand}" ToolTip="前进" Style="{StaticResource ModernToolbarButtonStyle}"/>
+                    <Button Name="NavUpBtn" FontFamily="{DynamicResource IconFontFamily}" Content="{DynamicResource Icon_Up}" FontSize="14" Command="{Binding Commands.NavigateUpCommand}" ToolTip="向上" Style="{StaticResource ModernToolbarButtonStyle}"/>
                     <!-- Undo/Redo -->
                     <Rectangle Width="1" Height="20" Fill="{DynamicResource BorderBrush}" Margin="4,0" VerticalAlignment="Center"/>
                     <Button Name="UndoBtn" FontFamily="Segoe MDL2 Assets" Content="&#xE7A7;" FontSize="14" 
-                            Command="{Binding UndoCommand}" 
+                            Command="{Binding Commands.UndoCommand}" 
                             ToolTip="撤销" Style="{StaticResource ToolbarButtonStyle}"/>
                     <Button Name="RedoBtn" FontFamily="Segoe MDL2 Assets" Content="&#xE7A6;" FontSize="14" 
-                            Command="{Binding RedoCommand}" 
+                            Command="{Binding Commands.RedoCommand}" 
                             ToolTip="重做" Style="{StaticResource ToolbarButtonStyle}"/>
                 </StackPanel>
                 
@@ -297,21 +297,21 @@
                     <Button Name="PropertiesBtn" Content="&#xE946;" 
                             FontFamily="Segoe MDL2 Assets" FontSize="14"
                             Visibility="{Binding IsPropertiesButtonVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
-                            Command="{Binding PropertiesCommand}" Style="{StaticResource ModernToolbarButtonStyle}" ToolTip="属性"
+                            Command="{Binding Commands.PropertiesCommand}" Style="{StaticResource ModernToolbarButtonStyle}" ToolTip="属性"
                             Margin="0,0,4,0"/>
                     <Button Name="ViewModeBtn" Content="{Binding ViewModeIcon}" 
                             FontFamily="{DynamicResource IconFontFamily}" FontSize="14"
                             Click="ViewModeBtn_DropDown" Style="{StaticResource ModernToolbarButtonStyle}" ToolTip="视图模式">
                         <Button.ContextMenu>
                             <ContextMenu Name="ViewModeMenu">
-                                <MenuItem Header="📋 列表" Command="{Binding SwitchViewModeCommand}" CommandParameter="List"/>
-                                <MenuItem Header="📝 紧凑列表" Command="{Binding SwitchViewModeCommand}" CommandParameter="Compact"/>
+                                <MenuItem Header="📋 列表" Command="{Binding Commands.SwitchViewModeCommand}" CommandParameter="List"/>
+                                <MenuItem Header="📝 紧凑列表" Command="{Binding Commands.SwitchViewModeCommand}" CommandParameter="Compact"/>
                                 <Separator/>
-                                <MenuItem Header="🖼️ 缩略图" Command="{Binding SwitchViewModeCommand}" CommandParameter="Thumbnail"/>
-                                <MenuItem Header="🔲 平铺" Command="{Binding SwitchViewModeCommand}" CommandParameter="Tiles"/>
-                                <MenuItem Header="📎 小图标" Command="{Binding SwitchViewModeCommand}" CommandParameter="SmallIcons"/>
+                                <MenuItem Header="🖼️ 缩略图" Command="{Binding Commands.SwitchViewModeCommand}" CommandParameter="Thumbnail"/>
+                                <MenuItem Header="🔲 平铺" Command="{Binding Commands.SwitchViewModeCommand}" CommandParameter="Tiles"/>
+                                <MenuItem Header="📎 小图标" Command="{Binding Commands.SwitchViewModeCommand}" CommandParameter="SmallIcons"/>
                                 <Separator/>
-                                <MenuItem Header="📄 内容" Command="{Binding SwitchViewModeCommand}" CommandParameter="Content"/>
+                                <MenuItem Header="📄 内容" Command="{Binding Commands.SwitchViewModeCommand}" CommandParameter="Content"/>
                             </ContextMenu>
                         </Button.ContextMenu>
                     </Button>
@@ -320,7 +320,7 @@
                 <!-- 搜索/筛选按钮 -->
                 <StackPanel Grid.Column="6" Orientation="Horizontal">
                     <Button Name="FilterBtn" Content="&#xE71C;" FontFamily="Segoe MDL2 Assets" FontSize="12"
-                            Command="{Binding ToggleFilterPanelCommand}"
+                            Command="{Binding Filter.ToggleFilterPanelCommand}"
                             Style="{StaticResource ModernToolbarButtonStyle}" ToolTip="筛选"/>
                 </StackPanel>
             </Grid>
@@ -328,10 +328,10 @@
         
         <!-- Row 2: 搜索状态提示条 -->
         <Border x:Name="SearchStatusBar" Grid.Row="2" Background="{DynamicResource AccentSubtleBrush}" 
-                Visibility="{Binding IsSearching, Converter={StaticResource BooleanToVisibilityConverter}}" Padding="8,4" Margin="0,0,0,4">
+                Visibility="{Binding Filter.IsSearching, Converter={StaticResource BooleanToVisibilityConverter}}" Padding="8,4" Margin="0,0,0,4">
             <StackPanel Orientation="Horizontal">
                 <TextBlock x:Name="SearchStatusIcon" Text="🔍" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                <TextBlock x:Name="SearchStatusText" Text="{Binding SearchStatusText}" 
+                <TextBlock x:Name="SearchStatusText" Text="{Binding Filter.SearchStatusText}" 
                           Foreground="{DynamicResource ForegroundBrush}" FontSize="12" VerticalAlignment="Center"/>
             </StackPanel>
         </Border>
@@ -340,8 +340,8 @@
         <controls:FileListControl Grid.Row="3" x:Name="FileList" 
                                  ItemsSource="{Binding Files}"
                                  CurrentViewMode="{Binding FileViewMode, Mode=TwoWay}"
-                                 LoadMoreCommand="{Binding LoadMoreCommand}"
-                                 IsLoadMoreVisible="{Binding IsLoadMoreVisible}"
+                                 LoadMoreCommand="{Binding Filter.LoadMoreCommand}"
+                                 IsLoadMoreVisible="{Binding Filter.IsLoadMoreVisible}"
                                  FocusVisualStyle="{x:Null}"/>
         
         <!-- Row 4: 水平分割器（文件列表与信息面板之间） -->
@@ -382,11 +382,11 @@
 
         <!-- 筛选弹出面板 -->
         <Popup x:Name="FilterPopup" PlacementTarget="{Binding ElementName=FilterBtn}" 
-               IsOpen="{Binding IsFilterPanelVisible, Mode=TwoWay}"
+               IsOpen="{Binding Filter.IsFilterPanelVisible, Mode=TwoWay}"
                StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade"
                Placement="Bottom" VerticalOffset="4">
             <Border Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8" Effect="{DynamicResource DropShadowEffect}">
-                <controls:FilterPanel x:Name="FilterPanelControl" DataContext="{Binding Search}" Options="{Binding SearchOptions}"/>
+                <controls:FilterPanel x:Name="FilterPanelControl" DataContext="{Binding Search}" Options="{Binding DataContext.Filter.SearchOptions, RelativeSource={RelativeSource AncestorType=controls:FileBrowserControl}}"/>
             </Border>
         </Popup>
     </Grid>

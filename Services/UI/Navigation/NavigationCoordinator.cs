@@ -203,7 +203,7 @@ namespace YiboFile.Services.Navigation
             if (vm != null)
             {
                 // 1. 更新 ViewModel
-                vm.NavigateTo(library, loadData: true);
+                vm.NavigateTo($"lib://{library.Name}");
 
                 // 2. 同步更新 Tab 状态
                 var activeTab = tabService.ActiveTab;

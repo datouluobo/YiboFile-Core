@@ -1,6 +1,6 @@
 # YiboFile 项目评估与重构路线图
 
-> **当前版本**: v1.0.1470 (UI 逻辑修复) | **更新日期**: 2026-02-15  
+> **当前版本**: v1.0.1480 (架构深度优化) | **更新日期**: 2026-02-15  
 > **下一版本**: v1.1.0 (目标：Core 完全解耦)  
 
 ---
@@ -25,7 +25,8 @@
 | **Phase 1: Code-Behind** | v0.x | WinForms 风格，所有逻辑在 `MainWindow.xaml.cs` | ✅ 历史阶段 |
 | **Phase 2: Partial MVVM** | v1.0.1 - v1.0.330 | 引入 `PaneViewModel`，部分功能命令化 | ✅ 90% 完成 |
 | **Phase 3: 混合架构** | **v1.0.1460** | **架构重构完成** - 控制器驱动 VM + 消息总线副作用 + 对话框修复 | ✅ 已完成 |
-| **Phase 3.5: 细节与修复** | **v1.0.1470 (当前)** | 修复双列表同步、清理 PaneViewModel 冗余 | 🟡 进行中 |
+| **Phase 3.5: 细节与修复** | **v1.0.1470** | 修复双列表同步、清理 PaneViewModel 冗余 | ✅ 已完成 |
+| **Phase 3.6: 深度重构** | **v1.0.1480 (当前)** | WindowOrchestrator、InputBindings 优化 | 🟡 进行中 |
 | **Phase 4: 全模块化 (v1.1.0)** | v1.1.0 (目标) | PaneViewModel 完全解耦，模块化重构完成 | ⏳ 规划中 |
 
 ---
@@ -330,6 +331,8 @@ Controller-driven 场景：
 | **合并 MainWindow.LayoutMode** | LayoutModule.cs / MainWindow.xaml.cs | Refactor | 2026-02-14 |
 | **清理 MainWindow XAML 事件** | MainWindow.xaml.cs | -25 methods | 2026-02-14 |
 | **修复 Region 指令错误** | MainWindow.xaml.cs | +2 | 2026-02-14 |
+| **WindowOrchestrator 深度重构** | WindowOrchestrator.cs | Refactor | 2026-02-15 |
+| **InputBindings 优化** | KeyboardEventHandler.cs | -200 | 2026-02-15 |
 
 - **MainWindow 解构 (阶段 5)**: `已完成` (100%). `MainWindow.xaml.cs` 从 >2400 行减少到 <800 行。
 - **内存审计与优化 (阶段 6)**: `已完成` (100%).

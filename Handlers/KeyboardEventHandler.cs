@@ -31,13 +31,13 @@ namespace YiboFile.Handlers
         private readonly Action<string> _createTab;
         private readonly Action<PathTab> _switchToTab;
         private readonly Action _newFolderClick;
-        private readonly Action _refreshClick;
-        private readonly Action _copyClick;
-        private readonly Action _pasteClick;
-        private readonly Action _cutClick;
-        private readonly Action _deleteClick;
-        private readonly Action _permanentDeleteClick; // Shift+Delete
-        private readonly Action _renameClick;
+        // private readonly Action _refreshClick; // Migrated to InputBinding
+        // private readonly Action _copyClick; // Migrated
+        // private readonly Action _pasteClick; // Migrated
+        // private readonly Action _cutClick; // Migrated
+        // private readonly Action _deleteClick; // Migrated
+        // private readonly Action _permanentDeleteClick; // Migrated
+        // private readonly Action _renameClick; // Migrated
         private readonly Action<string> _navigateToPath;
         private readonly Action<string> _switchNavigationMode;
         private readonly Func<bool> _isLibraryMode;
@@ -46,8 +46,8 @@ namespace YiboFile.Handlers
         private readonly Action<int> _switchLayoutMode;
         private readonly Func<bool> _isDualListMode;
         private readonly Action _switchDualPaneFocus;
-        private readonly Action _undoClick;
-        private readonly Action _redoClick;
+        // private readonly Action _undoClick; // Migrated
+        // private readonly Action _redoClick; // Migrated
         private readonly IMessageBus _messageBus;
 
         public KeyboardEventHandler(
@@ -58,20 +58,12 @@ namespace YiboFile.Handlers
             Action<string> createTab,
             Action<PathTab> switchToTab,
             Action newFolderClick,
-            Action refreshClick,
-            Action copyClick,
-            Action pasteClick,
-            Action cutClick,
-            Action deleteClick,
-            Action permanentDeleteClick, // Shift+Delete
-            Action renameClick,
+            // Removed unused params migrated to InputBindings
             Action<string> navigateToPath,
             Action<string> switchNavigationMode,
             Func<bool> isLibraryMode,
             Action closeOverlays,
             Action navigateBack,
-            Action undoClick,
-            Action redoClick,
             IMessageBus messageBus = null,
             Action<int> switchLayoutMode = null,
             Func<bool> isDualListMode = null,
@@ -84,20 +76,13 @@ namespace YiboFile.Handlers
             _createTab = createTab ?? throw new ArgumentNullException(nameof(createTab));
             _switchToTab = switchToTab ?? throw new ArgumentNullException(nameof(switchToTab));
             _newFolderClick = newFolderClick ?? throw new ArgumentNullException(nameof(newFolderClick));
-            _refreshClick = refreshClick ?? throw new ArgumentNullException(nameof(refreshClick));
-            _copyClick = copyClick ?? throw new ArgumentNullException(nameof(copyClick));
-            _pasteClick = pasteClick ?? throw new ArgumentNullException(nameof(pasteClick));
-            _cutClick = cutClick ?? throw new ArgumentNullException(nameof(cutClick));
-            _deleteClick = deleteClick ?? throw new ArgumentNullException(nameof(deleteClick));
-            _permanentDeleteClick = permanentDeleteClick; // 可为null，回退到普通删除
-            _renameClick = renameClick ?? throw new ArgumentNullException(nameof(renameClick));
+
             _navigateToPath = navigateToPath ?? throw new ArgumentNullException(nameof(navigateToPath));
             _switchNavigationMode = switchNavigationMode ?? throw new ArgumentNullException(nameof(switchNavigationMode));
             _isLibraryMode = isLibraryMode ?? throw new ArgumentNullException(nameof(isLibraryMode));
             _closeOverlays = closeOverlays ?? throw new ArgumentNullException(nameof(closeOverlays));
             _navigateBack = navigateBack ?? throw new ArgumentNullException(nameof(navigateBack));
-            _undoClick = undoClick;
-            _redoClick = redoClick;
+
             _switchLayoutMode = switchLayoutMode; // 可选参数
             _isDualListMode = isDualListMode;
             _switchDualPaneFocus = switchDualPaneFocus;
@@ -247,241 +232,7 @@ namespace YiboFile.Handlers
                 }
             }
 
-            // Ctrl+N: 新建文件夹 (Migrated to InputBindings Ctrl+Shift+N)
-            /*
-            if (IsActionTriggered(e, "新建文件夹", "Ctrl+N"))
-            {
-                _newFolderClick();
-                e.Handled = true;
-                return;
-            }
-            */
 
-            // Tab键（无修饰符）：在双列表模式下切换主副面板焦点
-            if (IsActionTriggered(e, "切换双面板焦点", "Tab"))
-            {
-                if (_isDualListMode?.Invoke() == true)
-                {
-                    _switchDualPaneFocus?.Invoke();
-                    e.Handled = true;
-                    return;
-                }
-            }
-
-            // Ctrl+Shift+N: 新建窗口
-            if (IsActionTriggered(e, "新建窗口", "Ctrl+Shift+N"))
-            {
-                var config = ConfigurationService.Instance.GetSnapshot();
-                if (config.EnableMultiWindow)
-                {
-                    try
-                    {
-                        var exePath = Environment.ProcessPath;
-                        if (!string.IsNullOrEmpty(exePath))
-                        {
-                            Process.Start(exePath);
-                            e.Handled = true;
-                            return;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show($"无法启动新窗口: {ex.Message}");
-                    }
-                }
-                else
-                {
-                    _newFolderClick();
-                    e.Handled = true;
-                    return;
-                }
-            }
-
-            // F5: 刷新 (Migrated to InputBindings)
-            /*
-            if (IsActionTriggered(e, "刷新", "F5"))
-            {
-                _refreshClick();
-                e.Handled = true;
-                return;
-            }
-            */
-
-            // Ctrl+Shift+F: 专注模式
-            if (IsActionTriggered(e, "专注模式", "Ctrl+Shift+F"))
-            {
-                _switchLayoutMode?.Invoke(0);
-                e.Handled = true;
-                return;
-            }
-
-            // Ctrl+Shift+W: 工作模式
-            if (IsActionTriggered(e, "工作模式", "Ctrl+Shift+W"))
-            {
-                _switchLayoutMode?.Invoke(1);
-                e.Handled = true;
-                return;
-            }
-
-            // Ctrl+Shift+A: 完整模式
-            if (IsActionTriggered(e, "完整模式", "Ctrl+Shift+A"))
-            {
-                _switchLayoutMode?.Invoke(2);
-                e.Handled = true;
-                return;
-            }
-
-            // Alt+D: 聚焦地址栏
-            if (IsActionTriggered(e, "地址栏编辑", "Alt+D"))
-            {
-                var activeBrowser = _getActiveBrowser();
-                if (activeBrowser != null)
-                {
-                    activeBrowser.AddressBarControl?.SwitchToEditMode();
-                    e.Handled = true;
-                    return;
-                }
-            }
-
-            // Ctrl+A: 全选当前列表 (Not migrated yet, keep)
-            if (IsActionTriggered(e, "全选", "Ctrl+A"))
-            {
-                var activeBrowser = _getActiveBrowser();
-                if (activeBrowser?.FilesList != null && !(e.OriginalSource is System.Windows.Controls.TextBox))
-                {
-                    activeBrowser.FilesList.SelectAll();
-                    e.Handled = true;
-                    return;
-                }
-            }
-
-            // Ctrl+C: 复制 (Migrated to InputBindings)
-            /*
-            if (IsActionTriggered(e, "复制", "Ctrl+C"))
-            {
-                var focusedElement = Keyboard.FocusedElement;
-                if (!(focusedElement is System.Windows.Controls.TextBox || focusedElement is System.Windows.Controls.RichTextBox))
-                {
-                    var activeBrowser = _getActiveBrowser();
-                    if (activeBrowser?.FilesSelectedItems != null && activeBrowser.FilesSelectedItems.Count > 0)
-                    {
-                        _copyClick();
-                        e.Handled = true;
-                        return;
-                    }
-                }
-            }
-            */
-
-            // Ctrl+V: 粘贴 (Migrated to InputBindings)
-            /*
-            if (IsActionTriggered(e, "粘贴", "Ctrl+V"))
-            {
-                var focusedElement = Keyboard.FocusedElement;
-                if (!(focusedElement is System.Windows.Controls.TextBox || focusedElement is System.Windows.Controls.RichTextBox))
-                {
-                    _pasteClick();
-                    e.Handled = true;
-                    return;
-                }
-            }
-            */
-
-            // Ctrl+X: 剪切 (Migrated to InputBindings)
-            /*
-            if (IsActionTriggered(e, "剪切", "Ctrl+X"))
-            {
-                var focusedElement = Keyboard.FocusedElement;
-                if (!(focusedElement is System.Windows.Controls.TextBox || focusedElement is System.Windows.Controls.RichTextBox))
-                {
-                    var activeBrowser = _getActiveBrowser();
-                    if (activeBrowser?.FilesSelectedItems != null && activeBrowser.FilesSelectedItems.Count > 0)
-                    {
-                        _cutClick();
-                        e.Handled = true;
-                        return;
-                    }
-                }
-            }
-            */
-
-            // Delete: 删除 (Migrated to InputBindings)
-            /*
-            if (IsActionTriggered(e, "删除 (移到回收站)", "Delete"))
-            {
-                // 注意：这里需要确保 Shift+Delete 不会命入这个逻辑，除非 Shift 在 default 字符串中
-                var focusedElement = Keyboard.FocusedElement;
-                if (!(focusedElement is System.Windows.Controls.TextBox || focusedElement is System.Windows.Controls.TextBlock))
-                {
-                    var activeBrowser = _getActiveBrowser();
-                    if (activeBrowser?.FilesSelectedItems != null && activeBrowser.FilesSelectedItems.Count > 0)
-                    {
-                        _deleteClick();
-                        e.Handled = true;
-                        return;
-                    }
-                }
-            }
-            */
-
-            // Shift+Delete: 永久删除 (Migrated to InputBindings)
-            /*
-            if (IsActionTriggered(e, "永久删除", "Shift+Delete"))
-            {
-                var focusedElement = Keyboard.FocusedElement;
-                if (!(focusedElement is System.Windows.Controls.TextBox || focusedElement is System.Windows.Controls.TextBlock))
-                {
-                    var activeBrowser = _getActiveBrowser();
-                    if (activeBrowser?.FilesSelectedItems != null && activeBrowser.FilesSelectedItems.Count > 0)
-                    {
-                        if (_permanentDeleteClick != null) _permanentDeleteClick();
-                        else _deleteClick();
-                        e.Handled = true;
-                        return;
-                    }
-                }
-            }
-            */
-
-            // F2: 重命名 (Migrated to InputBindings)
-            /*
-            if (IsActionTriggered(e, "重命名", "F2"))
-            {
-                var activeBrowser = _getActiveBrowser();
-                if (activeBrowser?.FilesSelectedItem != null)
-                {
-                    _renameClick();
-                    e.Handled = true;
-                    return;
-                }
-            }
-            */
-
-            // Ctrl+Z: 撤销 (Migrated to InputBindings)
-            /*
-            if (IsActionTriggered(e, "撤销", "Ctrl+Z"))
-            {
-                if (_undoClick != null)
-                {
-                    _undoClick();
-                    e.Handled = true;
-                    return;
-                }
-            }
-            */
-
-            // Ctrl+Y: 重做 (Migrated to InputBindings)
-            /*
-            if (IsActionTriggered(e, "重做", "Ctrl+Y"))
-            {
-                if (_redoClick != null)
-                {
-                    _redoClick();
-                    e.Handled = true;
-                    return;
-                }
-            }
-            */
         }
 
         public void MainWindow_KeyDown(object sender, KeyEventArgs e)

@@ -7,9 +7,9 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Globalization;
 using System.Windows.Data;
+using YiboFile.Controls.Helpers;
 using YiboFile.Services.Search;
 using YiboFile.Services.Config;
-
 using YiboFile.Services.Core;
 
 namespace YiboFile.Controls
@@ -25,12 +25,31 @@ namespace YiboFile.Controls
 
         private string _currentPath = "";
         private bool _isEditMode = false;
-        private string _breadcrumbCustomText = null;
+        private BreadcrumbBuilder _breadcrumbBuilder;
 
         public AddressBarControl()
         {
             InitializeComponent();
             UpdateSearchModeUI();
+        }
+
+        /// <summary>
+        /// 延迟初始化面包屑构建器（确保 XAML 元素已加载）
+        /// </summary>
+        private BreadcrumbBuilder EnsureBreadcrumbBuilder()
+        {
+            if (_breadcrumbBuilder == null && BreadcrumbText != null)
+            {
+                _breadcrumbBuilder = new BreadcrumbBuilder(
+                    BreadcrumbText,
+                    BreadcrumbTail,
+                    BreadcrumbContainer,
+                    path => BreadcrumbClicked?.Invoke(this, path),
+                    path => BreadcrumbMiddleClicked?.Invoke(this, path),
+                    SwitchToEditMode,
+                    () => Window.GetWindow(this));
+            }
+            return _breadcrumbBuilder;
         }
 
         public static readonly DependencyProperty AddressTextProperty =
@@ -55,10 +74,14 @@ namespace YiboFile.Controls
                 control._currentPath = newValue;
                 if (!control._isEditMode)
                 {
-                    if (!string.IsNullOrEmpty(control._breadcrumbCustomText))
-                        control.UpdateBreadcrumbText(control._breadcrumbCustomText);
-                    else
-                        control.UpdateBreadcrumb(newValue);
+                    var builder = control.EnsureBreadcrumbBuilder();
+                    if (builder != null)
+                    {
+                        if (!string.IsNullOrEmpty(builder.CustomText))
+                            builder.UpdateBreadcrumbText(builder.CustomText);
+                        else
+                            builder.UpdateBreadcrumb(newValue);
+                    }
                 }
             }
         }
@@ -93,537 +116,38 @@ namespace YiboFile.Controls
 
         public void UpdateBreadcrumb(string path)
         {
-            if (BreadcrumbText == null)
-                return;
-
             _currentPath = path ?? "";
-            BreadcrumbText.Inlines.Clear();
-
-            // 清理并隐藏右侧TextBlock（短路径时不用）
-            if (BreadcrumbTail != null)
-            {
-                BreadcrumbTail.Inlines.Clear();
-                BreadcrumbTail.Visibility = Visibility.Collapsed;
-            }
-
-            if (string.IsNullOrEmpty(path))
-                return;
-
-            // 设置完整路径为 ToolTip
-            BreadcrumbText.ToolTip = path;
-
-            // 获取前景色
-            var parentWindow = Window.GetWindow(this);
-            var defaultBrush = parentWindow?.TryFindResource("ForegroundBrush") as System.Windows.Media.SolidColorBrush
-                ?? System.Windows.Media.Brushes.Black;
-            var hoverBrush = parentWindow?.TryFindResource("HighlightBrush") as System.Windows.Media.SolidColorBrush
-                ?? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 120, 215));
-
-            // 动态识别路径类型并设置标签
-            string identifier = "path ";
-            string specialContent = null;
-            bool isSpecial = false;
-
-            // Reset background rigorously first
-            BreadcrumbContainer.ClearValue(Border.BackgroundProperty);
-            if (BreadcrumbContainer.Background == null || BreadcrumbContainer.Background == System.Windows.Media.Brushes.Transparent)
-            {
-                // Ensure it is transparent if style didn't set it (though usually it does or is null)
-                BreadcrumbContainer.Background = System.Windows.Media.Brushes.Transparent;
-            }
-
-            // ... (rest of logic)
-
-
-
-            var protocolInfo = ProtocolManager.Parse(path);
-
-            if (protocolInfo.Type == ProtocolType.Library)
-            {
-                identifier = "lib ";
-                specialContent = protocolInfo.TargetPath;
-                isSpecial = true;
-            }
-            else if (protocolInfo.Type == ProtocolType.Archive)
-            {
-                // Remove yellow background (keep transparent)
-                BreadcrumbContainer.Background = System.Windows.Media.Brushes.Transparent;
-
-                // Standard-like Archive Breadcrumbs
-                BreadcrumbText.Inlines.Clear();
-
-                // Add "zip " prefix
-                var prefixRun = new System.Windows.Documents.Run("zip ")
-                {
-                    Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 165, 0)),
-                    FontWeight = FontWeights.SemiBold
-                };
-                BreadcrumbText.Inlines.Add(prefixRun);
-
-                string archivePath = protocolInfo.TargetPath; // e.g. C:\Downloads\test.zip
-                string innerPath = protocolInfo.ExtraData;    // e.g. Folder/Sub
-
-                // 1. Process the standard file system path to the archive file
-                // This breaks down C:\Downloads\test.zip into [C:] [Downloads] [test.zip]
-                string archiveRoot = "";
-                string[] archiveParts;
-
-                if (archivePath.Length >= 2 && archivePath[1] == ':')
-                {
-                    archiveRoot = archivePath.Substring(0, 2); // "C:"
-                    var remainingPath = archivePath.Substring(2).TrimStart(Path.DirectorySeparatorChar);
-                    archiveParts = string.IsNullOrEmpty(remainingPath)
-                        ? new[] { archiveRoot }
-                        : new[] { archiveRoot }.Concat(remainingPath.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries)).ToArray();
-                }
-                else if (archivePath.StartsWith("\\\\"))
-                {
-                    var uncParts = archivePath.Substring(2).Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
-                    archiveRoot = "\\\\" + (uncParts.Length > 0 ? uncParts[0] : "");
-                    archiveParts = uncParts.Length > 1
-                        ? new[] { archiveRoot }.Concat(uncParts.Skip(1)).ToArray()
-                        : new[] { archiveRoot };
-                }
-                else
-                {
-                    archiveParts = archivePath.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
-                }
-
-                // Add the segments for the archive file path
-                string currentArchiveSegPath = "";
-                for (int i = 0; i < archiveParts.Length; i++)
-                {
-                    if (i == 0 && archiveParts[i].Length == 2 && archiveParts[i][1] == ':') { currentArchiveSegPath = archiveParts[i] + Path.DirectorySeparatorChar; }
-                    else if (i == 0 && archiveParts[i].StartsWith("\\\\")) { currentArchiveSegPath = archiveParts[i]; }
-                    else { currentArchiveSegPath = Path.Combine(currentArchiveSegPath, archiveParts[i]); }
-
-                    // Navigation Path Logic:
-                    // Only the LAST part (the archive file itself) should navigate to zip://...|
-                    // The previous parts should navigate to standard file system folders.
-
-                    bool isLastPart = (i == archiveParts.Length - 1);
-                    string navigatePath;
-
-                    if (isLastPart)
-                    {
-                        // The archive file itself -> Enter the archive root
-                        navigatePath = $"{ProtocolManager.ZipProtocol}{archivePath}|";
-                    }
-                    else
-                    {
-                        // Parent folders -> Standard navigation
-                        navigatePath = currentArchiveSegPath;
-                    }
-
-                    AddSegment(BreadcrumbText, archiveParts[i], navigatePath, defaultBrush, hoverBrush, true);
-                }
-
-                // 2. Inner Path Segments
-                if (!string.IsNullOrEmpty(innerPath))
-                {
-                    var innerParts = innerPath.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
-                    string currentInner = "";
-
-                    for (int i = 0; i < innerParts.Length; i++)
-                    {
-                        currentInner = i == 0 ? innerParts[i] : currentInner + "/" + innerParts[i];
-                        string navPath = $"{ProtocolManager.ZipProtocol}{archivePath}|{currentInner}";
-
-                        AddSegment(BreadcrumbText, innerParts[i], navPath, defaultBrush, hoverBrush, i < innerParts.Length - 1);
-                    }
-                }
-                else
-                {
-                    // Remove the trailing separator from the last added segment if there is no inner path
-                    if (BreadcrumbText.Inlines.Count > 0 && BreadcrumbText.Inlines.LastInline is System.Windows.Documents.Run lastRun && lastRun.Text == " \\ ")
-                    {
-                        BreadcrumbText.Inlines.Remove(lastRun);
-                    }
-                }
-
-                return; // Return early as we handled breadcrumbs manually
-            }
-            else if (protocolInfo.Type == ProtocolType.Search)
-            {
-                identifier = "search ";
-                specialContent = protocolInfo.TargetPath;
-                isSpecial = true;
-            }
-            else if (protocolInfo.Type == ProtocolType.Library)
-            {
-                identifier = "lib ";
-                specialContent = protocolInfo.TargetPath;
-                isSpecial = true;
-            }
-            else if (protocolInfo.Type == ProtocolType.ContentSearch)
-            {
-                identifier = "content ";
-                specialContent = protocolInfo.TargetPath;
-                isSpecial = true;
-            }
-            else if (protocolInfo.Type == ProtocolType.Tag)
-            {
-                identifier = "tag ";
-                specialContent = protocolInfo.TargetPath;
-                isSpecial = true;
-            }
-
-            // 添加标签 Run (Standard Handling)
-            var prefixRunStandard = new System.Windows.Documents.Run(identifier)
-            {
-                Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 165, 0)),
-                FontWeight = FontWeights.SemiBold
-            };
-            BreadcrumbText.Inlines.Add(prefixRunStandard);
-
-            if (isSpecial)
-            {
-                // 对于特殊模式，直接显示内容而不拆分路径
-                var contentRun = new System.Windows.Documents.Run(specialContent ?? "")
-                {
-                    Foreground = defaultBrush
-                };
-                BreadcrumbText.Inlines.Add(contentRun);
-                return;
-            }
-
-            // 处理路径分段
-            string rootPath = "";
-            string[] parts;
-
-            if (path.Length >= 2 && path[1] == ':')
-            {
-                // Windows绝对路径，如 C:\Users\...
-                rootPath = path.Substring(0, 2); // "C:"
-                var remainingPath = path.Substring(2).TrimStart(Path.DirectorySeparatorChar);
-                parts = string.IsNullOrEmpty(remainingPath)
-                    ? new[] { rootPath }
-                    : new[] { rootPath }.Concat(remainingPath.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries)).ToArray();
-            }
-            else if (path.StartsWith("\\\\"))
-            {
-                // UNC路径，如 \\server\share\...
-                var uncParts = path.Substring(2).Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
-                rootPath = "\\\\" + (uncParts.Length > 0 ? uncParts[0] : "");
-                parts = uncParts.Length > 1
-                    ? new[] { rootPath }.Concat(uncParts.Skip(1)).ToArray()
-                    : new[] { rootPath };
-            }
-            else
-            {
-                // 相对路径
-                parts = path.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
-            }
-
-            // 判断是否为长路径
-            bool isLongPath = parts.Length > 10;
-
-            if (isLongPath && BreadcrumbTail != null)
-            {
-                // 长路径：左侧只显示"path"，右侧显示"... 最后3段"（右对齐）
-
-                // 显示右侧TextBlock并填充最后3段
-                BreadcrumbTail.Visibility = Visibility.Visible;
-                BreadcrumbTail.ToolTip = path;
-
-                var tailParts = parts.Skip(parts.Length - 6).ToArray();
-                AddPathSegments(BreadcrumbTail, tailParts, path, defaultBrush, hoverBrush);
-            }
-            else
-            {
-                // 短路径：在左侧显示完整路径
-                AddPathSegments(BreadcrumbText, parts, path, defaultBrush, hoverBrush);
-            }
-        }
-
-        private void AddPathSegments(TextBlock targetTextBlock, string[] parts, string fullPath,
-            System.Windows.Media.SolidColorBrush defaultBrush, System.Windows.Media.SolidColorBrush hoverBrush)
-        {
-            var currentPath = "";
-
-            for (int i = 0; i < parts.Length; i++)
-            {
-                // 构建完整路径
-                if (i == 0 && parts[i].Length == 2 && parts[i][1] == ':')
-                {
-                    currentPath = parts[i] + Path.DirectorySeparatorChar;
-                }
-                else if (i == 0 && parts[i].StartsWith("\\\\"))
-                {
-                    currentPath = parts[i];
-                }
-                else
-                {
-                    currentPath = Path.Combine(currentPath, parts[i]);
-                }
-
-                // 创建可点击的 Run
-                var run = new System.Windows.Documents.Run(parts[i])
-                {
-                    Foreground = defaultBrush,
-                    Cursor = Cursors.Hand
-                };
-
-                var pathToNavigate = currentPath;
-                bool isLast = (i == parts.Length - 1);
-
-                // 鼠标悬停效果
-                run.MouseEnter += (s, e) =>
-                {
-                    run.Foreground = hoverBrush;
-                };
-                run.MouseLeave += (s, e) =>
-                {
-                    run.Foreground = defaultBrush;
-                };
-
-                // 点击事件
-                run.MouseDown += (s, e) =>
-                {
-                    if (e.ChangedButton == MouseButton.Left)
-                    {
-                        if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
-                        {
-                            e.Handled = true;
-                            BreadcrumbMiddleClicked?.Invoke(this, pathToNavigate);
-                        }
-                        else
-                        {
-                            e.Handled = true;
-
-                            // 如果是最后一项，进入编辑模式
-                            if (isLast)
-                            {
-                                SwitchToEditMode();
-                            }
-                            else
-                            {
-                                BreadcrumbClicked?.Invoke(this, pathToNavigate);
-                            }
-                        }
-                    }
-                    else if (e.ChangedButton == MouseButton.Middle)
-                    {
-                        e.Handled = true;
-                        BreadcrumbMiddleClicked?.Invoke(this, pathToNavigate);
-                    }
-                };
-
-                targetTextBlock.Inlines.Add(run);
-
-                // 添加分隔符（使用反斜杠）
-                if (i < parts.Length - 1)
-                {
-                    var separator = new System.Windows.Documents.Run(" \\ ")
-                    {
-                        Foreground = System.Windows.Media.Brushes.Gray
-                    };
-                    targetTextBlock.Inlines.Add(separator);
-                }
-            }
-        }
-
-        private void AddSegment(TextBlock targetTextBlock, string text, string navigatePath,
-            System.Windows.Media.SolidColorBrush defaultBrush, System.Windows.Media.SolidColorBrush hoverBrush, bool addSeparator)
-        {
-            var run = new System.Windows.Documents.Run(text)
-            {
-                Foreground = defaultBrush,
-                Cursor = Cursors.Hand
-            };
-
-            run.MouseEnter += (s, e) => run.Foreground = hoverBrush;
-            run.MouseLeave += (s, e) => run.Foreground = defaultBrush;
-            run.MouseDown += (s, e) =>
-            {
-                if (e.ChangedButton == MouseButton.Left)
-                {
-                    e.Handled = true;
-                    BreadcrumbClicked?.Invoke(this, navigatePath);
-                }
-                else if (e.ChangedButton == MouseButton.Middle)
-                {
-                    e.Handled = true;
-                    BreadcrumbMiddleClicked?.Invoke(this, navigatePath);
-                }
-            };
-
-            targetTextBlock.Inlines.Add(run);
-
-            if (addSeparator)
-            {
-                targetTextBlock.Inlines.Add(new System.Windows.Documents.Run(" \\ ") { Foreground = System.Windows.Media.Brushes.Gray });
-            }
+            EnsureBreadcrumbBuilder()?.UpdateBreadcrumb(path);
         }
 
         public void UpdateBreadcrumbText(string text)
         {
-            if (BreadcrumbText == null)
-                return;
-
-            BreadcrumbText.Inlines.Clear();
-            BreadcrumbText.Inlines.Add(new System.Windows.Documents.Run(text)
-            {
-                Foreground = System.Windows.Media.Brushes.Blue
-            });
+            EnsureBreadcrumbBuilder()?.UpdateBreadcrumbText(text);
         }
 
         public void SetBreadcrumbCustomText(string text)
         {
-            _breadcrumbCustomText = text;
-            UpdateBreadcrumbText(text ?? "");
+            EnsureBreadcrumbBuilder()?.SetCustomText(text);
         }
 
         public void SetTagBreadcrumb(string tagName)
         {
-            _breadcrumbCustomText = null;
-            if (BreadcrumbText == null)
-                return;
-
-            BreadcrumbText.Inlines.Clear();
-
-            var container = new StackPanel
-            {
-                Orientation = Orientation.Horizontal,
-                Margin = new Thickness(2, 2, 2, 2)
-            };
-
-            var badge = new Border
-            {
-                BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(4),
-                Padding = new Thickness(8, 2, 8, 2),
-                Margin = new Thickness(0, 0, 6, 0)
-            };
-            try
-            {
-                var parentWindow = Window.GetWindow(this);
-                var bg = parentWindow?.FindResource("HighlightBrush") as System.Windows.Media.SolidColorBrush;
-                var bd = parentWindow?.FindResource("HighlightBorderBrush") as System.Windows.Media.SolidColorBrush;
-                badge.Background = bg ?? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 165, 0));
-                badge.BorderBrush = bd ?? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 140, 0));
-            }
-            catch
-            {
-                badge.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 165, 0));
-                badge.BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 140, 0));
-            }
-
-            var badgeText = new TextBlock
-            {
-                Text = "tag",
-                FontWeight = FontWeights.SemiBold,
-                FontSize = 12,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            try
-            {
-                var parentWindow = Window.GetWindow(this);
-                var fg = parentWindow?.FindResource("HighlightForegroundBrush") as System.Windows.Media.SolidColorBrush;
-                badgeText.Foreground = fg ?? System.Windows.Media.Brushes.Black;
-            }
-            catch
-            {
-                badgeText.Foreground = System.Windows.Media.Brushes.Black;
-            }
-            badge.Child = badgeText;
-
-            // 让tag按钮可以点击，点击后返回到标签浏览模式
-            badge.Cursor = Cursors.Hand;
-            badge.MouseLeftButtonDown += (s, e) =>
-            {
-                e.Handled = true;
-                BreadcrumbClicked?.Invoke(this, "tag://");
-            };
-            badge.MouseEnter += (s, e) =>
-            {
-                badge.Background = new System.Windows.Media.SolidColorBrush(
-                    System.Windows.Media.Color.FromRgb(255, 140, 0));
-            };
-            badge.MouseLeave += (s, e) =>
-            {
-                try
-                {
-                    var parentWindow = Window.GetWindow(this);
-                    var bg = parentWindow?.FindResource("HighlightBrush") as System.Windows.Media.SolidColorBrush;
-                    badge.Background = bg ?? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 165, 0));
-                }
-                catch
-                {
-                    badge.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 165, 0));
-                }
-            };
-
-            var nameText = new TextBlock
-            {
-                Text = tagName ?? "",
-                FontSize = 12,
-                VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(4, 0, 0, 0)
-            };
-
-            container.Children.Add(badge);
-            container.Children.Add(nameText);
-            // Note: Tag breadcrumb uses inline Runs now
-            var prefixRun = new System.Windows.Documents.Run("tag ")
-            {
-                Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 165, 0)),
-                FontWeight = FontWeights.SemiBold
-            };
-            var tagRun = new System.Windows.Documents.Run(tagName ?? "")
-            {
-                Foreground = System.Windows.Media.Brushes.Black
-            };
-            BreadcrumbText.Inlines.Add(prefixRun);
-            BreadcrumbText.Inlines.Add(tagRun);
+            EnsureBreadcrumbBuilder()?.SetTagBreadcrumb(tagName);
         }
 
         public void SetSearchBreadcrumb(string keyword)
         {
-            _breadcrumbCustomText = null;
-            if (BreadcrumbText == null)
-                return;
-
-            BreadcrumbText.Inlines.Clear();
-
-            var prefixRun = new System.Windows.Documents.Run("search ")
-            {
-                Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 165, 0)),
-                FontWeight = FontWeights.SemiBold
-            };
-            var keywordRun = new System.Windows.Documents.Run(keyword ?? "")
-            {
-                Foreground = System.Windows.Media.Brushes.Black
-            };
-            BreadcrumbText.Inlines.Add(prefixRun);
-            BreadcrumbText.Inlines.Add(keywordRun);
+            EnsureBreadcrumbBuilder()?.SetSearchBreadcrumb(keyword);
         }
 
         public void SetLibraryBreadcrumb(string libraryName)
         {
-            _breadcrumbCustomText = null;
-            if (BreadcrumbText == null)
-                return;
-
-            BreadcrumbText.Inlines.Clear();
-
-            var prefixRun = new System.Windows.Documents.Run("lib ")
-            {
-                Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 165, 0)),
-                FontWeight = FontWeights.SemiBold
-            };
-            var libraryRun = new System.Windows.Documents.Run(libraryName ?? "")
-            {
-                Foreground = System.Windows.Media.Brushes.Black
-            };
-            BreadcrumbText.Inlines.Add(prefixRun);
-            BreadcrumbText.Inlines.Add(libraryRun);
+            EnsureBreadcrumbBuilder()?.SetLibraryBreadcrumb(libraryName);
         }
 
         public void ClearBreadcrumbCustomText()
         {
-            _breadcrumbCustomText = null;
-            UpdateBreadcrumb(_currentPath);
+            EnsureBreadcrumbBuilder()?.ClearCustomText(_currentPath);
         }
 
         private void BreadcrumbContainer_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -704,8 +228,8 @@ namespace YiboFile.Controls
             AddressTextBox.Visibility = Visibility.Collapsed;
 
             BreadcrumbContainer.Visibility = Visibility.Visible;
-            if (!string.IsNullOrEmpty(_breadcrumbCustomText))
-                UpdateBreadcrumbText(_breadcrumbCustomText);
+            if (!string.IsNullOrEmpty(_breadcrumbBuilder?.CustomText))
+                UpdateBreadcrumbText(_breadcrumbBuilder.CustomText);
             else
                 UpdateBreadcrumb(_currentPath);
         }
@@ -1195,7 +719,7 @@ namespace YiboFile.Controls
         {
             if (DataContext is ViewModels.PaneViewModel vm)
             {
-                vm.RefreshCommand?.Execute(null);
+                vm.Commands?.RefreshCommand?.Execute(null);
             }
         }
 
@@ -1216,52 +740,6 @@ namespace YiboFile.Controls
                 current = System.Windows.Media.VisualTreeHelper.GetParent(current);
             }
             return null;
-        }
-    }
-
-    public class HistoryTypeToIconConverter : IValueConverter
-    {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            if (value is HistoryType type)
-            {
-                return type switch
-                {
-                    HistoryType.LocalPath => "\uE838", // Folder icon
-                    HistoryType.Search => "\uE721",    // Search icon
-                    HistoryType.FullTextSearch => "\uE890", // Document Search icon
-                    _ => "\uE838"
-                };
-            }
-            return "";
-        }
-
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            throw new NotImplementedException();
-        }
-    }
-
-    public class HistoryTypeToTextConverter : IValueConverter
-    {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            if (value is HistoryType type)
-            {
-                return type switch
-                {
-                    HistoryType.LocalPath => "位置",
-                    HistoryType.Search => "搜索",
-                    HistoryType.FullTextSearch => "全文",
-                    _ => ""
-                };
-            }
-            return "";
-        }
-
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            throw new NotImplementedException();
         }
     }
 }

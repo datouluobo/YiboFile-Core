@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using YiboFile.Services.Navigation;
 using YiboFile.Models.Navigation;
+using System.Windows.Media;
 
 namespace YiboFile.Handlers
 {
@@ -125,6 +126,47 @@ namespace YiboFile.Handlers
             {
                 e.Handled = true;
                 _navigationCoordinator.HandleFavoriteNavigation(favorite, clickType, _getActivePaneId());
+            }
+        }
+
+        public void HandleGlobalMouseDown(object sender, MouseButtonEventArgs e, Controls.FileBrowserControl secondFileBrowser)
+        {
+            // Apply the same global mouse down logic for the Secondary File Browser
+            // If the Secondary Address Bar is in edit mode and the click is outside it, close edit mode.
+            if (secondFileBrowser != null && secondFileBrowser.AddressBarControl != null &&
+                secondFileBrowser.AddressBarControl.IsEditMode)
+            {
+                var source = e.OriginalSource as DependencyObject;
+                bool isAddressBar = false;
+
+                // Check if the click target is within the AddressBarControl
+                var current = source;
+                while (current != null)
+                {
+                    if (current == secondFileBrowser.AddressBarControl)
+                    {
+                        isAddressBar = true;
+                        break;
+                    }
+                    if (current is System.Windows.Media.Media3D.Visual3D)
+                    {
+                        current = VisualTreeHelper.GetParent(current);
+                    }
+                    else if (current is FrameworkContentElement fce)
+                    {
+                        current = fce.Parent;
+                    }
+                    else
+                    {
+                        current = VisualTreeHelper.GetParent(current);
+                    }
+                }
+
+                if (!isAddressBar)
+                {
+                    // If clicked outside, exit edit mode
+                    secondFileBrowser.AddressBarControl.SwitchToBreadcrumbMode();
+                }
             }
         }
 

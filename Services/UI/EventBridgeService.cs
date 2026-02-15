@@ -58,7 +58,7 @@ namespace YiboFile.Services.UI
             // 文件浏览器事件
             if (_window.FileBrowser != null)
             {
-                _window.FileBrowser.ViewModeChanged += OnPrimaryViewModeChanged;
+                // ViewModeChanged 已由 PaneViewModel 直接发布 ViewModeChangedMessage，无需桥接
                 _window.FileBrowser.InfoHeightChanged += OnPrimaryInfoHeightChanged;
                 _window.FileBrowser.FilesSelectionChanged += OnPrimarySelectionChanged;
                 _window.FileBrowser.TagClicked += OnPrimaryTagClicked;
@@ -67,7 +67,7 @@ namespace YiboFile.Services.UI
 
             if (_window.SecondFileBrowser != null)
             {
-                _window.SecondFileBrowser.ViewModeChanged += OnSecondaryViewModeChanged;
+                // ViewModeChanged 已由 PaneViewModel 直接发布 ViewModeChangedMessage，无需桥接
                 _window.SecondFileBrowser.InfoHeightChanged += OnSecondaryInfoHeightChanged;
                 _window.SecondFileBrowser.FilesSelectionChanged += OnSecondarySelectionChanged;
                 _window.SecondFileBrowser.TagClicked += OnSecondaryTagClicked;
@@ -111,7 +111,6 @@ namespace YiboFile.Services.UI
 
             if (_window.FileBrowser != null)
             {
-                _window.FileBrowser.ViewModeChanged -= OnPrimaryViewModeChanged;
                 _window.FileBrowser.InfoHeightChanged -= OnPrimaryInfoHeightChanged;
                 _window.FileBrowser.FilesSelectionChanged -= OnPrimarySelectionChanged;
                 _window.FileBrowser.TagClicked -= OnPrimaryTagClicked;
@@ -120,7 +119,6 @@ namespace YiboFile.Services.UI
 
             if (_window.SecondFileBrowser != null)
             {
-                _window.SecondFileBrowser.ViewModeChanged -= OnSecondaryViewModeChanged;
                 _window.SecondFileBrowser.InfoHeightChanged -= OnSecondaryInfoHeightChanged;
                 _window.SecondFileBrowser.FilesSelectionChanged -= OnSecondarySelectionChanged;
                 _window.SecondFileBrowser.TagClicked -= OnSecondaryTagClicked;
@@ -222,17 +220,6 @@ namespace YiboFile.Services.UI
         }
 
 
-
-
-        private void OnPrimaryViewModeChanged(object sender, string mode)
-        {
-            _messageBus.Publish(new ViewModeChangedMessage(mode, YiboFile.Services.Navigation.PaneId.Main));
-        }
-
-        private void OnSecondaryViewModeChanged(object sender, string mode)
-        {
-            _messageBus.Publish(new ViewModeChangedMessage(mode, YiboFile.Services.Navigation.PaneId.Second));
-        }
 
         private void OnPrimaryInfoHeightChanged(object sender, double height)
         {

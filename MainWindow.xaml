@@ -18,17 +18,17 @@
 
 
     <Window.InputBindings>
-        <KeyBinding Key="C" Modifiers="Ctrl" Command="{Binding FileOperation.CopyCommand}" CommandParameter="{Binding ActivePane.SelectedItems}"/>
-        <KeyBinding Key="X" Modifiers="Ctrl" Command="{Binding FileOperation.CutCommand}" CommandParameter="{Binding ActivePane.SelectedItems}"/>
+        <KeyBinding Key="C" Modifiers="Ctrl" Command="{Binding FileOperation.CopyCommand}" CommandParameter="{Binding ActivePane.Selection.SelectedItems}"/>
+        <KeyBinding Key="X" Modifiers="Ctrl" Command="{Binding FileOperation.CutCommand}" CommandParameter="{Binding ActivePane.Selection.SelectedItems}"/>
         <KeyBinding Key="V" Modifiers="Ctrl" Command="{Binding FileOperation.PasteCommand}" CommandParameter="{Binding ActivePane}"/>
-        <KeyBinding Key="Delete" Command="{Binding FileOperation.DeleteCommand}" CommandParameter="{Binding ActivePane.SelectedItems}"/>
+        <KeyBinding Key="Delete" Command="{Binding FileOperation.DeleteCommand}" CommandParameter="{Binding ActivePane.Selection.SelectedItems}"/>
         <!-- Shift+Delete handled by Command implementation checking modifiers, or separate binding -->
-        <KeyBinding Key="F2" Command="{Binding FileOperation.RenameCommand}" CommandParameter="{Binding ActivePane.SelectedItem}"/>
+        <KeyBinding Key="F2" Command="{Binding FileOperation.RenameCommand}" CommandParameter="{Binding ActivePane.Selection.SelectedItem}"/>
         <KeyBinding Key="N" Modifiers="Ctrl+Shift" Command="{Binding FileOperation.NewFolderCommand}" CommandParameter="{Binding ActivePane}"/>
         <!-- New File? -->
         <KeyBinding Key="Z" Modifiers="Ctrl" Command="{Binding FileOperation.UndoCommand}"/>
         <KeyBinding Key="Y" Modifiers="Ctrl" Command="{Binding FileOperation.RedoCommand}"/>
-        <KeyBinding Key="F5" Command="{Binding ActivePane.RefreshCommand}"/>
+        <KeyBinding Key="F5" Command="{Binding ActivePane.Commands.RefreshCommand}"/>
     </Window.InputBindings>
 
     <WindowChrome.WindowChrome>

@@ -132,58 +132,6 @@ namespace YiboFile
 
         internal void InitializeEvents()
         {
-            // 全局鼠标事件
-            this.PreviewMouseDown += MainWindow_PreviewMouseDown;
-
-            if (NavigationPanelControl != null)
-            {
-                // Library events handled by LibraryEventHandler
-                NavigationPanelControl.LibraryManageClick += (s, e) => _viewModel?.ActivePane?.NewLibraryCommand?.Execute(null);
-
-                NavigationPanelControl.PathManageClick += (s, e) =>
-                {
-                    var window = new YiboFile.Windows.NavigationSettingsWindow("Path");
-                    window.Owner = this;
-                    window.ShowDialog();
-                };
-
-                if (NavigationPanelControl.TagBrowsePanelControl != null)
-                {
-                    NavigationPanelControl.TagBrowsePanelControl.TagClicked += (tagId, tagName) =>
-                    {
-                        if (string.IsNullOrEmpty(tagName)) return;
-                        _ = _navigationCoordinator?.NavigateAsync(new YiboFile.Models.Navigation.NavigationRequest
-                        {
-                            Target = YiboFile.Models.Navigation.NavigationTarget.FromTag(tagName),
-                            Pane = GetActivePaneId(), // Using helper method from MainWindow
-                            Source = NavigationSource.SidebarTag
-                        });
-                    };
-                    NavigationPanelControl.TagBrowsePanelControl.BackRequested += (s, e) =>
-                    {
-                        // Navigate back when back button is clicked in TagBrowsePanel
-                        _viewModel?.Navigation?.NavigateBackCommand?.Execute(null);
-                    };
-                }
-            }
-
-            if (FileBrowser != null)
-            {
-                // [FIX] 显式绑定路径变更事件，确保主面板导航正确 - 使用统一导航协调器
-                FileBrowser.PathChanged += (s, path) => _navigationCoordinator?.HandlePathNavigation(path, YiboFile.Models.Navigation.NavigationSource.AddressBar, YiboFile.Models.Navigation.ClickType.LeftClick, pane: PaneId.Main);
-                FileBrowser.BreadcrumbClicked += (s, path) => _navigationCoordinator?.HandlePathNavigation(path, YiboFile.Models.Navigation.NavigationSource.Breadcrumb, YiboFile.Models.Navigation.ClickType.LeftClick, pane: PaneId.Main);
-            }
-
-            if (SecondFileBrowser != null)
-            {
-                // [FIX] 显式绑定路径变更事件，确保副面板导航正确 - 使用统一导航协调器
-                SecondFileBrowser.PathChanged += (s, path) => _navigationCoordinator?.HandlePathNavigation(path, YiboFile.Models.Navigation.NavigationSource.AddressBar, YiboFile.Models.Navigation.ClickType.LeftClick, pane: PaneId.Second);
-                SecondFileBrowser.BreadcrumbClicked += (s, path) => _navigationCoordinator?.HandlePathNavigation(path, YiboFile.Models.Navigation.NavigationSource.Breadcrumb, YiboFile.Models.Navigation.ClickType.LeftClick, pane: PaneId.Second);
-            }
-
-            // 初始化主题切换事件
-            InitializeThemeEvents();
-
             // 订阅分割器折叠事件，动态调整标签页边距
             if (SplitterRight != null)
             {
@@ -197,49 +145,6 @@ namespace YiboFile
         {
             // 此处的直接服务事件订阅已迁移至 WindowOrchestrator 的服务桥接逻辑中。
             // 详见 WindowOrchestrator.SetupServiceMessageBridges。
-        }
-
-        private void MainWindow_PreviewMouseDown(object sender, MouseButtonEventArgs e)
-        {
-            // Global mouse down logic is now handled within individual controls (FileBrowserControl)
-
-            // Apply the same global mouse down logic for the Secondary File Browser
-            // If the Secondary Address Bar is in edit mode and the click is outside it, close edit mode.
-            if (SecondFileBrowser != null && SecondFileBrowser.AddressBarControl != null &&
-                SecondFileBrowser.AddressBarControl.IsEditMode)
-            {
-                var source = e.OriginalSource as DependencyObject;
-                bool isAddressBar = false;
-
-                // Check if the click target is within the AddressBarControl
-                var current = source;
-                while (current != null)
-                {
-                    if (current == SecondFileBrowser.AddressBarControl)
-                    {
-                        isAddressBar = true;
-                        break;
-                    }
-                    if (current is Visual || current is System.Windows.Media.Media3D.Visual3D)
-                    {
-                        current = VisualTreeHelper.GetParent(current);
-                    }
-                    else if (current is FrameworkContentElement fce)
-                    {
-                        current = fce.Parent;
-                    }
-                    else
-                    {
-                        current = null;
-                    }
-                }
-
-                if (!isAddressBar)
-                {
-                    // If clicked outside, exit edit mode
-                    SecondFileBrowser.AddressBarControl.SwitchToBreadcrumbMode();
-                }
-            }
         }
 
         private void OnActivated(object sender, EventArgs e)
@@ -602,52 +507,7 @@ namespace YiboFile
 
         #endregion
 
-        #region 主题事件 (Merged from MainWindow.Theme.cs)
 
-        /// <summary>
-        /// 初始化主题切换事件
-        /// </summary>
-        private void InitializeThemeEvents()
-        {
-            // 订阅主题切换事件,刷新导航面板图标
-            Services.Theming.ThemeManager.ThemeChanged += (s, e) =>
-            {
-                RefreshNavigationIcons();
-
-                // 修复：切换主题时，如果有副列表，强制刷新布局以防止地址栏错位
-                if (IsDualListMode && SecondFileBrowserContainer != null)
-                {
-                    this.Dispatcher.BeginInvoke(new Action(() =>
-                    {
-                        SecondFileBrowserContainer.InvalidateVisual();
-                        SecondFileBrowserContainer.UpdateLayout();
-                    }), System.Windows.Threading.DispatcherPriority.Render);
-                }
-            };
-        }
-
-        /// <summary>
-        /// 刷新导航面板的图标(用于主题切换)
-        /// </summary>
-        private void RefreshNavigationIcons()
-        {
-            this.Dispatcher.BeginInvoke(new Action(() =>
-            {
-                try
-                {
-                    // 重新加载快速访问、驱动器和收藏列表以刷新图标
-                    if (QuickAccessListBox != null)
-                        _quickAccessService?.LoadQuickAccess(QuickAccessListBox);
-                    if (DrivesTreeView != null)
-                        _quickAccessService?.LoadDriveTree(DrivesTreeView, _fileListService.FormatFileSize);
-                    ViewModel?.Favorites?.LoadFavorites();
-                }
-                catch (Exception)
-                { }
-            }), System.Windows.Threading.DispatcherPriority.Loaded);
-        }
-
-        #endregion
 
         #region VisualTree 工具方法
 
