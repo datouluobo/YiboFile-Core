@@ -245,11 +245,26 @@ namespace YiboFile.Handlers
                 GetCurrentNavigationMode = () => "Path",
                 GetSearchCacheService = () => _window._searchCacheService,
                 GetSearchOptions = () => null,
-                GetCurrentFiles = () => _window._secondCurrentFiles,
+                GetCurrentFiles = () => _window.ViewModel?.SecondaryPane?.Files?.ToList(),
                 SetCurrentFiles = (files) =>
                 {
-                    _window._secondCurrentFiles = files;
-                    _window.ViewModel?.SecondaryPane?.FileList?.UpdateFiles(files);
+                    // Update ViewModel's Files collection directly
+                    var secPane = _window.ViewModel?.SecondaryPane;
+                    if (secPane != null)
+                    {
+                        var vmFiles = secPane.Files;
+                        if (vmFiles != null)
+                        {
+                            vmFiles.Clear();
+                            if (files != null)
+                            {
+                                foreach (var f in files)
+                                {
+                                    vmFiles.Add(f);
+                                }
+                            }
+                        }
+                    }
                 },
                 ClearFilter = () => { },
                 FindResource = (key) => _window.TryFindResource(key)

@@ -52,14 +52,12 @@ namespace YiboFile.ViewModels
         private bool _isActive;
         private bool _isLoadingDisabled;
         private ObservableCollection<FileSystemItem> _files;
-        private ObservableCollection<FileSystemItem> _selectedItems = new ObservableCollection<FileSystemItem>();
         private bool _isLoading;
 
         private CancellationTokenSource _loadCts;
         private FileSystemWatcher _fileWatcher;
         private DispatcherTimer _refreshDebounceTimer;
-        private string _searchStatusText;
-        private bool _isSearching;
+
         private readonly System.Collections.Generic.Stack<string> _backStack = new System.Collections.Generic.Stack<string>();
         private readonly System.Collections.Generic.Stack<string> _forwardStack = new System.Collections.Generic.Stack<string>();
         private bool _isNavigatingHistory;
@@ -68,10 +66,6 @@ namespace YiboFile.ViewModels
         private ObservableCollection<ContextMenuItemViewModel> _favoriteMenuItems = new ObservableCollection<ContextMenuItemViewModel>();
         private ObservableCollection<ContextMenuItemViewModel> _tagMenuItems = new ObservableCollection<ContextMenuItemViewModel>();
         private string _fileViewMode = "List";
-        private SearchOptions _searchOptions = new SearchOptions();
-        private bool _isFilterPanelVisible;
-        private bool _isLoadMoreVisible;
-        private int _searchOffset;
 
         #endregion
 
@@ -254,70 +248,22 @@ namespace YiboFile.ViewModels
             OnPropertyChanged(nameof(CanNavigateUp));
         }
 
-        public ObservableCollection<FileSystemItem> SelectedItems
-        {
-            get => _selectedItems;
-            private set => SetProperty(ref _selectedItems, value);
-        }
+        public SelectionViewModel Selection { get; private set; }
 
-        private FileSystemItem _selectedItem;
-        public FileSystemItem SelectedItem
-        {
-            get => _selectedItem;
-            private set
-            {
-                if (SetProperty(ref _selectedItem, value))
-                {
-                    OnPropertyChanged(nameof(HasSelection));
-                    OnPropertyChanged(nameof(IsSingleSelection));
-                    OnPropertyChanged(nameof(IsNoSelection));
-                }
-            }
-        }
+        public ObservableCollection<FileSystemItem> SelectedItems => Selection?.SelectedItems;
 
-        public bool HasSelection => SelectedItems != null && SelectedItems.Count > 0;
-        public bool IsSingleSelection => SelectedItems != null && SelectedItems.Count == 1;
-        public bool IsNoSelection => SelectedItems == null || SelectedItems.Count == 0;
+        public FileSystemItem SelectedItem => Selection?.SelectedItem;
+
+        public bool HasSelection => Selection?.HasSelection ?? false;
+        public bool IsSingleSelection => Selection?.IsSingleSelection ?? false;
+        public bool IsNoSelection => Selection?.IsNoSelection ?? true;
 
         public void UpdateSelection(System.Collections.IList items)
         {
-            _selectedItems.Clear();
-            if (items != null)
+            if (Selection != null)
             {
-                foreach (var item in items)
-                {
-                    if (item is FileSystemItem fsItem)
-                    {
-                        _selectedItems.Add(fsItem);
-                    }
-                }
-            }
-            SelectedItem = _selectedItems.FirstOrDefault();
-
-            OnPropertyChanged(nameof(HasSelection));
-            OnPropertyChanged(nameof(IsSingleSelection));
-            OnPropertyChanged(nameof(IsNoSelection));
-
-            // 更新动态菜单项
-            UpdateDynamicMenuItems();
-
-            // 发送消息以便其他模块（如预览面板）同步
-            var paneId = _isSecondary ? PaneId.Second : PaneId.Main;
-            if (SelectedItem != null)
-            {
-                // 如果只选择了一个项，请求预览
-                _messageBus.Publish(new FileSelectionChangedMessage(SelectedItems.ToList(), true, paneId));
-
-                // 如果是文件夹且大小未计算，触发计算
-                if (SelectedItem.IsDirectory && (string.IsNullOrEmpty(SelectedItem.Size) || SelectedItem.Size == "-" || SelectedItem.Size == "计算中..."))
-                {
-                    _folderSizeService?.CalculateAndUpdateFolderSizeAsync(SelectedItem.Path);
-                }
-            }
-            else
-            {
-                // 无选择时通知
-                _messageBus.Publish(new FileSelectionChangedMessage(null, true, paneId));
+                Selection.UpdateSelection(items, CurrentPath);
+                // UpdateDynamicMenuItems is triggered by SelectionChanged or FileSelectionChangedMessage which we subscribe to
             }
         }
 
@@ -404,14 +350,22 @@ namespace YiboFile.ViewModels
 
         public string SearchStatusText
         {
-            get => _searchStatusText;
-            set => SetProperty(ref _searchStatusText, value);
+            get => Filter?.SearchStatusText;
+            set
+            {
+                if (Filter != null) Filter.SearchStatusText = value;
+                OnPropertyChanged(nameof(SearchStatusText));
+            }
         }
 
         public bool IsSearching
         {
-            get => _isSearching;
-            set => SetProperty(ref _isSearching, value);
+            get => Filter?.IsSearching ?? false;
+            set
+            {
+                if (Filter != null) Filter.IsSearching = value;
+                OnPropertyChanged(nameof(IsSearching));
+            }
         }
 
         public bool IsSecondary => _isSecondary;
@@ -428,35 +382,45 @@ namespace YiboFile.ViewModels
         /// <summary>
         /// 搜索/过滤选项
         /// </summary>
+        public FilterViewModel Filter { get; private set; }
+
+        /// <summary>
+        /// 搜索/过滤选项 (代理到 FilterViewModel)
+        /// </summary>
         public SearchOptions SearchOptions
         {
-            get => _searchOptions;
+            get => Filter?.SearchOptions;
             set
             {
-                if (SetProperty(ref _searchOptions, value))
-                {
-                    // 选项变更时自动应用过滤
-                    ApplyFilter();
-                }
+                if (Filter != null) Filter.SearchOptions = value;
+                OnPropertyChanged(nameof(SearchOptions));
             }
         }
 
         /// <summary>
-        /// 过滤面板是否可见
+        /// 过滤面板是否可见 (代理到 FilterViewModel)
         /// </summary>
         public bool IsFilterPanelVisible
         {
-            get => _isFilterPanelVisible;
-            set => SetProperty(ref _isFilterPanelVisible, value);
+            get => Filter?.IsFilterPanelVisible ?? false;
+            set
+            {
+                if (Filter != null) Filter.IsFilterPanelVisible = value;
+                OnPropertyChanged(nameof(IsFilterPanelVisible));
+            }
         }
 
         /// <summary>
-        /// 加载更多按钮是否可见
+        /// 加载更多按钮是否可见 (代理到 FilterViewModel)
         /// </summary>
         public bool IsLoadMoreVisible
         {
-            get => _isLoadMoreVisible;
-            set => SetProperty(ref _isLoadMoreVisible, value);
+            get => Filter?.IsLoadMoreVisible ?? false;
+            set
+            {
+                if (Filter != null) Filter.IsLoadMoreVisible = value;
+                OnPropertyChanged(nameof(IsLoadMoreVisible));
+            }
         }
 
         #endregion
@@ -493,8 +457,8 @@ namespace YiboFile.ViewModels
         public ICommand TagStatisticsCommand { get; }
 
         // Filter Commands
-        public ICommand ApplyFilterCommand { get; }
-        public ICommand ToggleFilterPanelCommand { get; }
+        public ICommand ApplyFilterCommand => Filter?.ApplyFilterCommand;
+        public ICommand ToggleFilterPanelCommand => Filter?.ToggleFilterPanelCommand;
 
         public ObservableCollection<ContextMenuItemViewModel> LibraryMenuItems => _libraryMenuItems;
         public ObservableCollection<ContextMenuItemViewModel> FavoriteMenuItems => _favoriteMenuItems;
@@ -566,8 +530,9 @@ namespace YiboFile.ViewModels
             TagStatisticsCommand = new RelayCommand(ExecuteTagStatistics);
 
             // Filter Commands
-            ApplyFilterCommand = new RelayCommand(ApplyFilter);
-            ToggleFilterPanelCommand = new RelayCommand(() => IsFilterPanelVisible = !IsFilterPanelVisible);
+            // Filter Commands (Delegated to FilterViewModel)
+            // ApplyFilterCommand = new RelayCommand(ApplyFilter);
+            // ToggleFilterPanelCommand = new RelayCommand(() => IsFilterPanelVisible = !IsFilterPanelVisible);
             LoadMoreCommand = new RelayCommand(ExecuteLoadMore);
 
             SelectAllCommand = new RelayCommand(ExecuteSelectAll);
@@ -575,6 +540,49 @@ namespace YiboFile.ViewModels
             Search = new SearchViewModel(_messageBus);
             _searchCoordinator = new SearchCoordinator(_messageBus, Search);
             _searchCoordinator.SetTargetPane(isSecondary ? "Secondary" : "Primary");
+
+            // Initialize SelectionViewModel
+            Selection = new SelectionViewModel(_messageBus, isSecondary);
+
+            // Subscribe to Selection changes to trigger PropertyChanged on PaneViewModel (for binding compatibility)
+            Selection.PropertyChanged += (s, e) =>
+            {
+                if (e.PropertyName == nameof(SelectionViewModel.HasSelection)) OnPropertyChanged(nameof(HasSelection));
+                if (e.PropertyName == nameof(SelectionViewModel.IsSingleSelection)) OnPropertyChanged(nameof(IsSingleSelection));
+                if (e.PropertyName == nameof(SelectionViewModel.IsNoSelection)) OnPropertyChanged(nameof(IsNoSelection));
+                if (e.PropertyName == nameof(SelectionViewModel.SelectedItem)) OnPropertyChanged(nameof(SelectedItem));
+                // SelectedItems is a collection, usually binding listens to CollectionChanged, but if we assign new collection:
+                if (e.PropertyName == nameof(SelectionViewModel.SelectedItems)) OnPropertyChanged(nameof(SelectedItems));
+            };
+
+            // Initialize FilterViewModel
+            Filter = new FilterViewModel(_messageBus,
+                App.ServiceProvider?.GetService<SearchService>(),
+                App.ServiceProvider?.GetService<SearchCacheService>());
+
+            Filter.FilterChanged += (s, e) => ApplyFilter();
+
+            // Subscribe to PropertyChanged to relay events
+            Filter.PropertyChanged += (s, e) =>
+            {
+                if (e.PropertyName == nameof(FilterViewModel.SearchOptions)) OnPropertyChanged(nameof(SearchOptions));
+                if (e.PropertyName == nameof(FilterViewModel.IsFilterPanelVisible)) OnPropertyChanged(nameof(IsFilterPanelVisible));
+                if (e.PropertyName == nameof(FilterViewModel.IsLoadMoreVisible)) OnPropertyChanged(nameof(IsLoadMoreVisible));
+                if (e.PropertyName == nameof(FilterViewModel.IsSearching)) OnPropertyChanged(nameof(IsSearching));
+                if (e.PropertyName == nameof(FilterViewModel.SearchStatusText)) OnPropertyChanged(nameof(SearchStatusText));
+            };
+
+            Filter.MoreResultsLoaded += (s, newFiles) =>
+            {
+                _dispatcher.Invoke(() =>
+                {
+                    foreach (var item in newFiles)
+                    {
+                        Files.Add(item);
+                    }
+                    FilesLoaded?.Invoke(this, Files);
+                });
+            };
 
             _messageBus.Subscribe<SearchOptionsChangedMessage>(OnSearchOptionsChanged);
 
@@ -890,6 +898,9 @@ namespace YiboFile.ViewModels
         /// <summary>
         /// 应用全局过滤器到当前文件列表（对路径/库/搜索模式均生效）
         /// </summary>
+        /// <summary>
+        /// 应用全局过滤器到当前文件列表（对路径/库/搜索模式均生效）
+        /// </summary>
         private void ApplyFilter()
         {
             if (FileList == null) return;
@@ -897,7 +908,7 @@ namespace YiboFile.ViewModels
             try
             {
                 // 如果所有过滤条件都是默认值，清除过滤
-                if (_searchOptions == null || !IsFilterActive(_searchOptions))
+                if (Filter == null || !Filter.IsFilterActive)
                 {
                     FileList.ClearFilter();
                     return;
@@ -910,7 +921,7 @@ namespace YiboFile.ViewModels
                         // 排除当前正在加载或状态不确定的项
                         if (item.Name == "加载中...") return true;
 
-                        return _searchFilterService.MatchesOptions(item, _searchOptions);
+                        return _searchFilterService.MatchesOptions(item, Filter.SearchOptions);
                     });
                 }
             }
@@ -920,20 +931,6 @@ namespace YiboFile.ViewModels
             }
         }
 
-        /// <summary>
-        /// 检查是否有任何非默认的过滤条件
-        /// </summary>
-        private bool IsFilterActive(SearchOptions options)
-        {
-            if (options == null) return false;
-
-            return options.Type != FileTypeFilter.All
-                || options.DateRange != DateRangeFilter.All
-                || options.SizeRange != SizeRangeFilter.All
-                || options.ImageSize != ImageDimensionFilter.All
-                || options.Duration != AudioDurationFilter.All;
-        }
-
         private void OnSearchOptionsChanged(SearchOptionsChangedMessage message)
         {
             // 检查消息是否属于当前面板或全局
@@ -941,8 +938,8 @@ namespace YiboFile.ViewModels
                 (_isSecondary && message.TargetPaneId == "Secondary") ||
                 (!_isSecondary && message.TargetPaneId == "Primary"))
             {
-                _searchOptions = message.Options;
-                ApplyFilter();
+                if (Filter != null) Filter.SearchOptions = message.Options;
+                // Filter.SearchOptions setter triggers NotifyFilterChanged -> ApplyFilter
 
                 // 如果当前处于搜索模式，可能需要重新触发后台搜索以获得更精确的结果（取决于搜索模式）
                 RefreshSearchIfActive();
@@ -963,8 +960,8 @@ namespace YiboFile.ViewModels
                     {
                         _messageBus.Publish(new ExecuteSearchMessage(
                             protocolInfo.TargetPath,
-                            _searchOptions?.SearchNames ?? true,
-                            _searchOptions?.SearchNotes ?? true,
+                            Filter?.SearchOptions?.SearchNames ?? true,
+                            Filter?.SearchOptions?.SearchNotes ?? true,
                             _isSecondary ? "Secondary" : "Primary"));
                     }
                 }
@@ -1575,67 +1572,31 @@ namespace YiboFile.ViewModels
                     }
                 }
 
-                SearchStatusText = message.StatusMessage;
-                IsSearching = message.IsSearching;
-
-                // 更新分页状态
-                _searchOffset = message.Offset;
-                IsLoadMoreVisible = message.HasMore;
-
-                // 如果搜索结束且有选项，应用过滤
-                if (!message.IsSearching && message.Results != null && _searchOptions != null)
+                if (Filter != null)
                 {
-                    ApplyFilter();
+                    Filter.SearchStatusText = message.StatusMessage;
+                    Filter.IsSearching = message.IsSearching;
+
+                    // 更新分页状态
+                    Filter.SearchOffset = message.Offset;
+                    Filter.IsLoadMoreVisible = message.HasMore;
+
+                    // 如果搜索结束且有选项，应用过滤
+                    if (!message.IsSearching && message.Results != null && Filter.SearchOptions != null)
+                    {
+                        ApplyFilter();
+                    }
                 }
             });
         }
 
-        private async void ExecuteLoadMore()
+        private void ExecuteLoadMore()
         {
-            if (_searchService == null || _searchCacheService == null) return;
-
-            try
+            // 将逻辑委托给 FilterViewModel，并传递上下文
+            // 我们必须显式传递 CurrentPath，因为 FilterViewModel 不知道它
+            if (Filter != null && !string.IsNullOrEmpty(CurrentPath))
             {
-                var protocolInfo = ProtocolManager.Parse(CurrentPath);
-                if (protocolInfo.Type != ProtocolType.Search) return;
-
-                var keyword = protocolInfo.TargetPath;
-                if (string.IsNullOrEmpty(keyword)) return;
-
-                // 从缓存获取当前偏移量
-                var cacheKey = $"search://{keyword}";
-                var cache = _searchCacheService.GetCache(cacheKey);
-                if (cache == null || !cache.HasMore) return;
-
-                IsSearching = true;
-                SearchStatusText = "正在加载更多结果...";
-
-                var moreResult = await Task.Run(() => _searchService.LoadMore(keyword, cache.Offset, _searchOptions, CurrentPath));
-
-                if (moreResult != null && moreResult.Items != null && moreResult.Items.Count > 0)
-                {
-                    await _dispatcher.InvokeAsync(() =>
-                    {
-                        foreach (var item in moreResult.Items)
-                        {
-                            Files.Add(item);
-                        }
-
-                        _searchOffset = moreResult.Offset;
-                        IsLoadMoreVisible = moreResult.HasMore;
-
-                        FilesLoaded?.Invoke(this, Files);
-                    });
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[LoadMore] Error: {ex.Message}");
-            }
-            finally
-            {
-                IsSearching = false;
-                SearchStatusText = "";
+                _ = Filter.LoadMoreAsync(CurrentPath);
             }
         }
 

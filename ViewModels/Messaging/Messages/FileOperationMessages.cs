@@ -127,4 +127,41 @@ namespace YiboFile.ViewModels.Messaging.Messages
             Extension = extension;
         }
     }
+
+    /// <summary>
+    /// 通用文件操作请求（用于后台任务）
+    /// </summary>
+    public class FileOperationRequestMessage
+    {
+        public string OperationId { get; } = System.Guid.NewGuid().ToString();
+        public string OperationType { get; } // "Copy", "Move", "Delete", "Recycle", "Rename"
+        public List<string> SourcePaths { get; }
+        public string DestinationPath { get; }
+
+        public FileOperationRequestMessage(string operationType, List<string> sourcePaths, string destinationPath = null)
+        {
+            OperationType = operationType;
+            SourcePaths = sourcePaths;
+            DestinationPath = destinationPath;
+        }
+    }
+
+    /// <summary>
+    /// 文件操作完成消息
+    /// </summary>
+    public class FileOperationCompleteMessage
+    {
+        public string OperationId { get; }
+        public bool Success { get; }
+        public string ErrorMessage { get; }
+        public List<string> ResultPaths { get; }
+
+        public FileOperationCompleteMessage(string operationId, bool success, string errorMessage = null, List<string> resultPaths = null)
+        {
+            OperationId = operationId;
+            Success = success;
+            ErrorMessage = errorMessage;
+            ResultPaths = resultPaths;
+        }
+    }
 }

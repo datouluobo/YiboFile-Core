@@ -873,6 +873,10 @@ namespace YiboFile.Services.Orchestration
             // 6. 启动后台索引
             _serviceProvider.GetService<IFullTextSearchService>()?.StartBackgroundIndexing();
 
+            // 7. 初始化 UI 事件 (确保服务已就绪)
+            window.InitializeEvents();
+            window.InitializeServiceEvents(); // 虽然主要是空方法或委派，但为了结构完整性
+
             await Task.CompletedTask;
         }
     }

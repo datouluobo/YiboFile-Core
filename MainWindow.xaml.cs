@@ -128,6 +128,167 @@ namespace YiboFile
 
         #region 公共方法
 
+
+
+        internal void InitializeEvents()
+        {
+            // 全局鼠标事件
+            this.PreviewMouseDown += MainWindow_PreviewMouseDown;
+
+            if (NavigationPanelControl != null)
+            {
+                // Library events handled by LibraryEventHandler
+                NavigationPanelControl.LibraryManageClick += (s, e) => _viewModel?.ActivePane?.NewLibraryCommand?.Execute(null);
+
+                NavigationPanelControl.PathManageClick += (s, e) =>
+                {
+                    var window = new YiboFile.Windows.NavigationSettingsWindow("Path");
+                    window.Owner = this;
+                    window.ShowDialog();
+                };
+
+                if (NavigationPanelControl.TagBrowsePanelControl != null)
+                {
+                    NavigationPanelControl.TagBrowsePanelControl.TagClicked += (tagId, tagName) =>
+                    {
+                        if (string.IsNullOrEmpty(tagName)) return;
+                        _ = _navigationCoordinator?.NavigateAsync(new YiboFile.Models.Navigation.NavigationRequest
+                        {
+                            Target = YiboFile.Models.Navigation.NavigationTarget.FromTag(tagName),
+                            Pane = GetActivePaneId(), // Using helper method from MainWindow
+                            Source = NavigationSource.SidebarTag
+                        });
+                    };
+                    NavigationPanelControl.TagBrowsePanelControl.BackRequested += (s, e) =>
+                    {
+                        // Navigate back when back button is clicked in TagBrowsePanel
+                        _viewModel?.Navigation?.NavigateBackCommand?.Execute(null);
+                    };
+                }
+            }
+
+            if (FileBrowser != null)
+            {
+                // [FIX] 显式绑定路径变更事件，确保主面板导航正确 - 使用统一导航协调器
+                FileBrowser.PathChanged += (s, path) => _navigationCoordinator?.HandlePathNavigation(path, YiboFile.Models.Navigation.NavigationSource.AddressBar, YiboFile.Models.Navigation.ClickType.LeftClick, pane: PaneId.Main);
+                FileBrowser.BreadcrumbClicked += (s, path) => _navigationCoordinator?.HandlePathNavigation(path, YiboFile.Models.Navigation.NavigationSource.Breadcrumb, YiboFile.Models.Navigation.ClickType.LeftClick, pane: PaneId.Main);
+            }
+
+            if (SecondFileBrowser != null)
+            {
+                // [FIX] 显式绑定路径变更事件，确保副面板导航正确 - 使用统一导航协调器
+                SecondFileBrowser.PathChanged += (s, path) => _navigationCoordinator?.HandlePathNavigation(path, YiboFile.Models.Navigation.NavigationSource.AddressBar, YiboFile.Models.Navigation.ClickType.LeftClick, pane: PaneId.Second);
+                SecondFileBrowser.BreadcrumbClicked += (s, path) => _navigationCoordinator?.HandlePathNavigation(path, YiboFile.Models.Navigation.NavigationSource.Breadcrumb, YiboFile.Models.Navigation.ClickType.LeftClick, pane: PaneId.Second);
+            }
+
+            // 初始化主题切换事件
+            InitializeThemeEvents();
+
+            // 订阅分割器折叠事件，动态调整标签页边距
+            if (SplitterRight != null)
+            {
+                SplitterRight.CollapsedStateChanged += (s, e) => UpdateTabManagerMargin();
+            }
+
+            this.Activated += OnActivated;
+        }
+
+        internal void InitializeServiceEvents()
+        {
+            // 此处的直接服务事件订阅已迁移至 WindowOrchestrator 的服务桥接逻辑中。
+            // 详见 WindowOrchestrator.SetupServiceMessageBridges。
+        }
+
+        private void MainWindow_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            // Global mouse down logic is now handled within individual controls (FileBrowserControl)
+
+            // Apply the same global mouse down logic for the Secondary File Browser
+            // If the Secondary Address Bar is in edit mode and the click is outside it, close edit mode.
+            if (SecondFileBrowser != null && SecondFileBrowser.AddressBarControl != null &&
+                SecondFileBrowser.AddressBarControl.IsEditMode)
+            {
+                var source = e.OriginalSource as DependencyObject;
+                bool isAddressBar = false;
+
+                // Check if the click target is within the AddressBarControl
+                var current = source;
+                while (current != null)
+                {
+                    if (current == SecondFileBrowser.AddressBarControl)
+                    {
+                        isAddressBar = true;
+                        break;
+                    }
+                    if (current is Visual || current is System.Windows.Media.Media3D.Visual3D)
+                    {
+                        current = VisualTreeHelper.GetParent(current);
+                    }
+                    else if (current is FrameworkContentElement fce)
+                    {
+                        current = fce.Parent;
+                    }
+                    else
+                    {
+                        current = null;
+                    }
+                }
+
+                if (!isAddressBar)
+                {
+                    // If clicked outside, exit edit mode
+                    SecondFileBrowser.AddressBarControl.SwitchToBreadcrumbMode();
+                }
+            }
+        }
+
+        private void OnActivated(object sender, EventArgs e)
+        {
+            try
+            {
+                string currentPath = (IsDualListMode && IsSecondPaneFocused) ? _viewModel?.SecondaryPane?.CurrentPath : _currentPath;
+                if (currentPath != null && currentPath.StartsWith("search://"))
+                {
+                    // CheckAndRefreshSearchTab(currentPath); // This method might be missing, assume valid or remove if not needed
+                }
+            }
+            catch { }
+        }
+
+        internal FileOperationContext GetActiveFileOperationContext()
+        {
+            bool useSecond = _viewModel?.ActivePane == _viewModel?.SecondaryPane;
+            var targetBrowser = useSecond ? SecondFileBrowser : FileBrowser;
+            var targetPath = useSecond ? _viewModel?.SecondaryPane?.CurrentPath : _currentPath;
+
+            Library targetLibrary = null;
+            if (useSecond)
+            {
+                if (!string.IsNullOrEmpty(targetPath) && targetPath.StartsWith("lib://", StringComparison.OrdinalIgnoreCase))
+                {
+                    var libName = targetPath.Substring(6).Split('/')[0];
+                    targetLibrary = _libraryService?.GetAllLibraries()?.FirstOrDefault(l =>
+                        string.Equals(l.Name, libName, StringComparison.OrdinalIgnoreCase));
+                }
+            }
+            else
+            {
+                targetLibrary = _currentLibrary;
+            }
+
+            return new FileOperationContext
+            {
+                TargetPath = targetPath,
+                CurrentLibrary = targetLibrary,
+                OwnerWindow = this,
+                RefreshCallback = () =>
+                {
+                    if (useSecond) RefreshActiveFileList();
+                    else RefreshFileList();
+                }
+            };
+        }
+
         public void RefreshFileList()
         {
             _viewModel?.PrimaryPane?.FileList?.RefreshFiles();
@@ -226,7 +387,7 @@ namespace YiboFile
             Services.Core.NotificationService.Instance.Initialize(NotificationContainer);
 
             // 初始化 UI 事件和布局模式 (Legacy)
-            InitializeEvents();
+            // InitializeEvents(); // Moved to Orchestrator to ensure services are ready
 
             // 使用编排器接管核心逻辑、消息桥接和状态恢复
             _orchestrator = App.ServiceProvider.GetRequiredService<IWindowOrchestrator>();
