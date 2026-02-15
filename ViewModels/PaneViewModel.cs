@@ -197,9 +197,42 @@ namespace YiboFile.ViewModels
 
         public PaneCommandSet Commands { get; private set; }
 
-        public ObservableCollection<ContextMenuItemViewModel> LibraryMenuItems => _libraryMenuItems;
-        public ObservableCollection<ContextMenuItemViewModel> FavoriteMenuItems => _favoriteMenuItems;
-        public ObservableCollection<ContextMenuItemViewModel> TagMenuItems => _tagMenuItems;
+        #region Forwarding Commands (Backward Compatibility)
+        public ICommand RefreshCommand => Commands?.RefreshCommand;
+        public ICommand NavigateBackCommand => Commands?.NavigateBackCommand;
+        public ICommand NavigateForwardCommand => Commands?.NavigateForwardCommand;
+        public ICommand NavigateUpCommand => Commands?.NavigateUpCommand;
+        public ICommand NavigateHomeCommand => Commands?.NavigateHomeCommand;
+        public ICommand OpenParentFolderCommand => Commands?.OpenParentFolderCommand;
+        public ICommand SwitchViewModeCommand => Commands?.SwitchViewModeCommand;
+        public ICommand SelectAllCommand => Commands?.SelectAllCommand;
+        public ICommand PropertiesCommand => Commands?.PropertiesCommand;
+        public ICommand NewFolderCommand => Commands?.NewFolderCommand;
+        public ICommand NewFileCommand => Commands?.NewFileCommand;
+        public ICommand DeleteCommand => Commands?.DeleteCommand;
+        public ICommand CopyCommand => Commands?.CopyCommand;
+        public ICommand CutCommand => Commands?.CutCommand;
+        public ICommand PasteCommand => Commands?.PasteCommand;
+        public ICommand RenameCommand => Commands?.RenameCommand;
+        public ICommand UndoCommand => Commands?.UndoCommand;
+        public ICommand RedoCommand => Commands?.RedoCommand;
+        public ICommand ToggleLibraryCommand => Commands?.ToggleLibraryCommand;
+        public ICommand AddToFavoriteCommand => Commands?.AddToFavoriteCommand;
+        public ICommand ToggleTagCommand => Commands?.ToggleTagCommand;
+        public ICommand NewLibraryCommand => Commands?.NewLibraryCommand;
+        public ICommand NewFavoriteGroupCommand => Commands?.NewFavoriteGroupCommand;
+        public ICommand NewTagCommand => Commands?.NewTagCommand;
+        public ICommand ManageTagsCommand => Commands?.ManageTagsCommand;
+        public ICommand BatchAddTagsCommand => Commands?.BatchAddTagsCommand;
+        public ICommand TagStatisticsCommand => Commands?.TagStatisticsCommand;
+        public ICommand LoadMoreCommand => Commands?.LoadMoreCommand;
+        #endregion
+
+        public PaneMenuViewModel Menu { get; private set; }
+
+        public ObservableCollection<ContextMenuItemViewModel> LibraryMenuItems => Menu?.LibraryMenuItems;
+        public ObservableCollection<ContextMenuItemViewModel> FavoriteMenuItems => Menu?.FavoriteMenuItems;
+        public ObservableCollection<ContextMenuItemViewModel> TagMenuItems => Menu?.TagMenuItems;
 
         #endregion
 
@@ -215,6 +248,7 @@ namespace YiboFile.ViewModels
             _folderSizeService = App.ServiceProvider.GetService(typeof(FolderSizeCalculationService)) as FolderSizeCalculationService;
 
             Selection = new SelectionViewModel(_messageBus, isSecondary);
+            Menu = new PaneMenuViewModel(this, _messageBus);
             Commands = new PaneCommandSet(this, _messageBus);
 
             Filter = new FilterViewModel(_messageBus,
@@ -233,9 +267,7 @@ namespace YiboFile.ViewModels
 
             _messageBus.Subscribe<NotesUpdatedMessage>(OnNotesUpdated);
             _messageBus.Subscribe<FileTagsChangedMessage>(OnFileTagsChanged);
-            _messageBus.Subscribe<TagListChangedMessage>(OnTagListChanged);
-            _messageBus.Subscribe<LibraryListChangedMessage>(OnLibraryListChanged);
-            _messageBus.Subscribe<FavoritesUpdatedMessage>(OnFavoritesUpdated);
+            // Dynamic Menu events moved to PaneMenuViewModel
             _messageBus.Subscribe<RefreshFileListMessage>(OnRefreshFileList);
             _messageBus.Subscribe<LibrarySelectedMessage>(OnLibrarySelected);
             _messageBus.Subscribe<FileSelectionChangedMessage>(OnFileSelectionChanged);
@@ -256,7 +288,7 @@ namespace YiboFile.ViewModels
             if (errorService != null) _fileListService = new FileListService(_dispatcher, errorService, _tagService);
             if (_libraryService != null)
             {
-                _libraryService.LibrariesLoaded += OnLibrariesLoaded;
+                // LibrariesLoaded moved to PaneMenuViewModel
                 _libraryService.LibraryFilesLoaded += OnLibraryFilesLoaded;
             }
 
@@ -325,74 +357,7 @@ namespace YiboFile.ViewModels
 
         internal void ExecuteSelectAll() => _messageBus.Publish(new SelectAllRequestMessage(_isSecondary ? PaneId.Second : PaneId.Main));
 
-        internal void ExecuteShowProperties()
-        {
-            if (SelectedItem != null) _messageBus.Publish(new ShowPropertiesRequestMessage(SelectedItem, CurrentPath));
-            else if (!string.IsNullOrEmpty(CurrentPath)) _messageBus.Publish(new ShowPropertiesRequestMessage(null, CurrentPath));
-        }
-
-        internal void ExecuteNewFolder() => _messageBus.Publish(new CreateFolderRequestMessage(CurrentPath));
-        internal void ExecuteNewFile() => _messageBus.Publish(new CreateFileRequestMessage(CurrentPath));
-        internal void ExecuteDelete() => _messageBus.Publish(new DeleteItemsRequestMessage(SelectedItems.ToList()));
-        internal void ExecuteCopy() => _messageBus.Publish(new CopyItemsRequestMessage(SelectedItems.ToList()));
-        internal void ExecuteCut() => _messageBus.Publish(new CutItemsRequestMessage(SelectedItems.ToList()));
-        internal void ExecutePaste() => _messageBus.Publish(new PasteItemsRequestMessage(CurrentPath));
-        internal void ExecuteRename() => _messageBus.Publish(new RenameItemRequestMessage(SelectedItem));
-        internal void ExecuteUndo() => _messageBus.Publish(new UndoRequestMessage());
-        internal void ExecuteRedo() => _messageBus.Publish(new RedoRequestMessage());
-
-        internal void ExecuteToggleLibrary(Library library)
-        {
-            if (library == null || SelectedItems.Count == 0) return;
-            _messageBus.Publish(new ToggleLibraryPathRequestMessage(library, SelectedItems.Select(i => i.Path).ToList()));
-        }
-
-        internal void ExecuteAddToFavorite(int groupId)
-        {
-            if (SelectedItems.Count == 0) return;
-            _messageBus.Publish(new AddFavoriteRequestMessage(SelectedItems.ToList(), groupId));
-        }
-
-        internal void ExecuteNewLibrary()
-        {
-            var dialog = new YiboFile.Controls.Dialogs.InputDialog("新建库", "请输入库名称:");
-            if (dialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(dialog.InputText))
-            {
-                _messageBus.Publish(new CreateLibraryRequestMessage(dialog.InputText, SelectedItems.Where(i => i.IsDirectory).Select(i => i.Path).ToList()));
-            }
-        }
-
-        internal void ExecuteNewFavoriteGroup()
-        {
-            var inputName = YiboFile.DialogService.ShowInput("请输入新分组名称：", "新分组", "新建分组");
-            if (!string.IsNullOrEmpty(inputName))
-            {
-                _messageBus.Publish(new CreateFavoriteGroupRequestMessage(inputName.Trim(), SelectedItems.ToList()));
-            }
-        }
-
-        internal void ExecuteToggleTag(ITag tag)
-        {
-            if (tag == null || SelectedItems.Count == 0) return;
-            _messageBus.Publish(new ToggleTagRequestMessage(tag.Id, SelectedItems.Select(i => i.Path).ToList()));
-        }
-
-        internal void ExecuteManageTags()
-        {
-            var dialog = new YiboFile.Controls.Dialogs.TagManagementDialog();
-            if (Application.Current?.MainWindow != null) dialog.Owner = Application.Current.MainWindow;
-            dialog.ShowDialog();
-            _messageBus.Publish(new TagListChangedMessage());
-            NotifyDynamicMenuItemsChanged();
-        }
-
-        internal void ExecuteBatchAddTags()
-        {
-            if (SelectedItems.Count == 0) return;
-            var dialog = new YiboFile.Controls.Dialogs.TagSelectionDialog();
-            if (Application.Current?.MainWindow != null) dialog.Owner = Application.Current.MainWindow;
-            if (dialog.ShowDialog() == true) _messageBus.Publish(new AddTagToFilesRequestMessage(SelectedItems.Select(i => i.Path).ToList(), dialog.SelectedTagId));
-        }
+        // Note: NewFolder, Delete, etc. are now handled directly in PaneCommandSet via MessageBus
 
         internal void ExecuteTagStatistics()
         {
@@ -407,8 +372,6 @@ namespace YiboFile.ViewModels
             catch (Exception ex) { MessageBox.Show($"获取统计失败: {ex.Message}"); }
         }
 
-        internal void NotifyDynamicMenuItemsChanged() => UpdateDynamicMenuItems();
-
         #endregion
 
         #region Private Logic
@@ -418,6 +381,7 @@ namespace YiboFile.ViewModels
         private void RequestRefresh()
         {
             if (string.IsNullOrEmpty(CurrentPath)) return;
+            // Update menu on refresh? No, handled by events in PaneMenuViewModel
             if (NavigationMode == "Library" && CurrentLibrary != null) LoadLibraryAsync(CurrentLibrary);
             else if (NavigationMode == "Tag" && CurrentTag != null) LoadTagAsync(CurrentTag.Id.ToString());
             else LoadPathAsync(CurrentPath);
@@ -439,6 +403,18 @@ namespace YiboFile.ViewModels
             }
             catch { StatusText = "加载失败"; }
             finally { IsLoading = false; }
+            // Dynamic menu update handled by PaneMenuViewModel via selection changes or events?
+            // Actually PaneMenuViewModel updates on Selection changes? No, it needs to update when selection changes.
+            // Wait, PaneViewModel.OnFileSelectionChanged updates commands.
+            // PaneMenuViewModel needs to know about selection change to update checkboxes and enable states?
+            // PaneMenuViewModel should subscribe to 'FileSelectionChangedMessage'? NO, it accesses _pane.Selection.
+            // Does PaneMenuViewModel update on selection change?
+            // PaneMenuViewModel.UpdateDynamicMenuItems() is called on 'TagListChanged', etc.
+            // But checking/unchecking menu items depends on selection.
+            // When selection changes, we should call UpdateDynamicMenuItems.
+            // PaneViewModel calls 'Commands.NotifyCommandStatesChanged()'.
+            // Should also call 'Menu.UpdateDynamicMenuItems()'.
+            Menu?.UpdateDynamicMenuItems();
         }
 
         private void LoadLibraryAsync(Library lib)
@@ -466,36 +442,7 @@ namespace YiboFile.ViewModels
             }
             catch { StatusText = "标签内容加载失败"; }
             finally { IsLoading = false; }
-        }
-
-        private void UpdateDynamicMenuItems()
-        {
-            if (_dispatcher == null) return;
-            _dispatcher.Invoke(() =>
-            {
-                var libraries = _libraryService?.GetAllLibraries() ?? new List<Library>();
-                _libraryMenuItems.Clear();
-                foreach (var lib in libraries)
-                {
-                    bool isChecked = SelectedItems.Count > 0 && SelectedItems.All(i => lib.Paths != null && lib.Paths.Contains(i.Path));
-                    _libraryMenuItems.Add(new ContextMenuItemViewModel { Header = lib.Name, Command = Commands?.ToggleLibraryCommand, CommandParameter = lib, IsCheckable = true, IsChecked = isChecked, Icon = Application.Current.TryFindResource("Icon_Library") });
-                }
-                if (libraries.Count > 0) _libraryMenuItems.Add(new ContextMenuItemViewModel { IsSeparator = true });
-                _libraryMenuItems.Add(new ContextMenuItemViewModel { Header = "新建库...", Command = Commands?.NewLibraryCommand });
-
-                _tagMenuItems.Clear();
-                if (App.IsTagTrainAvailable)
-                {
-                    var tags = _tagService?.GetAllTags() ?? new List<ITag>();
-                    foreach (var tag in tags) { bool isChecked = SelectedItems.Count > 0 && SelectedItems.All(i => i.TagList != null && i.TagList.Any(t => t.Id == tag.Id)); _tagMenuItems.Add(new ContextMenuItemViewModel { Header = tag.Name, Command = Commands?.ToggleTagCommand, CommandParameter = tag, IsCheckable = true, IsChecked = isChecked, IconBrush = tag.Color ?? "#808080" }); }
-                }
-
-                var groups = _favoriteService?.GetAllGroups() ?? new List<FavoriteGroup>();
-                _favoriteMenuItems.Clear();
-                foreach (var group in groups) _favoriteMenuItems.Add(new ContextMenuItemViewModel { Header = group.Name, Command = Commands?.AddToFavoriteCommand, CommandParameter = group.Id, Icon = Application.Current.TryFindResource("Icon_Favorite") });
-                if (groups.Count > 0) _favoriteMenuItems.Add(new ContextMenuItemViewModel { IsSeparator = true });
-                _favoriteMenuItems.Add(new ContextMenuItemViewModel { Header = "+ 新建分组...", Command = Commands?.NewFavoriteGroupCommand });
-            });
+            Menu?.UpdateDynamicMenuItems();
         }
 
         #endregion
@@ -528,12 +475,19 @@ namespace YiboFile.ViewModels
         private void OnFocusedPaneChanged(Messaging.Messages.FocusedPaneChangedMessage message) { IsActive = (message.IsSecondPaneFocused == _isSecondary); OnPropertyChanged(nameof(IsActive)); }
         private void OnNotesUpdated(NotesUpdatedMessage msg) => RequestRefresh();
         private void OnFileTagsChanged(FileTagsChangedMessage msg) => RequestRefresh();
-        private void OnTagListChanged(TagListChangedMessage msg) { UpdateDynamicMenuItems(); RequestRefresh(); }
-        private void OnLibraryListChanged(LibraryListChangedMessage msg) { UpdateDynamicMenuItems(); RequestRefresh(); }
-        private void OnFavoritesUpdated(FavoritesUpdatedMessage msg) => UpdateDynamicMenuItems();
+        // TagListChanged etc moved to Menu
         private void OnRefreshFileList(RefreshFileListMessage msg) => RequestRefresh();
         private void OnLibrarySelected(LibrarySelectedMessage msg) { if (msg.Library != null) NavigateTo($"lib://{msg.Library.Name}"); }
-        private void OnFileSelectionChanged(FileSelectionChangedMessage msg) { if (msg.Pane == (_isSecondary ? PaneId.Second : PaneId.Main)) Commands?.NotifyCommandStatesChanged(); }
+
+        private void OnFileSelectionChanged(FileSelectionChangedMessage msg)
+        {
+            if (msg.Pane == (_isSecondary ? PaneId.Second : PaneId.Main))
+            {
+                Commands?.NotifyCommandStatesChanged();
+                Menu?.UpdateDynamicMenuItems(); // Ensure menu selection state updates
+            }
+        }
+
         private void OnNavigateToPath(NavigateToPathMessage msg) => NavigateTo(msg.Path);
 
         private void OnLibraryFilesLoaded(object sender, LibraryFilesLoadedEventArgs e)
@@ -548,10 +502,11 @@ namespace YiboFile.ViewModels
                     StatusText = $"库: {e.Library.Name} ({e.Files.Count} 项)";
                     IsLoading = false;
                 });
+                Menu?.UpdateDynamicMenuItems();
             }
         }
 
-        private void OnLibrariesLoaded(object sender, List<Library> libraries) => UpdateDynamicMenuItems();
+        // OnLibrariesLoaded moved to Menu
 
         #endregion
 
@@ -560,9 +515,9 @@ namespace YiboFile.ViewModels
         {
             if (_libraryService != null)
             {
-                _libraryService.LibrariesLoaded -= OnLibrariesLoaded;
                 _libraryService.LibraryFilesLoaded -= OnLibraryFilesLoaded;
             }
+            Menu?.Dispose();
         }
     }
 }

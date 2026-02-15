@@ -298,6 +298,11 @@ Controller-driven 场景：
 | **BUG-008** | Header | 列头点击误触发双击响应 | 事件冒泡未正确拦截 | 在 `GridViewColumnHeader_Click` 中设置 `e.Handled = true` | ✅ 已修复 |
 | **BUG-009** | Tabs/Nav | 双面板标签页重复打开 | 副面板打开标签时主面板同步创建重复标签 | 需检查 `MainWindow` 事件绑定或 `TabsModule` 的 `PaneId` 过滤逻辑 | ⏳ 待修复 |
 | **BUG-010** | UI/Overlay | 设置和关于页面无法打开 | 重构事件桥接后，设置按钮的点击请求未正确到达 Controller | 检查 `NavigationRail` 的按钮 Command 绑定与 `WindowOrchestrator` 的桥接 | ✅ 已修复 |
+| **BUG-011** | Clipboard | 剪切板管理器体验差 | 交互逻辑陈旧，缺乏可视化反馈 | **[重做]** 需重新设计 UI 与交互流程 | ⏳ 待重做 |
+| **BUG-012** | FileOps | 工具栏按钮与快捷键部分失效 | 命令绑定在重构中丢失或 `CanExecute` 状态判定错误 | 检查 `PaneCommandSet` 与 `InputBindings` 的连接 | ⏳ 待修复 |
+| **BUG-013** | Performance | 双栏模式选中文件卡顿 | 预览加载可能运行在 UI 线程或未做防抖处理 | 确保 `PreviewService` 异步执行并增加防抖 (Debounce) | ⏳ 待修复 |
+| **BUG-014** | Window | 窗口状态持久化问题：每次打开程序，主副标签页都会重置为桌面，无法记忆上次路径 | `MainWindowViewModel` 或持久化服务未正确保存/恢复状态 | 检查 `OnClosed` 保存逻辑与 `OnStartup` 恢复逻辑 | ⏳ 待修复 |
+| **BUG-015** | FileList | 文件操作后列表不自动刷新 | 消息未正确触发或 `FileWatcher` 失效 | 检查 `FileOperationModule` 的消息发布与 `FileListViewModel` 的订阅 | ⏳ 待修复 |
 
 ---
 

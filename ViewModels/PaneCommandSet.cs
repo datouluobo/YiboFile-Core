@@ -79,30 +79,96 @@ namespace YiboFile.ViewModels
 
             SwitchViewModeCommand = new RelayCommand<string>(mode => _pane.ExecuteSwitchViewMode(mode));
 
-            PropertiesCommand = new RelayCommand(() => _pane.ExecuteShowProperties(), () => _pane.Selection?.SelectedItem != null);
-            NewFolderCommand = new RelayCommand(() => _pane.ExecuteNewFolder());
-            NewFileCommand = new RelayCommand(() => _pane.ExecuteNewFile());
-            DeleteCommand = new RelayCommand(() => _pane.ExecuteDelete(), () => (_pane.Selection?.SelectedItems?.Count ?? 0) > 0);
-            CopyCommand = new RelayCommand(() => _pane.ExecuteCopy(), () => (_pane.Selection?.SelectedItems?.Count ?? 0) > 0);
-            CutCommand = new RelayCommand(() => _pane.ExecuteCut(), () => (_pane.Selection?.SelectedItems?.Count ?? 0) > 0);
-            PasteCommand = new RelayCommand(() => _pane.ExecutePaste());
-            RenameCommand = new RelayCommand(() => _pane.ExecuteRename(), () => (_pane.Selection?.SelectedItems?.Count ?? 0) == 1);
-            UndoCommand = new RelayCommand(() => _pane.ExecuteUndo());
-            RedoCommand = new RelayCommand(() => _pane.ExecuteRedo());
+            PropertiesCommand = new RelayCommand(() =>
+            {
+                if (_pane.SelectedItem != null) _messageBus.Publish(new ShowPropertiesRequestMessage(_pane.SelectedItem, _pane.CurrentPath));
+                else if (!string.IsNullOrEmpty(_pane.CurrentPath)) _messageBus.Publish(new ShowPropertiesRequestMessage(null, _pane.CurrentPath));
+            }, () => true);
 
-            ToggleLibraryCommand = new RelayCommand<Library>(lib => _pane.ExecuteToggleLibrary(lib));
-            AddToFavoriteCommand = new RelayCommand<int>(groupId => _pane.ExecuteAddToFavorite(groupId));
-            ToggleTagCommand = new RelayCommand<ITag>(tag => _pane.ExecuteToggleTag(tag));
-            NewLibraryCommand = new RelayCommand(() => _pane.ExecuteNewLibrary());
-            NewFavoriteGroupCommand = new RelayCommand(() => _pane.ExecuteNewFavoriteGroup());
+            NewFolderCommand = new RelayCommand(() => _messageBus.Publish(new CreateFolderRequestMessage(_pane.CurrentPath)));
+            NewFileCommand = new RelayCommand(() => _messageBus.Publish(new CreateFileRequestMessage(_pane.CurrentPath)));
 
-            NewTagCommand = new RelayCommand(() => _pane.ExecuteManageTags());
-            ManageTagsCommand = new RelayCommand(() => _pane.ExecuteManageTags());
-            BatchAddTagsCommand = new RelayCommand(() => _pane.ExecuteBatchAddTags(), () => (_pane.Selection?.SelectedItems?.Count ?? 0) > 0);
-            TagStatisticsCommand = new RelayCommand(() => _pane.ExecuteTagStatistics());
+            DeleteCommand = new RelayCommand(() =>
+                _messageBus.Publish(new DeleteItemsRequestMessage(_pane.Selection?.SelectedItems?.ToList())),
+                () => (_pane.Selection?.SelectedItems?.Count ?? 0) > 0);
 
-            LoadMoreCommand = new RelayCommand(() => _pane.Filter?.LoadMoreCommand?.Execute(null));
-            SelectAllCommand = new RelayCommand(() => _pane.ExecuteSelectAll());
+            CopyCommand = new RelayCommand(() =>
+                _messageBus.Publish(new CopyItemsRequestMessage(_pane.Selection?.SelectedItems?.ToList())),
+                () => (_pane.Selection?.SelectedItems?.Count ?? 0) > 0);
+
+            CutCommand = new RelayCommand(() =>
+                _messageBus.Publish(new CutItemsRequestMessage(_pane.Selection?.SelectedItems?.ToList())),
+                () => (_pane.Selection?.SelectedItems?.Count ?? 0) > 0);
+
+            PasteCommand = new RelayCommand(() =>
+                _messageBus.Publish(new PasteItemsRequestMessage(_pane.CurrentPath)));
+
+            RenameCommand = new RelayCommand(() =>
+                _messageBus.Publish(new RenameItemRequestMessage(_pane.Selection?.SelectedItem)),
+                () => (_pane.Selection?.SelectedItems?.Count ?? 0) == 1);
+
+            UndoCommand = new RelayCommand(() => _messageBus.Publish(new UndoRequestMessage()));
+            RedoCommand = new RelayCommand(() => _messageBus.Publish(new RedoRequestMessage()));
+
+            ToggleLibraryCommand = new RelayCommand<Library>(lib =>
+            {
+                if (lib != null && _pane.Selection?.SelectedItems?.Count > 0)
+                    _messageBus.Publish(new ToggleLibraryPathRequestMessage(lib, _pane.Selection.SelectedItems.Select(i => i.Path).ToList()));
+            });
+
+            AddToFavoriteCommand = new RelayCommand<int>(groupId =>
+            {
+                if (_pane.Selection?.SelectedItems?.Count > 0)
+                    _messageBus.Publish(new AddFavoriteRequestMessage(_pane.Selection.SelectedItems.ToList(), groupId));
+            });
+
+            ToggleTagCommand = new RelayCommand<ITag>(tag =>
+            {
+                if (tag != null && _pane.Selection?.SelectedItems?.Count > 0)
+                    _messageBus.Publish(new ToggleTagRequestMessage(tag.Id, _pane.Selection.SelectedItems.Select(i => i.Path).ToList()));
+            });
+
+            NewLibraryCommand = new RelayCommand(() =>
+            {
+                var dialog = new YiboFile.Controls.Dialogs.InputDialog("新建库", "请输入库名称:");
+                if (dialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(dialog.InputText))
+                {
+                    var paths = _pane.Selection?.SelectedItems?.Where(i => i.IsDirectory).Select(i => i.Path).ToList();
+                    _messageBus.Publish(new CreateLibraryRequestMessage(dialog.InputText, paths));
+                }
+            });
+
+            NewFavoriteGroupCommand = new RelayCommand(() =>
+            {
+                var inputName = YiboFile.DialogService.ShowInput("请输入新分组名称：", "新分组", "新建分组");
+                if (!string.IsNullOrEmpty(inputName))
+                {
+                    _messageBus.Publish(new CreateFavoriteGroupRequestMessage(inputName.Trim(), _pane.Selection?.SelectedItems?.ToList()));
+                }
+            });
+
+            ManageTagsCommand = new RelayCommand(() =>
+            {
+                var dialog = new YiboFile.Controls.Dialogs.TagManagementDialog();
+                if (Application.Current?.MainWindow != null) dialog.Owner = Application.Current.MainWindow;
+                dialog.ShowDialog();
+                _messageBus.Publish(new TagListChangedMessage());
+            });
+            NewTagCommand = ManageTagsCommand;
+
+            BatchAddTagsCommand = new RelayCommand(() =>
+            {
+                if ((_pane.Selection?.SelectedItems?.Count ?? 0) == 0) return;
+                var dialog = new YiboFile.Controls.Dialogs.TagSelectionDialog();
+                if (Application.Current?.MainWindow != null) dialog.Owner = Application.Current.MainWindow;
+                if (dialog.ShowDialog() == true)
+                    _messageBus.Publish(new AddTagToFilesRequestMessage(_pane.Selection.SelectedItems.Select(i => i.Path).ToList(), dialog.SelectedTagId));
+            }, () => (_pane.Selection?.SelectedItems?.Count ?? 0) > 0);
+
+            TagStatisticsCommand = new RelayCommand(() => _pane.ExecuteTagStatistics()); // Keep this as it involves UI/Service interaction that might be complex to inline immediately without more context
+
+            LoadMoreCommand = new RelayCommand(() => _pane.Filter?.LoadMoreCommand?.Execute(_pane.CurrentPath));
+            SelectAllCommand = new RelayCommand(() => _messageBus.Publish(new SelectAllRequestMessage(_pane.IsSecondary ? PaneId.Second : PaneId.Main)));
         }
 
         public void NotifyCommandStatesChanged()
