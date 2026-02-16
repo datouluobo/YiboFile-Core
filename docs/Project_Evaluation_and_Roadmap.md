@@ -1,6 +1,6 @@
 # YiboFile 项目评估与重构路线图
 
-> **当前版本**: v1.0.1509 (剪切板重做) | **更新日期**: 2026-02-16  
+> **当前版本**: v1.0.1509 (剪切板重做 & 核心修复) | **更新日期**: 2026-02-16  
 > **下一版本**: v1.1.0 (目标：Core 完全解耦)  
 
 ---
@@ -292,9 +292,9 @@ Controller-driven 场景：
 | ID | 模块 | 描述 | 根因分析 | 修复策略 | 状态 |
 |----|------|------|----------|----------|------|
 | **BUG-001** | AddressBar | 副地址栏库标识错误 (显示 `path` 而非 `lib`) | `AddressBarControl` 未正确绑定到 `PaneViewModel.NavigationMode` | 检查 SecondFileBrowser 的 DataContext 绑定 | ⏳ 待修复 |
-| **BUG-002** | Pane | 副面板刷新与操作混乱 | 焦点管理依赖 WPF Focus 而非 VM.IsActive | 使用 `PaneViewModel.IsActive` 驱动所有操作上下文 | ⏳ 待修复 |
+| **BUG-002** | Pane | 副面板刷新与操作混乱 | 焦点管理依赖 WPF Focus 而非 VM.IsActive | **Fixed** (v1.0.1509) (Updated FileOperationHandler to use ActivePane) | ✅ 已修复 |
 | **BUG-003** | Library | 副面板库路径识别失败 | `FileOperationModule` 未正确解析 `lib://` 协议 | 在 Module 中增加协议解析逻辑 | ⏳ 待修复 |
-| **BUG-007** | Sorting | 文件名排序导致列表变空 | `CollectionView` 与 `ObservableCollection` 同步冲突 | 使用 `BindingOperations.EnableCollectionSynchronization` | ⏳ 待修复 |
+| **BUG-007** | Sorting | 文件名排序导致列表变空 | `CollectionView` 与 `ObservableCollection` 同步冲突 | **Fixed** (v1.0.1509) (Enabled CollectionSynchronization) | ✅ 已修复 |
 | **BUG-008** | Header | 列头点击误触发双击响应 | 事件冒泡未正确拦截 | 在 `GridViewColumnHeader_Click` 中设置 `e.Handled = true` | ✅ 已修复 |
 | BUG-011 | Clipboard | 剪切板管理器体验差 | 交互逻辑陈旧，缺乏可视化反馈 | **Fixed** (v1.0.1509) (Redesigned UI with modern list, search, and better preview) | ✅ 已修复 |
 | **BUG-012** | FileOps | 工具栏按钮与快捷键部分失效 | 命令绑定在重构中丢失或 `CanExecute` 状态判定错误 | 检查 `PaneCommandSet` 与 `InputBindings` 的连接 | ✅ 已修复 |

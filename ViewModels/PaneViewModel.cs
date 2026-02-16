@@ -459,9 +459,28 @@ namespace YiboFile.ViewModels
         // TagListChanged etc moved to Menu
         private void OnRefreshFileList(RefreshFileListMessage msg)
         {
-            if (string.IsNullOrEmpty(msg.Path) || string.Equals(CurrentPath, msg.Path, StringComparison.OrdinalIgnoreCase))
+            if (string.IsNullOrEmpty(msg.Path))
             {
                 RequestRefresh();
+                return;
+            }
+
+            if (string.Equals(CurrentPath, msg.Path, StringComparison.OrdinalIgnoreCase))
+            {
+                RequestRefresh();
+                return;
+            }
+
+            // 支持库模式下的刷新
+            if (NavigationMode == "Library" && CurrentLibrary != null && CurrentLibrary.Paths != null)
+            {
+                // 如果变更路径是库包含路径的子路径，则刷新
+                if (CurrentLibrary.Paths.Any(libPath =>
+                    msg.Path.StartsWith(libPath, StringComparison.OrdinalIgnoreCase) ||
+                    libPath.StartsWith(msg.Path, StringComparison.OrdinalIgnoreCase)))
+                {
+                    RequestRefresh();
+                }
             }
         }
         private void OnLibrarySelected(LibrarySelectedMessage msg) { if (msg.Library != null) NavigateTo($"lib://{msg.Library.Name}"); }

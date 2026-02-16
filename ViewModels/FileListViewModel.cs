@@ -50,6 +50,8 @@ namespace YiboFile.ViewModels
         private readonly YiboFile.Services.Navigation.PaneId _paneId;
         private bool _showFullFileName = false;
 
+        private object _collectionLock = new object();
+
         public ObservableCollection<FileSystemItem> Files
         {
             get => _files;
@@ -57,6 +59,7 @@ namespace YiboFile.ViewModels
             {
                 if (SetProperty(ref _files, value))
                 {
+                    BindingOperations.EnableCollectionSynchronization(_files, _collectionLock);
                     RefreshFilter();
                 }
             }
@@ -138,6 +141,8 @@ namespace YiboFile.ViewModels
                 _refreshDebounceTimer.Stop();
                 RefreshFiles();
             };
+
+            BindingOperations.EnableCollectionSynchronization(_files, _collectionLock);
 
             _paneId = paneId;
             _messageBus.Subscribe<ViewModeChangedMessage>(m =>
