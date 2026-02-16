@@ -55,6 +55,7 @@ namespace YiboFile.Interfaces
         object TryFindResource(object resourceKey);
         void DragMove();
         void Close();
+        void AutoSizeGridViewColumn(GridViewColumn column);
 
         // 窗口属性
         WindowState WindowState { get; set; }

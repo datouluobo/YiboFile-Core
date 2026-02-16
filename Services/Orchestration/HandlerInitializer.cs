@@ -297,20 +297,8 @@ namespace YiboFile.Services.Orchestration
             MainFileListHandler = new Handlers.FileListEventHandler(
                 window.FileBrowser,
                 navigationCoordinator,
-                () => viewModel?.PrimaryPane?.NavigationMode == "Library",
-                mode => navigationModeService?.SwitchNavigationMode(mode),
-                path => navigationCoordinator.HandlePathNavigation(path, NavigationSource.FileList, ClickType.LeftClick, pane: PaneId.Main),
-                () => viewModel?.PrimaryPane?.Commands?.NavigateBackCommand?.Execute(null),
-                col => window.AutoSizeGridViewColumn(col),
-                () => viewModel?.PrimaryPane?.CurrentPath,
-                () => viewModel?.PrimaryPane?.Commands?.PropertiesCommand?.Execute(null),
-                (path, force, activate) => _ = navigationCoordinator.NavigateAsync(new NavigationRequest
-                {
-                    Target = NavigationTarget.FromPath(path),
-                    ForceNewTab = force,
-                    Activate = activate ?? true,
-                    Pane = PaneId.Main
-                }),
+                navigationModeService,
+                window,
                 PaneId.Main
             );
             MainFileListHandler.Initialize(window.FileBrowser.FilesList);
@@ -321,20 +309,8 @@ namespace YiboFile.Services.Orchestration
                 SecondFileListHandler = new Handlers.FileListEventHandler(
                     window.SecondFileBrowser,
                     navigationCoordinator,
-                    () => viewModel?.SecondaryPane?.NavigationMode == "Library",
-                    mode => navigationModeService?.SwitchNavigationMode(mode),
-                    path => navigationCoordinator.HandlePathNavigation(path, NavigationSource.FileList, ClickType.LeftClick, pane: PaneId.Second),
-                    () => viewModel?.SecondaryPane?.Commands?.NavigateBackCommand?.Execute(null),
-                    col => window.AutoSizeGridViewColumn(col),
-                    () => viewModel?.SecondaryPane?.CurrentPath,
-                    () => viewModel?.SecondaryPane?.Commands?.PropertiesCommand?.Execute(null),
-                    (path, force, activate) => _ = navigationCoordinator.NavigateAsync(new NavigationRequest
-                    {
-                        Target = NavigationTarget.FromPath(path),
-                        ForceNewTab = force,
-                        Activate = activate ?? true,
-                        Pane = PaneId.Second
-                    }),
+                    navigationModeService,
+                    window,
                     PaneId.Second
                 );
                 SecondFileListHandler.Initialize(window.SecondFileBrowser.FilesList);

@@ -9,8 +9,8 @@
 | **P0** (严重) | **WindowOrchestrator 拆分** | ✅ 已完成 | 100% | 代码行数从 981 降至 313 |
 | **P0** (严重) | **MainWindow.Tabs.cs 逻辑迁移** | ✅ 已完成 | 100% | 文件已移除 |
 | **P1** (高) | **Service 层事件迁移 (第一批)** | ✅ 已完成 | 100% | 核心导航服务已迁移 |
-| **P1** (高) | Handler 层解耦 (IShellWindow) | 🔄 进行中 | 50% | 5/10 Handlers 已解耦 (Layout, Lifecycle, Column, FileOp, DragDrop) |
-| **P1** (高) | FileListEventHandler 拆分 | ⬜ 待办 | 0% | 文件行数 763 |
+| **P1** (高) | Handler 层解耦 (IShellWindow) | ✅ 已完成 | 100% | 所有主要 Handler 已解耦 (及部分重构) |
+| **P1** (高) | **FileListEventHandler 拆分** | ✅ 已完成 | 100% | 已拆分为 Mouse, Keyboard 子处理器，行数由 760+ 降至 110 (facade) |
 | **P2** (中) | Service 层事件迁移 (第二批) | ⬜ 待办 | 0% | 辅助服务 |
 | **P2** (中) | PaneViewModel 逻辑优化 | ⬜ 待办 | 0% | |
 | **P2** (中) | LibraryManagementWindow MVVM 化 | ⬜ 待办 | 0% | |
@@ -52,11 +52,11 @@
   - [x] 更新 `DragDropEventHandler`
   - [ ] 更新剩余 Handler (`Library`, `Keyboard`, `Mouse`, `Selection`)
 
-- [ ] **FileListEventHandler 拆分**
-  - [ ] 分析 `FileListEventHandler.cs` 依赖
-  - [ ] 提取 `FileListKeyboardHandler.cs` (键盘快捷键)
-  - [ ] 提取 `FileListMouseHandler.cs` (鼠标交互)
-  - [ ] 保留 `FileListEventHandler` 作为协调器或在此过程中移除
+- [x] **FileListEventHandler 拆分**
+  - [x] 分析 `FileListEventHandler.cs` 依赖
+  - [x] 提取 `FileListKeyboardHandler.cs` (键盘快捷键)
+  - [x] 提取 `FileListMouseHandler.cs` (鼠标交互)
+  - [x] 保留 `FileListEventHandler` 作为协调器并完成 IShellWindow 解耦
 
 ### 🟢 P2: 清理与维护 (计划中)
 
