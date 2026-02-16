@@ -20,23 +20,56 @@ using YiboFile.ViewModels.Messaging;
 using YiboFile.ViewModels.Messaging.Messages;
 using YiboFile.ViewModels.Modules;
 
+using YiboFile.Interfaces;
+
+using YiboFile.Services.Orchestration;
+using YiboFile.Services.Search;
+using YiboFile.Services.FileInfo; // Corrected namespace
+using YiboFile.Services; // LibraryService
+
 namespace YiboFile.Handlers
 {
     public class LayoutEventHandler
     {
-        private readonly MainWindow _window;
+        private readonly IShellWindow _window;
         private readonly IMessageBus _messageBus;
         private readonly LayoutModule _layoutModule;
+
+        // Injected Services
+        private readonly NavigationModeService _navigationModeService;
+        private readonly TabService _secondTabService;
+        private readonly WindowStateManager _windowStateManager;
+        private readonly NavigationCoordinator _navigationCoordinator;
+        private readonly SearchCacheService _searchCacheService;
+        private readonly FileInfoService _secondFileInfoService;
+        private readonly LibraryService _libraryService;
 
         private bool _secondTabEventsSubscribed = false;
         private bool _secondFileBrowserEventsInitialized = false;
         private PathTab _lastSecondActiveTab;
 
-        public LayoutEventHandler(MainWindow window, IMessageBus messageBus, LayoutModule layoutModule)
+        public LayoutEventHandler(
+            IShellWindow window,
+            IMessageBus messageBus,
+            LayoutModule layoutModule,
+            NavigationModeService navigationModeService,
+            TabService secondTabService,
+            WindowStateManager windowStateManager,
+            NavigationCoordinator navigationCoordinator,
+            SearchCacheService searchCacheService,
+            FileInfoService secondFileInfoService,
+            LibraryService libraryService)
         {
             _window = window;
             _messageBus = messageBus;
             _layoutModule = layoutModule;
+            _navigationModeService = navigationModeService;
+            _secondTabService = secondTabService;
+            _windowStateManager = windowStateManager;
+            _navigationCoordinator = navigationCoordinator;
+            _searchCacheService = searchCacheService;
+            _secondFileInfoService = secondFileInfoService;
+            _libraryService = libraryService;
         }
 
         public void Initialize()
@@ -71,10 +104,18 @@ namespace YiboFile.Handlers
                 });
             });
 
+            _messageBus?.Subscribe<TabActiveChangedMessage>(m =>
+            {
+                if (m.Pane == PaneId.Second)
+                {
+                    _window.Dispatcher.Invoke(() => SyncSecondUiWithActiveTab(m.ActiveTab));
+                }
+            });
+
             // 桥接到旧有的导航切换逻辑
             _messageBus?.Subscribe<NavigationModeChangedMessage>(m =>
             {
-                _window.Dispatcher.Invoke(() => _window._orchestrator?.NavigationModeService?.SwitchNavigationMode(m.Mode));
+                _window.Dispatcher.Invoke(() => _navigationModeService?.SwitchNavigationMode(m.Mode));
             });
 
             // 应用初始 UI 状态
@@ -191,13 +232,13 @@ namespace YiboFile.Handlers
                     AttachSecondTabServiceUiContext();
 
                     // 然后应用实际配置
-                    _window._secondTabService.UpdateConfig(ConfigurationService.Instance.Config);
+                    _secondTabService.UpdateConfig(ConfigurationService.Instance.Config);
 
                     // 通知 WindowStateManager
-                    if (_window._windowStateManager != null)
+                    if (_windowStateManager != null)
                     {
-                        _window._windowStateManager.SetSecondTabService(_window._secondTabService);
-                        _window._windowStateManager.RestoreSecondaryTabs();
+                        _windowStateManager.SetSecondTabService(_secondTabService);
+                        _windowStateManager.RestoreSecondaryTabs();
                     }
                 }
 
@@ -211,18 +252,18 @@ namespace YiboFile.Handlers
 
         internal void AttachSecondTabServiceUiContext()
         {
-            if (_window._secondTabService == null || _window.SecondTabManager == null) return;
+            if (_secondTabService == null || _window.SecondTabManager == null) return;
 
             var uiContext = new TabUiContext
             {
                 FileBrowser = _window.SecondFileBrowser,
                 TabManager = _window.SecondTabManager,
                 Dispatcher = _window.Dispatcher,
-                OwnerWindow = _window,
+                OwnerWindow = (_window as Window),
                 GetConfig = () => ConfigurationService.Instance.Config,
                 SaveConfig = (config) => ConfigurationService.Instance.SaveNow(),
 
-                GetCurrentPath = () => _window.ViewModel?.SecondaryPane?.CurrentPath ?? _window._currentPath,
+                GetCurrentPath = () => _window.ViewModel?.SecondaryPane?.CurrentPath ?? _window.ViewModel.CurrentPath,
                 SetCurrentPath = (path) => _window.ViewModel?.SecondaryPane?.NavigateTo(path),
                 SetNavigationCurrentPath = (path) => _window.ViewModel?.SecondaryPane?.NavigateTo(path),
                 LoadLibraryFiles = (library) =>
@@ -234,7 +275,7 @@ namespace YiboFile.Handlers
                 },
                 NavigateToPathInternal = (path) =>
                 {
-                    _window._navigationCoordinator?.NavigateAsync(new NavigationRequest
+                    _navigationCoordinator?.NavigateAsync(new NavigationRequest
                     {
                         Target = NavigationTarget.FromPath(path),
                         Pane = PaneId.Second,
@@ -243,7 +284,7 @@ namespace YiboFile.Handlers
                 },
                 UpdateNavigationButtonsState = () => { },
                 GetCurrentNavigationMode = () => "Path",
-                GetSearchCacheService = () => _window._searchCacheService,
+                GetSearchCacheService = () => _searchCacheService,
                 GetSearchOptions = () => null,
                 GetCurrentFiles = () => _window.ViewModel?.SecondaryPane?.Files?.ToList(),
                 SetCurrentFiles = (files) =>
@@ -270,13 +311,13 @@ namespace YiboFile.Handlers
                 FindResource = (key) => _window.TryFindResource(key)
             };
 
-            _window._secondTabService.AttachUiContext(uiContext);
+            _secondTabService.AttachUiContext(uiContext);
 
             if (!_secondTabEventsSubscribed)
             {
                 _secondTabEventsSubscribed = true;
 
-                _window._secondTabService.ActiveTabChanged += (s, tab) => SyncSecondUiWithActiveTab(tab);
+                // _secondTabService.ActiveTabChanged += (s, tab) => SyncSecondUiWithActiveTab(tab); // Handled by message bus now
 
                 _window.SecondTabManager.PreviewMouseDown += (s, e) =>
                 {
@@ -328,7 +369,7 @@ namespace YiboFile.Handlers
 
         private void OnSecondActiveTabPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            if (sender is PathTab tab && tab == _window._secondTabService?.ActiveTab)
+            if (sender is PathTab tab && tab == _secondTabService?.ActiveTab)
             {
                 if (e.PropertyName == nameof(PathTab.Path) || e.PropertyName == nameof(PathTab.Library))
                 {
@@ -339,27 +380,27 @@ namespace YiboFile.Handlers
 
         private void EnsureSecondTabExists()
         {
-            if (_window._secondTabService == null) return;
+            if (_secondTabService == null) return;
 
-            if (_window._secondTabService.Tabs.Count == 0)
+            if (_secondTabService.Tabs.Count == 0)
             {
-                var path = _window.ViewModel?.SecondaryPane?.CurrentPath ?? _window._currentPath;
-                _window._secondTabService.CreatePathTab(path, forceNewTab: true, activate: true);
+                var path = _window.ViewModel?.SecondaryPane?.CurrentPath ?? _window.ViewModel.CurrentPath;
+                _secondTabService.CreatePathTab(path, forceNewTab: true, activate: true);
             }
         }
 
         private void LoadSecondFileBrowserContent()
         {
-            if (_window._secondTabService?.ActiveTab != null)
+            if (_secondTabService?.ActiveTab != null)
             {
-                if (_window._secondTabService.ActiveTab.Type == TabType.Library && _window._secondTabService.ActiveTab.Library != null)
+                if (_secondTabService.ActiveTab.Type == TabType.Library && _secondTabService.ActiveTab.Library != null)
                 {
-                    LoadSecondFileBrowserLibrary(_window._secondTabService.ActiveTab.Library);
+                    LoadSecondFileBrowserLibrary(_secondTabService.ActiveTab.Library);
                     return;
                 }
-                else if (!string.IsNullOrEmpty(_window._secondTabService.ActiveTab.Path))
+                else if (!string.IsNullOrEmpty(_secondTabService.ActiveTab.Path))
                 {
-                    LoadSecondFileBrowserDirectory(_window._secondTabService.ActiveTab.Path);
+                    LoadSecondFileBrowserDirectory(_secondTabService.ActiveTab.Path);
                     return;
                 }
             }
@@ -367,14 +408,14 @@ namespace YiboFile.Handlers
             string targetPath = _window.ViewModel?.SecondaryPane?.CurrentPath;
             if (string.IsNullOrEmpty(targetPath))
             {
-                targetPath = _window._currentPath;
+                targetPath = _window.ViewModel.CurrentPath;
             }
             LoadSecondFileBrowserDirectory(targetPath);
         }
 
         internal void LoadSecondFileBrowserDirectory(string path)
         {
-            _window._navigationCoordinator?.HandlePathNavigation(
+            _navigationCoordinator?.HandlePathNavigation(
                 path,
                 YiboFile.Models.Navigation.NavigationSource.External,
                 YiboFile.Models.Navigation.ClickType.LeftClick,
@@ -397,7 +438,7 @@ namespace YiboFile.Handlers
             _window.Dispatcher.InvokeAsync(() =>
             {
                 if (_window.SecondFileBrowser == null) return;
-                _window._secondFileInfoService?.ShowLibraryInfo(library);
+                _secondFileInfoService?.ShowLibraryInfo(library);
             }, System.Windows.Threading.DispatcherPriority.Background);
         }
 
@@ -409,11 +450,11 @@ namespace YiboFile.Handlers
             {
                 if (ConfigurationService.Instance.Config.LastLibraryId > 0)
                 {
-                    library = _window._libraryService.GetLibrary(ConfigurationService.Instance.Config.LastLibraryId);
+                    library = _libraryService.GetLibrary(ConfigurationService.Instance.Config.LastLibraryId);
                 }
                 if (library == null)
                 {
-                    library = _window._libraryService.LoadLibraries().FirstOrDefault();
+                    library = _libraryService.LoadLibraries().FirstOrDefault();
                 }
             }
 
@@ -449,7 +490,7 @@ namespace YiboFile.Handlers
 
             try
             {
-                _window._secondFileInfoService?.ShowFileInfo(new FileSystemItem
+                _secondFileInfoService?.ShowFileInfo(new FileSystemItem
                 {
                     Name = tag.Name,
                     Path = $"tag://{tag.Name}",
@@ -461,7 +502,7 @@ namespace YiboFile.Handlers
             }
             catch (Exception ex)
             {
-                YiboFile.DialogService.Error($"加载标签文件失败: {ex.Message}", owner: _window);
+                YiboFile.DialogService.Error($"加载标签文件失败: {ex.Message}", owner: (System.Windows.Window)_window); // Corrected cast
             }
         }
 
@@ -475,13 +516,13 @@ namespace YiboFile.Handlers
             browser.PathChanged += (s, newPath) =>
             {
                 if (string.IsNullOrEmpty(newPath)) return;
-                _window._navigationCoordinator?.HandlePathNavigation(newPath, YiboFile.Models.Navigation.NavigationSource.AddressBar, YiboFile.Models.Navigation.ClickType.LeftClick, pane: PaneId.Second);
+                _navigationCoordinator?.HandlePathNavigation(newPath, YiboFile.Models.Navigation.NavigationSource.AddressBar, YiboFile.Models.Navigation.ClickType.LeftClick, pane: PaneId.Second);
             };
 
             browser.BreadcrumbClicked += (s, path) =>
             {
                 if (string.IsNullOrEmpty(path)) return;
-                _window._navigationCoordinator?.HandlePathNavigation(path, YiboFile.Models.Navigation.NavigationSource.Breadcrumb, YiboFile.Models.Navigation.ClickType.LeftClick, pane: PaneId.Second);
+                _navigationCoordinator?.HandlePathNavigation(path, YiboFile.Models.Navigation.NavigationSource.Breadcrumb, YiboFile.Models.Navigation.ClickType.LeftClick, pane: PaneId.Second);
             };
 
             browser.FilesPreviewMouseDoubleClick += SecondFileBrowser_FilesDoubleClick;
@@ -499,7 +540,7 @@ namespace YiboFile.Handlers
                 {
                     if (current is ListViewItem item && item.Content is FileSystemItem selectedItem && selectedItem.IsDirectory)
                     {
-                        _window._navigationCoordinator?.NavigateAsync(new YiboFile.Models.Navigation.NavigationRequest
+                        _navigationCoordinator?.NavigateAsync(new YiboFile.Models.Navigation.NavigationRequest
                         {
                             Target = YiboFile.Models.Navigation.NavigationTarget.FromPath(selectedItem.Path),
                             ForceNewTab = true,
@@ -545,7 +586,7 @@ namespace YiboFile.Handlers
             {
                 if (item.IsDirectory)
                 {
-                    _window._navigationCoordinator?.HandlePathNavigation(item.Path, YiboFile.Models.Navigation.NavigationSource.FolderClick, YiboFile.Models.Navigation.ClickType.LeftClick, pane: PaneId.Second);
+                    _navigationCoordinator?.HandlePathNavigation(item.Path, YiboFile.Models.Navigation.NavigationSource.FolderClick, YiboFile.Models.Navigation.ClickType.LeftClick, pane: PaneId.Second);
                 }
                 else
                 {
@@ -578,7 +619,7 @@ namespace YiboFile.Handlers
                 var secLib = _window.ViewModel?.SecondaryPane?.CurrentLibrary;
                 return (_window.SecondFileBrowser, _window.ViewModel?.SecondaryPane?.CurrentPath, secLib);
             }
-            return (_window.FileBrowser, _window._currentPath, _window._currentLibrary);
+            return (_window.FileBrowser, _window.ViewModel.CurrentPath, _window.ViewModel.ActivePane?.CurrentLibrary);
         }
 
         public void RefreshActiveFileList()

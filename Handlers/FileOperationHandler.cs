@@ -8,6 +8,8 @@ using System.Windows;
 using YiboFile.Services.FileOperations;
 using YiboFile.Services.FileOperations.Undo;
 using System.Collections.Specialized;
+using YiboFile.Interfaces;
+using YiboFile.Services.Navigation;
 
 namespace YiboFile.Handlers
 {
@@ -16,14 +18,23 @@ namespace YiboFile.Handlers
     /// </summary>
     public class FileOperationHandler
     {
-        private readonly MainWindow _mainWindow;
+        private readonly IShellWindow _mainWindow;
         private readonly UndoService _undoService;
         private readonly FileOperationService _fileOperationService;
+        private readonly NavigationCoordinator _navigationCoordinator;
+        private readonly LibraryEventHandler _libraryEventHandler;
 
-        public FileOperationHandler(MainWindow mainWindow, UndoService undoService, FileOperationService fileOperationService = null)
+        public FileOperationHandler(
+            IShellWindow mainWindow,
+            UndoService undoService,
+            NavigationCoordinator navigationCoordinator,
+            LibraryEventHandler libraryEventHandler,
+            FileOperationService fileOperationService = null)
         {
             _mainWindow = mainWindow ?? throw new ArgumentNullException(nameof(mainWindow));
             _undoService = undoService;
+            _navigationCoordinator = navigationCoordinator;
+            _libraryEventHandler = libraryEventHandler;
             _fileOperationService = fileOperationService;
         }
 
@@ -50,8 +61,8 @@ namespace YiboFile.Handlers
                 return new LibraryOperationContext(
                     pane.CurrentLibrary,
                     browser,
-                    _mainWindow,
-                    () => _mainWindow._libraryEventHandler?.LoadLibraryFiles(pane.CurrentLibrary));
+                    (_mainWindow as Window),
+                    () => _libraryEventHandler?.LoadLibraryFiles(pane.CurrentLibrary));
             }
             // TagOperationContext removed - Phase 2
             // else if (_mainWindow._currentTagFilter != null)
@@ -68,8 +79,8 @@ namespace YiboFile.Handlers
                 return new PathOperationContext(
                     pane.CurrentPath,
                     browser,
-                    _mainWindow,
-                    () => _mainWindow._orchestrator.NavigationCoordinator.HandlePathNavigation(
+                    (_mainWindow as Window),
+                    () => _navigationCoordinator.HandlePathNavigation(
                         pane.CurrentPath,
                         YiboFile.Models.Navigation.NavigationSource.External,
                         YiboFile.Models.Navigation.ClickType.LeftClick,
@@ -97,7 +108,7 @@ namespace YiboFile.Handlers
             }
             catch (Exception ex)
             {
-                YiboFile.DialogService.Error($"复制操作失败: {ex.Message}", owner: _mainWindow);
+                YiboFile.DialogService.Error($"复制操作失败: {ex.Message}", owner: (Window)_mainWindow);
             }
         }
 
@@ -121,7 +132,7 @@ namespace YiboFile.Handlers
             }
             catch (Exception ex)
             {
-                YiboFile.DialogService.Error($"剪切操作失败: {ex.Message}", owner: _mainWindow);
+                YiboFile.DialogService.Error($"剪切操作失败: {ex.Message}", owner: (Window)_mainWindow);
             }
         }
 
@@ -154,7 +165,7 @@ namespace YiboFile.Handlers
             }
             catch (Exception ex)
             {
-                YiboFile.DialogService.Error($"删除操作失败: {ex.Message}", owner: _mainWindow);
+                YiboFile.DialogService.Error($"删除操作失败: {ex.Message}", owner: (Window)_mainWindow);
             }
         }
 

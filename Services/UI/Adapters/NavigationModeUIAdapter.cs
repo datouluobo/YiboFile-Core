@@ -2,6 +2,7 @@ using System;
 using System.Windows.Controls;
 using YiboFile.Controls;
 using YiboFile.Services.Navigation;
+using YiboFile.Services.Config;
 using YiboFile.Models;
 using YiboFile.Services.Tabs;
 
@@ -46,8 +47,12 @@ namespace YiboFile.Services.UI.Adapters
         public Button NavLibraryButton => _window.NavigationRail?.NavLibraryButton;
         public Button NavTagButton => _window.NavigationRail?.NavTagButton;
 
-        public void SwitchToTab(PathTab tab) => _window.SwitchToTab(tab);
-        public void CreateTab(string path) => _window.CreateTab(path);
+        public void SwitchToTab(PathTab tab) => _window._viewModel?.Tabs?.SwitchToTab(tab);
+        public void CreateTab(string path)
+        {
+            bool activate = ConfigurationService.Instance.Config?.ActivateNewTabOnMiddleClick ?? true;
+            _window._viewModel?.Tabs?.CreateTab(path, false, activate, null);
+        }
         public void HighlightMatchingLibrary(Library library) => _window._libraryEventHandler?.HighlightMatchingLibrary(library);
         public void EnsureSelectedItemVisible(ListBox listBox, object selectedItem) => _window._uiHelperService?.EnsureSelectedItemVisible(listBox, selectedItem);
         public void LoadLibraryFiles(Library library) => _window._libraryEventHandler?.LoadLibraryFiles(library);

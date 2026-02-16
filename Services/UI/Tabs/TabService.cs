@@ -5,6 +5,8 @@ using System.Linq;
 using YiboFile.Models;
 using YiboFile.Services.Config;
 using YiboFile.Services.Core;
+using YiboFile.ViewModels.Messaging; // For IMessageBus
+using YiboFile.ViewModels.Messaging.Messages;
 using System.Windows.Input;
 using YiboFile.ViewModels;
 
@@ -15,21 +17,29 @@ namespace YiboFile.Services.Tabs
     {
         private static readonly List<TabService> _allInstances = new List<TabService>();
         private readonly ObservableCollection<PathTab> _tabs = new ObservableCollection<PathTab>();
+        private readonly IMessageBus _messageBus;
         private PathTab _activeTab;
         private AppConfig _config;
         private TabUiContext _ui;
 
-        public event EventHandler<PathTab> TabAdded;
-        public event EventHandler<PathTab> TabRemoved;
-        public event EventHandler<PathTab> ActiveTabChanged;
-        public event EventHandler<PathTab> TabPinStateChanged;
-        public event EventHandler<PathTab> TabTitleChanged;
+        public Services.Navigation.PaneId Pane { get; set; } = Services.Navigation.PaneId.Main;
 
-        public TabService() { }
+        // public event EventHandler<PathTab> ActiveTabChanged; // Replaced by TabActiveChangedMessage
+        // public event EventHandler<PathTab> TabPinStateChanged; // Replaced by TabPinStateChangedMessage
+        // public event EventHandler<PathTab> TabTitleChanged; // Replaced by TabTitleChangedMessage
+        // public event EventHandler<PathTab> TabAdded; // Replaced by TabAddedMessage
+        // public event EventHandler<PathTab> TabRemoved; // Replaced by TabRemovedMessage
 
-        public TabService(AppConfig config)
+        public TabService(AppConfig config, IMessageBus messageBus)
         {
             _config = config;
+            _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
+            lock (_allInstances) { _allInstances.Add(this); }
+        }
+
+        public TabService(IMessageBus messageBus) // For DI without config initially
+        {
+            _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
             lock (_allInstances) { _allInstances.Add(this); }
         }
 
@@ -56,7 +66,7 @@ namespace YiboFile.Services.Tabs
         private void AddTab(PathTab tab)
         {
             _tabs.Add(tab);
-            TabAdded?.Invoke(this, tab);
+            _messageBus.Publish(new TabAddedMessage(tab, Pane));
         }
 
         public string GetEffectiveTitle(PathTab tab)
@@ -183,7 +193,10 @@ namespace YiboFile.Services.Tabs
                     _activeTab.LastAccessTime = DateTime.Now;
                 }
 
-                ActiveTabChanged?.Invoke(this, tab);
+                if (_activeTab != null || oldTab != null)
+                {
+                    _messageBus.Publish(new YiboFile.ViewModels.Messaging.Messages.TabActiveChangedMessage(_activeTab, Pane));
+                }
             }
             finally
             {
@@ -196,7 +209,7 @@ namespace YiboFile.Services.Tabs
             if (_tabs.Contains(tab))
             {
                 _tabs.Remove(tab);
-                TabRemoved?.Invoke(this, tab);
+                _messageBus.Publish(new TabRemovedMessage(tab, Pane));
             }
         }
 
@@ -244,7 +257,16 @@ namespace YiboFile.Services.Tabs
             if (tab == null) return;
             var newTitle = CalculateTabDisplayTitle(newPath);
             tab.Title = newTitle;
-            TabTitleChanged?.Invoke(this, tab);
+            tab.Title = newTitle;
+            var path = tab.Title; // Actually NewTitle is derived from path, but logic is circular here. 
+                                  // Correct logic: CalculateTabDisplayTitle uses newPath.
+                                  // But we need old title for message? 
+                                  // In typical event usage, we just invoke with the tab which HAS the new title.
+                                  // Message definition: (PathTab Tab, string OldTitle, string NewTitle, PaneId Pane)
+                                  // We don't easily have OldTitle here unless we capture it, but simple invocation is enough.
+                                  // Let's pass null for OldTitle for now or improve later if strict diff needed.
+
+            _messageBus.Publish(new YiboFile.ViewModels.Messaging.Messages.TabTitleChangedMessage(tab, null, newTitle, Pane));
         }
 
         public void TogglePinTab(PathTab tab)
@@ -262,7 +284,8 @@ namespace YiboFile.Services.Tabs
                 _config.PinnedTabs.Remove(key);
             }
             ConfigurationService.Instance.Set(cfg => cfg.PinnedTabs, _config.PinnedTabs);
-            TabPinStateChanged?.Invoke(this, tab);
+            ConfigurationService.Instance.Set(cfg => cfg.PinnedTabs, _config.PinnedTabs);
+            _messageBus.Publish(new YiboFile.ViewModels.Messaging.Messages.TabPinStateChangedMessage(tab, Pane));
         }
 
         public void SetTabOverrideTitle(PathTab tab, string overrideTitle)
@@ -281,7 +304,8 @@ namespace YiboFile.Services.Tabs
                 _config.TabTitleOverrides[key] = overrideTitle;
             }
             ConfigurationService.Instance.Set(cfg => cfg.TabTitleOverrides, _config.TabTitleOverrides);
-            TabTitleChanged?.Invoke(this, tab);
+            ConfigurationService.Instance.Set(cfg => cfg.TabTitleOverrides, _config.TabTitleOverrides);
+            _messageBus.Publish(new YiboFile.ViewModels.Messaging.Messages.TabTitleChangedMessage(tab, null, overrideTitle, Pane));
         }
 
         public bool CanCloseTab(PathTab tab, bool isLibraryMode) => true;

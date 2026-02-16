@@ -9,7 +9,9 @@ using YiboFile.Services;
 using YiboFile.Services.FileOperations;
 using YiboFile.Models.UI;
 using YiboFile.Models;
-using Microsoft.Extensions.DependencyInjection;
+using YiboFile.Interfaces;
+using YiboFile.Services.Navigation;
+using YiboFile.Services.Tabs;
 
 namespace YiboFile.Handlers
 {
@@ -18,13 +20,24 @@ namespace YiboFile.Handlers
     /// </summary>
     public class DragDropEventHandler
     {
-        private readonly MainWindow _window;
+        private readonly IShellWindow _window;
+        private readonly NavigationCoordinator _navigationCoordinator;
+        private readonly LibraryEventHandler _libraryEventHandler;
+        private readonly TabService _secondTabService;
+
         private DragDropManager _dragDropManager;
         private DragDropManager _secondDragDropManager;
 
-        public DragDropEventHandler(MainWindow window)
+        public DragDropEventHandler(
+            IShellWindow window,
+            NavigationCoordinator navigationCoordinator,
+            LibraryEventHandler libraryEventHandler,
+            TabService secondTabService)
         {
             _window = window;
+            _navigationCoordinator = navigationCoordinator;
+            _libraryEventHandler = libraryEventHandler;
+            _secondTabService = secondTabService;
         }
 
         public void Initialize()
@@ -69,17 +82,17 @@ namespace YiboFile.Handlers
                     // Refresh the source panel (the panel where drag dropped)
                     if (isPrimary)
                     {
-                        if (_window._currentLibrary != null)
-                            _window._libraryEventHandler?.LoadLibraryFiles(_window._currentLibrary);
+                        if (_window.ViewModel?.ActivePane?.CurrentLibrary != null)
+                            _libraryEventHandler?.LoadLibraryFiles(_window.ViewModel.ActivePane.CurrentLibrary);
                         else
-                            _window._orchestrator.NavigationCoordinator.HandlePathNavigation(_window._currentPath, YiboFile.Models.Navigation.NavigationSource.External, YiboFile.Models.Navigation.ClickType.LeftClick);
+                            _navigationCoordinator.HandlePathNavigation(_window.ViewModel?.ActivePane?.CurrentPath, YiboFile.Models.Navigation.NavigationSource.External, YiboFile.Models.Navigation.ClickType.LeftClick);
                     }
                     else
                     {
-                        var secondTab = _window._secondTabService?.ActiveTab;
+                        var secondTab = _secondTabService?.ActiveTab;
                         if (secondTab != null && !string.IsNullOrEmpty(secondTab.Path) && Directory.Exists(secondTab.Path))
                         {
-                            _window.LoadSecondFileBrowserDirectory(secondTab.Path);
+                            _window.ViewModel?.SecondaryPane?.NavigateTo(secondTab.Path);
                         }
                     }
 
@@ -89,19 +102,19 @@ namespace YiboFile.Handlers
                         if (isPrimary && _window.SecondFileBrowser != null)
                         {
                             // Refresh second panel
-                            var secondTab = _window._secondTabService?.ActiveTab;
+                            var secondTab = _secondTabService?.ActiveTab;
                             if (secondTab != null && !string.IsNullOrEmpty(secondTab.Path) && Directory.Exists(secondTab.Path))
                             {
-                                _window.LoadSecondFileBrowserDirectory(secondTab.Path);
+                                _window.ViewModel?.SecondaryPane?.NavigateTo(secondTab.Path);
                             }
                         }
                         else if (!isPrimary && _window.FileBrowser != null)
                         {
                             // Refresh main panel
-                            if (_window._currentLibrary != null)
-                                _window._libraryEventHandler?.LoadLibraryFiles(_window._currentLibrary);
+                            if (_window.ViewModel?.ActivePane?.CurrentLibrary != null)
+                                _libraryEventHandler?.LoadLibraryFiles(_window.ViewModel.ActivePane.CurrentLibrary);
                             else
-                                _window._orchestrator.NavigationCoordinator.HandlePathNavigation(_window._currentPath, YiboFile.Models.Navigation.NavigationSource.External, YiboFile.Models.Navigation.ClickType.LeftClick);
+                                _navigationCoordinator.HandlePathNavigation(_window.ViewModel?.ActivePane?.CurrentPath, YiboFile.Models.Navigation.NavigationSource.External, YiboFile.Models.Navigation.ClickType.LeftClick);
                         }
                     }
                 }
@@ -112,11 +125,11 @@ namespace YiboFile.Handlers
             {
                 if (isPrimary)
                 {
-                    return _window._currentLibrary == null ? _window._currentPath : null;
+                    return _window.ViewModel?.ActivePane?.CurrentLibrary == null ? _window.ViewModel?.ActivePane?.CurrentPath : null;
                 }
                 else
                 {
-                    var secondTab = _window._secondTabService?.ActiveTab;
+                    var secondTab = _secondTabService?.ActiveTab;
                     return secondTab?.Path;
                 }
             };

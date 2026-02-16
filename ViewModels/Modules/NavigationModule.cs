@@ -17,7 +17,6 @@ namespace YiboFile.ViewModels.Modules
         private readonly NavigationService _navigationService;
         private readonly INavigationCoordinator _navigationCoordinator;
         private readonly Func<PaneId> _activePaneResolver;
-        private readonly Action<string> _onNavigateCallback;
         private string _currentMode = "Path";
 
         public override string Name => "Navigation";
@@ -63,14 +62,12 @@ namespace YiboFile.ViewModels.Modules
             IMessageBus messageBus,
             NavigationService navigationService,
             INavigationCoordinator navigationCoordinator,
-            Func<PaneId> activePaneResolver,
-            Action<string> onNavigateCallback = null)
+            Func<PaneId> activePaneResolver)
             : base(messageBus)
         {
             _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
             _navigationCoordinator = navigationCoordinator ?? throw new ArgumentNullException(nameof(navigationCoordinator));
             _activePaneResolver = activePaneResolver;
-            _onNavigateCallback = onNavigateCallback;
             _currentMode = YiboFile.Services.Config.ConfigurationService.Instance.Config.LastNavigationMode ?? "Path";
 
             InitializeCommands();
@@ -140,7 +137,6 @@ namespace YiboFile.ViewModels.Modules
             var oldPath = _navigationService.CurrentPath;
 
             // [SSOT 关键修复] 仅当目标面板是主面板时，才同步到传统的 NavigationService
-            // 否则会触发 MainWindow 中基于该服务的事件，导致副面板操作误伤主面板标签页
             if (pane == PaneId.Main)
             {
                 _navigationService.NavigateTo(message.Path);
@@ -149,8 +145,12 @@ namespace YiboFile.ViewModels.Modules
             // 发布路径变更通知
             Publish(new PathChangedMessage(message.Path, pane, oldPath));
 
-            // 回调（过渡期使用）
-            _onNavigateCallback?.Invoke(message.Path);
+            // Execute actual navigation logic via Coordinator
+            _navigationCoordinator.HandlePathNavigation(
+                message.Path,
+                NavigationSource.External, // Using External as 'Internal' logic identifier
+                ClickType.LeftClick,
+                pane: pane);
 
             UpdateCommandStates();
         }
@@ -168,15 +168,15 @@ namespace YiboFile.ViewModels.Modules
                 if (!string.IsNullOrEmpty(newPath))
                 {
                     Publish(new PathChangedMessage(newPath, pane, oldPath));
-                    _onNavigateCallback?.Invoke(newPath);
+
+                    _navigationCoordinator.HandlePathNavigation(
+                        newPath,
+                        NavigationSource.History,
+                        ClickType.LeftClick,
+                        pane: pane);
                 }
             }
-            else
-            {
-                // 副面板的后退逻辑通常由 PaneViewModel 内部处理，
-                // 如果需要通过此模块统一路由，则应调用协频器或发送特定消息。
-                // 暂时保持现状，避免破坏现有的 PaneViewModel 自主导航。
-            }
+            // 副面板的后退逻辑通常由 PaneViewModel 内部处理
             UpdateCommandStates();
         }
 
@@ -192,7 +192,12 @@ namespace YiboFile.ViewModels.Modules
                 if (!string.IsNullOrEmpty(newPath))
                 {
                     Publish(new PathChangedMessage(newPath, pane, oldPath));
-                    _onNavigateCallback?.Invoke(newPath);
+
+                    _navigationCoordinator.HandlePathNavigation(
+                        newPath,
+                        NavigationSource.History,
+                        ClickType.LeftClick,
+                        pane: pane);
                 }
             }
             UpdateCommandStates();
@@ -210,7 +215,12 @@ namespace YiboFile.ViewModels.Modules
                 if (!string.IsNullOrEmpty(parentPath))
                 {
                     Publish(new PathChangedMessage(parentPath, pane, oldPath));
-                    _onNavigateCallback?.Invoke(parentPath);
+
+                    _navigationCoordinator.HandlePathNavigation(
+                        parentPath,
+                        NavigationSource.Breadcrumb, // Using Breadcrumb as 'Up' identifier
+                        ClickType.LeftClick,
+                        pane: pane);
                 }
             }
             UpdateCommandStates();
@@ -272,16 +282,11 @@ namespace YiboFile.ViewModels.Modules
             System.Diagnostics.Debug.WriteLine($"[NAV-DEBUG] NavigationModule: NavigateTo('{path}') requested for {pane}");
 
             // 委托给 NavigationCoordinator 处理
-            // 协调器包含 Rule 2: Deduplication (排重检测) 和 Rule 3: Type Reuse (类型复用)
             _navigationCoordinator.HandlePathNavigation(
                 path,
-                NavigationSource.AddressBar, // 默认假设是从地址栏或外部触发的标准导航
+                NavigationSource.AddressBar,
                 ClickType.LeftClick,
-                forceNewTab: !addToHistory, // addToHistory 为 false 时通常意味着某种特殊的非历史导航，但这有点歧义。
-                                            // 实际上，如果不想加历史，我们可以单独控制。
-                                            // HandlePathNavigation 并不直接支持 addToHistory 参数（它由 PaneViewModel 处理）。
-                                            // 这里我们暂时设 forceNewTab 为 false，除非 addToHistory 为 false (可能想新开?)
-                                            // 修正：NavigateToFromAddressBar 通常期望在当前 Tab 跳转 (forceNewTab=false). 
+                forceNewTab: !addToHistory,
                 pane: pane
             );
         }
@@ -315,7 +320,6 @@ namespace YiboFile.ViewModels.Modules
         #endregion
     }
 
-    // Define simple refresh message if not exists, or just omit RefreshCommand implementation detail for now
     public class RefreshFileListMessage
     {
         public string Path { get; }

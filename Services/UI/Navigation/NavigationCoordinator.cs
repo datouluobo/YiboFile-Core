@@ -31,10 +31,7 @@ namespace YiboFile.Services.Navigation
             _messageBus = messageBus;
         }
 
-        // 兼容旧代码的事件，直到迁移完成
 
-        public event Action<string> FileOpenRequested;
-        public event Action<YiboFile.Favorite> FavoritePathNotFound;
 
         /// <summary>
         /// 初始化协调器
@@ -280,11 +277,11 @@ namespace YiboFile.Services.Navigation
             }
             else if (!favorite.IsDirectory && File.Exists(favorite.Path))
             {
-                FileOpenRequested?.Invoke(favorite.Path);
+                _messageBus.Publish(new OpenFileRequestMessage(favorite.Path));
             }
             else
             {
-                FavoritePathNotFound?.Invoke(favorite);
+                _messageBus.Publish(new FavoritePathNotFoundMessage(favorite));
             }
         }
         #endregion

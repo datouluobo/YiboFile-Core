@@ -13,8 +13,9 @@
 
 | 组件 | 文件数 | 总行数 | 平均行数/文件 | 健康度评估 |
 |------|--------|--------|---------------|------------|
-| **MainWindow (分部类)** | 0 | 0 | 0 | 🟢 已完全解构 |
-| **PaneViewModel** | 1 | ~1,700 | 1,700 | 🟡 中耦合 (职责逐步拆分中) |
+| **MainWindow (分部类)** | 3 | ~960 | 320 | � 仍有委托转发和业务逻辑残留 |
+| **PaneViewModel** | 1 | ~563 | 563 | 🟢 已大幅优化 (从1770行降至563行) |
+| **WindowOrchestrator** | 1 | ~981 | 981 | 🟡 新的准上帝类，需拆分 |
 
 ---
 
@@ -244,16 +245,17 @@ Controller-driven 场景：
 
 ### 🟡 优先级 2：PaneViewModel 职责拆分
 
-**目标**：将 `PaneViewModel` (1770行) 拆分为更单一职责的子模块。
+**目标**：将 `PaneViewModel` (原1770行) 拆分为更单一职责的子模块。
 
-| 步骤 | 任务描述 | 当前代码行数 | 拆分目标 | 状态 |
-|------|----------|--------------|----------|------|
-| **3.2.1** | **提取 FilterViewModel**：将文件过滤逻辑（类型、大小、日期）独立为可重用的 `FilterViewModel`。 | ~300行 | FilterViewModel.cs | ⏳ 待启动 |
-| **3.2.2** | **提取 SelectionViewModel**：将文件选择、多选、全选逻辑独立。 | ~200行 | SelectionViewModel.cs | ⏳ 待启动 |
-| **3.2.3** | **简化 Command 定义**：将 `ICommand` 封装到 `PaneCommandSet` 类，`PaneViewModel` 只持有该类的实例。 | ~150行 | PaneCommandSet.cs | ⏳ 待启动 |
+| 步骤 | 任务描述 | 拆分结果 | 状态 |
+|------|----------|----------|------|
+| **3.2.1** | **提取 FilterViewModel**：将文件过滤逻辑（类型、大小、日期）独立。 | FilterViewModel.cs (~160行) | ✅ 已完成 |
+| **3.2.2** | **提取 SelectionViewModel**：将文件选择、多选、全选逻辑独立。 | SelectionViewModel.cs (~130行) | ✅ 已完成 |
+| **3.2.3** | **简化 Command 定义**：将 `ICommand` 封装到 `PaneCommandSet` 类。 | PaneCommandSet.cs (~250行) | ✅ 已完成 |
+| **3.2.4** | **导航逻辑进一步下沉**：将 `ExecuteNavigateBack/Forward/Up`、`OnNavigateToPath` 等下沉到 `NavigationModule`。 | PaneViewModel 进一步精简 | ⏳ 待评估 |
 
 **成功标准**：
-*   `PaneViewModel.cs` 核心代码压缩至 < 800 行。
+*   ~~`PaneViewModel.cs` 核心代码压缩至 < 800 行。~~ ✅ 已达成 (当前 563 行)
 *   每个子 ViewModel 可独立测试。
 
 ---
@@ -268,6 +270,11 @@ Controller-driven 场景：
 | **3.3.2** | **定义文件操作消息**：`FileOperationRequestMessage`, `FileOperationCompleteMessage` | 待定义 | ⏳ 待启动 |
 | **3.3.3** | **定义布局消息**：`LayoutModeChangedMessage`, `PaneFocusChangedMessage` | 待定义 | ⏳ 待启动 |
 | **3.3.4** | **清理遗留事件**：删除 `NavigationCoordinator` 中的 `PathNavigateRequested` 等事件。 | - | ✅ 已完成 |
+| **3.3.5** | **Service 层事件迁移 (第一批)**：`TabService` (5个事件), `NavigationCoordinator` (2个事件) | → 各对应 Messages.cs | ⏳ 待启动 |
+| **3.3.6** | **Service 层事件迁移 (第二批)**：`FileListService`, `LibraryService`, `FileOperationService`, `FavoriteService` 等 (~20个事件) | → 各对应 Messages.cs | ⏳ 待启动 |
+| **3.3.7** | **Module 层 Action<> 回调清理**：`TabsModule`, `NavigationModule`, `TabService.UI.cs` 中的委托回调 (~10个) | → MessageBus 发布消息 | ⏳ 待启动 |
+
+> ⚠️ 当前 Service 层仍有 **40+ 个 `event` 声明** 和 **15+ 个 `Action<>` 委托回调**，详见 `docs/Remaining_Refactoring_Tasks_2026-02-16.md` 第 4.1 节。
 
 **成功标准**：
 *   所有跨模块通讯通过 `IMessageBus` 实现。
@@ -348,7 +355,8 @@ Controller-driven 场景：
 | **PaneViewModel 命令拆分** | PaneCommandSet.cs / PaneViewModel.cs | Refactor | 2026-02-16 |
 | **[BUG-017] 修复列表加载** | PaneViewModel (NavigationMode/Refresh) | +10 | 2026-02-16 |
 
-- **MainWindow 解构 (阶段 5)**: `已完成` (100%). `MainWindow.xaml.cs` 从 >2400 行减少到 <800 行。
+- **MainWindow 解构 (阶段 5)**: `基本完成` (85%). `MainWindow.xaml.cs` 从 >2400 行减少到 528 行，但含分部类 (`MainWindow.Tabs.cs` 289行, `MainWindow.Drives.cs` 142行) 合计仍约 960 行。
+- **PaneViewModel 拆分 (阶段 7)**: `已完成` (100%). 从 1770 行降至 563 行，已提取 `FilterViewModel`、`SelectionViewModel`、`PaneCommandSet`。
 - **内存审计与优化 (阶段 6)**: `已完成` (100%).
     - [x] 移除 `MainWindow.LayoutMode.cs`。
     - [x] 移除 `MainWindow.Navigation.cs` 和 `MainWindow.MenuEvents.cs`。
@@ -357,7 +365,7 @@ Controller-driven 场景：
     - [x] 修复设置与关于页面无法打开的重绑逻辑 (BUG-010)。
     - [x] 验证所有功能模块的集成测试。
     - [x] 更新架构文档。
-- **预计剩余工作量**: 0小时
+- **预计剩余工作量**: 约 40-55 小时 (详见 `docs/Remaining_Refactoring_Tasks_2026-02-16.md`)
 
 **净效果**：
 *   代码总行数：-1500+ 行
@@ -365,36 +373,51 @@ Controller-driven 场景：
 
 ### 4.2 遗留问题 ⚠️
 
-1.  **NavigationCoordinator 初始化未更新**：`MainWindow.Initialization.cs` 中初始化 `NavigationCoordinator` 的方法签名已改变（增加了 `IMessageBus` 参数和 ViewModel 解析器），需要同步更新。
-2.  **预览组件兼容性**（记录于 2026-02-09）：观察到部分文件预览失效（文件夹正常），疑似与 Pro 版功能拆分逻辑有关。在 Stage 4 重构中需核对 `PreviewService` 的消息链路。
+> 详细分析见 `docs/Remaining_Refactoring_Tasks_2026-02-16.md`
+
+1.  **WindowOrchestrator 膨胀** (981行)：MainWindow 解构后，编排逻辑集中到 WindowOrchestrator，正演变为新的上帝类。需拆分为 ModuleInitializer、HandlerInitializer、MessageBridgeService。
+2.  **MainWindow 分部类残留**：`MainWindow.Tabs.cs` (289行) 中仍有搜索标签页刷新等业务逻辑；`MainWindow.Drives.cs` (142行) 中驱动器逻辑应移至独立模块。
+3.  **Handler 层直接依赖 MainWindow**：全部 10 个 Handler 直接持有 `MainWindow` 引用，需引入 `IShellWindow` 抽象接口解耦。
+4.  **Service 层事件/委托大量残留**：仍有 40+ 个 `event` 和 15+ 个 `Action<>` 回调未迁移到 MessageBus。
+5.  **预览组件兼容性**（记录于 2026-02-09）：观察到部分文件预览失效（文件夹正常），疑似与 Pro 版功能拆分逻辑有关。
 
 ---
 
 ## 五、下一步行动 (Next Actions)
 
-### 立即行动 (本周)
+> 📄 完整的剩余重构任务分析及实施计划请参见：**`docs/Remaining_Refactoring_Tasks_2026-02-16.md`**
 
-1.  **彻底清理 MainWindow 分部类**：
-    *   移除 `MainWindow.Navigation.cs` 中的 Wrapper 方法，更新调用方直接使用 `NavigationModule`。
-    *   重构 `MainWindow.MenuEvents.cs` 里的菜单逻辑。
-    
-2.  **启动 PaneViewModel 拆分**：
-    *   提取 `FilterViewModel` 和 `SelectionViewModel`。
-    *   简化 `PaneViewModel` 的体积。
+### Phase 1: P0 结构债务 (本周，~12h)
 
-3.  **完成 NavigationCoordinator 迁移**：
-    *   在 `MainWindowViewModel` 中实现 `PaneViewModel` 解析器。
-    *   测试路径导航和库导航是否正常工作。
+1.  **WindowOrchestrator 拆分** (6-8h)
+    *   提取 `ModuleInitializer.cs` (~160行)
+    *   提取 `HandlerInitializer.cs` (~260行)
+    *   提取 `MessageBridgeService.cs` (~185行)
+    *   `WindowOrchestrator.cs` 瘦身至 ~300行
 
-### 中期目标 (本月)
+2.  **MainWindow.Tabs.cs 业务逻辑迁移** (3-4h)
+    *   `CheckAndRefreshSearchTab` → `SearchModule`
+    *   `RefreshActiveSearchTab` → `SearchModule`
+    *   标签页方法委托给 `TabsModule`
+    *   目标：删除 `MainWindow.Tabs.cs` 分部类
 
-1.  完成 `MainWindow` 上帝类解构（优先级1）。
-2.  拆分 `PaneViewModel`（优先级2）。
-3.  修复所有 BUG-001 至 BUG-008。
+### Phase 2: P1 架构规范化 (下周，~20h)
+
+3.  **引入 IShellWindow 抽象** — 解耦 Handler ↔ MainWindow (6-8h)
+4.  **Service 层事件 → MessageBus 迁移 (第一批)** — TabService、NavigationCoordinator、Module 回调 (8-12h)
+5.  **FileListEventHandler 拆分** — 拆分键盘/鼠标处理 (4-5h)
+
+### Phase 3: P2 代码卫生 (后续，~15h)
+
+6.  Service 层事件 → MessageBus 迁移 (第二批)
+7.  PaneViewModel 导航逻辑下沉
+8.  LibraryManagementWindow MVVM 化
+9.  App.xaml.cs 启动逻辑拆分
+10. 修复 BUG-001, BUG-003
 
 ### 长期目标 (Q1 2026)
 
-1.  完成消息驱动架构（优先级3）。
+1.  完成消息驱动架构（优先级3 全部清零）。
 2.  实现 Pro/Ultra 插件化基础（优先级4）。
 3.  发布 v2.0 正式版。
 

@@ -18,7 +18,6 @@ namespace YiboFile.Handlers
     /// </summary>
     public class ColumnInteractionHandler
     {
-        private readonly MainWindow _mainWindow;
         private readonly ColumnService _columnService;
         private readonly FileBrowserControl _fileBrowser;
         private DateTime _lastColumnClickTime = DateTime.MinValue;
@@ -26,11 +25,9 @@ namespace YiboFile.Handlers
 
 
         public ColumnInteractionHandler(
-            MainWindow mainWindow,
             FileBrowserControl targetBrowser,
             ColumnService columnService)
         {
-            _mainWindow = mainWindow ?? throw new ArgumentNullException(nameof(mainWindow));
             _fileBrowser = targetBrowser ?? throw new ArgumentNullException(nameof(targetBrowser));
             _columnService = columnService ?? throw new ArgumentNullException(nameof(columnService));
         }

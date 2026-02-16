@@ -31,4 +31,9 @@ namespace YiboFile.ViewModels.Messaging.Messages
     /// 收藏夹更新通知
     /// </summary>
     public class FavoritesUpdatedMessage { }
+
+    /// <summary>
+    /// 收藏项路径未找到通知
+    /// </summary>
+    public record FavoritePathNotFoundMessage(YiboFile.Favorite Favorite);
 }

@@ -38,14 +38,57 @@ using YiboFile.ViewModels.Messaging;
 using YiboFile.ViewModels.Messaging.Messages;
 using YiboFile.ViewModels.Modules;
 using YiboFile.Handlers;
+using YiboFile.Controls; // For Controls
+using YiboFile.Interfaces; // For IShellWindow
 
 namespace YiboFile
 {
     /// <summary>
     /// MainWindow.xaml 的交互逻辑
     /// </summary>
-    public partial class MainWindow : System.Windows.Window
+    public partial class MainWindow : System.Windows.Window, IShellWindow
     {
+        #region IShellWindow Implementation
+
+        FileBrowserControl IShellWindow.FileBrowser => this.FileBrowser;
+        FileBrowserControl IShellWindow.SecondFileBrowser => this.SecondFileBrowser;
+        TabManagerControl IShellWindow.TabManager => this.TabManager;
+        TabManagerControl IShellWindow.SecondTabManager => this.SecondTabManager;
+        // SettingsOverlay is accessed via FindName
+        Grid IShellWindow.SettingsOverlay => this.FindName("SettingsOverlay") as Grid;
+
+        // Resource access
+        object IShellWindow.TryFindResource(object key) => this.TryFindResource(key);
+
+        // Refresh
+        void IShellWindow.RefreshFileList() => this.RefreshFileList();
+
+        // ViewModel (already public property ViewModel)
+        // IShellWindow Implementation extensions
+        Grid IShellWindow.RootGrid => this.RootGrid;
+        ColumnDefinition IShellWindow.ColLeft => this.ColLeft;
+        ColumnDefinition IShellWindow.ColCenter => this.ColCenter;
+        ColumnDefinition IShellWindow.ColRight => this.ColRight;
+        ColumnDefinition IShellWindow.ColRail => this.ColRail;
+        Button IShellWindow.TitleBarMaxRestoreButton => this.TitleBarMaxRestoreButton;
+        bool IShellWindow.IsSplitterDragging => this._isSplitterDragging;
+
+        bool IShellWindow.IsDualListMode => this.IsDualListMode;
+
+        NavigationPanelControl IShellWindow.NavigationPanelControl => this.NavigationPanelControl;
+
+        // Expose nested listboxes if they are not directly on MainWindow
+        // Assuming NavigationPanelControl structure based on usage
+        ListBox IShellWindow.LibrariesListBox => this.NavigationPanelControl?.LibrariesListBoxControl as ListBox;
+        ListBox IShellWindow.QuickAccessListBox => this.NavigationPanelControl?.QuickAccessListBoxControl as ListBox;
+
+        // SecondTabManager likely already implemented?
+        // TabManagerControl IShellWindow.SecondTabManager => this.SecondTabManager; 
+        // No, check IShellWindow definition, likely implemented implicitly if property exists.
+        // Explicit impl only needed if visibility issues or naming conflict.
+
+        #endregion
+
         #region 字段与属性
 
         // Core state delegating to ViewModel
@@ -204,7 +247,10 @@ namespace YiboFile
             _viewModel?.ActivePane?.FileList?.RefreshFiles();
         }
 
-        internal void CloseOverlays()
+        /// <summary>
+        /// 关闭所有覆盖层
+        /// </summary>
+        public void CloseOverlays()
         {
             if (SettingsOverlay != null && SettingsOverlay.Visibility == Visibility.Visible)
             {
@@ -413,7 +459,10 @@ namespace YiboFile
 
         #region 标签页边距管理
 
-        internal void UpdateTabManagerMargin()
+        /// <summary>
+        /// 更新标签管理器边距
+        /// </summary>
+        public void UpdateTabManagerMargin()
         {
             this.Dispatcher.InvokeAsync(UpdateTabManagerMarginLogic, System.Windows.Threading.DispatcherPriority.Loaded);
         }

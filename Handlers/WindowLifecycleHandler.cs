@@ -9,19 +9,20 @@ using System.Windows.Media;
 using YiboFile.Services;
 using YiboFile.Services.ColumnManagement;
 using YiboFile.Services.Config;
+using YiboFile.Interfaces;
 
 namespace YiboFile.Handlers
 {
     public class WindowLifecycleHandler
     {
-        private readonly MainWindow _mainWindow;
+        private readonly IShellWindow _mainWindow;
         private readonly Services.WindowStateManager _windowStateManager;
         private readonly Services.ColumnManagement.ColumnService _columnService;
 
 
         // Legacy fields removed: _isPseudoMaximized, _restoreBounds
 
-        public WindowLifecycleHandler(MainWindow mainWindow, WindowStateManager windowStateManager, ColumnService columnService)
+        public WindowLifecycleHandler(IShellWindow mainWindow, WindowStateManager windowStateManager, ColumnService columnService)
         {
             _mainWindow = mainWindow ?? throw new ArgumentNullException(nameof(mainWindow));
             _windowStateManager = windowStateManager;
@@ -106,7 +107,7 @@ namespace YiboFile.Handlers
 
         private void AdjustListViewColumnWidths()
         {
-            if (_mainWindow.FileBrowser == null || _mainWindow._isSplitterDragging) return;
+            if (_mainWindow.FileBrowser == null || _mainWindow.IsSplitterDragging) return;
             _columnService?.AdjustListViewColumnWidths(_mainWindow.FileBrowser);
         }
 
