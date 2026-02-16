@@ -86,22 +86,38 @@ namespace YiboFile.ViewModels.Modules
         private async void OnCreateFolder(CreateFolderRequestMessage message)
         {
             System.Diagnostics.Debug.WriteLine($"[FileOperationModule] Creating folder. Parent: {message.ParentPath}, Name: {message.FolderName}");
-            await _fileOperationService.CreateFolderAsync(message.ParentPath, message.FolderName);
-            System.Diagnostics.Debug.WriteLine($"[FileOperationModule] Folder created. Publishing RefreshFileListMessage for: {message.ParentPath}");
-            Publish(new RefreshFileListMessage(message.ParentPath));
+            string path = await _fileOperationService.CreateFolderAsync(message.ParentPath, message.FolderName);
+            bool success = !string.IsNullOrEmpty(path);
+
+            Publish(new FileOperationCompleteMessage(Guid.NewGuid().ToString(), success, success ? null : "创建文件夹失败", success ? new List<string> { path } : null));
+
+            if (success)
+            {
+                System.Diagnostics.Debug.WriteLine($"[FileOperationModule] Folder created. Publishing RefreshFileListMessage for: {message.ParentPath}");
+                Publish(new RefreshFileListMessage(message.ParentPath));
+            }
         }
 
         private async void OnCreateFile(CreateFileRequestMessage message)
         {
             System.Diagnostics.Debug.WriteLine($"[FileOperationModule] Creating file. Parent: {message.ParentPath}, Name: {message.FileName}, Ext: {message.Extension}");
-            await _fileOperationService.CreateFileAsync(message.ParentPath, message.FileName, message.Extension);
-            System.Diagnostics.Debug.WriteLine($"[FileOperationModule] File created. Publishing RefreshFileListMessage for: {message.ParentPath}");
-            Publish(new RefreshFileListMessage(message.ParentPath));
+            string path = await _fileOperationService.CreateFileAsync(message.ParentPath, message.FileName, message.Extension);
+            bool success = !string.IsNullOrEmpty(path);
+
+            Publish(new FileOperationCompleteMessage(Guid.NewGuid().ToString(), success, success ? null : "创建文件失败", success ? new List<string> { path } : null));
+
+            if (success)
+            {
+                System.Diagnostics.Debug.WriteLine($"[FileOperationModule] File created. Publishing RefreshFileListMessage for: {message.ParentPath}");
+                Publish(new RefreshFileListMessage(message.ParentPath));
+            }
         }
 
         private async void OnDeleteItems(DeleteItemsRequestMessage message)
         {
-            await _fileOperationService.DeleteAsync(message.Items, message.Permanent);
+            var result = await _fileOperationService.DeleteAsync(message.Items, message.Permanent);
+
+            Publish(new FileOperationCompleteMessage(Guid.NewGuid().ToString(), result.Success, result.Message ?? (result.FailedItems?.Count > 0 ? "部分项目删除失败" : null), result.FailedItems));
 
             // Refresh specific parents instead of global refresh
             if (message.Items != null && message.Items.Count > 0)
@@ -128,12 +144,14 @@ namespace YiboFile.ViewModels.Modules
 
         private async void OnCopyItems(CopyItemsRequestMessage message)
         {
-            await _fileOperationService.CopyAsync(message.Items?.Select(i => i.Path));
+            bool success = await _fileOperationService.CopyAsync(message.Items?.Select(i => i.Path));
+            Publish(new FileOperationCompleteMessage(Guid.NewGuid().ToString(), success, success ? null : "复制到剪贴板失败"));
         }
 
         private async void OnCutItems(CutItemsRequestMessage message)
         {
-            await _fileOperationService.CutAsync(message.Items?.Select(i => i.Path));
+            bool success = await _fileOperationService.CutAsync(message.Items?.Select(i => i.Path));
+            Publish(new FileOperationCompleteMessage(Guid.NewGuid().ToString(), success, success ? null : "剪切到剪贴板失败"));
         }
 
         private async void OnPasteItems(PasteItemsRequestMessage message)
@@ -152,7 +170,9 @@ namespace YiboFile.ViewModels.Modules
                 }
             }
 
-            await _fileOperationService.PasteAsync(targetPath);
+            var result = await _fileOperationService.PasteAsync(targetPath);
+            Publish(new FileOperationCompleteMessage(Guid.NewGuid().ToString(), result.Success, result.Message ?? (result.FailedItems?.Count > 0 ? "部分项目粘贴失败" : null), result.FailedItems));
+
             // 延迟一点刷新，或者由 FileOperationService 触发刷新回调
             Publish(new RefreshFileListMessage(targetPath));
         }
@@ -195,6 +215,8 @@ namespace YiboFile.ViewModels.Modules
                 message.Item.Name = message.NewName;
 
                 var result = await _fileOperationService.RenameAsync(message.Item, message.NewName);
+
+                Publish(new FileOperationCompleteMessage(Guid.NewGuid().ToString(), result.Success, result.Message));
 
                 if (!result.Success)
                 {

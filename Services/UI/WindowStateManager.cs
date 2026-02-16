@@ -32,11 +32,12 @@ namespace YiboFile.Services
 
         private bool _isInitialized = false;
         private bool _isApplyingConfig = false; // 用于追踪是否正在恢复状态
-
+        private bool _isTabsRestored = false;   // 用于追踪标签页是否已恢复
 
         #endregion
 
         #region 构造函数
+
 
         /// <summary>
         /// 初始化窗口状态管理器
@@ -512,6 +513,8 @@ namespace YiboFile.Services
         /// </summary>
         private void SaveTabsState()
         {
+            if (!_isTabsRestored) return;
+
             // #region agent log
             var logPath2 = @"f:\Download\GitHub\YiboFile\.cursor\debug.log";
             try { System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(logPath2)); System.IO.File.AppendAllText(logPath2, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "C", location = "WindowStateManager.cs:278", message = "SaveTabsState开始", data = new { tabServiceIsNull = _tabService == null }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
@@ -709,7 +712,11 @@ namespace YiboFile.Services
             if (window == null) return;
 
             // 标记初始化完成
-            Action markInitialized = () => _isInitialized = true;
+            Action markInitialized = () =>
+            {
+                _isInitialized = true;
+                _isTabsRestored = true;
+            };
 
             if (!window.IsLoaded)
             {

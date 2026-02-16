@@ -212,8 +212,7 @@ namespace YiboFile.ViewModels
                 return;
             }
 
-            // Set loading state immediately to give feedback
-            ActivePreview = new ErrorPreviewViewModel { ErrorMessage = "正在加载预览...", IsLoading = true };
+
 
             // Debounce request
             _pendingPreviewPath = path;

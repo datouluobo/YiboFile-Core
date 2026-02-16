@@ -546,6 +546,39 @@ namespace YiboFile.Services.Orchestration
                 _messageBus.Subscribe<ShowAboutMessage>(msg => window.Dispatcher.Invoke(() => aboutOverlay.Visibility = System.Windows.Visibility.Visible));
                 aboutPanel.CloseRequested += (s, e) => aboutOverlay.Visibility = System.Windows.Visibility.Collapsed;
             }
+
+            // Clipboard History Panel - Handle interactions
+            if (window.ClipboardHistoryPanelControl != null)
+            {
+                window.ClipboardHistoryPanelControl.ItemPasted += (item) =>
+                {
+                    // 1. Close Panel
+                    if (_layoutModule != null)
+                    {
+                        _layoutModule.ActiveSpecialPanel = "None";
+                        _layoutModule.IsMainLayoutVisible = true;
+                    }
+
+                    // 2. Trigger Paste in Active Pane
+                    window.Dispatcher.InvokeAsync(() =>
+                    {
+                        // Restore focus
+                        if (_layoutModule?.IsSecondPaneFocused == true)
+                        {
+                            window.SecondFileBrowser?.Focus();
+                            window.SecondFileBrowser?.FilesList?.Focus();
+                        }
+                        else
+                        {
+                            window.FileBrowser?.Focus();
+                            window.FileBrowser?.FilesList?.Focus();
+                        }
+
+                        // Execute Paste
+                        _viewModel?.FileOperation?.PasteCommand?.Execute(_viewModel.ActivePane);
+                    });
+                };
+            }
         }
 
         private void InitializeInputHandlers(MainWindow window)

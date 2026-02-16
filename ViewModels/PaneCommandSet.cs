@@ -85,8 +85,11 @@ namespace YiboFile.ViewModels
                 else if (!string.IsNullOrEmpty(_pane.CurrentPath)) _messageBus.Publish(new ShowPropertiesRequestMessage(null, _pane.CurrentPath));
             }, () => true);
 
-            NewFolderCommand = new RelayCommand(() => _messageBus.Publish(new CreateFolderRequestMessage(_pane.CurrentPath)));
-            NewFileCommand = new RelayCommand(() => _messageBus.Publish(new CreateFileRequestMessage(_pane.CurrentPath)));
+            NewFolderCommand = new RelayCommand(() => _messageBus.Publish(new CreateFolderRequestMessage(_pane.CurrentPath)),
+                () => !string.IsNullOrEmpty(_pane.CurrentPath));
+
+            NewFileCommand = new RelayCommand(() => _messageBus.Publish(new CreateFileRequestMessage(_pane.CurrentPath)),
+                () => !string.IsNullOrEmpty(_pane.CurrentPath));
 
             DeleteCommand = new RelayCommand(() =>
                 _messageBus.Publish(new DeleteItemsRequestMessage(_pane.Selection?.SelectedItems?.ToList())),
@@ -101,7 +104,8 @@ namespace YiboFile.ViewModels
                 () => (_pane.Selection?.SelectedItems?.Count ?? 0) > 0);
 
             PasteCommand = new RelayCommand(() =>
-                _messageBus.Publish(new PasteItemsRequestMessage(_pane.CurrentPath)));
+                _messageBus.Publish(new PasteItemsRequestMessage(_pane.CurrentPath)),
+                () => !string.IsNullOrEmpty(_pane.CurrentPath) && Clipboard.ContainsFileDropList());
 
             RenameCommand = new RelayCommand(() =>
                 _messageBus.Publish(new RenameItemRequestMessage(_pane.Selection?.SelectedItem)),

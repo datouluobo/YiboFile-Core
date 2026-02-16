@@ -1,8 +1,6 @@
-using System.Linq;
-using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input;
 using YiboFile.Services.ClipboardHistory;
+using YiboFile.ViewModels;
 
 namespace YiboFile.Controls
 {
@@ -11,7 +9,7 @@ namespace YiboFile.Controls
     /// </summary>
     public partial class ClipboardHistoryPanel : UserControl
     {
-        private ClipboardHistoryService _historyService;
+        private readonly ClipboardViewModel _viewModel;
 
         /// <summary>
         /// 项目被选中粘贴事件
@@ -21,54 +19,14 @@ namespace YiboFile.Controls
         public ClipboardHistoryPanel()
         {
             InitializeComponent();
-
-            _historyService = ClipboardHistoryService.Instance;
-            DataContext = _historyService;
-
-            // 监听历史变化更新空状态
-            _historyService.ClipboardChanged += _ => UpdateEmptyState();
-            _historyService.History.CollectionChanged += (s, e) => UpdateEmptyState();
-
-            Loaded += (s, e) => UpdateEmptyState();
+            _viewModel = new ClipboardViewModel();
+            DataContext = _viewModel;
+            _viewModel.ItemPasted += OnItemPasted;
         }
 
-        private void UpdateEmptyState()
+        private void OnItemPasted(ClipboardHistoryItem item)
         {
-            Dispatcher.Invoke(() =>
-            {
-                bool isEmpty = !_historyService.History.Any();
-                EmptyHint.Visibility = isEmpty ? Visibility.Visible : Visibility.Collapsed;
-                HistoryTabs.Visibility = isEmpty ? Visibility.Collapsed : Visibility.Visible;
-            });
-        }
-
-        private void HistoryList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
-        {
-            if (sender is ListBox listBox && listBox.SelectedItem is ClipboardHistoryItem item)
-            {
-                PasteItem(item);
-            }
-        }
-
-        private void DeleteItem_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is Button btn && btn.Tag is ClipboardHistoryItem item)
-            {
-                _historyService.RemoveItem(item);
-            }
-        }
-
-        private void ClearBtn_Click(object sender, RoutedEventArgs e)
-        {
-            _historyService.ClearHistory();
-        }
-
-        private void PasteItem(ClipboardHistoryItem item)
-        {
-            if (_historyService.SetToClipboard(item))
-            {
-                ItemPasted?.Invoke(item);
-            }
+            ItemPasted?.Invoke(item);
         }
 
         /// <summary>
@@ -76,10 +34,7 @@ namespace YiboFile.Controls
         /// </summary>
         public void RefreshLists()
         {
-            FileHistoryList.Items.Refresh();
-            TextHistoryList.Items.Refresh();
-            UpdateEmptyState();
+            // View auto-refreshes due to ObservableCollection and ICollectionView
         }
     }
 }
-

@@ -3,226 +3,248 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:YiboFile.Controls"
+             xmlns:vm="clr-namespace:YiboFile.ViewModels"
+             xmlns:services="clr-namespace:YiboFile.Services.ClipboardHistory"
              mc:Ignorable="d" 
-             d:DesignHeight="350" d:DesignWidth="320">
+             d:DataContext="{d:DesignInstance vm:ClipboardViewModel}"
+             d:DesignHeight="400" d:DesignWidth="320">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+    </UserControl.Resources>
+    
     <Border Background="{DynamicResource PanelBackgroundBrush}" 
             BorderBrush="{DynamicResource BorderDefaultBrush}" 
-            BorderThickness="1" CornerRadius="6"
-            Width="320" MaxHeight="400">
+            BorderThickness="1" CornerRadius="8">
         <Border.Effect>
-            <DropShadowEffect BlurRadius="12" ShadowDepth="4" Opacity="0.2"/>
+            <DropShadowEffect BlurRadius="12" ShadowDepth="4" Opacity="0.15" Direction="270"/>
         </Border.Effect>
         <Grid>
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             
-            <!-- 标题栏 -->
-            <Border Grid.Row="0" Background="{DynamicResource PanelBackgroundBrush}" 
-                    BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,0,0,1"
-                    CornerRadius="6,6,0,0" Padding="12,8">
+            <!-- Header -->
+            <Grid Grid.Row="0" Margin="12,12,12,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="📋 剪切板历史" FontWeight="SemiBold" FontSize="14"
+                           Foreground="{DynamicResource ForegroundPrimaryBrush}" VerticalAlignment="Center"/>
+                <Button Command="{Binding ClearCommand}" 
+                        Content="清空" 
+                        Padding="8,4"
+                        Background="Transparent" 
+                        BorderThickness="0"
+                        Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                        Cursor="Hand" FontSize="12">
+                     <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="{DynamicResource ControlHoverBrush}"/>
+                                    <Setter Property="TextElement.Foreground" Value="{DynamicResource AccentDefaultBrush}"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter Property="Background" Value="{DynamicResource ControlPressedBrush}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+            </Grid>
+            
+            <!-- Search Bar -->
+            <Border Grid.Row="1" Margin="12,0,12,8" CornerRadius="6" 
+                    Background="{DynamicResource InputBackgroundBrush}" 
+                    BorderBrush="{DynamicResource InputBorderBrush}" BorderThickness="1"
+                    Padding="8,6">
                 <Grid>
-                    <TextBlock Text="📋 剪切板历史" FontWeight="SemiBold" FontSize="14"
-                               Foreground="{DynamicResource ForegroundBrush}" VerticalAlignment="Center"/>
-                    <Button x:Name="ClearBtn" Content="清空" HorizontalAlignment="Right"
-                            Background="Transparent" BorderThickness="0" Padding="8,4"
-                            Foreground="{DynamicResource ForegroundSecondaryBrush}"
-                            Click="ClearBtn_Click" Cursor="Hand" FontSize="12"/>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="🔍" Margin="0,0,6,0" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" FontSize="12"/>
+                    <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                             Background="Transparent" BorderThickness="0"
+                             Foreground="{DynamicResource ForegroundPrimaryBrush}"
+                             CaretBrush="{DynamicResource AccentDefaultBrush}"
+                             VerticalAlignment="Center">
+                        <TextBox.Resources>
+                            <Style TargetType="{x:Type TextBox}">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="{x:Type TextBox}">
+                                            <Grid>
+                                                <TextBlock Text="搜索历史记录..." Foreground="{DynamicResource TextDisabledBrush}"
+                                                           IsHitTestVisible="False" VerticalAlignment="Center">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Text, RelativeSource={RelativeSource TemplatedParent}}" Value="">
+                                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                                <ScrollViewer x:Name="PART_ContentHost" Background="Transparent"/>
+                                            </Grid>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </TextBox.Resources>
+                    </TextBox>
                 </Grid>
             </Border>
             
-            <!-- Tab 切换 -->
-            <TabControl Grid.Row="1" x:Name="HistoryTabs" Background="Transparent" BorderThickness="0"
-                        Padding="0" Margin="8,4,8,0">
-                <TabControl.Resources>
-                    <Style TargetType="TabItem">
+            <!-- History List -->
+            <ListBox Grid.Row="2" x:Name="HistoryList" 
+                     ItemsSource="{Binding HistoryView}"
+                     Background="Transparent" BorderThickness="0"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                     Padding="8,0" Margin="0,0,0,8">
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                        <Setter Property="Padding" Value="0"/>
+                        <Setter Property="Margin" Value="0,0,0,4"/>
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
                         <Setter Property="Template">
                             <Setter.Value>
-                                <ControlTemplate TargetType="TabItem">
-                                    <Border x:Name="TabBorder" Background="Transparent" 
-                                            Padding="12,6" Margin="0,0,4,0" CornerRadius="4">
-                                        <ContentPresenter ContentSource="Header" 
-                                                          HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <ControlTemplate TargetType="ListBoxItem">
+                                    <Border x:Name="ItemBorder" 
+                                            Background="{TemplateBinding Background}" 
+                                            CornerRadius="6"
+                                            Padding="4"
+                                            BorderThickness="1"
+                                            BorderBrush="Transparent">
+                                        <Grid>
+                                            <ContentPresenter/>
+                                            <!-- Delete Button Overlay -->
+                                            <Button Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}"
+                                                    Content="✕" FontSize="10" Width="20" Height="20"
+                                                    HorizontalAlignment="Right" VerticalAlignment="Top"
+                                                    Margin="0,4,4,0"
+                                                    Background="{DynamicResource BackgroundTertiaryBrush}"
+                                                    Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                                    Visibility="Collapsed"
+                                                    x:Name="DeleteBtn"
+                                                    BorderThickness="0" Padding="0" Cursor="Hand">
+                                                <Button.Template>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Border Background="{TemplateBinding Background}" CornerRadius="10">
+                                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        </Border>
+                                                    </ControlTemplate>
+                                                </Button.Template>
+                                            </Button>
+                                        </Grid>
+                                        <Border.InputBindings>
+                                            <MouseBinding MouseAction="LeftDoubleClick" 
+                                                          Command="{Binding DataContext.PasteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                          CommandParameter="{Binding}"/>
+                                        </Border.InputBindings>
                                     </Border>
                                     <ControlTemplate.Triggers>
-                                        <Trigger Property="IsSelected" Value="True">
-                                            <Setter TargetName="TabBorder" Property="Background" 
-                                                    Value="{DynamicResource AccentSubtleBrush}"/>
-                                        </Trigger>
                                         <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter TargetName="TabBorder" Property="Background" 
-                                                    Value="{DynamicResource ControlHoverBackgroundBrush}"/>
+                                            <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource ControlHoverBrush}"/>
+                                            <Setter TargetName="DeleteBtn" Property="Visibility" Value="Visible"/>
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource AccentLightBrush}"/>
+                                            <Setter TargetName="ItemBorder" Property="BorderBrush" Value="{DynamicResource AccentDefaultBrush}"/>
                                         </Trigger>
                                     </ControlTemplate.Triggers>
                                 </ControlTemplate>
                             </Setter.Value>
                         </Setter>
                     </Style>
-                </TabControl.Resources>
-                
-                <!-- 文件 Tab -->
-                <TabItem Header="📁 文件">
-                    <ListBox x:Name="FileHistoryList" 
-                             Background="Transparent" BorderThickness="0"
-                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                             ItemsSource="{Binding FileHistory}"
-                             MouseDoubleClick="HistoryList_MouseDoubleClick">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <Border Padding="8,6" Margin="0,2" CornerRadius="4" 
-                                        Background="Transparent" Cursor="Hand">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <!-- 图标 -->
-                                        <TextBlock Grid.Column="0" Text="📄" FontSize="18" 
-                                                   VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                        <!-- 预览 -->
-                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding Preview}" TextTrimming="CharacterEllipsis"
-                                                       Foreground="{DynamicResource ForegroundBrush}"/>
-                                            <StackPanel Orientation="Horizontal">
-                                                <TextBlock Text="{Binding TimeAgo}" FontSize="11"
-                                                           Foreground="{DynamicResource ForegroundSecondaryBrush}"/>
-                                                <TextBlock Text=" · " FontSize="11" 
-                                                           Foreground="{DynamicResource ForegroundSecondaryBrush}"
-                                                           Visibility="{Binding IsCut, Converter={StaticResource BoolToVisibilityConverter}}"/>
-                                                <TextBlock Text="剪切" FontSize="11" 
-                                                           Foreground="{DynamicResource WarningBrush}"
-                                                           Visibility="{Binding IsCut, Converter={StaticResource BoolToVisibilityConverter}}"/>
-                                            </StackPanel>
-                                        </StackPanel>
-                                        <!-- 删除按钮 -->
-                                        <Button Grid.Column="2" Content="✕" FontSize="10"
-                                                Background="Transparent" BorderThickness="0"
-                                                Foreground="{DynamicResource ForegroundSecondaryBrush}"
-                                                Click="DeleteItem_Click" Tag="{Binding}"
-                                                Cursor="Hand" Padding="4" VerticalAlignment="Center"/>
-                                    </Grid>
-                                </Border>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                        <ListBox.ItemContainerStyle>
-                            <Style TargetType="ListBoxItem">
-                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                                <Setter Property="Padding" Value="0"/>
-                                <Setter Property="Margin" Value="0"/>
-                                <Setter Property="Background" Value="Transparent"/>
-                                <Setter Property="Template">
-                                    <Setter.Value>
-                                        <ControlTemplate TargetType="ListBoxItem">
-                                            <Border x:Name="ItemBorder" Background="{TemplateBinding Background}" 
-                                                    CornerRadius="4">
-                                                <ContentPresenter/>
-                                            </Border>
-                                            <ControlTemplate.Triggers>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="ItemBorder" Property="Background" 
-                                                            Value="{DynamicResource ControlHoverBackgroundBrush}"/>
-                                                </Trigger>
-                                                <Trigger Property="IsSelected" Value="True">
-                                                    <Setter TargetName="ItemBorder" Property="Background" 
-                                                            Value="{DynamicResource AccentSubtleBrush}"/>
-                                                </Trigger>
-                                            </ControlTemplate.Triggers>
-                                        </ControlTemplate>
-                                    </Setter.Value>
-                                </Setter>
-                            </Style>
-                        </ListBox.ItemContainerStyle>
-                    </ListBox>
-                </TabItem>
-                
-                <!-- 文本 Tab -->
-                <TabItem Header="📝 文本">
-                    <ListBox x:Name="TextHistoryList" 
-                             Background="Transparent" BorderThickness="0"
-                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                             ItemsSource="{Binding TextHistory}"
-                             MouseDoubleClick="HistoryList_MouseDoubleClick">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <Border Padding="8,6" Margin="0,2" CornerRadius="4" 
-                                        Background="Transparent" Cursor="Hand">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <!-- 图标 -->
-                                        <TextBlock Grid.Column="0" Text="📋" FontSize="18" 
-                                                   VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                        <!-- 预览 -->
-                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding Preview}" TextTrimming="CharacterEllipsis"
-                                                       TextWrapping="NoWrap" MaxWidth="200"
-                                                       Foreground="{DynamicResource ForegroundBrush}"/>
-                                            <TextBlock Text="{Binding TimeAgo}" FontSize="11"
-                                                       Foreground="{DynamicResource ForegroundSecondaryBrush}"/>
-                                        </StackPanel>
-                                        <!-- 删除按钮 -->
-                                        <Button Grid.Column="2" Content="✕" FontSize="10"
-                                                Background="Transparent" BorderThickness="0"
-                                                Foreground="{DynamicResource ForegroundSecondaryBrush}"
-                                                Click="DeleteItem_Click" Tag="{Binding}"
-                                                Cursor="Hand" Padding="4" VerticalAlignment="Center"/>
-                                    </Grid>
-                                </Border>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                        <ListBox.ItemContainerStyle>
-                            <Style TargetType="ListBoxItem">
-                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                                <Setter Property="Padding" Value="0"/>
-                                <Setter Property="Margin" Value="0"/>
-                                <Setter Property="Background" Value="Transparent"/>
-                                <Setter Property="Template">
-                                    <Setter.Value>
-                                        <ControlTemplate TargetType="ListBoxItem">
-                                            <Border x:Name="ItemBorder" Background="{TemplateBinding Background}" 
-                                                    CornerRadius="4">
-                                                <ContentPresenter/>
-                                            </Border>
-                                            <ControlTemplate.Triggers>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="ItemBorder" Property="Background" 
-                                                            Value="{DynamicResource ControlHoverBackgroundBrush}"/>
-                                                </Trigger>
-                                                <Trigger Property="IsSelected" Value="True">
-                                                    <Setter TargetName="ItemBorder" Property="Background" 
-                                                            Value="{DynamicResource AccentSubtleBrush}"/>
-                                                </Trigger>
-                                            </ControlTemplate.Triggers>
-                                        </ControlTemplate>
-                                    </Setter.Value>
-                                </Setter>
-                            </Style>
-                        </ListBox.ItemContainerStyle>
-                    </ListBox>
-                </TabItem>
-            </TabControl>
+                </ListBox.ItemContainerStyle>
+                <ListBox.ItemTemplate>
+                    <DataTemplate DataType="{x:Type services:ClipboardHistoryItem}">
+                        <Grid Margin="4,4,4,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <!-- Icon -->
+                            <Border Grid.Column="0" Width="32" Height="32" CornerRadius="8" 
+                                    Background="{DynamicResource BackgroundTertiaryBrush}" Margin="0,0,12,0">
+                                <TextBlock FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Type}" Value="Files">
+                                                    <Setter Property="Text" Value="📁"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Type}" Value="Text">
+                                                    <Setter Property="Text" Value="📝"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Border>
+                            
+                            <!-- Content -->
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Preview}" 
+                                           TextTrimming="CharacterEllipsis" 
+                                           MaxHeight="36" TextWrapping="NoWrap"
+                                           Foreground="{DynamicResource ForegroundPrimaryBrush}"
+                                           FontWeight="Normal" FontSize="13"/>
+                                
+                                <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                    <TextBlock Text="{Binding TimeAgo}" FontSize="11" 
+                                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                    
+                                    <Border Background="{DynamicResource WarningBrush}" CornerRadius="2" Margin="6,0,0,0" Padding="4,0"
+                                            Visibility="{Binding IsCut, Converter={StaticResource BoolToVis}}">
+                                        <TextBlock Text="剪切" FontSize="10" Foreground="White" Padding="0,1"/>
+                                    </Border>
+                                </StackPanel>
+                            </StackPanel>
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
             
-            <!-- 空状态提示 -->
-            <TextBlock x:Name="EmptyHint" Grid.Row="1" 
-                       Text="暂无历史记录" 
-                       HorizontalAlignment="Center" VerticalAlignment="Center"
-                       Foreground="{DynamicResource ForegroundSecondaryBrush}"
-                       Visibility="Collapsed"/>
+            <!-- Empty State (Overlay) -->
+            <StackPanel Grid.Row="2" VerticalAlignment="Center" HorizontalAlignment="Center" IsHitTestVisible="False">
+                <StackPanel.Style>
+                    <Style TargetType="StackPanel">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HistoryView.IsEmpty}" Value="True">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </StackPanel.Style>
+                <TextBlock Text="📭" FontSize="32" HorizontalAlignment="Center" Opacity="0.5" Margin="0,0,0,8"/>
+                <TextBlock Text="暂无历史记录" Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center"/>
+            </StackPanel>
             
-            <!-- 底部提示 -->
-            <Border Grid.Row="2" Padding="8,6" 
+            <!-- Footer Hint -->
+            <Border Grid.Row="3" Padding="12,8" 
                     BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,1,0,0">
-                <TextBlock Text="双击项目可粘贴到当前位置" FontSize="11" 
-                           Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                <TextBlock Text="双击粘贴 · Delete 删除" FontSize="11" 
+                           Foreground="{DynamicResource TextDisabledBrush}"
                            HorizontalAlignment="Center"/>
             </Border>
         </Grid>
     </Border>
 </UserControl>
-

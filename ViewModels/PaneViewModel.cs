@@ -38,7 +38,7 @@ namespace YiboFile.ViewModels
         private string _navigationMode = "Path"; // Path, Library, Tag, Search
         private Library _currentLibrary;
         private TagViewModel _currentTag;
-        private ObservableCollection<FileSystemItem> _files;
+
         private string _fileViewMode = "List"; // List, Grid, LargeIcon
         private bool _isLoading;
         private bool _isLoadingDisabled;
@@ -55,7 +55,7 @@ namespace YiboFile.ViewModels
         private readonly FavoriteService _favoriteService;
         private readonly SearchService _searchService;
         private readonly SearchCacheService _searchCacheService;
-        private readonly FileListService _fileListService;
+
         private readonly FolderSizeCalculationService _folderSizeService;
 
         private readonly ObservableCollection<ContextMenuItemViewModel> _libraryMenuItems = new ObservableCollection<ContextMenuItemViewModel>();
@@ -132,8 +132,12 @@ namespace YiboFile.ViewModels
 
         public ObservableCollection<FileSystemItem> Files
         {
-            get => _files;
-            set { _files = value; OnPropertyChanged(nameof(Files)); }
+            get => FileList?.Files;
+            set
+            {
+                if (FileList != null) FileList.Files = value;
+                OnPropertyChanged(nameof(Files));
+            }
         }
 
         public string FileViewMode
@@ -244,7 +248,6 @@ namespace YiboFile.ViewModels
             _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
             _isSecondary = isSecondary;
 
-            _files = new ObservableCollection<FileSystemItem>();
             _folderSizeService = App.ServiceProvider.GetService(typeof(FolderSizeCalculationService)) as FolderSizeCalculationService;
 
             Selection = new SelectionViewModel(_messageBus, isSecondary);
@@ -258,7 +261,11 @@ namespace YiboFile.ViewModels
             Filter.FilterChanged += (s, e) => ApplyFilter();
             Filter.MoreResultsLoaded += (s, newFiles) =>
             {
-                _dispatcher.Invoke(() => { foreach (var item in newFiles) Files.Add(item); });
+                _dispatcher.Invoke(() =>
+                {
+                    if (FileList?.Files != null)
+                        foreach (var item in newFiles) FileList.Files.Add(item);
+                });
             };
 
             _messageBus.Subscribe<SearchOptionsChangedMessage>(OnSearchOptionsChanged);
@@ -285,7 +292,13 @@ namespace YiboFile.ViewModels
             var columnService = App.ServiceProvider?.GetService<ColumnService>();
             FileList = new FileListViewModel(_messageBus, isSecondary ? YiboFile.Services.Navigation.PaneId.Second : YiboFile.Services.Navigation.PaneId.Main, columnService);
 
-            if (errorService != null) _fileListService = new FileListService(_dispatcher, errorService, _tagService);
+            // Sync with FileListViewModel
+            FileList.PropertyChanged += (s, e) =>
+            {
+                if (e.PropertyName == nameof(FileList.IsLoading)) IsLoading = FileList.IsLoading;
+                if (e.PropertyName == nameof(FileList.Files)) OnPropertyChanged(nameof(Files));
+            };
+
             if (_libraryService != null)
             {
                 // LibrariesLoaded moved to PaneMenuViewModel
@@ -381,39 +394,18 @@ namespace YiboFile.ViewModels
         private void RequestRefresh()
         {
             if (string.IsNullOrEmpty(CurrentPath)) return;
-            // Update menu on refresh? No, handled by events in PaneMenuViewModel
             if (NavigationMode == "Library" && CurrentLibrary != null) LoadLibraryAsync(CurrentLibrary);
             else if (NavigationMode == "Tag" && CurrentTag != null) LoadTagAsync(CurrentTag.Id.ToString());
-            else LoadPathAsync(CurrentPath);
+            else FileList?.RefreshFiles();
         }
 
         public void NavigateTo(string path) { if (!string.IsNullOrEmpty(path)) CurrentPath = path; }
 
         private async void LoadPathAsync(string path)
         {
-            if (IsLoading || string.IsNullOrEmpty(path)) return;
-            try
-            {
-                IsLoading = true;
-                StatusText = "正在加载...";
-                // LoadFileSystemItemsAsync handles paths, virtual paths (lib://, tag://) internally
-                var results = await _fileListService.LoadFileSystemItemsAsync(path);
-                _dispatcher.Invoke(() => { Files.Clear(); foreach (var item in results) Files.Add(item); });
-                StatusText = $"共 {results.Count} 项";
-            }
-            catch { StatusText = "加载失败"; }
-            finally { IsLoading = false; }
-            // Dynamic menu update handled by PaneMenuViewModel via selection changes or events?
-            // Actually PaneMenuViewModel updates on Selection changes? No, it needs to update when selection changes.
-            // Wait, PaneViewModel.OnFileSelectionChanged updates commands.
-            // PaneMenuViewModel needs to know about selection change to update checkboxes and enable states?
-            // PaneMenuViewModel should subscribe to 'FileSelectionChangedMessage'? NO, it accesses _pane.Selection.
-            // Does PaneMenuViewModel update on selection change?
-            // PaneMenuViewModel.UpdateDynamicMenuItems() is called on 'TagListChanged', etc.
-            // But checking/unchecking menu items depends on selection.
-            // When selection changes, we should call UpdateDynamicMenuItems.
-            // PaneViewModel calls 'Commands.NotifyCommandStatesChanged()'.
-            // Should also call 'Menu.UpdateDynamicMenuItems()'.
+            if (string.IsNullOrEmpty(path)) return;
+            // Delegate all logic to FileListViewModel
+            if (FileList != null) await FileList.LoadPathAsync(path);
             Menu?.UpdateDynamicMenuItems();
         }
 
@@ -425,23 +417,12 @@ namespace YiboFile.ViewModels
             IsLoading = true;
             StatusText = "加载库数据...";
             _libraryService.LoadLibraryFiles(lib, targetPane: _isSecondary ? PaneId.Second : PaneId.Main);
-            // Result will be handled in OnLibraryFilesLoaded
         }
 
         private async void LoadTagAsync(string tagIdOrName)
         {
-            if (IsLoading || string.IsNullOrEmpty(tagIdOrName)) return;
-            try
-            {
-                IsLoading = true;
-                StatusText = "筛选标签内容...";
-                // Use FileListService protocol support for tags
-                var results = await _fileListService.LoadFileSystemItemsAsync($"tag://{tagIdOrName}");
-                _dispatcher.Invoke(() => { Files.Clear(); foreach (var item in results) Files.Add(item); });
-                StatusText = $"标签筛选 ({results.Count} 项)";
-            }
-            catch { StatusText = "标签内容加载失败"; }
-            finally { IsLoading = false; }
+            if (string.IsNullOrEmpty(tagIdOrName)) return;
+            if (FileList != null) await FileList.LoadPathAsync($"tag://{tagIdOrName}");
             Menu?.UpdateDynamicMenuItems();
         }
 
@@ -453,7 +434,7 @@ namespace YiboFile.ViewModels
         {
             if (message.TargetPaneId == "Any" || (_isSecondary && message.TargetPaneId == "Secondary") || (!_isSecondary && message.TargetPaneId == "Primary"))
             {
-                _dispatcher.Invoke(() => { Files.Clear(); foreach (var item in message.Results) Files.Add(item); StatusText = $"搜索结果: {message.Results.Count} 项"; });
+                FileList?.UpdateFiles(message.Results);
             }
         }
 
@@ -476,30 +457,53 @@ namespace YiboFile.ViewModels
         private void OnNotesUpdated(NotesUpdatedMessage msg) => RequestRefresh();
         private void OnFileTagsChanged(FileTagsChangedMessage msg) => RequestRefresh();
         // TagListChanged etc moved to Menu
-        private void OnRefreshFileList(RefreshFileListMessage msg) => RequestRefresh();
+        private void OnRefreshFileList(RefreshFileListMessage msg)
+        {
+            if (string.IsNullOrEmpty(msg.Path) || string.Equals(CurrentPath, msg.Path, StringComparison.OrdinalIgnoreCase))
+            {
+                RequestRefresh();
+            }
+        }
         private void OnLibrarySelected(LibrarySelectedMessage msg) { if (msg.Library != null) NavigateTo($"lib://{msg.Library.Name}"); }
+
+
 
         private void OnFileSelectionChanged(FileSelectionChangedMessage msg)
         {
             if (msg.Pane == (_isSecondary ? PaneId.Second : PaneId.Main))
             {
                 Commands?.NotifyCommandStatesChanged();
-                Menu?.UpdateDynamicMenuItems(); // Ensure menu selection state updates
+
+                // Debounce menu updates to avoid freezing on rapid selection
+                Application.Current.Dispatcher.InvokeAsync(async () =>
+                {
+                    try
+                    {
+                        await System.Threading.Tasks.Task.Delay(100);
+                        Menu?.UpdateDynamicMenuItems();
+                    }
+                    catch { }
+                }, System.Windows.Threading.DispatcherPriority.Background);
             }
         }
 
-        private void OnNavigateToPath(NavigateToPathMessage msg) => NavigateTo(msg.Path);
+        private void OnNavigateToPath(NavigateToPathMessage msg)
+        {
+            if (msg.Pane == null || msg.Pane == (_isSecondary ? PaneId.Second : PaneId.Main))
+            {
+                NavigateTo(msg.Path);
+            }
+        }
 
         private void OnLibraryFilesLoaded(object sender, LibraryFilesLoadedEventArgs e)
         {
             // 只有当是本面板请求时才处理
             if (e.TargetPane == (_isSecondary ? PaneId.Second : PaneId.Main))
             {
+                FileList?.UpdateFiles(e.Files);
                 _dispatcher.Invoke(() =>
                 {
-                    Files.Clear();
-                    foreach (var item in e.Files) Files.Add(item);
-                    StatusText = $"库: {e.Library.Name} ({e.Files.Count} 项)";
+                    StatusText = $"库: {e.Library.Name} ({e.Files?.Count ?? 0} 项)";
                     IsLoading = false;
                 });
                 Menu?.UpdateDynamicMenuItems();

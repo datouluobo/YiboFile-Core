@@ -285,7 +285,17 @@
                       VirtualizingPanel.IsVirtualizing="True"
                       VirtualizingPanel.IsVirtualizingWhenGrouping="False"
                       ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                    <ListView.ItemContainerStyle>
+                <ListView.InputBindings>
+                    <KeyBinding Key="C" Modifiers="Ctrl" Command="{Binding Commands.CopyCommand}"/>
+                    <KeyBinding Key="X" Modifiers="Ctrl" Command="{Binding Commands.CutCommand}"/>
+                    <KeyBinding Key="V" Modifiers="Ctrl" Command="{Binding Commands.PasteCommand}"/>
+                    <KeyBinding Key="Delete" Command="{Binding Commands.DeleteCommand}"/>
+                    <KeyBinding Key="F2" Command="{Binding Commands.RenameCommand}"/>
+                    <KeyBinding Key="A" Modifiers="Ctrl" Command="{Binding Commands.SelectAllCommand}"/>
+                    <KeyBinding Key="F5" Command="{Binding Commands.RefreshCommand}"/>
+                    <KeyBinding Key="Enter" Command="{Binding Commands.PropertiesCommand}" Modifiers="Alt"/> 
+                </ListView.InputBindings>
+                <ListView.ItemContainerStyle>
                         <StaticResource ResourceKey="FileListItemStyle"/>
                     </ListView.ItemContainerStyle>
                     <ListView.GroupStyle>

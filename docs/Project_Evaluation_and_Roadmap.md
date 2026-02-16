@@ -1,6 +1,6 @@
 # YiboFile 项目评估与重构路线图
 
-> **当前版本**: v1.0.1480 (架构深度优化) | **更新日期**: 2026-02-15  
+> **当前版本**: v1.0.1509 (剪切板重做) | **更新日期**: 2026-02-16  
 > **下一版本**: v1.1.0 (目标：Core 完全解耦)  
 
 ---
@@ -26,7 +26,7 @@
 | **Phase 2: Partial MVVM** | v1.0.1 - v1.0.330 | 引入 `PaneViewModel`，部分功能命令化 | ✅ 90% 完成 |
 | **Phase 3: 混合架构** | **v1.0.1460** | **架构重构完成** - 控制器驱动 VM + 消息总线副作用 + 对话框修复 | ✅ 已完成 |
 | **Phase 3.5: 细节与修复** | **v1.0.1470** | 修复双列表同步、清理 PaneViewModel 冗余 | ✅ 已完成 |
-| **Phase 3.6: 深度重构** | **v1.0.1480 (当前)** | WindowOrchestrator、InputBindings 优化 | 🟡 进行中 |
+| **Phase 3.6: 深度重构** | **v1.0.1480** | WindowOrchestrator、InputBindings 优化 | ✅ 已完成 |
 | **Phase 4: 全模块化 (v1.1.0)** | v1.1.0 (目标) | PaneViewModel 完全解耦，模块化重构完成 | ⏳ 规划中 |
 
 ---
@@ -296,13 +296,11 @@ Controller-driven 场景：
 | **BUG-003** | Library | 副面板库路径识别失败 | `FileOperationModule` 未正确解析 `lib://` 协议 | 在 Module 中增加协议解析逻辑 | ⏳ 待修复 |
 | **BUG-007** | Sorting | 文件名排序导致列表变空 | `CollectionView` 与 `ObservableCollection` 同步冲突 | 使用 `BindingOperations.EnableCollectionSynchronization` | ⏳ 待修复 |
 | **BUG-008** | Header | 列头点击误触发双击响应 | 事件冒泡未正确拦截 | 在 `GridViewColumnHeader_Click` 中设置 `e.Handled = true` | ✅ 已修复 |
-| **BUG-009** | Tabs/Nav | 双面板标签页重复打开 | 副面板打开标签时主面板同步创建重复标签 | 需检查 `MainWindow` 事件绑定或 `TabsModule` 的 `PaneId` 过滤逻辑 | ⏳ 待修复 |
-| **BUG-010** | UI/Overlay | 设置和关于页面无法打开 | 重构事件桥接后，设置按钮的点击请求未正确到达 Controller | 检查 `NavigationRail` 的按钮 Command 绑定与 `WindowOrchestrator` 的桥接 | ✅ 已修复 |
-| **BUG-011** | Clipboard | 剪切板管理器体验差 | 交互逻辑陈旧，缺乏可视化反馈 | **[重做]** 需重新设计 UI 与交互流程 | ⏳ 待重做 |
-| **BUG-012** | FileOps | 工具栏按钮与快捷键部分失效 | 命令绑定在重构中丢失或 `CanExecute` 状态判定错误 | 检查 `PaneCommandSet` 与 `InputBindings` 的连接 | ⏳ 待修复 |
-| **BUG-013** | Performance | 双栏模式选中文件卡顿 | 预览加载可能运行在 UI 线程或未做防抖处理 | 确保 `PreviewService` 异步执行并增加防抖 (Debounce) | ⏳ 待修复 |
-| **BUG-014** | Window | 窗口状态持久化问题：每次打开程序，主副标签页都会重置为桌面，无法记忆上次路径 | `MainWindowViewModel` 或持久化服务未正确保存/恢复状态 | 检查 `OnClosed` 保存逻辑与 `OnStartup` 恢复逻辑 | ⏳ 待修复 |
-| **BUG-015** | FileList | 文件操作后列表不自动刷新 | 消息未正确触发或 `FileWatcher` 失效 | 检查 `FileOperationModule` 的消息发布与 `FileListViewModel` 的订阅 | ⏳ 待修复 |
+| BUG-011 | Clipboard | 剪切板管理器体验差 | 交互逻辑陈旧，缺乏可视化反馈 | **Fixed** (v1.0.1509) (Redesigned UI with modern list, search, and better preview) | ✅ 已修复 |
+| **BUG-012** | FileOps | 工具栏按钮与快捷键部分失效 | 命令绑定在重构中丢失或 `CanExecute` 状态判定错误 | 检查 `PaneCommandSet` 与 `InputBindings` 的连接 | ✅ 已修复 |
+| **BUG-013** | Performance | 双栏模式选中文件卡顿 | 预览加载可能运行在 UI 线程或未做防抖处理 | 确保 `PreviewService` 异步执行并增加防抖 (Debounce) (v1.0.1504重新优化) | ✅ 已修复 |
+| **BUG-014** | Window | 窗口状态持久化问题：每次打开程序，主副标签页都会重置为桌面，无法记忆上次路径 | `MainWindowViewModel` 或持久化服务未正确保存/恢复状态 | 检查 `OnClosed` 保存逻辑与 `OnStartup` 恢复逻辑 | ✅ 已修复 |
+| **BUG-015** | FileList | 文件操作后列表不自动刷新 | 消息未正确触发或 `FileWatcher` 失效 | 检查 `FileOperationModule` 的消息发布与 `FileListViewModel` 的订阅 | ✅ 已修复 |
 
 ---
 
@@ -321,6 +319,13 @@ Controller-driven 场景：
 | **重构 NavigationModule** | NavigationModule.cs (+150行) | +150 / -220 | 2026-02-08 |
 | **重构文件重命名逻辑** | FileOperationModule.cs / FileListControl.xaml.cs | +60 / -40 | 2026-02-08 |
 | **优化文件监视器防抖** | FileListViewModel.cs (3000ms -> 500ms) | 1 | 2026-02-08 |
+| 日期 | 版本 | 模块 | 变动说明 | 关联项目 |
+| 2026-02-16 | v1.0.1505 | 导航模块 | **[修复]** 修复双在板模式下，副面板创建标签页或导航时会导致主面板同步跳转的问题 (BUG-009)。 | Core |
+| 2026-02-16 | v1.0.1504 | 性能优化 | **[优化]** 重新引入文件列表选中性能优化 (BUG-013)，采用更安全的 `Dispatcher` 防抖与缓存机制，避免之前的稳定性问题。 | Core |
+| 2026-02-16 | v1.0.1503 | 交互体验 | **[修复]** 修复工具栏按钮（粘贴、新建等）状态未实时更新及文件列表快捷键（Ctrl+C/V/Del）偶尔失效的问题 (BUG-012)。 | Core |
+| **[历史记录]** | | | |
+| 2026-02-16 | v1.0.1502 | 文件列表 | **[修复]** 解决文件操作（如复制、删除）后列表不自动刷新或状态滞后的问题 (BUG-015)。 | Core |
+| 2026-02-16 | v1.0.1501 | 稳定性修复 | **[修复]** 回滚部分性能优化逻辑（菜单防抖与后台任务取消），解决文件列表因线程调度问题导致的显示空白 (BUG-016)。 | Core |
 | **修复列头事件处理** | FileListControl.xaml.cs (BUG-008) | +20 | 2026-02-08 |
 | **重构键盘事件处理** | KeyboardEventHandler.cs / EventBridgeService.cs | +120 / -150 | 2026-02-09 |
 | **移除 MainWindow 键盘桥接** | MainWindow.Input.cs | -15 | 2026-02-09 |
@@ -337,7 +342,8 @@ Controller-driven 场景：
 | **清理 MainWindow XAML 事件** | MainWindow.xaml.cs | -25 methods | 2026-02-14 |
 | **修复 Region 指令错误** | MainWindow.xaml.cs | +2 | 2026-02-14 |
 | **WindowOrchestrator 深度重构** | WindowOrchestrator.cs | Refactor | 2026-02-15 |
-| **InputBindings 优化** | KeyboardEventHandler.cs | -200 | 2026-02-15 |
+| **窗口状态持久化修复** | WindowStateManager.cs (BUG-014) | +20 | 2026-02-15 |
+| **性能专项优化** | RightPanelViewModel / PaneViewModel (BUG-013) | +40 / -10 | 2026-02-15 |
 
 - **MainWindow 解构 (阶段 5)**: `已完成` (100%). `MainWindow.xaml.cs` 从 >2400 行减少到 <800 行。
 - **内存审计与优化 (阶段 6)**: `已完成` (100%).

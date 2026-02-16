@@ -19,6 +19,8 @@ namespace YiboFile.ViewModels
 
         private ObservableCollection<FileSystemItem> _selectedItems = new ObservableCollection<FileSystemItem>();
         private FileSystemItem _selectedItem;
+        private readonly System.Collections.Generic.HashSet<string> _calculatedPaths = new System.Collections.Generic.HashSet<string>();
+
 
         public event EventHandler SelectionChanged;
 
@@ -80,7 +82,11 @@ namespace YiboFile.ViewModels
                 // 如果是文件夹且大小未计算，触发计算
                 if (SelectedItem.IsDirectory && (string.IsNullOrEmpty(SelectedItem.Size) || SelectedItem.Size == "-" || SelectedItem.Size == "计算中..."))
                 {
-                    _folderSizeService?.CalculateAndUpdateFolderSizeAsync(SelectedItem.Path);
+                    if (!_calculatedPaths.Contains(SelectedItem.Path))
+                    {
+                        _calculatedPaths.Add(SelectedItem.Path);
+                        _folderSizeService?.CalculateAndUpdateFolderSizeAsync(SelectedItem.Path);
+                    }
                 }
             }
             else

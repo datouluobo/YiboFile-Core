@@ -205,12 +205,6 @@ namespace YiboFile.ViewModels
         {
             System.Diagnostics.Debug.WriteLine($"[FileListViewModel] LoadPathAsync requested for: {path}");
 
-            // 如果正在加载相同目录，则忽略以防止循环
-            if (_isLoadingFiles && path == _currentPath)
-            {
-                System.Diagnostics.Debug.WriteLine($"[FileListViewModel] LoadPathAsync already loading: {path}. Skipping redundant request.");
-                return;
-            }
 
             // 如果正在加载其它目录，则取消旧的并排队
             if (_isLoadingFiles)
@@ -362,9 +356,8 @@ namespace YiboFile.ViewModels
             // System.Diagnostics.Debug.WriteLine($"[FileListViewModel] RefreshFiles called. CurrentPath: {_currentPath}");
 
             var targetPath = _currentPath;
-            if (string.IsNullOrEmpty(targetPath) || _isLoadingFiles)
+            if (string.IsNullOrEmpty(targetPath))
             {
-                if (_isLoadingFiles) System.Diagnostics.Debug.WriteLine($"[FileListViewModel] RefreshFiles ignored: IsLoadingFiles=true");
                 return;
             }
 
