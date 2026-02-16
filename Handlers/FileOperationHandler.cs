@@ -1,4 +1,5 @@
 using System;
+using YiboFile.ViewModels;
 using YiboFile.Models;
 using System.Collections.Generic;
 using System.Linq;
@@ -31,32 +32,48 @@ namespace YiboFile.Handlers
         /// <summary>
         /// 获取当前操作上下文
         /// </summary>
+        private PaneViewModel ActivePane => (_mainWindow.DataContext as MainWindowViewModel)?.ActivePane;
+
+        /// <summary>
+        /// 获取当前操作上下文
+        /// </summary>
         public IFileOperationContext GetCurrentOperationContext()
         {
-            if (_mainWindow._currentLibrary != null)
+            var pane = ActivePane;
+            if (pane == null) return null;
+
+            // Resolve FileBrowserControl based on pane
+            var browser = pane.IsSecondary ? _mainWindow.SecondFileBrowser : _mainWindow.FileBrowser;
+
+            if (pane.NavigationMode == "Library" && pane.CurrentLibrary != null)
             {
                 return new LibraryOperationContext(
-                    _mainWindow._currentLibrary,
-                    _mainWindow.FileBrowser,
+                    pane.CurrentLibrary,
+                    browser,
                     _mainWindow,
-                    () => _mainWindow._libraryEventHandler?.LoadLibraryFiles(_mainWindow._currentLibrary));
+                    () => _mainWindow._libraryEventHandler?.LoadLibraryFiles(pane.CurrentLibrary));
             }
             // TagOperationContext removed - Phase 2
             // else if (_mainWindow._currentTagFilter != null)
             // {
             //     return new TagOperationContext(
             //         _mainWindow._currentTagFilter,
-            //         _mainWindow.FileBrowser,
+            //         browser,
             //         _mainWindow,
             //         () => _mainWindow.FilterByTag(_mainWindow._currentTagFilter));
             // }
             else
             {
+                // Use pane-specific path interaction
                 return new PathOperationContext(
-                    _mainWindow._currentPath,
-                    _mainWindow.FileBrowser,
+                    pane.CurrentPath,
+                    browser,
                     _mainWindow,
-                    () => _mainWindow._orchestrator.NavigationCoordinator.HandlePathNavigation(_mainWindow._currentPath, YiboFile.Models.Navigation.NavigationSource.External, YiboFile.Models.Navigation.ClickType.LeftClick));
+                    () => _mainWindow._orchestrator.NavigationCoordinator.HandlePathNavigation(
+                        pane.CurrentPath,
+                        YiboFile.Models.Navigation.NavigationSource.External,
+                        YiboFile.Models.Navigation.ClickType.LeftClick,
+                        pane: pane.IsSecondary ? YiboFile.Services.Navigation.PaneId.Second : YiboFile.Services.Navigation.PaneId.Main));
             }
         }
 
@@ -67,7 +84,9 @@ namespace YiboFile.Handlers
         {
             try
             {
-                var selectedItems = _mainWindow.FileBrowser?.FilesSelectedItems?.Cast<FileSystemItem>().ToList() ?? new List<FileSystemItem>();
+                var pane = ActivePane;
+                var selectedItems = pane?.SelectedItems?.ToList() ?? new List<FileSystemItem>();
+
                 if (selectedItems.Count == 0)
                 {
                     return;
@@ -89,7 +108,9 @@ namespace YiboFile.Handlers
         {
             try
             {
-                var selectedItems = _mainWindow.FileBrowser?.FilesSelectedItems?.Cast<FileSystemItem>().ToList() ?? new List<FileSystemItem>();
+                var pane = ActivePane;
+                var selectedItems = pane?.SelectedItems?.ToList() ?? new List<FileSystemItem>();
+
                 if (selectedItems.Count == 0)
                 {
                     return;
@@ -111,7 +132,9 @@ namespace YiboFile.Handlers
         {
             try
             {
-                var selectedItems = _mainWindow.FileBrowser?.FilesSelectedItems?.Cast<FileSystemItem>().ToList() ?? new List<FileSystemItem>();
+                var pane = ActivePane;
+                var selectedItems = pane?.SelectedItems?.ToList() ?? new List<FileSystemItem>();
+
                 if (selectedItems.Count == 0)
                 {
                     return;
