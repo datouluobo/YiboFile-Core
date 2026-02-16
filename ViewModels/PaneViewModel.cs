@@ -46,6 +46,8 @@ namespace YiboFile.ViewModels
 
         private Stack<string> _backStack = new Stack<string>();
         private Stack<string> _forwardStack = new Stack<string>();
+        public IEnumerable<string> BackStack => _backStack;
+        public IEnumerable<string> ForwardStack => _forwardStack;
         private bool _isNavigatingHistory;
 
         private readonly SearchCoordinator _searchCoordinator;
@@ -201,36 +203,7 @@ namespace YiboFile.ViewModels
 
         public PaneCommandSet Commands { get; private set; }
 
-        #region Forwarding Commands (Backward Compatibility)
-        public ICommand RefreshCommand => Commands?.RefreshCommand;
-        public ICommand NavigateBackCommand => Commands?.NavigateBackCommand;
-        public ICommand NavigateForwardCommand => Commands?.NavigateForwardCommand;
-        public ICommand NavigateUpCommand => Commands?.NavigateUpCommand;
-        public ICommand NavigateHomeCommand => Commands?.NavigateHomeCommand;
-        public ICommand OpenParentFolderCommand => Commands?.OpenParentFolderCommand;
-        public ICommand SwitchViewModeCommand => Commands?.SwitchViewModeCommand;
-        public ICommand SelectAllCommand => Commands?.SelectAllCommand;
-        public ICommand PropertiesCommand => Commands?.PropertiesCommand;
-        public ICommand NewFolderCommand => Commands?.NewFolderCommand;
-        public ICommand NewFileCommand => Commands?.NewFileCommand;
-        public ICommand DeleteCommand => Commands?.DeleteCommand;
-        public ICommand CopyCommand => Commands?.CopyCommand;
-        public ICommand CutCommand => Commands?.CutCommand;
-        public ICommand PasteCommand => Commands?.PasteCommand;
-        public ICommand RenameCommand => Commands?.RenameCommand;
-        public ICommand UndoCommand => Commands?.UndoCommand;
-        public ICommand RedoCommand => Commands?.RedoCommand;
-        public ICommand ToggleLibraryCommand => Commands?.ToggleLibraryCommand;
-        public ICommand AddToFavoriteCommand => Commands?.AddToFavoriteCommand;
-        public ICommand ToggleTagCommand => Commands?.ToggleTagCommand;
-        public ICommand NewLibraryCommand => Commands?.NewLibraryCommand;
-        public ICommand NewFavoriteGroupCommand => Commands?.NewFavoriteGroupCommand;
-        public ICommand NewTagCommand => Commands?.NewTagCommand;
-        public ICommand ManageTagsCommand => Commands?.ManageTagsCommand;
-        public ICommand BatchAddTagsCommand => Commands?.BatchAddTagsCommand;
-        public ICommand TagStatisticsCommand => Commands?.TagStatisticsCommand;
-        public ICommand LoadMoreCommand => Commands?.LoadMoreCommand;
-        #endregion
+
 
         public PaneMenuViewModel Menu { get; private set; }
 
@@ -279,6 +252,7 @@ namespace YiboFile.ViewModels
             _messageBus.Subscribe<LibrarySelectedMessage>(OnLibrarySelected);
             _messageBus.Subscribe<FileSelectionChangedMessage>(OnFileSelectionChanged);
             _messageBus.Subscribe<NavigateToPathMessage>(OnNavigateToPath);
+            _messageBus.Subscribe<RestoreNavigationStateMessage>(OnRestoreNavigationState);
             // LibraryFilesLoaded 现在通过 C# 事件订阅，不通过消息总线
 
             _searchFilterService = App.ServiceProvider?.GetService<SearchFilterService>();
@@ -510,7 +484,48 @@ namespace YiboFile.ViewModels
         {
             if (msg.Pane == null || msg.Pane == (_isSecondary ? PaneId.Second : PaneId.Main))
             {
-                NavigateTo(msg.Path);
+                if (!msg.AddToHistory)
+                {
+                    _isNavigatingHistory = true;
+                    try { NavigateTo(msg.Path); }
+                    finally { _isNavigatingHistory = false; }
+                }
+                else
+                {
+                    NavigateTo(msg.Path);
+                }
+            }
+        }
+
+        private void OnRestoreNavigationState(RestoreNavigationStateMessage msg)
+        {
+            if (msg.Pane == (_isSecondary ? PaneId.Second : PaneId.Main))
+            {
+                _isNavigatingHistory = true;
+                try
+                {
+                    CurrentPath = msg.Path; // Setup current path without pushing old path
+
+                    _backStack.Clear();
+                    if (msg.BackStack != null)
+                    {
+                        foreach (var p in msg.BackStack.Reverse()) _backStack.Push(p);
+                    }
+
+                    _forwardStack.Clear();
+                    if (msg.ForwardStack != null)
+                    {
+                        foreach (var p in msg.ForwardStack.Reverse()) _forwardStack.Push(p);
+                    }
+
+                    OnPropertyChanged(nameof(CanNavigateBack));
+                    OnPropertyChanged(nameof(CanNavigateForward));
+                    Commands?.NotifyCommandStatesChanged();
+                }
+                finally
+                {
+                    _isNavigatingHistory = false;
+                }
             }
         }
 

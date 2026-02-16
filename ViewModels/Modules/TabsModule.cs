@@ -57,7 +57,9 @@ namespace YiboFile.ViewModels.Modules
             // 订阅标签页请求消息
             Subscribe<CreateTabMessage>(OnCreateTab);
             Subscribe<CloseTabMessage>(OnCloseTab);
+
             Subscribe<SwitchToTabMessage>(OnSwitchToTab);
+            Subscribe<NavigationCompleteMessage>(OnNavigationComplete);
 
             // 订阅路径变更以更新当前标签页
             Subscribe<PathChangedMessage>(OnPathChanged);
@@ -95,25 +97,28 @@ namespace YiboFile.ViewModels.Modules
                 // 2. 如果不是处于同步中，则必须发布消息，哪怕是在程序启动时。
                 if (!_isSuppressingNavigation && !string.IsNullOrEmpty(tab.Path))
                 {
-                    System.Diagnostics.Debug.WriteLine($"[NAV-DEBUG] TabsModule ({pane}): Publishing NavigateToPathMessage for '{tab.Path}'");
-                    Publish(new NavigateToPathMessage(tab.Path, AddToHistory: false, Pane: pane));
+                    System.Diagnostics.Debug.WriteLine($"[NAV-DEBUG] TabsModule ({pane}): Publishing RestoreNavigationStateMessage for '{tab.Path}'");
+                    Publish(new RestoreNavigationStateMessage(
+                        tab.Path,
+                        tab.BackStack,
+                        tab.ForwardStack,
+                        pane));
+
+                    // 对于标签，额外发送消息同步侧边栏选中状态
+                    if (tab.Type == TabType.Tag && tab.Path?.StartsWith("tag://") == true)
+                    {
+                        // 解析标签名称
+                        var tagName = tab.Path.Substring(6);
+                        // 查找对应的 TagViewModel 并通过消息发布 (如果需要同步侧边栏)
+                        // 目前 PaneViewModel 会在解析 tag:// 时自动更新 CurrentTag
+                    }
+
+                    // 发布激活消息供 MainWindow 或其他组件（如搜索框）同步局部 UI 状态
+                    Publish(new TabActivatedMessage(tab.Path ?? "", tab.Path ?? "", tab.Type == TabType.Library)
+                    {
+                        // MainWindow 的搜索框等组件会监听此消息同步模式
+                    });
                 }
-
-
-                // 对于标签，额外发送消息同步侧边栏选中状态
-                else if (tab.Type == TabType.Tag && tab.Path?.StartsWith("tag://") == true)
-                {
-                    // 解析标签名称
-                    var tagName = tab.Path.Substring(6);
-                    // 查找对应的 TagViewModel 并通过消息发布 (如果需要同步侧边栏)
-                    // 目前 PaneViewModel 会在解析 tag:// 时自动更新 CurrentTag
-                }
-
-                // 发布激活消息供 MainWindow 或其他组件（如搜索框）同步局部 UI 状态
-                Publish(new TabActivatedMessage(tab.Path ?? "", tab.Path ?? "", tab.Type == TabType.Library)
-                {
-                    // MainWindow 的搜索框等组件会监听此消息同步模式
-                });
             }
             finally
             {
@@ -211,6 +216,24 @@ namespace YiboFile.ViewModels.Modules
                     CreateTab(message.NewPath, forceNewTab: false, activate: true, targetPane: PaneId.Second);
                 else
                     CreateTab(message.NewPath, forceNewTab: false, activate: true, targetPane: PaneId.Main);
+            }
+        }
+
+        private void OnNavigationComplete(NavigationCompleteMessage msg)
+        {
+            var tabService = msg.Pane == PaneId.Second ? _secondTabService : _tabService;
+            if (tabService?.ActiveTab != null)
+            {
+                // Update history stacks for the active tab (using Reverse to maintain order as Stack enumerates LIFO)
+                if (msg.BackStack != null)
+                    tabService.ActiveTab.BackStack = new System.Collections.Generic.Stack<string>(msg.BackStack.Reverse());
+                else
+                    tabService.ActiveTab.BackStack.Clear();
+
+                if (msg.ForwardStack != null)
+                    tabService.ActiveTab.ForwardStack = new System.Collections.Generic.Stack<string>(msg.ForwardStack.Reverse());
+                else
+                    tabService.ActiveTab.ForwardStack.Clear();
             }
         }
 

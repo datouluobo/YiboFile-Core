@@ -105,5 +105,9 @@ namespace YiboFile.Services.Tabs
             get => _lastAccessTime;
             set => SetProperty(ref _lastAccessTime, value);
         }
+
+        // Navigation History State
+        public Stack<string> BackStack { get; set; } = new Stack<string>();
+        public Stack<string> ForwardStack { get; set; } = new Stack<string>();
     }
 }

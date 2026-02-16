@@ -11,7 +11,9 @@ namespace YiboFile.ViewModels.Messaging.Messages
         string Path,
         PaneId Pane,
         NavigationSource Source,
-        string NavigationMode = "Path");
+        string NavigationMode = "Path",
+        System.Collections.Generic.IEnumerable<string> BackStack = null,
+        System.Collections.Generic.IEnumerable<string> ForwardStack = null);
 
     /// <summary>
     /// 导航状态变更消息 (可选，用于同步全局按钮状态)
@@ -71,4 +73,13 @@ namespace YiboFile.ViewModels.Messaging.Messages
     /// 请求导航到指定库
     /// </summary>
     public record NavigateToLibraryMessage(YiboFile.Library Library, PaneId? Pane = null);
+
+    /// <summary>
+    /// 恢复导航状态消息 (用于标签页切换)
+    /// </summary>
+    public record RestoreNavigationStateMessage(
+        string Path,
+        System.Collections.Generic.Stack<string> BackStack,
+        System.Collections.Generic.Stack<string> ForwardStack,
+        PaneId Pane);
 }

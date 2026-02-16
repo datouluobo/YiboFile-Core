@@ -158,7 +158,9 @@ namespace YiboFile.Services.Navigation
                     path,
                     pane,
                     source,
-                    vm.NavigationMode));
+                    vm.NavigationMode,
+                    BackStack: vm.BackStack,
+                    ForwardStack: vm.ForwardStack));
             }
             else
             {
@@ -218,7 +220,10 @@ namespace YiboFile.Services.Navigation
                 _messageBus.Publish(new NavigationCompleteMessage(
                     library.Name,
                     pane,
-                    YiboFile.Models.Navigation.NavigationSource.SidebarLibrary));
+                    YiboFile.Models.Navigation.NavigationSource.SidebarLibrary,
+                    "Library",
+                    BackStack: vm.BackStack,
+                    ForwardStack: vm.ForwardStack));
             }
         }
 
