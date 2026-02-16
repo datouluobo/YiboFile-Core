@@ -1,6 +1,6 @@
 # YiboFile 项目评估与重构路线图
 
-> **当前版本**: v1.0.1520 (标签也历史独立 & PaneViewModel 拆分) | **更新日期**: 2026-02-16  
+> **当前版本**: v1.0.1521 (修复列表加载) | **更新日期**: 2026-02-16  
 > **下一版本**: v1.1.0 (目标：Core 完全解耦)  
 
 ---
@@ -346,6 +346,7 @@ Controller-driven 场景：
 | **性能专项优化** | RightPanelViewModel / PaneViewModel (BUG-013) | +40 / -10 | 2026-02-15 |
 | **标签页历史独立 (Per-Tab History)** | TabsModule / PathTab / PaneViewModel | +80 / -20 | 2026-02-16 |
 | **PaneViewModel 命令拆分** | PaneCommandSet.cs / PaneViewModel.cs | Refactor | 2026-02-16 |
+| **[BUG-017] 修复列表加载** | PaneViewModel (NavigationMode/Refresh) | +10 | 2026-02-16 |
 
 - **MainWindow 解构 (阶段 5)**: `已完成` (100%). `MainWindow.xaml.cs` 从 >2400 行减少到 <800 行。
 - **内存审计与优化 (阶段 6)**: `已完成` (100%).

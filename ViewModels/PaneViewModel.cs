@@ -85,13 +85,14 @@ namespace YiboFile.ViewModels
                     _currentPath = value;
                     OnPropertyChanged(nameof(CurrentPath));
 
+                    // Update NavigationMode regardless of history navigation
+                    if (value != null && value.StartsWith("lib://")) NavigationMode = "Library";
+                    else if (value != null && value.StartsWith("tag://")) NavigationMode = "Tag";
+                    else if (value != null && value.StartsWith("search://")) NavigationMode = "Search";
+                    else NavigationMode = "Path";
+
                     if (!_isNavigatingHistory)
                     {
-                        if (value != null && value.StartsWith("lib://")) NavigationMode = "Library";
-                        else if (value != null && value.StartsWith("tag://")) NavigationMode = "Tag";
-                        else if (value != null && value.StartsWith("search://")) NavigationMode = "Search";
-                        else NavigationMode = "Path";
-
                         if (!string.IsNullOrEmpty(oldPath))
                             _backStack.Push(oldPath);
                         _forwardStack.Clear();
@@ -370,7 +371,7 @@ namespace YiboFile.ViewModels
             if (string.IsNullOrEmpty(CurrentPath)) return;
             if (NavigationMode == "Library" && CurrentLibrary != null) LoadLibraryAsync(CurrentLibrary);
             else if (NavigationMode == "Tag" && CurrentTag != null) LoadTagAsync(CurrentTag.Id.ToString());
-            else FileList?.RefreshFiles();
+            else LoadPathAsync(CurrentPath);
         }
 
         public void NavigateTo(string path) { if (!string.IsNullOrEmpty(path)) CurrentPath = path; }
