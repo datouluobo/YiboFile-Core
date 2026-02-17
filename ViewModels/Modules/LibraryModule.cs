@@ -86,12 +86,7 @@ namespace YiboFile.ViewModels.Modules
 
             InitializeCommands();
 
-            if (_libraryService != null)
-            {
-                _libraryService.LibrariesLoaded += OnLibrariesLoadedFromService;
-                _libraryService.LibraryFilesLoaded += OnLibraryFilesLoadedFromService;
-                _libraryService.LibraryHighlightRequested += OnLibraryHighlightRequestedFromService;
-            }
+
 
             // 在构造函数末尾，异步标记初始化完成
             System.Windows.Application.Current.Dispatcher.BeginInvoke(new Action(() =>
@@ -179,6 +174,13 @@ namespace YiboFile.ViewModels.Modules
                 // 注意：如果当前已经在库侧边栏模式，实时同步高亮
                 SetSelectedLibrarySilently(msg.Library);
             });
+
+            Subscribe<LibraryHighlightRequestedMessage>(msg =>
+            {
+                if (msg.Library != null) SetSelectedLibrarySilently(msg.Library);
+            });
+
+            Subscribe<LibraryListChangedMessage>(msg => LoadLibraries());
         }
 
         private void OnToggleLibraryPathRequest(ToggleLibraryPathRequestMessage msg)
@@ -216,18 +218,11 @@ namespace YiboFile.ViewModels.Modules
 
         public void LoadLibraries()
         {
-            var libs = _libraryService.LoadLibraries();
+            var libs = _libraryService.GetAllLibraries();
             UpdateLibrariesCollection(libs);
         }
 
-        private void OnLibrariesLoadedFromService(object sender, System.Collections.Generic.List<Library> libs)
-        {
-            // Ensure UI thread for ObservableCollection update
-            System.Windows.Application.Current.Dispatcher.Invoke(() =>
-            {
-                UpdateLibrariesCollection(libs);
-            });
-        }
+
 
         private void UpdateLibrariesCollection(System.Collections.Generic.List<Library> libs)
         {
@@ -244,7 +239,8 @@ namespace YiboFile.ViewModels.Modules
                 }
                 // Replacing the instance triggers PropertyChanged("Libraries") via SetProperty
                 Libraries = newCollection;
-                Publish(new LibraryListChangedMessage());
+                // Removed Publish(new LibraryListChangedMessage()) to prevent loop
+
 
                 // [已移除自动高亮同步] 彻底移除加载列表后的自动选中逻辑
                 // 确保只有用户主动点击时才触发导航
@@ -283,27 +279,13 @@ namespace YiboFile.ViewModels.Modules
             }
         }
 
-        private void OnLibraryFilesLoadedFromService(object sender, LibraryFilesLoadedEventArgs e)
-        {
-            Publish(new LibraryFilesLoadedMessage(e.Library, e.Files, e.IsEmpty, e.TargetPane));
-        }
 
-        private void OnLibraryHighlightRequestedFromService(object sender, Library library)
-        {
-            if (library != null)
-            {
-                SetSelectedLibrarySilently(library);
-            }
-        }
+
+
 
         protected override void OnShutdown()
         {
-            if (_libraryService != null)
-            {
-                _libraryService.LibrariesLoaded -= OnLibrariesLoadedFromService;
-                _libraryService.LibraryFilesLoaded -= OnLibraryFilesLoadedFromService;
-                _libraryService.LibraryHighlightRequested -= OnLibraryHighlightRequestedFromService;
-            }
+
             base.OnShutdown();
         }
     }

@@ -333,49 +333,8 @@ namespace YiboFile.Controls
             var quickAccessListBox = QuickAccessListBoxControl;
             if (quickAccessListBox != null)
             {
-                quickAccessListBox.PreviewMouseDown += (s, e) =>
-                {
-                    if (e.ChangedButton == MouseButton.Middle && OpenInNewTabCommand != null)
-                    {
-                        var element = e.OriginalSource as FrameworkElement;
-                        var dataContext = element?.DataContext;
-                        var path = (dataContext as YiboFile.Services.Navigation.NavigationItem)?.Path
-                                   ?? (dataContext?.GetType().GetProperty("Path")?.GetValue(dataContext) as string);
-                        if (!string.IsNullOrEmpty(path))
-                        {
-                            OpenInNewTabCommand.Execute(path);
-                            e.Handled = true;
-                        }
-                        return;
-                    }
+                quickAccessListBox.PreviewMouseDown += QuickAccessListBox_PreviewMouseDown;
 
-                    // 左键点击支持：即使是已选中的项，再次点击也应触发导航
-                    if (e.ChangedButton == MouseButton.Left && NavigateCommand != null)
-                    {
-                        var element = e.OriginalSource as FrameworkElement;
-                        // QuickAccessItem 和 NavigationItem 都有 Path 属性，用动态获取兼容两者
-                        var dataContext = element?.DataContext;
-                        var path = (dataContext as YiboFile.Services.Navigation.NavigationItem)?.Path
-                                   ?? (dataContext?.GetType().GetProperty("Path")?.GetValue(dataContext) as string);
-                        // 溯源到 ListBoxItem (防止点击空白处触发)
-                        DependencyObject current = e.OriginalSource as DependencyObject;
-                        while (current != null && current != quickAccessListBox)
-                        {
-                            if (current is ListBoxItem)
-                            {
-                                if (!string.IsNullOrEmpty(path))
-                                {
-                                    if (NavigateCommand.CanExecute(path))
-                                        NavigateCommand.Execute(path);
-                                }
-                                break;
-                            }
-                            current = System.Windows.Media.VisualTreeHelper.GetParent(current);
-                        }
-                    }
-
-                    QuickAccessListBoxPreviewMouseDown?.Invoke(s, e);
-                };
                 quickAccessListBox.SelectionChanged += (s, e) =>
                 {
                     // SelectionChanged 仍然保留作为兜底，但主要由 PreviewMouseDown 处理多点击
@@ -404,6 +363,8 @@ namespace YiboFile.Controls
             {
                 librariesListBox.PreviewMouseDown += (s, e) =>
                 {
+                    if (e.Handled) return;
+
                     if (e.ChangedButton == MouseButton.Middle && OpenInNewTabCommand != null)
                     {
                         var element = e.OriginalSource as FrameworkElement;
@@ -430,7 +391,10 @@ namespace YiboFile.Controls
                                 {
                                     var path = $"lib://{item.Name}";
                                     if (NavigateCommand.CanExecute(path))
+                                    {
                                         NavigateCommand.Execute(path);
+                                        e.Handled = true;
+                                    }
                                 }
                                 break;
                             }
@@ -438,7 +402,7 @@ namespace YiboFile.Controls
                         }
                     }
 
-                    LibrariesListBoxPreviewMouseDown?.Invoke(s, e);
+                    if (!e.Handled) LibrariesListBoxPreviewMouseDown?.Invoke(s, e);
                 };
 
                 librariesListBox.SelectionChanged += (s, e) =>
@@ -531,51 +495,114 @@ namespace YiboFile.Controls
             if (sender is ListBox listBox)
             {
                 FavoriteListBoxLoaded?.Invoke(this, listBox);
-                listBox.SelectionChanged += FavoritesListBox_SelectionChanged;
+                // Fix BUG-019: Remove SelectionChanged to prevent duplicate navigation
+                // listBox.SelectionChanged += FavoritesListBox_SelectionChanged;
                 listBox.PreviewMouseDown += FavoritesListBox_PreviewMouseDown;
             }
         }
 
+        private string GetPathFromDataContext(object dataContext)
+        {
+            if (dataContext == null) return null;
+
+            // Try casting to NavigationItem first
+            if (dataContext is YiboFile.Services.Navigation.NavigationItem navItem)
+                return navItem.Path;
+
+            // Reflection fallback for FavoriteItem or other types
+            try
+            {
+                var type = dataContext.GetType();
+                var pathProp = type.GetProperty("Path");
+                if (pathProp != null)
+                    return pathProp.GetValue(dataContext) as string;
+            }
+            catch { }
+
+            return null;
+        }
+
         private void FavoritesListBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (sender is ListBox listBox)
+            if (e.Handled) return;
+
+            var element = e.OriginalSource as FrameworkElement;
+            var dataContext = element?.DataContext;
+
+            // Traverse up to find ListBoxItem if needed (for accurate DataContext)
+            DependencyObject current = element;
+            while (current != null && !(current is ListBoxItem) && current != sender as DependencyObject)
             {
-                // 左键点击支持：即使是已选中的项，再次点击也应触发导航
+                current = System.Windows.Media.VisualTreeHelper.GetParent(current);
+            }
+            if (current is ListBoxItem itemContainer)
+                dataContext = itemContainer.DataContext;
+
+            var path = GetPathFromDataContext(dataContext);
+
+            if (!string.IsNullOrEmpty(path))
+            {
                 if (e.ChangedButton == MouseButton.Left && NavigateCommand != null)
                 {
-                    var element = e.OriginalSource as FrameworkElement;
-                    var item = element?.DataContext as YiboFile.Services.Navigation.NavigationItem;
-                    // 溯源到 ListBoxItem
-                    DependencyObject current = e.OriginalSource as DependencyObject;
-                    while (current != null && current != listBox)
+                    NavigateCommand.Execute(path);
+                    e.Handled = true; // Prevent bubbling and double handling
+                }
+                else if (e.ChangedButton == MouseButton.Middle && OpenInNewTabCommand != null)
+                {
+                    OpenInNewTabCommand.Execute(path);
+                    e.Handled = true;
+                }
+            }
+
+            // Trigger global event if needed (keeping compatibility)
+            if (!e.Handled) FavoriteListBoxPreviewMouseDown?.Invoke(this, sender as ListBox, e);
+        }
+
+        // Quick Access logic updated to prevent simultaneous navigation
+        private void QuickAccessListBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            System.Diagnostics.Debug.WriteLine($"[NavigationPanelControl] QuickAccessListBox_PreviewMouseDown fired. Sender: {sender}, Source: {e.Source}, OriginalSource: {e.OriginalSource}");
+
+            // ... (rest of logic)
+            // Traverse to item
+            var element = e.OriginalSource as FrameworkElement;
+            DependencyObject current = element;
+            while (current != null && !(current is ListBoxItem) && current != sender as DependencyObject)
+            {
+                current = System.Windows.Media.VisualTreeHelper.GetParent(current);
+            }
+
+            if (current is ListBoxItem itemContainer)
+            {
+                var path = GetPathFromDataContext(itemContainer.DataContext);
+                if (!string.IsNullOrEmpty(path))
+                {
+                    if (e.ChangedButton == MouseButton.Left && NavigateCommand != null)
                     {
-                        if (current is ListBoxItem)
-                        {
-                            if (item != null && !string.IsNullOrEmpty(item.Path))
-                            {
-                                if (NavigateCommand.CanExecute(item.Path))
-                                    NavigateCommand.Execute(item.Path);
-                            }
-                            break;
-                        }
-                        current = System.Windows.Media.VisualTreeHelper.GetParent(current);
+                        NavigateCommand.Execute(path);
+                        e.Handled = true; // Prevent SelectionChanged and double nav
+                    }
+                    else if (e.ChangedButton == MouseButton.Middle && OpenInNewTabCommand != null)
+                    {
+                        OpenInNewTabCommand.Execute(path);
+                        e.Handled = true;
                     }
                 }
-
-                FavoriteListBoxPreviewMouseDown?.Invoke(this, listBox, e);
             }
+
+            if (!e.Handled) QuickAccessListBoxPreviewMouseDown?.Invoke(sender, e);
         }
 
         private void FavoritesListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (sender is ListBox listBox)
             {
-                // Command Support
-                if (NavigateCommand != null && listBox.SelectedItem is YiboFile.Services.Navigation.NavigationItem item && !string.IsNullOrEmpty(item.Path))
-                {
-                    if (NavigateCommand.CanExecute(item.Path))
-                        NavigateCommand.Execute(item.Path);
-                }
+                // Command Support - Removed to prevent double navigation with PreviewMouseDown
+                // if (NavigateCommand != null && listBox.SelectedItem is YiboFile.Services.Navigation.NavigationItem item && !string.IsNullOrEmpty(item.Path))
+                // {
+                //     if (NavigateCommand.CanExecute(item.Path))
+                //         NavigateCommand.Execute(item.Path);
+                // }
 
                 FavoriteListBoxSelectionChanged?.Invoke(this, listBox, e);
             }

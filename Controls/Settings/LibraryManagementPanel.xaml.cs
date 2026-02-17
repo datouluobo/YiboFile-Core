@@ -331,7 +331,7 @@ namespace YiboFile.Controls.Settings
                 try
                 {
                     string json = System.IO.File.ReadAllText(dialog.FileName);
-                    var libraryService = new YiboFile.Services.LibraryService(Dispatcher, null, _repository);
+                    var libraryService = new YiboFile.Services.LibraryService(Dispatcher, null, null, _repository);
                     libraryService.ImportLibrariesFromJson(json);
                     RefreshLibraries(); // Refresh after import
                 }
@@ -355,7 +355,7 @@ namespace YiboFile.Controls.Settings
             {
                 try
                 {
-                    var libraryService = new YiboFile.Services.LibraryService(Dispatcher, null, _repository);
+                    var libraryService = new YiboFile.Services.LibraryService(Dispatcher, null, null, _repository);
                     string json = libraryService.ExportLibrariesToJson();
                     if (!string.IsNullOrEmpty(json))
                     {

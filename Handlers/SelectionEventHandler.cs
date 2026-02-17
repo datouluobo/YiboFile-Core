@@ -112,6 +112,8 @@ namespace YiboFile.Handlers
             try
             {
                 string currentPath = _getCurrentPath?.Invoke();
+                System.Diagnostics.Debug.WriteLine($"[SelectionEventHandler] HandleNoSelection: Pane={paneId}, Path='{currentPath}'");
+
                 if (string.IsNullOrEmpty(currentPath))
                 {
                     _showFileInfo?.Invoke(null, paneId);

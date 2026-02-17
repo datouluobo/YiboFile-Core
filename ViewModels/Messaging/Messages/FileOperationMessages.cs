@@ -147,6 +147,16 @@ namespace YiboFile.ViewModels.Messaging.Messages
     }
 
     /// <summary>
+    /// 文件操作进度更新消息
+    /// </summary>
+    public record FileOperationProgressMessage(int ProcessedCount, int TotalCount, string CurrentFileName);
+
+    /// <summary>
+    /// 文件操作状态更新消息 (开始/状态文字)
+    /// </summary>
+    public record FileOperationStatusMessage(string StatusText, bool IsStarted);
+
+    /// <summary>
     /// 文件操作完成消息
     /// </summary>
     public class FileOperationCompleteMessage

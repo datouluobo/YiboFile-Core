@@ -124,7 +124,8 @@ namespace YiboFile.Services.Navigation
             {
                 if (path != null)
                 {
-                    if (path.StartsWith("tag://")) targetType = NavigationTargetType.Tag;
+                    if (path.StartsWith("lib://")) targetType = NavigationTargetType.Library;
+                    else if (path.StartsWith("tag://")) targetType = NavigationTargetType.Tag;
                     else if (path.StartsWith("search://") || path.StartsWith("content://")) targetType = NavigationTargetType.Search;
                 }
             }
@@ -168,7 +169,8 @@ namespace YiboFile.Services.Navigation
         private void HandleLibraryRequest(NavigationRequest request, TabService tabService)
         {
             var library = request.Target.Library;
-            if (library == null) return;
+            // Fix: Allow navigation to "lib://" root (All Libraries view) where library object is null
+            if (library == null && !string.Equals(request.Target.Path, "lib://", StringComparison.OrdinalIgnoreCase)) return;
 
             // Rule 2: Deduplication (排重检测)
             if (!request.ForceNewTab)
@@ -186,14 +188,52 @@ namespace YiboFile.Services.Navigation
 
             // Rule 3: Type Consistency (类型一致性复用)
             // 如果当前标签页已经是 Library 类型且未要求强制新建，则复用
+            // Rule 3: Type Consistency (类型一致性复用)
+            // 如果当前标签页已经是 Library 类型且未要求强制新建，则复用
             if (!request.ForceNewTab && tabService.ActiveTab != null && tabService.ActiveTab.Type == TabType.Library)
             {
-                ExecuteLibraryNavigationInViewModel(library, request.Pane, tabService);
+                if (library != null) ExecuteLibraryNavigationInViewModel(library, request.Pane, tabService);
+                else ExecuteLibraryRootNavigationInViewModel(request.Pane, tabService);
                 return;
             }
 
             // Rule 4: New Tab
-            tabService.OpenLibraryTab(library, forceNewTab: true, activate: request.Activate);
+            if (library != null) tabService.OpenLibraryTab(library, forceNewTab: true, activate: request.Activate);
+            else
+            {
+                tabService.CreatePathTab("lib://", forceNewTab: true, activate: request.Activate);
+                if (tabService.ActiveTab != null && tabService.ActiveTab.Path == "lib://")
+                {
+                    tabService.ActiveTab.Type = TabType.Library;
+                    tabService.UpdateTabTitle(tabService.ActiveTab, "lib://");
+                }
+            }
+        }
+
+        private void ExecuteLibraryRootNavigationInViewModel(PaneId pane, TabService tabService)
+        {
+            var vm = _paneViewModelResolver?.Invoke(pane);
+            if (vm != null)
+            {
+                vm.CurrentLibrary = null;
+                vm.NavigateTo("lib://");
+
+                var activeTab = tabService.ActiveTab;
+                if (activeTab != null)
+                {
+                    activeTab.Type = TabType.Library;
+                    activeTab.Path = "lib://";
+                    tabService.UpdateTabTitle(activeTab, "所有库");
+                }
+
+                _messageBus.Publish(new NavigationCompleteMessage(
+                    "所有库",
+                    pane,
+                    YiboFile.Models.Navigation.NavigationSource.SidebarLibrary,
+                    "Library",
+                    BackStack: vm.BackStack,
+                    ForwardStack: vm.ForwardStack));
+            }
         }
 
         private void ExecuteLibraryNavigationInViewModel(Library library, PaneId pane, TabService tabService)
@@ -201,7 +241,8 @@ namespace YiboFile.Services.Navigation
             var vm = _paneViewModelResolver?.Invoke(pane);
             if (vm != null)
             {
-                // 1. 更新 ViewModel
+                // 1. 设置 CurrentLibrary并更新 Path
+                vm.CurrentLibrary = library;
                 vm.NavigateTo($"lib://{library.Name}");
 
                 // 2. 同步更新 Tab 状态

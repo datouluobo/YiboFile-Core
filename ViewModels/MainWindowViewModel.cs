@@ -16,7 +16,8 @@ namespace YiboFile.ViewModels
     public class MainWindowViewModel : BaseViewModel, IDisposable
     {
         private readonly IMessageBus _messageBus;
-        private readonly Handlers.SelectionEventHandler _selectionHandler;
+        private readonly Handlers.SelectionEventHandler _mainSelectionHandler;
+        private readonly Handlers.SelectionEventHandler _secondSelectionHandler;
         private readonly List<Modules.IModule> _modules = new();
         private bool _disposed;
 
@@ -146,7 +147,14 @@ namespace YiboFile.ViewModels
         /// <summary>
         /// 选择处理器
         /// </summary>
-        public Handlers.SelectionEventHandler SelectionHandler => _selectionHandler;
+        /// <summary>
+        /// 选择处理器 (Active)
+        /// </summary>
+        public Handlers.SelectionEventHandler SelectionHandler =>
+            ActivePane == SecondaryPane ? _secondSelectionHandler : _mainSelectionHandler;
+
+        public Handlers.SelectionEventHandler MainSelectionHandler => _mainSelectionHandler;
+        public Handlers.SelectionEventHandler SecondSelectionHandler => _secondSelectionHandler;
 
         #endregion
 
@@ -160,18 +168,33 @@ namespace YiboFile.ViewModels
             _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
             RightPanel = rightPanel ?? throw new ArgumentNullException(nameof(rightPanel));
 
-            // Initialize Selection Handler
-            _selectionHandler = new Handlers.SelectionEventHandler(
+            // Initialize Specific Selection Handlers for each pane
+            _mainSelectionHandler = new Handlers.SelectionEventHandler(
                 previewService,
                 _messageBus,
                 fileListService,
-                () => ActivePane?.FileList?.Files?.ToList() ?? new List<Models.FileSystemItem>(),
-                () => ActivePane?.CurrentPath,
-                () => ActivePane?.CurrentLibrary,
-                () => PrimaryPane != null && SecondaryPane != null, // Simplified IsDualMode check
+                () => PrimaryPane?.FileList?.Files?.ToList() ?? new List<Models.FileSystemItem>(),
+                // Revert BUG-018 fallback: Direct property access is correct and refreshed properly by PaneViewModel logic
+                () => PrimaryPane?.CurrentPath,
+                () => PrimaryPane?.CurrentLibrary,
+                () => true, // unused
                 path => folderSizeService != null ? folderSizeService.CalculateAndUpdateFolderSizeAsync(path) : System.Threading.Tasks.Task.CompletedTask,
-                (item, pane) => _messageBus.Publish(new Messaging.Messages.ShowFileInfoMessage(item, pane)), // Use message instead of direct Action
-                (lib, pane) => _messageBus.Publish(new Messaging.Messages.ShowLibraryInfoMessage(lib, pane))   // Use message instead of direct Action
+                (item, pane) => _messageBus.Publish(new Messaging.Messages.ShowFileInfoMessage(item, pane)),
+                (lib, pane) => _messageBus.Publish(new Messaging.Messages.ShowLibraryInfoMessage(lib, pane))
+            );
+
+            _secondSelectionHandler = new Handlers.SelectionEventHandler(
+                previewService,
+                _messageBus,
+                fileListService,
+                () => SecondaryPane?.FileList?.Files?.ToList() ?? new List<Models.FileSystemItem>(),
+                // Revert BUG-018 fallback
+                () => SecondaryPane?.CurrentPath,
+                () => SecondaryPane?.CurrentLibrary,
+                () => true, // unused
+                path => folderSizeService != null ? folderSizeService.CalculateAndUpdateFolderSizeAsync(path) : System.Threading.Tasks.Task.CompletedTask,
+                (item, pane) => _messageBus.Publish(new Messaging.Messages.ShowFileInfoMessage(item, pane)),
+                (lib, pane) => _messageBus.Publish(new Messaging.Messages.ShowLibraryInfoMessage(lib, pane))
             );
 
             // 订阅核心消息
@@ -244,6 +267,12 @@ namespace YiboFile.ViewModels
         private void OnPathChanged(Messaging.Messages.PathChangedMessage message)
         {
             CurrentPath = message.NewPath;
+
+            // Fix BUG-018: Force update info panel on navigation to ensure new path info is displayed
+            if (message.Pane == YiboFile.Services.Navigation.PaneId.Second)
+                _secondSelectionHandler?.HandleNoSelection(message.Pane);
+            else
+                _mainSelectionHandler?.HandleNoSelection(message.Pane);
         }
 
         private void OnNavigationModeChanged(Messaging.Messages.NavigationModeChangedMessage message)
@@ -253,7 +282,10 @@ namespace YiboFile.ViewModels
 
         private void OnFileSelectionChanged(Messaging.Messages.FileSelectionChangedMessage message)
         {
-            _selectionHandler?.HandleSelectionChanged(message.SelectedItems, message.Pane);
+            if (message.Pane == YiboFile.Services.Navigation.PaneId.Second)
+                _secondSelectionHandler?.HandleSelectionChanged(message.SelectedItems, message.Pane);
+            else
+                _mainSelectionHandler?.HandleSelectionChanged(message.SelectedItems, message.Pane);
         }
 
         #endregion

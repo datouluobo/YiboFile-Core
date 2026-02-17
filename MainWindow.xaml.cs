@@ -87,6 +87,20 @@ namespace YiboFile
         // No, check IShellWindow definition, likely implemented implicitly if property exists.
         // Explicit impl only needed if visibility issues or naming conflict.
 
+        ContextMenu IShellWindow.LibraryContextMenu => this.LibraryContextMenu;
+        Services.Navigation.PaneId IShellWindow.GetActivePaneId() => this.GetActivePaneId();
+        bool IShellWindow.IsInternalUiUpdate => this._isInternalUpdate;
+
+        void IShellWindow.ClearLegacyFileState()
+        {
+            this._currentFiles.Clear();
+            this._currentPath = null;
+            if (this.FileBrowser != null)
+            {
+                this.FileBrowser.SetSearchStatus(false);
+            }
+        }
+
         #endregion
 
         #region 字段与属性
@@ -501,7 +515,7 @@ namespace YiboFile
 
         #region 列管理 (Adapter 层 — 供 NavigationModeUIAdapter 和 WindowOrchestrator 调用)
 
-        internal void AutoSizeGridViewColumn(GridViewColumn column)
+        public void AutoSizeGridViewColumn(GridViewColumn column)
         {
             _orchestrator.ColumnInteractionHandler?.AutoSizeGridViewColumn(column);
         }

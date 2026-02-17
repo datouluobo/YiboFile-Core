@@ -4,6 +4,8 @@ using System.Linq;
 using System.Windows.Input;
 using Microsoft.Extensions.DependencyInjection;
 using YiboFile.Services.Features;
+using YiboFile.ViewModels.Messaging;
+using YiboFile.ViewModels.Messaging.Messages;
 
 namespace YiboFile.ViewModels.Settings
 {
@@ -24,6 +26,7 @@ namespace YiboFile.ViewModels.Settings
         }
 
         private ITagService _tagService;
+        private readonly IMessageBus _messageBus;
 
         public ICommand RefreshTagGroupsCommand { get; }
         public ICommand AddTagGroupCommand { get; }
@@ -40,6 +43,7 @@ namespace YiboFile.ViewModels.Settings
 
         public TagSettingsViewModel()
         {
+            _messageBus = App.ServiceProvider?.GetService<IMessageBus>();
             RefreshTagGroupsCommand = new RelayCommand(RefreshTagGroups);
             AddTagGroupCommand = new RelayCommand(AddTagGroup);
             RenameTagGroupCommand = new RelayCommand<TagGroupManageViewModel>(g => RenameTagGroupRequested?.Invoke(this, g));
@@ -54,40 +58,22 @@ namespace YiboFile.ViewModels.Settings
 
         ~TagSettingsViewModel()
         {
-            if (_tagService != null)
-            {
-                _tagService.TagUpdated -= OnTagServiceTagUpdated;
-            }
+            _messageBus?.Unsubscribe<TagListChangedMessage>(OnTagListChanged);
         }
 
         private void InitializeTagManagement()
         {
             _tagService = App.ServiceProvider?.GetService<ITagService>();
-            if (_tagService != null)
-            {
-                _tagService.TagUpdated -= OnTagServiceTagUpdated;
-                _tagService.TagUpdated += OnTagServiceTagUpdated;
-            }
+            _messageBus?.Subscribe<TagListChangedMessage>(OnTagListChanged);
             RefreshTagGroups();
         }
 
-        private void OnTagServiceTagUpdated(int tagId, string newColor)
+        private void OnTagListChanged(TagListChangedMessage msg)
         {
-            System.Windows.Application.Current.Dispatcher.Invoke(() =>
-            {
-                if (TagGroups != null)
-                {
-                    foreach (var group in TagGroups)
-                    {
-                        var tag = group.Tags.FirstOrDefault(t => t.Id == tagId);
-                        if (tag != null)
-                        {
-                            tag.Color = newColor;
-                        }
-                    }
-                }
-            });
+            RefreshTagGroups();
         }
+
+
 
         public void RefreshTagGroups()
         {

@@ -32,6 +32,7 @@ namespace YiboFile.ViewModels
         private readonly ColumnService _columnService;
         private readonly FileMetadataEnricher _metadataEnricher;
         private readonly FolderSizeCalculator _folderSizeCalculator;
+        private readonly FileSystemWatcherService _fileWatcherService;
         private readonly Services.Features.ITagService _tagService;
         private const int MaxMetadataEnrichCount = 500;
 
@@ -41,7 +42,6 @@ namespace YiboFile.ViewModels
         private bool _isLoading = false;
         private string _lastSortColumn = "Name";
         private bool _sortAscending = true;
-        private FileSystemWatcher _fileWatcher;
         private DispatcherTimer _refreshDebounceTimer;
         private bool _isLoadingFiles = false;
         private bool _loadFilesPending = false;
@@ -113,23 +113,33 @@ namespace YiboFile.ViewModels
             YiboFile.Services.Navigation.PaneId paneId = YiboFile.Services.Navigation.PaneId.Main,
             ColumnService columnService = null,
             FileMetadataEnricher metadataEnricher = null,
-            FolderSizeCalculator folderSizeCalculator = null)
+            FolderSizeCalculator folderSizeCalculator = null,
+            FileSystemWatcherService fileWatcherService = null)
         {
             _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
             _dispatcher = System.Windows.Application.Current.Dispatcher;
 
             var errorService = App.ServiceProvider?.GetService<YiboFile.Services.Core.Error.ErrorService>();
             _tagService = App.ServiceProvider?.GetService<Services.Features.ITagService>();
-            _fileListService = new FileListService(_dispatcher, errorService, _tagService);
+            _fileListService = new FileListService(_dispatcher, errorService, _tagService, _messageBus, _paneId);
 
-            if (_tagService != null)
-            {
-                _tagService.FileTagsChanged += OnFileTagsChanged;
-            }
+            _messageBus.Subscribe<FileTagsChangedMessage>(OnFileTagsChanged);
 
             _columnService = columnService;
             _metadataEnricher = metadataEnricher ?? new FileMetadataEnricher();
             _folderSizeCalculator = folderSizeCalculator ?? new FolderSizeCalculator();
+
+            // Inject or resolve FileSystemWatcherService
+            _fileWatcherService = fileWatcherService ?? App.ServiceProvider?.GetService<FileSystemWatcherService>();
+
+            // 订阅刷新请求消息
+            _messageBus.Subscribe<RefreshFileListMessage>(m =>
+            {
+                if (m.Pane == _paneId)
+                {
+                    _dispatcher.BeginInvoke(new Action(RefreshFiles), DispatcherPriority.Normal);
+                }
+            });
 
             // 初始化防抖定时器
             _refreshDebounceTimer = new DispatcherTimer
@@ -374,58 +384,11 @@ namespace YiboFile.ViewModels
         /// </summary>
         public void SetupFileWatcher(string path)
         {
-            try
-            {
-                if (_fileWatcher != null)
-                {
-                    _fileWatcher.EnableRaisingEvents = false;
-                    _fileWatcher.Created -= OnFileSystemChanged;
-                    _fileWatcher.Deleted -= OnFileSystemChanged;
-                    _fileWatcher.Changed -= OnFileSystemChanged;
-                    _fileWatcher.Renamed -= OnFileSystemChanged;
-                    _fileWatcher.Dispose();
-                    _fileWatcher = null;
-                }
-
-                if (string.IsNullOrEmpty(path) || !Directory.Exists(path))
-                {
-                    return;
-                }
-
-                // 虚拟路径不支持监听
-                if (ProtocolManager.IsVirtual(path))
-                {
-                    return;
-                }
-
-                _fileWatcher = new FileSystemWatcher
-                {
-                    Path = path,
-                    Filter = "*.*",
-                    NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.DirectoryName,
-                    EnableRaisingEvents = true
-                };
-
-                _fileWatcher.Created += OnFileSystemChanged;
-                _fileWatcher.Deleted += OnFileSystemChanged;
-                _fileWatcher.Changed += OnFileSystemChanged;
-                _fileWatcher.Renamed += OnFileSystemChanged;
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[FileListViewModel] Failed to setup FileWatcher for {path}: {ex.Message}");
-            }
+            _fileWatcherService?.SetupFileWatcher(path);
         }
 
-        private void OnFileSystemChanged(object sender, FileSystemEventArgs e)
-        {
-
-            _dispatcher.BeginInvoke(new Action(() =>
-            {
-                _refreshDebounceTimer.Stop();
-                _refreshDebounceTimer.Start();
-            }), DispatcherPriority.Background);
-        }
+        // 已迁移至 FileSystemWatcherService 处理消息发布
+        // private void OnFileSystemChanged(object sender, FileSystemEventArgs e) { ... }
 
         /// <summary>
         /// 通过 ColumnService 统一排序入口。
@@ -597,13 +560,13 @@ namespace YiboFile.ViewModels
         }
 
 
-        private void OnFileTagsChanged(string filePath)
+        private void OnFileTagsChanged(FileTagsChangedMessage msg)
         {
-            if (string.IsNullOrEmpty(filePath)) return;
+            if (string.IsNullOrEmpty(msg.FilePath)) return;
 
             _dispatcher.BeginInvoke(new Action(() =>
             {
-                var item = _files.FirstOrDefault(f => string.Equals(f.Path, filePath, StringComparison.OrdinalIgnoreCase));
+                var item = Files.FirstOrDefault(f => string.Equals(f.Path, msg.FilePath, StringComparison.OrdinalIgnoreCase));
                 if (item != null)
                 {
                     RefreshItemTags(item);
@@ -636,16 +599,8 @@ namespace YiboFile.ViewModels
 
         public void Dispose()
         {
-            if (_tagService != null)
-            {
-                _tagService.FileTagsChanged -= OnFileTagsChanged;
-            }
-            if (_fileWatcher != null)
-            {
-                _fileWatcher.EnableRaisingEvents = false;
-                _fileWatcher.Dispose();
-                _fileWatcher = null;
-            }
+            _messageBus?.Unsubscribe<FileTagsChangedMessage>(OnFileTagsChanged);
+            _fileWatcherService?.Dispose();
 
             _refreshDebounceTimer?.Stop();
             CancelOngoingOperations();

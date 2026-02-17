@@ -42,4 +42,9 @@ namespace YiboFile.ViewModels.Messaging.Messages
     /// 库文件列表已加载
     /// </summary>
     public record LibraryFilesLoadedMessage(Library Library, System.Collections.Generic.List<FileSystemItem> Files, bool IsEmpty, YiboFile.Services.Navigation.PaneId TargetPane);
+
+    /// <summary>
+    /// 请求高亮库通知
+    /// </summary>
+    public record LibraryHighlightRequestedMessage(Library Library);
 }

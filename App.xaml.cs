@@ -75,8 +75,16 @@ namespace YiboFile
             services.AddSingleton<Services.Data.Repositories.IFavoriteRepository, Services.Data.Repositories.SqliteFavoriteRepository>();
             services.AddSingleton<Services.Data.Repositories.ILibraryRepository, Services.Data.Repositories.SqliteLibraryRepository>();
 
-            services.AddSingleton<FavoriteService>();
-            services.AddSingleton<QuickAccessService>();
+            services.AddSingleton<FavoriteService>(provider =>
+                new FavoriteService(
+                    provider.GetRequiredService<Services.Data.Repositories.IFavoriteRepository>(),
+                    provider.GetService<ViewModels.Messaging.IMessageBus>(),
+                    Application.Current.Dispatcher));
+
+            services.AddSingleton<QuickAccessService>(provider =>
+                new QuickAccessService(
+                    provider.GetService<ViewModels.Messaging.IMessageBus>(),
+                    Application.Current.Dispatcher));
 
             // FolderSizeCalculationService 看起来是无状态或短暂状态的，Transient 或 Singleton 都可以，这里选 Singleton 方便复用
             services.AddSingleton<FolderSizeCalculationService>();
@@ -86,18 +94,24 @@ namespace YiboFile
                 new FileListService(
                     Application.Current.Dispatcher,
                     provider.GetRequiredService<YiboFile.Services.Core.Error.ErrorService>(),
-                    provider.GetRequiredService<ITagService>()));
+                    provider.GetRequiredService<ITagService>(),
+                    provider.GetService<ViewModels.Messaging.IMessageBus>(),
+                    PaneId.Main));
 
             // LibraryService 也需要 Dispatcher
             services.AddSingleton<LibraryService>(provider =>
                 new LibraryService(
                     Application.Current.Dispatcher,
                     provider.GetRequiredService<YiboFile.Services.Core.Error.ErrorService>(),
+                    provider.GetService<ViewModels.Messaging.IMessageBus>(),
                     provider.GetRequiredService<YiboFile.Services.Data.Repositories.ILibraryRepository>()));
 
             // FileSystemWatcherService 需要 Dispatcher
             services.AddTransient<FileSystemWatcherService>(provider =>
-                new FileSystemWatcherService(Application.Current.Dispatcher));
+                new FileSystemWatcherService(
+                    Application.Current.Dispatcher,
+                    provider.GetService<ViewModels.Messaging.IMessageBus>(),
+                    PaneId.Main));
 
             // SearchService 及其依赖
             services.AddSingleton<SearchFilterService>();

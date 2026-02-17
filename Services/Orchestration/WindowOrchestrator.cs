@@ -71,7 +71,7 @@ namespace YiboFile.Services.Orchestration
         private NavigationModeService _navigationModeService;
 
         // WindowStateManager（由 HandlerInitializer 创建）
-        private WindowStateManager _windowStateManager;
+
 
         public WindowOrchestrator(IServiceProvider serviceProvider, IMessageBus messageBus)
         {
@@ -306,6 +306,16 @@ namespace YiboFile.Services.Orchestration
             // 7. 初始化 UI 事件
             window.InitializeEvents();
             window.InitializeServiceEvents();
+
+            // FIX for BUG-018: Force update info panels to avoid empty state
+            if (_viewModel != null)
+            {
+                _viewModel.MainSelectionHandler?.HandleNoSelection(YiboFile.Services.Navigation.PaneId.Main);
+                if (config?.IsDualListMode == true)
+                {
+                    _viewModel.SecondSelectionHandler?.HandleNoSelection(YiboFile.Services.Navigation.PaneId.Second);
+                }
+            }
 
             await Task.CompletedTask;
         }

@@ -1,6 +1,6 @@
 # YiboFile 项目评估与重构路线图
 
-> **当前版本**: v1.0.1521 (修复列表加载) | **更新日期**: 2026-02-16  
+> **当前版本**: v1.0.1510 (混合架构核心解构) | **更新日期**: 2026-02-17  
 > **下一版本**: v1.1.0 (目标：Core 完全解耦)  
 
 ---
@@ -273,6 +273,7 @@ Controller-driven 场景：
 | **3.3.5** | **Service 层事件迁移 (第一批)**：`TabService` (5个事件), `NavigationCoordinator` (2个事件) | → 各对应 Messages.cs | ⏳ 待启动 |
 | **3.3.6** | **Service 层事件迁移 (第二批)**：`FileListService`, `LibraryService`, `FileOperationService`, `FavoriteService` 等 (~20个事件) | → 各对应 Messages.cs | ⏳ 待启动 |
 | **3.3.7** | **Module 层 Action<> 回调清理**：`TabsModule`, `NavigationModule`, `TabService.UI.cs` 中的委托回调 (~10个) | → MessageBus 发布消息 | ⏳ 待启动 |
+| **3.3.8** | **统一主副栏导航架构**：消除主面板消息驱动 vs 副面板委托回调的双轨制 | 副面板导航 → NavigateToPathMessage | ⏳ 待启动 |
 
 > ⚠️ 当前 Service 层仍有 **40+ 个 `event` 声明** 和 **15+ 个 `Action<>` 委托回调**，详见 `docs/Remaining_Refactoring_Tasks_2026-02-16.md` 第 4.1 节。
 
@@ -306,8 +307,11 @@ Controller-driven 场景：
 | BUG-011 | Clipboard | 剪切板管理器体验差 | 交互逻辑陈旧，缺乏可视化反馈 | **Fixed** (v1.0.1509) (Redesigned UI with modern list, search, and better preview) | ✅ 已修复 |
 | **BUG-012** | FileOps | 工具栏按钮与快捷键部分失效 | 命令绑定在重构中丢失或 `CanExecute` 状态判定错误 | 检查 `PaneCommandSet` 与 `InputBindings` 的连接 | ✅ 已修复 |
 | **BUG-013** | Performance | 双栏模式选中文件卡顿 | 预览加载可能运行在 UI 线程或未做防抖处理 | 确保 `PreviewService` 异步执行并增加防抖 (Debounce) (v1.0.1504重新优化) | ✅ 已修复 |
-| **BUG-014** | Window | 窗口状态持久化问题：每次打开程序，主副标签页都会重置为桌面，无法记忆上次路径 | `MainWindowViewModel` 或持久化服务未正确保存/恢复状态 | 检查 `OnClosed` 保存逻辑与 `OnStartup` 恢复逻辑 | ✅ 已修复 |
+| **BUG-014** | Window | 窗口状态持久化问题：每次打开程序，主副标签页都会重置为桌面，无法记忆上次路径 | `MainWindowViewModel` 或持久化服务未正确保存/恢复状态 | 检查 `OnClosed` 保存逻辑与 `OnStartup` 恢复逻辑 | ⏳ 待修复 |
 | **BUG-015** | FileList | 文件操作后列表不自动刷新 | 消息未正确触发或 `FileWatcher` 失效 | 检查 `FileOperationModule` 的消息发布与 `FileListViewModel` 的订阅 | ✅ 已修复 |
+| **BUG-018** | UI/Init | 启动时主副文件信息区空白，或切换文件夹后显示错误信息 | 上下文未正确清除导致显示过时信息 | **已修复** (v1.1.0) (在 PaneViewModel 中清理库/标签上下文；回滚了路径回退逻辑) | ✅ 已修复 |
+| **BUG-019** | Navigation | “快速访问”双栏同时切换 | `PreviewMouseDown` 事件冲突与 `e.Handled` 处理不当 | **已修复** (v1.1.0) (统一使用 `PreviewMouseDown` 并修复了事件路由) | ✅ 已修复 |
+| **BUG-021** | Library | 程序启动时死循环刷屏 (LibraryListChangedMessage) | `LibraryModule` 在响应消息时再次触发加载导致递归 | **Fixed** (v1.0.1506) (改为 GetAllLibraries 并不再发布消息) | ✅ 已修复 |
 
 ---
 
@@ -354,6 +358,7 @@ Controller-driven 场景：
 | **标签页历史独立 (Per-Tab History)** | TabsModule / PathTab / PaneViewModel | +80 / -20 | 2026-02-16 |
 | **PaneViewModel 命令拆分** | PaneCommandSet.cs / PaneViewModel.cs | Refactor | 2026-02-16 |
 | **[BUG-017] 修复列表加载** | PaneViewModel (NavigationMode/Refresh) | +10 | 2026-02-16 |
+| **[BUG-019+] 库导航逻辑修复** | NavCoordinator / TabService (Force Nav) | +40 / -5 | 2026-02-17 |
 
 - **MainWindow 解构 (阶段 5)**: `基本完成` (85%). `MainWindow.xaml.cs` 从 >2400 行减少到 528 行，但含分部类 (`MainWindow.Tabs.cs` 289行, `MainWindow.Drives.cs` 142行) 合计仍约 960 行。
 - **PaneViewModel 拆分 (阶段 7)**: `已完成` (100%). 从 1770 行降至 563 行，已提取 `FilterViewModel`、`SelectionViewModel`、`PaneCommandSet`。
@@ -380,6 +385,7 @@ Controller-driven 场景：
 3.  **Handler 层直接依赖 MainWindow**：全部 10 个 Handler 直接持有 `MainWindow` 引用，需引入 `IShellWindow` 抽象接口解耦。
 4.  **Service 层事件/委托大量残留**：仍有 40+ 个 `event` 和 15+ 个 `Action<>` 回调未迁移到 MessageBus。
 5.  **预览组件兼容性**（记录于 2026-02-09）：观察到部分文件预览失效（文件夹正常），疑似与 Pro 版功能拆分逻辑有关。
+6.  **主副栏导航架构双轨制**（记录于 2026-02-17）：主面板的 `TabService` 从未调用 `AttachUiContext`，导航完全依赖消息驱动；副面板通过 `TabUiContext` 中的委托回调直接操作 ViewModel。这种不一致是 BUG-019+ 等导航 Bug 的根源，已纳入 P1 重构计划（参见 `Refactoring_Tasks.md`）。
 
 ---
 
@@ -401,11 +407,16 @@ Controller-driven 场景：
     *   标签页方法委托给 `TabsModule`
     *   目标：删除 `MainWindow.Tabs.cs` 分部类
 
-### Phase 2: P1 架构规范化 (下周，~20h)
+### Phase 2: P1 架构规范化 (下周，~28-31h)
 
 3.  **引入 IShellWindow 抽象** — 解耦 Handler ↔ MainWindow (6-8h)
 4.  **Service 层事件 → MessageBus 迁移 (第一批)** — TabService、NavigationCoordinator、Module 回调 (8-12h)
 5.  **FileListEventHandler 拆分** — 拆分键盘/鼠标处理 (4-5h)
+6.  **统一主副栏导航架构** — 消除委托回调/消息驱动双轨制 (8-11h)
+    *   Step 1: 副面板导航消息化 (`LayoutEventHandler` 导航方法 → 发布 `NavigateToPathMessage`)
+    *   Step 2: 标签页切换同步统一 (`SyncSecondUiWithActiveTab` → 消息驱动)
+    *   Step 3: 清理 `LayoutEventHandler` 中的副面板导航方法
+    *   Step 4: 精简 `TabUiContext` ，移除导航委托，仅保留纯 UI 属性
 
 ### Phase 3: P2 代码卫生 (后续，~15h)
 

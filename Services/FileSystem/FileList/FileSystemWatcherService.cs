@@ -2,6 +2,10 @@ using System;
 using System.IO;
 using System.Windows.Threading;
 using YiboFile.Services.FileList;
+using YiboFile.ViewModels.Messaging;
+using YiboFile.ViewModels.Messaging.Messages;
+using YiboFile.Services.Navigation;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace YiboFile.Services.FileList
 {
@@ -17,23 +21,13 @@ namespace YiboFile.Services.FileList
         private DispatcherTimer _refreshDebounceTimer;
         private string _watchedPath;
         private readonly Dispatcher _dispatcher;
+        private readonly IMessageBus _messageBus;
+        private readonly PaneId _paneId;
         private readonly object _lock = new object();
 
         #endregion
 
-        #region 事件定义
 
-        /// <summary>
-        /// 文件系统变化事件（创建、删除、重命名、修改）
-        /// </summary>
-        public event EventHandler<FileSystemEventArgs> FileSystemChanged;
-
-        /// <summary>
-        /// 防抖定时器触发后请求刷新事件
-        /// </summary>
-        public event EventHandler RefreshRequested;
-
-        #endregion
 
         #region 构造函数
 
@@ -41,9 +35,11 @@ namespace YiboFile.Services.FileList
         /// 初始化 FileSystemWatcherService
         /// </summary>
         /// <param name="dispatcher">UI线程调度器，用于更新UI</param>
-        public FileSystemWatcherService(Dispatcher dispatcher)
+        public FileSystemWatcherService(Dispatcher dispatcher, IMessageBus messageBus = null, PaneId paneId = PaneId.Main)
         {
             _dispatcher = dispatcher ?? throw new ArgumentNullException(nameof(dispatcher));
+            _messageBus = messageBus ?? App.ServiceProvider?.GetService<IMessageBus>();
+            _paneId = paneId;
         }
 
         #endregion
@@ -142,8 +138,8 @@ namespace YiboFile.Services.FileList
         /// </summary>
         private void OnFileSystemChanged(object sender, FileSystemEventArgs e)
         {
-            // 触发文件系统变化事件
-            FileSystemChanged?.Invoke(this, e);
+            // 触发文件系统变化消息
+            _messageBus?.Publish(new FileSystemChangedMessage(e.FullPath, e.ChangeType.ToString()));
 
             // 使用防抖机制，避免频繁刷新
             _dispatcher?.BeginInvoke(new Action(() =>
@@ -184,7 +180,7 @@ namespace YiboFile.Services.FileList
                 {
                     return;
                 }
-                RefreshRequested?.Invoke(this, EventArgs.Empty);
+                _messageBus?.Publish(new RefreshFileListMessage(Pane: _paneId));
             }
         }
 

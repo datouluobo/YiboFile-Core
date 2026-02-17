@@ -326,3 +326,14 @@
 [MainWindow] Constructor called at 2026-02-16 12:11:29
 [MainWindow] Constructor called at 2026-02-16 19:54:36
 [MainWindow] Constructor called at 2026-02-16 20:00:10
+[MainWindow] Constructor called at 2026-02-17 11:20:30
+[MainWindow] Constructor called at 2026-02-17 11:23:45
+[MainWindow] Constructor called at 2026-02-17 12:14:49
+[MainWindow] Constructor called at 2026-02-17 12:27:51
+[MainWindow] Constructor called at 2026-02-17 14:18:06
+[MainWindow] Constructor called at 2026-02-17 16:13:21
+[MainWindow] Constructor called at 2026-02-17 16:40:37
+[MainWindow] Constructor called at 2026-02-17 16:48:39
+[MainWindow] Constructor called at 2026-02-17 20:11:02
+[MainWindow] Constructor called at 2026-02-17 20:31:15
+[MainWindow] Constructor called at 2026-02-17 22:19:35

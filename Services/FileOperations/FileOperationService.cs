@@ -16,6 +16,8 @@ using YiboFile.Services.FileSystem;
 using ConflictResolution = YiboFile.Dialogs.ConflictResolution;
 using YiboFile.Services.FileOperations.TaskQueue;
 using TaskStatus = YiboFile.Services.FileOperations.TaskQueue.TaskStatus;
+using YiboFile.ViewModels.Messaging;
+using YiboFile.ViewModels.Messaging.Messages;
 
 namespace YiboFile.Services.FileOperations
 {
@@ -30,6 +32,7 @@ namespace YiboFile.Services.FileOperations
         private readonly UndoService _undoService;
         private readonly TaskQueueService _taskQueueService;
         private readonly YiboFile.Services.Backup.IBackupService _backupService;
+        private readonly IMessageBus _messageBus;
         private Func<FileOperationContext> _getContext;
 
         /// <summary>
@@ -40,27 +43,15 @@ namespace YiboFile.Services.FileOperations
             _getContext = provider;
         }
 
-        /// <summary>
-        /// 进度更新事件
-        /// </summary>
-        public event Action<int, int, string> ProgressChanged;
 
-        /// <summary>
-        /// 操作开始事件
-        /// </summary>
-        public event Action<string> OperationStarted;
-
-        /// <summary>
-        /// 操作完成事件
-        /// </summary>
-        public event Action<FileOperationResult> OperationCompleted;
 
         public FileOperationService(
             Func<FileOperationContext> contextProvider = null,
             ErrorService errorService = null,
             UndoService undoService = null,
             TaskQueueService taskQueueService = null,
-            YiboFile.Services.Backup.IBackupService backupService = null)
+            YiboFile.Services.Backup.IBackupService backupService = null,
+            IMessageBus messageBus = null)
         {
             _getContext = contextProvider;
             _clipboard = ClipboardService.Instance;
@@ -68,6 +59,7 @@ namespace YiboFile.Services.FileOperations
             _undoService = undoService;
             _taskQueueService = taskQueueService;
             _backupService = backupService;
+            _messageBus = messageBus ?? App.ServiceProvider?.GetService(typeof(IMessageBus)) as IMessageBus;
         }
 
         #region Copy / Cut
@@ -123,7 +115,7 @@ namespace YiboFile.Services.FileOperations
             {
                 return FileOperationResult.Failed("剪贴板为空");
             }
-            OperationStarted?.Invoke(isCut ? "正在移动文件..." : "正在复制文件...");
+            _messageBus?.Publish(new FileOperationStatusMessage(isCut ? "正在移动文件..." : "正在复制文件...", true));
 
             var failedItems = new List<string>();
             int processedCount = 0;
@@ -174,7 +166,7 @@ namespace YiboFile.Services.FileOperations
                 var destPath = Path.Combine(targetPath, fileName);
                 bool isDir = Directory.Exists(sourcePath);
 
-                ProgressChanged?.Invoke(processedCount, totalCount, fileName);
+                _messageBus?.Publish(new FileOperationProgressMessage(processedCount, totalCount, fileName));
 
                 if (isDir)
                 {
@@ -357,8 +349,8 @@ namespace YiboFile.Services.FileOperations
                 task.Progress = 100;
             }
 
-            OperationCompleted?.Invoke(result);
-            ProgressChanged?.Invoke(totalCount, totalCount, "完成");
+            _messageBus?.Publish(new FileOperationCompleteMessage("Paste", result.Success, result.FailedItems.FirstOrDefault()));
+            _messageBus?.Publish(new FileOperationProgressMessage(totalCount, totalCount, "完成"));
 
             if (failedItems.Count > 0)
             {
@@ -380,7 +372,7 @@ namespace YiboFile.Services.FileOperations
             var message = itemList.Count == 1 ? $"确定要删除 \"{itemList[0].Name}\" 吗？" : $"确定要删除这 {itemList.Count} 个项目吗？";
             if (!ShowConfirmDialog(message, "确认删除")) return FileOperationResult.Cancelled();
 
-            OperationStarted?.Invoke("正在删除文件...");
+            _messageBus?.Publish(new FileOperationStatusMessage("正在删除文件...", true));
             var task = new FileOperationTask
             {
                 Description = "删除文件",
@@ -432,7 +424,7 @@ namespace YiboFile.Services.FileOperations
                     catch (Exception ex) { failedItems.Add($"{item.Name}: {ex.Message}"); }
 
                     if (task != null) task.Progress = (int)((double)processedCount / task.TotalItems * 100);
-                    ProgressChanged?.Invoke(processedCount, itemList.Count, item.Name);
+                    _messageBus?.Publish(new FileOperationProgressMessage(processedCount, itemList.Count, item.Name));
                 }
             }, ct);
 
@@ -449,7 +441,7 @@ namespace YiboFile.Services.FileOperations
             {
                 task.Status = TaskStatus.Completed;
             }
-            OperationCompleted?.Invoke(result);
+            _messageBus?.Publish(new FileOperationCompleteMessage("Delete", result.Success, result.FailedItems.FirstOrDefault()));
 
             if (failedItems.Count > 0) _errorService?.ReportError($"删除失败:\n{string.Join("\n", failedItems.Take(5))}", ErrorSeverity.Error);
             return result;

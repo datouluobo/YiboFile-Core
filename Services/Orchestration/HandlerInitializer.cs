@@ -253,13 +253,11 @@ namespace YiboFile.Services.Orchestration
             // Hook listbox events to decentralized handler
             if (window.NavigationPanelControl != null)
             {
-                if (window.NavigationPanelControl.LibrariesListBoxControl != null)
-                    window.NavigationPanelControl.LibrariesListBoxControl.PreviewMouseDown += mouseHandler.LibrariesListBox_PreviewMouseDown;
-
-                if (window.NavigationPanelControl.QuickAccessListBoxControl != null)
-                {
-                    window.NavigationPanelControl.QuickAccessListBoxControl.PreviewMouseDown += mouseHandler.QuickAccessListBox_PreviewMouseDown;
-                }
+                // QuickAccess handled by NavigationPanelControl internally now (Fix BUG-SimultaneousNav)
+                // if (window.NavigationPanelControl.QuickAccessListBoxControl != null)
+                // {
+                //    window.NavigationPanelControl.QuickAccessListBoxControl.PreviewMouseDown += mouseHandler.QuickAccessListBox_PreviewMouseDown;
+                // }
             }
 
             // Global Mouse Down for handling focus/edit mode logic outside controls

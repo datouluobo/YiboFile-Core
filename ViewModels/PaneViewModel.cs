@@ -85,11 +85,38 @@ namespace YiboFile.ViewModels
                     _currentPath = value;
                     OnPropertyChanged(nameof(CurrentPath));
 
-                    // Update NavigationMode regardless of history navigation
-                    if (value != null && value.StartsWith("lib://")) NavigationMode = "Library";
-                    else if (value != null && value.StartsWith("tag://")) NavigationMode = "Tag";
-                    else if (value != null && value.StartsWith("search://")) NavigationMode = "Search";
-                    else NavigationMode = "Path";
+                    // Update NavigationMode and clear context based on protocol
+                    if (value != null && value.StartsWith("lib://"))
+                    {
+                        NavigationMode = "Library";
+                        CurrentTag = null;
+
+                        // Fix BUG-EmptyInfoPanel: Resolve library object if missing (e.g. from address bar or history)
+                        string libName = value.Substring(6);
+                        if (CurrentLibrary == null || CurrentLibrary.Name != libName)
+                        {
+                            var libs = _libraryService?.GetAllLibraries();
+                            CurrentLibrary = libs?.FirstOrDefault(l => l.Name == libName);
+                        }
+                    }
+                    else if (value != null && value.StartsWith("tag://"))
+                    {
+                        NavigationMode = "Tag";
+                        CurrentLibrary = null;
+                    }
+                    else if (value != null && value.StartsWith("search://"))
+                    {
+                        NavigationMode = "Search";
+                        CurrentLibrary = null;
+                        CurrentTag = null;
+                    }
+                    else
+                    {
+                        NavigationMode = "Path";
+                        // Fix BUG-018: Clear context to avoid stale info in panel
+                        CurrentLibrary = null;
+                        CurrentTag = null;
+                    }
 
                     if (!_isNavigatingHistory)
                     {
@@ -254,7 +281,7 @@ namespace YiboFile.ViewModels
             _messageBus.Subscribe<FileSelectionChangedMessage>(OnFileSelectionChanged);
             _messageBus.Subscribe<NavigateToPathMessage>(OnNavigateToPath);
             _messageBus.Subscribe<RestoreNavigationStateMessage>(OnRestoreNavigationState);
-            // LibraryFilesLoaded 现在通过 C# 事件订阅，不通过消息总线
+            _messageBus.Subscribe<LibraryFilesLoadedMessage>(OnLibraryFilesLoaded);
 
             _searchFilterService = App.ServiceProvider?.GetService<SearchFilterService>();
             var errorService = App.ServiceProvider?.GetService<ErrorService>();
@@ -274,11 +301,7 @@ namespace YiboFile.ViewModels
                 if (e.PropertyName == nameof(FileList.Files)) OnPropertyChanged(nameof(Files));
             };
 
-            if (_libraryService != null)
-            {
-                // LibrariesLoaded moved to PaneMenuViewModel
-                _libraryService.LibraryFilesLoaded += OnLibraryFilesLoaded;
-            }
+
 
             Search = new SearchViewModel(_messageBus);
             _searchCoordinator = new SearchCoordinator(_messageBus, Search);
@@ -458,7 +481,19 @@ namespace YiboFile.ViewModels
                 }
             }
         }
-        private void OnLibrarySelected(LibrarySelectedMessage msg) { if (msg.Library != null) NavigateTo($"lib://{msg.Library.Name}"); }
+        private void OnLibrarySelected(LibrarySelectedMessage msg)
+        {
+            if (msg.Library != null)
+            {
+                // Fix BUG-019/Simultaneous Navigation: Only navigate if message is directed to this pane or is global (null)
+                // And ensure we don't react if another pane was specified
+                if (msg.Pane == null || msg.Pane == (_isSecondary ? PaneId.Second : PaneId.Main))
+                {
+                    NavigateTo($"lib://{msg.Library.Name}");
+                }
+            }
+        }
+
 
 
 
@@ -530,15 +565,15 @@ namespace YiboFile.ViewModels
             }
         }
 
-        private void OnLibraryFilesLoaded(object sender, LibraryFilesLoadedEventArgs e)
+        private void OnLibraryFilesLoaded(LibraryFilesLoadedMessage msg)
         {
             // 只有当是本面板请求时才处理
-            if (e.TargetPane == (_isSecondary ? PaneId.Second : PaneId.Main))
+            if (msg.TargetPane == (_isSecondary ? PaneId.Second : PaneId.Main))
             {
-                FileList?.UpdateFiles(e.Files);
+                FileList?.UpdateFiles(msg.Files);
                 _dispatcher.Invoke(() =>
                 {
-                    StatusText = $"库: {e.Library.Name} ({e.Files?.Count ?? 0} 项)";
+                    StatusText = $"库: {msg.Library.Name} ({msg.Files?.Count ?? 0} 项)";
                     IsLoading = false;
                 });
                 Menu?.UpdateDynamicMenuItems();
@@ -552,10 +587,7 @@ namespace YiboFile.ViewModels
         protected void OnPropertyChanged(string name) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
         public void Dispose()
         {
-            if (_libraryService != null)
-            {
-                _libraryService.LibraryFilesLoaded -= OnLibraryFilesLoaded;
-            }
+
             Menu?.Dispose();
         }
     }

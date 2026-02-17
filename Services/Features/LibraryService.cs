@@ -11,6 +11,8 @@ using System.Windows.Threading;
 using YiboFile.Controls;
 using YiboFile.Services.FileList;
 using YiboFile.Services.Navigation;
+using YiboFile.ViewModels.Messaging;
+using YiboFile.ViewModels.Messaging.Messages;
 
 namespace YiboFile.Services
 {
@@ -20,27 +22,7 @@ namespace YiboFile.Services
     /// </summary>
     public class LibraryService
     {
-        #region 事件定义
 
-        /// <summary>
-        /// 库列表已加载事件
-        /// </summary>
-        public event EventHandler<List<Library>> LibrariesLoaded;
-
-        // LibrarySelected 事件暂时未使用，保留以备将来使用
-        // public event EventHandler<Library> LibrarySelected;
-
-        /// <summary>
-        /// 库文件已加载事件
-        /// </summary>
-        public event EventHandler<LibraryFilesLoadedEventArgs> LibraryFilesLoaded;
-
-        /// <summary>
-        /// 库需要高亮事件
-        /// </summary>
-        public event EventHandler<Library> LibraryHighlightRequested;
-
-        #endregion
 
         #region 私有字段
 
@@ -48,14 +30,20 @@ namespace YiboFile.Services
         private readonly SemaphoreSlim _loadFilesSemaphore = new SemaphoreSlim(1, 1);
         private readonly FileListService _fileListService;
         private readonly YiboFile.Services.Data.Repositories.ILibraryRepository _repository;
+        private readonly IMessageBus _messageBus;
 
         #endregion
 
-        public LibraryService(Dispatcher dispatcher, YiboFile.Services.Core.Error.ErrorService errorService, YiboFile.Services.Data.Repositories.ILibraryRepository repository = null)
+        public LibraryService(
+            Dispatcher dispatcher,
+            YiboFile.Services.Core.Error.ErrorService errorService,
+            IMessageBus messageBus = null,
+            YiboFile.Services.Data.Repositories.ILibraryRepository repository = null)
         {
             _dispatcher = dispatcher ?? Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
+            _messageBus = messageBus ?? App.ServiceProvider?.GetService(typeof(IMessageBus)) as IMessageBus;
             _repository = repository ?? App.ServiceProvider?.GetService(typeof(YiboFile.Services.Data.Repositories.ILibraryRepository)) as YiboFile.Services.Data.Repositories.ILibraryRepository;
-            _fileListService = new FileListService(_dispatcher, errorService);
+            _fileListService = new FileListService(_dispatcher, errorService, messageBus: _messageBus);
         }
 
 
@@ -71,7 +59,7 @@ namespace YiboFile.Services
             {
                 var libraries = _repository.GetAllLibraries();
 
-                LibrariesLoaded?.Invoke(this, libraries);
+                _messageBus?.Publish(new LibraryListChangedMessage());
                 return libraries;
             }
             catch (Exception ex)
@@ -343,13 +331,7 @@ namespace YiboFile.Services
                     // 触发空库事件
                     _dispatcher.BeginInvoke(new Action(() =>
                     {
-                        LibraryFilesLoaded?.Invoke(this, new LibraryFilesLoadedEventArgs
-                        {
-                            Library = library,
-                            Files = new List<FileSystemItem>(),
-                            IsEmpty = true,
-                            TargetPane = targetPane
-                        });
+                        _messageBus?.Publish(new LibraryFilesLoadedMessage(library, new List<FileSystemItem>(), true, targetPane));
                     }), DispatcherPriority.Background);
                     return;
                 }
@@ -382,13 +364,7 @@ namespace YiboFile.Services
                         {
                             try
                             {
-                                LibraryFilesLoaded?.Invoke(this, new LibraryFilesLoadedEventArgs
-                                {
-                                    Library = library,
-                                    Files = allItems,
-                                    IsEmpty = allItems.Count == 0,
-                                    TargetPane = targetPane
-                                });
+                                _messageBus?.Publish(new LibraryFilesLoadedMessage(library, allItems, allItems.Count == 0, targetPane));
                             }
                             finally
                             {
@@ -423,7 +399,7 @@ namespace YiboFile.Services
         {
             if (library != null)
             {
-                LibraryHighlightRequested?.Invoke(this, library);
+                _messageBus?.Publish(new LibraryHighlightRequestedMessage(library));
             }
         }
 

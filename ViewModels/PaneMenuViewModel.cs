@@ -48,9 +48,8 @@ namespace YiboFile.ViewModels
             _messageBus.Subscribe<TagListChangedMessage>(OnTagListChanged);
             _messageBus.Subscribe<LibraryListChangedMessage>(OnLibraryListChanged);
             _messageBus.Subscribe<FavoritesUpdatedMessage>(OnFavoritesUpdated);
-
-            if (_libraryService != null) _libraryService.LibrariesLoaded += OnLibrariesLoaded;
         }
+
 
         public void UpdateDynamicMenuItems()
         {
@@ -176,13 +175,11 @@ namespace YiboFile.ViewModels
         private void OnTagListChanged(TagListChangedMessage msg) => UpdateDynamicMenuItems();
         private void OnLibraryListChanged(LibraryListChangedMessage msg) => UpdateDynamicMenuItems();
         private void OnFavoritesUpdated(FavoritesUpdatedMessage msg) => UpdateDynamicMenuItems();
-        private void OnLibrariesLoaded(object sender, List<Library> libraries) => UpdateDynamicMenuItems();
 
         #endregion
 
         public void Dispose()
         {
-            if (_libraryService != null) _libraryService.LibrariesLoaded -= OnLibrariesLoaded;
             _messageBus.Unsubscribe<TagListChangedMessage>(OnTagListChanged);
             _messageBus.Unsubscribe<LibraryListChangedMessage>(OnLibraryListChanged);
             _messageBus.Unsubscribe<FavoritesUpdatedMessage>(OnFavoritesUpdated);

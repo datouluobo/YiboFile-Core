@@ -10,12 +10,17 @@ namespace YiboFile.ViewModels.Messaging.Messages
     /// <summary>
     /// 请求刷新文件列表
     /// </summary>
-    public record RefreshFileListMessage(string Path = null);
+    public record RefreshFileListMessage(string Path = null, YiboFile.Services.Navigation.PaneId Pane = YiboFile.Services.Navigation.PaneId.Main);
 
     /// <summary>
-    /// 文件列表已加载通知
+    /// 文件列表内容已加载通知 (包含项)
     /// </summary>
-    public record FileListLoadedMessage(string Path, int FileCount);
+    public record FileListItemsLoadedMessage(string Path, System.Collections.Generic.List<YiboFile.Models.FileSystemItem> Items, YiboFile.Services.Navigation.PaneId Pane);
+
+    /// <summary>
+    /// 文件列表元数据已增强通知
+    /// </summary>
+    public record FileListMetadataEnrichedMessage(System.Collections.Generic.List<YiboFile.Models.FileSystemItem> Items, YiboFile.Services.Navigation.PaneId Pane);
 
     /// <summary>
     /// 文件选择变更通知

@@ -259,13 +259,29 @@ namespace YiboFile.Services.Tabs
 
                 // Let's use a common system path for now as a robust fallback
                 var homePath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+                var homeType = TabType.Path;
+                var homeTitle = CalculateTabDisplayTitle(homePath);
+
+                // Fix New Issue 2: If closing the last library tab, stay in Library mode by going to library root
+                if (tab.Type == TabType.Library)
+                {
+                    homePath = "lib://";
+                    homeType = TabType.Library;
+                    homeTitle = "所有库";
+                }
 
                 if (tab.Path != homePath)
                 {
                     tab.Path = homePath;
-                    tab.Type = TabType.Path;
-                    tab.Title = CalculateTabDisplayTitle(homePath);
-                    SwitchToTab(tab);
+                    tab.Type = homeType;
+                    tab.Title = homeTitle;
+                    if (homeType == TabType.Library) tab.Library = null; // Clear specific library reference
+
+                    // [根本修复] 主面板 TabService 没有设置 TabUiContext (_ui 为 null)，
+                    // 且 SwitchToTab 会因标签页已是 Active 而被优化跳过。
+                    // 必须通过消息总线直接通知 PaneViewModel 执行导航。
+                    _messageBus.Publish(new YiboFile.ViewModels.Messaging.Messages.NavigateToPathMessage(
+                        homePath, AddToHistory: false, Pane: this.Pane));
                 }
                 return;
             }

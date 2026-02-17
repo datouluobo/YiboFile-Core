@@ -84,9 +84,6 @@ namespace YiboFile.Controls
                 new LicenseItem { Name = "Microsoft.Web.WebView2", Description = "Edge WebView2 控件", License = "Microsoft License" },
                 new LicenseItem { Name = "IxMilia.Dxf", Description = "DXF文件读写库", License = "MIT License" },
                 
-                // 机器学习
-                new LicenseItem { Name = "Microsoft.ML", Description = "跨平台机器学习框架", License = "MIT License" },
-                new LicenseItem { Name = "SciSharp.TensorFlow.Redist", Description = "TensorFlow重新分发包", License = "Apache-2.0" },
 
                 // 字体与图标资源
                 new LicenseItem { Name = "Remix Icon", Description = "开源中性风格图标系统", License = "Apache-2.0" },

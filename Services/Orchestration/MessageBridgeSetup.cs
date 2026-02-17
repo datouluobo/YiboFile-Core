@@ -47,64 +47,17 @@ namespace YiboFile.Services.Orchestration
                 };
             }
 
-            // 2. FileListService -> MessageBus
-            Action<object, YiboFile.Models.FileSystemItem> onFolderSizeCalculated = (s, item) =>
-            {
-                var pane = (s == secondFileListService) ? PaneId.Second : PaneId.Main;
-                _messageBus.Publish(new FolderSizeCalculatedMessage(item.Path, item.SizeBytes, item.Size));
-            };
-
-            Action<object, List<YiboFile.Models.FileSystemItem>> onMetadataEnriched = (s, items) =>
-            {
-                var pane = (s == secondFileListService) ? PaneId.Second : PaneId.Main;
-                // 这里可以发布汇总消息
-            };
-
-            if (fileListService != null)
-            {
-                fileListService.FolderSizeCalculated += (s, item) => onFolderSizeCalculated(s, item);
-                fileListService.MetadataEnriched += (s, items) => onMetadataEnriched(s, items);
-            }
-            if (secondFileListService != null)
-            {
-                secondFileListService.FolderSizeCalculated += (s, item) => onFolderSizeCalculated(s, item);
-                secondFileListService.MetadataEnriched += (s, items) => onMetadataEnriched(s, items);
-            }
+            // 2. FileListService & LibraryService -> MessageBus
+            // 已在服务内部实现 IMessageBus 发布，无需此处桥接
 
             // 3. FileSystemWatcherService -> MessageBus
-            if (fileSystemWatcherService != null)
-            {
-                fileSystemWatcherService.FileSystemChanged += (s, e) =>
-                {
-                    _messageBus.Publish(new FileSystemChangedMessage(e.FullPath, e.ChangeType.ToString()));
-                };
-                fileSystemWatcherService.RefreshRequested += (s, e) =>
-                {
-                    _messageBus.Publish(new RefreshFileListMessage());
-                };
-            }
+            // 已在服务内部实现 IMessageBus 发布，无需此处桥接
 
             // 4. LibraryService -> MessageBus (模块已部分桥接，此处补充汇总)
             // LibraryModule 已经处理了 LibraryFilesLoaded 和 LibrariesLoaded
 
-            // 5. FavoriteService & QuickAccessService
-            if (favoriteService != null)
-            {
-                favoriteService.NavigateRequested += (s, path) =>
-                {
-                    _messageBus.Publish(new NavigateToPathMessage(path));
-                };
-
-                favoriteService.CreateTabRequested += (s, path) =>
-                {
-                    _messageBus.Publish(new CreateTabMessage(path));
-                };
-
-                favoriteService.FileOpenRequested += (s, path) =>
-                {
-                    _messageBus.Publish(new OpenFileRequestMessage(path));
-                };
-            }
+            // 5. FavoriteService & QuickAccessService -> MessageBus
+            // 已在服务内部实现 IMessageBus 发布，无需此处桥接
         }
 
         /// <summary>

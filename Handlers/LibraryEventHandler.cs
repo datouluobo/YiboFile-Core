@@ -10,12 +10,13 @@ using YiboFile.Services;
 using YiboFile.Services.Config;
 using YiboFile.Services.Navigation;
 using YiboFile.Models.Navigation;
+using YiboFile.Interfaces;
 
 namespace YiboFile.Handlers
 {
     public class LibraryEventHandler
     {
-        private readonly MainWindow _window;
+        private readonly IShellWindow _shellWindow;
         private readonly LibraryService _libraryService;
         private readonly NavigationCoordinator _navigationCoordinator;
         private readonly NavigationService _navigationService;
@@ -23,33 +24,30 @@ namespace YiboFile.Handlers
         private readonly Services.ColumnManagement.ColumnService _columnService;
 
         public LibraryEventHandler(
-            MainWindow window,
+            IShellWindow shellWindow,
             LibraryService libraryService,
             NavigationCoordinator navigationCoordinator,
             NavigationService navigationService,
             Services.FileList.FileListService fileListService,
             Services.ColumnManagement.ColumnService columnService)
         {
-            _window = window;
-            _libraryService = libraryService;
-            _navigationCoordinator = navigationCoordinator;
-            _navigationService = navigationService;
-            _fileListService = fileListService;
-            _columnService = columnService;
+            _shellWindow = shellWindow ?? throw new ArgumentNullException(nameof(shellWindow));
+            _libraryService = libraryService ?? throw new ArgumentNullException(nameof(libraryService));
+            _navigationCoordinator = navigationCoordinator ?? throw new ArgumentNullException(nameof(navigationCoordinator));
+            _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
+            _fileListService = fileListService ?? throw new ArgumentNullException(nameof(fileListService));
+            _columnService = columnService ?? throw new ArgumentNullException(nameof(columnService));
         }
 
         public void Initialize()
         {
-            if (_window.LibrariesListBox == null) return;
+            if (_shellWindow.LibrariesListBox == null) return;
 
-            _window.LibrariesListBox.PreviewMouseDown += LibrariesListBox_PreviewMouseDown;
-            _window.LibrariesListBox.SelectionChanged += LibrariesListBox_SelectionChanged; // Needs fix for _isInternalUpdate
-            _window.LibrariesListBox.ContextMenuOpening += LibrariesListBox_ContextMenuOpening;
+            _shellWindow.LibrariesListBox.PreviewMouseDown += LibrariesListBox_PreviewMouseDown;
+            _shellWindow.LibrariesListBox.SelectionChanged += LibrariesListBox_SelectionChanged;
+            _shellWindow.LibrariesListBox.ContextMenuOpening += LibrariesListBox_ContextMenuOpening;
 
-            // Context Menu Click Handling
-            // LibrariesListBox usually has a context menu assigned in XAML or dynamically.
-            // Assuming context menu events are handled here via attached logic or direct subscription if accessible.
-            if (_window.NavigationPanelControl?.LibraryContextMenuControl is ContextMenu cm)
+            if (_shellWindow.LibraryContextMenu is ContextMenu cm)
             {
                 foreach (var item in cm.Items.OfType<MenuItem>())
                 {
@@ -75,13 +73,7 @@ namespace YiboFile.Handlers
             {
                 if (targetPane == PaneId.Main)
                 {
-                    _window._currentFiles.Clear();
-                    _window._currentPath = null; // 标记当前在库模式下
-                    if (_window.FileBrowser != null)
-                    {
-                        // _window.FileBrowser.NavUpEnabled = false; // Obsolete, handled by ViewModel Command
-                        _window.FileBrowser.SetSearchStatus(false);
-                    }
+                    _shellWindow.ClearLegacyFileState();
                 }
 
                 // 使用库服务加载文件
@@ -92,13 +84,14 @@ namespace YiboFile.Handlers
             }
             catch (Exception ex)
             {
-                DialogService.Error($"加载库文件失败: {ex.Message}", owner: _window);
+                // DialogService.Error relies on Window, pass Owner window if possible or null
+                // Or IShellWindow cast to Window if strictly needed, or just null for generic handle
+                MessageBox.Show($"加载库文件失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
         public void HighlightMatchingLibrary(Library currentLibrary)
         {
-            // Delegate directly to NavigationService as per original logic
             _navigationService?.HighlightMatchingLibrary(currentLibrary);
         }
 
@@ -121,7 +114,7 @@ namespace YiboFile.Handlers
                 if (current is ListBoxItem item && item.DataContext is Library library)
                 {
                     e.Handled = true;
-                    _navigationCoordinator.HandleLibraryNavigation(library, clickType, _window.GetActivePaneId());
+                    _navigationCoordinator.HandleLibraryNavigation(library, clickType, _shellWindow.GetActivePaneId());
                     return;
                 }
                 current = VisualTreeHelper.GetParent(current);
@@ -130,29 +123,32 @@ namespace YiboFile.Handlers
 
         private void LibrariesListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            // Internal update flag needs to be accessible or managed.
-            // Assuming _isInternalUpdate is exposed or we can check transient state.
-            // For now, let's access it via internal if possible, otherwise rely on logic.
-            // _window._isInternalUpdate is internal.
-            if (_window._isInternalUpdate) return;
+            if (_shellWindow.IsInternalUiUpdate) return;
 
-            if (_window.LibrariesListBox.SelectedItem is Library selectedLibrary)
+            if (_shellWindow.LibrariesListBox.SelectedItem is Library selectedLibrary)
             {
-                if (selectedLibrary == _window._currentLibrary) return;
+                var currentLib = _shellWindow.ViewModel?.ActivePane?.CurrentLibrary;
+                if (selectedLibrary == currentLib) return;
 
-                _navigationCoordinator.HandleLibraryNavigation(selectedLibrary, ClickType.LeftClick, _window.GetActivePaneId());
+                _navigationCoordinator.HandleLibraryNavigation(selectedLibrary, ClickType.LeftClick, _shellWindow.GetActivePaneId());
             }
             else
             {
-                _window._currentLibrary = null;
+                if (_shellWindow.ViewModel?.ActivePane != null)
+                {
+                    _shellWindow.ViewModel.ActivePane.CurrentLibrary = null;
+                }
                 ConfigurationService.Instance.Set(c => c.LastLibraryId, 0);
                 ConfigurationService.Instance.SaveNow();
 
-                _window._currentFiles.Clear();
-                if (_window.FileBrowser != null)
+                _shellWindow.ClearLegacyFileState();
+
+                // Clear Primary Pane specifically if needed, logic says:
+                _shellWindow.ViewModel?.PrimaryPane?.FileList?.UpdateFiles(new List<FileSystemItem>());
+
+                if (_shellWindow.FileBrowser != null)
                 {
-                    _window._viewModel?.PrimaryPane?.FileList?.UpdateFiles(new List<FileSystemItem>());
-                    _window.FileBrowser.AddressText = "";
+                    _shellWindow.FileBrowser.AddressText = "";
                 }
 
                 _navigationService.ClearItemHighlights();
@@ -161,9 +157,9 @@ namespace YiboFile.Handlers
 
         private void LibrariesListBox_ContextMenuOpening(object sender, ContextMenuEventArgs e)
         {
-            if (_window.NavigationPanelControl?.LibraryContextMenuControl is ContextMenu cm)
+            if (_shellWindow.LibraryContextMenu is ContextMenu cm)
             {
-                var selectedLibrary = _window.LibrariesListBox.SelectedItem as Library;
+                var selectedLibrary = _shellWindow.LibrariesListBox.SelectedItem as Library;
                 bool hasSelection = selectedLibrary != null;
 
                 SetLibraryMenuItemVisibility(cm, "LibraryRefreshItem", !hasSelection);
@@ -214,12 +210,13 @@ namespace YiboFile.Handlers
         public void LibraryRefresh_Click()
         {
             _libraryService?.LoadLibraries();
-            if (_window._currentLibrary != null) LoadLibraryFiles(_window._currentLibrary);
+            var currentLib = _shellWindow.ViewModel?.ActivePane?.CurrentLibrary;
+            if (currentLib != null) LoadLibraryFiles(currentLib);
         }
 
         public void LibraryOpenInExplorer_Click()
         {
-            if (_window.LibrariesListBox.SelectedItem is Library lib && lib.Paths != null && lib.Paths.Count > 0)
+            if (_shellWindow.LibrariesListBox.SelectedItem is Library lib && lib.Paths != null && lib.Paths.Count > 0)
             {
                 System.Diagnostics.Process.Start("explorer.exe", lib.Paths[0]);
             }
@@ -227,22 +224,25 @@ namespace YiboFile.Handlers
 
         public void LibraryRename_Click()
         {
-            if (_window.LibrariesListBox.SelectedItem is Library lib)
+            if (_shellWindow.LibrariesListBox.SelectedItem is Library lib)
             {
+                var owner = _shellWindow as Window;
                 var dialog = new YiboFile.Controls.Dialogs.InputDialog("重命名库", "请输入新名称:", lib.Name);
-                dialog.Owner = _window;
+                if (owner != null) dialog.Owner = owner;
+
                 if (dialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(dialog.InputText))
                 {
-                    DialogService.Info("库重命名功能待实现", owner: _window);
+                    MessageBox.Show("库重命名功能待实现", "提示");
                 }
             }
         }
 
         public void LibraryDelete_Click()
         {
-            if (_window.LibrariesListBox.SelectedItem is Library lib)
+            if (_shellWindow.LibrariesListBox.SelectedItem is Library lib)
             {
-                if (DialogService.Ask($"确定要删除库 \"{lib.Name}\" 吗？", "确认删除", _window))
+                var owner = _shellWindow as Window;
+                if (DialogService.Ask($"确定要删除库 \"{lib.Name}\" 吗？", "确认删除", owner))
                 {
                     _libraryService?.DeleteLibrary(lib.Id, lib.Name);
                     LoadLibraries();
@@ -252,7 +252,7 @@ namespace YiboFile.Handlers
 
         public void LibraryManage_Click()
         {
-            DialogService.Info("库管理功能待完善", owner: _window);
+            MessageBox.Show("库管理功能待完善", "提示");
         }
 
         public void ImportLibrary_Click(object sender, RoutedEventArgs e)
@@ -269,13 +269,12 @@ namespace YiboFile.Handlers
 
         public void ExportLibrary_Click(object sender, RoutedEventArgs e)
         {
-            DialogService.Info("导出库功能待实现", owner: _window);
+            MessageBox.Show("导出库功能待实现", "提示");
         }
 
         public void AddFileToLibrary_Click(object sender, RoutedEventArgs e)
         {
-            // Logic copied from MainWindow.Library.cs
-            var selectedItems = _window.FileBrowser?.FilesSelectedItems?.Cast<FileSystemItem>().ToList() ?? new List<FileSystemItem>();
+            var selectedItems = _shellWindow.FileBrowser?.FilesSelectedItems?.Cast<FileSystemItem>().ToList() ?? new List<FileSystemItem>();
             if (selectedItems.Count == 0)
             {
                 MessageBox.Show("请先选择要添加到库的文件或文件夹", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -283,10 +282,11 @@ namespace YiboFile.Handlers
             }
 
             Library targetLibrary = null;
+            var currentLib = _shellWindow.ViewModel?.ActivePane?.CurrentLibrary;
 
-            if (_window._currentLibrary != null)
+            if (currentLib != null)
             {
-                targetLibrary = _window._currentLibrary;
+                targetLibrary = currentLib;
             }
             else
             {
@@ -297,17 +297,14 @@ namespace YiboFile.Handlers
                     return;
                 }
 
-                // Create Dialog (Simplified for brevity, assuming existing logic works)
-                // Re-implementing dialog logic here or extracting to a helper/service would be better.
-                // For now, replicating the inline dialog creation logic.
-
+                var owner = _shellWindow as Window;
                 var dialog = new Window
                 {
                     Title = "选择库",
                     Width = 400,
                     Height = 300,
                     WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                    Owner = _window
+                    Owner = owner
                 };
 
                 var listBox = new ListBox
@@ -405,9 +402,10 @@ namespace YiboFile.Handlers
                 MessageBox.Show($"添加失败:\n{string.Join("\\n", failedItems)}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
 
-            if (_window._currentLibrary != null && _window._currentLibrary.Id == targetLibrary.Id)
+            currentLib = _shellWindow.ViewModel?.ActivePane?.CurrentLibrary;
+            if (currentLib != null && currentLib.Id == targetLibrary.Id)
             {
-                LoadLibraryFiles(_window._currentLibrary);
+                LoadLibraryFiles(currentLib);
             }
         }
     }

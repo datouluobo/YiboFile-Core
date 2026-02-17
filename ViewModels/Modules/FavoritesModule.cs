@@ -30,8 +30,7 @@ namespace YiboFile.ViewModels.Modules
 
         protected override void OnInitialize()
         {
-            // 订阅 Service 事件
-            _favoriteService.FavoritesLoaded += OnFavoritesLoaded;
+            Subscribe<FavoritesUpdatedMessage>(msg => LoadFavorites());
 
             Subscribe<AddFavoriteRequestMessage>(OnAddFavoriteRequest);
             Subscribe<CreateFavoriteGroupRequestMessage>(OnCreateFavoriteGroupRequest);
@@ -58,13 +57,7 @@ namespace YiboFile.ViewModels.Modules
 
         protected override void OnShutdown()
         {
-            _favoriteService.FavoritesLoaded -= OnFavoritesLoaded;
-        }
-
-        private void OnFavoritesLoaded(object sender, EventArgs e)
-        {
-            // 确保在 UI 线程执行
-            Application.Current.Dispatcher.Invoke(LoadFavorites);
+            // Do nothing
         }
 
         /// <summary>
@@ -75,12 +68,15 @@ namespace YiboFile.ViewModels.Modules
             try
             {
                 var groups = _favoriteService.GetFavoriteGroups();
-                FavoriteGroups.Clear();
-                foreach (var group in groups)
+                // 在 UI 线程更新
+                Application.Current.Dispatcher.Invoke(() =>
                 {
-                    FavoriteGroups.Add(group);
-                }
-                Publish(new FavoritesUpdatedMessage());
+                    FavoriteGroups.Clear();
+                    foreach (var group in groups)
+                    {
+                        FavoriteGroups.Add(group);
+                    }
+                });
             }
             catch (Exception ex)
             {

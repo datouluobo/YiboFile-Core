@@ -11,6 +11,9 @@ using YiboFile.Services.FileSystem;
 using YiboFile.Services.Core;
 using YiboFile.Services.Features;
 using YiboFile;
+using YiboFile.ViewModels.Messaging;
+using YiboFile.ViewModels.Messaging.Messages;
+using YiboFile.Services.Navigation;
 
 namespace YiboFile.Services.FileList
 {
@@ -29,6 +32,8 @@ namespace YiboFile.Services.FileList
         private readonly FolderSizeCalculator _folderSizeCalculator;
         private readonly FileMetadataEnricher _metadataEnricher;
         private readonly FolderSizeCalculationService _folderSizeCalculationService;
+        private readonly IMessageBus _messageBus;
+        private readonly PaneId _paneId;
 
         #endregion
 
@@ -62,26 +67,7 @@ namespace YiboFile.Services.FileList
 
         #endregion
 
-        #region 事件定义
 
-        /// <summary>
-        /// 文件列表加载完成事件
-        /// </summary>
-        public event EventHandler<List<FileSystemItem>> FilesLoaded;
-
-        /// <summary>
-        /// 文件夹大小计算完成事件
-        /// </summary>
-        public event EventHandler<FileSystemItem> FolderSizeCalculated;
-
-        /// <summary>
-        /// 元数据加载完成事件（标签和备注）
-        /// </summary>
-        public event EventHandler<List<FileSystemItem>> MetadataEnriched;
-
-
-
-        #endregion
 
         #region 构造函数
 
@@ -91,11 +77,19 @@ namespace YiboFile.Services.FileList
         /// <param name="dispatcher">UI线程调度器，用于更新UI</param>
         /// <param name="errorService">统一错误处理服务</param>
         /// <param name="tagService">标签服务（可选）</param>
-        public FileListService(Dispatcher dispatcher, YiboFile.Services.Core.Error.ErrorService errorService, ITagService tagService = null)
+        public FileListService(
+            Dispatcher dispatcher,
+            YiboFile.Services.Core.Error.ErrorService errorService,
+            ITagService tagService = null,
+            IMessageBus messageBus = null,
+            PaneId paneId = PaneId.Main)
         {
             _dispatcher = dispatcher ?? throw new ArgumentNullException(nameof(dispatcher));
             _errorService = errorService ?? throw new ArgumentNullException(nameof(errorService));
             _tagService = tagService;
+            _messageBus = messageBus ?? App.ServiceProvider?.GetService(typeof(IMessageBus)) as IMessageBus;
+            _paneId = paneId;
+
             _folderSizeCalculator = new FolderSizeCalculator();
             _metadataEnricher = new FileMetadataEnricher(_tagService);
             _folderSizeCalculationService = new FolderSizeCalculationService();
@@ -336,7 +330,29 @@ namespace YiboFile.Services.FileList
             if (protocolInfo.Type == ProtocolType.Library)
             {
                 var fullTarget = protocolInfo.TargetPath;
-                if (string.IsNullOrEmpty(fullTarget)) return new List<FileSystemItem>();
+
+                // Fix for New Issue 2: Support listing all libraries if target is empty (lib:// root)
+                // This allows the file list to show all available libraries essentially as folders
+                if (string.IsNullOrEmpty(fullTarget))
+                {
+                    var repo = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<YiboFile.Services.Data.Repositories.ILibraryRepository>(App.ServiceProvider);
+                    var libs = await Task.Run(() => repo.GetAllLibraries(), cancellationToken).ConfigureAwait(false);
+
+                    var libraryItems = libs.Select(lib => new FileSystemItem
+                    {
+                        Name = lib.Name,
+                        Path = $"lib://{lib.Name}",
+                        Type = "库",
+                        IsDirectory = true,
+                        Size = "-",
+                        ModifiedDate = "-",
+                        SourcePath = path,
+                        // Use a specific icon or let the UI handle it based on Type/IsDirectory
+                    }).ToList();
+
+                    return ProcessLoadedItems(libraryItems, path, cancellationToken, resetOngoingOperations, skipBackgroundTasks, orderTagNames);
+                }
+
 
                 // 拆分库名和可能的子路径 (例如: lib://MyLib/FolderName -> libName="MyLib", subPath="FolderName")
                 var parts = fullTarget.Split(new[] { '/', '\\' }, 2);
@@ -372,7 +388,7 @@ namespace YiboFile.Services.FileList
                     foreach (var item in items) item.SourcePath = path;
 
                     // 触发后续的各种事件和后台任务（大小计算、元数据等）
-                    return ProcessLoadedItems(items, cancellationToken, resetOngoingOperations, skipBackgroundTasks, orderTagNames);
+                    return ProcessLoadedItems(items, path, cancellationToken, resetOngoingOperations, skipBackgroundTasks, orderTagNames);
                 }
                 return new List<FileSystemItem>();
             }
@@ -471,7 +487,7 @@ namespace YiboFile.Services.FileList
                                 combinedMetadataToken,
                                 _dispatcher,
                                 orderTagNames,
-                                () => MetadataEnriched?.Invoke(this, files)).ConfigureAwait(false);
+                                () => _messageBus?.Publish(new FileListMetadataEnrichedMessage(files, _paneId))).ConfigureAwait(false);
                         }
                         catch { }
                     }, combinedMetadataToken);
@@ -526,7 +542,7 @@ namespace YiboFile.Services.FileList
                 items.AddRange(directories);
                 items.AddRange(files);
 
-                return ProcessLoadedItems(items, cancellationToken, resetOngoingOperations, skipBackgroundTasks, orderTagNames);
+                return ProcessLoadedItems(items, path, cancellationToken, resetOngoingOperations, skipBackgroundTasks, orderTagNames);
             }
             catch (UnauthorizedAccessException ex)
             {
@@ -567,16 +583,16 @@ namespace YiboFile.Services.FileList
 
         private List<FileSystemItem> ProcessLoadedItems(
             List<FileSystemItem> items,
+            string path,
             CancellationToken cancellationToken,
             bool resetOngoingOperations,
             bool skipBackgroundTasks,
             Func<List<int>, List<string>> orderTagNames)
         {
-            // 触发加载完成事件 (仅当不跳过后台任务时触发，或者是顶层调用)
-            // 如果是库子项加载，我们不触发个别完成事件，以免 flooding
+            // 触发加载完成消息 (仅当不跳过后台任务时触发，或者是顶层调用)
             if (!skipBackgroundTasks)
             {
-                FilesLoaded?.Invoke(this, items);
+                _messageBus?.Publish(new FileListItemsLoadedMessage(path, items, _paneId));
             }
 
             if (skipBackgroundTasks)
@@ -640,7 +656,7 @@ namespace YiboFile.Services.FileList
                         combinedMetadataToken,
                         _dispatcher,
                         orderTagNames,
-                        () => MetadataEnriched?.Invoke(this, items)).ConfigureAwait(false);
+                        () => _messageBus?.Publish(new FileListMetadataEnrichedMessage(items, _paneId))).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException) { }
                 catch (Exception ex)
@@ -710,7 +726,7 @@ namespace YiboFile.Services.FileList
                 {
                     item.Size = displaySize;
                     item.SizeBytes = size;
-                    FolderSizeCalculated?.Invoke(this, item);
+                    _messageBus?.Publish(new FolderSizeCalculatedMessage(item.Path, size, displaySize));
                 }, DispatcherPriority.Background);
             }
             catch (OperationCanceledException) { }
@@ -757,7 +773,7 @@ namespace YiboFile.Services.FileList
                     () =>
                     {
                         var itemsList = items.ToList();
-                        MetadataEnriched?.Invoke(this, itemsList);
+                        _messageBus?.Publish(new FileListMetadataEnrichedMessage(items.ToList(), _paneId));
                     }).ConfigureAwait(false);
             }
             catch (OperationCanceledException) { }

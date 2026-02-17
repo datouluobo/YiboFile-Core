@@ -12,6 +12,9 @@ using YiboFile.Services.Core;
 using YiboFile.Controls;
 using YiboFile;
 using YiboFile.Services.Data.Repositories;
+using Microsoft.Extensions.DependencyInjection;
+using YiboFile.ViewModels.Messaging;
+using YiboFile.ViewModels.Messaging.Messages;
 
 namespace YiboFile.Services.Favorite
 {
@@ -21,33 +24,12 @@ namespace YiboFile.Services.Favorite
     /// </summary>
     public class FavoriteService
     {
-        #region 事件定义
 
-        /// <summary>
-        /// 路径导航请求事件（文件夹）
-        /// </summary>
-        public event EventHandler<string> NavigateRequested;
-
-        /// <summary>
-        /// 文件打开请求事件（文件）
-        /// </summary>
-        public event EventHandler<string> FileOpenRequested;
-
-        /// <summary>
-        /// 新标签页创建请求事件
-        /// </summary>
-        public event EventHandler<string> CreateTabRequested;
-
-        /// <summary>
-        /// 收藏列表已加载事件
-        /// </summary>
-        public event EventHandler FavoritesLoaded;
-
-        #endregion
 
         #region 私有字段
         private readonly IFavoriteRepository _favoriteRepository;
         private readonly System.Windows.Threading.Dispatcher _dispatcher;
+        private readonly IMessageBus _messageBus;
         private YiboFile.Favorite _draggedFavorite = null;
         private System.Windows.Point _dragStartPoint;
         private bool _isDraggingFavorite = false;
@@ -57,9 +39,10 @@ namespace YiboFile.Services.Favorite
 
         #region 构造函数
 
-        public FavoriteService(IFavoriteRepository favoriteRepository, System.Windows.Threading.Dispatcher dispatcher = null)
+        public FavoriteService(IFavoriteRepository favoriteRepository, IMessageBus messageBus = null, System.Windows.Threading.Dispatcher dispatcher = null)
         {
             _favoriteRepository = favoriteRepository ?? throw new ArgumentNullException(nameof(favoriteRepository));
+            _messageBus = messageBus ?? App.ServiceProvider?.GetService<IMessageBus>();
             _dispatcher = dispatcher ?? Application.Current?.Dispatcher ?? System.Windows.Threading.Dispatcher.CurrentDispatcher;
         }
 
@@ -312,8 +295,8 @@ namespace YiboFile.Services.Favorite
                 }
             }
 
-            // 触发重新加载事件
-            FavoritesLoaded?.Invoke(this, EventArgs.Empty);
+            // 触发重新加载通知
+            _messageBus?.Publish(new FavoritesUpdatedMessage());
 
             if (successCount > 0)
                 NotificationService.Show($"成功添加 {successCount} 个项目到收藏", NotificationType.Success);
@@ -326,7 +309,7 @@ namespace YiboFile.Services.Favorite
         {
             if (string.IsNullOrEmpty(path)) return;
             _favoriteRepository.RemoveFavorite(path);
-            FavoritesLoaded?.Invoke(this, EventArgs.Empty);
+            _messageBus?.Publish(new FavoritesUpdatedMessage());
         }
 
         #region 分组管理方法
@@ -337,7 +320,7 @@ namespace YiboFile.Services.Favorite
         {
             if (string.IsNullOrEmpty(name)) return -1;
             int newId = _favoriteRepository.CreateGroup(name);
-            FavoritesLoaded?.Invoke(this, EventArgs.Empty);
+            _messageBus?.Publish(new FavoritesUpdatedMessage());
             return newId;
         }
 
@@ -345,7 +328,7 @@ namespace YiboFile.Services.Favorite
         {
             if (string.IsNullOrEmpty(name)) return;
             _favoriteRepository.RenameGroup(id, name);
-            FavoritesLoaded?.Invoke(this, EventArgs.Empty);
+            _messageBus?.Publish(new FavoritesUpdatedMessage());
         }
 
         public void DeleteGroup(int id)
@@ -356,7 +339,7 @@ namespace YiboFile.Services.Favorite
                 return;
             }
             _favoriteRepository.DeleteGroup(id);
-            FavoritesLoaded?.Invoke(this, EventArgs.Empty);
+            _messageBus?.Publish(new FavoritesUpdatedMessage());
         }
 
         #endregion
@@ -382,18 +365,29 @@ namespace YiboFile.Services.Favorite
 
             if (favorite.IsDirectory && Directory.Exists(favorite.Path))
             {
-                NavigateRequested?.Invoke(this, favorite.Path);
+                // Fix BUG-019: Disable broadcast to prevent double navigation (handled by NavigationPanelControl)
+                // _messageBus?.Publish(new NavigateToPathMessage(favorite.Path));
             }
             else if (!favorite.IsDirectory && File.Exists(favorite.Path))
             {
-                FileOpenRequested?.Invoke(this, favorite.Path);
+                // _messageBus?.Publish(new OpenFileRequestMessage(favorite.Path)); 
+                // Keep file opening if not handled elsewhere? 
+                // NavigationCoordinator handles file via OpenFileRequestMessage too.
+                // But FavoriteListBox_PreviewMouseDown handles files? No, it only handles directories?
+                // Let's check PreviewMouseDown. It handles Directory.Exists.
+                // It DOES NOT handle files. So KEEP this for files?
+                // But wait, the user complaint is "Clicking favorite links causes simultaneous navigation".
+                // Usually implies folders.
+                // If I disable folder broadcast, folders are fixed.
+                // If I keep file broadcast, files work.
+                _messageBus?.Publish(new OpenFileRequestMessage(favorite.Path));
             }
             else
             {
                 if (YiboFile.DialogService.Ask($"路径不存在: {favorite.Path}\n\n是否从收藏中移除？", "提示"))
                 {
                     _favoriteRepository.RemoveFavorite(favorite.Path);
-                    FavoritesLoaded?.Invoke(this, EventArgs.Empty);
+                    _messageBus?.Publish(new FavoritesUpdatedMessage());
                     NotificationService.Show("已移除无效收藏", NotificationType.Success);
                 }
             }
@@ -440,7 +434,7 @@ namespace YiboFile.Services.Favorite
                                 {
                                     if (Directory.Exists(favorite.Path))
                                     {
-                                        CreateTabRequested?.Invoke(this, favorite.Path);
+                                        _messageBus?.Publish(new CreateTabMessage(favorite.Path));
                                         e.Handled = true;
                                         return;
                                     }
@@ -502,8 +496,8 @@ namespace YiboFile.Services.Favorite
 
                             _favoriteRepository.RemoveFavorite(favorite.Path);
 
-                            // 触发重新加载 - 下游 MainWindow 监听此事件并调用 LoadFavorites
-                            FavoritesLoaded?.Invoke(this, EventArgs.Empty);
+                            // 触发重新加载
+                            _messageBus?.Publish(new FavoritesUpdatedMessage());
                             NotificationService.Show("已取消收藏", NotificationType.Success);
                         }
                     }
@@ -665,7 +659,7 @@ namespace YiboFile.Services.Favorite
             {
                 // 更新数据库中的分组 ID
                 _favoriteRepository.AddFavorite(draggedFavorite.Path, draggedFavorite.IsDirectory, draggedFavorite.DisplayName, targetGroup.Id);
-                FavoritesLoaded?.Invoke(this, EventArgs.Empty);
+                _messageBus?.Publish(new FavoritesUpdatedMessage());
                 _draggedFavorite = null;
                 _isDraggingFavorite = false;
                 e.Handled = true;
@@ -701,8 +695,8 @@ namespace YiboFile.Services.Favorite
                     _favoriteRepository.UpdateSortOrder(groupFavorites[i].Id, i);
                 }
 
-                // 重新加载系统
-                FavoritesLoaded?.Invoke(this, EventArgs.Empty);
+                // 触发重新加载通知
+                _messageBus?.Publish(new FavoritesUpdatedMessage());
             }
 
             _draggedFavorite = null;

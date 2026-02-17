@@ -72,5 +72,11 @@ namespace YiboFile.Interfaces
         event EventHandler Closed;
         event EventHandler Activated;
         event EventHandler Deactivated;
+
+        // 扩展支持 (For Handlers)
+        ContextMenu LibraryContextMenu { get; }
+        Services.Navigation.PaneId GetActivePaneId();
+        bool IsInternalUiUpdate { get; }
+        void ClearLegacyFileState(); // 用于清除遗留的 _currentFiles 等状态
     }
 }

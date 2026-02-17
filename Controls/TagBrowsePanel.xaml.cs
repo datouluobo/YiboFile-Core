@@ -8,6 +8,8 @@ using Microsoft.Extensions.DependencyInjection;
 using YiboFile.Services.Features;
 using YiboFile.Controls.Dialogs;
 using YiboFile.Models;
+using YiboFile.ViewModels.Messaging;
+using YiboFile.ViewModels.Messaging.Messages;
 
 namespace YiboFile.Controls
 {
@@ -48,18 +50,32 @@ namespace YiboFile.Controls
         }
 
         private ITagService _tagService;
+        private IMessageBus _messageBus;
 
         public TagBrowsePanel()
         {
             InitializeComponent();
+            _messageBus = App.ServiceProvider?.GetService<IMessageBus>();
             TagGroups = new System.Collections.ObjectModel.ObservableCollection<TagGroupViewModel>();
             this.Loaded += TagBrowsePanel_Loaded;
+            this.Unloaded += TagBrowsePanel_Unloaded;
         }
 
         private void TagBrowsePanel_Loaded(object sender, RoutedEventArgs e)
         {
             if (System.ComponentModel.DesignerProperties.GetIsInDesignMode(this)) return;
+            _messageBus?.Subscribe<TagListChangedMessage>(OnTagListChanged);
             RefreshTags();
+        }
+
+        private void TagBrowsePanel_Unloaded(object sender, RoutedEventArgs e)
+        {
+            _messageBus?.Unsubscribe<TagListChangedMessage>(OnTagListChanged);
+        }
+
+        private void OnTagListChanged(TagListChangedMessage msg)
+        {
+            Dispatcher.Invoke(() => RefreshTags());
         }
 
         public void RefreshTags()
@@ -124,9 +140,7 @@ namespace YiboFile.Controls
 
                 EmptyStateText.Visibility = TagGroups.Any() ? Visibility.Collapsed : Visibility.Visible;
 
-                // Subscribe to events (avoid duplicate)
-                _tagService.TagUpdated -= OnTagUpdated;
-                _tagService.TagUpdated += OnTagUpdated;
+
             }
             catch (Exception ex)
             {
@@ -135,20 +149,7 @@ namespace YiboFile.Controls
             }
         }
 
-        private void OnTagUpdated(int tagId, string newColor)
-        {
-            Dispatcher.Invoke(() =>
-            {
-                foreach (var group in TagGroups)
-                {
-                    var tag = group.Tags.FirstOrDefault(t => t.Id == tagId);
-                    if (tag != null)
-                    {
-                        tag.Color = newColor;
-                    }
-                }
-            });
-        }
+
 
         private void TagItem_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {

@@ -6,6 +6,9 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using YiboFile.ViewModels.Messaging;
+using YiboFile.ViewModels.Messaging.Messages;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace YiboFile.Services.QuickAccess
 {
@@ -34,30 +37,20 @@ namespace YiboFile.Services.QuickAccess
 
         #endregion
 
-        #region 事件定义
 
-        /// <summary>
-        /// 路径导航请求事件
-        /// </summary>
-        public event EventHandler<string> NavigateRequested;
-
-        /// <summary>
-        /// 新标签页创建请求事件
-        /// </summary>
-        public event EventHandler<string> CreateTabRequested;
-
-        #endregion
 
         #region 私有字段
 
         private readonly System.Windows.Threading.Dispatcher _dispatcher;
+        private readonly IMessageBus _messageBus;
 
         #endregion
 
         #region 构造函数
 
-        public QuickAccessService(System.Windows.Threading.Dispatcher dispatcher = null)
+        public QuickAccessService(IMessageBus messageBus = null, System.Windows.Threading.Dispatcher dispatcher = null)
         {
+            _messageBus = messageBus ?? App.ServiceProvider?.GetService<IMessageBus>();
             _dispatcher = dispatcher ?? Application.Current?.Dispatcher ?? System.Windows.Threading.Dispatcher.CurrentDispatcher;
         }
 
@@ -255,7 +248,7 @@ namespace YiboFile.Services.QuickAccess
                 var path = pathProperty.GetValue(selectedItem) as string;
                 if (!string.IsNullOrEmpty(path))
                 {
-                    NavigateRequested?.Invoke(this, path);
+                    _messageBus?.Publish(new NavigateToPathMessage(path));
                 }
             }
 
@@ -275,7 +268,7 @@ namespace YiboFile.Services.QuickAccess
                 var path = pathProperty.GetValue(selectedItem) as string;
                 if (!string.IsNullOrEmpty(path))
                 {
-                    NavigateRequested?.Invoke(this, path);
+                    _messageBus?.Publish(new NavigateToPathMessage(path));
                 }
             }
 
@@ -311,7 +304,7 @@ namespace YiboFile.Services.QuickAccess
                                 {
                                     if (Directory.Exists(path) || path.StartsWith("shell:", StringComparison.OrdinalIgnoreCase))
                                     {
-                                        CreateTabRequested?.Invoke(this, path);
+                                        _messageBus?.Publish(new CreateTabMessage(path));
                                         e.Handled = true;
                                         return;
                                     }
@@ -365,7 +358,7 @@ namespace YiboFile.Services.QuickAccess
                                 {
                                     if (Directory.Exists(path))
                                     {
-                                        CreateTabRequested?.Invoke(this, path);
+                                        _messageBus?.Publish(new CreateTabMessage(path));
                                         e.Handled = true;
                                         return;
                                     }

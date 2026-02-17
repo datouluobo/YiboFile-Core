@@ -32,8 +32,7 @@ namespace YiboFile.Services.Features
         void DeleteTagGroup(int groupId);
         string GetTagColorByName(string tagName);
 
-        event Action<int, string> TagUpdated;
-        event Action<string> FileTagsChanged;
+
 
         // 异步方法 (新架构)
         Task<IEnumerable<ITagGroup>> GetTagGroupsAsync();
