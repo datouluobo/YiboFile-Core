@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using YiboFile.Services.Core;
+using YiboFile.ViewModels.Messaging;
+using YiboFile.ViewModels.Messaging.Messages;
 
 namespace YiboFile.Services.FileOperations.Undo
 {
@@ -13,11 +15,7 @@ namespace YiboFile.Services.FileOperations.Undo
         private readonly Stack<UndoableAction> _undoStack = new Stack<UndoableAction>();
         private readonly Stack<UndoableAction> _redoStack = new Stack<UndoableAction>();
         private readonly int _maxStackSize;
-
-        /// <summary>
-        /// 撤销栈变化事件
-        /// </summary>
-        public event EventHandler StackChanged;
+        private readonly IMessageBus _messageBus;
 
         /// <summary>
         /// 是否可以撤销
@@ -39,18 +37,9 @@ namespace YiboFile.Services.FileOperations.Undo
         /// </summary>
         public string NextRedoDescription => _redoStack.Count > 0 ? _redoStack.Peek().Description : null;
 
-        /// <summary>
-        /// 撤销执行后触发
-        /// </summary>
-        public event EventHandler ActionUndone;
-
-        /// <summary>
-        /// 重做执行后触发
-        /// </summary>
-        public event EventHandler ActionRedone;
-
-        public UndoService(int maxStackSize = 50)
+        public UndoService(IMessageBus messageBus, int maxStackSize = 50)
         {
+            _messageBus = messageBus;
             _maxStackSize = maxStackSize;
         }
 
@@ -75,7 +64,7 @@ namespace YiboFile.Services.FileOperations.Undo
                 }
             }
 
-            StackChanged?.Invoke(this, EventArgs.Empty);
+            _messageBus?.Publish(new UndoStackChangedMessage());
             FileLogger.Log($"[UndoService] 记录操作: {action.Description}");
         }
 
@@ -96,8 +85,8 @@ namespace YiboFile.Services.FileOperations.Undo
                 if (action.Undo())
                 {
                     _redoStack.Push(action);
-                    StackChanged?.Invoke(this, EventArgs.Empty);
-                    ActionUndone?.Invoke(this, EventArgs.Empty);
+                    _messageBus?.Publish(new UndoStackChangedMessage());
+                    _messageBus?.Publish(new UndoActionUndoneMessage());
                     return true;
                 }
                 else
@@ -132,8 +121,8 @@ namespace YiboFile.Services.FileOperations.Undo
                 if (action.Redo())
                 {
                     _undoStack.Push(action);
-                    StackChanged?.Invoke(this, EventArgs.Empty);
-                    ActionRedone?.Invoke(this, EventArgs.Empty);
+                    _messageBus?.Publish(new UndoStackChangedMessage());
+                    _messageBus?.Publish(new UndoActionRedoneMessage());
                     return true;
                 }
                 else
@@ -167,7 +156,7 @@ namespace YiboFile.Services.FileOperations.Undo
 
             _undoStack.Clear();
             _redoStack.Clear();
-            StackChanged?.Invoke(this, EventArgs.Empty);
+            _messageBus?.Publish(new UndoStackChangedMessage());
 
             // 移除自动清理，改为由程序退出时调用
             // BackupCleanupService.Cleanup();

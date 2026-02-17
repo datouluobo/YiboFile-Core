@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using YiboFile.Services.Config;
 using YiboFile.Models;
+using YiboFile.ViewModels.Messaging.Messages;
 // using TagTrain.UI; // Phase 2
 
 namespace YiboFile.Controls
@@ -89,10 +90,12 @@ namespace YiboFile.Controls
         {
             InitializeEvents();
             UpdateSectionOrder();
-            ConfigurationService.Instance.SettingChanged += OnSettingChanged;
+
+            var messageBus = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService<ViewModels.Messaging.IMessageBus>(App.ServiceProvider);
+            messageBus?.Subscribe<ConfigurationSettingChangedMessage>(msg => OnSettingChanged(msg.SettingName));
         }
 
-        private void OnSettingChanged(object sender, string propertyName)
+        private void OnSettingChanged(string propertyName)
         {
             if (propertyName == nameof(AppConfig.NavigationSectionsOrder) || propertyName == "All")
             {

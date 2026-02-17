@@ -1,4 +1,7 @@
 using System;
+using YiboFile.ViewModels.Messaging;
+using YiboFile.ViewModels.Messaging.Messages;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace YiboFile.Services.Core.Error
 {
@@ -14,31 +17,16 @@ namespace YiboFile.Services.Core.Error
     }
 
     /// <summary>
-    /// 错误信息事件参数
-    /// </summary>
-    public class ErrorOccurredEventArgs : EventArgs
-    {
-        public string Message { get; }
-        public Exception Exception { get; }
-        public ErrorSeverity Severity { get; }
-
-        public ErrorOccurredEventArgs(string message, Exception exception, ErrorSeverity severity)
-        {
-            Message = message;
-            Exception = exception;
-            Severity = severity;
-        }
-    }
-
-    /// <summary>
     /// 统一错误处理服务
     /// </summary>
     public class ErrorService
     {
-        /// <summary>
-        /// 当错误发生时触发
-        /// </summary>
-        public event EventHandler<ErrorOccurredEventArgs> ErrorOccurred;
+        private readonly IMessageBus _messageBus;
+
+        public ErrorService(IMessageBus messageBus = null)
+        {
+            _messageBus = messageBus ?? App.ServiceProvider?.GetService<IMessageBus>();
+        }
 
         /// <summary>
         /// 报告错误
@@ -51,9 +39,8 @@ namespace YiboFile.Services.Core.Error
             // 1. 记录日志
             LogToDisk(message, severity, ex);
 
-            // 2. 触发事件通知UI
-            // 使用 Invoke 防止多线程问题，但事件订阅者需要在UI线程上处理UI更新
-            ErrorOccurred?.Invoke(this, new ErrorOccurredEventArgs(message, ex, severity));
+            // 2. 触发消息通知UI
+            _messageBus?.Publish(new ErrorOccurredMessage(message, ex, severity));
         }
 
         private void LogToDisk(string message, ErrorSeverity severity, Exception ex)

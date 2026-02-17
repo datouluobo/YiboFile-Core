@@ -6,6 +6,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Linq;
+using YiboFile.ViewModels.Messaging;
+using YiboFile.ViewModels.Messaging.Messages;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace YiboFile.Services.FileOperations
 {
@@ -17,6 +20,8 @@ namespace YiboFile.Services.FileOperations
         private static ClipboardService _instance;
         public static ClipboardService Instance => _instance ??= new ClipboardService();
 
+        private IMessageBus _messageBus;
+
         /// <summary>
         /// 是否为剪切操作（用于视觉反馈）
         /// </summary>
@@ -27,10 +32,18 @@ namespace YiboFile.Services.FileOperations
         /// </summary>
         public IReadOnlyList<string> CutPaths { get; private set; } = Array.Empty<string>();
 
+        private ClipboardService()
+        {
+            _messageBus = App.ServiceProvider?.GetService<IMessageBus>();
+        }
+
         /// <summary>
-        /// 剪切状态变化事件（用于 UI 刷新半透明效果）
+        /// 设置消息总线
         /// </summary>
-        public event Action<IReadOnlyList<string>> CutStateChanged;
+        public void SetMessageBus(IMessageBus messageBus)
+        {
+            _messageBus = messageBus;
+        }
 
         /// <summary>
         /// 设置复制路径到剪贴板
@@ -137,7 +150,7 @@ namespace YiboFile.Services.FileOperations
                 });
                 IsCutOperation = false;
                 CutPaths = Array.Empty<string>();
-                CutStateChanged?.Invoke(CutPaths);
+                _messageBus?.Publish(new ClipboardCutStateChangedMessage(CutPaths));
                 Debug.WriteLine("[ClipboardService] ClearAsync completed");
             }
             catch (Exception ex)
@@ -192,8 +205,8 @@ namespace YiboFile.Services.FileOperations
                         IsCutOperation = isCut;
                         CutPaths = isCut ? pathList : Array.Empty<string>();
 
-                        // 触发事件通知 UI 更新
-                        CutStateChanged?.Invoke(CutPaths);
+                        // 触发消息通知 UI 更新
+                        _messageBus?.Publish(new ClipboardCutStateChangedMessage(CutPaths));
 
                         return true;
                     }, "SetDataObject");

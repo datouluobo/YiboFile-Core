@@ -62,10 +62,12 @@ namespace YiboFile
             services.AddSingleton<ConfigurationService>(provider => ConfigurationService.Instance);
             services.AddSingleton<AppConfig>(provider => ConfigurationService.Instance.Config);
 
-            services.AddSingleton<YiboFile.Services.Core.Error.ErrorService>(); // 统一错误处理服务
+            services.AddSingleton<YiboFile.Services.Core.Error.ErrorService>(provider =>
+                new YiboFile.Services.Core.Error.ErrorService(provider.GetService<ViewModels.Messaging.IMessageBus>()));
             services.AddSingleton<Services.FileOperations.FileOperationService>();
-            services.AddSingleton<Services.FileOperations.TaskQueue.TaskQueueService>(); // Register TaskQueueService
-            services.AddSingleton<YiboFile.Services.FileOperations.Undo.UndoService>(); // 撤销/重做服务
+            services.AddSingleton<Services.FileOperations.TaskQueue.TaskQueueService>();
+            services.AddSingleton<YiboFile.Services.FileOperations.Undo.UndoService>(provider =>
+                new YiboFile.Services.FileOperations.Undo.UndoService(provider.GetService<ViewModels.Messaging.IMessageBus>()));
             services.AddSingleton<YiboFile.Services.Archive.ArchiveService>(); // Archive Service
             services.AddSingleton<Services.FileSystem.FileOperations.IFileTemplateService, Services.FileSystem.FileOperations.FileTemplateService>();
             services.AddSingleton<Services.Backup.IBackupService, Services.Backup.BackupService>(); // Backup Service
@@ -160,7 +162,10 @@ namespace YiboFile
             services.AddSingleton<NavigationCoordinator>();
             services.AddSingleton<ViewModels.NavigationRailViewModel>();
             services.AddSingleton<Controllers.NavigationRailCoordinator>();
-            services.AddSingleton<NavigationService>(provider => new NavigationService(Environment.GetFolderPath(Environment.SpecialFolder.Desktop)));
+            services.AddSingleton<NavigationService>(provider =>
+                new NavigationService(
+                    Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
+                    provider.GetService<ViewModels.Messaging.IMessageBus>()));
 
             // Window Logic Services (Now in DI)
             services.AddSingleton<WindowStateManager>();
@@ -179,6 +184,11 @@ namespace YiboFile
                 var serviceCollection = new ServiceCollection();
                 ConfigureServices(serviceCollection);
                 ServiceProvider = serviceCollection.BuildServiceProvider();
+
+                // 显式设置单例的消息总线
+                var messageBus = ServiceProvider.GetRequiredService<ViewModels.Messaging.IMessageBus>();
+                ConfigurationService.Instance.SetMessageBus(messageBus);
+                Services.FileOperations.ClipboardService.Instance.SetMessageBus(messageBus);
 
 
 

@@ -2,8 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-
 using YiboFile.Services.Core;
+using YiboFile.ViewModels.Messaging;
+using YiboFile.ViewModels.Messaging.Messages;
+using YiboFile.Models.Navigation;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace YiboFile.Services.Navigation
 {
@@ -19,6 +22,7 @@ namespace YiboFile.Services.Navigation
         private int _currentHistoryIndex;
         private string _currentPath;
         private string _lastLeftNavSource;
+        private readonly IMessageBus _messageBus;
 
         #endregion
 
@@ -76,27 +80,20 @@ namespace YiboFile.Services.Navigation
 
         #endregion
 
-        #region 事件
-
-        /// <summary>
-        /// 导航请求事件
-        /// </summary>
-        public event EventHandler<string> NavigateRequested;
-
-        #endregion
-
         #region 构造函数
 
         /// <summary>
         /// 初始化导航服务
         /// </summary>
         /// <param name="initialPath">初始路径</param>
-        public NavigationService(string initialPath)
+        /// <param name="messageBus">消息总线</param>
+        public NavigationService(string initialPath, IMessageBus messageBus = null)
         {
             _navigationHistory = new List<string>();
             _currentHistoryIndex = -1;
             _currentPath = initialPath ?? Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
             _lastLeftNavSource = string.Empty;
+            _messageBus = messageBus ?? App.ServiceProvider?.GetService<IMessageBus>();
             AddToHistory(_currentPath);
         }
 
@@ -129,7 +126,7 @@ namespace YiboFile.Services.Navigation
                 _currentHistoryIndex--;
                 var path = _navigationHistory[_currentHistoryIndex];
                 _currentPath = path;
-                NavigateRequested?.Invoke(this, path);
+                _messageBus?.Publish(new NavigationCompleteMessage(path, PaneId.Main, NavigationSource.History));
                 return path;
             }
             return null;
@@ -146,7 +143,7 @@ namespace YiboFile.Services.Navigation
                 _currentHistoryIndex++;
                 var path = _navigationHistory[_currentHistoryIndex];
                 _currentPath = path;
-                NavigateRequested?.Invoke(this, path);
+                _messageBus?.Publish(new NavigationCompleteMessage(path, PaneId.Main, NavigationSource.History));
                 return path;
             }
             return null;
@@ -190,7 +187,7 @@ namespace YiboFile.Services.Navigation
                             parentInner = innerPath.Substring(0, lastSlash);
                             string newUrl = $"{ProtocolManager.ZipProtocol}{archiveFile}|{parentInner}";
                             CurrentPath = newUrl;
-                            NavigateRequested?.Invoke(this, newUrl);
+                            _messageBus?.Publish(new NavigationCompleteMessage(newUrl, PaneId.Main, NavigationSource.Up));
                             return newUrl;
                         }
                         else
@@ -198,7 +195,7 @@ namespace YiboFile.Services.Navigation
                             // At root folder of archive content (e.g. zip://zip|folder), parent is archive root (zip://zip|)
                             string newUrl = $"{ProtocolManager.ZipProtocol}{archiveFile}|";
                             CurrentPath = newUrl;
-                            NavigateRequested?.Invoke(this, newUrl);
+                            _messageBus?.Publish(new NavigationCompleteMessage(newUrl, PaneId.Main, NavigationSource.Up));
                             return newUrl;
                         }
                     }
@@ -211,7 +208,7 @@ namespace YiboFile.Services.Navigation
                         if (!string.IsNullOrEmpty(parentDir) && Directory.Exists(parentDir))
                         {
                             CurrentPath = parentDir;
-                            NavigateRequested?.Invoke(this, parentDir);
+                            _messageBus?.Publish(new NavigationCompleteMessage(parentDir, PaneId.Main, NavigationSource.Up));
                             return parentDir;
                         }
                     }
@@ -228,7 +225,7 @@ namespace YiboFile.Services.Navigation
                 if (!string.IsNullOrEmpty(parentPath) && Directory.Exists(parentPath))
                 {
                     CurrentPath = parentPath;
-                    NavigateRequested?.Invoke(this, parentPath);
+                    _messageBus?.Publish(new NavigationCompleteMessage(parentPath, PaneId.Main, NavigationSource.Up));
                     return parentPath;
                 }
             }
@@ -254,7 +251,7 @@ namespace YiboFile.Services.Navigation
                 return;
 
             CurrentPath = path;
-            NavigateRequested?.Invoke(this, path);
+            _messageBus?.Publish(new NavigationCompleteMessage(path, PaneId.Main, NavigationSource.AddressBar));
         }
 
         #endregion

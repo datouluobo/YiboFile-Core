@@ -39,13 +39,7 @@ namespace YiboFile.Services.Orchestration
             Favorite.FavoriteService favoriteService)
         {
             // 1. NavigationService -> MessageBus
-            if (navigationService != null)
-            {
-                navigationService.NavigateRequested += (s, path) =>
-                {
-                    _messageBus.Publish(new NavigationCompleteMessage(path, PaneId.Main, NavigationSource.AddressBar));
-                };
-            }
+            // 已在服务内部实现 IMessageBus 发布，无需此处桥接
 
             // 2. FileListService & LibraryService -> MessageBus
             // 已在服务内部实现 IMessageBus 发布，无需此处桥接
@@ -150,15 +144,14 @@ namespace YiboFile.Services.Orchestration
             // 6. 设置文件操作上下文提供者
             fileOperationService.SetContextProvider(() => window.GetActiveFileOperationContext());
 
-            // 7. 全局错误事件订阅
-            var errorService = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<ErrorService>(_serviceProvider);
-            errorService.ErrorOccurred += (s, e) =>
+            // 7. 全局错误消息订阅
+            _messageBus.Subscribe<ErrorOccurredMessage>(e =>
             {
                 window.Dispatcher.Invoke(() =>
                 {
                     if (e.Severity == ErrorSeverity.Critical)
                     {
-                        DialogService.Error(e.Message, "严重错误", window);
+                        YiboFile.DialogService.Error(e.Message, "严重错误", window);
                     }
                     else
                     {
@@ -171,7 +164,7 @@ namespace YiboFile.Services.Orchestration
                         Services.Core.NotificationService.Show(e.Message, notificationType);
                     }
                 });
-            };
+            });
 
             // 8. 收藏路径未找到
             _messageBus.Subscribe<FavoritePathNotFoundMessage>(msg =>

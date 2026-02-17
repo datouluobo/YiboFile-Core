@@ -20,7 +20,8 @@ namespace YiboFile.Models.Navigation
         History,        // 历史记录
         SidebarTag,     // 侧边栏标签
         Search,         // 搜索
-        External        // 外部跳转
+        External,       // 外部跳转
+        Up              // 向上导航
     }
 
     /// <summary>

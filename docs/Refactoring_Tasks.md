@@ -12,7 +12,7 @@
 | **P1** (高) | Handler 层解耦 (IShellWindow) | ✅ 已完成 | 100% | LibraryEventHandler 已重构，关键 Handler 已全部解耦 |
 | **P1** (高) | **FileListEventHandler 拆分** | ✅ 已完成 | 100% | 已拆分为 Mouse, Keyboard 子处理器，行数由 760+ 降至 110 (facade) |
 | **P1** (高) | **统一主副栏导航架构** | ✅ 已完成 | 100% | 消除双轨制：委托回调 → 消息驱动 |
-| **P2** (中) | Service 层事件迁移 (第二批) | ⬜ 待办 | 0% | 辅助服务 |
+| **P2** (中) | **Service 层事件迁移 (第二批)** | ✅ 已完成 | 100% | 辅助服务已全部解耦或消息化 |
 | **P2** (中) | PaneViewModel 逻辑优化 | ⬜ 待办 | 0% | |
 | **P2** (中) | LibraryManagementWindow MVVM 化 | ⬜ 待办 | 0% | |
 | **P2** (中) | App.xaml.cs 启动逻辑拆分 | ⬜ 待办 | 0% | |
@@ -81,19 +81,19 @@
 
 ### 🟢 P2: 清理与维护 (计划中)
 
-- [ ] **Service 层事件迁移 (第二批: 辅助服务)**
-  - [ ] `FileListService` (3 个事件)
-  - [ ] `LibraryService` (3 个事件)
-  - [ ] `FileOperationService` (3 个事件)
-  - [ ] `FavoriteService` (4 个事件)
-  - [ ] `QuickAccessService` (2 个事件)
-  - [ ] `UndoService` (3 个事件)
-  - [ ] `ClipboardService` (1 个事件)
-  - [ ] `TagService` (2 个事件)
-  - [ ] `NotesService` (1 个事件)
-  - [ ] `ConfigurationService` (1 个事件)
-  - [ ] `ErrorService` (1 个事件)
-  - [ ] `FileSystemWatcherService` (2 个事件)
+- [x] **Service 层事件迁移 (第二批: 辅助服务)**
+  - [x] `FileListService` (已分析：已使用 MessageBus)
+  - [x] `LibraryService` (已分析：已使用 MessageBus)
+  - [x] `FileOperationService` (已分析：已使用 MessageBus)
+  - [x] `FavoriteService` (已分析：已使用 MessageBus)
+  - [x] `QuickAccessService` (已分析：已使用 MessageBus)
+  - [x] `UndoService` (✅ 已迁移)
+  - [x] `ClipboardService` (✅ 已迁移)
+  - [x] `TagService` (已分析：已使用 MessageBus)
+  - [x] `NotesService` (已分析：已使用 MessageBus)
+  - [x] `ConfigurationService` (✅ 已迁移)
+  - [x] `ErrorService` (✅ 已迁移)
+  - [x] `FileSystemWatcherService` (✅ 已分析且已内置消息发布)
 
 - [ ] **LibraryManagementWindow MVVM 化**
   - [ ] 创建 `LibraryManagementViewModel`

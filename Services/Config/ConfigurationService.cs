@@ -4,6 +4,9 @@ using System.Reflection;
 using System.Threading;
 using System.Windows.Threading;
 using YiboFile.Services.Core;
+using YiboFile.ViewModels.Messaging;
+using YiboFile.ViewModels.Messaging.Messages;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace YiboFile.Services.Config
 {
@@ -20,6 +23,7 @@ namespace YiboFile.Services.Config
         private readonly object _configLock = new object();
         private readonly DispatcherTimer _debounceTimer;
         private bool _isDirty = false;
+        private IMessageBus _messageBus;
 
         // 默认为 true，防止启动时的波动触发保存
         private bool _isSaveSuppressed = true;
@@ -36,9 +40,12 @@ namespace YiboFile.Services.Config
         }
 
         /// <summary>
-        /// 当配置项变更时触发
+        /// 设置消息总线
         /// </summary>
-        public event EventHandler<string> SettingChanged;
+        public void SetMessageBus(IMessageBus messageBus)
+        {
+            _messageBus = messageBus;
+        }
 
         // 去抖时间（毫秒）
         private const int DebounceDelayMs = 500;
@@ -74,6 +81,9 @@ namespace YiboFile.Services.Config
         {
             // 加载初始配置
             _config = ConfigManager.Load();
+
+            // 尝试获取 MessageBus (延迟绑定)
+            _messageBus = App.ServiceProvider?.GetService<IMessageBus>();
 
             // 创建去抖定时器（500ms）
             _debounceTimer = new DispatcherTimer
@@ -137,8 +147,8 @@ namespace YiboFile.Services.Config
                     propInfo.SetValue(_config, value);
                     _isDirty = true;
 
-                    // 触发变更事件
-                    SettingChanged?.Invoke(this, propInfo.Name);
+                    // 触发变更消
+                    _messageBus?.Publish(new ConfigurationSettingChangedMessage(propInfo.Name));
 
                     TriggerDebouncedSave();
                 }
@@ -167,7 +177,7 @@ namespace YiboFile.Services.Config
                     _isDirty = true;
 
                     // 批量更新时触发通配符事件或特定事件(这里简化为null或"All")
-                    SettingChanged?.Invoke(this, "All");
+                    _messageBus?.Publish(new ConfigurationSettingChangedMessage("All"));
 
                     TriggerDebouncedSave();
                 }
