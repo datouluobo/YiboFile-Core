@@ -24,21 +24,10 @@ namespace YiboFile.Services.Tabs
         public Action<AppConfig> SaveConfig { get; init; }
         public Func<Library> GetCurrentLibrary { get; init; }
         public Action<Library> SetCurrentLibrary { get; init; }
-        public Func<string> GetCurrentPath { get; init; }
-        public Action<string> SetCurrentPath { get; init; }
-        public Action<string> SetNavigationCurrentPath { get; init; }
-        public Action<Library> LoadLibraryFiles { get; init; }
-        public Action<string> NavigateToPathInternal { get; init; }
         public Action UpdateNavigationButtonsState { get; init; }
         public SearchService SearchService { get; init; }
         public Func<SearchCacheService> GetSearchCacheService { get; init; }
         public Func<SearchOptions> GetSearchOptions { get; init; }
-        public Func<List<FileSystemItem>> GetCurrentFiles { get; init; }
-        public Action<List<FileSystemItem>> SetCurrentFiles { get; init; }
-        public Action ClearFilter { get; init; }
-        public Func<string, Task> RefreshSearchTab { get; init; }
-        public Func<string, object> FindResource { get; init; }
-        public Services.Features.ITagService TagService { get; init; }
         public Func<string> GetCurrentNavigationMode { get; init; }
     }
 
@@ -249,48 +238,47 @@ namespace YiboFile.Services.Tabs
         {
             if (tab == null) return;
 
-            // Rule: Last tab closure behavior
+            // Rule 1: Last Global Tab Closure behavior (Preserve app instance)
             if (TabCount <= 1)
             {
-                // Instead of closing the last tab, navigate it to a default "Home" view
-                // UX Spec: "打开一个类似“我的电脑”的视图，显示所有可用驱动器"
-                // For now, we use a safe default like Desktop or a marker that NavigationCoordinator can handle
-                // If we want to truly show drives, we might need a virtual path like "path://drives"
-
-                // Let's use a common system path for now as a robust fallback
                 var homePath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
                 var homeType = TabType.Path;
                 var homeTitle = CalculateTabDisplayTitle(homePath);
 
-                // Fix New Issue 2: If closing the last library tab, stay in Library mode by going to library root
-                if (tab.Type == TabType.Library)
-                {
-                    homePath = "lib://";
-                    homeType = TabType.Library;
-                    homeTitle = "所有库";
-                }
+
 
                 if (tab.Path != homePath)
                 {
                     tab.Path = homePath;
                     tab.Type = homeType;
                     tab.Title = homeTitle;
-                    if (homeType == TabType.Library) tab.Library = null; // Clear specific library reference
+                    if (homeType == TabType.Library) tab.Library = null;
 
-                    // [根本修复] 主面板 TabService 没有设置 TabUiContext (_ui 为 null)，
-                    // 且 SwitchToTab 会因标签页已是 Active 而被优化跳过。
-                    // 必须通过消息总线直接通知 PaneViewModel 执行导航。
                     _messageBus.Publish(new YiboFile.ViewModels.Messaging.Messages.NavigateToPathMessage(
                         homePath, AddToHistory: false, Pane: this.Pane));
                 }
                 return;
             }
 
-            RemoveTab(tab); // Ensure TabRemoved event is fired)
+
+
+
+
+            // Determine next tab BEFORE removal to ensure type stability
+            PathTab nextCandidate = null;
             if (tab.IsActive)
             {
-                var nextTab = _tabs.LastOrDefault();
-                if (nextTab != null) SwitchToTab(nextTab);
+                // Prefer switching to a sibling of the SAME type
+                nextCandidate = _tabs.Where(t => t != tab && t.Type == tab.Type).LastOrDefault();
+                // If none, fallback to any previous tab
+                if (nextCandidate == null) nextCandidate = _tabs.Where(t => t != tab).LastOrDefault();
+            }
+
+            RemoveTab(tab);
+
+            if (tab.IsActive && nextCandidate != null)
+            {
+                SwitchToTab(nextCandidate);
             }
         }
 

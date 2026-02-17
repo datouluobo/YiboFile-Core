@@ -143,7 +143,7 @@ namespace YiboFile.ViewModels
                 {
                     _navigationMode = value;
                     OnPropertyChanged(nameof(NavigationMode));
-                    _messageBus.Publish(new NavigationModeChangedMessage(value));
+                    // _messageBus.Publish(new NavigationModeChangedMessage(value)); // Disabled: Sidebar should not follow tab changes
                 }
             }
         }

@@ -46,7 +46,7 @@ namespace YiboFile.Handlers
 
         private bool _secondTabEventsSubscribed = false;
         private bool _secondFileBrowserEventsInitialized = false;
-        private PathTab _lastSecondActiveTab;
+
 
         public LayoutEventHandler(
             IShellWindow window,
@@ -104,13 +104,8 @@ namespace YiboFile.Handlers
                 });
             });
 
-            _messageBus?.Subscribe<TabActiveChangedMessage>(m =>
-            {
-                if (m.Pane == PaneId.Second)
-                {
-                    _window.Dispatcher.Invoke(() => SyncSecondUiWithActiveTab(m.ActiveTab));
-                }
-            });
+            // TabActiveChangedMessage subscription removed - handled by TabsModule -> RestoreNavigationStateMessage
+
 
             // 桥接到旧有的导航切换逻辑
             _messageBus?.Subscribe<NavigationModeChangedMessage>(m =>
@@ -263,52 +258,7 @@ namespace YiboFile.Handlers
                 GetConfig = () => ConfigurationService.Instance.Config,
                 SaveConfig = (config) => ConfigurationService.Instance.SaveNow(),
 
-                GetCurrentPath = () => _window.ViewModel?.SecondaryPane?.CurrentPath ?? _window.ViewModel.CurrentPath,
-                SetCurrentPath = (path) => _window.ViewModel?.SecondaryPane?.NavigateTo(path),
-                SetNavigationCurrentPath = (path) => _window.ViewModel?.SecondaryPane?.NavigateTo(path),
-                LoadLibraryFiles = (library) =>
-                {
-                    if (_window.ViewModel.SecondaryPane.CurrentLibrary != library || _window.ViewModel.SecondaryPane.NavigationMode != "Library")
-                    {
-                        _window.ViewModel.SecondaryPane.NavigateTo($"lib://{library.Name}");
-                    }
-                },
-                NavigateToPathInternal = (path) =>
-                {
-                    _navigationCoordinator?.NavigateAsync(new NavigationRequest
-                    {
-                        Target = NavigationTarget.FromPath(path),
-                        Pane = PaneId.Second,
-                        Source = NavigationSource.External
-                    });
-                },
-                UpdateNavigationButtonsState = () => { },
-                GetCurrentNavigationMode = () => "Path",
-                GetSearchCacheService = () => _searchCacheService,
-                GetSearchOptions = () => null,
-                GetCurrentFiles = () => _window.ViewModel?.SecondaryPane?.Files?.ToList(),
-                SetCurrentFiles = (files) =>
-                {
-                    // Update ViewModel's Files collection directly
-                    var secPane = _window.ViewModel?.SecondaryPane;
-                    if (secPane != null)
-                    {
-                        var vmFiles = secPane.Files;
-                        if (vmFiles != null)
-                        {
-                            vmFiles.Clear();
-                            if (files != null)
-                            {
-                                foreach (var f in files)
-                                {
-                                    vmFiles.Add(f);
-                                }
-                            }
-                        }
-                    }
-                },
-                ClearFilter = () => { },
-                FindResource = (key) => _window.TryFindResource(key)
+                // FindResource removed from context
             };
 
             _secondTabService.AttachUiContext(uiContext);
@@ -340,43 +290,10 @@ namespace YiboFile.Handlers
             }
         }
 
-        private void SyncSecondUiWithActiveTab(PathTab tab)
-        {
-            if (tab == null || _window.SecondFileBrowser == null) return;
+        // SyncSecondUiWithActiveTab and OnSecondActiveTabPropertyChanged removed.
+        // Navigation synchronization is now handled by TabsModule publishing RestoreNavigationStateMessage
+        // and PaneViewModel handling it.
 
-            if (_lastSecondActiveTab != null)
-            {
-                _lastSecondActiveTab.PropertyChanged -= OnSecondActiveTabPropertyChanged;
-            }
-            _lastSecondActiveTab = tab;
-            tab.PropertyChanged += OnSecondActiveTabPropertyChanged;
-
-            if (tab.Type == TabType.Library)
-            {
-                if (tab.Library != null)
-                {
-                    LoadSecondFileBrowserLibrary(tab.Library);
-                }
-            }
-            else
-            {
-                if (tab.Path != null && !tab.Path.StartsWith("search://", StringComparison.OrdinalIgnoreCase))
-                {
-                    LoadSecondFileBrowserDirectory(tab.Path);
-                }
-            }
-        }
-
-        private void OnSecondActiveTabPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
-        {
-            if (sender is PathTab tab && tab == _secondTabService?.ActiveTab)
-            {
-                if (e.PropertyName == nameof(PathTab.Path) || e.PropertyName == nameof(PathTab.Library))
-                {
-                    SyncSecondUiWithActiveTab(tab);
-                }
-            }
-        }
 
         private void EnsureSecondTabExists()
         {
@@ -427,14 +344,12 @@ namespace YiboFile.Handlers
         {
             if (library == null || _window.SecondFileBrowser == null) return;
 
-            bool needsDataLoad = _window.ViewModel.SecondaryPane.CurrentLibrary != library ||
-                                 _window.ViewModel.SecondaryPane.NavigationMode != "Library";
+            _navigationCoordinator?.HandleLibraryNavigation(
+                library,
+                YiboFile.Models.Navigation.ClickType.LeftClick,
+                pane: PaneId.Second);
 
-            if (needsDataLoad)
-            {
-                _window.ViewModel.SecondaryPane.NavigateTo($"lib://{library.Name}");
-            }
-
+            // Legacy InfoService call - consider moving to MessageBus subscription if needed
             _window.Dispatcher.InvokeAsync(() =>
             {
                 if (_window.SecondFileBrowser == null) return;

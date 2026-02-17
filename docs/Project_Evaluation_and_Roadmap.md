@@ -358,7 +358,8 @@ Controller-driven 场景：
 | **标签页历史独立 (Per-Tab History)** | TabsModule / PathTab / PaneViewModel | +80 / -20 | 2026-02-16 |
 | **PaneViewModel 命令拆分** | PaneCommandSet.cs / PaneViewModel.cs | Refactor | 2026-02-16 |
 | **[BUG-017] 修复列表加载** | PaneViewModel (NavigationMode/Refresh) | +10 | 2026-02-16 |
-| **[BUG-019+] 库导航逻辑修复** | NavCoordinator / TabService (Force Nav) | +40 / -5 | 2026-02-17 |
+| **[BUG-019+] 库导航逻辑修复** | NavCoordinator / TabService (强制导航) | +40 / -5 | 2026-02-18 (Fixed) |
+| **统一主副栏导航架构** | LayoutEventHandler / TabService.UI.cs / TabUiContext | -100 (死代码) | 2026-02-17 |
 
 - **MainWindow 解构 (阶段 5)**: `基本完成` (85%). `MainWindow.xaml.cs` 从 >2400 行减少到 528 行，但含分部类 (`MainWindow.Tabs.cs` 289行, `MainWindow.Drives.cs` 142行) 合计仍约 960 行。
 - **PaneViewModel 拆分 (阶段 7)**: `已完成` (100%). 从 1770 行降至 563 行，已提取 `FilterViewModel`、`SelectionViewModel`、`PaneCommandSet`。
@@ -385,7 +386,7 @@ Controller-driven 场景：
 3.  **Handler 层直接依赖 MainWindow**：全部 10 个 Handler 直接持有 `MainWindow` 引用，需引入 `IShellWindow` 抽象接口解耦。
 4.  **Service 层事件/委托大量残留**：仍有 40+ 个 `event` 和 15+ 个 `Action<>` 回调未迁移到 MessageBus。
 5.  **预览组件兼容性**（记录于 2026-02-09）：观察到部分文件预览失效（文件夹正常），疑似与 Pro 版功能拆分逻辑有关。
-6.  **主副栏导航架构双轨制**（记录于 2026-02-17）：主面板的 `TabService` 从未调用 `AttachUiContext`，导航完全依赖消息驱动；副面板通过 `TabUiContext` 中的委托回调直接操作 ViewModel。这种不一致是 BUG-019+ 等导航 Bug 的根源，已纳入 P1 重构计划（参见 `Refactoring_Tasks.md`）。
+6.  **主副栏导航架构双轨制**（记录于 2026-02-17）：`TabUiContext` 中的导航委托已全部移除，副面板导航已统一为消息驱动 (`NavigationCoordinator` Handles)。**已解决**。
 
 ---
 

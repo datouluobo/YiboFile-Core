@@ -11,7 +11,7 @@
 | **P1** (高) | **Service 层事件迁移 (第一批)** | ✅ 已完成 | 100% | 核心导航服务已迁移 |
 | **P1** (高) | Handler 层解耦 (IShellWindow) | ✅ 已完成 | 100% | LibraryEventHandler 已重构，关键 Handler 已全部解耦 |
 | **P1** (高) | **FileListEventHandler 拆分** | ✅ 已完成 | 100% | 已拆分为 Mouse, Keyboard 子处理器，行数由 760+ 降至 110 (facade) |
-| **P1** (高) | **统一主副栏导航架构** | ⬜ 待办 | 0% | 消除双轨制：委托回调 → 消息驱动 (~8-11h) |
+| **P1** (高) | **统一主副栏导航架构** | ✅ 已完成 | 100% | 消除双轨制：委托回调 → 消息驱动 |
 | **P2** (中) | Service 层事件迁移 (第二批) | ⬜ 待办 | 0% | 辅助服务 |
 | **P2** (中) | PaneViewModel 逻辑优化 | ⬜ 待办 | 0% | |
 | **P2** (中) | LibraryManagementWindow MVVM 化 | ⬜ 待办 | 0% | |
@@ -61,21 +61,21 @@
   - [x] 提取 `FileListMouseHandler.cs` (鼠标交互)
   - [x] 保留 `FileListEventHandler` 作为协调器并完成 IShellWindow 解耦
 
-- [ ] **统一主副栏导航架构** (消除双轨制)
+- [x] **统一主副栏导航架构** (消除双轨制)
   > **背景**：主面板通过消息总线 (`NavigateToPathMessage` → `NavigationModule` → `NavigationCoordinator` → `PaneViewModel`) 驱动导航；副面板通过 `TabUiContext` 中的 `Action<>` 委托直接调用 `PaneViewModel` 方法。两套并行机制是 BUG-019+ 等问题的根源。
-  - [ ] **Step 1: 副面板导航消息化** (~3-4h)
+  - [x] **Step 1: 副面板导航消息化** (~3-4h)
     - 将 `LayoutEventHandler.LoadSecondFileBrowserDirectory/Library/Tag` 改为发布 `NavigateToPathMessage(Pane=Second)` 或 `NavigateToLibraryMessage(Pane=Second)`
     - 移除 `TabUiContext` 中 `NavigateToPathInternal`、`SetNavigationCurrentPath`、`LoadLibraryFiles` 委托
     - 确保 `NavigationCoordinator.HandlePathNavigation` 和 `NavigateAsync` 正确处理 `PaneId.Second`
-  - [ ] **Step 2: 标签页切换同步统一** (~2-3h)
+  - [x] **Step 2: 标签页切换同步统一** (~2-3h)
     - 将 `LayoutEventHandler.SyncSecondUiWithActiveTab` 改为通过消息触发 (`RestoreNavigationStateMessage` 或新消息)
     - 让 `TabsModule` 统一处理主副面板的标签页激活同步逻辑
     - 移除 `LayoutEventHandler._lastSecondActiveTab` 和 `OnSecondActiveTabPropertyChanged` 监听
-  - [ ] **Step 3: 清理 LayoutEventHandler 导航逻辑** (~2-3h)
-    - 移除 `LoadSecondFileBrowserDirectory`、`LoadSecondFileBrowserLibrary`、`LoadSecondFileBrowserTag` 方法
+  - [x] **Step 3: 清理 LayoutEventHandler 导航逻辑** (~2-3h)
+    - 移除 `LoadSecondFileBrowserDirectory`、`LoadSecondFileBrowserLibrary`、`LoadSecondFileBrowserTag` 方法 (部分保留作为 Coordinator 包装器，逻辑已重构)
     - 保留 `LayoutEventHandler` 仅负责 UI 布局（焦点边框、面板显隐、标签页控件布局）
-    - `NavigateSecondaryPaneToLibrary/Tag` 改为发布消息
-  - [ ] **Step 4: 精简 TabUiContext** (~1h)
+    - `NavigateSecondaryPaneToLibrary/Tag` 改为发布消息 (包装器委托给协调器)
+  - [x] **Step 4: 精简 TabUiContext** (~1h)
     - 移除所有导航相关委托，仅保留纯 UI 委托 (`FindResource`、`Dispatcher`、`GetConfig` 等)
     - 评估主面板是否也需要 `AttachUiContext`，或可完全依赖消息驱动
 
