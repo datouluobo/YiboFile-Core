@@ -161,6 +161,10 @@ namespace YiboFile.ViewModels
                 {
                     _fileViewMode = value;
                     OnPropertyChanged(nameof(FileViewMode));
+
+                    // Persist the change
+                    ConfigurationService.Instance.Set(cfg => cfg.FileViewMode, value);
+
                     _messageBus.Publish(new ViewModeChangedMessage(value, MyPaneId));
                 }
             }

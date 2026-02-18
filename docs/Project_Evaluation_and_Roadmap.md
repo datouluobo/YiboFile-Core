@@ -1,6 +1,6 @@
 # YiboFile 项目评估与重构路线图
 
-> **当前版本**: v1.0.1520 (服务层解耦) | **更新日期**: 2026-02-18  
+> **当前版本**: v1.0.1530 (双栏导航与状态修复) | **更新日期**: 2026-02-18  
 > **下一版本**: v1.1.0 (目标：Core 完全解耦)  
 
 ---
@@ -307,12 +307,12 @@ Controller-driven 场景：
 | BUG-011 | Clipboard | 剪切板管理器体验差 | 交互逻辑陈旧，缺乏可视化反馈 | **Fixed** (v1.0.1509) (Redesigned UI with modern list, search, and better preview) | ✅ 已修复 |
 | **BUG-012** | FileOps | 工具栏按钮与快捷键部分失效 | 命令绑定在重构中丢失或 `CanExecute` 状态判定错误 | 检查 `PaneCommandSet` 与 `InputBindings` 的连接 | ✅ 已修复 |
 | **BUG-013** | Performance | 双栏模式选中文件卡顿 | 预览加载可能运行在 UI 线程或未做防抖处理 | 确保 `PreviewService` 异步执行并增加防抖 (Debounce) (v1.0.1504重新优化) | ✅ 已修复 |
-| **BUG-014** | Window | 窗口状态持久化问题：每次打开程序，主副标签页都会重置为桌面，无法记忆上次路径 | `MainWindowViewModel` 或持久化服务未正确保存/恢复状态 | 检查 `OnClosed` 保存逻辑与 `OnStartup` 恢复逻辑 | ⏳ 待修复 |
+| **BUG-014** | Window | 窗口状态持久化问题：每次打开程序，主副标签页都会重置为桌面，无法记忆上次路径 | `MainWindowViewModel` 或持久化服务未正确保存/恢复状态 | **Fixed** (v1.0.1511) (修复了 WindowStateManager 状态保存时机) | ✅ 已修复 |
 | **BUG-015** | FileList | 文件操作后列表不自动刷新 | 消息未正确触发或 `FileWatcher` 失效 | 检查 `FileOperationModule` 的消息发布与 `FileListViewModel` 的订阅 | ✅ 已修复 |
 | **BUG-018** | UI/Init | 启动时主副文件信息区空白，或切换文件夹后显示错误信息 | 上下文未正确清除导致显示过时信息 | **已修复** (v1.1.0) (在 PaneViewModel 中清理库/标签上下文；回滚了路径回退逻辑) | ✅ 已修复 |
 | **BUG-019** | Navigation | “快速访问”双栏同时切换 | `PreviewMouseDown` 事件冲突与 `e.Handled` 处理不当 | **已修复** (v1.1.0) (统一使用 `PreviewMouseDown` 并修复了事件路由) | ✅ 已修复 |
 | **BUG-021** | Library | 程序启动时死循环刷屏 (LibraryListChangedMessage) | `LibraryModule` 在响应消息时再次触发加载导致递归 | **Fixed** (v1.0.1506) (改为 GetAllLibraries 并不再发布消息) | ✅ 已修复 |
-| **BUG-022** | FileList | 文件列表显示视图模式切换有问题 | 视图模式切换逻辑在重构中未正确对接，或消息未被正确处理 | 检查 `PaneViewModel` 的 `FileViewMode` 绑定与消息发布 | ⏳ 待修复 |
+| **BUG-022** | FileList | 文件列表显示视图模式切换有问题 | 视图模式切换逻辑在重构中未正确对接，或消息未被正确处理 | **Fixed** (v1.0.1530) (完善 PaneViewModel 持久化与 ViewModeHelper 刷新逻辑) | ✅ 已修复 |
 
 ---
 
@@ -360,6 +360,8 @@ Controller-driven 场景：
 | **PaneViewModel 命令拆分** | PaneCommandSet.cs / PaneViewModel.cs | Refactor | 2026-02-16 |
 | **[BUG-017] 修复列表加载** | PaneViewModel (NavigationMode/Refresh) | +10 | 2026-02-16 |
 | **[BUG-019+] 库导航逻辑修复** | NavCoordinator / TabService (强制导航) | +40 / -5 | 2026-02-18 (Fixed) |
+| **[BUG-014] 窗口持久化修复** | WindowStateManager (SaveAllState) | +20 / -10 | 2026-02-18 (Fixed) |
+| **[BUG-022] 视图模式修复** | PaneViewModel / FileViewModeHelper | +50 / -20 | 2026-02-18 (Fixed) |
 | **统一主副栏导航架构** | LayoutEventHandler / TabService.UI.cs / TabUiContext | -100 (死代码) | 2026-02-17 |
 
 - **MainWindow 解构 (阶段 5)**: `基本完成` (85%). `MainWindow.xaml.cs` 从 >2400 行减少到 528 行，但含分部类 (`MainWindow.Tabs.cs` 289行, `MainWindow.Drives.cs` 142行) 合计仍约 960 行。

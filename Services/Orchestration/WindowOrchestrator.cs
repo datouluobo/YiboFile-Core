@@ -261,63 +261,19 @@ namespace YiboFile.Services.Orchestration
 
         public async Task ApplyInitialStateAsync(MainWindow window)
         {
-            var config = ConfigurationService.Instance.Config;
+            var stateRestorer = new StateRestorer(
+                _serviceProvider,
+                window,
+                _handlerInitializer,
+                _navigationModeService,
+                _viewModel,
+                _tabService,
+                _secondTabService,
+                _libraryService,
+                _quickAccessService
+            );
 
-            // 0. Update configs for services
-            if (config != null)
-            {
-                _tabService?.UpdateConfig(config);
-                _secondTabService?.UpdateConfig(config);
-            }
-
-            // 1. 恢复窗口和布局状态
-            _handlerInitializer.WindowStateManager?.RestoreAllState();
-
-            // 2. 加载初始数据
-            _libraryService?.LoadLibraries();
-
-            // 加载快速访问列表
-            if (_quickAccessService != null && window.QuickAccessListBox != null)
-            {
-                _quickAccessService.LoadQuickAccess(window.QuickAccessListBox);
-            }
-
-            // 加载驱动器列表
-            window.LoadDrives();
-
-            // 4. 恢复最后的状态 (导航模式等)
-            if (!string.IsNullOrEmpty(config.LastNavigationMode))
-            {
-                _navigationModeService?.SwitchNavigationMode(config.LastNavigationMode, skipRefresh: true);
-            }
-
-            // 恢复标签页
-            _handlerInitializer.WindowStateManager?.RestoreTabsState();
-
-            // 5. 强制修正布局
-            window.Dispatcher.Invoke(() =>
-            {
-                _handlerInitializer.LifecycleHandler?.AdjustColumnWidths();
-            }, System.Windows.Threading.DispatcherPriority.Loaded);
-
-            // 6. 启动后台索引
-            _serviceProvider.GetService<IFullTextSearchService>()?.StartBackgroundIndexing();
-
-            // 7. 初始化 UI 事件
-            window.InitializeEvents();
-            window.InitializeServiceEvents();
-
-            // FIX for BUG-018: Force update info panels to avoid empty state
-            if (_viewModel != null)
-            {
-                _viewModel.MainSelectionHandler?.HandleNoSelection(YiboFile.Services.Navigation.PaneId.Main);
-                if (config?.IsDualListMode == true)
-                {
-                    _viewModel.SecondSelectionHandler?.HandleNoSelection(YiboFile.Services.Navigation.PaneId.Second);
-                }
-            }
-
-            await Task.CompletedTask;
+            await stateRestorer.RestoreStateAsync();
         }
 
         #endregion

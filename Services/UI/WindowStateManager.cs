@@ -98,11 +98,17 @@ namespace YiboFile.Services
         /// <summary>
         /// 保存所有窗口状态（窗口大小、位置、分割线、导航位置、标签页）
         /// </summary>
-        /// <param name="force">是否强制保存（忽略初始化检查，用于程序关闭时）</param>
+        /// <param name="force">是否强制保存物理窗口状态（忽略初始化检查，用于程序关闭时）</param>
         public void SaveAllState(bool force = false)
         {
-            // 启动阶段或正在应用配置时不保存，避开启动时的初始波动
-            if (!force && (!_isInitialized || _isApplyingConfig))
+            // 物理状态（窗口尺寸、位置、分割线）可以强制保存，或者是初始化完成后保存
+            bool canSavePhysical = force || (_isInitialized && !_isApplyingConfig);
+
+            // 逻辑状态（标签页、导航路径）必须在完全初始化且标签页恢复后才能保存
+            // 严禁使用 force 绕过，否则会导致启动未完成时关闭程序覆盖掉原有的配置数据 (FIX BUG-014)
+            bool canSaveLogical = _isInitialized && !_isApplyingConfig && _isTabsRestored;
+
+            if (!canSavePhysical && !canSaveLogical)
             {
                 return;
             }
@@ -111,83 +117,85 @@ namespace YiboFile.Services
             {
                 // #region agent log
                 var logPath = @"f:\Download\GitHub\YiboFile\.cursor\debug.log";
-                try { System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(logPath)); System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "A", location = "WindowStateManager.cs:51", message = "SaveAllState开始", data = new { windowLoaded = _uiHelper?.Window?.IsLoaded ?? false }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
+                try { System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(logPath)); System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "bug014-fix", location = "WindowStateManager.cs:SaveAllState", message = "保存状态检查", data = new { canSavePhysical, canSaveLogical, force, isInitialized = _isInitialized, isTabsRestored = _isTabsRestored }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
                 // #endregion
 
                 var window = _uiHelper.Window;
-                if (window != null && window.IsLoaded)
+                if (canSavePhysical && window != null && window.IsLoaded)
                 {
                     // 确保窗口布局已更新
                     window.UpdateLayout();
+                    SaveWindowState();
+                    SaveSplitterPositions();
                 }
 
-                SaveWindowState();
-                SaveSplitterPositions();
-                SaveNavigationState();
-                SaveTabsState();
+                if (canSaveLogical)
+                {
+                    SaveNavigationState();
+                    SaveTabsState();
+                }
 
                 // #region agent log
-                try { System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "A", location = "WindowStateManager.cs:68", message = "SaveAllState保存前_config状态", data = new { windowWidth = _config.WindowWidth, windowHeight = _config.WindowHeight, windowTop = _config.WindowTop, windowLeft = _config.WindowLeft, isMaximized = _config.IsMaximized, colLeftWidth = _config.ColLeftWidth, colCenterWidth = _config.ColCenterWidth, openTabsCount = _config.OpenTabs?.Count ?? 0, activeTabKey = _config.ActiveTabKey }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
+                try { System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "bug014-fix", location = "WindowStateManager.cs:Update", message = "准备更新配置", data = new { }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
                 // #endregion
 
-                // 🔥 CRITICAL: 只复制窗口状态字段，不要复制UI设置字段！
-                // UI设置(UIFontSize, TagFontSize, ColTagsWidth等)由ConfigurationService管理
-                // 如果在这里复制，会用启动时的旧_config覆盖用户刚保存的设置！
-
-                // ✅ 使用ConfigurationService统一更新，避免覆盖用户设置
+                // ✅ 使用ConfigurationService统一更新
                 YiboFile.Services.Config.ConfigurationService.Instance.Update(latestConfig =>
                 {
-                    // 窗口尺寸和位置
-                    latestConfig.WindowWidth = _config.WindowWidth;
-                    latestConfig.WindowHeight = _config.WindowHeight;
-                    latestConfig.WindowTop = _config.WindowTop;
-                    latestConfig.WindowLeft = _config.WindowLeft;
-                    latestConfig.IsMaximized = _config.IsMaximized;
+                    // 仅当允许保存物理状态时才更新这些字段
+                    if (canSavePhysical)
+                    {
+                        // 窗口尺寸和位置
+                        latestConfig.WindowWidth = _config.WindowWidth;
+                        latestConfig.WindowHeight = _config.WindowHeight;
+                        latestConfig.WindowTop = _config.WindowTop;
+                        latestConfig.WindowLeft = _config.WindowLeft;
+                        latestConfig.IsMaximized = _config.IsMaximized;
+                        latestConfig.WindowOpacity = _config.WindowOpacity;
 
-                    // 主布局列宽（左中右三列）- 这些是窗口布局，不是UI设置
-                    latestConfig.ColLeftWidth = _config.ColLeftWidth;
-                    latestConfig.ColCenterWidth = _config.ColCenterWidth;
-                    latestConfig.ColRightWidth = _config.ColRightWidth;
-                    latestConfig.LeftPanelWidth = _config.LeftPanelWidth;
-                    latestConfig.MiddlePanelWidth = _config.MiddlePanelWidth;
+                        // 主布局列宽
+                        latestConfig.ColLeftWidth = _config.ColLeftWidth;
+                        latestConfig.ColCenterWidth = _config.ColCenterWidth;
+                        latestConfig.ColRightWidth = _config.ColRightWidth;
+                        latestConfig.LeftPanelWidth = _config.LeftPanelWidth;
+                        latestConfig.MiddlePanelWidth = _config.MiddlePanelWidth;
 
-                    // ❌ ColTagsWidth/ColNotesWidth不要复制 - UI设置由ConfigurationService管理
+                        // 面板状态
+                        latestConfig.IsRightPanelVisible = _config.IsRightPanelVisible;
+                        latestConfig.RightPanelNotesHeight = _config.RightPanelNotesHeight;
+                        latestConfig.CenterPanelInfoHeight = _config.CenterPanelInfoHeight;
 
-                    // 面板状态
-                    latestConfig.IsRightPanelVisible = _config.IsRightPanelVisible;
-                    latestConfig.RightPanelNotesHeight = _config.RightPanelNotesHeight;
-                    latestConfig.CenterPanelInfoHeight = _config.CenterPanelInfoHeight;
+                        // 双列表模式状态
+                        latestConfig.IsDualListMode = _config.IsDualListMode;
+                    }
 
-                    // 导航状态
-                    latestConfig.LastPath = _config.LastPath;
-                    latestConfig.LastNavigationMode = _config.LastNavigationMode;
-                    latestConfig.LastLibraryId = _config.LastLibraryId;
+                    // 仅当允许保存逻辑状态时才更新这些字段
+                    if (canSaveLogical)
+                    {
+                        // 导航状态
+                        latestConfig.LastPath = _config.LastPath;
+                        latestConfig.LastNavigationMode = _config.LastNavigationMode;
+                        latestConfig.LastLibraryId = _config.LastLibraryId;
 
-                    // 标签页状态
-                    latestConfig.OpenTabs = _config.OpenTabs;
-                    latestConfig.ActiveTabKey = _config.ActiveTabKey;
+                        // 标签页状态
+                        latestConfig.OpenTabs = _config.OpenTabs;
+                        latestConfig.ActiveTabKey = _config.ActiveTabKey;
 
-                    // 副列表标签页状态
-                    latestConfig.OpenTabsSecondary = _config.OpenTabsSecondary;
-                    latestConfig.ActiveTabKeySecondary = _config.ActiveTabKeySecondary;
-
-                    // 确保双列表模式状态被正确保存
-                    latestConfig.IsDualListMode = _config.IsDualListMode;
+                        // 副列表标签页状态
+                        latestConfig.OpenTabsSecondary = _config.OpenTabsSecondary;
+                        latestConfig.ActiveTabKeySecondary = _config.ActiveTabKeySecondary;
+                    }
                 });
 
-                // ✅ 不再需要手动Save - ConfigurationService.Update会触发去抖保存
-                // 程序关闭时WindowLifecycleHandler会调用SaveNow()确保落盘
-
+                // ✅ Debug Log
                 // #region agent log
-                try { System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "A", location = "WindowStateManager.cs:72", message = "SaveAllState完成", data = new { }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
+                try { System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "bug014-fix", location = "WindowStateManager.cs:Done", message = "SaveAllState完成", data = new { }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
                 // #endregion
             }
             catch (Exception ex)
             {
-                // 静默处理错误，避免影响程序关闭
-                // #region agent log
-                try { var logPathErr = @"f:\Download\GitHub\YiboFile\.cursor\debug.log"; System.IO.File.AppendAllText(logPathErr, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "A", location = "WindowStateManager.cs:77", message = "SaveAllState异常", data = new { error = ex.Message, stackTrace = ex.StackTrace }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
-                // #endregion
+                // 静默处理错误
+                try { var logPathErr = @"f:\Download\GitHub\YiboFile\.cursor\debug.log"; System.IO.File.AppendAllText(logPathErr, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "bug014-fix", location = "WindowStateManager.cs:Ex", message = "SaveAllState异常", data = new { error = ex.Message }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
             }
         }
 

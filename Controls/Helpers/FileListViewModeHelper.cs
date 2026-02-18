@@ -113,6 +113,8 @@ namespace YiboFile.Controls.Helpers
             selector.DefaultTemplate = (DataTemplate)findResource(templateKey);
 
             filesListView.ItemTemplate = null;
+            // Force refresh if selector instance is reused
+            filesListView.ItemTemplateSelector = null;
             filesListView.ItemTemplateSelector = selector;
 
             filesListView.ItemsPanel = (ItemsPanelTemplate)findResource("WrapPanelTemplate");
@@ -142,6 +144,8 @@ namespace YiboFile.Controls.Helpers
             selector.DefaultTemplate = (DataTemplate)findResource(templateKey);
 
             filesListView.ItemTemplate = null;
+            // Force refresh if selector instance is reused
+            filesListView.ItemTemplateSelector = null;
             filesListView.ItemTemplateSelector = selector;
 
             filesListView.ItemsPanel = (ItemsPanelTemplate)findResource("StackPanelTemplate");
