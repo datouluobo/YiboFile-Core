@@ -4,6 +4,8 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:YiboFile.Converters"
+        xmlns:vm="clr-namespace:YiboFile.ViewModels"
+        d:DataContext="{d:DesignInstance Type=vm:LibraryManagementViewModel}"
         mc:Ignorable="d"
         Title="库管理" Height="600" Width="800"
         WindowStartupLocation="CenterOwner" ResizeMode="CanResize"
@@ -55,6 +57,10 @@
                 <Trigger Property="IsMouseOver" Value="True">
                     <Setter Property="Background" Value="#1976D2"/>
                 </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Background" Value="#A0A0A0"/>
+                    <Setter Property="Opacity" Value="0.6"/>
+                </Trigger>
             </Style.Triggers>
         </Style>
         
@@ -98,7 +104,7 @@
 
         <!-- Main Content: List of Libraries (Expanders) -->
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="10">
-            <ItemsControl x:Name="LibrariesList" BorderThickness="0" Background="Transparent" AlternationCount="2">
+            <ItemsControl x:Name="LibrariesList" ItemsSource="{Binding Libraries}" BorderThickness="0" Background="Transparent" AlternationCount="2">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
                         <Border Margin="0,0,0,8" BorderThickness="1" BorderBrush="#EEEEEE"
@@ -115,24 +121,24 @@
                                     <!-- Icon -->
                                     <TextBlock Text="📚" FontSize="14" Margin="0,0,10,0" VerticalAlignment="Center"/>
                                     
-                                    <!-- Library Name -->
-                                    <TextBlock Grid.Column="1" Text="{Binding Name}" FontWeight="SemiBold" VerticalAlignment="Center" FontSize="14"/>
-
                                     <!-- Library Actions -->
                                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                                        <Button Content="🔼" Click="MoveLibraryUp_Click" Style="{StaticResource ModernButtonStyle}" 
+                                        <Button Content="🔼" Command="{Binding DataContext.MoveLibraryUpCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" Style="{StaticResource ModernButtonStyle}" 
                                                 Width="24" Height="24" Padding="0" Margin="4,0,0,0" ToolTip="上移"
                                                 Background="Transparent" BorderThickness="0"/>
-                                        <Button Content="🔽" Click="MoveLibraryDown_Click" Style="{StaticResource ModernButtonStyle}" 
+                                        <Button Content="🔽" Command="{Binding DataContext.MoveLibraryDownCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" Style="{StaticResource ModernButtonStyle}" 
                                                 Width="24" Height="24" Padding="0" Margin="4,0,0,0" ToolTip="下移"
                                                 Background="Transparent" BorderThickness="0"/>
-                                        <Button Content="✎" Click="RenameLibrary_Click" Style="{StaticResource ModernButtonStyle}" 
+                                        <Button Content="✎" Command="{Binding DataContext.RenameLibraryCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" Style="{StaticResource ModernButtonStyle}" 
                                                 Width="24" Height="24" Padding="0" Margin="4,0,0,0" ToolTip="重命名库"
                                                 Background="Transparent" BorderThickness="0"/>
-                                        <Button Content="❌" Click="DeleteLibrary_Click" Style="{StaticResource ModernButtonStyle}" 
+                                        <Button Content="❌" Command="{Binding DataContext.DeleteLibraryCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" Style="{StaticResource ModernButtonStyle}" 
                                                 Width="24" Height="24" Padding="0" Margin="4,0,0,0" ToolTip="删除库" Foreground="#FF5555"
                                                 Background="Transparent" BorderThickness="0"/>
                                     </StackPanel>
+
+                                    <!-- Library Name -->
+                                    <TextBlock Grid.Column="1" Text="{Binding Name}" FontWeight="SemiBold" VerticalAlignment="Center" FontSize="14"/>
                                 </Grid>
                             </Expander.Header>
                             
@@ -175,9 +181,9 @@
                                                         
                                                         <StackPanel x:Name="ActionButtons" Grid.Column="1" Orientation="Horizontal" Margin="6,0,0,0"
                                                                     Opacity="0">
-                                                             <Button Content="✎" Click="EditPath_Click" Width="20" Height="20" Padding="0"
+                                                             <Button Content="✎" Command="{Binding DataContext.EditPathCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" Width="20" Height="20" Padding="0"
                                                                      Background="Transparent" BorderThickness="0" ToolTip="编辑显示名称" Margin="0,0,2,0"/>
-                                                             <Button Content="✕" Click="RemovePath_Click" Width="20" Height="20" Padding="0" 
+                                                             <Button Content="✕" Command="{Binding DataContext.RemovePathCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" Width="20" Height="20" Padding="0" 
                                                                      Background="Transparent" BorderThickness="0" ToolTip="移除位置" Foreground="#FF5555"/>
                                                         </StackPanel>
                                                     </Grid>
@@ -203,7 +209,7 @@
                                     </ListBox>
 
                                     <!-- Add Path Inline Button -->
-                                    <Button Grid.Row="1" Content="+ 添加位置" Margin="4,5,4,4" Click="AddPath_Click" 
+                                    <Button Grid.Row="1" Content="+ 添加位置" Margin="4,5,4,4" Command="{Binding DataContext.AddPathCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" 
                                             Style="{StaticResource ModernButtonStyle}" Background="#EFEFEF" Height="30"
                                             HorizontalContentAlignment="Left" Padding="10,0"/>
                                 </Grid>
@@ -222,7 +228,11 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBox x:Name="NewLibraryNameTextBox" Tag="新建库..." Style="{StaticResource ModernTextBoxStyle}" KeyDown="NewLibraryNameTextBox_KeyDown"/>
+                <TextBox x:Name="NewLibraryNameTextBox" Tag="新建库..." Text="{Binding NewLibraryName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ModernTextBoxStyle}">
+                    <TextBox.InputBindings>
+                        <KeyBinding Key="Enter" Command="{Binding CreateLibraryCommand}"/>
+                    </TextBox.InputBindings>
+                </TextBox>
                 <TextBlock Text="新建库..." Foreground="#808080" Margin="8,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False">
                     <TextBlock.Style>
                         <Style TargetType="TextBlock">
@@ -235,13 +245,13 @@
                         </Style>
                     </TextBlock.Style>
                 </TextBlock>
-                <Button Grid.Column="1" Content="新建库" Padding="15,0" Margin="10,0,0,0" Click="NewLibrary_Click" Style="{StaticResource ModernAccentButtonStyle}" Height="32"/>
+                <Button Grid.Column="1" Content="新建库" Padding="15,0" Margin="10,0,0,0" Command="{Binding CreateLibraryCommand}" CommandParameter="{Binding NewLibraryName}" Style="{StaticResource ModernAccentButtonStyle}" Height="32"/>
             </Grid>
         </Border>
 
         <!-- Error Snackbar -->
-        <Border x:Name="ErrorOverlay" Grid.RowSpan="3" VerticalAlignment="Bottom" Background="#B00020" Padding="15,10" Margin="20" CornerRadius="4" Visibility="Collapsed">
-            <TextBlock x:Name="ErrorText" Text="Error Message" Foreground="White" FontWeight="SemiBold"/>
+        <Border x:Name="ErrorOverlay" Grid.RowSpan="3" VerticalAlignment="Bottom" Background="#B00020" Padding="15,10" Margin="20" CornerRadius="4" Visibility="{Binding IsErrorVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <TextBlock x:Name="ErrorText" Text="{Binding ErrorMessage}" Foreground="White" FontWeight="SemiBold"/>
         </Border>
     </Grid>
 </Window>

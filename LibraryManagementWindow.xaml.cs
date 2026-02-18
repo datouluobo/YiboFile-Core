@@ -1,37 +1,23 @@
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Forms;
 using System.Windows.Input;
-using YiboFile.Services.Core;
-using YiboFile.Services.Navigation;
+using YiboFile.Services;
+using YiboFile.ViewModels;
+using System.Windows.Forms;
 
 namespace YiboFile
 {
-    public partial class LibraryManagementWindow : Window
+    public partial class LibraryManagementWindow : Window, ILibraryManagementDialogService
     {
-        // Use a UI-specific model to support hierarchical binding with LibraryPath objects
-        public class LibraryUiModel
-        {
-            public int Id { get; set; }
-            public string Name { get; set; }
-            public int DisplayOrder { get; set; }
-            public List<LibraryPath> Paths { get; set; }
-        }
-
-        private List<LibraryUiModel> _libraries;
-        private readonly YiboFile.Services.Data.Repositories.ILibraryRepository _repository;
-        private readonly YiboFile.Services.LibraryService _libraryService;
-
         public LibraryManagementWindow()
         {
             InitializeComponent();
-            _repository = App.ServiceProvider?.GetService(typeof(YiboFile.Services.Data.Repositories.ILibraryRepository)) as YiboFile.Services.Data.Repositories.ILibraryRepository;
-            _libraryService = App.ServiceProvider?.GetService(typeof(YiboFile.Services.LibraryService)) as YiboFile.Services.LibraryService;
-            RefreshLibraries();
+
+            var repository = App.ServiceProvider?.GetService(typeof(YiboFile.Services.Data.Repositories.ILibraryRepository)) as YiboFile.Services.Data.Repositories.ILibraryRepository;
+            var libraryService = App.ServiceProvider?.GetService(typeof(YiboFile.Services.LibraryService)) as YiboFile.Services.LibraryService;
+
+            DataContext = new LibraryManagementViewModel(libraryService, repository, this);
+
             this.KeyDown += LibraryManagementWindow_KeyDown;
         }
 
@@ -43,286 +29,61 @@ namespace YiboFile
             }
         }
 
-        private void RefreshLibraries()
+        #region ILibraryManagementDialogService Implementation
+
+        public void ShowError(string message)
         {
-            try
-            {
-                if (_repository == null) return;
-                var coreLibraries = _repository.GetAllLibraries();
-                _libraries = new List<LibraryUiModel>();
-
-                foreach (var lib in coreLibraries)
-                {
-                    // Fetch proper LibraryPath objects which include DisplayName
-                    var paths = _repository.GetLibraryPaths(lib.Id) ?? new List<LibraryPath>();
-
-                    // Ensure DisplayName is populated for UI
-                    foreach (var path in paths)
-                    {
-                        if (string.IsNullOrEmpty(path.DisplayName))
-                        {
-                            path.DisplayName = Path.GetFileName(path.Path);
-                            if (string.IsNullOrEmpty(path.DisplayName)) path.DisplayName = path.Path;
-                        }
-                    }
-
-                    _libraries.Add(new LibraryUiModel
-                    {
-                        Id = lib.Id,
-                        Name = lib.Name,
-                        DisplayOrder = lib.DisplayOrder,
-                        Paths = paths
-                    });
-                }
-
-                LibrariesList.ItemsSource = _libraries;
-            }
-            catch (Exception ex)
-            {
-                ShowError($"加载库列表失败: {ex.Message}");
-            }
+            // Use ViewModel property binding for inline error, or fallback to DialogService
+            // But ViewModel calls this for Dialog.
+            DialogService.Error(message, owner: this);
         }
 
-        private void ShowError(string message)
+        public void ShowInfo(string message)
         {
-            if (ErrorText == null || ErrorOverlay == null) return;
-
-            ErrorText.Text = message;
-            ErrorOverlay.Visibility = Visibility.Visible;
-
-            // Auto hide after 3 seconds
-            var timer = new System.Windows.Threading.DispatcherTimer();
-            timer.Interval = TimeSpan.FromSeconds(3);
-            timer.Tick += (s, e) =>
-            {
-                if (ErrorOverlay != null) ErrorOverlay.Visibility = Visibility.Collapsed;
-                timer.Stop();
-            };
-            timer.Start();
+            DialogService.Info(message, owner: this);
         }
 
-        // --- Library Actions ---
-
-        private void NewLibrary_Click(object sender, RoutedEventArgs e)
+        public void ShowWarning(string message)
         {
-            CreateNewLibrary();
+            DialogService.Warning(message, owner: this);
         }
 
-        private void NewLibraryNameTextBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        public bool Confirm(string message, string title)
         {
-            if (e.Key == Key.Enter)
-            {
-                CreateNewLibrary();
-            }
+            return System.Windows.MessageBox.Show(
+                   message,
+                   title,
+                   MessageBoxButton.YesNo,
+                   MessageBoxImage.Question) == MessageBoxResult.Yes;
         }
 
-        private void CreateNewLibrary()
+        public string ShowInputDialog(string title, string prompt, string defaultText)
         {
-            var categoryName = NewLibraryNameTextBox.Text?.Trim();
-            if (string.IsNullOrWhiteSpace(categoryName))
+            var dialog = new Controls.Dialogs.InputDialog(title, prompt, defaultText);
+            dialog.Owner = this;
+            if (dialog.ShowDialog() == true)
             {
-                DialogService.Warning("请输入库名称", "提示", this);
-                NewLibraryNameTextBox.Focus();
-                return;
+                return dialog.InputText;
             }
-
-            try
-            {
-                if (_libraryService == null)
-                {
-                    ShowError("Library service not available");
-                    return;
-                }
-
-                var libraryId = _libraryService.AddLibrary(categoryName);
-                if (libraryId > 0)
-                {
-                    NewLibraryNameTextBox.Text = "";
-                    RefreshLibraries(); // Refresh local list (Service triggers main window update)
-                }
-                else if (libraryId < 0)
-                {
-                    // Service log handles showing dialog, but we show error here too for focused input
-                    // ShowError("库名称已存在"); // Service already shows dialog
-                    NewLibraryNameTextBox.SelectAll();
-                    NewLibraryNameTextBox.Focus();
-                }
-                else
-                {
-                    // ShowError("创建库失败"); // Service already shows dialog
-                }
-            }
-            catch (Exception ex)
-            {
-                ShowError($"创建库失败: {ex.Message}");
-            }
+            return null;
         }
 
-        private void RenameLibrary_Click(object sender, RoutedEventArgs e)
+        public string ShowFolderBrowserDialog(string title)
         {
-            if ((sender as FrameworkElement)?.DataContext is LibraryUiModel library)
+            using (var dialog = new FolderBrowserDialog())
             {
-                var dialog = new Controls.Dialogs.InputDialog("重命名库", "请输入新的库名称:", library.Name);
+                dialog.Description = title;
+                dialog.ShowNewFolderButton = false;
+                dialog.SelectedPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
 
-                if (dialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(dialog.InputText))
+                if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
                 {
-                    var newName = dialog.InputText.Trim();
-                    try
-                    {
-                        _libraryService?.UpdateLibraryName(library.Id, newName);
-                        RefreshLibraries();
-                    }
-                    catch (Exception ex)
-                    {
-                        ShowError($"重命名失败: {ex.Message}");
-                    }
+                    return dialog.SelectedPath;
                 }
             }
+            return null;
         }
 
-        private void DeleteLibrary_Click(object sender, RoutedEventArgs e)
-        {
-            if ((sender as FrameworkElement)?.DataContext is LibraryUiModel library)
-            {
-                if (System.Windows.MessageBox.Show(
-                    $"确定要删除库 \"{library.Name}\" 吗？\n\n删除后，该库的所有位置将被移除，但不会删除实际文件。",
-                    "确认删除",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Warning) == MessageBoxResult.Yes)
-                {
-                    try
-                    {
-                        _libraryService?.DeleteLibrary(library.Id, library.Name);
-                        RefreshLibraries();
-                    }
-                    catch (Exception ex)
-                    {
-                        ShowError($"删除失败: {ex.Message}");
-                    }
-                }
-            }
-        }
-
-        private void MoveLibraryUp_Click(object sender, RoutedEventArgs e)
-        {
-            if ((sender as FrameworkElement)?.DataContext is LibraryUiModel library)
-            {
-                try
-                {
-                    _repository.MoveLibraryUp(library.Id); // Service might not have Move, but repository is fine if we force refresh? 
-                                                           // Ideally Service should have Move, but let's stick to Repo then force load
-                    _repository.MoveLibraryUp(library.Id);
-                    _libraryService?.LoadLibraries(); // Force notify main window
-
-                    RefreshLibraries();
-                }
-                catch (Exception ex)
-                {
-                    ShowError($"移动失败: {ex.Message}");
-                }
-            }
-        }
-
-        private void MoveLibraryDown_Click(object sender, RoutedEventArgs e)
-        {
-            if ((sender as FrameworkElement)?.DataContext is LibraryUiModel library)
-            {
-                try
-                {
-                    _repository.MoveLibraryDown(library.Id);
-                    _libraryService?.LoadLibraries(); // Force notify main window
-                    RefreshLibraries();
-                }
-                catch (Exception ex)
-                {
-                    ShowError($"移动失败: {ex.Message}");
-                }
-            }
-        }
-
-        // --- Path Actions ---
-
-        private void AddPath_Click(object sender, RoutedEventArgs e)
-        {
-            if ((sender as FrameworkElement)?.DataContext is LibraryUiModel library)
-            {
-                using (var dialog = new FolderBrowserDialog())
-                {
-                    dialog.Description = $"选择要添加到库 \"{library.Name}\" 的文件夹:";
-                    dialog.ShowNewFolderButton = false;
-                    dialog.SelectedPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-
-                    if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-                    {
-                        var path = dialog.SelectedPath;
-                        try
-                        {
-                            // Check duplicates
-                            var existingPaths = _repository.GetLibraryPaths(library.Id);
-                            if (existingPaths.Any(p => p.Path.Equals(path, StringComparison.OrdinalIgnoreCase)))
-                            {
-                                ShowError("该路径已存在于库中");
-                                return;
-                            }
-
-                            _libraryService?.AddLibraryPath(library.Id, path);
-                            RefreshLibraries();
-                        }
-                        catch (Exception ex)
-                        {
-                            ShowError($"添加位置失败: {ex.Message}");
-                        }
-                    }
-                }
-            }
-        }
-
-        private void EditPath_Click(object sender, RoutedEventArgs e)
-        {
-            if ((sender as FrameworkElement)?.DataContext is LibraryPath path)
-            {
-                var dialog = new Controls.Dialogs.InputDialog("编辑显示名称", "请输入显示名称:", path.DisplayName);
-                if (dialog.ShowDialog() == true)
-                {
-                    var newName = dialog.InputText.Trim();
-                    if (string.IsNullOrEmpty(newName)) newName = null;
-
-                    try
-                    {
-                        _repository.UpdateLibraryPathDisplayName(path.LibraryId, path.Path, newName);
-                        // Updating display name doesn't change content, but we should probably reload
-                        _libraryService?.LoadLibraries();
-                        RefreshLibraries();
-                    }
-                    catch (Exception ex)
-                    {
-                        ShowError($"更新显示名称失败: {ex.Message}");
-                    }
-                }
-            }
-        }
-
-        private void RemovePath_Click(object sender, RoutedEventArgs e)
-        {
-            if ((sender as FrameworkElement)?.DataContext is LibraryPath path)
-            {
-                if (System.Windows.MessageBox.Show(
-                    $"确定要从库中移除位置 \"{path.Path}\" 吗？",
-                    "确认移除",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Question) == MessageBoxResult.Yes)
-                {
-                    try
-                    {
-                        _libraryService?.RemoveLibraryPath(path.LibraryId, path.Path);
-                        RefreshLibraries();
-                    }
-                    catch (Exception ex)
-                    {
-                        ShowError($"移除位置失败: {ex.Message}");
-                    }
-                }
-            }
-        }
+        #endregion
     }
 }

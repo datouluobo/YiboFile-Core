@@ -424,7 +424,7 @@ Controller-driven 场景：
 
 6.  Service 层事件 → MessageBus 迁移 (第二批)
 7.  PaneViewModel 导航逻辑下沉
-8.  LibraryManagementWindow MVVM 化
+8.  **LibraryManagementWindow MVVM 化** (Phase 3 提前) ✅ 已完成
 9.  App.xaml.cs 启动逻辑拆分
 10. 修复 BUG-001, BUG-003
 
