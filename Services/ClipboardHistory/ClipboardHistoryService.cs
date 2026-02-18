@@ -102,10 +102,7 @@ namespace YiboFile.Services.ClipboardHistory
         /// </summary>
         public IEnumerable<ClipboardHistoryItem> TextHistory => History.Where(h => h.Type == ClipboardItemType.Text);
 
-        /// <summary>
-        /// 剪切板内容变化事件
-        /// </summary>
-        public event Action<ClipboardHistoryItem> ClipboardChanged;
+
 
         private ClipboardHistoryService() { }
 
@@ -244,7 +241,6 @@ namespace YiboFile.Services.ClipboardHistory
                         while (History.Count > MaxHistoryCount)
                             History.RemoveAt(History.Count - 1);
 
-                        ClipboardChanged?.Invoke(item);
                         System.Diagnostics.Debug.WriteLine($"[ClipboardHistoryService] Added {item.Type}: {item.Preview}");
                     }
                 });

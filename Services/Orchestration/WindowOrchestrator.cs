@@ -94,7 +94,7 @@ namespace YiboFile.Services.Orchestration
         public ColumnInteractionHandler SecondColumnInteractionHandler => _handlerInitializer.SecondColumnInteractionHandler;
         public FileListEventHandler MainFileListHandler => _handlerInitializer.MainFileListHandler;
         public FileListEventHandler SecondFileListHandler => _handlerInitializer.SecondFileListHandler;
-        public FileOperationHandler FileOperationHandler => _handlerInitializer.FileOperationHandler;
+
         public KeyboardEventHandler KeyboardEventHandler => _handlerInitializer.KeyboardEventHandler;
         public Services.UIHelper.IUIHelperService UIHelperService => _handlerInitializer.UIHelperService;
 

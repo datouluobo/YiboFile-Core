@@ -120,66 +120,30 @@ namespace YiboFile.Services
 
             try
             {
-                var window = _uiHelper.Window;
-                if (canSavePhysical && window != null && window.IsLoaded)
-                {
-                    // 确保窗口布局已更新
-                    window.UpdateLayout();
-                    SaveWindowState();
-                    SaveSplitterPositions();
-                }
-
-                if (canSaveLogical)
-                {
-                    SaveNavigationState();
-                    SaveTabsState();
-                }
-
                 // ✅ 使用ConfigurationService统一更新
+                // 修复 BUG-023: 避免直接修改 _config 属性导致自赋值无效
                 YiboFile.Services.Config.ConfigurationService.Instance.Update(latestConfig =>
                 {
                     // 仅当允许保存物理状态时才更新这些字段
                     if (canSavePhysical)
                     {
-                        // 窗口尺寸和位置
-                        latestConfig.WindowWidth = _config.WindowWidth;
-                        latestConfig.WindowHeight = _config.WindowHeight;
-                        latestConfig.WindowTop = _config.WindowTop;
-                        latestConfig.WindowLeft = _config.WindowLeft;
-                        latestConfig.IsMaximized = _config.IsMaximized;
-                        latestConfig.WindowOpacity = _config.WindowOpacity;
+                        // 确保窗口布局已更新 (UI操作需要在UI线程，但Update回调可能在任意线程? 不，Update是同步的)
+                        // 注意：Update 回调是在锁内执行的，应避免耗时操作
+                        // 但我们需要读取 UI 属性
 
-                        // 主布局列宽
-                        latestConfig.ColLeftWidth = _config.ColLeftWidth;
-                        latestConfig.ColCenterWidth = _config.ColCenterWidth;
-                        latestConfig.ColRightWidth = _config.ColRightWidth;
-                        latestConfig.LeftPanelWidth = _config.LeftPanelWidth;
-                        latestConfig.MiddlePanelWidth = _config.MiddlePanelWidth;
+                        // 最佳实践：先读取 UI 值到局部变量，再传入 Update?
+                        // 但由于逻辑复杂，我们保持在 UI 线程调用 SaveAllState，所以直接访问 UI 是安全的
+                        // ConfigurationService.Update 是线程安全的锁操作
 
-                        // 面板状态
-                        latestConfig.IsRightPanelVisible = _config.IsRightPanelVisible;
-                        latestConfig.RightPanelNotesHeight = _config.RightPanelNotesHeight;
-                        latestConfig.CenterPanelInfoHeight = _config.CenterPanelInfoHeight;
-
-                        // 双列表模式状态
-                        latestConfig.IsDualListMode = _config.IsDualListMode;
+                        SaveWindowStateTo(latestConfig);
+                        SaveSplitterPositionsTo(latestConfig);
                     }
 
                     // 仅当允许保存逻辑状态时才更新这些字段
                     if (canSaveLogical)
                     {
-                        // 导航状态
-                        latestConfig.LastPath = _config.LastPath;
-                        latestConfig.LastNavigationMode = _config.LastNavigationMode;
-                        latestConfig.LastLibraryId = _config.LastLibraryId;
-
-                        // 标签页状态
-                        latestConfig.OpenTabs = _config.OpenTabs;
-                        latestConfig.ActiveTabKey = _config.ActiveTabKey;
-
-                        // 副列表标签页状态
-                        latestConfig.OpenTabsSecondary = _config.OpenTabsSecondary;
-                        latestConfig.ActiveTabKeySecondary = _config.ActiveTabKeySecondary;
+                        SaveNavigationStateTo(latestConfig);
+                        SaveTabsStateTo(latestConfig);
                     }
                 });
             }
@@ -190,45 +154,48 @@ namespace YiboFile.Services
         }
 
         /// <summary>
-        /// 保存窗口状态（大小、位置、最大化状态）
+        /// 保存窗口状态到目标配置对象
         /// </summary>
-        public void SaveWindowState()
+        private void SaveWindowStateTo(AppConfig targetConfig)
         {
             var window = _uiHelper.Window;
             if (window == null) return;
 
+            // 确保布局更新
+            if (window.IsLoaded) window.UpdateLayout();
+
             // 保存最大化状态 (如果是最小化，则保持之前的状态，避免覆盖)
             if (window.WindowState != WindowState.Minimized)
             {
-                _config.IsMaximized = window.WindowState == WindowState.Maximized;
+                targetConfig.IsMaximized = window.WindowState == WindowState.Maximized;
             }
 
             // 如果窗口已加载，保存实际尺寸和位置
             if (window.IsLoaded)
             {
-                if (!_config.IsMaximized)
+                if (!targetConfig.IsMaximized)
                 {
                     // 非最大化状态：保存实际尺寸和位置
-                    _config.WindowWidth = window.Width;
-                    _config.WindowHeight = window.Height;
+                    targetConfig.WindowWidth = window.Width;
+                    targetConfig.WindowHeight = window.Height;
 
                     // 确保位置值有效（不是NaN或无效值）
                     if (!double.IsNaN(window.Top) && !double.IsInfinity(window.Top) && window.Top >= -10000)
                     {
-                        _config.WindowTop = window.Top;
+                        targetConfig.WindowTop = window.Top;
                     }
                     else
                     {
-                        _config.WindowTop = null;
+                        targetConfig.WindowTop = null;
                     }
 
                     if (!double.IsNaN(window.Left) && !double.IsInfinity(window.Left) && window.Left >= -10000)
                     {
-                        _config.WindowLeft = window.Left;
+                        targetConfig.WindowLeft = window.Left;
                     }
                     else
                     {
-                        _config.WindowLeft = null;
+                        targetConfig.WindowLeft = null;
                     }
                 }
                 else
@@ -238,22 +205,19 @@ namespace YiboFile.Services
 
                     if (restoreBounds.Width > 0 && restoreBounds.Height > 0)
                     {
-                        _config.WindowWidth = restoreBounds.Width;
-                        _config.WindowHeight = restoreBounds.Height;
-                        _config.WindowTop = restoreBounds.Top;
-                        _config.WindowLeft = restoreBounds.Left;
+                        targetConfig.WindowWidth = restoreBounds.Width;
+                        targetConfig.WindowHeight = restoreBounds.Height;
+                        targetConfig.WindowTop = restoreBounds.Top;
+                        targetConfig.WindowLeft = restoreBounds.Left;
                     }
                     else
                     {
-                        // 如果RestoreBounds无效，尝试使用配置中的值
-                        if (_config.WindowWidth > 0 && _config.WindowHeight > 0)
-                        {
-                        }
-                        else
+                        // 如果RestoreBounds无效，保持原值或使用默认值
+                        if (targetConfig.WindowWidth <= 0 || targetConfig.WindowHeight <= 0)
                         {
                             // 使用默认值
-                            _config.WindowWidth = 1200;
-                            _config.WindowHeight = 800;
+                            targetConfig.WindowWidth = 1200;
+                            targetConfig.WindowHeight = 800;
                         }
                     }
                 }
@@ -261,18 +225,28 @@ namespace YiboFile.Services
             else
             {
                 // 窗口未加载，使用当前配置值或默认值
-                if (!_config.IsMaximized && _config.WindowWidth <= 0)
+                if (!targetConfig.IsMaximized && targetConfig.WindowWidth <= 0)
                 {
-                    _config.WindowWidth = 1200;
-                    _config.WindowHeight = 800;
+                    targetConfig.WindowWidth = 1200;
+                    targetConfig.WindowHeight = 800;
                 }
             }
+
+            // 复制其他属性以保持一致
+            targetConfig.WindowOpacity = _config.WindowOpacity; // 这个一般不自动变，或者是绑定的
+        }
+
+        // 保留旧方法签名以防兼容性问题，但标记为废弃或重定向
+        public void SaveWindowState()
+        {
+            // 临时适配：调用 Update 来执行保存
+            YiboFile.Services.Config.ConfigurationService.Instance.Update(cfg => SaveWindowStateTo(cfg));
         }
 
         /// <summary>
-        /// 保存分割线位置（列宽度）
+        /// 保存分割线位置到目标配置
         /// </summary>
-        private void SaveSplitterPositions()
+        private void SaveSplitterPositionsTo(AppConfig targetConfig)
         {
             // 正在应用配置时不保存分割线位置
             if (!_isInitialized || _isApplyingConfig)
@@ -289,8 +263,7 @@ namespace YiboFile.Services
             double middleWidth = 0;
 
             // GridSplitter拖拽后，列宽已调整，优先使用ActualWidth获取实际显示的宽度
-            // 强制更新布局以确保ActualWidth是最新的
-            _uiHelper.RootGrid.UpdateLayout();
+            // 外部已调用 UpdateLayout，这里直接读取
 
             if (leftCol.ActualWidth > 0)
             {
@@ -305,13 +278,13 @@ namespace YiboFile.Services
             // 保存有效的宽度值（必须大于最小宽度）
             if (leftWidth > 0 && leftWidth >= leftCol.MinWidth)
             {
-                _config.LeftPanelWidth = leftWidth;
-                _config.ColLeftWidth = leftWidth;
+                targetConfig.LeftPanelWidth = leftWidth;
+                targetConfig.ColLeftWidth = leftWidth;
             }
             if (middleWidth > 0 && middleWidth >= middleCol.MinWidth)
             {
-                _config.MiddlePanelWidth = middleWidth;
-                _config.ColCenterWidth = middleWidth;
+                targetConfig.MiddlePanelWidth = middleWidth;
+                targetConfig.ColCenterWidth = middleWidth;
             }
 
             // 新增：保存右侧列宽度
@@ -319,28 +292,17 @@ namespace YiboFile.Services
             double rightWidth = rightCol.ActualWidth;
             if (rightWidth > 0 && rightWidth >= rightCol.MinWidth)
             {
-                _config.ColRightWidth = rightWidth;
+                targetConfig.ColRightWidth = rightWidth;
             }
 
             // --- 新增：保存扩展 UI 状态 ---
 
-            // 1. 保存右侧面板可见性 (Width > 0 并不完全代表可见性，这里主要看 Visible 属性)
-            // 假设 ColRightWidth > 0 且 Visibility 为 Visible
-            // 由于 ColRight 总是存在的，我们检查 RightPanelControl 是否实际显示（或者看 Column 的 Width 是否为 0）
-            // 目前右面板通过 Width=0 在视觉上隐藏，ToggleRightPanel 逻辑也是改宽度的。
-            // 但如果用了 ToggleRightPanel，它会设置 WeekStar/Fixed。
-            // 简单起见，如果 ColRight.ActualWidth < 10，认为它是隐藏的。
-            _config.IsRightPanelVisible = _uiHelper.ColRight.ActualWidth > 10;
+            // 1. 保存右侧面板可见性
+            targetConfig.IsRightPanelVisible = _uiHelper.ColRight.ActualWidth > 10;
 
             // 2. 保存右侧面板内部高度 (备注区)
-            // 需要访问 RightPanelControl -> Grid -> RowDefinitions[3]
             if (_uiHelper.RightPanelControl != null)
             {
-                var content = _uiHelper.RightPanelControl.Content as System.Windows.Controls.Grid; // UserControl Content is usually Grid
-                                                                                                   // RightPanelControl XAML root is Grid.
-                                                                                                   // But _uiHelper.RightPanelControl IS the YiboFile.RightPanelControl (UserControl).
-                                                                                                   // We need checking its Structure. 
-                                                                                                   // The UserControl Content property holds the root Grid.
                 if (_uiHelper.RightPanelControl.Content is System.Windows.Controls.Grid rightRootGrid)
                 {
                     if (rightRootGrid.RowDefinitions.Count > 3)
@@ -348,67 +310,47 @@ namespace YiboFile.Services
                         var notesRow = rightRootGrid.RowDefinitions[3]; // Row 3 is Notes
                         if (notesRow.Height.IsAbsolute)
                         {
-                            _config.RightPanelNotesHeight = notesRow.Height.Value;
+                            targetConfig.RightPanelNotesHeight = notesRow.Height.Value;
                         }
                     }
                 }
             }
 
             // 3. 保存中间面板底部高度 (文件详情区)
-            // 需要访问 FileBrowserControl -> Grid -> RowDefinitions[3]
             if (_uiHelper.FileBrowser?.Content is System.Windows.Controls.Grid fileBrowserGrid)
             {
-                if (fileBrowserGrid.RowDefinitions.Count > 3)
+                if (fileBrowserGrid.RowDefinitions.Count >= 4)
                 {
-                    var infoRow = fileBrowserGrid.RowDefinitions[3]; // Row 3 is GridSplitter (Row 4 is Info actually? Wait, let me check XAML)
-                                                                     // FileBrowserControl.xaml:
-                                                                     // Row 0: Address
-                                                                     // Row 1: TabManager
-                                                                     // Row 2: FileList (*)
-                                                                     // Row 3: Splitter
-                                                                     // Row 4: Info Panel
-                                                                     // Wait, XAML says: RowDefinition Height="180" for Row 3? 
-                                                                     // Let's re-read FileBrowserControl.xaml quickly from memory or just check definitions. 
-                                                                     // Row 3 is 180 MinHeight=120?
-                                                                     // Re-checking XAML: 
-                                                                     // Row 0: Auto
-                                                                     // Row 1: Auto
-                                                                     // Row 2: *
-                                                                     // Row 3: 180 MinHeight 120
-                                                                     // Inside Grid:
-                                                                     // GridSplitter Grid.Row="3" (Wait, Splitter usually shares row or is in separate row?)
-                                                                     // Line 194: GridSplitter Grid.Row="3" ...
-                                                                     // Line 198: Border Grid.Row="4" ...
-                                                                     // This implies Row 3 is the SPLITTER row??
-                                                                     // But RowDefinition for Row 3 has Height 180?
-                                                                     // Ah, typical XAML mistake or I misread.
-                                                                     // Let's assume Row 3 is the Info Pane ROW definition idx 3. The GridSplitter might be in Row 2 or 3.
-                                                                     // Actually, let's look safely: usually the last row definition with fixed/pixel height is the info panel.
-                                                                     // Safest is to save the last RowDefinition height if it's absolute.
-
-                    if (fileBrowserGrid.RowDefinitions.Count >= 4)
+                    var lastRow = fileBrowserGrid.RowDefinitions[fileBrowserGrid.RowDefinitions.Count - 1];
+                    if (lastRow.Height.IsAbsolute)
                     {
-                        // 假设最后一行是详情区
-                        var lastRow = fileBrowserGrid.RowDefinitions[fileBrowserGrid.RowDefinitions.Count - 1];
-                        if (lastRow.Height.IsAbsolute)
-                        {
-                            _config.CenterPanelInfoHeight = lastRow.Height.Value;
-                        }
+                        targetConfig.CenterPanelInfoHeight = lastRow.Height.Value;
                     }
                 }
             }
+
+            // 保存双列表模式
+            targetConfig.IsDualListMode = _config.IsDualListMode;
+        }
+
+        private void SaveSplitterPositions()
+        {
+            YiboFile.Services.Config.ConfigurationService.Instance.Update(cfg => SaveSplitterPositionsTo(cfg));
         }
 
         /// <summary>
         /// 保存导航状态（当前路径、导航模式、库ID）
         /// </summary>
-        private void SaveNavigationState()
+        /// <summary>
+        /// 保存导航状态到目标配置
+        /// </summary>
+        private void SaveNavigationStateTo(AppConfig targetConfig)
         {
-            _config.LastPath = _uiHelper.CurrentPath ?? string.Empty;
+            targetConfig.LastPath = _uiHelper.CurrentPath ?? string.Empty;
 
             // 保存导航模式：优先从配置中获取（NavigationModeService 在切换时会保存）
             // 如果配置中没有，尝试从当前活动标签页推断
-            if (string.IsNullOrEmpty(_config.LastNavigationMode))
+            if (string.IsNullOrEmpty(targetConfig.LastNavigationMode))
             {
                 if (_tabService != null)
                 {
@@ -418,22 +360,21 @@ namespace YiboFile.Services
                         switch (activeTab.Type)
                         {
                             case TabType.Library:
-                                _config.LastNavigationMode = "Library";
+                                targetConfig.LastNavigationMode = "Library";
                                 break;
-
                             default:
-                                _config.LastNavigationMode = "Path";
+                                targetConfig.LastNavigationMode = "Path";
                                 break;
                         }
                     }
                     else
                     {
-                        _config.LastNavigationMode = "Path";
+                        targetConfig.LastNavigationMode = "Path";
                     }
                 }
                 else
                 {
-                    _config.LastNavigationMode = "Path";
+                    targetConfig.LastNavigationMode = "Path";
                 }
             }
             // 如果配置中已有导航模式，保持它（NavigationModeService 已经更新过）
@@ -447,22 +388,27 @@ namespace YiboFile.Services
                     var libraryId = libraryIdProperty.GetValue(currentLibrary);
                     if (libraryId is int id)
                     {
-                        _config.LastLibraryId = id;
+                        targetConfig.LastLibraryId = id;
                     }
                     else
                     {
-                        _config.LastLibraryId = 0;
+                        targetConfig.LastLibraryId = 0;
                     }
                 }
                 else
                 {
-                    _config.LastLibraryId = 0;
+                    targetConfig.LastLibraryId = 0;
                 }
             }
             else
             {
-                _config.LastLibraryId = 0;
+                targetConfig.LastLibraryId = 0;
             }
+        }
+
+        private void SaveNavigationState()
+        {
+            YiboFile.Services.Config.ConfigurationService.Instance.Update(cfg => SaveNavigationStateTo(cfg));
         }
 
         /// <summary>
@@ -470,29 +416,38 @@ namespace YiboFile.Services
         /// 注意：不再在此处检查 _isTabsRestored，由调用方 SaveAllState 控制时机。
         /// 内部通过 tabs.Count > 0 防护，确保空标签页列表不会覆盖有效的配置数据。
         /// </summary>
-        private void SaveTabsState()
+        /// <summary>
+        /// 保存标签页状态到目标配置
+        /// </summary>
+        private void SaveTabsStateTo(AppConfig targetConfig)
         {
             if (_tabService != null)
             {
                 var (tabs, activeKey) = GetTabsState(_tabService);
 
                 // 防护：如果当前没有标签页但配置中有，说明还没恢复完成，不覆盖
-                if (tabs.Count > 0 || _config.OpenTabs == null || _config.OpenTabs.Count == 0)
+                // 注意：这里我们比较 targetConfig.OpenTabs，它是最新的配置状态
+                if (tabs.Count > 0 || targetConfig.OpenTabs == null || targetConfig.OpenTabs.Count == 0)
                 {
-                    _config.OpenTabs = tabs;
-                    _config.ActiveTabKey = activeKey;
+                    targetConfig.OpenTabs = tabs;
+                    targetConfig.ActiveTabKey = activeKey;
                 }
             }
 
             if (_secondTabService != null)
             {
                 var (tabs, activeKey) = GetTabsState(_secondTabService);
-                if (tabs.Count > 0 || _config.OpenTabsSecondary == null || _config.OpenTabsSecondary.Count == 0)
+                if (tabs.Count > 0 || targetConfig.OpenTabsSecondary == null || targetConfig.OpenTabsSecondary.Count == 0)
                 {
-                    _config.OpenTabsSecondary = tabs;
-                    _config.ActiveTabKeySecondary = activeKey;
+                    targetConfig.OpenTabsSecondary = tabs;
+                    targetConfig.ActiveTabKeySecondary = activeKey;
                 }
             }
+        }
+
+        private void SaveTabsState()
+        {
+            YiboFile.Services.Config.ConfigurationService.Instance.Update(cfg => SaveTabsStateTo(cfg));
         }
 
         private (List<string> tabs, string activeKey) GetTabsState(TabService service)
@@ -826,9 +781,6 @@ namespace YiboFile.Services
         /// <summary>
         /// 根据键值查找标签页
         /// </summary>
-        /// <summary>
-        /// 根据键值查找标签页
-        /// </summary>
         private PathTab FindTabByKey(TabService service, string tabKey)
         {
             if (string.IsNullOrEmpty(tabKey)) return null;
@@ -853,8 +805,3 @@ namespace YiboFile.Services
         #endregion
     }
 }
-
-
-
-
-

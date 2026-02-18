@@ -31,9 +31,18 @@ namespace YiboFile
             // 全局异常处理已移至 Bootstrapper 中统一配置
         }
 
+        /// <summary>
+        /// 配置依赖注入服务
+        /// 子类 (Pro/Ultra) 可重写此方法以注册额外服务
+        /// </summary>
+        protected virtual void ConfigureServices(IServiceCollection services)
+        {
+            // Core 版默认不注册额外服务
+        }
+
         protected override void OnStartup(StartupEventArgs e)
         {
-            _bootstrapper = new Bootstrapper(this);
+            _bootstrapper = new Bootstrapper(this, ConfigureServices);
             bool success = _bootstrapper.Initialize();
 
             if (success)

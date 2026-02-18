@@ -536,7 +536,7 @@ TagTrain 是旧的标签训练系统，**相关功能将完全删除**（后续�
 - [ ] 注册到 DI 容器
 - [ ] 修复 `SearchHistoryService` 路径硬编码 → 注入 `IConfigPathProvider`
 - [ ] 修复 `CustomThemeManager` 路径硬编码 → 注入 `IConfigPathProvider`
-- [ ] 修复 `DwgConverter` / `CadImageCache` 缓存路径硬编码
+- [x] 修复 `DwgConverter` / `CadImageCache` 缓存路径硬编码
 - [ ] 清理 `ConfigManager` 中 TagTrain 相关代码
 - [ ] 清理 `GeneralSettingsPanel` 中 TagTrain 相关导出 UI
 

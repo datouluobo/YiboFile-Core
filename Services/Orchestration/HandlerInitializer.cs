@@ -37,7 +37,7 @@ namespace YiboFile.Services.Orchestration
         public Handlers.ColumnInteractionHandler SecondColumnInteractionHandler { get; private set; }
         public Handlers.FileListEventHandler MainFileListHandler { get; private set; }
         public Handlers.FileListEventHandler SecondFileListHandler { get; private set; }
-        public Handlers.FileOperationHandler FileOperationHandler { get; private set; }
+
         public Handlers.KeyboardEventHandler KeyboardEventHandler { get; private set; }
         public WindowStateManager WindowStateManager { get; private set; }
         public Services.UIHelper.IUIHelperService UIHelperService { get; private set; }
@@ -232,10 +232,7 @@ namespace YiboFile.Services.Orchestration
                 () => viewModel?.ActivePane?.NavigationMode == "Library",
                 () => window.CloseOverlays(),
                 () => { if (navigationService?.CanNavigateBack == true) navigationService.NavigateBack(); },
-                messageBus: _messageBus,
-                switchLayoutMode: index => window.SwitchLayoutModeByIndex(index),
-                isDualListMode: () => layoutModule?.IsDualListMode ?? false,
-                switchDualPaneFocus: () => layoutModule?.SwitchFocusedPane()
+                messageBus: _messageBus
             );
             KeyboardEventHandler = keyboardHandler;
 
@@ -330,7 +327,7 @@ namespace YiboFile.Services.Orchestration
             // 5. WindowLifecycleHandler
             LifecycleHandler = new Handlers.WindowLifecycleHandler(window, WindowStateManager, columnService);
 
-            // 9. LibraryEventHandler (Create first for FileOperationHandler dependency)
+            // 9. LibraryEventHandler
             window._libraryEventHandler = new Handlers.LibraryEventHandler(
                 window,
                 libraryService,
@@ -340,14 +337,6 @@ namespace YiboFile.Services.Orchestration
                 columnService
             );
             window._libraryEventHandler.Initialize();
-
-            // 6. FileOperationHandler
-            FileOperationHandler = new Handlers.FileOperationHandler(
-                window,
-                undoService,
-                navigationCoordinator,
-                window._libraryEventHandler,
-                fileOperationService);
 
             // 订阅 TabManager 的关闭覆盖层请求
             if (window.TabManager != null)

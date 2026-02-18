@@ -56,7 +56,7 @@ namespace YiboFile.Services.Orchestration
         ColumnInteractionHandler SecondColumnInteractionHandler { get; }
         FileListEventHandler MainFileListHandler { get; }
         FileListEventHandler SecondFileListHandler { get; }
-        FileOperationHandler FileOperationHandler { get; }
+
         FileOperationService FileOperationService { get; }
         NavigationModeService NavigationModeService { get; }
         NavigationCoordinator NavigationCoordinator { get; }

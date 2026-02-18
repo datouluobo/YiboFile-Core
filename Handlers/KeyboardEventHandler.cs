@@ -43,9 +43,7 @@ namespace YiboFile.Handlers
         private readonly Func<bool> _isLibraryMode;
         private readonly Action _closeOverlays;
         private readonly Action _navigateBack;
-        private readonly Action<int> _switchLayoutMode;
-        private readonly Func<bool> _isDualListMode;
-        private readonly Action _switchDualPaneFocus;
+
         // private readonly Action _undoClick; // Migrated
         // private readonly Action _redoClick; // Migrated
         private readonly IMessageBus _messageBus;
@@ -64,10 +62,7 @@ namespace YiboFile.Handlers
             Func<bool> isLibraryMode,
             Action closeOverlays,
             Action navigateBack,
-            IMessageBus messageBus = null,
-            Action<int> switchLayoutMode = null,
-            Func<bool> isDualListMode = null,
-            Action switchDualPaneFocus = null)
+            IMessageBus messageBus = null)
         {
             _fileBrowser = fileBrowser ?? throw new ArgumentNullException(nameof(fileBrowser));
             _getActiveBrowser = getActiveBrowser ?? (() => fileBrowser); // Default to main if null
@@ -83,9 +78,6 @@ namespace YiboFile.Handlers
             _closeOverlays = closeOverlays ?? throw new ArgumentNullException(nameof(closeOverlays));
             _navigateBack = navigateBack ?? throw new ArgumentNullException(nameof(navigateBack));
 
-            _switchLayoutMode = switchLayoutMode; // 可选参数
-            _isDualListMode = isDualListMode;
-            _switchDualPaneFocus = switchDualPaneFocus;
             _messageBus = messageBus;
 
             if (_messageBus != null)

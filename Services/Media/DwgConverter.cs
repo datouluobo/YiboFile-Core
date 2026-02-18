@@ -14,9 +14,8 @@ namespace YiboFile.Services
         {
             get
             {
-                var provider = YiboFile.App.ServiceProvider?.GetService<IConfigPathProvider>();
-                string baseCache = provider?.CacheDirectory ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "YiboFile", "Cache");
-                return Path.Combine(baseCache, "DWGtoDXF");
+                var provider = YiboFile.App.ServiceProvider?.GetService<IConfigPathProvider>() ?? new ConfigPathProvider();
+                return Path.Combine(provider.CacheDirectory, "DWGtoDXF");
             }
         }
 

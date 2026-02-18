@@ -349,7 +349,7 @@ namespace YiboFile.Services.FileOperations
                 task.Progress = 100;
             }
 
-            _messageBus?.Publish(new FileOperationCompleteMessage("Paste", result.Success, result.FailedItems.FirstOrDefault()));
+            // FileOperationCompleteMessage 由 FileOperationModule 统一发布，此处仅发布进度完成信号
             _messageBus?.Publish(new FileOperationProgressMessage(totalCount, totalCount, "完成"));
 
             if (failedItems.Count > 0)
@@ -441,7 +441,7 @@ namespace YiboFile.Services.FileOperations
             {
                 task.Status = TaskStatus.Completed;
             }
-            _messageBus?.Publish(new FileOperationCompleteMessage("Delete", result.Success, result.FailedItems.FirstOrDefault()));
+            // FileOperationCompleteMessage 由 FileOperationModule 统一发布
 
             if (failedItems.Count > 0) _errorService?.ReportError($"删除失败:\n{string.Join("\n", failedItems.Take(5))}", ErrorSeverity.Error);
             return result;

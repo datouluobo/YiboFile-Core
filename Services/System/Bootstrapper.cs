@@ -17,6 +17,7 @@ using YiboFile.Services.Tabs;
 using YiboFile.Services.ColumnManagement;
 using YiboFile.Services.Features;
 using YiboFile.Controls;
+using YiboFile.Services.Plugins;
 
 namespace YiboFile.Services.Startup
 {
@@ -27,6 +28,7 @@ namespace YiboFile.Services.Startup
     public class Bootstrapper : IDisposable
     {
         private readonly Application _application;
+        private readonly Action<IServiceCollection> _serviceConfigCallback;
         private Mutex _mutex;
         private bool _mutexOwned;
         private const string MutexName = "YiboFile_SingleInstance_Mutex";
@@ -34,9 +36,10 @@ namespace YiboFile.Services.Startup
         public IServiceProvider ServiceProvider { get; private set; }
         public bool IsTagTrainAvailable { get; private set; } = false;
 
-        public Bootstrapper(Application application)
+        public Bootstrapper(Application application, Action<IServiceCollection> serviceConfigCallback = null)
         {
             _application = application ?? throw new ArgumentNullException(nameof(application));
+            _serviceConfigCallback = serviceConfigCallback;
         }
 
         public bool Initialize()
@@ -70,6 +73,9 @@ namespace YiboFile.Services.Startup
                 // 7. Check Optional Features
                 CheckOptionalFeatures();
 
+                // 8. Load Plugins
+                LoadPlugins();
+
                 return true;
             }
             catch (Exception ex)
@@ -81,7 +87,7 @@ namespace YiboFile.Services.Startup
 
         public void Run()
         {
-            // 8. Launch Main Window
+            // 9. Launch Main Window
             try
             {
                 LaunchMainWindow();
@@ -114,6 +120,9 @@ namespace YiboFile.Services.Startup
             services.AddSingleton<YiboFile.Services.Archive.ArchiveService>(); // Archive Service
             services.AddSingleton<Services.FileSystem.FileOperations.IFileTemplateService, Services.FileSystem.FileOperations.FileTemplateService>();
             services.AddSingleton<Services.Backup.IBackupService, Services.Backup.BackupService>(); // Backup Service
+
+            // Plugins
+            services.AddSingleton<IPluginManager, PluginManager>();
 
             // Infrastructure & Data Repositories
             services.AddSingleton<Services.Data.Repositories.IFavoriteRepository, Services.Data.Repositories.SqliteFavoriteRepository>();
@@ -210,6 +219,9 @@ namespace YiboFile.Services.Startup
 
             // Window Orchestration
             services.AddSingleton<Services.Orchestration.IWindowOrchestrator, Services.Orchestration.WindowOrchestrator>();
+
+            // Invoke external configuration callback (for Pro/Ultra extensions)
+            _serviceConfigCallback?.Invoke(services);
         }
 
         private void InitializeCoreServices()
@@ -407,6 +419,23 @@ namespace YiboFile.Services.Startup
                     _mutex = null;
                     _mutexOwned = false;
                 }
+            }
+        }
+
+        private void LoadPlugins()
+        {
+            try
+            {
+                var pluginManager = ServiceProvider.GetService<IPluginManager>();
+                if (pluginManager != null)
+                {
+                    string pluginsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins");
+                    Task.Run(async () => await pluginManager.LoadPluginsAsync(pluginsDir)).Wait();
+                }
+            }
+            catch (Exception ex)
+            {
+                YiboFile.Services.Core.FileLogger.LogException("Failed to load plugins", ex);
             }
         }
 

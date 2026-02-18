@@ -175,6 +175,27 @@ namespace YiboFile.Services.Orchestration
                 });
             });
 
+            // 9. 文件操作完成通知
+            _messageBus.Subscribe<FileOperationCompleteMessage>(msg =>
+            {
+                window.Dispatcher.Invoke(() =>
+                {
+                    if (!msg.Success && !string.IsNullOrEmpty(msg.ErrorMessage))
+                    {
+                        Services.Core.NotificationService.Show(msg.ErrorMessage, Controls.NotificationType.Error);
+                    }
+                });
+            });
+
+            // 10. 文件操作状态消息 → 状态栏
+            _messageBus.Subscribe<FileOperationStatusMessage>(msg =>
+            {
+                window.Dispatcher.Invoke(() =>
+                {
+                    Services.Core.NotificationService.Show(msg.StatusText, Controls.NotificationType.Info);
+                });
+            });
+
             return previewService;
         }
     }

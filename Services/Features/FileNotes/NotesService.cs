@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using YiboFile.Services.Core;
 using YiboFile.Services.Data.Repositories;
+using YiboFile.ViewModels.Messaging;
+using YiboFile.ViewModels.Messaging.Messages;
 
 namespace YiboFile.Services.Features.FileNotes
 {
@@ -13,15 +15,12 @@ namespace YiboFile.Services.Features.FileNotes
     public class NotesService : INotesService
     {
         private readonly INotesRepository _repository;
+        private readonly IMessageBus _messageBus;
 
-        /// <summary>
-        /// 备注更新事件
-        /// </summary>
-        public event EventHandler<NotesUpdatedEventArgs> NotesUpdated;
-
-        public NotesService(INotesRepository repository)
+        public NotesService(INotesRepository repository, IMessageBus messageBus)
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+            _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
         }
 
         #region 基本操作
@@ -148,11 +147,12 @@ namespace YiboFile.Services.Features.FileNotes
 
         #endregion
 
-        #region 事件触发
+        #region 消息发布
 
         protected virtual void OnNotesUpdated(string filePath, string notes)
         {
-            NotesUpdated?.Invoke(this, new NotesUpdatedEventArgs(filePath, notes));
+            var summary = notes == null ? null : GetSummary(notes);
+            _messageBus.Publish(new NotesUpdatedMessage(filePath, notes, summary));
         }
 
         #endregion
@@ -163,8 +163,6 @@ namespace YiboFile.Services.Features.FileNotes
     /// </summary>
     public interface INotesService
     {
-        event EventHandler<NotesUpdatedEventArgs> NotesUpdated;
-
         string GetNotes(string filePath);
         Task<string> GetNotesAsync(string filePath);
         void SaveNotes(string filePath, string notes);
@@ -176,21 +174,5 @@ namespace YiboFile.Services.Features.FileNotes
         bool HasNotes(string filePath);
         Dictionary<string, string> GetNotesBatch(IEnumerable<string> filePaths);
         Task<Dictionary<string, string>> GetNotesBatchAsync(IEnumerable<string> filePaths);
-    }
-
-    /// <summary>
-    /// 备注更新事件参数
-    /// </summary>
-    public class NotesUpdatedEventArgs : EventArgs
-    {
-        public string FilePath { get; }
-        public string Notes { get; }
-        public bool IsDeleted => Notes == null;
-
-        public NotesUpdatedEventArgs(string filePath, string notes)
-        {
-            FilePath = filePath;
-            Notes = notes;
-        }
     }
 }

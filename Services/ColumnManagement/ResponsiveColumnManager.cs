@@ -3,16 +3,7 @@ using System.Windows.Threading;
 
 namespace YiboFile.Services.ColumnManagement
 {
-    /// <summary>
-    /// 列可见性变化事件参数
-    /// </summary>
-    public class ColumnVisibilityChangedEventArgs : EventArgs
-    {
-        public bool IsTypeColumnVisible { get; set; }
-        public bool IsSizeColumnVisible { get; set; }
-        public bool IsModifiedDateVisible { get; set; }
-        public bool IsCreatedTimeVisible { get; set; }
-    }
+
 
     /// <summary>
     /// 响应式列宽度管理器（优化版）
@@ -36,8 +27,6 @@ namespace YiboFile.Services.ColumnManagement
         // 当前计算的名称列宽度
         public double NameColumnWidth { get; private set; } = 250;
 
-        // 事件：当列可见性改变时触发
-        public event EventHandler<ColumnVisibilityChangedEventArgs> ColumnVisibilityChanged;
 
         public ResponsiveColumnManager()
         {
@@ -134,23 +123,11 @@ namespace YiboFile.Services.ColumnManagement
             double calculatedNameWidth = usableWidth - requiredWidth - fixedColumnsWidth;
             NameColumnWidth = Math.Max(NameColumnMinWidth, calculatedNameWidth);
 
-            // 检查是否有变化
+            // 检查是否有变化（保留计算以便将来扩展）
             bool hasChanged = prevTypeVisible != IsTypeColumnVisible ||
                             prevSizeVisible != IsSizeColumnVisible ||
                             prevModifiedVisible != IsModifiedDateVisible ||
                             prevCreatedVisible != IsCreatedTimeVisible;
-
-            // 如果有变化，触发事件
-            if (hasChanged)
-            {
-                ColumnVisibilityChanged?.Invoke(this, new ColumnVisibilityChangedEventArgs
-                {
-                    IsTypeColumnVisible = IsTypeColumnVisible,
-                    IsSizeColumnVisible = IsSizeColumnVisible,
-                    IsModifiedDateVisible = IsModifiedDateVisible,
-                    IsCreatedTimeVisible = IsCreatedTimeVisible
-                });
-            }
         }
     }
 }

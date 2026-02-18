@@ -70,13 +70,19 @@ namespace YiboFile.ViewModels.Previews
             try
             {
                 var extension = Path.GetExtension(filePath)?.ToLower();
-                if (extension == ".doc")
+                // Explicitly check for OpenXML formats that we can handle natively
+                if (extension == ".docx" || extension == ".docm" || extension == ".dotx" || extension == ".dotm")
                 {
+                    await HandleDocxFile(filePath);
+                }
+                else if (extension == ".doc" || extension == ".rtf" || extension == ".odt")
+                {
+                    // For legacy formats (.doc, .rtf) or others (.odt), try using Word COM
                     await HandleDocFile(filePath);
                 }
                 else
                 {
-                    await HandleDocxFile(filePath);
+                    HtmlContent = "<html><body style='font-family:Segoe UI;padding:20px;color:#666'>不支持的文件格式</body></html>";
                 }
             }
             catch (Exception ex)
@@ -106,8 +112,8 @@ namespace YiboFile.ViewModels.Previews
             else
             {
                 NeedsConversion = true;
-                ConversionMessage = error ?? "该文件是旧版 Word 格式，需要转换为 DOCX 才能预览。";
-                HtmlContent = "<html><body style='background:#f5f5f5;display:flex;align-items:center;justify-content:center;height:100vh;margin:0'><div style='text-align:center;color:#666'><h3>需要转换格式</h3><p>此格式通过 Microsoft Word 转换后可预览</p></div></body></html>";
+                ConversionMessage = error ?? "该文件格式需要 Microsoft Word 才能预览。";
+                HtmlContent = "<html><body style='background:#f5f5f5;display:flex;align-items:center;justify-content:center;height:100vh;margin:0'><div style='text-align:center;color:#666'><h3>需要转换格式</h3><p>此格式需要安装 Microsoft Word 才能预览</p></div></body></html>";
             }
         }
 
@@ -168,7 +174,7 @@ namespace YiboFile.ViewModels.Previews
                 Type wordType = Type.GetTypeFromProgID("Word.Application");
                 if (wordType == null)
                 {
-                    errorMessage = "未检测到 Microsoft Word。转换 DOC 到 DOCX 需要安装 Microsoft Word。";
+                    errorMessage = "未检测到 Microsoft Word。预览此文件格式需要安装 Microsoft Word。";
                     return false;
                 }
 
@@ -177,7 +183,8 @@ namespace YiboFile.ViewModels.Previews
                 {
                     try { wordApp.Visible = false; } catch { }
                     wordApp.DisplayAlerts = 0; // wdAlertsNone
-                    dynamic document = wordApp.Documents.Open(docPath, ReadOnly: true);
+                    // Use ConfirmConversions: false to avoid dialogs
+                    dynamic document = wordApp.Documents.Open(FileName: docPath, ConfirmConversions: false, ReadOnly: true, AddToRecentFiles: false, Visible: false);
                     document.SaveAs2(docxPath, 12); // wdFormatXMLDocument = 12
                     document.Close(false);
                     return true;
@@ -204,9 +211,13 @@ namespace YiboFile.ViewModels.Previews
                 sb.Append("<!DOCTYPE html><html><head><meta charset='utf-8'>");
                 sb.Append("<style>body { font-family: 'Segoe UI', sans-serif; padding: 40px; line-height: 1.6; max-width: 800px; margin: 0 auto; } p { margin: 1em 0; } img { max-width: 100%; height: auto; display: block; margin: 1em auto; } table { border-collapse: collapse; width: 100%; margin: 1em 0; } td, th { border: 1px solid #ddd; padding: 8px; }</style></head><body>");
 
-                using (var wordDoc = WordprocessingDocument.Open(filePath, false))
+                // Use FileStream with Share ReadWrite to avoid locking issues
+                using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                using (var wordDoc = WordprocessingDocument.Open(fs, false))
                 {
                     var mainPart = wordDoc.MainDocumentPart;
+                    if (mainPart == null || mainPart.Document == null) return "<html><body><p>文档内容为空</p></body></html>";
+
                     var body = mainPart.Document.Body;
                     var imageMap = ExtractImages(mainPart);
 

@@ -14,9 +14,8 @@ namespace YiboFile.Services
         {
             get
             {
-                var provider = YiboFile.App.ServiceProvider?.GetService<IConfigPathProvider>();
-                string baseCache = provider?.CacheDirectory ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "YiboFile", "Cache");
-                var path = Path.Combine(baseCache, "CAD");
+                var provider = YiboFile.App.ServiceProvider?.GetService<IConfigPathProvider>() ?? new ConfigPathProvider();
+                var path = Path.Combine(provider.CacheDirectory, "CAD");
                 try { Directory.CreateDirectory(path); } catch { }
                 return path;
             }

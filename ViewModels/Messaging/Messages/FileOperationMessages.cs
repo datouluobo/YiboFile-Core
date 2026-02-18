@@ -128,23 +128,7 @@ namespace YiboFile.ViewModels.Messaging.Messages
         }
     }
 
-    /// <summary>
-    /// 通用文件操作请求（用于后台任务）
-    /// </summary>
-    public class FileOperationRequestMessage
-    {
-        public string OperationId { get; } = System.Guid.NewGuid().ToString();
-        public string OperationType { get; } // "Copy", "Move", "Delete", "Recycle", "Rename"
-        public List<string> SourcePaths { get; }
-        public string DestinationPath { get; }
 
-        public FileOperationRequestMessage(string operationType, List<string> sourcePaths, string destinationPath = null)
-        {
-            OperationType = operationType;
-            SourcePaths = sourcePaths;
-            DestinationPath = destinationPath;
-        }
-    }
 
     /// <summary>
     /// 文件操作进度更新消息

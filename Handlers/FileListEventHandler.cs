@@ -20,13 +20,20 @@ namespace YiboFile.Handlers
     {
         private readonly FileBrowserControl _fileBrowser;
         private readonly NavigationCoordinator _navigationCoordinator;
-        private readonly IShellWindow _shellWindow;
         private readonly PaneId _paneId;
 
         // 子处理器
         private readonly FileListMouseHandler _mouseHandler;
         private readonly FileListKeyboardHandler _keyboardHandler;
 
+        /// <summary>
+        /// 构造文件列表事件处理器
+        /// </summary>
+        /// <param name="fileBrowser">文件浏览器控件</param>
+        /// <param name="navigationCoordinator">导航协调器</param>
+        /// <param name="navigationModeService">导航模式服务</param>
+        /// <param name="shellWindow">Shell 窗口接口（透传给子处理器，本类不直接使用）</param>
+        /// <param name="paneId">面板标识</param>
         public FileListEventHandler(
             FileBrowserControl fileBrowser,
             NavigationCoordinator navigationCoordinator,
@@ -36,8 +43,10 @@ namespace YiboFile.Handlers
         {
             _fileBrowser = fileBrowser ?? throw new ArgumentNullException(nameof(fileBrowser));
             _navigationCoordinator = navigationCoordinator ?? throw new ArgumentNullException(nameof(navigationCoordinator));
-            _shellWindow = shellWindow ?? throw new ArgumentNullException(nameof(shellWindow));
             _paneId = paneId;
+
+            // shellWindow 仅透传给子处理器，不在本类中保留引用
+            if (shellWindow == null) throw new ArgumentNullException(nameof(shellWindow));
 
             // 初始化子处理器
             _mouseHandler = new FileListMouseHandler(

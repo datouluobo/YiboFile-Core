@@ -41,12 +41,6 @@ namespace YiboFile.ViewModels.Modules
             Subscribe<SaveNotesRequestMessage>(OnSaveNotesRequest);
             Subscribe<DeleteNotesRequestMessage>(OnDeleteNotesRequest);
             Subscribe<SearchNotesRequestMessage>(OnSearchNotesRequest);
-
-            // 订阅服务事件
-            _notesService.NotesUpdated += OnServiceNotesUpdated;
-
-            // 订阅文件选择变化
-
         }
 
         #region 消息处理
@@ -68,10 +62,7 @@ namespace YiboFile.ViewModels.Modules
 
             await _notesService.SaveNotesAsync(message.FilePath, message.Notes);
             CurrentNotes = message.Notes;
-
-            // 发布更新通知
-            var summary = NotesService.GetSummary(message.Notes);
-            Publish(new NotesUpdatedMessage(message.FilePath, message.Notes, summary));
+            // NotesService 已通过 MessageBus 发布 NotesUpdatedMessage，无需重复发布
         }
 
         private async void OnDeleteNotesRequest(DeleteNotesRequestMessage message)
@@ -84,8 +75,7 @@ namespace YiboFile.ViewModels.Modules
             {
                 CurrentNotes = null;
             }
-
-            Publish(new NotesUpdatedMessage(message.FilePath, null, null));
+            // NotesService 已通过 MessageBus 发布 NotesUpdatedMessage，无需重复发布
         }
 
         private async void OnSearchNotesRequest(SearchNotesRequestMessage message)
@@ -94,15 +84,6 @@ namespace YiboFile.ViewModels.Modules
 
             var results = await _notesService.SearchAsync(message.Keyword);
             // 搜索结果可以通过专门的消息发送，或结合现有的搜索架构
-        }
-
-
-
-        private void OnServiceNotesUpdated(object sender, NotesUpdatedEventArgs e)
-        {
-            // 服务层事件转发为消息
-            var summary = e.IsDeleted ? null : NotesService.GetSummary(e.Notes);
-            Publish(new NotesUpdatedMessage(e.FilePath, e.Notes, summary));
         }
 
         #endregion
