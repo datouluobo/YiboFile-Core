@@ -3,15 +3,26 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 
+using Microsoft.Extensions.DependencyInjection;
+using YiboFile.Services.Config;
+
 namespace YiboFile.Services
 {
     public static class DwgConverter
     {
-        private static readonly string CacheDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "YiboFile", "Cache", "DWGtoDXF");
+        private static string CacheDirectory
+        {
+            get
+            {
+                var provider = YiboFile.App.ServiceProvider?.GetService<IConfigPathProvider>();
+                string baseCache = provider?.CacheDirectory ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "YiboFile", "Cache");
+                return Path.Combine(baseCache, "DWGtoDXF");
+            }
+        }
 
         static DwgConverter()
         {
-            Directory.CreateDirectory(CacheDirectory);
+            try { Directory.CreateDirectory(CacheDirectory); } catch { }
         }
 
         public static string GetConvertedDxfPath(string dwgFilePath)

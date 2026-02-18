@@ -23,7 +23,7 @@ namespace YiboFile
         public string LastPath { get; set; } = string.Empty;
         public string LastNavigationMode { get; set; } = "Path"; // Path, Library, Tag, Search
         public int LastLibraryId { get; set; } = 0; // 最后选中的库ID
-        public string TagTrainDataDirectory { get; set; } = string.Empty; // 持久化 TT 数据目录
+        // Removed TagTrainDataDirectory
         public double WindowWidth { get; set; } = 1200;
         public double WindowHeight { get; set; } = 800;
         public double? WindowTop { get; set; } = null;
@@ -147,16 +147,14 @@ namespace YiboFile
     public class AllSettingsConfig
     {
         public AppConfig YiboFileConfig { get; set; } = new AppConfig();
-        public Dictionary<string, string> TagTrainSettings { get; set; } = new Dictionary<string, string>();
+        // Removed TagTrainSettings
     }
 
     public static class ConfigManager
     {
         private const string ConfigFileName = "ooi_config.json";
         private const string DataFileName = "ooi_data.db";
-        private const string TagTrainSettingsFileName = "tt_settings.txt";
-        private const string TagTrainDbFileName = "tt_training.db";
-        private const string TagTrainModelFileName = "tt_model.zip";
+        // Removed TagTrain constants
         private const string BasePathMarkerFileName = "basepath.txt";
 
         private static readonly string DefaultBaseDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "AppData");
@@ -171,9 +169,7 @@ namespace YiboFile
 
         public static string GetConfigFilePath() => Path.Combine(GetBaseDirectory(), ConfigFileName);
         public static string GetDataFilePath() => Path.Combine(GetBaseDirectory(), DataFileName);
-        public static string GetTagTrainSettingsPath() => Path.Combine(GetBaseDirectory(), TagTrainSettingsFileName);
-        public static string GetTagTrainDatabasePath() => Path.Combine(GetBaseDirectory(), TagTrainDbFileName);
-        public static string GetTagTrainModelPath() => Path.Combine(GetBaseDirectory(), TagTrainModelFileName);
+        // Removed GetTagTrain*Path methods
 
         public static string GetBaseDirectory()
         {
@@ -295,10 +291,8 @@ namespace YiboFile
             var fileMappings = new[]
             {
                 new { NewName = ConfigFileName, Legacy = new [] { "config.json", ConfigFileName } },
-                new { NewName = DataFileName, Legacy = new [] { "data.db", DataFileName } },
-                new { NewName = TagTrainSettingsFileName, Legacy = new [] { "settings.txt", TagTrainSettingsFileName } },
-                new { NewName = TagTrainDbFileName, Legacy = new [] { "training.db", TagTrainDbFileName } },
-                new { NewName = TagTrainModelFileName, Legacy = new [] { "model.zip", TagTrainModelFileName } }
+                new { NewName = DataFileName, Legacy = new [] { "data.db", DataFileName } }
+                // Removed TagTrain mappings
             };
 
             foreach (var mapping in fileMappings)
@@ -329,7 +323,20 @@ namespace YiboFile
             }
         }
 
+        [Obsolete("Use ConfigurationService.Instance.Config instead.")]
         public static AppConfig Load()
+        {
+            // Delegate to the new unified ConfigurationService
+            // This ensures all callers get the consistent, in-memory config object
+            // managed by the service (settings.json + state.json)
+            var service = YiboFile.Services.Config.ConfigurationService.Instance;
+            return service.Config;
+        }
+
+        /// <summary>
+        /// 加载旧版配置文件 (internal usage or migration)
+        /// </summary>
+        public static AppConfig LoadLegacy()
         {
             try
             {
@@ -348,7 +355,7 @@ namespace YiboFile
                         // Debug Logging
                         try
                         {
-                            string msg = $"{DateTime.Now:O} [ConfigManager.Load] Loaded IsMaximized={cfg.IsMaximized}, W={cfg.WindowWidth}";
+                            string msg = $"{DateTime.Now:O} [ConfigManager.LoadLegacy] Loaded IsMaximized={cfg.IsMaximized}, W={cfg.WindowWidth}";
                             System.Diagnostics.Debug.WriteLine(msg);
                             File.AppendAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "window_debug.log"), msg + "\n");
                         }
@@ -440,11 +447,6 @@ namespace YiboFile
             {
                 if (config == null) return;
 
-                // #region agent log
-                var logPath = @"f:\Download\GitHub\YiboFile\.cursor\debug.log";
-                try { System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(logPath)); System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "D", location = "ConfigManager.cs:310", message = "ConfigManager.Save开始", data = new { windowWidth = config.WindowWidth, windowHeight = config.WindowHeight, windowTop = config.WindowTop, windowLeft = config.WindowLeft, isMaximized = config.IsMaximized, colLeftWidth = config.ColLeftWidth, colCenterWidth = config.ColCenterWidth, openTabsCount = config.OpenTabs?.Count ?? 0, activeTabKey = config.ActiveTabKey }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
-                // #endregion
-
                 // Debug Logging
                 try
                 {
@@ -454,6 +456,22 @@ namespace YiboFile
                 }
                 catch { }
 
+                // Delegate to ConfigurationService (New System)
+                try
+                {
+                    var service = YiboFile.Services.Config.ConfigurationService.Instance;
+                    if (service != null)
+                    {
+                        service.ManualSave(config);
+                        return; // Successfully handled by new system
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[ConfigManager.Save] Delegation failed: {ex.Message}");
+                }
+
+                // Legacy Fallback (should rarely be reached)
                 MigrateConfig(config);
 
                 var baseDir = GetBaseDirectory();
@@ -466,10 +484,6 @@ namespace YiboFile
                 var json = JsonSerializer.Serialize(config, options);
                 var configPath = GetConfigFilePath();
                 File.WriteAllText(configPath, json);
-
-                // #region agent log
-                try { System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "D", location = "ConfigManager.cs:322", message = "ConfigManager.Save完成", data = new { configPath = configPath, jsonLength = json.Length, savedWindowWidth = config.WindowWidth, savedWindowHeight = config.WindowHeight, savedColLeftWidth = config.ColLeftWidth, savedColCenterWidth = config.ColCenterWidth, savedOpenTabsCount = config.OpenTabs?.Count ?? 0 }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
-                // #endregion
             }
             catch (Exception ex)
             {
@@ -480,20 +494,19 @@ namespace YiboFile
                         $"{DateTime.Now:O} [ConfigManager.Save] EXCEPTION: {ex.Message}\n");
                 }
                 catch { }
-                // #region agent log
-                try { var logPath = @"f:\Download\GitHub\YiboFile\.cursor\debug.log"; System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "D", location = "ConfigManager.cs:327", message = "ConfigManager.Save异常", data = new { error = ex.Message, stackTrace = ex.StackTrace }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
-                // #endregion
                 // ignore disk errors for now
             }
         }
 
+        [Obsolete("Use IExportService instead.")]
         public static void Export(string targetFile)
         {
-            var current = Load();
+            var current = YiboFile.Services.Config.ConfigurationService.Instance.Config;
             var json = JsonSerializer.Serialize(current, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(targetFile, json);
         }
 
+        [Obsolete("Use IImportService instead.")]
         public static void Import(string sourceFile)
         {
             if (!File.Exists(sourceFile)) return;
@@ -502,152 +515,47 @@ namespace YiboFile
             Save(cfg);
         }
 
+        // --- Legacy Export/Import Logic (Zip) ---
+        // These methods rely on specific file paths which might have changed.
+        // We mark them as obsolete. They might be broken if they only export ooi_config.json.
+
+        [Obsolete("Use IExportService instead.")]
         public static void ExportConfigsZip(string targetZip)
         {
-            ExportZip(targetZip, new[]
-            {
-                GetConfigFilePath(),
-                GetTagTrainSettingsPath()
-            });
+            // Redirect to new system if possible? No, static context.
+            // Just warn user.
+            throw new NotSupportedException("This method is deprecated. Please use IExportService.");
         }
 
-        public static void ExportDataZip(string targetZip)
-        {
-            ExportZip(targetZip, new[]
-            {
-                GetDataFilePath(),
-                GetTagTrainDatabasePath(),
-                GetTagTrainModelPath()
-            });
-        }
-
-        public static void ExportAllZip(string targetZip)
-        {
-            ExportZip(targetZip, new[]
-            {
-                GetConfigFilePath(),
-                GetTagTrainSettingsPath(),
-                GetDataFilePath(),
-                GetTagTrainDatabasePath(),
-                GetTagTrainModelPath()
-            });
-        }
-
+        [Obsolete("Use IImportService instead.")]
         public static void ImportConfigsZip(string sourceZip)
         {
-            var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-            {
-                { ConfigFileName, GetConfigFilePath() },
-                { TagTrainSettingsFileName, GetTagTrainSettingsPath() }
-            };
-            ImportZip(sourceZip, map);
+            throw new NotSupportedException("This method is deprecated. Please use IImportService.");
         }
 
+        [Obsolete("Use IImportService instead.")]
         public static void ImportDataZip(string sourceZip)
         {
-            var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-            {
-                { DataFileName, GetDataFilePath() },
-                { TagTrainDbFileName, GetTagTrainDatabasePath() },
-                { TagTrainModelFileName, GetTagTrainModelPath() }
-            };
-            ImportZip(sourceZip, map);
+            throw new NotSupportedException("This method is deprecated. Please use IImportService.");
         }
 
+        [Obsolete("Use IExportService instead.")]
+        public static void ExportDataZip(string targetZip)
+        {
+            throw new NotSupportedException("This method is deprecated. Please use IExportService.");
+        }
+
+        [Obsolete("Use IExportService instead.")]
+        public static void ExportAllZip(string targetZip)
+        {
+            throw new NotSupportedException("This method is deprecated. Please use IExportService.");
+        }
+
+        [Obsolete("Use IImportService instead.")]
         public static void ImportAllZip(string sourceZip)
         {
-            var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-            {
-                { ConfigFileName, GetConfigFilePath() },
-                { TagTrainSettingsFileName, GetTagTrainSettingsPath() },
-                { DataFileName, GetDataFilePath() },
-                { TagTrainDbFileName, GetTagTrainDatabasePath() },
-                { TagTrainModelFileName, GetTagTrainModelPath() }
-            };
-            ImportZip(sourceZip, map);
+            throw new NotSupportedException("This method is deprecated. Please use IImportService.");
         }
 
-        private static void ExportZip(string targetZip, IEnumerable<string> filePaths)
-        {
-            var baseDir = Path.GetDirectoryName(targetZip);
-            if (!string.IsNullOrEmpty(baseDir))
-            {
-                Directory.CreateDirectory(baseDir);
-            }
-
-            if (File.Exists(targetZip))
-            {
-                File.Delete(targetZip);
-            }
-
-            var tempDir = Path.Combine(Path.GetTempPath(), "YiboFile_Export_" + Guid.NewGuid().ToString("N"));
-            Directory.CreateDirectory(tempDir);
-
-            try
-            {
-                using var archive = ZipFile.Open(targetZip, ZipArchiveMode.Create);
-                foreach (var file in filePaths.Distinct(StringComparer.OrdinalIgnoreCase))
-                {
-                    if (!File.Exists(file)) continue;
-
-                    var entryName = Path.GetFileName(file);
-                    var tempFile = Path.Combine(tempDir, entryName);
-
-                    try
-                    {
-                        // 尝试在共享读写模式下复制，避免被 SQLite 占用导致导出失败
-                        using (var source = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                        using (var dest = new FileStream(tempFile, FileMode.Create, FileAccess.Write, FileShare.None))
-                        {
-                            source.CopyTo(dest);
-                        }
-
-                        archive.CreateEntryFromFile(tempFile, entryName, CompressionLevel.Optimal);
-                    }
-                    catch
-                    {
-                        // 忽略单个文件的复制/压缩错误，继续处理其它文件
-                    }
-                }
-            }
-            finally
-            {
-                try { if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true); } catch { }
-            }
-        }
-
-        private static void ImportZip(string sourceZip, Dictionary<string, string> targetMap)
-        {
-            if (!File.Exists(sourceZip))
-            {
-                throw new FileNotFoundException("未找到导入包", sourceZip);
-            }
-
-            // 尝试关闭所有数据库连接以释放文件锁
-            try
-            {
-                DatabaseManager.Shutdown();
-
-                // 给一点时间让文件系统释放锁
-                System.Threading.Thread.Sleep(200);
-            }
-            catch { }
-
-            using var archive = ZipFile.OpenRead(sourceZip);
-            foreach (var entry in archive.Entries)
-            {
-                if (targetMap.TryGetValue(entry.Name, out var targetPath))
-                {
-                    var targetDir = Path.GetDirectoryName(targetPath);
-                    if (!string.IsNullOrEmpty(targetDir))
-                    {
-                        Directory.CreateDirectory(targetDir);
-                    }
-                    entry.ExtractToFile(targetPath, overwrite: true);
-                }
-            }
-        }
     }
 }
-
-

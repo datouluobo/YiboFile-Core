@@ -307,12 +307,13 @@ Controller-driven 场景：
 | BUG-011 | Clipboard | 剪切板管理器体验差 | 交互逻辑陈旧，缺乏可视化反馈 | **Fixed** (v1.0.1509) (Redesigned UI with modern list, search, and better preview) | ✅ 已修复 |
 | **BUG-012** | FileOps | 工具栏按钮与快捷键部分失效 | 命令绑定在重构中丢失或 `CanExecute` 状态判定错误 | 检查 `PaneCommandSet` 与 `InputBindings` 的连接 | ✅ 已修复 |
 | **BUG-013** | Performance | 双栏模式选中文件卡顿 | 预览加载可能运行在 UI 线程或未做防抖处理 | 确保 `PreviewService` 异步执行并增加防抖 (Debounce) (v1.0.1504重新优化) | ✅ 已修复 |
-| **BUG-014** | Window | 窗口状态持久化问题：每次打开程序，主副标签页都会重置为桌面，无法记忆上次路径 | `MainWindowViewModel` 或持久化服务未正确保存/恢复状态 | **Fixed** (v1.0.1511) (修复了 WindowStateManager 状态保存时机) | ✅ 已修复 |
+| **BUG-014** | Window | 窗口状态持久化问题：标签页无法记忆。`_isTabsRestored` 因 Dispatcher 异步延迟可能始终为 false，导致 `SaveAllState(force: true)` 跳过标签页保存 | `RestoreTabsState` 使用 `Dispatcher.BeginInvoke(Loaded)` 延迟执行，若在回调完成前关闭程序，`_isTabsRestored` 保持 false | 已修复 force 绕过逻辑，但根因（Dispatcher 调度时序与 ConfigurationService 单例引用关系）仍需深入排查 | ⏳ 待修复 |
 | **BUG-015** | FileList | 文件操作后列表不自动刷新 | 消息未正确触发或 `FileWatcher` 失效 | 检查 `FileOperationModule` 的消息发布与 `FileListViewModel` 的订阅 | ✅ 已修复 |
 | **BUG-018** | UI/Init | 启动时主副文件信息区空白，或切换文件夹后显示错误信息 | 上下文未正确清除导致显示过时信息 | **已修复** (v1.1.0) (在 PaneViewModel 中清理库/标签上下文；回滚了路径回退逻辑) | ✅ 已修复 |
 | **BUG-019** | Navigation | “快速访问”双栏同时切换 | `PreviewMouseDown` 事件冲突与 `e.Handled` 处理不当 | **已修复** (v1.1.0) (统一使用 `PreviewMouseDown` 并修复了事件路由) | ✅ 已修复 |
 | **BUG-021** | Library | 程序启动时死循环刷屏 (LibraryListChangedMessage) | `LibraryModule` 在响应消息时再次触发加载导致递归 | **Fixed** (v1.0.1506) (改为 GetAllLibraries 并不再发布消息) | ✅ 已修复 |
 | **BUG-022** | FileList | 文件列表显示视图模式切换有问题 | 视图模式切换逻辑在重构中未正确对接，或消息未被正确处理 | **Fixed** (v1.0.1530) (完善 PaneViewModel 持久化与 ViewModeHelper 刷新逻辑) | ✅ 已修复 |
+| **BUG-023** | Window | 标签页持久化系列：`SaveTabsState` 和 `GetTabsState` 返回空列表、`ConfigurationService` 单例 Config 引用关系导致自赋值、运行期间 `ConfigManager.Save` 日志显示 `openTabsCount=0` | `WindowStateManager._config` 通过属性访问器直接引用 `ConfigurationService.Instance.Config`，`Update` 中的赋值实为自赋值；`_isTabsRestored` 标志位设置依赖 Dispatcher 异步回调，时序不可靠 | 需重构 Tab 持久化架构：① 确保 `SaveTabsState` 在关闭时同步执行 ② 审计 `_config` 引用链路 ③ 验证 `TabService.GetTabsInOrder()` 返回值 | ⏳ 待修复 |
 
 ---
 
@@ -362,9 +363,11 @@ Controller-driven 场景：
 | **[BUG-019+] 库导航逻辑修复** | NavCoordinator / TabService (强制导航) | +40 / -5 | 2026-02-18 (Fixed) |
 | **[BUG-014] 窗口持久化修复** | WindowStateManager (SaveAllState) | +20 / -10 | 2026-02-18 (Fixed) |
 | **[BUG-022] 视图模式修复** | PaneViewModel / FileViewModeHelper | +50 / -20 | 2026-02-18 (Fixed) |
+| **清理 MainWindow.Drives.cs 分部类** | MainWindow.Drives.cs → MainWindow.xaml.cs | -80 (删除死代码，合并活跃方法) | 2026-02-18 |
+| **配置系统统一重构** | ConfigManager / IImportService / IExportService | +300 / -150 | 2026-02-18 |
 | **统一主副栏导航架构** | LayoutEventHandler / TabService.UI.cs / TabUiContext | -100 (死代码) | 2026-02-17 |
 
-- **MainWindow 解构 (阶段 5)**: `基本完成` (85%). `MainWindow.xaml.cs` 从 >2400 行减少到 528 行，但含分部类 (`MainWindow.Tabs.cs` 289行, `MainWindow.Drives.cs` 142行) 合计仍约 960 行。
+- **MainWindow 解构 (阶段 5)**: `已完成` (95%). `MainWindow.xaml.cs` 从 >2400 行减少至约 630 行。所有分部类已消除 (`MainWindow.Tabs.cs`、`MainWindow.Drives.cs` 等均已合并或删除)，无残留 partial class 文件。
 - **PaneViewModel 拆分 (阶段 7)**: `已完成` (100%). 从 1770 行降至 563 行，已提取 `FilterViewModel`、`SelectionViewModel`、`PaneCommandSet`。
 - **内存审计与优化 (阶段 6)**: `已完成` (100%).
     - [x] 移除 `MainWindow.LayoutMode.cs`。
@@ -415,20 +418,22 @@ Controller-driven 场景：
 
 3.  **引入 IShellWindow 抽象** — 解耦 Handler ↔ MainWindow (6-8h)
 4.  **Service 层事件 → MessageBus 迁移 (第一批)** — TabService、NavigationCoordinator、Module 回调 (8-12h)
-5.  **FileListEventHandler 拆分** — 拆分键盘/鼠标处理 (4-5h)
-6.  **统一主副栏导航架构** — 消除委托回调/消息驱动双轨制 (8-11h)
-    *   Step 1: 副面板导航消息化 (`LayoutEventHandler` 导航方法 → 发布 `NavigateToPathMessage`)
-    *   Step 2: 标签页切换同步统一 (`SyncSecondUiWithActiveTab` → 消息驱动)
-    *   Step 3: 清理 `LayoutEventHandler` 中的副面板导航方法
-    *   Step 4: 精简 `TabUiContext` ，移除导航委托，仅保留纯 UI 属性
+4.  **Service 层事件 → MessageBus 迁移（第一批）** ✅ 已完成 (100%)
+5.  **FileListEventHandler 拆分（阶段 1）** ✅ 已完成
+6.  **统一主副栏导航架构** ✅ 已完成
+7.  **PaneViewModel 进一步精简为纯状态容器** ✅ 已完成 (90%) - 逻辑已迁移至 CommandSet/MessageBus
+8.  **LibraryManagementWindow MVVM 化** (阶段 3 提前) ✅ 已完成
+9.  **App.xaml.cs 启动逻辑拆分** ✅ 已完成
 
-### Phase 3: P2 代码卫生 (后续，~15h)
+### 阶段 2.5：稳定性与缺陷修复（当前重点）
+1.  **[BUG-001] 网络驱动器文件重命名失败 (高优先级)**
+2.  **[BUG-003] 搜索历史未持久化 (中优先级)**
+3.  **[BUG-018] 启动时面板空白问题**
+4.  **[BUG-019] 收藏夹链接重复打开**
 
-6.  Service 层事件 → MessageBus 迁移 (第二批)
-7.  PaneViewModel 导航逻辑下沉
-8.  **LibraryManagementWindow MVVM 化** (Phase 3 提前) ✅ 已完成
-9.  App.xaml.cs 启动逻辑拆分
-10. 修复 BUG-001, BUG-003
+### 阶段 3：功能开发（下周）
+1.  **标签系统 2.0 (智能标签)**
+2.  **插件架构核心**
 
 ### 长期目标 (Q1 2026)
 

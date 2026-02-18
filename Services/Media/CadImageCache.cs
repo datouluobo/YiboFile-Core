@@ -3,6 +3,8 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using System.Windows.Media.Imaging;
+using Microsoft.Extensions.DependencyInjection;
+using YiboFile.Services.Config;
 
 namespace YiboFile.Services
 {
@@ -12,8 +14,10 @@ namespace YiboFile.Services
         {
             get
             {
-                var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "YiboFile", "Cache", "CAD");
-                Directory.CreateDirectory(path);
+                var provider = YiboFile.App.ServiceProvider?.GetService<IConfigPathProvider>();
+                string baseCache = provider?.CacheDirectory ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "YiboFile", "Cache");
+                var path = Path.Combine(baseCache, "CAD");
+                try { Directory.CreateDirectory(path); } catch { }
                 return path;
             }
         }

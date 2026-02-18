@@ -310,28 +310,9 @@ namespace YiboFile.ViewModels
         internal void ExecuteSwitchViewMode(string mode) { if (!string.IsNullOrEmpty(mode)) FileViewMode = mode; }
 
         // Navigation executes removed - handled by Commands/MessageBus direct calls or CommandSet updates
-        // However, PaneCommandSet currently calls _pane.ExecuteNavigateBack().
         // We will update PaneCommandSet separately, but for safety due to lingering references?
         // No, I'll update PaneCommandSet next.
         // I will keep the methods but change them to publish messages, to keep PaneCommandSet signature valid until updated.
-        internal void ExecuteNavigateBack() => _messageBus.Publish(new NavigateBackMessage(MyPaneId));
-        internal void ExecuteNavigateForward() => _messageBus.Publish(new NavigateForwardMessage(MyPaneId));
-        internal void ExecuteNavigateUp() => _messageBus.Publish(new NavigateUpMessage(MyPaneId));
-
-        internal void ExecuteSelectAll() => _messageBus.Publish(new SelectAllRequestMessage(_isSecondary ? PaneId.Second : PaneId.Main));
-
-        internal void ExecuteTagStatistics()
-        {
-            if (_tagService == null) return;
-            try
-            {
-                var tags = _tagService.GetAllTags();
-                var groups = _tagService.GetTagGroups();
-                string stats = $"标签总数: {tags.Count()}\n标签分组: {groups.Count()}";
-                MessageBox.Show(stats, "标签统计", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-            catch (Exception ex) { MessageBox.Show($"获取统计失败: {ex.Message}"); }
-        }
 
         #endregion
 

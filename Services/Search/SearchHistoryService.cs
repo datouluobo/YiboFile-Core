@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using YiboFile.Services.Config;
 
 namespace YiboFile.Services.Search
@@ -38,22 +39,33 @@ namespace YiboFile.Services.Search
 
     public class SearchHistoryService
     {
-        private static SearchHistoryService _instance;
-        public static SearchHistoryService Instance => _instance ??= new SearchHistoryService();
+        // 兼容旧代码的静态访问入口
+        public static SearchHistoryService Instance =>
+            YiboFile.App.ServiceProvider?.GetService<SearchHistoryService>() ?? new SearchHistoryService(null);
 
         private List<HistoryItem> _historyItems;
         private readonly string _historyFilePath;
-        private const string HISTORY_FILE_NAME = "search_history.json";
+        private const string HISTORY_FILE_NAME = "yibofile_history.json"; // 新文件名规范，尽管Provider已经提供完整路径，这里保留作为Fallback或参考
 
-        private SearchHistoryService()
+        // 支持DI注入
+        public SearchHistoryService(IConfigPathProvider pathProvider)
         {
-            string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            string appFolder = Path.Combine(appData, "YiboFile");
-            if (!Directory.Exists(appFolder))
+            if (pathProvider != null)
             {
-                Directory.CreateDirectory(appFolder);
+                _historyFilePath = pathProvider.HistoryFilePath;
             }
-            _historyFilePath = Path.Combine(appFolder, HISTORY_FILE_NAME);
+            else
+            {
+                // Fallback for design-time or legacy static access without DI
+                string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                string appFolder = Path.Combine(appData, "YiboFile");
+                if (!Directory.Exists(appFolder))
+                {
+                    Directory.CreateDirectory(appFolder);
+                }
+                _historyFilePath = Path.Combine(appFolder, "search_history.json"); // 旧文件名 fallback
+            }
+
             _historyItems = new List<HistoryItem>();
             LoadHistory();
         }

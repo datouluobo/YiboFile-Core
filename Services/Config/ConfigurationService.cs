@@ -1,12 +1,16 @@
 using System;
+using System.IO;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Windows.Threading;
+using Microsoft.Extensions.DependencyInjection;
+using YiboFile.Models.Config;
 using YiboFile.Services.Core;
 using YiboFile.ViewModels.Messaging;
 using YiboFile.ViewModels.Messaging.Messages;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace YiboFile.Services.Config
 {
@@ -14,16 +18,20 @@ namespace YiboFile.Services.Config
     /// 统一配置管理服务 - 单例模式
     /// 消除分散的ConfigManager.Save调用，避免配置互相覆盖的竞态条件
     /// </summary>
-    public class ConfigurationService
+    public class ConfigurationService : IConfigurationService
     {
         private static ConfigurationService _instance;
         private static readonly object _instanceLock = new object();
 
         private AppConfig _config;
+        private UserSettings _userSettings;
+        private AppState _appState;
+
         private readonly object _configLock = new object();
         private readonly DispatcherTimer _debounceTimer;
         private bool _isDirty = false;
         private IMessageBus _messageBus;
+        private IConfigPathProvider _pathProvider;
 
         // 默认为 true，防止启动时的波动触发保存
         private bool _isSaveSuppressed = true;
@@ -79,8 +87,17 @@ namespace YiboFile.Services.Config
 
         private ConfigurationService()
         {
+            // 获取路径提供者
+            _pathProvider = App.ServiceProvider?.GetService<IConfigPathProvider>();
+
+            // 如果 DI 尚未就绪，手动实例化 ConfigPathProvider (用于启动早期)
+            if (_pathProvider == null)
+            {
+                _pathProvider = new ConfigPathProvider();
+            }
+
             // 加载初始配置
-            _config = ConfigManager.Load();
+            LoadFromStorage();
 
             // 尝试获取 MessageBus (延迟绑定)
             _messageBus = App.ServiceProvider?.GetService<IMessageBus>();
@@ -91,6 +108,105 @@ namespace YiboFile.Services.Config
                 Interval = TimeSpan.FromMilliseconds(DebounceDelayMs)
             };
             _debounceTimer.Tick += OnDebounceTick;
+        }
+
+        private void LoadFromStorage()
+        {
+            // 默认初始化
+            _userSettings = new UserSettings();
+            _appState = new AppState();
+
+            bool loadedNew = false;
+
+            // 1. 尝试加载新格式
+            if (_pathProvider != null)
+            {
+                if (File.Exists(_pathProvider.SettingsFilePath))
+                {
+                    try
+                    {
+                        var json = File.ReadAllText(_pathProvider.SettingsFilePath);
+                        _userSettings = JsonSerializer.Deserialize<UserSettings>(json, GetJsonOptions()) ?? new UserSettings();
+                        loadedNew = true;
+                    }
+                    catch { }
+                }
+
+                if (File.Exists(_pathProvider.StateFilePath))
+                {
+                    try
+                    {
+                        var json = File.ReadAllText(_pathProvider.StateFilePath);
+                        _appState = JsonSerializer.Deserialize<AppState>(json, GetJsonOptions()) ?? new AppState();
+                        loadedNew = true;
+                    }
+                    catch { }
+                }
+            }
+
+            // 2. 如果新格式未加载（或部分缺失），尝试迁移旧格式
+            // 仅当settings.json不存在时才尝试迁移，避免覆盖
+            if (!loadedNew && File.Exists(ConfigManager.GetConfigFilePath()))
+            {
+                try
+                {
+                    var legacyConfig = ConfigManager.LoadLegacy();
+                    if (legacyConfig != null)
+                    {
+                        // 映射到新模型
+                        ConfigMapper.MapToModels(legacyConfig, _userSettings, _appState);
+
+                        // 保存新格式
+                        SaveModelsToDisk();
+
+                        // 重命名旧文件 (Migrate logic)
+                        try
+                        {
+                            File.Move(ConfigManager.GetConfigFilePath(), ConfigManager.GetConfigFilePath() + ".bak", true);
+                        }
+                        catch { }
+                    }
+                }
+                catch { }
+            }
+
+            // 3. 构建 AppConfig Facade
+            _config = ConfigMapper.MapToAppConfig(_userSettings, _appState);
+        }
+
+        private void SaveModelsToDisk()
+        {
+            if (_pathProvider == null) return;
+
+            var options = GetJsonOptions();
+
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(_pathProvider.SettingsFilePath));
+                var settingsJson = JsonSerializer.Serialize(_userSettings, options);
+                File.WriteAllText(_pathProvider.SettingsFilePath, settingsJson);
+            }
+            catch { }
+
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(_pathProvider.StateFilePath));
+                var stateJson = JsonSerializer.Serialize(_appState, options);
+                File.WriteAllText(_pathProvider.StateFilePath, stateJson);
+            }
+            catch { }
+        }
+
+        private JsonSerializerOptions GetJsonOptions()
+        {
+            return new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                Converters = { new JsonStringEnumConverter() },
+                PropertyNameCaseInsensitive = true,
+                NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            };
         }
 
         /// <summary>
@@ -171,8 +287,6 @@ namespace YiboFile.Services.Config
                 _recursionDepth++;
                 try
                 {
-                    // For Update, we can't easily check equality before applying, 
-                    // but the recursion guard will prevent stack overflow.
                     updateAction(_config);
                     _isDirty = true;
 
@@ -216,7 +330,47 @@ namespace YiboFile.Services.Config
         {
             lock (_configLock)
             {
-                _config = ConfigManager.Load();
+                LoadFromStorage();
+                _isDirty = false;
+            }
+        }
+
+        /// <summary>
+        /// 手动保存外部配置对象（兼容 ConfigManager.Save）
+        /// 将外部对象的属性应用到当前服务，并触发保存
+        /// </summary>
+        public void ManualSave(AppConfig externalConfig)
+        {
+            if (externalConfig == null) return;
+
+            lock (_configLock)
+            {
+                // 如果传入的对象不是当前的配置对象，则需要复制属性
+                // 注意：这里简单假设可以直接替换引用，或者如果引用不同则手动同步
+                // 由于 AppConfig 是引用类型，且 _config 被广泛引用，我们应该尽量保持 _config 引用不变
+                // 但如果外部传入了一个全新的 AppConfig 对象... 这是一个棘手的情况
+
+                if (!ReferenceEquals(_config, externalConfig))
+                {
+                    // 深度复制属性 externalConfig -> _config
+                    // 暂时通过序列化/反序列化实现属性复制，或者使用 ConfigMapper
+                    // 为了简单起见，且 AppConfig 是 POCO，我们使用 ConfigMapper 的反向逻辑
+                    // 但 ConfigMapper 是 Models <-> AppConfig
+
+                    // 既然我们有 JSON 序列化，我们可以用它来复制属性
+                    var json = JsonSerializer.Serialize(externalConfig, GetJsonOptions());
+                    var newConfig = JsonSerializer.Deserialize<AppConfig>(json, GetJsonOptions());
+
+                    // 我们不能替换 _config 引用，因为可能有其他地方持有它（虽然不推荐）
+                    // 但最重要的是 _config 是 facade。
+                    // 正确做法是：直接用 externalConfig 更新 Models，再重新生成 _config? 
+                    // 或者将 externalConfig 视为新的 Source of Truth。
+
+                    _config = newConfig; // 替换引用。如果有其他服务持有旧引用的 _config，它们将过时。这是不可避免的代价。
+                }
+
+                // 立即保存
+                PerformSaveWithMonitoring();
                 _isDirty = false;
             }
         }
@@ -233,15 +387,15 @@ namespace YiboFile.Services.Config
         {
             if (source == null) return null;
 
-            var options = new System.Text.Json.JsonSerializerOptions
+            var options = new JsonSerializerOptions
             {
-                Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() },
+                Converters = { new JsonStringEnumConverter() },
                 PropertyNameCaseInsensitive = true,
-                NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowNamedFloatingPointLiterals
+                NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals
             };
 
-            return System.Text.Json.JsonSerializer.Deserialize<AppConfig>(
-                System.Text.Json.JsonSerializer.Serialize(source, options),
+            return JsonSerializer.Deserialize<AppConfig>(
+                JsonSerializer.Serialize(source, options),
                 options);
         }
 
@@ -252,12 +406,12 @@ namespace YiboFile.Services.Config
         {
             var startTime = DateTime.Now;
 
-            // ⚠️ 移除此处的 Load 合并逻辑。
-            // 之前的合并逻辑（从磁盘重新加载 ColumnOrder）虽然是为了防止覆盖，
-            // 但在多头管理下反而会引入陈旧数据覆盖内存新数据的风险。
-            // 现在通过统一单例，内存中的 ColumnOrder 高于一切。
+            // Sync AppConfig back to models
+            ConfigMapper.MapToModels(_config, _userSettings, _appState);
 
-            ConfigManager.Save(_config);
+            // Save models to disk
+            SaveModelsToDisk();
+
             var duration = (DateTime.Now - startTime).TotalMilliseconds;
 
             _totalSaveCount++;
@@ -341,4 +495,3 @@ namespace YiboFile.Services.Config
         public double DebounceHitRate { get; set; }
     }
 }
-

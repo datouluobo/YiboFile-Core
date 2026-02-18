@@ -9,8 +9,11 @@ namespace YiboFile.ViewModels.Settings
     {
         public ICommand ChangeBaseDirectoryCommand { get; }
 
+        private readonly IConfigPathProvider _pathProvider;
+
         public GeneralSettingsViewModel()
         {
+            _pathProvider = App.ServiceProvider?.GetService(typeof(YiboFile.Services.Config.IConfigPathProvider)) as YiboFile.Services.Config.IConfigPathProvider;
             ChangeBaseDirectoryCommand = new RelayCommand<string>(ChangeBaseDirectory);
             LoadFromConfig();
         }
@@ -26,7 +29,7 @@ namespace YiboFile.ViewModels.Settings
             _uiFontSize = config.UIFontSize > 0 ? config.UIFontSize : 16;
             _tagFontSize = config.TagFontSize > 0 ? config.TagFontSize : 16;
             _tagBoxWidth = config.TagBoxWidth;
-            _baseDirectory = ConfigManager.GetBaseDirectory();
+            _baseDirectory = _pathProvider?.BaseDirectory ?? ConfigManager.GetBaseDirectory();
             _activateNewTabOnMiddleClick = config.ActivateNewTabOnMiddleClick;
         }
 
@@ -129,7 +132,9 @@ namespace YiboFile.ViewModels.Settings
         {
             if (string.IsNullOrWhiteSpace(newDir)) return;
 
-            var oldDir = ConfigManager.GetBaseDirectory();
+            // Use Provider if available, fallback to legacy check
+            var oldDir = _pathProvider?.BaseDirectory ?? ConfigManager.GetBaseDirectory();
+
             try
             {
                 if (string.Equals(System.IO.Path.GetFullPath(oldDir.Trim()), System.IO.Path.GetFullPath(newDir.Trim()), StringComparison.OrdinalIgnoreCase))
@@ -137,7 +142,14 @@ namespace YiboFile.ViewModels.Settings
             }
             catch { return; }
 
-            ConfigManager.SetBaseDirectory(newDir, copyMissingFromOld: true);
+            if (_pathProvider != null)
+            {
+                _pathProvider.UpdateBaseDirectory(newDir);
+            }
+            else
+            {
+                ConfigManager.SetBaseDirectory(newDir, copyMissingFromOld: true);
+            }
 
             try { DatabaseManager.Initialize(); } catch { }
 

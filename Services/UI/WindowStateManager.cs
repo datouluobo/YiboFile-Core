@@ -98,15 +98,20 @@ namespace YiboFile.Services
         /// <summary>
         /// 保存所有窗口状态（窗口大小、位置、分割线、导航位置、标签页）
         /// </summary>
-        /// <param name="force">是否强制保存物理窗口状态（忽略初始化检查，用于程序关闭时）</param>
+        /// <param name="force">是否强制保存（用于程序关闭时，绕过初始化检查）</param>
         public void SaveAllState(bool force = false)
         {
             // 物理状态（窗口尺寸、位置、分割线）可以强制保存，或者是初始化完成后保存
             bool canSavePhysical = force || (_isInitialized && !_isApplyingConfig);
 
-            // 逻辑状态（标签页、导航路径）必须在完全初始化且标签页恢复后才能保存
-            // 严禁使用 force 绕过，否则会导致启动未完成时关闭程序覆盖掉原有的配置数据 (FIX BUG-014)
-            bool canSaveLogical = _isInitialized && !_isApplyingConfig && _isTabsRestored;
+            // 逻辑状态（标签页、导航路径）:
+            // - 正常运行期间：需要完全初始化且标签页已恢复
+            // - force=true（程序关闭时）：只需已初始化即可，SaveTabsState 内部有空列表防护
+            //   不再要求 _isTabsRestored，因为 RestoreTabsState 是通过 Dispatcher.BeginInvoke 延迟执行的，
+            //   如果用户快速关闭程序，_isTabsRestored 可能还是 false，导致标签页永远无法保存。
+            bool canSaveLogical = force
+                ? (_isInitialized && !_isApplyingConfig)
+                : (_isInitialized && !_isApplyingConfig && _isTabsRestored);
 
             if (!canSavePhysical && !canSaveLogical)
             {
@@ -115,11 +120,6 @@ namespace YiboFile.Services
 
             try
             {
-                // #region agent log
-                var logPath = @"f:\Download\GitHub\YiboFile\.cursor\debug.log";
-                try { System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(logPath)); System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "bug014-fix", location = "WindowStateManager.cs:SaveAllState", message = "保存状态检查", data = new { canSavePhysical, canSaveLogical, force, isInitialized = _isInitialized, isTabsRestored = _isTabsRestored }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
-                // #endregion
-
                 var window = _uiHelper.Window;
                 if (canSavePhysical && window != null && window.IsLoaded)
                 {
@@ -134,10 +134,6 @@ namespace YiboFile.Services
                     SaveNavigationState();
                     SaveTabsState();
                 }
-
-                // #region agent log
-                try { System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "bug014-fix", location = "WindowStateManager.cs:Update", message = "准备更新配置", data = new { }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
-                // #endregion
 
                 // ✅ 使用ConfigurationService统一更新
                 YiboFile.Services.Config.ConfigurationService.Instance.Update(latestConfig =>
@@ -186,16 +182,10 @@ namespace YiboFile.Services
                         latestConfig.ActiveTabKeySecondary = _config.ActiveTabKeySecondary;
                     }
                 });
-
-                // ✅ Debug Log
-                // #region agent log
-                try { System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "bug014-fix", location = "WindowStateManager.cs:Done", message = "SaveAllState完成", data = new { }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
-                // #endregion
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                // 静默处理错误
-                try { var logPathErr = @"f:\Download\GitHub\YiboFile\.cursor\debug.log"; System.IO.File.AppendAllText(logPathErr, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "bug014-fix", location = "WindowStateManager.cs:Ex", message = "SaveAllState异常", data = new { error = ex.Message }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
+                // 静默处理错误，避免影响程序关闭
             }
         }
 
@@ -204,11 +194,6 @@ namespace YiboFile.Services
         /// </summary>
         public void SaveWindowState()
         {
-            // #region agent log
-            var logPath = @"f:\Download\GitHub\YiboFile\.cursor\debug.log";
-            try { System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(logPath)); System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "A", location = "WindowStateManager.cs:80", message = "SaveWindowState开始", data = new { windowIsNull = _uiHelper?.Window == null }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
-            // #endregion
-
             var window = _uiHelper.Window;
             if (window == null) return;
 
@@ -217,10 +202,6 @@ namespace YiboFile.Services
             {
                 _config.IsMaximized = window.WindowState == WindowState.Maximized;
             }
-
-            // #region agent log
-            try { System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "A", location = "WindowStateManager.cs:88", message = "SaveWindowState窗口属性", data = new { isLoaded = window.IsLoaded, isMaximized = _config.IsMaximized, windowWidth = window.Width, windowHeight = window.Height, windowTop = window.Top, windowLeft = window.Left }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
-            // #endregion
 
             // 如果窗口已加载，保存实际尺寸和位置
             if (window.IsLoaded)
@@ -232,7 +213,7 @@ namespace YiboFile.Services
                     _config.WindowHeight = window.Height;
 
                     // 确保位置值有效（不是NaN或无效值）
-                    if (!double.IsNaN(window.Top) && !double.IsInfinity(window.Top) && window.Top >= -10000) // loose check
+                    if (!double.IsNaN(window.Top) && !double.IsInfinity(window.Top) && window.Top >= -10000)
                     {
                         _config.WindowTop = window.Top;
                     }
@@ -249,19 +230,11 @@ namespace YiboFile.Services
                     {
                         _config.WindowLeft = null;
                     }
-
-                    // #region agent log
-                    try { System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "A", location = "WindowStateManager.cs:100", message = "SaveWindowState保存非最大化状态", data = new { savedWidth = _config.WindowWidth, savedHeight = _config.WindowHeight, savedTop = _config.WindowTop, savedLeft = _config.WindowLeft, windowTop = window.Top, windowLeft = window.Left }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
-                    // #endregion
                 }
                 else
                 {
                     // 最大化状态：保存还原尺寸
                     Rect restoreBounds = window.RestoreBounds;
-
-                    // #region agent log
-                    try { System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "A", location = "WindowStateManager.cs:107", message = "SaveWindowState最大化状态RestoreBounds", data = new { restoreBoundsWidth = restoreBounds.Width, restoreBoundsHeight = restoreBounds.Height, restoreBoundsTop = restoreBounds.Top, restoreBoundsLeft = restoreBounds.Left }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
-                    // #endregion
 
                     if (restoreBounds.Width > 0 && restoreBounds.Height > 0)
                     {
@@ -287,10 +260,6 @@ namespace YiboFile.Services
             }
             else
             {
-                // #region agent log
-                try { System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "A", location = "WindowStateManager.cs:133", message = "SaveWindowState窗口未加载", data = new { }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
-                // #endregion
-
                 // 窗口未加载，使用当前配置值或默认值
                 if (!_config.IsMaximized && _config.WindowWidth <= 0)
                 {
@@ -305,17 +274,11 @@ namespace YiboFile.Services
         /// </summary>
         private void SaveSplitterPositions()
         {
-            // #region agent log
-            var logPath = @"f:\Download\GitHub\YiboFile\.cursor\debug.log";
-            try { System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(logPath)); System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "B", location = "WindowStateManager.cs:147", message = "SaveSplitterPositions开始", data = new { rootGridIsNull = _uiHelper?.RootGrid == null, rootGridIsLoaded = _uiHelper?.RootGrid?.IsLoaded ?? false, isInitialized = _isInitialized, isApplyingConfig = _isApplyingConfig }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
-            // #endregion
-
             // 正在应用配置时不保存分割线位置
             if (!_isInitialized || _isApplyingConfig)
             {
                 return;
             }
-
 
             if (_uiHelper.RootGrid == null || !_uiHelper.RootGrid.IsLoaded) return;
 
@@ -324,10 +287,6 @@ namespace YiboFile.Services
 
             double leftWidth = 0;
             double middleWidth = 0;
-
-            // #region agent log
-            try { System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "B", location = "WindowStateManager.cs:159", message = "SaveSplitterPositions列宽度属性", data = new { leftColWidthIsAbsolute = leftCol.Width.IsAbsolute, leftColWidthValue = leftCol.Width.IsAbsolute ? leftCol.Width.Value : 0, leftColActualWidth = leftCol.ActualWidth, leftColMinWidth = leftCol.MinWidth, middleColWidthIsAbsolute = middleCol.Width.IsAbsolute, middleColWidthValue = middleCol.Width.IsAbsolute ? middleCol.Width.Value : 0, middleColWidthIsStar = middleCol.Width.IsStar, middleColActualWidth = middleCol.ActualWidth, middleColMinWidth = middleCol.MinWidth }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
-            // #endregion
 
             // GridSplitter拖拽后，列宽已调整，优先使用ActualWidth获取实际显示的宽度
             // 强制更新布局以确保ActualWidth是最新的
@@ -343,26 +302,16 @@ namespace YiboFile.Services
                 middleWidth = middleCol.ActualWidth;
             }
 
-            // #region agent log
-            try { System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "B", location = "WindowStateManager.cs:192", message = "SaveSplitterPositions计算后的宽度", data = new { leftWidth = leftWidth, middleWidth = middleWidth }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
-            // #endregion
-
             // 保存有效的宽度值（必须大于最小宽度）
             if (leftWidth > 0 && leftWidth >= leftCol.MinWidth)
             {
                 _config.LeftPanelWidth = leftWidth;
-                _config.ColLeftWidth = leftWidth; // 同时更新新字段名
-                // #region agent log
-                try { System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "B", location = "WindowStateManager.cs:197", message = "SaveSplitterPositions保存左侧宽度", data = new { savedLeftWidth = _config.ColLeftWidth }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
-                // #endregion
+                _config.ColLeftWidth = leftWidth;
             }
             if (middleWidth > 0 && middleWidth >= middleCol.MinWidth)
             {
                 _config.MiddlePanelWidth = middleWidth;
-                _config.ColCenterWidth = middleWidth; // 同时更新新字段名
-                // #region agent log
-                try { System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "B", location = "WindowStateManager.cs:204", message = "SaveSplitterPositions保存中间宽度", data = new { savedMiddleWidth = _config.ColCenterWidth }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
-                // #endregion
+                _config.ColCenterWidth = middleWidth;
             }
 
             // 新增：保存右侧列宽度
@@ -518,21 +467,16 @@ namespace YiboFile.Services
 
         /// <summary>
         /// 保存标签页状态（所有打开的标签页和活动标签页）
+        /// 注意：不再在此处检查 _isTabsRestored，由调用方 SaveAllState 控制时机。
+        /// 内部通过 tabs.Count > 0 防护，确保空标签页列表不会覆盖有效的配置数据。
         /// </summary>
         private void SaveTabsState()
         {
-            if (!_isTabsRestored) return;
-
-            // #region agent log
-            var logPath2 = @"f:\Download\GitHub\YiboFile\.cursor\debug.log";
-            try { System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(logPath2)); System.IO.File.AppendAllText(logPath2, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "C", location = "WindowStateManager.cs:278", message = "SaveTabsState开始", data = new { tabServiceIsNull = _tabService == null }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
-            // #endregion
-
             if (_tabService != null)
             {
                 var (tabs, activeKey) = GetTabsState(_tabService);
 
-                // 启动早期：如果当前没有标签页且配置中有，可能是还没恢复，不覆盖
+                // 防护：如果当前没有标签页但配置中有，说明还没恢复完成，不覆盖
                 if (tabs.Count > 0 || _config.OpenTabs == null || _config.OpenTabs.Count == 0)
                 {
                     _config.OpenTabs = tabs;
@@ -549,10 +493,6 @@ namespace YiboFile.Services
                     _config.ActiveTabKeySecondary = activeKey;
                 }
             }
-
-            // #region agent log
-            try { System.IO.File.AppendAllText(logPath2, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "C", location = "WindowStateManager.cs:296", message = "SaveTabsState保存后", data = new { openTabsCount = _config.OpenTabs?.Count ?? 0, openTabs = _config.OpenTabs ?? new List<string>(), activeTabKey = _config.ActiveTabKey, openTabsSecondaryCount = _config.OpenTabsSecondary?.Count ?? 0 }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
-            // #endregion
         }
 
         private (List<string> tabs, string activeKey) GetTabsState(TabService service)

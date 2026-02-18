@@ -102,6 +102,13 @@ namespace YiboFile.Services.Startup
                 new YiboFile.Services.Core.Error.ErrorService(provider.GetService<ViewModels.Messaging.IMessageBus>()));
             services.AddSingleton<Services.FileOperations.FileOperationService>();
             services.AddSingleton<Services.FileOperations.TaskQueue.TaskQueueService>();
+
+            // Configuration & Path Management
+            services.AddSingleton<IConfigPathProvider, ConfigPathProvider>();
+            services.AddSingleton<IConfigurationService>(sp => Services.Config.ConfigurationService.Instance);
+            services.AddSingleton<Services.Config.IO.IExportService, Services.Config.IO.ExportService>();
+            services.AddSingleton<Services.Config.IO.IImportService, Services.Config.IO.ImportService>();
+
             services.AddSingleton<YiboFile.Services.FileOperations.Undo.UndoService>(provider =>
                 new YiboFile.Services.FileOperations.Undo.UndoService(provider.GetService<ViewModels.Messaging.IMessageBus>()));
             services.AddSingleton<YiboFile.Services.Archive.ArchiveService>(); // Archive Service
@@ -165,6 +172,8 @@ namespace YiboFile.Services.Startup
             });
 
             services.AddTransient<SearchService>();
+            services.AddSingleton<SearchHistoryService>(); // Now managed by DI
+            services.AddSingleton<YiboFile.Services.Theming.CustomThemeManager>(); // Now managed by DI
 
             // 注册标签服务 (Core Implementation)
             services.AddSingleton<Services.Data.Repositories.ITagsRepository, Services.Data.Repositories.SqliteTagsRepository>();
@@ -246,7 +255,7 @@ namespace YiboFile.Services.Startup
             if (!createdNew)
             {
                 // 检查是否启用了多窗口支持
-                var config = ConfigManager.Load();
+                var config = YiboFile.Services.Config.ConfigurationService.Instance.Config;
                 if (config != null && config.EnableMultiWindow)
                 {
                     FileLogger.Log("Function: Multi-Window enabled. Proceeding to launch new instance.");
@@ -285,7 +294,7 @@ namespace YiboFile.Services.Startup
         {
             try
             {
-                var config = ConfigManager.Load();
+                var config = YiboFile.Services.Config.ConfigurationService.Instance.Config;
                 var themeMode = config?.ThemeMode ?? "FollowSystem";
 
                 // 设置动画启用状态
@@ -336,7 +345,7 @@ namespace YiboFile.Services.Startup
             // 应用窗口透明度设置
             try
             {
-                var config = ConfigManager.Load();
+                var config = YiboFile.Services.Config.ConfigurationService.Instance.Config;
                 if (config?.WindowOpacity > 0 && config.WindowOpacity <= 1.0)
                 {
                     mainWindow.Opacity = config.WindowOpacity;

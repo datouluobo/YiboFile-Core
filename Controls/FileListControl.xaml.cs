@@ -7,6 +7,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using System.Windows.Threading;
+using Microsoft.Extensions.DependencyInjection;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Media.Effects;
@@ -206,7 +208,7 @@ namespace YiboFile.Controls
             LoadColumnWidths();
 
             // 加载并缓存配置
-            var config = ConfigManager.Load();
+            var config = GetConfig();
             _cachedNotesWidth = config.ColNotesWidth;
 
             // 延迟调整名称列宽度并禁用横向滚动条
@@ -669,13 +671,16 @@ namespace YiboFile.Controls
             {
                 try
                 {
-                    _config = (AppConfig)App.ServiceProvider.GetService(typeof(AppConfig));
+                    var configService = App.ServiceProvider?.GetService<YiboFile.Services.Config.IConfigurationService>();
+                    _config = configService?.Config;
                 }
                 catch { }
             }
+
+            // Fallback (e.g. design time)
             if (_config == null)
             {
-                _config = ConfigManager.Load();
+                _config = YiboFile.Services.Config.ConfigurationService.Instance.Config;
             }
             return _config;
         }

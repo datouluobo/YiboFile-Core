@@ -454,6 +454,15 @@ namespace YiboFile
         #region 导航选择管理
 
         /// <summary>
+        /// 加载驱动器树
+        /// </summary>
+        internal void LoadDrives()
+        {
+            if (DrivesTreeView == null) return;
+            _quickAccessService.LoadDriveTree(DrivesTreeView, _fileListService.FormatFileSize);
+        }
+
+        /// <summary>
         /// 清除其他导航区域的选择状态，确保同时只有一个区域显示选中
         /// </summary>
         /// <param name="exceptSource">不清除哪个源 ("Drives", "QuickAccess", "Favorites")</param>
@@ -466,6 +475,32 @@ namespace YiboFile
             if (exceptSource != "QuickAccess" && QuickAccessListBox != null)
             {
                 QuickAccessListBox.SelectedItem = null;
+            }
+        }
+
+        /// <summary>
+        /// 清除驱动器树的选中状态
+        /// </summary>
+        internal void ClearDriveSelection()
+        {
+            if (DrivesTreeView?.ItemsSource is System.Collections.IEnumerable items)
+            {
+                foreach (var item in items)
+                {
+                    if (item is YiboFile.Services.Navigation.NavigationItem navItem)
+                    {
+                        RecursivelyClearSelection(navItem);
+                    }
+                }
+            }
+        }
+
+        private void RecursivelyClearSelection(YiboFile.Services.Navigation.NavigationItem item)
+        {
+            if (item.IsSelected) item.IsSelected = false;
+            foreach (var child in item.Children)
+            {
+                RecursivelyClearSelection(child);
             }
         }
 

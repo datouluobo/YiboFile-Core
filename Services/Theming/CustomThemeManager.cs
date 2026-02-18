@@ -5,7 +5,9 @@ using System.Linq;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Media;
+using Microsoft.Extensions.DependencyInjection;
 using YiboFile.Models;
+using YiboFile.Services.Config;
 
 namespace YiboFile.Services.Theming
 {
@@ -13,30 +15,58 @@ namespace YiboFile.Services.Theming
     /// 自定义主题管理器
     /// 负责自定义主题的创建、保存、加载和删除
     /// </summary>
-    public static class CustomThemeManager
+    public class CustomThemeManager
     {
-        private static readonly string CustomThemesDirectory;
-        private static List<CustomTheme> _cachedThemes;
+        // 静态单例访问入口（兼容旧代码）
+        public static CustomThemeManager Instance => YiboFile.App.ServiceProvider?.GetService<CustomThemeManager>() ?? new CustomThemeManager(null);
 
-        static CustomThemeManager()
+        private readonly string _customThemesDirectory;
+        private List<CustomTheme> _cachedThemes;
+
+        public CustomThemeManager(IConfigPathProvider pathProvider)
         {
-            CustomThemesDirectory = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "YiboFile",
-                "CustomThemes"
-            );
+            if (pathProvider != null)
+            {
+                _customThemesDirectory = pathProvider.CustomThemesDirectory;
+            }
+            else
+            {
+                // Fallback for design-time or legacy static access
+                _customThemesDirectory = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                    "YiboFile",
+                    "CustomThemes"
+                );
+            }
 
             // 确保目录存在
-            if (!Directory.Exists(CustomThemesDirectory))
+            if (!Directory.Exists(_customThemesDirectory))
             {
-                Directory.CreateDirectory(CustomThemesDirectory);
+                Directory.CreateDirectory(_customThemesDirectory);
             }
         }
+
+        #region static Proxy Methods (Compatibility)
+
+        public static List<CustomTheme> LoadAll() => Instance.LoadAllThemes();
+        public static void Save(CustomTheme theme) => Instance.SaveTheme(theme);
+        public static void Delete(string themeId) => Instance.DeleteTheme(themeId);
+        public static CustomTheme CreateFromCurrent(string name, string baseTheme) => Instance.CreateThemeFromCurrent(name, baseTheme);
+        public static void Apply(CustomTheme theme) => Instance.ApplyTheme(theme);
+        public static CustomTheme GetTheme(string themeId) => Instance.GetThemeById(themeId);
+        public static void ClearOverrides() => Instance.ClearThemeOverrides();
+        public static void ClearCache() => Instance.ClearThemeCache();
+        // GetCoreColorKeys 是纯逻辑，可以是静态的，或者也做代理
+        public static List<string> GetCoreColorKeys() => Instance.GetCoreColorKeysList();
+
+        #endregion
+
+        #region Instance Methods
 
         /// <summary>
         /// 加载所有自定义主题
         /// </summary>
-        public static List<CustomTheme> LoadAll()
+        public List<CustomTheme> LoadAllThemes()
         {
             if (_cachedThemes != null)
             {
@@ -47,7 +77,7 @@ namespace YiboFile.Services.Theming
 
             try
             {
-                var files = Directory.GetFiles(CustomThemesDirectory, "*.json");
+                var files = Directory.GetFiles(_customThemesDirectory, "*.json");
                 foreach (var file in files)
                 {
                     try
@@ -72,7 +102,7 @@ namespace YiboFile.Services.Theming
         /// <summary>
         /// 保存自定义主题
         /// </summary>
-        public static void Save(CustomTheme theme)
+        public void SaveTheme(CustomTheme theme)
         {
             if (theme == null)
                 throw new ArgumentNullException(nameof(theme));
@@ -87,7 +117,7 @@ namespace YiboFile.Services.Theming
             {
                 theme.Touch();
                 var fileName = $"{theme.Id}.json";
-                var filePath = Path.Combine(CustomThemesDirectory, fileName);
+                var filePath = Path.Combine(_customThemesDirectory, fileName);
 
                 var options = new JsonSerializerOptions
                 {
@@ -116,7 +146,7 @@ namespace YiboFile.Services.Theming
         /// <summary>
         /// 删除自定义主题
         /// </summary>
-        public static void Delete(string themeId)
+        public void DeleteTheme(string themeId)
         {
             if (string.IsNullOrWhiteSpace(themeId))
                 throw new ArgumentException("Theme ID cannot be empty");
@@ -124,7 +154,7 @@ namespace YiboFile.Services.Theming
             try
             {
                 var fileName = $"{themeId}.json";
-                var filePath = Path.Combine(CustomThemesDirectory, fileName);
+                var filePath = Path.Combine(_customThemesDirectory, fileName);
 
                 if (File.Exists(filePath))
                 {
@@ -146,7 +176,7 @@ namespace YiboFile.Services.Theming
         /// <summary>
         /// 从当前应用的主题创建自定义主题
         /// </summary>
-        public static CustomTheme CreateFromCurrent(string name, string baseTheme)
+        public CustomTheme CreateThemeFromCurrent(string name, string baseTheme)
         {
             if (string.IsNullOrWhiteSpace(name))
                 throw new ArgumentException("Theme name cannot be empty");
@@ -160,7 +190,7 @@ namespace YiboFile.Services.Theming
             if (resourceDict != null)
             {
                 // 提取28个核心颜色
-                var colorKeys = GetCoreColorKeys();
+                var colorKeys = GetCoreColorKeysList();
                 foreach (var key in colorKeys)
                 {
                     if (resourceDict.Contains(key))
@@ -180,7 +210,7 @@ namespace YiboFile.Services.Theming
         /// <summary>
         /// 应用自定义主题
         /// </summary>
-        public static void Apply(CustomTheme theme)
+        public void ApplyTheme(CustomTheme theme)
         {
             if (theme == null)
                 throw new ArgumentNullException(nameof(theme));
@@ -213,7 +243,7 @@ namespace YiboFile.Services.Theming
         /// <summary>
         /// 根据ID获取自定义主题
         /// </summary>
-        public static CustomTheme GetTheme(string themeId)
+        public CustomTheme GetThemeById(string themeId)
         {
             // 1. 尝试从缓存获取
             if (_cachedThemes != null)
@@ -226,7 +256,7 @@ namespace YiboFile.Services.Theming
             try
             {
                 var fileName = $"{themeId}.json";
-                var filePath = Path.Combine(CustomThemesDirectory, fileName);
+                var filePath = Path.Combine(_customThemesDirectory, fileName);
 
                 if (File.Exists(filePath))
                 {
@@ -253,12 +283,12 @@ namespace YiboFile.Services.Theming
         /// <summary>
         /// 清除所有自定义颜色覆盖（恢复使用ResourceDictionary定义的值）
         /// </summary>
-        public static void ClearOverrides()
+        public void ClearThemeOverrides()
         {
             try
             {
                 var appResources = Application.Current.Resources;
-                var keys = GetCoreColorKeys();
+                var keys = GetCoreColorKeysList();
 
                 foreach (var key in keys)
                 {
@@ -277,7 +307,7 @@ namespace YiboFile.Services.Theming
         /// <summary>
         /// 验证主题数据
         /// </summary>
-        private static bool ValidateTheme(CustomTheme theme)
+        private bool ValidateTheme(CustomTheme theme)
         {
             if (theme == null) return false;
             if (string.IsNullOrWhiteSpace(theme.Id)) return false;
@@ -304,7 +334,7 @@ namespace YiboFile.Services.Theming
         /// <summary>
         /// 获取28个核心颜色键
         /// </summary>
-        public static List<string> GetCoreColorKeys()
+        public List<string> GetCoreColorKeysList()
         {
             return new List<string>
             {
@@ -355,10 +385,11 @@ namespace YiboFile.Services.Theming
         /// <summary>
         /// 清除缓存
         /// </summary>
-        public static void ClearCache()
+        public void ClearThemeCache()
         {
             _cachedThemes = null;
         }
+
+        #endregion
     }
 }
-

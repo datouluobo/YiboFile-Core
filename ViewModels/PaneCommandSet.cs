@@ -72,10 +72,10 @@ namespace YiboFile.ViewModels
         private void InitializeCommands()
         {
             RefreshCommand = new RelayCommand(() => _pane.Refresh());
-            NavigateBackCommand = new RelayCommand(() => _pane.ExecuteNavigateBack(), () => _pane.CanNavigateBack);
-            NavigateForwardCommand = new RelayCommand(() => _pane.ExecuteNavigateForward(), () => _pane.CanNavigateForward);
-            NavigateUpCommand = new RelayCommand(() => _pane.ExecuteNavigateUp(), () => _pane.CanNavigateUp);
-            NavigateHomeCommand = new RelayCommand(() => _pane.NavigateTo("Home"));
+            NavigateBackCommand = new RelayCommand(() => _messageBus.Publish(new NavigateBackMessage(_pane.MyPaneId)), () => _pane.CanNavigateBack);
+            NavigateForwardCommand = new RelayCommand(() => _messageBus.Publish(new NavigateForwardMessage(_pane.MyPaneId)), () => _pane.CanNavigateForward);
+            NavigateUpCommand = new RelayCommand(() => _messageBus.Publish(new NavigateUpMessage(_pane.MyPaneId)), () => _pane.CanNavigateUp);
+            NavigateHomeCommand = new RelayCommand(() => _messageBus.Publish(new NavigateToPathMessage("Home", true, _pane.MyPaneId)));
             OpenParentFolderCommand = NavigateUpCommand;
 
             SwitchViewModeCommand = new RelayCommand<string>(mode => _pane.ExecuteSwitchViewMode(mode));
@@ -181,7 +181,21 @@ namespace YiboFile.ViewModels
                     _messageBus.Publish(new AddTagToFilesRequestMessage(_pane.Selection.SelectedItems.Select(i => i.Path).ToList(), dialog.SelectedTagId));
             }, () => (_pane.Selection?.SelectedItems?.Count ?? 0) > 0);
 
-            TagStatisticsCommand = new RelayCommand(() => _pane.ExecuteTagStatistics()); // Keep this as it involves UI/Service interaction that might be complex to inline immediately without more context
+            TagStatisticsCommand = new RelayCommand(() =>
+            {
+                var tagService = App.ServiceProvider?.GetService<YiboFile.Services.Features.ITagService>();
+                if (tagService != null)
+                {
+                    try
+                    {
+                        var tags = tagService.GetAllTags();
+                        var groups = tagService.GetTagGroups();
+                        string stats = $"标签总数: {tags.Count()}\n标签分组: {groups.Count()}";
+                        MessageBox.Show(stats, "标签统计", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    catch (Exception ex) { MessageBox.Show($"获取统计失败: {ex.Message}"); }
+                }
+            });
 
             LoadMoreCommand = new RelayCommand(() => _pane.Filter?.LoadMoreCommand?.Execute(_pane.CurrentPath));
             SelectAllCommand = new RelayCommand(() => _messageBus.Publish(new SelectAllRequestMessage(_pane.IsSecondary ? PaneId.Second : PaneId.Main)));

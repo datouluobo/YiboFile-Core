@@ -464,7 +464,7 @@ namespace YiboFile.Controls.Settings
 
             var pathHint = new TextBlock
             {
-                Text = "默认目录：程序根目录下的 .\\AppData\\ （配置、数据、TagTrain 文件全部集中）",
+                Text = "默认目录：程序根目录下的 .\\AppData\\ （配置、数据文件集中存储）",
                 FontSize = 12,
                 Margin = new Thickness(0, 0, 0, 12),
                 TextWrapping = TextWrapping.Wrap
@@ -488,16 +488,16 @@ namespace YiboFile.Controls.Settings
             stackPanel.Children.Add(configTitle);
 
 
-            stackPanel.Children.Add(CreateImportExportRow("仅配置（ooi_config.json + tt_settings.txt）",
-                (s, e) => ExportFileAndExecute(_dataViewModel.ExportConfigsCommand, "configs.zip"),
+            stackPanel.Children.Add(CreateImportExportRow("应用配置 (Settings)",
+                (s, e) => ExportFileAndExecute(_dataViewModel.ExportConfigsCommand, "settings_backup.zip"),
                 (s, e) => ImportFileAndExecute(_dataViewModel.ImportConfigsCommand)));
 
-            stackPanel.Children.Add(CreateImportExportRow("仅数据（ooi_data.db + tt_training.db + tt_model.zip）",
-                (s, e) => ExportFileAndExecute(_dataViewModel.ExportDataCommand, "data.zip"),
+            stackPanel.Children.Add(CreateImportExportRow("业务数据 (Data & Structure)",
+                (s, e) => ExportFileAndExecute(_dataViewModel.ExportDataCommand, "data_backup.zip"),
                 (s, e) => ImportFileAndExecute(_dataViewModel.ImportDataCommand)));
 
-            stackPanel.Children.Add(CreateImportExportRow("全部（配置 + 数据）",
-                (s, e) => ExportFileAndExecute(_dataViewModel.ExportAllCommand, "all.zip"),
+            stackPanel.Children.Add(CreateImportExportRow("完整备份 (Full Backup)",
+                (s, e) => ExportFileAndExecute(_dataViewModel.ExportAllCommand, "full_backup.zip"),
                 (s, e) => ImportFileAndExecute(_dataViewModel.ImportAllCommand)));
 
             // 不使用内部 ScrollViewer，外部 SettingsPanelControl 已有 ScrollViewer 处理滚动
