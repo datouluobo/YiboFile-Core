@@ -252,7 +252,10 @@ namespace YiboFile.Handlers
 
         public void LibraryManage_Click()
         {
-            MessageBox.Show("库管理功能待完善", "提示");
+            var owner = _shellWindow as Window;
+            var settingsWindow = new YiboFile.Windows.NavigationSettingsWindow("Library");
+            if (owner != null) settingsWindow.Owner = owner;
+            settingsWindow.ShowDialog();
         }
 
         public void ImportLibrary_Click(object sender, RoutedEventArgs e)

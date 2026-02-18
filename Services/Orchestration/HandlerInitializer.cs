@@ -372,7 +372,12 @@ namespace YiboFile.Services.Orchestration
         {
             if (window.NavigationPanelControl == null) return;
 
-            window.NavigationPanelControl.LibraryManageClick += (s, e) => viewModel?.ActivePane?.Commands?.NewLibraryCommand?.Execute(null);
+            window.NavigationPanelControl.LibraryManageClick += (s, e) =>
+            {
+                var settingsWindow = new YiboFile.Windows.NavigationSettingsWindow("Library");
+                settingsWindow.Owner = window;
+                settingsWindow.ShowDialog();
+            };
 
             window.NavigationPanelControl.PathManageClick += (s, e) =>
             {

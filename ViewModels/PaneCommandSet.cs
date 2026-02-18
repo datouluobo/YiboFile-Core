@@ -61,6 +61,7 @@ namespace YiboFile.ViewModels
 
         public ICommand NewTagCommand { get; private set; }
         public ICommand ManageTagsCommand { get; private set; }
+        public ICommand ManageLibrariesCommand { get; private set; }
         public ICommand BatchAddTagsCommand { get; private set; }
         public ICommand TagStatisticsCommand { get; private set; }
 
@@ -140,6 +141,17 @@ namespace YiboFile.ViewModels
                     var paths = _pane.Selection?.SelectedItems?.Where(i => i.IsDirectory).Select(i => i.Path).ToList();
                     _messageBus.Publish(new CreateLibraryRequestMessage(dialog.InputText, paths));
                 }
+            });
+
+            ManageLibrariesCommand = new RelayCommand(() =>
+            {
+                // Move logic to View or Controller if strictly adhering to MVVM, specifically Window management.
+                // However, for simplicity in this refactor step, we instantiate the window here.
+                // Ideally this should use a DialogService or WindowFactory.
+                // Since LibraryManagementWindow is a Window, we can instantiate it.
+                var window = new YiboFile.LibraryManagementWindow();
+                if (Application.Current?.MainWindow != null) window.Owner = Application.Current.MainWindow;
+                window.ShowDialog();
             });
 
             NewFavoriteGroupCommand = new RelayCommand(() =>
