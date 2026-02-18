@@ -13,14 +13,42 @@ namespace YiboFile.Services.Navigation
     /// <summary>
     /// 导航服务
     /// 负责管理导航历史、路径导航等功能
+    /// 支持多面板状态管理
     /// </summary>
     public class NavigationService
     {
+        #region 私有类
+
+        private class NavigationState
+        {
+            public List<string> History { get; } = new List<string>();
+            public int CurrentIndex { get; set; } = -1;
+            public string CurrentPath { get; set; }
+
+            public IEnumerable<string> BackStack
+            {
+                get
+                {
+                    if (CurrentIndex <= 0) return Enumerable.Empty<string>();
+                    return History.Take(CurrentIndex).Reverse();
+                }
+            }
+
+            public IEnumerable<string> ForwardStack
+            {
+                get
+                {
+                    if (CurrentIndex >= History.Count - 1) return Enumerable.Empty<string>();
+                    return History.Skip(CurrentIndex + 1);
+                }
+            }
+        }
+
+        #endregion
+
         #region 私有字段
 
-        private List<string> _navigationHistory;
-        private int _currentHistoryIndex;
-        private string _currentPath;
+        private readonly Dictionary<PaneId, NavigationState> _paneStates;
         private string _lastLeftNavSource;
         private readonly IMessageBus _messageBus;
 
@@ -34,19 +62,12 @@ namespace YiboFile.Services.Navigation
         public INavigationUIHelper UIHelper { get; set; }
 
         /// <summary>
-        /// 当前路径
+        /// 当前路径 (默认主面板)
         /// </summary>
         public string CurrentPath
         {
-            get => _currentPath;
-            set
-            {
-                if (_currentPath != value)
-                {
-                    _currentPath = value;
-                    AddToHistory(value);
-                }
-            }
+            get => GetState(PaneId.Main).CurrentPath;
+            set => NavigateTo(PaneId.Main, value);
         }
 
         /// <summary>
@@ -59,14 +80,14 @@ namespace YiboFile.Services.Navigation
         }
 
         /// <summary>
-        /// 是否可以后退
+        /// 是否可以后退 (默认主面板)
         /// </summary>
-        public bool CanNavigateBack => _currentHistoryIndex > 0;
+        public bool CanNavigateBack => CanNavigateBackFor(PaneId.Main);
 
         /// <summary>
-        /// 是否可以前进
+        /// 是否可以前进 (默认主面板)
         /// </summary>
-        public bool CanNavigateForward => _currentHistoryIndex < _navigationHistory.Count - 1;
+        public bool CanNavigateForward => CanNavigateForwardFor(PaneId.Main);
 
         /// <summary>
         /// 是否可以后退（别名，用于兼容）
@@ -77,6 +98,11 @@ namespace YiboFile.Services.Navigation
         /// 是否可以前进（别名，用于兼容）
         /// </summary>
         public bool CanGoForward => CanNavigateForward;
+
+        /// <summary>
+        /// 获取指定面板的当前路径
+        /// </summary>
+        public string GetCurrentPath(PaneId pane) => GetState(pane).CurrentPath;
 
         #endregion
 
@@ -89,22 +115,44 @@ namespace YiboFile.Services.Navigation
         /// <param name="messageBus">消息总线</param>
         public NavigationService(string initialPath, IMessageBus messageBus = null)
         {
-            _navigationHistory = new List<string>();
-            _currentHistoryIndex = -1;
-            _currentPath = initialPath ?? Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+            _paneStates = new Dictionary<PaneId, NavigationState>
+            {
+                { PaneId.Main, new NavigationState() },
+                { PaneId.Second, new NavigationState() }
+            };
+
+            var startPath = initialPath ?? Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
             _lastLeftNavSource = string.Empty;
             _messageBus = messageBus ?? App.ServiceProvider?.GetService<IMessageBus>();
-            AddToHistory(_currentPath);
+
+            // Initialize Main Pane
+            GetState(PaneId.Main).CurrentPath = startPath;
+            AddToHistory(PaneId.Main, startPath);
+
+            // Initialize Second Pane (Same default path)
+            GetState(PaneId.Second).CurrentPath = startPath;
+            AddToHistory(PaneId.Second, startPath);
         }
 
         #endregion
 
         #region 导航方法
 
-        /// <summary>
-        /// 切换导航模式（用于兼容 NavigationModeService）
-        /// </summary>
-        /// <param name="mode">导航模式</param>
+        public bool CanNavigateBackFor(PaneId pane)
+        {
+            var state = GetState(pane);
+            return state.CurrentIndex > 0;
+        }
+
+        public bool CanNavigateForwardFor(PaneId pane)
+        {
+            var state = GetState(pane);
+            return state.History.Count > 0 && state.CurrentIndex < state.History.Count - 1;
+        }
+
+        public IEnumerable<string> GetBackStack(PaneId pane) => GetState(pane).BackStack;
+        public IEnumerable<string> GetForwardStack(PaneId pane) => GetState(pane).ForwardStack;
+
         public void SwitchNavigationMode(string mode)
         {
             // NavigationService 主要负责路径导航，模式切换由 NavigationModeService 处理
@@ -116,49 +164,68 @@ namespace YiboFile.Services.Navigation
         }
 
         /// <summary>
+        /// 后退 (默认主面板)
+        /// </summary>
+        public string NavigateBack() => NavigateBack(PaneId.Main);
+
+        /// <summary>
         /// 后退
         /// </summary>
-        /// <returns>导航到的路径</returns>
-        public string NavigateBack()
+        public string NavigateBack(PaneId pane)
         {
-            if (CanNavigateBack)
+            if (CanNavigateBackFor(pane))
             {
-                _currentHistoryIndex--;
-                var path = _navigationHistory[_currentHistoryIndex];
-                _currentPath = path;
-                _messageBus?.Publish(new NavigationCompleteMessage(path, PaneId.Main, NavigationSource.History));
+                var state = GetState(pane);
+                state.CurrentIndex--;
+                var path = state.History[state.CurrentIndex];
+                state.CurrentPath = path;
+
+                PublishNavigationComplete(path, pane, NavigationSource.History);
                 return path;
             }
             return null;
         }
+
+        /// <summary>
+        /// 前进 (默认主面板)
+        /// </summary>
+        public string NavigateForward() => NavigateForward(PaneId.Main);
 
         /// <summary>
         /// 前进
         /// </summary>
-        /// <returns>导航到的路径</returns>
-        public string NavigateForward()
+        public string NavigateForward(PaneId pane)
         {
-            if (CanNavigateForward)
+            if (CanNavigateForwardFor(pane))
             {
-                _currentHistoryIndex++;
-                var path = _navigationHistory[_currentHistoryIndex];
-                _currentPath = path;
-                _messageBus?.Publish(new NavigationCompleteMessage(path, PaneId.Main, NavigationSource.History));
+                var state = GetState(pane);
+                state.CurrentIndex++;
+                var path = state.History[state.CurrentIndex];
+                state.CurrentPath = path;
+
+                PublishNavigationComplete(path, pane, NavigationSource.History);
                 return path;
             }
             return null;
         }
 
         /// <summary>
+        /// 向上导航 (默认主面板)
+        /// </summary>
+        public string NavigateUp() => NavigateUp(PaneId.Main);
+
+        /// <summary>
         /// 向上导航
         /// </summary>
-        /// <returns>父目录路径</returns>
-        public string NavigateUp()
+        public string NavigateUp(PaneId pane)
         {
-            if (string.IsNullOrEmpty(_currentPath))
+            var state = GetState(pane);
+            if (string.IsNullOrEmpty(state.CurrentPath))
                 return null;
 
-            var protocolInfo = ProtocolManager.Parse(_currentPath);
+            var currentPath = state.CurrentPath;
+            var protocolInfo = ProtocolManager.Parse(currentPath);
+
             if (protocolInfo.Type == ProtocolType.Archive)
             {
                 try
@@ -166,132 +233,112 @@ namespace YiboFile.Services.Navigation
                     string archiveFile = protocolInfo.TargetPath;
                     string innerPath = protocolInfo.ExtraData;
 
-                    // If innerPath contains directory separators, move up inside archive
-                    // Normalize innerPath to use standard slash for logic if needed, but 7z uses what it uses.
-                    // Assuming simple hierarchy.
-
-                    string parentInner = string.Empty;
-
-                    // Trim trailing slashes from innerPath
                     innerPath = innerPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
                     if (!string.IsNullOrEmpty(innerPath))
                     {
-                        // Has content, try to find parent
-                        // If inner path is just a file or folder name, parent is empty (archive root)
-                        // If "A/B", parent is "A"
-
                         int lastSlash = innerPath.LastIndexOfAny(new char[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar });
                         if (lastSlash >= 0)
                         {
-                            parentInner = innerPath.Substring(0, lastSlash);
+                            string parentInner = innerPath.Substring(0, lastSlash);
                             string newUrl = $"{ProtocolManager.ZipProtocol}{archiveFile}|{parentInner}";
-                            CurrentPath = newUrl;
-                            _messageBus?.Publish(new NavigationCompleteMessage(newUrl, PaneId.Main, NavigationSource.Up));
+                            NavigateTo(pane, newUrl); // Will publish message
                             return newUrl;
                         }
                         else
                         {
-                            // At root folder of archive content (e.g. zip://zip|folder), parent is archive root (zip://zip|)
                             string newUrl = $"{ProtocolManager.ZipProtocol}{archiveFile}|";
-                            CurrentPath = newUrl;
-                            _messageBus?.Publish(new NavigationCompleteMessage(newUrl, PaneId.Main, NavigationSource.Up));
+                            NavigateTo(pane, newUrl);
                             return newUrl;
                         }
                     }
 
-                    // If innerPath is empty or we are at root "zip://zip|", navigate to the archive file's parent folder
-                    // i.e. exit archive mode
                     if (string.IsNullOrEmpty(innerPath))
                     {
                         string parentDir = Directory.GetParent(archiveFile)?.FullName;
                         if (!string.IsNullOrEmpty(parentDir) && Directory.Exists(parentDir))
                         {
-                            CurrentPath = parentDir;
-                            _messageBus?.Publish(new NavigationCompleteMessage(parentDir, PaneId.Main, NavigationSource.Up));
+                            NavigateTo(pane, parentDir);
                             return parentDir;
                         }
                     }
                 }
                 catch
                 {
-                    // Fallback to standard logic if parsing fails
+                    // Fallback
                 }
             }
 
             try
             {
-                var parentPath = Directory.GetParent(_currentPath)?.FullName;
+                var parentPath = Directory.GetParent(currentPath)?.FullName;
                 if (!string.IsNullOrEmpty(parentPath) && Directory.Exists(parentPath))
                 {
-                    CurrentPath = parentPath;
-                    _messageBus?.Publish(new NavigationCompleteMessage(parentPath, PaneId.Main, NavigationSource.Up));
+                    NavigateTo(pane, parentPath);
                     return parentPath;
                 }
             }
-            catch
-            {
-                // 忽略错误
-            }
+            catch { }
 
             return null;
         }
 
         /// <summary>
+        /// 导航到指定路径 (默认主面板)
+        /// </summary>
+        public void NavigateTo(string path) => NavigateTo(PaneId.Main, path);
+
+        /// <summary>
         /// 导航到指定路径
         /// </summary>
-        /// <param name="path">目标路径</param>
-        public void NavigateTo(string path)
+        /// <param name="pane">目标面板</param>
+        /// <param name="path">路径</param>
+        /// <param name="addToHistory">是否添加到历史</param>
+        public void NavigateTo(PaneId pane, string path, bool addToHistory = true)
         {
-            if (string.IsNullOrEmpty(path))
-                return;
+            if (string.IsNullOrEmpty(path)) return;
 
             // Allow navigation if it's a directory OR a virtual path (e.g. zip://)
             if (!Directory.Exists(path) && !ProtocolManager.IsVirtual(path))
                 return;
 
-            CurrentPath = path;
-            _messageBus?.Publish(new NavigationCompleteMessage(path, PaneId.Main, NavigationSource.AddressBar));
+            var state = GetState(pane);
+
+            // 始终更新 path，即使相同也可能需要刷新或触发事件? 
+            // 保持原逻辑：if changed
+            if (state.CurrentPath != path)
+            {
+                state.CurrentPath = path;
+                if (addToHistory) AddToHistory(pane, path);
+                PublishNavigationComplete(path, pane, NavigationSource.AddressBar);
+            }
         }
 
         #endregion
 
         #region 高亮方法
 
-        /// <summary>
-        /// 高亮匹配的库
-        /// </summary>
-        /// <param name="library">要高亮的库</param>
         public void HighlightMatchingLibrary(object library)
         {
             UIHelper?.SetLibrarySelectedItem(library);
         }
 
-        /// <summary>
-        /// 高亮匹配的项
-        /// </summary>
-        /// <param name="path">要匹配的路径</param>
         public void HighlightMatchingItems(string path)
         {
             if (UIHelper == null || string.IsNullOrEmpty(path))
                 return;
 
-            // 清除所有高亮
             ClearItemHighlights();
 
-            // 根据路径匹配对应的列表项
             var drives = UIHelper.GetDrivesListItems()?.Cast<object>().ToList();
             var quickAccess = UIHelper.GetQuickAccessListItems()?.Cast<object>().ToList();
             var favorites = UIHelper.GetFavoritesListItems()?.Cast<object>().ToList();
 
-            // 检查驱动器 - 使用完全匹配，而不是前缀匹配
             if (drives != null)
             {
                 foreach (var drive in drives)
                 {
                     var drivePath = GetItemPath(drive);
-                    // 修改：只有路径完全匹配驱动器根目录时才高亮（例如 "E:\" 匹配 "E:\\"）
-                    // 移除了 StartsWith 以避免子文件夹也高亮父驱动器
                     if (!string.IsNullOrEmpty(drivePath) && string.Equals(drivePath.TrimEnd('\\'), path.TrimEnd('\\'), StringComparison.OrdinalIgnoreCase))
                     {
                         UIHelper.SetItemHighlight("Drive", drive, true);
@@ -300,7 +347,6 @@ namespace YiboFile.Services.Navigation
                 }
             }
 
-            // 检查快速访问
             if (quickAccess != null)
             {
                 foreach (var item in quickAccess)
@@ -314,7 +360,6 @@ namespace YiboFile.Services.Navigation
                 }
             }
 
-            // 检查收藏
             if (favorites != null)
             {
                 foreach (var item in favorites)
@@ -329,9 +374,6 @@ namespace YiboFile.Services.Navigation
             }
         }
 
-        /// <summary>
-        /// 清除所有项的高亮
-        /// </summary>
         public void ClearItemHighlights()
         {
             UIHelper?.ClearListBoxHighlights("Drive");
@@ -344,58 +386,60 @@ namespace YiboFile.Services.Navigation
 
         #region 私有方法
 
-        /// <summary>
-        /// 添加到历史记录
-        /// </summary>
-        private void AddToHistory(string path)
+        private NavigationState GetState(PaneId pane)
         {
-            if (string.IsNullOrEmpty(path))
-                return;
-
-            // 如果不在历史记录末尾，删除后面的记录
-            if (_currentHistoryIndex >= 0 && _currentHistoryIndex < _navigationHistory.Count - 1)
+            // Ensure Thread Safety? NavigationService is Singleton.
+            // Assuming UI thread usage mainly.
+            if (!_paneStates.ContainsKey(pane))
             {
-                _navigationHistory.RemoveRange(_currentHistoryIndex + 1, _navigationHistory.Count - _currentHistoryIndex - 1);
+                _paneStates[pane] = new NavigationState();
+            }
+            return _paneStates[pane];
+        }
+
+        private void AddToHistory(PaneId pane, string path)
+        {
+            if (string.IsNullOrEmpty(path)) return;
+
+            var state = GetState(pane);
+
+            if (state.CurrentIndex >= 0 && state.CurrentIndex < state.History.Count - 1)
+            {
+                state.History.RemoveRange(state.CurrentIndex + 1, state.History.Count - state.CurrentIndex - 1);
             }
 
-            // 如果与最后一个历史记录不同，添加新记录
-            if (_navigationHistory.Count == 0 || _navigationHistory[_navigationHistory.Count - 1] != path)
+            if (state.History.Count == 0 || state.History[state.History.Count - 1] != path)
             {
-                _navigationHistory.Add(path);
-                _currentHistoryIndex = _navigationHistory.Count - 1;
+                state.History.Add(path);
+                state.CurrentIndex = state.History.Count - 1;
             }
             else
             {
-                _currentHistoryIndex = _navigationHistory.Count - 1;
+                state.CurrentIndex = state.History.Count - 1;
             }
         }
 
-        /// <summary>
-        /// 获取项的路径
-        /// </summary>
+        private void PublishNavigationComplete(string path, PaneId pane, NavigationSource source)
+        {
+            var state = GetState(pane);
+            _messageBus?.Publish(new NavigationCompleteMessage(
+                path,
+                pane,
+                source,
+                "Path", // NavigationMode default
+                state.BackStack,
+                state.ForwardStack));
+        }
+
         private string GetItemPath(object item)
         {
-            if (item == null)
-                return null;
-
-            // 尝试通过反射获取 Path 属性
+            if (item == null) return null;
             var pathProperty = item.GetType().GetProperty("Path");
-            if (pathProperty != null)
-            {
-                return pathProperty.GetValue(item)?.ToString();
-            }
-
-            // 如果是字符串，直接返回
-            if (item is string str)
-            {
-                return str;
-            }
-
-            // 尝试 ToString()
+            if (pathProperty != null) return pathProperty.GetValue(item)?.ToString();
+            if (item is string str) return str;
             return item.ToString();
         }
 
         #endregion
     }
 }
-

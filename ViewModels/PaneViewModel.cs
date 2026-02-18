@@ -22,6 +22,7 @@ using YiboFile.Services.ColumnManagement;
 using YiboFile.Controllers;
 using YiboFile.ViewModels.Messaging;
 using YiboFile.ViewModels.Messaging.Messages;
+using YiboFile.Models.Navigation;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace YiboFile.ViewModels
@@ -33,6 +34,7 @@ namespace YiboFile.ViewModels
         private readonly IMessageBus _messageBus;
         private readonly Dispatcher _dispatcher;
         private readonly bool _isSecondary;
+        private readonly NavigationService _navigationService;
 
         private string _currentPath;
         private string _navigationMode = "Path"; // Path, Library, Tag, Search
@@ -44,21 +46,10 @@ namespace YiboFile.ViewModels
         private bool _isLoadingDisabled;
         private string _statusText = "准备就绪";
 
-        private Stack<string> _backStack = new Stack<string>();
-        private Stack<string> _forwardStack = new Stack<string>();
-        public IEnumerable<string> BackStack => _backStack;
-        public IEnumerable<string> ForwardStack => _forwardStack;
-        private bool _isNavigatingHistory;
-
         private readonly SearchCoordinator _searchCoordinator;
         private readonly SearchFilterService _searchFilterService;
         private readonly ITagService _tagService;
         private readonly LibraryService _libraryService;
-        private readonly FavoriteService _favoriteService;
-        private readonly SearchService _searchService;
-        private readonly SearchCacheService _searchCacheService;
-
-        private readonly FolderSizeCalculationService _folderSizeService;
 
         private readonly ObservableCollection<ContextMenuItemViewModel> _libraryMenuItems = new ObservableCollection<ContextMenuItemViewModel>();
         private readonly ObservableCollection<ContextMenuItemViewModel> _tagMenuItems = new ObservableCollection<ContextMenuItemViewModel>();
@@ -74,6 +65,8 @@ namespace YiboFile.ViewModels
 
         #region Properties
 
+        public PaneId MyPaneId => _isSecondary ? PaneId.Second : PaneId.Main;
+
         public string CurrentPath
         {
             get => _currentPath;
@@ -81,7 +74,6 @@ namespace YiboFile.ViewModels
             {
                 if (_currentPath != value)
                 {
-                    string oldPath = _currentPath;
                     _currentPath = value;
                     OnPropertyChanged(nameof(CurrentPath));
 
@@ -91,7 +83,6 @@ namespace YiboFile.ViewModels
                         NavigationMode = "Library";
                         CurrentTag = null;
 
-                        // Fix BUG-EmptyInfoPanel: Resolve library object if missing (e.g. from address bar or history)
                         string libName = value.Substring(6);
                         if (CurrentLibrary == null || CurrentLibrary.Name != libName)
                         {
@@ -118,18 +109,10 @@ namespace YiboFile.ViewModels
                         CurrentTag = null;
                     }
 
-                    if (!_isNavigatingHistory)
-                    {
-                        if (!string.IsNullOrEmpty(oldPath))
-                            _backStack.Push(oldPath);
-                        _forwardStack.Clear();
-                        OnPropertyChanged(nameof(CanNavigateBack));
-                        OnPropertyChanged(nameof(CanNavigateForward));
-                        Commands?.NotifyCommandStatesChanged();
-                    }
+                    // No history management here (Moved to NavigationService)
 
                     RequestRefresh();
-                    _messageBus.Publish(new PathChangedMessage(value, _isSecondary ? PaneId.Second : PaneId.Main));
+                    // No PathChangedMessage publishing here (Service handles it)
                 }
             }
         }
@@ -143,7 +126,6 @@ namespace YiboFile.ViewModels
                 {
                     _navigationMode = value;
                     OnPropertyChanged(nameof(NavigationMode));
-                    // _messageBus.Publish(new NavigationModeChangedMessage(value)); // Disabled: Sidebar should not follow tab changes
                 }
             }
         }
@@ -179,7 +161,7 @@ namespace YiboFile.ViewModels
                 {
                     _fileViewMode = value;
                     OnPropertyChanged(nameof(FileViewMode));
-                    _messageBus.Publish(new ViewModeChangedMessage(value, _isSecondary ? PaneId.Second : PaneId.Main));
+                    _messageBus.Publish(new ViewModeChangedMessage(value, MyPaneId));
                 }
             }
         }
@@ -217,9 +199,12 @@ namespace YiboFile.ViewModels
             }
         }
 
-        public bool CanNavigateBack => _backStack.Count > 0;
-        public bool CanNavigateForward => _forwardStack.Count > 0;
+        public bool CanNavigateBack => _navigationService?.CanNavigateBackFor(MyPaneId) ?? false;
+        public bool CanNavigateForward => _navigationService?.CanNavigateForwardFor(MyPaneId) ?? false;
         public bool CanNavigateUp => !string.IsNullOrEmpty(CurrentPath) && CurrentPath != "Home";
+
+        public IEnumerable<string> BackStack => _navigationService?.GetBackStack(MyPaneId) ?? Enumerable.Empty<string>();
+        public IEnumerable<string> ForwardStack => _navigationService?.GetForwardStack(MyPaneId) ?? Enumerable.Empty<string>();
 
         public FileListViewModel FileList { get; private set; }
         public bool IsSecondary => _isSecondary;
@@ -230,9 +215,6 @@ namespace YiboFile.ViewModels
         public FilterViewModel Filter { get; private set; }
 
         public PaneCommandSet Commands { get; private set; }
-
-
-
         public PaneMenuViewModel Menu { get; private set; }
 
         public ObservableCollection<ContextMenuItemViewModel> LibraryMenuItems => Menu?.LibraryMenuItems;
@@ -249,7 +231,7 @@ namespace YiboFile.ViewModels
             _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
             _isSecondary = isSecondary;
 
-            _folderSizeService = App.ServiceProvider.GetService(typeof(FolderSizeCalculationService)) as FolderSizeCalculationService;
+            _navigationService = App.ServiceProvider.GetService<NavigationService>();
 
             Selection = new SelectionViewModel(_messageBus, isSecondary);
             Menu = new PaneMenuViewModel(this, _messageBus);
@@ -269,27 +251,24 @@ namespace YiboFile.ViewModels
                 });
             };
 
+            // Messages
             _messageBus.Subscribe<SearchOptionsChangedMessage>(OnSearchOptionsChanged);
             _messageBus.Subscribe<SearchResultUpdatedMessage>(OnSearchResultUpdated);
             _messageBus.Subscribe<Messaging.Messages.FocusedPaneChangedMessage>(OnFocusedPaneChanged);
-
             _messageBus.Subscribe<NotesUpdatedMessage>(OnNotesUpdated);
             _messageBus.Subscribe<FileTagsChangedMessage>(OnFileTagsChanged);
-            // Dynamic Menu events moved to PaneMenuViewModel
             _messageBus.Subscribe<RefreshFileListMessage>(OnRefreshFileList);
             _messageBus.Subscribe<LibrarySelectedMessage>(OnLibrarySelected);
             _messageBus.Subscribe<FileSelectionChangedMessage>(OnFileSelectionChanged);
-            _messageBus.Subscribe<NavigateToPathMessage>(OnNavigateToPath);
-            _messageBus.Subscribe<RestoreNavigationStateMessage>(OnRestoreNavigationState);
             _messageBus.Subscribe<LibraryFilesLoadedMessage>(OnLibraryFilesLoaded);
+
+            // New Navigation Handling
+            _messageBus.Subscribe<NavigationCompleteMessage>(OnNavigationComplete);
 
             _searchFilterService = App.ServiceProvider?.GetService<SearchFilterService>();
             var errorService = App.ServiceProvider?.GetService<ErrorService>();
             _tagService = App.ServiceProvider?.GetService<ITagService>();
             _libraryService = App.ServiceProvider?.GetService<LibraryService>();
-            _favoriteService = App.ServiceProvider?.GetService<FavoriteService>();
-            _searchService = App.ServiceProvider?.GetService<SearchService>();
-            _searchCacheService = App.ServiceProvider?.GetService<SearchCacheService>();
 
             var columnService = App.ServiceProvider?.GetService<ColumnService>();
             FileList = new FileListViewModel(_messageBus, isSecondary ? YiboFile.Services.Navigation.PaneId.Second : YiboFile.Services.Navigation.PaneId.Main, columnService);
@@ -301,13 +280,23 @@ namespace YiboFile.ViewModels
                 if (e.PropertyName == nameof(FileList.Files)) OnPropertyChanged(nameof(Files));
             };
 
-
-
             Search = new SearchViewModel(_messageBus);
             _searchCoordinator = new SearchCoordinator(_messageBus, Search);
             _searchCoordinator.SetTargetPane(isSecondary ? "Secondary" : "Primary");
 
             _fileViewMode = ConfigurationService.Instance.Get(cfg => cfg.FileViewMode) ?? "List";
+
+            // Init Path from Service if available
+            if (_navigationService != null)
+            {
+                var initial = _navigationService.GetCurrentPath(MyPaneId);
+                if (!string.IsNullOrEmpty(initial)) CurrentPath = initial;
+                else CurrentPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+            }
+            else
+            {
+                CurrentPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+            }
         }
 
         #endregion
@@ -316,59 +305,16 @@ namespace YiboFile.ViewModels
 
         internal void ExecuteSwitchViewMode(string mode) { if (!string.IsNullOrEmpty(mode)) FileViewMode = mode; }
 
-        internal void ExecuteNavigateBack()
-        {
-            if (_backStack.Count == 0) return;
-            _isNavigatingHistory = true;
-            _forwardStack.Push(CurrentPath);
-            var prev = _backStack.Pop();
-            NavigateTo(prev);
-            _isNavigatingHistory = false;
-            OnPropertyChanged(nameof(CanNavigateBack));
-            OnPropertyChanged(nameof(CanNavigateForward));
-            Commands?.NotifyCommandStatesChanged();
-        }
-
-        internal void ExecuteNavigateForward()
-        {
-            if (_forwardStack.Count == 0) return;
-            _isNavigatingHistory = true;
-            _backStack.Push(CurrentPath);
-            var next = _forwardStack.Pop();
-            NavigateTo(next);
-            _isNavigatingHistory = false;
-            OnPropertyChanged(nameof(CanNavigateBack));
-            OnPropertyChanged(nameof(CanNavigateForward));
-            Commands?.NotifyCommandStatesChanged();
-        }
-
-        internal void ExecuteNavigateUp()
-        {
-            if (string.IsNullOrEmpty(CurrentPath)) return;
-            string upPath = null;
-            if (ProtocolManager.IsVirtual(CurrentPath))
-            {
-                int lastSlash = CurrentPath.LastIndexOf('/');
-                if (lastSlash > 0)
-                {
-                    var pathToCheck = CurrentPath.EndsWith("/") ? CurrentPath.Substring(0, CurrentPath.Length - 1) : CurrentPath;
-                    lastSlash = pathToCheck.LastIndexOf('/');
-                    if (lastSlash > 0) upPath = pathToCheck.Substring(0, lastSlash);
-                }
-                if (upPath == null && CurrentPath.Contains("|"))
-                {
-                    upPath = CurrentPath.Substring(CurrentPath.IndexOf("//") + 2);
-                    if (upPath.Contains("|")) upPath = upPath.Substring(0, upPath.IndexOf("|"));
-                }
-            }
-            else upPath = Path.GetDirectoryName(CurrentPath);
-
-            if (!string.IsNullOrEmpty(upPath)) NavigateTo(upPath);
-        }
+        // Navigation executes removed - handled by Commands/MessageBus direct calls or CommandSet updates
+        // However, PaneCommandSet currently calls _pane.ExecuteNavigateBack().
+        // We will update PaneCommandSet separately, but for safety due to lingering references?
+        // No, I'll update PaneCommandSet next.
+        // I will keep the methods but change them to publish messages, to keep PaneCommandSet signature valid until updated.
+        internal void ExecuteNavigateBack() => _messageBus.Publish(new NavigateBackMessage(MyPaneId));
+        internal void ExecuteNavigateForward() => _messageBus.Publish(new NavigateForwardMessage(MyPaneId));
+        internal void ExecuteNavigateUp() => _messageBus.Publish(new NavigateUpMessage(MyPaneId));
 
         internal void ExecuteSelectAll() => _messageBus.Publish(new SelectAllRequestMessage(_isSecondary ? PaneId.Second : PaneId.Main));
-
-        // Note: NewFolder, Delete, etc. are now handled directly in PaneCommandSet via MessageBus
 
         internal void ExecuteTagStatistics()
         {
@@ -397,12 +343,16 @@ namespace YiboFile.ViewModels
             else LoadPathAsync(CurrentPath);
         }
 
-        public void NavigateTo(string path) { if (!string.IsNullOrEmpty(path)) CurrentPath = path; }
+        public void NavigateTo(string path)
+        {
+            // Delegate logic to Module via Message
+            if (!string.IsNullOrEmpty(path))
+                _messageBus.Publish(new NavigateToPathMessage(path, true, MyPaneId));
+        }
 
         private async void LoadPathAsync(string path)
         {
             if (string.IsNullOrEmpty(path)) return;
-            // Delegate all logic to FileListViewModel
             if (FileList != null) await FileList.LoadPathAsync(path);
             Menu?.UpdateDynamicMenuItems();
         }
@@ -454,7 +404,7 @@ namespace YiboFile.ViewModels
         private void OnFocusedPaneChanged(Messaging.Messages.FocusedPaneChangedMessage message) { IsActive = (message.IsSecondPaneFocused == _isSecondary); OnPropertyChanged(nameof(IsActive)); }
         private void OnNotesUpdated(NotesUpdatedMessage msg) => RequestRefresh();
         private void OnFileTagsChanged(FileTagsChangedMessage msg) => RequestRefresh();
-        // TagListChanged etc moved to Menu
+
         private void OnRefreshFileList(RefreshFileListMessage msg)
         {
             if (string.IsNullOrEmpty(msg.Path))
@@ -469,10 +419,8 @@ namespace YiboFile.ViewModels
                 return;
             }
 
-            // 支持库模式下的刷新
             if (NavigationMode == "Library" && CurrentLibrary != null && CurrentLibrary.Paths != null)
             {
-                // 如果变更路径是库包含路径的子路径，则刷新
                 if (CurrentLibrary.Paths.Any(libPath =>
                     msg.Path.StartsWith(libPath, StringComparison.OrdinalIgnoreCase) ||
                     libPath.StartsWith(msg.Path, StringComparison.OrdinalIgnoreCase)))
@@ -485,17 +433,13 @@ namespace YiboFile.ViewModels
         {
             if (msg.Library != null)
             {
-                // Fix BUG-019/Simultaneous Navigation: Only navigate if message is directed to this pane or is global (null)
-                // And ensure we don't react if another pane was specified
                 if (msg.Pane == null || msg.Pane == (_isSecondary ? PaneId.Second : PaneId.Main))
                 {
+                    // Use NavigateTo (which sends message)
                     NavigateTo($"lib://{msg.Library.Name}");
                 }
             }
         }
-
-
-
 
         private void OnFileSelectionChanged(FileSelectionChangedMessage msg)
         {
@@ -503,7 +447,6 @@ namespace YiboFile.ViewModels
             {
                 Commands?.NotifyCommandStatesChanged();
 
-                // Debounce menu updates to avoid freezing on rapid selection
                 Application.Current.Dispatcher.InvokeAsync(async () =>
                 {
                     try
@@ -516,58 +459,29 @@ namespace YiboFile.ViewModels
             }
         }
 
-        private void OnNavigateToPath(NavigateToPathMessage msg)
+        private void OnNavigationComplete(NavigationCompleteMessage msg)
         {
-            if (msg.Pane == null || msg.Pane == (_isSecondary ? PaneId.Second : PaneId.Main))
+            if (msg.Pane == MyPaneId)
             {
-                if (!msg.AddToHistory)
-                {
-                    _isNavigatingHistory = true;
-                    try { NavigateTo(msg.Path); }
-                    finally { _isNavigatingHistory = false; }
-                }
-                else
-                {
-                    NavigateTo(msg.Path);
-                }
-            }
-        }
+                // Update Path properties - use backing field to avoid logic loops unless setter is safe?
+                // Setter calls RequestRefresh() and updates NavigationMode. This IS required regardless of source.
+                // So we use setter.
+                // The setter logic I updated: it NO LONGER publishes PathChangedMessage or Updates History.
+                // It ONLY updates local state and refreshes. This is SAFE.
+                CurrentPath = msg.Path;
 
-        private void OnRestoreNavigationState(RestoreNavigationStateMessage msg)
-        {
-            if (msg.Pane == (_isSecondary ? PaneId.Second : PaneId.Main))
-            {
-                _isNavigatingHistory = true;
-                try
-                {
-                    CurrentPath = msg.Path; // Setup current path without pushing old path
+                OnPropertyChanged(nameof(CanNavigateBack));
+                OnPropertyChanged(nameof(CanNavigateForward));
+                // Also update BackStack/ForwardStack if bound
+                OnPropertyChanged(nameof(BackStack));
+                OnPropertyChanged(nameof(ForwardStack));
 
-                    _backStack.Clear();
-                    if (msg.BackStack != null)
-                    {
-                        foreach (var p in msg.BackStack.Reverse()) _backStack.Push(p);
-                    }
-
-                    _forwardStack.Clear();
-                    if (msg.ForwardStack != null)
-                    {
-                        foreach (var p in msg.ForwardStack.Reverse()) _forwardStack.Push(p);
-                    }
-
-                    OnPropertyChanged(nameof(CanNavigateBack));
-                    OnPropertyChanged(nameof(CanNavigateForward));
-                    Commands?.NotifyCommandStatesChanged();
-                }
-                finally
-                {
-                    _isNavigatingHistory = false;
-                }
+                Commands?.NotifyCommandStatesChanged();
             }
         }
 
         private void OnLibraryFilesLoaded(LibraryFilesLoadedMessage msg)
         {
-            // 只有当是本面板请求时才处理
             if (msg.TargetPane == (_isSecondary ? PaneId.Second : PaneId.Main))
             {
                 FileList?.UpdateFiles(msg.Files);
@@ -580,14 +494,11 @@ namespace YiboFile.ViewModels
             }
         }
 
-        // OnLibrariesLoaded moved to Menu
-
         #endregion
 
         protected void OnPropertyChanged(string name) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
         public void Dispose()
         {
-
             Menu?.Dispose();
         }
     }

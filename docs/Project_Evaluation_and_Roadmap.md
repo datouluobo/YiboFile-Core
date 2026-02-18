@@ -312,6 +312,7 @@ Controller-driven 场景：
 | **BUG-018** | UI/Init | 启动时主副文件信息区空白，或切换文件夹后显示错误信息 | 上下文未正确清除导致显示过时信息 | **已修复** (v1.1.0) (在 PaneViewModel 中清理库/标签上下文；回滚了路径回退逻辑) | ✅ 已修复 |
 | **BUG-019** | Navigation | “快速访问”双栏同时切换 | `PreviewMouseDown` 事件冲突与 `e.Handled` 处理不当 | **已修复** (v1.1.0) (统一使用 `PreviewMouseDown` 并修复了事件路由) | ✅ 已修复 |
 | **BUG-021** | Library | 程序启动时死循环刷屏 (LibraryListChangedMessage) | `LibraryModule` 在响应消息时再次触发加载导致递归 | **Fixed** (v1.0.1506) (改为 GetAllLibraries 并不再发布消息) | ✅ 已修复 |
+| **BUG-022** | FileList | 文件列表显示视图模式切换有问题 | 视图模式切换逻辑在重构中未正确对接，或消息未被正确处理 | 检查 `PaneViewModel` 的 `FileViewMode` 绑定与消息发布 | ⏳ 待修复 |
 
 ---
 
