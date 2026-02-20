@@ -100,6 +100,7 @@ namespace YiboFile.ViewModels
 
         public void UpdateFiles(IEnumerable<FileSystemItem> items)
         {
+            System.Diagnostics.Debug.WriteLine($"[FileListDebug] [{_paneId}] UpdateFiles called with {items?.Count() ?? 0} items.");
             _dispatcher.BeginInvoke(new Action(() =>
             {
                 Files = new ObservableCollection<FileSystemItem>(items);
@@ -218,13 +219,14 @@ namespace YiboFile.ViewModels
         /// </summary>
         public async Task LoadPathAsync(string path)
         {
-            System.Diagnostics.Debug.WriteLine($"[FileListViewModel] LoadPathAsync requested for: {path}");
+            System.Diagnostics.Debug.WriteLine($"[FileListDebug] [{_paneId}] LoadPathAsync requested: {path}");
+
 
 
             // 如果正在加载其它目录，则取消旧的并排队
             if (_isLoadingFiles)
             {
-                System.Diagnostics.Debug.WriteLine($"[FileListViewModel] Already loading, queuing pending path: {path}");
+
                 _pendingPath = path;
                 _loadFilesPending = true;
 
@@ -238,13 +240,13 @@ namespace YiboFile.ViewModels
                 // 获取信号量锁，防止并发重入 (加上合理的等待时间)
                 if (!await _loadFilesSemaphore.WaitAsync(5000))
                 {
-                    System.Diagnostics.Debug.WriteLine($"[FileListViewModel] Failed to acquire load semaphore within 5s for {path}. Skipping.");
+
                     return;
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine($"[FileListViewModel] Semaphore wait error: {ex.Message}");
+
                 return;
             }
 
@@ -258,7 +260,7 @@ namespace YiboFile.ViewModels
                 var cancellationToken = _loadCancellationTokenSource.Token;
 
                 _currentPath = path;
-                // System.Diagnostics.Debug.WriteLine($"[FileListViewModel] Starting load for: {path}");
+
 
                 // Check for virtual protocols to bypass Directory.Exists check
                 var protocol = ProtocolManager.Parse(path);
@@ -266,7 +268,7 @@ namespace YiboFile.ViewModels
 
                 if (string.IsNullOrEmpty(path) || (!isVirtual && !Directory.Exists(path)))
                 {
-                    // System.Diagnostics.Debug.WriteLine($"[FileListViewModel] Path Empty or Not Exists (Local). Clearing files.");
+
                     await _dispatcher.InvokeAsync(() =>
                     {
                         Files.Clear();
@@ -285,7 +287,9 @@ namespace YiboFile.ViewModels
                     null,
                     cancellationToken);
 
-                // System.Diagnostics.Debug.WriteLine($"[FileListViewModel] Files loaded. Count: {files?.Count ?? 0}");
+                System.Diagnostics.Debug.WriteLine($"[FileListDebug] [{_paneId}] Loaded {files?.Count ?? 0} items from {path}");
+
+
                 var sortedFiles = ApplySorting(files);
 
                 // 设置集合，确保在 UI 线程执行
@@ -305,13 +309,16 @@ namespace YiboFile.ViewModels
                     await _dispatcher.InvokeAsync(() => SetupFileWatcher(_currentPath), DispatcherPriority.Background);
                 }
             }
+            catch (TaskCanceledException)
+            {
+                // Ignore cancellation
+            }
             catch (OperationCanceledException)
             {
-                System.Diagnostics.Debug.WriteLine($"[FileListViewModel] LoadPathAsync Canceled for: {path}");
+                // Ignore cancellation
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[FileListViewModel] LoadPathAsync Failed: {ex}");
                 await _dispatcher.BeginInvoke(new Action(() =>
                 {
                     YiboFile.DialogService.Error($"加载文件列表失败: {ex.Message}");
@@ -342,6 +349,9 @@ namespace YiboFile.ViewModels
         /// </summary>
         public void SetFiles(IEnumerable<FileSystemItem> files)
         {
+            int count = files?.Count() ?? 0;
+            System.Diagnostics.Debug.WriteLine($"[FileListDebug] [{_paneId}] SetFiles called with {count} items.");
+
             CancelOngoingOperations();
             _loadFilesPending = false;
             _pendingPath = null;
@@ -368,7 +378,7 @@ namespace YiboFile.ViewModels
         /// </summary>
         public void RefreshFiles()
         {
-            // System.Diagnostics.Debug.WriteLine($"[FileListViewModel] RefreshFiles called. CurrentPath: {_currentPath}");
+
 
             var targetPath = _currentPath;
             if (string.IsNullOrEmpty(targetPath))

@@ -188,9 +188,9 @@ namespace YiboFile.Services.FileList
                 {
                     DatabaseManager.SetFolderSize(item.Path, size);
                 }
-                catch (Exception dbEx)
+                catch (Exception)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[FolderSizeCalculator] DB Update Failed: {dbEx.Message}");
+
                 }
 
                 var displaySize = formatFileSize(size);

@@ -75,6 +75,7 @@ namespace YiboFile.ViewModels
                 if (_currentPath != value)
                 {
                     _currentPath = value;
+                    System.Diagnostics.Debug.WriteLine($"[PaneDebug] [{MyPaneId}] CurrentPath updated to: {value}");
                     OnPropertyChanged(nameof(CurrentPath));
 
                     // Update NavigationMode and clear context based on protocol
@@ -161,6 +162,7 @@ namespace YiboFile.ViewModels
                 {
                     _fileViewMode = value;
                     OnPropertyChanged(nameof(FileViewMode));
+                    OnPropertyChanged(nameof(ViewModeIcon));
 
                     // Persist the change
                     ConfigurationService.Instance.Set(cfg => cfg.FileViewMode, value);
@@ -225,6 +227,26 @@ namespace YiboFile.ViewModels
         public ObservableCollection<ContextMenuItemViewModel> FavoriteMenuItems => Menu?.FavoriteMenuItems;
         public ObservableCollection<ContextMenuItemViewModel> TagMenuItems => Menu?.TagMenuItems;
 
+        public bool IsAddressReadOnly => false;
+        public bool IsPropertiesButtonVisible => true;
+
+        public string ViewModeIcon
+        {
+            get
+            {
+                return FileViewMode switch
+                {
+                    "List" => "\uE8C6",       // ViewList
+                    "Compact" => "\uF0E2",    // ViewCompact
+                    "Thumbnail" => "\uE8B9",  // ViewThumbnails
+                    "Tiles" => "\uE8CA",      // ViewTiles
+                    "SmallIcons" => "\uE80A", // ViewSmallIcons
+                    "Content" => "\uE8C4",    // ViewContent
+                    _ => "\uE8C6"
+                };
+            }
+        }
+
         #endregion
 
         #region Constructor
@@ -268,6 +290,7 @@ namespace YiboFile.ViewModels
 
             // New Navigation Handling
             _messageBus.Subscribe<NavigationCompleteMessage>(OnNavigationComplete);
+            _messageBus.Subscribe<Messaging.Messages.RestoreNavigationStateMessage>(OnRestoreNavigationState);
 
             _searchFilterService = App.ServiceProvider?.GetService<SearchFilterService>();
             var errorService = App.ServiceProvider?.GetService<ErrorService>();
@@ -322,9 +345,10 @@ namespace YiboFile.ViewModels
 
         private void RequestRefresh()
         {
+            System.Diagnostics.Debug.WriteLine($"[PaneDebug] [{MyPaneId}] RequestRefresh called. Path={CurrentPath}, Mode={NavigationMode}");
             if (string.IsNullOrEmpty(CurrentPath)) return;
             if (NavigationMode == "Library" && CurrentLibrary != null) LoadLibraryAsync(CurrentLibrary);
-            else if (NavigationMode == "Tag" && CurrentTag != null) LoadTagAsync(CurrentTag.Id.ToString());
+            else if (NavigationMode == "Tag") LoadTagAsync(CurrentPath);
             else LoadPathAsync(CurrentPath);
         }
 
@@ -338,24 +362,72 @@ namespace YiboFile.ViewModels
         private async void LoadPathAsync(string path)
         {
             if (string.IsNullOrEmpty(path)) return;
-            if (FileList != null) await FileList.LoadPathAsync(path);
-            Menu?.UpdateDynamicMenuItems();
+            try
+            {
+                if (FileList != null) await FileList.LoadPathAsync(path);
+                Menu?.UpdateDynamicMenuItems();
+            }
+            catch (TaskCanceledException)
+            {
+                // Ignore cancellation
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[PaneViewModel] LoadPathAsync error: {ex.Message}");
+            }
         }
 
         private void LoadLibraryAsync(Library lib)
         {
             if (IsLoading || lib == null) return;
             if (_libraryService == null) return;
+            System.Diagnostics.Debug.WriteLine($"[PaneDebug] [{MyPaneId}] Loading Library: {lib.Name}");
 
             IsLoading = true;
             StatusText = "加载库数据...";
             _libraryService.LoadLibraryFiles(lib, targetPane: _isSecondary ? PaneId.Second : PaneId.Main);
         }
 
-        private async void LoadTagAsync(string tagIdOrName)
+        private async void LoadTagAsync(string pathOrInfo)
         {
-            if (string.IsNullOrEmpty(tagIdOrName)) return;
-            if (FileList != null) await FileList.LoadPathAsync($"tag://{tagIdOrName}");
+            if (string.IsNullOrEmpty(pathOrInfo)) return;
+            System.Diagnostics.Debug.WriteLine($"[PaneDebug] [{MyPaneId}] Loading Tag: {pathOrInfo}");
+
+            // Fix BUG-018: Ensure context is set for Tags
+            string identifier = pathOrInfo;
+            if (pathOrInfo.StartsWith("tag://"))
+                identifier = pathOrInfo.Substring(6);
+
+            // Resolve CurrentTag if context is missing or mismatch
+            if (CurrentTag == null || (CurrentTag.Name != identifier && CurrentTag.Id.ToString() != identifier))
+            {
+                if (_tagService != null)
+                {
+                    try
+                    {
+                        var tags = await _tagService.GetAllTagsAsync();
+                        var match = tags.FirstOrDefault(t => t.Name == identifier || t.Id.ToString() == identifier);
+                        if (match != null)
+                        {
+                            CurrentTag = new TagViewModel
+                            {
+                                Id = match.Id,
+                                Name = match.Name,
+                                Color = match.Color
+                            };
+                        }
+                    }
+                    catch (Exception)
+                    {
+
+                    }
+                }
+            }
+
+            // Ensure path has protocol
+            string fullPath = pathOrInfo.StartsWith("tag://") ? pathOrInfo : $"tag://{pathOrInfo}";
+
+            if (FileList != null) await FileList.LoadPathAsync(fullPath);
             Menu?.UpdateDynamicMenuItems();
         }
 
@@ -418,11 +490,13 @@ namespace YiboFile.ViewModels
         {
             if (msg.Library != null)
             {
-                if (msg.Pane == null || msg.Pane == (_isSecondary ? PaneId.Second : PaneId.Main))
-                {
-                    // Use NavigateTo (which sends message)
-                    NavigateTo($"lib://{msg.Library.Name}");
-                }
+                // Fix BUG-019: Prevent simultaneous navigation by checking target pane
+                // If pane is specified, match it. If null, only active pane should respond.
+                if (msg.Pane != null && msg.Pane != MyPaneId) return;
+                if (msg.Pane == null && !IsActive) return;
+
+                // Use NavigateTo (which sends message)
+                NavigateTo($"lib://{msg.Library.Name}");
             }
         }
 
@@ -448,16 +522,35 @@ namespace YiboFile.ViewModels
         {
             if (msg.Pane == MyPaneId)
             {
-                // Update Path properties - use backing field to avoid logic loops unless setter is safe?
-                // Setter calls RequestRefresh() and updates NavigationMode. This IS required regardless of source.
-                // So we use setter.
-                // The setter logic I updated: it NO LONGER publishes PathChangedMessage or Updates History.
-                // It ONLY updates local state and refreshes. This is SAFE.
+                System.Diagnostics.Debug.WriteLine($"[PaneDebug] [{MyPaneId}] OnNavigationComplete: {msg.Path}");
                 CurrentPath = msg.Path;
 
                 OnPropertyChanged(nameof(CanNavigateBack));
                 OnPropertyChanged(nameof(CanNavigateForward));
-                // Also update BackStack/ForwardStack if bound
+                OnPropertyChanged(nameof(BackStack));
+                OnPropertyChanged(nameof(ForwardStack));
+
+                Commands?.NotifyCommandStatesChanged();
+            }
+        }
+
+        /// <summary>
+        /// 处理标签页切换时的导航状态恢复
+        /// 由 TabsModule.OnActiveTabChanged 发布，用于在切换 Tab 时重新加载对应路径的文件列表
+        /// </summary>
+        private void OnRestoreNavigationState(Messaging.Messages.RestoreNavigationStateMessage msg)
+        {
+            if (msg.Pane == MyPaneId)
+            {
+                System.Diagnostics.Debug.WriteLine($"[PaneDebug] [{MyPaneId}] OnRestoreNavigationState: {msg.Path}");
+                // 仅在路径变化时才刷新，避免切换回当前 Tab 时重复加载
+                if (!string.Equals(CurrentPath, msg.Path, System.StringComparison.OrdinalIgnoreCase))
+                {
+                    CurrentPath = msg.Path;
+                }
+
+                OnPropertyChanged(nameof(CanNavigateBack));
+                OnPropertyChanged(nameof(CanNavigateForward));
                 OnPropertyChanged(nameof(BackStack));
                 OnPropertyChanged(nameof(ForwardStack));
 
@@ -469,6 +562,7 @@ namespace YiboFile.ViewModels
         {
             if (msg.TargetPane == (_isSecondary ? PaneId.Second : PaneId.Main))
             {
+                System.Diagnostics.Debug.WriteLine($"[PaneDebug] [{MyPaneId}] Library files loaded: {msg.Files?.Count} items.");
                 FileList?.UpdateFiles(msg.Files);
                 _dispatcher.Invoke(() =>
                 {

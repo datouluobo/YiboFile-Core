@@ -77,7 +77,7 @@ namespace YiboFile.Services.FileList
 
                 _watchedPath = path;
 
-                if (string.IsNullOrEmpty(path) || !Directory.Exists(path))
+                if (string.IsNullOrEmpty(path) || YiboFile.Services.Core.ProtocolManager.IsVirtual(path) || !Directory.Exists(path))
                 {
                     return;
                 }

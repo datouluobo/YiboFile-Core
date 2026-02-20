@@ -71,11 +71,11 @@ namespace YiboFile.ViewModels.Modules
             {
                 _isSwitchingTab = true;
 
-                System.Diagnostics.Debug.WriteLine($"[NAV-DEBUG] TabsModule ({pane}): Active tab changed to '{(tab.Title ?? "Untitled")}' with path '{(tab.Path ?? "null")}'. Suppressing={_isSuppressingNavigation}");
+
 
                 if (!_isSuppressingNavigation && !string.IsNullOrEmpty(tab.Path))
                 {
-                    System.Diagnostics.Debug.WriteLine($"[NAV-DEBUG] TabsModule ({pane}): Publishing RestoreNavigationStateMessage for '{tab.Path}'");
+
                     Publish(new RestoreNavigationStateMessage(
                         tab.Path,
                         tab.BackStack,

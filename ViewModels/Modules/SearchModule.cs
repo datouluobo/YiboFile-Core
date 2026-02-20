@@ -94,9 +94,9 @@ namespace YiboFile.ViewModels.Modules
                     await PerformFileSearch(normalizedKeyword, message.SearchNames, message.SearchNotes, message.TargetPaneId, message.Options);
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Debug.WriteLine($"[SearchModule] Search failed: {ex.Message}");
+
             }
             finally
             {

@@ -159,9 +159,9 @@ namespace YiboFile.ViewModels
                     });
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine($"[LoadMore] Error: {ex.Message}");
+
             }
             finally
             {

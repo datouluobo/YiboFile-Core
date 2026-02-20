@@ -84,7 +84,7 @@ namespace YiboFile.ViewModels.Previews
                     {
                         items.Add(new FolderItemViewModel { Name = "Error loading content", Icon = "⚠️" });
                     }
-                                                 
+
                     if (token.IsCancellationRequested) return;
 
                     Application.Current.Dispatcher.Invoke(() =>
@@ -94,9 +94,9 @@ namespace YiboFile.ViewModels.Previews
                     });
                 }, token);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine($"Folder preview error: {ex.Message}");
+
                 Title = "Error loading folder";
             }
             finally

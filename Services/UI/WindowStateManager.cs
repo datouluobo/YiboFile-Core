@@ -412,11 +412,6 @@ namespace YiboFile.Services
         }
 
         /// <summary>
-        /// 保存标签页状态（所有打开的标签页和活动标签页）
-        /// 注意：不再在此处检查 _isTabsRestored，由调用方 SaveAllState 控制时机。
-        /// 内部通过 tabs.Count > 0 防护，确保空标签页列表不会覆盖有效的配置数据。
-        /// </summary>
-        /// <summary>
         /// 保存标签页状态到目标配置
         /// </summary>
         private void SaveTabsStateTo(AppConfig targetConfig)
@@ -426,7 +421,6 @@ namespace YiboFile.Services
                 var (tabs, activeKey) = GetTabsState(_tabService);
 
                 // 防护：如果当前没有标签页但配置中有，说明还没恢复完成，不覆盖
-                // 注意：这里我们比较 targetConfig.OpenTabs，它是最新的配置状态
                 if (tabs.Count > 0 || targetConfig.OpenTabs == null || targetConfig.OpenTabs.Count == 0)
                 {
                     targetConfig.OpenTabs = tabs;
@@ -480,7 +474,10 @@ namespace YiboFile.Services
                 case TabType.Path:
                     return "path:" + (tab.Path ?? string.Empty);
                 case TabType.Library:
-                    return "library:" + (tab.Library?.Id.ToString() ?? "");
+                    // 优先使用 ID，如果没有 ID（如通过路径直接输入的库）则回退到 path:lib:// 格式
+                    if (tab.Library != null && tab.Library.Id > 0)
+                        return "library:" + tab.Library.Id;
+                    return "path:" + (tab.Path ?? string.Empty);
 
                 default:
                     return "unknown:" + (tab.Title ?? "");
@@ -706,9 +703,11 @@ namespace YiboFile.Services
                     service.SwitchToTab(firstTab);
                 }
             }
-            else
+
+            // 如果上述恢复过程未能创建任何标签页（可能是 openTabs 为空，或者是所有标签页都恢复失败），
+            // 则创建一个默认的桌面标签页，确保且不为空。
+            if (service.Tabs == null || service.Tabs.Count == 0)
             {
-                // 如果没有保存的标签页，创建默认标签页
                 var desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
                 if (Directory.Exists(desktopPath))
                 {
@@ -747,9 +746,9 @@ namespace YiboFile.Services
                     {
                         service.CreatePathTab(path, true, skipValidation: true, activate: false);
                     }
-                    else if (path.StartsWith("tag://"))
+                    else if (path.StartsWith("tag://") || path.StartsWith("lib://"))
                     {
-                        // 增加对 tag:// 协议的支持
+                        // 增加对 tag:// 和 lib:// 协议的支持
                         service.CreatePathTab(path, true, skipValidation: true, activate: false);
                     }
                     else if (System.IO.Path.IsPathRooted(path) || (path.Length >= 2 && path[1] == ':'))

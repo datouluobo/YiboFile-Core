@@ -85,7 +85,7 @@ namespace YiboFile.ViewModels.Modules
 
         private async void OnCreateFolder(CreateFolderRequestMessage message)
         {
-            System.Diagnostics.Debug.WriteLine($"[FileOperationModule] Creating folder. Parent: {message.ParentPath}, Name: {message.FolderName}");
+
             string path = await _fileOperationService.CreateFolderAsync(message.ParentPath, message.FolderName);
             bool success = !string.IsNullOrEmpty(path);
 
@@ -93,14 +93,14 @@ namespace YiboFile.ViewModels.Modules
 
             if (success)
             {
-                System.Diagnostics.Debug.WriteLine($"[FileOperationModule] Folder created. Publishing RefreshFileListMessage for: {message.ParentPath}");
+
                 Publish(new RefreshFileListMessage(message.ParentPath));
             }
         }
 
         private async void OnCreateFile(CreateFileRequestMessage message)
         {
-            System.Diagnostics.Debug.WriteLine($"[FileOperationModule] Creating file. Parent: {message.ParentPath}, Name: {message.FileName}, Ext: {message.Extension}");
+
             string path = await _fileOperationService.CreateFileAsync(message.ParentPath, message.FileName, message.Extension);
             bool success = !string.IsNullOrEmpty(path);
 
@@ -108,7 +108,7 @@ namespace YiboFile.ViewModels.Modules
 
             if (success)
             {
-                System.Diagnostics.Debug.WriteLine($"[FileOperationModule] File created. Publishing RefreshFileListMessage for: {message.ParentPath}");
+
                 Publish(new RefreshFileListMessage(message.ParentPath));
             }
         }
@@ -382,7 +382,7 @@ namespace YiboFile.ViewModels.Modules
         {
             if (pane != null)
             {
-                System.Diagnostics.Debug.WriteLine($"[FileOperationModule] ExecuteNewFolder. Mode: {pane.NavigationMode}, Path: {pane.CurrentPath}, Lib: {pane.CurrentLibrary?.Name}");
+
 
                 string targetPath = pane.CurrentPath;
                 if (pane.NavigationMode == "Library" && pane.CurrentLibrary != null)
@@ -395,7 +395,7 @@ namespace YiboFile.ViewModels.Modules
                     if (libPaths != null && libPaths.Count > 0)
                     {
                         targetPath = libPaths.FirstOrDefault(p => System.IO.Directory.Exists(p));
-                        System.Diagnostics.Debug.WriteLine($"[FileOperationModule] Resolved Library path to: {targetPath}");
+
                     }
                 }
 
@@ -405,7 +405,7 @@ namespace YiboFile.ViewModels.Modules
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine("[FileOperationModule] Cannot create folder: Target path is empty.");
+
                 }
             }
         }

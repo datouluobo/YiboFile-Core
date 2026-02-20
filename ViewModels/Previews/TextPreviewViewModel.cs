@@ -82,7 +82,7 @@ namespace YiboFile.ViewModels.Previews
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Text preview error: {ex.Message}");
+
                 Content = $"Error loading file: {ex.Message}";
             }
             finally
@@ -99,9 +99,9 @@ namespace YiboFile.ViewModels.Previews
                 await File.WriteAllTextAsync(FilePath, Content, Encoding);
                 IsEditMode = false;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine($"Save error: {ex.Message}");
+
             }
         }
     }

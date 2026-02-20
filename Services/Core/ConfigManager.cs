@@ -352,15 +352,6 @@ namespace YiboFile
                     var cfg = JsonSerializer.Deserialize<AppConfig>(json, options);
                     if (cfg != null)
                     {
-                        // Debug Logging
-                        try
-                        {
-                            string msg = $"{DateTime.Now:O} [ConfigManager.LoadLegacy] Loaded IsMaximized={cfg.IsMaximized}, W={cfg.WindowWidth}";
-                            System.Diagnostics.Debug.WriteLine(msg);
-                            File.AppendAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "window_debug.log"), msg + "\n");
-                        }
-                        catch { }
-
                         // 迁移配置：清理旧字段，确保新字段有值
                         MigrateConfig(cfg);
                         return cfg;
@@ -447,15 +438,6 @@ namespace YiboFile
             {
                 if (config == null) return;
 
-                // Debug Logging
-                try
-                {
-                    string msg = $"{DateTime.Now:O} [ConfigManager.Save] IsMaximized={config.IsMaximized}, W={config.WindowWidth}, H={config.WindowHeight}";
-                    System.Diagnostics.Debug.WriteLine(msg);
-                    File.AppendAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "window_debug.log"), msg + "\n");
-                }
-                catch { }
-
                 // Delegate to ConfigurationService (New System)
                 try
                 {
@@ -466,9 +448,9 @@ namespace YiboFile
                         return; // Successfully handled by new system
                     }
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[ConfigManager.Save] Delegation failed: {ex.Message}");
+
                 }
 
                 // Legacy Fallback (should rarely be reached)
@@ -487,13 +469,6 @@ namespace YiboFile
             }
             catch (Exception ex)
             {
-                // Debug Logging
-                try
-                {
-                    File.AppendAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "window_debug.log"),
-                        $"{DateTime.Now:O} [ConfigManager.Save] EXCEPTION: {ex.Message}\n");
-                }
-                catch { }
                 // ignore disk errors for now
             }
         }

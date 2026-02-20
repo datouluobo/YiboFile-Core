@@ -32,12 +32,11 @@ namespace YiboFile.Handlers
 
         private static void LogDebug(string msg)
         {
+            // Debug logging disabled for production/cleanliness
             try
             {
                 string fullMsg = $"{DateTime.Now:O} [WindowLifecycleHandler] {msg}";
-                System.Diagnostics.Debug.WriteLine(fullMsg);
-                System.IO.File.AppendAllText(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "window_debug.log"),
-                    fullMsg + "\n");
+                System.IO.File.AppendAllText(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "window_debug.log"), fullMsg + "\n");
             }
             catch { }
         }
@@ -47,35 +46,22 @@ namespace YiboFile.Handlers
             // 窗口关闭前统一保存所有状态（窗口大小/位置、分割线、导航、标签页）
             try
             {
-                LogDebug($"HandleClosing Entry: WindowState={_mainWindow.WindowState}");
-
-                // 1. 显式保存最大化状态 (Bypassing potential issues in WindowStateManager)
+                // 1. 显式保存最大化状态
                 bool isMaximized = _mainWindow.WindowState == WindowState.Maximized;
-                LogDebug($"Updating Config IsMaximized={isMaximized}");
                 YiboFile.Services.Config.ConfigurationService.Instance.Update(c => c.IsMaximized = isMaximized);
 
-                // 2. 保存窗口其他状态 (SaveAllState calls ConfigurationService.Update internally)
-                // 使用 force: true 确保在程序关闭时强制保存，即使初始化未完成
-                LogDebug("Calling SaveAllState(force: true)");
+                // 2. 保存窗口其他状态（force: true 确保在程序关闭时强制保存）
                 _windowStateManager?.SaveAllState(force: true);
 
-                // 3. 强制保存到磁盘 (SaveNow)
-                LogDebug("Calling SaveNow()");
+                // 3. 强制保存到磁盘
                 YiboFile.Services.Config.ConfigurationService.Instance.SaveNow();
 
-                // 执行备份清理（程序退出循环）
-
+                // 4. 执行备份清理
                 YiboFile.Services.FileOperations.Undo.BackupCleanupService.Cleanup();
-
-                // 🔥 BUG FIX: 不要调用SaveCurrentConfig！
-                // ConfigService保存的是启动时加载的旧_config，会覆盖ConfigurationService刚保存的新配置！
-                // ConfigurationService和WindowStateManager已经负责保存所有设置，不需要重复保存
-                // _configService?.SaveCurrentConfig();  // ❌ 注释掉，避免覆盖
             }
             catch (Exception ex)
             {
                 LogDebug($"HandleClosing Exception: {ex.Message}");
-                // 关闭阶段不再向外抛异常，避免影响程序退出
             }
         }
 

@@ -46,14 +46,14 @@ namespace YiboFile.ViewModels.Modules
                 // 我们拒绝接受任何非空的赋值。这能彻底封杀 WPF ListBox 的自动选择行为。
                 if (value != null && (_isSilentUpdate || _isModeChanging || _isInitialLoad || !_isUserInitiated))
                 {
-                    System.Diagnostics.Debug.WriteLine($"[NAV-DEBUG] LibraryModule: Rejected automated/silent selection of '{value.Name}'. UserInitiated={_isUserInitiated}, ModeChanging={_isModeChanging}, InitialLoad={_isInitialLoad}");
+
                     // 拒绝赋值，直接返回。不触发 SetProperty，也不触发 NotifyPropertyChanged
                     return;
                 }
 
                 if (SetProperty(ref _selectedLibrary, value))
                 {
-                    System.Diagnostics.Debug.WriteLine($"[NAV-DEBUG] LibraryModule: SelectedLibrary changed to '{(value?.Name ?? "null")}'. UserInitiated={_isUserInitiated}");
+
                     OnLibrarySelected(value);
                 }
             }

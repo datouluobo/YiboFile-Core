@@ -295,25 +295,24 @@ namespace YiboFile
         {
             try
             {
-                string msg = $"{DateTime.Now:O} [MainWindow.Constructor] Start";
-                System.Diagnostics.Debug.WriteLine(msg);
-                System.IO.File.AppendAllText(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "window_debug.log"), msg + "\n");
+                // string msg = $"{DateTime.Now:O} [MainWindow.Constructor] Start";
+                // System.Diagnostics.Debug.WriteLine(msg);
             }
             catch { }
 
-            try { System.IO.File.AppendAllText(@"f:\Download\GitHub\YiboFile\YiboFile-Core\debug_log.txt", $"[MainWindow] Constructor called at {DateTime.Now}\n"); } catch { }
             InitializeComponent();
-            this.Title += " [FIXED]";
+            // this.Title += " [FIXED]";
 
+            // 🔧 关键修复：绑定窗口关闭事件，确保退出时保存状态（标签页、窗口大小等）
+            this.Closing += Window_Closing;
             // 订阅渲染完成事件，确保在窗口初次显示时强制修正布局
             // 这对于解决启动时右侧空白间隙至关重要，因为此时 ActualWidth 才有效
             this.ContentRendered += (s, e) =>
             {
                 try
                 {
-                    string msg = $"{DateTime.Now:O} [MainWindow.ContentRendered] WindowState={this.WindowState}, Config.IsMaximized={ConfigurationService.Instance.Config?.IsMaximized}";
-                    System.Diagnostics.Debug.WriteLine(msg);
-                    System.IO.File.AppendAllText(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "window_debug.log"), msg + "\n");
+                    // string msg = $"{DateTime.Now:O} [MainWindow.ContentRendered] WindowState={this.WindowState}, Config.IsMaximized={ConfigurationService.Instance.Config?.IsMaximized}";
+                    // System.Diagnostics.Debug.WriteLine(msg);
                 }
                 catch { }
 
@@ -324,9 +323,8 @@ namespace YiboFile
                 {
                     try
                     {
-                        string msg = $"{DateTime.Now:O} [MainWindow.ContentRendered] Forcing Maximize";
-                        System.Diagnostics.Debug.WriteLine(msg);
-                        System.IO.File.AppendAllText(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "window_debug.log"), msg + "\n");
+                        // string msg = $"{DateTime.Now:O} [MainWindow.ContentRendered] Forcing Maximize";
+                        // System.Diagnostics.Debug.WriteLine(msg);
                     }
                     catch { }
 
@@ -338,9 +336,8 @@ namespace YiboFile
                 YiboFile.Services.Config.ConfigurationService.Instance.EnableSaving();
                 try
                 {
-                    string msg = $"{DateTime.Now:O} [MainWindow.ContentRendered] Configuration Saving Enabled";
-                    System.Diagnostics.Debug.WriteLine(msg);
-                    System.IO.File.AppendAllText(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "window_debug.log"), msg + "\n");
+                    // string msg = $"{DateTime.Now:O} [MainWindow.ContentRendered] Configuration Saving Enabled";
+                    // System.Diagnostics.Debug.WriteLine(msg);
                 }
                 catch { }
             };
@@ -410,6 +407,8 @@ namespace YiboFile
         public void UpdateWindowStateUI() => _orchestrator.LifecycleHandler?.UpdateWindowStateUI();
         internal void UpdateActionButtonsPosition() { /* Layout handled automatically */ }
         internal void UpdateSeparatorPosition() { /* Layout handled automatically */ }
+
+
 
         private void SettingsOverlay_MouseDown(object sender, MouseButtonEventArgs e)
         {

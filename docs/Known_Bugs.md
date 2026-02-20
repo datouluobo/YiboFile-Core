@@ -1,6 +1,6 @@
 # YiboFile 已知 Bug 清单
 
-> **更新日期**: 2026-02-19 | **版本**: v1.0.1530
+> **更新日期**: 2026-02-20 | **版本**: v1.1.0
 
 ---
 
@@ -8,8 +8,8 @@
 
 | ID | 模块 | 描述 | 根因分析 | 修复策略 |
 |----|------|------|----------|----------|
-| **BUG-001** | AddressBar | 副地址栏库标识错误（显示 `path` 而非 `lib`） | `AddressBarControl` 未正确绑定到 `PaneViewModel.NavigationMode` | 检查 SecondFileBrowser 的 DataContext 绑定 |
-| **BUG-003** | Library | 副面板库路径识别失败 | `FileOperationModule` 未正确解析 `lib://` 协议 | 在 Module 中增加协议解析逻辑 |
+| ID | 模块 | 描述 | 根因分析 | 修复策略 |
+|----|------|------|----------|----------|
 
 ---
 
@@ -17,6 +17,8 @@
 
 | ID | 模块 | 描述 | 修复版本 | 修复说明 |
 |----|------|------|----------|----------|
+| **BUG-001** | AddressBar | 副地址栏库标识错误（显示 `path` 而非 `lib`） | v1.1.0 | 修正 `SecondFileBrowser` 数据上下文绑定与 `NavigationMode` 同步逻辑 |
+| **BUG-003** | Library | 副面板库路径识别失败 | v1.1.0 | 在 `NavigationCoordinator` 中完善了对副面板 `lib://` 协议的路由解析 |
 | **BUG-002** | Pane | 副面板刷新与操作混乱 | v1.0.1509 | 更新 FileOperationHandler 使用 ActivePane |
 | **BUG-007** | Sorting | 文件名排序导致列表变空 | v1.0.1509 | 启用 CollectionSynchronization |
 | **BUG-008** | Header | 列头点击误触发双击响应 | — | 在 `GridViewColumnHeader_Click` 中设置 `e.Handled = true` |
@@ -30,3 +32,4 @@
 | **BUG-022** | FileList | 文件列表显示视图模式切换有问题 | v1.0.1530 | 完善 PaneViewModel 持久化与 ViewModeHelper 刷新逻辑 |
 | **BUG-014** | Window | 窗口状态持久化问题：标签页无法记忆 | v1.0.1530+ | 重构 `SaveAllState` 为事务性更新，增加空列表防护机制 |
 | **BUG-023** | Window | 标签页持久化系列的自赋值与引用问题 | v1.0.1530+ | 重写 `WindowStateManager`，使用 `ConfigurationService.Update` 和 `Save...To` 模式消除不安全访问 |
+| **BUG-024** | Library | 库标签页（Library Tab）重启后无法恢复 | v1.1.0 | 在 `NavigationCoordinator` 中同步 `Library` 对象到 `PathTab` 模型，并增强 `WindowStateManager` 的键值解析与恢复逻辑 |

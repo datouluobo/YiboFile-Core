@@ -293,7 +293,7 @@ namespace YiboFile.Services.Search
                     notesResultPaths,
                     nameResultPaths);
 
-                Debug.WriteLine($"搜索完成，共找到 {results.Count} 个结果");
+
 
                 var searchResult = new SearchResult
                 {
@@ -321,21 +321,21 @@ namespace YiboFile.Services.Search
                         searchOptions.Type,
                         searchOptions.PathRange);
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
-                    Debug.WriteLine($"搜索结果写入缓存失败: {ex.Message}");
+
                 }
 
                 return searchResult;
             }
             catch (OperationCanceledException)
             {
-                Debug.WriteLine("搜索已取消");
+
                 return new SearchResult { Keyword = normalizedKeyword };
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Debug.WriteLine($"搜索时发生错误: {ex.Message}");
+
                 throw;
             }
         }

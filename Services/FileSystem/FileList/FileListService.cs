@@ -219,12 +219,12 @@ namespace YiboFile.Services.FileList
                 }
                 catch (UnauthorizedAccessException ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[FileListService] 路径被拒绝: {path} ({ex.Message}). Skip.");
+
                     _errorService.ReportError($"路径被拒绝: {path} ({ex.Message})", YiboFile.Services.Core.Error.ErrorSeverity.Warning, ex);
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[FileListService] Error loading path {path} in multiple load: {ex.Message}");
+
                 }
             }
 
@@ -307,11 +307,11 @@ namespace YiboFile.Services.FileList
             bool resetOngoingOperations = true,
             bool skipBackgroundTasks = false)
         {
-            System.Diagnostics.Debug.WriteLine($"[FileListService] LoadFileSystemItemsAsync called for: {path}");
+
 
             // 拦截搜索路径，防止 Directory.GetDirectories 抛出异常
             var protocolInfo = ProtocolManager.Parse(path);
-            System.Diagnostics.Debug.WriteLine($"[FileListService] Protocol parsed: Type={protocolInfo.Type}, Target={protocolInfo.TargetPath}");
+
 
             if (protocolInfo.Type == ProtocolType.Search ||
                 protocolInfo.Type == ProtocolType.ContentSearch)

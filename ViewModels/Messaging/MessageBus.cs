@@ -66,7 +66,7 @@ namespace YiboFile.ViewModels.Messaging
                 _recursionDepth.Value++;
                 if (_recursionDepth.Value > 20)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[MessageBus] Recursion detected for message: {typeof(TMessage).Name}. Depth: {_recursionDepth.Value}");
+
                     // Break the loop
                     return;
                 }
@@ -96,9 +96,9 @@ namespace YiboFile.ViewModels.Messaging
                             _dispatcher.BeginInvoke(action, message);
                         }
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[MessageBus] Error: {ex.Message}");
+
                     }
                 }
             }

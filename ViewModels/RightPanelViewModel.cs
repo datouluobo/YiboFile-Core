@@ -79,7 +79,7 @@ namespace YiboFile.ViewModels
         private void NotifyVisibilityChanged()
         {
             OnPropertyChanged(nameof(EffectiveVisibility));
-            System.Diagnostics.Debug.WriteLine($"[RightPanelViewModel] EffectiveVisibility: {EffectiveVisibility} (Visible={IsVisible}, Layout={IsLayoutVisible}, Main={IsMainLayoutVisible}, Dual={IsDualListActive})");
+
         }
 
         private double _notesHeight;
@@ -136,7 +136,7 @@ namespace YiboFile.ViewModels
 
             _messageBus.Subscribe<FileSelectionChangedMessage>(m =>
             {
-                System.Diagnostics.Debug.WriteLine($"[RightPanelViewModel] Received FileSelectionChangedMessage. Items: {m.SelectedItems?.Count}, RequestPreview: {m.RequestPreview}");
+
 
                 // 确保 UI 状态更新在调度器线程执行
                 System.Windows.Application.Current.Dispatcher.BeginInvoke(new Action(() =>
@@ -144,7 +144,7 @@ namespace YiboFile.ViewModels
                     if (m.SelectedItems?.Count > 0)
                     {
                         SelectedItem = m.SelectedItems[0] as FileSystemItem;
-                        System.Diagnostics.Debug.WriteLine($"[RightPanelViewModel] SelectedItem check: Path={SelectedItem?.Path}, RequestPreview={m.RequestPreview}");
+
 
                         if (m.RequestPreview)
                         {
@@ -152,13 +152,13 @@ namespace YiboFile.ViewModels
                         }
                         else
                         {
-                            System.Diagnostics.Debug.WriteLine("[RightPanelViewModel] RequestPreview is false. Clearing ActivePreview.");
+
                             ActivePreview = null;
                         }
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine("[RightPanelViewModel] No items selected. Clearing SelectedItem and ActivePreview.");
+
                         SelectedItem = null;
                         ActivePreview = null;
                     }
@@ -201,7 +201,7 @@ namespace YiboFile.ViewModels
 
         private void UpdatePreview(string path)
         {
-            System.Diagnostics.Debug.WriteLine($"[RightPanelViewModel] UpdatePreview called for: '{path}'");
+
 
             // Immediate clear if path is null
             if (string.IsNullOrEmpty(path))
@@ -224,7 +224,7 @@ namespace YiboFile.ViewModels
             var path = _pendingPreviewPath;
             if (!string.IsNullOrEmpty(path))
             {
-                System.Diagnostics.Debug.WriteLine($"[RightPanelViewModel] Debounce Elapsed. Publishing PreviewRequest for: '{path}'");
+
                 _messageBus.Publish(new PreviewRequestMessage(path));
             }
         }

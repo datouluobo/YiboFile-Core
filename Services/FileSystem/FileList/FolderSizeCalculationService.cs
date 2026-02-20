@@ -550,12 +550,12 @@ namespace YiboFile.Services.FileList
 
                     if (cleanedCount > 0)
                     {
-                        Debug.WriteLine($"启动时清理了 {cleanedCount} 条不存在的文件夹大小缓存");
+
                     }
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
-                    Debug.WriteLine($"清理文件夹大小缓存失败: {ex.Message}");
+
                 }
             });
         }

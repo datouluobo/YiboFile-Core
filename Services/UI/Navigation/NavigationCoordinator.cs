@@ -57,7 +57,7 @@ namespace YiboFile.Services.Navigation
             var tabService = request.Pane == PaneId.Second ? _secondTabService : _mainTabService;
             if (tabService == null) return;
 
-            System.Diagnostics.Debug.WriteLine($"[NAV-DEBUG] NavigationCoordinator: NavigateAsync called. Type={request.Target.Type}, Pane={request.Pane}, Path='{request.Target.Path}'");
+            System.Diagnostics.Debug.WriteLine($"[NAV-DEBUG] NavigationCoordinator: NavigateAsync called. Source={request.Source}, Type={request.Target.Type}, Pane={request.Pane}, Path='{request.Target.Path}'");
 
             switch (request.Target.Type)
             {
@@ -132,6 +132,13 @@ namespace YiboFile.Services.Navigation
 
             if (!request.ForceNewTab && tabService.ActiveTab != null && (int)tabService.ActiveTab.Type == (int)targetType)
             {
+                // Prevent infinite loop if path is already active
+                if (string.Equals(tabService.ActiveTab.Path, path, StringComparison.OrdinalIgnoreCase))
+                {
+                    System.Diagnostics.Debug.WriteLine($"[NavigationCoordinator] Skipping navigation: Path '{path}' is already active.");
+                    return;
+                }
+
                 await ExecuteNavigationInViewModel(vm, path, request.Pane, request.Source, tabService);
                 return;
             }
@@ -139,6 +146,32 @@ namespace YiboFile.Services.Navigation
             // Rule 4: New Tab Creation (新建标签页)
             // 默认新建，或以上规则不适用
             tabService.CreatePathTab(path, forceNewTab: true, activate: request.Activate);
+
+            // [关键修复] 如果是库路径，同步设置 Tab 的 Library 对象，以便持久化时能保存 ID
+            if (path != null && path.StartsWith("lib://"))
+            {
+                var activeTab = tabService.ActiveTab;
+                if (activeTab != null)
+                {
+                    activeTab.Type = TabType.Library;
+                    string libName = path.Substring(6);
+                    if (activeTab.Library == null || activeTab.Library.Name != libName)
+                    {
+                        activeTab.Library = _libraryService?.GetAllLibraries()?.FirstOrDefault(l => l.Name == libName);
+                    }
+                }
+            }
+
+            // [关键修复] CreatePathTab 仅创建 Tab UI，不会驱动 PaneViewModel 加载内容
+            // 必须手动同步 PaneViewModel 以触发文件列表加载
+            var vmForNewTab = _paneViewModelResolver?.Invoke(request.Pane);
+            if (vmForNewTab != null)
+            {
+                vmForNewTab.CurrentPath = path;
+                _messageBus.Publish(new NavigationCompleteMessage(
+                    path, request.Pane, request.Source, vmForNewTab.NavigationMode,
+                    BackStack: vmForNewTab.BackStack, ForwardStack: vmForNewTab.ForwardStack));
+            }
         }
 
         private async Task ExecuteNavigationInViewModel(ViewModels.PaneViewModel vm, string path, PaneId pane, YiboFile.Models.Navigation.NavigationSource source, TabService tabService)
@@ -146,10 +179,26 @@ namespace YiboFile.Services.Navigation
             if (vm != null)
             {
                 // 1. 执行导航 (ViewModel)
-                vm.NavigateTo(path);
+                // Use CurrentPath setter directly to avoid infinite loop (NavigateTo publishes message)
+                vm.CurrentPath = path;
 
                 // 2. [关键修复] 同步更新 Tab 状态
                 tabService.UpdateActiveTabPath(path);
+
+                // [关键修复] 如果是库路径，同步更新 Tab 的 Library 对象
+                if (path != null && path.StartsWith("lib://"))
+                {
+                    var activeTab = tabService.ActiveTab;
+                    if (activeTab != null)
+                    {
+                        activeTab.Type = TabType.Library;
+                        string libName = path.Substring(6);
+                        if (activeTab.Library == null || activeTab.Library.Name != libName)
+                        {
+                            activeTab.Library = _libraryService?.GetAllLibraries()?.FirstOrDefault(l => l.Name == libName);
+                        }
+                    }
+                }
 
                 // 3. 副作用消息发送 (MessageBus)
                 _messageBus.Publish(new NavigationCompleteMessage(
@@ -216,13 +265,14 @@ namespace YiboFile.Services.Navigation
             if (vm != null)
             {
                 vm.CurrentLibrary = null;
-                vm.NavigateTo("lib://");
+                vm.CurrentPath = "lib://";
 
                 var activeTab = tabService.ActiveTab;
                 if (activeTab != null)
                 {
                     activeTab.Type = TabType.Library;
                     activeTab.Path = "lib://";
+                    activeTab.Library = null;
                     tabService.UpdateTabTitle(activeTab, "所有库");
                 }
 
@@ -243,7 +293,7 @@ namespace YiboFile.Services.Navigation
             {
                 // 1. 设置 CurrentLibrary并更新 Path
                 vm.CurrentLibrary = library;
-                vm.NavigateTo($"lib://{library.Name}");
+                vm.CurrentPath = $"lib://{library.Name}";
 
                 // 2. 同步更新 Tab 状态
                 var activeTab = tabService.ActiveTab;
@@ -251,6 +301,7 @@ namespace YiboFile.Services.Navigation
                 {
                     activeTab.Type = TabType.Library;
                     activeTab.Path = $"lib://{library.Name}";
+                    activeTab.Library = library;
                     tabService.UpdateTabTitle(activeTab, library.Name);
                 }
 
@@ -344,6 +395,9 @@ namespace YiboFile.Services.Navigation
             // 同构复用：如果当前标签页是 Tag 类型，则直接更新它
             if (!request.ForceNewTab && tabService.ActiveTab != null && tabService.ActiveTab.Type == TabType.Tag)
             {
+                // Prevent infinite loop if path is already active
+                if (string.Equals(tabService.ActiveTab.Path, tagPath, StringComparison.OrdinalIgnoreCase)) return;
+
                 var vm = _paneViewModelResolver?.Invoke(request.Pane);
                 await ExecuteNavigationInViewModel(vm, tagPath, request.Pane, request.Source, tabService);
                 return;
@@ -351,6 +405,16 @@ namespace YiboFile.Services.Navigation
 
             // 否则创建新标签页
             tabService.CreateTagTab(tagName, forceNewTab: true, activate: request.Activate);
+
+            // [关键修复] 同步 PaneViewModel 以触发标签文件列表加载
+            var vmForNewTag = _paneViewModelResolver?.Invoke(request.Pane);
+            if (vmForNewTag != null)
+            {
+                vmForNewTag.CurrentPath = tagPath;
+                _messageBus.Publish(new NavigationCompleteMessage(
+                    tagPath, request.Pane, request.Source, vmForNewTag.NavigationMode,
+                    BackStack: vmForNewTag.BackStack, ForwardStack: vmForNewTag.ForwardStack));
+            }
         }
 
         private async Task HandleSearchRequest(NavigationRequest request, TabService tabService)
@@ -369,6 +433,9 @@ namespace YiboFile.Services.Navigation
             // 同构复用：如果当前标签页是 Search 类型，则直接更新它
             if (!request.ForceNewTab && tabService.ActiveTab != null && tabService.ActiveTab.Type == TabType.Search)
             {
+                // Prevent infinite loop if path is already active
+                if (string.Equals(tabService.ActiveTab.Path, searchPath, StringComparison.OrdinalIgnoreCase)) return;
+
                 var vm = _paneViewModelResolver?.Invoke(request.Pane);
                 await ExecuteNavigationInViewModel(vm, searchPath, request.Pane, request.Source, tabService);
                 return;
@@ -376,6 +443,16 @@ namespace YiboFile.Services.Navigation
 
             // 否则创建新标签页
             tabService.CreateSearchTab(searchPath, forceNewTab: true, activate: request.Activate);
+
+            // [关键修复] 同步 PaneViewModel 以触发搜索结果加载
+            var vmForNewSearch = _paneViewModelResolver?.Invoke(request.Pane);
+            if (vmForNewSearch != null)
+            {
+                vmForNewSearch.CurrentPath = searchPath;
+                _messageBus.Publish(new NavigationCompleteMessage(
+                    searchPath, request.Pane, request.Source, vmForNewSearch.NavigationMode,
+                    BackStack: vmForNewSearch.BackStack, ForwardStack: vmForNewSearch.ForwardStack));
+            }
         }
     }
 }

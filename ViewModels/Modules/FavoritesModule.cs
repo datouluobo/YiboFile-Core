@@ -78,9 +78,9 @@ namespace YiboFile.ViewModels.Modules
                     }
                 });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine($"[FavoritesModule] Load failed: {ex.Message}");
+
             }
         }
 

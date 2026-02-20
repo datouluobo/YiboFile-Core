@@ -67,9 +67,9 @@ namespace YiboFile.ViewModels.Previews
             {
                 await Task.Run(() => ExtractChm(filePath));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Debug.WriteLine($"CHM extraction failed: {ex.Message}");
+
             }
             finally
             {
@@ -239,9 +239,9 @@ namespace YiboFile.ViewModels.Previews
 
                 Application.Current.Dispatcher.Invoke(() => Toc = rootNodes);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Debug.WriteLine("Error parsing HHC: " + ex.Message);
+
             }
         }
 

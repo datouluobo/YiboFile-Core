@@ -64,7 +64,7 @@ namespace YiboFile.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[LibraryService] LoadLibraries Error: {ex}");
+
                 YiboFile.DialogService.Error($"加载库列表失败: {ex.Message}");
                 return new List<Library>();
             }
@@ -79,9 +79,9 @@ namespace YiboFile.Services
             {
                 return _repository.GetAllLibraries();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine($"[LibraryService] GetAllLibraries Error: {ex}");
+
                 return new List<Library>();
             }
         }
@@ -93,7 +93,7 @@ namespace YiboFile.Services
         {
             try
             {
-                System.Diagnostics.Debug.WriteLine($"[LibraryService] AddLibrary called. Name: {name}, InitialPath: {initialPath}");
+
                 var libraryId = _repository.AddLibrary(name);
 
                 if (libraryId > 0)
@@ -106,9 +106,9 @@ namespace YiboFile.Services
                         {
                             fullPath = Path.GetFullPath(initialPath);
                         }
-                        catch (Exception ex)
+                        catch (Exception)
                         {
-                            System.Diagnostics.Debug.WriteLine($"[LibraryService] Path.GetFullPath failed for initial path {initialPath}: {ex.Message}");
+
                         }
                         _repository.AddLibraryPath(libraryId, fullPath);
                     }
@@ -128,14 +128,14 @@ namespace YiboFile.Services
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine($"[LibraryService] AddLibrary failed. Id=0");
+
                     YiboFile.DialogService.Error("创建库失败");
                     return 0;
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[LibraryService] AddLibrary Exception: {ex}");
+
                 YiboFile.DialogService.Error($"创建库失败: {ex.Message}");
                 return 0;
             }
@@ -235,9 +235,9 @@ namespace YiboFile.Services
                 {
                     fullPath = Path.GetFullPath(path);
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[LibraryService] Path.GetFullPath failed for {path}: {ex.Message}");
+
                 }
 
                 _repository.AddLibraryPath(libraryId, fullPath);
@@ -246,7 +246,7 @@ namespace YiboFile.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[LibraryService] AddLibraryPath failed: {ex}");
+
                 YiboFile.DialogService.Error($"添加库路径失败: {ex.Message}");
                 return false;
             }

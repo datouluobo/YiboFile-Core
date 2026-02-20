@@ -238,9 +238,9 @@ namespace YiboFile.ViewModels
                 {
                     module.Initialize();
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[MainWindowViewModel] Module init failed: {module.Name} - {ex.Message}");
+
                 }
             }
         }
