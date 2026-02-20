@@ -59,7 +59,7 @@
 
   <!-- 自动复制 Resources 文件夹到输出目录 (排除 Icons 下的 XAML，因为它们作为 Page 编译) -->
   <ItemGroup>
-    <None Include="Resources\**\*" CopyToOutputDirectory="PreserveNewest" Exclude="Resources\Icons\**\*.xaml;Resources\Fonts\**\*.ttf" />
+    <None Include="Resources\**\*" CopyToOutputDirectory="PreserveNewest" Exclude="Resources\Icons\**\*.xaml;Resources\UIStyles\**\*.xaml;Resources\Fonts\**\*.ttf" />
     <Resource Include="Resources\Fonts\**\*.ttf" />
   </ItemGroup>
 
