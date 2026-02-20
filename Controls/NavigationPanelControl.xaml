@@ -245,6 +245,7 @@
                                                 BorderThickness="{TemplateBinding BorderThickness}" 
                                                 Background="{TemplateBinding Background}" 
                                                 Padding="{TemplateBinding Padding}" 
+                                                CornerRadius="{DynamicResource UI.Sidebar.ItemCornerRadius}"
                                                 SnapsToDevicePixels="true">
                                             <ContentPresenter x:Name="PART_Header" 
                                                             ContentSource="Header" 

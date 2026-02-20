@@ -292,7 +292,8 @@
                         <Rectangle Width="1" 
                                    Fill="{DynamicResource BorderBrush}"
                                    HorizontalAlignment="Center" 
-                                   VerticalAlignment="Stretch"/>
+                                   VerticalAlignment="Stretch"
+                                   Visibility="{DynamicResource UI.Splitter.VisibleLine}"/>
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
@@ -344,6 +345,7 @@
                             <!-- Divider line - always centered, color changes on hover -->
                             <Border x:Name="PART_DividerLine" 
                                     Background="{DynamicResource BorderDefaultBrush}"
+                                    Visibility="{DynamicResource UI.Splitter.VisibleLine}"
                                     Panel.ZIndex="-1"/>
                             
                             <!-- Button container - naturally centered, no negative margins -->
@@ -592,7 +594,7 @@
                             Background="{TemplateBinding Background}" 
                             BorderBrush="{TemplateBinding BorderBrush}" 
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="4">
+                            CornerRadius="{DynamicResource UI.ToolbarButton.CornerRadius}">
                         <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" 
                                           VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
                                           Margin="{TemplateBinding Padding}"/>
@@ -631,7 +633,7 @@
                             Background="{TemplateBinding Background}" 
                             BorderBrush="Transparent" 
                             BorderThickness="0"
-                            CornerRadius="4">
+                            CornerRadius="{DynamicResource UI.ToolbarButton.CornerRadius}">
                         <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" 
                                           VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
                                           Margin="{TemplateBinding Padding}"/>
@@ -714,7 +716,7 @@
                             Background="{TemplateBinding Background}" 
                             BorderBrush="{TemplateBinding BorderBrush}" 
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="4">
+                            CornerRadius="{DynamicResource UI.ToolbarButton.CornerRadius}">
                         <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" 
                                           VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
                                           Margin="{TemplateBinding Padding}"/>
@@ -739,7 +741,7 @@
     <Style x:Key="ModernToolbarButtonStyle" TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
         <Setter Property="Height" Value="32"/>
         <Setter Property="MinWidth" Value="32"/>
-        <Setter Property="Padding" Value="10,0"/>
+        <Setter Property="Padding" Value="{DynamicResource UI.ToolbarButton.Padding}"/>
         <Setter Property="Margin" Value="1,0"/>
         <Setter Property="FontSize" Value="13"/>
     </Style>
@@ -749,8 +751,8 @@
         <Setter Property="Height" Value="34"/>
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="BorderThickness" Value="0"/>
-        <Setter Property="Margin" Value="1,0"/>
-        <Setter Property="Padding" Value="1,0"/>
+        <Setter Property="Margin" Value="{DynamicResource UI.TabItem.Margin}"/>
+        <Setter Property="Padding" Value="{DynamicResource UI.TabItem.Padding}"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
@@ -760,7 +762,7 @@
                                 Background="{TemplateBinding Background}" 
                                 BorderBrush="{TemplateBinding BorderBrush}" 
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="6,6,0,0">
+                                CornerRadius="{DynamicResource UI.TabItem.CornerRadius}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
                         </Border>
                         
@@ -771,7 +773,7 @@
                                    Width="1" Height="14"
                                    Fill="{DynamicResource DividerBrush}"
                                    Margin="0,0,-1,0" 
-                                   Visibility="Visible"/>
+                                   Visibility="{DynamicResource UI.TabItem.SeparatorVisibility}"/>
                     </Grid>
                     
                     <ControlTemplate.Triggers>
@@ -788,7 +790,7 @@
     <!-- Active Tab Button Style -->
     <Style x:Key="ActiveTabButtonStyle" TargetType="Button" BasedOn="{StaticResource TabButtonStyle}">
         <Setter Property="Height" Value="34"/>
-        <Setter Property="Background" Value="#F0F5FF"/> <!-- Subtle active bg -->
+        <Setter Property="Background" Value="{DynamicResource UI.TabItem.ActiveBackground}"/>
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
         <Setter Property="Template">
             <Setter.Value>
@@ -796,7 +798,7 @@
                     <Grid>
                         <Border x:Name="border"
                                 Background="{TemplateBinding Background}" 
-                                CornerRadius="6,6,0,0">
+                                CornerRadius="{DynamicResource UI.TabItem.CornerRadius}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
                         </Border>
                         
@@ -804,8 +806,10 @@
                         <Rectangle Height="3" 
                                    VerticalAlignment="Top" 
                                    Fill="{DynamicResource AccentBrush}" 
-                                   Margin="6,0,6,0"
-                                   RadiusX="1.5" RadiusY="1.5"/>
+                                   Margin="{DynamicResource UI.TabItem.ActiveIndicatorMargin}"
+                                   RadiusX="{DynamicResource UI.TabItem.ActiveIndicatorRadius}" 
+                                   RadiusY="{DynamicResource UI.TabItem.ActiveIndicatorRadius}"
+                                   Visibility="{DynamicResource UI.TabItem.ActiveIndicatorVisibility}"/>
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
@@ -1111,7 +1115,7 @@
 
     <Style x:Key="NavListBoxItemStyle" TargetType="ListBoxItem">
         <Setter Property="Padding" Value="5,3"/>
-        <Setter Property="Margin" Value="0,2"/>
+        <Setter Property="Margin" Value="{DynamicResource UI.Sidebar.ItemMargin}"/>
         <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
         <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}"/>
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
@@ -1123,7 +1127,8 @@
                     <Border x:Name="Bd"
                             Background="Transparent"
                             BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="{TemplateBinding BorderThickness}">
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{DynamicResource UI.Sidebar.ItemCornerRadius}">
                         <Grid HorizontalAlignment="Stretch">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
@@ -1212,7 +1217,7 @@
     <!-- Drive ListBox Item Style (with capacity visualization) -->
     <Style x:Key="DriveListBoxItemStyle" TargetType="ListBoxItem">
         <Setter Property="Padding" Value="5,3"/>
-        <Setter Property="Margin" Value="0,2"/>
+        <Setter Property="Margin" Value="{DynamicResource UI.Sidebar.ItemMargin}"/>
         <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
@@ -1225,7 +1230,8 @@
                             Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            Padding="{TemplateBinding Padding}">
+                            Padding="{TemplateBinding Padding}"
+                            CornerRadius="{DynamicResource UI.Sidebar.ItemCornerRadius}">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
@@ -1690,11 +1696,11 @@
     <Style x:Key="FileListItemStyle" TargetType="ListViewItem">
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="BorderBrush" Value="Transparent"/>
-        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="BorderThickness" Value="{DynamicResource UI.FileList.RowBorderThickness}"/>
         <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
         <Setter Property="MinHeight" Value="36"/>
-        <Setter Property="Margin" Value="0,2,0,2"/>
+        <Setter Property="Margin" Value="{DynamicResource UI.FileList.RowMargin}"/>
         <Setter Property="Padding" Value="4,0"/>
         <Setter Property="Template">
             <Setter.Value>
@@ -1703,7 +1709,7 @@
                             Background="{TemplateBinding Background}" 
                             BorderBrush="{TemplateBinding BorderBrush}" 
                             BorderThickness="{TemplateBinding BorderThickness}" 
-                            CornerRadius="6" 
+                            CornerRadius="{DynamicResource UI.FileList.RowCornerRadius}" 
                             Padding="{TemplateBinding Padding}" 
                             SnapsToDevicePixels="true">
                         <Grid>

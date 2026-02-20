@@ -341,6 +341,34 @@ namespace YiboFile.Services.Theming
             { }
         }
 
+        /// <summary>
+        /// 切换UI界面风格
+        /// </summary>
+        /// <param name="styleId">E.g., "Original", "Fluent", "MacOS", "Geek"</param>
+        public static void SetUIStyle(string styleId)
+        {
+            try
+            {
+                var uri = new Uri($"/Resources/UIStyles/{styleId}.xaml", UriKind.Relative);
+                var newDict = new ResourceDictionary { Source = uri };
+
+                var appDictionaries = Application.Current.Resources.MergedDictionaries;
+
+                // 我们通过查找是否包含特定的 UIStyle 键来识别 UI 风格字典
+                var existingDict = appDictionaries.FirstOrDefault(d => d.Contains("UI.TabItem.CornerRadius"));
+
+                if (existingDict != null)
+                {
+                    appDictionaries.Remove(existingDict);
+                }
+
+                // 添加新的UI风格字典到 AppStyles.xaml 前面，确保它可以作为依赖资源被 AppStyles 引用
+                appDictionaries.Insert(1, newDict);
+            }
+            catch (Exception)
+            { }
+        }
+
         #region 系统主题跟随
 
         /// <summary>

@@ -324,6 +324,16 @@ namespace YiboFile.Services.Startup
                     YiboFile.Services.Theming.ThemeManager.SetTheme(themeMode, animate: false);
                     FileLogger.Log($"Theme applied: {themeMode}");
                 }
+
+                // 应用 UI 风格
+                var uiStyle = config?.UIStyle ?? "Original";
+                YiboFile.Services.Theming.ThemeManager.SetUIStyle(uiStyle);
+                FileLogger.Log($"UI Style applied: {uiStyle}");
+
+                // 应用图标风格
+                var iconStyle = config?.IconStyle ?? "Emoji";
+                YiboFile.Services.Theming.ThemeManager.ChangeIconStyle(iconStyle);
+                FileLogger.Log($"Icon Style applied: {iconStyle}");
             }
             catch (Exception ex)
             {

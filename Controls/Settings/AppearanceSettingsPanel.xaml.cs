@@ -25,6 +25,7 @@ namespace YiboFile.Controls.Settings
 
         private ComboBox _themeComboBox;
         private ComboBox _iconStyleComboBox; // New
+        private ComboBox _uiStyleComboBox; // New UI Style
         private Slider _opacitySlider;
         private TextBlock _opacityValueText;
         private CheckBox _animationsEnabledCheckBox;
@@ -231,6 +232,45 @@ namespace YiboFile.Controls.Settings
             _iconStyleComboBox.SetBinding(ComboBox.SelectedItemProperty, iconSelectedBinding);
 
             leftPanel.Children.Add(_iconStyleComboBox);
+
+            // 1.8 UI Style Selection
+            var uiStyleSelectionLabel = new TextBlock
+            {
+                Text = "UI 方案 (界面风格)：",
+                FontSize = 14,
+                FontWeight = FontWeights.Medium,
+                Margin = new Thickness(0, 0, 0, 8)
+            };
+            uiStyleSelectionLabel.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundPrimaryBrush");
+            leftPanel.Children.Add(uiStyleSelectionLabel);
+
+            _uiStyleComboBox = new ComboBox
+            {
+                MinHeight = 40,
+                Padding = new Thickness(12, 0, 12, 0),
+                VerticalContentAlignment = VerticalAlignment.Center,
+                FontSize = 14,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Margin = new Thickness(0, 0, 0, 24)
+            };
+            _uiStyleComboBox.SetResourceReference(ComboBox.BackgroundProperty, "BackgroundElevatedBrush");
+            _uiStyleComboBox.SetResourceReference(ComboBox.ForegroundProperty, "ForegroundPrimaryBrush");
+            _uiStyleComboBox.SetResourceReference(ComboBox.BorderBrushProperty, "BorderDefaultBrush");
+
+            // Bind ItemsSource
+            var uiStyleItemsBinding = new System.Windows.Data.Binding("UIStyles") { Source = _appearanceViewModel };
+            _uiStyleComboBox.SetBinding(ComboBox.ItemsSourceProperty, uiStyleItemsBinding);
+            _uiStyleComboBox.DisplayMemberPath = "Name";
+
+            // Bind SelectedItem
+            var uiStyleSelectedBinding = new System.Windows.Data.Binding("SelectedUIStyle")
+            {
+                Source = _appearanceViewModel,
+                Mode = System.Windows.Data.BindingMode.TwoWay
+            };
+            _uiStyleComboBox.SetBinding(ComboBox.SelectedItemProperty, uiStyleSelectedBinding);
+
+            leftPanel.Children.Add(_uiStyleComboBox);
 
             // 2. Custom Theme Buttons
             var customThemeTitle = new TextBlock

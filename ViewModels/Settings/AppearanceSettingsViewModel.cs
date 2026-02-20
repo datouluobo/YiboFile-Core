@@ -12,6 +12,7 @@ namespace YiboFile.ViewModels.Settings
     {
         public ObservableCollection<ThemeItemViewModel> Themes { get; set; }
         public ObservableCollection<IconStyleItemViewModel> IconStyles { get; set; }
+        public ObservableCollection<ItemViewModel> UIStyles { get; set; }
 
         public ICommand ResetThemeCommand { get; }
         public ICommand ApplyAccentColorCommand { get; }
@@ -32,6 +33,7 @@ namespace YiboFile.ViewModels.Settings
 
             InitializeThemes(config);
             InitializeIconStyles(config);
+            InitializeUIStyles(config);
         }
 
         private double _windowOpacity;
@@ -94,6 +96,20 @@ namespace YiboFile.ViewModels.Settings
             }
         }
 
+        private ItemViewModel _selectedUIStyle;
+        public ItemViewModel SelectedUIStyle
+        {
+            get => _selectedUIStyle;
+            set
+            {
+                if (SetProperty(ref _selectedUIStyle, value) && value != null)
+                {
+                    ThemeManager.SetUIStyle(value.Id);
+                    ConfigurationService.Instance.Update(c => c.UIStyle = value.Id);
+                }
+            }
+        }
+
         private void InitializeThemes(AppConfig config)
         {
             Themes = new ObservableCollection<ThemeItemViewModel>
@@ -131,6 +147,21 @@ namespace YiboFile.ViewModels.Settings
             _selectedIconStyle = IconStyles.FirstOrDefault(x => x.Id == currentIconStyle) ?? IconStyles.First();
             OnPropertyChanged(nameof(IconStyles));
             OnPropertyChanged(nameof(SelectedIconStyle));
+        }
+
+        private void InitializeUIStyles(AppConfig config)
+        {
+            UIStyles = new ObservableCollection<ItemViewModel>
+            {
+                new ItemViewModel { Id = "Original", Name = "经典 (当前风格)" },
+                new ItemViewModel { Id = "Fluent", Name = "Fluent Design (Windows 11原生风)" },
+                new ItemViewModel { Id = "MacOS", Name = "极简悬浮 (类MacOS卡片风)" },
+                new ItemViewModel { Id = "Geek", Name = "Geek Studio (极客工业紧凑风)" }
+            };
+            var currentUIStyle = config.UIStyle ?? "Original";
+            _selectedUIStyle = UIStyles.FirstOrDefault(x => x.Id == currentUIStyle) ?? UIStyles.First();
+            OnPropertyChanged(nameof(UIStyles));
+            OnPropertyChanged(nameof(SelectedUIStyle));
         }
 
         public void RefreshThemes()
@@ -194,5 +225,11 @@ namespace YiboFile.ViewModels.Settings
             }
             return Color.FromRgb((byte)red, (byte)green, (byte)blue).ToString();
         }
+    }
+
+    public class ItemViewModel
+    {
+        public string Id { get; set; }
+        public string Name { get; set; }
     }
 }

@@ -5,6 +5,7 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Themes/Light.xaml"/>
+                <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Resources/UIStyles/Original.xaml"/>
                 <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/AppStyles.xaml"/>
                 <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Dialogs/Styles/BaseDialogStyle.xaml"/>
                 <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Resources/Icons/Icons.Emoji.xaml"/>

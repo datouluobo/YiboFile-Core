@@ -58,8 +58,8 @@
         <Border Grid.ColumnSpan="3"
                 Background="{DynamicResource ControlBackgroundBrush}"
                 BorderBrush="{DynamicResource BorderSubtleBrush}"
-                BorderThickness="1"
-                CornerRadius="6"/>
+                BorderThickness="{DynamicResource UI.AddressBar.BorderThickness}"
+                CornerRadius="{DynamicResource UI.AddressBar.CornerRadius}"/>
 
         <!-- 编辑模式容器 -->
         <Grid Name="EditModeContainer" Grid.Column="1" Visibility="Collapsed">
