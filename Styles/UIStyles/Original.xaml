@@ -40,6 +40,11 @@
     <Thickness x:Key="UI.TabItem.ActiveIndicatorMargin">6,0,6,0</Thickness>
     <sys:Double x:Key="UI.TabItem.ActiveIndicatorRadius">1.5</sys:Double>
     <SolidColorBrush x:Key="UI.TabItem.ActiveIndicatorColor" Color="{DynamicResource AccentColor}"/>
+    <!-- 🆕 无阴影 + 无边框 + SemiBold -->
+    <DropShadowEffect x:Key="UI.TabItem.ActiveShadowEffect" BlurRadius="0" ShadowDepth="0" Opacity="0" Color="Transparent"/>
+    <SolidColorBrush x:Key="UI.TabItem.ActiveBorderBrush" Color="Transparent"/>
+    <FontWeight x:Key="UI.TabItem.ActiveFontWeight">SemiBold</FontWeight>
+
 
     <!-- ================================================================
          B. 工具栏按钮 (5键)

@@ -24,7 +24,7 @@
     <sys:String x:Key="UIStyleDescription">经典紧凑布局，扁平全宽选中、分割线、顶部小指示条</sys:String>
 
     <!-- ================================================================
-         A. Tab 标签页 (14键)
+         A. Tab 标签页 (17键, 含3个新增键)
          ================================================================ -->
     <CornerRadius x:Key="UI.TabItem.CornerRadius">6,6,0,0</CornerRadius>
     <Thickness x:Key="UI.TabItem.Margin">1,0</Thickness>
@@ -40,6 +40,13 @@
     <Thickness x:Key="UI.TabItem.ActiveIndicatorMargin">6,0,6,0</Thickness>
     <sys:Double x:Key="UI.TabItem.ActiveIndicatorRadius">1.5</sys:Double>
     <SolidColorBrush x:Key="UI.TabItem.ActiveIndicatorColor" Color="{DynamicResource AccentColor}"/>
+    <!-- 🆕 活动 Tab 阴影 (BlurRadius=0 表示无阴影) -->
+    <DropShadowEffect x:Key="UI.TabItem.ActiveShadowEffect" BlurRadius="0" ShadowDepth="0" Opacity="0" Color="Transparent"/>
+    <!-- 🆕 活动 Tab 边框颜色 -->
+    <SolidColorBrush x:Key="UI.TabItem.ActiveBorderBrush" Color="Transparent"/>
+    <!-- 🆕 活动 Tab 文字粗细 -->
+    <FontWeight x:Key="UI.TabItem.ActiveFontWeight">SemiBold</FontWeight>
+
 
     <!-- ================================================================
          B. 工具栏按钮 (5键)

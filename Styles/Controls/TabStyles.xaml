@@ -6,12 +6,12 @@
                     xmlns:converters="clr-namespace:YiboFile.Controls.Converters">
 
     <!-- ================================================================
-         Tab Button Styles
+         Tab Button Styles — 核心模板，消费 UIStyle Token
          ================================================================ -->
 
-    <!-- Tab Button Style (Full Rounded Capsule) -->
+    <!-- ======== 非活动 Tab 样式 ======== -->
     <Style x:Key="TabButtonStyle" TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
-        <Setter Property="Height" Value="34" />
+        <Setter Property="Height" Value="{DynamicResource UI.TabItem.Height}" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="Margin" Value="{DynamicResource UI.TabItem.Margin}" />
@@ -21,12 +21,25 @@
                 <ControlTemplate TargetType="Button">
                     <Grid>
                         <!-- Main Tab Container -->
-                        <Border x:Name="border" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{DynamicResource UI.TabItem.CornerRadius}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}" />
+                        <Border x:Name="border"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="{DynamicResource UI.TabItem.CornerRadius}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              Margin="{TemplateBinding Padding}" />
                         </Border>
                         
                         <!-- Separator Line -->
-                        <Rectangle x:Name="Separator" HorizontalAlignment="Right" VerticalAlignment="Center" Width="1" Height="14" Fill="{DynamicResource DividerBrush}" Margin="0,0,-1,0" Visibility="{DynamicResource UI.TabItem.SeparatorVisibility}" />
+                        <Rectangle x:Name="Separator"
+                                   HorizontalAlignment="Right"
+                                   VerticalAlignment="Center"
+                                   Width="1"
+                                   Height="{DynamicResource UI.TabItem.SeparatorHeight}"
+                                   Fill="{DynamicResource DividerBrush}"
+                                   Margin="0,0,-1,0"
+                                   Visibility="{DynamicResource UI.TabItem.SeparatorVisibility}" />
                     </Grid>
                     
                     <ControlTemplate.Triggers>
@@ -40,28 +53,44 @@
         </Setter>
     </Style>
 
-    <!-- Active Tab Button Style -->
+    <!-- ======== 活动 Tab 样式 (核心视觉反馈模板) ======== -->
     <Style x:Key="ActiveTabButtonStyle" TargetType="Button" BasedOn="{StaticResource TabButtonStyle}">
-        <Setter Property="Height" Value="34" />
+        <Setter Property="Height" Value="{DynamicResource UI.TabItem.Height}" />
         <Setter Property="Background" Value="{DynamicResource UI.TabItem.ActiveBackground}" />
         <Setter Property="Foreground" Value="{DynamicResource ForegroundPrimaryBrush}" />
+        <Setter Property="FontWeight" Value="{DynamicResource UI.TabItem.ActiveFontWeight}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
                     <Grid>
-                        <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="{DynamicResource UI.TabItem.CornerRadius}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}" />
+                        <!-- ① 主体容器: 背景 + 边框 + 阴影 -->
+                        <Border x:Name="border"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{DynamicResource UI.TabItem.ActiveBorderBrush}"
+                                BorderThickness="{DynamicResource UI.TabItem.ActiveBorderThickness}"
+                                CornerRadius="{DynamicResource UI.TabItem.CornerRadius}"
+                                Effect="{DynamicResource UI.TabItem.ActiveShadowEffect}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              Margin="{TemplateBinding Padding}"
+                                              TextBlock.FontWeight="{TemplateBinding FontWeight}" />
                         </Border>
                         
-                        <!-- Top Indicator -->
-                        <Rectangle Height="3" VerticalAlignment="Top" Fill="{DynamicResource AccentDefaultBrush}" Margin="{DynamicResource UI.TabItem.ActiveIndicatorMargin}" RadiusX="{DynamicResource UI.TabItem.ActiveIndicatorRadius}" RadiusY="{DynamicResource UI.TabItem.ActiveIndicatorRadius}" Visibility="{DynamicResource UI.TabItem.ActiveIndicatorVisibility}" />
+                        <!-- ② 指示条 (位置/高度/颜色/圆角 全部由 Token 控制) -->
+                        <Rectangle Height="{DynamicResource UI.TabItem.ActiveIndicatorHeight}"
+                                   VerticalAlignment="{DynamicResource UI.TabItem.ActiveIndicatorPosition}"
+                                   Fill="{DynamicResource UI.TabItem.ActiveIndicatorColor}"
+                                   Margin="{DynamicResource UI.TabItem.ActiveIndicatorMargin}"
+                                   RadiusX="{DynamicResource UI.TabItem.ActiveIndicatorRadius}"
+                                   RadiusY="{DynamicResource UI.TabItem.ActiveIndicatorRadius}"
+                                   Visibility="{DynamicResource UI.TabItem.ActiveIndicatorVisibility}" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
 
-    <!-- New Tab Button Style -->
+    <!-- ======== 新建 Tab 按钮 ======== -->
     <Style x:Key="NewTabButtonStyle" TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
         <Setter Property="Width" Value="32" />
         <Setter Property="Height" Value="32" />
@@ -107,7 +136,7 @@
                 <TextBlock Text="{Binding Title}" VerticalAlignment="Center" MaxWidth="150" TextTrimming="CharacterEllipsis" IsHitTestVisible="False" />
                 
                 <!-- Close Button -->
-                <Button x:Name="PART_CloseButton" Style="{StaticResource FramelessNavButtonStyle}" Content="" FontFamily="Segoe MDL2 Assets" FontSize="9" Width="20" Height="20" Margin="6,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Right" Foreground="{DynamicResource ForegroundPrimaryBrush}" Command="{Binding CloseCommand}" shell:WindowChrome.IsHitTestVisibleInChrome="True" Visibility="Visible" Opacity="0.8" />
+                <Button x:Name="PART_CloseButton" Style="{StaticResource FramelessNavButtonStyle}" Content="" FontFamily="Segoe MDL2 Assets" FontSize="9" Width="20" Height="20" Margin="6,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Right" Foreground="{DynamicResource ForegroundPrimaryBrush}" Command="{Binding CloseCommand}" shell:WindowChrome.IsHitTestVisibleInChrome="True" Visibility="Visible" Opacity="0.8" />
             </StackPanel>
         </Button>
         <DataTemplate.Triggers>

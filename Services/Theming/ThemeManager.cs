@@ -54,7 +54,7 @@ namespace YiboFile.Services.Theming
                 if (meta != null) _themes[t] = meta;
             }
 
-            var uiStyles = new[] { "Original", "Fluent", "MacOS", "Geek" };
+            var uiStyles = new[] { "Original", "Fluent", "MacOS", "Geek", "OneCommander", "Antigravity" };
             foreach (var u in uiStyles)
             {
                 var uri = new Uri($"pack://application:,,,/YiboFile-Core;component/Styles/UIStyles/{u}.xaml", UriKind.Absolute);

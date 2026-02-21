@@ -3,33 +3,23 @@
                     xmlns:sys="clr-namespace:System;assembly=mscorlib">
 
     <!-- ================================================================
-         UIStyle Contract (UI风格合约)
-         ================================================================
-         本文件定义所有 UI 风格必须提供的 59 个 Token 的默认值。
-         作为加载链的第一层, 保证任何键缺失都不会导致崩溃。
-         默认值基于 Original 风格。
-
-         Token 分两类:
-         - 形状 Token: CornerRadius, Thickness, Double, Visibility 等
-         - 颜色映射 Token: 引用 Theme Semantic Token 的 Brush
-           (只允许引用 DynamicResource, 不允许硬编码 #XXXXXX)
-
-         新增风格时, 请确保覆盖以下所有键。
-         可运行 scripts/Validate-Contracts.ps1 验证完整性。
+         UIStyle: MacOS (圆润)
+         类 macOS 的大圆角风格: 大胶囊 Tab、舒适留白、底部宽指示条
          ================================================================ -->
 
     <!-- ======== 元数据 (3键) ======== -->
     <sys:String x:Key="UIStyleId">MacOS</sys:String>
     <sys:String x:Key="UIStyleDisplayName">圆润</sys:String>
-    <sys:String x:Key="UIStyleDescription">类似 macOS 的圆润风格，大圆角、舒适留白</sys:String>
+    <sys:String x:Key="UIStyleDescription">类 macOS 圆润风格：大胶囊 Tab、舒适留白、选中行左侧强调线</sys:String>
 
     <!-- ================================================================
-         A. Tab 标签页 (14键)
+         A. Tab 标签页 (14键) — 大胶囊 + 填充背景 + 无指示条
          ================================================================ -->
-    <CornerRadius x:Key="UI.TabItem.CornerRadius">12</CornerRadius>
-    <Thickness x:Key="UI.TabItem.Margin">6,6</Thickness>
-    <Thickness x:Key="UI.TabItem.Padding">10,4</Thickness>
-    <sys:Double x:Key="UI.TabItem.Height">38</sys:Double>
+    <CornerRadius x:Key="UI.TabItem.CornerRadius">16</CornerRadius>
+    <Thickness x:Key="UI.TabItem.Margin">5,7</Thickness>
+    <Thickness x:Key="UI.TabItem.Padding">14,4</Thickness>
+    <sys:Double x:Key="UI.TabItem.Height">40</sys:Double>
+    <!-- 胶囊填充式: 靠背景色区分，不需要指示条 -->
     <SolidColorBrush x:Key="UI.TabItem.ActiveBackground" Color="{DynamicResource BackgroundElevatedBrush.Color}"/>
     <Thickness x:Key="UI.TabItem.ActiveBorderThickness">0</Thickness>
     <Visibility x:Key="UI.TabItem.SeparatorVisibility">Collapsed</Visibility>
@@ -40,84 +30,89 @@
     <Thickness x:Key="UI.TabItem.ActiveIndicatorMargin">6,0,6,0</Thickness>
     <sys:Double x:Key="UI.TabItem.ActiveIndicatorRadius">1.5</sys:Double>
     <SolidColorBrush x:Key="UI.TabItem.ActiveIndicatorColor" Color="{DynamicResource AccentColor}"/>
+    <!-- 🆕 柔和阴影 + 无边框 + SemiBold (胶囊悬浮感) -->
+    <DropShadowEffect x:Key="UI.TabItem.ActiveShadowEffect" BlurRadius="8" ShadowDepth="1" Opacity="0.12" Color="Black" Direction="270"/>
+    <SolidColorBrush x:Key="UI.TabItem.ActiveBorderBrush" Color="Transparent"/>
+    <FontWeight x:Key="UI.TabItem.ActiveFontWeight">SemiBold</FontWeight>
+
 
     <!-- ================================================================
-         B. 工具栏按钮 (5键)
+         B. 工具栏按钮 (5键) — 药丸形、无边框、宽松
          ================================================================ -->
-    <CornerRadius x:Key="UI.ToolbarButton.CornerRadius">10</CornerRadius>
+    <CornerRadius x:Key="UI.ToolbarButton.CornerRadius">14</CornerRadius>
     <Thickness x:Key="UI.ToolbarButton.BorderThickness">0</Thickness>
-    <Thickness x:Key="UI.ToolbarButton.Padding">12,6</Thickness>
-    <Thickness x:Key="UI.ToolbarButton.Margin">3,0</Thickness>
-    <sys:Double x:Key="UI.ToolbarButton.Height">36</sys:Double>
+    <Thickness x:Key="UI.ToolbarButton.Padding">16,6</Thickness>
+    <Thickness x:Key="UI.ToolbarButton.Margin">4,0</Thickness>
+    <sys:Double x:Key="UI.ToolbarButton.Height">38</sys:Double>
 
     <!-- ================================================================
-         C. 侧边栏/导航列表 (6键)
+         C. 侧边栏/导航列表 (6键) — 大圆角、宽松间距、无指示条
          ================================================================ -->
-    <CornerRadius x:Key="UI.Sidebar.ItemCornerRadius">10</CornerRadius>
-    <Thickness x:Key="UI.Sidebar.ItemMargin">8,4</Thickness>
+    <CornerRadius x:Key="UI.Sidebar.ItemCornerRadius">12</CornerRadius>
+    <Thickness x:Key="UI.Sidebar.ItemMargin">8,3</Thickness>
     <Visibility x:Key="UI.Sidebar.ActiveIndicatorVisibility">Collapsed</Visibility>
-    <Thickness x:Key="UI.Sidebar.ItemPadding">14,10</Thickness>
-    <sys:Double x:Key="UI.Sidebar.ItemHeight">38</sys:Double>
+    <Thickness x:Key="UI.Sidebar.ItemPadding">16,10</Thickness>
+    <sys:Double x:Key="UI.Sidebar.ItemHeight">40</sys:Double>
     <SolidColorBrush x:Key="UI.Sidebar.ActiveBackground" Color="{DynamicResource AccentColor}"/>
 
     <!-- ================================================================
-         D. 地址栏 (2键)
+         D. 地址栏 (2键) — 大胶囊
          ================================================================ -->
-    <CornerRadius x:Key="UI.AddressBar.CornerRadius">10</CornerRadius>
+    <CornerRadius x:Key="UI.AddressBar.CornerRadius">14</CornerRadius>
     <Thickness x:Key="UI.AddressBar.BorderThickness">0</Thickness>
 
     <!-- ================================================================
-         E. 文件列表行 (6键)
+         E. 文件列表行 (6键) — 大圆角、宽松内缩、左侧选中线
          ================================================================ -->
     <CornerRadius x:Key="UI.FileList.RowCornerRadius">12</CornerRadius>
-    <Thickness x:Key="UI.FileList.RowMargin">12,4</Thickness>
+    <Thickness x:Key="UI.FileList.RowMargin">10,3</Thickness>
     <Thickness x:Key="UI.FileList.RowBorderThickness">0</Thickness>
-    <sys:Double x:Key="UI.FileList.RowMinHeight">44</sys:Double>
+    <sys:Double x:Key="UI.FileList.RowMinHeight">46</sys:Double>
     <Thickness x:Key="UI.FileList.RowPadding">12,6</Thickness>
-    <Thickness x:Key="UI.FileList.SelectedBorderThickness">2</Thickness>
+    <!-- 选中时左侧2px强调线 -->
+    <Thickness x:Key="UI.FileList.SelectedBorderThickness">2,0,0,0</Thickness>
 
     <!-- ================================================================
-         F. 文件列表列头 (4键)
+         F. 文件列表列头 (4键) — 无底线 + SemiBold
          ================================================================ -->
     <Thickness x:Key="UI.ColumnHeader.Padding">16,10</Thickness>
     <Thickness x:Key="UI.ColumnHeader.BorderThickness">0</Thickness>
     <FontWeight x:Key="UI.ColumnHeader.FontWeight">SemiBold</FontWeight>
-    <sys:Double x:Key="UI.ColumnHeader.Height">38</sys:Double>
+    <sys:Double x:Key="UI.ColumnHeader.Height">40</sys:Double>
 
     <!-- ================================================================
-         G. 分割器 (5键)
+         G. 分割器 (5键) — 隐形
          ================================================================ -->
     <Visibility x:Key="UI.Splitter.VisibleLine">Collapsed</Visibility>
-    <sys:Double x:Key="UI.Splitter.Width">8</sys:Double>
+    <sys:Double x:Key="UI.Splitter.Width">10</sys:Double>
     <sys:Double x:Key="UI.Splitter.LineThickness">1</sys:Double>
     <Visibility x:Key="UI.Splitter.HoverShowGripDot">Collapsed</Visibility>
     <sys:Double x:Key="UI.Splitter.CollapseButtonOpacity">0.3</sys:Double>
 
     <!-- ================================================================
-         H. 滚动条 (6键)
+         H. 滚动条 (6键) — 覆盖式
          ================================================================ -->
     <CornerRadius x:Key="UI.ScrollBar.ThumbCornerRadius">6</CornerRadius>
     <sys:Double x:Key="UI.ScrollBar.ThumbWidth">4</sys:Double>
     <sys:Double x:Key="UI.ScrollBar.ThumbHoverWidth">8</sys:Double>
-    <sys:Double x:Key="UI.ScrollBar.ThumbOpacity">0.3</sys:Double>
-    <sys:Double x:Key="UI.ScrollBar.ThumbHoverOpacity">0.6</sys:Double>
+    <sys:Double x:Key="UI.ScrollBar.ThumbOpacity">0.25</sys:Double>
+    <sys:Double x:Key="UI.ScrollBar.ThumbHoverOpacity">0.5</sys:Double>
     <sys:String x:Key="UI.ScrollBar.Mode">Overlay</sys:String>
 
     <!-- ================================================================
-         I. 通用控件圆角 (6键)
+         I. 通用控件圆角 (6键) — 一致的大圆角
          ================================================================ -->
-    <CornerRadius x:Key="UI.Button.CornerRadius">10</CornerRadius>
-    <CornerRadius x:Key="UI.TextBox.CornerRadius">10</CornerRadius>
-    <CornerRadius x:Key="UI.ComboBox.CornerRadius">10</CornerRadius>
-    <CornerRadius x:Key="UI.GroupBox.CornerRadius">8</CornerRadius>
-    <CornerRadius x:Key="UI.ContextMenu.CornerRadius">10</CornerRadius>
-    <CornerRadius x:Key="UI.MenuItem.CornerRadius">6</CornerRadius>
+    <CornerRadius x:Key="UI.Button.CornerRadius">12</CornerRadius>
+    <CornerRadius x:Key="UI.TextBox.CornerRadius">12</CornerRadius>
+    <CornerRadius x:Key="UI.ComboBox.CornerRadius">12</CornerRadius>
+    <CornerRadius x:Key="UI.GroupBox.CornerRadius">10</CornerRadius>
+    <CornerRadius x:Key="UI.ContextMenu.CornerRadius">12</CornerRadius>
+    <CornerRadius x:Key="UI.MenuItem.CornerRadius">8</CornerRadius>
 
     <!-- ================================================================
          J. 对话框 (2键)
          ================================================================ -->
-    <CornerRadius x:Key="UI.Dialog.CornerRadius">16</CornerRadius>
-    <CornerRadius x:Key="UI.Dialog.ButtonCornerRadius">8</CornerRadius>
+    <CornerRadius x:Key="UI.Dialog.CornerRadius">20</CornerRadius>
+    <CornerRadius x:Key="UI.Dialog.ButtonCornerRadius">10</CornerRadius>
 
 </ResourceDictionary>
-
