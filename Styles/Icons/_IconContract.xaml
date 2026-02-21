@@ -1,0 +1,86 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <!-- ================================================================
+         Icon Contract (图标合约)
+         ================================================================
+         本文件定义所有图标集必须提供的 50 个键的默认值。
+         作为加载链的第一层, 保证任何键缺失都有 Emoji Fallback。
+
+         新增图标集时, 请确保覆盖以下所有键。
+         可运行 scripts/Validate-Contracts.ps1 验证完整性。
+         ================================================================ -->
+
+    <!-- ======== 元数据 (3键) ======== -->
+    <sys:String x:Key="IconStyleId">Emoji</sys:String>
+    <sys:String x:Key="IconStyleDisplayName">Emoji 图标</sys:String>
+    <sys:String x:Key="IconStyleDescription">使用系统 Emoji 字符作为图标，无需额外字体</sys:String>
+
+    <!-- ======== 字体设置 (2键) ======== -->
+    <FontFamily x:Key="IconFontFamily">Segoe UI Emoji, Segoe UI Symbol</FontFamily>
+    <sys:Double x:Key="WindowControlIconSize">16</sys:Double>
+
+    <!-- ======== 通用操作图标 (18键) ======== -->
+    <sys:String x:Key="Icon_Copy">📋</sys:String>
+    <sys:String x:Key="Icon_Edit">✏️</sys:String>
+    <sys:String x:Key="Icon_Format">✨</sys:String>
+    <sys:String x:Key="Icon_Render">🎨</sys:String>
+    <sys:String x:Key="Icon_Wrap">📃</sys:String>
+    <sys:String x:Key="Icon_OpenExternal">📂</sys:String>
+    <sys:String x:Key="Icon_ChevronUp">▲</sys:String>
+    <sys:String x:Key="Icon_ChevronDown">▼</sys:String>
+    <sys:String x:Key="Icon_Search">🔍</sys:String>
+    <sys:String x:Key="Icon_Settings">⚙️</sys:String>
+    <sys:String x:Key="Icon_Filter">▼</sys:String>
+    <sys:String x:Key="Icon_Add">➕</sys:String>
+    <sys:String x:Key="Icon_Delete_Outline">🗑️</sys:String>
+    <sys:String x:Key="Icon_NewFolder">📁➕</sys:String>
+    <sys:String x:Key="Icon_NewFile">📄➕</sys:String>
+    <sys:String x:Key="Icon_Refresh">🔄</sys:String>
+    <sys:String x:Key="Icon_Desktop">🖥️</sys:String>
+    <sys:String x:Key="Icon_User">👤</sys:String>
+
+    <!-- ======== 导航/工具栏图标 (5键) ======== -->
+    <sys:String x:Key="Icon_Back">⬅️</sys:String>
+    <sys:String x:Key="Icon_Forward">➡️</sys:String>
+    <sys:String x:Key="Icon_Up">⬆️</sys:String>
+    <sys:String x:Key="Icon_ViewList">📜</sys:String>
+    <sys:String x:Key="Icon_ViewThumb">🖼️</sys:String>
+
+    <!-- ======== 文件类型图标 (7键) ======== -->
+    <sys:String x:Key="Icon_Drive">💾</sys:String>
+    <sys:String x:Key="Icon_Folder">📁</sys:String>
+    <sys:String x:Key="Icon_File">📄</sys:String>
+    <sys:String x:Key="Icon_Music">🎵</sys:String>
+    <sys:String x:Key="Icon_Video">🎬</sys:String>
+    <sys:String x:Key="Icon_Image">🖼️</sys:String>
+    <sys:String x:Key="Icon_Document">📝</sys:String>
+
+    <!-- ======== 导航面板图标 (3键) ======== -->
+    <sys:String x:Key="Icon_Nav_Path">🌏</sys:String>
+    <sys:String x:Key="Icon_Nav_Library">📚</sys:String>
+    <sys:String x:Key="Icon_Nav_Tag">🏷️</sys:String>
+
+    <!-- ======== 窗口控制图标 (7键, 含补齐的 Icon_Window_Tasks) ======== -->
+    <sys:String x:Key="Icon_Window_Settings">⚙️</sys:String>
+    <sys:String x:Key="Icon_Window_About">ℹ️</sys:String>
+    <sys:String x:Key="Icon_Window_Minimize">➖</sys:String>
+    <sys:String x:Key="Icon_Window_Maximize">🔲</sys:String>
+    <sys:String x:Key="Icon_Window_Restore">🔳</sys:String>
+    <sys:String x:Key="Icon_Window_Close">❌</sys:String>
+    <sys:String x:Key="Icon_Window_Tasks">📋</sys:String>           <!-- 补齐幽灵键 -->
+
+    <!-- ======== 布局模式图标 (3键) ======== -->
+    <sys:String x:Key="Icon_Layout_Focus">▬</sys:String>
+    <sys:String x:Key="Icon_Layout_Work">▦</sys:String>
+    <sys:String x:Key="Icon_Layout_Full">▦▦</sys:String>
+
+    <!-- ======== 状态/Toast 图标 (5键) ======== -->
+    <sys:String x:Key="Icon_Success">✓</sys:String>
+    <sys:String x:Key="Icon_Error">✕</sys:String>
+    <sys:String x:Key="Icon_Warning">⚠️</sys:String>
+    <sys:String x:Key="Icon_Info">ℹ️</sys:String>
+    <sys:String x:Key="Icon_Close">✕</sys:String>
+
+</ResourceDictionary>

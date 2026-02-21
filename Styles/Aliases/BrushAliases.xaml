@@ -1,0 +1,68 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ================================================================
+         Brush Aliases (颜色画刷别名映射层)
+         ================================================================
+         本文件将旧代码中广泛使用的"非标准键名"通过 DynamicResource 映射到
+         新的 37 个 Semantic Tokens。
+         
+         这样做有两个好处:
+         1. 保持向后兼容, 无需一次性修改成千上万行 XAML
+         2. 主题文件本身只需定义 37 个核心键, 极大地简化了新增主题的成本
+         
+         注意: 别名层必须在当前 Theme 字典之后加载, 且只需加载一次, 永不替换。
+         ================================================================ -->
+
+    <!-- 背景类别名 -->
+    <SolidColorBrush x:Key="AppBackgroundBrush" Color="{DynamicResource BackgroundPrimaryBrush.Color}"/>
+    <SolidColorBrush x:Key="PanelBackgroundBrush" Color="{DynamicResource BackgroundSecondaryBrush.Color}"/>
+    <SolidColorBrush x:Key="CardBackgroundBrush" Color="{DynamicResource BackgroundTertiaryBrush.Color}"/>
+    <SolidColorBrush x:Key="DialogBackgroundBrush" Color="{DynamicResource BackgroundElevatedBrush.Color}"/>
+    <SolidColorBrush x:Key="WindowBackgroundBrush" Color="{DynamicResource BackgroundElevatedBrush.Color}"/>
+    <SolidColorBrush x:Key="SurfaceBrush" Color="{DynamicResource BackgroundSecondaryBrush.Color}"/>
+    <SolidColorBrush x:Key="AccountBackgroundBrush" Color="{DynamicResource BackgroundSecondaryBrush.Color}"/>
+    <SolidColorBrush x:Key="InputBackgroundBrush" Color="{DynamicResource BackgroundPrimaryBrush.Color}"/>
+    <SolidColorBrush x:Key="ControlSampleBackgroundBrush" Color="{DynamicResource ControlDefaultBrush.Color}"/>
+    <SolidColorBrush x:Key="PreviewTitleBackgroundBrush" Color="{DynamicResource BackgroundSecondaryBrush.Color}"/>
+    <SolidColorBrush x:Key="PreviewPanelBackgroundBrush" Color="{DynamicResource BackgroundSecondaryBrush.Color}"/>
+
+    <!-- 文本类别名 -->
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="{DynamicResource ForegroundPrimaryBrush.Color}"/>
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="{DynamicResource ForegroundSecondaryBrush.Color}"/>
+    <SolidColorBrush x:Key="TextTertiaryBrush" Color="{DynamicResource ForegroundTertiaryBrush.Color}"/>
+    <SolidColorBrush x:Key="TextDisabledBrush" Color="{DynamicResource ForegroundDisabledBrush.Color}"/>
+    <SolidColorBrush x:Key="TextInverseBrush" Color="{DynamicResource ForegroundOnAccentBrush.Color}"/>
+    <SolidColorBrush x:Key="ForegroundBrush" Color="{DynamicResource ForegroundPrimaryBrush.Color}"/>
+    <SolidColorBrush x:Key="PreviewTitleForegroundBrush" Color="{DynamicResource ForegroundPrimaryBrush.Color}"/>
+    <SolidColorBrush x:Key="PreviewTextPrimaryBrush" Color="{DynamicResource ForegroundPrimaryBrush.Color}"/>
+
+    <!-- 边框类别名 -->
+    <SolidColorBrush x:Key="BorderBrush" Color="{DynamicResource BorderDefaultBrush.Color}"/>
+    <SolidColorBrush x:Key="BorderStrongBrush" Color="{DynamicResource BorderDefaultBrush.Color}"/>
+    <SolidColorBrush x:Key="InputBorderBrush" Color="{DynamicResource BorderDefaultBrush.Color}"/>
+
+    <!-- 强调色类别名 -->
+    <SolidColorBrush x:Key="AccentBrush" Color="{DynamicResource AccentDefaultBrush.Color}"/>
+    <SolidColorBrush x:Key="AccentForegroundBrush" Color="{DynamicResource ForegroundOnAccentBrush.Color}"/>
+    <SolidColorBrush x:Key="AccentSubtleBrush" Color="{DynamicResource AccentLightBrush.Color}"/>
+    <SolidColorBrush x:Key="SelectionBackgroundBrush" Color="{DynamicResource AccentLightBrush.Color}"/>
+
+    <!-- 控件状态类别名 -->
+    <SolidColorBrush x:Key="ControlBackgroundBrush" Color="{DynamicResource ControlDefaultBrush.Color}"/>
+    <SolidColorBrush x:Key="ControlDefaultBackgroundBrush" Color="{DynamicResource ControlDefaultBrush.Color}"/>
+    <SolidColorBrush x:Key="ControlHoverBackgroundBrush" Color="{DynamicResource ControlHoverBrush.Color}"/>
+    <SolidColorBrush x:Key="ControlPressedBackgroundBrush" Color="{DynamicResource ControlPressedBrush.Color}"/>
+    <SolidColorBrush x:Key="ButtonBackgroundBrush" Color="{DynamicResource ControlDefaultBrush.Color}"/>
+    <SolidColorBrush x:Key="ButtonBorderBrush" Color="{DynamicResource BorderDefaultBrush.Color}"/>
+    <SolidColorBrush x:Key="ButtonHoverBackgroundBrush" Color="{DynamicResource ControlHoverBrush.Color}"/>
+    <SolidColorBrush x:Key="ButtonPressedBackgroundBrush" Color="{DynamicResource ControlPressedBrush.Color}"/>
+    <SolidColorBrush x:Key="DisabledBrush" Color="{DynamicResource ControlDisabledBrush.Color}"/>
+
+    <!-- 语义状态类别名 -->
+    <SolidColorBrush x:Key="SuccessBrush" Color="{DynamicResource StatusSuccessBrush.Color}"/>
+    <SolidColorBrush x:Key="WarningBrush" Color="{DynamicResource StatusWarningBrush.Color}"/>
+    <SolidColorBrush x:Key="ErrorBrush" Color="{DynamicResource StatusErrorBrush.Color}"/>
+    <SolidColorBrush x:Key="InfoBrush" Color="{DynamicResource StatusInfoBrush.Color}"/>
+
+</ResourceDictionary>

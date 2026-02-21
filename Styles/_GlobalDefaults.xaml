@@ -1,0 +1,22 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:converters="clr-namespace:YiboFile.Controls.Converters">
+
+    <!-- ================================================================
+         Global Defaults (全局常量与转换器)
+         ================================================================
+         本文件定义应用中独立于"主题/UI风格/图标"之外的全局静态资源。
+         包含：ValueConverters、特定常量。
+         此文件属于基础资源，永不运行时替换。
+         ================================================================ -->
+
+    <!-- ======== Converters ======== -->
+    <converters:UsagePercentageToColorConverter x:Key="UsagePercentageToColorConverter"/>
+    <converters:StringStartsWithConverter x:Key="StringStartsWithConverter"/>
+
+    <!-- ======== Window Control 固定色 ======== -->
+    <!-- 窗口控制按钮的 Hover/Pressed 颜色通常固定不随主题变化 -->
+    <SolidColorBrush x:Key="CloseButtonHoverBackgroundBrush" Color="#E81123"/>
+    <SolidColorBrush x:Key="CloseButtonPressedBackgroundBrush" Color="#991746"/>
+
+</ResourceDictionary>
