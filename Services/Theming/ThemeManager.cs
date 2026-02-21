@@ -156,6 +156,7 @@ namespace YiboFile.Services.Theming
                     SetTheme(customTheme.BaseTheme, false);
                 }
                 CustomThemeManager.Apply(customTheme);
+                ReloadAliases(); // Ensure aliases catch the local custom theme overrides
                 
                 var oldTheme = _currentTheme;
                 var customThemeMetadata = new ThemeMetadata
@@ -212,12 +213,34 @@ namespace YiboFile.Services.Theming
             }
         }
 
+        public void ReloadAliases()
+        {
+            try {
+                var appDictionaries = Application.Current.Resources.MergedDictionaries;
+                var aliasDicts = appDictionaries.Where(d => d.Source != null && d.Source.OriginalString.Contains("/Styles/Aliases/")).ToList();
+                foreach (var alias in aliasDicts)
+                {
+                    var newAlias = new ResourceDictionary { Source = alias.Source };
+                    int aliasIndex = appDictionaries.IndexOf(alias);
+                    if (aliasIndex >= 0)
+                    {
+                        appDictionaries.Insert(aliasIndex, newAlias);
+                        appDictionaries.Remove(alias);
+                    }
+                }
+            } catch { } // Ignore errors during alias swap
+        }
+
         private void ApplyDictionary(Uri source, string identifierToReplace)
         {
             try {
                 var newDict = new ResourceDictionary { Source = source };
                 var appDictionaries = Application.Current.Resources.MergedDictionaries;
-                var existingDicts = appDictionaries.Where(d => d.Source != null && d.Source.OriginalString.Contains(identifierToReplace)).ToList();
+                var existingDicts = appDictionaries
+                    .Where(d => d.Source != null 
+                        && d.Source.OriginalString.Contains(identifierToReplace)
+                        && !d.Source.OriginalString.Contains("Contract", StringComparison.OrdinalIgnoreCase))
+                    .ToList();
                 
                 int indexToInsert = 0;
                 if (existingDicts.Any())
@@ -229,6 +252,24 @@ namespace YiboFile.Services.Theming
                 foreach (var dict in existingDicts)
                 {
                     appDictionaries.Remove(dict);
+                }
+
+                // If we are replacing themes (which affect base colors), 
+                // we MUST forcefully reload Aliases since SolidColorBrush.Color DynamicResource 
+                // bindings inside ResourceDictionaries do not update automatically in WPF.
+                if (identifierToReplace.Contains("/Styles/Themes/") || identifierToReplace.Contains("/Styles/Contracts/"))
+                {
+                    var aliasDicts = appDictionaries.Where(d => d.Source != null && d.Source.OriginalString.Contains("/Styles/Aliases/")).ToList();
+                    foreach (var alias in aliasDicts)
+                    {
+                        var newAlias = new ResourceDictionary { Source = alias.Source };
+                        int aliasIndex = appDictionaries.IndexOf(alias);
+                        if (aliasIndex >= 0)
+                        {
+                            appDictionaries.Insert(aliasIndex, newAlias);
+                            appDictionaries.Remove(alias);
+                        }
+                    }
                 }
             } catch (Exception ex) {
                 YiboFile.Services.Core.FileLogger.LogException($"Failed to load {source}", ex);
