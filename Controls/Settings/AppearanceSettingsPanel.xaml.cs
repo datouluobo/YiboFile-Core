@@ -281,6 +281,10 @@ namespace YiboFile.Controls.Settings
 
             leftPanel.Children.Add(_uiStyleComboBox);
 
+            // 🔧 修复 ComboBox 初始值不显示: 所有绑定建立后，延迟刷新 ViewModel 选中项通知
+            Dispatcher.BeginInvoke(new Action(() => _appearanceViewModel.RefreshBindings()),
+                System.Windows.Threading.DispatcherPriority.Loaded);
+
             // 2. Custom Theme Buttons
             var customThemeTitle = new TextBlock
             {

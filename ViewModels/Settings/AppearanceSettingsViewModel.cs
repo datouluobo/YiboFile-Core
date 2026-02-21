@@ -181,6 +181,22 @@ namespace YiboFile.ViewModels.Settings
             OnPropertyChanged(nameof(SelectedUIStyle));
         }
 
+        /// <summary>
+        /// 在 UI 绑定建立完成后调用，强制重新通知所有选中项属性，
+        /// 解决 WPF ComboBox 绑定时序导致的初始值不显示问题。
+        /// </summary>
+        public void RefreshBindings()
+        {
+            OnPropertyChanged(nameof(Themes));
+            OnPropertyChanged(nameof(SelectedTheme));
+            OnPropertyChanged(nameof(IconStyles));
+            OnPropertyChanged(nameof(SelectedIconStyle));
+            OnPropertyChanged(nameof(UIStyles));
+            OnPropertyChanged(nameof(SelectedUIStyle));
+            OnPropertyChanged(nameof(WindowOpacity));
+            OnPropertyChanged(nameof(EnableAnimations));
+        }
+
         public void RefreshThemes()
         {
             var config = ConfigurationService.Instance.GetSnapshot();
