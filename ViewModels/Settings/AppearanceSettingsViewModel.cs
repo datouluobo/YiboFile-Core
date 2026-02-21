@@ -68,9 +68,14 @@ namespace YiboFile.ViewModels.Settings
         private ThemeItemViewModel _selectedTheme;
         public ThemeItemViewModel SelectedTheme
         {
-            get => _selectedTheme;
+            get 
+            {
+                System.Diagnostics.Debug.WriteLine($"[Settings] GET SelectedTheme => {_selectedTheme?.Id ?? "null"}");
+                return _selectedTheme;
+            }
             set
             {
+                System.Diagnostics.Debug.WriteLine($"[Settings] SET SelectedTheme called with value => {value?.Id ?? "null"}");
                 if (value == null) return;
                 if (SetProperty(ref _selectedTheme, value))
                 {
@@ -267,6 +272,15 @@ namespace YiboFile.ViewModels.Settings
     {
         public string Id { get; set; }
         public string Name { get; set; }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is ItemViewModel other)
+                return Id == other.Id;
+            return false;
+        }
+
+        public override int GetHashCode() => Id?.GetHashCode() ?? 0;
     }
 }
 

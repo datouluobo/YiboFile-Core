@@ -50,6 +50,15 @@ namespace YiboFile.ViewModels
         }
 
         public override string ToString() => DisplayName;
+
+        public override bool Equals(object obj)
+        {
+            if (obj is ThemeItemViewModel other)
+                return Id == other.Id;
+            return false;
+        }
+
+        public override int GetHashCode() => Id?.GetHashCode() ?? 0;
     }
 
     public class IconStyleItemViewModel
@@ -64,6 +73,15 @@ namespace YiboFile.ViewModels
         }
 
         public override string ToString() => Name;
+
+        public override bool Equals(object obj)
+        {
+            if (obj is IconStyleItemViewModel other)
+                return Id == other.Id;
+            return false;
+        }
+
+        public override int GetHashCode() => Id?.GetHashCode() ?? 0;
     }
 
     public class NavigationSectionItemViewModel
