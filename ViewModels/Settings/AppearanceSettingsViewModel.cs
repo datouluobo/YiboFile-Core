@@ -71,7 +71,8 @@ namespace YiboFile.ViewModels.Settings
             get => _selectedTheme;
             set
             {
-                if (SetProperty(ref _selectedTheme, value) && value != null)
+                if (value == null) return;
+                if (SetProperty(ref _selectedTheme, value))
                 {
                     if (value.Id == "FollowSystem")
                         _themeService.EnableSystemThemeFollowing();
@@ -91,7 +92,8 @@ namespace YiboFile.ViewModels.Settings
             get => _selectedIconStyle;
             set
             {
-                if (SetProperty(ref _selectedIconStyle, value) && value != null)
+                if (value == null) return;
+                if (SetProperty(ref _selectedIconStyle, value))
                 {
                     _themeService.SetIconStyle(value.Id);
                     ConfigurationService.Instance.Update(c => c.IconStyle = value.Id);
@@ -105,7 +107,8 @@ namespace YiboFile.ViewModels.Settings
             get => _selectedUIStyle;
             set
             {
-                if (SetProperty(ref _selectedUIStyle, value) && value != null)
+                if (value == null) return;
+                if (SetProperty(ref _selectedUIStyle, value))
                 {
                     _themeService.SetUIStyle(value.Id);
                     ConfigurationService.Instance.Update(c => c.UIStyle = value.Id);
