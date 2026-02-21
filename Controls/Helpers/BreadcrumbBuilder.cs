@@ -136,10 +136,8 @@ namespace YiboFile.Controls.Helpers
             if (isSpecial)
             {
                 // 对于特殊模式，直接显示内容而不拆分路径
-                var contentRun = new Run(specialContent ?? "")
-                {
-                    Foreground = defaultBrush
-                };
+                var contentRun = new Run(specialContent ?? "");
+                contentRun.SetResourceReference(TextElement.ForegroundProperty, "ForegroundPrimaryBrush");
                 _breadcrumbText.Inlines.Add(contentRun);
                 return;
             }
@@ -219,10 +217,8 @@ namespace YiboFile.Controls.Helpers
                 Foreground = new SolidColorBrush(Color.FromRgb(255, 165, 0)),
                 FontWeight = FontWeights.SemiBold
             };
-            var tagRun = new Run(tagName ?? "")
-            {
-                Foreground = Brushes.Black
-            };
+            var tagRun = new Run(tagName ?? "");
+            tagRun.SetResourceReference(TextElement.ForegroundProperty, "ForegroundPrimaryBrush");
             _breadcrumbText.Inlines.Add(prefixRun);
             _breadcrumbText.Inlines.Add(tagRun);
         }
@@ -242,10 +238,8 @@ namespace YiboFile.Controls.Helpers
                 Foreground = new SolidColorBrush(Color.FromRgb(255, 165, 0)),
                 FontWeight = FontWeights.SemiBold
             };
-            var keywordRun = new Run(keyword ?? "")
-            {
-                Foreground = Brushes.Black
-            };
+            var keywordRun = new Run(keyword ?? "");
+            keywordRun.SetResourceReference(TextElement.ForegroundProperty, "ForegroundPrimaryBrush");
             _breadcrumbText.Inlines.Add(prefixRun);
             _breadcrumbText.Inlines.Add(keywordRun);
         }
@@ -265,10 +259,8 @@ namespace YiboFile.Controls.Helpers
                 Foreground = new SolidColorBrush(Color.FromRgb(255, 165, 0)),
                 FontWeight = FontWeights.SemiBold
             };
-            var libraryRun = new Run(libraryName ?? "")
-            {
-                Foreground = Brushes.Black
-            };
+            var libraryRun = new Run(libraryName ?? "");
+            libraryRun.SetResourceReference(TextElement.ForegroundProperty, "ForegroundPrimaryBrush");
             _breadcrumbText.Inlines.Add(prefixRun);
             _breadcrumbText.Inlines.Add(libraryRun);
         }
@@ -400,16 +392,16 @@ namespace YiboFile.Controls.Helpers
                 // 创建可点击的 Run
                 var run = new Run(parts[i])
                 {
-                    Foreground = defaultBrush,
                     Cursor = Cursors.Hand
                 };
+                run.SetResourceReference(TextElement.ForegroundProperty, "ForegroundPrimaryBrush");
 
                 var pathToNavigate = currentPath;
                 bool isLast = (i == parts.Length - 1);
 
                 // 鼠标悬停效果
-                run.MouseEnter += (s, e) => run.Foreground = hoverBrush;
-                run.MouseLeave += (s, e) => run.Foreground = defaultBrush;
+                run.MouseEnter += (s, e) => run.SetResourceReference(TextElement.ForegroundProperty, "AccentDefaultBrush");
+                run.MouseLeave += (s, e) => run.SetResourceReference(TextElement.ForegroundProperty, "ForegroundPrimaryBrush");
 
                 // 点击事件
                 run.MouseDown += (s, e) =>
@@ -463,12 +455,12 @@ namespace YiboFile.Controls.Helpers
         {
             var run = new Run(text)
             {
-                Foreground = defaultBrush,
                 Cursor = Cursors.Hand
             };
+            run.SetResourceReference(TextElement.ForegroundProperty, "ForegroundPrimaryBrush");
 
-            run.MouseEnter += (s, e) => run.Foreground = hoverBrush;
-            run.MouseLeave += (s, e) => run.Foreground = defaultBrush;
+            run.MouseEnter += (s, e) => run.SetResourceReference(TextElement.ForegroundProperty, "AccentDefaultBrush");
+            run.MouseLeave += (s, e) => run.SetResourceReference(TextElement.ForegroundProperty, "ForegroundPrimaryBrush");
             run.MouseDown += (s, e) =>
             {
                 if (e.ChangedButton == MouseButton.Left)

@@ -226,6 +226,12 @@ namespace YiboFile.Services.Navigation
             var currentPath = state.CurrentPath;
             var protocolInfo = ProtocolManager.Parse(currentPath);
 
+            // Only local file system paths and archives support "navigate up"
+            if (protocolInfo.Type != ProtocolType.Local && protocolInfo.Type != ProtocolType.Archive)
+            {
+                return null;
+            }
+
             if (protocolInfo.Type == ProtocolType.Archive)
             {
                 try

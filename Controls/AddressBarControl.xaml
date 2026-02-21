@@ -56,7 +56,7 @@
 
         <!-- 背景和边框 -->
         <Border Grid.ColumnSpan="3"
-                Background="{DynamicResource ControlBackgroundBrush}"
+                Background="{DynamicResource InputBackgroundBrush}"
                 BorderBrush="{DynamicResource BorderSubtleBrush}"
                 BorderThickness="{DynamicResource UI.AddressBar.BorderThickness}"
                 CornerRadius="{DynamicResource UI.AddressBar.CornerRadius}"/>
