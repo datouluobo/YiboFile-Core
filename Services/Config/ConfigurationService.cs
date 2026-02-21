@@ -28,7 +28,7 @@ namespace YiboFile.Services.Config
         private AppState _appState;
 
         private readonly object _configLock = new object();
-        private readonly DispatcherTimer _debounceTimer;
+        private readonly System.Threading.Timer _debounceTimer;
         private bool _isDirty = false;
         private IMessageBus _messageBus;
         private IConfigPathProvider _pathProvider;
@@ -102,12 +102,8 @@ namespace YiboFile.Services.Config
             // 尝试获取 MessageBus (延迟绑定)
             _messageBus = App.ServiceProvider?.GetService<IMessageBus>();
 
-            // 创建去抖定时器（500ms）
-            _debounceTimer = new DispatcherTimer
-            {
-                Interval = TimeSpan.FromMilliseconds(DebounceDelayMs)
-            };
-            _debounceTimer.Tick += OnDebounceTick;
+            // 创建去抖定时器（500ms）并使用 ThreadPool，避免 DispatcherTimer 跨线程无消息循环挂起
+            _debounceTimer = new System.Threading.Timer(OnDebounceTick, null, Timeout.Infinite, Timeout.Infinite);
         }
 
         private void LoadFromStorage()
@@ -309,10 +305,7 @@ namespace YiboFile.Services.Config
         {
             lock (_configLock)
             {
-                if (_debounceTimer.IsEnabled)
-                {
-                    _debounceTimer.Stop();
-                }
+                _debounceTimer?.Change(Timeout.Infinite, Timeout.Infinite);
 
                 if (_isDirty)
                 {
@@ -443,17 +436,15 @@ namespace YiboFile.Services.Config
         {
             if (_isSaveSuppressed) return;
 
-            // 重启定时器
-            _debounceTimer.Stop();
-            _debounceTimer.Start();
+            // 重启去抖定时器
+            _debounceTimer.Change(DebounceDelayMs, Timeout.Infinite);
         }
 
         /// <summary>
         /// 去抖定时器到期，执行保存
         /// </summary>
-        private void OnDebounceTick(object sender, EventArgs e)
+        private void OnDebounceTick(object state)
         {
-            _debounceTimer.Stop();
 
             lock (_configLock)
             {
@@ -478,7 +469,7 @@ namespace YiboFile.Services.Config
         /// </summary>
         public void Shutdown()
         {
-            _debounceTimer?.Stop();
+            _debounceTimer?.Change(Timeout.Infinite, Timeout.Infinite);
 
             // 强制保存未保存的更改
             SaveNow();
