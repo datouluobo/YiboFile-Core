@@ -187,6 +187,7 @@ namespace YiboFile.Controls.Settings
             _themeComboBox.SetResourceReference(ComboBox.BorderBrushProperty, "BorderDefaultBrush");
 
             // Bind ItemsSource
+            _themeComboBox.DisplayMemberPath = "DisplayName";
             var themeItemsBinding = new System.Windows.Data.Binding("Themes") { Source = _appearanceViewModel };
             _themeComboBox.SetBinding(ComboBox.ItemsSourceProperty, themeItemsBinding);
 
@@ -227,6 +228,7 @@ namespace YiboFile.Controls.Settings
             _iconStyleComboBox.SetResourceReference(ComboBox.BorderBrushProperty, "BorderDefaultBrush");
 
             // Bind ItemsSource
+            _iconStyleComboBox.DisplayMemberPath = "Name";
             var iconItemsBinding = new System.Windows.Data.Binding("IconStyles") { Source = _appearanceViewModel };
             _iconStyleComboBox.SetBinding(ComboBox.ItemsSourceProperty, iconItemsBinding);
 
