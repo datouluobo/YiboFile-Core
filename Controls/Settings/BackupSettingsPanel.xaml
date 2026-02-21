@@ -18,11 +18,11 @@
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <TextBox x:Name="BackupPathTextBox" Padding="5" IsReadOnly="True" Background="#F5F5F5"/>
+                    <TextBox x:Name="BackupPathTextBox" Padding="5" IsReadOnly="True" Background="{DynamicResource BackgroundSecondaryBrush}"/>
                     <Button Grid.Column="1" Content="浏览..." Padding="15,5" Margin="10,0,0,0" Click="BrowseButton_Click"/>
                 </Grid>
                 <TextBlock Text="留空则使用默认位置: %LocalAppData%\YiboFile\Backup" 
-                           FontSize="12" Foreground="Gray" Margin="0,4,0,0"/>
+                           FontSize="12" Foreground="{DynamicResource ForegroundSecondaryBrush}" Margin="0,4,0,0"/>
 
                 <Button Content="打开备份文件夹" HorizontalAlignment="Left" Margin="0,10,0,0" Click="OpenFolderButton_Click"/>
             </StackPanel>
@@ -49,12 +49,12 @@
 
                 <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
                     <Button x:Name="ManageButton" Content="管理备份..." Padding="20,8" Margin="0,0,15,0" 
-                            Background="{DynamicResource AccentDefaultBrush}" Foreground="White"
+                            Background="{DynamicResource AccentDefaultBrush}" Foreground="{DynamicResource ForegroundOnAccentBrush}"
                             Click="ManageButton_Click"/>
                     
                     <Button Content="清理旧备份" Padding="15,8" Click="CleanButton_Click"/>
                 </StackPanel>
-                <TextBlock Text="注意: '管理备份' 功能将打开独立的备份浏览器窗口。" FontSize="12" Foreground="Gray" Margin="0,8,0,0"/>
+                <TextBlock Text="注意: '管理备份' 功能将打开独立的备份浏览器窗口。" FontSize="12" Foreground="{DynamicResource ForegroundSecondaryBrush}" Margin="0,8,0,0"/>
             </StackPanel>
         </GroupBox>
 

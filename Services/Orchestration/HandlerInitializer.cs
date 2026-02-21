@@ -29,6 +29,7 @@ namespace YiboFile.Services.Orchestration
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly IMessageBus _messageBus;
+        private readonly YiboFile.Services.Theming.IThemeService _themeService;
 
         // 初始化结果（供 WindowOrchestrator 读取）
         public Handlers.WindowLifecycleHandler LifecycleHandler { get; private set; }
@@ -42,8 +43,9 @@ namespace YiboFile.Services.Orchestration
         public WindowStateManager WindowStateManager { get; private set; }
         public Services.UIHelper.IUIHelperService UIHelperService { get; private set; }
 
-        public HandlerInitializer(IServiceProvider serviceProvider, IMessageBus messageBus)
+        public HandlerInitializer(YiboFile.Services.Theming.IThemeService themeService, IServiceProvider serviceProvider, IMessageBus messageBus)
         {
+            _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
             _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
             _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
         }
@@ -416,7 +418,7 @@ namespace YiboFile.Services.Orchestration
             MainWindowViewModel viewModel)
         {
             // 订阅主题切换事件,刷新导航面板图标
-            Services.Theming.ThemeManager.ThemeChanged += (s, e) =>
+            _themeService.ThemeChanged += (s, e) =>
             {
                 window.Dispatcher.BeginInvoke(new Action(() =>
                 {
@@ -442,3 +444,4 @@ namespace YiboFile.Services.Orchestration
         }
     }
 }
+

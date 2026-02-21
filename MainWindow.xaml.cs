@@ -293,15 +293,7 @@ namespace YiboFile
 
         public MainWindow()
         {
-            try
-            {
-                // string msg = $"{DateTime.Now:O} [MainWindow.Constructor] Start";
-                // System.Diagnostics.Debug.WriteLine(msg);
-            }
-            catch { }
-
             InitializeComponent();
-            // this.Title += " [FIXED]";
 
             // 🔧 关键修复：绑定窗口关闭事件，确保退出时保存状态（标签页、窗口大小等）
             this.Closing += Window_Closing;
@@ -309,37 +301,17 @@ namespace YiboFile
             // 这对于解决启动时右侧空白间隙至关重要，因为此时 ActualWidth 才有效
             this.ContentRendered += (s, e) =>
             {
-                try
-                {
-                    // string msg = $"{DateTime.Now:O} [MainWindow.ContentRendered] WindowState={this.WindowState}, Config.IsMaximized={ConfigurationService.Instance.Config?.IsMaximized}";
-                    // System.Diagnostics.Debug.WriteLine(msg);
-                }
-                catch { }
-
                 _orchestrator.LifecycleHandler?.AdjustColumnWidths();
 
                 // 再次确认窗口最大化状态 (双重保险，解决持久化可能失效的问题)
                 if (ConfigurationService.Instance.Config?.IsMaximized == true && this.WindowState != WindowState.Maximized)
                 {
-                    try
-                    {
-                        // string msg = $"{DateTime.Now:O} [MainWindow.ContentRendered] Forcing Maximize";
-                        // System.Diagnostics.Debug.WriteLine(msg);
-                    }
-                    catch { }
-
                     this.WindowState = WindowState.Maximized;
                     _orchestrator.LifecycleHandler?.UpdateWindowStateUI();
                 }
 
                 // 启动完成，启用配置保存
                 YiboFile.Services.Config.ConfigurationService.Instance.EnableSaving();
-                try
-                {
-                    // string msg = $"{DateTime.Now:O} [MainWindow.ContentRendered] Configuration Saving Enabled";
-                    // System.Diagnostics.Debug.WriteLine(msg);
-                }
-                catch { }
             };
 
             this.SizeChanged += (s, e) => UpdateTabManagerMargin();

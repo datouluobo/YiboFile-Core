@@ -45,9 +45,8 @@ namespace YiboFile.Services.FileOperations
             {
                 firstPath = Path.GetFullPath(firstPath);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine($"[LibraryOperationContext] Path.GetFullPath failed for {firstPath}: {ex.Message}");
             }
 
             if (!Directory.Exists(firstPath))

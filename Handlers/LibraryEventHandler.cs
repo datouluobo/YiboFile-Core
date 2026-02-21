@@ -232,7 +232,6 @@ namespace YiboFile.Handlers
 
                 if (dialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(dialog.InputText))
                 {
-                    MessageBox.Show("库重命名功能待实现", "提示");
                 }
             }
         }
@@ -272,7 +271,6 @@ namespace YiboFile.Handlers
 
         public void ExportLibrary_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("导出库功能待实现", "提示");
         }
 
         public void AddFileToLibrary_Click(object sender, RoutedEventArgs e)

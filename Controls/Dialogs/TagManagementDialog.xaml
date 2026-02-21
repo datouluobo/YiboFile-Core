@@ -7,8 +7,8 @@
         mc:Ignorable="d"
         Title="标签管理" Height="500" Width="800"
         WindowStartupLocation="CenterOwner" ResizeMode="CanResize"
-        Background="White"
-        Foreground="#333333">
+        Background="{DynamicResource BackgroundPrimaryBrush}"
+        Foreground="{DynamicResource ForegroundPrimaryBrush}">
     
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
@@ -45,7 +45,7 @@
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
                         <Border Margin="0,0,0,8" BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}"
-                                Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}" CornerRadius="4">
+                                Background="{DynamicResource BackgroundSecondaryBrush}" CornerRadius="4">
                             <Expander IsExpanded="True" BorderThickness="0" Background="Transparent" Padding="5">
                             <Expander.Header>
                                 <Grid Width="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type Expander}}, Path=ActualWidth, Converter={StaticResource MathConverter}, ConverterParameter=-50}">
@@ -66,8 +66,7 @@
                                         <Button Content="✎" Click="RenameGroup_Click" Style="{StaticResource ModernButtonStyle}" 
                                                 Width="24" Height="24" Padding="0" Margin="4,0,0,0" ToolTip="重命名分组"
                                                 Background="Transparent" BorderThickness="0"/>
-                                        <Button Content="❌" Click="DeleteGroup_Click" Style="{StaticResource ModernButtonStyle}" 
-                                                Width="24" Height="24" Padding="0" Margin="4,0,0,0" ToolTip="删除分组" Foreground="#FF5555"
+                                                Width="24" Height="24" Padding="0" Margin="4,0,0,0" ToolTip="删除分组" Foreground="{DynamicResource StatusErrorBrush}"
                                                 Background="Transparent" BorderThickness="0"/>
                                     </StackPanel>
                                 </Grid>
@@ -109,13 +108,13 @@
                                                             <ColumnDefinition Width="Auto"/>
                                                             <ColumnDefinition Width="Auto"/>
                                                         </Grid.ColumnDefinitions>
-                                                        <TextBlock Text="{Binding Name}" Foreground="White" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="{Binding Name}" Foreground="{DynamicResource ForegroundOnAccentBrush}" VerticalAlignment="Center"/>
                                                         <StackPanel x:Name="ActionButtons" Grid.Column="1" Orientation="Horizontal" Margin="6,0,0,0"
                                                                     Opacity="0">
                                                              <Button Content="✎" Click="RenameTag_Click" Width="16" Height="16" Padding="0"
-                                                                     Background="Transparent" BorderThickness="0" Foreground="White" ToolTip="重命名" Margin="0,0,2,0"/>
+                                                                     Background="Transparent" BorderThickness="0" Foreground="{DynamicResource ForegroundOnAccentBrush}" ToolTip="重命名" Margin="0,0,2,0"/>
                                                              <Button Content="✕" Click="DeleteTag_Click" Width="16" Height="16" Padding="0" 
-                                                                     Background="Transparent" BorderThickness="0" Foreground="White" ToolTip="删除"/>
+                                                                     Background="Transparent" BorderThickness="0" Foreground="{DynamicResource ForegroundOnAccentBrush}" ToolTip="删除"/>
                                                         </StackPanel>
                                                     </Grid>
                                                     <Border.Triggers>
@@ -148,7 +147,7 @@
                                         
                                         <Grid>
                                             <TextBox x:Name="NewTagBox" Style="{StaticResource ModernTextBoxStyle}" KeyDown="NewTagBox_KeyDown" Tag="添加标签..."/>
-                                            <TextBlock Text="添加标签..." Foreground="#808080" Margin="8,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False">
+                                            <TextBlock Text="添加标签..." Foreground="{DynamicResource ForegroundSecondaryBrush}" Margin="8,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False">
                                                 <TextBlock.Style>
                                                     <Style TargetType="TextBlock">
                                                         <Setter Property="Visibility" Value="Collapsed"/>
@@ -186,8 +185,8 @@
         </Border>
 
         <!-- Error Snackbar -->
-        <Border x:Name="ErrorOverlay" Grid.RowSpan="3" VerticalAlignment="Bottom" Background="#B00020" Padding="15,10" Margin="20" CornerRadius="4" Visibility="Collapsed">
-            <TextBlock x:Name="ErrorText" Text="Error Message" Foreground="White" FontWeight="SemiBold"/>
+        <Border x:Name="ErrorOverlay" Grid.RowSpan="3" VerticalAlignment="Bottom" Background="{DynamicResource StatusErrorBrush}" Padding="15,10" Margin="20" CornerRadius="4" Visibility="Collapsed">
+            <TextBlock x:Name="ErrorText" Text="Error Message" Foreground="{DynamicResource ForegroundOnAccentBrush}" FontWeight="SemiBold"/>
         </Border>
     </Grid>
 </Window>

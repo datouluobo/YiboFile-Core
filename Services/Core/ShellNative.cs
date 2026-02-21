@@ -43,9 +43,8 @@ namespace YiboFile.Services.Core
                 info.fMask = SEE_MASK_INVOKEIDLIST;
                 return ShellExecuteEx(ref info);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine($"[ShellNative] Error showing properties for {filename}: {ex.Message}");
                 return false;
             }
         }

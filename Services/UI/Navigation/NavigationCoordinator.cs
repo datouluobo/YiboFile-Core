@@ -57,24 +57,18 @@ namespace YiboFile.Services.Navigation
             var tabService = request.Pane == PaneId.Second ? _secondTabService : _mainTabService;
             if (tabService == null) return;
 
-            System.Diagnostics.Debug.WriteLine($"[NAV-DEBUG] NavigationCoordinator: NavigateAsync called. Source={request.Source}, Type={request.Target.Type}, Pane={request.Pane}, Path='{request.Target.Path}'");
-
             switch (request.Target.Type)
             {
                 case NavigationTargetType.Path:
-                    System.Diagnostics.Debug.WriteLine($"[NAV-DEBUG] NavigationCoordinator: Routing to HandlePathRequest");
                     await HandlePathRequest(request, tabService);
                     break;
                 case NavigationTargetType.Library:
-                    System.Diagnostics.Debug.WriteLine($"[NAV-DEBUG] NavigationCoordinator: Routing to HandleLibraryRequest (Library: {request.Target.Library?.Name})");
                     HandleLibraryRequest(request, tabService);
                     break;
                 case NavigationTargetType.Tag:
-                    System.Diagnostics.Debug.WriteLine($"[NAV-DEBUG] NavigationCoordinator: Routing to HandleTagRequest (Tag: {request.Target.TagName})");
                     await HandleTagRequest(request, tabService);
                     break;
                 case NavigationTargetType.Search:
-                    System.Diagnostics.Debug.WriteLine($"[NAV-DEBUG] NavigationCoordinator: Routing to HandleSearchRequest (Keyword: {request.Target.SearchKeyword})");
                     await HandleSearchRequest(request, tabService);
                     break;
             }
@@ -135,7 +129,6 @@ namespace YiboFile.Services.Navigation
                 // Prevent infinite loop if path is already active
                 if (string.Equals(tabService.ActiveTab.Path, path, StringComparison.OrdinalIgnoreCase))
                 {
-                    System.Diagnostics.Debug.WriteLine($"[NavigationCoordinator] Skipping navigation: Path '{path}' is already active.");
                     return;
                 }
 
@@ -211,7 +204,7 @@ namespace YiboFile.Services.Navigation
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine($"[NavigationCoordinator] Warning: Cannot resolve PaneVM for {pane}. Path: {path}");
+                // Silent
             }
         }
 

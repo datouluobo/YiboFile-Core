@@ -81,11 +81,11 @@
                                          Background="{DynamicResource ControlSampleBackgroundBrush}">
                                 <ProgressBar.Style>
                                     <Style TargetType="ProgressBar">
-                                        <Setter Property="Foreground" Value="#2196F3"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource AccentDefaultBrush}"/>
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding UsagePercentage}" Value="0.9">
                                                 <!-- Warning Red for > 90% logic handled via validation converter usually, simplified here -->
-                                                <Setter Property="Foreground" Value="#F44336"/> 
+                                                <Setter Property="Foreground" Value="{DynamicResource StatusErrorBrush}"/> 
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>

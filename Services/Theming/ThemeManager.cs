@@ -4,206 +4,159 @@ using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Media.Animation;
-using Microsoft.Win32; // SystemEvents 和 Registry
-
+using Microsoft.Win32;
 using YiboFile.Models;
 
 namespace YiboFile.Services.Theming
 {
-    /// <summary>
-    /// 主题管理器 - 负责主题发现、加载和切换
-    /// </summary>
-    public class ThemeManager
+    public class ThemeManager : IThemeService
     {
-        private static readonly Dictionary<string, ThemeMetadata> _themes = new();
-        private static ThemeMetadata _currentTheme;
-        private static bool _isFollowingSystemTheme = false;
+        private readonly Dictionary<string, ThemeMetadata> _themes = new();
+        private readonly Dictionary<string, UIStyleMetadata> _uiStyles = new();
+        private readonly Dictionary<string, IconStyleMetadata> _iconStyles = new();
+        
+        private ThemeMetadata _currentTheme;
+        private UIStyleMetadata _currentUIStyle;
+        private IconStyleMetadata _currentIconStyle;
+        private bool _isFollowingSystemTheme = false;
 
-        /// <summary>
-        /// 动画效果启用状态（从配置读取）
-        /// </summary>
-        public static bool AnimationsEnabled { get; set; } = true;
+        public bool AnimationsEnabled { get; set; } = true;
 
-        /// <summary>
-        /// 主题变更事件
-        /// </summary>
-        public static event EventHandler<ThemeChangedEventArgs> ThemeChanged;
+        public event EventHandler<ThemeChangedEventArgs> ThemeChanged;
+        public event EventHandler<UIStyleChangedEventArgs> UIStyleChanged;
+        public event EventHandler<IconStyleChangedEventArgs> IconStyleChanged;
 
-        static ThemeManager()
+        public ThemeMetadata CurrentTheme => _currentTheme;
+        public IReadOnlyList<ThemeMetadata> AvailableThemes => _themes.Values.ToList();
+        
+        public UIStyleMetadata CurrentUIStyle => _currentUIStyle;
+        public IReadOnlyList<UIStyleMetadata> AvailableUIStyles => _uiStyles.Values.ToList();
+        
+        public IconStyleMetadata CurrentIconStyle => _currentIconStyle;
+        public IReadOnlyList<IconStyleMetadata> AvailableIconStyles => _iconStyles.Values.ToList();
+        
+        public bool IsFollowingSystemTheme => _isFollowingSystemTheme;
+        
+        public IReadOnlyList<CustomTheme> CustomThemes => CustomThemeManager.LoadAll();
+
+        public ThemeManager()
         {
-            DiscoverThemes();
+            DiscoverResources();
         }
 
-        /// <summary>
-        /// 自动发现所有可用主题
-        /// </summary>
-        private static void DiscoverThemes()
+        private void DiscoverResources()
         {
-            try
+            var themes = new[] { "Light", "Dark", "Ocean", "Forest", "Sunset", "Purple", "Nordic" };
+            foreach (var t in themes)
             {
-                // 尝试获取Themes目录下所有主题文件
-                var themesPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Themes");
-
-                // 自动扫描所有.xaml文件
-                string[] themeFiles = null;
-                if (Directory.Exists(themesPath))
-                {
-                    themeFiles = Directory.GetFiles(themesPath, "*.xaml");
-                }
-                else
-                {
-                    // 如果目录不存在，回退到已知主题列表
-                    themeFiles = new[] { "Light", "Dark", "Ocean", "Forest", "Sunset", "Purple", "Nordic" }
-                        .Select(id => $"Themes\\{id}.xaml").ToArray();
-                }
-
-                foreach (var filePath in themeFiles)
-                {
-                    try
-                    {
-                        var fileName = Path.GetFileNameWithoutExtension(filePath);
-                        var uri = new Uri($"pack://application:,,,/Themes/{fileName}.xaml", UriKind.Absolute);
-                        var metadata = LoadThemeMetadata(uri, fileName);
-                        if (metadata != null)
-                        {
-                            _themes[fileName] = metadata;
-                        }
-                    }
-                    catch (Exception)
-                    { }
-                }
-
-                // 确保至少有Light和Dark主题
-                if (!_themes.ContainsKey("Light"))
-                {
-                    var uri = new Uri("pack://application:,,,/Themes/Light.xaml", UriKind.Absolute);
-                    var metadata = LoadThemeMetadata(uri, "Light");
-                    if (metadata != null) _themes["Light"] = metadata;
-                }
-                if (!_themes.ContainsKey("Dark"))
-                {
-                    var uri = new Uri("pack://application:,,,/Themes/Dark.xaml", UriKind.Absolute);
-                    var metadata = LoadThemeMetadata(uri, "Dark");
-                    if (metadata != null) _themes["Dark"] = metadata;
-                }
+                var uri = new Uri($"pack://application:,,,/YiboFile-Core;component/Styles/Themes/{t}.xaml", UriKind.Absolute);
+                var meta = LoadThemeMetadata(uri, t);
+                if (meta != null) _themes[t] = meta;
             }
-            catch (Exception)
+
+            var uiStyles = new[] { "Original", "Fluent", "MacOS", "Geek" };
+            foreach (var u in uiStyles)
             {
-                // 最小化回退：只加载Light和Dark
-                var fallbackThemes = new[] { "Light", "Dark" };
-                foreach (var themeId in fallbackThemes)
-                {
-                    try
-                    {
-                        var uri = new Uri($"pack://application:,,,/Themes/{themeId}.xaml", UriKind.Absolute);
-                        var metadata = LoadThemeMetadata(uri, themeId);
-                        if (metadata != null) _themes[themeId] = metadata;
-                    }
-                    catch { }
-                }
+                var uri = new Uri($"pack://application:,,,/YiboFile-Core;component/Styles/UIStyles/{u}.xaml", UriKind.Absolute);
+                var meta = LoadUIStyleMetadata(uri, u);
+                if (meta != null) _uiStyles[u] = meta;
+            }
+
+            var icons = new[] { "Emoji", "Fluent", "Material", "Remix" };
+            foreach (var i in icons)
+            {
+                var uri = new Uri($"pack://application:,,,/YiboFile-Core;component/Styles/Icons/{i}.xaml", UriKind.Absolute);
+                var meta = LoadIconStyleMetadata(uri, i);
+                if (meta != null) _iconStyles[i] = meta;
             }
         }
 
-        /// <summary>
-        /// 从 ResourceDictionary 加载主题元数据
-        /// </summary>
-        private static ThemeMetadata LoadThemeMetadata(Uri source, string fallbackId)
+        private ThemeMetadata LoadThemeMetadata(Uri source, string fallbackId)
         {
             try
             {
                 var dict = new ResourceDictionary { Source = source };
-
                 return new ThemeMetadata
                 {
                     Id = dict.Contains("ThemeId") ? dict["ThemeId"] as string : fallbackId,
                     DisplayName = dict.Contains("ThemeDisplayName") ? dict["ThemeDisplayName"] as string : fallbackId,
                     Description = dict.Contains("ThemeDescription") ? dict["ThemeDescription"] as string : "",
                     Author = dict.Contains("ThemeAuthor") ? dict["ThemeAuthor"] as string : "Unknown",
-                    Version = dict.Contains("ThemeVersion")
-                        ? Version.Parse(dict["ThemeVersion"] as string)
-                        : new Version("1.0.0"),
+                    Version = dict.Contains("ThemeVersion") ? Version.Parse(dict["ThemeVersion"] as string) : new Version("1.0.0"),
                     Source = source,
                     IsBuiltIn = true,
                     CreatedAt = DateTime.Now,
                     PreviewColors = new ThemePreviewColors
                     {
                         Primary = dict.Contains("PreviewPrimaryColor") ? dict["PreviewPrimaryColor"] as string : "#000000",
-                        Background = dict.Contains("PreviewBackgroundColor") ? dict["PreviewBackgroundColor"] as string : "#FFFFFF",
-                        Surface = dict.Contains("PreviewSurfaceColor") ? dict["PreviewSurfaceColor"] as string : "#F5F5F5",
-                        TextPrimary = dict.Contains("PreviewTextColor") ? dict["PreviewTextColor"] as string : "#000000"
+                        Background = dict.Contains("BackgroundPrimaryBrush") ? ((System.Windows.Media.SolidColorBrush)dict["BackgroundPrimaryBrush"]).Color.ToString() : "#FFFFFF",
+                        Surface = dict.Contains("BackgroundSecondaryBrush") ? ((System.Windows.Media.SolidColorBrush)dict["BackgroundSecondaryBrush"]).Color.ToString() : "#F5F5F5",
+                        TextPrimary = dict.Contains("ForegroundPrimaryColor") ? dict["ForegroundPrimaryColor"].ToString() : "#000000"
                     }
                 };
             }
-            catch (Exception)
+            catch { return null; }
+        }
+
+        private UIStyleMetadata LoadUIStyleMetadata(Uri source, string fallbackId)
+        {
+            try
             {
-                return null;
+                var dict = new ResourceDictionary { Source = source };
+                return new UIStyleMetadata
+                {
+                    Id = dict.Contains("UIStyleId") ? dict["UIStyleId"] as string : fallbackId,
+                    DisplayName = dict.Contains("UIStyleDisplayName") ? dict["UIStyleDisplayName"] as string : fallbackId,
+                    Description = dict.Contains("UIStyleDescription") ? dict["UIStyleDescription"] as string : ""
+                };
             }
+            catch { return null; }
         }
 
-        /// <summary>
-        /// 获取所有可用主题
-        /// </summary>
-        public static IEnumerable<ThemeMetadata> GetAvailableThemes()
+        private IconStyleMetadata LoadIconStyleMetadata(Uri source, string fallbackId)
         {
-            return _themes.Values;
+            try
+            {
+                var dict = new ResourceDictionary { Source = source };
+                return new IconStyleMetadata
+                {
+                    Id = dict.Contains("IconStyleId") ? dict["IconStyleId"] as string : fallbackId,
+                    DisplayName = dict.Contains("IconStyleDisplayName") ? dict["IconStyleDisplayName"] as string : fallbackId,
+                    Description = dict.Contains("IconStyleDescription") ? dict["IconStyleDescription"] as string : ""
+                };
+            }
+            catch { return null; }
         }
 
-        /// <summary>
-        /// 获取当前主题
-        /// </summary>
-        public static ThemeMetadata GetCurrentTheme()
+        public void SetTheme(string themeId, bool animate = true)
         {
-            return _currentTheme;
-        }
-
-        /// <summary>
-        /// 设置主题（支持动画）
-        /// 根据ID自动判断是内置主题还是自定义主题
-        /// </summary>
-        /// <param name="themeId">主题ID</param>
-        /// <param name="animate">是否使用动画过渡</param>
-        public static void SetTheme(string themeId, bool animate = true)
-        {
-            // 1. 尝试内置主题
             if (_themes.ContainsKey(themeId))
             {
-                // 在应用内置主题前，必须清除可能的自定义颜色覆盖
-                // 确保从自定义主题切回内置主题时能恢复原样
                 CustomThemeManager.ClearOverrides();
-
                 var newTheme = _themes[themeId];
-
-                // 考虑全局动画设置
-                bool shouldAnimate = animate && AnimationsEnabled;
-
-                if (shouldAnimate && _currentTheme != null)
+                if (animate && AnimationsEnabled && _currentTheme != null)
                 {
-                    AnimateThemeTransition(() => ApplyTheme(newTheme));
+                    AnimateTransition(() => ApplyDictionary(newTheme.Source, "/Styles/Themes/"));
                 }
                 else
                 {
-                    ApplyTheme(newTheme);
+                    ApplyDictionary(newTheme.Source, "/Styles/Themes/");
                 }
+                var old = _currentTheme;
+                _currentTheme = newTheme;
+                ThemeChanged?.Invoke(this, new ThemeChangedEventArgs(old, newTheme, false));
                 return;
             }
 
-            // 2. 尝试自定义主题
-            // 委托给CustomThemeManager处理
             var customTheme = CustomThemeManager.GetTheme(themeId);
             if (customTheme != null)
             {
-                // 先应用基础主题（无动画），确保底层资源正确（如不可定制的画笔）
-                // 递归调用自身会进入上面的内置主题分支，从而触发 ClearOverrides 和 ApplyTheme
-                // 这为您提供了一个干净的底板，然后再应用自定义覆盖
                 if (_themes.ContainsKey(customTheme.BaseTheme))
                 {
-                    SetTheme(customTheme.BaseTheme, animate: false);
+                    SetTheme(customTheme.BaseTheme, false);
                 }
-
-                // 应用自定义颜色覆盖 (直接修改 Application.Resources)
                 CustomThemeManager.Apply(customTheme);
-
-                // 构造一个临时的 Metadata 以更新 CurrentTheme
+                
                 var oldTheme = _currentTheme;
                 var customThemeMetadata = new ThemeMetadata
                 {
@@ -211,9 +164,8 @@ namespace YiboFile.Services.Theming
                     DisplayName = customTheme.Name,
                     Description = "用户自定义主题",
                     IsBuiltIn = false,
-                    Source = null, // 自定义主题没有单一的Source文件
+                    Source = null,
                     CreatedAt = customTheme.CreatedAt,
-                    // 预览颜色可以从customTheme.Colors中提取，这里简化处理
                     PreviewColors = new ThemePreviewColors
                     {
                         Primary = customTheme.Colors.ContainsKey("AccentDefaultBrush") ? customTheme.Colors["AccentDefaultBrush"] : "#000000",
@@ -222,48 +174,68 @@ namespace YiboFile.Services.Theming
                         TextPrimary = customTheme.Colors.ContainsKey("ForegroundPrimaryBrush") ? customTheme.Colors["ForegroundPrimaryBrush"] : "#000000"
                     }
                 };
-
                 _currentTheme = customThemeMetadata;
-                ThemeChanged?.Invoke(null, new ThemeChangedEventArgs(oldTheme, customThemeMetadata)); return;
+                ThemeChanged?.Invoke(this, new ThemeChangedEventArgs(oldTheme, customThemeMetadata, true));
+                return;
             }
-
             throw new ArgumentException($"Theme '{themeId}' not found.");
         }
 
-        /// <summary>
-        /// 应用主题
-        /// </summary>
-        private static void ApplyTheme(ThemeMetadata theme)
+        public void ToggleTheme()
         {
-            try
+            if (_currentTheme == null) return;
+            var newThemeId = _currentTheme.Id == "Light" ? "Dark" : "Light";
+            SetTheme(newThemeId, true);
+        }
+
+        public void SetUIStyle(string styleId)
+        {
+            if (_uiStyles.ContainsKey(styleId))
             {
-                var newDict = new ResourceDictionary { Source = theme.Source };
-
-                var appDictionaries = Application.Current.Resources.MergedDictionaries;
-                var existingDict = appDictionaries.FirstOrDefault(d => d.Contains("AppBackgroundBrush"));
-
-                if (existingDict != null)
-                {
-                    appDictionaries.Remove(existingDict);
-                }
-
-                appDictionaries.Add(newDict);
-
-                var oldTheme = _currentTheme;
-                _currentTheme = theme;
-
-                ThemeChanged?.Invoke(null, new ThemeChangedEventArgs(oldTheme, theme));
-            }
-            catch (Exception)
-            {
-                throw;
+                var source = new Uri($"pack://application:,,,/YiboFile-Core;component/Styles/UIStyles/{styleId}.xaml", UriKind.Absolute);
+                ApplyDictionary(source, "/Styles/UIStyles/");
+                var old = _currentUIStyle;
+                _currentUIStyle = _uiStyles[styleId];
+                UIStyleChanged?.Invoke(this, new UIStyleChangedEventArgs(old, _currentUIStyle));
             }
         }
 
-        /// <summary>
-        /// 主题切换动画（淡入淡出效果）
-        /// </summary>
-        private static void AnimateThemeTransition(Action applyAction)
+        public void SetIconStyle(string styleId)
+        {
+            if (_iconStyles.ContainsKey(styleId))
+            {
+                var source = new Uri($"pack://application:,,,/YiboFile-Core;component/Styles/Icons/{styleId}.xaml", UriKind.Absolute);
+                ApplyDictionary(source, "/Styles/Icons/");
+                var old = _currentIconStyle;
+                _currentIconStyle = _iconStyles[styleId];
+                IconStyleChanged?.Invoke(this, new IconStyleChangedEventArgs(old, _currentIconStyle));
+            }
+        }
+
+        private void ApplyDictionary(Uri source, string identifierToReplace)
+        {
+            try {
+                var newDict = new ResourceDictionary { Source = source };
+                var appDictionaries = Application.Current.Resources.MergedDictionaries;
+                var existingDicts = appDictionaries.Where(d => d.Source != null && d.Source.OriginalString.Contains(identifierToReplace)).ToList();
+                
+                int indexToInsert = 0;
+                if (existingDicts.Any())
+                {
+                    indexToInsert = appDictionaries.IndexOf(existingDicts.First());
+                }
+                
+                appDictionaries.Insert(indexToInsert, newDict);
+                foreach (var dict in existingDicts)
+                {
+                    appDictionaries.Remove(dict);
+                }
+            } catch (Exception ex) {
+                YiboFile.Services.Core.FileLogger.LogException($"Failed to load {source}", ex);
+            }
+        }
+
+        private void AnimateTransition(Action applyAction)
         {
             var mainWindow = Application.Current.MainWindow;
             if (mainWindow == null)
@@ -271,217 +243,75 @@ namespace YiboFile.Services.Theming
                 applyAction();
                 return;
             }
-
-            // 淡出动画
-            var fadeOut = new DoubleAnimation
-            {
-                From = 1.0,
-                To = 0.0,
-                Duration = TimeSpan.FromMilliseconds(150),
-                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
-            };
-
+            var fadeOut = new DoubleAnimation { From = 1.0, To = 0.0, Duration = TimeSpan.FromMilliseconds(150), EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn } };
             fadeOut.Completed += (s, e) =>
             {
-                // 应用主题
                 applyAction();
-
-                // 淡入动画
-                var fadeIn = new DoubleAnimation
-                {
-                    From = 0.0,
-                    To = 1.0,
-                    Duration = TimeSpan.FromMilliseconds(150),
-                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
-                };
-
+                var fadeIn = new DoubleAnimation { From = 0.0, To = 1.0, Duration = TimeSpan.FromMilliseconds(150), EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } };
                 mainWindow.BeginAnimation(UIElement.OpacityProperty, fadeIn);
             };
-
             mainWindow.BeginAnimation(UIElement.OpacityProperty, fadeOut);
         }
 
-        /// <summary>
-        /// 切换主题（Light ↔ Dark）
-        /// </summary>
-        public static void ToggleTheme()
+        public void EnableSystemThemeFollowing()
         {
-            if (_currentTheme == null) return;
-
-            var newThemeId = _currentTheme.Id == "Light" ? "Dark" : "Light";
-            SetTheme(newThemeId, animate: true);
-        }
-
-        /// <summary>
-        /// 切换图标风格
-        /// </summary>
-        /// <param name="styleName">E.g., "Emoji", "Remix", "Fluent"</param>
-        public static void ChangeIconStyle(string styleName)
-        {
-            try
-            {
-                // Use Relative URI to ensure consistent BAML loading behavior with App.xaml
-                var uri = new Uri($"/Resources/Icons/Icons.{styleName}.xaml", UriKind.Relative);
-                var newDict = new ResourceDictionary { Source = uri };
-
-                var appDictionaries = Application.Current.Resources.MergedDictionaries;
-
-                // 查找并替换旧的图标资源字典
-                // 我们通过查找是否包含 "IconFontFamily" 键来识别图标字典
-                var existingDict = appDictionaries.FirstOrDefault(d => d.Contains("IconFontFamily"));
-
-                if (existingDict != null)
-                {
-                    appDictionaries.Remove(existingDict);
-                }
-
-                appDictionaries.Add(newDict);
-            }
-            catch (Exception)
-            { }
-        }
-
-        /// <summary>
-        /// 切换UI界面风格
-        /// </summary>
-        /// <param name="styleId">E.g., "Original", "Fluent", "MacOS", "Geek"</param>
-        public static void SetUIStyle(string styleId)
-        {
-            try
-            {
-                var uri = new Uri($"/Resources/UIStyles/{styleId}.xaml", UriKind.Relative);
-                var newDict = new ResourceDictionary { Source = uri };
-
-                var appDictionaries = Application.Current.Resources.MergedDictionaries;
-
-                // 我们通过查找是否包含特定的 UIStyle 键来识别 UI 风格字典
-                var existingDict = appDictionaries.FirstOrDefault(d => d.Contains("UI.TabItem.CornerRadius"));
-
-                if (existingDict != null)
-                {
-                    appDictionaries.Remove(existingDict);
-                }
-
-                // 添加新的UI风格字典到 AppStyles.xaml 前面，确保它可以作为依赖资源被 AppStyles 引用
-                appDictionaries.Insert(1, newDict);
-            }
-            catch (Exception)
-            { }
-        }
-
-        #region 系统主题跟随
-
-        /// <summary>
-        /// 启用系统主题跟随
-        /// </summary>
-        public static void EnableSystemThemeFollowing()
-        {
-            if (_isFollowingSystemTheme)
-            {
-                return;
-            }
-
+            if (_isFollowingSystemTheme) return;
             _isFollowingSystemTheme = true;
-
-            // 立即应用当前系统主题
-            try
-            {
-                var systemTheme = DetectSystemTheme();
-                SetTheme(systemTheme, animate: false);
-            }
-            catch (Exception)
-            { }
-
-            // 监听系统主题变化
+            try { SetTheme(DetectSystemTheme(), false); } catch { }
             SystemEvents.UserPreferenceChanged += OnSystemPreferenceChanged;
         }
 
-        /// <summary>
-        /// 禁用系统主题跟随
-        /// </summary>
-        public static void DisableSystemThemeFollowing()
+        public void DisableSystemThemeFollowing()
         {
-            if (!_isFollowingSystemTheme)
-            {
-                return;
-            }
-
+            if (!_isFollowingSystemTheme) return;
             _isFollowingSystemTheme = false;
             SystemEvents.UserPreferenceChanged -= OnSystemPreferenceChanged;
         }
 
-        /// <summary>
-        /// 系统偏好设置变化事件处理
-        /// </summary>
-        private static void OnSystemPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
+        private void OnSystemPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
         {
-            // 只响应主题相关的变化
             if (e.Category == UserPreferenceCategory.General)
             {
                 try
                 {
                     var newTheme = DetectSystemTheme();
-                    var currentThemeId = _currentTheme?.Id;
-
-                    if (newTheme != currentThemeId)
+                    if (newTheme != _currentTheme?.Id)
                     {
-                        // 在UI线程上切换主题
-                        Application.Current.Dispatcher.BeginInvoke(new Action(() =>
-                        {
-                            SetTheme(newTheme, animate: true);
-                        }));
+                        Application.Current.Dispatcher.BeginInvoke(new Action(() => SetTheme(newTheme, true)));
                     }
                 }
-                catch (Exception)
-                { }
+                catch { }
             }
         }
 
-        /// <summary>
-        /// 检测Windows系统主题
-        /// </summary>
-        /// <returns>主题ID（"Light" 或 "Dark"）</returns>
-        public static string DetectSystemTheme()
+        public string DetectSystemTheme()
         {
             try
             {
-                using (var key = Registry.CurrentUser.OpenSubKey(
-                    @"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"))
-                {
-                    if (key != null)
-                    {
-                        var value = key.GetValue("AppsUseLightTheme");
-                        if (value is int intValue)
-                        {
-                            // 0 = Dark, 1 = Light
-                            var theme = intValue == 0 ? "Dark" : "Light"; return theme;
-                        }
-                    }
-                }
+                using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
+                if (key?.GetValue("AppsUseLightTheme") is int val) return val == 0 ? "Dark" : "Light";
             }
-            catch (Exception)
-            { }
-
-            // 默认返回浅色主题
+            catch { }
             return "Light";
         }
 
-        #endregion
-    }
+        public CustomTheme CreateCustomTheme(string name, string baseTheme) => CustomThemeManager.CreateFromCurrent(name, baseTheme);
+        public void SaveCustomTheme(CustomTheme theme) => CustomThemeManager.Save(theme);
+        public void DeleteCustomTheme(string themeId) => CustomThemeManager.Delete(themeId);
+        public void ApplyCustomTheme(CustomTheme theme) => SetTheme(theme.Id, false);
 
-    /// <summary>
-    /// 主题变更事件参数
-    /// </summary>
-    public class ThemeChangedEventArgs : EventArgs
-    {
-        public ThemeMetadata OldTheme { get; }
-        public ThemeMetadata NewTheme { get; }
-
-        public ThemeChangedEventArgs(ThemeMetadata oldTheme, ThemeMetadata newTheme)
+        public ContractValidationResult ValidateAll()
         {
-            OldTheme = oldTheme;
-            NewTheme = newTheme;
+            var allMissing = new List<string>();
+            foreach(var t in _themes.Values.Where(x => x.Source!=null))
+            {
+                try {
+                var dict = new ResourceDictionary{Source = t.Source};
+                var r = ContractValidator.Validate(dict, ContractValidator.ThemeRequiredKeys);
+                allMissing.AddRange(r.MissingKeys.Select(k=> t.Id + "." + k));
+                } catch { }
+            }
+            return new ContractValidationResult { IsValid = allMissing.Count == 0, MissingKeys = allMissing };
         }
     }
 }
-

@@ -836,7 +836,6 @@ namespace YiboFile.Services.FileList
             return await Task.Run(() =>
             {
                 var sw = System.Diagnostics.Stopwatch.StartNew();
-                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] [Thread {Environment.CurrentManagedThreadId}] [FileListService] LoadDirectoriesAsync Started for: {path}");
 
                 var directories = new List<FileSystemItem>();
                 try
@@ -844,7 +843,6 @@ namespace YiboFile.Services.FileList
                     if (!Directory.Exists(path)) return directories;
 
                     string[] dirPaths = Directory.GetDirectories(path);
-                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] [Thread {Environment.CurrentManagedThreadId}] [FileListService] IO GetDirectories done. Count: {dirPaths.Length}");
 
                     if (dirPaths.Length > 0)
                     {
@@ -902,11 +900,9 @@ namespace YiboFile.Services.FileList
                                 var pathsToQuery = validDirs.Select(d => d.ActualPath).ToList();
                                 folderSizeCacheMap = DatabaseManager.GetFolderSizesBatch(pathsToQuery);
                                 swDb.Stop();
-                                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] [Thread {Environment.CurrentManagedThreadId}] [FileListService] Batch DB Query done. Count: {pathsToQuery.Count}. Time: {swDb.ElapsedMilliseconds}ms");
                             }
-                            catch (Exception ex)
+                            catch (Exception)
                             {
-                                System.Diagnostics.Debug.WriteLine($"Batch folder size query failed: {ex.Message}");
                             }
                         }
 
@@ -948,18 +944,15 @@ namespace YiboFile.Services.FileList
                         }
                     }
                 }
-                catch (UnauthorizedAccessException ex)
+                catch (UnauthorizedAccessException)
                 {
                     // 已在内部处理，此处仅记录
-                    System.Diagnostics.Debug.WriteLine($"[FileListService] UnauthorizedAccessException (Caught): {ex.Message}");
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] [Thread {Environment.CurrentManagedThreadId}] [FileListService] LoadDirectoriesAsync Error: {ex.Message}");
                 }
 
                 sw.Stop();
-                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] [Thread {Environment.CurrentManagedThreadId}] [FileListService] LoadDirectoriesAsync Completed for: {path}. Time: {sw.ElapsedMilliseconds}ms. Count: {directories.Count}");
                 return directories;
             }, cancellationToken).ConfigureAwait(false);
         }
@@ -977,7 +970,6 @@ namespace YiboFile.Services.FileList
             return await Task.Run(() =>
             {
                 var sw = System.Diagnostics.Stopwatch.StartNew();
-                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] [Thread {Environment.CurrentManagedThreadId}] [FileListService] LoadFilesAsync Started for: {path}");
 
                 var files = new List<FileSystemItem>();
                 try
@@ -985,7 +977,6 @@ namespace YiboFile.Services.FileList
                     if (!Directory.Exists(path)) return files;
 
                     var filePaths = Directory.GetFiles(path);
-                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] [Thread {Environment.CurrentManagedThreadId}] [FileListService] LoadFilesAsync IO GetFiles done. Count: {filePaths.Length}");
 
                     foreach (var filePath in filePaths)
                     {
@@ -1024,9 +1015,8 @@ namespace YiboFile.Services.FileList
                                 CreatedDateTime = created
                             });
                         }
-                        catch (UnauthorizedAccessException ex)
+                        catch (UnauthorizedAccessException)
                         {
-                            System.Diagnostics.Debug.WriteLine($"[FileListService] UnauthorizedAccessException for file {filePath}: {ex.Message}");
                             continue;
                         }
                         catch (Exception)
@@ -1035,13 +1025,11 @@ namespace YiboFile.Services.FileList
                         }
                     }
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] [Thread {Environment.CurrentManagedThreadId}] [FileListService] LoadFilesAsync Error: {ex.Message}");
                 }
 
                 sw.Stop();
-                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] [Thread {Environment.CurrentManagedThreadId}] [FileListService] LoadFilesAsync Completed for: {path}. Time: {sw.ElapsedMilliseconds}ms. Count: {files.Count}");
                 return files;
             }, cancellationToken).ConfigureAwait(false);
         }

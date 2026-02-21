@@ -160,9 +160,8 @@ namespace YiboFile.Services
                     // 这里我们确保在 UI 线程上，且数据对象是纯物理路径。
                     DragDrop.DoDragDrop(listView, dataObject, allowedEffects);
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
-                    System.Diagnostics.Debug.WriteLine($"DragDrop failed: {ex.Message}");
                 }
                 finally
                 {

@@ -189,7 +189,7 @@ namespace YiboFile.Services.Theming
 
             if (resourceDict != null)
             {
-                // 提取28个核心颜色
+                // 提取 37 个全量核心语义令牌
                 var colorKeys = GetCoreColorKeysList();
                 foreach (var key in colorKeys)
                 {
@@ -225,10 +225,28 @@ namespace YiboFile.Services.Theming
                     try
                     {
                         var color = (Color)ColorConverter.ConvertFromString(kvp.Value);
+                        
+                        // 1. 应用 画刷 (Brush)
                         var brush = new SolidColorBrush(color);
-                        brush.Freeze(); // 冻结以提高性能
-
+                        brush.Freeze();
                         appResources[kvp.Key] = brush;
+
+                        // 2. 自动应用 颜色 (Color)，用于支持从 BrushAliases.xaml 引用 .Color 属性
+                        // 如果键本身就是 Color 类型 (如 AccentColor)，则不重复添加后缀
+                        if (kvp.Key.EndsWith("Brush"))
+                        {
+                            var colorKey = kvp.Key + ".Color";
+                            appResources[colorKey] = color;
+                        }
+                        // 兼容旧的命名方式
+                        else if (kvp.Key == "AccentColor")
+                        {
+                            appResources["AccentDefaultBrush.Color"] = color;
+                        }
+                        else if (kvp.Key == "ForegroundPrimaryColor")
+                        {
+                            appResources["ForegroundPrimaryBrush.Color"] = color;
+                        }
                     }
                     catch (Exception)
                     { }
@@ -294,9 +312,13 @@ namespace YiboFile.Services.Theming
                 {
                     if (appResources.Contains(key))
                     {
-                        // 只有通过索引器赋值的本地值才能被Remove移除以恢复DynamicResource的查找链
-                        // 注意：如果ResourceDictionary里也有这个key，Remove只会移除本地覆盖的值
                         appResources.Remove(key);
+                        
+                        // 同时尝试移除对应的 .Color 键
+                        if (key.EndsWith("Brush"))
+                        {
+                            appResources.Remove(key + ".Color");
+                        }
                     }
                 }
             }
@@ -332,21 +354,28 @@ namespace YiboFile.Services.Theming
         }
 
         /// <summary>
-        /// 获取28个核心颜色键
+        /// 获取 37 个全量核心语义令牌键 (Semantic Tokens)
         /// </summary>
         public List<string> GetCoreColorKeysList()
         {
             return new List<string>
             {
-                // 1. 背景类 (4个)
+                // 1. 背景类 (9个)
                 "BackgroundPrimaryBrush",
                 "BackgroundSecondaryBrush",
                 "BackgroundTertiaryBrush",
                 "BackgroundElevatedBrush",
+                "TitleBarBackgroundBrush",
+                "NavigationRegionBrush",
+                "SidebarBackgroundBrush",
+                "PaneFocusedBackgroundBrush",
+                "PaneUnfocusedBackgroundBrush",
                 
-                // 2. 文本类 (4个)
+                // 2. 文本类 (6个)
+                "ForegroundPrimaryColor",           // Color
                 "ForegroundPrimaryBrush",
                 "ForegroundSecondaryBrush",
+                "ForegroundTertiaryBrush",
                 "ForegroundDisabledBrush",
                 "ForegroundOnAccentBrush",
                 
@@ -355,7 +384,9 @@ namespace YiboFile.Services.Theming
                 "BorderSubtleBrush",
                 "BorderFocusBrush",
                 
-                // 4. 强调色/交互 (5个)
+                // 4. 强调色 (7个)
+                "AccentColor",                    // Color
+                "AccentHoverColor",               // Color
                 "AccentDefaultBrush",
                 "AccentHoverBrush",
                 "AccentPressedBrush",
@@ -368,17 +399,18 @@ namespace YiboFile.Services.Theming
                 "ControlPressedBrush",
                 "ControlDisabledBrush",
                 
-                // 6. 语义颜色 (4个)
-                "SuccessBrush",
-                "WarningBrush",
-                "ErrorBrush",
-                "InfoBrush",
+                // 6. 语义状态 (4个)
+                "StatusSuccessBrush",
+                "StatusWarningBrush",
+                "StatusErrorBrush",
+                "StatusInfoBrush",
                 
-                // 7. 特殊用途 (4个)
-                "ShadowBrush",
+                // 7. 特殊用途 (5个)
+                "TransparentBrush",
                 "OverlayBrush",
+                "OverlayLightBrush",
                 "DividerBrush",
-                "AppBackgroundBrush"
+                "ShadowBrush"
             };
         }
 

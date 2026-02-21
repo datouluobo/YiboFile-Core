@@ -9,7 +9,7 @@ using YiboFile.ViewModels.Messaging;
 using YiboFile.ViewModels.Messaging.Messages;
 using YiboFile.Services;
 using YiboFile.Services.FileList;
-using YiboFile;
+using System.IO; // Added this as it's used in the code but was missing from usings
 
 namespace YiboFile.Handlers
 {
@@ -112,7 +112,6 @@ namespace YiboFile.Handlers
             try
             {
                 string currentPath = _getCurrentPath?.Invoke();
-                System.Diagnostics.Debug.WriteLine($"[SelectionEventHandler] HandleNoSelection: Pane={paneId}, Path='{currentPath}'");
 
                 if (string.IsNullOrEmpty(currentPath))
                 {
@@ -141,11 +140,11 @@ namespace YiboFile.Handlers
                 }
 
                 bool isVirtual = YiboFile.Services.Core.ProtocolManager.IsVirtual(currentPath);
-                bool exists = !isVirtual && System.IO.Directory.Exists(currentPath);
+                bool exists = !isVirtual && Directory.Exists(currentPath);
 
                 if (exists)
                 {
-                    var dirInfo = new System.IO.DirectoryInfo(currentPath);
+                    var dirInfo = new DirectoryInfo(currentPath);
                     var item = new FileSystemItem
                     {
                         Name = dirInfo.Name,
@@ -171,9 +170,8 @@ namespace YiboFile.Handlers
                     _showFileInfo?.Invoke(null, paneId);
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine($"[SelectionEventHandler] HandleNoSelection Error: {ex.Message}");
                 _showFileInfo?.Invoke(null, paneId);
             }
         }

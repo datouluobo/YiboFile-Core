@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -24,9 +23,6 @@ namespace YiboFile.Controls.Behaviors
         private Point _startPoint;
         private int _anchorIndex = -1;
         private HashSet<object> _initialSelection = new();
-
-        // 调试开关
-        private static readonly bool DEBUG_LASSO = false;
 
         // 选择框样式
         private static readonly SolidColorBrush SelectionFillBrush = new(Color.FromArgb(60, 0, 120, 215));
@@ -73,19 +69,9 @@ namespace YiboFile.Controls.Behaviors
         {
             var hitElement = e.OriginalSource as DependencyObject;
 
-            if (DEBUG_LASSO)
-            {
-                Debug.WriteLine($"[Lasso] === OnPreviewMouseLeftButtonDown ===");
-                Debug.WriteLine($"[Lasso] OriginalSource Type: {e.OriginalSource?.GetType().Name}");
-                Debug.WriteLine($"[Lasso] MouseButton: {e.ChangedButton}, ClickCount: {e.ClickCount}");
-                Debug.WriteLine($"[Lasso] Position: {e.GetPosition(_listView)}");
-            }
-
             // 检查是否点击在不应该触发框选的元素上
             if (IsClickOnInteractiveElement(hitElement))
             {
-                if (DEBUG_LASSO) Debug.WriteLine($"[Lasso] 结果: 点击在交互元素上, 不触发框选");
-
                 var listViewItem = FindAncestor<ListViewItem>(hitElement);
                 if (listViewItem != null)
                 {
@@ -93,7 +79,6 @@ namespace YiboFile.Controls.Behaviors
                     if (index >= 0)
                     {
                         _anchorIndex = index;
-                        if (DEBUG_LASSO) Debug.WriteLine($"[Lasso] 保存锚点索引: {_anchorIndex}");
                     }
                 }
                 return;
@@ -106,18 +91,13 @@ namespace YiboFile.Controls.Behaviors
             var hitItem = GetItemAtPoint(clickPoint);
             if (hitItem != null)
             {
-                if (DEBUG_LASSO) Debug.WriteLine($"[Lasso] 结果: 点在项目上 (HitTest发现ListViewItem), 不触发框选");
-
                 int index = _listView.ItemContainerGenerator.IndexFromContainer(hitItem);
                 if (index >= 0)
                 {
                     _anchorIndex = index;
-                    if (DEBUG_LASSO) Debug.WriteLine($"[Lasso] 保存锚点索引: {_anchorIndex}");
                 }
                 return;
             }
-
-            if (DEBUG_LASSO) Debug.WriteLine($"[Lasso] 结果: 点在空白区域, 触发框选!");
 
             // [Archive/Virtual Support] 额外检测：如果是虚拟文件夹或为空，也允许框选
             StartSelection(e);
@@ -130,40 +110,33 @@ namespace YiboFile.Controls.Behaviors
             // 检查滚动条相关元素
             if (FindAncestor<System.Windows.Controls.Primitives.ScrollBar>(hitElement) != null)
             {
-                if (DEBUG_LASSO) Debug.WriteLine($"[Lasso] IsClickOnInteractiveElement: 发现 ScrollBar");
                 return true;
             }
 
             // 检查列标题
             if (FindAncestor<GridViewColumnHeader>(hitElement) != null)
             {
-                if (DEBUG_LASSO) Debug.WriteLine($"[Lasso] IsClickOnInteractiveElement: 发现 GridViewColumnHeader");
                 return true;
             }
 
             // 检查 Thumb 或 RepeatButton (用于滚动条)
             if (FindAncestor<System.Windows.Controls.Primitives.Thumb>(hitElement) != null)
             {
-                if (DEBUG_LASSO) Debug.WriteLine($"[Lasso] IsClickOnInteractiveElement: 发现 Thumb");
                 return true;
             }
 
             if (FindAncestor<System.Windows.Controls.Primitives.RepeatButton>(hitElement) != null)
             {
-                if (DEBUG_LASSO) Debug.WriteLine($"[Lasso] IsClickOnInteractiveElement: 发现 RepeatButton");
                 return true;
             }
 
             // 检查是否由于项目本身拦截（如按钮、复选框等）
-            // 如果点击在 ListViewItem 上，不触发框选 - 这是为了让 ListView 自己处理项目选择和拖拽
             var listViewItem = FindAncestor<ListViewItem>(hitElement);
             if (listViewItem != null)
             {
-                if (DEBUG_LASSO) Debug.WriteLine($"[Lasso] IsClickOnInteractiveElement: 发现 ListViewItem (索引: {_listView.ItemContainerGenerator.IndexFromContainer(listViewItem)})");
                 return true;
             }
 
-            if (DEBUG_LASSO) Debug.WriteLine($"[Lasso] IsClickOnInteractiveElement: 未发现交互元素");
             return false;
         }
 
@@ -179,16 +152,6 @@ namespace YiboFile.Controls.Behaviors
 
         private void StartSelection(MouseButtonEventArgs e)
         {
-            if (DEBUG_LASSO)
-            {
-                Debug.WriteLine($"[Lasso] === StartSelection ===");
-                Debug.WriteLine($"[Lasso] 当前选中数量: {_listView.SelectedItems.Count}");
-                Debug.WriteLine($"[Lasso] Ctrl键按下: {(Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control}");
-            }
-
-            // 重置移动计数器
-            _moveCount = 0;
-
             // 使用相对于 ListView 的坐标
             _startPoint = e.GetPosition(_listView);
             _isSelecting = true;
@@ -201,12 +164,10 @@ namespace YiboFile.Controls.Behaviors
                 {
                     _initialSelection.Add(item);
                 }
-                if (DEBUG_LASSO) Debug.WriteLine($"[Lasso] Ctrl模式: 保存了 {_initialSelection.Count} 个初始选中项");
             }
             else
             {
                 _listView.SelectedItems.Clear();
-                if (DEBUG_LASSO) Debug.WriteLine($"[Lasso] 普通模式: 清除了所有选中项");
             }
 
             // 初始化选择框
@@ -219,21 +180,11 @@ namespace YiboFile.Controls.Behaviors
             _listView.CaptureMouse();
             e.Handled = true;
             _listView.Focus();
-
-            if (DEBUG_LASSO) Debug.WriteLine($"[Lasso] 框选开始, 起点: {_startPoint}");
         }
-
-        private int _moveCount = 0; // 调试用
 
         private void OnPreviewMouseMove(object sender, MouseEventArgs e)
         {
             if (!_isSelecting) return;
-
-            _moveCount++;
-            if (DEBUG_LASSO && _moveCount <= 5)
-            {
-                Debug.WriteLine($"[Lasso] MouseMove #{_moveCount}: 收到移动事件");
-            }
 
             // 使用相对于 ListView 的坐标
             Point currentPoint = e.GetPosition(_listView);
@@ -253,14 +204,7 @@ namespace YiboFile.Controls.Behaviors
             width = Math.Min(width, maxWidth - x);
             height = Math.Min(height, maxHeight - y);
 
-            // 每隔一段距离输出一次日志，避免刷屏
-            if (DEBUG_LASSO && (width > 50 || height > 50) && _moveCount % 20 == 0)
-            {
-                Debug.WriteLine($"[Lasso] MouseMove: 当前点={currentPoint}, 框大小={width:F0}x{height:F0}");
-            }
-
             // 坐标需要转换回 Canvas 空间显现
-            // 因为我们的 Canvas 是 ListView 的兄弟级，理论上如果它们在同一个 Grid 里且都没有偏移，坐标是一致的
             Canvas.SetLeft(_selectionBox, x);
             Canvas.SetTop(_selectionBox, y);
             _selectionBox.Width = Math.Max(0, width);
@@ -277,7 +221,6 @@ namespace YiboFile.Controls.Behaviors
         {
             if (!_isSelecting) return;
 
-            if (DEBUG_LASSO) Debug.WriteLine($"[Lasso] === OnPreviewMouseLeftButtonUp ===");
             EndSelection();
             e.Handled = true;
         }
@@ -286,21 +229,15 @@ namespace YiboFile.Controls.Behaviors
         {
             if (_isSelecting)
             {
-                if (DEBUG_LASSO) Debug.WriteLine($"[Lasso] === OnLostMouseCapture (框选被中断) ===");
                 EndSelection();
             }
         }
 
         private void EndSelection()
         {
-            if (DEBUG_LASSO) Debug.WriteLine($"[Lasso] === EndSelection ===");
-
             _isSelecting = false;
             _selectionBox.Visibility = Visibility.Collapsed;
             _listView.ReleaseMouseCapture();
-
-            if (DEBUG_LASSO) Debug.WriteLine($"[Lasso] 框选结束, 最终选中 {_listView.SelectedItems.Count} 项");
-
             _initialSelection.Clear();
         }
 
@@ -351,8 +288,6 @@ namespace YiboFile.Controls.Behaviors
             }
 
             // 应用选择变更
-            // 注意：通过 SelectedItems.Add/Remove 会触发多次事件，但为了实时反馈，可能无法避免
-            // 我们只在状态需要改变时才操作
             foreach (var item in itemsToSelect)
             {
                 if (!_listView.SelectedItems.Contains(item))

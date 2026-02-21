@@ -183,18 +183,7 @@ namespace YiboFile.ViewModels
 
             TagStatisticsCommand = new RelayCommand(() =>
             {
-                var tagService = App.ServiceProvider?.GetService<YiboFile.Services.Features.ITagService>();
-                if (tagService != null)
-                {
-                    try
-                    {
-                        var tags = tagService.GetAllTags();
-                        var groups = tagService.GetTagGroups();
-                        string stats = $"标签总数: {tags.Count()}\n标签分组: {groups.Count()}";
-                        MessageBox.Show(stats, "标签统计", MessageBoxButton.OK, MessageBoxImage.Information);
-                    }
-                    catch (Exception ex) { MessageBox.Show($"获取统计失败: {ex.Message}"); }
-                }
+                // Removed debug statistics command
             });
 
             LoadMoreCommand = new RelayCommand(() => _pane.Filter?.LoadMoreCommand?.Execute(_pane.CurrentPath));

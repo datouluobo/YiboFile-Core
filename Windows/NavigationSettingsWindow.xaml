@@ -7,7 +7,7 @@
         mc:Ignorable="d"
         Title="导航设置" Height="600" Width="900"
         WindowStartupLocation="CenterOwner" ResizeMode="CanResize"
-        Background="White" Foreground="#333333">
+        Background="{DynamicResource BackgroundPrimaryBrush}" Foreground="{DynamicResource ForegroundPrimaryBrush}">
     
     <Window.Resources>
         <!-- Modern TabItem Style -->
@@ -24,12 +24,12 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Border" Property="BorderBrush" Value="#2196F3"/>
-                                <Setter Property="Foreground" Value="#2196F3"/>
+                                <Setter TargetName="Border" Property="BorderBrush" Value="{DynamicResource AccentDefaultBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource AccentDefaultBrush}"/>
                                 <Setter Property="FontWeight" Value="SemiBold"/>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Foreground" Value="#1976D2"/>
+                                <Setter Property="Foreground" Value="{DynamicResource AccentHoverBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -47,7 +47,7 @@
         </Grid.RowDefinitions>
 
         <!-- Custom Tab Control Header Area -->
-        <Border BorderThickness="0,0,0,1" BorderBrush="#EEEEEE" Background="#FAFAFA" Padding="15,5,15,0">
+        <Border BorderThickness="0,0,0,1" BorderBrush="{DynamicResource BorderDefaultBrush}" Background="{DynamicResource BackgroundSecondaryBrush}" Padding="15,5,15,0">
              <TabControl x:Name="MainTabControl" BorderThickness="0" Background="Transparent" SelectionChanged="MainTabControl_SelectionChanged">
                 <TabItem Header="路径" Tag="Path">
                      <!-- Content is loaded lazily or explicitly set -->

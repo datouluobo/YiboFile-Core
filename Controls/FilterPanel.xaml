@@ -13,7 +13,7 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/AppStyles.xaml"/>
-                <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Themes/Light.xaml"/>
+                <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/Themes/Light.xaml"/>
             </ResourceDictionary.MergedDictionaries>
 
             <helpers:EnumToBooleanConverter x:Key="EnumToBooleanConverter"/>
@@ -277,3 +277,4 @@
         </Border>
     </Grid>
 </UserControl>
+

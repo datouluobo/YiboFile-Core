@@ -51,9 +51,8 @@ namespace YiboFile.Services
                     return null;
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine($"DWG Thumbnail extraction failed: {ex.Message}");
                 return null;
             }
         }

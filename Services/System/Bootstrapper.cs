@@ -182,7 +182,8 @@ namespace YiboFile.Services.Startup
 
             services.AddTransient<SearchService>();
             services.AddSingleton<SearchHistoryService>(); // Now managed by DI
-            services.AddSingleton<YiboFile.Services.Theming.CustomThemeManager>(); // Now managed by DI
+            services.AddSingleton<YiboFile.Services.Theming.CustomThemeManager>();
+            services.AddSingleton<YiboFile.Services.Theming.IThemeService, YiboFile.Services.Theming.ThemeManager>();
 
             // 注册标签服务 (Core Implementation)
             services.AddSingleton<Services.Data.Repositories.ITagsRepository, Services.Data.Repositories.SqliteTagsRepository>();
@@ -310,29 +311,29 @@ namespace YiboFile.Services.Startup
                 var themeMode = config?.ThemeMode ?? "FollowSystem";
 
                 // 设置动画启用状态
-                YiboFile.Services.Theming.ThemeManager.AnimationsEnabled = config?.AnimationsEnabled ?? true;
+                (ServiceProvider.GetRequiredService<YiboFile.Services.Theming.IThemeService>() as YiboFile.Services.Theming.ThemeManager).AnimationsEnabled = config?.AnimationsEnabled ?? true;
 
                 // 根据主题模式应用主题
                 if (themeMode == "FollowSystem")
                 {
-                    YiboFile.Services.Theming.ThemeManager.EnableSystemThemeFollowing();
+                    ServiceProvider.GetRequiredService<YiboFile.Services.Theming.IThemeService>().EnableSystemThemeFollowing();
                     FileLogger.Log("System theme following enabled.");
                 }
                 else
                 {
                     // 使用显式指定的主题
-                    YiboFile.Services.Theming.ThemeManager.SetTheme(themeMode, animate: false);
+                    ServiceProvider.GetRequiredService<YiboFile.Services.Theming.IThemeService>().SetTheme(themeMode, animate: false);
                     FileLogger.Log($"Theme applied: {themeMode}");
                 }
 
                 // 应用 UI 风格
                 var uiStyle = config?.UIStyle ?? "Original";
-                YiboFile.Services.Theming.ThemeManager.SetUIStyle(uiStyle);
+                ServiceProvider.GetRequiredService<YiboFile.Services.Theming.IThemeService>().SetUIStyle(uiStyle);
                 FileLogger.Log($"UI Style applied: {uiStyle}");
 
                 // 应用图标风格
                 var iconStyle = config?.IconStyle ?? "Emoji";
-                YiboFile.Services.Theming.ThemeManager.ChangeIconStyle(iconStyle);
+                ServiceProvider.GetRequiredService<YiboFile.Services.Theming.IThemeService>().SetIconStyle(iconStyle);
                 FileLogger.Log($"Icon Style applied: {iconStyle}");
             }
             catch (Exception ex)
@@ -408,7 +409,7 @@ namespace YiboFile.Services.Startup
             // 取消系统主题监听
             try
             {
-                YiboFile.Services.Theming.ThemeManager.DisableSystemThemeFollowing();
+                ServiceProvider.GetRequiredService<YiboFile.Services.Theming.IThemeService>().DisableSystemThemeFollowing();
             }
             catch (Exception ex)
             {
@@ -489,3 +490,4 @@ namespace YiboFile.Services.Startup
         #endregion
     }
 }
+

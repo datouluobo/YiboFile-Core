@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using System.Diagnostics;
 
 namespace YiboFile.Services
 {
@@ -138,13 +138,8 @@ namespace YiboFile.Services
                         funcPtr = GetProcAddress(_dllHandle, name);
                         if (funcPtr != IntPtr.Zero) break;
                     }
-                    Debug.WriteLine($"EverythingHelper: 函数 {string.Join("/", funcNames)} 地址: {funcPtr}");
 
-                    if (funcPtr == IntPtr.Zero)
-                    {
-                        Debug.WriteLine($"EverythingHelper: 警告 - 函数 {string.Join("/", funcNames)} 未找到");
-                    }
-                    else
+                    if (funcPtr != IntPtr.Zero)
                     {
                         try
                         {
@@ -286,8 +281,6 @@ namespace YiboFile.Services
                     return false;
                 }
 
-                Debug.WriteLine($"EverythingHelper: Everything 进程已启动 (PID: {_everythingProcess.Id})");
-
                 // 等待 Everything 初始化（最多等待 5 秒）
                 for (int i = 0; i < 50; i++)
                 {
@@ -298,9 +291,6 @@ namespace YiboFile.Services
                         {
                             _isInitialized = true;
                         }
-                        int major = GetMajorVersion();
-                        int minor = GetMinorVersion();
-                        Debug.WriteLine($"EverythingHelper: Everything 已成功启动并加载索引 (版本: {major}.{minor})");
                         return true;
                     }
                 }
@@ -539,9 +529,8 @@ namespace YiboFile.Services
                 };
                 Process.Start(startInfo);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Debug.WriteLine($"EverythingHelper: 重建索引失败 {ex.Message}");
             }
         }
     }

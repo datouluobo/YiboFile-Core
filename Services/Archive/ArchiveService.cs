@@ -79,10 +79,9 @@ namespace YiboFile.Services.Archive
                     items = Parse7zOutput(output, archivePath, innerPath);
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                // Log error
-                Console.WriteLine($"Error reading archive: {ex.Message}");
+                // Error reading archive
             }
 
             return items;

@@ -87,7 +87,7 @@
                             <Border Grid.Row="0" Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1" Padding="5">
                                 <Grid>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
-                                        <TextBlock Text="{Binding Dimensions}" Foreground="Gray" VerticalAlignment="Center" Margin="5,0" FontSize="12"/>
+                                        <TextBlock Text="{Binding Dimensions}" Foreground="{DynamicResource ForegroundSecondaryBrush}" VerticalAlignment="Center" Margin="5,0" FontSize="12"/>
                                     </StackPanel>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                         <Button Content="➕" Command="{Binding ZoomInCommand}" CommandParameter="{Binding ElementName=PreviewImage}" Width="34" Height="34" Margin="2" ToolTip="放大"
@@ -171,7 +171,7 @@
                             <!-- Toolbar using standard controls to match TextPreviewToolbar features -->
                             <Border Grid.Row="0" Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1" Padding="5">
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                    <TextBlock Text="{Binding Encoding.EncodingName}" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="Gray" FontSize="12"/>
+                                    <TextBlock Text="{Binding Encoding.EncodingName}" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="12"/>
                                     <ToggleButton Content="自动换行" IsChecked="{Binding IsWordWrap}" Style="{StaticResource ToolbarToggleButtonStyle}" Margin="0,0,5,0" Height="34" Padding="10,0" FontSize="12" VerticalContentAlignment="Center"/>
                                     <ToggleButton Content="编辑" IsChecked="{Binding IsEditMode}" Style="{StaticResource ToolbarToggleButtonStyle}" Margin="0,0,5,0" Height="34" Padding="10,0" FontSize="12" VerticalContentAlignment="Center"/>
                                     <Button Content="保存" Command="{Binding SaveCommand}" Visibility="{Binding IsEditMode, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="0,0,5,0" Height="34" Padding="10,0" FontSize="12" VerticalContentAlignment="Center"/>
@@ -240,10 +240,10 @@
                                 <controls:WordPreviewControl/>
                                 
                                 <!-- Conversion Overlay -->
-                                <Border Background="#CCFFFFFF" Visibility="{Binding NeedsConversion, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <Border Background="{DynamicResource OverlayBrush}" Visibility="{Binding NeedsConversion, Converter={StaticResource BooleanToVisibilityConverter}}">
                                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                                         <TextBlock Text="⚠️" FontSize="48" HorizontalAlignment="Center" Margin="0,0,0,10"/>
-                                        <TextBlock Text="{Binding ConversionMessage}" FontSize="16" Foreground="Gray" TextWrapping="Wrap" TextAlignment="Center" MaxWidth="400" Margin="0,0,0,20"/>
+                                        <TextBlock Text="{Binding ConversionMessage}" FontSize="16" Foreground="{DynamicResource ForegroundSecondaryBrush}" TextWrapping="Wrap" TextAlignment="Center" MaxWidth="400" Margin="0,0,0,20"/>
                                         <Button Content="转换为 DOCX 预览" Command="{Binding ConvertCommand}" IsEnabled="{Binding IsConverting, Converter={StaticResource InverseBooleanConverter}}" Padding="20,10" FontSize="16" HorizontalAlignment="Center"/>
                                         <ProgressBar IsIndeterminate="True" Height="4" Margin="0,20,0,0" Visibility="{Binding IsConverting, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                     </StackPanel>
@@ -395,7 +395,7 @@
                     <DataTemplate DataType="{x:Type previews:ErrorPreviewViewModel}">
                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                             <TextBlock Text="❌" FontSize="48" HorizontalAlignment="Center" Margin="0,0,0,10"/>
-                            <TextBlock Text="{Binding ErrorMessage}" FontSize="16" Foreground="Gray" TextWrapping="Wrap" HorizontalAlignment="Center"/>
+                            <TextBlock Text="{Binding ErrorMessage}" FontSize="16" Foreground="{DynamicResource ForegroundSecondaryBrush}" TextWrapping="Wrap" HorizontalAlignment="Center"/>
                         </StackPanel>
                     </DataTemplate>
                 </Grid.Resources>
@@ -404,7 +404,7 @@
                 <ContentPresenter Content="{Binding ActivePreview}"/>
 
                 <!-- Loading Overlay -->
-                <Grid Visibility="{Binding ActivePreview.IsLoading, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}" Background="#88FFFFFF">
+                <Grid Visibility="{Binding ActivePreview.IsLoading, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}" Background="{DynamicResource OverlayLightBrush}">
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                         <ProgressBar IsIndeterminate="True" Width="200" Height="4" Margin="0,0,0,10"/>
                         <TextBlock Text="正在加载..." HorizontalAlignment="Center"/>

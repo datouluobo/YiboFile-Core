@@ -302,9 +302,8 @@ namespace YiboFile.Handlers
                         {
                             targetPath = Path.GetFullPath(targetPath);
                         }
-                        catch (Exception ex)
+                        catch (Exception)
                         {
-                            System.Diagnostics.Debug.WriteLine($"[DragDrop] Path.GetFullPath failed for library path {targetPath}: {ex.Message}");
                         }
                     }
                     else

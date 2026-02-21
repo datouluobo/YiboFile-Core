@@ -197,7 +197,6 @@ namespace YiboFile.Services.FileList
                         fileCount++;
                         if (fileCount % 100 == 0)
                         {
-                            Thread.Sleep(20);
                             if (cancellationToken.IsCancellationRequested) return size;
                             if (startTime.ElapsedMilliseconds > maxTimeMs) return size;
                         }
@@ -245,9 +244,8 @@ namespace YiboFile.Services.FileList
                     catch { }
 
                     // 每个子文件夹之间延迟，避免CPU占用过高
-                    if (currentDepth < 3) // 只在浅层延迟，深层不延迟以加快速度
+                    if (currentDepth < 3) // 只在浅层处理，深层不延迟以加快速度
                     {
-                        Thread.Sleep(10);
                     }
                 }
             }
@@ -285,7 +283,6 @@ namespace YiboFile.Services.FileList
                     fileCount++;
                     if (fileCount % 20 == 0)
                     {
-                        Thread.Sleep(10); // 增加到10ms，让出更多CPU时间片
                         if (cancellationToken.IsCancellationRequested) return size;
                     }
 

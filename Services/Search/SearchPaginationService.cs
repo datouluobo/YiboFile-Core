@@ -1,10 +1,8 @@
 using System;
 using YiboFile.Models;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading;
-using YiboFile.Services;
 
 namespace YiboFile.Services.Search
 {
@@ -113,9 +111,8 @@ namespace YiboFile.Services.Search
                     MaxResults = _maxResults
                 };
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Debug.WriteLine($"加载更多搜索结果失败: {ex.Message}");
                 return new SearchResult { Keyword = keyword };
             }
         }
@@ -167,9 +164,8 @@ namespace YiboFile.Services.Search
                     MaxResults = _maxResults
                 };
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Debug.WriteLine($"刷新搜索失败: {ex.Message}");
                 return new SearchResult { Keyword = keyword };
             }
         }

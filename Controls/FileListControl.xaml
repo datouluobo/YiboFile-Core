@@ -138,8 +138,8 @@
                                IsOpen="{Binding IsRenaming}">
                             <Border MinHeight="24"
                                     Width="{Binding ItemWidth, RelativeSource={RelativeSource AncestorType={x:Type local:FileListControl}}}"
-                                    Background="#FFFFFF"
-                                    BorderBrush="#0078D4"
+                                    Background="{DynamicResource BackgroundElevatedBrush}"
+                                    BorderBrush="{DynamicResource BorderFocusBrush}"
                                     BorderThickness="2"
                                     CornerRadius="2">
                                 <Border.Effect>
@@ -152,8 +152,8 @@
                                          TextWrapping="Wrap"
                                          AcceptsReturn="False"
                                          Background="Transparent"
-                                         Foreground="#000000"
-                                         CaretBrush="#0078D4"
+                                         Foreground="{DynamicResource ForegroundPrimaryBrush}"
+                                         CaretBrush="{DynamicResource AccentDefaultBrush}"
                                          BorderThickness="0" Padding="4,2"
                                          KeyDown="RenameTextBox_KeyDown"
                                          IsVisibleChanged="RenameTextBox_IsVisibleChanged"
@@ -363,8 +363,8 @@
                                                    AllowsTransparency="False"
                                                    IsOpen="{Binding IsRenaming}">
                                                 <Border MinHeight="24"
-                                                        Background="#FFFFFF"
-                                                        BorderBrush="#0078D4"
+                                                        Background="{DynamicResource BackgroundElevatedBrush}"
+                                                        BorderBrush="{DynamicResource BorderFocusBrush}"
                                                         BorderThickness="2"
                                                         CornerRadius="2">
                                                     <Border.Effect>
@@ -376,8 +376,8 @@
                                                              VerticalAlignment="Center"
                                                              TextAlignment="Left"
                                                              Background="Transparent"
-                                                             Foreground="#000000"
-                                                             CaretBrush="#0078D4"
+                                                             Foreground="{DynamicResource ForegroundPrimaryBrush}"
+                                                             CaretBrush="{DynamicResource AccentDefaultBrush}"
                                                              BorderThickness="0" Padding="4,2"
                                                              KeyDown="RenameTextBox_KeyDown"
                                                              IsVisibleChanged="RenameTextBox_IsVisibleChanged"
@@ -420,7 +420,7 @@
                                     <DataTemplate>
                                         <Grid ClipToBounds="True">
                                             <Border Background="{Binding CreatedTimeBrush}" Margin="-6,0" Padding="8,2" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
-                                                <TextBlock Text="{Binding CreatedTime}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="Black"/>
+                                                <TextBlock Text="{Binding CreatedTime}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource ForegroundOnAccentBrush}"/>
                                             </Border>
                                         </Grid>
                                     </DataTemplate>
@@ -443,7 +443,7 @@
                                                 <DataTemplate>
                                                     <Button Content="{Binding Name}" 
                                                             Background="{Binding ColorBrush}"
-                                                            Foreground="#282828"
+                                                            Foreground="{DynamicResource ForegroundOnAccentBrush}"
                                                             Margin="0,0,4,2"
                                                             Padding="6,2"
                                                             BorderThickness="0"
@@ -456,7 +456,7 @@
                                                             <ControlTemplate TargetType="Button">
                                                                 <Border x:Name="border" 
                                                                         Background="{TemplateBinding Background}" 
-                                                                        BorderBrush="#CCCCCC"
+                                                                        BorderBrush="{DynamicResource BorderDefaultBrush}"
                                                                         BorderThickness="{Binding Color, Converter={StaticResource NullToThicknessConverter}}"
                                                                         CornerRadius="4" 
                                                                         Padding="{TemplateBinding Padding}">

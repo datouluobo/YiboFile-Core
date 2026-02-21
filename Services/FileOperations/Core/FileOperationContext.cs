@@ -60,9 +60,8 @@ namespace YiboFile.Services.FileOperations
                 {
                     result = Path.GetFullPath(result);
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[FileOperationContext] Path.GetFullPath failed for {result}: {ex.Message}");
                 }
             }
 

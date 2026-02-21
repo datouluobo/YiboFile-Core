@@ -4,13 +4,45 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Themes/Light.xaml"/>
-                <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Resources/UIStyles/Original.xaml"/>
+                <!-- ① 合约层 (三维Fallback, 永不替换) -->
+                <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/Themes/_ThemeContract.xaml"/>
+                <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/UIStyles/_UIStyleContract.xaml"/>
+                <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/Icons/_IconContract.xaml"/>
+
+                <!-- ② 当前主题 (运行时替换) -->
+                <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/Themes/Light.xaml"/>
+
+                <!-- ③ 别名层 (一次加载, 永不替换) -->
+                <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/Aliases/BrushAliases.xaml"/>
+
+                <!-- ④ 全局常量 -->
+                <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/_GlobalDefaults.xaml"/>
+
+                <!-- ⑤ 当前UI风格 (运行时替换) -->
+                <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/UIStyles/Original.xaml"/>
+
+                <!-- ⑥ 当前图标集 (运行时替换) -->
+                <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/Icons/Emoji.xaml"/>
+
+                <!-- ⑦ 控件样式 (逐步拆分后将加载新路径, 现保留旧路径) -->
                 <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/AppStyles.xaml"/>
+                
+                <!-- 模块化控件样式 -->
+                <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/Controls/TypographyStyles.xaml"/>
+                <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/Controls/ButtonStyles.xaml"/>
+                <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/Controls/TextBoxStyles.xaml"/>
+                <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/Controls/ScrollStyles.xaml"/>
+                <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/Controls/ListViewStyles.xaml"/>
+                <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/Controls/NavigationStyles.xaml"/>
+                <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/Controls/TabStyles.xaml"/>
+                <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/Controls/GridSplitterStyles.xaml"/>
+                <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/Controls/ComboBoxStyles.xaml"/>
+                <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/Controls/ContextMenuStyles.xaml"/>
+                <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/Controls/ContainerStyles.xaml"/>
                 <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Dialogs/Styles/BaseDialogStyle.xaml"/>
-                <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Resources/Icons/Icons.Emoji.xaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>
 </Application>
+
 

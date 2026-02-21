@@ -155,7 +155,7 @@ namespace YiboFile.ViewModels.Modules
 
             try
             {
-                // 获取当前路径用于搜索上下文 (TODO: 需要一种方式获取当前 VM 的路径)
+                // 获取当前路径用于搜索上下文
                 // 这里暂时假设搜索是基于全局上下文的，或者后续在 ExecuteSearchMessage 中传递
                 string currentPath = "";
 

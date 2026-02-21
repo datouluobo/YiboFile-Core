@@ -145,7 +145,6 @@ namespace YiboFile.ViewModels.Previews
                 bool success = await Task.Run(() => ConvertDocToDocx(FilePath, outputPath, out error));
                 if (success)
                 {
-                    MessageBox.Show($"文件已成功转换为DOCX格式：\n{outputPath}", "转换成功", MessageBoxButton.OK, MessageBoxImage.Information);
                     // Refresh current view
                     await LoadAsync(outputPath);
                     // Trigger file list refresh if possible
@@ -153,12 +152,12 @@ namespace YiboFile.ViewModels.Previews
                 }
                 else
                 {
-                    MessageBox.Show(error ?? "转换失败", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    ConversionMessage = error ?? "转换失败";
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"转换过程中出错: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                ConversionMessage = $"转换过程中出错: {ex.Message}";
             }
             finally
             {

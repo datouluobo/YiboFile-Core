@@ -298,7 +298,7 @@ namespace YiboFile.Controls
                             catch { /* Ignore duplicates or errors */ }
                         }
                         // Feedback?
-                        MessageBox.Show($"已将 {files.Length} 个文件添加到标签 '{tag.Name}'");
+                        // Tag added successfully
                     }
                 }
             }

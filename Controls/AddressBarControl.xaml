@@ -38,7 +38,7 @@
                             </Trigger>
                             <Trigger Property="IsChecked" Value="True">
                                 <Setter Property="Background" Value="{DynamicResource AccentDefaultBrush}"/>
-                                <Setter TargetName="Icon" Property="Foreground" Value="White"/>
+                                <Setter TargetName="Icon" Property="Foreground" Value="{DynamicResource ForegroundOnAccentBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>

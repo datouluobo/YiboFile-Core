@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 
 namespace YiboFile.Services.Search
 {
@@ -31,19 +30,14 @@ namespace YiboFile.Services.Search
 
             try
             {
-                Debug.WriteLine($"开始备注搜索，关键词: '{keyword}'");
                 var notesResults = getNotesFromDb(keyword);
-                Debug.WriteLine($"备注搜索返回结果: {notesResults?.Count ?? 0} 个");
 
                 if (notesResults != null && notesResults.Count > 0)
                 {
-                    Debug.WriteLine($"备注搜索完成，找到 {notesResults.Count} 个文件");
-
                     foreach (var path in notesResults)
                     {
                         if (!string.IsNullOrEmpty(path))
                         {
-                            Debug.WriteLine($"备注搜索结果文件: {path}");
                             notesResultPaths.Add(path);
                             if (resultPaths != null)
                             {
@@ -51,16 +45,10 @@ namespace YiboFile.Services.Search
                             }
                         }
                     }
-                    Debug.WriteLine($"备注搜索后，总结果数: {resultPaths?.Count ?? 0}");
-                }
-                else
-                {
-                    Debug.WriteLine($"备注搜索未找到匹配结果（关键词: '{keyword}'）");
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Debug.WriteLine($"备注搜索失败: {ex.Message}\n{ex.StackTrace}");
             }
 
             return notesResultPaths;

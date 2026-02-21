@@ -17,8 +17,11 @@ namespace YiboFile.ViewModels.Settings
         public ICommand ResetThemeCommand { get; }
         public ICommand ApplyAccentColorCommand { get; }
 
-        public AppearanceSettingsViewModel()
+        private readonly YiboFile.Services.Theming.IThemeService _themeService;
+
+        public AppearanceSettingsViewModel(YiboFile.Services.Theming.IThemeService themeService)
         {
+            _themeService = themeService;
             ResetThemeCommand = new RelayCommand(ResetTheme);
             ApplyAccentColorCommand = new RelayCommand<string>(ApplyAccentColor);
 
@@ -71,11 +74,11 @@ namespace YiboFile.ViewModels.Settings
                 if (SetProperty(ref _selectedTheme, value) && value != null)
                 {
                     if (value.Id == "FollowSystem")
-                        ThemeManager.EnableSystemThemeFollowing();
+                        _themeService.EnableSystemThemeFollowing();
                     else
                     {
-                        ThemeManager.DisableSystemThemeFollowing();
-                        ThemeManager.SetTheme(value.Id, animate: _enableAnimations);
+                        _themeService.DisableSystemThemeFollowing();
+                        _themeService.SetTheme(value.Id, animate: _enableAnimations);
                     }
                     ConfigurationService.Instance.Update(c => c.ThemeMode = value.Id);
                 }
@@ -90,7 +93,7 @@ namespace YiboFile.ViewModels.Settings
             {
                 if (SetProperty(ref _selectedIconStyle, value) && value != null)
                 {
-                    ThemeManager.ChangeIconStyle(value.Id);
+                    _themeService.SetIconStyle(value.Id);
                     ConfigurationService.Instance.Update(c => c.IconStyle = value.Id);
                 }
             }
@@ -104,7 +107,7 @@ namespace YiboFile.ViewModels.Settings
             {
                 if (SetProperty(ref _selectedUIStyle, value) && value != null)
                 {
-                    ThemeManager.SetUIStyle(value.Id);
+                    _themeService.SetUIStyle(value.Id);
                     ConfigurationService.Instance.Update(c => c.UIStyle = value.Id);
                 }
             }
@@ -114,18 +117,26 @@ namespace YiboFile.ViewModels.Settings
         {
             Themes = new ObservableCollection<ThemeItemViewModel>
             {
-                new ThemeItemViewModel("FollowSystem", "跟随系统", "💻"),
-                new ThemeItemViewModel("Light", "浅色模式", "☀️"),
-                new ThemeItemViewModel("Dark", "深色模式", "🌙"),
-                new ThemeItemViewModel("Ocean", "海洋之歌", "🌊"),
-                new ThemeItemViewModel("Forest", "森林之息", "🌲"),
-                new ThemeItemViewModel("Sunset", "日落大道", "🌅"),
-                new ThemeItemViewModel("Purple", "紫罗兰梦", "💜"),
-                new ThemeItemViewModel("Nordic", "北欧冰原", "🏔️")
+                new ThemeItemViewModel("FollowSystem", "跟随系统", "💻")
             };
 
-            var customThemes = CustomThemeManager.LoadAll();
-            foreach (var ct in customThemes)
+            foreach (var theme in _themeService.AvailableThemes)
+            {
+                string emoji = theme.Id switch
+                {
+                    "Light" => "☀️",
+                    "Dark" => "🌙",
+                    "Ocean" => "🌊",
+                    "Forest" => "🌲",
+                    "Sunset" => "🌅",
+                    "Purple" => "💜",
+                    "Nordic" => "🏔️",
+                    _ => "🎨"
+                };
+                Themes.Add(new ThemeItemViewModel(theme.Id, theme.DisplayName, emoji));
+            }
+
+            foreach (var ct in _themeService.CustomThemes)
                 Themes.Add(new ThemeItemViewModel(ct.Id, ct.Name, "🎨"));
 
             var currentTheme = config.ThemeMode ?? "FollowSystem";
@@ -136,13 +147,20 @@ namespace YiboFile.ViewModels.Settings
 
         private void InitializeIconStyles(AppConfig config)
         {
-            IconStyles = new ObservableCollection<IconStyleItemViewModel>
+            IconStyles = new ObservableCollection<IconStyleItemViewModel>();
+            foreach (var icon in _themeService.AvailableIconStyles)
             {
-                new IconStyleItemViewModel("Emoji", "🌈 系统 Emoji (默认)"),
-                new IconStyleItemViewModel("Remix", "✒️ Remix Icon (现代) [实验性]"),
-                new IconStyleItemViewModel("Fluent", "💠 Fluent Icons (Win11) [实验性]"),
-                new IconStyleItemViewModel("Material", "✨ Material Design (Google) [实验性]")
-            };
+                string prefix = icon.Id switch
+                {
+                    "Emoji" => "🌈 ",
+                    "Remix" => "✒️ ",
+                    "Fluent" => "💠 ",
+                    "Material" => "✨ ",
+                    _ => "📦 "
+                };
+                IconStyles.Add(new IconStyleItemViewModel(icon.Id, prefix + icon.DisplayName));
+            }
+            
             var currentIconStyle = config.IconStyle ?? "Emoji";
             _selectedIconStyle = IconStyles.FirstOrDefault(x => x.Id == currentIconStyle) ?? IconStyles.First();
             OnPropertyChanged(nameof(IconStyles));
@@ -151,13 +169,12 @@ namespace YiboFile.ViewModels.Settings
 
         private void InitializeUIStyles(AppConfig config)
         {
-            UIStyles = new ObservableCollection<ItemViewModel>
+            UIStyles = new ObservableCollection<ItemViewModel>();
+            foreach (var ui in _themeService.AvailableUIStyles)
             {
-                new ItemViewModel { Id = "Original", Name = "经典 (当前风格)" },
-                new ItemViewModel { Id = "Fluent", Name = "Fluent Design (Windows 11原生风)" },
-                new ItemViewModel { Id = "MacOS", Name = "极简悬浮 (类MacOS卡片风)" },
-                new ItemViewModel { Id = "Geek", Name = "Geek Studio (极客工业紧凑风)" }
-            };
+                UIStyles.Add(new ItemViewModel { Id = ui.Id, Name = $"{ui.DisplayName} ({ui.Description})" });
+            }
+            
             var currentUIStyle = config.UIStyle ?? "Original";
             _selectedUIStyle = UIStyles.FirstOrDefault(x => x.Id == currentUIStyle) ?? UIStyles.First();
             OnPropertyChanged(nameof(UIStyles));
@@ -233,3 +250,4 @@ namespace YiboFile.ViewModels.Settings
         public string Name { get; set; }
     }
 }
+

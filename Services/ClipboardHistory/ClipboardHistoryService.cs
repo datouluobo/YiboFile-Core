@@ -129,7 +129,6 @@ namespace YiboFile.Services.ClipboardHistory
             if (AddClipboardFormatListener(_hwnd))
             {
                 _isListening = true;
-                System.Diagnostics.Debug.WriteLine("[ClipboardHistoryService] Started listening");
             }
         }
 
@@ -148,7 +147,6 @@ namespace YiboFile.Services.ClipboardHistory
             }
 
             _isListening = false;
-            System.Diagnostics.Debug.WriteLine("[ClipboardHistoryService] Stopped listening");
         }
 
         private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
@@ -240,14 +238,11 @@ namespace YiboFile.Services.ClipboardHistory
                         // 限制数量
                         while (History.Count > MaxHistoryCount)
                             History.RemoveAt(History.Count - 1);
-
-                        System.Diagnostics.Debug.WriteLine($"[ClipboardHistoryService] Added {item.Type}: {item.Preview}");
                     }
                 });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine($"[ClipboardHistoryService] Error: {ex.Message}");
             }
         }
 
@@ -278,9 +273,8 @@ namespace YiboFile.Services.ClipboardHistory
                 }
                 return true;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine($"[ClipboardHistoryService] SetToClipboard error: {ex.Message}");
                 return false;
             }
         }

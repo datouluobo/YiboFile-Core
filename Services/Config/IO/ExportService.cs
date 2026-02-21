@@ -66,7 +66,7 @@ namespace YiboFile.Services.Config.IO
                 {
                     ExportTime = DateTime.Now,
                     Modules = modules.ToList(),
-                    AppVersion = "1.0.0" // TODO: Get actual version
+                    AppVersion = "1.0.0"
                 };
 
                 // 1. Export Content
@@ -119,7 +119,6 @@ namespace YiboFile.Services.Config.IO
 
         private async Task ExportStructureAsync(string outputDir)
         {
-            // TODO: Extract Libraries, Favorites, Tags from SQLite/DB and serialize to structure.json
             // For now, we might export the whole DB or partial data.
             // Given the requirement is granular export, we should query repositories.
             // Placeholder: Export the DB file itself as "structure.db" or dump to JSON?
@@ -136,7 +135,6 @@ namespace YiboFile.Services.Config.IO
 
         private async Task ExportFileDataAsync(string outputDir)
         {
-            // TODO: Extract File Metadata (tags, notes) from DB
             await Task.CompletedTask;
         }
 

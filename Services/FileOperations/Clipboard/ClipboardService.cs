@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Linq;
@@ -50,7 +48,6 @@ namespace YiboFile.Services.FileOperations
         /// </summary>
         public async Task<bool> SetCopyPathsAsync(IEnumerable<string> paths)
         {
-            Debug.WriteLine("[ClipboardService] SetCopyPathsAsync called");
             return await SetPathsToClipboardAsync(paths, false);
         }
 
@@ -59,7 +56,6 @@ namespace YiboFile.Services.FileOperations
         /// </summary>
         public async Task<bool> SetCutPathsAsync(IEnumerable<string> paths)
         {
-            Debug.WriteLine("[ClipboardService] SetCutPathsAsync called");
             return await SetPathsToClipboardAsync(paths, true);
         }
 
@@ -68,25 +64,19 @@ namespace YiboFile.Services.FileOperations
         /// </summary>
         public async Task<(List<string> paths, bool isCut)> GetPathsFromClipboardAsync()
         {
-            Debug.WriteLine("[ClipboardService] GetPathsFromClipboardAsync - START");
             try
             {
                 // Retry checking for file drop list
-                Debug.WriteLine("[ClipboardService] Checking ContainsFileDropList...");
                 var containsFileDropList = await EnsureUIThreadAsync(async () =>
                 {
                     return await RetryAsync(() => Clipboard.ContainsFileDropList(), "ContainsFileDropList");
                 });
 
-                Debug.WriteLine($"[ClipboardService] ContainsFileDropList = {containsFileDropList}");
-
                 if (!containsFileDropList)
                 {
-                    Debug.WriteLine("[ClipboardService] No file drop list in clipboard, returning empty");
                     return (new List<string>(), false);
                 }
 
-                Debug.WriteLine("[ClipboardService] Getting file drop list...");
                 return await EnsureUIThreadAsync(async () =>
                 {
                     return await RetryAsync(() =>
@@ -95,12 +85,10 @@ namespace YiboFile.Services.FileOperations
                         bool isCut = false;
 
                         var fileDropList = Clipboard.GetFileDropList();
-                        Debug.WriteLine($"[ClipboardService] FileDropList count: {fileDropList?.Count ?? 0}");
 
                         foreach (string path in fileDropList)
                         {
                             paths.Add(path);
-                            Debug.WriteLine($"[ClipboardService] Path: {path}");
                         }
 
                         // 检测是否为剪切操作
@@ -114,20 +102,16 @@ namespace YiboFile.Services.FileOperations
                                 {
                                     int effect = BitConverter.ToInt32(bytes, 0);
                                     isCut = (effect == 2); // DROPEFFECT_MOVE
-                                    Debug.WriteLine($"[ClipboardService] DropEffect = {effect}, isCut = {isCut}");
                                 }
                             }
                         }
 
-                        Debug.WriteLine($"[ClipboardService] Returning {paths.Count} paths, isCut = {isCut}");
                         return (paths, isCut);
                     }, "GetFileDropList");
                 });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Debug.WriteLine($"[ClipboardService] GetPathsFromClipboardAsync EXCEPTION: {ex.GetType().Name}: {ex.Message}");
-                Debug.WriteLine($"[ClipboardService] StackTrace: {ex.StackTrace}");
                 return (new List<string>(), false);
             }
         }
@@ -137,7 +121,6 @@ namespace YiboFile.Services.FileOperations
         /// </summary>
         public async Task ClearAsync()
         {
-            Debug.WriteLine("[ClipboardService] ClearAsync called");
             try
             {
                 await EnsureUIThreadAsync(async () =>
@@ -151,11 +134,9 @@ namespace YiboFile.Services.FileOperations
                 IsCutOperation = false;
                 CutPaths = Array.Empty<string>();
                 _messageBus?.Publish(new ClipboardCutStateChangedMessage(CutPaths));
-                Debug.WriteLine("[ClipboardService] ClearAsync completed");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Debug.WriteLine($"[ClipboardService] ClearAsync EXCEPTION: {ex.Message}");
             }
         }
 
@@ -164,7 +145,6 @@ namespace YiboFile.Services.FileOperations
         /// </summary>
         public async Task ClearCutStateAsync()
         {
-            Debug.WriteLine($"[ClipboardService] ClearCutStateAsync called, IsCutOperation = {IsCutOperation}");
             if (IsCutOperation)
             {
                 await ClearAsync();
@@ -173,17 +153,14 @@ namespace YiboFile.Services.FileOperations
 
         private async Task<bool> SetPathsToClipboardAsync(IEnumerable<string> paths, bool isCut)
         {
-            Debug.WriteLine($"[ClipboardService] SetPathsToClipboardAsync isCut={isCut}");
             try
             {
                 var pathList = new List<string>(paths);
                 if (pathList.Count == 0)
                 {
-                    Debug.WriteLine("[ClipboardService] Empty path list, returning false");
                     return false;
                 }
 
-                Debug.WriteLine($"[ClipboardService] Setting {pathList.Count} paths to clipboard");
                 return await EnsureUIThreadAsync(async () =>
                 {
                     return await RetryAsync(() =>
@@ -199,7 +176,6 @@ namespace YiboFile.Services.FileOperations
                         data.SetData("Preferred DropEffect", ms);
 
                         Clipboard.SetDataObject(data, true);
-                        Debug.WriteLine("[ClipboardService] SetDataObject completed");
 
                         // 更新内部状态
                         IsCutOperation = isCut;
@@ -212,9 +188,8 @@ namespace YiboFile.Services.FileOperations
                     }, "SetDataObject");
                 });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Debug.WriteLine($"[ClipboardService] SetPathsToClipboardAsync EXCEPTION: {ex.Message}");
                 return false;
             }
         }
@@ -230,10 +205,8 @@ namespace YiboFile.Services.FileOperations
 
         private async Task<T> EnsureUIThreadAsync<T>(Func<Task<T>> action)
         {
-            Debug.WriteLine($"[ClipboardService] EnsureUIThreadAsync - CheckAccess = {Application.Current?.Dispatcher?.CheckAccess()}");
             if (Application.Current?.Dispatcher?.CheckAccess() == false)
             {
-                Debug.WriteLine("[ClipboardService] Dispatching to UI thread...");
                 // Await the Task<T> returned by InvokeAsync
                 // InvokeAsync returns DispatcherOperation<Task<T>>
                 return await await Application.Current.Dispatcher.InvokeAsync(action);
@@ -243,22 +216,17 @@ namespace YiboFile.Services.FileOperations
 
         private async Task<T> RetryAsync<T>(Func<T> action, string operationName, int maxRetries = 5, int delayMs = 50)
         {
-            Debug.WriteLine($"[ClipboardService] RetryAsync '{operationName}' starting, maxRetries={maxRetries}");
             for (int i = 0; i < maxRetries; i++)
             {
                 try
                 {
-                    var result = action();
-                    Debug.WriteLine($"[ClipboardService] RetryAsync '{operationName}' succeeded on attempt {i + 1}");
-                    return result;
+                    return action();
                 }
-                catch (System.Runtime.InteropServices.ExternalException ex)
+                catch (System.Runtime.InteropServices.ExternalException)
                 {
-                    Debug.WriteLine($"[ClipboardService] RetryAsync '{operationName}' attempt {i + 1} failed: {ex.Message}");
                     // If max retries reached, just return default (fail silently instead of crash)
                     if (i == maxRetries - 1)
                     {
-                        Debug.WriteLine($"[ClipboardService] RetryAsync '{operationName}' MAX RETRIES REACHED, returning default");
                         break;
                     }
                     await Task.Delay(delayMs);

@@ -158,9 +158,8 @@ namespace YiboFile.Services.Data.Repositories
                     {
                         path = Path.GetFullPath(path);
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[SqliteLibraryRepository] Path.GetFullPath failed for {path}: {ex.Message}");
                     }
                     paths.Add(path);
                 }
@@ -204,9 +203,8 @@ namespace YiboFile.Services.Data.Repositories
                     {
                         path = Path.GetFullPath(path);
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[SqliteLibraryRepository] Path.GetFullPath failed for {path}: {ex.Message}");
                     }
                     paths.Add(path);
                 }
@@ -264,9 +262,8 @@ namespace YiboFile.Services.Data.Repositories
                         {
                             path = Path.GetFullPath(path);
                         }
-                        catch (Exception ex)
+                        catch (Exception)
                         {
-                            System.Diagnostics.Debug.WriteLine($"[SqliteLibraryRepository] Path.GetFullPath failed for {path}: {ex.Message}");
                         }
                         paths.Add(path);
                     }
@@ -320,9 +317,8 @@ namespace YiboFile.Services.Data.Repositories
                         {
                             path = Path.GetFullPath(path);
                         }
-                        catch (Exception ex)
+                        catch (Exception)
                         {
-                            System.Diagnostics.Debug.WriteLine($"[SqliteLibraryRepository] Path.GetFullPath failed for {path}: {ex.Message}");
                         }
                         paths.Add(path);
                     }

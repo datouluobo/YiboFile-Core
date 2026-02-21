@@ -84,7 +84,7 @@ namespace YiboFile.ViewModels.Modules
 
                     if (tab.Type == TabType.Tag && tab.Path?.StartsWith("tag://") == true)
                     {
-                        // Tag specific logic if needed
+                        // 获取当前路径用于搜索上下文
                     }
 
                     Publish(new TabActivatedMessage(tab.Path ?? "", tab.Path ?? "", tab.Type == TabType.Library));
@@ -122,7 +122,6 @@ namespace YiboFile.ViewModels.Modules
 
         private void OnCloseTab(CloseTabMessage message)
         {
-            // TODO: Implement closure logic
         }
 
         public ICommand SwitchTabCommand { get; private set; }

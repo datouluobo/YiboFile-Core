@@ -1,7 +1,6 @@
 using System;
 using YiboFile.Models;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 
 namespace YiboFile.Services.Search
@@ -81,8 +80,6 @@ namespace YiboFile.Services.Search
                 groupedItems[SearchResultType.Folder] = folderItems;
             if (fileItems.Count > 0)
                 groupedItems[SearchResultType.File] = fileItems;
-
-            Debug.WriteLine($"分组结果: 备注={notesItems.Count}, 文件夹={folderItems.Count}, 文件={fileItems.Count}");
 
             return groupedItems;
         }

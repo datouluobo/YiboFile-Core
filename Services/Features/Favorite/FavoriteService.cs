@@ -135,9 +135,8 @@ namespace YiboFile.Services.Favorite
 
                 return displayGroups;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine($"Error getting favorite groups: {ex.Message}");
                 return new List<FavoriteGroupItem>();
             }
         }

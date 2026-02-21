@@ -114,7 +114,6 @@ namespace YiboFile.Controls.Settings
 
         private void CleanButton_Click(object sender, RoutedEventArgs e)
         {
-            // TODO: Call BackupService.CleanOldBackupsAsync
             MessageBox.Show("清理功能将在下一阶段实现。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 

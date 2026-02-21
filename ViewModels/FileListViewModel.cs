@@ -100,7 +100,6 @@ namespace YiboFile.ViewModels
 
         public void UpdateFiles(IEnumerable<FileSystemItem> items)
         {
-            System.Diagnostics.Debug.WriteLine($"[FileListDebug] [{_paneId}] UpdateFiles called with {items?.Count() ?? 0} items.");
             _dispatcher.BeginInvoke(new Action(() =>
             {
                 Files = new ObservableCollection<FileSystemItem>(items);
@@ -219,7 +218,6 @@ namespace YiboFile.ViewModels
         /// </summary>
         public async Task LoadPathAsync(string path)
         {
-            System.Diagnostics.Debug.WriteLine($"[FileListDebug] [{_paneId}] LoadPathAsync requested: {path}");
 
 
 
@@ -287,8 +285,6 @@ namespace YiboFile.ViewModels
                     null,
                     cancellationToken);
 
-                System.Diagnostics.Debug.WriteLine($"[FileListDebug] [{_paneId}] Loaded {files?.Count ?? 0} items from {path}");
-
 
                 var sortedFiles = ApplySorting(files);
 
@@ -350,7 +346,6 @@ namespace YiboFile.ViewModels
         public void SetFiles(IEnumerable<FileSystemItem> files)
         {
             int count = files?.Count() ?? 0;
-            System.Diagnostics.Debug.WriteLine($"[FileListDebug] [{_paneId}] SetFiles called with {count} items.");
 
             CancelOngoingOperations();
             _loadFilesPending = false;

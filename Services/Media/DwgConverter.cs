@@ -150,11 +150,6 @@ namespace YiboFile.Services
                     var output = await outputTask;
                     var error = await errorTask;
 
-                    // 转换失败，记录错误信息
-                    if (!string.IsNullOrEmpty(error))
-                    {
-                        System.Diagnostics.Debug.WriteLine($"ODA Converter Error: {error}");
-                    }
 
                     return false;
                 }

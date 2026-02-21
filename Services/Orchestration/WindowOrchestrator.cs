@@ -79,7 +79,7 @@ namespace YiboFile.Services.Orchestration
             _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
 
             _moduleInitializer = new ModuleInitializer(serviceProvider, messageBus);
-            _handlerInitializer = new HandlerInitializer(serviceProvider, messageBus);
+            _handlerInitializer = new HandlerInitializer(serviceProvider.GetRequiredService<YiboFile.Services.Theming.IThemeService>(), serviceProvider, messageBus);
             _messageBridgeSetup = new MessageBridgeSetup(serviceProvider, messageBus);
         }
 
@@ -157,7 +157,6 @@ namespace YiboFile.Services.Orchestration
             catch (Exception ex)
             {
                 System.Windows.MessageBox.Show($"初始化失败: {ex.Message}\n{ex.StackTrace}", "错误", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
-                System.Diagnostics.Debug.WriteLine($"[WindowOrchestrator] Initialization Failed: {ex}");
             }
         }
 

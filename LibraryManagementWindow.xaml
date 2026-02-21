@@ -9,8 +9,8 @@
         mc:Ignorable="d"
         Title="库管理" Height="600" Width="800"
         WindowStartupLocation="CenterOwner" ResizeMode="CanResize"
-        Background="White"
-        Foreground="#333333">
+        Background="{DynamicResource BackgroundPrimaryBrush}"
+        Foreground="{DynamicResource ForegroundPrimaryBrush}">
     
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
@@ -45,20 +45,20 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#E0E0E0"/>
+                    <Setter Property="Background" Value="{DynamicResource ControlHoverBrush}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
 
         <Style x:Key="ModernAccentButtonStyle" TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
-            <Setter Property="Background" Value="#2196F3"/>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="{DynamicResource AccentDefaultBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource ForegroundOnAccentBrush}"/>
              <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#1976D2"/>
+                    <Setter Property="Background" Value="{DynamicResource AccentHoverBrush}"/>
                 </Trigger>
                 <Trigger Property="IsEnabled" Value="False">
-                    <Setter Property="Background" Value="#A0A0A0"/>
+                    <Setter Property="Background" Value="{DynamicResource ControlDisabledBrush}"/>
                     <Setter Property="Opacity" Value="0.6"/>
                 </Trigger>
             </Style.Triggers>
@@ -67,8 +67,8 @@
         <Style x:Key="ModernTextBoxStyle" TargetType="TextBox">
             <Setter Property="Padding" Value="8,6"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="BorderBrush" Value="#DDDDDD"/>
-            <Setter Property="Background" Value="#F5F5F5"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderDefaultBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource BackgroundSecondaryBrush}"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
              <Setter Property="Template">
                 <Setter.Value>
@@ -81,8 +81,8 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsFocused" Value="True">
-                                <Setter Property="BorderBrush" Value="#2196F3"/>
-                                <Setter Property="Background" Value="White"/>
+                                <Setter Property="BorderBrush" Value="{DynamicResource BorderFocusBrush}"/>
+                                <Setter Property="Background" Value="{DynamicResource BackgroundPrimaryBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -107,8 +107,8 @@
             <ItemsControl x:Name="LibrariesList" ItemsSource="{Binding Libraries}" BorderThickness="0" Background="Transparent" AlternationCount="2">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Border Margin="0,0,0,8" BorderThickness="1" BorderBrush="#EEEEEE"
-                                Background="#FAFAFA" CornerRadius="4">
+                        <Border Margin="0,0,0,8" BorderThickness="1" BorderBrush="{DynamicResource BorderDefaultBrush}"
+                                Background="{DynamicResource BackgroundSecondaryBrush}" CornerRadius="4">
                             <Expander IsExpanded="True" BorderThickness="0" Background="Transparent" Padding="5">
                             <Expander.Header>
                                 <Grid Width="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type Expander}}, Path=ActualWidth, Converter={StaticResource MathConverter}, ConverterParameter=-50}">
@@ -133,7 +133,7 @@
                                                 Width="24" Height="24" Padding="0" Margin="4,0,0,0" ToolTip="重命名库"
                                                 Background="Transparent" BorderThickness="0"/>
                                         <Button Content="❌" Command="{Binding DataContext.DeleteLibraryCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" Style="{StaticResource ModernButtonStyle}" 
-                                                Width="24" Height="24" Padding="0" Margin="4,0,0,0" ToolTip="删除库" Foreground="#FF5555"
+                                                Width="24" Height="24" Padding="0" Margin="4,0,0,0" ToolTip="删除库" Foreground="{DynamicResource StatusErrorBrush}"
                                                 Background="Transparent" BorderThickness="0"/>
                                     </StackPanel>
 
@@ -168,7 +168,7 @@
                                         </ListBox.ItemContainerStyle>
                                         <ListBox.ItemTemplate>
                                             <DataTemplate>
-                                                <Border Background="#F0F0F0" CornerRadius="4" Padding="8,6" Margin="4,2">
+                                                <Border Background="{DynamicResource BackgroundTertiaryBrush}" CornerRadius="4" Padding="8,6" Margin="4,2">
                                                     <Grid>
                                                         <Grid.ColumnDefinitions>
                                                             <ColumnDefinition Width="*"/>
@@ -176,7 +176,7 @@
                                                         </Grid.ColumnDefinitions>
                                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                                             <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" Margin="0,0,10,0"/>
-                                                            <TextBlock Text="{Binding Path}" Foreground="Gray" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                            <TextBlock Text="{Binding Path}" Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                                                         </StackPanel>
                                                         
                                                         <StackPanel x:Name="ActionButtons" Grid.Column="1" Orientation="Horizontal" Margin="6,0,0,0"
@@ -184,7 +184,7 @@
                                                              <Button Content="✎" Command="{Binding DataContext.EditPathCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" Width="20" Height="20" Padding="0"
                                                                      Background="Transparent" BorderThickness="0" ToolTip="编辑显示名称" Margin="0,0,2,0"/>
                                                              <Button Content="✕" Command="{Binding DataContext.RemovePathCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" Width="20" Height="20" Padding="0" 
-                                                                     Background="Transparent" BorderThickness="0" ToolTip="移除位置" Foreground="#FF5555"/>
+                                                                     Background="Transparent" BorderThickness="0" ToolTip="移除位置" Foreground="{DynamicResource StatusErrorBrush}"/>
                                                         </StackPanel>
                                                     </Grid>
                                                     <Border.Triggers>
@@ -210,7 +210,7 @@
 
                                     <!-- Add Path Inline Button -->
                                     <Button Grid.Row="1" Content="+ 添加位置" Margin="4,5,4,4" Command="{Binding DataContext.AddPathCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" 
-                                            Style="{StaticResource ModernButtonStyle}" Background="#EFEFEF" Height="30"
+                                            Style="{StaticResource ModernButtonStyle}" Background="{DynamicResource ControlDefaultBrush}" Height="30"
                                             HorizontalContentAlignment="Left" Padding="10,0"/>
                                 </Grid>
                             </Expander.Content>
@@ -222,7 +222,7 @@
         </ScrollViewer>
 
         <!-- Footer: Add Library -->
-        <Border Grid.Row="2" BorderThickness="0,1,0,0" BorderBrush="#EEEEEE" Background="#FAFAFA" Padding="15">
+        <Border Grid.Row="2" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource BorderDefaultBrush}" Background="{DynamicResource BackgroundSecondaryBrush}" Padding="15">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -233,7 +233,7 @@
                         <KeyBinding Key="Enter" Command="{Binding CreateLibraryCommand}"/>
                     </TextBox.InputBindings>
                 </TextBox>
-                <TextBlock Text="新建库..." Foreground="#808080" Margin="8,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False">
+                <TextBlock Text="新建库..." Foreground="{DynamicResource ForegroundSecondaryBrush}" Margin="8,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False">
                     <TextBlock.Style>
                         <Style TargetType="TextBlock">
                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -250,8 +250,8 @@
         </Border>
 
         <!-- Error Snackbar -->
-        <Border x:Name="ErrorOverlay" Grid.RowSpan="3" VerticalAlignment="Bottom" Background="#B00020" Padding="15,10" Margin="20" CornerRadius="4" Visibility="{Binding IsErrorVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
-            <TextBlock x:Name="ErrorText" Text="{Binding ErrorMessage}" Foreground="White" FontWeight="SemiBold"/>
+        <Border x:Name="ErrorOverlay" Grid.RowSpan="3" VerticalAlignment="Bottom" Background="{DynamicResource StatusErrorBrush}" Padding="15,10" Margin="20" CornerRadius="4" Visibility="{Binding IsErrorVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <TextBlock x:Name="ErrorText" Text="{Binding ErrorMessage}" Foreground="{DynamicResource ForegroundOnAccentBrush}" FontWeight="SemiBold"/>
         </Border>
     </Grid>
 </Window>

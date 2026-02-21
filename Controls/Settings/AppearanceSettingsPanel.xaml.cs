@@ -48,73 +48,80 @@ namespace YiboFile.Controls.Settings
         private static readonly Dictionary<string, List<(string Key, string Name)>> ColorGroups = new Dictionary<string, List<(string, string)>>
         {
             {
-                "背景色", new List<(string, string)>
+                "背景类 (Backgrounds)", new List<(string, string)>
                 {
-                    ("BackgroundPrimaryBrush", "主背景"),
-                    ("BackgroundSecondaryBrush", "次背景/面板"),
+                    ("BackgroundPrimaryBrush", "主页面背景"),
+                    ("BackgroundSecondaryBrush", "次级背景/面板"),
                     ("BackgroundTertiaryBrush", "三级背景/卡片"),
-                    ("BackgroundElevatedBrush", "对话框/浮动"),
-                    ("AppBackgroundBrush", "应用背景")
+                    ("BackgroundElevatedBrush", "浮层/弹出框"),
+                    ("TitleBarBackgroundBrush", "标题栏背景"),
+                    ("NavigationRegionBrush", "导航区域背景"),
+                    ("SidebarBackgroundBrush", "侧边栏背景"),
+                    ("PaneFocusedBackgroundBrush", "分栏聚焦背景"),
+                    ("PaneUnfocusedBackgroundBrush", "分栏失焦背景")
                 }
             },
             {
-                "文本色", new List<(string, string)>
+                "文本类 (Typography)", new List<(string, string)>
                 {
-                    ("ForegroundPrimaryBrush", "主要文本"),
-                    ("ForegroundSecondaryBrush", "次要文本"),
-                    ("ForegroundDisabledBrush", "禁用文本"),
-                    ("ForegroundOnAccentBrush", "强调色上的文本")
+                    ("ForegroundPrimaryBrush", "主要文字"),
+                    ("ForegroundSecondaryBrush", "次要文字"),
+                    ("ForegroundTertiaryBrush", "辅助文字"),
+                    ("ForegroundDisabledBrush", "禁用文字"),
+                    ("ForegroundOnAccentBrush", "强调色反向文字")
                 }
             },
             {
-                "强调色/交互", new List<(string, string)>
+                "强调色 (Accent)", new List<(string, string)>
                 {
-                    ("AccentDefaultBrush", "主强调色"),
-                    ("AccentHoverBrush", "悬停"),
-                    ("AccentPressedBrush", "按下"),
-                    ("AccentSelectedBrush", "选中"),
+                    ("AccentDefaultBrush", "品牌强调色"),
+                    ("AccentHoverBrush", "强调色悬停"),
+                    ("AccentPressedBrush", "强调色按下"),
+                    ("AccentSelectedBrush", "强调色选中"),
                     ("AccentLightBrush", "浅强调色背景")
                 }
             },
             {
-                "边框色", new List<(string, string)>
+                "边框类 (Borders)", new List<(string, string)>
                 {
                     ("BorderDefaultBrush", "默认边框"),
-                    ("BorderSubtleBrush", "淡边框"),
+                    ("BorderSubtleBrush", "微弱边框"),
                     ("BorderFocusBrush", "聚焦边框")
                 }
             },
             {
-                "控件状态", new List<(string, string)>
+                "控件状态 (States)", new List<(string, string)>
                 {
-                    ("ControlDefaultBrush", "控件默认"),
-                    ("ControlHoverBrush", "控件悬停"),
-                    ("ControlPressedBrush", "控件按下"),
-                    ("ControlDisabledBrush", "控件禁用")
+                    ("ControlDefaultBrush", "控件默认背景"),
+                    ("ControlHoverBrush", "控件悬停背景"),
+                    ("ControlPressedBrush", "控件按下背景"),
+                    ("ControlDisabledBrush", "控件禁用背景")
                 }
             },
             {
-                "语义颜色", new List<(string, string)>
+                "语法状态 (Status)", new List<(string, string)>
                 {
-                    ("SuccessBrush", "成功"),
-                    ("WarningBrush", "警告"),
-                    ("ErrorBrush", "错误"),
-                    ("InfoBrush", "信息")
+                    ("StatusSuccessBrush", "成功"),
+                    ("StatusWarningBrush", "警告"),
+                    ("StatusErrorBrush", "错误"),
+                    ("StatusInfoBrush", "信息")
                 }
             },
             {
-                "特殊用途", new List<(string, string)>
+                "特殊用途 (Misc)", new List<(string, string)>
                 {
-                    ("ShadowBrush", "阴影"),
-                    ("OverlayBrush", "遮罩"),
-                    ("DividerBrush", "分隔线")
+                    ("OverlayBrush", "标准遮罩"),
+                    ("OverlayLightBrush", "明亮遮罩"),
+                    ("DividerBrush", "层级分隔线"),
+                    ("ShadowBrush", "窗口阴影色")
                 }
             }
         };
 
         public AppearanceSettingsPanel()
         {
-            _appearanceViewModel = new AppearanceSettingsViewModel();
+            var themeService = YiboFile.App.ServiceProvider?.GetService(typeof(YiboFile.Services.Theming.IThemeService)) as YiboFile.Services.Theming.IThemeService;
+            _appearanceViewModel = new AppearanceSettingsViewModel(themeService);
             _appearanceViewModel.PropertyChanged += (s, e) => SettingsChanged?.Invoke(this, EventArgs.Empty);
             DataContext = _appearanceViewModel;
             InitializeComponent();

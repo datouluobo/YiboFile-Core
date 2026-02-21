@@ -167,16 +167,12 @@ namespace YiboFile.Services.FileList
                 return;
             }
 
-            // System.Diagnostics.Debug.WriteLine($"[FolderSizeCalculator] Waiting for semaphore: {item.Path}");
             await _calculationSemaphore.WaitAsync(cancellationToken);
             try
             {
                 var sw = Stopwatch.StartNew();
-                // System.Diagnostics.Debug.WriteLine($"[FolderSizeCalculator] Calculating: {item.Path}");
 
                 var size = await Task.Run(() => CalculateDirectorySize(item.Path, cancellationToken), cancellationToken);
-
-                // System.Diagnostics.Debug.WriteLine($"[FolderSizeCalculator] Calculated: {item.Path} Size: {size} Time: {sw.ElapsedMilliseconds}ms");
 
                 if (cancellationToken.IsCancellationRequested)
                 {
