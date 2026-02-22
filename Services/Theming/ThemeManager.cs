@@ -255,19 +255,23 @@ namespace YiboFile.Services.Theming
                 }
 
                 // If we are replacing themes (which affect base colors), 
-                // we MUST forcefully reload Aliases since SolidColorBrush.Color DynamicResource 
+                // we MUST forcefully reload Aliases, UIStyles, and Icons since SolidColorBrush.Color DynamicResource 
                 // bindings inside ResourceDictionaries do not update automatically in WPF.
                 if (identifierToReplace.Contains("/Styles/Themes/") || identifierToReplace.Contains("/Styles/Contracts/"))
                 {
-                    var aliasDicts = appDictionaries.Where(d => d.Source != null && d.Source.OriginalString.Contains("/Styles/Aliases/")).ToList();
-                    foreach (var alias in aliasDicts)
+                    var reloadTargets = appDictionaries.Where(d => d.Source != null && 
+                        (d.Source.OriginalString.Contains("/Styles/Aliases/") || 
+                         d.Source.OriginalString.Contains("/Styles/UIStyles/") || 
+                         d.Source.OriginalString.Contains("/Styles/Icons/"))).ToList();
+
+                    foreach (var dictToReload in reloadTargets)
                     {
-                        var newAlias = new ResourceDictionary { Source = alias.Source };
-                        int aliasIndex = appDictionaries.IndexOf(alias);
-                        if (aliasIndex >= 0)
+                        var newDictInstance = new ResourceDictionary { Source = dictToReload.Source };
+                        int dictIndex = appDictionaries.IndexOf(dictToReload);
+                        if (dictIndex >= 0)
                         {
-                            appDictionaries.Insert(aliasIndex, newAlias);
-                            appDictionaries.Remove(alias);
+                            appDictionaries.Insert(dictIndex, newDictInstance);
+                            appDictionaries.Remove(dictToReload);
                         }
                     }
                 }

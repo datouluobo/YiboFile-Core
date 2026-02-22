@@ -38,7 +38,7 @@ namespace YiboFile.Windows
                     ("BackgroundSecondaryBrush", "次背景/面板"),
                     ("BackgroundTertiaryBrush", "三级背景/卡片"),
                     ("BackgroundElevatedBrush", "对话框/浮动"),
-                    ("AppBackgroundBrush", "应用背景")
+                    ("BackgroundPrimaryBrush", "应用背景")
                 }
             },
             {
@@ -315,4 +315,5 @@ namespace YiboFile.Windows
         }
     }
 }
+
 

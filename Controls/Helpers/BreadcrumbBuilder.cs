@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 using System.Windows;
@@ -80,7 +80,7 @@ namespace YiboFile.Controls.Helpers
 
             // 获取前景色
             var parentWindow = _getParentWindow?.Invoke();
-            var defaultBrush = parentWindow?.TryFindResource("ForegroundBrush") as SolidColorBrush
+            var defaultBrush = parentWindow?.TryFindResource("ForegroundPrimaryBrush") as SolidColorBrush
                 ?? Brushes.Black;
             var hoverBrush = parentWindow?.TryFindResource("HighlightBrush") as SolidColorBrush
                 ?? new SolidColorBrush(Color.FromRgb(0, 120, 215));

@@ -58,14 +58,14 @@
                                 <DockPanel x:Name="DriveInfoPanel" Grid.Column="1" VerticalAlignment="Center" LastChildFill="True">
                                     <!-- 容量信息 (必须完整显示，优先固定在右侧) -->
                                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="8,0,0,0">
-                                        <TextBlock Text="{Binding UsedSizeText}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" FontWeight="Bold"/>
-                                        <TextBlock Text=" / " FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"/>
-                                        <TextBlock Text="{Binding TotalSizeText}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" FontWeight="Bold"/>
+                                        <TextBlock Text="{Binding UsedSizeText}" FontSize="11" Foreground="{DynamicResource ForegroundSecondaryBrush}" FontWeight="Bold"/>
+                                        <TextBlock Text=" / " FontSize="11" Foreground="{DynamicResource ForegroundSecondaryBrush}"/>
+                                        <TextBlock Text="{Binding TotalSizeText}" FontSize="11" Foreground="{DynamicResource ForegroundSecondaryBrush}" FontWeight="Bold"/>
                                     </StackPanel>
                                     <!-- 盘符 + 别名 (别名在空间不足时完全隐藏) -->
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="{Binding DriveLetter}" FontWeight="SemiBold"/>
-                                        <TextBlock Text="{Binding DriveLabel}" FontWeight="SemiBold" Margin="4,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}"
+                                        <TextBlock Text="{Binding DriveLabel}" FontWeight="SemiBold" Margin="4,0,0,0" Foreground="{DynamicResource ForegroundSecondaryBrush}"
                                                    Visibility="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=DockPanel}, Converter={StaticResource WidthToVisibilityConverter}, ConverterParameter=200}"/>
                                     </StackPanel>
                                 </DockPanel>
@@ -207,7 +207,7 @@
                                                                 <Border Background="Transparent" Padding="2">
                                                                     <Path x:Name="Arrow" 
                                                                           Data="M 6,3 L 12,9 L 6,15" 
-                                                                          Stroke="{DynamicResource TextSecondaryBrush}" 
+                                                                          Stroke="{DynamicResource ForegroundSecondaryBrush}" 
                                                                           StrokeThickness="1.5"
                                                                           HorizontalAlignment="Center"
                                                                           VerticalAlignment="Center"
@@ -227,7 +227,7 @@
                                                                         <Setter TargetName="Arrow" Property="Stroke" Value="{DynamicResource AccentBrush}"/>
                                                                     </Trigger>
                                                                     <Trigger Property="IsMouseOver" Value="True">
-                                                                        <Setter TargetName="Arrow" Property="Stroke" Value="{DynamicResource TextPrimaryBrush}"/>
+                                                                        <Setter TargetName="Arrow" Property="Stroke" Value="{DynamicResource ForegroundPrimaryBrush}"/>
                                                                     </Trigger>
                                                                 </ControlTemplate.Triggers>
                                                             </ControlTemplate>
@@ -268,13 +268,13 @@
                                         </Trigger>
                                         <Trigger Property="IsSelected" Value="true">
                                             <Setter Property="Background" TargetName="Bd" Value="{DynamicResource SelectionBackgroundBrush}"/>
-                                            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource ForegroundPrimaryBrush}"/>
                                         </Trigger>
                                         <Trigger Property="IsMouseOver" Value="true">
                                             <Setter Property="Background" TargetName="Bd" Value="{DynamicResource ButtonHoverBackgroundBrush}"/>
                                         </Trigger>
                                         <Trigger Property="IsEnabled" Value="false">
-                                            <Setter Property="Foreground" Value="{DynamicResource TextDisabledBrush}"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource ForegroundDisabledBrush}"/>
                                         </Trigger>
                                     </ControlTemplate.Triggers>
                                 </ControlTemplate>
@@ -464,13 +464,14 @@
         </Grid>
         
         <!-- 底部按钮区 (已移除库管理按钮) -->
-        <Border Grid.Row="1" Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0">
+        <Border Grid.Row="1" Background="{DynamicResource BackgroundSecondaryBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0">
              <Grid>
                  <!-- 保留 Grid 结构以防未来扩展，但内容为空 -->
              </Grid>
         </Border>
     </Grid>
 </UserControl>
+
 
 
 

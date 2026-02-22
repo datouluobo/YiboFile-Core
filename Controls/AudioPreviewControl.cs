@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -76,8 +76,7 @@ namespace YiboFile.Controls
 
         private void InitializeUI()
         {
-            _mainGrid = new Grid
-            {
+            _mainGrid = new Grid(); _mainGrid.SetResourceReference(Grid.BackgroundProperty, "BackgroundSecondaryBrush"); _mainGrid = new Grid { 
                 Background = new SolidColorBrush(Color.FromRgb(245, 245, 245))
             };
 
@@ -112,7 +111,7 @@ namespace YiboFile.Controls
             {
                 Text = $"文件大小: {FormatFileSize(fileInfo.Length)}",
                 FontSize = 11,
-                Foreground = new SolidColorBrush(Color.FromRgb(120, 120, 120)),
+                Foreground = (Brush)Application.Current.Resources["ForegroundSecondaryBrush"],
                 Margin = new Thickness(0, 0, 0, 5)
             };
             infoPanel.Children.Add(fileNameText);
@@ -163,18 +162,18 @@ namespace YiboFile.Controls
             }
 
             // 3. Progress Panel
-            var progressPanel = new Grid { Background = new SolidColorBrush(Color.FromRgb(250, 250, 250)), Margin = new Thickness(15, 5, 15, 5) };
+            var progressPanel = new Grid { Background = (Brush)Application.Current.Resources["BackgroundTertiaryBrush"], Margin = new Thickness(15, 5, 15, 5) };
             progressPanel.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             progressPanel.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             progressPanel.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-            _currentTimeText = new TextBlock { Text = "00:00", Foreground = Brushes.Gray, FontSize = 11, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 0), MinWidth = 45 };
+            _currentTimeText = new TextBlock { Text = "00:00", Foreground = (Brush)Application.Current.Resources["ForegroundTertiaryBrush"], FontSize = 11, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 0), MinWidth = 45 };
             Grid.SetColumn(_currentTimeText, 0); progressPanel.Children.Add(_currentTimeText);
 
             _progressSlider = new Slider { Minimum = 0, Maximum = 100, Value = 0, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(5, 0, 5, 0) };
             Grid.SetColumn(_progressSlider, 1); progressPanel.Children.Add(_progressSlider);
 
-            _totalTimeText = new TextBlock { Text = "00:00", Foreground = Brushes.Gray, FontSize = 11, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(10, 0, 0, 0), MinWidth = 45 };
+            _totalTimeText = new TextBlock { Text = "00:00", Foreground = (Brush)Application.Current.Resources["ForegroundTertiaryBrush"], FontSize = 11, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(10, 0, 0, 0), MinWidth = 45 };
             Grid.SetColumn(_totalTimeText, 2); progressPanel.Children.Add(_totalTimeText);
 
             Grid.SetRow(progressPanel, 2);
@@ -213,7 +212,7 @@ namespace YiboFile.Controls
                 Margin = new Thickness(5),
                 Padding = new Thickness(15, 8, 15, 8),
                 Background = bg,
-                Foreground = Brushes.White,
+                Foreground = (Brush)Application.Current.Resources["ForegroundOnAccentBrush"],
                 BorderThickness = new Thickness(0),
                 Cursor = Cursors.Hand,
                 FontSize = 13

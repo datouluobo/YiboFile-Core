@@ -38,7 +38,7 @@ namespace YiboFile.Controls.Dialogs
             Height = 450;
             ResizeMode = ResizeMode.NoResize;
             // WindowStyle = WindowStyle.ToolWindow; // Removed to fix close button position
-            Background = (Brush)Application.Current.TryFindResource("WindowBackgroundBrush") ?? Brushes.White;
+            Background = (Brush)Application.Current.TryFindResource("BackgroundElevatedBrush") ?? Brushes.White;
 
             var mainGrid = new Grid { Margin = new Thickness(20) };
             mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Preset Title
@@ -54,7 +54,7 @@ namespace YiboFile.Controls.Dialogs
                 FontWeight = FontWeights.Bold,
                 Margin = new Thickness(0, 0, 0, 10)
             };
-            title.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimaryBrush");
+            title.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundPrimaryBrush");
             mainGrid.Children.Add(title);
 
             // 2. Presets Grid
@@ -88,7 +88,7 @@ namespace YiboFile.Controls.Dialogs
             // 3. Input
             var inputStack = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 15, 0, 20) };
             var label = new TextBlock { Text = "颜色代码 (Hex):", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 0) };
-            label.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimaryBrush");
+            label.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundPrimaryBrush");
 
             _colorCodeInput = new TextBox { Width = 150, Text = SelectedColor ?? "" };
             _colorCodeInput.TextChanged += (s, e) => SelectedColor = _colorCodeInput.Text;
@@ -134,3 +134,4 @@ namespace YiboFile.Controls.Dialogs
         }
     }
 }
+

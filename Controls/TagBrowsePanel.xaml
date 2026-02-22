@@ -1,4 +1,4 @@
-<UserControl x:Class="YiboFile.Controls.TagBrowsePanel"
+﻿<UserControl x:Class="YiboFile.Controls.TagBrowsePanel"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -54,7 +54,7 @@
                             <Expander.Header>
                                 <Border AllowDrop="True" Drop="GroupHeader_Drop" Background="Transparent" Padding="0,4">
                                     <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="12" 
-                                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                               Foreground="{DynamicResource ForegroundSecondaryBrush}"/>
                                 </Border>
                             </Expander.Header>
                             <ItemsControl ItemsSource="{Binding Tags}" Margin="4,4,0,8">
@@ -84,7 +84,7 @@
                                                 </ContextMenu>
                                             </Border.ContextMenu>
                                             <TextBlock Text="{Binding Name}" 
-                                                       Foreground="#282828" 
+                                                       Foreground="{DynamicResource ForegroundPrimaryBrush}" 
                                                        FontSize="12"
                                                        VerticalAlignment="Center"/>
                                         </Border>
@@ -113,7 +113,7 @@
         <TextBlock x:Name="EmptyStateText" Grid.Row="1" 
                    Text="暂无标签" 
                    HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,20,0,0"
-                   Foreground="{DynamicResource TextDisabledBrush}"
+                   Foreground="{DynamicResource ForegroundDisabledBrush}"
                    Visibility="Collapsed"/>
 
         <!-- Inline Management Footer (Visible when ShowHeader is False, or controlled by prop) -->
@@ -128,3 +128,4 @@
         </Grid>
     </Grid>
 </UserControl>
+

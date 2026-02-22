@@ -6,7 +6,7 @@
         Width="480"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
-        Background="{DynamicResource DialogBackgroundBrush}">
+        Background="{DynamicResource BackgroundElevatedBrush}">
     <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -95,5 +95,6 @@
         </StackPanel>
     </Grid>
 </Window>
+
 
 

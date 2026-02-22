@@ -20,7 +20,7 @@
     <Thickness x:Key="UI.TabItem.Padding">14,4</Thickness>
     <sys:Double x:Key="UI.TabItem.Height">40</sys:Double>
     <!-- 胶囊填充式: 靠背景色区分，不需要指示条 -->
-    <SolidColorBrush x:Key="UI.TabItem.ActiveBackground" Color="{DynamicResource BackgroundElevatedBrush.Color}"/>
+    <SolidColorBrush x:Key="UI.TabItem.ActiveBackground" Color="{DynamicResource AccentLightBrush.Color}"/>
     <Thickness x:Key="UI.TabItem.ActiveBorderThickness">0</Thickness>
     <Visibility x:Key="UI.TabItem.SeparatorVisibility">Collapsed</Visibility>
     <sys:Double x:Key="UI.TabItem.SeparatorHeight">14</sys:Double>

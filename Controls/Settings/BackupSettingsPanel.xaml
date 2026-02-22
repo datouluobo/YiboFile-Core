@@ -59,9 +59,10 @@
         </GroupBox>
 
         <TextBlock Text="备份功能说明" FontSize="16" FontWeight="SemiBold" Margin="0,10,0,10"/>
-        <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource TextSecondaryBrush}">
+        <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource ForegroundSecondaryBrush}">
             YiboFile 在您删除或覆盖文件时会自动创建备份。如果启用了撤销功能，这些备份允许您快速恢复误删的文件。<LineBreak/>
             备份文件存储在本地，请定期清理以释放磁盘空间。
         </TextBlock>
     </StackPanel>
 </UserControl>
+

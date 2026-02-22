@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
@@ -158,7 +158,7 @@ namespace YiboFile.Controls.Settings
                 Margin = new Thickness(0, 0, 0, 16),
                 TextWrapping = TextWrapping.Wrap
             };
-            themeDescription.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
+            themeDescription.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundSecondaryBrush");
             leftPanel.Children.Add(themeDescription);
 
             var themeSelectionLabel = new TextBlock
@@ -180,11 +180,11 @@ namespace YiboFile.Controls.Settings
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 Margin = new Thickness(0, 0, 0, 24)
             };
-            _themeComboBox.SetResourceReference(ComboBox.BackgroundProperty, "BackgroundElevatedBrush");
-            _themeComboBox.SetResourceReference(ComboBox.ForegroundProperty, "ForegroundPrimaryBrush");
-            _themeComboBox.SetResourceReference(ComboBox.BorderBrushProperty, "BorderDefaultBrush");
+            
+            
+            
 
-            _themeComboBox.SetResourceReference(ComboBox.BorderBrushProperty, "BorderDefaultBrush");
+            
 
             // Bind ItemsSource
             _themeComboBox.DisplayMemberPath = "DisplayName";
@@ -221,11 +221,11 @@ namespace YiboFile.Controls.Settings
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 Margin = new Thickness(0, 0, 0, 24)
             };
-            _iconStyleComboBox.SetResourceReference(ComboBox.BackgroundProperty, "BackgroundElevatedBrush");
-            _iconStyleComboBox.SetResourceReference(ComboBox.ForegroundProperty, "ForegroundPrimaryBrush");
-            _iconStyleComboBox.SetResourceReference(ComboBox.BorderBrushProperty, "BorderDefaultBrush");
+            
+            
+            
 
-            _iconStyleComboBox.SetResourceReference(ComboBox.BorderBrushProperty, "BorderDefaultBrush");
+            
 
             // Bind ItemsSource
             _iconStyleComboBox.DisplayMemberPath = "Name";
@@ -262,9 +262,9 @@ namespace YiboFile.Controls.Settings
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 Margin = new Thickness(0, 0, 0, 24)
             };
-            _uiStyleComboBox.SetResourceReference(ComboBox.BackgroundProperty, "BackgroundElevatedBrush");
-            _uiStyleComboBox.SetResourceReference(ComboBox.ForegroundProperty, "ForegroundPrimaryBrush");
-            _uiStyleComboBox.SetResourceReference(ComboBox.BorderBrushProperty, "BorderDefaultBrush");
+            
+            
+            
 
             // Bind ItemsSource
             var uiStyleItemsBinding = new System.Windows.Data.Binding("UIStyles") { Source = _appearanceViewModel };
@@ -463,7 +463,7 @@ namespace YiboFile.Controls.Settings
                 Margin = new Thickness(24, 0, 0, 24),
                 TextWrapping = TextWrapping.Wrap
             };
-            animationHint.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
+            animationHint.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundSecondaryBrush");
             leftPanel.Children.Add(animationHint);
 
             // Reset Button
@@ -500,7 +500,7 @@ namespace YiboFile.Controls.Settings
                 Margin = new Thickness(0, 0, 0, 24),
                 TextWrapping = TextWrapping.Wrap
             };
-            accentHint.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
+            accentHint.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundSecondaryBrush");
             rightPanel.Children.Add(accentHint);
 
             // Build Groups
@@ -569,7 +569,7 @@ namespace YiboFile.Controls.Settings
                 HorizontalAlignment = HorizontalAlignment.Center,
                 FontWeight = FontWeights.Medium
             };
-            colorLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
+            colorLabel.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundSecondaryBrush");
             container.Children.Add(colorLabel);
 
             var colorBorder = new Border
@@ -1006,7 +1006,7 @@ namespace YiboFile.Controls.Settings
                 Margin = new Thickness(0, 4, 0, 0),
                 Height = 28
             };
-            label.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
+            label.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundSecondaryBrush");
 
             container.Children.Add(border);
             container.Children.Add(label);
@@ -1132,3 +1132,7 @@ namespace YiboFile.Controls.Settings
         }
     }
 }
+
+
+
+

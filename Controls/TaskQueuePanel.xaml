@@ -47,7 +47,7 @@
         <!-- 极简按钮样式 -->
         <Style x:Key="IconButtonButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource ForegroundSecondaryBrush}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="4"/>
             <Setter Property="FontSize" Value="12"/>
@@ -64,7 +64,7 @@
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                  <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlHoverBrush}"/>
-                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource ForegroundPrimaryBrush}"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                  <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlPressedBrush}"/>
@@ -79,7 +79,7 @@
     <!-- Animation Trigger Removed to fix IsVisibleChanged not being a RoutedEvent crash -->
     
     <!-- 面板容器：使用云端玻璃感（半透明） -->
-    <Border x:Name="MainBorder" Background="{DynamicResource CardBackgroundBrush}" 
+    <Border x:Name="MainBorder" Background="{DynamicResource BackgroundTertiaryBrush}" 
             BorderBrush="{DynamicResource BorderDefaultBrush}" 
             BorderThickness="1" 
             CornerRadius="12"
@@ -116,7 +116,7 @@
                     <TextBlock Grid.Column="0" Text="⚡" FontSize="14" VerticalAlignment="Center" Margin="0,0,8,0"/>
                     
                     <TextBlock Grid.Column="1" Text="后台任务" FontWeight="SemiBold" FontSize="13"
-                               VerticalAlignment="Center" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                               VerticalAlignment="Center" Foreground="{DynamicResource ForegroundPrimaryBrush}"/>
                     
                     <!-- 操作按钮组 -->
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Opacity="0.8">
@@ -153,12 +153,12 @@
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="{Binding Description}" 
                                                    FontWeight="Medium" FontSize="12"
-                                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                                   Foreground="{DynamicResource ForegroundPrimaryBrush}"
                                                    MaxWidth="180" TextTrimming="CharacterEllipsis"/>
                                         
                                         <!-- 进度百分比文字 -->
                                         <TextBlock Text="{Binding Progress, StringFormat=' ({0:0}%)'}" 
-                                                   FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
+                                                   FontSize="11" Foreground="{DynamicResource ForegroundSecondaryBrush}"
                                                    VerticalAlignment="Center" Margin="4,0,0,0"/>
                                     </StackPanel>
 
@@ -167,7 +167,7 @@
                                         <Ellipse Width="6" Height="6" Margin="0,0,4,0"
                                                  Fill="{Binding Status, Converter={StaticResource StatusToColor}}"/>
                                         <TextBlock Text="{Binding Status, Converter={StaticResource StatusToText}}" 
-                                                   FontSize="10" Foreground="{DynamicResource TextTertiaryBrush}"/>
+                                                   FontSize="10" Foreground="{DynamicResource ForegroundTertiaryBrush}"/>
                                     </StackPanel>
                                 </Grid>
                                 
@@ -187,7 +187,7 @@
                                     
                                     <TextBlock Text="{Binding CurrentFile}" 
                                                FontSize="11" Opacity="0.6"
-                                               Foreground="{DynamicResource TextSecondaryBrush}" 
+                                               Foreground="{DynamicResource ForegroundSecondaryBrush}" 
                                                TextTrimming="PathEllipsis" 
                                                VerticalAlignment="Center"/>
                                     
@@ -220,3 +220,4 @@
         </Grid>
     </Border>
 </UserControl>
+

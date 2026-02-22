@@ -66,7 +66,7 @@ namespace YiboFile.Controls.Settings
                 Margin = new Thickness(0, 0, 0, 24),
                 TextWrapping = TextWrapping.Wrap
             };
-            infoText.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
+            infoText.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundSecondaryBrush");
             stackPanel.Children.Add(infoText);
 
             // Everything 索引区域 (保持原样，因 EverythingHelper 是静态工具类，暂不完全移入 VM)
@@ -114,7 +114,7 @@ namespace YiboFile.Controls.Settings
                 FontSize = 12,
                 TextWrapping = TextWrapping.Wrap
             };
-            everythingHint.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
+            everythingHint.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundSecondaryBrush");
             everythingStack.Children.Add(everythingHint);
 
             everythingGroup.Content = everythingStack;
@@ -331,7 +331,7 @@ namespace YiboFile.Controls.Settings
                 FontSize = 12,
                 TextWrapping = TextWrapping.Wrap
             };
-            rebuildHint.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
+            rebuildHint.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundSecondaryBrush");
             actionStack.Children.Add(rebuildHint);
 
             actionGroup.Content = actionStack;
@@ -482,5 +482,6 @@ namespace YiboFile.Controls.Settings
         }
     }
 }
+
 
 

@@ -7,7 +7,7 @@
              xmlns:helpers="clr-namespace:YiboFile.Helpers"
              mc:Ignorable="d" 
              d:DesignHeight="600" d:DesignWidth="60"
-             Background="{DynamicResource PanelBackgroundBrush}"
+             Background="{DynamicResource BackgroundSecondaryBrush}"
              BorderBrush="{DynamicResource BorderSubtleBrush}"
              BorderThickness="0,0,1,0">
 
@@ -23,7 +23,7 @@
             <Setter Property="Padding" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource ForegroundSecondaryBrush}"/>
             <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -38,10 +38,10 @@
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter Property="Background" Value="{DynamicResource ButtonHoverBackgroundBrush}"/>
-                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource ForegroundPrimaryBrush}"/>
                             </Trigger>
                             <Trigger Property="Tag" Value="Active">
-                                <Setter Property="Background" Value="{DynamicResource AccountBackgroundBrush}"/>
+                                <Setter Property="Background" Value="{DynamicResource BackgroundSecondaryBrush}"/>
                                 <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
@@ -169,3 +169,4 @@
         </StackPanel>
     </Grid>
 </UserControl>
+

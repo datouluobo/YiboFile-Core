@@ -46,14 +46,14 @@ namespace YiboFile.Controls.Settings
                 FontSize = 28,
                 FontWeight = FontWeights.Bold
             });
-            ((TextBlock)titlePanel.Children[0]).SetResourceReference(TextBlock.ForegroundProperty, "TextPrimaryBrush");
+            ((TextBlock)titlePanel.Children[0]).SetResourceReference(TextBlock.ForegroundProperty, "ForegroundPrimaryBrush");
             titlePanel.Children.Add(new TextBlock
             {
                 Text = "查看和自定义应用程序快捷键",
                 FontSize = 14,
                 Margin = new Thickness(0, 8, 0, 0)
             });
-            ((TextBlock)titlePanel.Children[1]).SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
+            ((TextBlock)titlePanel.Children[1]).SetResourceReference(TextBlock.ForegroundProperty, "ForegroundSecondaryBrush");
             Grid.SetRow(titlePanel, 0);
             grid.Children.Add(titlePanel);
 
@@ -92,7 +92,7 @@ namespace YiboFile.Controls.Settings
             factory.SetValue(Border.MarginProperty, new Thickness(15, 6, 15, 6)); // 进一步增大间距
             factory.SetValue(Border.PaddingProperty, new Thickness(12));
             factory.SetValue(Border.CornerRadiusProperty, new CornerRadius(8));
-            factory.SetResourceReference(Border.BackgroundProperty, "SurfaceBrush");
+            factory.SetResourceReference(Border.BackgroundProperty, "BackgroundSecondaryBrush");
             factory.SetValue(Border.BorderThicknessProperty, new Thickness(1));
             factory.SetResourceReference(Border.BorderBrushProperty, "BorderLightBrush");
 
@@ -122,7 +122,7 @@ namespace YiboFile.Controls.Settings
             descText.SetBinding(TextBlock.TextProperty, new Binding("Description"));
             descText.SetValue(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center);
             descText.SetValue(TextBlock.FontSizeProperty, 14.0);
-            descText.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimaryBrush");
+            descText.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundPrimaryBrush");
             descText.SetValue(Grid.ColumnProperty, 0);
             itemGrid.AppendChild(descText);
 
@@ -204,7 +204,7 @@ namespace YiboFile.Controls.Settings
                 FontSize = 12,
                 Margin = new Thickness(0, 15, 0, 0)
             };
-            footer.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
+            footer.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundSecondaryBrush");
             Grid.SetRow(footer, 3);
             grid.Children.Add(footer);
 
@@ -232,7 +232,7 @@ namespace YiboFile.Controls.Settings
                 // 主容器，增加内边距以容纳阴影
                 var mainBorder = new Border
                 {
-                    Background = (Brush)Application.Current.TryFindResource("CardBackgroundBrush"),
+                    Background = (Brush)Application.Current.TryFindResource("BackgroundTertiaryBrush"),
                     CornerRadius = new CornerRadius(12),
                     BorderThickness = new Thickness(1),
                     BorderBrush = (Brush)Application.Current.TryFindResource("BorderBrush"),
@@ -261,7 +261,7 @@ namespace YiboFile.Controls.Settings
                     FontWeight = FontWeights.Bold,
                     Margin = new Thickness(0, 0, 0, 15)
                 };
-                headerText.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimaryBrush");
+                headerText.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundPrimaryBrush");
                 Grid.SetRow(headerText, 0);
                 grid.Children.Add(headerText);
 
@@ -271,7 +271,7 @@ namespace YiboFile.Controls.Settings
                     FontSize = 13,
                     Margin = new Thickness(0, 0, 0, 20) // 增加底部边距
                 };
-                descText.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
+                descText.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundSecondaryBrush");
                 Grid.SetRow(descText, 1);
                 grid.Children.Add(descText);
 
@@ -281,7 +281,7 @@ namespace YiboFile.Controls.Settings
                     BorderThickness = new Thickness(2), // 增加到 2 像素以保证各边一致且醒目
                     CornerRadius = new CornerRadius(8),
                     Padding = new Thickness(15),
-                    Background = (Brush)Application.Current.TryFindResource("AppBackgroundBrush"),
+                    Background = (Brush)Application.Current.TryFindResource("BackgroundPrimaryBrush"),
                     BorderBrush = (Brush)Application.Current.TryFindResource("AccentDefaultBrush"),
                     SnapsToDevicePixels = true,
                     UseLayoutRounding = true,
@@ -296,7 +296,7 @@ namespace YiboFile.Controls.Settings
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Center
                 };
-                keyDisplayText.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimaryBrush");
+                keyDisplayText.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundPrimaryBrush");
                 displayBorder.Child = keyDisplayText;
                 Grid.SetRow(displayBorder, 2);
                 grid.Children.Add(displayBorder);
@@ -407,3 +407,4 @@ namespace YiboFile.Controls.Settings
         }
     }
 }
+

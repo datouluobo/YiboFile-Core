@@ -64,7 +64,7 @@ namespace YiboFile.Controls
 
             _tocTree.ItemTemplate = template;
             _tocTree.SelectedItemChanged += OnTocSelectionChanged;
-            _tocTree.SetResourceReference(TreeView.ForegroundProperty, "TextPrimaryBrush");
+            _tocTree.SetResourceReference(TreeView.ForegroundProperty, "ForegroundPrimaryBrush");
 
             // Splitter
             _splitter = new GridSplitter
@@ -136,3 +136,4 @@ namespace YiboFile.Controls
         }
     }
 }
+

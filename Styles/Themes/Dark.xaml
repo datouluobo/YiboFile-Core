@@ -23,76 +23,76 @@
     
     <!-- 1. 背景类 (9个) -->
     <Color x:Key="BackgroundPrimaryBrush.Color">#202020</Color>
-    <SolidColorBrush x:Key="BackgroundPrimaryBrush" Color="{DynamicResource BackgroundPrimaryBrush.Color}"/>
+    <SolidColorBrush x:Key="BackgroundPrimaryBrush" Color="#202020"/>
     
     <Color x:Key="BackgroundSecondaryBrush.Color">#2D2D2D</Color>
-    <SolidColorBrush x:Key="BackgroundSecondaryBrush" Color="{DynamicResource BackgroundSecondaryBrush.Color}"/>
+    <SolidColorBrush x:Key="BackgroundSecondaryBrush" Color="#2D2D2D"/>
     
     <Color x:Key="BackgroundTertiaryBrush.Color">#333333</Color>
-    <SolidColorBrush x:Key="BackgroundTertiaryBrush" Color="{DynamicResource BackgroundTertiaryBrush.Color}"/>
+    <SolidColorBrush x:Key="BackgroundTertiaryBrush" Color="#333333"/>
     
     <Color x:Key="BackgroundElevatedBrush.Color">#2D2D2D</Color>
-    <SolidColorBrush x:Key="BackgroundElevatedBrush" Color="{DynamicResource BackgroundElevatedBrush.Color}"/>
+    <SolidColorBrush x:Key="BackgroundElevatedBrush" Color="#2D2D2D"/>
     
     <Color x:Key="TitleBarBackgroundBrush.Color">#2D2D2D</Color>
-    <SolidColorBrush x:Key="TitleBarBackgroundBrush" Color="{DynamicResource TitleBarBackgroundBrush.Color}"/>
+    <SolidColorBrush x:Key="TitleBarBackgroundBrush" Color="#2D2D2D"/>
     
     <Color x:Key="NavigationRegionBrush.Color">#181818</Color>
-    <SolidColorBrush x:Key="NavigationRegionBrush" Color="{DynamicResource NavigationRegionBrush.Color}"/>
+    <SolidColorBrush x:Key="NavigationRegionBrush" Color="#181818"/>
     
     <Color x:Key="SidebarBackgroundBrush.Color">#1A1A1A</Color>
-    <SolidColorBrush x:Key="SidebarBackgroundBrush" Color="{DynamicResource SidebarBackgroundBrush.Color}"/>
+    <SolidColorBrush x:Key="SidebarBackgroundBrush" Color="#1A1A1A"/>
     
     <Color x:Key="PaneFocusedBackgroundBrush.Color">#202020</Color>
-    <SolidColorBrush x:Key="PaneFocusedBackgroundBrush" Color="{DynamicResource PaneFocusedBackgroundBrush.Color}"/>
+    <SolidColorBrush x:Key="PaneFocusedBackgroundBrush" Color="#202020"/>
     
     <Color x:Key="PaneUnfocusedBackgroundBrush.Color">#1C1C1C</Color>
-    <SolidColorBrush x:Key="PaneUnfocusedBackgroundBrush" Color="{DynamicResource PaneUnfocusedBackgroundBrush.Color}"/>
+    <SolidColorBrush x:Key="PaneUnfocusedBackgroundBrush" Color="#1C1C1C"/>
     
     <!-- 2. 文本类 (6个) -->
     <Color x:Key="ForegroundPrimaryBrush.Color">#FFFFFF</Color>
-    <SolidColorBrush x:Key="ForegroundPrimaryBrush" Color="{DynamicResource ForegroundPrimaryBrush.Color}"/>
+    <SolidColorBrush x:Key="ForegroundPrimaryBrush" Color="#FFFFFF"/>
     
     <Color x:Key="ForegroundSecondaryBrush.Color">#B0B0B0</Color>
-    <SolidColorBrush x:Key="ForegroundSecondaryBrush" Color="{DynamicResource ForegroundSecondaryBrush.Color}"/>
+    <SolidColorBrush x:Key="ForegroundSecondaryBrush" Color="#B0B0B0"/>
     
     <Color x:Key="ForegroundTertiaryBrush.Color">#888888</Color>
-    <SolidColorBrush x:Key="ForegroundTertiaryBrush" Color="{DynamicResource ForegroundTertiaryBrush.Color}"/>
+    <SolidColorBrush x:Key="ForegroundTertiaryBrush" Color="#888888"/>
     
     <Color x:Key="ForegroundDisabledBrush.Color">#6C757D</Color>
-    <SolidColorBrush x:Key="ForegroundDisabledBrush" Color="{DynamicResource ForegroundDisabledBrush.Color}"/>
+    <SolidColorBrush x:Key="ForegroundDisabledBrush" Color="#6C757D"/>
     
-    <Color x:Key="ForegroundOnAccentBrush.Color">#000000</Color>
-    <SolidColorBrush x:Key="ForegroundOnAccentBrush" Color="{DynamicResource ForegroundOnAccentBrush.Color}"/>
+    <Color x:Key="ForegroundOnAccentBrush.Color">#FFFFFF</Color>
+    <SolidColorBrush x:Key="ForegroundOnAccentBrush" Color="#FFFFFF"/>
     
     <!-- Legacy Key -->
     <Color x:Key="ForegroundPrimaryColor">#FFFFFF</Color>
     
     <!-- 3. 边框类 (3个) -->
     <Color x:Key="BorderDefaultBrush.Color">#404040</Color>
-    <SolidColorBrush x:Key="BorderDefaultBrush" Color="{DynamicResource BorderDefaultBrush.Color}"/>
+    <SolidColorBrush x:Key="BorderDefaultBrush" Color="#404040"/>
     
     <Color x:Key="BorderSubtleBrush.Color">#3A3A3A</Color>
-    <SolidColorBrush x:Key="BorderSubtleBrush" Color="{DynamicResource BorderSubtleBrush.Color}"/>
+    <SolidColorBrush x:Key="BorderSubtleBrush" Color="#3A3A3A"/>
     
     <Color x:Key="BorderFocusBrush.Color">#4DA3FF</Color>
-    <SolidColorBrush x:Key="BorderFocusBrush" Color="{DynamicResource BorderFocusBrush.Color}"/>
+    <SolidColorBrush x:Key="BorderFocusBrush" Color="#4DA3FF"/>
     
     <!-- 4. 强调色/交互 (7个) -->
     <Color x:Key="AccentDefaultBrush.Color">#4DA3FF</Color>
-    <SolidColorBrush x:Key="AccentDefaultBrush" Color="{DynamicResource AccentDefaultBrush.Color}"/>
+    <SolidColorBrush x:Key="AccentDefaultBrush" Color="#4DA3FF"/>
     
     <Color x:Key="AccentHoverBrush.Color">#80BFFF</Color>
-    <SolidColorBrush x:Key="AccentHoverBrush" Color="{DynamicResource AccentHoverBrush.Color}"/>
+    <SolidColorBrush x:Key="AccentHoverBrush" Color="#80BFFF"/>
     
     <Color x:Key="AccentPressedBrush.Color">#2196F3</Color>
-    <SolidColorBrush x:Key="AccentPressedBrush" Color="{DynamicResource AccentPressedBrush.Color}"/>
+    <SolidColorBrush x:Key="AccentPressedBrush" Color="#2196F3"/>
     
     <Color x:Key="AccentSelectedBrush.Color">#64B5F6</Color>
-    <SolidColorBrush x:Key="AccentSelectedBrush" Color="{DynamicResource AccentSelectedBrush.Color}"/>
+    <SolidColorBrush x:Key="AccentSelectedBrush" Color="#64B5F6"/>
     
     <Color x:Key="AccentLightBrush.Color">#1E3A5F</Color>
-    <SolidColorBrush x:Key="AccentLightBrush" Color="{DynamicResource AccentLightBrush.Color}"/>
+    <SolidColorBrush x:Key="AccentLightBrush" Color="#1E3A5F"/>
     
     <!-- Legacy Keys -->
     <Color x:Key="AccentColor">#4DA3FF</Color>
@@ -100,45 +100,46 @@
     
     <!-- 5. 控件状态 (4个) -->
     <Color x:Key="ControlDefaultBrush.Color">#3A3A3A</Color>
-    <SolidColorBrush x:Key="ControlDefaultBrush" Color="{DynamicResource ControlDefaultBrush.Color}"/>
+    <SolidColorBrush x:Key="ControlDefaultBrush" Color="#3A3A3A"/>
     
     <Color x:Key="ControlHoverBrush.Color">#4A4A4A</Color>
-    <SolidColorBrush x:Key="ControlHoverBrush" Color="{DynamicResource ControlHoverBrush.Color}"/>
+    <SolidColorBrush x:Key="ControlHoverBrush" Color="#4A4A4A"/>
     
     <Color x:Key="ControlPressedBrush.Color">#555555</Color>
-    <SolidColorBrush x:Key="ControlPressedBrush" Color="{DynamicResource ControlPressedBrush.Color}"/>
+    <SolidColorBrush x:Key="ControlPressedBrush" Color="#555555"/>
     
     <Color x:Key="ControlDisabledBrush.Color">#2A2A2A</Color>
-    <SolidColorBrush x:Key="ControlDisabledBrush" Color="{DynamicResource ControlDisabledBrush.Color}"/>
+    <SolidColorBrush x:Key="ControlDisabledBrush" Color="#2A2A2A"/>
     
     <!-- 6. 状态色 (4个) -->
     <Color x:Key="StatusSuccessBrush.Color">#4CAF50</Color>
-    <SolidColorBrush x:Key="StatusSuccessBrush" Color="{DynamicResource StatusSuccessBrush.Color}"/>
+    <SolidColorBrush x:Key="StatusSuccessBrush" Color="#4CAF50"/>
     
     <Color x:Key="StatusWarningBrush.Color">#FFC107</Color>
-    <SolidColorBrush x:Key="StatusWarningBrush" Color="{DynamicResource StatusWarningBrush.Color}"/>
+    <SolidColorBrush x:Key="StatusWarningBrush" Color="#FFC107"/>
     
     <Color x:Key="StatusErrorBrush.Color">#E57373</Color>
-    <SolidColorBrush x:Key="StatusErrorBrush" Color="{DynamicResource StatusErrorBrush.Color}"/>
+    <SolidColorBrush x:Key="StatusErrorBrush" Color="#E57373"/>
     
     <Color x:Key="StatusInfoBrush.Color">#64B5F6</Color>
-    <SolidColorBrush x:Key="StatusInfoBrush" Color="{DynamicResource StatusInfoBrush.Color}"/>
+    <SolidColorBrush x:Key="StatusInfoBrush" Color="#64B5F6"/>
     
     <!-- 7. 特殊用途 (4个) -->
     <Color x:Key="TransparentBrush.Color">Transparent</Color>
-    <SolidColorBrush x:Key="TransparentBrush" Color="{DynamicResource TransparentBrush.Color}"/>
+    <SolidColorBrush x:Key="TransparentBrush" Color="Transparent"/>
     
     <Color x:Key="OverlayBrush.Color">#66FFFFFF</Color>
-    <SolidColorBrush x:Key="OverlayBrush" Color="{DynamicResource OverlayBrush.Color}"/>
+    <SolidColorBrush x:Key="OverlayBrush" Color="#66FFFFFF"/>
     
     <Color x:Key="OverlayLightBrush.Color">#33FFFFFF</Color>
-    <SolidColorBrush x:Key="OverlayLightBrush" Color="{DynamicResource OverlayLightBrush.Color}"/>
+    <SolidColorBrush x:Key="OverlayLightBrush" Color="#33FFFFFF"/>
     
     <Color x:Key="DividerBrush.Color">#404040</Color>
-    <SolidColorBrush x:Key="DividerBrush" Color="{DynamicResource DividerBrush.Color}"/>
+    <SolidColorBrush x:Key="DividerBrush" Color="#404040"/>
     
     <Color x:Key="ShadowBrush.Color">#66000000</Color>
-    <SolidColorBrush x:Key="ShadowBrush" Color="{DynamicResource ShadowBrush.Color}"/>
+    <SolidColorBrush x:Key="ShadowBrush" Color="#66000000"/>
     
 
 </ResourceDictionary>
+

@@ -54,7 +54,7 @@ namespace YiboFile.Controls.Settings
 
         private void InitializeUI()
         {
-            this.SetResourceReference(Panel.BackgroundProperty, "PanelBackgroundBrush");
+            this.SetResourceReference(Panel.BackgroundProperty, "BackgroundSecondaryBrush");
 
             // Main Layout
             var mainGrid = new Grid();
@@ -69,7 +69,7 @@ namespace YiboFile.Controls.Settings
                 FontWeight = FontWeights.SemiBold,
                 Margin = new Thickness(0, 0, 0, 10)
             };
-            headerBlock.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimaryBrush");
+            headerBlock.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundPrimaryBrush");
             mainGrid.Children.Add(headerBlock);
 
             // Master-Detail Grid
@@ -96,7 +96,7 @@ namespace YiboFile.Controls.Settings
             };
             var groupList = _groupList;
             groupList.SetResourceReference(Control.BorderBrushProperty, "BorderBrush");
-            groupList.SetResourceReference(Panel.BackgroundProperty, "InputBackgroundBrush");
+            groupList.SetResourceReference(Panel.BackgroundProperty, "BackgroundPrimaryBrush");
             ScrollViewer.SetHorizontalScrollBarVisibility(groupList, ScrollBarVisibility.Disabled);
             groupList.SetBinding(ListBox.ItemsSourceProperty, new Binding("TagGroups"));
             groupList.ItemTemplate = CreateGroupTemplate();
@@ -122,9 +122,9 @@ namespace YiboFile.Controls.Settings
             };
             var newGroupTb = _newGroupTextBox;
             addGroupPanel.SetResourceReference(Border.BackgroundProperty, "BackgroundSecondaryBrush");
-            newGroupTb.SetResourceReference(Control.BorderBrushProperty, "InputBorderBrush");
-            newGroupTb.SetResourceReference(Control.BackgroundProperty, "InputBackgroundBrush");
-            newGroupTb.SetResourceReference(Control.ForegroundProperty, "TextPrimaryBrush");
+            newGroupTb.SetResourceReference(Control.BorderBrushProperty, "BorderDefaultBrush");
+            newGroupTb.SetResourceReference(Control.BackgroundProperty, "BackgroundPrimaryBrush");
+            newGroupTb.SetResourceReference(Control.ForegroundProperty, "ForegroundPrimaryBrush");
             newGroupTb.SetBinding(TextBox.TextProperty, new Binding("NewGroupName") { UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged });
 
             _newGroupWatermark = new TextBlock
@@ -136,7 +136,7 @@ namespace YiboFile.Controls.Settings
                 Visibility = Visibility.Visible
             };
             var newGroupWatermark = _newGroupWatermark;
-            newGroupWatermark.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
+            newGroupWatermark.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundSecondaryBrush");
             newGroupTb.TextChanged += (s, e) => UpdateGroupWatermarkVisibility();
             newGroupTb.GotFocus += (s, e) => UpdateGroupWatermarkVisibility();
             newGroupTb.LostFocus += (s, e) => UpdateGroupWatermarkVisibility();
@@ -153,7 +153,7 @@ namespace YiboFile.Controls.Settings
                 Cursor = Cursors.Hand
             };
             addGroupBtn.SetResourceReference(Control.BackgroundProperty, "ButtonBackgroundBrush");
-            addGroupBtn.SetResourceReference(Control.ForegroundProperty, "TextPrimaryBrush");
+            addGroupBtn.SetResourceReference(Control.ForegroundProperty, "ForegroundPrimaryBrush");
             addGroupBtn.SetBinding(Button.CommandProperty, new Binding("AddTagGroupCommand"));
 
             addGroupStack.Children.Add(newGroupGrid);
@@ -281,7 +281,7 @@ namespace YiboFile.Controls.Settings
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center
             };
-            emptyText.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
+            emptyText.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundSecondaryBrush");
             var emptyVisibility = new Binding("SelectedItem") { Source = groupList, Converter = new NullToVisibilityConverter { Invert = true } };
             emptyText.SetBinding(UIElement.VisibilityProperty, emptyVisibility);
             Grid.SetColumn(emptyText, 1);
@@ -302,7 +302,7 @@ namespace YiboFile.Controls.Settings
             <ColumnDefinition Width=""*""/>
         </Grid.ColumnDefinitions>
         <Border Width=""12"" Height=""12"" CornerRadius=""6"" Background=""{Binding ColorBrush}"" Margin=""0,0,10,0"" VerticalAlignment=""Center""/>
-        <TextBlock Grid.Column=""1"" Text=""{Binding Name}"" FontSize=""14"" VerticalAlignment=""Center"" Foreground=""{DynamicResource TextPrimaryBrush}""/>
+        <TextBlock Grid.Column=""1"" Text=""{Binding Name}"" FontSize=""14"" VerticalAlignment=""Center"" Foreground=""{DynamicResource ForegroundPrimaryBrush}""/>
     </Grid>
 </DataTemplate>";
             return (DataTemplate)System.Windows.Markup.XamlReader.Parse(xaml);
@@ -469,3 +469,4 @@ namespace YiboFile.Controls.Settings
         public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture) => throw new NotImplementedException();
     }
 }
+

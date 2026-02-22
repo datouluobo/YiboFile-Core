@@ -30,7 +30,7 @@
         <Border Grid.Row="0" Height="50" Background="Transparent" IsHitTestVisible="False"/>
         
         <!-- Row 1: Preview Area -->
-        <Border Grid.Row="1" Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1">
+        <Border Grid.Row="1" Background="{DynamicResource BackgroundPrimaryBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1">
             <Grid Name="PreviewGrid" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ClipToBounds="True">
                 <Grid.Resources>
                     
@@ -39,7 +39,7 @@
                         <Setter Property="Margin" Value="2"/>
                         <Setter Property="Background" Value="Transparent"/>
                         <Setter Property="BorderBrush" Value="{DynamicResource ButtonBorderBrush}"/>
-                        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                        <Setter Property="Foreground" Value="{DynamicResource ForegroundPrimaryBrush}"/>
                         <Setter Property="BorderThickness" Value="1"/>
                         <Setter Property="FontSize" Value="12"/>
                         <Setter Property="HorizontalContentAlignment" Value="Center"/>
@@ -84,7 +84,7 @@
                             </Grid.RowDefinitions>
 
                             <!-- Top Toolbar -->
-                            <Border Grid.Row="0" Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1" Padding="5">
+                            <Border Grid.Row="0" Background="{DynamicResource BackgroundPrimaryBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1" Padding="5">
                                 <Grid>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
                                         <TextBlock Text="{Binding Dimensions}" Foreground="{DynamicResource ForegroundSecondaryBrush}" VerticalAlignment="Center" Margin="5,0" FontSize="12"/>
@@ -148,7 +148,7 @@
                             </Grid.RowDefinitions>
                             
                             <!-- Toolbar -->
-                            <Border Grid.Row="0" Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1" Padding="5">
+                            <Border Grid.Row="0" Background="{DynamicResource BackgroundPrimaryBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1" Padding="5">
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                     <ToggleButton Content="📄 预览/源码" IsChecked="{Binding IsSourceView}" Style="{StaticResource ToolbarToggleButtonStyle}" Margin="0,0,5,0" Height="34" Padding="10,0" FontSize="12" VerticalContentAlignment="Center"/>
                                     <ToggleButton Content="自动换行" IsChecked="{Binding IsWordWrap}" Style="{StaticResource ToolbarToggleButtonStyle}" Margin="0,0,5,0" Height="34" Padding="10,0" Visibility="{Binding IsSourceView, Converter={StaticResource BooleanToVisibilityConverter}}" FontSize="12" VerticalContentAlignment="Center"/>
@@ -169,7 +169,7 @@
                             </Grid.RowDefinitions>
                             
                             <!-- Toolbar using standard controls to match TextPreviewToolbar features -->
-                            <Border Grid.Row="0" Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1" Padding="5">
+                            <Border Grid.Row="0" Background="{DynamicResource BackgroundPrimaryBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1" Padding="5">
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                     <TextBlock Text="{Binding Encoding.EncodingName}" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="12"/>
                                     <ToggleButton Content="自动换行" IsChecked="{Binding IsWordWrap}" Style="{StaticResource ToolbarToggleButtonStyle}" Margin="0,0,5,0" Height="34" Padding="10,0" FontSize="12" VerticalContentAlignment="Center"/>
@@ -209,7 +209,7 @@
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
 
-                            <Border Grid.Row="0" Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1" Padding="5">
+                            <Border Grid.Row="0" Background="{DynamicResource BackgroundPrimaryBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1" Padding="5">
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                     <ToggleButton Content="目录" IsChecked="{Binding IsTocVisible}" Style="{StaticResource ToolbarToggleButtonStyle}" Margin="0,0,5,0" Height="34" Padding="10,0" FontSize="12" VerticalContentAlignment="Center"/>
                                     <Button Content="打开" Command="{Binding OpenExternalCommand}" Height="34" MinWidth="60" Padding="10,0" FontSize="12" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
@@ -228,7 +228,7 @@
                             </Grid.RowDefinitions>
                             
                             <!-- Toolbar -->
-                            <Border Grid.Row="0" Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1" Padding="5">
+                            <Border Grid.Row="0" Background="{DynamicResource BackgroundPrimaryBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1" Padding="5">
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                     <Button Content="🔄 转换" Command="{Binding ConvertCommand}" Visibility="{Binding NeedsConversion, Converter={StaticResource BooleanToVisibilityConverter}}" IsEnabled="{Binding IsConverting, Converter={StaticResource InverseBooleanConverter}}" Margin="0,0,5,0" Height="34" Padding="10,0" FontSize="12" VerticalContentAlignment="Center"/>
                                     <Button Content="刷新" Command="{Binding ReloadCommand}" Margin="0,0,5,0" Height="34" Padding="10,0" FontSize="12" VerticalContentAlignment="Center"/>
@@ -297,7 +297,7 @@
                     <DataTemplate DataType="{x:Type previews:DocumentPreviewViewModel}">
                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                             <TextBlock Text="📄" FontSize="64" HorizontalAlignment="Center" Margin="0,0,0,20"/>
-                            <TextBlock Text="{Binding FileInfo}" TextAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                            <TextBlock Text="{Binding FileInfo}" TextAlignment="Center" Foreground="{DynamicResource ForegroundSecondaryBrush}"/>
                             <Button Content="使用默认程序打开" Margin="0,20,0,0" Padding="15,5"
                                     Command="{Binding OpenExternalCommand}"
                                     Style="{DynamicResource PrimaryButtonStyle}"/>
@@ -311,7 +311,7 @@
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
                             <!-- Simple Toolbar for PDF -->
-                            <Border Grid.Row="0" Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1" Padding="5">
+                            <Border Grid.Row="0" Background="{DynamicResource BackgroundPrimaryBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1" Padding="5">
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                     <Button Content="打开" Command="{Binding OpenExternalCommand}" Height="34" MinWidth="60" Padding="10,0" FontSize="12" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
                                 </StackPanel>
@@ -327,7 +327,7 @@
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
                             <!-- Toolbar -->
-                            <Border Grid.Row="0" Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1" Padding="5">
+                            <Border Grid.Row="0" Background="{DynamicResource BackgroundPrimaryBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1" Padding="5">
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                     <ToggleButton Content="📄 源码" IsChecked="{Binding IsSourceView}" Style="{StaticResource ToolbarToggleButtonStyle}" Margin="0,0,5,0" Height="34" Padding="10,0" FontSize="12" VerticalContentAlignment="Center"/>
                                     <ToggleButton Content="编辑" IsChecked="{Binding IsEditMode}" Style="{StaticResource ToolbarToggleButtonStyle}" Margin="0,0,5,0" Height="34" Padding="10,0" FontSize="12" VerticalContentAlignment="Center"/>
@@ -348,7 +348,7 @@
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
                              <!-- Toolbar -->
-                            <Border Grid.Row="0" Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1" Padding="5">
+                            <Border Grid.Row="0" Background="{DynamicResource BackgroundPrimaryBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1" Padding="5">
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                      <Button Content="打开" Command="{Binding OpenExternalCommand}" Height="34" MinWidth="60" Padding="10,0" FontSize="12" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
                                 </StackPanel>
@@ -364,7 +364,7 @@
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
                              <!-- Toolbar -->
-                            <Border Grid.Row="0" Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1" Padding="5">
+                            <Border Grid.Row="0" Background="{DynamicResource BackgroundPrimaryBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1" Padding="5">
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                      <Button Content="{Binding ConvertStatusText}" Command="{Binding ConvertCommand}" Visibility="{Binding IsDwg, Converter={StaticResource BooleanToVisibilityConverter}}" IsEnabled="{Binding IsConverting, Converter={StaticResource InverseBooleanConverter}}" Margin="0,0,5,0" Height="34" Padding="10,0" FontSize="12" VerticalContentAlignment="Center"/>
                                      <Button Content="刷新" Command="{Binding RefreshCommand}" Margin="0,0,5,0" Height="34" Padding="10,0" FontSize="12" VerticalContentAlignment="Center"/>
@@ -382,7 +382,7 @@
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
                              <!-- Toolbar -->
-                            <Border Grid.Row="0" Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1" Padding="5">
+                            <Border Grid.Row="0" Background="{DynamicResource BackgroundPrimaryBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1" Padding="5">
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                      <Button Content="刷新" Command="{Binding ReloadCommand}" Margin="0,0,5,0" Height="34" Padding="10,0" FontSize="12" VerticalContentAlignment="Center"/>
                                      <Button Content="打开" Command="{Binding OpenExternalCommand}" Height="34" MinWidth="60" Padding="10,0" FontSize="12" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
@@ -424,7 +424,7 @@
         <Border Grid.Row="2" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,1,0,0" VerticalAlignment="Center"/>
 
         <!-- 行3：备注区 -->
-        <Border Grid.Row="3" Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,0">
+        <Border Grid.Row="3" Background="{DynamicResource BackgroundPrimaryBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,0">
             <TextBox Name="NotesTextBox" Padding="8,4,8,4" 
                      AcceptsReturn="True" 
                      TextWrapping="Wrap"
@@ -432,7 +432,8 @@
                      HorizontalAlignment="Stretch"
                      VerticalAlignment="Stretch"
                      Text="{Binding CurrentNotes, UpdateSourceTrigger=PropertyChanged}"
-                     Background="{DynamicResource AppBackgroundBrush}" BorderBrush="Transparent" BorderThickness="0"/>
+                     Background="{DynamicResource BackgroundPrimaryBrush}" BorderBrush="Transparent" BorderThickness="0"/>
         </Border>
     </Grid>
 </UserControl>
+

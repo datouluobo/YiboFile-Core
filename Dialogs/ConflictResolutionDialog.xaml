@@ -7,7 +7,7 @@
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         WindowStyle="ToolWindow"
-        Background="{DynamicResource AppBackgroundBrush}">
+        Background="{DynamicResource BackgroundPrimaryBrush}">
     <Window.Resources>
         <Style x:Key="ConflictButtonStyle" TargetType="Button">
             <Setter Property="Cursor" Value="Hand"/>
@@ -83,7 +83,7 @@
             
             <!-- 单个文件操作 -->
             <StackPanel Grid.Column="0">
-                <TextBlock Text="仅当前文件" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"/>
+                <TextBlock Text="仅当前文件" FontSize="12" Foreground="{DynamicResource ForegroundSecondaryBrush}" Margin="0,0,0,8"/>
                 <Button Content="📋 覆盖" Tag="Overwrite" Click="DirectButton_Click"
                         Style="{StaticResource ConflictButtonStyle}"
                         Background="{DynamicResource ControlDefaultBrush}"
@@ -101,7 +101,7 @@
 
             <!-- 所有文件操作 -->
             <StackPanel Grid.Column="2" x:Name="AllFilesPanel" Visibility="Visible">
-                <TextBlock Text="所有冲突文件" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"/>
+                <TextBlock Text="所有冲突文件" FontSize="12" Foreground="{DynamicResource ForegroundSecondaryBrush}" Margin="0,0,0,8"/>
                 <Button Content="📋 覆盖全部" Tag="OverwriteAll" Click="DirectButton_Click"
                         Style="{StaticResource ConflictButtonStyle}"
                         Background="{DynamicResource ControlDefaultBrush}"
@@ -129,4 +129,5 @@
         </StackPanel>
     </Grid>
 </Window>
+
 

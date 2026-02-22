@@ -173,7 +173,7 @@
         </ScrollViewer>
 
         <!-- Footer: Add Group -->
-        <Border Grid.Row="2" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource BorderBrush}" Background="{DynamicResource WindowBackgroundBrush}" Padding="15">
+        <Border Grid.Row="2" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource BorderBrush}" Background="{DynamicResource BackgroundElevatedBrush}" Padding="15">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -190,3 +190,4 @@
         </Border>
     </Grid>
 </Window>
+

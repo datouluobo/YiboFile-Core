@@ -14,7 +14,7 @@
         AllowsTransparency="False"
         ResizeMode="CanResize"
         UseLayoutRounding="True"
-        Background="{DynamicResource AppBackgroundBrush}">
+        Background="{DynamicResource BackgroundPrimaryBrush}">
 
 
     <Window.InputBindings>
@@ -48,7 +48,7 @@
     <!-- 主容器：包含标题栏和窗口内容 -->
     <Grid Name="MainContainer">
         <!-- 窗口内容容器 -->
-        <Grid Name="RootGrid" Background="{DynamicResource AppBackgroundBrush}">
+        <Grid Name="RootGrid" Background="{DynamicResource BackgroundPrimaryBrush}">
             <Grid.Style>
                 <Style TargetType="Grid">
                     <Setter Property="Margin" Value="4"/>
@@ -253,7 +253,7 @@
             <Grid Name="SettingsOverlay"
               Grid.Row="1" Grid.RowSpan="3"
               Grid.Column="0" Grid.ColumnSpan="6"
-              Background="{DynamicResource AppBackgroundBrush}"
+              Background="{DynamicResource BackgroundPrimaryBrush}"
               Panel.ZIndex="5000"
               Visibility="Collapsed"
               MouseDown="SettingsOverlay_MouseDown">
@@ -264,7 +264,7 @@
             <Grid Name="AboutOverlay"
               Grid.Row="1" Grid.RowSpan="3"
               Grid.Column="0" Grid.ColumnSpan="6"
-              Background="{DynamicResource AppBackgroundBrush}"
+              Background="{DynamicResource BackgroundPrimaryBrush}"
               Panel.ZIndex="5000"
               Visibility="Collapsed">
                 <controls:AboutPanelControl x:Name="AboutPanel"/>
@@ -322,7 +322,7 @@
                                 <Setter Property="Background" Value="Transparent"/>
                                 <Setter Property="BorderBrush" Value="Transparent"/>
                                 <Setter Property="BorderThickness" Value="0"/>
-                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource ForegroundPrimaryBrush}"/>
                                 <Setter Property="HorizontalContentAlignment" Value="Center"/>
                                 <Setter Property="VerticalContentAlignment" Value="Center"/>
                                 <Style.Triggers>
@@ -348,7 +348,7 @@
                                 <Setter Property="Background" Value="Transparent"/>
                                 <Setter Property="BorderBrush" Value="Transparent"/>
                                 <Setter Property="BorderThickness" Value="0"/>
-                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource ForegroundPrimaryBrush}"/>
                                 <Setter Property="HorizontalContentAlignment" Value="Center"/>
                                 <Setter Property="VerticalContentAlignment" Value="Center"/>
                                 <Style.Triggers>
@@ -376,7 +376,7 @@
                                            Text="{DynamicResource Icon_Window_Close}" 
                                            FontSize="{DynamicResource WindowControlIconSize}" 
                                            FontFamily="{DynamicResource IconFontFamily}"
-                                           Foreground="{DynamicResource TextPrimaryBrush}"
+                                           Foreground="{DynamicResource ForegroundPrimaryBrush}"
                                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </Border>
                                 <ControlTemplate.Triggers>
@@ -395,3 +395,4 @@
         </Grid>
     </Grid>
 </Window>
+

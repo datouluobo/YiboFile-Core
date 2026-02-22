@@ -74,7 +74,7 @@ namespace YiboFile.Controls.Settings
                 Margin = new Thickness(0, 0, 0, 24),
                 TextWrapping = TextWrapping.Wrap
             };
-            appearanceHint.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
+            appearanceHint.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundSecondaryBrush");
             stackPanel.Children.Add(appearanceHint);
 
             // 窗口设置
@@ -449,7 +449,7 @@ namespace YiboFile.Controls.Settings
                 FontSize = 12,
                 Margin = new Thickness(152, -8, 0, 0)
             };
-            tagBoxWidthHint.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
+            tagBoxWidthHint.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundSecondaryBrush");
             stackPanel.Children.Add(tagBoxWidthHint);
 
             // 路径设置
@@ -469,7 +469,7 @@ namespace YiboFile.Controls.Settings
                 Margin = new Thickness(0, 0, 0, 12),
                 TextWrapping = TextWrapping.Wrap
             };
-            pathHint.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
+            pathHint.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundSecondaryBrush");
             stackPanel.Children.Add(pathHint);
 
             _baseDirectoryTextBox = CreatePathPanelWithButton(stackPanel, "当前目录:", BrowseBaseDirectory_Click);
@@ -716,3 +716,4 @@ namespace YiboFile.Controls.Settings
         }
     }
 }
+

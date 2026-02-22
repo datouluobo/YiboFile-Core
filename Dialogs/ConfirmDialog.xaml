@@ -39,7 +39,7 @@
         </Style>
     </Window.Resources>
 
-    <Border Background="{DynamicResource DialogBackgroundBrush}" 
+    <Border Background="{DynamicResource BackgroundElevatedBrush}" 
             CornerRadius="12" 
             BorderBrush="{DynamicResource BorderBrush}" 
             BorderThickness="1"
@@ -75,7 +75,7 @@
                            x:Name="ConfirmTitle" 
                            FontSize="18"
                            FontWeight="Bold"
-                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           Foreground="{DynamicResource ForegroundPrimaryBrush}"
                            VerticalAlignment="Center"
                            TextWrapping="Wrap"/>
             </Grid>
@@ -84,7 +84,7 @@
             <TextBlock Grid.Row="1" 
                        x:Name="MessageTextBlock" 
                        FontSize="14"
-                       Foreground="{DynamicResource TextSecondaryBrush}"
+                       Foreground="{DynamicResource ForegroundSecondaryBrush}"
                        TextWrapping="Wrap"
                        LineHeight="20"
                        Margin="0,0,0,24"/>
@@ -97,7 +97,7 @@
                         x:Name="CancelButton"
                         Click="Cancel_Click" 
                         Background="{DynamicResource BackgroundTertiaryBrush}"
-                        Foreground="{DynamicResource TextPrimaryBrush}"
+                        Foreground="{DynamicResource ForegroundPrimaryBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="1"
                         Style="{StaticResource LocalButtonStyle}"/>
@@ -106,10 +106,11 @@
                         Content="确定" 
                         Click="Confirm_Click" 
                         Background="{DynamicResource AccentBrush}"
-                        Foreground="{DynamicResource TextInverseBrush}"
+                        Foreground="{DynamicResource ForegroundOnAccentBrush}"
                         BorderThickness="0"
                         Style="{StaticResource LocalButtonStyle}"/>
             </StackPanel>
         </Grid>
     </Border>
 </Window>
+

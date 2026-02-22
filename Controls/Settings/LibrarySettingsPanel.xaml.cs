@@ -28,7 +28,7 @@ namespace YiboFile.Controls.Settings
 
         private void InitializeComponent()
         {
-            this.SetResourceReference(Panel.BackgroundProperty, "PanelBackgroundBrush");
+            this.SetResourceReference(Panel.BackgroundProperty, "BackgroundSecondaryBrush");
 
             var mainGrid = new Grid();
             mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Title
@@ -44,7 +44,7 @@ namespace YiboFile.Controls.Settings
                 FontWeight = FontWeights.SemiBold,
                 Margin = new Thickness(0, 0, 0, 8)
             };
-            titleText.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimaryBrush");
+            titleText.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundPrimaryBrush");
             mainGrid.Children.Add(titleText);
 
             // Description
@@ -55,7 +55,7 @@ namespace YiboFile.Controls.Settings
                 TextWrapping = TextWrapping.Wrap,
                 Margin = new Thickness(0, 0, 0, 15)
             };
-            descText.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
+            descText.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundSecondaryBrush");
             Grid.SetRow(descText, 1);
             mainGrid.Children.Add(descText);
 
@@ -107,7 +107,7 @@ namespace YiboFile.Controls.Settings
             // Item Template
             string itemTemplateXaml = @"
 <DataTemplate xmlns=""http://schemas.microsoft.com/winfx/2006/xaml/presentation"">
-    <Border Margin=""0,0,0,10"" Background=""{DynamicResource CardBackgroundBrush}"" BorderBrush=""{DynamicResource BorderBrush}"" BorderThickness=""1"" CornerRadius=""6"" Padding=""12"">
+    <Border Margin=""0,0,0,10"" Background=""{DynamicResource BackgroundTertiaryBrush}"" BorderBrush=""{DynamicResource BorderBrush}"" BorderThickness=""1"" CornerRadius=""6"" Padding=""12"">
         <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width=""Auto""/> <!-- Icon -->
@@ -122,8 +122,8 @@ namespace YiboFile.Controls.Settings
 
             <!-- Info -->
             <StackPanel Grid.Column=""1"" VerticalAlignment=""Center"">
-                <TextBlock Text=""{Binding Name}"" FontSize=""15"" FontWeight=""SemiBold"" Margin=""0,0,0,4"" Foreground=""{DynamicResource TextPrimaryBrush}""/>
-                <TextBlock Text=""{Binding DisplayPath}"" FontSize=""12"" Foreground=""{DynamicResource TextSecondaryBrush}"" TextTrimming=""CharacterEllipsis"" ToolTip=""{Binding ToolTipText}""/>
+                <TextBlock Text=""{Binding Name}"" FontSize=""15"" FontWeight=""SemiBold"" Margin=""0,0,0,4"" Foreground=""{DynamicResource ForegroundPrimaryBrush}""/>
+                <TextBlock Text=""{Binding DisplayPath}"" FontSize=""12"" Foreground=""{DynamicResource ForegroundSecondaryBrush}"" TextTrimming=""CharacterEllipsis"" ToolTip=""{Binding ToolTipText}""/>
             </StackPanel>
 
             <!-- Actions -->
@@ -262,3 +262,4 @@ namespace YiboFile.Controls.Settings
         }
     }
 }
+

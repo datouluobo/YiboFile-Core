@@ -27,7 +27,7 @@ namespace YiboFile.Controls.Settings
 
         private void InitializeComponent()
         {
-            this.SetResourceReference(Panel.BackgroundProperty, "PanelBackgroundBrush");
+            this.SetResourceReference(Panel.BackgroundProperty, "BackgroundSecondaryBrush");
 
             var mainGrid = new Grid();
             mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Title
@@ -42,7 +42,7 @@ namespace YiboFile.Controls.Settings
                 FontWeight = FontWeights.SemiBold,
                 Margin = new Thickness(0, 0, 0, 8),
             };
-            titleText.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimaryBrush");
+            titleText.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundPrimaryBrush");
             mainGrid.Children.Add(titleText);
 
             // Description
@@ -52,7 +52,7 @@ namespace YiboFile.Controls.Settings
                 FontSize = 13,
                 TextWrapping = TextWrapping.Wrap,
             };
-            descText.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
+            descText.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundSecondaryBrush");
             Grid.SetRow(descText, 1);
             mainGrid.Children.Add(descText);
 
@@ -72,7 +72,7 @@ namespace YiboFile.Controls.Settings
             // Item Template
             string itemTemplateXaml = @"
 <DataTemplate xmlns=""http://schemas.microsoft.com/winfx/2006/xaml/presentation"">
-    <Border Margin=""0,0,0,10"" Background=""{DynamicResource CardBackgroundBrush}"" BorderBrush=""{DynamicResource BorderBrush}"" BorderThickness=""1"" CornerRadius=""6"">
+    <Border Margin=""0,0,0,10"" Background=""{DynamicResource BackgroundTertiaryBrush}"" BorderBrush=""{DynamicResource BorderBrush}"" BorderThickness=""1"" CornerRadius=""6"">
         <Grid Margin=""12,8"">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width=""Auto""/> <!-- Icon placeholder -->
@@ -85,14 +85,14 @@ namespace YiboFile.Controls.Settings
             <Ellipse Grid.Column=""0"" Width=""6"" Height=""6"" Fill=""#CCCCCC"" VerticalAlignment=""Center"" Margin=""0,0,12,0""/>
 
             <!-- Name -->
-            <TextBlock Grid.Column=""1"" Text=""{Binding DisplayName}"" VerticalAlignment=""Center"" FontSize=""14"" FontWeight=""Medium"" Foreground=""{DynamicResource TextPrimaryBrush}""/>
+            <TextBlock Grid.Column=""1"" Text=""{Binding DisplayName}"" VerticalAlignment=""Center"" FontSize=""14"" FontWeight=""Medium"" Foreground=""{DynamicResource ForegroundPrimaryBrush}""/>
 
             <!-- Buttons -->
             <Button Grid.Column=""2"" Content=""▲"" 
                     Command=""{Binding DataContext.MoveSectionUpCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"" 
                     CommandParameter=""{Binding}""
                     Width=""28"" Height=""28"" Margin=""0,0,4,0""
-                    Background=""Transparent"" BorderThickness=""0"" Foreground=""{DynamicResource TextSecondaryBrush}"" Cursor=""Hand"" ToolTip=""上移"">
+                    Background=""Transparent"" BorderThickness=""0"" Foreground=""{DynamicResource ForegroundSecondaryBrush}"" Cursor=""Hand"" ToolTip=""上移"">
                 <Button.Template>
                     <ControlTemplate TargetType=""Button"">
                          <Border Background=""{TemplateBinding Background}"" CornerRadius=""4"">
@@ -115,7 +115,7 @@ namespace YiboFile.Controls.Settings
                     Command=""{Binding DataContext.MoveSectionDownCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"" 
                     CommandParameter=""{Binding}""
                     Width=""28"" Height=""28""
-                    Background=""Transparent"" BorderThickness=""0"" Foreground=""{DynamicResource TextSecondaryBrush}"" Cursor=""Hand"" ToolTip=""下移"">
+                    Background=""Transparent"" BorderThickness=""0"" Foreground=""{DynamicResource ForegroundSecondaryBrush}"" Cursor=""Hand"" ToolTip=""下移"">
                 <Button.Template>
                     <ControlTemplate TargetType=""Button"">
                          <Border Background=""{TemplateBinding Background}"" CornerRadius=""4"">
@@ -170,3 +170,4 @@ namespace YiboFile.Controls.Settings
         }
     }
 }
+
