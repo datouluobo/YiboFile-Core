@@ -1,1 +1,0 @@
-MainWindow.LayoutMode.cs:768:            _messageBus?.Subscribe<LayoutModeChangedMessage>(m =>
