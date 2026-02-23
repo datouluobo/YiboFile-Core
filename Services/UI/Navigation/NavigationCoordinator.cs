@@ -114,17 +114,22 @@ namespace YiboFile.Services.Navigation
             // 只有当目标类型与当前标签页类型完全一致时才复用（同构复用）
             var targetType = request.Target.Type;
             // 兼容性处理：如果 Target 类型是 Path 但路径是 tag:// / search://，则推断其实际类型
-            if (targetType == NavigationTargetType.Path)
+            if (targetType == NavigationTargetType.Path && path != null)
             {
-                if (path != null)
-                {
-                    if (path.StartsWith("lib://")) targetType = NavigationTargetType.Library;
-                    else if (path.StartsWith("tag://")) targetType = NavigationTargetType.Tag;
-                    else if (path.StartsWith("search://") || path.StartsWith("content://")) targetType = NavigationTargetType.Search;
-                }
+                if (path.StartsWith("lib://")) targetType = NavigationTargetType.Library;
+                else if (path.StartsWith("tag://")) targetType = NavigationTargetType.Tag;
+                else if (path.StartsWith("search://") || path.StartsWith("content://")) targetType = NavigationTargetType.Search;
             }
 
-            if (!request.ForceNewTab && tabService.ActiveTab != null && (int)tabService.ActiveTab.Type == (int)targetType)
+            string targetContentTypeId = targetType switch
+            {
+                NavigationTargetType.Library => TabContentTypes.Library,
+                NavigationTargetType.Tag => TabContentTypes.Tag,
+                NavigationTargetType.Search => TabContentTypes.Search,
+                _ => TabContentTypes.Path
+            };
+
+            if (!request.ForceNewTab && tabService.ActiveTab != null && tabService.ActiveTab.ContentTypeId == targetContentTypeId)
             {
                 // Prevent infinite loop if path is already active
                 if (string.Equals(tabService.ActiveTab.Path, path, StringComparison.OrdinalIgnoreCase))
@@ -146,6 +151,7 @@ namespace YiboFile.Services.Navigation
                 var activeTab = tabService.ActiveTab;
                 if (activeTab != null)
                 {
+                    activeTab.ContentTypeId = TabContentTypes.Library;
                     activeTab.Type = TabType.Library;
                     string libName = path.Substring(6);
                     if (activeTab.Library == null || activeTab.Library.Name != libName)
@@ -184,6 +190,7 @@ namespace YiboFile.Services.Navigation
                     var activeTab = tabService.ActiveTab;
                     if (activeTab != null)
                     {
+                        activeTab.ContentTypeId = TabContentTypes.Library;
                         activeTab.Type = TabType.Library;
                         string libName = path.Substring(6);
                         if (activeTab.Library == null || activeTab.Library.Name != libName)
@@ -232,7 +239,7 @@ namespace YiboFile.Services.Navigation
             // 如果当前标签页已经是 Library 类型且未要求强制新建，则复用
             // Rule 3: Type Consistency (类型一致性复用)
             // 如果当前标签页已经是 Library 类型且未要求强制新建，则复用
-            if (!request.ForceNewTab && tabService.ActiveTab != null && tabService.ActiveTab.Type == TabType.Library)
+            if (!request.ForceNewTab && tabService.ActiveTab != null && tabService.ActiveTab.ContentTypeId == TabContentTypes.Library)
             {
                 if (library != null) ExecuteLibraryNavigationInViewModel(library, request.Pane, tabService);
                 else ExecuteLibraryRootNavigationInViewModel(request.Pane, tabService);
@@ -246,6 +253,7 @@ namespace YiboFile.Services.Navigation
                 tabService.CreatePathTab("lib://", forceNewTab: true, activate: request.Activate);
                 if (tabService.ActiveTab != null && tabService.ActiveTab.Path == "lib://")
                 {
+                    tabService.ActiveTab.ContentTypeId = TabContentTypes.Library;
                     tabService.ActiveTab.Type = TabType.Library;
                     tabService.UpdateTabTitle(tabService.ActiveTab, "lib://");
                 }
@@ -263,6 +271,7 @@ namespace YiboFile.Services.Navigation
                 var activeTab = tabService.ActiveTab;
                 if (activeTab != null)
                 {
+                    activeTab.ContentTypeId = TabContentTypes.Library;
                     activeTab.Type = TabType.Library;
                     activeTab.Path = "lib://";
                     activeTab.Library = null;
@@ -292,6 +301,7 @@ namespace YiboFile.Services.Navigation
                 var activeTab = tabService.ActiveTab;
                 if (activeTab != null)
                 {
+                    activeTab.ContentTypeId = TabContentTypes.Library;
                     activeTab.Type = TabType.Library;
                     activeTab.Path = $"lib://{library.Name}";
                     activeTab.Library = library;
@@ -378,7 +388,7 @@ namespace YiboFile.Services.Navigation
             var tagPath = $"tag://{tagName}";
 
             // 优先检查面板中是否已有相同的标签页
-            var existingTab = tabService.Tabs.FirstOrDefault(t => t.Type == TabType.Tag && string.Equals(t.Path, tagPath, StringComparison.OrdinalIgnoreCase));
+            var existingTab = tabService.Tabs.FirstOrDefault(t => t.ContentTypeId == TabContentTypes.Tag && string.Equals(t.Path, tagPath, StringComparison.OrdinalIgnoreCase));
             if (existingTab != null && !request.ForceNewTab)
             {
                 if (request.Activate) tabService.SetActiveTab(existingTab);
@@ -386,7 +396,7 @@ namespace YiboFile.Services.Navigation
             }
 
             // 同构复用：如果当前标签页是 Tag 类型，则直接更新它
-            if (!request.ForceNewTab && tabService.ActiveTab != null && tabService.ActiveTab.Type == TabType.Tag)
+            if (!request.ForceNewTab && tabService.ActiveTab != null && tabService.ActiveTab.ContentTypeId == TabContentTypes.Tag)
             {
                 // Prevent infinite loop if path is already active
                 if (string.Equals(tabService.ActiveTab.Path, tagPath, StringComparison.OrdinalIgnoreCase)) return;
@@ -416,7 +426,7 @@ namespace YiboFile.Services.Navigation
             if (string.IsNullOrEmpty(searchPath)) return;
 
             // 优先检查面板中是否已有相同的标签页
-            var existingTab = tabService.Tabs.FirstOrDefault(t => t.Type == TabType.Search && string.Equals(t.Path, searchPath, StringComparison.OrdinalIgnoreCase));
+            var existingTab = tabService.Tabs.FirstOrDefault(t => t.ContentTypeId == TabContentTypes.Search && string.Equals(t.Path, searchPath, StringComparison.OrdinalIgnoreCase));
             if (existingTab != null && !request.ForceNewTab)
             {
                 if (request.Activate) tabService.SetActiveTab(existingTab);
@@ -424,7 +434,7 @@ namespace YiboFile.Services.Navigation
             }
 
             // 同构复用：如果当前标签页是 Search 类型，则直接更新它
-            if (!request.ForceNewTab && tabService.ActiveTab != null && tabService.ActiveTab.Type == TabType.Search)
+            if (!request.ForceNewTab && tabService.ActiveTab != null && tabService.ActiveTab.ContentTypeId == TabContentTypes.Search)
             {
                 // Prevent infinite loop if path is already active
                 if (string.Equals(tabService.ActiveTab.Path, searchPath, StringComparison.OrdinalIgnoreCase)) return;

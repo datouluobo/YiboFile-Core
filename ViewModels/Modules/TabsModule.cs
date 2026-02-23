@@ -110,12 +110,12 @@ namespace YiboFile.ViewModels.Modules
                         tab.ForwardStack,
                         pane));
 
-                    if (tab.Type == TabType.Tag && tab.Path?.StartsWith("tag://") == true)
+                    if (tab.ContentTypeId == TabContentTypes.Tag && tab.Path?.StartsWith("tag://") == true)
                     {
                         // 获取当前路径用于搜索上下文
                     }
 
-                    Publish(new TabActivatedMessage(tab.Path ?? "", tab.Path ?? "", tab.Type == TabType.Library));
+                    Publish(new TabActivatedMessage(tab.Path ?? "", tab.Path ?? "", tab.ContentTypeId == TabContentTypes.Library));
                 }
             }
             finally
@@ -195,7 +195,7 @@ namespace YiboFile.ViewModels.Modules
 
             var activeTab = targetService.ActiveTab;
 
-            if (activeTab != null && IsTabCompatibleWithPath(activeTab.Type, message.NewPath))
+            if (activeTab != null && IsTabCompatibleWithPath(activeTab.ContentTypeId, message.NewPath))
             {
                 targetService.UpdateActiveTabPath(message.NewPath);
                 Publish(new TabPathUpdatedMessage(activeTab.Path ?? "", message.NewPath));
@@ -302,7 +302,7 @@ namespace YiboFile.ViewModels.Modules
             if (_isDualListMode() && _isSecondPaneFocused() && _secondTabService != null)
             {
                 var secondActiveTab = _secondTabService.ActiveTab;
-                if (secondActiveTab != null && secondActiveTab.Type == TabType.Path)
+                if (secondActiveTab != null && secondActiveTab.ContentTypeId == TabContentTypes.Path)
                 {
                     secondActiveTab.Path = path;
                     _secondTabService.UpdateTabTitle(secondActiveTab, path);
@@ -310,7 +310,7 @@ namespace YiboFile.ViewModels.Modules
                     return;
                 }
 
-                var secondRecentTab = _secondTabService.FindRecentTab(t => t.Type == TabType.Path && string.Equals(t.Path, path, StringComparison.OrdinalIgnoreCase), TimeSpan.FromSeconds(10));
+                var secondRecentTab = _secondTabService.FindRecentTab(t => t.ContentTypeId == TabContentTypes.Path && string.Equals(t.Path, path, StringComparison.OrdinalIgnoreCase), TimeSpan.FromSeconds(10));
                 if (secondRecentTab != null)
                 {
                     _secondTabService.SwitchToTab(secondRecentTab);
@@ -323,14 +323,14 @@ namespace YiboFile.ViewModels.Modules
             }
 
             var activeTab = _tabService?.ActiveTab;
-            if (activeTab != null && IsTabCompatibleWithPath(activeTab.Type, path))
+            if (activeTab != null && IsTabCompatibleWithPath(activeTab.ContentTypeId, path))
             {
                 _tabService?.UpdateActiveTabPath(path);
                 onReuseCurrent?.Invoke();
                 return;
             }
 
-            var recentTab = _tabService?.FindRecentTab(t => IsTabCompatibleWithPath(t.Type, path) && string.Equals(t.Path, path, StringComparison.OrdinalIgnoreCase), TimeSpan.FromSeconds(10));
+            var recentTab = _tabService?.FindRecentTab(t => IsTabCompatibleWithPath(t.ContentTypeId, path) && string.Equals(t.Path, path, StringComparison.OrdinalIgnoreCase), TimeSpan.FromSeconds(10));
 
             if (recentTab != null)
             {
@@ -342,15 +342,15 @@ namespace YiboFile.ViewModels.Modules
             }
         }
 
-        private bool IsTabCompatibleWithPath(TabType type, string path)
+        private bool IsTabCompatibleWithPath(string contentTypeId, string path)
         {
             if (string.IsNullOrEmpty(path)) return false;
 
-            if (path.StartsWith("lib://", StringComparison.OrdinalIgnoreCase)) return type == TabType.Library;
-            if (path.StartsWith("tag://", StringComparison.OrdinalIgnoreCase)) return type == TabType.Tag;
-            if (path.StartsWith("search://", StringComparison.OrdinalIgnoreCase) || path.StartsWith("content://", StringComparison.OrdinalIgnoreCase)) return type == TabType.Search;
+            if (path.StartsWith("lib://", StringComparison.OrdinalIgnoreCase)) return contentTypeId == TabContentTypes.Library;
+            if (path.StartsWith("tag://", StringComparison.OrdinalIgnoreCase)) return contentTypeId == TabContentTypes.Tag;
+            if (path.StartsWith("search://", StringComparison.OrdinalIgnoreCase) || path.StartsWith("content://", StringComparison.OrdinalIgnoreCase)) return contentTypeId == TabContentTypes.Search;
 
-            return type == TabType.Path;
+            return contentTypeId == TabContentTypes.Path;
         }
 
         #endregion
@@ -365,14 +365,51 @@ namespace YiboFile.ViewModels.Modules
             if (string.IsNullOrEmpty(message.ContentTypeId) || _registry == null)
                 return;
 
-            // 确定目标 TabService
+            // 1. 从 Registry 解析内容元数据，以判断是否支持副栏
+            var content = _registry.Resolve(message.ContentTypeId);
+            if (content == null)
+            {
+                FileLogger.Log($"TabsModule.OnOpenContentTab: Failed to resolve '{message.ContentTypeId}'");
+                return;
+            }
+
+            // 2. AllowMultiple=false 时，全局检查是否已存在
+            if (!content.AllowMultiple)
+            {
+                var existingPrimary = _tabService?.FindTabByContentTypeId(message.ContentTypeId);
+                if (existingPrimary != null)
+                {
+                    Publish(new SetFocusedPaneMessage(false)); // Focus primary
+                    _tabService.SwitchToTab(existingPrimary);
+                    return;
+                }
+
+                var existingSecondary = _secondTabService?.FindTabByContentTypeId(message.ContentTypeId);
+                if (existingSecondary != null)
+                {
+                    Publish(new SetFocusedPaneMessage(true)); // Focus secondary
+                    _secondTabService.SwitchToTab(existingSecondary);
+                    return;
+                }
+            }
+
+            // 3. 确定目标 TabService
             bool useSecond = message.TargetPane.HasValue
                 ? message.TargetPane.Value == PaneId.Second
                 : (_isDualListMode() && _isSecondPaneFocused());
 
+            // 4. 检查 SupportsSecondaryPane 回退逻辑
+            if (useSecond && !content.SupportsSecondaryPane)
+            {
+                FileLogger.Log($"TabsModule.OnOpenContentTab: '{message.ContentTypeId}' does not support secondary pane. Falling back to primary pane.");
+                useSecond = false;
+            }
+
             var tabService = useSecond && _secondTabService != null ? _secondTabService : _tabService;
 
-            tabService?.CreateSpecialTab(message.ContentTypeId, _registry);
+            // 这里由于已经 resolve 过，其实可以直接传 content 给服务，
+            // 但为了保持接口兼容，让服务通过 contentTypeId 去创建
+            tabService?.CreateSpecialTab(message.ContentTypeId);
         }
 
         #endregion

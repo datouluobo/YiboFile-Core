@@ -85,7 +85,7 @@ namespace YiboFile.Services.Tabs
                 var contentTypeId = path.Substring("yibofile://".Length).Trim();
                 if (!string.IsNullOrEmpty(contentTypeId))
                 {
-                    _messageBus?.Publish(new YiboFile.ViewModels.Messaging.Messages.OpenContentTabMessage(contentTypeId));
+                    CreateSpecialTab(contentTypeId, activate);
                 }
                 return;
             }
@@ -99,7 +99,7 @@ namespace YiboFile.Services.Tabs
             if (!forceNewTab)
             {
                 var existingTab = FindTabByPath(path);
-                if (existingTab != null && existingTab.Type == TabType.Path)
+                if (existingTab != null && existingTab.ContentTypeId == TabContentTypes.Path)
                 {
                     if (activate) SwitchToTab(existingTab);
                     return;
@@ -108,6 +108,7 @@ namespace YiboFile.Services.Tabs
 
             var newTab = new PathTab
             {
+                ContentTypeId = TabContentTypes.Path,
                 Type = TabType.Path,
                 Path = path,
                 Title = CalculateTabDisplayTitle(path)
@@ -126,7 +127,7 @@ namespace YiboFile.Services.Tabs
             if (!forceNewTab)
             {
                 // Isomorphic reuse: Find existing Tag tab
-                var existingTab = _tabs.FirstOrDefault(t => t.Type == TabType.Tag && string.Equals(t.Path, path, StringComparison.OrdinalIgnoreCase));
+                var existingTab = _tabs.FirstOrDefault(t => t.ContentTypeId == TabContentTypes.Tag && string.Equals(t.Path, path, StringComparison.OrdinalIgnoreCase));
                 if (existingTab != null)
                 {
                     if (activate) SwitchToTab(existingTab);
@@ -136,6 +137,7 @@ namespace YiboFile.Services.Tabs
 
             var newTab = new PathTab
             {
+                ContentTypeId = TabContentTypes.Tag,
                 Type = TabType.Tag,
                 Path = path,
                 Title = tagName
@@ -151,7 +153,7 @@ namespace YiboFile.Services.Tabs
 
             if (!forceNewTab)
             {
-                var existingTab = _tabs.FirstOrDefault(t => t.Type == TabType.Search && string.Equals(t.Path, searchPath, StringComparison.OrdinalIgnoreCase));
+                var existingTab = _tabs.FirstOrDefault(t => t.ContentTypeId == TabContentTypes.Search && string.Equals(t.Path, searchPath, StringComparison.OrdinalIgnoreCase));
                 if (existingTab != null)
                 {
                     if (activate) SwitchToTab(existingTab);
@@ -165,6 +167,7 @@ namespace YiboFile.Services.Tabs
 
             var newTab = new PathTab
             {
+                ContentTypeId = TabContentTypes.Search,
                 Type = TabType.Search,
                 Path = searchPath,
                 Title = title
@@ -182,7 +185,7 @@ namespace YiboFile.Services.Tabs
 
             if (!forceNewTab)
             {
-                var existingTab = _tabs.FirstOrDefault(t => t.Type == TabType.Library && string.Equals(t.Path, path, StringComparison.OrdinalIgnoreCase));
+                var existingTab = _tabs.FirstOrDefault(t => t.ContentTypeId == TabContentTypes.Library && string.Equals(t.Path, path, StringComparison.OrdinalIgnoreCase));
                 if (existingTab != null)
                 {
                     if (activate) SwitchToTab(existingTab);
@@ -192,6 +195,7 @@ namespace YiboFile.Services.Tabs
 
             var newTab = new PathTab
             {
+                ContentTypeId = TabContentTypes.Library,
                 Type = TabType.Library,
                 Path = path,
                 Title = libraryName
@@ -215,6 +219,7 @@ namespace YiboFile.Services.Tabs
             {
                 var tab = new PathTab
                 {
+                    ContentTypeId = TabContentTypes.Library,
                     Type = TabType.Library,
                     Path = $"lib://{library.Name}",
                     Title = library.Name,
@@ -225,7 +230,7 @@ namespace YiboFile.Services.Tabs
             }
 
             var window = TimeSpan.FromSeconds(_config?.ReuseTabTimeWindow ?? 10);
-            var recentTab = FindRecentTab(t => t.Type == TabType.Library && t.Library?.Id == library.Id, window);
+            var recentTab = FindRecentTab(t => t.ContentTypeId == TabContentTypes.Library && t.Library?.Id == library.Id, window);
 
             if (recentTab != null)
             {
@@ -235,6 +240,7 @@ namespace YiboFile.Services.Tabs
 
             var newTab = new PathTab
             {
+                ContentTypeId = TabContentTypes.Library,
                 Type = TabType.Library,
                 Path = $"lib://{library.Name}",
                 Title = library.Name,

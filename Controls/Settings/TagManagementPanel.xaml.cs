@@ -11,13 +11,14 @@ namespace YiboFile.Controls.Settings
 {
     public partial class TagManagementPanel : UserControl, ISettingsPanel
     {
-        // Event reserved for future use
-#pragma warning disable CS0067
         public event EventHandler SettingsChanged;
+
+#pragma warning disable CS0067
+        public event EventHandler SettingsChangedInternal;
 #pragma warning restore CS0067
+
         private TagSettingsViewModel _viewModel;
 
-        // UI 元素字段 - 用于水印状态同步
         private TextBox _newGroupTextBox;
         private TextBlock _newGroupWatermark;
         private TextBox _newTagTextBox;
@@ -29,15 +30,12 @@ namespace YiboFile.Controls.Settings
             InitializeUI();
             this.DataContextChanged += OnDataContextChanged;
 
-            // Auto-initialize if DataContext is not set externally (Common for independent panels)
             if (this.DataContext == null)
             {
-                // Create new view model
                 var vm = new TagSettingsViewModel();
                 this.DataContext = vm;
                 _viewModel = vm;
                 SubscribeEvents();
-                // Refresh handled by constructor
             }
         }
 
@@ -47,7 +45,6 @@ namespace YiboFile.Controls.Settings
             {
                 _viewModel = vm;
                 SubscribeEvents();
-                // Ensure data is refreshed
                 _viewModel.RefreshTagGroups();
             }
         }
@@ -56,12 +53,10 @@ namespace YiboFile.Controls.Settings
         {
             this.SetResourceReference(Panel.BackgroundProperty, "BackgroundSecondaryBrush");
 
-            // Main Layout
             var mainGrid = new Grid();
             mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Header
             mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // Content
 
-            // Header
             var headerBlock = new TextBlock
             {
                 Text = "标签管理",
@@ -72,22 +67,20 @@ namespace YiboFile.Controls.Settings
             headerBlock.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundPrimaryBrush");
             mainGrid.Children.Add(headerBlock);
 
-            // Master-Detail Grid
             var contentGrid = new Grid();
-            contentGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(220) }); // Groups (Master)
-            contentGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Tags (Detail)
+            contentGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(220) });
+            contentGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             contentGrid.Margin = new Thickness(0, 10, 0, 0);
 
             Grid.SetRow(contentGrid, 1);
             mainGrid.Children.Add(contentGrid);
 
-            // ==================== LEFT COLUMN: GROUPS ====================
+            // LEFT COLUMN: GROUPS
             var leftPanel = new Grid();
-            leftPanel.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // List
-            leftPanel.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Add Group Area
+            leftPanel.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+            leftPanel.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             leftPanel.Margin = new Thickness(0, 0, 20, 0);
 
-            // Group List
             _groupList = new ListBox
             {
                 Name = "GroupList",
@@ -98,22 +91,22 @@ namespace YiboFile.Controls.Settings
             groupList.SetResourceReference(Control.BorderBrushProperty, "BorderBrush");
             groupList.SetResourceReference(Panel.BackgroundProperty, "BackgroundPrimaryBrush");
             ScrollViewer.SetHorizontalScrollBarVisibility(groupList, ScrollBarVisibility.Disabled);
+            // Disable internal scrolling to let outer ScrollViewer handle it
+            ScrollViewer.SetVerticalScrollBarVisibility(groupList, ScrollBarVisibility.Disabled);
             groupList.SetBinding(ListBox.ItemsSourceProperty, new Binding("TagGroups"));
             groupList.ItemTemplate = CreateGroupTemplate();
 
             leftPanel.Children.Add(groupList);
 
-            // Add Group Area
             var addGroupPanel = new Border
             {
                 Padding = new Thickness(10),
                 Margin = new Thickness(0, 10, 0, 0),
                 CornerRadius = new CornerRadius(4)
             };
+            addGroupPanel.SetResourceReference(Border.BackgroundProperty, "BackgroundSecondaryBrush");
 
             var addGroupStack = new StackPanel();
-
-            // New Group TextBox with Watermark
             _newGroupTextBox = new TextBox
             {
                 Margin = new Thickness(0, 0, 0, 5),
@@ -121,7 +114,6 @@ namespace YiboFile.Controls.Settings
                 BorderThickness = new Thickness(1)
             };
             var newGroupTb = _newGroupTextBox;
-            addGroupPanel.SetResourceReference(Border.BackgroundProperty, "BackgroundSecondaryBrush");
             newGroupTb.SetResourceReference(Control.BorderBrushProperty, "BorderDefaultBrush");
             newGroupTb.SetResourceReference(Control.BackgroundProperty, "BackgroundPrimaryBrush");
             newGroupTb.SetResourceReference(Control.ForegroundProperty, "ForegroundPrimaryBrush");
@@ -130,16 +122,13 @@ namespace YiboFile.Controls.Settings
             _newGroupWatermark = new TextBlock
             {
                 Text = "新分组名称...",
-                Margin = new Thickness(8, 0, 0, 5), // Adjust margin to match TextBox
+                Margin = new Thickness(8, 0, 0, 5),
                 VerticalAlignment = VerticalAlignment.Center,
-                IsHitTestVisible = false,
-                Visibility = Visibility.Visible
+                IsHitTestVisible = false
             };
             var newGroupWatermark = _newGroupWatermark;
             newGroupWatermark.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundSecondaryBrush");
             newGroupTb.TextChanged += (s, e) => UpdateGroupWatermarkVisibility();
-            newGroupTb.GotFocus += (s, e) => UpdateGroupWatermarkVisibility();
-            newGroupTb.LostFocus += (s, e) => UpdateGroupWatermarkVisibility();
 
             var newGroupGrid = new Grid { Margin = new Thickness(0, 0, 0, 5) };
             newGroupGrid.Children.Add(newGroupTb);
@@ -162,22 +151,18 @@ namespace YiboFile.Controls.Settings
 
             Grid.SetRow(addGroupPanel, 1);
             leftPanel.Children.Add(addGroupPanel);
-
             contentGrid.Children.Add(leftPanel);
 
-            // ==================== RIGHT COLUMN: TAGS ====================
+            // RIGHT COLUMN: TAGS
             var rightPanel = new Grid();
             rightPanel.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Header
             rightPanel.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Add Tag Area
             rightPanel.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // Tag Cloud
 
-            // Bind Right Panel Visibility
-            var visibilityBinding = new Binding("SelectedItem") { Source = groupList, Converter = new NullToVisibilityConverter() };
+            var visibilityBinding = new Binding("SelectedItem") { Source = groupList, Converter = new TagNullToVisibilityConverter() };
             rightPanel.SetBinding(UIElement.VisibilityProperty, visibilityBinding);
 
-            // Header
             var headerStack = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 15) };
-
             var groupTitle = new TextBlock
             {
                 FontSize = 16,
@@ -187,7 +172,6 @@ namespace YiboFile.Controls.Settings
             groupTitle.SetBinding(TextBlock.TextProperty, new Binding("SelectedItem.Name") { Source = groupList, StringFormat = "分组: {0}" });
             headerStack.Children.Add(groupTitle);
 
-            // Delete Group Button
             var delGroupBtn = new Button
             {
                 Content = "删除分组",
@@ -203,13 +187,9 @@ namespace YiboFile.Controls.Settings
             delGroupBtn.SetBinding(Button.CommandProperty, new Binding("DataContext.DeleteTagGroupCommand") { Source = this });
             delGroupBtn.SetBinding(Button.CommandParameterProperty, new Binding("SelectedItem") { Source = groupList });
             headerStack.Children.Add(delGroupBtn);
-
             rightPanel.Children.Add(headerStack);
 
-            // Add Tag Area
             var addTagPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 20) };
-
-            // New Tag TextBox with Watermark
             _newTagTextBox = new TextBox
             {
                 Padding = new Thickness(5),
@@ -224,13 +204,10 @@ namespace YiboFile.Controls.Settings
                 Foreground = Brushes.Gray,
                 Margin = new Thickness(8, 0, 0, 0),
                 VerticalAlignment = VerticalAlignment.Center,
-                IsHitTestVisible = false,
-                Visibility = Visibility.Visible
+                IsHitTestVisible = false
             };
             var newTagWatermark = _newTagWatermark;
             newTagTb.TextChanged += (s, e) => UpdateTagWatermarkVisibility();
-            newTagTb.GotFocus += (s, e) => UpdateTagWatermarkVisibility();
-            newTagTb.LostFocus += (s, e) => UpdateTagWatermarkVisibility();
 
             var tagInputGrid = new Grid { Margin = new Thickness(0, 0, 10, 0), Width = 200 };
             tagInputGrid.Children.Add(newTagTb);
@@ -250,31 +227,25 @@ namespace YiboFile.Controls.Settings
 
             addTagPanel.Children.Add(tagInputGrid);
             addTagPanel.Children.Add(addTagBtn);
-
             Grid.SetRow(addTagPanel, 1);
             rightPanel.Children.Add(addTagPanel);
 
-            // Tag Cloud
-            var tagScroll = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
+            // Tag Cloud - Removed internal ScrollViewer
             var tagItemsControl = new ItemsControl();
-
             var itemsPanelTemplate = new ItemsPanelTemplate();
             var wrapPanelFactory = new FrameworkElementFactory(typeof(WrapPanel));
             wrapPanelFactory.SetValue(WrapPanel.OrientationProperty, Orientation.Horizontal);
             itemsPanelTemplate.VisualTree = wrapPanelFactory;
             tagItemsControl.ItemsPanel = itemsPanelTemplate;
-
             tagItemsControl.SetBinding(ItemsControl.ItemsSourceProperty, new Binding("SelectedItem.Tags") { Source = groupList });
             tagItemsControl.ItemTemplate = CreateTagTemplate();
 
-            tagScroll.Content = tagItemsControl;
-            Grid.SetRow(tagScroll, 2);
-            rightPanel.Children.Add(tagScroll);
+            Grid.SetRow(tagItemsControl, 2);
+            rightPanel.Children.Add(tagItemsControl);
 
             Grid.SetColumn(rightPanel, 1);
             contentGrid.Children.Add(rightPanel);
 
-            // Empty State
             var emptyText = new TextBlock
             {
                 Text = "← 请从左侧选择一个分组以管理标签",
@@ -282,7 +253,7 @@ namespace YiboFile.Controls.Settings
                 VerticalAlignment = VerticalAlignment.Center
             };
             emptyText.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundSecondaryBrush");
-            var emptyVisibility = new Binding("SelectedItem") { Source = groupList, Converter = new NullToVisibilityConverter { Invert = true } };
+            var emptyVisibility = new Binding("SelectedItem") { Source = groupList, Converter = new TagNullToVisibilityConverter { Invert = true } };
             emptyText.SetBinding(UIElement.VisibilityProperty, emptyVisibility);
             Grid.SetColumn(emptyText, 1);
             contentGrid.Children.Add(emptyText);
@@ -293,7 +264,6 @@ namespace YiboFile.Controls.Settings
 
         private DataTemplate CreateGroupTemplate()
         {
-            // Simple: [Color] [Name]
             string xaml = @"
 <DataTemplate xmlns=""http://schemas.microsoft.com/winfx/2006/xaml/presentation"">
     <Grid Margin=""0,8"">
@@ -310,7 +280,6 @@ namespace YiboFile.Controls.Settings
 
         private DataTemplate CreateTagTemplate()
         {
-            // Tag Pill: Border -> [Name] [x]
             string xaml = @"
 <DataTemplate xmlns=""http://schemas.microsoft.com/winfx/2006/xaml/presentation"">
     <Border Background=""{Binding ColorBrush}"" CornerRadius=""4"" Padding=""10,4,8,4"" Margin=""0,0,8,8""
@@ -353,7 +322,6 @@ namespace YiboFile.Controls.Settings
 
         private Style CreateGroupItemStyle()
         {
-            // Using XamlReader is more robust for ControlTemplates with Triggers and TargetName
             string xaml = @"
 <Style xmlns=""http://schemas.microsoft.com/winfx/2006/xaml/presentation"" 
        xmlns:x=""http://schemas.microsoft.com/winfx/2006/xaml""
@@ -389,7 +357,6 @@ namespace YiboFile.Controls.Settings
         private void SubscribeEvents()
         {
             if (_viewModel == null) return;
-            // Unsubscribe first to avoid duplicates
             _viewModel.RenameTagGroupRequested -= ViewModel_RenameTagGroupRequested;
             _viewModel.RenameTagRequested -= ViewModel_RenameTagRequested;
             _viewModel.UpdateTagColorRequested -= ViewModel_UpdateTagColorRequested;
@@ -436,9 +403,6 @@ namespace YiboFile.Controls.Settings
 
         public void SaveSettings() { }
 
-        /// <summary>
-        /// 更新分组输入框水印可见性
-        /// </summary>
         private void UpdateGroupWatermarkVisibility()
         {
             if (_newGroupWatermark != null && _newGroupTextBox != null)
@@ -446,9 +410,6 @@ namespace YiboFile.Controls.Settings
                     ? Visibility.Visible : Visibility.Collapsed;
         }
 
-        /// <summary>
-        /// 更新标签输入框水印可见性
-        /// </summary>
         private void UpdateTagWatermarkVisibility()
         {
             if (_newTagWatermark != null && _newTagTextBox != null)
@@ -457,7 +418,7 @@ namespace YiboFile.Controls.Settings
         }
     }
 
-    public class NullToVisibilityConverter : IValueConverter
+    public class TagNullToVisibilityConverter : IValueConverter
     {
         public bool Invert { get; set; }
         public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
@@ -469,4 +430,3 @@ namespace YiboFile.Controls.Settings
         public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture) => throw new NotImplementedException();
     }
 }
-

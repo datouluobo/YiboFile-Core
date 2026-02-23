@@ -11,11 +11,9 @@
     
     <Grid>
         <!-- 内容由 Code-Behind 动态构建，与 GeneralSettingsPanel 保持一致的风格 -->
-        <ScrollViewer VerticalScrollBarVisibility="Auto">
-            <StackPanel Name="MainStackPanel" Margin="0">
-                <!-- 动态内容 -->
-            </StackPanel>
-        </ScrollViewer>
+        <!-- 不再使用内部 ScrollViewer，外部 SettingsPanelControl 已有处理 -->
+        <StackPanel Name="MainStackPanel" Margin="0">
+            <!-- 动态内容 -->
+        </StackPanel>
     </Grid>
 </UserControl>
-

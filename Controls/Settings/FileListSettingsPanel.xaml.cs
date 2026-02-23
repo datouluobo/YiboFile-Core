@@ -29,7 +29,6 @@ namespace YiboFile.Controls.Settings
             _viewModel = new FileListSettingsViewModel();
             this.DataContext = _viewModel;
 
-            // Bridge ViewModel changes to SettingsChanged event and refresh columns
             _viewModel.PropertyChanged += (s, e) =>
             {
                 if (e.PropertyName == nameof(FileListSettingsViewModel.ColTagsWidth) ||
@@ -45,9 +44,9 @@ namespace YiboFile.Controls.Settings
 
         private void InitializeComponent()
         {
-            var stackPanel = new StackPanel { Margin = new Thickness(0) };
+            var stackPanel = new StackPanel { Margin = new Thickness(20) };
 
-            // 列宽设置标题
+            // Title
             var title = new TextBlock
             {
                 Text = "列宽设置",
@@ -57,7 +56,7 @@ namespace YiboFile.Controls.Settings
             };
             stackPanel.Children.Add(title);
 
-            // Tags列宽设置
+            // Tags
             var tagsGrid = CreateNumberInputRow("标签列宽度:", ref _tagsWidthTextBox, ref _tagsWidthUpButton, ref _tagsWidthDownButton);
             stackPanel.Children.Add(tagsGrid);
 
@@ -65,7 +64,6 @@ namespace YiboFile.Controls.Settings
             _tagsWidthUpButton.Click += (s, e) => AdjustValue(_viewModel.ColTagsWidth, 5, 50, 500, v => _viewModel.ColTagsWidth = v);
             _tagsWidthDownButton.Click += (s, e) => AdjustValue(_viewModel.ColTagsWidth, -5, 50, 500, v => _viewModel.ColTagsWidth = v);
 
-            // 添加提示
             var tagsHint = new TextBlock
             {
                 Text = "（范围：50-500）",
@@ -75,7 +73,7 @@ namespace YiboFile.Controls.Settings
             };
             stackPanel.Children.Add(tagsHint);
 
-            // Notes列宽设置
+            // Notes
             var notesGrid = CreateNumberInputRow("备注列宽度:", ref _notesWidthTextBox, ref _notesWidthUpButton, ref _notesWidthDownButton);
             stackPanel.Children.Add(notesGrid);
 
@@ -83,7 +81,6 @@ namespace YiboFile.Controls.Settings
             _notesWidthUpButton.Click += (s, e) => AdjustValue(_viewModel.ColNotesWidth, 5, 100, 800, v => _viewModel.ColNotesWidth = v);
             _notesWidthDownButton.Click += (s, e) => AdjustValue(_viewModel.ColNotesWidth, -5, 100, 800, v => _viewModel.ColNotesWidth = v);
 
-            // 添加提示
             var notesHint = new TextBlock
             {
                 Text = "（范围：100-800）",
@@ -93,13 +90,8 @@ namespace YiboFile.Controls.Settings
             };
             stackPanel.Children.Add(notesHint);
 
-            var scrollViewer = new ScrollViewer
-            {
-                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-                Content = stackPanel
-            };
-
-            Content = scrollViewer;
+            // Directly set Content to stackPanel (Removed ScrollViewer)
+            Content = stackPanel;
         }
 
         private void InitializeBindings()
@@ -195,33 +187,18 @@ namespace YiboFile.Controls.Settings
             e.Handled = !char.IsDigit(e.Text, 0);
         }
 
-        /// <summary>
-        /// 刷新所有 FileListControl 的列宽度
-        /// </summary>
         private void RefreshFileListColumns()
         {
             try
             {
-                // 查找主窗口
                 var mainWindow = Application.Current.MainWindow as MainWindow;
-                if (mainWindow == null)
-                {
-                    return;
-                }
+                if (mainWindow == null) return;
 
-                // 查找 FileBrowser
                 var fileBrowser = mainWindow.FindName("FileBrowser") as FileBrowserControl;
-                if (fileBrowser == null)
-                {
-                    return;
-                }
+                if (fileBrowser == null) return;
 
-                // 调用 FileListControl 的公共方法刷新列宽度
                 var fileListControl = fileBrowser.GetFileListControl();
-                if (fileListControl == null)
-                {
-                    return;
-                }
+                if (fileListControl == null) return;
                 fileListControl.LoadColumnWidths();
             }
             catch (Exception)
@@ -236,7 +213,6 @@ namespace YiboFile.Controls.Settings
 
         public void SaveSettings()
         {
-            // Auto-saved by bindings
         }
     }
 }

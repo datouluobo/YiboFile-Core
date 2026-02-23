@@ -35,7 +35,6 @@ namespace YiboFile.Interfaces
         FileBrowserControl SecondFileBrowser { get; }
         TabManagerControl TabManager { get; }
         TabManagerControl SecondTabManager { get; }
-        Grid SettingsOverlay { get; }
 
         // Navigation & Panels
         NavigationPanelControl NavigationPanelControl { get; }

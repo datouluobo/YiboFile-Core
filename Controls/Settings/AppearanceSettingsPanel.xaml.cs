@@ -543,15 +543,10 @@ namespace YiboFile.Controls.Settings
             Grid.SetColumn(rightPanel, 2);
             rootGrid.Children.Add(rightPanel);
 
-            // Wrap in ScrollViewer
-            var scrollViewer = new ScrollViewer
-            {
-                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-                Padding = new Thickness(24, 24, 36, 24), // More padding on right
-                Content = rootGrid
-            };
-
-            Content = scrollViewer;
+            // 直接将 rootGrid 作为内容，外部 SettingsPanelControl 已经提供 ScrollViewer
+            // 设置一定的右边距以避免内容贴边
+            rootGrid.Margin = new Thickness(0, 0, 16, 0);
+            Content = rootGrid;
         }
 
         private Border CreateColorPreview(string label, string resourceKey, int column)

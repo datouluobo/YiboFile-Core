@@ -11,10 +11,7 @@ namespace YiboFile.Controls.Settings
 {
     public partial class PathSettingsPanel : UserControl, ISettingsPanel
     {
-        // Event reserved for future use
-#pragma warning disable CS0067
         public event EventHandler SettingsChanged;
-#pragma warning restore CS0067
 
         private NavigationSettingsViewModel _viewModel;
 
@@ -56,16 +53,7 @@ namespace YiboFile.Controls.Settings
             Grid.SetRow(descText, 1);
             mainGrid.Children.Add(descText);
 
-            // Items Container (ScrollViewer)
-            var scrollViewer = new ScrollViewer
-            {
-                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
-                Padding = new Thickness(0, 0, 20, 0)
-            };
-            Grid.SetRow(scrollViewer, 2);
-
-            // ItemsControl
+            // ItemsControl direktly in Grid Row 2
             var itemsControl = new ItemsControl();
             itemsControl.SetBinding(ItemsControl.ItemsSourceProperty, new Binding(nameof(NavigationSettingsViewModel.NavigationSections)));
 
@@ -146,10 +134,10 @@ namespace YiboFile.Controls.Settings
                 MessageBox.Show($"Error loading template: {ex.Message}");
             }
 
-            scrollViewer.Content = itemsControl;
-            mainGrid.Children.Add(scrollViewer);
+            Grid.SetRow(itemsControl, 2);
+            mainGrid.Children.Add(itemsControl);
 
-            // Container Wrapper with Padding
+            // Container Wrapper with Padding (Removed ScrollViewer)
             var container = new Border
             {
                 Padding = new Thickness(20),
@@ -166,8 +154,6 @@ namespace YiboFile.Controls.Settings
 
         public void SaveSettings()
         {
-            // Auto-saved by ViewModel
         }
     }
 }
-

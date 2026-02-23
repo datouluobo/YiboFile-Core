@@ -55,7 +55,7 @@ namespace YiboFile.Controls.Settings
 
         private void InitializeComponent()
         {
-            var stackPanel = new StackPanel { Margin = new Thickness(0) };
+            var stackPanel = new StackPanel { Margin = new Thickness(20) };
 
             // 外观设置
             var appearanceTitle = new TextBlock

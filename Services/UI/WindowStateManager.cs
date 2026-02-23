@@ -357,14 +357,13 @@ namespace YiboFile.Services
                     var activeTab = _tabService.ActiveTab;
                     if (activeTab != null)
                     {
-                        switch (activeTab.Type)
+                        if (activeTab.ContentTypeId == TabContentTypes.Library)
                         {
-                            case TabType.Library:
-                                targetConfig.LastNavigationMode = "Library";
-                                break;
-                            default:
-                                targetConfig.LastNavigationMode = "Path";
-                                break;
+                            targetConfig.LastNavigationMode = "Library";
+                        }
+                        else
+                        {
+                            targetConfig.LastNavigationMode = "Path";
                         }
                     }
                     else
@@ -467,21 +466,36 @@ namespace YiboFile.Services
         {
             if (tab == null) return string.Empty;
 
-            switch (tab.Type)
+            // 1. 如果是特殊内容类型（非文件浏览），使用 yibofile:// 协议作为 Key
+            if (!TabContentTypes.IsFileBrowserType(tab.ContentTypeId))
             {
-                case TabType.Tag:
-                case TabType.Search:
-                case TabType.Path:
-                    return "path:" + (tab.Path ?? string.Empty);
-                case TabType.Library:
-                    // 优先使用 ID，如果没有 ID（如通过路径直接输入的库）则回退到 path:lib:// 格式
-                    if (tab.Library != null && tab.Library.Id > 0)
-                        return "library:" + tab.Library.Id;
-                    return "path:" + (tab.Path ?? string.Empty);
-
-                default:
-                    return "unknown:" + (tab.Title ?? "");
+                // 特特殊标签页的 Path 通常已经是 yibofile://id，如果不是则构造一个
+                string path = tab.Path?.StartsWith("yibofile://") == true 
+                    ? tab.Path 
+                    : $"yibofile://{tab.ContentTypeId}";
+                return "path:" + path;
             }
+
+            // 2. 对于文件浏览类，按原有逻辑处理以保持兼容性
+            if (tab.ContentTypeId == TabContentTypes.Tag || 
+                tab.ContentTypeId == TabContentTypes.Search || 
+                tab.ContentTypeId == TabContentTypes.Path)
+            {
+                return "path:" + (tab.Path ?? string.Empty);
+            }
+            
+            if (tab.ContentTypeId == TabContentTypes.Library)
+            {
+                // 优先使用 ID，如果没有 ID（如通过路径直接输入的库）则回退到 path:lib:// 格式
+                if (tab.Library != null && tab.Library.Id > 0)
+                    return "library:" + tab.Library.Id;
+                return "path:" + (tab.Path ?? string.Empty);
+            }
+
+            // 后备逻辑：尽可能尝试使用 ContentTypeId
+            if (!string.IsNullOrEmpty(tab.ContentTypeId))
+                return "path:yibofile://" + tab.ContentTypeId;
+            return "unknown:" + (tab.Title ?? "");
         }
 
         #endregion
@@ -737,12 +751,10 @@ namespace YiboFile.Services
                         return;
                     }
 
-                    // 搜索标签页的路径格式是 "search://keyword"
+                    // 搜索标签页的路径格式是 "search://keyword"，特殊页面是 "yibofile://id"
                     // 对于恢复模式，即使路径暂时不存在也尝试创建标签页（跳过验证）
                     // 这样可以恢复网络路径、USB设备等可能暂时不可用的路径
-                    // ValidatePath 已经支持 search:// 路径，可以直接调用 CreatePathTab
-                    // 搜索标签页会在切换到该标签页时自动刷新（通过MainWindow的CheckAndRefreshSearchTab）
-                    if (path.StartsWith("search://") || path.StartsWith("content://"))
+                    if (path.StartsWith("search://") || path.StartsWith("content://") || path.StartsWith("yibofile://"))
                     {
                         service.CreatePathTab(path, true, skipValidation: true, activate: false);
                     }

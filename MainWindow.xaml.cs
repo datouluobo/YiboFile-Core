@@ -54,9 +54,6 @@ namespace YiboFile
         FileBrowserControl IShellWindow.SecondFileBrowser => this.SecondFileBrowser;
         TabManagerControl IShellWindow.TabManager => this.TabManager;
         TabManagerControl IShellWindow.SecondTabManager => this.SecondTabManager;
-        // SettingsOverlay is accessed via FindName
-        // SettingsOverlay 已经迁移到标签页，此处返回 null 保持临时兼容
-        Grid IShellWindow.SettingsOverlay => null;
 
         // Resource access
         object IShellWindow.TryFindResource(object key) => this.TryFindResource(key);
@@ -271,8 +268,8 @@ namespace YiboFile
         /// </summary>
         public void CloseOverlays()
         {
-            // Settings/About 等原本的 Overlay 已迁移至标签页，目前这里不需要做任何操作
-            // 如果还有其他弹窗逻辑，可以补充在此
+            // Settings/About 等原本的 Overlay 已迁移至标签页
+            // 如果后续有轻量级弹出层逻辑（如自定义 ContextMenu），可在此扩展
         }
 
         internal Services.Navigation.PaneId GetActivePaneId()
@@ -335,8 +332,6 @@ namespace YiboFile
 
         private void TitleBar_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            // 由于已采用 TabContent 显示设置和关于界面，移除原先在此触发的点击空白框关闭覆盖层的逻辑
-
             // 双击最大化/还原
             if (e.ClickCount == 2 && e.ChangedButton == MouseButton.Left)
             {

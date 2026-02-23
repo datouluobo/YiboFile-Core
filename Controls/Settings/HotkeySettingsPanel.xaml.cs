@@ -7,7 +7,7 @@ using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Controls.Primitives;
-using System.Windows.Media.Effects; // Added
+using System.Windows.Media.Effects;
 using YiboFile.ViewModels;
 using YiboFile.ViewModels.Settings;
 
@@ -15,10 +15,7 @@ namespace YiboFile.Controls.Settings
 {
     public partial class HotkeySettingsPanel : UserControl, ISettingsPanel
     {
-        // Event reserved for future use
-#pragma warning disable CS0067
         public event EventHandler SettingsChanged;
-#pragma warning restore CS0067
 
         private HotkeySettingsViewModel _viewModel;
 
@@ -27,7 +24,6 @@ namespace YiboFile.Controls.Settings
             InitializeComponent();
             _viewModel = new HotkeySettingsViewModel();
             this.DataContext = _viewModel;
-            // LoadSettings will be called by Interface or initial binding
         }
 
         private void InitializeComponent()
@@ -71,17 +67,10 @@ namespace YiboFile.Controls.Settings
             Grid.SetRow(btnPanel, 1);
             grid.Children.Add(btnPanel);
 
-            // Scrollable ItemsControl for two-column layout
-            var scrollViewer = new ScrollViewer
-            {
-                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
-            };
-
+            // ItemsControl for two-column layout
             var itemsControl = new ItemsControl();
             itemsControl.SetBinding(ItemsControl.ItemsSourceProperty, new Binding(nameof(HotkeySettingsViewModel.Hotkeys)));
 
-            // Horizontal spacing between columns
             var itemsPanelFactory = new FrameworkElementFactory(typeof(UniformGrid));
             itemsPanelFactory.SetValue(UniformGrid.ColumnsProperty, 2);
             itemsControl.ItemsPanel = new ItemsPanelTemplate(itemsPanelFactory);
@@ -89,18 +78,15 @@ namespace YiboFile.Controls.Settings
             // Item Template
             var itemTemplate = new DataTemplate();
             var factory = new FrameworkElementFactory(typeof(Border));
-            factory.SetValue(Border.MarginProperty, new Thickness(15, 6, 15, 6)); // 进一步增大间距
+            factory.SetValue(Border.MarginProperty, new Thickness(15, 6, 15, 6));
             factory.SetValue(Border.PaddingProperty, new Thickness(12));
             factory.SetValue(Border.CornerRadiusProperty, new CornerRadius(8));
             factory.SetResourceReference(Border.BackgroundProperty, "BackgroundSecondaryBrush");
             factory.SetValue(Border.BorderThicknessProperty, new Thickness(1));
             factory.SetResourceReference(Border.BorderBrushProperty, "BorderLightBrush");
 
-            // 悬停效果模拟 - 通过 Style 定义
             var borderStyle = new Style(typeof(Border));
             var trigger = new Trigger { Property = Border.IsMouseOverProperty, Value = true };
-            // 这里使用 DynamicResource 绑定的 Setter 在后台代码中很难直接实现，
-            // 故使用固定颜色或在 XAML 中定义，但既然是后台生成，我们尽量找一个通用的方式。
             trigger.Setters.Add(new Setter(Border.BorderBrushProperty, Brushes.SkyBlue));
             borderStyle.Triggers.Add(trigger);
             factory.SetValue(Border.StyleProperty, borderStyle);
@@ -117,7 +103,6 @@ namespace YiboFile.Controls.Settings
             itemGrid.AppendChild(col2);
             itemGrid.AppendChild(col3);
 
-            // Description
             var descText = new FrameworkElementFactory(typeof(TextBlock));
             descText.SetBinding(TextBlock.TextProperty, new Binding("Description"));
             descText.SetValue(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center);
@@ -126,16 +111,15 @@ namespace YiboFile.Controls.Settings
             descText.SetValue(Grid.ColumnProperty, 0);
             itemGrid.AppendChild(descText);
 
-            // Key Combination (Badge style)
             var keyBorder = new FrameworkElementFactory(typeof(Border));
             keyBorder.SetResourceReference(Border.BackgroundProperty, "AccentLightBrush");
-            keyBorder.SetResourceReference(Border.BorderBrushProperty, "AccentDefaultBrush"); // 增加边框
+            keyBorder.SetResourceReference(Border.BorderBrushProperty, "AccentDefaultBrush");
             keyBorder.SetValue(Border.BorderThicknessProperty, new Thickness(1));
             keyBorder.SetValue(Border.CornerRadiusProperty, new CornerRadius(4));
             keyBorder.SetValue(Border.PaddingProperty, new Thickness(8, 2, 8, 2));
             keyBorder.SetValue(Border.MarginProperty, new Thickness(10, 0, 10, 0));
             keyBorder.SetValue(Border.VerticalAlignmentProperty, VerticalAlignment.Center);
-            keyBorder.SetValue(Border.SnapsToDevicePixelsProperty, true); // 开启对齐
+            keyBorder.SetValue(Border.SnapsToDevicePixelsProperty, true);
             keyBorder.SetValue(Grid.ColumnProperty, 1);
 
             var keyText = new FrameworkElementFactory(typeof(TextBlock));
@@ -146,7 +130,6 @@ namespace YiboFile.Controls.Settings
             keyBorder.AppendChild(keyText);
             itemGrid.AppendChild(keyBorder);
 
-            // Button Panel
             var btns = new FrameworkElementFactory(typeof(StackPanel));
             btns.SetValue(StackPanel.OrientationProperty, Orientation.Horizontal);
             btns.SetValue(Grid.ColumnProperty, 2);
@@ -174,18 +157,14 @@ namespace YiboFile.Controls.Settings
             itemTemplate.VisualTree = factory;
             itemsControl.ItemTemplate = itemTemplate;
 
-            // Wrap ScrollViewer and vertical line in a Grid
+            // listContainer directly hosts itemsControl
             var listContainer = new Grid();
-            // 不再使用多列定义，直接在单列中居中放置线，确保其位于 itemsControl 两列的正中间
+            listContainer.Children.Add(itemsControl);
 
-            scrollViewer.Content = itemsControl;
-            listContainer.Children.Add(scrollViewer);
-
-            // Vertical separator line
             var separator = new Border
             {
                 Width = 1,
-                Background = Brushes.LightGray, // 使用更确定的灰色
+                Background = Brushes.LightGray,
                 VerticalAlignment = VerticalAlignment.Stretch,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 Margin = new Thickness(0, 10, 0, 10),
@@ -218,8 +197,8 @@ namespace YiboFile.Controls.Settings
                 var dialog = new Window
                 {
                     Title = "编辑快捷键",
-                    Width = 380, // 增加宽度
-                    Height = 280, // 增加高度
+                    Width = 380,
+                    Height = 280,
                     WindowStartupLocation = WindowStartupLocation.CenterOwner,
                     Owner = Window.GetWindow(this),
                     ResizeMode = ResizeMode.NoResize,
@@ -229,16 +208,15 @@ namespace YiboFile.Controls.Settings
                     ShowInTaskbar = false
                 };
 
-                // 主容器，增加内边距以容纳阴影
                 var mainBorder = new Border
                 {
                     Background = (Brush)Application.Current.TryFindResource("BackgroundTertiaryBrush"),
                     CornerRadius = new CornerRadius(12),
                     BorderThickness = new Thickness(1),
                     BorderBrush = (Brush)Application.Current.TryFindResource("BorderBrush"),
-                    Margin = new Thickness(15), // 为阴影预留充足空间
-                    UseLayoutRounding = true,   // 开启布局舍入
-                    SnapsToDevicePixels = true, // 开启像素对齐
+                    Margin = new Thickness(15),
+                    UseLayoutRounding = true,
+                    SnapsToDevicePixels = true,
                     Effect = new DropShadowEffect
                     {
                         Color = Colors.Black,
@@ -269,16 +247,15 @@ namespace YiboFile.Controls.Settings
                 {
                     Text = $"当前功能: {item.Description}",
                     FontSize = 13,
-                    Margin = new Thickness(0, 0, 0, 20) // 增加底部边距
+                    Margin = new Thickness(0, 0, 0, 20)
                 };
                 descText.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundSecondaryBrush");
                 Grid.SetRow(descText, 1);
                 grid.Children.Add(descText);
 
-                // Recording Visual
                 var displayBorder = new Border
                 {
-                    BorderThickness = new Thickness(2), // 增加到 2 像素以保证各边一致且醒目
+                    BorderThickness = new Thickness(2),
                     CornerRadius = new CornerRadius(8),
                     Padding = new Thickness(15),
                     Background = (Brush)Application.Current.TryFindResource("BackgroundPrimaryBrush"),
@@ -291,8 +268,8 @@ namespace YiboFile.Controls.Settings
                 var keyDisplayText = new TextBlock
                 {
                     Text = string.IsNullOrEmpty(item.KeyCombination) ? "请按下组合键..." : item.KeyCombination,
-                    FontSize = 24, // 恢复原来较大的号
-                    FontWeight = FontWeights.Bold, // 使用 Bold
+                    FontSize = 24,
+                    FontWeight = FontWeights.Bold,
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Center
                 };
@@ -309,7 +286,6 @@ namespace YiboFile.Controls.Settings
                     var key = args.Key == Key.System ? args.SystemKey : args.Key;
                     var modifiers = Keyboard.Modifiers;
 
-                    // Finish (Enter) or Cancel (Esc)
                     if (modifiers == ModifierKeys.None)
                     {
                         if (key == Key.Enter && hasMainKey)
@@ -325,7 +301,6 @@ namespace YiboFile.Controls.Settings
                         }
                     }
 
-                    // Build string
                     var parts = new System.Collections.Generic.List<string>();
                     if (modifiers.HasFlag(ModifierKeys.Control)) parts.Add("Ctrl");
                     if (modifiers.HasFlag(ModifierKeys.Alt)) parts.Add("Alt");
@@ -340,8 +315,6 @@ namespace YiboFile.Controls.Settings
                     if (!isModifier)
                     {
                         var keyStr = key.ToString();
-
-                        // 映射修正
                         if (key >= Key.D0 && key <= Key.D9) keyStr = (key - Key.D0).ToString();
                         else if (key >= Key.NumPad0 && key <= Key.NumPad9) keyStr = (key - Key.NumPad0).ToString();
                         else if (key == Key.OemPlus) keyStr = "=";
@@ -361,9 +334,6 @@ namespace YiboFile.Controls.Settings
                     keyDisplayText.Text = string.Join("+", parts);
                 };
 
-                // 移除手动文字渲染模式设置，采用默认渲染以获得最佳一致性
-
-                // Focus enforcement
                 dialog.Loaded += (s, a) => { dialog.Activate(); dialog.Focus(); Keyboard.Focus(dialog); };
                 dialog.ContentRendered += (s, a) => Keyboard.Focus(dialog);
                 dialog.MouseDown += (s, a) => dialog.Focus();
@@ -393,7 +363,6 @@ namespace YiboFile.Controls.Settings
 
         public void SaveSettings()
         {
-            // Auto-saved by command interactions or property changes
         }
         private void ResetHotkey_Click(object sender, RoutedEventArgs e)
         {
@@ -407,4 +376,3 @@ namespace YiboFile.Controls.Settings
         }
     }
 }
-

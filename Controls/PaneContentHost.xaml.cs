@@ -5,9 +5,11 @@ using System.Windows.Controls;
 using YiboFile.Interfaces.Plugins;
 using YiboFile.Services.Core;
 using YiboFile.Services.Tabs;
+using YiboFile.ViewModels;
 using YiboFile.ViewModels.Messaging;
 using YiboFile.ViewModels.Messaging.Messages;
 using YiboFile.Models.Navigation;
+using YiboFile.Services.Navigation;
 using System.Windows.Media.Animation;
 using System.Windows.Media;
 
@@ -162,6 +164,9 @@ namespace YiboFile.Controls
                 CustomContentContainer.Visibility = Visibility.Collapsed;
                 CustomContentPresenter.Content = null;
                 _activeCustomContent = null;
+
+                // 执行入场动画
+                PlayEnterAnimation(FileBrowserView);
             }
             else
             {
@@ -271,6 +276,9 @@ namespace YiboFile.Controls
         {
             if (string.IsNullOrWhiteSpace(path)) return;
 
+            // 获取当前 PaneId
+            PaneId? targetPane = (DataContext as PaneViewModel)?.MyPaneId;
+
             // 检查是否为 yibofile:// 协议
             if (path.StartsWith(ContentProtocol, StringComparison.OrdinalIgnoreCase))
             {
@@ -278,7 +286,7 @@ namespace YiboFile.Controls
                 if (!string.IsNullOrEmpty(contentTypeId))
                 {
                     // 打开对应的内容标签页
-                    _messageBus?.Publish(new OpenContentTabMessage(contentTypeId));
+                    _messageBus?.Publish(new OpenContentTabMessage(contentTypeId, targetPane));
                     return;
                 }
             }
@@ -319,7 +327,7 @@ namespace YiboFile.Controls
                 }
 
                 // 发送导航请求（PathChanged 会触发 NavigationCoordinator 处理）
-                _messageBus?.Publish(new NavigateToPathMessage(path));
+                _messageBus?.Publish(new NavigateToPathMessage(path, true, targetPane));
             }
         }
 

@@ -31,16 +31,20 @@ namespace YiboFile.Services.Tabs
         // public event EventHandler<PathTab> TabAdded; // Replaced by TabAddedMessage
         // public event EventHandler<PathTab> TabRemoved; // Replaced by TabRemovedMessage
 
-        public TabService(AppConfig config, IMessageBus messageBus)
+        private readonly TabContentRegistry _registry;
+
+        public TabService(AppConfig config, IMessageBus messageBus, TabContentRegistry registry)
         {
             _config = config;
             _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
+            _registry = registry ?? throw new ArgumentNullException(nameof(registry));
             lock (_allInstances) { _allInstances.Add(this); }
         }
 
-        public TabService(IMessageBus messageBus) // For DI without config initially
+        public TabService(IMessageBus messageBus, TabContentRegistry registry)
         {
             _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
+            _registry = registry ?? throw new ArgumentNullException(nameof(registry));
             lock (_allInstances) { _allInstances.Add(this); }
         }
 
@@ -91,7 +95,7 @@ namespace YiboFile.Services.Tabs
 
         public PathTab FindTabByLibraryId(int libraryId)
         {
-            return _tabs.FirstOrDefault(t => t.Type == TabType.Library && t.Library?.Id == libraryId);
+            return _tabs.FirstOrDefault(t => t.ContentTypeId == TabContentTypes.Library && t.Library?.Id == libraryId);
         }
 
         public PathTab FindRecentTab(Func<PathTab, bool> predicate, TimeSpan timeWindow)
@@ -368,13 +372,13 @@ namespace YiboFile.Services.Tabs
         /// <param name="registry">TabContentRegistry 实例，用于解析 ITabContent</param>
         /// <param name="activate">是否立即激活，默认 true</param>
         /// <returns>创建或激活的标签页，失败时返回 null</returns>
-        public PathTab CreateSpecialTab(string contentTypeId, TabContentRegistry registry, bool activate = true)
+        public PathTab CreateSpecialTab(string contentTypeId, bool activate = true)
         {
-            if (string.IsNullOrEmpty(contentTypeId) || registry == null)
+            if (string.IsNullOrEmpty(contentTypeId) || _registry == null)
                 return null;
 
             // 1. 从 Registry 解析 ITabContent
-            var content = registry.Resolve(contentTypeId);
+            var content = _registry.Resolve(contentTypeId);
             if (content == null)
             {
                 FileLogger.Log($"TabService.CreateSpecialTab: Failed to resolve '{contentTypeId}'");

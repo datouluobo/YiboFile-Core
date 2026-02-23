@@ -12,10 +12,7 @@ namespace YiboFile.Controls.Settings
 {
     public partial class LibrarySettingsPanel : UserControl, ISettingsPanel
     {
-        // Event reserved for future use
-#pragma warning disable CS0067
         public event EventHandler SettingsChanged;
-#pragma warning restore CS0067
 
         private LibrarySettingsViewModel _viewModel;
 
@@ -60,16 +57,13 @@ namespace YiboFile.Controls.Settings
             mainGrid.Children.Add(descText);
 
             // Toolbar
-            // var toolbarColors = new SolidColorBrush(Color.FromRgb(0x21, 0x96, 0xF3)); // Blue
             var toolbarPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 15) };
 
-            // Add Library Button
             var addBtn = CreateButton("➕ 添加库", "AddLibraryCommand", null, null);
             addBtn.SetResourceReference(Control.BackgroundProperty, "AccentDefaultBrush");
             addBtn.SetResourceReference(Control.ForegroundProperty, "ForegroundOnAccentBrush");
             toolbarPanel.Children.Add(addBtn);
 
-            // Import Button
             var importBtn = CreateButton("📂 导入配置", null, Brushes.Transparent, null);
             importBtn.SetResourceReference(Control.ForegroundProperty, "AccentDefaultBrush");
             importBtn.Click += ImportBtn_Click;
@@ -78,7 +72,6 @@ namespace YiboFile.Controls.Settings
             importBtn.Margin = new Thickness(10, 0, 0, 0);
             toolbarPanel.Children.Add(importBtn);
 
-            // Export Button
             var exportBtn = CreateButton("📤 导出配置", null, Brushes.Transparent, null);
             exportBtn.SetResourceReference(Control.ForegroundProperty, "AccentDefaultBrush");
             exportBtn.Click += ExportBtn_Click;
@@ -90,17 +83,7 @@ namespace YiboFile.Controls.Settings
             Grid.SetRow(toolbarPanel, 2);
             mainGrid.Children.Add(toolbarPanel);
 
-
-            // Items Container (ScrollViewer)
-            var scrollViewer = new ScrollViewer
-            {
-                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
-                Padding = new Thickness(0, 0, 20, 0)
-            };
-            Grid.SetRow(scrollViewer, 3);
-
-            // ItemsControl
+            // ItemsControl direktly in Grid Row 3
             var itemsControl = new ItemsControl();
             itemsControl.SetBinding(ItemsControl.ItemsSourceProperty, new Binding("Libraries"));
 
@@ -162,10 +145,10 @@ namespace YiboFile.Controls.Settings
                 MessageBox.Show($"Error loading template: {ex.Message}");
             }
 
-            scrollViewer.Content = itemsControl;
-            mainGrid.Children.Add(scrollViewer);
+            Grid.SetRow(itemsControl, 3);
+            mainGrid.Children.Add(itemsControl);
 
-            // Container Wrapper with Padding
+            // Container Wrapper with Padding (Removed ScrollViewer here)
             var container = new Border
             {
                 Padding = new Thickness(20),
@@ -188,7 +171,6 @@ namespace YiboFile.Controls.Settings
                 FontSize = 13
             };
 
-            // Simple style for radius
             var style = new Style(typeof(Button));
             var template = new ControlTemplate(typeof(Button));
             var borderFactory = new FrameworkElementFactory(typeof(Border));
@@ -225,8 +207,6 @@ namespace YiboFile.Controls.Settings
                 if (_viewModel.ImportLibrariesCommand.CanExecute(dialog.FileName))
                 {
                     _viewModel.ImportLibrariesCommand.Execute(dialog.FileName);
-                    // Refresh view handled by Command logic ideally, but let's force refresh via Reload if needed 
-                    // ViewModel 'ImportLibraries' logic should refresh 'Libraries' collection.
                 }
             }
         }
@@ -258,8 +238,6 @@ namespace YiboFile.Controls.Settings
 
         public void SaveSettings()
         {
-            // Auto-saved
         }
     }
 }
-

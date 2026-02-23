@@ -10,6 +10,7 @@ using YiboFile.Models;
 using YiboFile.Services.Navigation;
 using YiboFile.Services.Core;
 using YiboFile.Services.Features;
+using YiboFile.Services.Tabs;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace YiboFile.ViewModels
@@ -145,13 +146,7 @@ namespace YiboFile.ViewModels
 
             ManageLibrariesCommand = new RelayCommand(() =>
             {
-                // Move logic to View or Controller if strictly adhering to MVVM, specifically Window management.
-                // However, for simplicity in this refactor step, we instantiate the window here.
-                // Ideally this should use a DialogService or WindowFactory.
-                // Since LibraryManagementWindow is a Window, we can instantiate it.
-                var window = new YiboFile.LibraryManagementWindow();
-                if (Application.Current?.MainWindow != null) window.Owner = Application.Current.MainWindow;
-                window.ShowDialog();
+                _messageBus.Publish(new OpenContentTabMessage(TabContentTypes.Management));
             });
 
             NewFavoriteGroupCommand = new RelayCommand(() =>
