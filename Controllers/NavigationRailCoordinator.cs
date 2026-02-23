@@ -39,6 +39,14 @@ namespace YiboFile.Controllers
             if (string.IsNullOrEmpty(message.Mode))
                 return;
 
+            // 特殊处理：原 NavigationMode 迁移到标签页
+            if (message.Mode == "Tasks" || message.Mode == "Backup" || message.Mode == "Clipboard")
+            {
+                string tabType = message.Mode.ToLowerInvariant();
+                _messageBus.Publish(new OpenContentTabMessage(tabType));
+                return; // 不改变左侧导航栏的活动状态
+            }
+
             // 业务逻辑：验证模式是否有效
             if (!IsValidNavigationMode(message.Mode))
             {
@@ -112,9 +120,6 @@ namespace YiboFile.Controllers
                 "Path" => true,
                 "Library" => true,
                 "Tag" => true,
-                "Tasks" => true,
-                "Backup" => true,
-                "Clipboard" => true,
                 _ => false
             };
         }

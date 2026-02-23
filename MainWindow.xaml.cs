@@ -55,7 +55,8 @@ namespace YiboFile
         TabManagerControl IShellWindow.TabManager => this.TabManager;
         TabManagerControl IShellWindow.SecondTabManager => this.SecondTabManager;
         // SettingsOverlay is accessed via FindName
-        Grid IShellWindow.SettingsOverlay => this.FindName("SettingsOverlay") as Grid;
+        // SettingsOverlay 已经迁移到标签页，此处返回 null 保持临时兼容
+        Grid IShellWindow.SettingsOverlay => null;
 
         // Resource access
         object IShellWindow.TryFindResource(object key) => this.TryFindResource(key);
@@ -95,9 +96,10 @@ namespace YiboFile
         {
             this._currentFiles.Clear();
             this._currentPath = null;
-            if (this.FileBrowser != null)
+            var fileBrowser = this.PrimaryContentHost?.InternalFileBrowser;
+            if (fileBrowser != null)
             {
-                this.FileBrowser.SetSearchStatus(false);
+                fileBrowser.SetSearchStatus(false);
             }
         }
 
@@ -154,7 +156,7 @@ namespace YiboFile
         internal FileSystemWatcherService _fileSystemWatcherService => _orchestrator?.FileSystemWatcherService;
         internal Services.WindowStateManager _windowStateManager => _orchestrator?.WindowStateManager;
         internal Handlers.WindowLifecycleHandler _windowLifecycleHandler => _orchestrator?.LifecycleHandler;
-        internal Services.Settings.SettingsOverlayController _settingsOverlayController => _orchestrator?.SettingsController;
+
         internal Handlers.ColumnInteractionHandler _columnInteractionHandler => _orchestrator?.ColumnInteractionHandler;
         internal Services.FileOperations.FileOperationService _fileOperationService => _orchestrator?.FileOperationService;
         internal Handlers.KeyboardEventHandler _keyboardEventHandler => _orchestrator?.KeyboardEventHandler;
@@ -180,6 +182,9 @@ namespace YiboFile
         internal Grid NavLibraryContent => NavigationPanelControl?.NavLibraryContentControl;
         internal Grid NavTagContent => NavigationPanelControl?.NavTagContentControl;
         internal ContextMenu LibraryContextMenu => NavigationPanelControl?.LibraryContextMenuControl;
+
+        public FileBrowserControl FileBrowser => PrimaryContentHost?.InternalFileBrowser;
+        public FileBrowserControl SecondFileBrowser => SecondContentHost?.InternalFileBrowser;
 
         #endregion
 
@@ -266,14 +271,8 @@ namespace YiboFile
         /// </summary>
         public void CloseOverlays()
         {
-            if (SettingsOverlay != null && SettingsOverlay.Visibility == Visibility.Visible)
-            {
-                _settingsOverlayController?.Hide();
-            }
-            if (AboutOverlay != null && AboutOverlay.Visibility == Visibility.Visible)
-            {
-                AboutOverlay.Visibility = Visibility.Collapsed;
-            }
+            // Settings/About 等原本的 Overlay 已迁移至标签页，目前这里不需要做任何操作
+            // 如果还有其他弹窗逻辑，可以补充在此
         }
 
         internal Services.Navigation.PaneId GetActivePaneId()
@@ -336,15 +335,7 @@ namespace YiboFile
 
         private void TitleBar_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            // 如果是在全屏覆盖层打开的情况下点击标题栏空白处，关闭覆盖层
-            if (SettingsOverlay != null && SettingsOverlay.Visibility == Visibility.Visible)
-            {
-                _settingsOverlayController?.Hide();
-            }
-            if (AboutOverlay != null && AboutOverlay.Visibility == Visibility.Visible)
-            {
-                AboutOverlay.Visibility = Visibility.Collapsed;
-            }
+            // 由于已采用 TabContent 显示设置和关于界面，移除原先在此触发的点击空白框关闭覆盖层的逻辑
 
             // 双击最大化/还原
             if (e.ClickCount == 2 && e.ChangedButton == MouseButton.Left)
@@ -382,13 +373,7 @@ namespace YiboFile
 
 
 
-        private void SettingsOverlay_MouseDown(object sender, MouseButtonEventArgs e)
-        {
-            if (e.OriginalSource == sender)
-            {
-                _orchestrator.SettingsController?.Hide();
-            }
-        }
+
 
         #endregion
 
@@ -413,7 +398,7 @@ namespace YiboFile
         internal (Controls.FileBrowserControl browser, string path, Library library) GetActiveContext()
         {
             if (_layoutEventHandler != null) return _layoutEventHandler.GetActiveContext();
-            return (FileBrowser, _currentPath, _currentLibrary);
+            return (PrimaryContentHost?.InternalFileBrowser, _currentPath, _currentLibrary);
         }
 
         internal void NavigateSecondaryPaneToLibrary(Library library) => _layoutEventHandler?.NavigateSecondaryPaneToLibrary(library);
@@ -567,8 +552,8 @@ namespace YiboFile
                     }
                     else
                     {
-                        FileBrowser?.Focus();
-                        FileBrowser?.FilesList?.Focus();
+                        PrimaryContentHost?.InternalFileBrowser?.Focus();
+                        PrimaryContentHost?.InternalFileBrowser?.FilesList?.Focus();
                     }
                 });
             });

@@ -18,11 +18,15 @@ namespace YiboFile.Services.Plugins
         private readonly List<IYiboFilePlugin> _plugins = new List<IYiboFilePlugin>();
         private readonly IMessageBus _messageBus;
         private readonly IServiceProvider _serviceProvider;
+        private readonly YiboFile.Services.Tabs.TabContentRegistry _registry;
 
         public PluginManager(IMessageBus messageBus, IServiceProvider serviceProvider)
         {
             _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
             _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+            
+            // 可选：获取TabContentRegistry
+            _registry = serviceProvider.GetService(typeof(YiboFile.Services.Tabs.TabContentRegistry)) as YiboFile.Services.Tabs.TabContentRegistry;
         }
 
         public IReadOnlyList<IYiboFilePlugin> Plugins => _plugins.AsReadOnly();
@@ -84,6 +88,29 @@ namespace YiboFile.Services.Plugins
                         catch (Exception ex)
                         {
                             FileLogger.LogException($"Failed to instantiate plugin type {type.Name} from {Path.GetFileName(dllPath)}", ex);
+                        }
+                    }
+
+                    // 新增: 扫描 ITabPageExtension (支持插件向Tab注册特殊内置页)
+                    if (_registry != null)
+                    {
+                        var tabExtensions = assembly.GetTypes()
+                            .Where(t => typeof(ITabPageExtension).IsAssignableFrom(t) && !t.IsInterface && !t.IsAbstract);
+
+                        foreach (var extType in tabExtensions)
+                        {
+                            try
+                            {
+                                if (Activator.CreateInstance(extType) is ITabPageExtension ext)
+                                {
+                                    _registry.Register(ext.ContentTypeId, () => ext.CreateContent());
+                                    FileLogger.Log($"Registered tab page extension: {ext.ContentTypeId}");
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                FileLogger.LogException($"Failed to instantiate custom tab extension {extType.Name} from {Path.GetFileName(dllPath)}", ex);
+                            }
                         }
                     }
                 }

@@ -100,10 +100,12 @@ namespace YiboFile.Services.Orchestration
             ViewModel.RegisterModule(NavigationModule);
 
             // 标签页模块
+            var tabContentRegistry = _serviceProvider.GetService<TabContentRegistry>();
             TabsModule = new TabsModule(
                 _messageBus,
                 tabService,
                 secondTabService,
+                tabContentRegistry,
                 () => window.IsDualListMode,
                 () => window.GetActivePaneId() == PaneId.Second);
             ViewModel.RegisterModule(TabsModule);

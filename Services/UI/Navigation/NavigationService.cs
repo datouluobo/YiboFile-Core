@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using YiboFile.Services.Core;
+using YiboFile.Services.Search;
 using YiboFile.ViewModels.Messaging;
 using YiboFile.ViewModels.Messaging.Messages;
 using YiboFile.Models.Navigation;
@@ -428,6 +429,10 @@ namespace YiboFile.Services.Navigation
         private void PublishNavigationComplete(string path, PaneId pane, NavigationSource source)
         {
             var state = GetState(pane);
+
+            // 记录到全局历史记录 (地址栏下拉列表)
+            RecordGlobalHistory(path);
+
             _messageBus?.Publish(new NavigationCompleteMessage(
                 path,
                 pane,
@@ -435,6 +440,43 @@ namespace YiboFile.Services.Navigation
                 "Path", // NavigationMode default
                 state.BackStack,
                 state.ForwardStack));
+        }
+
+        private void RecordGlobalHistory(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return;
+
+            try
+            {
+                var info = ProtocolManager.Parse(path);
+                HistoryType? type = null;
+                string content = info.TargetPath;
+
+                switch (info.Type)
+                {
+                    case ProtocolType.Local:
+                        type = HistoryType.LocalPath;
+                        break;
+                    case ProtocolType.Search:
+                        type = HistoryType.Search;
+                        break;
+                    case ProtocolType.ContentSearch:
+                        type = HistoryType.FullTextSearch;
+                        break;
+                    case ProtocolType.Library:
+                        type = HistoryType.Library;
+                        break;
+                    case ProtocolType.Tag:
+                        type = HistoryType.Tag;
+                        break;
+                }
+
+                if (type.HasValue)
+                {
+                    SearchHistoryService.Instance.Add(content, type.Value);
+                }
+            }
+            catch { }
         }
 
         private string GetItemPath(object item)

@@ -1,6 +1,6 @@
 using System.Threading.Tasks;
 using YiboFile.Handlers;
-using YiboFile.Services.Settings;
+
 using YiboFile.Services.FileOperations;
 using YiboFile.Services.Navigation;
 using YiboFile.Services.Tabs;
@@ -51,7 +51,7 @@ namespace YiboFile.Services.Orchestration
         #region Handler & Controller Access
 
         WindowLifecycleHandler LifecycleHandler { get; }
-        SettingsOverlayController SettingsController { get; }
+
         ColumnInteractionHandler ColumnInteractionHandler { get; }
         ColumnInteractionHandler SecondColumnInteractionHandler { get; }
         FileListEventHandler MainFileListHandler { get; }

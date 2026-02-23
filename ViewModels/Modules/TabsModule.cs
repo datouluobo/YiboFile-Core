@@ -20,6 +20,7 @@ namespace YiboFile.ViewModels.Modules
     {
         private readonly TabService _tabService;
         private readonly TabService _secondTabService;
+        private readonly TabContentRegistry _registry;
         private readonly Func<bool> _isDualListMode;
         private readonly Func<bool> _isSecondPaneFocused;
         private bool _isSuppressingNavigation = false;
@@ -32,16 +33,28 @@ namespace YiboFile.ViewModels.Modules
         public System.Windows.Input.ICommand PrimaryNewTabCommand => _tabService?.NewTabCommand;
         public System.Windows.Input.ICommand SecondaryNewTabCommand => _secondTabService?.NewTabCommand;
 
+        /// <summary>
+        /// 主栏当前活跃标签页（供 PaneContentHost 绑定）。
+        /// </summary>
+        public PathTab PrimaryActiveTab => _tabService?.ActiveTab;
+
+        /// <summary>
+        /// 副栏当前活跃标签页（供 PaneContentHost 绑定）。
+        /// </summary>
+        public PathTab SecondaryActiveTab => _secondTabService?.ActiveTab;
+
         public TabsModule(
             IMessageBus messageBus,
             TabService tabService,
             TabService secondTabService = null,
+            TabContentRegistry registry = null,
             Func<bool> isDualListMode = null,
             Func<bool> isSecondPaneFocused = null)
             : base(messageBus)
         {
             _tabService = tabService ?? throw new ArgumentNullException(nameof(tabService));
             _secondTabService = secondTabService;
+            _registry = registry;
             _isDualListMode = isDualListMode ?? (() => false);
             _isSecondPaneFocused = isSecondPaneFocused ?? (() => false);
         }
@@ -61,6 +74,9 @@ namespace YiboFile.ViewModels.Modules
             Subscribe<TabActiveChangedMessage>(m => OnActiveTabChanged(m.ActiveTab, m.Pane));
             Subscribe<TabPinStateChangedMessage>(m => OnTabPinStateChanged(m.Tab, m.Pane));
             Subscribe<TabTitleChangedMessage>(m => OnTabTitleChanged(m.Tab, m.Pane));
+
+            // 订阅特殊标签页打开请求
+            Subscribe<OpenContentTabMessage>(OnOpenContentTab);
         }
 
         private void OnActiveTabChanged(PathTab tab, PaneId pane)
@@ -71,7 +87,19 @@ namespace YiboFile.ViewModels.Modules
             {
                 _isSwitchingTab = true;
 
+                // 通知绑定系统更新 PrimaryActiveTab / SecondaryActiveTab
+                if (pane == PaneId.Second)
+                    OnPropertyChanged(nameof(SecondaryActiveTab));
+                else
+                    OnPropertyChanged(nameof(PrimaryActiveTab));
 
+                // 特殊标签页（yibofile:// 协议）不需要触发文件导航
+                // PaneContentHost 会通过 ActiveTab 绑定自动切换内容
+                if (!string.IsNullOrEmpty(tab.ContentTypeId) && !TabContentTypes.IsFileBrowserType(tab.ContentTypeId))
+                {
+                    // 仅标记当前活跃但不发送导航消息
+                    return;
+                }
 
                 if (!_isSuppressingNavigation && !string.IsNullOrEmpty(tab.Path))
                 {
@@ -323,6 +351,28 @@ namespace YiboFile.ViewModels.Modules
             if (path.StartsWith("search://", StringComparison.OrdinalIgnoreCase) || path.StartsWith("content://", StringComparison.OrdinalIgnoreCase)) return type == TabType.Search;
 
             return type == TabType.Path;
+        }
+
+        #endregion
+
+        #region 特殊标签页处理
+
+        /// <summary>
+        /// 处理特殊标签页打开请求。
+        /// </summary>
+        private void OnOpenContentTab(OpenContentTabMessage message)
+        {
+            if (string.IsNullOrEmpty(message.ContentTypeId) || _registry == null)
+                return;
+
+            // 确定目标 TabService
+            bool useSecond = message.TargetPane.HasValue
+                ? message.TargetPane.Value == PaneId.Second
+                : (_isDualListMode() && _isSecondPaneFocused());
+
+            var tabService = useSecond && _secondTabService != null ? _secondTabService : _tabService;
+
+            tabService?.CreateSpecialTab(message.ContentTypeId, _registry);
         }
 
         #endregion

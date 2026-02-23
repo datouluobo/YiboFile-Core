@@ -89,7 +89,7 @@ namespace YiboFile.Services.Orchestration
 
         // Handler 属性（委托给 HandlerInitializer）
         public WindowLifecycleHandler LifecycleHandler => _handlerInitializer.LifecycleHandler;
-        public Settings.SettingsOverlayController SettingsController => _handlerInitializer.SettingsController;
+
         public ColumnInteractionHandler ColumnInteractionHandler => _handlerInitializer.ColumnInteractionHandler;
         public ColumnInteractionHandler SecondColumnInteractionHandler => _handlerInitializer.SecondColumnInteractionHandler;
         public FileListEventHandler MainFileListHandler => _handlerInitializer.MainFileListHandler;

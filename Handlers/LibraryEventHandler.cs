@@ -251,10 +251,8 @@ namespace YiboFile.Handlers
 
         public void LibraryManage_Click()
         {
-            var owner = _shellWindow as Window;
-            var settingsWindow = new YiboFile.Windows.NavigationSettingsWindow("Library");
-            if (owner != null) settingsWindow.Owner = owner;
-            settingsWindow.ShowDialog();
+            var messageBus = (YiboFile.ViewModels.Messaging.IMessageBus)App.ServiceProvider?.GetService(typeof(YiboFile.ViewModels.Messaging.IMessageBus));
+            messageBus?.Publish(new YiboFile.ViewModels.Messaging.Messages.OpenContentTabMessage("management"));
         }
 
         public void ImportLibrary_Click(object sender, RoutedEventArgs e)

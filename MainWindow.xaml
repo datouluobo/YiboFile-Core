@@ -165,47 +165,17 @@
 
             </Grid>
 
-            <!-- 列3：主文件浏览器 -->
-            <!-- Z-Index 100 on Grid to stay above background but below Overlay -->
-            <!-- 列3：主文件浏览器 -->
-            <!-- Z-Index 100 on Grid to stay above background but below Overlay -->
-            <controls:FileBrowserControl x:Name="FileBrowser"
+            <!-- 列3：主内容宿主（包含文件浏览器 + 自定义面板切换） -->
+            <controls:PaneContentHost x:Name="PrimaryContentHost"
                                      Grid.Row="1" Grid.RowSpan="3"
                                      Grid.Column="3" 
                                      VerticalAlignment="Stretch"
                                      Margin="0,0,0,0"
                                      Panel.ZIndex="100"
+                                     ActiveTab="{Binding DataContext.Tabs.PrimaryActiveTab, RelativeSource={RelativeSource AncestorType=Window}}"
                                      DataContext="{Binding PrimaryPane}"/>
 
-            <!-- 备份管理器 -->
-            <controls:BackupBrowserControl x:Name="BackupBrowser"
-                                     Grid.Column="2" Grid.ColumnSpan="4"
-                                     Grid.Row="1" 
-                                     Grid.RowSpan="3"
-                                     HorizontalAlignment="Stretch" 
-                                     VerticalAlignment="Stretch"
-                                     Visibility="{Binding DataContext.Layout.ActiveSpecialPanel, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=Backup, FallbackValue=Collapsed}"
-                                     Panel.ZIndex="100"/>
 
-            <!-- 任务队列 (列2-5) -->
-            <controls:TaskQueuePanel x:Name="TaskQueuePanel" 
-                                  Grid.Column="2" Grid.ColumnSpan="4"
-                                  Grid.Row="1" Grid.RowSpan="3"
-                                  HorizontalAlignment="Stretch" 
-                                  VerticalAlignment="Stretch" 
-                                  Margin="0" 
-                                  Visibility="{Binding DataContext.Layout.ActiveSpecialPanel, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=Tasks, FallbackValue=Collapsed}"
-                                  Panel.ZIndex="100"/>
-
-            <!-- 剪贴板历史 (列2-5) -->
-            <controls:ClipboardHistoryPanel x:Name="ClipboardHistoryPanelControl" 
-                                  Grid.Column="2" Grid.ColumnSpan="4"
-                                  Grid.Row="1" Grid.RowSpan="3"
-                                  HorizontalAlignment="Stretch" 
-                                  VerticalAlignment="Stretch" 
-                                  Margin="0" 
-                                  Visibility="{Binding DataContext.Layout.ActiveSpecialPanel, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=Clipboard, FallbackValue=Collapsed}"
-                                  Panel.ZIndex="100"/>
 
             <!-- ========== 列5：可切换区域（预览/副文件列表） ========== -->
             <Grid Grid.Row="0" Grid.Column="5" Grid.RowSpan="4" 
@@ -240,35 +210,17 @@
                                             IsHitTestVisible="True"
                                             WindowChrome.IsHitTestVisibleInChrome="True"/>
 
-                    <!-- 副文件浏览器 -->
-                    <controls:FileBrowserControl x:Name="SecondFileBrowser"
+                    <!-- 副内容宿主 -->
+                    <controls:PaneContentHost x:Name="SecondContentHost"
                                              Grid.Row="1"
                                              HorizontalAlignment="Stretch" 
                                              VerticalAlignment="Stretch"
+                                             ActiveTab="{Binding DataContext.Tabs.SecondaryActiveTab, RelativeSource={RelativeSource AncestorType=Window}}"
                                              DataContext="{Binding SecondaryPane}"/>
                 </Grid>
             </Grid>
 
-            <!-- 设置覆盖层:覆盖所有内容列 -->
-            <Grid Name="SettingsOverlay"
-              Grid.Row="1" Grid.RowSpan="3"
-              Grid.Column="0" Grid.ColumnSpan="6"
-              Background="{DynamicResource BackgroundPrimaryBrush}"
-              Panel.ZIndex="5000"
-              Visibility="Collapsed"
-              MouseDown="SettingsOverlay_MouseDown">
-                <controls:SettingsPanelControl x:Name="SettingsPanel"/>
-            </Grid>
 
-            <!-- 关于覆盖层 -->
-            <Grid Name="AboutOverlay"
-              Grid.Row="1" Grid.RowSpan="3"
-              Grid.Column="0" Grid.ColumnSpan="6"
-              Background="{DynamicResource BackgroundPrimaryBrush}"
-              Panel.ZIndex="5000"
-              Visibility="Collapsed">
-                <controls:AboutPanelControl x:Name="AboutPanel"/>
-            </Grid>
             <!-- 右上角窗口控制按钮：移动到 RootGrid 内部以保持 Margin 一致性 -->
 
 

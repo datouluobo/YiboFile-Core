@@ -15,19 +15,5 @@ namespace YiboFile.ViewModels.Messaging.Messages
         public bool ForceImmediate { get; set; }
     }
 
-    /// <summary>
-    /// 设置覆盖层控制消息
-    /// </summary>
-    public class SettingsOverlayRequestMessage
-    {
-        public bool Show { get; set; }
-    }
 
-    /// <summary>
-    /// 关于覆盖层控制消息
-    /// </summary>
-    public class AboutOverlayRequestMessage
-    {
-        public bool Show { get; set; }
-    }
 }

@@ -16,19 +16,19 @@ namespace YiboFile.ViewModels.Modules
         private bool _isSecondPaneFocused;
         private bool _isLeftPanelCollapsed;
         private bool _isRightPanelCollapsed;
-        private bool _isMainLayoutVisible = true;
-        private string _activeSpecialPanel = "None"; // None, Tasks, Backup, Clipboard
+
+        /// <summary>
+        /// 进入备份管理等强制布局模式的特殊标签页之前，保存的原始布局模式。
+        /// 离开时用于恢复。null 表示当前没有被特殊标签页覆盖。
+        /// </summary>
+        private string _savedLayoutModeBeforeSpecialTab;
+        /// <summary>
+        /// 进入特殊标签页之前的双列表模式状态。
+        /// </summary>
+        private bool _savedDualListModeBeforeSpecialTab;
 
         public override string Name => "LayoutModule";
 
-        /// <summary>
-        /// 当前激活的特殊面板
-        /// </summary>
-        public string ActiveSpecialPanel
-        {
-            get => _activeSpecialPanel;
-            set => SetProperty(ref _activeSpecialPanel, value);
-        }
 
         /// <summary>
         /// 当前布局模式 (Focus, Work, Full)
@@ -69,6 +69,11 @@ namespace YiboFile.ViewModels.Modules
                     {
                         IsRightPanelCollapsed = false;
                     }
+                    else
+                    {
+                        // 关闭双列表时，根据当前布局模式和预览可见性恢复右侧面板折叠状态
+                        IsRightPanelCollapsed = ShouldRightPanelCollapse();
+                    }
 
                     // 持久化状态
                     YiboFile.Services.Config.ConfigurationService.Instance.Set(c => c.IsDualListMode, value);
@@ -102,26 +107,9 @@ namespace YiboFile.ViewModels.Modules
         }
 
         /// <summary>
-        /// 主布局是否可见（当显示特殊面板如备份、任务队列时为 false）
+        /// 副列表实际可见性（考虑双列表开关）
         /// </summary>
-        public bool IsMainLayoutVisible
-        {
-            get => _isMainLayoutVisible;
-            set
-            {
-                if (SetProperty(ref _isMainLayoutVisible, value))
-                {
-                    // 发布消息通知相关组件（如 RightPanel）同步隐藏
-                    Publish(new MainLayoutVisibilityChangedMessage(value));
-                    OnPropertyChanged(nameof(IsDualListEffectivelyVisible));
-                }
-            }
-        }
-
-        /// <summary>
-        /// 副列表实际可见性（考虑双列表开关和全局布局状态）
-        /// </summary>
-        public bool IsDualListEffectivelyVisible => IsDualListMode && IsMainLayoutVisible;
+        public bool IsDualListEffectivelyVisible => IsDualListMode;
 
         /// <summary>
         /// 是否为副面板获得焦点 (双列表模式)
@@ -199,20 +187,48 @@ namespace YiboFile.ViewModels.Modules
             Subscribe<RequestLayoutModeMessage>(m => SwitchLayoutMode(m.Mode));
             Subscribe<RequestDualListToggleMessage>(m => ToggleDualListMode());
 
-            // 订阅导航模式变更，用于自动显示/隐藏特殊面板
+        // 导航模式变更（现已无特殊处理）
             Subscribe<NavigationModeChangedMessage>(m =>
             {
-                // 只有这三个模式需要显示特殊覆盖面板并隐藏主布局
-                if (m.Mode == "Tasks" || m.Mode == "Backup" || m.Mode == "Clipboard")
+            });
+
+            // 当某个标签页被激活时触发（仅处理主面板）
+            Subscribe<TabActiveChangedMessage>(m =>
+            {
+                if (m.ActiveTab == null || m.Pane != YiboFile.Services.Navigation.PaneId.Main) return;
+
+                bool isSpecialLayoutTab = m.ActiveTab.ContentTypeId == YiboFile.Services.Tabs.TabContentTypes.Backup;
+
+                if (isSpecialLayoutTab)
                 {
-                    ActiveSpecialPanel = m.Mode;
-                    IsMainLayoutVisible = false;
+                    // 进入需要强制布局的特殊标签页：保存当前状态，然后切换
+                    if (_savedLayoutModeBeforeSpecialTab == null)
+                    {
+                        _savedLayoutModeBeforeSpecialTab = _currentLayoutMode;
+                        _savedDualListModeBeforeSpecialTab = _isDualListMode;
+                        Services.Core.FileLogger.Log($"[LayoutModule] 进入备份标签 → 保存布局 '{_currentLayoutMode}', 双栏={_isDualListMode}");
+                    }
+                    if (IsDualListMode)
+                    {
+                        ToggleDualListMode(false);
+                    }
+                    SwitchLayoutMode("Work");
                 }
-                else
+                else if (_savedLayoutModeBeforeSpecialTab != null)
                 {
-                    // Path, Library, Tag, Search 等都使用主 FileBrowser，不需要特殊面板
-                    ActiveSpecialPanel = "None";
-                    IsMainLayoutVisible = true;
+                    // 离开特殊标签页：恢复之前保存的布局模式和双列表状态
+                    var savedMode = _savedLayoutModeBeforeSpecialTab;
+                    var savedDualList = _savedDualListModeBeforeSpecialTab;
+                    _savedLayoutModeBeforeSpecialTab = null;
+                    _savedDualListModeBeforeSpecialTab = false;
+                    Services.Core.FileLogger.Log($"[LayoutModule] 离开备份标签 → 恢复布局 '{savedMode}', 双栏={savedDualList} (当前: '{_currentLayoutMode}')");
+                    // 先恢复布局模式
+                    ForceApplyLayoutMode(savedMode);
+                    // 再恢复双列表模式（如果之前是开启的）
+                    if (savedDualList && !_isDualListMode)
+                    {
+                        ToggleDualListMode(true);
+                    }
                 }
             });
 
@@ -248,12 +264,59 @@ namespace YiboFile.ViewModels.Modules
         }
 
         /// <summary>
+        /// 判断右侧面板是否应该折叠。
+        /// 统一决策逻辑：只有在双列表模式激活，或者 Full 模式且预览面板已启用时，右侧列才展开。
+        /// </summary>
+        private bool ShouldRightPanelCollapse()
+        {
+            // 双列表模式下，右侧列始终展开（显示副文件列表）
+            if (_isDualListMode) return false;
+
+            // Full 模式下，仅当预览面板启用时展开
+            if (_currentLayoutMode == "Full")
+            {
+                var isPreviewVis = YiboFile.Services.Config.ConfigurationService.Instance.Config.IsRightPanelVisible;
+                return !isPreviewVis;
+            }
+
+            // Focus/Work 模式下，右侧列始终折叠
+            return true;
+        }
+
+        /// <summary>
+        /// 强制应用布局模式。
+        /// 与 SwitchLayoutMode 不同，即使 mode 字符串与当前相同，
+        /// 也会强制更新属性并重新发布消息，确保 UI 同步。
+        /// 用于从特殊标签页恢复时保证面板折叠状态正确。
+        /// </summary>
+        private void ForceApplyLayoutMode(string mode)
+        {
+            // 强制更新字段（绕过 setter 的相等性检查）
+            _currentLayoutMode = mode;
+            Publish(new LayoutModeChangedMessage(_currentLayoutMode));
+
+            // 持久化
+            YiboFile.Services.Config.ConfigurationService.Instance.Set(cfg => cfg.LayoutMode, mode);
+            YiboFile.Services.Config.ConfigurationService.Instance.SaveNow();
+
+            // 强制应用面板折叠状态
+            ApplyPanelCollapseForMode(mode);
+        }
+
+        /// <summary>
         /// 切换布局模式
         /// </summary>
         public void SwitchLayoutMode(string mode)
         {
             CurrentLayoutMode = mode;
+            ApplyPanelCollapseForMode(mode);
+        }
 
+        /// <summary>
+        /// 根据布局模式应用面板折叠/展开状态。
+        /// </summary>
+        private void ApplyPanelCollapseForMode(string mode)
+        {
             switch (mode)
             {
                 case "Focus":
@@ -266,7 +329,7 @@ namespace YiboFile.ViewModels.Modules
                     break;
                 case "Full":
                     IsLeftPanelCollapsed = false;
-                    IsRightPanelCollapsed = false;
+                    IsRightPanelCollapsed = ShouldRightPanelCollapse();
                     break;
             }
         }

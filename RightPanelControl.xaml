@@ -26,8 +26,38 @@
             <RowDefinition Height="{Binding NotesHeight, Mode=TwoWay, Converter={StaticResource DoubleToGridLengthConverter}, FallbackValue=200}" MinHeight="100"/>
         </Grid.RowDefinitions>
         
-        <!-- 行0：标题栏（占位，与列2工具栏对齐） -->
-        <Border Grid.Row="0" Height="50" Background="Transparent" IsHitTestVisible="False"/>
+        <!-- 行0：标题栏（与列2工具栏对齐） -->
+        <Border Grid.Row="0" Height="50" Background="Transparent" IsHitTestVisible="False">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
+                <TextBlock Text="预览" 
+                           FontSize="13" 
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                           VerticalAlignment="Center"/>
+                <TextBlock Text="·" 
+                           FontSize="13" 
+                           Foreground="{DynamicResource ForegroundTertiaryBrush}" 
+                           Margin="6,0"
+                           VerticalAlignment="Center">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Visible"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding SelectedItem}" Value="{x:Null}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <TextBlock FontSize="13" 
+                           Foreground="{DynamicResource ForegroundTertiaryBrush}"
+                           VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis"
+                           MaxWidth="250"
+                           Text="{Binding SelectedItem.Name, FallbackValue=''}"/>
+            </StackPanel>
+        </Border>
         
         <!-- Row 1: Preview Area -->
         <Border Grid.Row="1" Background="{DynamicResource BackgroundPrimaryBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,0,1">

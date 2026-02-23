@@ -14,6 +14,7 @@ using YiboFile.Services.Search;
 using YiboFile.Services.Navigation;
 using YiboFile.Services.FileNotes;
 using YiboFile.Services.Tabs;
+using YiboFile.Services.Tabs.Content;
 using YiboFile.Services.ColumnManagement;
 using YiboFile.Services.Features;
 using YiboFile.Controls;
@@ -75,6 +76,9 @@ namespace YiboFile.Services.Startup
 
                 // 8. Load Plugins
                 LoadPlugins();
+
+                // 9. Register TabContent types
+                RegisterTabContents();
 
                 return true;
             }
@@ -190,6 +194,7 @@ namespace YiboFile.Services.Startup
             services.AddSingleton<ITagService, TagService>();
 
             // UI Logic Services
+            services.AddSingleton<TabContentRegistry>();
             services.AddTransient<TabService>();
             services.AddTransient<ColumnService>();
 
@@ -447,6 +452,67 @@ namespace YiboFile.Services.Startup
             catch (Exception ex)
             {
                 YiboFile.Services.Core.FileLogger.LogException("Failed to load plugins", ex);
+            }
+        }
+
+        /// <summary>
+        /// 注册所有内置标签页内容类型到 TabContentRegistry。
+        /// Pro/Ultra 通过 ConfigureServices 注册额外类型。
+        /// 第三方插件通过 PluginManager 自动发现 ITabPageExtension。
+        /// </summary>
+        private void RegisterTabContents()
+        {
+            try
+            {
+                var registry = ServiceProvider.GetRequiredService<TabContentRegistry>();
+
+                // ── 文件浏览类 ──
+                registry.Register(TabContentTypes.Path,
+                    () => new FileBrowserTabContent(TabContentTypes.Path),
+                    new TabContentMetadata { Title = "文件浏览", AllowMultiple = true, SupportsSecondaryPane = true });
+
+                registry.Register(TabContentTypes.Library,
+                    () => new FileBrowserTabContent(TabContentTypes.Library),
+                    new TabContentMetadata { Title = "库", IconKey = "Icon_Nav_Library", AllowMultiple = true, SupportsSecondaryPane = true });
+
+                registry.Register(TabContentTypes.Tag,
+                    () => new FileBrowserTabContent(TabContentTypes.Tag),
+                    new TabContentMetadata { Title = "标签", IconKey = "Icon_Nav_Tag", AllowMultiple = true, SupportsSecondaryPane = true });
+
+                registry.Register(TabContentTypes.Search,
+                    () => new FileBrowserTabContent(TabContentTypes.Search),
+                    new TabContentMetadata { Title = "搜索", IconKey = "Icon_Nav_Search", AllowMultiple = true, SupportsSecondaryPane = true });
+
+                // ── 功能面板类 ──
+                registry.Register(TabContentTypes.Settings,
+                    () => new SettingsTabContent(),
+                    new TabContentMetadata { Title = "设置", IconKey = "Icon_Window_Settings", AllowMultiple = false, SupportsSecondaryPane = false });
+
+                registry.Register(TabContentTypes.About,
+                    () => new AboutTabContent(),
+                    new TabContentMetadata { Title = "关于", IconKey = "Icon_Window_About", AllowMultiple = false, SupportsSecondaryPane = true });
+
+                registry.Register(TabContentTypes.Management,
+                    () => new ManagementTabContent(),
+                    new TabContentMetadata { Title = "路径与库管理", IconKey = "Icon_Nav_Library", AllowMultiple = false, SupportsSecondaryPane = true });
+
+                registry.Register(TabContentTypes.Tasks,
+                    () => new TaskQueueTabContent(),
+                    new TabContentMetadata { Title = "任务队列", IconKey = "Icon_Window_Tasks", AllowMultiple = false, SupportsSecondaryPane = true });
+
+                registry.Register(TabContentTypes.Backup,
+                    () => new BackupTabContent(),
+                    new TabContentMetadata { Title = "备份管理", IconKey = "Icon_Folder", AllowMultiple = false, SupportsSecondaryPane = true });
+
+                registry.Register(TabContentTypes.Clipboard,
+                    () => new ClipboardTabContent(),
+                    new TabContentMetadata { Title = "剪切板历史", IconKey = "Icon_Copy", AllowMultiple = false, SupportsSecondaryPane = true });
+
+                FileLogger.Log($"TabContentRegistry: Registered {registry.GetRegisteredIds().Count} content types");
+            }
+            catch (Exception ex)
+            {
+                FileLogger.LogException("Failed to register tab contents", ex);
             }
         }
 

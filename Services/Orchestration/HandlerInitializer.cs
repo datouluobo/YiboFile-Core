@@ -33,7 +33,7 @@ namespace YiboFile.Services.Orchestration
 
         // 初始化结果（供 WindowOrchestrator 读取）
         public Handlers.WindowLifecycleHandler LifecycleHandler { get; private set; }
-        public Settings.SettingsOverlayController SettingsController { get; private set; }
+
         public Handlers.ColumnInteractionHandler ColumnInteractionHandler { get; private set; }
         public Handlers.ColumnInteractionHandler SecondColumnInteractionHandler { get; private set; }
         public Handlers.FileListEventHandler MainFileListHandler { get; private set; }
@@ -150,64 +150,17 @@ namespace YiboFile.Services.Orchestration
 
         private void InitializeOverlays(MainWindow window, LayoutModule layoutModule, MainWindowViewModel viewModel)
         {
-            // Initialize Settings Controller
-            var settingsOverlay = window.FindName("SettingsOverlay") as System.Windows.Controls.Grid;
-            var settingsPanel = window.FindName("SettingsPanel") as Controls.SettingsPanelControl;
-            var rightPanel = window.FindName("RightPanel") as System.Windows.UIElement;
-            if (settingsOverlay != null && settingsPanel != null)
-            {
-                SettingsController = new Settings.SettingsOverlayController(
-                    settingsOverlay,
-                    settingsPanel,
-                    rightPanel,
-                    (cfg) => { /* Auto-handled */ }
-                );
+            // Subscribe to Settings messages
+            _messageBus.Subscribe<ShowSettingsMessage>(msg =>
+                window.Dispatcher.Invoke(() =>
+                    _messageBus.Publish(new OpenContentTabMessage(TabContentTypes.Settings))));
 
-                // Subscribe to Settings messages
-                _messageBus.Subscribe<ShowSettingsMessage>(msg => window.Dispatcher.Invoke(() => SettingsController?.Show()));
-            }
+            // Subscribe to About messages
+            _messageBus.Subscribe<ShowAboutMessage>(msg =>
+                window.Dispatcher.Invoke(() =>
+                    _messageBus.Publish(new OpenContentTabMessage(TabContentTypes.About))));
 
-            // Initialize About overlay logic
-            var aboutOverlay = window.FindName("AboutOverlay") as System.Windows.Controls.Grid;
-            var aboutPanel = window.FindName("AboutPanel") as Controls.AboutPanelControl;
-            if (aboutOverlay != null && aboutPanel != null)
-            {
-                _messageBus.Subscribe<ShowAboutMessage>(msg => window.Dispatcher.Invoke(() => aboutOverlay.Visibility = System.Windows.Visibility.Visible));
-                aboutPanel.CloseRequested += (s, e) => aboutOverlay.Visibility = System.Windows.Visibility.Collapsed;
-            }
 
-            // Clipboard History Panel - Handle interactions
-            if (window.ClipboardHistoryPanelControl != null)
-            {
-                window.ClipboardHistoryPanelControl.ItemPasted += (item) =>
-                {
-                    // 1. Close Panel
-                    if (layoutModule != null)
-                    {
-                        layoutModule.ActiveSpecialPanel = "None";
-                        layoutModule.IsMainLayoutVisible = true;
-                    }
-
-                    // 2. Trigger Paste in Active Pane
-                    window.Dispatcher.InvokeAsync(() =>
-                    {
-                        // Restore focus
-                        if (layoutModule?.IsSecondPaneFocused == true)
-                        {
-                            window.SecondFileBrowser?.Focus();
-                            window.SecondFileBrowser?.FilesList?.Focus();
-                        }
-                        else
-                        {
-                            window.FileBrowser?.Focus();
-                            window.FileBrowser?.FilesList?.Focus();
-                        }
-
-                        // Execute Paste
-                        viewModel?.FileOperation?.PasteCommand?.Execute(viewModel.ActivePane);
-                    });
-                };
-            }
         }
 
         private void InitializeInputHandlers(
@@ -365,16 +318,12 @@ namespace YiboFile.Services.Orchestration
 
             window.NavigationPanelControl.LibraryManageClick += (s, e) =>
             {
-                var settingsWindow = new YiboFile.Windows.NavigationSettingsWindow("Library");
-                settingsWindow.Owner = window;
-                settingsWindow.ShowDialog();
+                _messageBus.Publish(new OpenContentTabMessage(YiboFile.Services.Tabs.TabContentTypes.Management));
             };
 
             window.NavigationPanelControl.PathManageClick += (s, e) =>
             {
-                var settingsWindow = new YiboFile.Windows.NavigationSettingsWindow("Path");
-                settingsWindow.Owner = window;
-                settingsWindow.ShowDialog();
+                _messageBus.Publish(new OpenContentTabMessage(YiboFile.Services.Tabs.TabContentTypes.Management));
             };
 
             if (window.NavigationPanelControl.TagBrowsePanelControl != null)

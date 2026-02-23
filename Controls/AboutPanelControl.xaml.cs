@@ -7,7 +7,7 @@ namespace YiboFile.Controls
 {
     public partial class AboutPanelControl : UserControl
     {
-        public event EventHandler CloseRequested;
+
 
         public AboutPanelControl()
         {
@@ -32,10 +32,7 @@ namespace YiboFile.Controls
                 ContentLicense.Visibility = Visibility.Visible;
         }
 
-        private void CloseButton_Click(object sender, RoutedEventArgs e)
-        {
-            CloseRequested?.Invoke(this, EventArgs.Empty);
-        }
+
 
         private void LoadShortcuts()
         {

@@ -7,7 +7,6 @@ namespace YiboFile.Controls
 {
     public partial class SettingsPanelControl : UserControl
     {
-        public event EventHandler CloseRequested;
         public event EventHandler SettingsChanged;
 
         private UserControl _currentSettingsPanel;
@@ -41,10 +40,7 @@ namespace YiboFile.Controls
             }
         }
 
-        private void CloseButton_Click(object sender, RoutedEventArgs e)
-        {
-            CloseRequested?.Invoke(this, EventArgs.Empty);
-        }
+
 
         private void CategoryListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {

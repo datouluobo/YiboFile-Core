@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using YiboFile.Interfaces.Plugins;
 using YiboFile.Models;
 using YiboFile.Services.Config;
 using YiboFile.Services.Core;
@@ -348,6 +349,78 @@ namespace YiboFile.Services.Tabs
                 return false;
             }
             return true;
+        }
+
+        /// <summary>
+        /// 查找指定内容类型的已打开标签页。
+        /// </summary>
+        public PathTab FindTabByContentTypeId(string contentTypeId)
+        {
+            if (string.IsNullOrEmpty(contentTypeId)) return null;
+            return _tabs.FirstOrDefault(t => t.ContentTypeId == contentTypeId);
+        }
+
+        /// <summary>
+        /// 创建特殊标签页（设置、关于、管理、任务队列等）。
+        /// 如果 AllowMultiple=false 且已存在同类型标签，则激活已有标签而非创建新标签。
+        /// </summary>
+        /// <param name="contentTypeId">内容类型 ID（参见 TabContentTypes）</param>
+        /// <param name="registry">TabContentRegistry 实例，用于解析 ITabContent</param>
+        /// <param name="activate">是否立即激活，默认 true</param>
+        /// <returns>创建或激活的标签页，失败时返回 null</returns>
+        public PathTab CreateSpecialTab(string contentTypeId, TabContentRegistry registry, bool activate = true)
+        {
+            if (string.IsNullOrEmpty(contentTypeId) || registry == null)
+                return null;
+
+            // 1. 从 Registry 解析 ITabContent
+            var content = registry.Resolve(contentTypeId);
+            if (content == null)
+            {
+                FileLogger.Log($"TabService.CreateSpecialTab: Failed to resolve '{contentTypeId}'");
+                return null;
+            }
+
+            // 2. AllowMultiple=false 时，查找已存在的同类型标签
+            if (!content.AllowMultiple)
+            {
+                var existing = FindTabByContentTypeId(contentTypeId);
+                if (existing != null)
+                {
+                    if (activate) SetActiveTab(existing);
+                    return existing;
+                }
+            }
+
+            // 3. 创建新标签页
+            var tab = new PathTab
+            {
+                ContentTypeId = contentTypeId,
+                Title = content.Title,
+                IconKey = content.IconKey,
+                Path = $"yibofile://{contentTypeId}",
+                CustomContent = content,
+            };
+
+            // 设置关闭和选择命令（与普通标签页一致）
+            tab.CloseCommand = new RelayCommand(() =>
+            {
+                content.OnClosed();
+                RemoveTab(tab);
+                // 如果关闭的是活动标签，切换到上一个标签
+                if (_activeTab == null || _activeTab == tab)
+                {
+                    var next = _tabs.LastOrDefault();
+                    if (next != null) SetActiveTab(next);
+                }
+            });
+            tab.SelectCommand = new RelayCommand(() => SetActiveTab(tab));
+
+            AddTab(tab);
+            if (activate) SetActiveTab(tab);
+
+            FileLogger.Log($"TabService.CreateSpecialTab: Created tab '{contentTypeId}' with title '{content.Title}'");
+            return tab;
         }
     }
 }

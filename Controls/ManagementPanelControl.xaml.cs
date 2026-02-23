@@ -1,22 +1,28 @@
-using System;
-using System.Windows;
 using System.Windows.Controls;
 using YiboFile.Controls.Settings;
 
-namespace YiboFile.Windows
+namespace YiboFile.Controls
 {
-    public partial class NavigationSettingsWindow : Window
+    /// <summary>
+    /// 路径/库/标签管理面板。
+    /// 原 NavigationSettingsWindow 的内容，从独立 Window 转为 UserControl，
+    /// 以便嵌入标签页系统。
+    /// </summary>
+    public partial class ManagementPanelControl : UserControl
     {
         private PathSettingsPanel _pathPanel;
         private LibraryManagementPanel _libraryPanel;
         private TagManagementPanel _tagPanel;
 
-        public NavigationSettingsWindow(string initialTab = "Path")
+        public ManagementPanelControl()
         {
             InitializeComponent();
-            SelectTab(initialTab);
         }
 
+        /// <summary>
+        /// 选中指定的子标签页。
+        /// </summary>
+        /// <param name="tabTag">标签标识：Path / Library / Tag</param>
         public void SelectTab(string tabTag)
         {
             foreach (TabItem item in MainTabControl.Items)

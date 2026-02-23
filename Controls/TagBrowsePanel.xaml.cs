@@ -176,9 +176,7 @@ namespace YiboFile.Controls
 
         private void ManageTagsBtn_Click(object sender, RoutedEventArgs e)
         {
-            var window = new YiboFile.Windows.NavigationSettingsWindow("Tag");
-            window.Owner = Window.GetWindow(this);
-            window.ShowDialog();
+            _messageBus?.Publish(new OpenContentTabMessage(YiboFile.Services.Tabs.TabContentTypes.Management));
         }
 
         private void BackBtn_Click(object sender, RoutedEventArgs e)

@@ -1,6 +1,7 @@
 using System.Windows.Input;
 using YiboFile.ViewModels.Messaging;
 using YiboFile.ViewModels.Messaging.Messages;
+using YiboFile.Services.Tabs;
 
 namespace YiboFile.ViewModels
 {
@@ -35,17 +36,17 @@ namespace YiboFile.ViewModels
 
                 _messageBus.Publish(new RequestNavigationModeMessage("Tag"));
             });
-            NavigateToTasksCommand = new RelayCommand(() => _messageBus.Publish(new RequestNavigationModeMessage("Tasks")));
-            NavigateToBackupCommand = new RelayCommand(() => _messageBus.Publish(new RequestNavigationModeMessage("Backup")));
-            NavigateToClipboardCommand = new RelayCommand(() => _messageBus.Publish(new RequestNavigationModeMessage("Clipboard")));
+            NavigateToTasksCommand = new RelayCommand(() => _messageBus.Publish(new OpenContentTabMessage(TabContentTypes.Tasks)));
+            NavigateToBackupCommand = new RelayCommand(() => _messageBus.Publish(new OpenContentTabMessage(TabContentTypes.Backup)));
+            NavigateToClipboardCommand = new RelayCommand(() => _messageBus.Publish(new OpenContentTabMessage(TabContentTypes.Clipboard)));
 
             SetLayoutFocusCommand = new RelayCommand(() => _messageBus.Publish(new RequestLayoutModeMessage("Focus")));
             SetLayoutWorkCommand = new RelayCommand(() => _messageBus.Publish(new RequestLayoutModeMessage("Work")));
             SetLayoutFullCommand = new RelayCommand(() => _messageBus.Publish(new RequestLayoutModeMessage("Full")));
             ToggleDualListCommand = new RelayCommand(() => _messageBus.Publish(new RequestDualListToggleMessage()));
 
-            OpenSettingsCommand = new RelayCommand(() => _messageBus.Publish(new ShowSettingsMessage()));
-            OpenAboutCommand = new RelayCommand(() => _messageBus.Publish(new ShowAboutMessage()));
+            OpenSettingsCommand = new RelayCommand(() => _messageBus.Publish(new OpenContentTabMessage(TabContentTypes.Settings)));
+            OpenAboutCommand = new RelayCommand(() => _messageBus.Publish(new OpenContentTabMessage(TabContentTypes.About)));
         }
 
         #region 状态属性（由 Coordinator 更新）

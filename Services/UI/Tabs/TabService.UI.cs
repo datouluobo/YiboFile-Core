@@ -79,6 +79,16 @@ namespace YiboFile.Services.Tabs
                 CreateSearchTab(path, forceNewTab, activate);
                 return;
             }
+            // yibofile:// 协议用于特殊面板标签页（设置、关于等）
+            if (path.StartsWith("yibofile://", StringComparison.OrdinalIgnoreCase))
+            {
+                var contentTypeId = path.Substring("yibofile://".Length).Trim();
+                if (!string.IsNullOrEmpty(contentTypeId))
+                {
+                    _messageBus?.Publish(new YiboFile.ViewModels.Messaging.Messages.OpenContentTabMessage(contentTypeId));
+                }
+                return;
+            }
 
             if (!skipValidation && !ValidatePath(path, out string errorMessage))
             {

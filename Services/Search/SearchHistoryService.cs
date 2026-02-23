@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using YiboFile.Services.Config;
@@ -13,7 +14,9 @@ namespace YiboFile.Services.Search
     {
         LocalPath,
         Search,
-        FullTextSearch
+        FullTextSearch,
+        Library,
+        Tag
     }
 
     public class HistoryItem
@@ -21,6 +24,31 @@ namespace YiboFile.Services.Search
         public HistoryType Type { get; set; }
         public string Content { get; set; }
         public DateTime Timestamp { get; set; }
+
+        [JsonIgnore]
+        public string DisplayPath => Content;
+
+        [JsonIgnore]
+        public string DisplayType => Type switch
+        {
+            HistoryType.LocalPath => "位置",
+            HistoryType.Search => "搜索",
+            HistoryType.FullTextSearch => "全文",
+            HistoryType.Library => "库",
+            HistoryType.Tag => "标签",
+            _ => ""
+        };
+
+        [JsonIgnore]
+        public string IconKey => Type switch
+        {
+            HistoryType.LocalPath => "Icon_Folder",
+            HistoryType.Search => "Icon_Search",
+            HistoryType.FullTextSearch => "Icon_File",
+            HistoryType.Library => "Icon_Nav_Library",
+            HistoryType.Tag => "Icon_Nav_Tag",
+            _ => "Icon_Folder"
+        };
 
         public override bool Equals(object obj)
         {
@@ -45,7 +73,7 @@ namespace YiboFile.Services.Search
 
         private List<HistoryItem> _historyItems;
         private readonly string _historyFilePath;
-        private const string HISTORY_FILE_NAME = "yibofile_history.json"; // 新文件名规范，尽管Provider已经提供完整路径，这里保留作为Fallback或参考
+        private const string HISTORY_FILE_NAME = "yibofile_history.json"; 
 
         // 支持DI注入
         public SearchHistoryService(IConfigPathProvider pathProvider)
@@ -63,11 +91,31 @@ namespace YiboFile.Services.Search
                 {
                     Directory.CreateDirectory(appFolder);
                 }
-                _historyFilePath = Path.Combine(appFolder, "search_history.json"); // 旧文件名 fallback
+                _historyFilePath = Path.Combine(appFolder, HISTORY_FILE_NAME); 
             }
 
             _historyItems = new List<HistoryItem>();
             LoadHistory();
+
+            // 数据迁移：如果由于文件更名导致加载失败，尝试从旧文件名加载
+            if (_historyItems.Count == 0 && _historyFilePath.EndsWith(HISTORY_FILE_NAME))
+            {
+                string oldPath = Path.Combine(Path.GetDirectoryName(_historyFilePath), "search_history.json");
+                if (File.Exists(oldPath))
+                {
+                    try
+                    {
+                        string json = File.ReadAllText(oldPath);
+                        _historyItems = JsonSerializer.Deserialize<List<HistoryItem>>(json) ?? new List<HistoryItem>();
+                        if (_historyItems.Count > 0)
+                        {
+                            SaveHistory(); // 迁移到新文件
+                            // File.Move(oldPath, oldPath + ".bak", true); // 可选：备份或删除旧文件
+                        }
+                    }
+                    catch { }
+                }
+            }
         }
 
         public void Add(string content, HistoryType type)

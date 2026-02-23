@@ -262,9 +262,6 @@ namespace YiboFile.Controls
 
                 PathChanged?.Invoke(this, path);
 
-                // 记录历史
-                RecordHistory(path);
-
                 SwitchToBreadcrumbMode();
                 e.Handled = true;
             }

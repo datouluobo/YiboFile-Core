@@ -1,8 +1,7 @@
 <UserControl x:Class="YiboFile.Controls.SettingsPanelControl"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:controls="clr-namespace:YiboFile.Controls"
-             MinWidth="800" MinHeight="600">
+             xmlns:controls="clr-namespace:YiboFile.Controls">
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="200"/>
@@ -86,35 +85,7 @@
             </ScrollViewer>
         </Border>
         
-        <!-- 右上角关闭按钮：独立的Grid确保可交互，不拦截其他事件 -->
-        <Grid Grid.Column="0" Grid.ColumnSpan="3"
-              HorizontalAlignment="Right" VerticalAlignment="Top"
-              Background="Transparent"
-              Width="50" Height="36"
-              Panel.ZIndex="100">
-            <Button Name="CloseButton" Content="✕" 
-                    Width="40" Height="36"
-                    Background="Transparent" BorderThickness="0"
-                    Cursor="Hand" Click="CloseButton_Click"
-                    ToolTip="关闭设置"
-                    HorizontalAlignment="Right"
-                    VerticalAlignment="Top">
-                <Button.Style>
-                    <Style TargetType="Button">
-                        <Setter Property="Foreground" Value="{DynamicResource ForegroundSecondaryBrush}"/>
-                        <Style.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="{DynamicResource ControlHoverBrush}"/>
-                                <Setter Property="Foreground" Value="{DynamicResource ForegroundPrimaryBrush}"/>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter Property="Background" Value="{DynamicResource ControlPressedBrush}"/>
-                            </Trigger>
-                        </Style.Triggers>
-                    </Style>
-                </Button.Style>
-            </Button>
-        </Grid>
+
     </Grid>
 </UserControl>
 
