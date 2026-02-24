@@ -15,7 +15,8 @@ namespace YiboFile.Controls.Settings
         public HotkeySettingsPanel()
         {
             InitializeComponent();
-            _viewModel = new HotkeySettingsViewModel();
+            var configService = (YiboFile.Services.Config.IConfigurationService)YiboFile.App.ServiceProvider.GetService(typeof(YiboFile.Services.Config.IConfigurationService));
+            _viewModel = new HotkeySettingsViewModel(configService);
             this.DataContext = _viewModel;
         }
 

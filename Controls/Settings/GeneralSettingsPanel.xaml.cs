@@ -19,7 +19,8 @@ namespace YiboFile.Controls.Settings
         public GeneralSettingsPanel()
         {
             InitializeComponent();
-            _generalViewModel = new GeneralSettingsViewModel();
+            var configService = (YiboFile.Services.Config.IConfigurationService)YiboFile.App.ServiceProvider.GetService(typeof(YiboFile.Services.Config.IConfigurationService));
+            _generalViewModel = new GeneralSettingsViewModel(configService);
             _dataViewModel = new DataSettingsViewModel();
             this.DataContext = _generalViewModel;
 

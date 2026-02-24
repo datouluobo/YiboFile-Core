@@ -13,6 +13,7 @@ namespace YiboFile.ViewModels.Settings
     public class SearchSettingsViewModel : BaseViewModel
     {
         private readonly IFullTextSearchService _ftsService;
+        private readonly IConfigurationService _configService;
 
         private bool _isEnableFullTextSearch;
         public bool IsEnableFullTextSearch
@@ -22,7 +23,7 @@ namespace YiboFile.ViewModels.Settings
             {
                 if (SetProperty(ref _isEnableFullTextSearch, value))
                 {
-                    ConfigurationService.Instance.Update(c => c.IsEnableFullTextSearch = value);
+                    _configService.Update(c => c.IsEnableFullTextSearch = value);
                     if (value && _ftsService != null)
                         _ftsService.StartBackgroundIndexing();
                 }
@@ -36,7 +37,7 @@ namespace YiboFile.ViewModels.Settings
             set
             {
                 if (SetProperty(ref _autoExpandHistory, value))
-                    ConfigurationService.Instance.Update(c => c.AutoExpandHistory = value);
+                    _configService.Update(c => c.AutoExpandHistory = value);
             }
         }
 
@@ -47,7 +48,7 @@ namespace YiboFile.ViewModels.Settings
             set
             {
                 if (SetProperty(ref _historyMaxCount, value))
-                    ConfigurationService.Instance.Update(c => c.HistoryMaxCount = value);
+                    _configService.Update(c => c.HistoryMaxCount = value);
             }
         }
 
@@ -96,8 +97,9 @@ namespace YiboFile.ViewModels.Settings
         public ICommand RebuildIndexCommand { get; }
         public ICommand ClearHistoryCommand { get; }
 
-        public SearchSettingsViewModel()
+        public SearchSettingsViewModel(IConfigurationService configService)
         {
+            _configService = configService;
             _ftsService = App.ServiceProvider.GetService<IFullTextSearchService>();
             RebuildIndexCommand = new RelayCommand(RebuildIndex);
             ClearHistoryCommand = new RelayCommand(ClearHistory);
@@ -115,7 +117,7 @@ namespace YiboFile.ViewModels.Settings
 
         public void LoadFromConfig()
         {
-            InitializeSearchSettings(ConfigurationService.Instance.GetSnapshot());
+            InitializeSearchSettings(_configService.GetSnapshot());
         }
 
         private void InitializeSearchSettings(AppConfig config)
@@ -185,12 +187,12 @@ namespace YiboFile.ViewModels.Settings
         public void UpdateIndexScopes(IEnumerable<string> scopes)
         {
             IndexScopes = new ObservableCollection<string>(scopes);
-            ConfigurationService.Instance.Update(c => c.FullTextIndexPaths = scopes.ToList());
+            _configService.Update(c => c.FullTextIndexPaths = scopes.ToList());
         }
 
         public void UpdateIndexLocation(string newPath)
         {
-            ConfigurationService.Instance.Update(c => c.FullTextIndexDbPath = newPath);
+            _configService.Update(c => c.FullTextIndexDbPath = newPath);
             IndexLocation = newPath;
         }
 
@@ -212,7 +214,7 @@ namespace YiboFile.ViewModels.Settings
                     if (_ftsService == null) return;
                     _ftsService.ClearIndex();
 
-                    var config = ConfigurationService.Instance.GetSnapshot();
+                    var config = _configService.GetSnapshot();
                     IEnumerable<string> scanPaths = config.FullTextIndexPaths;
 
                     if (scanPaths == null || !scanPaths.Any())

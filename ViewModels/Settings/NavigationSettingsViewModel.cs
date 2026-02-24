@@ -11,6 +11,7 @@ namespace YiboFile.ViewModels.Settings
 {
     public class NavigationSettingsViewModel : BaseViewModel
     {
+        private readonly IConfigurationService _configService;
         private ObservableCollection<NavigationSectionItemViewModel> _navigationSections;
         public ObservableCollection<NavigationSectionItemViewModel> NavigationSections
         {
@@ -21,8 +22,9 @@ namespace YiboFile.ViewModels.Settings
         public ICommand MoveSectionUpCommand { get; }
         public ICommand MoveSectionDownCommand { get; }
 
-        public NavigationSettingsViewModel()
+        public NavigationSettingsViewModel(IConfigurationService configService)
         {
+            _configService = configService;
             MoveSectionUpCommand = new RelayCommand<NavigationSectionItemViewModel>(MoveSectionUp);
             MoveSectionDownCommand = new RelayCommand<NavigationSectionItemViewModel>(MoveSectionDown);
             LoadFromConfig();
@@ -30,7 +32,7 @@ namespace YiboFile.ViewModels.Settings
 
         public void LoadFromConfig()
         {
-            var config = ConfigurationService.Instance.GetSnapshot();
+            var config = _configService.GetSnapshot();
             InitializePathSettings(config);
         }
 
@@ -131,7 +133,7 @@ namespace YiboFile.ViewModels.Settings
         private void SavePathSettings()
         {
             var newOrder = NavigationSections.Select(s => s.Key).ToList();
-            ConfigurationService.Instance.Update(c => c.NavigationSectionsOrder = newOrder);
+            _configService.Update(c => c.NavigationSectionsOrder = newOrder);
         }
     }
 }

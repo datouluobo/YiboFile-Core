@@ -14,7 +14,8 @@ namespace YiboFile.Controls.Settings
         public FileListSettingsPanel()
         {
             InitializeComponent();
-            _viewModel = new FileListSettingsViewModel();
+            var configService = (YiboFile.Services.Config.IConfigurationService)YiboFile.App.ServiceProvider.GetService(typeof(YiboFile.Services.Config.IConfigurationService));
+            _viewModel = new FileListSettingsViewModel(configService);
             this.DataContext = _viewModel;
 
             _viewModel.PropertyChanged += (s, e) =>

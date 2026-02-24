@@ -8,6 +8,7 @@ namespace YiboFile.ViewModels.Settings
 {
     public class HotkeySettingsViewModel : BaseViewModel
     {
+        private readonly IConfigurationService _configService;
         private ObservableCollection<HotkeyItemViewModel> _hotkeys;
         public ObservableCollection<HotkeyItemViewModel> Hotkeys
         {
@@ -18,8 +19,9 @@ namespace YiboFile.ViewModels.Settings
         public ICommand ResetHotkeysCommand { get; }
         public ICommand ResetSingleHotkeyCommand { get; }
 
-        public HotkeySettingsViewModel()
+        public HotkeySettingsViewModel(IConfigurationService configService)
         {
+            _configService = configService;
             ResetHotkeysCommand = new RelayCommand(ResetHotkeys);
             ResetSingleHotkeyCommand = new RelayCommand<HotkeyItemViewModel>(ResetSingleHotkey);
             LoadFromConfig();
@@ -27,7 +29,7 @@ namespace YiboFile.ViewModels.Settings
 
         public void LoadFromConfig()
         {
-            InitializeHotkeySettings(ConfigurationService.Instance.GetSnapshot());
+            InitializeHotkeySettings(_configService.GetSnapshot());
         }
 
         private void InitializeHotkeySettings(AppConfig config)
@@ -119,7 +121,7 @@ namespace YiboFile.ViewModels.Settings
                     }
                 }
             }
-            ConfigurationService.Instance.Update(c => c.CustomHotkeys = customs);
+            _configService.Update(c => c.CustomHotkeys = customs);
         }
     }
 }

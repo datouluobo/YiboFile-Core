@@ -12,7 +12,8 @@ namespace YiboFile.Controls.Settings
         public PathSettingsPanel()
         {
             InitializeComponent();
-            _viewModel = new NavigationSettingsViewModel();
+            var configService = (YiboFile.Services.Config.IConfigurationService)YiboFile.App.ServiceProvider.GetService(typeof(YiboFile.Services.Config.IConfigurationService));
+            _viewModel = new NavigationSettingsViewModel(configService);
             this.DataContext = _viewModel;
         }
 

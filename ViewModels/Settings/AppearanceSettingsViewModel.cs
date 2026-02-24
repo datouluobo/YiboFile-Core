@@ -18,10 +18,12 @@ namespace YiboFile.ViewModels.Settings
         public ICommand ApplyAccentColorCommand { get; }
 
         private readonly YiboFile.Services.Theming.IThemeService _themeService;
+        private readonly IConfigurationService _configService;
 
-        public AppearanceSettingsViewModel(YiboFile.Services.Theming.IThemeService themeService)
+        public AppearanceSettingsViewModel(YiboFile.Services.Theming.IThemeService themeService, IConfigurationService configService)
         {
             _themeService = themeService;
+            _configService = configService;
             ResetThemeCommand = new RelayCommand(ResetTheme);
             ApplyAccentColorCommand = new RelayCommand<string>(ApplyAccentColor);
 
@@ -30,7 +32,7 @@ namespace YiboFile.ViewModels.Settings
 
         public void LoadFromConfig()
         {
-            var config = ConfigurationService.Instance.GetSnapshot();
+            var config = _configService.GetSnapshot();
             _windowOpacity = config.WindowOpacity > 0 ? config.WindowOpacity : 1.0;
             _enableAnimations = config.AnimationsEnabled;
 
@@ -47,7 +49,7 @@ namespace YiboFile.ViewModels.Settings
             {
                 if (SetProperty(ref _windowOpacity, value))
                 {
-                    ConfigurationService.Instance.Update(c => c.WindowOpacity = value);
+                    _configService.Update(c => c.WindowOpacity = value);
                     if (System.Windows.Application.Current?.MainWindow != null)
                         System.Windows.Application.Current.MainWindow.Opacity = value;
                 }
@@ -61,7 +63,7 @@ namespace YiboFile.ViewModels.Settings
             set
             {
                 if (SetProperty(ref _enableAnimations, value))
-                    ConfigurationService.Instance.Update(c => c.AnimationsEnabled = value);
+                    _configService.Update(c => c.AnimationsEnabled = value);
             }
         }
 
@@ -86,7 +88,7 @@ namespace YiboFile.ViewModels.Settings
                         _themeService.DisableSystemThemeFollowing();
                         _themeService.SetTheme(value.Id, animate: _enableAnimations);
                     }
-                    ConfigurationService.Instance.Update(c => c.ThemeMode = value.Id);
+                    _configService.Update(c => c.ThemeMode = value.Id);
                 }
             }
         }
@@ -101,7 +103,7 @@ namespace YiboFile.ViewModels.Settings
                 if (SetProperty(ref _selectedIconStyle, value))
                 {
                     _themeService.SetIconStyle(value.Id);
-                    ConfigurationService.Instance.Update(c => c.IconStyle = value.Id);
+                    _configService.Update(c => c.IconStyle = value.Id);
                 }
             }
         }
@@ -116,7 +118,7 @@ namespace YiboFile.ViewModels.Settings
                 if (SetProperty(ref _selectedUIStyle, value))
                 {
                     _themeService.SetUIStyle(value.Id);
-                    ConfigurationService.Instance.Update(c => c.UIStyle = value.Id);
+                    _configService.Update(c => c.UIStyle = value.Id);
                 }
             }
         }
@@ -207,7 +209,7 @@ namespace YiboFile.ViewModels.Settings
 
         public void RefreshThemes()
         {
-            var config = ConfigurationService.Instance.GetSnapshot();
+            var config = _configService.GetSnapshot();
             InitializeThemes(config);
         }
 
@@ -222,7 +224,7 @@ namespace YiboFile.ViewModels.Settings
 
             try
             {
-                var currentId = ConfigurationService.Instance.GetSnapshot().ThemeMode;
+                var currentId = _configService.GetSnapshot().ThemeMode;
                 string baseTheme = currentId == "Dark" || currentId == "Sunset" || currentId == "Ocean" || currentId == "Purple" ? "Dark" : "Light";
 
                 var theme = CustomThemeManager.CreateFromCurrent("我的自定义主题", baseTheme);
@@ -240,12 +242,12 @@ namespace YiboFile.ViewModels.Settings
                 CustomThemeManager.Save(theme);
                 CustomThemeManager.Apply(theme);
 
-                var config = ConfigurationService.Instance.GetSnapshot();
+                var config = _configService.GetSnapshot();
                 InitializeThemes(config);
                 RefreshThemes(); // Force refresh UI list
                 SelectedTheme = Themes.FirstOrDefault(t => t.Id == theme.Id);
 
-                ConfigurationService.Instance.Update(c => c.ThemeMode = theme.Id);
+                _configService.Update(c => c.ThemeMode = theme.Id);
             }
             catch { }
         }

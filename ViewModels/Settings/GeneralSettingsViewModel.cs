@@ -10,9 +10,11 @@ namespace YiboFile.ViewModels.Settings
         public ICommand ChangeBaseDirectoryCommand { get; }
 
         private readonly IConfigPathProvider _pathProvider;
+        private readonly IConfigurationService _configService;
 
-        public GeneralSettingsViewModel()
+        public GeneralSettingsViewModel(IConfigurationService configService)
         {
+            _configService = configService;
             _pathProvider = App.ServiceProvider?.GetService(typeof(YiboFile.Services.Config.IConfigPathProvider)) as YiboFile.Services.Config.IConfigPathProvider;
             ChangeBaseDirectoryCommand = new RelayCommand<string>(ChangeBaseDirectory);
             LoadFromConfig();
@@ -20,7 +22,7 @@ namespace YiboFile.ViewModels.Settings
 
         public void LoadFromConfig()
         {
-            var config = ConfigurationService.Instance.GetSnapshot();
+            var config = _configService.GetSnapshot();
 
             _isMaximized = config.IsMaximized;
             _enableMultiWindow = config.EnableMultiWindow;
@@ -41,7 +43,7 @@ namespace YiboFile.ViewModels.Settings
             set
             {
                 if (SetProperty(ref _isRightPanelVisible, value))
-                    ConfigurationService.Instance.Update(c => c.IsRightPanelVisible = value);
+                    _configService.Update(c => c.IsRightPanelVisible = value);
             }
         }
 
@@ -52,7 +54,7 @@ namespace YiboFile.ViewModels.Settings
             set
             {
                 if (SetProperty(ref _isMaximized, value))
-                    ConfigurationService.Instance.Update(c => c.IsMaximized = value);
+                    _configService.Update(c => c.IsMaximized = value);
             }
         }
 
@@ -63,7 +65,7 @@ namespace YiboFile.ViewModels.Settings
             set
             {
                 if (SetProperty(ref _enableMultiWindow, value))
-                    ConfigurationService.Instance.Update(c => c.EnableMultiWindow = value);
+                    _configService.Update(c => c.EnableMultiWindow = value);
             }
         }
 
@@ -74,7 +76,7 @@ namespace YiboFile.ViewModels.Settings
             set
             {
                 if (SetProperty(ref _activateNewTabOnMiddleClick, value))
-                    ConfigurationService.Instance.Update(c => c.ActivateNewTabOnMiddleClick = value);
+                    _configService.Update(c => c.ActivateNewTabOnMiddleClick = value);
             }
         }
 
@@ -85,7 +87,7 @@ namespace YiboFile.ViewModels.Settings
             set
             {
                 if (SetProperty(ref _tabWidthMode, value))
-                    ConfigurationService.Instance.Update(c => c.TabWidthMode = value);
+                    _configService.Update(c => c.TabWidthMode = value);
             }
         }
 
@@ -96,7 +98,7 @@ namespace YiboFile.ViewModels.Settings
             set
             {
                 if (SetProperty(ref _pinnedTabWidth, value))
-                    ConfigurationService.Instance.Update(c => c.PinnedTabWidth = value);
+                    _configService.Update(c => c.PinnedTabWidth = value);
             }
         }
 
@@ -107,7 +109,7 @@ namespace YiboFile.ViewModels.Settings
             set
             {
                 if (SetProperty(ref _uiFontSize, value))
-                    ConfigurationService.Instance.Update(c => c.UIFontSize = value);
+                    _configService.Update(c => c.UIFontSize = value);
             }
         }
 
@@ -118,7 +120,7 @@ namespace YiboFile.ViewModels.Settings
             set
             {
                 if (SetProperty(ref _tagFontSize, value))
-                    ConfigurationService.Instance.Update(c => c.TagFontSize = value);
+                    _configService.Update(c => c.TagFontSize = value);
             }
         }
 
@@ -129,7 +131,7 @@ namespace YiboFile.ViewModels.Settings
             set
             {
                 if (SetProperty(ref _tagBoxWidth, value))
-                    ConfigurationService.Instance.Update(c => c.TagBoxWidth = value);
+                    _configService.Update(c => c.TagBoxWidth = value);
             }
         }
 

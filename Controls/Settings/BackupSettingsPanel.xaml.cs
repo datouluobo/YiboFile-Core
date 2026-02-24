@@ -9,6 +9,7 @@ namespace YiboFile.Controls.Settings
 {
     public partial class BackupSettingsPanel : UserControl, ISettingsPanel
     {
+        private readonly IConfigurationService _configService;
         private AppConfig _config;
         private bool _isDirty = false;
 
@@ -17,12 +18,13 @@ namespace YiboFile.Controls.Settings
         public BackupSettingsPanel()
         {
             InitializeComponent();
+            _configService = (IConfigurationService)YiboFile.App.ServiceProvider.GetService(typeof(IConfigurationService));
             LoadSettings();
         }
 
         public void LoadSettings()
         {
-            _config = ConfigurationService.Instance.GetSnapshot();
+            _config = _configService.GetSnapshot();
 
             BackupPathTextBox.Text = _config.BackupDirectory;
 
@@ -49,7 +51,7 @@ namespace YiboFile.Controls.Settings
         {
             if (!_isDirty) return;
 
-            ConfigurationService.Instance.Update(cfg =>
+            _configService.Update(cfg =>
             {
                 cfg.BackupDirectory = BackupPathTextBox.Text;
 

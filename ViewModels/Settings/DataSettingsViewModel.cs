@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using YiboFile.Services.Config.IO;
+using YiboFile.Services.Config;
 
 namespace YiboFile.ViewModels.Settings
 {
@@ -10,6 +11,7 @@ namespace YiboFile.ViewModels.Settings
     {
         private readonly IExportService _exportService;
         private readonly IImportService _importService;
+        private readonly IConfigurationService _configService;
 
         public ICommand ExportConfigsCommand { get; }
         public ICommand ImportConfigsCommand { get; }
@@ -23,14 +25,16 @@ namespace YiboFile.ViewModels.Settings
         // Default constructor for design-time support or legacy instantiation
         public DataSettingsViewModel() : this(
             App.ServiceProvider?.GetService(typeof(IExportService)) as IExportService ?? new ExportService(new YiboFile.Services.Config.ConfigPathProvider()),
-            App.ServiceProvider?.GetService(typeof(IImportService)) as IImportService ?? new ImportService(new YiboFile.Services.Config.ConfigPathProvider()))
+            App.ServiceProvider?.GetService(typeof(IImportService)) as IImportService ?? new ImportService(new YiboFile.Services.Config.ConfigPathProvider()),
+            (IConfigurationService)App.ServiceProvider?.GetService(typeof(IConfigurationService)))
         {
         }
 
-        public DataSettingsViewModel(IExportService exportService, IImportService importService)
+        public DataSettingsViewModel(IExportService exportService, IImportService importService, IConfigurationService configService)
         {
             _exportService = exportService ?? throw new ArgumentNullException(nameof(exportService));
             _importService = importService ?? throw new ArgumentNullException(nameof(importService));
+            _configService = configService ?? throw new ArgumentNullException(nameof(configService));
 
             ExportConfigsCommand = new RelayCommand<string>(async (f) => await ExportConfigsAsync(f));
             ImportConfigsCommand = new RelayCommand<string>(async (f) => await ImportConfigsAsync(f));
@@ -60,7 +64,7 @@ namespace YiboFile.ViewModels.Settings
                 await _importService.ExecuteImportAsync(fileName, new[] { ExportModuleType.Settings });
 
                 // Reload configuration in memory
-                YiboFile.Services.Config.ConfigurationService.Instance.Reload();
+                _configService.Reload();
 
                 SettingsReloadRequested?.Invoke(this, EventArgs.Empty);
             }
@@ -106,7 +110,7 @@ namespace YiboFile.ViewModels.Settings
                 await _importService.ExecuteImportAsync(fileName, new[] { ExportModuleType.Settings, ExportModuleType.Structure, ExportModuleType.FileData, ExportModuleType.Themes });
 
                 // Reload configuration in memory
-                YiboFile.Services.Config.ConfigurationService.Instance.Reload();
+                _configService.Reload();
 
                 SettingsReloadRequested?.Invoke(this, EventArgs.Empty);
             }

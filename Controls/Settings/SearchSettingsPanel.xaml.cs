@@ -15,7 +15,8 @@ namespace YiboFile.Controls.Settings
         public SearchSettingsPanel()
         {
             InitializeComponent();
-            _viewModel = new SearchSettingsViewModel();
+            var configService = (YiboFile.Services.Config.IConfigurationService)YiboFile.App.ServiceProvider.GetService(typeof(YiboFile.Services.Config.IConfigurationService));
+            _viewModel = new SearchSettingsViewModel(configService);
             this.DataContext = _viewModel;
 
             EverythingVersionText.Text = YiboFile.Services.EverythingHelper.GetVersion();

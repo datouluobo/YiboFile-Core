@@ -5,14 +5,17 @@ namespace YiboFile.ViewModels.Settings
 {
     public class FileListSettingsViewModel : BaseViewModel
     {
-        public FileListSettingsViewModel()
+        private readonly IConfigurationService _configService;
+
+        public FileListSettingsViewModel(IConfigurationService configService)
         {
+            _configService = configService;
             LoadFromConfig();
         }
 
         public void LoadFromConfig()
         {
-            var config = ConfigurationService.Instance.GetSnapshot();
+            var config = _configService.GetSnapshot();
             _colTagsWidth = config.ColTagsWidth > 0 ? config.ColTagsWidth : 150;
             _colNotesWidth = config.ColNotesWidth > 0 ? config.ColNotesWidth : 200;
         }
@@ -24,7 +27,7 @@ namespace YiboFile.ViewModels.Settings
             set
             {
                 if (SetProperty(ref _colTagsWidth, value))
-                    ConfigurationService.Instance.Update(c => c.ColTagsWidth = value);
+                    _configService.Update(c => c.ColTagsWidth = value);
             }
         }
 
@@ -35,7 +38,7 @@ namespace YiboFile.ViewModels.Settings
             set
             {
                 if (SetProperty(ref _colNotesWidth, value))
-                    ConfigurationService.Instance.Update(c => c.ColNotesWidth = value);
+                    _configService.Update(c => c.ColNotesWidth = value);
             }
         }
     }
