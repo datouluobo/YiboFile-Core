@@ -79,12 +79,7 @@ namespace YiboFile.Controls
 
         #region Event Handlers
 
-        public event EventHandler CloseOverlayRequested;
 
-        public void RaiseCloseOverlayRequested()
-        {
-            CloseOverlayRequested?.Invoke(this, EventArgs.Empty);
-        }
 
         private void TabScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
         {

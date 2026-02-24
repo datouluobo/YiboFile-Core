@@ -41,7 +41,7 @@ namespace YiboFile.Handlers
         private readonly Action<string> _navigateToPath;
         private readonly Action<string> _switchNavigationMode;
         private readonly Func<bool> _isLibraryMode;
-        private readonly Action _closeOverlays;
+
         private readonly Action _navigateBack;
 
         // private readonly Action _undoClick; // Migrated
@@ -60,7 +60,7 @@ namespace YiboFile.Handlers
             Action<string> navigateToPath,
             Action<string> switchNavigationMode,
             Func<bool> isLibraryMode,
-            Action closeOverlays,
+
             Action navigateBack,
             IMessageBus messageBus = null)
         {
@@ -74,8 +74,7 @@ namespace YiboFile.Handlers
 
             _navigateToPath = navigateToPath ?? throw new ArgumentNullException(nameof(navigateToPath));
             _switchNavigationMode = switchNavigationMode ?? throw new ArgumentNullException(nameof(switchNavigationMode));
-            _isLibraryMode = isLibraryMode ?? throw new ArgumentNullException(nameof(isLibraryMode));
-            _closeOverlays = closeOverlays ?? throw new ArgumentNullException(nameof(closeOverlays));
+
             _navigateBack = navigateBack ?? throw new ArgumentNullException(nameof(navigateBack));
 
             _messageBus = messageBus;
@@ -152,13 +151,10 @@ namespace YiboFile.Handlers
 
         public void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e)
         {
-            // Esc: 关闭全屏覆盖层 (设置、关于)
+            // Esc: 取消操作等
             if (e.Key == Key.Escape && Keyboard.Modifiers == ModifierKeys.None)
             {
-                _closeOverlays?.Invoke();
-                // 如果覆盖层是打开的，我们可能想标记 e.Handled = true
-                // 但为了不破坏其他可能的 Esc 逻辑，我们这里取决于 closeOverlays 逻辑
-                // 实际上 CloseOverlays 在 MainWindow 中会检查可见性
+                // 可以放扩展逻辑，但不再关闭遗留覆盖层
             }
 
             // Ctrl+W 或 Ctrl+F4: 关闭当前标签页

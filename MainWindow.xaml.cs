@@ -263,14 +263,7 @@ namespace YiboFile
             _viewModel?.ActivePane?.FileList?.RefreshFiles();
         }
 
-        /// <summary>
-        /// 关闭所有覆盖层
-        /// </summary>
-        public void CloseOverlays()
-        {
-            // Settings/About 等原本的 Overlay 已迁移至标签页
-            // 如果后续有轻量级弹出层逻辑（如自定义 ContextMenu），可在此扩展
-        }
+
 
         internal Services.Navigation.PaneId GetActivePaneId()
         {

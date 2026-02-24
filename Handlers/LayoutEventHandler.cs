@@ -163,7 +163,6 @@ namespace YiboFile.Handlers
 
         private void ApplyLayoutModeUI(string mode)
         {
-            _window.CloseOverlays();
             _window.UpdateTabManagerMargin();
         }
 

@@ -31,6 +31,18 @@ namespace YiboFile.ViewModels.Settings
             _tagBoxWidth = config.TagBoxWidth;
             _baseDirectory = _pathProvider?.BaseDirectory ?? ConfigManager.GetBaseDirectory();
             _activateNewTabOnMiddleClick = config.ActivateNewTabOnMiddleClick;
+            _isRightPanelVisible = config.IsRightPanelVisible;
+        }
+
+        private bool _isRightPanelVisible;
+        public bool IsRightPanelVisible
+        {
+            get => _isRightPanelVisible;
+            set
+            {
+                if (SetProperty(ref _isRightPanelVisible, value))
+                    ConfigurationService.Instance.Update(c => c.IsRightPanelVisible = value);
+            }
         }
 
         private bool _isMaximized;

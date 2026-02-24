@@ -16,6 +16,7 @@
         <CheckBox Content="启动时最大化窗口" FontSize="14" MinHeight="32" Margin="0,0,0,24" IsChecked="{Binding IsMaximized, Mode=TwoWay}" />
         <CheckBox Content="启用多窗口支持 (Ctrl+Shift+N)" FontSize="14" MinHeight="32" Margin="0,0,0,10" IsChecked="{Binding EnableMultiWindow, Mode=TwoWay}" />
         <CheckBox Content="中键打开新标签页时立即激活 (否则在后台打开)" FontSize="14" MinHeight="32" Margin="0,0,0,24" IsChecked="{Binding ActivateNewTabOnMiddleClick, Mode=TwoWay}" />
+        <CheckBox Content="始终显示侧边预览信息栏 (开启后在完整模式下保持常驻)" FontSize="14" MinHeight="32" Margin="0,0,0,24" IsChecked="{Binding IsRightPanelVisible, Mode=TwoWay}" />
 
         <TextBlock Text="标签页宽度模式:" FontSize="14" Margin="0,8,0,8" />
         <StackPanel Orientation="Horizontal" Margin="20,0,0,4">

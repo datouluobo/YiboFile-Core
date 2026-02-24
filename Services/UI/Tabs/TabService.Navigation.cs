@@ -57,7 +57,6 @@ namespace YiboFile.Services.Tabs
             if (_ui != null)
             {
                 _ui.UpdateNavigationButtonsState?.Invoke();
-                _ui.TabManager?.RaiseCloseOverlayRequested();
             }
         }
 

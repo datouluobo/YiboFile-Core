@@ -185,7 +185,6 @@ namespace YiboFile.Services.Orchestration
                 path => navigationCoordinator.HandlePathNavigation(path, NavigationSource.External, ClickType.LeftClick, pane: window.GetActivePaneId()),
                 mode => navigationModeService?.SwitchNavigationMode(mode),
                 () => viewModel?.ActivePane?.NavigationMode == "Library",
-                () => window.CloseOverlays(),
                 () => { if (navigationService?.CanNavigateBack == true) navigationService.NavigateBack(); },
                 messageBus: _messageBus
             );
@@ -293,15 +292,7 @@ namespace YiboFile.Services.Orchestration
             );
             window._libraryEventHandler.Initialize();
 
-            // 订阅 TabManager 的关闭覆盖层请求
-            if (window.TabManager != null)
-            {
-                window.TabManager.CloseOverlayRequested += (s, e) => window.CloseOverlays();
-            }
-            if (window.SecondTabManager != null)
-            {
-                window.SecondTabManager.CloseOverlayRequested += (s, e) => window.CloseOverlays();
-            }
+
 
             // 初始化拖放
             window._dragDropEventHandler = new Handlers.DragDropEventHandler(

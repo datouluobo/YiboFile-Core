@@ -48,7 +48,6 @@ namespace YiboFile.Interfaces
         object DataContext { get; set; }
 
         // 窗口操作与资源
-        void CloseOverlays();
         void UpdateTabManagerMargin();
         void RefreshFileList();
         object TryFindResource(object resourceKey);
