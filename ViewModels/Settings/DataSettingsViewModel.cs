@@ -24,8 +24,8 @@ namespace YiboFile.ViewModels.Settings
 
         // Default constructor for design-time support or legacy instantiation
         public DataSettingsViewModel() : this(
-            App.ServiceProvider?.GetService(typeof(IExportService)) as IExportService ?? new ExportService(new YiboFile.Services.Config.ConfigPathProvider()),
-            App.ServiceProvider?.GetService(typeof(IImportService)) as IImportService ?? new ImportService(new YiboFile.Services.Config.ConfigPathProvider()),
+            App.ServiceProvider?.GetService(typeof(IExportService)) as IExportService ?? new ExportService(new YiboFile.Services.Config.ConfigPathProvider(), App.ServiceProvider),
+            App.ServiceProvider?.GetService(typeof(IImportService)) as IImportService ?? new ImportService(new YiboFile.Services.Config.ConfigPathProvider(), App.ServiceProvider),
             (IConfigurationService)App.ServiceProvider?.GetService(typeof(IConfigurationService)))
         {
         }

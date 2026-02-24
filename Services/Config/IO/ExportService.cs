@@ -14,6 +14,7 @@ namespace YiboFile.Services.Config.IO
     public class ExportService : IExportService
     {
         private readonly IConfigPathProvider _pathProvider;
+        private readonly IServiceProvider _serviceProvider;
         private const string ManifestFileName = "manifest.json";
         private const string SettingsFileName = "settings.json";
         private const string StateFileName = "state.json";
@@ -21,9 +22,10 @@ namespace YiboFile.Services.Config.IO
         private const string FileDataFileName = "filedata.json";
         private const string ThemesDirectoryName = "themes";
 
-        public ExportService(IConfigPathProvider pathProvider)
+        public ExportService(IConfigPathProvider pathProvider, IServiceProvider serviceProvider)
         {
             _pathProvider = pathProvider ?? throw new ArgumentNullException(nameof(pathProvider));
+            _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
         }
 
         public Task<long> EstimateSizeAsync(IEnumerable<ExportModuleType> modules)
@@ -119,22 +121,139 @@ namespace YiboFile.Services.Config.IO
 
         private async Task ExportStructureAsync(string outputDir)
         {
-            // For now, we might export the whole DB or partial data.
-            // Given the requirement is granular export, we should query repositories.
-            // Placeholder: Export the DB file itself as "structure.db" or dump to JSON?
-            // The spec says "structure.json".
+            var structure = new YiboFile.Services.Config.IO.Models.StructureExportDto();
 
-            // Allow DB export for now as a fallback if JSON serialization isn't ready
-            if (File.Exists(_pathProvider.DatabaseFilePath))
+            // 1. Tag Groups and Tags
+            var tagsRepo = (YiboFile.Services.Data.Repositories.ITagsRepository)_serviceProvider.GetService(typeof(YiboFile.Services.Data.Repositories.ITagsRepository));
+            if (tagsRepo != null)
             {
-                CopyFileSafe(_pathProvider.DatabaseFilePath, Path.Combine(outputDir, "yibofile_data.db"));
+                var groups = tagsRepo.GetTagGroups();
+                foreach (var g in groups)
+                {
+                    var groupDto = new YiboFile.Services.Config.IO.Models.TagGroupDto
+                    {
+                        Id = g.Id,
+                        Name = g.Name,
+                        Color = g.Color
+                    };
+                    var tags = tagsRepo.GetTagsByGroup(g.Id);
+                    foreach (var t in tags)
+                    {
+                        groupDto.Tags.Add(new YiboFile.Services.Config.IO.Models.TagDto { Id = t.Id, Name = t.Name, Color = t.Color, GroupId = t.GroupId });
+                    }
+                    structure.TagGroups.Add(groupDto);
+                }
+                // Handle ungrouped tags
+                var ungrouped = tagsRepo.GetUngroupedTags();
+                if (ungrouped.Count > 0)
+                {
+                    var ungroupedDto = new YiboFile.Services.Config.IO.Models.TagGroupDto { Id = 0, Name = "Ungrouped" };
+                    foreach (var t in ungrouped)
+                    {
+                        ungroupedDto.Tags.Add(new YiboFile.Services.Config.IO.Models.TagDto { Id = t.Id, Name = t.Name, Color = t.Color, GroupId = t.GroupId });
+                    }
+                    structure.TagGroups.Add(ungroupedDto);
+                }
             }
+
+            // 2. Libraries
+            var libRepo = (YiboFile.Services.Data.Repositories.ILibraryRepository)_serviceProvider.GetService(typeof(YiboFile.Services.Data.Repositories.ILibraryRepository));
+            if (libRepo != null)
+            {
+                var libs = libRepo.GetAllLibraries();
+                foreach (var lib in libs)
+                {
+                    var libDto = new YiboFile.Services.Config.IO.Models.LibraryDto
+                    {
+                        Id = lib.Id,
+                        Name = lib.Name
+                    };
+                    var paths = libRepo.GetLibraryPaths(lib.Id);
+                    foreach (var p in paths)
+                    {
+                        libDto.Paths.Add(new YiboFile.Services.Config.IO.Models.LibraryPathDto { Path = p.Path, DisplayName = p.DisplayName });
+                    }
+                    structure.Libraries.Add(libDto);
+                }
+            }
+
+            // 3. Favorites
+            var favRepo = (YiboFile.Services.Data.Repositories.IFavoriteRepository)_serviceProvider.GetService(typeof(YiboFile.Services.Data.Repositories.IFavoriteRepository));
+            if (favRepo != null)
+            {
+                var groups = favRepo.GetAllGroups();
+                var allFavs = favRepo.GetAllFavorites();
+                foreach (var g in groups)
+                {
+                    var groupDto = new YiboFile.Services.Config.IO.Models.FavoriteGroupDto
+                    {
+                        Id = g.Id,
+                        Name = g.Name,
+                        SortOrder = g.SortOrder
+                    };
+                    var favsInGroup = allFavs.Where(f => f.GroupId == g.Id).OrderBy(f => f.SortOrder);
+                    foreach (var f in favsInGroup)
+                    {
+                        groupDto.Favorites.Add(new YiboFile.Services.Config.IO.Models.FavoriteDto
+                        {
+                            Path = f.Path,
+                            IsDirectory = f.IsDirectory,
+                            DisplayName = f.DisplayName,
+                            SortOrder = f.SortOrder,
+                            GroupId = f.GroupId
+                        });
+                    }
+                    structure.FavoriteGroups.Add(groupDto);
+                }
+            }
+
+            var options = new JsonSerializerOptions { WriteIndented = true };
+            var json = JsonSerializer.Serialize(structure, options);
+            File.WriteAllText(Path.Combine(outputDir, StructureFileName), json);
 
             await Task.CompletedTask;
         }
 
         private async Task ExportFileDataAsync(string outputDir)
         {
+            var fileData = new YiboFile.Services.Config.IO.Models.FileDataExportDto();
+
+            // 1. File Tags
+            var tagsRepo = (YiboFile.Services.Data.Repositories.ITagsRepository)_serviceProvider.GetService(typeof(YiboFile.Services.Data.Repositories.ITagsRepository));
+            if (tagsRepo != null)
+            {
+                var allTags = tagsRepo.GetAllTags();
+                foreach (var tag in allTags)
+                {
+                    var files = tagsRepo.GetFilesByTag(tag.Id);
+                    foreach (var file in files)
+                    {
+                        if (!fileData.FileTags.ContainsKey(file))
+                            fileData.FileTags[file] = new List<int>();
+                        fileData.FileTags[file].Add(tag.Id);
+                    }
+                }
+            }
+
+            // 2. File Notes
+            var notesRepo = (YiboFile.Services.Data.Repositories.INotesRepository)_serviceProvider.GetService(typeof(YiboFile.Services.Data.Repositories.INotesRepository));
+            if (notesRepo != null)
+            {
+                var notedFiles = notesRepo.GetAllNotedFiles();
+                if (notedFiles != null && notedFiles.Count > 0)
+                {
+                    var notesBatch = notesRepo.GetNotesBatch(notedFiles);
+                    foreach (var kvp in notesBatch)
+                    {
+                        fileData.FileNotes[kvp.Key] = kvp.Value;
+                    }
+                }
+            }
+
+            var options = new JsonSerializerOptions { WriteIndented = true };
+            var json = JsonSerializer.Serialize(fileData, options);
+            File.WriteAllText(Path.Combine(outputDir, FileDataFileName), json);
+
             await Task.CompletedTask;
         }
 
