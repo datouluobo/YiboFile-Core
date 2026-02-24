@@ -154,8 +154,8 @@ namespace YiboFile
     public static class ConfigManager
     {
         private const string ConfigFileName = "ooi_config.json";
-        private const string DataFileName = "ooi_data.db";
-        // Removed TagTrain constants
+        private const string OldDataFileName = "ooi_data.db";
+        private const string DataFileName = "yibofile_data.db";
         private const string BasePathMarkerFileName = "basepath.txt";
 
         private static readonly string DefaultBaseDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "AppData");
@@ -169,8 +169,20 @@ namespace YiboFile
         }
 
         public static string GetConfigFilePath() => Path.Combine(GetBaseDirectory(), ConfigFileName);
-        public static string GetDataFilePath() => Path.Combine(GetBaseDirectory(), DataFileName);
-        // Removed GetTagTrain*Path methods
+        
+        public static string GetDataFilePath() 
+        {
+            var baseDir = GetBaseDirectory();
+            var newDbPath = Path.Combine(baseDir, DataFileName);
+            var oldDbPath = Path.Combine(baseDir, OldDataFileName);
+            
+            if (File.Exists(oldDbPath) && !File.Exists(newDbPath))
+            {
+                try { File.Move(oldDbPath, newDbPath); } catch { }
+            }
+            
+            return newDbPath;
+        }
 
         public static string GetBaseDirectory()
         {
@@ -292,8 +304,7 @@ namespace YiboFile
             var fileMappings = new[]
             {
                 new { NewName = ConfigFileName, Legacy = new [] { "config.json", ConfigFileName } },
-                new { NewName = DataFileName, Legacy = new [] { "data.db", DataFileName } }
-                // Removed TagTrain mappings
+                new { NewName = DataFileName, Legacy = new [] { "data.db", DataFileName, OldDataFileName } }
             };
 
             foreach (var mapping in fileMappings)
