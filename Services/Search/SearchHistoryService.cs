@@ -78,21 +78,12 @@ namespace YiboFile.Services.Search
         // 支持DI注入
         public SearchHistoryService(IConfigPathProvider pathProvider)
         {
-            if (pathProvider != null)
+            if (pathProvider == null)
             {
-                _historyFilePath = pathProvider.HistoryFilePath;
+                pathProvider = new ConfigPathProvider();
             }
-            else
-            {
-                // Fallback for design-time or legacy static access without DI
-                string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                string appFolder = Path.Combine(appData, "YiboFile");
-                if (!Directory.Exists(appFolder))
-                {
-                    Directory.CreateDirectory(appFolder);
-                }
-                _historyFilePath = Path.Combine(appFolder, HISTORY_FILE_NAME); 
-            }
+            
+            _historyFilePath = pathProvider.HistoryFilePath;
 
             _historyItems = new List<HistoryItem>();
             LoadHistory();

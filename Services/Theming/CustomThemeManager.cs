@@ -25,19 +25,12 @@ namespace YiboFile.Services.Theming
 
         public CustomThemeManager(IConfigPathProvider pathProvider)
         {
-            if (pathProvider != null)
+            if (pathProvider == null)
             {
-                _customThemesDirectory = pathProvider.CustomThemesDirectory;
+                pathProvider = new ConfigPathProvider();
             }
-            else
-            {
-                // Fallback for design-time or legacy static access
-                _customThemesDirectory = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                    "YiboFile",
-                    "CustomThemes"
-                );
-            }
+            
+            _customThemesDirectory = pathProvider.CustomThemesDirectory;
 
             // 确保目录存在
             if (!Directory.Exists(_customThemesDirectory))
