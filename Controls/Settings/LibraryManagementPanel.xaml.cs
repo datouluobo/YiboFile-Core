@@ -317,57 +317,5 @@ namespace YiboFile.Controls.Settings
             }
         }
 
-        // --- Import / Export ---
-        private void ImportBtn_Click(object sender, RoutedEventArgs e)
-        {
-            var dialog = new Microsoft.Win32.OpenFileDialog
-            {
-                Filter = "JSON 文件 (*.json)|*.json|所有文件 (*.*)|*.*",
-                Title = "导入库配置"
-            };
-
-            if (dialog.ShowDialog() == true)
-            {
-                try
-                {
-                    string json = System.IO.File.ReadAllText(dialog.FileName);
-                    var libraryService = new YiboFile.Services.LibraryService(Dispatcher, null, null, _repository);
-                    libraryService.ImportLibrariesFromJson(json);
-                    RefreshLibraries(); // Refresh after import
-                }
-                catch (Exception ex)
-                {
-                    System.Windows.MessageBox.Show(Window.GetWindow(this), $"读取文件失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-            }
-        }
-
-        private void ExportBtn_Click(object sender, RoutedEventArgs e)
-        {
-            var dialog = new Microsoft.Win32.SaveFileDialog
-            {
-                Filter = "JSON 文件 (*.json)|*.json|所有文件 (*.*)|*.*",
-                FileName = $"Libraries_Backup_{DateTime.Now:yyyyMMdd}.json",
-                Title = "导出库配置"
-            };
-
-            if (dialog.ShowDialog() == true)
-            {
-                try
-                {
-                    var libraryService = new YiboFile.Services.LibraryService(Dispatcher, null, null, _repository);
-                    string json = libraryService.ExportLibrariesToJson();
-                    if (!string.IsNullOrEmpty(json))
-                    {
-                        System.IO.File.WriteAllText(dialog.FileName, json);
-                        System.Windows.MessageBox.Show(Window.GetWindow(this), "库配置已导出", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    System.Windows.MessageBox.Show(Window.GetWindow(this), $"保存文件失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-            }
-        }
     }
 }

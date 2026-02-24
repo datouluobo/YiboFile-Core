@@ -238,11 +238,7 @@
                     <Button Grid.Column="1" Content="新建库" Padding="15,0" Margin="10,0,0,0" Click="NewLibrary_Click" Style="{StaticResource ModernAccentButtonStyle}" Height="32"/>
                 </Grid>
                 
-                <!-- Import/Export -->
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button Content="导入配置" Click="ImportBtn_Click" Style="{StaticResource ModernButtonStyle}" Margin="0,0,10,0"/>
-                    <Button Content="导出配置" Click="ExportBtn_Click" Style="{StaticResource ModernButtonStyle}"/>
-                </StackPanel>
+                <!-- Import/Export Formally Existed Here, Now moved to Export Center -->
             </StackPanel>
         </Border>
 

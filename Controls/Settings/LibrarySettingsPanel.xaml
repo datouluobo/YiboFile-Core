@@ -19,8 +19,6 @@
 
             <StackPanel Orientation="Horizontal" Margin="0,0,0,15" Grid.Row="2">
                 <Button Content="➕ 添加库" Command="{Binding AddLibraryCommand}" Padding="15,8,15,8" Background="{DynamicResource AccentDefaultBrush}" Foreground="{DynamicResource ForegroundOnAccentBrush}" BorderThickness="0" Cursor="Hand" FontSize="13" Style="{DynamicResource ModernAccentButtonStyle}" />
-                <Button Content="📂 导入配置" Click="ImportBtn_Click" Padding="15,8,15,8" Background="Transparent" Foreground="{DynamicResource AccentDefaultBrush}" BorderThickness="1" BorderBrush="{DynamicResource AccentDefaultBrush}" Cursor="Hand" FontSize="13" Margin="10,0,0,0" Style="{DynamicResource ModernButtonStyle}" />
-                <Button Content="📤 导出配置" Click="ExportBtn_Click" Padding="15,8,15,8" Background="Transparent" Foreground="{DynamicResource AccentDefaultBrush}" BorderThickness="1" BorderBrush="{DynamicResource AccentDefaultBrush}" Cursor="Hand" FontSize="13" Margin="10,0,0,0" Style="{DynamicResource ModernButtonStyle}" />
             </StackPanel>
 
             <ItemsControl ItemsSource="{Binding Libraries}" Grid.Row="3">
