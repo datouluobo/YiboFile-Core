@@ -2,10 +2,6 @@ using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Data;
-using YiboFile;
-using YiboFile.Services.Config;
-using YiboFile.ViewModels;
 using YiboFile.ViewModels.Settings;
 
 namespace YiboFile.Controls.Settings
@@ -13,15 +9,7 @@ namespace YiboFile.Controls.Settings
     public partial class FileListSettingsPanel : UserControl, ISettingsPanel
     {
         public event EventHandler SettingsChanged;
-
         private FileListSettingsViewModel _viewModel;
-
-        private TextBox _tagsWidthTextBox;
-        private Button _tagsWidthUpButton;
-        private Button _tagsWidthDownButton;
-        private TextBox _notesWidthTextBox;
-        private Button _notesWidthUpButton;
-        private Button _notesWidthDownButton;
 
         public FileListSettingsPanel()
         {
@@ -38,149 +26,17 @@ namespace YiboFile.Controls.Settings
                 }
                 SettingsChanged?.Invoke(this, EventArgs.Empty);
             };
-
-            InitializeBindings();
-        }
-
-        private void InitializeComponent()
-        {
-            var stackPanel = new StackPanel { Margin = new Thickness(20) };
-
-            // Title
-            var title = new TextBlock
-            {
-                Text = "列宽设置",
-                FontSize = 18,
-                FontWeight = FontWeights.Bold,
-                Margin = new Thickness(0, 0, 0, 16)
-            };
-            stackPanel.Children.Add(title);
-
-            // Tags
-            var tagsGrid = CreateNumberInputRow("标签列宽度:", ref _tagsWidthTextBox, ref _tagsWidthUpButton, ref _tagsWidthDownButton);
-            stackPanel.Children.Add(tagsGrid);
-
-            _tagsWidthTextBox.PreviewTextInput += NumericTextBox_PreviewTextInput;
-            _tagsWidthUpButton.Click += (s, e) => AdjustValue(_viewModel.ColTagsWidth, 5, 50, 500, v => _viewModel.ColTagsWidth = v);
-            _tagsWidthDownButton.Click += (s, e) => AdjustValue(_viewModel.ColTagsWidth, -5, 50, 500, v => _viewModel.ColTagsWidth = v);
-
-            var tagsHint = new TextBlock
-            {
-                Text = "（范围：50-500）",
-                FontSize = 12,
-                Foreground = System.Windows.Media.Brushes.Gray,
-                Margin = new Thickness(152, -8, 0, 0)
-            };
-            stackPanel.Children.Add(tagsHint);
-
-            // Notes
-            var notesGrid = CreateNumberInputRow("备注列宽度:", ref _notesWidthTextBox, ref _notesWidthUpButton, ref _notesWidthDownButton);
-            stackPanel.Children.Add(notesGrid);
-
-            _notesWidthTextBox.PreviewTextInput += NumericTextBox_PreviewTextInput;
-            _notesWidthUpButton.Click += (s, e) => AdjustValue(_viewModel.ColNotesWidth, 5, 100, 800, v => _viewModel.ColNotesWidth = v);
-            _notesWidthDownButton.Click += (s, e) => AdjustValue(_viewModel.ColNotesWidth, -5, 100, 800, v => _viewModel.ColNotesWidth = v);
-
-            var notesHint = new TextBlock
-            {
-                Text = "（范围：100-800）",
-                FontSize = 12,
-                Foreground = System.Windows.Media.Brushes.Gray,
-                Margin = new Thickness(152, -8, 0, 0)
-            };
-            stackPanel.Children.Add(notesHint);
-
-            // Directly set Content to stackPanel (Removed ScrollViewer)
-            Content = stackPanel;
-        }
-
-        private void InitializeBindings()
-        {
-            _tagsWidthTextBox.SetBinding(TextBox.TextProperty, new Binding(nameof(FileListSettingsViewModel.ColTagsWidth))
-            {
-                Mode = BindingMode.TwoWay,
-                UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged
-            });
-
-            _notesWidthTextBox.SetBinding(TextBox.TextProperty, new Binding(nameof(FileListSettingsViewModel.ColNotesWidth))
-            {
-                Mode = BindingMode.TwoWay,
-                UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged
-            });
-        }
-
-        private Grid CreateNumberInputRow(string label, ref TextBox textBox, ref Button upButton, ref Button downButton)
-        {
-            var grid = new Grid { Margin = new Thickness(0, 12, 0, 12) };
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-
-            var labelText = new TextBlock
-            {
-                Text = label,
-                FontSize = 14,
-                VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(0, 0, 12, 0),
-                MinWidth = 140,
-                MinHeight = 32
-            };
-            Grid.SetColumn(labelText, 0);
-            grid.Children.Add(labelText);
-
-            textBox = new TextBox
-            {
-                FontSize = 14,
-                Width = 60,
-                Height = 32,
-                VerticalContentAlignment = VerticalAlignment.Center,
-                TextAlignment = TextAlignment.Center,
-                Padding = new Thickness(5, 0, 5, 0),
-                Margin = new Thickness(0, 0, 8, 0)
-            };
-            Grid.SetColumn(textBox, 1);
-            grid.Children.Add(textBox);
-
-            var buttonPanel = new StackPanel
-            {
-                Orientation = Orientation.Vertical,
-                Margin = new Thickness(0, 0, 0, 0)
-            };
-
-            upButton = new Button
-            {
-                Content = "▲",
-                Width = 24,
-                Height = 16,
-                FontSize = 10,
-                Padding = new Thickness(0),
-                Margin = new Thickness(0, 0, 0, 2),
-                VerticalAlignment = VerticalAlignment.Center
-            };
-
-            downButton = new Button
-            {
-                Content = "▼",
-                Width = 24,
-                Height = 16,
-                FontSize = 10,
-                Padding = new Thickness(0),
-                VerticalAlignment = VerticalAlignment.Center
-            };
-
-            buttonPanel.Children.Add(upButton);
-            buttonPanel.Children.Add(downButton);
-            Grid.SetColumn(buttonPanel, 2);
-            grid.Children.Add(buttonPanel);
-
-            return grid;
         }
 
         private void AdjustValue(double current, double delta, double min, double max, Action<double> setter)
         {
-            double newValue = Math.Clamp(current + delta, min, max);
-            setter(newValue);
+            setter(Math.Clamp(current + delta, min, max));
         }
+
+        private void TagsWidthUp_Click(object sender, RoutedEventArgs e) => AdjustValue(_viewModel.ColTagsWidth, 5, 50, 500, v => _viewModel.ColTagsWidth = v);
+        private void TagsWidthDown_Click(object sender, RoutedEventArgs e) => AdjustValue(_viewModel.ColTagsWidth, -5, 50, 500, v => _viewModel.ColTagsWidth = v);
+        private void NotesWidthUp_Click(object sender, RoutedEventArgs e) => AdjustValue(_viewModel.ColNotesWidth, 5, 100, 800, v => _viewModel.ColNotesWidth = v);
+        private void NotesWidthDown_Click(object sender, RoutedEventArgs e) => AdjustValue(_viewModel.ColNotesWidth, -5, 100, 800, v => _viewModel.ColNotesWidth = v);
 
         private void NumericTextBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
         {
@@ -191,28 +47,17 @@ namespace YiboFile.Controls.Settings
         {
             try
             {
-                var mainWindow = Application.Current.MainWindow as MainWindow;
-                if (mainWindow == null) return;
-
-                var fileBrowser = mainWindow.FindName("FileBrowser") as FileBrowserControl;
-                if (fileBrowser == null) return;
-
-                var fileListControl = fileBrowser.GetFileListControl();
-                if (fileListControl == null) return;
-                fileListControl.LoadColumnWidths();
+                if (Application.Current.MainWindow is MainWindow mainWindow &&
+                    mainWindow.FindName("FileBrowser") is FileBrowserControl fileBrowser &&
+                    fileBrowser.GetFileListControl() is var fileListControl && fileListControl != null)
+                {
+                    fileListControl.LoadColumnWidths();
+                }
             }
-            catch (Exception)
-            {
-            }
+            catch { }
         }
 
-        public void LoadSettings()
-        {
-            _viewModel?.LoadFromConfig();
-        }
-
-        public void SaveSettings()
-        {
-        }
+        public void LoadSettings() => _viewModel?.LoadFromConfig();
+        public void SaveSettings() { }
     }
 }

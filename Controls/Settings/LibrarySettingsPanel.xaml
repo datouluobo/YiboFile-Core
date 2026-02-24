@@ -1,0 +1,59 @@
+<UserControl x:Class="YiboFile.Controls.Settings.LibrarySettingsPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" 
+             d:DesignHeight="600" d:DesignWidth="800">
+    <Border Padding="20" Background="{DynamicResource BackgroundSecondaryBrush}">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <TextBlock Text="库管理" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,8" Foreground="{DynamicResource ForegroundPrimaryBrush}" Grid.Row="0" />
+            <TextBlock Text="管理您的文件库。您可以添加文件夹作为库，以便快速访问和索引。" FontSize="13" TextWrapping="Wrap" Margin="0,0,0,15" Foreground="{DynamicResource ForegroundSecondaryBrush}" Grid.Row="1" />
+
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,15" Grid.Row="2">
+                <Button Content="➕ 添加库" Command="{Binding AddLibraryCommand}" Padding="15,8,15,8" Background="{DynamicResource AccentDefaultBrush}" Foreground="{DynamicResource ForegroundOnAccentBrush}" BorderThickness="0" Cursor="Hand" FontSize="13" Style="{DynamicResource ModernAccentButtonStyle}" />
+                <Button Content="📂 导入配置" Click="ImportBtn_Click" Padding="15,8,15,8" Background="Transparent" Foreground="{DynamicResource AccentDefaultBrush}" BorderThickness="1" BorderBrush="{DynamicResource AccentDefaultBrush}" Cursor="Hand" FontSize="13" Margin="10,0,0,0" Style="{DynamicResource ModernButtonStyle}" />
+                <Button Content="📤 导出配置" Click="ExportBtn_Click" Padding="15,8,15,8" Background="Transparent" Foreground="{DynamicResource AccentDefaultBrush}" BorderThickness="1" BorderBrush="{DynamicResource AccentDefaultBrush}" Cursor="Hand" FontSize="13" Margin="10,0,0,0" Style="{DynamicResource ModernButtonStyle}" />
+            </StackPanel>
+
+            <ItemsControl ItemsSource="{Binding Libraries}" Grid.Row="3">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Margin="0,0,0,10" Background="{DynamicResource BackgroundTertiaryBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="6" Padding="12">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Border Grid.Column="0" Width="40" Height="40" CornerRadius="20" Background="{DynamicResource ControlDefaultBrush}" Margin="0,0,15,0" VerticalAlignment="Center">
+                                    <TextBlock Text="📚" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="18"/>
+                                </Border>
+
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,4" Foreground="{DynamicResource ForegroundPrimaryBrush}"/>
+                                    <TextBlock Text="{Binding DisplayPath}" FontSize="12" Foreground="{DynamicResource ForegroundSecondaryBrush}" TextTrimming="CharacterEllipsis" ToolTip="{Binding ToolTipText}"/>
+                                </StackPanel>
+
+                                <Button Grid.Column="2" Content="✕" 
+                                        Command="{Binding DataContext.RemoveLibraryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                                        CommandParameter="{Binding}"
+                                        Width="32" Height="32" 
+                                        Background="Transparent" BorderThickness="0" Foreground="#EF5350" Cursor="Hand" ToolTip="移除库"
+                                        Style="{DynamicResource ModernButtonStyle}" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </Grid>
+    </Border>
+</UserControl>

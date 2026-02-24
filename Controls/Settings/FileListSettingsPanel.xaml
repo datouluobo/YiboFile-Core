@@ -1,0 +1,42 @@
+<UserControl x:Class="YiboFile.Controls.Settings.FileListSettingsPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" 
+             d:DesignHeight="600" d:DesignWidth="800">
+    <StackPanel Margin="20">
+        <TextBlock Text="列宽设置" FontSize="18" FontWeight="Bold" Margin="0,0,0,16" />
+
+        <Grid Margin="0,12,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="标签列宽度:" FontSize="14" VerticalAlignment="Center" Margin="0,0,12,0" MinWidth="140" MinHeight="32" Grid.Column="0" />
+            <TextBox Text="{Binding ColTagsWidth, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="14" Width="60" Height="32" VerticalContentAlignment="Center" TextAlignment="Center" Padding="5,0,5,0" Margin="0,0,8,0" Grid.Column="1" PreviewTextInput="NumericTextBox_PreviewTextInput" />
+            <StackPanel Orientation="Vertical" Grid.Column="2">
+                <Button Content="▲" Width="24" Height="16" FontSize="10" Padding="0" Margin="0,0,0,2" VerticalAlignment="Center" Click="TagsWidthUp_Click" Style="{DynamicResource ModernButtonStyle}" />
+                <Button Content="▼" Width="24" Height="16" FontSize="10" Padding="0" VerticalAlignment="Center" Click="TagsWidthDown_Click" Style="{DynamicResource ModernButtonStyle}" />
+            </StackPanel>
+        </Grid>
+        <TextBlock Text="（范围：50-500）" FontSize="12" Foreground="Gray" Margin="152,-8,0,0" />
+
+        <Grid Margin="0,12,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="备注列宽度:" FontSize="14" VerticalAlignment="Center" Margin="0,0,12,0" MinWidth="140" MinHeight="32" Grid.Column="0" />
+            <TextBox Text="{Binding ColNotesWidth, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="14" Width="60" Height="32" VerticalContentAlignment="Center" TextAlignment="Center" Padding="5,0,5,0" Margin="0,0,8,0" Grid.Column="1" PreviewTextInput="NumericTextBox_PreviewTextInput" />
+            <StackPanel Orientation="Vertical" Grid.Column="2">
+                <Button Content="▲" Width="24" Height="16" FontSize="10" Padding="0" Margin="0,0,0,2" VerticalAlignment="Center" Click="NotesWidthUp_Click" Style="{DynamicResource ModernButtonStyle}" />
+                <Button Content="▼" Width="24" Height="16" FontSize="10" Padding="0" VerticalAlignment="Center" Click="NotesWidthDown_Click" Style="{DynamicResource ModernButtonStyle}" />
+            </StackPanel>
+        </Grid>
+        <TextBlock Text="（范围：100-800）" FontSize="12" Foreground="Gray" Margin="152,-8,0,0" />
+
+    </StackPanel>
+</UserControl>
