@@ -44,8 +44,11 @@ namespace YiboFile.ViewModels.Modules
                     Publish(new LayoutModeChangedMessage(_currentLayoutMode));
 
                     // 持久化状态
-                    YiboFile.Services.Config.ConfigurationService.Instance.Set(cfg => cfg.LayoutMode, value);
-                    YiboFile.Services.Config.ConfigurationService.Instance.SaveNow();
+                    if (!_isTemporaryLayoutSwitch)
+                    {
+                        YiboFile.Services.Config.ConfigurationService.Instance.Set(cfg => cfg.LayoutMode, value);
+                        YiboFile.Services.Config.ConfigurationService.Instance.SaveNow();
+                    }
                 }
             }
         }
@@ -76,8 +79,11 @@ namespace YiboFile.ViewModels.Modules
                     }
 
                     // 持久化状态
-                    YiboFile.Services.Config.ConfigurationService.Instance.Set(c => c.IsDualListMode, value);
-                    YiboFile.Services.Config.ConfigurationService.Instance.SaveNow();
+                    if (!_isTemporaryLayoutSwitch)
+                    {
+                        YiboFile.Services.Config.ConfigurationService.Instance.Set(c => c.IsDualListMode, value);
+                        YiboFile.Services.Config.ConfigurationService.Instance.SaveNow();
+                    }
                 }
             }
         }
@@ -88,7 +94,17 @@ namespace YiboFile.ViewModels.Modules
         public bool IsLeftPanelCollapsed
         {
             get => _isLeftPanelCollapsed;
-            set => SetProperty(ref _isLeftPanelCollapsed, value);
+            set
+            {
+                if (SetProperty(ref _isLeftPanelCollapsed, value))
+                {
+                    if (!_isTemporaryLayoutSwitch)
+                    {
+                        YiboFile.Services.Config.ConfigurationService.Instance.Set(c => c.IsSidebarCollapsed, value);
+                        YiboFile.Services.Config.ConfigurationService.Instance.SaveNow();
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -101,7 +117,14 @@ namespace YiboFile.ViewModels.Modules
             {
                 if (SetProperty(ref _isRightPanelCollapsed, value))
                 {
-                    // 当右侧面板折叠状态改变时，可能需要通知其他组件
+                    // 当右侧面板折叠状态改变时，通知配置
+                    // 注意：因为右面板可以对应预览区/属性区，我们同时更新相关的可见性标记
+                    if (!_isTemporaryLayoutSwitch)
+                    {
+                        YiboFile.Services.Config.ConfigurationService.Instance.Set(c => c.IsRightPanelVisible, !value);
+                        YiboFile.Services.Config.ConfigurationService.Instance.Set(c => c.IsPreviewCollapsed, value);
+                        YiboFile.Services.Config.ConfigurationService.Instance.SaveNow();
+                    }
                 }
             }
         }
@@ -197,7 +220,7 @@ namespace YiboFile.ViewModels.Modules
             {
                 if (m.ActiveTab == null || m.Pane != YiboFile.Services.Navigation.PaneId.Main) return;
 
-                bool isSpecialLayoutTab = m.ActiveTab.ContentTypeId == YiboFile.Services.Tabs.TabContentTypes.Backup;
+                bool isSpecialLayoutTab = !string.IsNullOrEmpty(m.ActiveTab.ContentTypeId) && !YiboFile.Services.Tabs.TabContentTypes.IsFileBrowserType(m.ActiveTab.ContentTypeId);
 
                 if (isSpecialLayoutTab)
                 {
@@ -206,13 +229,22 @@ namespace YiboFile.ViewModels.Modules
                     {
                         _savedLayoutModeBeforeSpecialTab = _currentLayoutMode;
                         _savedDualListModeBeforeSpecialTab = _isDualListMode;
-                        Services.Core.FileLogger.Log($"[LayoutModule] 进入备份标签 → 保存布局 '{_currentLayoutMode}', 双栏={_isDualListMode}");
+                        Services.Core.FileLogger.Log($"[LayoutModule] 进入系统页 → 保存布局 '{_currentLayoutMode}', 双栏={_isDualListMode}");
                     }
-                    if (IsDualListMode)
+                    
+                    _isTemporaryLayoutSwitch = true;
+                    try
                     {
-                        ToggleDualListMode(false);
+                        if (IsDualListMode)
+                        {
+                            ToggleDualListMode(false);
+                        }
+                        SwitchLayoutMode("Work", true);
                     }
-                    SwitchLayoutMode("Work");
+                    finally
+                    {
+                        _isTemporaryLayoutSwitch = false;
+                    }
                 }
                 else if (_savedLayoutModeBeforeSpecialTab != null)
                 {
@@ -221,7 +253,7 @@ namespace YiboFile.ViewModels.Modules
                     var savedDualList = _savedDualListModeBeforeSpecialTab;
                     _savedLayoutModeBeforeSpecialTab = null;
                     _savedDualListModeBeforeSpecialTab = false;
-                    Services.Core.FileLogger.Log($"[LayoutModule] 离开备份标签 → 恢复布局 '{savedMode}', 双栏={savedDualList} (当前: '{_currentLayoutMode}')");
+                    Services.Core.FileLogger.Log($"[LayoutModule] 离开系统页 → 恢复布局 '{savedMode}', 双栏={savedDualList} (当前: '{_currentLayoutMode}')");
                     // 先恢复布局模式
                     ForceApplyLayoutMode(savedMode);
                     // 再恢复双列表模式（如果之前是开启的）
@@ -283,33 +315,40 @@ namespace YiboFile.ViewModels.Modules
             return true;
         }
 
+        private bool _isTemporaryLayoutSwitch = false;
+
         /// <summary>
         /// 强制应用布局模式。
-        /// 与 SwitchLayoutMode 不同，即使 mode 字符串与当前相同，
-        /// 也会强制更新属性并重新发布消息，确保 UI 同步。
-        /// 用于从特殊标签页恢复时保证面板折叠状态正确。
         /// </summary>
         private void ForceApplyLayoutMode(string mode)
         {
-            // 强制更新字段（绕过 setter 的相等性检查）
+            // 强制更新字段
             _currentLayoutMode = mode;
             Publish(new LayoutModeChangedMessage(_currentLayoutMode));
 
-            // 持久化
+            // 恢复原始布局时，应该持久化
             YiboFile.Services.Config.ConfigurationService.Instance.Set(cfg => cfg.LayoutMode, mode);
             YiboFile.Services.Config.ConfigurationService.Instance.SaveNow();
 
-            // 强制应用面板折叠状态
+            // 强制应用面板折叠状态 (恢复时不拦截保存侧栏)
             ApplyPanelCollapseForMode(mode);
         }
 
         /// <summary>
         /// 切换布局模式
         /// </summary>
-        public void SwitchLayoutMode(string mode)
+        public void SwitchLayoutMode(string mode, bool isTemporary = false)
         {
-            CurrentLayoutMode = mode;
-            ApplyPanelCollapseForMode(mode);
+            _isTemporaryLayoutSwitch = isTemporary;
+            try
+            {
+                CurrentLayoutMode = mode;
+                ApplyPanelCollapseForMode(mode);
+            }
+            finally
+            {
+                _isTemporaryLayoutSwitch = false;
+            }
         }
 
         /// <summary>

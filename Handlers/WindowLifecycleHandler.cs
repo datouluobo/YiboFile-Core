@@ -297,7 +297,7 @@ namespace YiboFile.Handlers
             {
                 // Segoe MDL2 Assets: Maximize E922, Restore E923
                 // Refactored to use DynamicResource for multi-icon support
-                _mainWindow.TitleBarMaxRestoreButton.SetResourceReference(Button.ContentProperty, isMax ? "Icon_Window_Restore" : "Icon_Window_Maximize");
+                _mainWindow.TitleBarMaxRestoreImage?.SetResourceReference(System.Windows.Controls.Image.SourceProperty, isMax ? "Icon_Window_Restore" : "Icon_Window_Maximize");
                 _mainWindow.TitleBarMaxRestoreButton.ToolTip = isMax ? "还原" : "最大化";
             }
         }

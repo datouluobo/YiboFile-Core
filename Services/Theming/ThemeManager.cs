@@ -62,8 +62,8 @@ namespace YiboFile.Services.Theming
                 if (meta != null) _uiStyles[u] = meta;
             }
 
-            var icons = new[] { "Emoji", "Fluent", "Material", "Remix" };
-            foreach (var i in icons)
+        var icons = new[] { "Emoji", "Fluent", "Material", "Remix", "Lucide", "Pixel", "Prism", "Tabler", "Phosphor" };
+        foreach (var i in icons)
             {
                 var uri = new Uri($"pack://application:,,,/YiboFile-Core;component/Styles/Icons/{i}.xaml", UriKind.Absolute);
                 var meta = LoadIconStyleMetadata(uri, i);
@@ -216,17 +216,20 @@ namespace YiboFile.Services.Theming
         public void ReloadAliases()
         {
             try {
-                var appDictionaries = Application.Current.Resources.MergedDictionaries;
-                var aliasDicts = appDictionaries.Where(d => d.Source != null && d.Source.OriginalString.Contains("/Styles/Aliases/")).ToList();
+                var (parent, aliasDicts) = FindDictionariesRecursive(
+                    Application.Current.Resources.MergedDictionaries, "/Styles/Aliases/");
+                
+                if (parent == null || aliasDicts.Count == 0) return;
+
                 foreach (var alias in aliasDicts)
                 {
+                    int idx = parent.IndexOf(alias);
                     var newAlias = new ResourceDictionary { Source = alias.Source };
-                    int aliasIndex = appDictionaries.IndexOf(alias);
-                    if (aliasIndex >= 0)
-                    {
-                        appDictionaries.Insert(aliasIndex, newAlias);
-                        appDictionaries.Remove(alias);
-                    }
+                    parent.Remove(alias);
+                    if (idx >= 0 && idx <= parent.Count)
+                        parent.Insert(idx, newAlias);
+                    else
+                        parent.Add(newAlias);
                 }
             } catch { } // Ignore errors during alias swap
         }
@@ -235,48 +238,119 @@ namespace YiboFile.Services.Theming
         {
             try {
                 var newDict = new ResourceDictionary { Source = source };
-                var appDictionaries = Application.Current.Resources.MergedDictionaries;
-                var existingDicts = appDictionaries
-                    .Where(d => d.Source != null 
-                        && d.Source.OriginalString.Contains(identifierToReplace)
-                        && !d.Source.OriginalString.Contains("Contract", StringComparison.OrdinalIgnoreCase))
-                    .ToList();
-                
-                int indexToInsert = 0;
-                if (existingDicts.Any())
+
+                YiboFile.Services.Core.FileLogger.Log($"[ThemeManager] ApplyDictionary: {source}, identifier={identifierToReplace}");
+
+                // 查找现有的对应字典及其所在的父集合
+                var (parentCollection, existingDicts) = FindDictionariesRecursive(
+                    Application.Current.Resources.MergedDictionaries, identifierToReplace);
+
+                if (parentCollection != null && existingDicts.Count > 0)
                 {
-                    indexToInsert = appDictionaries.IndexOf(existingDicts.First());
+                    // 在找到旧字典的同一个父集合中进行原位替换
+                    // 记录第一个匹配字典的索引，新字典将插入到该位置
+                    int insertIndex = -1;
+                    foreach (var dict in existingDicts)
+                    {
+                        int idx = parentCollection.IndexOf(dict);
+                        if (insertIndex < 0 || (idx >= 0 && idx < insertIndex))
+                            insertIndex = idx;
+                        YiboFile.Services.Core.FileLogger.Log($"[ThemeManager] Removing: {dict.Source} at index {idx}");
+                        parentCollection.Remove(dict);
+                    }
+
+                    // 由于 Remove 会导致索引偏移，确保 insertIndex 有效
+                    if (insertIndex < 0 || insertIndex > parentCollection.Count)
+                        insertIndex = parentCollection.Count;
+
+                    parentCollection.Insert(insertIndex, newDict);
+                    YiboFile.Services.Core.FileLogger.Log($"[ThemeManager] Inserted {newDict.Source} at index {insertIndex} in parent collection (count={parentCollection.Count})");
                 }
-                
-                appDictionaries.Insert(indexToInsert, newDict);
-                foreach (var dict in existingDicts)
+                else
                 {
-                    appDictionaries.Remove(dict);
+                    // 如果没有找到旧字典，找到最内层的 MergedDictionaries 并添加
+                    var target = Application.Current.Resources.MergedDictionaries;
+                    // 如果顶层只有一个匿名字典容器（App.xaml 的结构），则深入一层
+                    if (target.Count == 1 && target[0].Source == null && target[0].MergedDictionaries.Count > 0)
+                    {
+                        target = target[0].MergedDictionaries;
+                    }
+                    target.Add(newDict);
+                    YiboFile.Services.Core.FileLogger.Log($"[ThemeManager] No existing dict found. Added {newDict.Source} to inner collection (count={target.Count})");
                 }
 
-                // If we are replacing themes (which affect base colors), 
-                // we MUST forcefully reload Aliases, UIStyles, and Icons since SolidColorBrush.Color DynamicResource 
-                // bindings inside ResourceDictionaries do not update automatically in WPF.
                 if (identifierToReplace.Contains("/Styles/Themes/") || identifierToReplace.Contains("/Styles/Contracts/"))
                 {
-                    var reloadTargets = appDictionaries.Where(d => d.Source != null && 
-                        (d.Source.OriginalString.Contains("/Styles/Aliases/") || 
-                         d.Source.OriginalString.Contains("/Styles/UIStyles/") || 
-                         d.Source.OriginalString.Contains("/Styles/Icons/"))).ToList();
-
-                    foreach (var dictToReload in reloadTargets)
-                    {
-                        var newDictInstance = new ResourceDictionary { Source = dictToReload.Source };
-                        int dictIndex = appDictionaries.IndexOf(dictToReload);
-                        if (dictIndex >= 0)
-                        {
-                            appDictionaries.Insert(dictIndex, newDictInstance);
-                            appDictionaries.Remove(dictToReload);
-                        }
-                    }
+                    ReloadDependentDictionaries();
                 }
             } catch (Exception ex) {
                 YiboFile.Services.Core.FileLogger.LogException($"Failed to load {source}", ex);
+            }
+        }
+
+        /// <summary>
+        /// 递归查找嵌套 MergedDictionaries 中匹配 identifier 的字典及其父集合
+        /// </summary>
+        private (System.Collections.ObjectModel.Collection<ResourceDictionary> parentCollection, List<ResourceDictionary> matches) 
+            FindDictionariesRecursive(System.Collections.ObjectModel.Collection<ResourceDictionary> dictionaries, string identifier)
+        {
+            // 先在当前层级查找
+            var matches = dictionaries
+                .Where(d => d.Source != null 
+                    && d.Source.OriginalString.Contains(identifier)
+                    && !d.Source.OriginalString.Contains("Contract", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            if (matches.Count > 0)
+            {
+                return (dictionaries, matches);
+            }
+
+            // 递归搜索子级
+            foreach (var dict in dictionaries)
+            {
+                if (dict.MergedDictionaries.Count > 0)
+                {
+                    var result = FindDictionariesRecursive(dict.MergedDictionaries, identifier);
+                    if (result.matches.Count > 0)
+                    {
+                        return result;
+                    }
+                }
+            }
+
+            return (null, new List<ResourceDictionary>());
+        }
+
+        /// <summary>
+        /// 主题切换后，强制重新加载依赖主题颜色的字典（Aliases、UIStyles、Icons）
+        /// </summary>
+        private void ReloadDependentDictionaries()
+        {
+            var identifiers = new[] { "/Styles/Aliases/", "/Styles/UIStyles/", "/Styles/Icons/" };
+            foreach (var id in identifiers)
+            {
+                var (parent, targets) = FindDictionariesRecursive(
+                    Application.Current.Resources.MergedDictionaries, id);
+                
+                if (parent == null || targets.Count == 0) continue;
+
+                foreach (var dictToReload in targets)
+                {
+                    // 跳过合约字典
+                    if (dictToReload.Source.OriginalString.Contains("Contract", StringComparison.OrdinalIgnoreCase))
+                        continue;
+
+                    int idx = parent.IndexOf(dictToReload);
+                    var newDictInstance = new ResourceDictionary { Source = dictToReload.Source };
+                    parent.Remove(dictToReload);
+                    
+                    // 核心修复: 在同一父集合中原位替换，不跨层级
+                    if (idx >= 0 && idx <= parent.Count)
+                        parent.Insert(idx, newDictInstance);
+                    else
+                        parent.Add(newDictInstance);
+                }
             }
         }
 

@@ -262,11 +262,12 @@
                     <!-- 之前的按钮已移动到左下角 -->
                     <Grid Width="0" Height="0"/>
                     <!-- 最小化按钮 -->
-                    <Button x:Name="TitleBarMinimizeButton" Content="{DynamicResource Icon_Window_Minimize}" 
+                    <Button x:Name="TitleBarMinimizeButton"
                         Width="46"
                         Click="WindowMinimize_Click" 
-                        ToolTip="最小化" FontSize="{DynamicResource WindowControlIconSize}" FontFamily="{DynamicResource IconFontFamily}"
+                        ToolTip="最小化"
                         Background="Transparent" BorderThickness="0" Cursor="Hand">
+                        <Image Source="{DynamicResource Icon_Window_Minimize}" Width="16" Height="16" RenderOptions.BitmapScalingMode="HighQuality"/>
                         <Button.Style>
                             <Style TargetType="Button">
                                 <Setter Property="Padding" Value="0"/>
@@ -288,11 +289,12 @@
                             </Style>
                         </Button.Style>
                     </Button>
-                    <Button x:Name="TitleBarMaxRestoreButton" Content="{DynamicResource Icon_Window_Maximize}" 
+                    <Button x:Name="TitleBarMaxRestoreButton"
                         Width="46"
                         Click="WindowMaximize_Click" 
-                        ToolTip="最大化" FontSize="{DynamicResource WindowControlIconSize}" FontFamily="{DynamicResource IconFontFamily}"
+                        ToolTip="最大化"
                         Background="Transparent" BorderThickness="0" Cursor="Hand">
+                        <Image x:Name="TitleBarMaxRestoreImage" Source="{DynamicResource Icon_Window_Maximize}" Width="16" Height="16" RenderOptions.BitmapScalingMode="HighQuality"/>
                         <Button.Style>
                             <Style TargetType="Button">
                                 <Setter Property="Padding" Value="0"/>
@@ -324,17 +326,15 @@
                                 <Border x:Name="ButtonBorder" 
                                     Background="Transparent" 
                                     BorderThickness="0">
-                                    <TextBlock x:Name="ButtonIcon"
-                                           Text="{DynamicResource Icon_Window_Close}" 
-                                           FontSize="{DynamicResource WindowControlIconSize}" 
-                                           FontFamily="{DynamicResource IconFontFamily}"
-                                           Foreground="{DynamicResource ForegroundPrimaryBrush}"
+                                    <Image x:Name="ButtonIcon"
+                                           Source="{DynamicResource Icon_Window_Close}" 
+                                           Width="16" Height="16"
+                                           RenderOptions.BitmapScalingMode="HighQuality"
                                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </Border>
                                 <ControlTemplate.Triggers>
                                     <Trigger Property="IsMouseOver" Value="True">
                                         <Setter TargetName="ButtonBorder" Property="Background" Value="#E81123"/>
-                                        <Setter TargetName="ButtonIcon" Property="Foreground" Value="{DynamicResource ForegroundOnAccentBrush}"/>
                                     </Trigger>
                                 </ControlTemplate.Triggers>
                             </ControlTemplate>

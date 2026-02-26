@@ -5,8 +5,10 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:YiboFile.Controls"
              xmlns:tq="clr-namespace:YiboFile.Services.FileOperations.TaskQueue"
+             xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+             xmlns:helpers="clr-namespace:YiboFile.Helpers"
              mc:Ignorable="d" 
-             d:DesignHeight="300" d:DesignWidth="320">
+             d:DesignHeight="450" d:DesignWidth="350">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
         <!-- 状态转换器 -->
@@ -58,7 +60,7 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="border" Background="{TemplateBinding Background}" 
-                                CornerRadius="12" Padding="{TemplateBinding Padding}">
+                                CornerRadius="{DynamicResource UI.Button.CornerRadius}" Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
@@ -120,13 +122,15 @@
                     
                     <!-- 操作按钮组 -->
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Opacity="0.8">
-                        <Button Content="" FontFamily="Segoe MDL2 Assets" Click="ClearCompleted_Click" 
+                        <Button Click="ClearCompleted_Click" 
                                 Style="{StaticResource IconButtonButtonStyle}" 
-                                ToolTip="清理已完成" Margin="0,0,4,0"/>
-                        <Button Content="✕" Click="Close_Click" 
-                                Style="{StaticResource IconButtonButtonStyle}" 
-                                FontSize="10" FontWeight="Bold"
-                                ToolTip="关闭"/>
+                                ToolTip="清理已完成" Margin="0,0,4,0">
+                            <Image Source="{DynamicResource Icon_Delete_Outline}" Width="14" Height="14" RenderOptions.BitmapScalingMode="HighQuality"/>
+                        </Button>
+                        <Button Name="CloseButton" Grid.Column="2" Style="{StaticResource IconButtonButtonStyle}" 
+                                Width="24" Height="24" Margin="4,0,0,0" ToolTip="关闭" Click="Close_Click">
+                            <Image helpers:IconHelper.IconKey="Icon_Close" Width="10" Height="10" RenderOptions.BitmapScalingMode="HighQuality"/>
+                        </Button>
                     </StackPanel>
                 </Grid>
             </Border>
@@ -193,18 +197,23 @@
                                     
                                     <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="8,0,0,0">
                                         <!-- 暂停/继续 -->
-                                        <Button Content="" FontFamily="Segoe MDL2 Assets" 
+                                        <Button
                                                 Tag="{Binding}" Click="PauseResume_Click" 
                                                 Style="{StaticResource IconButtonButtonStyle}" 
-                                                FontSize="10" Width="20" Height="20"
-                                                Visibility="{Binding Status, Converter={StaticResource StatusToVis}, ConverterParameter=CanPause}"/>
+                                                Width="20" Height="20"
+                                                Visibility="{Binding Status, Converter={StaticResource StatusToVis}, ConverterParameter=CanPause}">
+                                            <Image Source="{DynamicResource Icon_Pause}" Width="10" Height="10" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                        </Button>
                                         
                                         <!-- 取消 -->
-                                        <Button Content="" FontFamily="Segoe MDL2 Assets" 
-                                                Tag="{Binding}" Click="CancelTask_Click" 
+                                        <Button Click="CancelTask_Click"
+                                                Tag="{Binding}"
                                                 Style="{StaticResource IconButtonButtonStyle}" 
-                                                FontSize="10" Width="20" Height="20"
-                                                Visibility="{Binding Status, Converter={StaticResource StatusToVis}, ConverterParameter=CanCancel}"/>
+                                                Width="20" Height="20"
+                                                ToolTip="取消任务"
+                                                Visibility="{Binding Status, Converter={StaticResource StatusToVis}, ConverterParameter=CanCancel}">
+                                            <Image helpers:IconHelper.IconKey="Icon_Close" Width="10" Height="10" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                        </Button>
                                     </StackPanel>
                                 </Grid>
                                 

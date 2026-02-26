@@ -46,14 +46,13 @@
             </Grid.ColumnDefinitions>
 
             <!-- Icon -->
-            <TextBlock x:Name="IconText" 
-                       Grid.Column="0"
-                       Text="✓" 
-                       FontFamily="{DynamicResource IconFontFamily}"
-                       FontSize="20"
-                       VerticalAlignment="Center"
-                       Foreground="{DynamicResource AccentBrush}"
-                       Margin="0,0,16,0"/>
+            <Image x:Name="IconImage" 
+                   Grid.Column="0"
+                   Source="{DynamicResource Icon_Success}" 
+                   Width="20" Height="20"
+                   VerticalAlignment="Center"
+                   RenderOptions.BitmapScalingMode="HighQuality"
+                   Margin="0,0,16,0"/>
 
             <!-- Message -->
             <TextBlock x:Name="MessageText"
@@ -68,9 +67,7 @@
             <!-- Close Button (Optional) -->
             <Button x:Name="CloseButton"
                     Grid.Column="2"
-                    Content="{DynamicResource Icon_Close}"
                     Width="20" Height="20"
-                    FontSize="10"
                     Margin="8,0,0,0"
                     VerticalAlignment="Center"
                     Click="CloseButton_Click"
@@ -78,7 +75,7 @@
                     Background="Transparent"
                     BorderThickness="0"
                     Cursor="Hand"
-                    FontFamily="{DynamicResource IconFontFamily}">
+                    Content="{DynamicResource Icon_Close}">
                 <Button.Style>
                     <Style TargetType="Button">
                         <Setter Property="Template">

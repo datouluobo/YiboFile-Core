@@ -72,31 +72,44 @@ namespace YiboFile.Services.Theming
             "UI.Dialog.CornerRadius", "UI.Dialog.ButtonCornerRadius"
         };
 
-        // 50 个必需的图标键
+        // 图标合约必需键 (DrawingImage 制式)
         public static readonly IReadOnlyList<string> IconRequiredKeys = new[]
         {
             "IconStyleId", "IconStyleDisplayName", "IconStyleDescription",
-            "IconFontFamily", "WindowControlIconSize",
             
+            // 通用操作图标
             "Icon_Copy", "Icon_Edit", "Icon_Format", "Icon_Render", "Icon_Wrap",
             "Icon_OpenExternal", "Icon_ChevronUp", "Icon_ChevronDown",
             "Icon_Search", "Icon_Settings", "Icon_Filter", "Icon_Add",
             "Icon_Delete_Outline", "Icon_NewFolder", "Icon_NewFile",
             "Icon_Refresh", "Icon_Desktop", "Icon_User",
 
+            // 导航/工具栏
             "Icon_Back", "Icon_Forward", "Icon_Up", "Icon_ViewList", "Icon_ViewThumb",
 
+            // 文件类型
             "Icon_Drive", "Icon_Folder", "Icon_File", "Icon_Music", "Icon_Video", "Icon_Image", "Icon_Document",
 
+            // 导航面板
             "Icon_Nav_Path", "Icon_Nav_Library", "Icon_Nav_Tag",
 
-            "Icon_Window_Settings", "Icon_Window_About", "Icon_Window_Minimize", 
-            "Icon_Window_Maximize", "Icon_Window_Restore", "Icon_Window_Close",
-            "Icon_Window_Tasks",
+            // 窗口/功能面板
+            "Icon_Window_Settings", "Icon_Window_About", "Icon_Window_Tasks",
+            "Icon_Backup", "Icon_Clipboard",
 
-            "Icon_Layout_Focus", "Icon_Layout_Work", "Icon_Layout_Full",
+            // 布局模式
+            "Icon_Layout_Focus", "Icon_Layout_Work", "Icon_Layout_Full", "Icon_DualList",
 
-            "Icon_Success", "Icon_Error", "Icon_Warning", "Icon_Info", "Icon_Close"
+            // 状态/Toast
+            "Icon_Success", "Icon_Error", "Icon_Warning", "Icon_Info", "Icon_Close",
+
+            // 通用新增
+            "Icon_Tag", "Icon_Library", "Icon_History", "Icon_Pin",
+            "Icon_Sort", "Icon_MoreHorizontal", "Icon_MoreVertical", "Icon_Check", "Icon_Download",
+
+            // 播放器
+            "Icon_Play", "Icon_Pause", "Icon_Volume_Mute", "Icon_Volume_Low",
+            "Icon_Volume_Medium", "Icon_Volume_High"
         };
 
         /// <summary>

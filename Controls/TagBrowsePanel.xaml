@@ -34,14 +34,14 @@
             <TextBlock Grid.Column="1" Text="标签" FontWeight="Bold" FontSize="15" VerticalAlignment="Center"/>
             
             <Button Grid.Column="2" x:Name="ManageTagsBtn" 
-                    Content="{DynamicResource Icon_Settings}" 
-                    FontFamily="{DynamicResource IconFontFamily}"
                     ToolTip="管理标签" 
                     Width="24" Height="24" Click="ManageTagsBtn_Click"
                     Style="{DynamicResource ModernButtonStyle}"
                     Background="Transparent" Margin="0,0,-5,0"
                     Padding="0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
-                    WindowChrome.IsHitTestVisibleInChrome="True"/>
+                    WindowChrome.IsHitTestVisibleInChrome="True">
+                <Image Source="{DynamicResource Icon_Settings}" Width="14" Height="14" RenderOptions.BitmapScalingMode="HighQuality"/>
+            </Button>
         </Grid>
 
         <!-- Tags List -->

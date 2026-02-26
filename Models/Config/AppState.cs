@@ -25,6 +25,7 @@ namespace YiboFile.Models.Config
 
     public class LayoutState
     {
+        public string LayoutMode { get; set; } = "Full"; // Focus, Work, Full
         public double ColLeftWidth { get; set; } = 220;
         public double ColCenterWidth { get; set; } = 0; // 0 = star
         public double ColRightWidth { get; set; } = 360;

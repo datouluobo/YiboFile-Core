@@ -69,6 +69,7 @@ namespace YiboFile
         ColumnDefinition IShellWindow.ColRight => this.ColRight;
         ColumnDefinition IShellWindow.ColRail => this.ColRail;
         Button IShellWindow.TitleBarMaxRestoreButton => this.TitleBarMaxRestoreButton;
+        System.Windows.Controls.Image IShellWindow.TitleBarMaxRestoreImage => this.TitleBarMaxRestoreImage;
         bool IShellWindow.IsSplitterDragging => this._isSplitterDragging;
 
         bool IShellWindow.IsDualListMode => this.IsDualListMode;

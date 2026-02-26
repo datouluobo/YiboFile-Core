@@ -11,11 +11,6 @@
     
     <UserControl.Resources>
         <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/AppStyles.xaml"/>
-                <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/Themes/Light.xaml"/>
-            </ResourceDictionary.MergedDictionaries>
-
             <helpers:EnumToBooleanConverter x:Key="EnumToBooleanConverter"/>
 
             <!-- 复用/定义的 FilterChipStyle -->

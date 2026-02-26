@@ -4,27 +4,27 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <!-- ① 合约层 (三维Fallback, 永不替换) -->
+                <!-- ① 合约层 -->
                 <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/Themes/_ThemeContract.xaml"/>
                 <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/UIStyles/_UIStyleContract.xaml"/>
                 <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/Icons/_IconContract.xaml"/>
 
-                <!-- ② 当前主题 (运行时替换) -->
+                <!-- ② 当前主题 -->
                 <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/Themes/Light.xaml"/>
 
-                <!-- ③ 别名层 (一次加载, 永不替换) -->
+                <!-- ③ 别名层 -->
                 <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/Aliases/BrushAliases.xaml"/>
 
                 <!-- ④ 全局常量 -->
                 <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/_GlobalDefaults.xaml"/>
 
-                <!-- ⑤ 当前UI风格 (运行时替换) -->
+                <!-- ⑤ 当前UI风格 -->
                 <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/UIStyles/Original.xaml"/>
 
-                <!-- ⑥ 当前图标集 (运行时替换) -->
+                <!-- ⑥ 当前图标集 -->
                 <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/Icons/Emoji.xaml"/>
 
-                <!-- ⑦ 控件样式 (逐步拆分后将加载新路径, 现保留旧路径) -->
+                <!-- ⑦ 控件样式 -->
                 <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/AppStyles.xaml"/>
                 
                 <!-- 模块化控件样式 -->

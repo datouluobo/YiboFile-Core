@@ -28,7 +28,7 @@
     <PackageReference Include="AvalonEdit" Version="6.3.0.90" />
     <PackageReference Include="DocumentFormat.OpenXml" Version="3.0.0" />
     <PackageReference Include="LibVLCSharp.WPF" Version="3.9.5" />
-    <PackageReference Include="Magick.NET-Q16-AnyCPU" Version="14.10.2" />
+    <PackageReference Include="Magick.NET-Q16-AnyCPU" Version="14.10.3" />
     <PackageReference Include="Markdig" Version="0.35.0" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.1" />
@@ -59,8 +59,7 @@
 
   <!-- 自动复制 Resources 文件夹到输出目录 (排除 Icons 下的 XAML，因为它们作为 Page 编译) -->
   <ItemGroup>
-    <None Include="Resources\**\*" CopyToOutputDirectory="PreserveNewest" Exclude="Resources\Icons\**\*.xaml;Resources\UIStyles\**\*.xaml;Resources\Fonts\**\*.ttf" />
-    <Resource Include="Resources\Fonts\**\*.ttf" />
+    <None Include="Resources\**\*" CopyToOutputDirectory="PreserveNewest" Exclude="Resources\Icons\**\*.xaml;Resources\UIStyles\**\*.xaml" />
   </ItemGroup>
 
 

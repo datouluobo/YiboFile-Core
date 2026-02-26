@@ -75,21 +75,17 @@ namespace YiboFile.Controls
             switch (type)
             {
                 case NotificationType.Success:
-                    IconText.Text = (string)FindResource("Icon_Success");
-                    IconText.SetResourceReference(TextBlock.ForegroundProperty, "StatusSuccessBrush");
+                    IconImage.SetResourceReference(System.Windows.Controls.Image.SourceProperty, "Icon_Success");
                     break;
                 case NotificationType.Warning:
-                    IconText.Text = (string)FindResource("Icon_Warning");
-                    IconText.SetResourceReference(TextBlock.ForegroundProperty, "StatusWarningBrush");
+                    IconImage.SetResourceReference(System.Windows.Controls.Image.SourceProperty, "Icon_Warning");
                     break;
                 case NotificationType.Error:
-                    IconText.Text = (string)FindResource("Icon_Error");
-                    IconText.SetResourceReference(TextBlock.ForegroundProperty, "StatusErrorBrush");
+                    IconImage.SetResourceReference(System.Windows.Controls.Image.SourceProperty, "Icon_Error");
                     break;
                 case NotificationType.Info:
                 default:
-                    IconText.Text = (string)FindResource("Icon_Info");
-                    IconText.SetResourceReference(TextBlock.ForegroundProperty, "StatusInfoBrush");
+                    IconImage.SetResourceReference(System.Windows.Controls.Image.SourceProperty, "Icon_Info");
                     break;
             }
         }

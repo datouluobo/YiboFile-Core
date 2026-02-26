@@ -3,6 +3,7 @@
                     xmlns:tabs="clr-namespace:YiboFile.Services.Tabs"
                     xmlns:controls="clr-namespace:YiboFile.Controls"
                     xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+                    xmlns:helpers="clr-namespace:YiboFile.Helpers"
                     xmlns:converters="clr-namespace:YiboFile.Controls.Converters">
 
     <!-- ================================================================
@@ -136,7 +137,32 @@
                 <TextBlock Text="{Binding Title}" VerticalAlignment="Center" MaxWidth="150" TextTrimming="CharacterEllipsis" IsHitTestVisible="False" />
                 
                 <!-- Close Button -->
-                <Button x:Name="PART_CloseButton" Style="{StaticResource FramelessNavButtonStyle}" Content="" FontFamily="Segoe MDL2 Assets" FontSize="9" Width="20" Height="20" Margin="6,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Right" Foreground="{DynamicResource ForegroundPrimaryBrush}" Command="{Binding CloseCommand}" shell:WindowChrome.IsHitTestVisibleInChrome="True" Visibility="Visible" Opacity="0.8" />
+                <Button x:Name="PART_CloseButton" Width="18" Height="18" Margin="6,0,0,0" Padding="0" 
+                        VerticalAlignment="Center" HorizontalAlignment="Right" 
+                        Foreground="{DynamicResource ForegroundPrimaryBrush}" 
+                        Command="{Binding CloseCommand}" 
+                        shell:WindowChrome.IsHitTestVisibleInChrome="True" 
+                        Visibility="Visible" Opacity="0.6" Cursor="Hand">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="border" Background="Transparent" CornerRadius="{DynamicResource UI.Button.CornerRadius}">
+                                <Image helpers:IconHelper.IconKey="Icon_Close" 
+                                       Width="10" Height="10" Stretch="Uniform"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       RenderOptions.BitmapScalingMode="HighQuality"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlHoverBrush}"/>
+                                    <Setter Property="Opacity" Value="1.0"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlPressedBrush}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
             </StackPanel>
         </Button>
         <DataTemplate.Triggers>

@@ -5,6 +5,20 @@
     xmlns:webm="clr-namespace:YiboFile.Controls.WebM"
     xmlns:ui="clr-namespace:YiboFile.Services.UI"
     xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework">
+
+    <!-- ScrollBar Page Button (transparent track area click handler) -->
+    <Style x:Key="ScrollBarPageButton" TargetType="{x:Type RepeatButton}">
+        <Setter Property="OverridesDefaultStyle" Value="true" />
+        <Setter Property="Focusable" Value="false" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type RepeatButton}">
+                    <Border Background="Transparent" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
 <Style x:Key="OverlayScrollThumbStyle" TargetType="{x:Type Thumb}" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
         <Setter Property="Template">
             <Setter.Value>

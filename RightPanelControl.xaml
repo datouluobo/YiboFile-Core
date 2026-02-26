@@ -10,9 +10,11 @@
              VerticalAlignment="Stretch"
              MinWidth="100">
     <UserControl.Resources>
-        <converters:DoubleToGridLengthConverter x:Key="DoubleToGridLengthConverter"/>
-        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
-        <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
+        <ResourceDictionary>
+            <converters:DoubleToGridLengthConverter x:Key="DoubleToGridLengthConverter"/>
+            <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+            <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
+        </ResourceDictionary>
     </UserControl.Resources>
     <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="0">
         <Grid.RowDefinitions>
@@ -466,4 +468,5 @@
         </Border>
     </Grid>
 </UserControl>
+
 

@@ -23,6 +23,7 @@ namespace YiboFile.Interfaces
         ColumnDefinition ColRight { get; }
         ColumnDefinition ColRail { get; }
         Button TitleBarMaxRestoreButton { get; }
+        System.Windows.Controls.Image TitleBarMaxRestoreImage { get; }
 
         // State
         bool IsSplitterDragging { get; }

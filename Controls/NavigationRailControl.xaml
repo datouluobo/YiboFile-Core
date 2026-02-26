@@ -12,11 +12,12 @@
              BorderThickness="0,0,1,0">
 
     <UserControl.Resources>
-        <helpers:StringEqualsConverter x:Key="StringEqualsConverter"/>
-        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
-        
-        <!-- Rail Button Style -->
-        <Style x:Key="RailButtonStyle" TargetType="Button">
+        <ResourceDictionary>
+            <helpers:StringEqualsConverter x:Key="StringEqualsConverter"/>
+            <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+            
+            <!-- Rail Button Style -->
+            <Style x:Key="RailButtonStyle" TargetType="Button">
             <Setter Property="Height" Value="48"/>
             <Setter Property="Width" Value="48"/>
             <Setter Property="Margin" Value="0,4"/>
@@ -49,7 +50,8 @@
                 </Setter.Value>
             </Setter>
         </Style>
-    </UserControl.Resources>
+    </ResourceDictionary>
+</UserControl.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
@@ -65,7 +67,7 @@
                     Tag="{Binding ActiveNavigationMode, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Path}"
                     Style="{StaticResource RailButtonStyle}"
                     ToolTip="文件路径">
-                <TextBlock Text="{DynamicResource Icon_Nav_Path}" FontFamily="{DynamicResource IconFontFamily}" FontSize="20"/>
+                <Image Source="{DynamicResource Icon_Nav_Path}" Width="20" Height="20" RenderOptions.BitmapScalingMode="HighQuality"/>
             </Button>
             
             <!-- Library Nav -->
@@ -73,7 +75,7 @@
                     Tag="{Binding ActiveNavigationMode, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Library}"
                     Style="{StaticResource RailButtonStyle}"
                     ToolTip="库">
-                <TextBlock Text="{DynamicResource Icon_Nav_Library}" FontFamily="{DynamicResource IconFontFamily}" FontSize="20"/>
+                <Image Source="{DynamicResource Icon_Nav_Library}" Width="20" Height="20" RenderOptions.BitmapScalingMode="HighQuality"/>
             </Button>
             
             <!-- Tag Nav -->
@@ -82,7 +84,7 @@
                     Style="{StaticResource RailButtonStyle}"
                     ToolTip="标签"
                     Visibility="{Binding IsTagFeatureAvailable, Converter={StaticResource BooleanToVisibilityConverter}}">
-                <TextBlock Text="{DynamicResource Icon_Nav_Tag}" FontFamily="{DynamicResource IconFontFamily}" FontSize="20"/>
+                <Image Source="{DynamicResource Icon_Nav_Tag}" Width="20" Height="20" RenderOptions.BitmapScalingMode="HighQuality"/>
             </Button>
             
             <Separator Height="1" Margin="12,8" Background="{DynamicResource BorderSubtleBrush}" Opacity="0.5"/>
@@ -93,7 +95,7 @@
                     Style="{StaticResource RailButtonStyle}"
                     ToolTip="任务队列">
                 <Grid>
-                    <TextBlock Text="{DynamicResource Icon_Window_Tasks}" FontFamily="{DynamicResource IconFontFamily}" FontSize="18"/>
+                    <Image Source="{DynamicResource Icon_Window_Tasks}" Width="18" Height="18" RenderOptions.BitmapScalingMode="HighQuality"/>
                     <!-- Badge for active tasks (Optional, can impl later) -->
                 </Grid>
             </Button>
@@ -103,7 +105,7 @@
                     Tag="{Binding ActiveNavigationMode, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Backup}"
                     Style="{StaticResource RailButtonStyle}"
                     ToolTip="备份管理器">
-                 <TextBlock Text="🛡️" FontFamily="Segoe UI Emoji" FontSize="18"/> 
+                 <Image Source="{DynamicResource Icon_Backup}" Width="18" Height="18" RenderOptions.BitmapScalingMode="HighQuality"/> 
             </Button>
             
             <!-- Tools: Clipboard -->
@@ -111,7 +113,7 @@
                     Tag="{Binding ActiveNavigationMode, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Clipboard}"
                     Style="{StaticResource RailButtonStyle}"
                     ToolTip="剪贴板历史">
-                <TextBlock Text="📋" FontFamily="Segoe UI Emoji" FontSize="18"/>
+                <Image Source="{DynamicResource Icon_Clipboard}" Width="18" Height="18" RenderOptions.BitmapScalingMode="HighQuality"/>
             </Button>
         </StackPanel>
 
@@ -122,7 +124,7 @@
                     Tag="{Binding ActiveLayoutMode, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Focus}"
                     Style="{StaticResource RailButtonStyle}"
                     ToolTip="专注模式 (Ctrl+Shift+F)">
-                <TextBlock Text="{DynamicResource Icon_Layout_Focus}" FontFamily="{DynamicResource IconFontFamily}" FontSize="18"/>
+                <Image Source="{DynamicResource Icon_Layout_Focus}" Width="18" Height="18" RenderOptions.BitmapScalingMode="HighQuality"/>
             </Button>
             
             <!-- Work Mode -->
@@ -130,7 +132,7 @@
                     Tag="{Binding ActiveLayoutMode, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Work}"
                     Style="{StaticResource RailButtonStyle}"
                     ToolTip="工作模式 (Ctrl+Shift+W)">
-                <TextBlock Text="{DynamicResource Icon_Layout_Work}" FontFamily="{DynamicResource IconFontFamily}" FontSize="18"/>
+                <Image Source="{DynamicResource Icon_Layout_Work}" Width="18" Height="18" RenderOptions.BitmapScalingMode="HighQuality"/>
             </Button>
 
             <!-- Full Mode -->
@@ -138,7 +140,7 @@
                     Tag="{Binding ActiveLayoutMode, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Full}"
                     Style="{StaticResource RailButtonStyle}"
                     ToolTip="完整模式 (Ctrl+Shift+A)">
-                <TextBlock Text="{DynamicResource Icon_Layout_Full}" FontFamily="{DynamicResource IconFontFamily}" FontSize="18"/>
+                <Image Source="{DynamicResource Icon_Layout_Full}" Width="18" Height="18" RenderOptions.BitmapScalingMode="HighQuality"/>
             </Button>
 
             <Separator Height="1" Margin="12,4" Background="{DynamicResource BorderSubtleBrush}" Opacity="0.5"/>
@@ -148,7 +150,7 @@
                     Tag="{Binding IsDualListMode, Converter={StaticResource StringEqualsConverter}, ConverterParameter=True}"
                     Style="{StaticResource RailButtonStyle}"
                     ToolTip="双列表模式">
-                <TextBlock Text="||" FontWeight="Bold" FontSize="14"/>
+                <Image Source="{DynamicResource Icon_DualList}" Width="18" Height="18" RenderOptions.BitmapScalingMode="HighQuality"/>
             </Button>
 
             <Separator Height="1" Margin="12,4" Background="{DynamicResource BorderSubtleBrush}" Opacity="0.5"/>
@@ -157,16 +159,17 @@
             <Button x:Name="SettingsButton" Command="{Binding OpenSettingsCommand}"
                     Style="{StaticResource RailButtonStyle}"
                     ToolTip="设置">
-                <TextBlock Text="{DynamicResource Icon_Window_Settings}" FontFamily="{DynamicResource IconFontFamily}" FontSize="20"/>
+                <Image Source="{DynamicResource Icon_Window_Settings}" Width="20" Height="20" RenderOptions.BitmapScalingMode="HighQuality"/>
             </Button>
             
             <!-- About -->
             <Button x:Name="AboutButton" Command="{Binding OpenAboutCommand}"
                     Style="{StaticResource RailButtonStyle}"
                     ToolTip="关于">
-                <TextBlock Text="{DynamicResource Icon_Window_About}" FontFamily="{DynamicResource IconFontFamily}" FontSize="20"/>
+                <Image Source="{DynamicResource Icon_Window_About}" Width="20" Height="20" RenderOptions.BitmapScalingMode="HighQuality"/>
             </Button>
         </StackPanel>
     </Grid>
 </UserControl>
+
 

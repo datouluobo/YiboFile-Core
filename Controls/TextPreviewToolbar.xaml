@@ -178,26 +178,24 @@
                                TextAlignment="Center"/>
                     
                     <Button x:Name="PrevMatchButton"
-                            Content="{DynamicResource Icon_ChevronUp}"
-                            FontFamily="{DynamicResource IconFontFamily}"
                             Width="24" Height="24"
                             Padding="0"
                             Background="Transparent"
                             BorderThickness="0"
-                            FontSize="10"
                             Click="PrevMatchButton_Click"
-                            ToolTip="上一个 (Shift+Enter)"/>
+                            ToolTip="上一个 (Shift+Enter)">
+                        <Image Source="{DynamicResource Icon_ChevronUp}" Width="10" Height="10" RenderOptions.BitmapScalingMode="HighQuality"/>
+                    </Button>
 
                     <Button x:Name="NextMatchButton"
-                            Content="{DynamicResource Icon_ChevronDown}"
-                            FontFamily="{DynamicResource IconFontFamily}"
                             Width="24" Height="24"
                             Padding="0"
                             Background="Transparent"
                             BorderThickness="0"
-                            FontSize="10"
                             Click="NextMatchButton_Click"
-                            ToolTip="下一个 (Enter)"/>
+                            ToolTip="下一个 (Enter)">
+                        <Image Source="{DynamicResource Icon_ChevronDown}" Width="10" Height="10" RenderOptions.BitmapScalingMode="HighQuality"/>
+                    </Button>
                 </StackPanel>
             </Border>
         </Border>
@@ -211,32 +209,32 @@
 
             <!-- View Toggle (Source/Render) -->
             <Button x:Name="ViewToggleButton" 
-                    Content="{DynamicResource Icon_Render}"
                     ToolTip="渲染/源码切换" 
-                    FontFamily="{DynamicResource IconFontFamily}"
                     Style="{StaticResource ToolbarButtonStyle}"
                     Visibility="{Binding ShowViewToggle, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"
-                    Click="ViewToggleButton_Click"/>
+                    Click="ViewToggleButton_Click">
+                <Image Source="{DynamicResource Icon_Render}" Width="14" Height="14" RenderOptions.BitmapScalingMode="HighQuality"/>
+            </Button>
             
             <!-- Format XML/JSON -->
             <Button x:Name="FormatButton" 
-                    Content="{DynamicResource Icon_Format}"
                     ToolTip="格式化代码" 
-                    FontFamily="{DynamicResource IconFontFamily}"
                     Style="{StaticResource ToolbarButtonStyle}"
                     Visibility="{Binding ShowFormat, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"
-                    Click="FormatButton_Click"/>
+                    Click="FormatButton_Click">
+                <Image Source="{DynamicResource Icon_Format}" Width="14" Height="14" RenderOptions.BitmapScalingMode="HighQuality"/>
+            </Button>
 
             <!-- Word Wrap -->
             <ToggleButton x:Name="WrapButton" 
-                          Content="{DynamicResource Icon_Wrap}"
                           ToolTip="自动换行" 
-                          FontFamily="{DynamicResource IconFontFamily}"
                           Style="{StaticResource ToolbarToggleButtonStyle}"
                           Checked="WrapButton_CheckedChanged"
                           Unchecked="WrapButton_CheckedChanged"
                           IsChecked="{Binding IsWordWrapEnabled, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}"
-                          Visibility="{Binding ShowWordWrap, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                          Visibility="{Binding ShowWordWrap, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <Image Source="{DynamicResource Icon_Wrap}" Width="14" Height="14" RenderOptions.BitmapScalingMode="HighQuality"/>
+            </ToggleButton>
 
             <!-- Encoding -->
             <ComboBox x:Name="EncodingCombo" 
@@ -252,27 +250,27 @@
 
             <!-- Copy -->
             <Button x:Name="CopyButton" 
-                    Content="{DynamicResource Icon_Copy}"
                     ToolTip="复制全文" 
-                    FontFamily="{DynamicResource IconFontFamily}"
                     Style="{StaticResource ToolbarButtonStyle}"
-                    Click="CopyButton_Click"/>
+                    Click="CopyButton_Click">
+                <Image Source="{DynamicResource Icon_Copy}" Width="14" Height="14" RenderOptions.BitmapScalingMode="HighQuality"/>
+            </Button>
 
             <!-- Edit/Save -->
             <Button x:Name="EditButton" 
-                    Content="{DynamicResource Icon_Edit}"
                     ToolTip="编辑模式" 
-                    FontFamily="{DynamicResource IconFontFamily}"
                     Style="{StaticResource ToolbarButtonStyle}"
-                    Click="EditButton_Click"/>
+                    Click="EditButton_Click">
+                <Image Source="{DynamicResource Icon_Edit}" Width="14" Height="14" RenderOptions.BitmapScalingMode="HighQuality"/>
+            </Button>
 
             <!-- Open External -->
             <Button x:Name="OpenExternalButton" 
-                    Content="{DynamicResource Icon_OpenExternal}"
                     ToolTip="用外部程序打开" 
-                    FontFamily="{DynamicResource IconFontFamily}"
                     Style="{StaticResource ToolbarButtonStyle}"
-                    Click="OpenExternalButton_Click"/>
+                    Click="OpenExternalButton_Click">
+                <Image Source="{DynamicResource Icon_OpenExternal}" Width="14" Height="14" RenderOptions.BitmapScalingMode="HighQuality"/>
+            </Button>
         </StackPanel>
     </Grid>
 </UserControl>

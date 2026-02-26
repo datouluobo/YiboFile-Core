@@ -166,6 +166,11 @@ namespace YiboFile.ViewModels.Settings
                     "Remix" => "✒️ ",
                     "Fluent" => "💠 ",
                     "Material" => "✨ ",
+                    "Lucide" => "🚀 ",
+                    "Pixel" => "👾 ",
+                    "Prism" => "💎 ",
+                    "Tabler" => "📋 ",
+                    "Phosphor" => "💡 ",
                     _ => "📦 "
                 };
                 IconStyles.Add(new IconStyleItemViewModel(icon.Id, prefix + icon.DisplayName));

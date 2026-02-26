@@ -19,6 +19,7 @@ namespace YiboFile.Models.Config
     public class AppearanceSettings
     {
         public string ThemeMode { get; set; } = "FollowSystem"; // Light, Dark, FollowSystem
+        public string UIStyle { get; set; } = "Original"; // Original, Fluent, MacOS, Geek
         public double WindowOpacity { get; set; } = 1.0;
         public bool AnimationsEnabled { get; set; } = true;
         public string IconStyle { get; set; } = "Emoji"; // Emoji, Remix, Fluent

@@ -21,6 +21,7 @@ namespace YiboFile.Services.Config
             settings.Appearance.WindowOpacity = source.WindowOpacity;
             settings.Appearance.AnimationsEnabled = source.AnimationsEnabled;
             settings.Appearance.IconStyle = source.IconStyle;
+            settings.Appearance.UIStyle = source.UIStyle;
             // CustomThemeId not explicitly in AppConfig, handle if needed or assume null
 
             // Behavior
@@ -68,6 +69,7 @@ namespace YiboFile.Services.Config
             state.Window.IsMaximized = source.IsMaximized;
 
             // Layout
+            state.Layout.LayoutMode = source.LayoutMode;
             state.Layout.ColLeftWidth = source.ColLeftWidth;
             state.Layout.ColCenterWidth = source.ColCenterWidth;
             state.Layout.ColRightWidth = source.ColRightWidth;
@@ -122,6 +124,7 @@ namespace YiboFile.Services.Config
             config.WindowOpacity = settings.Appearance.WindowOpacity;
             config.AnimationsEnabled = settings.Appearance.AnimationsEnabled;
             config.IconStyle = settings.Appearance.IconStyle;
+            config.UIStyle = settings.Appearance.UIStyle;
 
             config.ReuseTabTimeWindow = settings.Behavior.ReuseTabTimeWindow;
             config.AlwaysReuseTab = settings.Behavior.AlwaysReuseTab;
@@ -158,6 +161,7 @@ namespace YiboFile.Services.Config
             config.IsMaximized = state.Window.IsMaximized;
 
             config.ColLeftWidth = state.Layout.ColLeftWidth;
+            config.LayoutMode = state.Layout.LayoutMode;
             config.ColCenterWidth = state.Layout.ColCenterWidth;
             config.ColRightWidth = state.Layout.ColRightWidth;
             config.IsSidebarCollapsed = state.Layout.IsSidebarCollapsed;

@@ -1,0 +1,26 @@
+commit 3378ca5a3926d8bfee9882d6d40fd730d0c98fa5
+Author: datouluobo <datouluobo@gmail.com>
+Date:   Tue Feb 24 12:37:06 2026 +0800
+
+    Refactor: Settings UI rebuilt to Native XAML MVVM structure
+
+ Controls/Settings/AppearanceSettingsPanel.xaml     |   32 +
+ Controls/Settings/AppearanceSettingsPanel.xaml.cs  | 1103 +-------------------
+ Controls/Settings/FileListSettingsPanel.xaml       |   42 +
+ Controls/Settings/FileListSettingsPanel.xaml.cs    |  185 +---
+ Controls/Settings/GeneralSettingsPanel.xaml        |  119 +++
+ Controls/Settings/GeneralSettingsPanel.xaml.cs     |  665 +-----------
+ Controls/Settings/HotkeySettingsPanel.xaml         |   77 ++
+ Controls/Settings/HotkeySettingsPanel.xaml.cs      |  351 +------
+ Controls/Settings/LibrarySettingsPanel.xaml        |   59 ++
+ Controls/Settings/LibrarySettingsPanel.xaml.cs     |  199 +---
+ Controls/Settings/PathSettingsPanel.xaml           |   56 +
+ Controls/Settings/PathSettingsPanel.xaml.cs        |  131 ---
+ Controls/Settings/SearchSettingsPanel.xaml         |   95 +-
+ Controls/Settings/SearchSettingsPanel.xaml.cs      |  418 +-------
+ Controls/Settings/TagManagementPanel.xaml          |  174 +++
+ Controls/Settings/TagManagementPanel.xaml.cs       |  398 +------
+ Windows/HotkeyEditWindow.xaml                      |   33 +
+ Windows/HotkeyEditWindow.xaml.cs                   |   73 ++
+ ...262\276\347\256\200\351\207\215\346\236\204.md" |   43 +
+ 19 files changed, 925 insertions(+), 3328 deletions(-)

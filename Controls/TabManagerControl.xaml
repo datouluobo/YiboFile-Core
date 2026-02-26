@@ -7,6 +7,11 @@
              mc:Ignorable="d" 
              d:DesignHeight="40" d:DesignWidth="800"
              shell:WindowChrome.IsHitTestVisibleInChrome="True">
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+        </ResourceDictionary>
+    </UserControl.Resources>
     
     <Border x:Name="TabsBorder" Background="Transparent" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0" Visibility="Visible"
             shell:WindowChrome.IsHitTestVisibleInChrome="True"
@@ -39,13 +44,13 @@
                         Command="{Binding RelativeSource={RelativeSource AncestorType=UserControl}, Path=NewTabCommand}"
                         shell:WindowChrome.IsHitTestVisibleInChrome="True"
                         ToolTip="新建标签页">
-                    <TextBlock FontSize="16" 
-                               FontFamily="{StaticResource IconFontFamily}" 
-                               Text="{StaticResource Icon_Add}"
+                    <Image Source="{DynamicResource Icon_Add}" Width="16" Height="16" 
                                VerticalAlignment="Center" 
-                               HorizontalAlignment="Center"/>
+                               HorizontalAlignment="Center"
+                               RenderOptions.BitmapScalingMode="HighQuality"/>
                 </Button>
             </StackPanel>
         </ScrollViewer>
     </Border>
 </UserControl>
+

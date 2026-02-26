@@ -191,6 +191,13 @@ namespace YiboFile.Services.Orchestration
             // 初始化所有模块
             ViewModel.InitializeModules();
 
+            // 在设置 DataContext 从而触发绑定前，预先应用用户保存的列宽，
+            // 确保如果 UI 属性驱动其立即折叠，CollapsibleGridSplitter 能捕获到正确的之前大小。
+            if (window.ColLeft != null && cfg.ColLeftWidth > 0)
+                window.ColLeft.Width = new System.Windows.GridLength(Math.Max(window.ColLeft.MinWidth, cfg.ColLeftWidth));
+            if (window.ColRight != null && cfg.ColRightWidth > 0)
+                window.ColRight.Width = new System.Windows.GridLength(Math.Max(window.ColRight.MinWidth, cfg.ColRightWidth));
+
             // 设置 DataContext
             window.DataContext = ViewModel;
 

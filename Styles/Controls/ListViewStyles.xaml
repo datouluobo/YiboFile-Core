@@ -4,7 +4,8 @@
     xmlns:controls="clr-namespace:YiboFile.Controls"
     xmlns:colmgr="clr-namespace:YiboFile.Services.UI.ColumnManagement"
     xmlns:ui="clr-namespace:YiboFile.Services.UI"
-    xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework">
+    xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+    xmlns:converters="clr-namespace:YiboFile.Controls.Converters">
 
     <!-- ================================================================
          Navigation ListBox Item Style

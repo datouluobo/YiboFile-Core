@@ -345,7 +345,10 @@ namespace YiboFile.Controls
                     var originalSize = direction == PanelDirection.Previous ? _previousSize : _nextSize;
 
                     // 如果没有保存过大小（初次展开且不是通过折叠进入），设为一个合理的默认值
-                    if (targetPixelSize <= 0) targetPixelSize = direction == PanelDirection.Previous ? 220 : 360;
+                    if (targetPixelSize <= 0)
+                    {
+                        targetPixelSize = originalSize.Value > 0 ? originalSize.Value : (direction == PanelDirection.Previous ? 220 : 360);
+                    }
                     if (originalSize.Value <= 0) originalSize = new GridLength(targetPixelSize);
 
                     if (direction == PanelDirection.Previous)
@@ -386,7 +389,10 @@ namespace YiboFile.Controls
                     var targetPixelSize = direction == PanelDirection.Previous ? _previousActualLength : _nextActualLength;
                     var originalSize = direction == PanelDirection.Previous ? _previousSize : _nextSize;
 
-                    if (targetPixelSize <= 0) targetPixelSize = 200;
+                    if (targetPixelSize <= 0)
+                    {
+                        targetPixelSize = originalSize.Value > 0 ? originalSize.Value : 200;
+                    }
                     if (originalSize.Value <= 0) originalSize = new GridLength(targetPixelSize);
 
                     if (direction == PanelDirection.Previous)

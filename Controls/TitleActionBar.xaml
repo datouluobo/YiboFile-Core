@@ -4,42 +4,44 @@
              Background="Transparent">
     <!-- 统一资源：所有按钮默认为 ModernToolbarButtonStyle -->
     <UserControl.Resources>
-        <Style TargetType="Button" BasedOn="{StaticResource ModernToolbarButtonStyle}"/>
+        <ResourceDictionary>
+            <Style TargetType="Button" BasedOn="{StaticResource ModernToolbarButtonStyle}"/>
+        </ResourceDictionary>
     </UserControl.Resources>
 
     <Grid>
         <StackPanel x:Name="PathPanel" Orientation="Horizontal" VerticalAlignment="Center">
             <Button Command="{Binding Commands.NewFolderCommand}" ToolTip="新建文件夹" Margin="0,0,2,0">
-                <TextBlock Text="{DynamicResource Icon_Folder}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center"/>
+                <Image Source="{DynamicResource Icon_Folder}" Width="14" Height="14" RenderOptions.BitmapScalingMode="HighQuality"/>
             </Button>
             <Button Command="{Binding Commands.NewFileCommand}" ToolTip="新建文件" Margin="0,0,2,0">
-                <TextBlock Text="{DynamicResource Icon_File}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center"/>
+                <Image Source="{DynamicResource Icon_File}" Width="14" Height="14" RenderOptions.BitmapScalingMode="HighQuality"/>
             </Button>
             <Separator Margin="12,4" Height="20" VerticalAlignment="Center"/>
             <Button Command="{Binding Commands.CopyCommand}" ToolTip="复制" Margin="0,0,2,0">
-                <TextBlock Text="{DynamicResource Icon_Copy}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center"/>
+                <Image Source="{DynamicResource Icon_Copy}" Width="14" Height="14" RenderOptions.BitmapScalingMode="HighQuality"/>
             </Button>
             <Button Command="{Binding Commands.PasteCommand}" ToolTip="粘贴" Margin="0,0,2,0">
-                <TextBlock Text="{DynamicResource Icon_Format}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center"/>
+                <Image Source="{DynamicResource Icon_Format}" Width="14" Height="14" RenderOptions.BitmapScalingMode="HighQuality"/>
             </Button>
             <Button Command="{Binding Commands.DeleteCommand}" ToolTip="删除" Margin="0,0,2,0">
-                <TextBlock Text="{DynamicResource Icon_Delete_Outline}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center"/>
+                <Image Source="{DynamicResource Icon_Delete_Outline}" Width="14" Height="14" RenderOptions.BitmapScalingMode="HighQuality"/>
             </Button>
         </StackPanel>
 
         <StackPanel x:Name="LibraryPanel" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
             <Button Command="{Binding Commands.NewFolderCommand}" ToolTip="新建文件夹" Margin="0,0,2,0">
-                <TextBlock Text="{DynamicResource Icon_Folder}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center"/>
+                <Image Source="{DynamicResource Icon_Folder}" Width="14" Height="14" RenderOptions.BitmapScalingMode="HighQuality"/>
             </Button>
             <Button Command="{Binding Commands.NewFileCommand}" ToolTip="新建文件" Margin="0,0,2,0">
-                <TextBlock Text="{DynamicResource Icon_File}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center"/>
+                <Image Source="{DynamicResource Icon_File}" Width="14" Height="14" RenderOptions.BitmapScalingMode="HighQuality"/>
             </Button>
             <Separator Margin="12,4" Height="20" VerticalAlignment="Center"/>
             <Button Command="{Binding Commands.CopyCommand}" ToolTip="复制" Margin="0,0,2,0">
-                <TextBlock Text="{DynamicResource Icon_Copy}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center"/>
+                <Image Source="{DynamicResource Icon_Copy}" Width="14" Height="14" RenderOptions.BitmapScalingMode="HighQuality"/>
             </Button>
             <Button Command="{Binding Commands.PasteCommand}" ToolTip="粘贴" Margin="0,0,2,0">
-                <TextBlock Text="{DynamicResource Icon_Format}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center"/>
+                <Image Source="{DynamicResource Icon_Format}" Width="14" Height="14" RenderOptions.BitmapScalingMode="HighQuality"/>
             </Button>
             <Button Command="{Binding Commands.DeleteCommand}" ToolTip="删除" Margin="0,0,2,0">
                 <Button.Style>
@@ -48,7 +50,7 @@
                         <Setter Property="Height" Value="32"/>
                     </Style>
                 </Button.Style>
-                <TextBlock Text="{DynamicResource Icon_Delete_Outline}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center"/>
+                <Image Source="{DynamicResource Icon_Delete_Outline}" Width="14" Height="14" RenderOptions.BitmapScalingMode="HighQuality"/>
             </Button>
             <Button Command="{Binding Commands.RefreshCommand}" ToolTip="刷新" Margin="0,0,2,0">
                 <Button.Style>
@@ -57,7 +59,7 @@
                         <Setter Property="Height" Value="32"/>
                     </Style>
                 </Button.Style>
-                <TextBlock Text="{DynamicResource Icon_Refresh}" FontSize="14" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center"/>
+                <Image Source="{DynamicResource Icon_Refresh}" Width="14" Height="14" RenderOptions.BitmapScalingMode="HighQuality"/>
             </Button>
         </StackPanel>
 
@@ -68,7 +70,7 @@
                         <Setter Property="Padding" Value="8,0"/>
                     </Style>
                 </Button.Style>
-                <TextBlock Text="&#xE8EC;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
+                <Image Source="{DynamicResource Icon_Add}" Width="14" Height="14" RenderOptions.BitmapScalingMode="HighQuality"/>
             </Button>
             <Button Command="{Binding Commands.ManageTagsCommand}" ToolTip="管理标签" Margin="0,0,2,0" Height="36">
                 <Button.Style>
@@ -76,7 +78,7 @@
                         <Setter Property="Padding" Value="8,0"/>
                     </Style>
                 </Button.Style>
-                <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
+                <Image Source="{DynamicResource Icon_Settings}" Width="14" Height="14" RenderOptions.BitmapScalingMode="HighQuality"/>
             </Button>
             <Separator Margin="12,4" Height="20" VerticalAlignment="Center"/>
             <Button Command="{Binding Commands.BatchAddTagsCommand}" ToolTip="批量添加" Margin="0,0,2,0" Height="36">
@@ -85,7 +87,7 @@
                         <Setter Property="Padding" Value="8,0"/>
                     </Style>
                 </Button.Style>
-                <TextBlock Text="&#xE7B8;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
+                <Image Source="{DynamicResource Icon_Add}" Width="14" Height="14" RenderOptions.BitmapScalingMode="HighQuality"/>
             </Button>
             <Button Command="{Binding Commands.TagStatisticsCommand}" ToolTip="标签统计" Margin="0,0,2,0" Height="36">
                 <Button.Style>
@@ -93,7 +95,7 @@
                         <Setter Property="Padding" Value="8,0"/>
                     </Style>
                 </Button.Style>
-                <TextBlock Text="&#xE9D2;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
+                <Image Source="{DynamicResource Icon_Filter}" Width="14" Height="14" RenderOptions.BitmapScalingMode="HighQuality"/>
             </Button>
             <Separator Margin="12,4" Height="20" VerticalAlignment="Center"/>
             <Button Command="{Binding Commands.CopyCommand}" ToolTip="复制" Margin="0,0,2,0" Height="36">
@@ -102,7 +104,7 @@
                         <Setter Property="Padding" Value="8,0"/>
                     </Style>
                 </Button.Style>
-                <TextBlock Text="{DynamicResource Icon_Copy}" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center"/>
+                <Image Source="{DynamicResource Icon_Copy}" Width="14" Height="14" RenderOptions.BitmapScalingMode="HighQuality"/>
             </Button>
             <Button Command="{Binding Commands.PasteCommand}" ToolTip="粘贴" Margin="0,0,2,0" Height="36">
                 <Button.Style>
@@ -110,7 +112,7 @@
                         <Setter Property="Padding" Value="8,0"/>
                     </Style>
                 </Button.Style>
-                <TextBlock Text="{DynamicResource Icon_Format}" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center"/>
+                <Image Source="{DynamicResource Icon_Format}" Width="14" Height="14" RenderOptions.BitmapScalingMode="HighQuality"/>
             </Button>
             <Button Command="{Binding Commands.DeleteCommand}" ToolTip="删除" Margin="0,0,2,0" Height="36">
                 <Button.Style>
@@ -118,7 +120,7 @@
                         <Setter Property="Padding" Value="8,0"/>
                     </Style>
                 </Button.Style>
-                <TextBlock Text="{DynamicResource Icon_Delete_Outline}" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center"/>
+                <Image Source="{DynamicResource Icon_Delete_Outline}" Width="14" Height="14" RenderOptions.BitmapScalingMode="HighQuality"/>
             </Button>
         </StackPanel>
 
@@ -129,7 +131,7 @@
                         <Setter Property="Padding" Value="8,0"/>
                     </Style>
                 </Button.Style>
-                <TextBlock Text="&#xE8C8;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
+                <Image Source="{DynamicResource Icon_Copy}" Width="14" Height="14" RenderOptions.BitmapScalingMode="HighQuality"/>
             </Button>
             <Button Command="{Binding Commands.PasteCommand}" ToolTip="粘贴" Margin="0,0,4,0" Height="36">
                 <Button.Style>
@@ -137,7 +139,7 @@
                         <Setter Property="Padding" Value="8,0"/>
                     </Style>
                 </Button.Style>
-                <TextBlock Text="&#xE77F;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
+                <Image Source="{DynamicResource Icon_Format}" Width="14" Height="14" RenderOptions.BitmapScalingMode="HighQuality"/>
             </Button>
             <Button Command="{Binding Commands.DeleteCommand}" ToolTip="删除" Margin="0,0,4,0" Height="36">
                 <Button.Style>
@@ -145,7 +147,7 @@
                         <Setter Property="Padding" Value="8,0"/>
                     </Style>
                 </Button.Style>
-                <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
+                <Image Source="{DynamicResource Icon_Delete_Outline}" Width="14" Height="14" RenderOptions.BitmapScalingMode="HighQuality"/>
             </Button>
             <Button Command="{Binding Commands.RefreshCommand}" ToolTip="刷新" Margin="0,0,4,0" Height="36">
                 <Button.Style>
@@ -153,11 +155,12 @@
                         <Setter Property="Padding" Value="8,0"/>
                     </Style>
                 </Button.Style>
-                <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
+                <Image Source="{DynamicResource Icon_Refresh}" Width="14" Height="14" RenderOptions.BitmapScalingMode="HighQuality"/>
             </Button>
         </StackPanel>
     </Grid>
 </UserControl>
+
 
 
 

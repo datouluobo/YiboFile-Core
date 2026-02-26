@@ -572,28 +572,8 @@ namespace YiboFile.Services
             _isApplyingConfig = true;
             try
             {
-                // 应用左中右三列宽度
-                var leftWidth = _config.ColLeftWidth > 0 ? _config.ColLeftWidth : _config.LeftPanelWidth;
-                var rightWidth = _config.ColRightWidth > 0 ? _config.ColRightWidth : 360;
-
-                if (leftWidth > 0)
-                {
-                    _uiHelper.ColLeft.Width = new GridLength(Math.Max(_uiHelper.ColLeft.MinWidth, leftWidth));
-                }
-
-                // 中间列固定为自适应 (Gap Fix)
-                _uiHelper.ColCenter.Width = new GridLength(1, GridUnitType.Star);
-
-                if (rightWidth > 0)
-                {
-                    _uiHelper.ColRight.Width = new GridLength(Math.Max(_uiHelper.ColRight.MinWidth, rightWidth));
-                }
-
-                // 恢复右侧面板可见性
-                if (!_config.IsRightPanelVisible)
-                {
-                    _uiHelper.ColRight.Width = new GridLength(0);
-                }
+                // 列宽度的恢复已经移动到 ModuleInitializer 的 DataContext 赋值之前，
+                // 以支持 CollapsibleGridSplitter 的首帧捕获，不需要在此处重复赋值，避免覆盖折叠状态。
 
                 // 恢复详细高度
                 if (_config.RightPanelNotesHeight > 0 && _uiHelper.RightPanelControl?.Content is Grid rightGrid && rightGrid.RowDefinitions.Count > 3)

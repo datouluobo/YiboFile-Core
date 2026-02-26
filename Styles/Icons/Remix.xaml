@@ -1,78 +1,621 @@
-<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:sys="clr-namespace:System;assembly=mscorlib">
-    
-    <!-- Remix Icon Font (Requires font file in Resources/Fonts/remixicon.ttf) -->
-    <FontFamily x:Key="IconFontFamily">pack://application:,,,/Resources/Fonts/#remixicon</FontFamily>
-    
-    <!-- Window Control Icon Size -->
-    <sys:Double x:Key="WindowControlIconSize">16</sys:Double>
-    <!-- ======== 元数据 (3键) ======== -->
-    <sys:String x:Key="IconStyleId">Remix</sys:String>
-    <sys:String x:Key="IconStyleDisplayName">Remix 图标</sys:String>
-    <sys:String x:Key="IconStyleDescription">Remix 的混合线框图标</sys:String>
 
-    <!-- Generic Icon Keys -->
-    <sys:String x:Key="Icon_Copy">&#xEE75;</sys:String>   <!-- ri-file-copy-line -->
-    <sys:String x:Key="Icon_Edit">&#xF06C;</sys:String>   <!-- ri-pencil-line -->
-    <sys:String x:Key="Icon_Format">&#xF0E7;</sys:String> <!-- ri-magic-line -->
-    <sys:String x:Key="Icon_Render">&#xEEE1;</sys:String> <!-- ri-brush-line -->
-    <sys:String x:Key="Icon_Wrap">&#xF1D0;</sys:String>   <!-- ri-text-wrap -->
-    <sys:String x:Key="Icon_OpenExternal">&#xF035;</sys:String> <!-- ri-folder-open-line -->
-    <sys:String x:Key="Icon_ChevronUp">&#xEA78;</sys:String>    <!-- ri-arrow-up-s-line -->
-    <sys:String x:Key="Icon_ChevronDown">&#xEA74;</sys:String>  <!-- ri-arrow-down-s-line -->
-    <sys:String x:Key="Icon_Search">&#xF0D1;</sys:String>       <!-- ri-search-line -->
-    <sys:String x:Key="Icon_Settings">&#xF0E1;</sys:String>     <!-- ri-settings-3-line -->
-    <sys:String x:Key="Icon_Filter">&#xEBCA;</sys:String>       <!-- ri-filter-line -->
-    <sys:String x:Key="Icon_Add">&#xEA13;</sys:String>          <!-- ri-add-line -->
-    <sys:String x:Key="Icon_Delete_Outline">&#xEB9A;</sys:String> <!-- ri-delete-bin-line -->
-    <sys:String x:Key="Icon_NewFolder">&#xEF44;</sys:String>      <!-- ri-folder-add-line -->
-    <sys:String x:Key="Icon_NewFile">&#xEEAE;</sys:String>        <!-- ri-file-add-line -->
-    <sys:String x:Key="Icon_Refresh">&#xF01A;</sys:String>        <!-- ri-refresh-line -->
-    <sys:String x:Key="Icon_Desktop">&#xF035;</sys:String>        <!-- ri-computer-line (using generic monitor) -->
-    <sys:String x:Key="Icon_User">&#xF206;</sys:String>           <!-- ri-user-line -->
+    <!-- Remix Icon - Line variant -->
 
-    <!-- Navigation / Toolbar Icons -->
-    <sys:String x:Key="Icon_Back">&#xEA60;</sys:String>       <!-- ri-arrow-left-line -->
-    <sys:String x:Key="Icon_Forward">&#xEA6C;</sys:String>    <!-- ri-arrow-right-line -->
-    <sys:String x:Key="Icon_Up">&#xEA76;</sys:String>         <!-- ri-arrow-up-line -->
-    <sys:String x:Key="Icon_ViewList">&#xEFC1;</sys:String>   <!-- ri-list-check -->
-    <sys:String x:Key="Icon_ViewThumb">&#xEEFA;</sys:String>  <!-- ri-grid-line -->
+    <sys:String x:Key="UI.IconStyleId">Remix</sys:String>
+    <sys:String x:Key="UI.IconStyleDisplayName">Remix 鍥炬爣</sys:String>
+    <sys:String x:Key="UI.IconStyleDescription">Remix Icon 鐭㈤噺鍥炬爣</sys:String>
 
-    <!-- File/Folder Icons -->
-    <sys:String x:Key="Icon_Drive">&#xED8F;</sys:String>      <!-- ri-hard-drive-line -->
-    <sys:String x:Key="Icon_Folder">&#xEF43;</sys:String>     <!-- ri-folder-line -->
-    <sys:String x:Key="Icon_File">&#xEEAC;</sys:String>       <!-- ri-file-line -->
-    <sys:String x:Key="Icon_Music">&#xF003;</sys:String>      <!-- ri-music-line -->
-    <sys:String x:Key="Icon_Video">&#xF00B;</sys:String>      <!-- ri-movie-line -->
-    <sys:String x:Key="Icon_Image">&#xEEBF;</sys:String>      <!-- ri-image-line -->
-    <sys:String x:Key="Icon_Document">&#xEEB2;</sys:String>   <!-- ri-file-text-line -->
+    <DrawingImage x:Key="Icon_Copy">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M7 6V3a1 1 0 011-1h12a1 1 0 011 1v14a1 1 0 01-1 1h-3v3c0 .552-.45 1-1.007 1H4.007A1.001 1.001 0 013 20l.003-14c0-.552.45-1 1.007-1H7zm2 0h8v10h2V4H9v2z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
 
-    <!-- Navigation Panel Specific -->
-    <sys:String x:Key="Icon_Nav_Path">&#xEE3D;</sys:String>   <!-- ri-earth-line -->
-    <sys:String x:Key="Icon_Nav_Library">&#xEB1F;</sys:String> <!-- ri-book-open-line -->
-    <sys:String x:Key="Icon_Nav_Tag">&#xF08B;</sys:String>    <!-- ri-price-tag-3-line -->
-    
-    <!-- Window Control Icons -->
-    <sys:String x:Key="Icon_Window_Settings">&#xF0E1;</sys:String>
-    <sys:String x:Key="Icon_Window_About">&#xEECE;</sys:String>
-    <sys:String x:Key="Icon_Window_Minimize">&#xF1AF;</sys:String> <!-- ri-subtract-line -->
-    <sys:String x:Key="Icon_Window_Maximize">&#xEE34;</sys:String> <!-- ri-checkbox-blank-line -->
-    <sys:String x:Key="Icon_Window_Restore">&#xEB7B;</sys:String>  <!-- ri-checkbox-multiple-blank-line -->
-    <sys:String x:Key="Icon_Window_Close">&#xEB99;</sys:String>    <!-- ri-close-line -->
-    <sys:String x:Key="Icon_Window_Tasks">&#xF1E5;</sys:String>
-    
-    <!-- Layout Mode Icons -->
-    <sys:String x:Key="Icon_Layout_Focus">&#xEFC3;</sys:String>     <!-- ri-layout-column-line (single) -->
-    <sys:String x:Key="Icon_Layout_Work">&#xEFC7;</sys:String>      <!-- ri-layout-left-line (two columns) -->
-    <sys:String x:Key="Icon_Layout_Full">&#xEFC1;</sys:String>      <!-- ri-layout-3-line (three columns) -->
-    
-    <!-- Toast / Status Icons -->
-    <sys:String x:Key="Icon_Success">&#xEB7F;</sys:String>    <!-- ri-check-line -->
-    <sys:String x:Key="Icon_Error">&#xEB99;</sys:String>      <!-- ri-close-line -->
-    <sys:String x:Key="Icon_Warning">&#xEA20;</sys:String>    <!-- ri-alert-line -->
-    <sys:String x:Key="Icon_Info">&#xEECE;</sys:String>       <!-- ri-information-line -->
-    <sys:String x:Key="Icon_Close">&#xEB99;</sys:String>      <!-- ri-close-line -->
+    <DrawingImage x:Key="Icon_Edit">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M16.757 3l-2 2H5v14h14V9.243l2-2V20a1 1 0 01-1 1H4a1 1 0 01-1-1V4a1 1 0 011-1h12.757zm3.728-.9L21.9 3.516l-9.192 9.192-1.412.003-.002-1.417L20.485 2.1z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
 
+    <DrawingImage x:Key="Icon_Format">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M3 3h18a1 1 0 011 1v16a1 1 0 01-1 1H3a1 1 0 01-1-1V4a1 1 0 011-1zm1 2v14h16V5H4zm16 7H4v-2h16v2z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Render">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M12 3c5.392 0 9.878 3.88 10.819 9-.94 5.12-5.427 9-10.819 9-5.392 0-9.878-3.88-10.819-9C2.121 6.88 6.608 3 12 3zm0 16a9.005 9.005 0 008.777-7 9.005 9.005 0 00-17.554 0A9.005 9.005 0 0012 19zm0-2.5a4.5 4.5 0 110-9 4.5 4.5 0 010 9zm0-2a2.5 2.5 0 100-5 2.5 2.5 0 000 5z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Wrap">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M15 18l-6-6 6-6v4h3a4 4 0 010 8h-6v-2h6a2 2 0 000-4h-3v4zM4 18v2h6v-2H4zM4 4v2h16V4H4z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_OpenExternal">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M10 6v2H5v11h11v-5h2v6a1 1 0 01-1 1H4a1 1 0 01-1-1V7a1 1 0 011-1h6zm11-3v8h-2V6.413l-7.793 7.794-1.414-1.414L17.585 5H13V3h8z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_ChevronUp">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M12 10.828l-4.95 4.95-1.414-1.414L12 8l6.364 6.364-1.414 1.414z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_ChevronDown">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M12 13.172l4.95-4.95 1.414 1.414L12 16 5.636 9.636 7.05 8.222z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Search">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M18.031 16.617l4.283 4.282-1.415 1.415-4.282-4.283A8.96 8.96 0 0111 20c-4.968 0-9-4.032-9-9s4.032-9 9-9 9 4.032 9 9a8.96 8.96 0 01-1.969 5.617zm-2.006-.742A6.977 6.977 0 0018 11c0-3.868-3.133-7-7-7-3.868 0-7 3.132-7 7 0 3.867 3.132 7 7 7a6.977 6.977 0 004.875-1.975l.15-.15z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Settings">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M8.686 4l2.607-2.607a1 1 0 011.414 0L15.314 4H19a1 1 0 011 1v3.686l2.607 2.607a1 1 0 010 1.414L20 15.314V19a1 1 0 01-1 1h-3.686l-2.607 2.607a1 1 0 01-1.414 0L8.686 20H5a1 1 0 01-1-1v-3.686l-2.607-2.607a1 1 0 010-1.414L4 8.686V5a1 1 0 011-1h3.686zM6 6v3.515L3.515 12 6 14.485V18h3.515L12 20.485 14.485 18H18v-3.515L20.485 12 18 9.515V6h-3.515L12 3.515 9.515 6H6zm6 10a4 4 0 110-8 4 4 0 010 8zm0-2a2 2 0 100-4 2 2 0 000 4z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Filter">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M21 4v2H3V4h18zM6 13h12v-2H6v2zm3 6h6v-2H9v2z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Add">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Delete_Outline">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M17 6h5v2h-2v13a1 1 0 01-1 1H5a1 1 0 01-1-1V8H2V6h5V3a1 1 0 011-1h8a1 1 0 011 1v3zm1 2H6v12h12V8zm-4.5 2.5v7h-2v-7h2zm-5 0v7h2v-7h-2zM9 4v2h6V4H9z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_NewFolder">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M12.414 5H21a1 1 0 011 1v14a1 1 0 01-1 1H3a1 1 0 01-1-1V4a1 1 0 011-1h7.414l2 2zM4 5v14h16V7h-8.414l-2-2H4zm7 6V8h2v3h3v2h-3v3h-2v-3H8v-2h3z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_NewFile">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M15 4H5v16h14V8h-4V4zM3 2.992C3 2.444 3.447 2 3.999 2H16l5 5v13.993A1 1 0 0120.007 22H3.993A1 1 0 013 21.008V2.992zM11 11V8h2v3h3v2h-3v3h-2v-3H8v-2h3z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Refresh">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M5.463 4.433A9.961 9.961 0 0112 2c5.523 0 10 4.477 10 10 0 2.136-.67 4.116-1.81 5.74L17 12h3a8 8 0 00-14.09-5.178l-.448-.39zM18.537 19.567A9.961 9.961 0 0112 22C6.477 22 2 17.523 2 12c0-2.136.67-4.116 1.81-5.74L7 12H4a8 8 0 0014.09 5.178l.448.39z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Desktop">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M4 16h16V5H4v11zm-2 2V4a1 1 0 011-1h18a1 1 0 011 1v14H2zm0 2h20v2H2v-2z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_User">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M4 22a8 8 0 1116 0h-2a6 6 0 10-12 0H4zm8-9c-3.315 0-6-2.685-6-6s2.685-6 6-6 6 2.685 6 6-2.685 6-6 6zm0-2c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Back">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M7.828 11H20v2H7.828l5.364 5.364-1.414 1.414L4 12l7.778-7.778 1.414 1.414z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Forward">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M16.172 11H4v2h12.172l-5.364 5.364 1.414 1.414L20 12l-7.778-7.778-1.414 1.414z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Up">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M13 7.828V20h-2V7.828L5.636 13.192 4.222 11.778 12 4l7.778 7.778-1.414 1.414z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_ViewList">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M3 4h18v2H3V4zm0 7h18v2H3v-2zm0 7h18v2H3v-2z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_ViewThumb">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M3 3h8v8H3V3zm0 10h8v8H3v-8zM13 3h8v8h-8V3zm0 10h8v8h-8v-8z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Drive">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2zm0 14v2h14v-2H5zm12 0a1 1 0 100-2 1 1 0 000 2z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Folder">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M22 8v12a1 1 0 01-1 1H3a1 1 0 01-1-1V4a1 1 0 011-1h7.414l2 2H21a1 1 0 011 1v2z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_File">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M21 9v11.993A1 1 0 0120.007 22H3.993A.993.993 0 013 21.008V2.992C3 2.455 3.449 2 4.002 2h10.995L21 9zm-2 1h-5V4H5v16h14V10z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Music">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M12 13.535V3h8v3h-6v11a4 4 0 11-2-3.465z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Video">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M17 9.2l5.213-3.65a.5.5 0 01.787.41v12.08a.5.5 0 01-.787.41L17 14.8V19a1 1 0 01-1 1H2a1 1 0 01-1-1V5a1 1 0 011-1h14a1 1 0 011 1v4.2z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Image">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M20 5H4v14l9.292-9.294a1 1 0 011.414 0L20 15.01V5zM2 3.993A1 1 0 012.992 3h18.016c.548 0 .992.445.992.993v16.014a1 1 0 01-.992.993H2.992A.993.993 0 012 20.007V3.993zM8 11a2 2 0 110-4 2 2 0 010 4z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Document">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M21 9v11.993A1 1 0 0120.007 22H3.993A.993.993 0 013 21.008V2.992C3 2.455 3.449 2 4.002 2h10.995L21 9zm-2 1h-5V4H5v16h14V10zM8 7h3v2H8V7zm0 4h8v2H8v-2zm0 4h8v2H8v-2z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Nav_Path">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M3.055 13H5.07a7.002 7.002 0 0013.858 0h2.016a9.001 9.001 0 01-17.89 0zm0-2a9.001 9.001 0 0117.89 0H18.93a7.002 7.002 0 00-13.858 0H3.055z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Nav_Library">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M4 3h16a1 1 0 011 1v16a1 1 0 01-1 1H4a1 1 0 01-1-1V4a1 1 0 011-1zm1 2v14h14V5H5zm2 2h4v4H7V7zm0 6h10v2H7v-2zm6-5h4v2h-4V8z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Nav_Tag">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M10.9 2.1l9.899 1.415 1.414 9.9-9.192 9.192a1 1 0 01-1.414 0l-9.9-9.9a1 1 0 010-1.413L10.9 2.1zm.707 2.122L3.828 12l8.486 8.485 7.778-7.778-1.06-7.425-7.425-1.06zm2.12 6.364a2 2 0 112.83-2.829 2 2 0 01-2.83 2.829z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Window_Settings">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M8.686 4l2.607-2.607a1 1 0 011.414 0L15.314 4H19a1 1 0 011 1v3.686l2.607 2.607a1 1 0 010 1.414L20 15.314V19a1 1 0 01-1 1h-3.686l-2.607 2.607a1 1 0 01-1.414 0L8.686 20H5a1 1 0 01-1-1v-3.686l-2.607-2.607a1 1 0 010-1.414L4 8.686V5a1 1 0 011-1h3.686zM12 15a3 3 0 100-6 3 3 0 000 6z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Window_About">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm-1-11v6h2v-6h-2zm0-4v2h2V7h-2z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Window_Tasks">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M3 3h18a1 1 0 011 1v16a1 1 0 01-1 1H3a1 1 0 01-1-1V4a1 1 0 011-1zm1 2v14h16V5H4zm2 2h3v3H6V7zm5 0h7v2h-7V7zm0 4h7v2h-7v-2zM6 11h3v3H6v-3zm0 4h3v3H6v-3zm5 0h7v2h-7v-2z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Backup">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M7 20.981a6.5 6.5 0 01-2.936-12.02A8.001 8.001 0 0119.938 10H20a5 5 0 013 9.029V20a6.969 6.969 0 01-3 .981V19a3 3 0 00-2-5h-1.126A6.001 6.001 0 007 11.1V13a4.5 4.5 0 000 9v-.019l.002-.001L7 20.981zM13 12h3l-4 5-4-5h3V8h2v4z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Clipboard">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M7 4V2h10v2h3.007c.548 0 .993.445.993.993v16.014a.994.994 0 01-.993.993H3.993A.994.994 0 013 21.007V4.993C3 4.445 3.445 4 3.993 4H7zm0 2H5v14h14V6h-2v2H7V6zm2-2v2h6V4H9z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_DualList">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M11 5H5v14h6V5zm2 0v14h6V5h-6zM4 3h16a1 1 0 011 1v16a1 1 0 01-1 1H4a1 1 0 01-1-1V4a1 1 0 011-1z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_History">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12h2a8 8 0 101.385-4.5H8v2H2v-6h2V6a9.98 9.98 0 018-4zm1 5v4.585l3.243 3.243-1.415 1.415L11 12.413V7h2z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Sort">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M20 4v2H8.414l4.293 4.293-1.414 1.414L4 4.414V4h16zm0 16H4v-.414l7.293-7.293 1.414 1.414L8.414 18H20v2z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_MoreHorizontal">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M5 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm14 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-7 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_MoreVertical">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M12 3c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 14c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-7c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Check">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M10 15.172l9.192-9.193 1.415 1.414L10 18l-6.364-6.364 1.414-1.414z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Download">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M13 10h5l-6 6-6-6h5V3h2v7zm-9 9h16v2H4v-2z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Layout_Focus">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M4 3h16a1 1 0 011 1v16a1 1 0 01-1 1H4a1 1 0 01-1-1V4a1 1 0 011-1zm1 2v14h14V5H5z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Layout_Work">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M11 5H5v14h6V5zm2 0v14h6V5h-6zM4 3h16a1 1 0 011 1v16a1 1 0 01-1 1H4a1 1 0 01-1-1V4a1 1 0 011-1z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Layout_Full">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M3 3h18a1 1 0 011 1v16a1 1 0 01-1 1H3a1 1 0 01-1-1V4a1 1 0 011-1zm1 2v14h4V5H4zm6 0v14h4V5h-4zm6 0v14h4V5h-4z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Success">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="#4CAF50" Geometry="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm-.997-6l7.07-7.071-1.414-1.414-5.656 5.657-2.829-2.829-1.414 1.414L11.003 16z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Error">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="#F44336" Geometry="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm0-11.414L9.172 7.757 7.757 9.172 10.586 12l-2.829 2.828 1.415 1.415L12 13.414l2.828 2.829 1.415-1.415L13.414 12l2.829-2.828-1.415-1.415L12 10.586z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Warning">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="#FF9800" Geometry="M12.866 3l9.526 16.5a1 1 0 01-.866 1.5H2.474a1 1 0 01-.866-1.5L11.134 3a1 1 0 011.732 0zM11 16v2h2v-2h-2zm0-7v5h2V9h-2z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Info">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="#2196F3" Geometry="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm-1-11v6h2v-6h-2zm0-4v2h2V7h-2z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Tag">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M10.9 2.1l9.899 1.415 1.414 9.9-9.192 9.192a1 1 0 01-1.414 0l-9.9-9.9a1 1 0 010-1.413L10.9 2.1zm2.828 8.486a2 2 0 102.828-2.829 2 2 0 00-2.828 2.829z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Library">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M4 3h16a1 1 0 011 1v16a1 1 0 01-1 1H4a1 1 0 01-1-1V4a1 1 0 011-1zm1 2v14h14V5H5zm2 2h4v4H7V7zm0 6h10v2H7v-2zm6-5h4v2h-4V8z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Pin">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M18 3v2h-1v6l2 3v2h-6v7h-2v-7H5v-2l2-3V5H6V3h12z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Play">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M19.376 12.416L8.777 19.482A.5.5 0 018 19.066V4.934a.5.5 0 01.777-.416l10.599 7.066a.5.5 0 010 .832z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Pause">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M6 5h2v14H6V5zm10 0h2v14h-2V5z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Volume_Mute">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M5.889 16H2a1 1 0 01-1-1V9a1 1 0 011-1h3.889l5.294-4.332a.5.5 0 01.817.387v15.89a.5.5 0 01-.817.387L5.89 16zm13.517 4.134l-1.416-1.416A8.978 8.978 0 0021 12a8.962 8.962 0 00-3.01-6.718l1.416-1.416A10.955 10.955 0 0123 12c0 3.223-1.386 6.122-3.594 8.134zm-3.543-3.543l-1.422-1.422A3.993 3.993 0 0016 12c0-1.43-.753-2.686-1.889-3.393l1.139-1.68A5.985 5.985 0 0118 12a5.97 5.97 0 01-2.137 4.591z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Volume_Low">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M5.889 16H2a1 1 0 01-1-1V9a1 1 0 011-1h3.889l5.294-4.332a.5.5 0 01.817.387v15.89a.5.5 0 01-.817.387L5.89 16z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Volume_Medium">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M5.889 16H2a1 1 0 01-1-1V9a1 1 0 011-1h3.889l5.294-4.332a.5.5 0 01.817.387v15.89a.5.5 0 01-.817.387L5.89 16zm9.221 2.27A8.96 8.96 0 0018 12a8.96 8.96 0 00-2.89-6.27l1.416-1.416A10.953 10.953 0 0120 12a10.953 10.953 0 01-3.474 7.686l-1.416-1.416z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Volume_High">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M5.889 16H2a1 1 0 01-1-1V9a1 1 0 011-1h3.889l5.294-4.332a.5.5 0 01.817.387v15.89a.5.5 0 01-.817.387L5.89 16zm13.517 4.134l-1.416-1.416A8.978 8.978 0 0021 12a8.962 8.962 0 00-3.01-6.718l1.416-1.416A10.955 10.955 0 0123 12c0 3.223-1.386 6.122-3.594 8.134zm-3.543-3.543l-1.422-1.422A3.993 3.993 0 0016 12c0-1.43-.753-2.686-1.889-3.393l1.42-1.42A5.985 5.985 0 0118 12a5.97 5.97 0 01-2.137 4.591z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+
+    <DrawingImage x:Key="Icon_Window_Minimize">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Geometry="M5,12 H19">
+                    <GeometryDrawing.Pen>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round"/>
+                    </GeometryDrawing.Pen>
+                </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+    <DrawingImage x:Key="Icon_Window_Maximize">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Geometry="M5,5 H19 V19 H5 Z">
+                    <GeometryDrawing.Pen>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                    </GeometryDrawing.Pen>
+                </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+    <DrawingImage x:Key="Icon_Window_Restore">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Geometry="M8,4 H20 V16 M4,8 H16 V20 H4 Z">
+                    <GeometryDrawing.Pen>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                    </GeometryDrawing.Pen>
+                </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+    <DrawingImage x:Key="Icon_Window_Close">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Geometry="M6,6 L18,18 M18,6 L6,18">
+                    <GeometryDrawing.Pen>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round"/>
+                    </GeometryDrawing.Pen>
+                </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+    <DrawingImage x:Key="Icon_Close">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Geometry="M6,6 L18,18 M18,6 L6,18">
+                    <GeometryDrawing.Pen>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="2" StartLineCap="Square" EndLineCap="Square"/>
+                    </GeometryDrawing.Pen>
+                </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
 </ResourceDictionary>
-

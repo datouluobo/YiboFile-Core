@@ -1,0 +1,865 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <!-- Phosphor Icons -->
+
+    <sys:String x:Key="UI.IconStyleId">Phosphor</sys:String>
+    <sys:String x:Key="UI.IconStyleDisplayName">Phosphor 鍥炬爣</sys:String>
+    <sys:String x:Key="UI.IconStyleDescription">Phosphor 鎻忚竟鐭㈤噺鍥炬爣 (Stroke-based)</sys:String>
+
+    <DrawingImage x:Key="Icon_Copy">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M168 112v88a8 8 0 0 1 -8 8H72a8 8 0 0 1 -8 -8v-88a8 8 0 0 1 8 -8h88A8 8 0 0 1 168 112Z M200 64v96 M200 64H96 M200 64l-32 -32 M192 168h16">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Edit">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M211.758 84.142A16 16 0 0 0 200.444 60L196 55.556a16 16 0 0 0 -22.628 0L48 180.89V208h27.11Z M160 80l16 16">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Format">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M48 64h160 M48 128h160 M48 192h160">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Render">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M128 48v160 M48 128h160 M71.431 71.431l113.138 113.138 M71.431 184.569l113.138 -113.138">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Wrap">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M32 64h192 M32 128h144a24 24 0 0 1 0 48H80 M104 152l-24 24l24 24">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_OpenExternal">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M192 104V56a8 8 0 0 0 -8 -8H136 M200 64L104 160 M96 64H56a8 8 0 0 0 -8 8v128a8 8 0 0 0 8 8h128a8 8 0 0 0 8 -8v-40">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_ChevronUp">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M208 168l-80 -80l-80 80">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_ChevronDown">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M208 96l-80 80l-80 -80">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Search">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M192 112a80 80 0 1 1 -160 0a80 80 0 0 1 160 0Z M224 224l-54.675 -54.675">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Settings">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M128 152a24 24 0 1 0 -24 -24A24 24 0 0 0 128 152Z M180.126 142.176l19.513 10.978A8 8 0 0 1 202.482 167L190 188.62a8 8 0 0 1 -10.963 3.513l-19.165 -11.085a71.936 71.936 0 0 1 -15.864 9.176l-3.327 21.6A8 8 0 0 1 132.8 216H107.828a8 8 0 0 1 -7.881 -6.816l-3.327 -21.6a71.936 71.936 0 0 1 -15.864 -9.176l-19.165 11.085a8 8 0 0 1 -10.963 -3.513L38 167a8 8 0 0 1 2.843 -10.978l19.513 -10.978A71.218 71.218 0 0 1 56 128a71.218 71.218 0 0 1 4.356 -17.176L40.843 99.846a8 8 0 0 1 -2.843 -10.978L50.482 67a8 8 0 0 1 10.963 -3.513l19.165 11.085a71.936 71.936 0 0 1 15.864 -9.176l3.327 -21.6A8 8 0 0 1 107.828 40h24.972a8 8 0 0 1 7.881 6.816l3.327 21.6a71.936 71.936 0 0 1 15.864 9.176l19.165 -11.085A8 8 0 0 1 190 67l12.482 21.62a8 8 0 0 1 -2.843 10.978l-19.513 10.978A71.218 71.218 0 0 1 200 128A71.218 71.218 0 0 1 180.126 142.176Z">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Filter">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M44.409 64H211.591a8 8 0 0 1 5.926 13.385l-71.558 78L145.959 208v16a8 8 0 0 1 -13.58 5.73l-16 -15.589A8 8 0 0 1 114.041 208v-52.615l-71.558 -78A8 8 0 0 1 44.409 64Z">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Add">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M40 128h176 M128 40v176">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Delete_Outline">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M200 56H40 M200 56l-14.882 148.823A8 8 0 0 1 177.158 212H78.842a8 8 0 0 1 -7.96 -7.177L56 56 M160 56V40a8 8 0 0 0 -8 -8H104a8 8 0 0 0 -8 8v16 M104 104v64 M152 104v64">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_NewFolder">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M208 88v104a8 8 0 0 1 -8 8H56a8 8 0 0 1 -8 -8V64a8 8 0 0 1 8 -8h61.333a8 8 0 0 1 4.8 1.6l21.334 16A8 8 0 0 0 148.267 80H200A8 8 0 0 1 208 88Z M132 144v48 M108 168h48">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_NewFile">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M200 208a8 8 0 0 1 -8 8H64a8 8 0 0 1 -8 -8V48a8 8 0 0 1 8 -8h96l48 48Z M160 40v48h48 M120 120v48 M96 144h48">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Refresh">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M224 128a96 96 0 1 1 -28.118 -67.882L224 88 M224 40v48h-48">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Desktop">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M32 56h192v112H32Z M80 208h96 M128 168v40">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_User">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M128 136a48 48 0 1 0 -48 -48A48 48 0 0 0 128 136Z M40 208A88 88 0 0 1 216 208">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Back">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M216 128H40 M112 56l-72 72l72 72">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Forward">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M40 128h176 M144 56l72 72l-72 72">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Up">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M128 216V40 M56 112l72 -72l72 72">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_ViewList">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M40 64h176 M40 128h176 M40 192h176">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_ViewThumb">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M40 40h64v64H40Z M152 40h64v64h-64Z M40 152h64v64H40Z M152 152h64v64h-64Z">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Drive">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M32 96h192v96a8 8 0 0 1 -8 8H40a8 8 0 0 1 -8 -8Z M40 96L66.667 56A8 8 0 0 1 73.333 52h109.334a8 8 0 0 1 6.666 4L216 96 M160 144h.01 M200 144h.01">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Folder">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M216 88v104a8 8 0 0 1 -8 8H48a8 8 0 0 1 -8 -8V64a8 8 0 0 1 8 -8h61.333a8 8 0 0 1 4.8 1.6l21.334 16A8 8 0 0 0 140.267 80H208A8 8 0 0 1 216 88Z">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_File">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M200 216a8 8 0 0 1 -8 8H64a8 8 0 0 1 -8 -8V40a8 8 0 0 1 8 -8h96l48 48Z M152 32v56h48">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Music">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M80 184a24 24 0 1 0 -24 -24A24 24 0 0 0 80 184Z M208 168a24 24 0 1 0 -24 -24A24 24 0 0 0 208 168Z M80 160V48l128 -16v112 M80 88l128 -16">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Video">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M202.637 66.8A8 8 0 0 0 192 68l-32 24V72a8 8 0 0 0 -8 -8H40a8 8 0 0 0 -8 8v112a8 8 0 0 0 8 8h112a8 8 0 0 0 8 -8v-20l32 24a8.031 8.031 0 0 0 4.8 1.6A8 8 0 0 0 208 184V72a8 8 0 0 0 -5.363 -5.2Z">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Image">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M208 48H48a8 8 0 0 0 -8 8v144a8 8 0 0 0 8 8h160a8 8 0 0 0 8 -8V56a8 8 0 0 0 -8 -8Z M168 112a16 16 0 1 0 -16 -16A16 16 0 0 0 168 112Z M40 184l64 -64l32 32l32 -32l48 48">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Document">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M200 208a8 8 0 0 1 -8 8H64a8 8 0 0 1 -8 -8V48a8 8 0 0 1 8 -8h96l48 48Z M160 40v48h48 M88 160h80 M88 120h48">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Nav_Path">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M128 208a80 80 0 1 0 -80 -80A80 80 0 0 0 128 208Z M128 160a32 32 0 1 0 -32 -32A32 32 0 0 0 128 160Z">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Nav_Library">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M48 208V56A16 16 0 0 1 64 40h128a16 16 0 0 1 16 16v152 M24 208h208 M48 88h160 M48 136h160">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Nav_Tag">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M221.657 114.343l-96 -96A8 8 0 0 0 120 16H40a8 8 0 0 0 -8 8v80a8 8 0 0 0 2.343 5.657l96 96a8 8 0 0 0 11.314 0l80 -80A8 8 0 0 0 221.657 114.343Z M84 84a12 12 0 1 0 -12 -12A12 12 0 0 0 84 84Z">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Window_Settings">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M128 152a24 24 0 1 0 -24 -24A24 24 0 0 0 128 152Z M180.126 142.176l19.513 10.978A8 8 0 0 1 202.482 167L190 188.62a8 8 0 0 1 -10.963 3.513l-19.165 -11.085a71.936 71.936 0 0 1 -15.864 9.176l-3.327 21.6A8 8 0 0 1 132.8 216H107.828a8 8 0 0 1 -7.881 -6.816l-3.327 -21.6a71.936 71.936 0 0 1 -15.864 -9.176l-19.165 11.085a8 8 0 0 1 -10.963 -3.513L38 167a8 8 0 0 1 2.843 -10.978l19.513 -10.978A71.218 71.218 0 0 1 56 128a71.218 71.218 0 0 1 4.356 -17.176L40.843 99.846a8 8 0 0 1 -2.843 -10.978L50.482 67a8 8 0 0 1 10.963 -3.513l19.165 11.085a71.936 71.936 0 0 1 15.864 -9.176l3.327 -21.6A8 8 0 0 1 107.828 40h24.972a8 8 0 0 1 7.881 6.816l3.327 21.6a71.936 71.936 0 0 1 15.864 9.176l19.165 -11.085A8 8 0 0 1 190 67l12.482 21.62a8 8 0 0 1 -2.843 10.978l-19.513 10.978A71.218 71.218 0 0 1 200 128A71.218 71.218 0 0 1 180.126 142.176Z">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Window_About">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M128 216a88 88 0 1 0 -88 -88A88 88 0 0 0 128 216Z M128 176v-56 M128 88h.01">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Window_Tasks">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M32 48h192v160H32Z M96 48v160 M160 48v160">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Backup">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M128 136v72 M128 136L96 168 M128 136l32 32 M80 184A64 64 0 0 1 80 56A64 64 0 0 1 176 184">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Clipboard">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M200 80h-29.213A39.957 39.957 0 0 0 136 48h-16a39.957 39.957 0 0 0 -34.787 32H56a16 16 0 0 0 -16 16v112a16 16 0 0 0 16 16h144a16 16 0 0 0 16 -16V96A16 16 0 0 0 200 80Z M104 80a24 24 0 0 1 48 0Z">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_DualList">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M40 64h72v128H40Z M144 64h72v128h-72Z">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_History">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M128 208A80 80 0 1 0 49.645 163.645 M49.645 163.645L56 216 M49.645 163.645L96 152 M128 80v56l40 40">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Sort">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M48 128h160 M48 64h160 M48 192h160">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_MoreHorizontal">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M128 128h.01 M192 128h.01 M64 128h.01">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_MoreVertical">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M128 128h.01 M128 64h.01 M128 192h.01">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Check">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M216 72L104 184l-56 -56">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Download">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M216 152v56a8 8 0 0 1 -8 8H48a8 8 0 0 1 -8 -8v-56 M128 40v120 M128 160l40 -40 M128 160l-40 -40">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Layout_Focus">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M48 48h160v160H48Z M128 48v160 M48 128h160">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Layout_Work">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M48 48h160v160H48Z M104 48v160 M176 48v160">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Layout_Full">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M40 88v88a8 8 0 0 0 8 8h160a8 8 0 0 0 8 -8V88a8 8 0 0 0 -8 -8H48A8 8 0 0 0 40 88Z">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Success">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M128 216a88 88 0 1 0 -88 -88A88 88 0 0 0 128 216Z M172.243 99.757l-64 64A8 8 0 0 1 96.928 164l-24 -24a8 8 0 0 1 11.314 -11.314L102.586 147.03l58.343 -58.344a8 8 0 0 1 11.314 11.07Z">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="#4CAF50" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Error">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M128 216a88 88 0 1 0 -88 -88A88 88 0 0 0 128 216Z M160 96l-64 64 M96 96l64 64">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="#F44336" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Warning">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M114.168 45.419l-96 160A8 8 0 0 0 25 216h192.176a8 8 0 0 0 6.84 -11.968l-96 -160A8 8 0 0 0 114.168 45.419Z M128 184h.01 M128 104v48">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="#FF9800" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Info">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M128 216a88 88 0 1 0 -88 -88A88 88 0 0 0 128 216Z M128 176v-56 M128 88h.01">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="#2196F3" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Tag">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M221.657 114.343l-96 -96A8 8 0 0 0 120 16H40a8 8 0 0 0 -8 8v80a8 8 0 0 0 2.343 5.657l96 96a8 8 0 0 0 11.314 0l80 -80A8 8 0 0 0 221.657 114.343Z M84 84a12 12 0 1 0 -12 -12A12 12 0 0 0 84 84Z">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Library">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M48 208V56A16 16 0 0 1 64 40h128a16 16 0 0 1 16 16v152 M24 208h208 M48 88h160 M48 136h160">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Pin">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M216 104l-64 64l-40 48L96 200l16 -40l-64 -64l16 -16l48 -40l16 16l64 -64l32 32Z M104 152l-64 -64">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Play">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M220.217 113.125l-144 -88A8 8 0 0 0 64 33.125v176a8 8 0 0 0 12.217 6.8l144 -88a8 8 0 0 0 0 -13.6Z">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Pause">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M216 48v160a8 8 0 0 1 -8 8H168a8 8 0 0 1 -8 -8V48a8 8 0 0 1 8 -8h40A8 8 0 0 1 216 48Z M96 40H56a8 8 0 0 0 -8 8v160a8 8 0 0 0 8 8h40a8 8 0 0 0 8 -8V48A8 8 0 0 0 96 40Z">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Volume_Mute">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M80 168H32a8 8 0 0 1 -8 -8V96a8 8 0 0 1 8 -8h48l67.643 -54.114A8 8 0 0 1 160 40v176a8 8 0 0 1 -12.357 6.276Z M224 104l-32 48 M192 104l32 48">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Volume_Low">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M80 168H32a8 8 0 0 1 -8 -8V96a8 8 0 0 1 8 -8h48l67.643 -54.114A8 8 0 0 1 160 40v176a8 8 0 0 1 -12.357 6.276Z">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Volume_Medium">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M80 168H32a8 8 0 0 1 -8 -8V96a8 8 0 0 1 8 -8h48l67.643 -54.114A8 8 0 0 1 160 40v176a8 8 0 0 1 -12.357 6.276Z M192 104a32 32 0 0 1 0 48">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Volume_High">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M80 168H32a8 8 0 0 1 -8 -8V96a8 8 0 0 1 8 -8h48l67.643 -54.114A8 8 0 0 1 160 40v176a8 8 0 0 1 -12.357 6.276Z M192 104a32 32 0 0 1 0 48 M224 72a80 80 0 0 1 0 112">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                </GeometryDrawing.Pen>
+            </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+
+    <DrawingImage x:Key="Icon_Window_Minimize">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M48,128 H208">
+                    <GeometryDrawing.Pen>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round"/>
+                    </GeometryDrawing.Pen>
+                </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+    <DrawingImage x:Key="Icon_Window_Maximize">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M48,48 H208 V208 H48 Z">
+                    <GeometryDrawing.Pen>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                    </GeometryDrawing.Pen>
+                </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+    <DrawingImage x:Key="Icon_Window_Restore">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M80,32 H224 V176 M32,80 H176 V224 H32 Z">
+                    <GeometryDrawing.Pen>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                    </GeometryDrawing.Pen>
+                </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+    <DrawingImage x:Key="Icon_Window_Close">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M56,56 L200,200 M200,56 L56,200">
+                    <GeometryDrawing.Pen>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="16" StartLineCap="Round" EndLineCap="Round"/>
+                    </GeometryDrawing.Pen>
+                </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+    <DrawingImage x:Key="Icon_Close">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H256 V256 H0 Z"/>
+                <GeometryDrawing Geometry="M56,56 L200,200 M200,56 L56,200">
+                    <GeometryDrawing.Pen>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="20" StartLineCap="Round" EndLineCap="Round"/>
+                    </GeometryDrawing.Pen>
+                </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+</ResourceDictionary>

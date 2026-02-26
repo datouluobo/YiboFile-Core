@@ -1,0 +1,10 @@
+d6c18ee refactor(config): consolidate import/export UI into GeneralSettings panel, removing scattered buttons
+fe71345 feat(config): implement IExportService and IImportService with DTO serialization and IServiceProvider DI
+63c4a91 refactor(config): complete Stage 3 - replace ConfigurationService.Instance with IConfigurationService injection in ViewModels
+481ee52 refactor(config): complete Stage 3 - dependency injection of IConfigurationService
+411a226 refactor(config): complete Stage 2 - split AppConfig, impl JSON channels and migrator for yibofile_data.db
+99a1133 docs: add and update refactoring tasks for config architecture
+2b78b4d refactor: complete stage 1 - introduce IConfigPathProvider and remove hardcoded paths and legacy TagTrain code
+2764458 chore: code cleanup for overlay removal
+3378ca5 Refactor: Settings UI rebuilt to Native XAML MVVM structure
+ccd4f3e chore: 升级版本至 v1.0.1610.0 并清理环境产物
