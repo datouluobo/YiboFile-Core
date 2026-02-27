@@ -1,6 +1,13 @@
-﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <!-- 图标集元数据 -->
+    <sys:String x:Key="IconStyleId">Fluent</sys:String>
+    <sys:String x:Key="IconStyleDisplayName">Fluent 图标</sys:String>
+    <sys:String x:Key="IconStyleDescription">微软 Fluent Design 矢量图标集</sys:String>
+    <sys:String x:Key="IconRenderMode">Path</sys:String>
+
 
     <!-- Fluent System Icons - DrawingImage format -->
 

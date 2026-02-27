@@ -39,6 +39,7 @@ namespace YiboFile.Services.Tabs
             _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
             _registry = registry ?? throw new ArgumentNullException(nameof(registry));
             lock (_allInstances) { _allInstances.Add(this); }
+            SubscribeToConfigChanges();
         }
 
         public TabService(IMessageBus messageBus, TabContentRegistry registry)
@@ -46,6 +47,38 @@ namespace YiboFile.Services.Tabs
             _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
             _registry = registry ?? throw new ArgumentNullException(nameof(registry));
             lock (_allInstances) { _allInstances.Add(this); }
+            SubscribeToConfigChanges();
+        }
+
+        private static readonly HashSet<string> _tabSettingNames = new HashSet<string>
+        {
+            "TabWidthStrategy", "TabOverflowStrategy",
+            "TabFixedWidth", "TabMaxWidth", "TabMinWidth",
+            "HideCloseButtonOnInactive", "ShowOverflowArrows", "ShowOverflowGradient",
+            "All"
+        };
+
+        private void SubscribeToConfigChanges()
+        {
+            _messageBus.Subscribe<ConfigurationSettingChangedMessage>(m =>
+            {
+                if (_tabSettingNames.Contains(m.SettingName))
+                {
+                    if (_ui?.GetConfig != null) 
+                    {
+                        _config = _ui.GetConfig();
+                    }
+                    // 策略级别的配置变更需要重建策略对象
+                    if (m.SettingName == "TabWidthStrategy" || m.SettingName == "TabOverflowStrategy" || m.SettingName == "All")
+                    {
+                        _widthCalculator?.RebuildStrategies();
+                    }
+                    _ui?.Dispatcher?.InvokeAsync(() =>
+                    {
+                        UpdateTabWidths();
+                    });
+                }
+            });
         }
 
         ~TabService()
@@ -72,6 +105,7 @@ namespace YiboFile.Services.Tabs
         {
             _tabs.Add(tab);
             _messageBus.Publish(new TabAddedMessage(tab, Pane));
+            _ui?.Dispatcher?.InvokeAsync(() => UpdateTabWidths(), System.Windows.Threading.DispatcherPriority.Loaded);
         }
 
         public string GetEffectiveTitle(PathTab tab)
@@ -215,6 +249,7 @@ namespace YiboFile.Services.Tabs
             {
                 _tabs.Remove(tab);
                 _messageBus.Publish(new TabRemovedMessage(tab, Pane));
+                _ui?.Dispatcher?.InvokeAsync(() => UpdateTabWidths(), System.Windows.Threading.DispatcherPriority.Loaded);
             }
         }
 
@@ -326,7 +361,7 @@ namespace YiboFile.Services.Tabs
             if (_config.PinnedTabs != null && _config.PinnedTabs.Contains(key)) tab.IsPinned = true;
         }
 
-        public double GetPinnedTabWidth() => _config.PinnedTabWidth > 0 ? _config.PinnedTabWidth : 120;
+        public double GetPinnedTabWidth() => _config.TabFixedWidth > 0 ? _config.TabFixedWidth : 140;
 
         public string CalculateTabDisplayTitle(string path)
         {

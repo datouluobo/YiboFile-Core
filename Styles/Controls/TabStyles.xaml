@@ -136,13 +136,13 @@
                 <!-- Title -->
                 <TextBlock Text="{Binding Title}" VerticalAlignment="Center" MaxWidth="150" TextTrimming="CharacterEllipsis" IsHitTestVisible="False" />
                 
-                <!-- Close Button -->
+                <!-- Close Button (默认隐藏，活动标签或悬停时显示) -->
                 <Button x:Name="PART_CloseButton" Width="18" Height="18" Margin="6,0,0,0" Padding="0" 
                         VerticalAlignment="Center" HorizontalAlignment="Right" 
                         Foreground="{DynamicResource ForegroundPrimaryBrush}" 
                         Command="{Binding CloseCommand}" 
                         shell:WindowChrome.IsHitTestVisibleInChrome="True" 
-                        Visibility="Visible" Opacity="0.6" Cursor="Hand">
+                        Visibility="Collapsed" Opacity="0" Cursor="Hand">
                     <Button.Template>
                         <ControlTemplate TargetType="Button">
                             <Border x:Name="border" Background="Transparent" CornerRadius="{DynamicResource UI.Button.CornerRadius}">
@@ -170,7 +170,16 @@
             <DataTrigger Binding="{Binding IsActive}" Value="True">
                 <Setter TargetName="TabButton" Property="Style" Value="{StaticResource ActiveTabButtonStyle}" />
                 <Setter TargetName="IconText" Property="Opacity" Value="1.0" />
+                <!-- 活动标签始终显示关闭按钮 -->
+                <Setter TargetName="PART_CloseButton" Property="Visibility" Value="Visible" />
+                <Setter TargetName="PART_CloseButton" Property="Opacity" Value="0.6" />
             </DataTrigger>
+            
+            <!-- 悬停时显示关闭按钮（非活动标签） -->
+            <Trigger SourceName="TabButton" Property="IsMouseOver" Value="True">
+                <Setter TargetName="PART_CloseButton" Property="Visibility" Value="Visible" />
+                <Setter TargetName="PART_CloseButton" Property="Opacity" Value="0.6" />
+            </Trigger>
             
             <!-- 动态图标逻辑 -->
             <DataTrigger Binding="{Binding Path, Converter={StaticResource StringStartsWithConverter}, ConverterParameter='search://'}" Value="True">

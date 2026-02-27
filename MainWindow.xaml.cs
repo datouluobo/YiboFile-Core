@@ -381,7 +381,6 @@ namespace YiboFile
         internal void UpdateTabManagerLayout() => _layoutEventHandler?.UpdateTabManagerLayout();
 
         // 仅供 WindowOrchestrator 调用，确保初始化顺序
-        internal void AttachSecondTabServiceUiContext() => _layoutEventHandler?.AttachSecondTabServiceUiContext();
         internal void InitializeLayoutMode() => _layoutEventHandler?.Initialize();
 
         internal (Controls.FileBrowserControl browser, string path, Library library) GetActiveContext()

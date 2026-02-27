@@ -1,6 +1,13 @@
-﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <!-- 图标集元数据 -->
+    <sys:String x:Key="IconStyleId">Pixel</sys:String>
+    <sys:String x:Key="IconStyleDisplayName">Pixel 图标</sys:String>
+    <sys:String x:Key="IconStyleDescription">像素风格复古图标集</sys:String>
+    <sys:String x:Key="IconRenderMode">Path</sys:String>
+
     <sys:String x:Key="UI.IconStyleId">Pixel</sys:String>
     <sys:String x:Key="UI.IconStyleDisplayName">Pixel 8-Bit</sys:String>
     <sys:String x:Key="UI.IconStyleDescription">Retro 8-bit pixel art style</sys:String>

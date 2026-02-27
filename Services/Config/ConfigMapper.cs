@@ -30,8 +30,18 @@ namespace YiboFile.Services.Config
             settings.Behavior.NeverReuseTab = source.NeverReuseTab;
             settings.Behavior.ActivateNewTabOnMiddleClick = source.ActivateNewTabOnMiddleClick;
             settings.Behavior.EnableMultiWindow = source.EnableMultiWindow;
+            settings.Behavior.TabWidthStrategy = source.TabWidthStrategy;
+            settings.Behavior.TabOverflowStrategy = source.TabOverflowStrategy;
+            settings.Behavior.TabFixedWidth = source.TabFixedWidth;
+            settings.Behavior.TabMaxWidth = source.TabMaxWidth;
+            settings.Behavior.TabMinWidth = source.TabMinWidth;
+            settings.Behavior.HideCloseButtonOnInactive = source.HideCloseButtonOnInactive;
+            settings.Behavior.ShowOverflowArrows = source.ShowOverflowArrows;
+            settings.Behavior.ShowOverflowGradient = source.ShowOverflowGradient;
+            #pragma warning disable CS0612
             settings.Behavior.TabWidthMode = source.TabWidthMode;
             settings.Behavior.PinnedTabWidth = source.PinnedTabWidth;
+            #pragma warning restore CS0612
 
             // Fonts
             settings.Fonts.UIFontSize = source.UIFontSize;
@@ -131,8 +141,18 @@ namespace YiboFile.Services.Config
             config.NeverReuseTab = settings.Behavior.NeverReuseTab;
             config.ActivateNewTabOnMiddleClick = settings.Behavior.ActivateNewTabOnMiddleClick;
             config.EnableMultiWindow = settings.Behavior.EnableMultiWindow;
+            config.TabWidthStrategy = settings.Behavior.TabWidthStrategy;
+            config.TabOverflowStrategy = settings.Behavior.TabOverflowStrategy;
+            config.TabFixedWidth = settings.Behavior.TabFixedWidth;
+            config.TabMaxWidth = settings.Behavior.TabMaxWidth;
+            config.TabMinWidth = settings.Behavior.TabMinWidth;
+            config.HideCloseButtonOnInactive = settings.Behavior.HideCloseButtonOnInactive;
+            config.ShowOverflowArrows = settings.Behavior.ShowOverflowArrows;
+            config.ShowOverflowGradient = settings.Behavior.ShowOverflowGradient;
+            #pragma warning disable CS0612
             config.TabWidthMode = settings.Behavior.TabWidthMode;
             config.PinnedTabWidth = settings.Behavior.PinnedTabWidth;
+            #pragma warning restore CS0612
 
             config.UIFontSize = settings.Fonts.UIFontSize;
             config.TagFontSize = settings.Fonts.TagFontSize;

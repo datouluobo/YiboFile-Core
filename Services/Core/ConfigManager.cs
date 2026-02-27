@@ -10,12 +10,37 @@ using System.Windows;
 namespace YiboFile
 {
     /// <summary>
-    /// 标签页宽度模式
+    /// 标签页宽度模式（已弃用，向后兼容保留）
     /// </summary>
+    [Obsolete("使用 TabWidthStrategy + TabOverflowStrategy 替代")]
     public enum TabWidthMode
     {
-        FixedWidth,      // 固定宽度：所有标签统一宽度
-        DynamicWidth     // 动态宽度：根据文本长度自适应
+        FixedWidth,
+        DynamicWidth
+    }
+
+    /// <summary>
+    /// 标签页宽度策略：决定每个标签的宽度计算方式
+    /// </summary>
+    public enum TabWidthStrategy
+    {
+        /// <summary>所有标签使用相同的固定宽度</summary>
+        Fixed,
+        /// <summary>每个标签根据标题文本长度自适应宽度</summary>
+        Adaptive,
+        /// <summary>标签平分可用空间，始终填满一行</summary>
+        Elastic
+    }
+
+    /// <summary>
+    /// 标签页溢出策略：决定标签放不下时的处理方式
+    /// </summary>
+    public enum TabOverflowStrategy
+    {
+        /// <summary>标签保持宽度不变，超出时启用水平滚动</summary>
+        Scroll,
+        /// <summary>所有标签等比缩小，优先保持一行内全部可见</summary>
+        Compress
     }
 
     public class AppConfig
@@ -70,7 +95,19 @@ namespace YiboFile
 
         public System.Collections.Generic.Dictionary<string, string> TabTitleOverrides { get; set; } = new System.Collections.Generic.Dictionary<string, string>();
         public System.Collections.Generic.List<string> PinnedTabs { get; set; } = new System.Collections.Generic.List<string>();
-        public double PinnedTabWidth { get; set; } = 120;
+
+        // ── 标签页行为设置（新，正交维度） ──
+        public TabWidthStrategy TabWidthStrategy { get; set; } = TabWidthStrategy.Adaptive;
+        public TabOverflowStrategy TabOverflowStrategy { get; set; } = TabOverflowStrategy.Scroll;
+        public double TabFixedWidth { get; set; } = 140;       // Fixed 模式标签宽度
+        public double TabMaxWidth { get; set; } = 200;          // Adaptive/Elastic 模式最大宽度
+        public double TabMinWidth { get; set; } = 50;           // 所有模式最小宽度
+        public bool HideCloseButtonOnInactive { get; set; } = true;
+        public bool ShowOverflowArrows { get; set; } = true;
+        public bool ShowOverflowGradient { get; set; } = true;
+
+        // ── 旧字段（向后兼容，JSON 反序列化用） ──
+        [Obsolete("使用 TabFixedWidth 替代")] public double PinnedTabWidth { get; set; } = 120;
 
         // 标签页状态保存（所有打开的标签页和活动标签页）
         public System.Collections.Generic.List<string> OpenTabs { get; set; } = new System.Collections.Generic.List<string>(); // 所有打开的标签页键值列表（按顺序）
@@ -99,8 +136,10 @@ namespace YiboFile
         public bool AlwaysReuseTab { get; set; } = false; // 总是复用标签页（忽略时间窗口）
         public bool NeverReuseTab { get; set; } = false; // 从不复用标签页（总是创建新的）
 
-        // 标签页宽度模式
-        public TabWidthMode TabWidthMode { get; set; } = TabWidthMode.FixedWidth;
+        // 标签页宽度模式（旧，向后兼容）
+        #pragma warning disable CS0612
+        [Obsolete("使用 TabWidthStrategy + TabOverflowStrategy 替代")] public TabWidthMode TabWidthMode { get; set; } = TabWidthMode.FixedWidth;
+        #pragma warning restore CS0612
 
         // 布局状态持久化
         public bool IsSidebarCollapsed { get; set; } = false;

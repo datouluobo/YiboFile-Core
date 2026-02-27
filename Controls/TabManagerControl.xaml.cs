@@ -8,11 +8,21 @@ namespace YiboFile.Controls
 {
     /// <summary>
     /// TabManagerControl.xaml 的交互逻辑
-    /// 标签页管理控件的 UI 容器
+    /// 标签页管理控件的 UI 容器，支持溢出导航箭头和渐变遮罩
     /// 业务逻辑已移至 TabService
     /// </summary>
     public partial class TabManagerControl : UserControl
     {
+        /// <summary>
+        /// 是否显示溢出导航箭头（可由外部配置绑定）
+        /// </summary>
+        private bool _showOverflowArrows = true;
+        
+        /// <summary>
+        /// 是否显示溢出渐变遮罩（可由外部配置绑定）
+        /// </summary>
+        private bool _showOverflowGradient = true;
+
         public TabManagerControl()
         {
             InitializeComponent();
@@ -35,7 +45,6 @@ namespace YiboFile.Controls
         {
             if (d is FrameworkElement element && (bool)e.NewValue)
             {
-                // 延迟到 Loaded 优先级，确保布局完成后再滚动
                 element.Dispatcher.BeginInvoke(
                     System.Windows.Threading.DispatcherPriority.Loaded,
                     new Action(() => element.BringIntoView()));
@@ -77,9 +86,21 @@ namespace YiboFile.Controls
 
         #endregion
 
+        #region 溢出配置
+
+        /// <summary>
+        /// 更新溢出 UI 配置（由 TabService 在配置变更时调用）
+        /// </summary>
+        public void UpdateOverflowSettings(bool showArrows, bool showGradient)
+        {
+            _showOverflowArrows = showArrows;
+            _showOverflowGradient = showGradient;
+            UpdateOverflowUI();
+        }
+
+        #endregion
+
         #region Event Handlers
-
-
 
         private void TabScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
         {
@@ -95,6 +116,69 @@ namespace YiboFile.Controls
             if (UpdateTabWidthsCommand != null && UpdateTabWidthsCommand.CanExecute(e.NewSize.Width))
             {
                 UpdateTabWidthsCommand.Execute(e.NewSize.Width);
+            }
+            // 尺寸变化后更新溢出 UI
+            UpdateOverflowUI();
+        }
+
+        private void TabScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
+        {
+            UpdateOverflowUI();
+        }
+
+        private void ScrollLeft_Click(object sender, RoutedEventArgs e)
+        {
+            // 向左滚动一个标签的距离（约 120px）
+            double step = 120;
+            TabScrollViewer.ScrollToHorizontalOffset(
+                Math.Max(0, TabScrollViewer.HorizontalOffset - step));
+        }
+
+        private void ScrollRight_Click(object sender, RoutedEventArgs e)
+        {
+            // 向右滚动一个标签的距离
+            double step = 120;
+            TabScrollViewer.ScrollToHorizontalOffset(
+                Math.Min(TabScrollViewer.ScrollableWidth, TabScrollViewer.HorizontalOffset + step));
+        }
+
+        #endregion
+
+        #region 溢出 UI 状态管理
+
+        /// <summary>
+        /// 根据 ScrollViewer 的滚动状态更新箭头和渐变遮罩的可见性
+        /// </summary>
+        private void UpdateOverflowUI()
+        {
+            if (TabScrollViewer == null) return;
+
+            bool hasOverflow = TabScrollViewer.ScrollableWidth > 0;
+            bool canScrollLeft = TabScrollViewer.HorizontalOffset > 1; // > 1 避免浮点精度
+            bool canScrollRight = TabScrollViewer.HorizontalOffset < TabScrollViewer.ScrollableWidth - 1;
+
+            // 导航箭头
+            if (_showOverflowArrows && hasOverflow)
+            {
+                ScrollLeftButton.Visibility = canScrollLeft ? Visibility.Visible : Visibility.Collapsed;
+                ScrollRightButton.Visibility = canScrollRight ? Visibility.Visible : Visibility.Collapsed;
+            }
+            else
+            {
+                ScrollLeftButton.Visibility = Visibility.Collapsed;
+                ScrollRightButton.Visibility = Visibility.Collapsed;
+            }
+
+            // 渐变遮罩
+            if (_showOverflowGradient && hasOverflow)
+            {
+                GradientLeft.Visibility = canScrollLeft ? Visibility.Visible : Visibility.Collapsed;
+                GradientRight.Visibility = canScrollRight ? Visibility.Visible : Visibility.Collapsed;
+            }
+            else
+            {
+                GradientLeft.Visibility = Visibility.Collapsed;
+                GradientRight.Visibility = Visibility.Collapsed;
             }
         }
 

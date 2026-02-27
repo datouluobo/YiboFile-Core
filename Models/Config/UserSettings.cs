@@ -33,7 +33,21 @@ namespace YiboFile.Models.Config
         public bool NeverReuseTab { get; set; } = false;
         public bool ActivateNewTabOnMiddleClick { get; set; } = true;
         public bool EnableMultiWindow { get; set; } = true;
+
+        // ── 标签页行为设置（新，正交维度） ──
+        public TabWidthStrategy TabWidthStrategy { get; set; } = TabWidthStrategy.Adaptive;
+        public TabOverflowStrategy TabOverflowStrategy { get; set; } = TabOverflowStrategy.Scroll;
+        public double TabFixedWidth { get; set; } = 140;
+        public double TabMaxWidth { get; set; } = 200;
+        public double TabMinWidth { get; set; } = 50;
+        public bool HideCloseButtonOnInactive { get; set; } = true;
+        public bool ShowOverflowArrows { get; set; } = true;
+        public bool ShowOverflowGradient { get; set; } = true;
+
+        // ── 旧字段（向后兼容） ──
+        [System.Obsolete("使用新的正交维度字段替代")]
         public TabWidthMode TabWidthMode { get; set; } = TabWidthMode.FixedWidth;
+        [System.Obsolete("使用 TabFixedWidth 替代")]
         public double PinnedTabWidth { get; set; } = 120;
     }
 

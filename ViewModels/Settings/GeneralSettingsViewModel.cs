@@ -26,15 +26,28 @@ namespace YiboFile.ViewModels.Settings
 
             _isMaximized = config.IsMaximized;
             _enableMultiWindow = config.EnableMultiWindow;
-            _tabWidthMode = config.TabWidthMode;
-            _pinnedTabWidth = config.PinnedTabWidth > 0 ? config.PinnedTabWidth : 120;
+            _activateNewTabOnMiddleClick = config.ActivateNewTabOnMiddleClick;
+            _isRightPanelVisible = config.IsRightPanelVisible;
+
+            // 标签页正交维度设置
+            _tabWidthStrategy = config.TabWidthStrategy;
+            _tabOverflowStrategy = config.TabOverflowStrategy;
+            _tabFixedWidth = config.TabFixedWidth > 0 ? config.TabFixedWidth : 140;
+            _tabMaxWidth = config.TabMaxWidth > 0 ? config.TabMaxWidth : 200;
+            _tabMinWidth = config.TabMinWidth > 0 ? config.TabMinWidth : 50;
+            _hideCloseButtonOnInactive = config.HideCloseButtonOnInactive;
+            _showOverflowArrows = config.ShowOverflowArrows;
+            _showOverflowGradient = config.ShowOverflowGradient;
+
             _uiFontSize = config.UIFontSize > 0 ? config.UIFontSize : 16;
             _tagFontSize = config.TagFontSize > 0 ? config.TagFontSize : 16;
             _tagBoxWidth = config.TagBoxWidth;
             _baseDirectory = _pathProvider?.BaseDirectory ?? ConfigManager.GetBaseDirectory();
-            _activateNewTabOnMiddleClick = config.ActivateNewTabOnMiddleClick;
-            _isRightPanelVisible = config.IsRightPanelVisible;
         }
+
+        // ═══════════════════════════════════════════
+        //  窗口设置
+        // ═══════════════════════════════════════════
 
         private bool _isRightPanelVisible;
         public bool IsRightPanelVisible
@@ -80,27 +93,101 @@ namespace YiboFile.ViewModels.Settings
             }
         }
 
-        private TabWidthMode _tabWidthMode;
-        public TabWidthMode TabWidthMode
+        // ═══════════════════════════════════════════
+        //  标签页设置（正交维度）
+        // ═══════════════════════════════════════════
+
+        private TabWidthStrategy _tabWidthStrategy;
+        public TabWidthStrategy TabWidthStrategy
         {
-            get => _tabWidthMode;
+            get => _tabWidthStrategy;
             set
             {
-                if (SetProperty(ref _tabWidthMode, value))
-                    _configService.Update(c => c.TabWidthMode = value);
+                if (SetProperty(ref _tabWidthStrategy, value))
+                    _configService.Update(c => c.TabWidthStrategy = value);
             }
         }
 
-        private double _pinnedTabWidth;
-        public double PinnedTabWidth
+        private TabOverflowStrategy _tabOverflowStrategy;
+        public TabOverflowStrategy TabOverflowStrategy
         {
-            get => _pinnedTabWidth;
+            get => _tabOverflowStrategy;
             set
             {
-                if (SetProperty(ref _pinnedTabWidth, value))
-                    _configService.Update(c => c.PinnedTabWidth = value);
+                if (SetProperty(ref _tabOverflowStrategy, value))
+                    _configService.Update(c => c.TabOverflowStrategy = value);
             }
         }
+
+        private double _tabFixedWidth;
+        public double TabFixedWidth
+        {
+            get => _tabFixedWidth;
+            set
+            {
+                if (SetProperty(ref _tabFixedWidth, value))
+                    _configService.Update(c => c.TabFixedWidth = value);
+            }
+        }
+
+        private double _tabMaxWidth;
+        public double TabMaxWidth
+        {
+            get => _tabMaxWidth;
+            set
+            {
+                if (SetProperty(ref _tabMaxWidth, value))
+                    _configService.Update(c => c.TabMaxWidth = value);
+            }
+        }
+
+        private double _tabMinWidth;
+        public double TabMinWidth
+        {
+            get => _tabMinWidth;
+            set
+            {
+                if (SetProperty(ref _tabMinWidth, value))
+                    _configService.Update(c => c.TabMinWidth = value);
+            }
+        }
+
+        private bool _hideCloseButtonOnInactive;
+        public bool HideCloseButtonOnInactive
+        {
+            get => _hideCloseButtonOnInactive;
+            set
+            {
+                if (SetProperty(ref _hideCloseButtonOnInactive, value))
+                    _configService.Update(c => c.HideCloseButtonOnInactive = value);
+            }
+        }
+
+        private bool _showOverflowArrows;
+        public bool ShowOverflowArrows
+        {
+            get => _showOverflowArrows;
+            set
+            {
+                if (SetProperty(ref _showOverflowArrows, value))
+                    _configService.Update(c => c.ShowOverflowArrows = value);
+            }
+        }
+
+        private bool _showOverflowGradient;
+        public bool ShowOverflowGradient
+        {
+            get => _showOverflowGradient;
+            set
+            {
+                if (SetProperty(ref _showOverflowGradient, value))
+                    _configService.Update(c => c.ShowOverflowGradient = value);
+            }
+        }
+
+        // ═══════════════════════════════════════════
+        //  字体设置
+        // ═══════════════════════════════════════════
 
         private double _uiFontSize;
         public double UIFontSize
@@ -135,6 +222,10 @@ namespace YiboFile.ViewModels.Settings
             }
         }
 
+        // ═══════════════════════════════════════════
+        //  路径设置
+        // ═══════════════════════════════════════════
+
         private string _baseDirectory;
         public string BaseDirectory
         {
@@ -146,7 +237,6 @@ namespace YiboFile.ViewModels.Settings
         {
             if (string.IsNullOrWhiteSpace(newDir)) return;
 
-            // Use Provider if available, fallback to legacy check
             var oldDir = _pathProvider?.BaseDirectory ?? ConfigManager.GetBaseDirectory();
 
             try

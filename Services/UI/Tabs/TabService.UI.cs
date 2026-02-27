@@ -37,7 +37,7 @@ namespace YiboFile.Services.Tabs
         {
             _ui = context;
             if (_ui?.GetConfig != null) _config = _ui.GetConfig();
-            _widthCalculator = new TabWidthCalculator(_config, GetTabKey, GetPinnedTabWidth);
+            _widthCalculator = new TabWidthCalculator(() => _config, GetEffectiveTitle);
             InitializeTabsDragDrop();
 
             if (_ui?.TabManager != null)
@@ -364,9 +364,14 @@ namespace YiboFile.Services.Tabs
         private void UpdateTabWidths()
         {
             EnsureUi();
-            // This method might still be used internally (e.g. after adding/removing tabs)
-            // But it needs a width. We can try to get it from context if still needed, 
-            // but the command is the primary driver now.
+            if (_ui?.TabManager != null)
+            {
+                var border = _ui.TabManager.TabsBorderControl;
+                if (border != null && border.ActualWidth > 0)
+                {
+                    _widthCalculator?.UpdateTabWidths(border.ActualWidth, _tabs);
+                }
+            }
         }
 
         public void ApplyPinVisual(PathTab tab) { /* Managed by XAML */ }

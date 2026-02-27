@@ -222,17 +222,32 @@ namespace YiboFile.Handlers
                 // 初始化副标签页服务内容（即便服务已由 Orchestrator 创建，仍需绑定 UI 上下文）
                 if (!_secondTabEventsSubscribed && _window.SecondTabManager != null)
                 {
-                    // 先绑定 UI 上下文
-                    AttachSecondTabServiceUiContext();
-
-                    // 然后应用实际配置
-                    _secondTabService.UpdateConfig(ConfigurationService.Instance.Config);
-
                     // 通知 WindowStateManager
                     if (_windowStateManager != null)
                     {
                         _windowStateManager.SetSecondTabService(_secondTabService);
                         _windowStateManager.RestoreSecondaryTabs();
+                    }
+
+                    _secondTabEventsSubscribed = true;
+
+                    _window.SecondTabManager.PreviewMouseDown += (s, e) =>
+                    {
+                        if (!_layoutModule.IsSecondPaneFocused)
+                        {
+                            _layoutModule.SetFocusedPane(true);
+                        }
+                    };
+
+                    if (_window.SecondFileBrowser != null)
+                    {
+                        _window.SecondFileBrowser.PreviewMouseDown += (s, e) =>
+                        {
+                            if (!_layoutModule.IsSecondPaneFocused)
+                            {
+                                _layoutModule.SetFocusedPane(true);
+                            }
+                        };
                     }
                 }
 
@@ -244,50 +259,7 @@ namespace YiboFile.Handlers
             }
         }
 
-        internal void AttachSecondTabServiceUiContext()
-        {
-            if (_secondTabService == null || _window.SecondTabManager == null) return;
-
-            var uiContext = new TabUiContext
-            {
-                FileBrowser = _window.SecondFileBrowser,
-                TabManager = _window.SecondTabManager,
-                Dispatcher = _window.Dispatcher,
-                OwnerWindow = (_window as Window),
-                GetConfig = () => ConfigurationService.Instance.Config,
-                SaveConfig = (config) => ConfigurationService.Instance.SaveNow(),
-
-                // FindResource removed from context
-            };
-
-            _secondTabService.AttachUiContext(uiContext);
-
-            if (!_secondTabEventsSubscribed)
-            {
-                _secondTabEventsSubscribed = true;
-
-                // _secondTabService.ActiveTabChanged += (s, tab) => SyncSecondUiWithActiveTab(tab); // Handled by message bus now
-
-                _window.SecondTabManager.PreviewMouseDown += (s, e) =>
-                {
-                    if (!_layoutModule.IsSecondPaneFocused)
-                    {
-                        _layoutModule.SetFocusedPane(true);
-                    }
-                };
-
-                if (_window.SecondFileBrowser != null)
-                {
-                    _window.SecondFileBrowser.PreviewMouseDown += (s, e) =>
-                    {
-                        if (!_layoutModule.IsSecondPaneFocused)
-                        {
-                            _layoutModule.SetFocusedPane(true);
-                        }
-                    };
-                }
-            }
-        }
+        // UI Context attachment moved to WindowOrchestrator
 
         // SyncSecondUiWithActiveTab and OnSecondActiveTabPropertyChanged removed.
         // Navigation synchronization is now handled by TabsModule publishing RestoreNavigationStateMessage

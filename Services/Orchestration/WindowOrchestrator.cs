@@ -181,9 +181,27 @@ namespace YiboFile.Services.Orchestration
             // 为两个面板创建独立的服务实例
             _tabService = _serviceProvider.GetRequiredService<TabService>();
             _tabService.Pane = PaneId.Main;
+            _tabService.AttachUiContext(new YiboFile.Services.Tabs.TabUiContext
+            {
+                FileBrowser = window.FileBrowser,
+                TabManager = window.TabManager,
+                Dispatcher = window.Dispatcher,
+                OwnerWindow = window,
+                GetConfig = () => ConfigurationService.Instance.Config,
+                SaveConfig = (config) => ConfigurationService.Instance.SaveNow()
+            });
 
             _secondTabService = _serviceProvider.GetRequiredService<TabService>();
             _secondTabService.Pane = PaneId.Second;
+            _secondTabService.AttachUiContext(new YiboFile.Services.Tabs.TabUiContext
+            {
+                FileBrowser = window.SecondFileBrowser,
+                TabManager = window.SecondTabManager,
+                Dispatcher = window.Dispatcher,
+                OwnerWindow = window,
+                GetConfig = () => ConfigurationService.Instance.Config,
+                SaveConfig = (config) => ConfigurationService.Instance.SaveNow()
+            });
 
             // 初始化协调器关系
             _navigationCoordinator.Initialize(

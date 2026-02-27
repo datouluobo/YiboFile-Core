@@ -43,27 +43,82 @@ namespace YiboFile.Controls.Settings
 
         private void InitializeState()
         {
-            if (_generalViewModel.TabWidthMode == TabWidthMode.DynamicWidth)
-                TabWidthDynamicRadio.IsChecked = true;
+            // 宽度策略
+            switch (_generalViewModel.TabWidthStrategy)
+            {
+                case TabWidthStrategy.Fixed:
+                    WidthStrategyFixed.IsChecked = true;
+                    break;
+                case TabWidthStrategy.Adaptive:
+                    WidthStrategyAdaptive.IsChecked = true;
+                    break;
+                case TabWidthStrategy.Elastic:
+                    WidthStrategyElastic.IsChecked = true;
+                    break;
+            }
+
+            // 溢出策略
+            if (_generalViewModel.TabOverflowStrategy == TabOverflowStrategy.Compress)
+                OverflowStrategyCompress.IsChecked = true;
             else
-                TabWidthFixedRadio.IsChecked = true;
-            UpdatePinnedTabWidthUIState();
+                OverflowStrategyScroll.IsChecked = true;
+
+            UpdateUI();
         }
 
-        private void TabWidthMode_Checked(object sender, RoutedEventArgs e)
+        private void WidthStrategy_Checked(object sender, RoutedEventArgs e)
         {
-            if (TabWidthDynamicRadio?.IsChecked == true)
-                _generalViewModel.TabWidthMode = TabWidthMode.DynamicWidth;
-            else if (TabWidthFixedRadio?.IsChecked == true)
-                _generalViewModel.TabWidthMode = TabWidthMode.FixedWidth;
-            UpdatePinnedTabWidthUIState();
+            if (WidthStrategyFixed?.IsChecked == true)
+                _generalViewModel.TabWidthStrategy = TabWidthStrategy.Fixed;
+            else if (WidthStrategyAdaptive?.IsChecked == true)
+                _generalViewModel.TabWidthStrategy = TabWidthStrategy.Adaptive;
+            else if (WidthStrategyElastic?.IsChecked == true)
+                _generalViewModel.TabWidthStrategy = TabWidthStrategy.Elastic;
+
+            UpdateUI();
         }
 
-        private void UpdatePinnedTabWidthUIState()
+        private void OverflowStrategy_Checked(object sender, RoutedEventArgs e)
         {
-            bool isFixedMode = _generalViewModel.TabWidthMode != TabWidthMode.DynamicWidth;
-            if (PinnedTabWidthLabel != null) PinnedTabWidthLabel.Opacity = isFixedMode ? 1.0 : 0.5;
-            if (PinnedTabWidthTextBox != null) PinnedTabWidthTextBox.IsEnabled = isFixedMode;
+            if (OverflowStrategyCompress?.IsChecked == true)
+                _generalViewModel.TabOverflowStrategy = TabOverflowStrategy.Compress;
+            else if (OverflowStrategyScroll?.IsChecked == true)
+                _generalViewModel.TabOverflowStrategy = TabOverflowStrategy.Scroll;
+
+            UpdateUI();
+        }
+
+        /// <summary>
+        /// 根据当前选择的策略组合更新 UI 状态（子面板和提示信息）
+        /// </summary>
+        private void UpdateUI()
+        {
+            bool isFixed = _generalViewModel.TabWidthStrategy == TabWidthStrategy.Fixed;
+            bool isAdaptive = _generalViewModel.TabWidthStrategy == TabWidthStrategy.Adaptive;
+            bool isElastic = _generalViewModel.TabWidthStrategy == TabWidthStrategy.Elastic;
+
+            // 子面板可见性
+            if (FixedWidthPanel != null) FixedWidthPanel.Opacity = isFixed ? 1.0 : 0.4;
+            if (AdaptiveWidthPanel != null) AdaptiveWidthPanel.Opacity = isAdaptive ? 1.0 : 0.4;
+            if (ElasticWidthPanel != null) ElasticWidthPanel.Opacity = isElastic ? 1.0 : 0.4;
+
+            if (TabFixedWidthTextBox != null) TabFixedWidthTextBox.IsEnabled = isFixed;
+            if (TabMaxWidthTextBox != null) TabMaxWidthTextBox.IsEnabled = isAdaptive;
+
+            // Elastic 模式下溢出策略被强制为 Compress
+            if (isElastic)
+            {
+                OverflowStrategyScroll.IsEnabled = false;
+                OverflowStrategyCompress.IsChecked = true;
+                if (OverflowHintText != null)
+                    OverflowHintText.Text = "弹性宽度下溢出策略自动设为压缩模式";
+            }
+            else
+            {
+                OverflowStrategyScroll.IsEnabled = true;
+                if (OverflowHintText != null)
+                    OverflowHintText.Text = "";
+            }
         }
 
         private void AdjustValue(double current, double delta, double min, double max, Action<double> setter)
@@ -72,8 +127,15 @@ namespace YiboFile.Controls.Settings
             setter(newValue);
         }
 
-        private void PinnedTabWidthUp_Click(object sender, RoutedEventArgs e) => AdjustValue(_generalViewModel.PinnedTabWidth, 10, 50, 300, v => _generalViewModel.PinnedTabWidth = v);
-        private void PinnedTabWidthDown_Click(object sender, RoutedEventArgs e) => AdjustValue(_generalViewModel.PinnedTabWidth, -10, 50, 300, v => _generalViewModel.PinnedTabWidth = v);
+        // 标签页宽度调节
+        private void TabFixedWidthUp_Click(object sender, RoutedEventArgs e) => AdjustValue(_generalViewModel.TabFixedWidth, 10, 80, 250, v => _generalViewModel.TabFixedWidth = v);
+        private void TabFixedWidthDown_Click(object sender, RoutedEventArgs e) => AdjustValue(_generalViewModel.TabFixedWidth, -10, 80, 250, v => _generalViewModel.TabFixedWidth = v);
+        private void TabMaxWidthUp_Click(object sender, RoutedEventArgs e) => AdjustValue(_generalViewModel.TabMaxWidth, 10, 100, 300, v => _generalViewModel.TabMaxWidth = v);
+        private void TabMaxWidthDown_Click(object sender, RoutedEventArgs e) => AdjustValue(_generalViewModel.TabMaxWidth, -10, 100, 300, v => _generalViewModel.TabMaxWidth = v);
+        private void TabMinWidthUp_Click(object sender, RoutedEventArgs e) => AdjustValue(_generalViewModel.TabMinWidth, 5, 30, 100, v => _generalViewModel.TabMinWidth = v);
+        private void TabMinWidthDown_Click(object sender, RoutedEventArgs e) => AdjustValue(_generalViewModel.TabMinWidth, -5, 30, 100, v => _generalViewModel.TabMinWidth = v);
+
+        // 字体调节
         private void UIFontSizeUp_Click(object sender, RoutedEventArgs e) => AdjustValue(_generalViewModel.UIFontSize, 1, 10, 48, v => _generalViewModel.UIFontSize = v);
         private void UIFontSizeDown_Click(object sender, RoutedEventArgs e) => AdjustValue(_generalViewModel.UIFontSize, -1, 10, 48, v => _generalViewModel.UIFontSize = v);
         private void TagFontSizeUp_Click(object sender, RoutedEventArgs e) => AdjustValue(_generalViewModel.TagFontSize, 1, 10, 48, v => _generalViewModel.TagFontSize = v);
