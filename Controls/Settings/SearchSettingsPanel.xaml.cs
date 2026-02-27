@@ -3,6 +3,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using YiboFile.Services.Features;
+using System.Windows.Input;
 using YiboFile.ViewModels.Settings;
 
 namespace YiboFile.Controls.Settings
@@ -134,5 +135,49 @@ namespace YiboFile.Controls.Settings
 
         public void LoadSettings() => _viewModel?.LoadFromConfig();
         public void SaveSettings() { }
+
+        private void NumericTextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                CommitNumericInput(sender as TextBox);
+                e.Handled = true;
+            }
+        }
+
+        private void NumericTextBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            CommitNumericInput(sender as TextBox);
+        }
+
+        private void CommitNumericInput(TextBox textBox)
+        {
+            if (textBox == null) return;
+            var binding = textBox.GetBindingExpression(TextBox.TextProperty);
+            if (binding != null)
+            {
+                binding.UpdateSource();
+                string propertyName = binding.ParentBinding.Path.Path;
+                if (!string.IsNullOrEmpty(propertyName) && _viewModel != null)
+                {
+                    Action resetAction = propertyName switch
+                    {
+                        "HistoryMaxCountInput" => () => _viewModel.HistoryMaxCount = _viewModel.HistoryMaxCount,
+                        _ => null
+                    };
+
+                    if (resetAction != null)
+                    {
+                        _viewModel.InvalidateInputProxy(propertyName, resetAction);
+                    }
+                }
+            }
+            this.Focus();
+        }
+
+        private void NumericTextBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
+        {
+            e.Handled = !char.IsDigit(e.Text, 0);
+        }
     }
 }

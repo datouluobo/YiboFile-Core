@@ -9,6 +9,7 @@
          ================================================================ -->
     <Style x:Key="ModernTextBoxStyle" TargetType="TextBox">
         <Setter Property="Padding" Value="8,6" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
         <Setter Property="BorderBrush" Value="{DynamicResource BorderDefaultBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Background" Value="{DynamicResource BackgroundPrimaryBrush}" />

@@ -198,8 +198,8 @@ namespace YiboFile.Controls
         // Public Property for XAML access
         // public StackPanel NavSectionsPanelControl => FindName("NavSectionsPanel") as StackPanel;
 
-        // Handler for TreeViewItem PreviewMouseLeftButtonDown (defined in Style EventSetter)
-        private void DrivesTreeViewItem_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        // Handler for TreeViewItem PreviewMouseDown (defined in Style EventSetter)
+        private void DrivesTreeViewItem_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
             // Only trigger if it's the TreeViewItem itself or its content (not the Expander)
 
@@ -231,18 +231,29 @@ namespace YiboFile.Controls
             }
 
             // Command Support
-            if (NavigateCommand != null &&
-                sender is TreeViewItem tvi &&
+            if (sender is TreeViewItem tvi &&
                 tvi.DataContext is YiboFile.Services.Navigation.NavigationItem item &&
                 !string.IsNullOrEmpty(item.Path))
             {
-                if (NavigateCommand.CanExecute(item.Path))
-                    NavigateCommand.Execute(item.Path);
+                if (e.ChangedButton == MouseButton.Left && NavigateCommand != null)
+                {
+                    if (NavigateCommand.CanExecute(item.Path))
+                        NavigateCommand.Execute(item.Path);
+                }
+                else if (e.ChangedButton == MouseButton.Middle && OpenInNewTabCommand != null)
+                {
+                    if (OpenInNewTabCommand.CanExecute(item.Path))
+                        OpenInNewTabCommand.Execute(item.Path);
+                    e.Handled = true;
+                }
             }
 
-            // Handle Single Click - Navigate Immediately
-            // This ensures maximum responsiveness.
-            DrivesTreeViewItemClick?.Invoke(sender, e);
+            if (!e.Handled && e.ChangedButton == MouseButton.Left)
+            {
+                // Handle Single Click - Navigate Immediately
+                // This ensures maximum responsiveness.
+                DrivesTreeViewItemClick?.Invoke(sender, e);
+            }
         }
 
         // Handler for TreeViewItem.Expanded event (for accordion behavior)
@@ -370,9 +381,13 @@ namespace YiboFile.Controls
 
                     if (e.ChangedButton == MouseButton.Middle && OpenInNewTabCommand != null)
                     {
-                        var element = e.OriginalSource as FrameworkElement;
-                        var item = element?.DataContext;
-                        if (item is YiboFile.Library lib)
+                        DependencyObject current = e.OriginalSource as DependencyObject;
+                        while (current != null && !(current is ListBoxItem) && current != librariesListBox)
+                        {
+                            current = System.Windows.Media.VisualTreeHelper.GetParent(current);
+                        }
+
+                        if (current is ListBoxItem listboxItem && listboxItem.DataContext is YiboFile.Library lib)
                         {
                             OpenInNewTabCommand.Execute($"lib://{lib.Name}");
                             e.Handled = true;

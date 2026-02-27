@@ -42,14 +42,26 @@ namespace YiboFile.ViewModels.Settings
         }
 
         private int _historyMaxCount;
+        private string _historyMaxCountInput;
         public int HistoryMaxCount
         {
             get => _historyMaxCount;
             set
             {
-                if (SetProperty(ref _historyMaxCount, value))
-                    _configService.Update(c => c.HistoryMaxCount = value);
+                value = Math.Clamp(value, 0, 10000);
+                bool changed = SetProperty(ref _historyMaxCount, value);
+                {
+                    _historyMaxCountInput = null;
+                    OnPropertyChanged(nameof(HistoryMaxCountInput));
+                    if (changed) _configService.Update(c => c.HistoryMaxCount = value);
+                }
             }
+        }
+
+        public string HistoryMaxCountInput
+        {
+            get => _historyMaxCountInput ?? _historyMaxCount.ToString();
+            set => SetProtectedNumber(ref _historyMaxCountInput, ref _historyMaxCount, value, 0, 10000, v => HistoryMaxCount = v);
         }
 
         private string _indexLocation;

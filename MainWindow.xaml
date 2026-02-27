@@ -82,7 +82,7 @@
             <!-- 标题栏背景（包含底部边框） -->
             <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="6"
                 Background="Transparent"
-                BorderBrush="{DynamicResource BorderSubtleBrush}"
+                BorderBrush="{DynamicResource DividerBrush}"
                 BorderThickness="0,0,0,1"
                 Panel.ZIndex="1000"/>
 
@@ -111,8 +111,6 @@
             <!-- 列1（左侧辅助面板）背景：贯穿主标题栏 -->
             <Border Grid.Column="1" Grid.Row="0" Grid.RowSpan="4"
                 Background="{DynamicResource NavigationRegionBrush}"
-                BorderBrush="{DynamicResource BorderSubtleBrush}"
-                BorderThickness="0,0,1,0"
                 Panel.ZIndex="50"/>
 
 

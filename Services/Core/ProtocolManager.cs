@@ -11,6 +11,7 @@ namespace YiboFile.Services.Core
         ContentSearch,  // content://
         Library,        // lib://
         Tag,            // tag://
+        System,         // yibofile://
         Unknown
     }
 
@@ -29,6 +30,7 @@ namespace YiboFile.Services.Core
         public const string ContentSearchProtocol = "content://";
         public const string LibraryProtocol = "lib://";
         public const string TagProtocol = "tag://";
+        public const string SystemProtocol = "yibofile://";
         public const string PathProtocol = "path:/"; // Note the single slash usually for path:/c:/... but let's support robustly
 
         public static bool IsVirtual(string path)
@@ -127,6 +129,16 @@ namespace YiboFile.Services.Core
                     Type = ProtocolType.Tag,
                     OriginalPath = trimmed,
                     TargetPath = trimmed.Substring(TagProtocol.Length)
+                };
+            }
+
+            if (trimmed.StartsWith(SystemProtocol, StringComparison.OrdinalIgnoreCase))
+            {
+                return new ProtocolInfo
+                {
+                    Type = ProtocolType.System,
+                    OriginalPath = trimmed,
+                    TargetPath = trimmed.Substring(SystemProtocol.Length)
                 };
             }
 

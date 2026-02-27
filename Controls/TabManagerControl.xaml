@@ -72,7 +72,7 @@
             <ScrollViewer x:Name="TabScrollViewer" Grid.Column="1"
                           Style="{StaticResource OverlayScrollViewerStyle}"
                           PanningMode="HorizontalOnly"
-                          HorizontalScrollBarVisibility="Hidden"
+                          HorizontalScrollBarVisibility="Auto"
                           VerticalScrollBarVisibility="Disabled"
                           ScrollChanged="TabScrollViewer_ScrollChanged"
                           shell:WindowChrome.IsHitTestVisibleInChrome="True">

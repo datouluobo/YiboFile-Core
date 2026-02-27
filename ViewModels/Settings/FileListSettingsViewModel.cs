@@ -21,25 +21,49 @@ namespace YiboFile.ViewModels.Settings
         }
 
         private double _colTagsWidth;
+        private string _colTagsWidthInput;
         public double ColTagsWidth
         {
             get => _colTagsWidth;
             set
             {
-                if (SetProperty(ref _colTagsWidth, value))
-                    _configService.Update(c => c.ColTagsWidth = value);
+                value = Math.Clamp(value, 50, 500);
+                bool changed = SetProperty(ref _colTagsWidth, value);
+                {
+                    _colTagsWidthInput = null;
+                    OnPropertyChanged(nameof(ColTagsWidthInput));
+                    if (changed) _configService.Update(c => c.ColTagsWidth = value);
+                }
             }
         }
 
+        public string ColTagsWidthInput
+        {
+            get => _colTagsWidthInput ?? _colTagsWidth.ToString();
+            set => SetProtectedNumber(ref _colTagsWidthInput, ref _colTagsWidth, value, 50, 500, v => ColTagsWidth = v);
+        }
+
         private double _colNotesWidth;
+        private string _colNotesWidthInput;
         public double ColNotesWidth
         {
             get => _colNotesWidth;
             set
             {
-                if (SetProperty(ref _colNotesWidth, value))
-                    _configService.Update(c => c.ColNotesWidth = value);
+                value = Math.Clamp(value, 100, 800);
+                bool changed = SetProperty(ref _colNotesWidth, value);
+                {
+                    _colNotesWidthInput = null;
+                    OnPropertyChanged(nameof(ColNotesWidthInput));
+                    if (changed) _configService.Update(c => c.ColNotesWidth = value);
+                }
             }
+        }
+
+        public string ColNotesWidthInput
+        {
+            get => _colNotesWidthInput ?? _colNotesWidth.ToString();
+            set => SetProtectedNumber(ref _colNotesWidthInput, ref _colNotesWidth, value, 100, 800, v => ColNotesWidth = v);
         }
     }
 }

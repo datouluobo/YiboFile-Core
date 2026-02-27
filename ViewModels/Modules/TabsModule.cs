@@ -57,6 +57,8 @@ namespace YiboFile.ViewModels.Modules
             _registry = registry;
             _isDualListMode = isDualListMode ?? (() => false);
             _isSecondPaneFocused = isSecondPaneFocused ?? (() => false);
+
+            InitializeCommands();
         }
 
         protected override void OnInitialize()
@@ -163,7 +165,7 @@ namespace YiboFile.ViewModels.Modules
             {
                 if (!string.IsNullOrEmpty(path))
                 {
-                    CreateTab(path, forceNewTab: true, activate: true);
+                    CreateTab(path, forceNewTab: false, activate: true);
                 }
             });
         }

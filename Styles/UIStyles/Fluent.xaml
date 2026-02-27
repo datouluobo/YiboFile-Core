@@ -80,10 +80,10 @@
     <sys:Double x:Key="UI.ColumnHeader.Height">36</sys:Double>
 
     <!-- ================================================================
-         G. 分割器 (5键)
+         G. 分割器 (5键) — 无缝融合设计
          ================================================================ -->
     <Visibility x:Key="UI.Splitter.VisibleLine">Collapsed</Visibility>
-    <sys:Double x:Key="UI.Splitter.Width">8</sys:Double>
+    <sys:Double x:Key="UI.Splitter.Width">10</sys:Double>
     <sys:Double x:Key="UI.Splitter.LineThickness">1</sys:Double>
     <Visibility x:Key="UI.Splitter.HoverShowGripDot">Collapsed</Visibility>
     <sys:Double x:Key="UI.Splitter.CollapseButtonOpacity">0.2</sys:Double>

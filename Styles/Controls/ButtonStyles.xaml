@@ -11,6 +11,7 @@
         <Setter Property="Padding" Value="8,4" />
         <Setter Property="Margin" Value="2" />
         <Setter Property="Background" Value="Transparent" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
         <Setter Property="BorderBrush" Value="{DynamicResource BorderDefaultBrush}" />
         <Setter Property="Foreground" Value="{DynamicResource ForegroundPrimaryBrush}" />
         <Setter Property="BorderThickness" Value="1" />
@@ -162,6 +163,7 @@
         <Setter Property="Height" Value="32" />
         <Setter Property="Margin" Value="1,0" />
         <Setter Property="Background" Value="Transparent" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
         <Setter Property="Foreground" Value="{DynamicResource ForegroundPrimaryBrush}" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template">

@@ -5,6 +5,7 @@
         <Setter Property="OverridesDefaultStyle" Value="true"/>
         <Setter Property="IsTabStop" Value="false"/>
         <Setter Property="Focusable" Value="false"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
         <Setter Property="ClickMode" Value="Press"/>
         <Setter Property="Template">
             <Setter.Value>
@@ -30,6 +31,7 @@
     <Style x:Key="ModernComboBoxItemStyle" TargetType="{x:Type ComboBoxItem}">
         <Setter Property="SnapsToDevicePixels" Value="true"/>
         <Setter Property="OverridesDefaultStyle" Value="true"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
         <Setter Property="Foreground" Value="{DynamicResource ForegroundPrimaryBrush}"/>
         <Setter Property="Padding" Value="10,6"/>
         <Setter Property="Template">
@@ -54,6 +56,7 @@
 
     <Style x:Key="ModernComboBoxStyle" TargetType="{x:Type ComboBox}">
         <Setter Property="Padding" Value="10,6"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
         <Setter Property="Foreground" Value="{DynamicResource ForegroundPrimaryBrush}"/>
         <Setter Property="Background" Value="{DynamicResource BackgroundElevatedBrush}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource BorderDefaultBrush}"/>

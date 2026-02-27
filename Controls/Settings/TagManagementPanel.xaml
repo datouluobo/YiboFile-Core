@@ -73,7 +73,7 @@
                     <Border Padding="10" Margin="0,10,0,0" CornerRadius="4" Background="{DynamicResource BackgroundSecondaryBrush}" Grid.Row="1">
                         <StackPanel>
                             <Grid Margin="0,0,0,5">
-                                <TextBox x:Name="NewGroupTb" Text="{Binding NewGroupName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,5" Padding="5" BorderThickness="1" BorderBrush="{DynamicResource BorderDefaultBrush}" Background="{DynamicResource BackgroundPrimaryBrush}" Foreground="{DynamicResource ForegroundPrimaryBrush}" />
+                                <TextBox x:Name="NewGroupTb" MaxLength="50" Text="{Binding NewGroupName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,5" Padding="5" BorderThickness="1" BorderBrush="{DynamicResource BorderDefaultBrush}" Background="{DynamicResource BackgroundPrimaryBrush}" Foreground="{DynamicResource ForegroundPrimaryBrush}" />
                                 <TextBlock Text="新分组名称..." Margin="8,0,0,5" VerticalAlignment="Center" IsHitTestVisible="False" Foreground="{DynamicResource ForegroundSecondaryBrush}">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
@@ -107,7 +107,7 @@
 
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,20" Grid.Row="1">
                         <Grid Margin="0,0,10,0" Width="200">
-                            <TextBox x:Name="NewTagTb" Text="{Binding SelectedItem.NewTagText, ElementName=GroupList, UpdateSourceTrigger=PropertyChanged}" Padding="5" VerticalContentAlignment="Center" />
+                            <TextBox x:Name="NewTagTb" MaxLength="50" Text="{Binding SelectedItem.NewTagText, ElementName=GroupList, UpdateSourceTrigger=PropertyChanged}" Padding="5" VerticalContentAlignment="Center" />
                             <TextBlock Text="输入标签名称..." Foreground="Gray" Margin="8,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock">

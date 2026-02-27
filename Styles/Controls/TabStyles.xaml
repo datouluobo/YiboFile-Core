@@ -6,6 +6,8 @@
                     xmlns:helpers="clr-namespace:YiboFile.Helpers"
                     xmlns:converters="clr-namespace:YiboFile.Controls.Converters">
 
+    <converters:WidthToVisibilityConverter x:Key="WidthToVisibilityConverter" />
+
     <!-- ================================================================
          Tab Button Styles — 核心模板，消费 UIStyle Token
          ================================================================ -->
@@ -131,7 +133,8 @@
             </Button.ContextMenu>
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0">
                 <!-- Icon -->
-                <TextBlock x:Name="IconText" Text="📁" FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0.7" IsHitTestVisible="False" />
+                <TextBlock x:Name="IconText" Text="📁" FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0.7" IsHitTestVisible="False" 
+                           Visibility="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Button}, Converter={StaticResource WidthToVisibilityConverter}, ConverterParameter=80}" />
                 
                 <!-- Title -->
                 <TextBlock Text="{Binding Title}" VerticalAlignment="Center" MaxWidth="150" TextTrimming="CharacterEllipsis" IsHitTestVisible="False" />

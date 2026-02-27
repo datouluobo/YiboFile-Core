@@ -16,6 +16,7 @@ namespace YiboFile.Controls
     public partial class TagBrowsePanel : UserControl
     {
         public event Action<int, string> TagClicked;
+        public event Action<int, string> TagMiddleClicked;
         public event EventHandler BackRequested;
 
 
@@ -151,11 +152,20 @@ namespace YiboFile.Controls
 
 
 
-        private void TagItem_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        private void TagItem_MouseDown(object sender, MouseButtonEventArgs e)
         {
             if (sender is Border border && border.DataContext is TagViewModel tag)
             {
-                TagClicked?.Invoke(tag.Id, tag.Name);
+                if (e.ChangedButton == MouseButton.Left)
+                {
+                    TagClicked?.Invoke(tag.Id, tag.Name);
+                    // Prevent bubbling to ListBox if needed, but Border itself doesn't bubble selection by default
+                }
+                else if (e.ChangedButton == MouseButton.Middle)
+                {
+                    TagMiddleClicked?.Invoke(tag.Id, tag.Name);
+                    e.Handled = true;
+                }
             }
         }
 

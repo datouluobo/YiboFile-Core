@@ -120,36 +120,72 @@ namespace YiboFile.ViewModels.Settings
         }
 
         private double _tabFixedWidth;
+        private string _tabFixedWidthInput;
         public double TabFixedWidth
         {
             get => _tabFixedWidth;
             set
             {
-                if (SetProperty(ref _tabFixedWidth, value))
-                    _configService.Update(c => c.TabFixedWidth = value);
+                value = Math.Clamp(value, 80, 250);
+                bool changed = SetProperty(ref _tabFixedWidth, value);
+                {
+                    _tabFixedWidthInput = null;
+                    OnPropertyChanged(nameof(TabFixedWidthInput));
+                    if (changed) _configService.Update(c => c.TabFixedWidth = value);
+                }
             }
         }
 
+        public string TabFixedWidthInput
+        {
+            get => _tabFixedWidthInput ?? _tabFixedWidth.ToString();
+            set => SetProtectedNumber(ref _tabFixedWidthInput, ref _tabFixedWidth, value, 80, 250, v => TabFixedWidth = v);
+        }
+
         private double _tabMaxWidth;
+        private string _tabMaxWidthInput;
         public double TabMaxWidth
         {
             get => _tabMaxWidth;
             set
             {
-                if (SetProperty(ref _tabMaxWidth, value))
-                    _configService.Update(c => c.TabMaxWidth = value);
+                value = Math.Clamp(value, 100, 300);
+                bool changed = SetProperty(ref _tabMaxWidth, value);
+                {
+                    _tabMaxWidthInput = null;
+                    OnPropertyChanged(nameof(TabMaxWidthInput));
+                    if (changed) _configService.Update(c => c.TabMaxWidth = value);
+                }
             }
         }
 
+        public string TabMaxWidthInput
+        {
+            get => _tabMaxWidthInput ?? _tabMaxWidth.ToString();
+            set => SetProtectedNumber(ref _tabMaxWidthInput, ref _tabMaxWidth, value, 100, 300, v => TabMaxWidth = v);
+        }
+
         private double _tabMinWidth;
+        private string _tabMinWidthInput;
         public double TabMinWidth
         {
             get => _tabMinWidth;
             set
             {
-                if (SetProperty(ref _tabMinWidth, value))
-                    _configService.Update(c => c.TabMinWidth = value);
+                value = Math.Clamp(value, 30, 100);
+                bool changed = SetProperty(ref _tabMinWidth, value);
+                {
+                    _tabMinWidthInput = null;
+                    OnPropertyChanged(nameof(TabMinWidthInput));
+                    if (changed) _configService.Update(c => c.TabMinWidth = value);
+                }
             }
+        }
+
+        public string TabMinWidthInput
+        {
+            get => _tabMinWidthInput ?? _tabMinWidth.ToString();
+            set => SetProtectedNumber(ref _tabMinWidthInput, ref _tabMinWidth, value, 30, 100, v => TabMinWidth = v);
         }
 
         private bool _hideCloseButtonOnInactive;
@@ -190,36 +226,72 @@ namespace YiboFile.ViewModels.Settings
         // ═══════════════════════════════════════════
 
         private double _uiFontSize;
+        private string _uiFontSizeInput;
         public double UIFontSize
         {
             get => _uiFontSize;
             set
             {
-                if (SetProperty(ref _uiFontSize, value))
-                    _configService.Update(c => c.UIFontSize = value);
+                value = Math.Clamp(value, 10, 48);
+                bool changed = SetProperty(ref _uiFontSize, value);
+                {
+                    _uiFontSizeInput = null;
+                    OnPropertyChanged(nameof(UIFontSizeInput));
+                    if (changed) _configService.Update(c => c.UIFontSize = value);
+                }
             }
         }
 
+        public string UIFontSizeInput
+        {
+            get => _uiFontSizeInput ?? _uiFontSize.ToString();
+            set => SetProtectedNumber(ref _uiFontSizeInput, ref _uiFontSize, value, 10, 48, v => UIFontSize = v);
+        }
+
         private double _tagFontSize;
+        private string _tagFontSizeInput;
         public double TagFontSize
         {
             get => _tagFontSize;
             set
             {
-                if (SetProperty(ref _tagFontSize, value))
-                    _configService.Update(c => c.TagFontSize = value);
+                value = Math.Clamp(value, 10, 48);
+                bool changed = SetProperty(ref _tagFontSize, value);
+                {
+                    _tagFontSizeInput = null;
+                    OnPropertyChanged(nameof(TagFontSizeInput));
+                    if (changed) _configService.Update(c => c.TagFontSize = value);
+                }
             }
         }
 
+        public string TagFontSizeInput
+        {
+            get => _tagFontSizeInput ?? _tagFontSize.ToString();
+            set => SetProtectedNumber(ref _tagFontSizeInput, ref _tagFontSize, value, 10, 48, v => TagFontSize = v);
+        }
+
         private double _tagBoxWidth;
+        private string _tagBoxWidthInput;
         public double TagBoxWidth
         {
             get => _tagBoxWidth;
             set
             {
-                if (SetProperty(ref _tagBoxWidth, value))
-                    _configService.Update(c => c.TagBoxWidth = value);
+                value = Math.Clamp(value, 0, 500);
+                bool changed = SetProperty(ref _tagBoxWidth, value);
+                {
+                    _tagBoxWidthInput = null;
+                    OnPropertyChanged(nameof(TagBoxWidthInput));
+                    if (changed) _configService.Update(c => c.TagBoxWidth = value);
+                }
             }
+        }
+
+        public string TagBoxWidthInput
+        {
+            get => _tagBoxWidthInput ?? _tagBoxWidth.ToString();
+            set => SetProtectedNumber(ref _tagBoxWidthInput, ref _tagBoxWidth, value, 0, 500, v => TagBoxWidth = v);
         }
 
         // ═══════════════════════════════════════════

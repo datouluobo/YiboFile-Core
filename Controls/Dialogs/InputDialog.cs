@@ -40,7 +40,8 @@ namespace YiboFile.Controls.Dialogs
                 Text = defaultValue,
                 Margin = new Thickness(0, 0, 0, 25),
                 Padding = new Thickness(10, 8, 10, 8),
-                FontSize = 13
+                FontSize = 13,
+                MaxLength = 255
             };
             _textBox.SetResourceReference(TextBox.BackgroundProperty, "BackgroundPrimaryBrush");
             _textBox.SetResourceReference(TextBox.ForegroundProperty, "ForegroundPrimaryBrush");

@@ -60,5 +60,45 @@ namespace YiboFile.Controls.Settings
 
         public void LoadSettings() => _viewModel?.LoadFromConfig();
         public void SaveSettings() { }
+
+        private void NumericTextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                CommitNumericInput(sender as TextBox);
+                e.Handled = true;
+            }
+        }
+
+        private void NumericTextBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            CommitNumericInput(sender as TextBox);
+        }
+
+        private void CommitNumericInput(TextBox textBox)
+        {
+            if (textBox == null) return;
+            var binding = textBox.GetBindingExpression(TextBox.TextProperty);
+            if (binding != null)
+            {
+                binding.UpdateSource();
+                string propertyName = binding.ParentBinding.Path.Path;
+                if (!string.IsNullOrEmpty(propertyName) && _viewModel != null)
+                {
+                    Action resetAction = propertyName switch
+                    {
+                        "ColTagsWidthInput" => () => _viewModel.ColTagsWidth = _viewModel.ColTagsWidth,
+                        "ColNotesWidthInput" => () => _viewModel.ColNotesWidth = _viewModel.ColNotesWidth,
+                        _ => null
+                    };
+
+                    if (resetAction != null)
+                    {
+                        _viewModel.InvalidateInputProxy(propertyName, resetAction);
+                    }
+                }
+            }
+            this.Focus();
+        }
     }
 }

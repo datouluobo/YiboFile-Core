@@ -153,7 +153,8 @@ namespace YiboFile.Services.Tabs
                 if (trimmed.StartsWith("lib://", StringComparison.OrdinalIgnoreCase) ||
                     trimmed.StartsWith("tag://", StringComparison.OrdinalIgnoreCase) ||
                     trimmed.StartsWith("search://", StringComparison.OrdinalIgnoreCase) ||
-                    trimmed.StartsWith("content://", StringComparison.OrdinalIgnoreCase))
+                    trimmed.StartsWith("content://", StringComparison.OrdinalIgnoreCase) ||
+                    trimmed.StartsWith("yibofile://", StringComparison.OrdinalIgnoreCase))
                 {
                     return trimmed.ToLowerInvariant();
                 }

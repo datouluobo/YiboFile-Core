@@ -259,9 +259,7 @@ namespace YiboFile.Services.Favorite
 
             // 设置鼠标中键事件 - 已在 MainWindow.Initialization 中处理，这里移除或保留作为备用？
             // 原逻辑包含在此类中，保留以维持功能完整性
-            listBox.PreviewMouseDown -= FavoritesListBox_PreviewMouseDown;
-            listBox.PreviewMouseDown += FavoritesListBox_PreviewMouseDown;
-
+            
             // 初始化拖拽排序
             InitializeFavoritesDragDrop(listBox);
         }
@@ -402,66 +400,6 @@ namespace YiboFile.Services.Favorite
             if (item != null)
             {
                 item.IsSelected = true;
-            }
-        }
-
-        private void FavoritesListBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
-        {
-            // 处理鼠标中键点击打开新标签页
-            if (e.ChangedButton == MouseButton.Middle)
-            {
-                var listBox = sender as ListBox;
-                if (listBox == null) return;
-
-                // 获取点击位置对应的项目
-                var hitResult = VisualTreeHelper.HitTest(listBox, e.GetPosition(listBox));
-                if (hitResult == null) return;
-
-                // 向上查找 ListBoxItem
-                DependencyObject current = hitResult.VisualHit;
-                while (current != null && current != listBox)
-                {
-                    if (current is ListBoxItem item && item.DataContext != null)
-                    {
-                        var favoriteProperty = item.DataContext.GetType().GetProperty("Favorite");
-                        if (favoriteProperty != null)
-                        {
-                            var favorite = favoriteProperty.GetValue(item.DataContext) as YiboFile.Favorite;
-                            if (favorite != null && favorite.IsDirectory)
-                            {
-                                try
-                                {
-                                    if (Directory.Exists(favorite.Path))
-                                    {
-                                        _messageBus?.Publish(new CreateTabMessage(favorite.Path));
-                                        e.Handled = true;
-                                        return;
-                                    }
-                                    else
-                                    {
-                                        YiboFile.DialogService.Warning($"路径不存在: {favorite.Path}");
-                                        e.Handled = true;
-                                        return;
-                                    }
-                                }
-                                catch (UnauthorizedAccessException ex)
-                                {
-                                    YiboFile.DialogService.Warning($"无法访问路径: {favorite.Path}\n\n{ex.Message}");
-                                    e.Handled = true;
-                                    return;
-                                }
-                                catch (Exception ex)
-                                {
-                                    YiboFile.DialogService.Warning($"无法打开路径: {favorite.Path}\n\n{ex.Message}");
-                                    e.Handled = true;
-                                    return;
-                                }
-                            }
-                        }
-                        break;
-                    }
-                    current = VisualTreeHelper.GetParent(current);
-                }
             }
         }
 

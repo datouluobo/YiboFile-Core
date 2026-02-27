@@ -4,8 +4,16 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              mc:Ignorable="d" 
+             Focusable="True" FocusVisualStyle="{x:Null}"
              d:DesignHeight="800" d:DesignWidth="800">
     <StackPanel Margin="20">
+        <StackPanel.Resources>
+            <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                <EventSetter Event="KeyDown" Handler="NumericTextBox_KeyDown" />
+                <EventSetter Event="LostFocus" Handler="NumericTextBox_LostFocus" />
+                <EventSetter Event="PreviewTextInput" Handler="NumericTextBox_PreviewTextInput" />
+            </Style>
+        </StackPanel.Resources>
         
         <TextBlock Text="外观设置" FontSize="18" FontWeight="Bold" Margin="0,0,0,16" />
         <TextBlock Text="提示：主题、颜色、透明度等外观设置已移至&#34;外观&#34;设置面板。" FontSize="12" Margin="0,0,0,24" TextWrapping="Wrap" Foreground="{DynamicResource ForegroundSecondaryBrush}"  />
@@ -32,7 +40,7 @@
         </StackPanel>
         <StackPanel Orientation="Horizontal" Margin="44,0,0,8" x:Name="FixedWidthPanel">
             <TextBlock Text="标签宽度(80-250):" FontSize="13" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{DynamicResource ForegroundSecondaryBrush}" />
-            <TextBox Text="{Binding TabFixedWidth, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="14" Width="60" Height="32" VerticalContentAlignment="Center" TextAlignment="Center" Padding="5,0,5,0" Margin="0,0,8,0" x:Name="TabFixedWidthTextBox" PreviewTextInput="NumericOnly_PreviewTextInput" />
+            <TextBox MaxLength="4" Text="{Binding TabFixedWidthInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="14" Width="60" Height="32" VerticalContentAlignment="Center" TextAlignment="Center" Padding="5,0,5,0" Margin="0,0,8,0" x:Name="TabFixedWidthTextBox" />
             <StackPanel Orientation="Vertical" VerticalAlignment="Center">
                 <Button Content="▲" Width="24" Height="16" FontSize="10" Padding="0" Margin="0,0,0,2" Click="TabFixedWidthUp_Click" Style="{DynamicResource ModernButtonStyle}" />
                 <Button Content="▼" Width="24" Height="16" FontSize="10" Padding="0" Click="TabFixedWidthDown_Click" Style="{DynamicResource ModernButtonStyle}" />
@@ -46,7 +54,7 @@
         </StackPanel>
         <StackPanel Orientation="Horizontal" Margin="44,0,0,8" x:Name="AdaptiveWidthPanel">
             <TextBlock Text="最大宽度(100-300):" FontSize="13" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{DynamicResource ForegroundSecondaryBrush}" />
-            <TextBox Text="{Binding TabMaxWidth, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="14" Width="60" Height="32" VerticalContentAlignment="Center" TextAlignment="Center" Padding="5,0,5,0" Margin="0,0,8,0" x:Name="TabMaxWidthTextBox" PreviewTextInput="NumericOnly_PreviewTextInput" />
+            <TextBox MaxLength="4" Text="{Binding TabMaxWidthInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="14" Width="60" Height="32" VerticalContentAlignment="Center" TextAlignment="Center" Padding="5,0,5,0" Margin="0,0,8,0" x:Name="TabMaxWidthTextBox" />
             <StackPanel Orientation="Vertical" VerticalAlignment="Center">
                 <Button Content="▲" Width="24" Height="16" FontSize="10" Padding="0" Margin="0,0,0,2" Click="TabMaxWidthUp_Click" Style="{DynamicResource ModernButtonStyle}" />
                 <Button Content="▼" Width="24" Height="16" FontSize="10" Padding="0" Click="TabMaxWidthDown_Click" Style="{DynamicResource ModernButtonStyle}" />
@@ -60,7 +68,7 @@
         </StackPanel>
         <StackPanel Orientation="Horizontal" Margin="44,0,0,8" x:Name="ElasticWidthPanel">
             <TextBlock Text="最大宽度(100-300):" FontSize="13" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{DynamicResource ForegroundSecondaryBrush}" />
-            <TextBox Text="{Binding TabMaxWidth, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="14" Width="60" Height="32" VerticalContentAlignment="Center" TextAlignment="Center" Padding="5,0,5,0" Margin="0,0,8,0" PreviewTextInput="NumericOnly_PreviewTextInput" />
+            <TextBox MaxLength="4" Text="{Binding TabMaxWidthInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="14" Width="60" Height="32" VerticalContentAlignment="Center" TextAlignment="Center" Padding="5,0,5,0" Margin="0,0,8,0" />
             <StackPanel Orientation="Vertical" VerticalAlignment="Center">
                 <Button Content="▲" Width="24" Height="16" FontSize="10" Padding="0" Margin="0,0,0,2" Click="TabMaxWidthUp_Click" Style="{DynamicResource ModernButtonStyle}" />
                 <Button Content="▼" Width="24" Height="16" FontSize="10" Padding="0" Click="TabMaxWidthDown_Click" Style="{DynamicResource ModernButtonStyle}" />
@@ -82,7 +90,7 @@
         <!-- 最小宽度 -->
         <StackPanel Orientation="Horizontal" Margin="0,8,0,12">
             <TextBlock Text="最小宽度(30-100):" FontSize="14" VerticalAlignment="Center" Margin="0,0,8,0" />
-            <TextBox Text="{Binding TabMinWidth, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="14" Width="60" Height="32" VerticalContentAlignment="Center" TextAlignment="Center" Padding="5,0,5,0" Margin="0,0,8,0" PreviewTextInput="NumericOnly_PreviewTextInput" />
+            <TextBox MaxLength="4" Text="{Binding TabMinWidthInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="14" Width="60" Height="32" VerticalContentAlignment="Center" TextAlignment="Center" Padding="5,0,5,0" Margin="0,0,8,0" />
             <StackPanel Orientation="Vertical" VerticalAlignment="Center">
                 <Button Content="▲" Width="24" Height="16" FontSize="10" Padding="0" Margin="0,0,0,2" Click="TabMinWidthUp_Click" Style="{DynamicResource ModernButtonStyle}" />
                 <Button Content="▼" Width="24" Height="16" FontSize="10" Padding="0" Click="TabMinWidthDown_Click" Style="{DynamicResource ModernButtonStyle}" />
@@ -108,7 +116,7 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <TextBlock Text="字体大小:" FontSize="14" VerticalAlignment="Center" Margin="0,0,12,0" MinWidth="140" MinHeight="32" Grid.Column="0" />
-            <TextBox Text="{Binding UIFontSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="14" Width="60" Height="32" VerticalContentAlignment="Center" TextAlignment="Center" Padding="5,0,5,0" Margin="0,0,8,0" Grid.Column="1" PreviewTextInput="NumericOnly_PreviewTextInput" />
+            <TextBox MaxLength="3" Text="{Binding UIFontSizeInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="14" Width="60" Height="32" VerticalContentAlignment="Center" TextAlignment="Center" Padding="5,0,5,0" Margin="0,0,8,0" Grid.Column="1" />
             <StackPanel Orientation="Vertical" Grid.Column="2">
                 <Button Content="▲" Width="24" Height="16" FontSize="10" Padding="0" Margin="0,0,0,2" VerticalAlignment="Center" Click="UIFontSizeUp_Click" Style="{DynamicResource ModernButtonStyle}" />
                 <Button Content="▼" Width="24" Height="16" FontSize="10" Padding="0" VerticalAlignment="Center" Click="UIFontSizeDown_Click" Style="{DynamicResource ModernButtonStyle}" />
@@ -122,7 +130,7 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <TextBlock Text="Tag字号:" FontSize="14" VerticalAlignment="Center" Margin="0,0,12,0" MinWidth="140" MinHeight="32" Grid.Column="0" />
-            <TextBox Text="{Binding TagFontSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="14" Width="60" Height="32" VerticalContentAlignment="Center" TextAlignment="Center" Padding="5,0,5,0" Margin="0,0,8,0" Grid.Column="1" PreviewTextInput="NumericOnly_PreviewTextInput" />
+            <TextBox MaxLength="3" Text="{Binding TagFontSizeInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="14" Width="60" Height="32" VerticalContentAlignment="Center" TextAlignment="Center" Padding="5,0,5,0" Margin="0,0,8,0" Grid.Column="1" />
             <StackPanel Orientation="Vertical" Grid.Column="2">
                 <Button Content="▲" Width="24" Height="16" FontSize="10" Padding="0" Margin="0,0,0,2" VerticalAlignment="Center" Click="TagFontSizeUp_Click" Style="{DynamicResource ModernButtonStyle}" />
                 <Button Content="▼" Width="24" Height="16" FontSize="10" Padding="0" VerticalAlignment="Center" Click="TagFontSizeDown_Click" Style="{DynamicResource ModernButtonStyle}" />
@@ -136,7 +144,7 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <TextBlock Text="Tag框宽度:" FontSize="14" VerticalAlignment="Center" Margin="0,0,12,0" MinWidth="140" MinHeight="32" Grid.Column="0" />
-            <TextBox Text="{Binding TagBoxWidth, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="14" Width="60" Height="32" VerticalContentAlignment="Center" TextAlignment="Center" Padding="5,0,5,0" Margin="0,0,8,0" Grid.Column="1" PreviewTextInput="NumericOnly_PreviewTextInput" />
+            <TextBox MaxLength="4" Text="{Binding TagBoxWidthInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="14" Width="60" Height="32" VerticalContentAlignment="Center" TextAlignment="Center" Padding="5,0,5,0" Margin="0,0,8,0" Grid.Column="1" />
             <StackPanel Orientation="Vertical" Grid.Column="2">
                 <Button Content="▲" Width="24" Height="16" FontSize="10" Padding="0" Margin="0,0,0,2" VerticalAlignment="Center" Click="TagBoxWidthUp_Click" Style="{DynamicResource ModernButtonStyle}" />
                 <Button Content="▼" Width="24" Height="16" FontSize="10" Padding="0" VerticalAlignment="Center" Click="TagBoxWidthDown_Click" Style="{DynamicResource ModernButtonStyle}" />

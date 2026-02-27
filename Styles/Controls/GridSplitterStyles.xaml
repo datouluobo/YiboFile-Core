@@ -18,9 +18,9 @@
                         <!-- Visual line -->
                         <Border x:Name="HoverVisual" Background="{DynamicResource BackgroundSecondaryBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="1" Margin="0" Opacity="0">
                             <Grid>
-                                <Rectangle Fill="{DynamicResource BorderDefaultBrush}" Width="1" HorizontalAlignment="Center" VerticalAlignment="Stretch" />
-                                <Rectangle Fill="{DynamicResource BorderDefaultBrush}" Height="1" HorizontalAlignment="Stretch" VerticalAlignment="Center" />
-                                <Ellipse Fill="{DynamicResource ForegroundSecondaryBrush}" Width="4" Height="4" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                <Rectangle Fill="{DynamicResource DividerBrush}" Width="{DynamicResource UI.Splitter.LineThickness}" HorizontalAlignment="Center" VerticalAlignment="Stretch" />
+                                <Rectangle Fill="{DynamicResource DividerBrush}" Height="{DynamicResource UI.Splitter.LineThickness}" HorizontalAlignment="Stretch" VerticalAlignment="Center" />
+                                <Ellipse Fill="{DynamicResource ForegroundSecondaryBrush}" Width="4" Height="4" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{DynamicResource UI.Splitter.HoverShowGripDot}" />
                             </Grid>
                         </Border>
                     </Grid>
@@ -38,7 +38,7 @@
     </Style>
 
     <Style x:Key="VerticalGridSplitterStyle" TargetType="GridSplitter" BasedOn="{StaticResource ModernGridSplitterStyle}">
-        <Setter Property="Width" Value="6" />
+        <Setter Property="Width" Value="{DynamicResource UI.Splitter.Width}" />
         <Setter Property="HorizontalAlignment" Value="Stretch" />
         <Setter Property="VerticalAlignment" Value="Stretch" />
         <Setter Property="Background" Value="Transparent" />
@@ -48,7 +48,7 @@
                 <ControlTemplate TargetType="GridSplitter">
                     <Grid Background="Transparent">
                         <!-- Central divider line -->
-                        <Rectangle Width="1" Fill="{DynamicResource BorderDefaultBrush}" HorizontalAlignment="Center" VerticalAlignment="Stretch" Visibility="{DynamicResource UI.Splitter.VisibleLine}" />
+                        <Rectangle Width="{DynamicResource UI.Splitter.LineThickness}" Fill="{DynamicResource DividerBrush}" HorizontalAlignment="Center" VerticalAlignment="Stretch" Visibility="{DynamicResource UI.Splitter.VisibleLine}" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
@@ -56,7 +56,7 @@
     </Style>
 
     <Style x:Key="HorizontalGridSplitterStyle" TargetType="GridSplitter" BasedOn="{StaticResource ModernGridSplitterStyle}">
-        <Setter Property="Height" Value="6" />
+        <Setter Property="Height" Value="{DynamicResource UI.Splitter.Width}" />
         <Setter Property="HorizontalAlignment" Value="Stretch" />
         <Setter Property="VerticalAlignment" Value="Stretch" />
         <Setter Property="ResizeBehavior" Value="PreviousAndNext" />
@@ -67,7 +67,7 @@
                     <Grid>
                         <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" />
                         <Border x:Name="HoverVisual" Background="{DynamicResource BackgroundSecondaryBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="1,0,1,0" Margin="0" Opacity="0">
-                            <Rectangle Fill="{DynamicResource BorderDefaultBrush}" Height="1" HorizontalAlignment="Stretch" VerticalAlignment="Center" />
+                            <Rectangle Fill="{DynamicResource DividerBrush}" Height="{DynamicResource UI.Splitter.LineThickness}" HorizontalAlignment="Stretch" VerticalAlignment="Center" />
                         </Border>
                     </Grid>
                     <ControlTemplate.Triggers>
@@ -96,10 +96,10 @@
                     <Border x:Name="PART_RootBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" ClipToBounds="False">
                         <Grid ClipToBounds="False">
                             <!-- Divider line - always centered, color changes on hover -->
-                            <Border x:Name="PART_DividerLine" Background="{DynamicResource BorderDefaultBrush}" Visibility="{DynamicResource UI.Splitter.VisibleLine}" Panel.ZIndex="-1" />
+                            <Border x:Name="PART_DividerLine" Background="{DynamicResource DividerBrush}" Visibility="{DynamicResource UI.Splitter.VisibleLine}" Panel.ZIndex="-1" />
                             
                             <!-- Button container - naturally centered, no negative margins -->
-                            <StackPanel x:Name="PART_ButtonContainer" HorizontalAlignment="Center" VerticalAlignment="Center" Panel.ZIndex="4000" Opacity="0.3">
+                            <StackPanel x:Name="PART_ButtonContainer" HorizontalAlignment="Center" VerticalAlignment="Center" Panel.ZIndex="4000" Opacity="{DynamicResource UI.Splitter.CollapseButtonOpacity}">
                                        
                                 <StackPanel.Resources>
                                     <Style TargetType="Button">
@@ -167,7 +167,7 @@
                             <!-- Divider Setup -->
                             <Setter TargetName="PART_DividerLine" Property="HorizontalAlignment" Value="Center" />
                             <Setter TargetName="PART_DividerLine" Property="VerticalAlignment" Value="Stretch" />
-                            <Setter TargetName="PART_DividerLine" Property="Width" Value="1" />
+                            <Setter TargetName="PART_DividerLine" Property="Width" Value="{DynamicResource UI.Splitter.LineThickness}" />
                             <Setter TargetName="PART_DividerLine" Property="Height" Value="NaN" />
                             
                             <!-- Container Setup -->
@@ -194,7 +194,7 @@
                             <Setter TargetName="PART_DividerLine" Property="HorizontalAlignment" Value="Stretch" />
                             <Setter TargetName="PART_DividerLine" Property="VerticalAlignment" Value="Center" />
                             <Setter TargetName="PART_DividerLine" Property="Width" Value="NaN" />
-                            <Setter TargetName="PART_DividerLine" Property="Height" Value="1" />
+                            <Setter TargetName="PART_DividerLine" Property="Height" Value="{DynamicResource UI.Splitter.LineThickness}" />
                             
                             <!-- Container Setup -->
                             <Setter TargetName="PART_ButtonContainer" Property="Orientation" Value="Horizontal" />

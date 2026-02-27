@@ -38,7 +38,7 @@ namespace YiboFile.Services.Tabs
             Func<PathTab, string> getTitle,
             double fixedWidth, double maxWidth, double minWidth)
         {
-            var width = Math.Clamp(fixedWidth, minWidth, 300);
+            var width = Math.Clamp(fixedWidth, minWidth, Math.Max(minWidth, 300));
             return tabs.Select(t => (t, width)).ToList();
         }
     }
@@ -59,7 +59,7 @@ namespace YiboFile.Services.Tabs
             {
                 var title = getTitle(t);
                 var textWidth = TabTextMeasurer.MeasureTextWidth(title);
-                var width = Math.Clamp(textWidth + TAB_INTERNAL_PADDING, minWidth, maxWidth);
+                var width = Math.Clamp(textWidth + TAB_INTERNAL_PADDING, minWidth, Math.Max(minWidth, maxWidth));
                 return (t, width);
             }).ToList();
         }
@@ -80,7 +80,7 @@ namespace YiboFile.Services.Tabs
             // 平分可用空间（减去标签间距）
             var totalMargins = tabs.Count * 2.0;
             var perTabWidth = (availableWidth - totalMargins) / tabs.Count;
-            var width = Math.Clamp(perTabWidth, minWidth, maxWidth);
+            var width = Math.Clamp(perTabWidth, minWidth, Math.Max(minWidth, maxWidth));
             return tabs.Select(t => (t, width)).ToList();
         }
     }

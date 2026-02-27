@@ -63,7 +63,7 @@
             </DockPanel>
 
             <!-- Splitter 1 -->
-            <GridSplitter Grid.Column="1" Width="1" HorizontalAlignment="Center" Background="{DynamicResource BorderBrush}"/>
+            <GridSplitter Grid.Column="1" Style="{StaticResource VerticalGridSplitterStyle}"/>
 
             <!-- Middle: Files in selected backup -->
             <DockPanel Grid.Column="2">
@@ -95,7 +95,7 @@
             </DockPanel>
 
             <!-- Splitter 2 -->
-            <GridSplitter Grid.Column="3" Width="1" HorizontalAlignment="Center" Background="{DynamicResource BorderBrush}"/>
+            <GridSplitter Grid.Column="3" Style="{StaticResource VerticalGridSplitterStyle}"/>
 
             <!-- Right: Preview -->
             <DockPanel Grid.Column="4" Background="{DynamicResource BackgroundSecondaryBrush}">

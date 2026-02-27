@@ -41,6 +41,57 @@ namespace YiboFile.Controls.Settings
             // Bindings handle updates automatically
         }
 
+        private void NumericTextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                CommitNumericInput(sender as TextBox);
+                e.Handled = true;
+            }
+        }
+
+        private void NumericTextBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            CommitNumericInput(sender as TextBox);
+        }
+
+        private void CommitNumericInput(TextBox textBox)
+        {
+            if (textBox == null) return;
+            
+            // 触发绑定更新（如果当前还在输入中）
+            var binding = textBox.GetBindingExpression(TextBox.TextProperty);
+            if (binding != null)
+            {
+                binding.UpdateSource();
+                
+                // 获取绑定的属性名
+                string propertyName = binding.ParentBinding.Path.Path;
+                if (!string.IsNullOrEmpty(propertyName) && _generalViewModel != null)
+                {
+                    // 根据 Input 属性名找到对应的底层属性 Reset Action
+                    Action resetAction = propertyName switch
+                    {
+                        "TabFixedWidthInput" => () => _generalViewModel.TabFixedWidth = _generalViewModel.TabFixedWidth,
+                        "TabMaxWidthInput" => () => _generalViewModel.TabMaxWidth = _generalViewModel.TabMaxWidth,
+                        "TabMinWidthInput" => () => _generalViewModel.TabMinWidth = _generalViewModel.TabMinWidth,
+                        "UIFontSizeInput" => () => _generalViewModel.UIFontSize = _generalViewModel.UIFontSize,
+                        "TagFontSizeInput" => () => _generalViewModel.TagFontSize = _generalViewModel.TagFontSize,
+                        "TagBoxWidthInput" => () => _generalViewModel.TagBoxWidth = _generalViewModel.TagBoxWidth,
+                        _ => null
+                    };
+
+                    if (resetAction != null)
+                    {
+                        _generalViewModel.InvalidateInputProxy(propertyName, resetAction);
+                    }
+                }
+            }
+
+            // 移动焦点以完全“确认”并隐藏光标
+            this.Focus();
+        }
+
         private void InitializeState()
         {
             // 宽度策略
@@ -143,7 +194,7 @@ namespace YiboFile.Controls.Settings
         private void TagBoxWidthUp_Click(object sender, RoutedEventArgs e) => AdjustValue(_generalViewModel.TagBoxWidth, 5, 0, 500, v => _generalViewModel.TagBoxWidth = v);
         private void TagBoxWidthDown_Click(object sender, RoutedEventArgs e) => AdjustValue(_generalViewModel.TagBoxWidth, -10, 0, 500, v => _generalViewModel.TagBoxWidth = v);
 
-        private void NumericOnly_PreviewTextInput(object sender, TextCompositionEventArgs e)
+        private void NumericTextBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
         {
             e.Handled = !char.IsDigit(e.Text, 0);
         }

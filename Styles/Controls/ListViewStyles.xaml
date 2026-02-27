@@ -12,6 +12,7 @@
          ================================================================ -->
     <Style x:Key="NavListBoxItemStyle" TargetType="ListBoxItem">
         <Setter Property="Padding" Value="12,8" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
         <Setter Property="Margin" Value="{DynamicResource UI.Sidebar.ItemMargin}" />
         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
         <Setter Property="Background" Value="Transparent" />
@@ -48,6 +49,7 @@
          ================================================================ -->
     <Style x:Key="DriveListBoxItemStyle" TargetType="ListBoxItem">
         <Setter Property="Padding" Value="5,3" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
         <Setter Property="Margin" Value="{DynamicResource UI.Sidebar.ItemMargin}" />
         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
         <Setter Property="Background" Value="Transparent" />
@@ -236,6 +238,7 @@
          ================================================================ -->
     <Style x:Key="FileListItemStyle" TargetType="ListViewItem">
         <Setter Property="Foreground" Value="{DynamicResource ForegroundPrimaryBrush}" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="BorderBrush" Value="Transparent" />
         <Setter Property="BorderThickness" Value="{DynamicResource UI.FileList.RowBorderThickness}" />

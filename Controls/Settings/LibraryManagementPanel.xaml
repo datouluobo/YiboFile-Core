@@ -222,7 +222,7 @@
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <TextBox x:Name="NewLibraryNameTextBox" Tag="新建库..." Style="{StaticResource ModernTextBoxStyle}" KeyDown="NewLibraryNameTextBox_KeyDown"/>
+                    <TextBox x:Name="NewLibraryNameTextBox" MaxLength="50" Tag="新建库..." Style="{StaticResource ModernTextBoxStyle}" KeyDown="NewLibraryNameTextBox_KeyDown"/>
                     <TextBlock Text="新建库..." Foreground="{DynamicResource ForegroundSecondaryBrush}" Margin="8,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock">

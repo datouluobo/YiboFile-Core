@@ -73,7 +73,7 @@
                                                 Padding="10,4" 
                                                 Margin="0,0,6,6"
                                                 Cursor="Hand"
-                                                MouseLeftButtonDown="TagItem_MouseLeftButtonDown"
+                                                MouseDown="TagItem_MouseDown"
                                                 AllowDrop="True" Drop="TagItem_Drop" PreviewMouseMove="TagItem_PreviewMouseMove">
                                             <Border.Opacity>0.8</Border.Opacity>
                                             <Border.ContextMenu>

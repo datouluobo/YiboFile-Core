@@ -329,6 +329,15 @@ namespace YiboFile.Services.Orchestration
                         Source = NavigationSource.SidebarTag
                     });
                 };
+                window.NavigationPanelControl.TagBrowsePanelControl.TagMiddleClicked += (tagId, tagName) =>
+                {
+                    if (string.IsNullOrEmpty(tagName)) return;
+                    var path = $"tag://{tagName}";
+                    if (window.NavigationPanelControl.OpenInNewTabCommand?.CanExecute(path) == true)
+                    {
+                        window.NavigationPanelControl.OpenInNewTabCommand.Execute(path);
+                    }
+                };
                 window.NavigationPanelControl.TagBrowsePanelControl.BackRequested += (s, e) =>
                 {
                     viewModel?.Navigation?.NavigateBackCommand?.Execute(null);
