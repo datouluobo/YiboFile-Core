@@ -54,7 +54,14 @@ namespace YiboFile.ViewModels.Settings
                 {
                     _uiFontSizeInput = null;
                     OnPropertyChanged(nameof(UIFontSizeInput));
-                    if (changed) _configService?.Update(c => c.UIFontSize = value);
+                    if (changed)
+                    {
+                        _configService?.Update(c => c.UIFontSize = value);
+                        if (System.Windows.Application.Current?.MainWindow != null)
+                        {
+                            System.Windows.Application.Current.MainWindow.FontSize = value;
+                        }
+                    }
                 }
             }
         }

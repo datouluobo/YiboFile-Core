@@ -51,12 +51,34 @@
             <ColumnDefinition Width="Auto"/>
         </Grid.ColumnDefinitions>
 
-        <!-- 背景和边框 -->
+        <!-- 背景和边框：大幅度装饰美化 -->
         <Border Grid.ColumnSpan="3"
-                Background="{DynamicResource BackgroundPrimaryBrush}"
-                BorderBrush="{DynamicResource BorderSubtleBrush}"
                 BorderThickness="{DynamicResource UI.AddressBar.BorderThickness}"
-                CornerRadius="{DynamicResource UI.AddressBar.CornerRadius}"/>
+                CornerRadius="{DynamicResource UI.AddressBar.CornerRadius}">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <!-- 默认状态：轻微内缩与底层背景区分，颜色更暗 -->
+                    <Setter Property="Background" Value="{DynamicResource BackgroundSecondaryBrush}"/>
+                    <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtleBrush}"/>
+                    <Style.Triggers>
+                        <!-- 鼠标滑过时变亮 -->
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource BackgroundPrimaryBrush}"/>
+                            <Setter Property="BorderBrush" Value="{DynamicResource BorderDefaultBrush}"/>
+                        </Trigger>
+                        <!-- 输入/激活时发光并强化 -->
+                        <DataTrigger Binding="{Binding IsKeyboardFocusWithin, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource BackgroundPrimaryBrush}"/>
+                            <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <!-- 让地址栏有一层微弱的物理环境阴影，具有现代浏览器搜索框同样的悬浮高级感 -->
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="6" ShadowDepth="1" Opacity="0.08" Direction="270" Color="Black"/>
+            </Border.Effect>
+        </Border>
 
         <!-- 编辑模式容器 -->
         <Grid Name="EditModeContainer" Grid.Column="1" Visibility="Collapsed">

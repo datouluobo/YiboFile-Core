@@ -179,33 +179,8 @@ namespace YiboFile.Handlers
 
         internal void UpdateFocusBorders()
         {
-            if (!_layoutModule.IsDualListMode)
-            {
-                // 单列表模式：清除边框
-                if (_window.FileBrowser?.FocusBorderControl != null) _window.FileBrowser.FocusBorderControl.BorderBrush = new SolidColorBrush(Colors.Transparent);
-                if (_window.SecondFileBrowser?.FocusBorderControl != null) _window.SecondFileBrowser.FocusBorderControl.BorderBrush = new SolidColorBrush(Colors.Transparent);
-
-                if (_window.FileBrowser != null) _window.FileBrowser.BorderThickness = new Thickness(0);
-                if (_window.SecondFileBrowser != null) _window.SecondFileBrowser.BorderThickness = new Thickness(0);
-                return;
-            }
-
-            // 双列表模式：显示焦点边框
-            var focusBrush = new SolidColorBrush(Color.FromArgb(120, 0, 120, 215)); // 半透明蓝色
-            var normalBrush = new SolidColorBrush(Colors.Transparent);
-            var isSecondFocused = _layoutModule.IsSecondPaneFocused;
-
-            if (_window.FileBrowser?.FocusBorderControl != null)
-            {
-                _window.FileBrowser.FocusBorderControl.BorderBrush = isSecondFocused ? normalBrush : focusBrush;
-            }
-            if (_window.FileBrowser != null) _window.FileBrowser.BorderThickness = new Thickness(0);
-
-            if (_window.SecondFileBrowser?.FocusBorderControl != null)
-            {
-                _window.SecondFileBrowser.FocusBorderControl.BorderBrush = isSecondFocused ? focusBrush : normalBrush;
-            }
-            if (_window.SecondFileBrowser != null) _window.SecondFileBrowser.BorderThickness = new Thickness(0);
+            // The border styling is now fully handled by MVVM data binding (IsActive) in FileBrowserControl.xaml
+            // Doing it in code-behind with hardcoded brushes caused visual bugs and conflicting borders with the grid splitters.
         }
 
         internal void SetDualListMode(bool enable)

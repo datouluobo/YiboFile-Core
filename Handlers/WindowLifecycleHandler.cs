@@ -134,11 +134,26 @@ namespace YiboFile.Handlers
                     // 需要压缩左右列
                     double scale = maxAvailableForSides / currentSidesSum;
 
-                    double newLeft = Math.Max(_mainWindow.ColLeft.MinWidth, currentLeft * scale);
-                    double newRight = Math.Max(_mainWindow.ColRight.MinWidth, currentRight * scale);
+                    double newLeft = currentLeft * scale;
+                    double newRight = currentRight * scale;
+                    double minLeft = _mainWindow.ColLeft.MinWidth;
+                    double minRight = _mainWindow.ColRight.MinWidth;
 
-                    // 如果因为 MinWidth 限制导致仍超出，可能需要再次调整(简单起见这里假设 minTotal 检查已保证有解)
-                    // 为防万一，再次检查 total > minTotal，上面的 minTotal 已经包含了 Center.Min
+                    // 截断再平衡：若一方触底，把剩余需缩减的空间全压给另一方
+                    if (newLeft < minLeft)
+                    {
+                        newLeft = minLeft;
+                        newRight = maxAvailableForSides - newLeft;
+                    }
+                    else if (newRight < minRight)
+                    {
+                        newRight = minRight;
+                        newLeft = maxAvailableForSides - newRight;
+                    }
+
+                    // 最终安全网：避免任何一方跌破配置底线（虽然此时可能轻微挤占中间列一丝，但受窗口级别 MinWidth 保护极少发生）
+                    newLeft = Math.Max(minLeft, newLeft);
+                    newRight = Math.Max(minRight, newRight);
 
                     _mainWindow.ColLeft.Width = new GridLength(newLeft);
                     _mainWindow.ColRight.Width = new GridLength(newRight);
@@ -146,20 +161,9 @@ namespace YiboFile.Handlers
             }
             else
             {
-                // 空间不足，按比例压缩列宽（仅在极端窗口缩小时触发）
-                // 确保 sum > 0 且 scale 有效，避免除以零或 NaN 异常
-                if (sum > 0)
-                {
-                    double scale = total / sum;
-                    if (!double.IsNaN(scale) && !double.IsInfinity(scale))
-                    {
-                        double newLeft = left * scale;
-                        if (!double.IsNaN(newLeft) && !double.IsInfinity(newLeft))
-                        {
-                            _mainWindow.ColLeft.Width = new GridLength(Math.Max(_mainWindow.ColLeft.MinWidth, newLeft));
-                        }
-                    }
-                }
+                // 空间严重不足时（比如非正常大小跳水），全部赋予最小宽度兜底，由 WPF 自身排版缓冲承受。
+                _mainWindow.ColLeft.Width = new GridLength(_mainWindow.ColLeft.MinWidth);
+                _mainWindow.ColRight.Width = new GridLength(_mainWindow.ColRight.MinWidth);
             }
         }
 
@@ -253,6 +257,13 @@ namespace YiboFile.Handlers
         {
             if (e.ChangedButton != MouseButton.Left)
                 return;
+
+            if (e.ClickCount == 2)
+            {
+                HandleMaximize();
+                e.Handled = true;
+                return;
+            }
 
             bool isMaximized = _mainWindow.WindowState == WindowState.Maximized;
 

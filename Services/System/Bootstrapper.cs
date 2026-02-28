@@ -370,7 +370,7 @@ namespace YiboFile.Services.Startup
             mainWindow.Show();
             FileLogger.Log("MainWindow.Show called.");
 
-            // 应用窗口透明度设置
+            // 应用窗口透明度和全局字体设置
             try
             {
                 var config = YiboFile.Services.Config.ConfigurationService.Instance.Config;
@@ -379,10 +379,16 @@ namespace YiboFile.Services.Startup
                     mainWindow.Opacity = config.WindowOpacity;
                     FileLogger.Log($"Window opacity applied: {config.WindowOpacity}");
                 }
+                
+                if (config?.UIFontSize >= 10 && config.UIFontSize <= 48)
+                {
+                    mainWindow.FontSize = config.UIFontSize;
+                    FileLogger.Log($"UIFontSize applied: {config.UIFontSize}");
+                }
             }
             catch (Exception ex)
             {
-                FileLogger.LogException("Failed to apply window opacity", ex);
+                FileLogger.LogException("Failed to apply window visual configurations", ex);
             }
         }
 

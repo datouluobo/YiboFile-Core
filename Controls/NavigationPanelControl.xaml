@@ -19,7 +19,7 @@
         
         <Grid Name="NavContentGrid" Grid.Row="0">
             <!-- 路径面板 -->
-            <Grid Name="NavPathContent" Margin="8">
+            <Grid Name="NavPathContent" Margin="8" WindowChrome.IsHitTestVisibleInChrome="True">
                 <!-- 基础层：路径可滚动内容 -->
                 <Grid Margin="0,8,0,0">
                 <Grid.Resources>
@@ -399,7 +399,7 @@
             </Grid>
             
             <!-- 库导航内容 -->
-            <Grid Name="NavLibraryContent" Margin="8" Visibility="Collapsed">
+            <Grid Name="NavLibraryContent" Margin="8" Visibility="Collapsed" WindowChrome.IsHitTestVisibleInChrome="True">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
@@ -458,7 +458,7 @@
             </Grid>
 
             <!-- 标签导航内容 -->
-            <Grid Name="NavTagContent" Margin="8" Visibility="Collapsed">
+            <Grid Name="NavTagContent" Margin="8" Visibility="Collapsed" WindowChrome.IsHitTestVisibleInChrome="True">
                  <local:TagBrowsePanel x:Name="TagBrowsePanelElement"/>
             </Grid>
             

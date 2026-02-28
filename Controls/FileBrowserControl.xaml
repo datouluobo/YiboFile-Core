@@ -249,10 +249,14 @@
     <Grid>
         <Grid.Style>
             <Style TargetType="Grid">
-                <Setter Property="Background" Value="Transparent"/>
+                <!-- 纯净透明底层，靠前方的大背景 -->
+                <Setter Property="Background" Value="{DynamicResource BackgroundPrimaryBrush}"/>
+                <Setter Property="Opacity" Value="1.0"/>
                 <Style.Triggers>
                     <DataTrigger Binding="{Binding IsActive}" Value="False">
+                        <!-- 失去焦点时整体稍微暗化且退居幕后，从暗色和模糊感上与活动面板明显拉开层次 -->
                         <Setter Property="Background" Value="{DynamicResource BackgroundTertiaryBrush}"/>
+                        <Setter Property="Opacity" Value="0.75"/>
                     </DataTrigger>
                 </Style.Triggers>
             </Style>
@@ -377,11 +381,12 @@
             </ScrollViewer>
         </Border>
 
-        <!-- 焦点边框覆盖层 (Grid.RowSpan="5") -->
+        <!-- 优雅且现代的焦点边框覆盖层，抛弃之前会导致和右侧分割器叠加及外溢打架的加粗负边框描边法 -->
         <Border x:Name="FocusBorder"
                 Grid.Row="0" Grid.RowSpan="5"
                 BorderThickness="2"
-                Margin="-2"
+                Margin="1"
+                CornerRadius="6"
                 IsHitTestVisible="False"
                 Panel.ZIndex="1000">
             <Border.Style>
@@ -389,6 +394,7 @@
                     <Setter Property="BorderBrush" Value="Transparent"/>
                     <Style.Triggers>
                         <DataTrigger Binding="{Binding IsActive}" Value="True">
+                            <!-- 使用粗达 2px 的边界与细微留白，创造一种内嵌光环高亮感 -->
                             <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
                         </DataTrigger>
                     </Style.Triggers>

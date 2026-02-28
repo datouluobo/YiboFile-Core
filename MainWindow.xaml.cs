@@ -324,24 +324,6 @@ namespace YiboFile
 
         #region 窗口生命周期 (Delegates to WindowLifecycleHandler)
 
-        private void TitleBar_MouseDown(object sender, MouseButtonEventArgs e)
-        {
-            // 双击最大化/还原
-            if (e.ClickCount == 2 && e.ChangedButton == MouseButton.Left)
-            {
-                if (WindowState == WindowState.Maximized)
-                    WindowState = WindowState.Normal;
-                else
-                    WindowState = WindowState.Maximized;
-                return;
-            }
-
-            // 支持通过拖动标题栏移动窗口
-            if (e.ChangedButton == MouseButton.Left)
-            {
-                try { this.DragMove(); } catch { }
-            }
-        }
 
         internal void WindowMinimize_Click(object sender, RoutedEventArgs e) => _orchestrator.LifecycleHandler?.HandleMinimize();
         internal void WindowMaximize_Click(object sender, RoutedEventArgs e) => _orchestrator.LifecycleHandler?.HandleMaximize();
@@ -361,7 +343,29 @@ namespace YiboFile
         internal void UpdateSeparatorPosition() { /* Layout handled automatically */ }
 
 
+        private void SplitterRight_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton == MouseButton.Left)
+            {
+                double centerWidth = ColCenter.ActualWidth;
+                double rightWidth = ColRight.ActualWidth;
+                double totalVisibleSpace = centerWidth + rightWidth;
 
+                // 计算平分所需要的宽度，但不允许破坏限制
+                double halfSpace = totalVisibleSpace / 2;
+                halfSpace = Math.Max(halfSpace, ColRight.MinWidth);
+                halfSpace = Math.Max(halfSpace, ColCenter.MinWidth);
+
+                // 判断是否能在不超过可视限界的前提下进行平分操作
+                if (ColCenter.MinWidth + ColRight.MinWidth <= totalVisibleSpace)
+                {
+                    // 设置带有绝对数值宽度的右侧栏，左侧因为是星号列自适应长度，会自动填充剩余的半边
+                    ColRight.Width = new GridLength(halfSpace);
+                }
+                
+                e.Handled = true;
+            }
+        }
 
 
         #endregion
@@ -464,7 +468,9 @@ namespace YiboFile
         {
             if (WindowButtonsStackPanel == null) return;
 
-            double rightMargin = WindowButtonsStackPanel.ActualWidth + 15;
+            // 使用固定的预留宽度（控制按钮 138px + 12 拖拽冗余 = 150）
+            // 不再依赖 ActualWidth 防止还原时 SizeChanged 数据落后导致重叠
+            double rightMargin = 150;
             bool isDualMode = this.IsDualListMode;
             bool isRightPanelCollapsed = SplitterRight != null && SplitterRight.IsNextCollapsed;
 
@@ -472,18 +478,21 @@ namespace YiboFile
             {
                 if (isDualMode)
                 {
-                    TabManager.Margin = new Thickness(0, 0, 0, 0);
+                    // 双列模式，在主标签右侧仅预留小型拖拽区域 30
+                    TabManager.Margin = new Thickness(0, 0, 30, 0);
                 }
                 else
                 {
+                    // 单列模式，若右侧折叠则自己避开系统按钮
                     TabManager.Margin = isRightPanelCollapsed
                         ? new Thickness(0, 0, rightMargin, 0)
-                        : new Thickness(0, 0, 0, 0);
+                        : new Thickness(0, 0, 30, 0);
                 }
             }
 
             if (SecondTabManager != null)
             {
+                // 双列模式时，副标签必须避让右上角窗口按钮
                 SecondTabManager.Margin = isDualMode
                     ? new Thickness(0, 0, rightMargin, 0)
                     : new Thickness(0);

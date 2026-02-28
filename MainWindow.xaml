@@ -138,11 +138,11 @@
                       ShowsPreview="False"
                       Panel.ZIndex="2000"
                       AutoFillNeighbor="True"
-                      IsNextCollapsed="{Binding Layout.IsRightPanelCollapsed, Mode=TwoWay}"/>
+                      IsNextCollapsed="{Binding Layout.IsRightPanelCollapsed, Mode=TwoWay}"
+                      MouseDoubleClick="SplitterRight_MouseDoubleClick"/>
 
             <!-- ========== 列1：左侧导航内容区域（从顶端 Row 0 开始） ========== -->
-            <Grid Grid.Row="0" Grid.Column="1" Grid.RowSpan="4" Panel.ZIndex="2001"
-              WindowChrome.IsHitTestVisibleInChrome="True">
+            <Grid Grid.Row="0" Grid.Column="1" Grid.RowSpan="4" Panel.ZIndex="2001">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="217*"/>
                     <RowDefinition Height="31*"/>
@@ -198,7 +198,6 @@
                     </Grid.RowDefinitions>
 
                     <!-- 副标签页管理器 -->
-                    <!-- Margin-Right=430: 为了避开右上角的窗口控制按钮区域(~422px) -->
                     <controls:TabManagerControl x:Name="SecondTabManager" 
                                             Grid.Row="0"
                                             DataContext="{Binding Tabs}"
@@ -236,118 +235,121 @@
 
 
 
-            <!-- 右上角窗口控制按钮 -->
+            </Grid>
+
+            <!-- 右上角窗口控制按钮：放回 RootGrid 内部以继承合适的窗口内边缘控制 -->
             <Grid Name="WindowControlButtonsContainer" 
               Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="6"
               HorizontalAlignment="Right" VerticalAlignment="Top"
-              Margin="0,-4,-12,0"
               Height="51"
               Panel.ZIndex="10000"
               PreviewMouseDown="WindowControlButtonsContainer_PreviewMouseDown">
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <!-- 正常状态下补偿 RootGrid 的 4px 边距，并且保持右侧对其 -->
+                        <Setter Property="Margin" Value="0,-4,-4,0"/>
+                        <Style.Triggers>
+                            <!-- 最大化时，RootGrid 边距 8 等同屏幕外扩缓存，零边距即刚好挂靠绝对角落 -->
+                            <DataTrigger Binding="{Binding WindowState, RelativeSource={RelativeSource AncestorType=Window}}" Value="Maximized">
+                                <Setter Property="Margin" Value="0,0,0,0"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
 
-                <!-- 按钮区域 -->
-                <StackPanel x:Name="WindowButtonsStackPanel" 
-                       Orientation="Horizontal"
-                       HorizontalAlignment="Right" VerticalAlignment="Stretch"
-                       WindowChrome.IsHitTestVisibleInChrome="True">
-                    <StackPanel.Style>
-                        <Style TargetType="StackPanel">
-                            <Setter Property="Margin" Value="0,0,0,0"/>
+            <!-- 按钮区域 -->
+            <StackPanel x:Name="WindowButtonsStackPanel" 
+                   Orientation="Horizontal"
+                   HorizontalAlignment="Right" VerticalAlignment="Stretch"
+                   WindowChrome.IsHitTestVisibleInChrome="True">
+                   
+                <!-- 之前的按钮已移动到左下角 -->
+                <Grid Width="0" Height="0"/>
+                <!-- 最小化按钮 -->
+                <Button x:Name="TitleBarMinimizeButton"
+                    Width="46"
+                    Click="WindowMinimize_Click" 
+                    ToolTip="最小化"
+                    Background="Transparent" BorderThickness="0" Cursor="Hand">
+                    <Image Source="{DynamicResource Icon_Window_Minimize}" Width="16" Height="16" RenderOptions.BitmapScalingMode="HighQuality"/>
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Padding" Value="0"/>
+                            <Setter Property="Margin" Value="0"/>
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="BorderBrush" Value="Transparent"/>
+                            <Setter Property="BorderThickness" Value="0"/>
+                            <Setter Property="Foreground" Value="{DynamicResource ForegroundPrimaryBrush}"/>
+                            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                            <Setter Property="VerticalContentAlignment" Value="Center"/>
                             <Style.Triggers>
-                                <!-- 最大化时添加右边距，避免贴合屏幕边缘 -->
-                                <DataTrigger Binding="{Binding WindowState, RelativeSource={RelativeSource AncestorType=Window}}" Value="Maximized">
-                                    <Setter Property="Margin" Value="0,0,8,0"/>
-                                </DataTrigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="{DynamicResource ControlHoverBackgroundBrush}"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter Property="Background" Value="{DynamicResource ControlPressedBackgroundBrush}"/>
+                                </Trigger>
                             </Style.Triggers>
                         </Style>
-                    </StackPanel.Style>
-
-                    <!-- 之前的按钮已移动到左下角 -->
-                    <Grid Width="0" Height="0"/>
-                    <!-- 最小化按钮 -->
-                    <Button x:Name="TitleBarMinimizeButton"
-                        Width="46"
-                        Click="WindowMinimize_Click" 
-                        ToolTip="最小化"
-                        Background="Transparent" BorderThickness="0" Cursor="Hand">
-                        <Image Source="{DynamicResource Icon_Window_Minimize}" Width="16" Height="16" RenderOptions.BitmapScalingMode="HighQuality"/>
-                        <Button.Style>
-                            <Style TargetType="Button">
-                                <Setter Property="Padding" Value="0"/>
-                                <Setter Property="Margin" Value="0"/>
-                                <Setter Property="Background" Value="Transparent"/>
-                                <Setter Property="BorderBrush" Value="Transparent"/>
-                                <Setter Property="BorderThickness" Value="0"/>
-                                <Setter Property="Foreground" Value="{DynamicResource ForegroundPrimaryBrush}"/>
-                                <Setter Property="HorizontalContentAlignment" Value="Center"/>
-                                <Setter Property="VerticalContentAlignment" Value="Center"/>
-                                <Style.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter Property="Background" Value="{DynamicResource ControlHoverBackgroundBrush}"/>
-                                    </Trigger>
-                                    <Trigger Property="IsPressed" Value="True">
-                                        <Setter Property="Background" Value="{DynamicResource ControlPressedBackgroundBrush}"/>
-                                    </Trigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                    </Button>
-                    <Button x:Name="TitleBarMaxRestoreButton"
-                        Width="46"
-                        Click="WindowMaximize_Click" 
-                        ToolTip="最大化"
-                        Background="Transparent" BorderThickness="0" Cursor="Hand">
-                        <Image x:Name="TitleBarMaxRestoreImage" Source="{DynamicResource Icon_Window_Maximize}" Width="16" Height="16" RenderOptions.BitmapScalingMode="HighQuality"/>
-                        <Button.Style>
-                            <Style TargetType="Button">
-                                <Setter Property="Padding" Value="0"/>
-                                <Setter Property="Margin" Value="0"/>
-                                <Setter Property="Background" Value="Transparent"/>
-                                <Setter Property="BorderBrush" Value="Transparent"/>
-                                <Setter Property="BorderThickness" Value="0"/>
-                                <Setter Property="Foreground" Value="{DynamicResource ForegroundPrimaryBrush}"/>
-                                <Setter Property="HorizontalContentAlignment" Value="Center"/>
-                                <Setter Property="VerticalContentAlignment" Value="Center"/>
-                                <Style.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter Property="Background" Value="{DynamicResource ControlHoverBackgroundBrush}"/>
-                                    </Trigger>
-                                    <Trigger Property="IsPressed" Value="True">
-                                        <Setter Property="Background" Value="{DynamicResource ControlPressedBackgroundBrush}"/>
-                                    </Trigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                    </Button>
-                    <!-- 关闭按钮 -->
-                    <Button x:Name="TitleBarCloseButton"
-                        Width="46"
-                        Click="WindowClose_Click" 
-                        ToolTip="关闭" Cursor="Hand">
-                        <Button.Template>
-                            <ControlTemplate TargetType="Button">
-                                <Border x:Name="ButtonBorder" 
-                                    Background="Transparent" 
-                                    BorderThickness="0">
-                                    <Image x:Name="ButtonIcon"
-                                           Source="{DynamicResource Icon_Window_Close}" 
-                                           Width="16" Height="16"
-                                           RenderOptions.BitmapScalingMode="HighQuality"
-                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                </Border>
-                                <ControlTemplate.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="ButtonBorder" Property="Background" Value="#E81123"/>
-                                    </Trigger>
-                                </ControlTemplate.Triggers>
-                            </ControlTemplate>
-                        </Button.Template>
-                    </Button>
-                </StackPanel>
-            </Grid>
-
-
+                    </Button.Style>
+                </Button>
+                <Button x:Name="TitleBarMaxRestoreButton"
+                    Width="46"
+                    Click="WindowMaximize_Click" 
+                    ToolTip="最大化"
+                    Background="Transparent" BorderThickness="0" Cursor="Hand">
+                    <Image x:Name="TitleBarMaxRestoreImage" Source="{DynamicResource Icon_Window_Maximize}" Width="16" Height="16" RenderOptions.BitmapScalingMode="HighQuality"/>
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Padding" Value="0"/>
+                            <Setter Property="Margin" Value="0"/>
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="BorderBrush" Value="Transparent"/>
+                            <Setter Property="BorderThickness" Value="0"/>
+                            <Setter Property="Foreground" Value="{DynamicResource ForegroundPrimaryBrush}"/>
+                            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                            <Setter Property="VerticalContentAlignment" Value="Center"/>
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="{DynamicResource ControlHoverBackgroundBrush}"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter Property="Background" Value="{DynamicResource ControlPressedBackgroundBrush}"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+                <!-- 关闭按钮 -->
+                <Button x:Name="TitleBarCloseButton"
+                    Width="46"
+                    Click="WindowClose_Click" 
+                    ToolTip="关闭" Cursor="Hand">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="ButtonBorder" 
+                                Background="Transparent" 
+                                BorderThickness="0">
+                                <Image x:Name="ButtonIcon"
+                                       Source="{DynamicResource Icon_Window_Close}" 
+                                       Width="16" Height="16"
+                                       RenderOptions.BitmapScalingMode="HighQuality"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="ButtonBorder" Property="Background" Value="#E81123"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="ButtonBorder" Property="Background" Value="#C41019"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+            </StackPanel>
         </Grid>
+
     </Grid>
 </Window>
 
