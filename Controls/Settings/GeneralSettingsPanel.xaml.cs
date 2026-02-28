@@ -75,9 +75,6 @@ namespace YiboFile.Controls.Settings
                         "TabFixedWidthInput" => () => _generalViewModel.TabFixedWidth = _generalViewModel.TabFixedWidth,
                         "TabMaxWidthInput" => () => _generalViewModel.TabMaxWidth = _generalViewModel.TabMaxWidth,
                         "TabMinWidthInput" => () => _generalViewModel.TabMinWidth = _generalViewModel.TabMinWidth,
-                        "UIFontSizeInput" => () => _generalViewModel.UIFontSize = _generalViewModel.UIFontSize,
-                        "TagFontSizeInput" => () => _generalViewModel.TagFontSize = _generalViewModel.TagFontSize,
-                        "TagBoxWidthInput" => () => _generalViewModel.TagBoxWidth = _generalViewModel.TagBoxWidth,
                         _ => null
                     };
 
@@ -185,14 +182,6 @@ namespace YiboFile.Controls.Settings
         private void TabMaxWidthDown_Click(object sender, RoutedEventArgs e) => AdjustValue(_generalViewModel.TabMaxWidth, -10, 100, 300, v => _generalViewModel.TabMaxWidth = v);
         private void TabMinWidthUp_Click(object sender, RoutedEventArgs e) => AdjustValue(_generalViewModel.TabMinWidth, 5, 30, 100, v => _generalViewModel.TabMinWidth = v);
         private void TabMinWidthDown_Click(object sender, RoutedEventArgs e) => AdjustValue(_generalViewModel.TabMinWidth, -5, 30, 100, v => _generalViewModel.TabMinWidth = v);
-
-        // 字体调节
-        private void UIFontSizeUp_Click(object sender, RoutedEventArgs e) => AdjustValue(_generalViewModel.UIFontSize, 1, 10, 48, v => _generalViewModel.UIFontSize = v);
-        private void UIFontSizeDown_Click(object sender, RoutedEventArgs e) => AdjustValue(_generalViewModel.UIFontSize, -1, 10, 48, v => _generalViewModel.UIFontSize = v);
-        private void TagFontSizeUp_Click(object sender, RoutedEventArgs e) => AdjustValue(_generalViewModel.TagFontSize, 1, 10, 48, v => _generalViewModel.TagFontSize = v);
-        private void TagFontSizeDown_Click(object sender, RoutedEventArgs e) => AdjustValue(_generalViewModel.TagFontSize, -1, 10, 48, v => _generalViewModel.TagFontSize = v);
-        private void TagBoxWidthUp_Click(object sender, RoutedEventArgs e) => AdjustValue(_generalViewModel.TagBoxWidth, 5, 0, 500, v => _generalViewModel.TagBoxWidth = v);
-        private void TagBoxWidthDown_Click(object sender, RoutedEventArgs e) => AdjustValue(_generalViewModel.TagBoxWidth, -10, 0, 500, v => _generalViewModel.TagBoxWidth = v);
 
         private void NumericTextBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
         {

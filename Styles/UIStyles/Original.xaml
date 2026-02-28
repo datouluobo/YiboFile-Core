@@ -92,7 +92,7 @@
     <!-- ================================================================
          G. 分割器 (5键)
          ================================================================ -->
-    <Visibility x:Key="UI.Splitter.VisibleLine">Visible</Visibility>
+    <Visibility x:Key="UI.Splitter.VisibleLine">Collapsed</Visibility>
     <sys:Double x:Key="UI.Splitter.Width">6</sys:Double>
     <sys:Double x:Key="UI.Splitter.LineThickness">1</sys:Double>
     <Visibility x:Key="UI.Splitter.HoverShowGripDot">Visible</Visibility>

@@ -82,8 +82,8 @@
             <!-- 标题栏背景（包含底部边框） -->
             <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="6"
                 Background="Transparent"
-                BorderBrush="{DynamicResource DividerBrush}"
-                BorderThickness="0,0,0,1"
+                BorderBrush="Transparent"
+                BorderThickness="0"
                 Panel.ZIndex="1000"/>
 
             <!-- ========== 列0：导航侧栏 ========== -->
@@ -125,7 +125,7 @@
                       Style="{StaticResource VerticalCollapsibleGridSplitterStyle}"
                       HorizontalAlignment="Stretch"
                       CollapseMode="Previous"
-                      ShowsPreview="True"
+                      ShowsPreview="False"
                       Panel.ZIndex="2000"
                       IsPreviousCollapsed="{Binding Layout.IsLeftPanelCollapsed, Mode=TwoWay}"/>
 
@@ -135,7 +135,7 @@
                       Style="{StaticResource VerticalCollapsibleGridSplitterStyle}"
                       HorizontalAlignment="Stretch"
                       CollapseMode="Both"
-                      ShowsPreview="True"
+                      ShowsPreview="False"
                       Panel.ZIndex="2000"
                       AutoFillNeighbor="True"
                       IsNextCollapsed="{Binding Layout.IsRightPanelCollapsed, Mode=TwoWay}"/>
@@ -221,6 +221,11 @@
 
             <!-- 右上角窗口控制按钮：移动到 RootGrid 内部以保持 Margin 一致性 -->
 
+
+            <!-- 对齐吸附指示线 -->
+            <Canvas x:Name="GlobalSnapIndicator" Grid.RowSpan="4" Grid.ColumnSpan="6" Visibility="Collapsed" IsHitTestVisible="False" Panel.ZIndex="10000">
+                <Line x:Name="GlobalSnapLine" X1="0" Y1="0" X2="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Canvas}}" Y2="0" Stroke="{DynamicResource AccentBrush}" StrokeThickness="2" StrokeDashArray="4 4" SnapsToDevicePixels="True"/>
+            </Canvas>
 
             <!-- 通知容器: 位于底部中央，覆盖在最上层 -->
             <StackPanel x:Name="NotificationContainer"

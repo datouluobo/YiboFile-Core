@@ -81,8 +81,7 @@ namespace YiboFile.Controls
                 "Path" => new Settings.PathSettingsPanel(),
                 "Library" => new Settings.LibrarySettingsPanel(),
                 "Backup" => new Settings.BackupSettingsPanel(),
-                "Tag" => new Settings.GeneralSettingsPanel(), // Placeholder for Phase 2
-                // "TagTrain" => new Settings.TagTrainSettingsPanel(), // Phase 2
+                "Tag" => new Settings.TagSettingsPanel(),
                 "TagTrain" => new Settings.GeneralSettingsPanel(), // Placeholder
                 "Hotkeys" => new Settings.HotkeySettingsPanel(),
                 _ => new Settings.GeneralSettingsPanel()

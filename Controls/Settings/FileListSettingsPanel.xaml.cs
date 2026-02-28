@@ -48,11 +48,13 @@ namespace YiboFile.Controls.Settings
         {
             try
             {
-                if (Application.Current.MainWindow is MainWindow mainWindow &&
-                    mainWindow.FindName("FileBrowser") is FileBrowserControl fileBrowser &&
-                    fileBrowser.GetFileListControl() is var fileListControl && fileListControl != null)
+                if (System.Windows.Application.Current.MainWindow is System.Windows.Window mainWindow)
                 {
-                    fileListControl.LoadColumnWidths();
+                    var fileLists = FindVisualChildren<YiboFile.Controls.FileListControl>(mainWindow);
+                    foreach (var list in fileLists)
+                    {
+                        list.LoadColumnWidths();
+                    }
                 }
             }
             catch { }
@@ -99,6 +101,26 @@ namespace YiboFile.Controls.Settings
                 }
             }
             this.Focus();
+        }
+
+        private static System.Collections.Generic.IEnumerable<T> FindVisualChildren<T>(DependencyObject parent) where T : DependencyObject
+        {
+            if (parent != null)
+            {
+                for (int i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent); i++)
+                {
+                    DependencyObject child = System.Windows.Media.VisualTreeHelper.GetChild(parent, i);
+                    if (child is T t)
+                    {
+                        yield return t;
+                    }
+
+                    foreach (T childOfChild in FindVisualChildren<T>(child))
+                    {
+                        yield return childOfChild;
+                    }
+                }
+            }
         }
     }
 }

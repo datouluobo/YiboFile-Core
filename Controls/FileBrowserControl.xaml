@@ -247,6 +247,16 @@
 </UserControl.Resources>
     
     <Grid>
+        <Grid.Style>
+            <Style TargetType="Grid">
+                <Setter Property="Background" Value="Transparent"/>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsActive}" Value="False">
+                        <Setter Property="Background" Value="{DynamicResource BackgroundTertiaryBrush}"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </Grid.Style>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>  <!-- Row 0: 地址栏 -->
             <RowDefinition Height="Auto"/>  <!-- Row 1: 工具栏行 -->
@@ -348,16 +358,19 @@
                                  FocusVisualStyle="{x:Null}"/>
         
         <!-- Row 4: 水平分割器（文件列表与信息面板之间） -->
-        <controls:CollapsibleGridSplitter Grid.Row="4" 
+        <controls:CollapsibleGridSplitter Grid.Row="4" x:Name="BottomGridSplitter"
                       Style="{StaticResource HorizontalCollapsibleGridSplitterStyle}"
                       CollapseMode="Both"
                       HorizontalAlignment="Stretch"
                       Panel.ZIndex="999"
                       AutoFillNeighbor="True"
-                      ShowsPreview="True"/>
+                      ShowsPreview="False"
+                      DragStarted="GridSplitter_DragStarted"
+                      DragDelta="GridSplitter_DragDelta"
+                      DragCompleted="GridSplitter_DragCompleted"/>
         
         <!-- Row 5: 右侧信息面板（现在移动到底部作为信息栏） -->
-        <Border Grid.Row="5" Background="{DynamicResource BackgroundPrimaryBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,1,0,0">
+        <Border Grid.Row="5" Background="Transparent" BorderThickness="0">
             <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="8,4">
                 <!-- 文件信息面板 -->
                 <StackPanel x:Name="FileInfoPanel" Margin="4"/>

@@ -22,6 +22,29 @@
             <ComboBox MinHeight="40" Padding="12,0,12,0" VerticalContentAlignment="Center" FontSize="14" HorizontalAlignment="Stretch" Margin="0,0,0,24"
                       ItemsSource="{Binding IconStyles}" DisplayMemberPath="Name" SelectedItem="{Binding SelectedIconStyle, Mode=TwoWay}" />
             
+            <TextBlock Text="全局UI字号：" FontSize="14" FontWeight="Medium" Margin="0,0,0,8" Foreground="{DynamicResource ForegroundPrimaryBrush}" />
+            <Grid Margin="0,0,0,24">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBox MaxLength="3" Text="{Binding UIFontSizeInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="14" Width="60" Height="32" VerticalContentAlignment="Center" TextAlignment="Center" Padding="5,0,5,0" Margin="0,0,8,0" Grid.Column="0">
+                    <TextBox.Style>
+                        <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                            <EventSetter Event="KeyDown" Handler="NumericTextBox_KeyDown" />
+                            <EventSetter Event="LostFocus" Handler="NumericTextBox_LostFocus" />
+                            <EventSetter Event="PreviewTextInput" Handler="NumericTextBox_PreviewTextInput" />
+                        </Style>
+                    </TextBox.Style>
+                </TextBox>
+                <StackPanel Orientation="Vertical" Grid.Column="1" VerticalAlignment="Center">
+                    <Button Content="▲" Width="24" Height="16" FontSize="10" Padding="0" Margin="0,0,0,2" VerticalAlignment="Center" Click="UIFontSizeUp_Click" Style="{DynamicResource ModernButtonStyle}" />
+                    <Button Content="▼" Width="24" Height="16" FontSize="10" Padding="0" VerticalAlignment="Center" Click="UIFontSizeDown_Click" Style="{DynamicResource ModernButtonStyle}" />
+                </StackPanel>
+                <TextBlock Text="控制侧边栏、文件列表、导航等全局非标签元素的常规字体大小" FontSize="12" Foreground="{DynamicResource ForegroundSecondaryBrush}" VerticalAlignment="Center" Margin="16,0,0,0" Grid.Column="2" TextWrapping="Wrap" />
+            </Grid>
+
             <TextBlock Text="UI 方案 (界面风格)：" FontSize="14" FontWeight="Medium" Margin="0,0,0,8" Foreground="{DynamicResource ForegroundPrimaryBrush}" />
             
             <ComboBox MinHeight="40" Padding="12,0,12,0" VerticalContentAlignment="Center" FontSize="14" HorizontalAlignment="Stretch" Margin="0,0,0,24"

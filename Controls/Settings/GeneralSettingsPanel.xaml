@@ -105,52 +105,7 @@
         <CheckBox Content="溢出时显示导航箭头" FontSize="14" MinHeight="32" Margin="20,0,0,4" IsChecked="{Binding ShowOverflowArrows, Mode=TwoWay}" />
         <CheckBox Content="溢出时显示渐变遮罩" FontSize="14" MinHeight="32" Margin="20,0,0,24" IsChecked="{Binding ShowOverflowGradient, Mode=TwoWay}" />
 
-        <!-- ═══════════════════════════════════════════ -->
-        <!--  字体设置 -->
-        <!-- ═══════════════════════════════════════════ -->
-        <TextBlock Text="字体设置" FontSize="18" FontWeight="Bold" Margin="0,24,0,16" />
-        <Grid Margin="0,0,0,12">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <TextBlock Text="字体大小:" FontSize="14" VerticalAlignment="Center" Margin="0,0,12,0" MinWidth="140" MinHeight="32" Grid.Column="0" />
-            <TextBox MaxLength="3" Text="{Binding UIFontSizeInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="14" Width="60" Height="32" VerticalContentAlignment="Center" TextAlignment="Center" Padding="5,0,5,0" Margin="0,0,8,0" Grid.Column="1" />
-            <StackPanel Orientation="Vertical" Grid.Column="2">
-                <Button Content="▲" Width="24" Height="16" FontSize="10" Padding="0" Margin="0,0,0,2" VerticalAlignment="Center" Click="UIFontSizeUp_Click" Style="{DynamicResource ModernButtonStyle}" />
-                <Button Content="▼" Width="24" Height="16" FontSize="10" Padding="0" VerticalAlignment="Center" Click="UIFontSizeDown_Click" Style="{DynamicResource ModernButtonStyle}" />
-            </StackPanel>
-        </Grid>
 
-        <Grid Margin="0,0,0,12">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <TextBlock Text="Tag字号:" FontSize="14" VerticalAlignment="Center" Margin="0,0,12,0" MinWidth="140" MinHeight="32" Grid.Column="0" />
-            <TextBox MaxLength="3" Text="{Binding TagFontSizeInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="14" Width="60" Height="32" VerticalContentAlignment="Center" TextAlignment="Center" Padding="5,0,5,0" Margin="0,0,8,0" Grid.Column="1" />
-            <StackPanel Orientation="Vertical" Grid.Column="2">
-                <Button Content="▲" Width="24" Height="16" FontSize="10" Padding="0" Margin="0,0,0,2" VerticalAlignment="Center" Click="TagFontSizeUp_Click" Style="{DynamicResource ModernButtonStyle}" />
-                <Button Content="▼" Width="24" Height="16" FontSize="10" Padding="0" VerticalAlignment="Center" Click="TagFontSizeDown_Click" Style="{DynamicResource ModernButtonStyle}" />
-            </StackPanel>
-        </Grid>
-
-        <Grid Margin="0,0,0,12">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <TextBlock Text="Tag框宽度:" FontSize="14" VerticalAlignment="Center" Margin="0,0,12,0" MinWidth="140" MinHeight="32" Grid.Column="0" />
-            <TextBox MaxLength="4" Text="{Binding TagBoxWidthInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="14" Width="60" Height="32" VerticalContentAlignment="Center" TextAlignment="Center" Padding="5,0,5,0" Margin="0,0,8,0" Grid.Column="1" />
-            <StackPanel Orientation="Vertical" Grid.Column="2">
-                <Button Content="▲" Width="24" Height="16" FontSize="10" Padding="0" Margin="0,0,0,2" VerticalAlignment="Center" Click="TagBoxWidthUp_Click" Style="{DynamicResource ModernButtonStyle}" />
-                <Button Content="▼" Width="24" Height="16" FontSize="10" Padding="0" VerticalAlignment="Center" Click="TagBoxWidthDown_Click" Style="{DynamicResource ModernButtonStyle}" />
-            </StackPanel>
-        </Grid>
-        <TextBlock Text="（0表示自动计算，>0表示固定宽度，范围：0-500）" FontSize="12" Margin="152,-8,0,0" Foreground="{DynamicResource ForegroundSecondaryBrush}" />
 
         <!-- ═══════════════════════════════════════════ -->
         <!--  路径设置 -->

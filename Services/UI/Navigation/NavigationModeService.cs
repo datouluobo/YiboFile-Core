@@ -114,52 +114,8 @@ namespace YiboFile.Services.Navigation
         /// </summary>
         private void UpdateNavigationButtonStyles(string activeMode)
         {
-            if (_uiHelper.Dispatcher == null) return;
-
-            _uiHelper.Dispatcher.BeginInvoke(new Action(() =>
-            {
-                // 获取样式资源
-                var activeStyle = Application.Current.TryFindResource("ActiveNavigationButtonStyle") as System.Windows.Style;
-                var normalStyle = Application.Current.TryFindResource("FramelessNavButtonStyle") as System.Windows.Style;
-
-                // 重置所有按钮为普通样式
-                if (_uiHelper.NavPathButton != null && normalStyle != null)
-                {
-                    _uiHelper.NavPathButton.Style = normalStyle;
-                }
-                if (_uiHelper.NavLibraryButton != null && normalStyle != null)
-                {
-                    _uiHelper.NavLibraryButton.Style = normalStyle;
-                }
-                if (_uiHelper.NavTagButton != null && normalStyle != null)
-                {
-                    _uiHelper.NavTagButton.Style = normalStyle;
-                }
-
-                // 设置当前模式的按钮为橙色样式
-                switch (activeMode)
-                {
-                    case "Path":
-                        if (_uiHelper.NavPathButton != null && activeStyle != null)
-                        {
-                            _uiHelper.NavPathButton.Style = activeStyle;
-                        }
-                        break;
-                    case "Library":
-                        if (_uiHelper.NavLibraryButton != null && activeStyle != null)
-                        {
-                            _uiHelper.NavLibraryButton.Style = activeStyle;
-                        }
-                        break;
-                    case "Tag":
-                        if (_uiHelper.NavTagButton != null && activeStyle != null)
-                        {
-                            _uiHelper.NavTagButton.Style = activeStyle;
-                        }
-                        break;
-
-                }
-            }), System.Windows.Threading.DispatcherPriority.Normal);
+            // The styles are now completely driven by DataBindings in NavigationRailControl.xaml
+            // through NavigationRailViewModel's NavigationRailItems' IsActive property.
         }
 
         /// <summary>

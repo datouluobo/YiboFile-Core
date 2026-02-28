@@ -35,10 +35,34 @@ namespace YiboFile.ViewModels.Settings
             var config = _configService.GetSnapshot();
             _windowOpacity = config.WindowOpacity > 0 ? config.WindowOpacity : 1.0;
             _enableAnimations = config.AnimationsEnabled;
+            _uiFontSize = config.UIFontSize > 0 ? config.UIFontSize : 16;
 
             InitializeThemes(config);
             InitializeIconStyles(config);
             InitializeUIStyles(config);
+        }
+
+        private double _uiFontSize;
+        private string _uiFontSizeInput;
+        public double UIFontSize
+        {
+            get => _uiFontSize;
+            set
+            {
+                value = Math.Clamp(value, 10, 48);
+                bool changed = SetProperty(ref _uiFontSize, value);
+                {
+                    _uiFontSizeInput = null;
+                    OnPropertyChanged(nameof(UIFontSizeInput));
+                    if (changed) _configService?.Update(c => c.UIFontSize = value);
+                }
+            }
+        }
+
+        public string UIFontSizeInput
+        {
+            get => _uiFontSizeInput ?? _uiFontSize.ToString();
+            set => SetProtectedNumber(ref _uiFontSizeInput, ref _uiFontSize, value, 10, 48, v => UIFontSize = v);
         }
 
         private double _windowOpacity;

@@ -7,9 +7,9 @@
              xmlns:helpers="clr-namespace:YiboFile.Helpers"
              mc:Ignorable="d" 
              d:DesignHeight="600" d:DesignWidth="60"
-             Background="{DynamicResource BackgroundSecondaryBrush}"
+             Background="{DynamicResource SidebarBackgroundBrush}"
              BorderBrush="{DynamicResource BorderSubtleBrush}"
-             BorderThickness="0,0,1,0">
+             BorderThickness="0">
 
     <UserControl.Resources>
         <ResourceDictionary>
@@ -18,9 +18,9 @@
             
             <!-- Rail Button Style -->
             <Style x:Key="RailButtonStyle" TargetType="Button">
-            <Setter Property="Height" Value="48"/>
-            <Setter Property="Width" Value="48"/>
-            <Setter Property="Margin" Value="0,4"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="Width" Value="40"/>
+            <Setter Property="Margin" Value="0,2"/>
             <Setter Property="Padding" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Background" Value="Transparent"/>
@@ -41,10 +41,10 @@
                                 <Setter Property="Background" Value="{DynamicResource ButtonHoverBackgroundBrush}"/>
                                 <Setter Property="Foreground" Value="{DynamicResource ForegroundPrimaryBrush}"/>
                             </Trigger>
-                            <Trigger Property="Tag" Value="Active">
-                                <Setter Property="Background" Value="{DynamicResource BackgroundSecondaryBrush}"/>
+                            <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource ButtonHoverBackgroundBrush}"/>
                                 <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
-                            </Trigger>
+                            </DataTrigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
@@ -53,7 +53,7 @@
     </ResourceDictionary>
 </UserControl.Resources>
 
-    <Grid>
+    <Grid AllowDrop="True" Drop="Spacer_Drop" Tag="BottomSpacer">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/> <!-- Top: Navigation -->
             <RowDefinition Height="*"/>    <!-- Middle: Tools (Spacer) -->
@@ -61,114 +61,45 @@
         </Grid.RowDefinitions>
 
         <!-- Top Section: Navigation Modes -->
-        <StackPanel Grid.Row="0" Margin="0,12,0,0">
-            <!-- Path Nav -->
-            <Button x:Name="PathButton" Command="{Binding NavigateToPathCommand}" 
-                    Tag="{Binding ActiveNavigationMode, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Path}"
-                    Style="{StaticResource RailButtonStyle}"
-                    ToolTip="文件路径">
-                <Image Source="{DynamicResource Icon_Nav_Path}" Width="20" Height="20" RenderOptions.BitmapScalingMode="HighQuality"/>
-            </Button>
-            
-            <!-- Library Nav -->
-            <Button x:Name="LibraryButton" Command="{Binding NavigateToLibraryCommand}" 
-                    Tag="{Binding ActiveNavigationMode, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Library}"
-                    Style="{StaticResource RailButtonStyle}"
-                    ToolTip="库">
-                <Image Source="{DynamicResource Icon_Nav_Library}" Width="20" Height="20" RenderOptions.BitmapScalingMode="HighQuality"/>
-            </Button>
-            
-            <!-- Tag Nav -->
-            <Button x:Name="TagButton" Command="{Binding NavigateToTagCommand}" 
-                    Tag="{Binding ActiveNavigationMode, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Tag}"
-                    Style="{StaticResource RailButtonStyle}"
-                    ToolTip="标签"
-                    Visibility="{Binding IsTagFeatureAvailable, Converter={StaticResource BooleanToVisibilityConverter}}">
-                <Image Source="{DynamicResource Icon_Nav_Tag}" Width="20" Height="20" RenderOptions.BitmapScalingMode="HighQuality"/>
-            </Button>
-            
-            <Separator Height="1" Margin="12,8" Background="{DynamicResource BorderSubtleBrush}" Opacity="0.5"/>
+        <ItemsControl Grid.Row="0" Margin="0,12,0,0" ItemsSource="{Binding TopItems}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Button Command="{Binding Command}"
+                            Style="{StaticResource RailButtonStyle}"
+                            ToolTip="{Binding ToolTip}"
+                            Visibility="{Binding IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
+                            AllowDrop="True"
+                            PreviewMouseLeftButtonDown="RailItem_PreviewMouseLeftButtonDown"
+                            PreviewMouseMove="RailItem_PreviewMouseMove"
+                            Drop="RailItem_Drop"
+                            DragOver="RailItem_DragOver">
+                        <Image helpers:IconHelper.IconKey="{Binding IconKey}" Width="20" Height="20" RenderOptions.BitmapScalingMode="HighQuality"/>
+                    </Button>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
 
-            <!-- Tools: Task Queue -->
-            <Button x:Name="TasksButton" Command="{Binding NavigateToTasksCommand}"
-                    Tag="{Binding ActiveNavigationMode, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Tasks}"
-                    Style="{StaticResource RailButtonStyle}"
-                    ToolTip="任务队列">
-                <Grid>
-                    <Image Source="{DynamicResource Icon_Window_Tasks}" Width="18" Height="18" RenderOptions.BitmapScalingMode="HighQuality"/>
-                    <!-- Badge for active tasks (Optional, can impl later) -->
-                </Grid>
-            </Button>
-
-            <!-- Tools: Backup -->
-            <Button x:Name="BackupButton" Command="{Binding NavigateToBackupCommand}"
-                    Tag="{Binding ActiveNavigationMode, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Backup}"
-                    Style="{StaticResource RailButtonStyle}"
-                    ToolTip="备份管理器">
-                 <Image Source="{DynamicResource Icon_Backup}" Width="18" Height="18" RenderOptions.BitmapScalingMode="HighQuality"/> 
-            </Button>
-            
-            <!-- Tools: Clipboard -->
-            <Button x:Name="ClipboardButton" Command="{Binding NavigateToClipboardCommand}"
-                    Tag="{Binding ActiveNavigationMode, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Clipboard}"
-                    Style="{StaticResource RailButtonStyle}"
-                    ToolTip="剪贴板历史">
-                <Image Source="{DynamicResource Icon_Clipboard}" Width="18" Height="18" RenderOptions.BitmapScalingMode="HighQuality"/>
-            </Button>
-        </StackPanel>
+        <!-- Spacer region for dropping to Top vs Bottom if we drop in the middle -->
+        <Border Grid.Row="1" Background="Transparent" AllowDrop="True" Drop="Spacer_Drop" Tag="TopSpacer"/>
 
         <!-- Bottom Section: Global Settings & Layout -->
-        <StackPanel Grid.Row="2" Margin="0,0,0,12">
-            <!-- Focus Mode -->
-            <Button x:Name="FocusModeButton" Command="{Binding SetLayoutFocusCommand}"
-                    Tag="{Binding ActiveLayoutMode, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Focus}"
-                    Style="{StaticResource RailButtonStyle}"
-                    ToolTip="专注模式 (Ctrl+Shift+F)">
-                <Image Source="{DynamicResource Icon_Layout_Focus}" Width="18" Height="18" RenderOptions.BitmapScalingMode="HighQuality"/>
-            </Button>
-            
-            <!-- Work Mode -->
-            <Button x:Name="WorkModeButton" Command="{Binding SetLayoutWorkCommand}"
-                    Tag="{Binding ActiveLayoutMode, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Work}"
-                    Style="{StaticResource RailButtonStyle}"
-                    ToolTip="工作模式 (Ctrl+Shift+W)">
-                <Image Source="{DynamicResource Icon_Layout_Work}" Width="18" Height="18" RenderOptions.BitmapScalingMode="HighQuality"/>
-            </Button>
-
-            <!-- Full Mode -->
-            <Button x:Name="FullModeButton" Command="{Binding SetLayoutFullCommand}"
-                    Tag="{Binding ActiveLayoutMode, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Full}"
-                    Style="{StaticResource RailButtonStyle}"
-                    ToolTip="完整模式 (Ctrl+Shift+A)">
-                <Image Source="{DynamicResource Icon_Layout_Full}" Width="18" Height="18" RenderOptions.BitmapScalingMode="HighQuality"/>
-            </Button>
-
-            <Separator Height="1" Margin="12,4" Background="{DynamicResource BorderSubtleBrush}" Opacity="0.5"/>
-
-            <!-- Dual List Toggle -->
-            <Button x:Name="DualListButton" Command="{Binding ToggleDualListCommand}"
-                    Tag="{Binding IsDualListMode, Converter={StaticResource StringEqualsConverter}, ConverterParameter=True}"
-                    Style="{StaticResource RailButtonStyle}"
-                    ToolTip="双列表模式">
-                <Image Source="{DynamicResource Icon_DualList}" Width="18" Height="18" RenderOptions.BitmapScalingMode="HighQuality"/>
-            </Button>
-
-            <Separator Height="1" Margin="12,4" Background="{DynamicResource BorderSubtleBrush}" Opacity="0.5"/>
-
-            <!-- Settings -->
-            <Button x:Name="SettingsButton" Command="{Binding OpenSettingsCommand}"
-                    Style="{StaticResource RailButtonStyle}"
-                    ToolTip="设置">
-                <Image Source="{DynamicResource Icon_Window_Settings}" Width="20" Height="20" RenderOptions.BitmapScalingMode="HighQuality"/>
-            </Button>
-            
-            <!-- About -->
-            <Button x:Name="AboutButton" Command="{Binding OpenAboutCommand}"
-                    Style="{StaticResource RailButtonStyle}"
-                    ToolTip="关于">
-                <Image Source="{DynamicResource Icon_Window_About}" Width="20" Height="20" RenderOptions.BitmapScalingMode="HighQuality"/>
-            </Button>
-        </StackPanel>
+        <ItemsControl Grid.Row="2" Margin="0,0,0,12" ItemsSource="{Binding BottomItems}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Button Command="{Binding Command}"
+                            Style="{StaticResource RailButtonStyle}"
+                            ToolTip="{Binding ToolTip}"
+                            Visibility="{Binding IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
+                            AllowDrop="True"
+                            PreviewMouseLeftButtonDown="RailItem_PreviewMouseLeftButtonDown"
+                            PreviewMouseMove="RailItem_PreviewMouseMove"
+                            Drop="RailItem_Drop"
+                            DragOver="RailItem_DragOver">
+                        <Image helpers:IconHelper.IconKey="{Binding IconKey}" Width="20" Height="20" RenderOptions.BitmapScalingMode="HighQuality"/>
+                    </Button>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
     </Grid>
 </UserControl>
 

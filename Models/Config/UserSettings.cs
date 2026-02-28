@@ -83,6 +83,9 @@ namespace YiboFile.Models.Config
             "Libraries",
             "Tags"
         };
+        
+        public List<string> RailTopItems { get; set; } = new List<string> { "Path", "Library", "Tag", "Tasks", "Backup", "Clipboard" };
+        public List<string> RailBottomItems { get; set; } = new List<string> { "Focus", "Work", "Full", "DualList", "Settings", "About" };
     }
 
     public class BackupSettings

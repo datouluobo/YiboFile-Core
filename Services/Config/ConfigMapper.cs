@@ -60,6 +60,8 @@ namespace YiboFile.Services.Config
 
             // Navigation
             settings.Navigation.SectionsOrder = new List<string>(source.NavigationSectionsOrder ?? new List<string>());
+            settings.Navigation.RailTopItems = new List<string>(source.RailTopItems ?? new List<string>());
+            settings.Navigation.RailBottomItems = new List<string>(source.RailBottomItems ?? new List<string>());
 
             // Backup
             settings.Backup.BackupDirectory = source.BackupDirectory;
@@ -166,6 +168,8 @@ namespace YiboFile.Services.Config
 
             config.CustomHotkeys = new Dictionary<string, string>(settings.Hotkeys.CustomHotkeys);
             config.NavigationSectionsOrder = new List<string>(settings.Navigation.SectionsOrder);
+            config.RailTopItems = new List<string>(settings.Navigation.RailTopItems);
+            config.RailBottomItems = new List<string>(settings.Navigation.RailBottomItems);
 
             config.BackupDirectory = settings.Backup.BackupDirectory;
             config.BackupRetentionDays = settings.Backup.RetentionDays;

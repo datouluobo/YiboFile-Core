@@ -1,5 +1,6 @@
 using System;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Controls;
 using YiboFile.Controllers;
 using YiboFile.ViewModels;
@@ -110,6 +111,104 @@ namespace YiboFile.Controls
         public void SetLayoutMode(string mode)
         {
             _coordinator?.SetLayoutMode(mode);
+        }
+
+        // --- Drag and Drop Logic ---
+        
+        private Point _dragStartPoint;
+
+        private void RailItem_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            _dragStartPoint = e.GetPosition(null);
+        }
+
+        private void RailItem_PreviewMouseMove(object sender, MouseEventArgs e)
+        {
+            if (e.LeftButton == MouseButtonState.Pressed)
+            {
+                Point mousePos = e.GetPosition(null);
+                Vector diff = _dragStartPoint - mousePos;
+
+                if (Math.Abs(diff.X) > SystemParameters.MinimumHorizontalDragDistance ||
+                    Math.Abs(diff.Y) > SystemParameters.MinimumVerticalDragDistance)
+                {
+                    if (sender is Button button && button.DataContext is NavigationRailItem railItem)
+                    {
+                        DragDrop.DoDragDrop(button, railItem, DragDropEffects.Move);
+                    }
+                }
+            }
+        }
+
+        private void RailItem_DragOver(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(typeof(NavigationRailItem)))
+            {
+                e.Effects = DragDropEffects.Move;
+                e.Handled = true;
+            }
+        }
+
+        private void RailItem_Drop(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(typeof(NavigationRailItem)))
+            {
+                var droppedItem = e.Data.GetData(typeof(NavigationRailItem)) as NavigationRailItem;
+                if (sender is Button targetButton && targetButton.DataContext is NavigationRailItem targetItem)
+                {
+                    if (droppedItem != targetItem && ViewModel != null)
+                    {
+                        bool insertAfter = e.GetPosition(targetButton).Y > targetButton.ActualHeight / 2;
+
+                        if (ViewModel.TopItems.Contains(droppedItem)) ViewModel.TopItems.Remove(droppedItem);
+                        if (ViewModel.BottomItems.Contains(droppedItem)) ViewModel.BottomItems.Remove(droppedItem);
+
+                        if (ViewModel.TopItems.Contains(targetItem))
+                        {
+                            int index = ViewModel.TopItems.IndexOf(targetItem);
+                            if (insertAfter) index++;
+                            ViewModel.TopItems.Insert(index, droppedItem);
+                        }
+                        else if (ViewModel.BottomItems.Contains(targetItem))
+                        {
+                            int index = ViewModel.BottomItems.IndexOf(targetItem);
+                            if (insertAfter) index++;
+                            ViewModel.BottomItems.Insert(index, droppedItem);
+                        }
+                        
+                        ViewModel.SaveSettings();
+                    }
+                }
+                e.Handled = true;
+            }
+        }
+
+        private void Spacer_Drop(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(typeof(NavigationRailItem)))
+            {
+                var droppedItem = e.Data.GetData(typeof(NavigationRailItem)) as NavigationRailItem;
+                if (ViewModel != null && droppedItem != null)
+                {
+                    if (ViewModel.TopItems.Contains(droppedItem)) ViewModel.TopItems.Remove(droppedItem);
+                    if (ViewModel.BottomItems.Contains(droppedItem)) ViewModel.BottomItems.Remove(droppedItem);
+
+                    double dropY = e.GetPosition(this).Y;
+                    double middleY = this.ActualHeight / 2;
+
+                    if (dropY < middleY)
+                    {
+                        ViewModel.TopItems.Add(droppedItem);
+                    }
+                    else
+                    {
+                        ViewModel.BottomItems.Insert(0, droppedItem);
+                    }
+
+                    ViewModel.SaveSettings();
+                }
+                e.Handled = true;
+            }
         }
     }
 }

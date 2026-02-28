@@ -125,63 +125,87 @@
          ================================================================ -->
     <DataTemplate x:Key="PathTabDataTemplate" DataType="{x:Type tabs:PathTab}">
         <Button x:Name="TabButton" Style="{StaticResource TabButtonStyle}" Width="{Binding TargetWidth}" Command="{Binding SelectCommand}" ToolTip="{Binding Title}" controls:TabManagerControl.IsActiveNotifier="{Binding IsActive}" shell:WindowChrome.IsHitTestVisibleInChrome="True">
+            <Button.InputBindings>
+                <MouseBinding MouseAction="MiddleClick" Command="{Binding CloseCommand}" />
+            </Button.InputBindings>
             <Button.ContextMenu>
                 <ContextMenu>
                     <MenuItem Header="关闭标签页" Command="{Binding CloseCommand}" />
                     <MenuItem Header="固定此标签页" Command="{Binding CloseCommand}" IsEnabled="False" />
                 </ContextMenu>
             </Button.ContextMenu>
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0">
+            <Grid Margin="8,0" HorizontalAlignment="Stretch">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                
                 <!-- Icon -->
-                <TextBlock x:Name="IconText" Text="📁" FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0.7" IsHitTestVisible="False" 
+                <TextBlock Grid.Column="0" x:Name="IconText" Text="📁" FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0.7" IsHitTestVisible="False" 
                            Visibility="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Button}, Converter={StaticResource WidthToVisibilityConverter}, ConverterParameter=80}" />
                 
                 <!-- Title -->
-                <TextBlock Text="{Binding Title}" VerticalAlignment="Center" MaxWidth="150" TextTrimming="CharacterEllipsis" IsHitTestVisible="False" />
+                <TextBlock Grid.Column="1" Text="{Binding Title}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" IsHitTestVisible="False" />
                 
                 <!-- Close Button (默认隐藏，活动标签或悬停时显示) -->
-                <Button x:Name="PART_CloseButton" Width="18" Height="18" Margin="6,0,0,0" Padding="0" 
+                <Button Grid.Column="2" x:Name="PART_CloseButton" Width="18" Height="18" Margin="6,0,0,0" Padding="0" 
                         VerticalAlignment="Center" HorizontalAlignment="Right" 
                         Foreground="{DynamicResource ForegroundPrimaryBrush}" 
                         Command="{Binding CloseCommand}" 
-                        shell:WindowChrome.IsHitTestVisibleInChrome="True" 
-                        Visibility="Collapsed" Opacity="0" Cursor="Hand">
-                    <Button.Template>
-                        <ControlTemplate TargetType="Button">
-                            <Border x:Name="border" Background="Transparent" CornerRadius="{DynamicResource UI.Button.CornerRadius}">
-                                <Image helpers:IconHelper.IconKey="Icon_Close" 
-                                       Width="10" Height="10" Stretch="Uniform"
-                                       HorizontalAlignment="Center" VerticalAlignment="Center"
-                                       RenderOptions.BitmapScalingMode="HighQuality"/>
-                            </Border>
-                            <ControlTemplate.Triggers>
+                        shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                        Cursor="Hand">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Setter Property="Opacity" Value="0.6" />
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="border" Background="Transparent" CornerRadius="4">
+                                            <Path x:Name="iconPath" Data="M 0,0 L 8,8 M 8,0 L 0,8" 
+                                                  Stroke="{TemplateBinding Foreground}" 
+                                                  StrokeThickness="1.2"
+                                                  HorizontalAlignment="Center" 
+                                                  VerticalAlignment="Center"
+                                                  Stretch="None" 
+                                                  Opacity="0.7"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <!-- Windows 标准轻量化强调红 -->
+                                                <Setter TargetName="border" Property="Background" Value="#FFE2E2"/>
+                                                <Setter TargetName="iconPath" Property="Stroke" Value="#E81123"/>
+                                                <Setter TargetName="iconPath" Property="Opacity" Value="1.0"/>
+                                            </Trigger>
+                                            <Trigger Property="IsPressed" Value="True">
+                                                <Setter TargetName="border" Property="Background" Value="#FFC6C6"/>
+                                                <Setter TargetName="iconPath" Property="Stroke" Value="#E81123"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                            <Style.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlHoverBrush}"/>
-                                    <Setter Property="Opacity" Value="1.0"/>
+                                    <Setter Property="Opacity" Value="1.0" />
                                 </Trigger>
-                                <Trigger Property="IsPressed" Value="True">
-                                    <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlPressedBrush}"/>
-                                </Trigger>
-                            </ControlTemplate.Triggers>
-                        </ControlTemplate>
-                    </Button.Template>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
                 </Button>
-            </StackPanel>
+            </Grid>
         </Button>
         <DataTemplate.Triggers>
             <!-- 激活状态样式 -->
             <DataTrigger Binding="{Binding IsActive}" Value="True">
                 <Setter TargetName="TabButton" Property="Style" Value="{StaticResource ActiveTabButtonStyle}" />
                 <Setter TargetName="IconText" Property="Opacity" Value="1.0" />
-                <!-- 活动标签始终显示关闭按钮 -->
-                <Setter TargetName="PART_CloseButton" Property="Visibility" Value="Visible" />
-                <Setter TargetName="PART_CloseButton" Property="Opacity" Value="0.6" />
             </DataTrigger>
             
             <!-- 悬停时显示关闭按钮（非活动标签） -->
             <Trigger SourceName="TabButton" Property="IsMouseOver" Value="True">
                 <Setter TargetName="PART_CloseButton" Property="Visibility" Value="Visible" />
-                <Setter TargetName="PART_CloseButton" Property="Opacity" Value="0.6" />
             </Trigger>
             
             <!-- 动态图标逻辑 -->

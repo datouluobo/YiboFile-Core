@@ -274,12 +274,12 @@
     </UserControl.Resources>
     <Grid>
         <!-- 文件列表 -->
-        <Border Background="{DynamicResource BackgroundPrimaryBrush}">
+        <Border Background="Transparent">
             <Grid>
                 <!-- 普通列表视图 -->
                 <ListView x:Name="FilesListView" 
                       SelectionMode="Extended"
-                      Background="{DynamicResource BackgroundPrimaryBrush}"
+                      Background="Transparent"
                       BorderThickness="0"
                       FocusVisualStyle="{x:Null}"
                       VirtualizingPanel.IsVirtualizing="True"

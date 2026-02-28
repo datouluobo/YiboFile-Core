@@ -11,6 +11,8 @@ namespace YiboFile.ViewModels.Settings
 {
     public class TagSettingsViewModel : BaseViewModel
     {
+        private readonly YiboFile.Services.Config.IConfigurationService _configService;
+
         private ObservableCollection<TagGroupManageViewModel> _tagGroups;
         public ObservableCollection<TagGroupManageViewModel> TagGroups
         {
@@ -41,8 +43,9 @@ namespace YiboFile.ViewModels.Settings
         public event EventHandler<TagItemManageViewModel> RenameTagRequested;
         public event EventHandler<TagItemManageViewModel> UpdateTagColorRequested;
 
-        public TagSettingsViewModel()
+        public TagSettingsViewModel(YiboFile.Services.Config.IConfigurationService configService = null)
         {
+            _configService = configService ?? App.ServiceProvider?.GetService<YiboFile.Services.Config.IConfigurationService>();
             _messageBus = App.ServiceProvider?.GetService<IMessageBus>();
             RefreshTagGroupsCommand = new RelayCommand(RefreshTagGroups);
             AddTagGroupCommand = new RelayCommand(AddTagGroup);
@@ -54,6 +57,62 @@ namespace YiboFile.ViewModels.Settings
             UpdateTagColorCommand = new RelayCommand<TagItemManageViewModel>(t => UpdateTagColorRequested?.Invoke(this, t));
 
             InitializeTagManagement();
+            LoadFromConfig();
+        }
+
+        public void LoadFromConfig()
+        {
+            if (_configService == null) return;
+            var config = _configService.GetSnapshot();
+            _tagFontSize = config.TagFontSize > 0 ? config.TagFontSize : 16;
+            _tagBoxWidth = config.TagBoxWidth;
+        }
+
+
+        private double _tagFontSize;
+        private string _tagFontSizeInput;
+        public double TagFontSize
+        {
+            get => _tagFontSize;
+            set
+            {
+                value = Math.Clamp(value, 10, 48);
+                bool changed = SetProperty(ref _tagFontSize, value);
+                {
+                    _tagFontSizeInput = null;
+                    if (changed) _configService?.Update(c => c.TagFontSize = value);
+                    OnPropertyChanged(nameof(TagFontSizeInput));
+                }
+            }
+        }
+
+        public string TagFontSizeInput
+        {
+            get => _tagFontSizeInput ?? _tagFontSize.ToString();
+            set => SetProtectedNumber(ref _tagFontSizeInput, ref _tagFontSize, value, 10, 48, v => TagFontSize = v);
+        }
+
+        private double _tagBoxWidth;
+        private string _tagBoxWidthInput;
+        public double TagBoxWidth
+        {
+            get => _tagBoxWidth;
+            set
+            {
+                value = Math.Clamp(value, 0, 500);
+                bool changed = SetProperty(ref _tagBoxWidth, value);
+                {
+                    _tagBoxWidthInput = null;
+                    if (changed) _configService?.Update(c => c.TagBoxWidth = value);
+                    OnPropertyChanged(nameof(TagBoxWidthInput));
+                }
+            }
+        }
+
+        public string TagBoxWidthInput
+        {
+            get => _tagBoxWidthInput ?? _tagBoxWidth.ToString();
+            set => SetProtectedNumber(ref _tagBoxWidthInput, ref _tagBoxWidth, value, 0, 500, v => TagBoxWidth = v);
         }
 
         ~TagSettingsViewModel()

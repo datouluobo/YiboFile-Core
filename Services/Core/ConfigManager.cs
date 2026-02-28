@@ -173,6 +173,10 @@ namespace YiboFile
             "Libraries",
             "Tags"
         };
+        
+        // 侧边栏按钮排序
+        public System.Collections.Generic.List<string> RailTopItems { get; set; } = new System.Collections.Generic.List<string>();
+        public System.Collections.Generic.List<string> RailBottomItems { get; set; } = new System.Collections.Generic.List<string>();
 
         // 侧边栏折叠状态持久化
         public System.Collections.Generic.Dictionary<string, bool> SidebarExpanderStates { get; set; } = new System.Collections.Generic.Dictionary<string, bool>();

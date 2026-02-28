@@ -39,9 +39,6 @@ namespace YiboFile.ViewModels.Settings
             _showOverflowArrows = config.ShowOverflowArrows;
             _showOverflowGradient = config.ShowOverflowGradient;
 
-            _uiFontSize = config.UIFontSize > 0 ? config.UIFontSize : 16;
-            _tagFontSize = config.TagFontSize > 0 ? config.TagFontSize : 16;
-            _tagBoxWidth = config.TagBoxWidth;
             _baseDirectory = _pathProvider?.BaseDirectory ?? ConfigManager.GetBaseDirectory();
         }
 
@@ -219,79 +216,6 @@ namespace YiboFile.ViewModels.Settings
                 if (SetProperty(ref _showOverflowGradient, value))
                     _configService.Update(c => c.ShowOverflowGradient = value);
             }
-        }
-
-        // ═══════════════════════════════════════════
-        //  字体设置
-        // ═══════════════════════════════════════════
-
-        private double _uiFontSize;
-        private string _uiFontSizeInput;
-        public double UIFontSize
-        {
-            get => _uiFontSize;
-            set
-            {
-                value = Math.Clamp(value, 10, 48);
-                bool changed = SetProperty(ref _uiFontSize, value);
-                {
-                    _uiFontSizeInput = null;
-                    OnPropertyChanged(nameof(UIFontSizeInput));
-                    if (changed) _configService.Update(c => c.UIFontSize = value);
-                }
-            }
-        }
-
-        public string UIFontSizeInput
-        {
-            get => _uiFontSizeInput ?? _uiFontSize.ToString();
-            set => SetProtectedNumber(ref _uiFontSizeInput, ref _uiFontSize, value, 10, 48, v => UIFontSize = v);
-        }
-
-        private double _tagFontSize;
-        private string _tagFontSizeInput;
-        public double TagFontSize
-        {
-            get => _tagFontSize;
-            set
-            {
-                value = Math.Clamp(value, 10, 48);
-                bool changed = SetProperty(ref _tagFontSize, value);
-                {
-                    _tagFontSizeInput = null;
-                    OnPropertyChanged(nameof(TagFontSizeInput));
-                    if (changed) _configService.Update(c => c.TagFontSize = value);
-                }
-            }
-        }
-
-        public string TagFontSizeInput
-        {
-            get => _tagFontSizeInput ?? _tagFontSize.ToString();
-            set => SetProtectedNumber(ref _tagFontSizeInput, ref _tagFontSize, value, 10, 48, v => TagFontSize = v);
-        }
-
-        private double _tagBoxWidth;
-        private string _tagBoxWidthInput;
-        public double TagBoxWidth
-        {
-            get => _tagBoxWidth;
-            set
-            {
-                value = Math.Clamp(value, 0, 500);
-                bool changed = SetProperty(ref _tagBoxWidth, value);
-                {
-                    _tagBoxWidthInput = null;
-                    OnPropertyChanged(nameof(TagBoxWidthInput));
-                    if (changed) _configService.Update(c => c.TagBoxWidth = value);
-                }
-            }
-        }
-
-        public string TagBoxWidthInput
-        {
-            get => _tagBoxWidthInput ?? _tagBoxWidth.ToString();
-            set => SetProtectedNumber(ref _tagBoxWidthInput, ref _tagBoxWidth, value, 0, 500, v => TagBoxWidth = v);
         }
 
         // ═══════════════════════════════════════════

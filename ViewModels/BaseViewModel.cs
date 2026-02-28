@@ -65,14 +65,6 @@ namespace YiboFile.ViewModels
                 {
                     onSuccessPropertyUpdate?.Invoke(safeValue);
                 }
-                else if (parsedValue < min && inputString.Length > 0 && 
-                         !inputString.StartsWith("-") && 
-                         inputString.Length >= min.ToString().Length)
-                {
-                    // Force refresh UI if they typed enough digits but it's still too small
-                    // This fixes the "blocked" feel when typing a number smaller than min
-                    onSuccessPropertyUpdate?.Invoke(safeValue);
-                }
             }
             return true;
         }
@@ -100,12 +92,6 @@ namespace YiboFile.ViewModels
                     onSuccessPropertyUpdate?.Invoke(safeValue);
                 }
                 else if (parsedValue > Math.Max(min, max))
-                {
-                    onSuccessPropertyUpdate?.Invoke(safeValue);
-                }
-                else if (parsedValue < min && inputString.Length > 0 && 
-                         !inputString.StartsWith("-") && 
-                         inputString.Length >= min.ToString().Length)
                 {
                     onSuccessPropertyUpdate?.Invoke(safeValue);
                 }

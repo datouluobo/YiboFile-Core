@@ -16,7 +16,7 @@
                         <!-- Hit area -->
                         <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" />
                         <!-- Visual line -->
-                        <Border x:Name="HoverVisual" Background="{DynamicResource BackgroundSecondaryBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="1" Margin="0" Opacity="0">
+                        <Border x:Name="HoverVisual" Background="{DynamicResource ControlHoverBrush}" BorderBrush="{DynamicResource ControlHoverBrush}" BorderThickness="1" Margin="0" Opacity="0">
                             <Grid>
                                 <Rectangle Fill="{DynamicResource DividerBrush}" Width="{DynamicResource UI.Splitter.LineThickness}" HorizontalAlignment="Center" VerticalAlignment="Stretch" />
                                 <Rectangle Fill="{DynamicResource DividerBrush}" Height="{DynamicResource UI.Splitter.LineThickness}" HorizontalAlignment="Stretch" VerticalAlignment="Center" />
@@ -66,7 +66,7 @@
                 <ControlTemplate TargetType="GridSplitter">
                     <Grid>
                         <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" />
-                        <Border x:Name="HoverVisual" Background="{DynamicResource BackgroundSecondaryBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="1,0,1,0" Margin="0" Opacity="0">
+                        <Border x:Name="HoverVisual" Background="{DynamicResource ControlHoverBrush}" BorderBrush="{DynamicResource ControlHoverBrush}" BorderThickness="0,1,0,1" Margin="0" Opacity="0">
                             <Rectangle Fill="{DynamicResource DividerBrush}" Height="{DynamicResource UI.Splitter.LineThickness}" HorizontalAlignment="Stretch" VerticalAlignment="Center" />
                         </Border>
                     </Grid>
@@ -223,7 +223,7 @@
                             <!-- Show buttons fully -->
                             <Setter TargetName="PART_ButtonContainer" Property="Opacity" Value="1.0" />
                             <!-- Show background and borders on the entire splitter area -->
-                            <Setter Property="Background" Value="{DynamicResource BackgroundTertiaryBrush}" />
+                            <Setter Property="Background" Value="{DynamicResource ControlHoverBrush}" />
                         </Trigger>
                         
                         <!-- Vertical splitter hover: show left and right borders -->
@@ -232,7 +232,7 @@
                                 <Condition Property="IsMouseOver" Value="True" />
                                 <Condition Property="Orientation" Value="Vertical" />
                             </MultiTrigger.Conditions>
-                            <Setter Property="BorderBrush" Value="{DynamicResource BorderDefaultBrush}" />
+                            <Setter Property="BorderBrush" Value="{DynamicResource AccentSelectedBrush}" />
                             <Setter Property="BorderThickness" Value="1,0,1,0" />
                         </MultiTrigger>
                         
@@ -242,7 +242,7 @@
                                 <Condition Property="IsMouseOver" Value="True" />
                                 <Condition Property="Orientation" Value="Horizontal" />
                             </MultiTrigger.Conditions>
-                            <Setter Property="BorderBrush" Value="{DynamicResource BorderDefaultBrush}" />
+                            <Setter Property="BorderBrush" Value="{DynamicResource AccentSelectedBrush}" />
                             <Setter Property="BorderThickness" Value="0,1,0,1" />
                         </MultiTrigger>
                         

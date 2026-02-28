@@ -260,11 +260,81 @@ namespace YiboFile.Controls
         private void AddressBarControl_BreadcrumbClicked(object sender, string path) => BreadcrumbClicked?.Invoke(this, path);
         private void AddressBarControl_BreadcrumbMiddleClicked(object sender, string path) => BreadcrumbMiddleClicked?.Invoke(this, path);
 
+        private Canvas _globalIndicator;
+        private System.Windows.Shapes.Line _globalLine;
+
+        private void GridSplitter_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
+        {
+            var window = Window.GetWindow(this);
+            if (window != null)
+            {
+                _globalIndicator = window.FindName("GlobalSnapIndicator") as Canvas;
+                _globalLine = window.FindName("GlobalSnapLine") as System.Windows.Shapes.Line;
+            }
+        }
+
+        private void GridSplitter_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
+        {
+            var window = Window.GetWindow(this);
+            if (window == null) return;
+
+            if (this.Content is Grid rootGrid && rootGrid.RowDefinitions.Count > 5)
+            {
+                var row5 = rootGrid.RowDefinitions[5];
+                
+                // 手动计算新高度实现实时拖拽 (绕过 WPF 默认的混合单位节流)
+                double newHeight = row5.ActualHeight - e.VerticalChange;
+                if (newHeight < row5.MinHeight) newHeight = row5.MinHeight;
+                if (newHeight > rootGrid.ActualHeight - 100) newHeight = rootGrid.ActualHeight - 100;
+
+                bool snapped = false;
+
+                var otherBrowsers = FindVisualChildren<FileBrowserControl>(window).Where(b => b != this).ToList();
+                foreach (var other in otherBrowsers)
+                {
+                    if (other.Content is Grid otherGrid && otherGrid.RowDefinitions.Count > 5)
+                    {
+                        double otherHeight = otherGrid.RowDefinitions[5].ActualHeight;
+                        if (Math.Abs(newHeight - otherHeight) < 15) // Snap threshold
+                        {
+                            newHeight = otherHeight;
+                            snapped = true;
+
+                            if (_globalIndicator != null && _globalLine != null)
+                            {
+                                var otherSplitter = other.FindName("BottomGridSplitter") as FrameworkElement;
+                                if (otherSplitter != null)
+                                {
+                                    Point p = otherSplitter.TransformToAncestor(window).Transform(new Point(0, otherSplitter.ActualHeight / 2));
+                                    Canvas.SetTop(_globalLine, p.Y);
+                                    _globalIndicator.Visibility = Visibility.Visible;
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+
+                if (!snapped && _globalIndicator != null)
+                {
+                    _globalIndicator.Visibility = Visibility.Collapsed;
+                }
+
+                row5.Height = new GridLength(newHeight);
+            }
+            e.Handled = true; // 防止底层再次干扰
+        }
+
         private void GridSplitter_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
         {
+            if (_globalIndicator != null)
+            {
+                _globalIndicator.Visibility = Visibility.Collapsed;
+            }
+
             if (this.Content is Grid rootGrid && rootGrid.RowDefinitions.Count > 4)
             {
-                var height = rootGrid.RowDefinitions[4].Height.Value;
+                var height = rootGrid.RowDefinitions[5].ActualHeight; // Row 5 is the InfoPanel 
                 InfoHeightChanged?.Invoke(this, height);
             }
         }

@@ -266,7 +266,7 @@ namespace YiboFile.Services.Tabs
 
             // 计算非固定标签页可用空间
             double pinnedTotalWidth = pinnedTabs.Count * (pinnedWidth + 2);
-            double availableForUnpinned = totalWidth - pinnedTotalWidth - 40; // 40 = 新建按钮
+            double availableForUnpinned = totalWidth - pinnedTotalWidth; // 宽度已由ScrollViewer严格控制，无需减去新建按钮宽度
 
             if (unpinnedTabs.Count > 0 && availableForUnpinned > 0)
             {
