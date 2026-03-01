@@ -19,6 +19,14 @@ namespace YiboFile.Controls
         {
             _webView = new WebView2();
             this.Content = _webView;
+            this.Unloaded += (s, e) =>
+            {
+                if (_webView != null)
+                {
+                    _webView.Dispose();
+                    _webView = null;
+                }
+            };
             this.DataContextChanged += (s, e) =>
             {
                 if (e.NewValue is WordPreviewViewModel vm)

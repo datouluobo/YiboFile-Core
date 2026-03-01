@@ -23,11 +23,15 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type Thumb}">
-                    <Border x:Name="thumbBorder" Background="{DynamicResource AccentDefaultBrush}" CornerRadius="3" Opacity="0.4" />
+                    <Border x:Name="thumbBorder" Background="{DynamicResource AccentDefaultBrush}" CornerRadius="3" Opacity="0.4" RenderTransformOrigin="0.5,0.5">
+                        <Border.RenderTransform>
+                            <ScaleTransform x:Name="ThumbScale2" ScaleX="1" ScaleY="1" />
+                        </Border.RenderTransform>
+                    </Border>
                     <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
+                        <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ScrollViewer}}" Value="True">
                             <Setter TargetName="thumbBorder" Property="Opacity" Value="0.8" />
-                        </Trigger>
+                        </DataTrigger>
                         <Trigger Property="IsDragging" Value="True">
                             <Setter TargetName="thumbBorder" Property="Opacity" Value="1.0" />
                         </Trigger>
@@ -35,13 +39,39 @@
                         <DataTrigger Binding="{Binding Orientation, RelativeSource={RelativeSource AncestorType=ScrollBar}}" Value="Vertical">
                             <Setter TargetName="thumbBorder" Property="Width" Value="4" />
                             <Setter TargetName="thumbBorder" Property="Height" Value="NaN" />
-                            <Setter TargetName="thumbBorder" Property="HorizontalAlignment" Value="Right" />
+                            <Setter TargetName="thumbBorder" Property="HorizontalAlignment" Value="Center" />
                         </DataTrigger>
                         <DataTrigger Binding="{Binding Orientation, RelativeSource={RelativeSource AncestorType=ScrollBar}}" Value="Horizontal">
                             <Setter TargetName="thumbBorder" Property="Height" Value="4" />
                             <Setter TargetName="thumbBorder" Property="Width" Value="NaN" />
-                            <Setter TargetName="thumbBorder" Property="VerticalAlignment" Value="Bottom" />
+                            <Setter TargetName="thumbBorder" Property="VerticalAlignment" Value="Center" />
                         </DataTrigger>
+                        
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding Orientation, RelativeSource={RelativeSource AncestorType=ScrollBar}}" Value="Vertical" />
+                                <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ScrollViewer}}" Value="True" />
+                            </MultiDataTrigger.Conditions>
+                            <MultiDataTrigger.EnterActions>
+                                <BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetName="ThumbScale2" Storyboard.TargetProperty="ScaleX" To="2" Duration="0:0:0.15" /></Storyboard></BeginStoryboard>
+                            </MultiDataTrigger.EnterActions>
+                            <MultiDataTrigger.ExitActions>
+                                <BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetName="ThumbScale2" Storyboard.TargetProperty="ScaleX" To="1" Duration="0:0:0.15" /></Storyboard></BeginStoryboard>
+                            </MultiDataTrigger.ExitActions>
+                        </MultiDataTrigger>
+                        
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding Orientation, RelativeSource={RelativeSource AncestorType=ScrollBar}}" Value="Horizontal" />
+                                <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ScrollViewer}}" Value="True" />
+                            </MultiDataTrigger.Conditions>
+                            <MultiDataTrigger.EnterActions>
+                                <BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetName="ThumbScale2" Storyboard.TargetProperty="ScaleY" To="2" Duration="0:0:0.15" /></Storyboard></BeginStoryboard>
+                            </MultiDataTrigger.EnterActions>
+                            <MultiDataTrigger.ExitActions>
+                                <BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetName="ThumbScale2" Storyboard.TargetProperty="ScaleY" To="1" Duration="0:0:0.15" /></Storyboard></BeginStoryboard>
+                            </MultiDataTrigger.ExitActions>
+                        </MultiDataTrigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
@@ -85,6 +115,9 @@
                                 <Trigger Property="IsMouseOver" Value="True">
                                     <Setter Property="Height" Value="8" /> <!-- Thicker on hover -->
                                 </Trigger>
+                                <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ScrollViewer}}" Value="True">
+                                    <Setter Property="Height" Value="8" />
+                                </DataTrigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
                     </Setter.Value>
@@ -100,6 +133,13 @@
                 </MultiTrigger.Conditions>
                 <Setter Property="Width" Value="8" /> <!-- Thicker on hover -->
             </MultiTrigger>
+            <MultiDataTrigger>
+                <MultiDataTrigger.Conditions>
+                    <Condition Binding="{Binding Orientation, RelativeSource={RelativeSource Self}}" Value="Vertical" />
+                    <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ScrollViewer}}" Value="True" />
+                </MultiDataTrigger.Conditions>
+                <Setter Property="Width" Value="8" />
+            </MultiDataTrigger>
         </Style.Triggers>
     </Style>
 
@@ -217,10 +257,10 @@
                         </Border.RenderTransform>
                     </Border>
                     <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
+                        <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ScrollViewer}}" Value="True">
                             <Setter TargetName="ThumbBorder" Property="Opacity" Value="0.8" />
                             <Setter TargetName="ThumbBorder" Property="Background" Value="{DynamicResource AccentDefaultBrush}" />
-                            <Trigger.EnterActions>
+                            <DataTrigger.EnterActions>
                                 <BeginStoryboard>
                                     <Storyboard>
                                         <DoubleAnimation Storyboard.TargetName="ThumbScale" Storyboard.TargetProperty="ScaleX" To="2" Duration="0:0:0.15">
@@ -230,8 +270,8 @@
                                         </DoubleAnimation>
                                     </Storyboard>
                                 </BeginStoryboard>
-                            </Trigger.EnterActions>
-                            <Trigger.ExitActions>
+                            </DataTrigger.EnterActions>
+                            <DataTrigger.ExitActions>
                                 <BeginStoryboard>
                                     <Storyboard>
                                         <DoubleAnimation Storyboard.TargetName="ThumbScale" Storyboard.TargetProperty="ScaleX" To="1" Duration="0:0:0.15">
@@ -241,8 +281,8 @@
                                         </DoubleAnimation>
                                     </Storyboard>
                                 </BeginStoryboard>
-                            </Trigger.ExitActions>
-                        </Trigger>
+                            </DataTrigger.ExitActions>
+                        </DataTrigger>
                         <Trigger Property="IsDragging" Value="True">
                             <Setter TargetName="ThumbBorder" Property="Opacity" Value="1" />
                             <Setter TargetName="ThumbBorder" Property="Background" Value="{DynamicResource AccentDefaultBrush}" />
@@ -267,10 +307,10 @@
                         </Border.RenderTransform>
                     </Border>
                     <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
+                        <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ScrollViewer}}" Value="True">
                             <Setter TargetName="ThumbBorder" Property="Opacity" Value="0.8" />
                             <Setter TargetName="ThumbBorder" Property="Background" Value="{DynamicResource AccentDefaultBrush}" />
-                            <Trigger.EnterActions>
+                            <DataTrigger.EnterActions>
                                 <BeginStoryboard>
                                     <Storyboard>
                                         <DoubleAnimation Storyboard.TargetName="ThumbScale" Storyboard.TargetProperty="ScaleY" To="2" Duration="0:0:0.15">
@@ -280,8 +320,8 @@
                                         </DoubleAnimation>
                                     </Storyboard>
                                 </BeginStoryboard>
-                            </Trigger.EnterActions>
-                            <Trigger.ExitActions>
+                            </DataTrigger.EnterActions>
+                            <DataTrigger.ExitActions>
                                 <BeginStoryboard>
                                     <Storyboard>
                                         <DoubleAnimation Storyboard.TargetName="ThumbScale" Storyboard.TargetProperty="ScaleY" To="1" Duration="0:0:0.15">
@@ -291,8 +331,8 @@
                                         </DoubleAnimation>
                                     </Storyboard>
                                 </BeginStoryboard>
-                            </Trigger.ExitActions>
-                        </Trigger>
+                            </DataTrigger.ExitActions>
+                        </DataTrigger>
                         <Trigger Property="IsDragging" Value="True">
                             <Setter TargetName="ThumbBorder" Property="Opacity" Value="1" />
                             <Setter TargetName="ThumbBorder" Property="Background" Value="{DynamicResource AccentDefaultBrush}" />
@@ -337,6 +377,9 @@
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter Property="Width" Value="12" />
                         </Trigger>
+                        <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ScrollViewer}}" Value="True">
+                            <Setter Property="Width" Value="12" />
+                        </DataTrigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
@@ -377,6 +420,9 @@
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter Property="Height" Value="12" />
                         </Trigger>
+                        <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ScrollViewer}}" Value="True">
+                            <Setter Property="Height" Value="12" />
+                        </DataTrigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
@@ -418,6 +464,9 @@
                                 <Trigger Property="IsMouseOver" Value="True">
                                     <Setter Property="Width" Value="8" />
                                 </Trigger>
+                                <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ScrollViewer}}" Value="True">
+                                    <Setter Property="Width" Value="8" />
+                                </DataTrigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
                     </Setter.Value>
@@ -454,6 +503,9 @@
                                 <Trigger Property="IsMouseOver" Value="True">
                                     <Setter Property="Height" Value="8" />
                                 </Trigger>
+                                <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ScrollViewer}}" Value="True">
+                                    <Setter Property="Height" Value="8" />
+                                </DataTrigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
                     </Setter.Value>

@@ -38,6 +38,15 @@ namespace YiboFile.Controls
 
             this.Content = grid;
 
+            this.Unloaded += (s, e) =>
+            {
+                if (_webView != null)
+                {
+                    _webView.Dispose();
+                    _webView = null;
+                }
+            };
+
             this.DataContextChanged += OnDataContextChanged;
         }
 

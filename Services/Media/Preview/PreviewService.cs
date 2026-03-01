@@ -29,7 +29,7 @@ namespace YiboFile.Services.Preview
             _dispatcher = dispatcher ?? throw new ArgumentNullException(nameof(dispatcher));
 
             // Subscribe to preview requests
-            _messageBus.Subscribe<PreviewRequestMessage>(m => LoadFilePreviewAsync(m.FilePath));
+            _messageBus.Subscribe<PreviewRequestMessage>(m => _ = LoadFilePreviewAsync(m.FilePath));
         }
 
         private long _currentGeneration = 0;
@@ -38,7 +38,7 @@ namespace YiboFile.Services.Preview
         /// <summary>
         /// 加载文件预览 (异步)
         /// </summary>
-        public async void LoadFilePreviewAsync(string filePath)
+        public async System.Threading.Tasks.Task LoadFilePreviewAsync(string filePath)
         {
             // Cancel previous work
             // Manual cancellation management to avoid using ClearPreview() which increments generation prematurely for our new logic
@@ -106,7 +106,7 @@ namespace YiboFile.Services.Preview
         /// </summary>
         public void LoadFilePreview(FileSystemItem item)
         {
-            LoadFilePreviewAsync(item.Path);
+            _ = LoadFilePreviewAsync(item.Path);
         }
 
         /// <summary>
@@ -129,7 +129,7 @@ namespace YiboFile.Services.Preview
         /// </summary>
         public void HandlePreviewOpenFileRequest(string filePath)
         {
-            LoadFilePreviewAsync(filePath);
+            _ = LoadFilePreviewAsync(filePath);
         }
     }
 }

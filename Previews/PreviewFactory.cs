@@ -14,16 +14,6 @@ namespace YiboFile.Previews
     public static class PreviewFactory
     {
         /// <summary>
-        /// 文件列表刷新请求回调
-        /// </summary>
-        public static Action OnFileListRefreshRequested { get; set; }
-
-        /// <summary>
-        /// 在新标签页中打开文件夹回调
-        /// </summary>
-        public static Action<string> OnOpenFolderInNewTab { get; set; }
-
-        /// <summary>
         /// 创建文件预览 ViewModel
         /// </summary>
         public static async System.Threading.Tasks.Task<IPreviewViewModel> CreateViewModelAsync(string filePath, System.Threading.CancellationToken token = default)

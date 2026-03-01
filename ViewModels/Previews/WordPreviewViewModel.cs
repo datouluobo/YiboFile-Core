@@ -148,7 +148,8 @@ namespace YiboFile.ViewModels.Previews
                     // Refresh current view
                     await LoadAsync(outputPath);
                     // Trigger file list refresh if possible
-                    PreviewFactory.OnFileListRefreshRequested?.Invoke();
+                    var messageBus = YiboFile.App.ServiceProvider?.GetService(typeof(YiboFile.ViewModels.Messaging.IMessageBus)) as YiboFile.ViewModels.Messaging.IMessageBus;
+                    messageBus?.Publish(new YiboFile.ViewModels.Messaging.Messages.RefreshFileListMessage());
                 }
                 else
                 {

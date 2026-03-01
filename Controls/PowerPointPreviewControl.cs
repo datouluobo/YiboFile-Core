@@ -66,6 +66,15 @@ namespace YiboFile.Controls
 
             _mainGrid.Children.Add(_legacyPanel);
             this.Content = _mainGrid;
+
+            this.Unloaded += (s, e) =>
+            {
+                if (_webView != null)
+                {
+                    _webView.Dispose();
+                    _webView = null;
+                }
+            };
         }
 
         private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)

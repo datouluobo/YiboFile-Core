@@ -6,10 +6,13 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using YiboFile.Previews;
 
+using System.Threading;
+
 namespace YiboFile.ViewModels.Previews
 {
     public class TextPreviewViewModel : BasePreviewViewModel
     {
+        private CancellationTokenSource _cts;
         private string _content;
         public string Content
         {
@@ -39,7 +42,10 @@ namespace YiboFile.ViewModels.Previews
             {
                 if (SetProperty(ref _encoding, value))
                 {
-                    _ = LoadAsync(FilePath);
+                    _cts?.Cancel();
+                    _cts?.Dispose();
+                    _cts = new CancellationTokenSource();
+                    _ = LoadAsync(FilePath, _cts.Token);
                 }
             }
         }
@@ -65,6 +71,7 @@ namespace YiboFile.ViewModels.Previews
             {
                 await Task.Run(() =>
                 {
+                    if (token.IsCancellationRequested) return;
                     if (Encoding == null)
                     {
                         // Auto detect encoding logic here or use a helper
@@ -76,10 +83,16 @@ namespace YiboFile.ViewModels.Previews
                         // Read first 100KB for preview
                         char[] buffer = new char[1024 * 100];
                         int read = reader.ReadBlock(buffer, 0, buffer.Length);
-                        Content = new string(buffer, 0, read);
+                        var contentStr = new string(buffer, 0, read);
+                        
+                        if (!token.IsCancellationRequested)
+                        {
+                            System.Windows.Application.Current.Dispatcher.Invoke(() => Content = contentStr);
+                        }
                     }
-                });
+                }, token);
             }
+            catch (OperationCanceledException) { }
             catch (Exception ex)
             {
 

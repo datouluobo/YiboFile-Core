@@ -246,9 +246,24 @@
     </ResourceDictionary>
 </UserControl.Resources>
     
-    <Grid>
-        <Grid.Style>
-            <Style TargetType="Grid">
+    <Border x:Name="FocusBorder"
+            BorderThickness="2"
+            Margin="1"
+            CornerRadius="6">
+        <Border.Style>
+            <Style TargetType="Border">
+                <Setter Property="BorderBrush" Value="Transparent"/>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsActive}" Value="True">
+                        <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </Border.Style>
+
+        <Grid>
+            <Grid.Style>
+                <Style TargetType="Grid">
                 <!-- 纯净透明底层，靠前方的大背景 -->
                 <Setter Property="Background" Value="{DynamicResource BackgroundPrimaryBrush}"/>
                 <Setter Property="Opacity" Value="1.0"/>
@@ -381,27 +396,6 @@
             </ScrollViewer>
         </Border>
 
-        <!-- 优雅且现代的焦点边框覆盖层，抛弃之前会导致和右侧分割器叠加及外溢打架的加粗负边框描边法 -->
-        <Border x:Name="FocusBorder"
-                Grid.Row="0" Grid.RowSpan="5"
-                BorderThickness="2"
-                Margin="1"
-                CornerRadius="6"
-                IsHitTestVisible="False"
-                Panel.ZIndex="1000">
-            <Border.Style>
-                <Style TargetType="Border">
-                    <Setter Property="BorderBrush" Value="Transparent"/>
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding IsActive}" Value="True">
-                            <!-- 使用粗达 2px 的边界与细微留白，创造一种内嵌光环高亮感 -->
-                            <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </Border.Style>
-        </Border>
-
         <!-- 筛选弹出面板 -->
         <Popup x:Name="FilterPopup" PlacementTarget="{Binding ElementName=FilterBtn}" 
                IsOpen="{Binding Filter.IsFilterPanelVisible, Mode=TwoWay}"
@@ -411,7 +405,8 @@
                 <controls:FilterPanel x:Name="FilterPanelControl" DataContext="{Binding Search}" Options="{Binding DataContext.Filter.SearchOptions, RelativeSource={RelativeSource AncestorType=controls:FileBrowserControl}}"/>
             </Border>
         </Popup>
-    </Grid>
+        </Grid>
+    </Border>
 </UserControl>
 
 

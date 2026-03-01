@@ -86,11 +86,8 @@ namespace YiboFile.Services.Orchestration
             // 恢复标签页
             _handlerInitializer.WindowStateManager?.RestoreTabsState();
 
-            // 5. 强制修正布局
-            _window.Dispatcher.Invoke(() =>
-            {
-                _handlerInitializer.LifecycleHandler?.AdjustColumnWidths();
-            }, System.Windows.Threading.DispatcherPriority.Loaded);
+            // 5. 阻止在这里进行强制作战，让 Window 的真实 SizeChanged 自己处理，防止还原时 ActualWidth 未更新导致尺寸重置
+            // (Removed premature AdjustColumnWidths)
 
             // 6. 启动后台索引
             _serviceProvider.GetService<IFullTextSearchService>()?.StartBackgroundIndexing();

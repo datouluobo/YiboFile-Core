@@ -123,6 +123,7 @@
             <!-- 左侧导航与中间文件列表之间的分割器 (Col 2) -->
             <controls:CollapsibleGridSplitter x:Name="SplitterLeft" Grid.Row="0" Grid.Column="2" Grid.RowSpan="4"
                       Style="{StaticResource VerticalCollapsibleGridSplitterStyle}"
+                      Margin="1,0"
                       HorizontalAlignment="Stretch"
                       CollapseMode="Previous"
                       ShowsPreview="False"
@@ -133,6 +134,7 @@
             <!-- 中间文件列表与右侧预览之间的分割器 (Col 4) -->
             <controls:CollapsibleGridSplitter x:Name="SplitterRight" Grid.Row="0" Grid.Column="4" Grid.RowSpan="4"
                       Style="{StaticResource VerticalCollapsibleGridSplitterStyle}"
+                      Margin="1,0"
                       HorizontalAlignment="Stretch"
                       CollapseMode="Both"
                       ShowsPreview="False"

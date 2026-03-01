@@ -30,6 +30,15 @@ namespace YiboFile.Controls
             var grid = new Grid();
             grid.Children.Add(_webView);
             this.Content = grid;
+            
+            this.Unloaded += (s, e) =>
+            {
+                if (_webView != null)
+                {
+                    _webView.Dispose();
+                    _webView = null;
+                }
+            };
 
             InitializeWebView();
         }

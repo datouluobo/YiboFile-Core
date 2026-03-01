@@ -67,6 +67,12 @@ namespace YiboFile.Handlers
 
         public void HandleSizeChanged(SizeChangedEventArgs e)
         {
+            // 窗口未完全可见时跳过列宽的重新计算，防止中间的小尺寸（如初始化或动画过渡时）覆盖持久化设置
+            if (!_mainWindow.IsLoaded || _mainWindow.WindowState == WindowState.Minimized || _mainWindow.RootGrid.ActualWidth < 100) return;
+
+            // 跳过首次渲染的 SizeChanged (PreviousSize = 0)，避免干扰 Initializer 设置的初始持久化布局
+            if (e.PreviousSize.Width == 0 || e.PreviousSize.Height == 0) return;
+
             // 调整列宽适应新窗口大小
             AdjustColumnWidths();
 

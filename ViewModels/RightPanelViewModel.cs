@@ -107,7 +107,14 @@ namespace YiboFile.ViewModels
         public IPreviewViewModel ActivePreview
         {
             get => _activePreview;
-            set => SetProperty(ref _activePreview, value);
+            set
+            {
+                if (_activePreview != value)
+                {
+                    _activePreview?.Dispose();
+                    SetProperty(ref _activePreview, value);
+                }
+            }
         }
 
         private FileSystemItem _selectedItem;

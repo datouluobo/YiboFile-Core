@@ -87,6 +87,15 @@ namespace YiboFile.Controls
             grid.Children.Add(_webView);
 
             this.Content = grid;
+
+            this.Unloaded += (s, e) =>
+            {
+                if (_webView != null)
+                {
+                    _webView.Dispose();
+                    _webView = null;
+                }
+            };
         }
 
         private void UpdateTocVisibility(bool isVisible)

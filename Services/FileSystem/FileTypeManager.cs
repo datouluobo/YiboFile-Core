@@ -32,7 +32,7 @@ namespace YiboFile
             { ".blp", new FileTypeInfo { Category = "图片", CanPreview = true, PreviewType = PreviewType.Image } },
             { ".heic", new FileTypeInfo { Category = "图片", CanPreview = true, PreviewType = PreviewType.Image } },
             { ".heif", new FileTypeInfo { Category = "图片", CanPreview = true, PreviewType = PreviewType.Image } },
-            { ".ai", new FileTypeInfo { Category = "图片", CanPreview = false, PreviewType = PreviewType.None } },
+            { ".ai", new FileTypeInfo { Category = "图片", CanPreview = true, PreviewType = PreviewType.Image } },
 
             // 文本文件
             { ".txt", new FileTypeInfo { Category = "文本", CanPreview = true, PreviewType = PreviewType.Text } },
@@ -180,8 +180,9 @@ namespace YiboFile
 
             // 压缩文件
             { ".zip", new FileTypeInfo { Category = "压缩", CanPreview = true, PreviewType = PreviewType.Archive } },
-            { ".rar", new FileTypeInfo { Category = "压缩", CanPreview = true, PreviewType = PreviewType.Archive } },
-            { ".7z", new FileTypeInfo { Category = "压缩", CanPreview = true, PreviewType = PreviewType.Archive } },
+            { ".rar", new FileTypeInfo { Category = "压缩", CanPreview = false, PreviewType = PreviewType.Archive } },
+            { ".7z", new FileTypeInfo { Category = "压缩", CanPreview = false, PreviewType = PreviewType.Archive } },
+            { ".jar", new FileTypeInfo { Category = "压缩", CanPreview = true, PreviewType = PreviewType.Archive } },
             { ".tar", new FileTypeInfo { Category = "压缩", CanPreview = false, PreviewType = PreviewType.Archive } },
             { ".gz", new FileTypeInfo { Category = "压缩", CanPreview = false, PreviewType = PreviewType.Archive } },
             { ".bz2", new FileTypeInfo { Category = "压缩", CanPreview = false, PreviewType = PreviewType.Archive } },
@@ -205,7 +206,7 @@ namespace YiboFile
             { ".drv", new FileTypeInfo { Category = "系统", CanPreview = false, PreviewType = PreviewType.Executable } },
             { ".app", new FileTypeInfo { Category = "程序", CanPreview = false, PreviewType = PreviewType.Executable } },
             { ".appx", new FileTypeInfo { Category = "程序", CanPreview = false, PreviewType = PreviewType.Executable } },
-            { ".apk", new FileTypeInfo { Category = "程序", CanPreview = false, PreviewType = PreviewType.Executable } },
+            { ".apk", new FileTypeInfo { Category = "程序", CanPreview = true, PreviewType = PreviewType.Archive } },
             { ".deb", new FileTypeInfo { Category = "程序", CanPreview = false, PreviewType = PreviewType.Executable } },
             { ".rpm", new FileTypeInfo { Category = "程序", CanPreview = false, PreviewType = PreviewType.Executable } },
             

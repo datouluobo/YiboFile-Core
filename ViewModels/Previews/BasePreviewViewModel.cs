@@ -3,7 +3,7 @@ using YiboFile.ViewModels;
 
 namespace YiboFile.ViewModels.Previews
 {
-    public interface IPreviewViewModel
+    public interface IPreviewViewModel : System.IDisposable
     {
         string Title { get; }
         string Icon { get; }
@@ -43,5 +43,10 @@ namespace YiboFile.ViewModels.Previews
         }
 
         public ICommand OpenExternalCommand { get; protected set; }
+
+        public virtual void Dispose()
+        {
+            // Derived classes can override to clean up unmanaged resources.
+        }
     }
 }

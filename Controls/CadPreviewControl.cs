@@ -82,6 +82,20 @@ namespace YiboFile.Controls
             _mainGrid.Children.Add(_odaGrid);
 
             this.Content = _mainGrid;
+
+            this.Unloaded += (s, ev) =>
+            {
+                if (_webView != null)
+                {
+                    _webView.Dispose();
+                    _webView = null;
+                }
+                
+                if (_odaGrid != null && _odaGrid.Children.Count > 0 && _odaGrid.Children[0] is WebView2 odaWebViewRef)
+                {
+                    odaWebViewRef.Dispose();
+                }
+            };
         }
 
         private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
