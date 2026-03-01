@@ -22,7 +22,7 @@ namespace YiboFile.Controls.Helpers
         /// 应用指定的视图模式
         /// </summary>
         public static void ApplyViewMode(
-            string currentMode,
+            YiboFile.Models.Enums.FileListViewMode currentMode,
             ListView filesListView,
             GridView filesGridView,
             ThumbnailService thumbnailService,
@@ -32,22 +32,22 @@ namespace YiboFile.Controls.Helpers
 
             switch (currentMode)
             {
-                case "Thumbnail":
+                case YiboFile.Models.Enums.FileListViewMode.Thumbnail:
                     ApplyWrapPanelView(filesListView, "ThumbnailTemplate", loadThumbnails: true, thumbnailService, findResource);
                     break;
-                case "Tiles":
+                case YiboFile.Models.Enums.FileListViewMode.Tiles:
                     ApplyWrapPanelView(filesListView, "TilesTemplate", loadThumbnails: true, thumbnailService, findResource);
                     break;
-                case "SmallIcons":
+                case YiboFile.Models.Enums.FileListViewMode.SmallIcons:
                     ApplyWrapPanelView(filesListView, "SmallIconsTemplate", loadThumbnails: true, thumbnailService, findResource);
                     break;
-                case "Content":
+                case YiboFile.Models.Enums.FileListViewMode.Content:
                     ApplyStackPanelView(filesListView, "ContentTemplate", loadThumbnails: true, thumbnailService, findResource);
                     break;
-                case "Compact":
+                case YiboFile.Models.Enums.FileListViewMode.Compact:
                     ApplyStackPanelView(filesListView, "CompactTemplate", loadThumbnails: true, thumbnailService, findResource);
                     break;
-                default: // "List"
+                default: // List
                     ApplyListView(filesListView, filesGridView, thumbnailService, findResource);
                     break;
             }
@@ -58,12 +58,12 @@ namespace YiboFile.Controls.Helpers
         /// </summary>
         public static void HandlePreviewMouseWheel(
             MouseWheelEventArgs e,
-            string currentViewMode,
+            YiboFile.Models.Enums.FileListViewMode currentViewMode,
             double currentThumbnailSize,
             Action<double> setThumbnailSize)
         {
             // 仅在缩略图模式下且按住Ctrl键时处理
-            if (currentViewMode == "Thumbnail" && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+            if (currentViewMode == YiboFile.Models.Enums.FileListViewMode.Thumbnail && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
             {
                 e.Handled = true; // 阻止 ScrollViewer 滚动
 
@@ -83,7 +83,7 @@ namespace YiboFile.Controls.Helpers
         /// </summary>
         public static void TriggerThumbnailLoad(
             System.Collections.IEnumerable items,
-            string currentViewMode,
+            YiboFile.Models.Enums.FileListViewMode currentViewMode,
             double thumbnailSize,
             ThumbnailService thumbnailService)
         {
@@ -91,11 +91,11 @@ namespace YiboFile.Controls.Helpers
 
             // 确定图标大小
             int size = 32;
-            if (currentViewMode == "Thumbnail") size = (int)thumbnailSize;
-            else if (currentViewMode == "Tiles") size = 64;
-            else if (currentViewMode == "Content") size = 48;
-            else if (currentViewMode == "List" || currentViewMode == null) size = 16;
-
+            if (currentViewMode == YiboFile.Models.Enums.FileListViewMode.Thumbnail) size = (int)thumbnailSize;
+            else if (currentViewMode == YiboFile.Models.Enums.FileListViewMode.Tiles) size = 64;
+            else if (currentViewMode == YiboFile.Models.Enums.FileListViewMode.Content) size = 48;
+            else if (currentViewMode == YiboFile.Models.Enums.FileListViewMode.List) size = 16;
+            
             thumbnailService.LoadThumbnailsAsync(items, size);
         }
 

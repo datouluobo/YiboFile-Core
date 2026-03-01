@@ -257,18 +257,34 @@ namespace YiboFile.Handlers
                 if (column.ActualWidth > 1)
                 {
                     double width = column.ActualWidth;
-                    switch (tag)
+                    bool isSec = IsSecondaryPane();
+                    if (isSec)
                     {
-                        case "Name": ConfigurationService.Instance.Set(c => c.ColNameWidth, width); break;
-                        case "Size": ConfigurationService.Instance.Set(c => c.ColSizeWidth, width); break;
-                        case "Type": ConfigurationService.Instance.Set(c => c.ColTypeWidth, width); break;
-                        case "ModifiedDate": ConfigurationService.Instance.Set(c => c.ColModifiedDateWidth, width); break;
-                        case "CreatedTime": ConfigurationService.Instance.Set(c => c.ColCreatedTimeWidth, width); break;
-                        case "Tags": ConfigurationService.Instance.Set(c => c.ColTagsWidth, width); break;
-                        case "Notes": ConfigurationService.Instance.Set(c => c.ColNotesWidth, width); break;
+                        switch (tag)
+                        {
+                            case "Name": ConfigurationService.Instance.Set(c => c.ColNameWidth_Secondary, width); break;
+                            case "Size": ConfigurationService.Instance.Set(c => c.ColSizeWidth_Secondary, width); break;
+                            case "Type": ConfigurationService.Instance.Set(c => c.ColTypeWidth_Secondary, width); break;
+                            case "ModifiedDate": ConfigurationService.Instance.Set(c => c.ColModifiedDateWidth_Secondary, width); break;
+                            case "CreatedTime": ConfigurationService.Instance.Set(c => c.ColCreatedTimeWidth_Secondary, width); break;
+                            case "Tags": ConfigurationService.Instance.Set(c => c.ColTagsWidth_Secondary, width); break;
+                            case "Notes": ConfigurationService.Instance.Set(c => c.ColNotesWidth_Secondary, width); break;
+                        }
+                    }
+                    else
+                    {
+                        switch (tag)
+                        {
+                            case "Name": ConfigurationService.Instance.Set(c => c.ColNameWidth, width); break;
+                            case "Size": ConfigurationService.Instance.Set(c => c.ColSizeWidth, width); break;
+                            case "Type": ConfigurationService.Instance.Set(c => c.ColTypeWidth, width); break;
+                            case "ModifiedDate": ConfigurationService.Instance.Set(c => c.ColModifiedDateWidth, width); break;
+                            case "CreatedTime": ConfigurationService.Instance.Set(c => c.ColCreatedTimeWidth, width); break;
+                            case "Tags": ConfigurationService.Instance.Set(c => c.ColTagsWidth, width); break;
+                            case "Notes": ConfigurationService.Instance.Set(c => c.ColNotesWidth, width); break;
+                        }
                     }
                 }
-
 
                 // 隐藏列
                 column.Width = 0;
@@ -539,19 +555,24 @@ namespace YiboFile.Handlers
 
         // --- 辅助方法 ---
 
+        private bool IsSecondaryPane()
+        {
+            return (_fileBrowser?.DataContext as YiboFile.ViewModels.PaneViewModel)?.IsSecondary == true;
+        }
+
         private string GetVisibleColumnsForCurrentMode()
         {
-            return _columnService?.GetVisibleColumnsForCurrentMode() ?? "";
+            return _columnService?.GetVisibleColumnsForCurrentMode(_fileBrowser) ?? "";
         }
 
         private void SetVisibleColumnsForCurrentMode(string csv)
         {
-            _columnService?.SetVisibleColumnsForCurrentMode(csv);
+            _columnService?.SetVisibleColumnsForCurrentMode(csv, _fileBrowser);
         }
 
         private bool IsColumnVisible(string tag)
         {
-            return _columnService?.IsColumnVisible(tag) ?? true;
+            return _columnService?.IsColumnVisible(tag, _fileBrowser) ?? true;
         }
 
         private Thumb FindHeaderThumb(GridViewColumnHeader header)

@@ -159,7 +159,7 @@ namespace YiboFile.ViewModels
             {
                 if (m.TargetPane == _paneId)
                 {
-                    ShowFullFileName = (m.Mode == "Thumbnail");
+                    ShowFullFileName = (m.Mode == YiboFile.Models.Enums.FileListViewMode.Thumbnail);
                     // 重新应用显示名称 (如果当前已有文件)
                     if (Files != null && Files.Count > 0)
                     {

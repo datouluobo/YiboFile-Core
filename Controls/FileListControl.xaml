@@ -8,6 +8,7 @@
              xmlns:local="clr-namespace:YiboFile.Controls"
              xmlns:converters="clr-namespace:YiboFile.Controls.Converters"
              xmlns:helpers="clr-namespace:YiboFile.Helpers"
+             xmlns:wpftk="clr-namespace:WpfToolkit.Controls;assembly=VirtualizingWrapPanel"
              mc:Ignorable="d" 
              d:DesignHeight="600" d:DesignWidth="800">
     <UserControl.Resources>
@@ -32,6 +33,9 @@
                         <Border.Effect>
                             <DropShadowEffect BlurRadius="15" ShadowDepth="2" Opacity="0.1"/>
                         </Border.Effect>
+                        <Border.CacheMode>
+                            <BitmapCache RenderAtScale="1" EnableClearType="False" SnapsToDevicePixels="True"/>
+                        </Border.CacheMode>
                     </Border>
 
                     <!-- Selection/Hover Overlay -->
@@ -258,7 +262,7 @@
 
         <!-- 缩略图视图的 WrapPanel 布局 -->
         <ItemsPanelTemplate x:Key="WrapPanelTemplate">
-            <WrapPanel Orientation="Horizontal"/>
+            <wpftk:VirtualizingWrapPanel Orientation="Horizontal" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"/>
         </ItemsPanelTemplate>
 
         <!-- 列表视图的 VirtualizingStackPanel 布局 -->

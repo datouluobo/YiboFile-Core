@@ -90,9 +90,9 @@ namespace YiboFile.Services.FileList
             _messageBus = messageBus ?? App.ServiceProvider?.GetService(typeof(IMessageBus)) as IMessageBus;
             _paneId = paneId;
 
-            _folderSizeCalculator = new FolderSizeCalculator();
+            _folderSizeCalculationService = new FolderSizeCalculationService(4);
+            _folderSizeCalculator = new FolderSizeCalculator(_folderSizeCalculationService);
             _metadataEnricher = new FileMetadataEnricher(_tagService);
-            _folderSizeCalculationService = new FolderSizeCalculationService();
         }
 
         #endregion
@@ -706,7 +706,7 @@ namespace YiboFile.Services.FileList
 
                 var size = await Task.Run(() =>
                 {
-                    return _folderSizeCalculationService.CalculateDirectorySize(item.Path, combinedToken);
+                    return _folderSizeCalculationService.CalculateDirectorySizeOptimized(item.Path, combinedToken);
                 }, combinedToken).ConfigureAwait(false);
 
                 if (combinedToken.IsCancellationRequested)

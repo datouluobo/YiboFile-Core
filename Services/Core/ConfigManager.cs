@@ -85,13 +85,28 @@ namespace YiboFile
         public double ColTagsWidth { get; set; } = 150;
         public double ColNotesWidth { get; set; } = 200;
 
+        // 副列表专属列头宽度
+        public double ColNameWidth_Secondary { get; set; } = 200;
+        public double ColSizeWidth_Secondary { get; set; } = 100;
+        public double ColTypeWidth_Secondary { get; set; } = 100;
+        public double ColModifiedDateWidth_Secondary { get; set; } = 150;
+        public double ColCreatedTimeWidth_Secondary { get; set; } = 50;
+        public double ColTagsWidth_Secondary { get; set; } = 150;
+        public double ColNotesWidth_Secondary { get; set; } = 200;
+
         // 列头顺序
         public string ColumnOrder { get; set; } = "Name,Size,Type,ModifiedDate,CreatedTime,Tags,Notes";
+        public string ColumnOrder_Secondary { get; set; } = "Name,Size,Type,ModifiedDate,CreatedTime,Tags,Notes";
 
         // 按模式存储可见列（CSV）
         public string VisibleColumns_Path { get; set; } = "Name,Size,Type,ModifiedDate,CreatedTime,Tags,Notes";
         public string VisibleColumns_Library { get; set; } = "Name,Size,Type,ModifiedDate,CreatedTime,Tags,Notes";
         public string VisibleColumns_Tag { get; set; } = "Name,Size,Type,ModifiedDate,CreatedTime,Tags,Notes";
+
+        // 副列表按模式存储可见列
+        public string VisibleColumns_Path_Secondary { get; set; } = "Name,Size,Type,ModifiedDate,CreatedTime,Tags,Notes";
+        public string VisibleColumns_Library_Secondary { get; set; } = "Name,Size,Type,ModifiedDate,CreatedTime,Tags,Notes";
+        public string VisibleColumns_Tag_Secondary { get; set; } = "Name,Size,Type,ModifiedDate,CreatedTime,Tags,Notes";
 
         public System.Collections.Generic.Dictionary<string, string> TabTitleOverrides { get; set; } = new System.Collections.Generic.Dictionary<string, string>();
         public System.Collections.Generic.List<string> PinnedTabs { get; set; } = new System.Collections.Generic.List<string>();
@@ -127,7 +142,7 @@ namespace YiboFile
         public bool IsRightPanelVisible { get; set; } = true; // 右侧面板可见性
         public double RightPanelNotesHeight { get; set; } = 200; // 右侧备注区高度
         public double CenterPanelInfoHeight { get; set; } = 180; // 中间底部详情区高度
-        public string FileViewMode { get; set; } = "List"; // 视图模式：List 或 Thumbnail
+        public YiboFile.Models.Enums.FileListViewMode FileViewMode { get; set; } = YiboFile.Models.Enums.FileListViewMode.List; // 视图模式：List 或 Thumbnail
         public string SortColumn { get; set; } = "Name"; // 排序字段
         public string SortDirection { get; set; } = "Ascending"; // 排序方向
 
@@ -196,13 +211,10 @@ namespace YiboFile
 
     public static class ConfigManager
     {
-        private const string ConfigFileName = "ooi_config.json";
-        private const string OldDataFileName = "ooi_data.db";
         private const string DataFileName = "yibofile_data.db";
         private const string BasePathMarkerFileName = "basepath.txt";
 
         private static readonly string DefaultBaseDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "AppData");
-        private static readonly string LegacyBaseDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "YiboFile");
 
         private static string _baseDirectory;
 
@@ -211,20 +223,9 @@ namespace YiboFile
             return GetBaseDirectory();
         }
 
-        public static string GetConfigFilePath() => Path.Combine(GetBaseDirectory(), ConfigFileName);
-        
         public static string GetDataFilePath() 
         {
-            var baseDir = GetBaseDirectory();
-            var newDbPath = Path.Combine(baseDir, DataFileName);
-            var oldDbPath = Path.Combine(baseDir, OldDataFileName);
-            
-            if (File.Exists(oldDbPath) && !File.Exists(newDbPath))
-            {
-                try { File.Move(oldDbPath, newDbPath); } catch { }
-            }
-            
-            return newDbPath;
+            return Path.Combine(GetBaseDirectory(), DataFileName);
         }
 
         public static string GetBaseDirectory()
@@ -234,49 +235,22 @@ namespace YiboFile
                 return _baseDirectory;
             }
 
-            var candidates = new List<string>();
-            var markerPaths = new[]
-            {
-                Path.Combine(DefaultBaseDirectory, BasePathMarkerFileName),
-                Path.Combine(LegacyBaseDirectory, BasePathMarkerFileName)
-            };
+            var marker = Path.Combine(DefaultBaseDirectory, BasePathMarkerFileName);
+            string selected = DefaultBaseDirectory;
 
-            foreach (var marker in markerPaths)
+            if (File.Exists(marker))
             {
-                if (File.Exists(marker))
+                try
                 {
-                    try
+                    var path = File.ReadAllText(marker).Trim();
+                    if (!string.IsNullOrEmpty(path) && Directory.Exists(path))
                     {
-                        var path = File.ReadAllText(marker).Trim();
-                        if (!string.IsNullOrEmpty(path))
-                        {
-                            candidates.Add(path);
-                        }
+                        selected = path;
                     }
-                    catch { }
                 }
+                catch { }
             }
 
-            candidates.Add(DefaultBaseDirectory);
-            candidates.Add(LegacyBaseDirectory);
-
-            string PickExisting(IEnumerable<string> paths)
-            {
-                foreach (var p in paths.Where(p => !string.IsNullOrWhiteSpace(p)).Distinct(StringComparer.OrdinalIgnoreCase))
-                {
-                    try
-                    {
-                        if (Directory.Exists(p) || File.Exists(Path.Combine(p, ConfigFileName)))
-                        {
-                            return p;
-                        }
-                    }
-                    catch { }
-                }
-                return null;
-            }
-
-            var selected = PickExisting(candidates) ?? DefaultBaseDirectory;
             try
             {
                 Directory.CreateDirectory(selected);
@@ -285,12 +259,6 @@ namespace YiboFile
 
             _baseDirectory = selected;
             WriteBasePathMarker(_baseDirectory);
-
-            // 如果使用默认目录且存在旧目录中的文件，自动补齐
-            if (!string.Equals(_baseDirectory, LegacyBaseDirectory, StringComparison.OrdinalIgnoreCase))
-            {
-                TryCopyMissingFiles(LegacyBaseDirectory, _baseDirectory);
-            }
 
             return _baseDirectory;
         }
@@ -302,7 +270,6 @@ namespace YiboFile
                 return;
             }
 
-            var oldBase = GetBaseDirectory();
             _baseDirectory = newBaseDirectory;
 
             try
@@ -312,11 +279,6 @@ namespace YiboFile
             catch { }
 
             WriteBasePathMarker(_baseDirectory);
-
-            if (copyMissingFromOld && !string.Equals(oldBase, _baseDirectory, StringComparison.OrdinalIgnoreCase))
-            {
-                TryCopyMissingFiles(oldBase, _baseDirectory);
-            }
         }
 
         private static void WriteBasePathMarker(string baseDirectory)
@@ -327,264 +289,6 @@ namespace YiboFile
                 File.WriteAllText(Path.Combine(DefaultBaseDirectory, BasePathMarkerFileName), baseDirectory);
             }
             catch { }
-
-            try
-            {
-                Directory.CreateDirectory(LegacyBaseDirectory);
-                File.WriteAllText(Path.Combine(LegacyBaseDirectory, BasePathMarkerFileName), baseDirectory);
-            }
-            catch { }
-        }
-
-        private static void TryCopyMissingFiles(string sourceDir, string targetDir)
-        {
-            if (string.IsNullOrWhiteSpace(sourceDir) || string.IsNullOrWhiteSpace(targetDir) ||
-                string.Equals(sourceDir, targetDir, StringComparison.OrdinalIgnoreCase))
-            {
-                return;
-            }
-
-            var fileMappings = new[]
-            {
-                new { NewName = ConfigFileName, Legacy = new [] { "config.json", ConfigFileName } },
-                new { NewName = DataFileName, Legacy = new [] { "data.db", DataFileName, OldDataFileName } }
-            };
-
-            foreach (var mapping in fileMappings)
-            {
-                try
-                {
-                    var targetPath = Path.Combine(targetDir, mapping.NewName);
-                    if (File.Exists(targetPath)) continue;
-
-                    string sourcePath = null;
-                    foreach (var legacy in mapping.Legacy)
-                    {
-                        var candidate = Path.Combine(sourceDir, legacy);
-                        if (File.Exists(candidate))
-                        {
-                            sourcePath = candidate;
-                            break;
-                        }
-                    }
-
-                    if (sourcePath != null)
-                    {
-                        Directory.CreateDirectory(Path.GetDirectoryName(targetPath) ?? targetDir);
-                        File.Copy(sourcePath, targetPath, overwrite: false);
-                    }
-                }
-                catch { }
-            }
-        }
-
-        [Obsolete("Use ConfigurationService.Instance.Config instead.")]
-        public static AppConfig Load()
-        {
-            // Delegate to the new unified ConfigurationService
-            // This ensures all callers get the consistent, in-memory config object
-            // managed by the service (settings.json + state.json)
-            var service = YiboFile.Services.Config.ConfigurationService.Instance;
-            return service.Config;
-        }
-
-        /// <summary>
-        /// 加载旧版配置文件 (internal usage or migration)
-        /// </summary>
-        public static AppConfig LoadLegacy()
-        {
-            try
-            {
-                var path = GetConfigFilePath();
-                if (File.Exists(path))
-                {
-                    var json = File.ReadAllText(path);
-                    var options = new JsonSerializerOptions
-                    {
-                        Converters = { new JsonStringEnumConverter() },
-                        PropertyNameCaseInsensitive = true
-                    };
-                    var cfg = JsonSerializer.Deserialize<AppConfig>(json, options);
-                    if (cfg != null)
-                    {
-                        // 迁移配置：清理旧字段，确保新字段有值
-                        MigrateConfig(cfg);
-                        return cfg;
-                    }
-                }
-            }
-            catch
-            {
-                // ignore and return defaults
-            }
-            return new AppConfig();
-        }
-
-        /// <summary>
-        /// 迁移配置：清理旧字段，确保新字段正确
-        /// </summary>
-        public static void MigrateConfig(AppConfig config)
-        {
-            if (config == null) return;
-
-            // 确保 OpenTabs 和 ActiveTabKey 已初始化
-            if (config.OpenTabs == null)
-            {
-                config.OpenTabs = new List<string>();
-            }
-            if (string.IsNullOrEmpty(config.ActiveTabKey))
-            {
-                config.ActiveTabKey = string.Empty;
-            }
-            if (config.OpenTabsSecondary == null)
-            {
-                config.OpenTabsSecondary = new List<string>();
-            }
-            if (string.IsNullOrEmpty(config.ActiveTabKeySecondary))
-            {
-                config.ActiveTabKeySecondary = string.Empty;
-            }
-
-            // 如果 ColLeftWidth 和 ColCenterWidth 为 0，但 LeftPanelWidth 和 MiddlePanelWidth 有值，则迁移
-            if (config.ColLeftWidth <= 0 && config.LeftPanelWidth > 0)
-            {
-                config.ColLeftWidth = config.LeftPanelWidth;
-            }
-            if (config.ColCenterWidth <= 0 && config.MiddlePanelWidth > 0)
-            {
-                config.ColCenterWidth = config.MiddlePanelWidth;
-            }
-
-            // 确保导航模式有默认值
-            if (string.IsNullOrEmpty(config.LastNavigationMode))
-            {
-                config.LastNavigationMode = "Path";
-            }
-
-            // 确保窗口尺寸有效
-            if (config.WindowWidth <= 0) config.WindowWidth = 1200;
-            if (config.WindowHeight <= 0) config.WindowHeight = 800;
-            if (config.ColLeftWidth <= 0) config.ColLeftWidth = 220;
-            if (config.ColRightWidth <= 0) config.ColRightWidth = 360;
-            if (config.BackupBrowserWidth <= 0) config.BackupBrowserWidth = 1000;
-            if (config.BackupBrowserHeight <= 0) config.BackupBrowserHeight = 650;
-
-            // 根据 LayoutMode 初始化折叠状态（如果是新配置或旧版本升级）
-            if (config.LayoutMode == "Focus")
-            {
-                config.IsSidebarCollapsed = true;
-                config.IsPreviewCollapsed = true;
-            }
-            else if (config.LayoutMode == "Work")
-            {
-                config.IsSidebarCollapsed = false;
-                config.IsPreviewCollapsed = true;
-            }
-            else if (config.LayoutMode == "Full")
-            {
-                config.IsSidebarCollapsed = false;
-                config.IsPreviewCollapsed = false;
-            }
-        }
-
-        public static void Save(AppConfig config)
-        {
-            try
-            {
-                if (config == null) return;
-
-                // Delegate to ConfigurationService (New System)
-                try
-                {
-                    var service = YiboFile.Services.Config.ConfigurationService.Instance;
-                    if (service != null)
-                    {
-                        service.ManualSave(config);
-                        return; // Successfully handled by new system
-                    }
-                }
-                catch (Exception)
-                {
-
-                }
-
-                // Legacy Fallback (should rarely be reached)
-                MigrateConfig(config);
-
-                var baseDir = GetBaseDirectory();
-                Directory.CreateDirectory(baseDir);
-                var options = new JsonSerializerOptions
-                {
-                    WriteIndented = true,
-                    Converters = { new JsonStringEnumConverter() }
-                };
-                var json = JsonSerializer.Serialize(config, options);
-                var configPath = GetConfigFilePath();
-                File.WriteAllText(configPath, json);
-            }
-            catch (Exception ex)
-            {
-                // ignore disk errors for now
-            }
-        }
-
-        [Obsolete("Use IExportService instead.")]
-        public static void Export(string targetFile)
-        {
-            var current = YiboFile.Services.Config.ConfigurationService.Instance.Config;
-            var json = JsonSerializer.Serialize(current, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(targetFile, json);
-        }
-
-        [Obsolete("Use IImportService instead.")]
-        public static void Import(string sourceFile)
-        {
-            if (!File.Exists(sourceFile)) return;
-            var json = File.ReadAllText(sourceFile);
-            var cfg = JsonSerializer.Deserialize<AppConfig>(json) ?? new AppConfig();
-            Save(cfg);
-        }
-
-        // --- Legacy Export/Import Logic (Zip) ---
-        // These methods rely on specific file paths which might have changed.
-        // We mark them as obsolete. They might be broken if they only export ooi_config.json.
-
-        [Obsolete("Use IExportService instead.")]
-        public static void ExportConfigsZip(string targetZip)
-        {
-            // Redirect to new system if possible? No, static context.
-            // Just warn user.
-            throw new NotSupportedException("This method is deprecated. Please use IExportService.");
-        }
-
-        [Obsolete("Use IImportService instead.")]
-        public static void ImportConfigsZip(string sourceZip)
-        {
-            throw new NotSupportedException("This method is deprecated. Please use IImportService.");
-        }
-
-        [Obsolete("Use IImportService instead.")]
-        public static void ImportDataZip(string sourceZip)
-        {
-            throw new NotSupportedException("This method is deprecated. Please use IImportService.");
-        }
-
-        [Obsolete("Use IExportService instead.")]
-        public static void ExportDataZip(string targetZip)
-        {
-            throw new NotSupportedException("This method is deprecated. Please use IExportService.");
-        }
-
-        [Obsolete("Use IExportService instead.")]
-        public static void ExportAllZip(string targetZip)
-        {
-            throw new NotSupportedException("This method is deprecated. Please use IExportService.");
-        }
-
-        [Obsolete("Use IImportService instead.")]
-        public static void ImportAllZip(string sourceZip)
-        {
-            throw new NotSupportedException("This method is deprecated. Please use IImportService.");
         }
 
     }

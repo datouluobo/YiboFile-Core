@@ -23,6 +23,8 @@ using YiboFile.Services.UI;
 using YiboFile.Models;
 using YiboFile.Controls.Helpers;
 
+
+
 namespace YiboFile.Controls
 {
     /// <summary>
@@ -95,12 +97,12 @@ namespace YiboFile.Controls
 
         // 依赖属性：当前视图模式
         public static readonly DependencyProperty CurrentViewModeProperty =
-            DependencyProperty.Register("CurrentViewMode", typeof(string), typeof(FileListControl),
-                new PropertyMetadata("List", OnViewModeChanged));
+            DependencyProperty.Register("CurrentViewMode", typeof(YiboFile.Models.Enums.FileListViewMode), typeof(FileListControl),
+                new PropertyMetadata(YiboFile.Models.Enums.FileListViewMode.List, OnViewModeChanged));
 
-        public string CurrentViewMode
+        public YiboFile.Models.Enums.FileListViewMode CurrentViewMode
         {
-            get { return (string)GetValue(CurrentViewModeProperty); }
+            get { return (YiboFile.Models.Enums.FileListViewMode)GetValue(CurrentViewModeProperty); }
             set { SetValue(CurrentViewModeProperty, value); }
         }
 
@@ -138,16 +140,16 @@ namespace YiboFile.Controls
         {
             if (d is FileListControl control)
             {
-                string mode = e.NewValue as string;
+                YiboFile.Models.Enums.FileListViewMode mode = (YiboFile.Models.Enums.FileListViewMode)e.NewValue;
                 control.ApplyViewMode();
 
                 // 触发缩略图刷新
                 if (control.FilesListView?.ItemsSource != null)
                 {
                     int size = 32;
-                    if (mode == "Thumbnail") size = (int)control.ThumbnailSize;
-                    else if (mode == "Tiles") size = 64;
-                    else if (mode == "Content") size = 48;
+                    if (mode == YiboFile.Models.Enums.FileListViewMode.Thumbnail) size = (int)control.ThumbnailSize;
+                    else if (mode == YiboFile.Models.Enums.FileListViewMode.Tiles) size = 64;
+                    else if (mode == YiboFile.Models.Enums.FileListViewMode.Content) size = 48;
                     control._thumbnailService?.LoadThumbnailsAsync(control.FilesListView.ItemsSource, size);
                 }
             }
@@ -177,7 +179,11 @@ namespace YiboFile.Controls
 
                     if (e.WidthChanged)
                     {
-                        AdjustNameColumnWidth();
+                        if (_autoColumnWidthBehavior == null)
+                        {
+                            _autoColumnWidthBehavior = new AutoColumnWidthBehavior(FilesListView, "Name");
+                        }
+                        _autoColumnWidthBehavior?.AdjustTargetColumnWidth();
                     }
                 };
 
@@ -218,9 +224,12 @@ namespace YiboFile.Controls
                 if (FilesListView != null)
                 {
                     ScrollViewer.SetHorizontalScrollBarVisibility(FilesListView, ScrollBarVisibility.Disabled);
+                    if (_autoColumnWidthBehavior == null)
+                    {
+                        _autoColumnWidthBehavior = new AutoColumnWidthBehavior(FilesListView, "Name");
+                    }
+                    _autoColumnWidthBehavior.AdjustTargetColumnWidth();
                 }
-
-                AdjustNameColumnWidth();
 
                 // 初始化框选行为
                 if (LassoSelectionCanvas != null && FilesListView != null && _lassoSelectionBehavior == null)
@@ -268,7 +277,7 @@ namespace YiboFile.Controls
                 newSize => ThumbnailSize = newSize);
         }
 
-        public void SetViewMode(string mode)
+        public void SetViewMode(YiboFile.Models.Enums.FileListViewMode mode)
         {
             CurrentViewMode = mode;
         }
@@ -508,79 +517,19 @@ namespace YiboFile.Controls
         {
             try
             {
-                var config = GetConfig();
-
-                // 加载列顺序
-                if (FilesGridView != null && !string.IsNullOrEmpty(config.ColumnOrder))
+                var browser = FindFileBrowser();
+                if (browser != null)
                 {
-                    var columns = FilesGridView.Columns;
-                    if (columns.Count >= 7)
-                    {
-                        // 创建列名到列的映射（从当前列的 Header Tag 获取）
-                        var columnMap = new Dictionary<string, GridViewColumn>();
-                        foreach (var col in columns)
-                        {
-                            var tag = GetColumnTag(col);
-                            if (!string.IsNullOrEmpty(tag) && !columnMap.ContainsKey(tag))
-                            {
-                                columnMap[tag] = col;
-                            }
-                        }
-
-                        var savedOrder = config.ColumnOrder.Split(',');
-                        var newColumns = new List<GridViewColumn>();
-
-                        foreach (var colName in savedOrder)
-                        {
-                            var trimmedName = colName.Trim();
-                            if (columnMap.ContainsKey(trimmedName))
-                            {
-                                newColumns.Add(columnMap[trimmedName]);
-                            }
-                        }
-
-                        // 添加未在顺序中的列（向后兼容）
-                        foreach (var kvp in columnMap)
-                        {
-                            if (!savedOrder.Any(s => s.Trim() == kvp.Key))
-                            {
-                                newColumns.Add(kvp.Value);
-                            }
-                        }
-
-                        // 重新排序列
-                        if (newColumns.Count == columns.Count)
-                        {
-                            FilesGridView.Columns.Clear();
-                            foreach (var col in newColumns)
-                            {
-                                FilesGridView.Columns.Add(col);
-                            }
-                        }
-                    }
+                    var colService = App.ServiceProvider?.GetService(typeof(YiboFile.Services.ColumnManagement.ColumnService)) as YiboFile.Services.ColumnManagement.ColumnService;
+                    colService?.LoadColumnWidths(browser);
                 }
-
-                // Find Tags and Notes columns using FindName
-                var colTags = FindName("ColTags") as GridViewColumn;
-                var colNotes = FindName("ColNotes") as GridViewColumn;
-
-                // Apply Tags and Notes column widths
-                if (colTags != null && config.ColTagsWidth > 0)
-                {
-                    colTags.Width = config.ColTagsWidth;
-                }
-
-                if (colNotes != null && config.ColNotesWidth > 0)
-                {
-                    colNotes.Width = config.ColNotesWidth;
-                }
-
-                // 重新调整名称列宽度以适应新的列宽度
-                AdjustNameColumnWidth();
+                
+                // 重新调整名称列宽度以适应新的列宽或隐藏状态
+                _autoColumnWidthBehavior?.AdjustTargetColumnWidth();
             }
             catch
             {
-                // Ignore errors, use default widths
+                // Ignore errors
             }
         }
 
@@ -602,67 +551,15 @@ namespace YiboFile.Controls
             _fileListService = fileListService;
         }
 
-        /// <summary>
-        /// 调整名称列宽度以填满剩余空间
-        /// </summary>
-        private void AdjustNameColumnWidth()
-        {
-            try
-            {
-                if (FilesListView == null || !FilesListView.IsLoaded) return;
 
-                var colName = FindName("ColName") as GridViewColumn;
-                var colType = FindName("ColType") as GridViewColumn;
-                var colSize = FindName("ColSize") as GridViewColumn;
-                var colModifiedDate = FindName("ColModifiedDate") as GridViewColumn;
-                var colCreatedTime = FindName("ColCreatedTime") as GridViewColumn;
-                var colTags = FindName("ColTags") as GridViewColumn;
-                var colNotes = FindName("ColNotes") as GridViewColumn;
-
-                if (colName == null) return;
-
-                // 直接从列获取实际宽度（而不是使用缓存）
-                double otherColumnsWidth = 0;
-
-                if (colType != null && colType.Width > 0)
-                    otherColumnsWidth += colType.Width;
-                if (colSize != null && colSize.Width > 0)
-                    otherColumnsWidth += colSize.Width;
-                if (colModifiedDate != null && colModifiedDate.Width > 0)
-                    otherColumnsWidth += colModifiedDate.Width;
-                if (colCreatedTime != null && colCreatedTime.Width > 0)
-                    otherColumnsWidth += colCreatedTime.Width;
-
-                // 标签和备注列使用实际宽度（这样设置修改后立即生效）
-                if (colTags != null && !double.IsNaN(colTags.Width))
-                    otherColumnsWidth += colTags.Width;
-                if (colNotes != null && !double.IsNaN(colNotes.Width))
-                    otherColumnsWidth += colNotes.Width;
-
-                // 计算名称列应该的宽度
-                double availableWidth = FilesListView.ActualWidth;
-                double scrollBarWidth = System.Windows.SystemParameters.VerticalScrollBarWidth;
-                // 减去滚动条宽度和额外边距（20px）确保不出现横向滚动条
-                double nameColumnWidth = availableWidth - otherColumnsWidth - scrollBarWidth - 20;
-
-                // 设置最小宽度
-                if (nameColumnWidth < 120) nameColumnWidth = 120;
-
-                colName.Width = nameColumnWidth;
-            }
-            catch
-            {
-                // 忽略错误
-            }
-        }
 
         #endregion
 
         #region 列头拖拽指示器逻辑
 
         private GridViewHeaderRowPresenter _headerRowPresenter;
-        private bool _isColumnDragging;
-        private Point _lastMousePos;
+        private ColumnReorderBehavior _columnReorderBehavior;
+        private AutoColumnWidthBehavior _autoColumnWidthBehavior;
         private AppConfig _config;
 
         private AppConfig GetConfig()
@@ -699,123 +596,15 @@ namespace YiboFile.Controls
                 _headerRowPresenter = FindVisualChild<GridViewHeaderRowPresenter>(FilesListView);
                 if (_headerRowPresenter != null)
                 {
-                    // 使用 Preview 事件确保能捕获到，但不监听 MouseDown 以避免干扰
-                    _headerRowPresenter.PreviewMouseMove += HeaderRowPresenter_PreviewMouseMove;
-                    _headerRowPresenter.PreviewMouseLeftButtonUp += HeaderRowPresenter_PreviewMouseLeftButtonUp;
-                    _headerRowPresenter.MouseLeave += HeaderRowPresenter_MouseLeave;
+                    var canvas = FindName("ColumnDropIndicatorCanvas") as Canvas;
+                    var indicator = FindName("ColumnDropIndicator") as Border;
+                    if (canvas != null && indicator != null)
+                    {
+                        _columnReorderBehavior?.Detach();
+                        _columnReorderBehavior = new ColumnReorderBehavior(_headerRowPresenter, canvas, indicator, SaveColumnWidths);
+                    }
                 }
             }), System.Windows.Threading.DispatcherPriority.Loaded);
-        }
-
-        private void HeaderRowPresenter_PreviewMouseMove(object sender, MouseEventArgs e)
-        {
-            // 检测是否在拖拽列头（鼠标按下且移动中）
-            if (e.LeftButton != MouseButtonState.Pressed)
-            {
-                if (_isColumnDragging)
-                {
-                    HideColumnDropIndicator();
-                    _isColumnDragging = false;
-                }
-                return;
-            }
-
-            Point mousePos = e.GetPosition(_headerRowPresenter);
-
-            // 检测是否移动了足够距离来显示指示器
-            if (!_isColumnDragging)
-            {
-                if (Math.Abs(mousePos.X - _lastMousePos.X) > 20 || Math.Abs(mousePos.Y - _lastMousePos.Y) > 20)
-                {
-                    _isColumnDragging = true;
-                }
-                _lastMousePos = mousePos;
-            }
-
-            // 已在拖拽状态，更新指示器
-            if (_isColumnDragging)
-            {
-                UpdateColumnDropIndicator(mousePos);
-            }
-        }
-
-        private void HeaderRowPresenter_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
-        {
-            if (_isColumnDragging)
-            {
-                HideColumnDropIndicator();
-                _isColumnDragging = false;
-
-                // 延迟保存列顺序
-                this.Dispatcher.BeginInvoke(new Action(() => SaveColumnWidths()), System.Windows.Threading.DispatcherPriority.Background);
-            }
-        }
-
-        private void HeaderRowPresenter_MouseLeave(object sender, MouseEventArgs e)
-        {
-            if (_isColumnDragging)
-            {
-                HideColumnDropIndicator();
-                _isColumnDragging = false;
-            }
-        }
-
-        private void UpdateColumnDropIndicator(Point mousePos)
-        {
-            var canvas = FindName("ColumnDropIndicatorCanvas") as Canvas;
-            var indicator = FindName("ColumnDropIndicator") as Border;
-            if (_headerRowPresenter == null || canvas == null || indicator == null) return;
-
-            // 显示指示器
-            canvas.Visibility = Visibility.Visible;
-            indicator.Visibility = Visibility.Visible;
-
-            // 找到所有可见的 GridViewColumnHeader
-            var headers = GetVisualChildren<GridViewColumnHeader>(_headerRowPresenter)
-                .Where(h => h.Visibility == Visibility.Visible && h.ActualWidth > 0 && h.Role == GridViewColumnHeaderRole.Normal)
-                .OrderBy(h => h.TranslatePoint(new Point(0, 0), _headerRowPresenter).X)
-                .ToList();
-
-            // 获取列头高度（即使列表为空也使用默认值）
-            double headerHeight = 28;
-            if (headers.Count > 0 && headers[0].ActualHeight > 0)
-            {
-                headerHeight = headers[0].ActualHeight;
-            }
-
-            // 立即设置高度，确保不会显示为点
-            double newHeight = Math.Max(24, headerHeight - 2);
-            indicator.Height = newHeight;
-
-            if (headers.Count == 0) return;
-
-            // 计算插入位置
-            double indicatorX = 0;
-            foreach (var header in headers)
-            {
-                Point headerPos = header.TranslatePoint(new Point(0, 0), _headerRowPresenter);
-                double headerCenter = headerPos.X + header.ActualWidth / 2;
-
-                if (mousePos.X < headerCenter)
-                {
-                    indicatorX = headerPos.X;
-                    break;
-                }
-                indicatorX = headerPos.X + header.ActualWidth;
-            }
-
-            // 设置指示器位置
-            Point presenterPosInCanvas = _headerRowPresenter.TranslatePoint(new Point(0, 0), canvas);
-            Canvas.SetLeft(indicator, presenterPosInCanvas.X + indicatorX - (indicator.Width / 2));
-            Canvas.SetTop(indicator, presenterPosInCanvas.Y + 1);
-        }
-
-        private void HideColumnDropIndicator()
-        {
-            var canvas = FindName("ColumnDropIndicatorCanvas") as Canvas;
-            var indicator = FindName("ColumnDropIndicator") as Border;
-            if (canvas != null) canvas.Visibility = Visibility.Collapsed;
-            if (indicator != null) indicator.Visibility = Visibility.Collapsed;
         }
 
 
@@ -824,51 +613,27 @@ namespace YiboFile.Controls
         /// </summary>
         public void SaveColumnWidths()
         {
-            if (FilesGridView == null) return;
-
             try
             {
-                var config = GetConfig();
-                var columns = FilesGridView.Columns;
-
-                // 保存列顺序
-                var columnOrder = new List<string>();
-                foreach (var column in columns)
+                var browser = FindFileBrowser();
+                if (browser != null)
                 {
-                    var tag = GetColumnTag(column);
-                    if (!string.IsNullOrEmpty(tag))
-                    {
-                        columnOrder.Add(tag);
-                    }
+                    var colService = App.ServiceProvider?.GetService(typeof(YiboFile.Services.ColumnManagement.ColumnService)) as YiboFile.Services.ColumnManagement.ColumnService;
+                    colService?.SaveColumnWidths(browser);
                 }
-                config.ColumnOrder = string.Join(",", columnOrder);
-
-                // 保存各列宽度 (非0列)
-                foreach (var column in columns)
-                {
-                    var tag = GetColumnTag(column);
-                    if (!string.IsNullOrEmpty(tag))
-                    {
-                        var width = column.ActualWidth > 0 ? column.ActualWidth : column.Width;
-
-                        if (width > 0)
-                        {
-                            switch (tag)
-                            {
-                                case "Name": config.ColNameWidth = width; break;
-                                case "Size": config.ColSizeWidth = width; break;
-                                case "Type": config.ColTypeWidth = width; break;
-                                case "ModifiedDate": config.ColModifiedDateWidth = width; break;
-                                case "CreatedTime": config.ColCreatedTimeWidth = width; break;
-                                case "Tags": config.ColTagsWidth = width; break;
-                                case "Notes": config.ColNotesWidth = width; break;
-                            }
-                        }
-                    }
-                }
-                ConfigManager.Save(config);
             }
             catch { }
+        }
+
+        private FileBrowserControl FindFileBrowser()
+        {
+            DependencyObject current = this;
+            while (current != null)
+            {
+                if (current is FileBrowserControl browser) return browser;
+                current = VisualTreeHelper.GetParent(current);
+            }
+            return null;
         }
 
         private string GetColumnTag(GridViewColumn column)

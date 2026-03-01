@@ -9,6 +9,7 @@ namespace YiboFile.Dialogs
     public partial class BackupBrowserDialog : Window
     {
         private AppConfig _config;
+        private YiboFile.Services.Config.IConfigurationService _configService;
         public BackupBrowserDialog()
         {
             InitializeComponent();
@@ -16,9 +17,10 @@ namespace YiboFile.Dialogs
             // Resolve Config and ViewModel
             if (App.ServiceProvider != null)
             {
-                _config = App.ServiceProvider.GetService<AppConfig>();
-                if (_config != null)
+                _configService = App.ServiceProvider.GetService<YiboFile.Services.Config.IConfigurationService>();
+                if (_configService != null)
                 {
+                    _config = _configService.Config;
                     this.Width = _config.BackupBrowserWidth;
                     this.Height = _config.BackupBrowserHeight;
                 }
@@ -39,11 +41,13 @@ namespace YiboFile.Dialogs
 
         private void BackupBrowserDialog_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            if (_config != null)
+            if (_configService != null)
             {
-                _config.BackupBrowserWidth = this.ActualWidth;
-                _config.BackupBrowserHeight = this.ActualHeight;
-                YiboFile.ConfigManager.Save(_config);
+                _configService.Update(c =>
+                {
+                    c.BackupBrowserWidth = this.ActualWidth;
+                    c.BackupBrowserHeight = this.ActualHeight;
+                });
             }
         }
     }

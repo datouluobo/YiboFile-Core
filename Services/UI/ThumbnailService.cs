@@ -80,7 +80,7 @@ namespace YiboFile.Services.UI
         }
 
         // 静态缓存，跨实例（Tab）共享
-        // Key: Path|ModifiedTicks, Value: BitmapSource
+        // Key: Path|Size|ModifiedTicks, Value: BitmapSource
         private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, BitmapSource> _thumbnailCache
             = new System.Collections.Concurrent.ConcurrentDictionary<string, BitmapSource>();
 
@@ -90,7 +90,7 @@ namespace YiboFile.Services.UI
         private async Task LoadThumbnailForItemAsync(FileSystemItem item, int size, CancellationToken token)
         {
             // 生成缓存Key
-            string cacheKey = $"{item.Path}|{item.ModifiedDateTime.Ticks}";
+            string cacheKey = $"{item.Path}|{size}|{item.ModifiedDateTime.Ticks}";
 
             // 1. 尝试从缓存获取
             if (_thumbnailCache.TryGetValue(cacheKey, out var cachedImage))
@@ -171,39 +171,29 @@ namespace YiboFile.Services.UI
         }
 
         // 静态占位符缓存，避免重复创建
-        private static BitmapSource _placeholderCache;
-        private static readonly object _placeholderLock = new object();
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, BitmapSource> _placeholders 
+            = new System.Collections.Concurrent.ConcurrentDictionary<int, BitmapSource>();
 
         /// <summary>
         /// 获取或创建占位符图片（线程安全且高效）
         /// </summary>
         private BitmapSource GetPlaceholder(int size)
         {
-            if (_placeholderCache != null &&
-                (int)_placeholderCache.Width == size)
+            return _placeholders.GetOrAdd(size, s => 
             {
-                return _placeholderCache;
-            }
-
-            lock (_placeholderLock)
-            {
-                if (_placeholderCache != null && (int)_placeholderCache.Width == size)
-                    return _placeholderCache;
-
-                var renderTarget = new RenderTargetBitmap(size, size, 96, 96, System.Windows.Media.PixelFormats.Pbgra32);
+                var renderTarget = new RenderTargetBitmap(s, s, 96, 96, System.Windows.Media.PixelFormats.Pbgra32);
                 var visual = new System.Windows.Media.DrawingVisual();
                 using (var context = visual.RenderOpen())
                 {
                     context.DrawRectangle(
                         new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(240, 240, 240)),
                         new System.Windows.Media.Pen(new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(220, 220, 220)), 1),
-                        new Rect(0, 0, size, size));
+                        new Rect(0, 0, s, s));
                 }
                 renderTarget.Render(visual);
                 renderTarget.Freeze();
-                _placeholderCache = renderTarget;
-                return _placeholderCache;
-            }
+                return renderTarget;
+            });
         }
 
         /// <summary>

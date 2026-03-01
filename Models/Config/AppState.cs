@@ -8,6 +8,7 @@ namespace YiboFile.Models.Config
         public WindowState Window { get; set; } = new WindowState();
         public LayoutState Layout { get; set; } = new LayoutState();
         public ColumnState Columns { get; set; } = new ColumnState();
+        public ColumnState ColumnsSecondary { get; set; } = new ColumnState();
         public SessionState Session { get; set; } = new SessionState();
         public ViewState View { get; set; } = new ViewState();
         public SidebarState Sidebar { get; set; } = new SidebarState();
@@ -68,7 +69,7 @@ namespace YiboFile.Models.Config
 
     public class ViewState
     {
-        public string FileViewMode { get; set; } = "List"; // List, Thumbnail
+        public YiboFile.Models.Enums.FileListViewMode FileViewMode { get; set; } = YiboFile.Models.Enums.FileListViewMode.List; // List, Thumbnail
         public string SortColumn { get; set; } = "Name";
         public string SortDirection { get; set; } = "Ascending";
     }

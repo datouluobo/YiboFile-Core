@@ -41,7 +41,7 @@ namespace YiboFile.ViewModels
         private Library _currentLibrary;
         private TagViewModel _currentTag;
 
-        private string _fileViewMode = "List"; // List, Grid, LargeIcon
+        private YiboFile.Models.Enums.FileListViewMode _fileViewMode = YiboFile.Models.Enums.FileListViewMode.List; // List, Grid, LargeIcon
         private bool _isLoading;
         private bool _isLoadingDisabled;
         private string _statusText = "准备就绪";
@@ -152,7 +152,7 @@ namespace YiboFile.ViewModels
             }
         }
 
-        public string FileViewMode
+        public YiboFile.Models.Enums.FileListViewMode FileViewMode
         {
             get => _fileViewMode;
             set
@@ -235,12 +235,12 @@ namespace YiboFile.ViewModels
             {
                 return FileViewMode switch
                 {
-                    "List" => "\uE8C6",       // ViewList
-                    "Compact" => "\uF0E2",    // ViewCompact
-                    "Thumbnail" => "\uE8B9",  // ViewThumbnails
-                    "Tiles" => "\uE8CA",      // ViewTiles
-                    "SmallIcons" => "\uE80A", // ViewSmallIcons
-                    "Content" => "\uE8C4",    // ViewContent
+                    YiboFile.Models.Enums.FileListViewMode.List => "\uE8C6",       // ViewList
+                    YiboFile.Models.Enums.FileListViewMode.Compact => "\uF0E2",    // ViewCompact
+                    YiboFile.Models.Enums.FileListViewMode.Thumbnail => "\uE8B9",  // ViewThumbnails
+                    YiboFile.Models.Enums.FileListViewMode.Tiles => "\uE8CA",      // ViewTiles
+                    YiboFile.Models.Enums.FileListViewMode.SmallIcons => "\uE80A", // ViewSmallIcons
+                    YiboFile.Models.Enums.FileListViewMode.Content => "\uE8C4",    // ViewContent
                     _ => "\uE8C6"
                 };
             }
@@ -310,7 +310,7 @@ namespace YiboFile.ViewModels
             _searchCoordinator = new SearchCoordinator(_messageBus, Search);
             _searchCoordinator.SetTargetPane(isSecondary ? "Secondary" : "Primary");
 
-            _fileViewMode = ConfigurationService.Instance.Get(cfg => cfg.FileViewMode) ?? "List";
+            _fileViewMode = ConfigurationService.Instance.Get(cfg => cfg.FileViewMode);
 
             // Init Path from Service if available
             if (_navigationService != null)
@@ -329,7 +329,7 @@ namespace YiboFile.ViewModels
 
         #region Internal Executes
 
-        internal void ExecuteSwitchViewMode(string mode) { if (!string.IsNullOrEmpty(mode)) FileViewMode = mode; }
+        internal void ExecuteSwitchViewMode(YiboFile.Models.Enums.FileListViewMode mode) { FileViewMode = mode; }
 
         // Navigation executes removed - handled by Commands/MessageBus direct calls or CommandSet updates
         // We will update PaneCommandSet separately, but for safety due to lingering references?

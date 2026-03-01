@@ -99,8 +99,11 @@ namespace YiboFile.Handlers
 
         private void AdjustListViewColumnWidths()
         {
-            if (_mainWindow.FileBrowser == null || _mainWindow.IsSplitterDragging) return;
-            _columnService?.AdjustListViewColumnWidths(_mainWindow.FileBrowser);
+            if (_mainWindow.IsSplitterDragging) return;
+            if (_mainWindow.FileBrowser != null) 
+                _columnService?.AdjustListViewColumnWidths(_mainWindow.FileBrowser);
+            if (_mainWindow.SecondFileBrowser != null) 
+                _columnService?.AdjustListViewColumnWidths(_mainWindow.SecondFileBrowser);
         }
 
         public void AdjustColumnWidths()

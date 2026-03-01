@@ -505,12 +505,16 @@ namespace YiboFile
 
         public void AutoSizeGridViewColumn(GridViewColumn column)
         {
-            _orchestrator.ColumnInteractionHandler?.AutoSizeGridViewColumn(column);
+            if (FileBrowser?.FilesGrid?.Columns.Contains(column) == true)
+                _orchestrator.ColumnInteractionHandler?.AutoSizeGridViewColumn(column);
+            else if (SecondFileBrowser?.FilesGrid?.Columns.Contains(column) == true)
+                _orchestrator.SecondColumnInteractionHandler?.AutoSizeGridViewColumn(column);
         }
 
         internal void EnsureHeaderContextMenuHook()
         {
             _orchestrator.ColumnInteractionHandler?.EnsureHeaderContextMenuHook();
+            _orchestrator.SecondColumnInteractionHandler?.EnsureHeaderContextMenuHook();
         }
 
         internal string GetCurrentModeKey()
@@ -521,6 +525,7 @@ namespace YiboFile
         internal void ApplyVisibleColumnsForCurrentMode()
         {
             _orchestrator.ColumnInteractionHandler?.ApplyVisibleColumnsForCurrentMode();
+            _orchestrator.SecondColumnInteractionHandler?.ApplyVisibleColumnsForCurrentMode();
         }
 
         #endregion

@@ -105,6 +105,19 @@ namespace YiboFile.Services.Config
             state.Columns.VisibleColumns["Library"] = source.VisibleColumns_Library;
             state.Columns.VisibleColumns["Tag"] = source.VisibleColumns_Tag;
 
+            // ColumnsSecondary
+            state.ColumnsSecondary.ColNameWidth = source.ColNameWidth_Secondary;
+            state.ColumnsSecondary.ColSizeWidth = source.ColSizeWidth_Secondary;
+            state.ColumnsSecondary.ColModifiedDateWidth = source.ColModifiedDateWidth_Secondary;
+            state.ColumnsSecondary.ColCreatedTimeWidth = source.ColCreatedTimeWidth_Secondary;
+            state.ColumnsSecondary.ColTypeWidth = source.ColTypeWidth_Secondary;
+            state.ColumnsSecondary.ColTagsWidth = source.ColTagsWidth_Secondary;
+            state.ColumnsSecondary.ColNotesWidth = source.ColNotesWidth_Secondary;
+            state.ColumnsSecondary.Order = source.ColumnOrder_Secondary;
+            state.ColumnsSecondary.VisibleColumns["Path"] = source.VisibleColumns_Path_Secondary;
+            state.ColumnsSecondary.VisibleColumns["Library"] = source.VisibleColumns_Library_Secondary;
+            state.ColumnsSecondary.VisibleColumns["Tag"] = source.VisibleColumns_Tag_Secondary;
+
             // Session
             state.Session.LastPath = source.LastPath;
             state.Session.LastNavigationMode = source.LastNavigationMode;
@@ -207,6 +220,19 @@ namespace YiboFile.Services.Config
             if (state.Columns.VisibleColumns.ContainsKey("Path")) config.VisibleColumns_Path = state.Columns.VisibleColumns["Path"];
             if (state.Columns.VisibleColumns.ContainsKey("Library")) config.VisibleColumns_Library = state.Columns.VisibleColumns["Library"];
             if (state.Columns.VisibleColumns.ContainsKey("Tag")) config.VisibleColumns_Tag = state.Columns.VisibleColumns["Tag"];
+
+            config.ColNameWidth_Secondary = state.ColumnsSecondary.ColNameWidth;
+            config.ColSizeWidth_Secondary = state.ColumnsSecondary.ColSizeWidth;
+            config.ColModifiedDateWidth_Secondary = state.ColumnsSecondary.ColModifiedDateWidth;
+            config.ColCreatedTimeWidth_Secondary = state.ColumnsSecondary.ColCreatedTimeWidth;
+            config.ColTypeWidth_Secondary = state.ColumnsSecondary.ColTypeWidth;
+            config.ColTagsWidth_Secondary = state.ColumnsSecondary.ColTagsWidth;
+            config.ColNotesWidth_Secondary = state.ColumnsSecondary.ColNotesWidth;
+            config.ColumnOrder_Secondary = state.ColumnsSecondary.Order;
+
+            if (state.ColumnsSecondary.VisibleColumns.ContainsKey("Path")) config.VisibleColumns_Path_Secondary = state.ColumnsSecondary.VisibleColumns["Path"];
+            if (state.ColumnsSecondary.VisibleColumns.ContainsKey("Library")) config.VisibleColumns_Library_Secondary = state.ColumnsSecondary.VisibleColumns["Library"];
+            if (state.ColumnsSecondary.VisibleColumns.ContainsKey("Tag")) config.VisibleColumns_Tag_Secondary = state.ColumnsSecondary.VisibleColumns["Tag"];
 
             config.LastPath = state.Session.LastPath;
             config.LastNavigationMode = state.Session.LastNavigationMode;

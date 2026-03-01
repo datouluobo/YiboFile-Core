@@ -112,8 +112,6 @@ namespace YiboFile.Services.Config
             _userSettings = new UserSettings();
             _appState = new AppState();
 
-            bool loadedNew = false;
-
             // 1. 尝试加载新格式
             if (_pathProvider != null)
             {
@@ -123,7 +121,6 @@ namespace YiboFile.Services.Config
                     {
                         var json = File.ReadAllText(_pathProvider.SettingsFilePath);
                         _userSettings = JsonSerializer.Deserialize<UserSettings>(json, GetJsonOptions()) ?? new UserSettings();
-                        loadedNew = true;
                     }
                     catch { }
                 }
@@ -134,37 +131,12 @@ namespace YiboFile.Services.Config
                     {
                         var json = File.ReadAllText(_pathProvider.StateFilePath);
                         _appState = JsonSerializer.Deserialize<AppState>(json, GetJsonOptions()) ?? new AppState();
-                        loadedNew = true;
                     }
                     catch { }
                 }
             }
 
-            // 2. 如果新格式未加载（或部分缺失），尝试迁移旧格式
-            // 仅当settings.json不存在时才尝试迁移，避免覆盖
-            if (!loadedNew && File.Exists(ConfigManager.GetConfigFilePath()))
-            {
-                try
-                {
-                    var legacyConfig = ConfigManager.LoadLegacy();
-                    if (legacyConfig != null)
-                    {
-                        // 映射到新模型
-                        ConfigMapper.MapToModels(legacyConfig, _userSettings, _appState);
 
-                        // 保存新格式
-                        SaveModelsToDisk();
-
-                        // 重命名旧文件 (Migrate logic)
-                        try
-                        {
-                            File.Move(ConfigManager.GetConfigFilePath(), ConfigManager.GetConfigFilePath() + ".bak", true);
-                        }
-                        catch { }
-                    }
-                }
-                catch { }
-            }
 
             // 3. 构建 AppConfig Facade
             _config = ConfigMapper.MapToAppConfig(_userSettings, _appState);

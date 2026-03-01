@@ -79,7 +79,7 @@ namespace YiboFile.ViewModels
             NavigateHomeCommand = new RelayCommand(() => _messageBus.Publish(new NavigateToPathMessage("Home", true, _pane.MyPaneId)));
             OpenParentFolderCommand = NavigateUpCommand;
 
-            SwitchViewModeCommand = new RelayCommand<string>(mode => _pane.ExecuteSwitchViewMode(mode));
+            SwitchViewModeCommand = new RelayCommand<string>(mode => { if (Enum.TryParse<YiboFile.Models.Enums.FileListViewMode>(mode, out var result)) _pane.ExecuteSwitchViewMode(result); });
 
             PropertiesCommand = new RelayCommand(() =>
             {

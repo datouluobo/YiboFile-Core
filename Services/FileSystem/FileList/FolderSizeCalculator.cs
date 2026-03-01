@@ -15,9 +15,15 @@ namespace YiboFile.Services.FileList
     /// </summary>
     public class FolderSizeCalculator
     {
-        private readonly SemaphoreSlim _calculationSemaphore = new SemaphoreSlim(1, 1);
+        private readonly SemaphoreSlim _calculationSemaphore = new SemaphoreSlim(4, 4);
         private readonly Queue<FileSystemItem> _pendingFolders = new Queue<FileSystemItem>();
         private readonly object _queueLock = new object();
+        private readonly FolderSizeCalculationService _calculationService;
+
+        public FolderSizeCalculator(FolderSizeCalculationService calculationService = null)
+        {
+            _calculationService = calculationService ?? new FolderSizeCalculationService(4);
+        }
 
         /// <summary>
         /// 计算文件夹大小，包含前几个文件夹的延迟并发计算与剩余队列处理。
@@ -172,7 +178,7 @@ namespace YiboFile.Services.FileList
             {
                 var sw = Stopwatch.StartNew();
 
-                var size = await Task.Run(() => CalculateDirectorySize(item.Path, cancellationToken), cancellationToken);
+                var size = await Task.Run(() => _calculationService.CalculateDirectorySizeOptimized(item.Path, cancellationToken), cancellationToken);
 
                 if (cancellationToken.IsCancellationRequested)
                 {
@@ -212,142 +218,6 @@ namespace YiboFile.Services.FileList
             {
                 _calculationSemaphore.Release();
             }
-        }
-
-        private long CalculateDirectorySize(string directory, CancellationToken cancellationToken)
-        {
-            try
-            {
-                var dirInfo = new DirectoryInfo(directory);
-                if (!dirInfo.Exists)
-                {
-                    return 0;
-                }
-
-                var stopwatch = Stopwatch.StartNew();
-                const int maxDepth = 20;
-                const int maxEntriesPerLevel = 5000;
-                const int maxTimeMs = 10000;
-
-                // Pre-fetch all subfolder sizes for this root
-                // This ONE query replaces potentially thousands of GetFolderSize calls
-                // Note: This fetches sizes for the entire tree under 'directory'
-                var folderSizeCache = DatabaseManager.GetAllSubFolderSizes(directory);
-
-                return CalculateDirectorySizeRecursive(
-                    dirInfo,
-                    0,
-                    maxDepth,
-                    maxEntriesPerLevel,
-                    stopwatch,
-                    maxTimeMs,
-                    cancellationToken,
-                    folderSizeCache);
-            }
-            catch
-            {
-                return 0;
-            }
-        }
-
-        private long CalculateDirectorySizeRecursive(
-            DirectoryInfo dirInfo,
-            int currentDepth,
-            int maxDepth,
-            int maxEntriesPerLevel,
-            Stopwatch stopwatch,
-            int maxTimeMs,
-            CancellationToken cancellationToken,
-            Dictionary<string, (long SizeBytes, DateTime LastModified)> folderSizeCache)
-        {
-            if (currentDepth >= maxDepth || cancellationToken.IsCancellationRequested)
-            {
-                return 0;
-            }
-
-            // 黑名单：跳过已知的系统受保护文件夹，减少异常抛出和扫描开销
-            var dirName = dirInfo.Name;
-            if (dirName.Equals("System Volume Information", StringComparison.OrdinalIgnoreCase) ||
-                dirName.Equals("$RECYCLE.BIN", StringComparison.OrdinalIgnoreCase) ||
-                dirName.Equals("$Recycle.Bin", StringComparison.OrdinalIgnoreCase))
-            {
-                return 0;
-            }
-
-            // 检查是否为符号链接或挂载点，避免循环引用
-            if ((dirInfo.Attributes & FileAttributes.ReparsePoint) != 0)
-            {
-                return 0;
-            }
-
-            if (stopwatch.ElapsedMilliseconds > maxTimeMs)
-            {
-                return 0;
-            }
-
-            long size = 0;
-
-            try
-            {
-                var options = new EnumerationOptions
-                {
-                    IgnoreInaccessible = true,
-                    RecurseSubdirectories = false,
-                    ReturnSpecialDirectories = false
-                };
-
-                // 使用 EnumerateFiles 减少大目录的内存占用
-                foreach (var file in dirInfo.EnumerateFiles("*", options))
-                {
-                    if (cancellationToken.IsCancellationRequested || stopwatch.ElapsedMilliseconds > maxTimeMs)
-                    {
-                        break;
-                    }
-
-                    size += file.Length;
-                }
-
-                // Use EnumerateDirectories to reduce memory usage
-                foreach (var subDir in dirInfo.EnumerateDirectories("*", options))
-                {
-                    if (cancellationToken.IsCancellationRequested || stopwatch.ElapsedMilliseconds > maxTimeMs)
-                    {
-                        break;
-                    }
-
-                    // Check cache first
-                    if (folderSizeCache != null && folderSizeCache.TryGetValue(subDir.FullName, out var cached))
-                    {
-                        // Verify timestamp to ensure cache is fresh
-                        // We do this check here because we have the actual subDir info essentially for free (from enumeration)
-                        // Wait, subDir is DirectoryInfo, accessing LastWriteTime causes IO? 
-                        // EnumerateDirectories returns DirectoryInfo which *should* have loaded attributes.
-                        // .NET Core usually caches this info from the WIN32_FIND_DATA
-                        if (subDir.LastWriteTime <= cached.LastModified)
-                        {
-                            size += cached.SizeBytes;
-                            continue;
-                        }
-                    }
-
-                    // If not in cache or stale, recurse
-                    size += CalculateDirectorySizeRecursive(
-                        subDir,
-                        currentDepth + 1,
-                        maxDepth,
-                        maxEntriesPerLevel,
-                        stopwatch,
-                        maxTimeMs,
-                        cancellationToken,
-                        folderSizeCache);
-                }
-            }
-            catch
-            {
-                return size;
-            }
-
-            return size;
         }
     }
 }

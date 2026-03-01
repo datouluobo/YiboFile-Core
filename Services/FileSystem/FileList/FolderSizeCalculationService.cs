@@ -28,13 +28,8 @@ namespace YiboFile.Services.FileList
             _cancellationSource = new CancellationTokenSource();
         }
 
-        /// <summary>
-        /// 计算目录大小（递归）
-        /// </summary>
-        /// <param name="directory">目录路径</param>
-        /// <param name="cancellationToken">取消令牌</param>
-        /// <returns>目录大小（字节）</returns>
-        public long CalculateDirectorySize(string directory, CancellationToken cancellationToken = default)
+
+        public long CalculateDirectorySizeOptimized(string directory, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -44,54 +39,23 @@ namespace YiboFile.Services.FileList
                     return 0;
                 }
 
-                long size = 0;
+                var stopwatch = Stopwatch.StartNew();
+                const int maxDepth = 20;
+                const int maxEntriesPerLevel = 5000;
+                const int maxTimeMs = 10000;
 
-                // 计算文件大小
-                try
-                {
-                    var files = dirInfo.EnumerateFiles("*", SearchOption.TopDirectoryOnly);
-                    foreach (var file in files)
-                    {
-                        if (cancellationToken.IsCancellationRequested)
-                        {
-                            return size;
-                        }
+                // 核心特性：预取整颗缓存树以避免目录递归下的 N+1 次数据库调用
+                var folderSizeCache = DatabaseManager.GetAllSubFolderSizes(directory);
 
-                        try
-                        {
-                            size += file.Length;
-                        }
-                        catch { }
-                    }
-                }
-                catch { }
-
-                // 计算子目录大小（使用缓存）
-                try
-                {
-                    var subDirs = dirInfo.EnumerateDirectories("*", SearchOption.TopDirectoryOnly);
-                    foreach (var subDir in subDirs)
-                    {
-                        if (cancellationToken.IsCancellationRequested)
-                        {
-                            return size;
-                        }
-
-                        var cached = DatabaseManager.GetFolderSize(subDir.FullName);
-                        if (cached.HasValue)
-                        {
-                            size += cached.Value;
-                        }
-                        else
-                        {
-                            // 递归计算（限制深度避免性能问题）
-                            size += CalculateDirectorySize(subDir.FullName, cancellationToken);
-                        }
-                    }
-                }
-                catch { }
-
-                return size;
+                return CalculateDirectorySizeRecursiveOptimized(
+                    dirInfo,
+                    0,
+                    maxDepth,
+                    maxEntriesPerLevel,
+                    stopwatch,
+                    maxTimeMs,
+                    cancellationToken,
+                    folderSizeCache);
             }
             catch
             {
@@ -100,43 +64,8 @@ namespace YiboFile.Services.FileList
         }
 
         /// <summary>
-        /// 计算目录大小（优化版本，包含超时和深度限制）
-        /// </summary>
-        /// <param name="directory">目录路径</param>
-        /// <param name="cancellationToken">取消令牌</param>
-        /// <returns>目录大小（字节）</returns>
-        public long CalculateDirectorySizeOptimized(string directory, CancellationToken cancellationToken = default)
-        {
-            long size = 0;
-            try
-            {
-                var dirInfo = new DirectoryInfo(directory);
-                if (!dirInfo.Exists) return size;
-
-                var startTime = Stopwatch.StartNew();
-                int maxTimeMs = 10000; // 10秒超时
-                int maxDepth = 20; // 限制递归深度
-                int maxFilesPerLevel = 5000; // 每层最多计算5000个文件
-
-                // 使用递归方法计算，包含所有子文件夹的大小
-                size = CalculateDirectorySizeRecursiveOptimized(
-                    dirInfo, 0, maxDepth, maxFilesPerLevel, startTime, maxTimeMs, cancellationToken);
-            }
-            catch { }
-            return size;
-        }
-
-        /// <summary>
         /// 递归计算文件夹大小（优化版本，包含所有子文件夹）
         /// </summary>
-        /// <param name="dirInfo">目录信息</param>
-        /// <param name="currentDepth">当前深度</param>
-        /// <param name="maxDepth">最大深度</param>
-        /// <param name="maxFilesPerLevel">每层最大文件数</param>
-        /// <param name="startTime">开始时间</param>
-        /// <param name="maxTimeMs">最大时间（毫秒）</param>
-        /// <param name="cancellationToken">取消令牌</param>
-        /// <returns>目录大小（字节）</returns>
         public long CalculateDirectorySizeRecursiveOptimized(
             DirectoryInfo dirInfo,
             int currentDepth,
@@ -144,164 +73,91 @@ namespace YiboFile.Services.FileList
             int maxFilesPerLevel,
             Stopwatch startTime,
             int maxTimeMs,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            Dictionary<string, (long SizeBytes, DateTime LastModified)> folderSizeCache = null)
         {
             long size = 0;
 
             if (currentDepth >= maxDepth || cancellationToken.IsCancellationRequested)
                 return size;
 
-            // 超时检查
             if (startTime.ElapsedMilliseconds > maxTimeMs)
                 return size;
 
-            try
+            // 黑名单：跳过已知的系统受保护文件夹，减少异常抛出和扫描开销
+            var dirName = dirInfo.Name;
+            if (dirName.Equals("System Volume Information", StringComparison.OrdinalIgnoreCase) ||
+                dirName.Equals("$RECYCLE.BIN", StringComparison.OrdinalIgnoreCase) ||
+                dirName.Equals("$Recycle.Bin", StringComparison.OrdinalIgnoreCase))
             {
-                // 先尝试从数据库读取子文件夹的缓存大小（如果存在）
-                // 这样可以避免重复计算已缓存的子文件夹
-                var subDirs = dirInfo.EnumerateDirectories("*", SearchOption.TopDirectoryOnly);
-                var subDirsToCalculate = new List<DirectoryInfo>();
-                long cachedSubDirSize = 0;
-
-                foreach (var subDir in subDirs)
-                {
-                    if (cancellationToken.IsCancellationRequested) return size;
-                    if (startTime.ElapsedMilliseconds > maxTimeMs) return size;
-
-                    // 尝试从数据库读取缓存
-                    var cachedSize = DatabaseManager.GetFolderSize(subDir.FullName);
-                    if (cachedSize.HasValue)
-                    {
-                        cachedSubDirSize += cachedSize.Value;
-                    }
-                    else
-                    {
-                        subDirsToCalculate.Add(subDir);
-                    }
-                }
-
-                size += cachedSubDirSize;
-
-                // 计算当前目录的直接文件
-                int fileCount = 0;
-                try
-                {
-                    var files = dirInfo.EnumerateFiles("*", SearchOption.TopDirectoryOnly);
-                    foreach (var file in files)
-                    {
-                        if (cancellationToken.IsCancellationRequested) return size;
-                        if (startTime.ElapsedMilliseconds > maxTimeMs) return size;
-                        if (fileCount >= maxFilesPerLevel) break; // 超过限制，停止计算
-
-                        // 每处理100个文件检查一次取消并让出CPU
-                        fileCount++;
-                        if (fileCount % 100 == 0)
-                        {
-                            if (cancellationToken.IsCancellationRequested) return size;
-                            if (startTime.ElapsedMilliseconds > maxTimeMs) return size;
-                        }
-
-                        try
-                        {
-                            size += file.Length;
-                        }
-                        catch { }
-                    }
-                }
-                catch { }
-
-                // 递归计算子目录（只计算没有缓存的）
-                foreach (var subDir in subDirsToCalculate)
-                {
-                    if (cancellationToken.IsCancellationRequested) return size;
-                    if (startTime.ElapsedMilliseconds > maxTimeMs) return size;
-
-                    try
-                    {
-                        long subDirSize = CalculateDirectorySizeRecursiveOptimized(
-                            subDir,
-                            currentDepth + 1,
-                            maxDepth,
-                            maxFilesPerLevel,
-                            startTime,
-                            maxTimeMs,
-                            cancellationToken);
-                        size += subDirSize;
-
-                        // 将子文件夹的大小缓存到数据库（异步，不阻塞）
-                        if (subDirSize > 0)
-                        {
-                            Task.Run(() =>
-                            {
-                                try
-                                {
-                                    DatabaseManager.SetFolderSize(subDir.FullName, subDirSize);
-                                }
-                                catch { }
-                            });
-                        }
-                    }
-                    catch { }
-
-                    // 每个子文件夹之间延迟，避免CPU占用过高
-                    if (currentDepth < 3) // 只在浅层处理，深层不延迟以加快速度
-                    {
-                    }
-                }
+                return 0;
             }
-            catch { }
 
-            return size;
-        }
-
-        /// <summary>
-        /// 递归计算文件夹大小（基础版本）
-        /// </summary>
-        /// <param name="dirInfo">目录信息</param>
-        /// <param name="currentDepth">当前深度</param>
-        /// <param name="maxDepth">最大深度</param>
-        /// <param name="cancellationToken">取消令牌</param>
-        /// <returns>目录大小（字节）</returns>
-        public long CalculateDirectorySizeRecursive(
-            DirectoryInfo dirInfo,
-            int currentDepth,
-            int maxDepth,
-            CancellationToken cancellationToken)
-        {
-            long size = 0;
-            if (currentDepth >= maxDepth || cancellationToken.IsCancellationRequested) return size;
+            // 检查是否为符号链接或挂载点
+            if ((dirInfo.Attributes & FileAttributes.ReparsePoint) != 0)
+            {
+                return 0;
+            }
 
             try
             {
+                var options = new EnumerationOptions
+                {
+                    IgnoreInaccessible = true,
+                    RecurseSubdirectories = false,
+                    ReturnSpecialDirectories = false
+                };
+
                 // 计算当前目录的直接文件
                 int fileCount = 0;
-                foreach (var file in dirInfo.EnumerateFiles("*", SearchOption.TopDirectoryOnly))
+                foreach (var file in dirInfo.EnumerateFiles("*", options))
                 {
-                    if (cancellationToken.IsCancellationRequested) return size;
+                    if (cancellationToken.IsCancellationRequested || startTime.ElapsedMilliseconds > maxTimeMs) return size;
+                    if (fileCount >= maxFilesPerLevel) break; 
 
-                    // 每处理20个文件检查一次取消，并让出CPU时间片（增加频率减少CPU占用）
+                    size += file.Length;
                     fileCount++;
-                    if (fileCount % 20 == 0)
-                    {
-                        if (cancellationToken.IsCancellationRequested) return size;
-                    }
-
-                    try
-                    {
-                        size += file.Length;
-                    }
-                    catch { }
                 }
 
-                // 递归计算子目录（限制深度）
-                foreach (var subDir in dirInfo.EnumerateDirectories("*", SearchOption.TopDirectoryOnly))
+                // 递归计算子目录
+                foreach (var subDir in dirInfo.EnumerateDirectories("*", options))
                 {
-                    if (cancellationToken.IsCancellationRequested) return size;
-                    try
+                    if (cancellationToken.IsCancellationRequested || startTime.ElapsedMilliseconds > maxTimeMs) return size;
+
+                    // 尝试全量预取树缓存匹配
+                    if (folderSizeCache != null && folderSizeCache.TryGetValue(subDir.FullName, out var cached))
                     {
-                        size += CalculateDirectorySizeRecursive(subDir, currentDepth + 1, maxDepth, cancellationToken);
+                        if (subDir.LastWriteTime <= cached.LastModified)
+                        {
+                            size += cached.SizeBytes;
+                            continue;
+                        }
                     }
-                    catch { }
+
+                    long subDirSize = CalculateDirectorySizeRecursiveOptimized(
+                        subDir,
+                        currentDepth + 1,
+                        maxDepth,
+                        maxFilesPerLevel,
+                        startTime,
+                        maxTimeMs,
+                        cancellationToken,
+                        folderSizeCache);
+
+                    size += subDirSize;
+
+                    // 将子文件夹的大小缓存到数据库（异步，不阻塞），只在浅层操作防止炸毁 I/O
+                    if (subDirSize > 0 && currentDepth <= 3)
+                    {
+                        Task.Run(() =>
+                        {
+                            try
+                            {
+                                DatabaseManager.SetFolderSize(subDir.FullName, subDirSize);
+                            }
+                            catch { }
+                        });
+                    }
                 }
             }
             catch { }
