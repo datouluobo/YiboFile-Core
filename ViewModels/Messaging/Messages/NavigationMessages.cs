@@ -45,14 +45,52 @@ namespace YiboFile.ViewModels.Messaging.Messages
     public record RequestNavigationModeMessage(string Mode);
 
     /// <summary>
-    /// 请求切换布局模式
+    /// 请求切换布局模式（系统/特殊页使用）
     /// </summary>
     public record RequestLayoutModeMessage(string Mode);
 
     /// <summary>
+    /// 请求切换左侧导航面板显隐
+    /// </summary>
+    public record RequestSidebarToggleMessage();
+
+    /// <summary>
+    /// 导航栏显隐状态变更消息
+    /// </summary>
+    public class SidebarVisibilityChangedMessage
+    {
+        public bool IsHidden { get; }
+        public SidebarVisibilityChangedMessage(bool isHidden) { IsHidden = isHidden; }
+    }
+
+    /// <summary>
     /// 请求切换双列表模式
     /// </summary>
-    public record RequestDualListToggleMessage();
+    public record RequestDualPaneToggleMessage();
+
+    /// <summary>
+    /// 面板布局模式枚举：单栏 / 双栏 / 预览
+    /// </summary>
+    public enum PaneMode
+    {
+        Single,     // 单栏（仅主面板）
+        DualPane,   // 双栏（左右两个文件列表）
+        Preview     // 预览（焦点面板文件列表 + 非焦点面板显示预览）
+    }
+
+    /// <summary>
+    /// 请求面板布局模式循环切换（三态：单栏→双栏→预览→单栏）
+    /// </summary>
+    public record RequestPaneModeToggleMessage();
+
+    /// <summary>
+    /// 面板布局模式变更通知
+    /// </summary>
+    public class PaneModeChangedMessage
+    {
+        public PaneMode Mode { get; }
+        public PaneModeChangedMessage(PaneMode mode) { Mode = mode; }
+    }
 
     /// <summary>
     /// 请求后退

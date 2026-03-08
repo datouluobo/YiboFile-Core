@@ -24,11 +24,13 @@ namespace YiboFile.Controllers
             // 订阅请求消息
             _messageBus.Subscribe<RequestNavigationModeMessage>(OnNavigationModeRequested);
             _messageBus.Subscribe<RequestLayoutModeMessage>(OnLayoutModeRequested);
-            _messageBus.Subscribe<RequestDualListToggleMessage>(OnDualListToggleRequested);
+            _messageBus.Subscribe<RequestDualPaneToggleMessage>(OnDualPaneToggleRequested);
 
             // 监听来自 LayoutModule 的状态变更通知以同步 VM
             _messageBus.Subscribe<LayoutModeChangedMessage>(m => _viewModel.ActiveLayoutMode = m.Mode);
-            _messageBus.Subscribe<DualListModeChangedMessage>(m => _viewModel.IsDualListMode = m.IsEnabled);
+            _messageBus.Subscribe<DualPaneModeChangedMessage>(m => _viewModel.IsDualPaneMode = m.IsEnabled);
+            _messageBus.Subscribe<PaneModeChangedMessage>(m => _viewModel.CurrentPaneMode = m.Mode);
+            _messageBus.Subscribe<SidebarVisibilityChangedMessage>(m => _viewModel.IsLeftPanelCollapsed = m.IsHidden);
         }
 
         /// <summary>
@@ -97,16 +99,16 @@ namespace YiboFile.Controllers
         /// <summary>
         /// 处理双列表模式切换请求
         /// </summary>
-        private void OnDualListToggleRequested(RequestDualListToggleMessage message)
+        private void OnDualPaneToggleRequested(RequestDualPaneToggleMessage message)
         {
             // 业务逻辑：切换状态
-            bool newState = !_viewModel.IsDualListMode;
+            bool newState = !_viewModel.IsDualPaneMode;
 
             // ✅ Controller 更新 ViewModel 状态
-            _viewModel.IsDualListMode = newState;
+            _viewModel.IsDualPaneMode = newState;
 
-            // ❌ 不再发布 DualListModeToggledMessage，因为 LayoutModule 已经处理并发布了
-            // _messageBus.Publish(new DualListModeToggledMessage(newState));
+            // ❌ 不再发布 DualPaneModeToggledMessage，因为 LayoutModule 已经处理并发布了
+            // _messageBus.Publish(new DualPaneModeToggledMessage(newState));
 
             System.Diagnostics.Debug.WriteLine($"[NavigationRailCoordinator] Dual list mode toggled in VM: {newState}");
         }

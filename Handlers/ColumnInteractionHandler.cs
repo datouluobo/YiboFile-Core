@@ -231,59 +231,19 @@ namespace YiboFile.Handlers
         {
             if (isVisible)
             {
-                // 显示列
+                // 显示列：从 ColumnService 解析对应面板的保存宽度
                 if (column.Width <= 1)
                 {
-                    var cfg = ConfigurationService.Instance.Config;
-                    double w = tag switch
-                    {
-                        "Name" => cfg.ColNameWidth,
-                        "Size" => cfg.ColSizeWidth,
-                        "Type" => cfg.ColTypeWidth,
-                        "ModifiedDate" => cfg.ColModifiedDateWidth,
-                        "CreatedTime" => cfg.ColCreatedTimeWidth,
-                        "Tags" => cfg.ColTagsWidth,
-                        "Notes" => cfg.ColNotesWidth,
-                        _ => column.ActualWidth > 0 ? column.ActualWidth : 100
-                    };
-
+                    double w = _columnService.ResolveColumnWidth(tag, column, _fileBrowser);
                     column.Width = Math.Max(40, w);
                 }
-
             }
             else
             {
-                // Save current width before hiding so we can restore it later
+                // 隐藏前保存当前宽度（通过 ColumnService → PaneState，面板无关）
                 if (column.ActualWidth > 1)
                 {
-                    double width = column.ActualWidth;
-                    bool isSec = IsSecondaryPane();
-                    if (isSec)
-                    {
-                        switch (tag)
-                        {
-                            case "Name": ConfigurationService.Instance.Set(c => c.ColNameWidth_Secondary, width); break;
-                            case "Size": ConfigurationService.Instance.Set(c => c.ColSizeWidth_Secondary, width); break;
-                            case "Type": ConfigurationService.Instance.Set(c => c.ColTypeWidth_Secondary, width); break;
-                            case "ModifiedDate": ConfigurationService.Instance.Set(c => c.ColModifiedDateWidth_Secondary, width); break;
-                            case "CreatedTime": ConfigurationService.Instance.Set(c => c.ColCreatedTimeWidth_Secondary, width); break;
-                            case "Tags": ConfigurationService.Instance.Set(c => c.ColTagsWidth_Secondary, width); break;
-                            case "Notes": ConfigurationService.Instance.Set(c => c.ColNotesWidth_Secondary, width); break;
-                        }
-                    }
-                    else
-                    {
-                        switch (tag)
-                        {
-                            case "Name": ConfigurationService.Instance.Set(c => c.ColNameWidth, width); break;
-                            case "Size": ConfigurationService.Instance.Set(c => c.ColSizeWidth, width); break;
-                            case "Type": ConfigurationService.Instance.Set(c => c.ColTypeWidth, width); break;
-                            case "ModifiedDate": ConfigurationService.Instance.Set(c => c.ColModifiedDateWidth, width); break;
-                            case "CreatedTime": ConfigurationService.Instance.Set(c => c.ColCreatedTimeWidth, width); break;
-                            case "Tags": ConfigurationService.Instance.Set(c => c.ColTagsWidth, width); break;
-                            case "Notes": ConfigurationService.Instance.Set(c => c.ColNotesWidth, width); break;
-                        }
-                    }
+                    _columnService.RememberColumnWidth(tag, column, _fileBrowser);
                 }
 
                 // 隐藏列
@@ -554,11 +514,6 @@ namespace YiboFile.Handlers
         }
 
         // --- 辅助方法 ---
-
-        private bool IsSecondaryPane()
-        {
-            return (_fileBrowser?.DataContext as YiboFile.ViewModels.PaneViewModel)?.IsSecondary == true;
-        }
 
         private string GetVisibleColumnsForCurrentMode()
         {

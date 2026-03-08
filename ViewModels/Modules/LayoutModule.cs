@@ -12,10 +12,11 @@ namespace YiboFile.ViewModels.Modules
     public class LayoutModule : ModuleBase
     {
         private string _currentLayoutMode = "Work"; // Default
-        private bool _isDualListMode;
+        private bool _isDualPaneMode;
         private bool _isSecondPaneFocused;
         private bool _isLeftPanelCollapsed;
         private bool _isRightPanelCollapsed;
+        private PaneMode _currentPaneMode = PaneMode.Single;
 
         /// <summary>
         /// 进入备份管理等强制布局模式的特殊标签页之前，保存的原始布局模式。
@@ -25,7 +26,7 @@ namespace YiboFile.ViewModels.Modules
         /// <summary>
         /// 进入特殊标签页之前的双列表模式状态。
         /// </summary>
-        private bool _savedDualListModeBeforeSpecialTab;
+        private bool _savedDualPaneModeBeforeSpecialTab;
 
         public override string Name => "LayoutModule";
 
@@ -56,19 +57,19 @@ namespace YiboFile.ViewModels.Modules
         /// <summary>
         /// 是否为双列表模式
         /// </summary>
-        public bool IsDualListMode
+        public bool IsDualPaneMode
         {
-            get => _isDualListMode;
+            get => _isDualPaneMode;
             internal set
             {
-                if (_isDualListMode != value)
+                if (_isDualPaneMode != value)
                 {
-                    _isDualListMode = value;
-                    Publish(new DualListModeChangedMessage(_isDualListMode));
-                    OnPropertyChanged(nameof(IsDualListEffectivelyVisible));
+                    _isDualPaneMode = value;
+                    Publish(new DualPaneModeChangedMessage(_isDualPaneMode));
+                    OnPropertyChanged(nameof(IsDualPaneEffectivelyVisible));
 
                     // 如果开启双列表，确保右侧面板是不折叠的（让出空间给副列表）
-                    if (_isDualListMode)
+                    if (_isDualPaneMode)
                     {
                         IsRightPanelCollapsed = false;
                     }
@@ -81,7 +82,7 @@ namespace YiboFile.ViewModels.Modules
                     // 持久化状态
                     if (!_isTemporaryLayoutSwitch)
                     {
-                        YiboFile.Services.Config.ConfigurationService.Instance.Set(c => c.IsDualListMode, value);
+                        YiboFile.Services.Config.ConfigurationService.Instance.Set(c => c.IsDualPaneMode, value);
                         YiboFile.Services.Config.ConfigurationService.Instance.SaveNow();
                     }
                 }
@@ -98,6 +99,7 @@ namespace YiboFile.ViewModels.Modules
             {
                 if (SetProperty(ref _isLeftPanelCollapsed, value))
                 {
+                    Publish(new SidebarVisibilityChangedMessage(value));
                     if (!_isTemporaryLayoutSwitch)
                     {
                         YiboFile.Services.Config.ConfigurationService.Instance.Set(c => c.IsSidebarCollapsed, value);
@@ -132,7 +134,31 @@ namespace YiboFile.ViewModels.Modules
         /// <summary>
         /// 副列表实际可见性（考虑双列表开关）
         /// </summary>
-        public bool IsDualListEffectivelyVisible => IsDualListMode;
+        public bool IsDualPaneEffectivelyVisible => IsDualPaneMode;
+
+        /// <summary>
+        /// 当前面板布局模式（三态：Single / DualPane / Preview）
+        /// </summary>
+        public PaneMode CurrentPaneMode
+        {
+            get => _currentPaneMode;
+            set
+            {
+                if (_currentPaneMode != value)
+                {
+                    _currentPaneMode = value;
+                    OnPropertyChanged(nameof(CurrentPaneMode));
+                    Publish(new PaneModeChangedMessage(value));
+
+                    // 持久化
+                    if (!_isTemporaryLayoutSwitch)
+                    {
+                        YiboFile.Services.Config.ConfigurationService.Instance.Set(c => c.PaneModeStr, value.ToString());
+                        YiboFile.Services.Config.ConfigurationService.Instance.SaveNow();
+                    }
+                }
+            }
+        }
 
         /// <summary>
         /// 是否为副面板获得焦点 (双列表模式)
@@ -152,7 +178,8 @@ namespace YiboFile.ViewModels.Modules
         }
 
         public ICommand SwitchLayoutModeCommand { get; private set; }
-        public ICommand ToggleDualListModeCommand { get; private set; }
+        public ICommand ToggleDualPaneModeCommand { get; private set; }
+        public ICommand CyclePaneModeCommand { get; private set; }
         public ICommand SwitchFocusedPaneCommand { get; private set; }
 
         public LayoutModule(IMessageBus messageBus) : base(messageBus)
@@ -163,17 +190,18 @@ namespace YiboFile.ViewModels.Modules
         private void InitializeCommands()
         {
             SwitchLayoutModeCommand = new RelayCommand<string>(mode => SwitchLayoutMode(mode));
-            ToggleDualListModeCommand = new RelayCommand(() => ToggleDualListMode());
+            ToggleDualPaneModeCommand = new RelayCommand(() => ToggleDualPaneMode());
+            CyclePaneModeCommand = new RelayCommand(() => CyclePaneMode());
             SwitchFocusedPaneCommand = new RelayCommand(() => SwitchFocusedPane());
         }
 
         /// <summary>
         /// 初始化状态（不发布消息）
         /// </summary>
-        public void InitializeState(string layoutMode, bool isDualListMode, bool isSecondPaneFocused, bool isLeftCollapsed, bool isRightCollapsed)
+        public void InitializeState(string layoutMode, bool isDualPaneMode, bool isSecondPaneFocused, bool isLeftCollapsed, bool isRightCollapsed)
         {
             CurrentLayoutMode = layoutMode;
-            IsDualListMode = isDualListMode;
+            IsDualPaneMode = isDualPaneMode;
             IsSecondPaneFocused = isSecondPaneFocused;
             IsLeftPanelCollapsed = isLeftCollapsed;
             IsRightPanelCollapsed = isRightCollapsed;
@@ -184,7 +212,7 @@ namespace YiboFile.ViewModels.Modules
             // 订阅焦点切换请求（外部请求切换焦点时触发）
             Subscribe<SwitchFocusedPaneMessage>(m =>
             {
-                if (IsDualListMode)
+                if (IsDualPaneMode)
                 {
                     // 直接修改内部字段并发布通知，避免递归
                     _isSecondPaneFocused = !_isSecondPaneFocused;
@@ -197,7 +225,7 @@ namespace YiboFile.ViewModels.Modules
                 // Only allow setting focus if dual list mode is active, OR if we want to allow setting primary (0) always?
                 // Actually even in Single mode, Primary is focused.
                 // If Single mode and request Secondary, ignore.
-                if (!IsDualListMode && m.IsSecondPane) return;
+                if (!IsDualPaneMode && m.IsSecondPane) return;
 
                 if (_isSecondPaneFocused != m.IsSecondPane)
                 {
@@ -208,7 +236,9 @@ namespace YiboFile.ViewModels.Modules
 
             // 订阅布局变更请求
             Subscribe<RequestLayoutModeMessage>(m => SwitchLayoutMode(m.Mode));
-            Subscribe<RequestDualListToggleMessage>(m => ToggleDualListMode());
+            Subscribe<RequestSidebarToggleMessage>(m => IsLeftPanelCollapsed = !IsLeftPanelCollapsed);
+            Subscribe<RequestDualPaneToggleMessage>(m => ToggleDualPaneMode());
+            Subscribe<RequestPaneModeToggleMessage>(m => CyclePaneMode());
 
         // 导航模式变更（现已无特殊处理）
             Subscribe<NavigationModeChangedMessage>(m =>
@@ -230,16 +260,16 @@ namespace YiboFile.ViewModels.Modules
                     if (_savedLayoutModeBeforeSpecialTab == null)
                     {
                         _savedLayoutModeBeforeSpecialTab = _currentLayoutMode;
-                        _savedDualListModeBeforeSpecialTab = _isDualListMode;
-                        Services.Core.FileLogger.Log($"[LayoutModule] 进入系统页 → 保存布局 '{_currentLayoutMode}', 双栏={_isDualListMode}");
+                        _savedDualPaneModeBeforeSpecialTab = _isDualPaneMode;
+                        Services.Core.FileLogger.Log($"[LayoutModule] 进入系统页 → 保存布局 '{_currentLayoutMode}', 双栏={_isDualPaneMode}");
                     }
                     
                     _isTemporaryLayoutSwitch = true;
                     try
                     {
-                        if (IsDualListMode)
+                        if (IsDualPaneMode)
                         {
-                            ToggleDualListMode(false);
+                            ToggleDualPaneMode(false);
                         }
                         SwitchLayoutMode("Work", true);
                     }
@@ -252,16 +282,16 @@ namespace YiboFile.ViewModels.Modules
                 {
                     // 离开特殊标签页：恢复之前保存的布局模式和双列表状态
                     var savedMode = _savedLayoutModeBeforeSpecialTab;
-                    var savedDualList = _savedDualListModeBeforeSpecialTab;
+                    var savedDualPane = _savedDualPaneModeBeforeSpecialTab;
                     _savedLayoutModeBeforeSpecialTab = null;
-                    _savedDualListModeBeforeSpecialTab = false;
-                    Services.Core.FileLogger.Log($"[LayoutModule] 离开系统页 → 恢复布局 '{savedMode}', 双栏={savedDualList} (当前: '{_currentLayoutMode}')");
+                    _savedDualPaneModeBeforeSpecialTab = false;
+                    Services.Core.FileLogger.Log($"[LayoutModule] 离开系统页 → 恢复布局 '{savedMode}', 双栏={savedDualPane} (当前: '{_currentLayoutMode}')");
                     // 先恢复布局模式
                     ForceApplyLayoutMode(savedMode);
                     // 再恢复双列表模式（如果之前是开启的）
-                    if (savedDualList && !_isDualListMode)
+                    if (savedDualPane && !_isDualPaneMode)
                     {
-                        ToggleDualListMode(true);
+                        ToggleDualPaneMode(true);
                     }
                 }
             });
@@ -312,7 +342,7 @@ namespace YiboFile.ViewModels.Modules
         private bool ShouldRightPanelCollapse()
         {
             // 双列表模式下，右侧列始终展开（显示副文件列表）
-            if (_isDualListMode) return false;
+            if (_isDualPaneMode) return false;
 
             // Full 模式下，仅当预览面板启用时展开
             if (_currentLayoutMode == "Full")
@@ -386,9 +416,57 @@ namespace YiboFile.ViewModels.Modules
         /// <summary>
         /// 切换双列表模式
         /// </summary>
-        public void ToggleDualListMode(bool? forcedValue = null)
+        public void ToggleDualPaneMode(bool? forcedValue = null)
         {
-            IsDualListMode = forcedValue ?? !IsDualListMode;
+            var enable = forcedValue ?? !IsDualPaneMode;
+            IsDualPaneMode = enable;
+            
+            // 确保双列表开关按钮与三态逻辑同步
+            if (enable)
+            {
+                CurrentPaneMode = PaneMode.DualPane;
+            }
+            else
+            {
+                CurrentPaneMode = PaneMode.Single;
+            }
+        }
+
+        /// <summary>
+        /// 三态循环切换面板布局模式：Single → DualPane → Preview → Single
+        /// </summary>
+        public void CyclePaneMode()
+        {
+            var next = CurrentPaneMode switch
+            {
+                PaneMode.Single => PaneMode.DualPane,
+                PaneMode.DualPane => PaneMode.Preview,
+                PaneMode.Preview => PaneMode.Single,
+                _ => PaneMode.Single
+            };
+
+            // 更新底层状态
+            switch (next)
+            {
+                case PaneMode.Single:
+                    IsDualPaneMode = false;
+                    // 回到单栏时焦点回到主面板
+                    if (_isSecondPaneFocused)
+                    {
+                        _isSecondPaneFocused = false;
+                        Publish(new FocusedPaneChangedMessage(false));
+                    }
+                    break;
+                case PaneMode.DualPane:
+                    IsDualPaneMode = true;
+                    break;
+                case PaneMode.Preview:
+                    IsDualPaneMode = false;
+                    // 不要强制重置焦点，允许在预览模式下切换焦点侧
+                    break;
+            }
+
+            CurrentPaneMode = next;
         }
 
         /// <summary>

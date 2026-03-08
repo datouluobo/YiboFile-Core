@@ -41,6 +41,7 @@ namespace YiboFile.ViewModels
         public ICommand NavigateHomeCommand { get; private set; }
         public ICommand OpenParentFolderCommand { get; private set; }
         public ICommand SwitchViewModeCommand { get; private set; }
+        public ICommand TogglePreviewCommand { get; private set; }
 
         public ICommand SelectAllCommand { get; private set; }
         public ICommand PropertiesCommand { get; private set; }
@@ -78,6 +79,7 @@ namespace YiboFile.ViewModels
             NavigateUpCommand = new RelayCommand(() => _messageBus.Publish(new NavigateUpMessage(_pane.MyPaneId)), () => _pane.CanNavigateUp);
             NavigateHomeCommand = new RelayCommand(() => _messageBus.Publish(new NavigateToPathMessage("Home", true, _pane.MyPaneId)));
             OpenParentFolderCommand = NavigateUpCommand;
+            TogglePreviewCommand = new RelayCommand(() => { if (_pane.Preview != null) _pane.Preview.IsCollapsed = !_pane.Preview.IsCollapsed; });
 
             SwitchViewModeCommand = new RelayCommand<string>(mode => { if (Enum.TryParse<YiboFile.Models.Enums.FileListViewMode>(mode, out var result)) _pane.ExecuteSwitchViewMode(result); });
 

@@ -19,7 +19,7 @@ namespace YiboFile.Controls
         // public event EventHandler LayoutFocusRequested; // Unused
         // public event EventHandler LayoutWorkRequested; // Unused
         // public event EventHandler LayoutFullRequested; // Unused
-        // public event EventHandler DualListToggleRequested; // Unused
+        // public event EventHandler DualPaneToggleRequested; // Unused
         // public event EventHandler SettingsRequested; // Moved to MVVM Command
         // public event EventHandler AboutRequested;    // Moved to MVVM Command
 
@@ -85,9 +85,9 @@ namespace YiboFile.Controls
                 }
             });
 
-            messageBus.Subscribe<DualListModeToggledMessage>(msg =>
+            messageBus.Subscribe<DualPaneModeToggledMessage>(msg =>
             {
-                DualListToggleRequested?.Invoke(this, EventArgs.Empty);
+                DualPaneToggleRequested?.Invoke(this, EventArgs.Empty);
             });
             */
 

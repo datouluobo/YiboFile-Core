@@ -263,6 +263,8 @@ namespace YiboFile.Controls
         private Canvas _globalIndicator;
         private System.Windows.Shapes.Line _globalLine;
 
+        private double _snapTargetHeight = -1;
+
         private void GridSplitter_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
         {
             var window = Window.GetWindow(this);
@@ -271,6 +273,7 @@ namespace YiboFile.Controls
                 _globalIndicator = window.FindName("GlobalSnapIndicator") as Canvas;
                 _globalLine = window.FindName("GlobalSnapLine") as System.Windows.Shapes.Line;
             }
+            _snapTargetHeight = -1;
         }
 
         private void GridSplitter_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
@@ -278,35 +281,42 @@ namespace YiboFile.Controls
             var window = Window.GetWindow(this);
             if (window == null) return;
 
-            if (this.Content is Grid rootGrid && rootGrid.RowDefinitions.Count > 5)
+            if (FocusBorder != null && FocusBorder.Child is Grid rootGrid && rootGrid.RowDefinitions.Count > 5)
             {
                 var row5 = rootGrid.RowDefinitions[5];
                 
-                // 手动计算新高度实现实时拖拽 (绕过 WPF 默认的混合单位节流)
-                double newHeight = row5.ActualHeight - e.VerticalChange;
-                if (newHeight < row5.MinHeight) newHeight = row5.MinHeight;
-                if (newHeight > rootGrid.ActualHeight - 100) newHeight = rootGrid.ActualHeight - 100;
-
+                // Read the height being natively resized by the GridSplitter (ShowsPreview=False)
+                double currentHeight = row5.ActualHeight;
                 bool snapped = false;
+                _snapTargetHeight = -1;
 
                 var otherBrowsers = FindVisualChildren<FileBrowserControl>(window).Where(b => b != this).ToList();
                 foreach (var other in otherBrowsers)
                 {
-                    if (other.Content is Grid otherGrid && otherGrid.RowDefinitions.Count > 5)
+                    if (other.FocusBorder != null && other.FocusBorder.Child is Grid otherGrid && otherGrid.RowDefinitions.Count > 5)
                     {
                         double otherHeight = otherGrid.RowDefinitions[5].ActualHeight;
-                        if (Math.Abs(newHeight - otherHeight) < 15) // Snap threshold
+                        if (Math.Abs(currentHeight - otherHeight) < 15) // Snap threshold
                         {
-                            newHeight = otherHeight;
                             snapped = true;
+                            _snapTargetHeight = otherHeight;
 
                             if (_globalIndicator != null && _globalLine != null)
                             {
                                 var otherSplitter = other.FindName("BottomGridSplitter") as FrameworkElement;
-                                if (otherSplitter != null)
+                                var thisSplitter = sender as FrameworkElement;
+                                if (otherSplitter != null && thisSplitter != null)
                                 {
-                                    Point p = otherSplitter.TransformToAncestor(window).Transform(new Point(0, otherSplitter.ActualHeight / 2));
-                                    Canvas.SetTop(_globalLine, p.Y);
+                                    Point otherP = otherSplitter.TransformToAncestor(window).Transform(new Point(0, otherSplitter.ActualHeight / 2));
+                                    Point thisP = thisSplitter.TransformToAncestor(window).Transform(new Point(0, thisSplitter.ActualHeight / 2));
+                                    
+                                    // Y轴位置对齐到目标的高度
+                                    Canvas.SetTop(_globalLine, otherP.Y);
+                                    
+                                    // 覆盖这俩参与对齐的分割器总宽度，直达远端（不贯穿系统全屏，最优雅）
+                                    _globalLine.X1 = Math.Min(thisP.X, otherP.X);
+                                    _globalLine.X2 = Math.Max(thisP.X + thisSplitter.ActualWidth, otherP.X + otherSplitter.ActualWidth);
+
                                     _globalIndicator.Visibility = Visibility.Visible;
                                 }
                             }
@@ -319,10 +329,7 @@ namespace YiboFile.Controls
                 {
                     _globalIndicator.Visibility = Visibility.Collapsed;
                 }
-
-                row5.Height = new GridLength(newHeight);
             }
-            e.Handled = true; // 防止底层再次干扰
         }
 
         private void GridSplitter_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
@@ -332,11 +339,19 @@ namespace YiboFile.Controls
                 _globalIndicator.Visibility = Visibility.Collapsed;
             }
 
-            if (this.Content is Grid rootGrid && rootGrid.RowDefinitions.Count > 4)
+            if (FocusBorder != null && FocusBorder.Child is Grid rootGrid && rootGrid.RowDefinitions.Count > 5)
             {
-                var height = rootGrid.RowDefinitions[5].ActualHeight; // Row 5 is the InfoPanel 
+                var row5 = rootGrid.RowDefinitions[5];
+                
+                if (_snapTargetHeight >= 0)
+                {
+                    row5.Height = new GridLength(_snapTargetHeight);
+                }
+
+                var height = row5.ActualHeight; // Row 5 is the InfoPanel 
                 InfoHeightChanged?.Invoke(this, height);
             }
+            _snapTargetHeight = -1;
         }
         public event EventHandler<double> InfoHeightChanged;
 

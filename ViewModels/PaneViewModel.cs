@@ -33,7 +33,7 @@ namespace YiboFile.ViewModels
 
         private readonly IMessageBus _messageBus;
         private readonly Dispatcher _dispatcher;
-        private readonly bool _isSecondary;
+        private bool _isSecondary;
         private readonly NavigationService _navigationService;
 
         private string _currentPath;
@@ -188,7 +188,33 @@ namespace YiboFile.ViewModels
 
         public bool IsLoadingDisabled { get => _isLoadingDisabled; set => _isLoadingDisabled = value; }
 
-        public bool IsActive { get; set; }
+        private bool _isActive;
+        public bool IsActive
+        {
+            get => _isActive;
+            set
+            {
+                if (_isActive != value)
+                {
+                    _isActive = value;
+                    OnPropertyChanged(nameof(IsActive));
+                }
+            }
+        }
+
+        private bool _isInnerPreviewVisible = true;
+        public bool IsInnerPreviewVisible
+        {
+            get => _isInnerPreviewVisible;
+            set
+            {
+                if (_isInnerPreviewVisible != value)
+                {
+                    _isInnerPreviewVisible = value;
+                    OnPropertyChanged(nameof(IsInnerPreviewVisible));
+                }
+            }
+        }
 
         public SelectionViewModel Selection { get; private set; }
 
@@ -212,11 +238,25 @@ namespace YiboFile.ViewModels
         public IEnumerable<string> ForwardStack => _navigationService?.GetForwardStack(MyPaneId) ?? Enumerable.Empty<string>();
 
         public FileListViewModel FileList { get; private set; }
-        public bool IsSecondary => _isSecondary;
+        public bool IsSecondary
+        {
+            get => _isSecondary;
+            set
+            {
+                if (_isSecondary != value)
+                {
+                    _isSecondary = value;
+                    OnPropertyChanged(nameof(IsSecondary));
+                }
+            }
+        }
+        /// <summary>面板标识 ("A" / "B")，供 PaneState 索引</summary>
+        public string PaneLabel { get; }
         public IMessageBus MessageBus => _messageBus;
         public void RequestActivation() => _messageBus.Publish(new SetFocusedPaneMessage(_isSecondary));
 
         public SearchViewModel Search { get; }
+        public Previews.PanePreviewViewModel Preview { get; private set; }
         public FilterViewModel Filter { get; private set; }
 
         public PaneCommandSet Commands { get; private set; }
@@ -255,12 +295,17 @@ namespace YiboFile.ViewModels
             _dispatcher = dispatcher ?? throw new ArgumentNullException(nameof(dispatcher));
             _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
             _isSecondary = isSecondary;
+            PaneLabel = isSecondary ? "B" : "A";
 
             _navigationService = App.ServiceProvider.GetService<NavigationService>();
 
             Selection = new SelectionViewModel(_messageBus, isSecondary);
             Menu = new PaneMenuViewModel(this, _messageBus);
             Commands = new PaneCommandSet(this, _messageBus);
+            Preview = new Previews.PanePreviewViewModel(_messageBus, ConfigurationService.Instance, MyPaneId);
+            
+            // Fix initial state logic: if the Preview pane is visible, the inner preview should be hidden
+            _isInnerPreviewVisible = !Preview.IsVisible;
 
             Filter = new FilterViewModel(_messageBus,
                 App.ServiceProvider?.GetService<SearchService>(),
@@ -279,7 +324,7 @@ namespace YiboFile.ViewModels
             // Messages
             _messageBus.Subscribe<SearchOptionsChangedMessage>(OnSearchOptionsChanged);
             _messageBus.Subscribe<SearchResultUpdatedMessage>(OnSearchResultUpdated);
-            _messageBus.Subscribe<Messaging.Messages.FocusedPaneChangedMessage>(OnFocusedPaneChanged);
+            // _messageBus.Subscribe<Messaging.Messages.FocusedPaneChangedMessage>(OnFocusedPaneChanged);
             _messageBus.Subscribe<NotesUpdatedMessage>(OnNotesUpdated);
             _messageBus.Subscribe<FileTagsChangedMessage>(OnFileTagsChanged);
             _messageBus.Subscribe<RefreshFileListMessage>(OnRefreshFileList);
@@ -454,7 +499,8 @@ namespace YiboFile.ViewModels
             if (_searchFilterService != null) FileList.ApplyFilter(item => _searchFilterService.MatchesOptions(item, Filter.SearchOptions));
         }
 
-        private void OnFocusedPaneChanged(Messaging.Messages.FocusedPaneChangedMessage message) { IsActive = (message.IsSecondPaneFocused == _isSecondary); OnPropertyChanged(nameof(IsActive)); }
+        // 已废弃：焦点状态由 MainWindowViewModel.ActivePane 属性统一调度，防止交换面板时焦点错位
+        // private void OnFocusedPaneChanged(Messaging.Messages.FocusedPaneChangedMessage message) { IsActive = (message.IsSecondPaneFocused == _isSecondary); OnPropertyChanged(nameof(IsActive)); }
         private void OnNotesUpdated(NotesUpdatedMessage msg) => RequestRefresh();
         private void OnFileTagsChanged(FileTagsChangedMessage msg) => RequestRefresh();
 

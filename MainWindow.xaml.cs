@@ -50,10 +50,16 @@ namespace YiboFile
     {
         #region IShellWindow Implementation
 
+        // 数组化面板访问
+        FileBrowserControl[] IShellWindow.FileBrowsers => new[] { this.FileBrowser, this.SecondFileBrowser };
+        TabManagerControl[] IShellWindow.TabManagers => new[] { this.TabManager, this.SecondTabManager };
+
+        // 兼容属性
         FileBrowserControl IShellWindow.FileBrowser => this.FileBrowser;
         FileBrowserControl IShellWindow.SecondFileBrowser => this.SecondFileBrowser;
         TabManagerControl IShellWindow.TabManager => this.TabManager;
         TabManagerControl IShellWindow.SecondTabManager => this.SecondTabManager;
+        Grid IShellWindow.SecondFileBrowserContainer => this.SecondFileBrowserContainer;
 
         // Resource access
         object IShellWindow.TryFindResource(object key) => this.TryFindResource(key);
@@ -68,11 +74,12 @@ namespace YiboFile
         ColumnDefinition IShellWindow.ColCenter => this.ColCenter;
         ColumnDefinition IShellWindow.ColRight => this.ColRight;
         ColumnDefinition IShellWindow.ColRail => this.ColRail;
+        CollapsibleGridSplitter IShellWindow.SplitterRight => this.SplitterRight;
         Button IShellWindow.TitleBarMaxRestoreButton => this.TitleBarMaxRestoreButton;
         System.Windows.Controls.Image IShellWindow.TitleBarMaxRestoreImage => this.TitleBarMaxRestoreImage;
         bool IShellWindow.IsSplitterDragging => this._isSplitterDragging;
 
-        bool IShellWindow.IsDualListMode => this.IsDualListMode;
+        bool IShellWindow.IsDualPaneMode => this.IsDualPaneMode;
 
         NavigationPanelControl IShellWindow.NavigationPanelControl => this.NavigationPanelControl;
 
@@ -81,10 +88,8 @@ namespace YiboFile
         ListBox IShellWindow.LibrariesListBox => this.NavigationPanelControl?.LibrariesListBoxControl as ListBox;
         ListBox IShellWindow.QuickAccessListBox => this.NavigationPanelControl?.QuickAccessListBoxControl as ListBox;
 
-        // SecondTabManager likely already implemented?
-        // TabManagerControl IShellWindow.SecondTabManager => this.SecondTabManager; 
-        // No, check IShellWindow definition, likely implemented implicitly if property exists.
-        // Explicit impl only needed if visibility issues or naming conflict.
+        PaneContentHost IShellWindow.PrimaryContentHost => this.PrimaryContentHost;
+        PaneContentHost IShellWindow.SecondContentHost => this.SecondContentHost;
 
         ContextMenu IShellWindow.LibraryContextMenu => this.LibraryContextMenu;
         Services.Navigation.PaneId IShellWindow.GetActivePaneId() => this.GetActivePaneId();
@@ -211,7 +216,7 @@ namespace YiboFile
         {
             try
             {
-                string currentPath = (IsDualListMode && IsSecondPaneFocused) ? _viewModel?.SecondaryPane?.CurrentPath : _currentPath;
+                string currentPath = (IsDualPaneMode && IsSecondPaneFocused) ? _viewModel?.SecondaryPane?.CurrentPath : _currentPath;
                 if (currentPath != null && currentPath.StartsWith("search://"))
                 {
                     // CheckAndRefreshSearchTab(currentPath); // This method might be missing, assume valid or remove if not needed
@@ -274,7 +279,7 @@ namespace YiboFile
                 return _viewModel.ActivePane.IsSecondary ? Services.Navigation.PaneId.Second : Services.Navigation.PaneId.Main;
             }
             // 降级使用 LayoutModule/UI 状态
-            return (IsDualListMode && IsSecondPaneFocused) ? Services.Navigation.PaneId.Second : Services.Navigation.PaneId.Main;
+            return (IsDualPaneMode && IsSecondPaneFocused) ? Services.Navigation.PaneId.Second : Services.Navigation.PaneId.Main;
         }
 
         #endregion
@@ -356,11 +361,11 @@ namespace YiboFile
                 halfSpace = Math.Max(halfSpace, ColRight.MinWidth);
                 halfSpace = Math.Max(halfSpace, ColCenter.MinWidth);
 
-                // 判断是否能在不超过可视限界的前提下进行平分操作
                 if (ColCenter.MinWidth + ColRight.MinWidth <= totalVisibleSpace)
                 {
-                    // 设置带有绝对数值宽度的右侧栏，左侧因为是星号列自适应长度，会自动填充剩余的半边
-                    ColRight.Width = new GridLength(halfSpace);
+                    // 设置为比例宽度（Star），这样在隐藏左侧导航时左右两侧能等比例缩放
+                    ColCenter.Width = new GridLength(1, GridUnitType.Star);
+                    ColRight.Width = new GridLength(1, GridUnitType.Star);
                 }
                 
                 e.Handled = true;
@@ -374,11 +379,11 @@ namespace YiboFile
 
         internal Handlers.LayoutEventHandler _layoutEventHandler;
 
-        public bool IsDualListMode => _layoutModule?.IsDualListMode ?? false;
+        public bool IsDualPaneMode => _layoutModule?.IsDualPaneMode ?? false;
         public bool IsSecondPaneFocused => _layoutModule?.IsSecondPaneFocused ?? false;
 
         internal void SwitchLayoutModeByIndex(int index) => _layoutEventHandler?.SwitchLayoutModeByIndex(index);
-        internal void SetDualListMode(bool enable) => _layoutEventHandler?.SetDualListMode(enable);
+        internal void SetDualPaneMode(bool enable) => _layoutEventHandler?.SetDualPaneMode(enable);
         internal void SwitchFocusedPane() => _layoutEventHandler?.SwitchFocusedPane();
         internal void SwitchFocusedPaneFromKeyboard() => _layoutEventHandler?.SwitchFocusedPaneFromKeyboard();
         internal void UpdateFocusBorders() => _layoutEventHandler?.UpdateFocusBorders();
@@ -468,11 +473,10 @@ namespace YiboFile
         {
             if (WindowButtonsStackPanel == null) return;
 
-            // 使用固定的预留宽度（控制按钮 138px + 12 拖拽冗余 = 150）
-            // 不再依赖 ActualWidth 防止还原时 SizeChanged 数据落后导致重叠
-            double rightMargin = 150;
-            bool isDualMode = this.IsDualListMode;
-            bool isRightPanelCollapsed = SplitterRight != null && SplitterRight.IsNextCollapsed;
+            // 使用固定的预留宽度（控制按钮 138px + 边距 = 160）
+            double rightMargin = 160;
+            bool isDualMode = this.IsDualPaneMode;
+            bool isRightPanelCollapsed = ColRight == null || ColRight.ActualWidth <= 0;
 
             if (TabManager != null)
             {
@@ -505,27 +509,40 @@ namespace YiboFile
 
         public void AutoSizeGridViewColumn(GridViewColumn column)
         {
-            if (FileBrowser?.FilesGrid?.Columns.Contains(column) == true)
-                _orchestrator.ColumnInteractionHandler?.AutoSizeGridViewColumn(column);
-            else if (SecondFileBrowser?.FilesGrid?.Columns.Contains(column) == true)
-                _orchestrator.SecondColumnInteractionHandler?.AutoSizeGridViewColumn(column);
+            if (_orchestrator?.ColumnHandlers == null) return;
+            foreach (var handler in _orchestrator.ColumnHandlers)
+            {
+                handler?.AutoSizeGridViewColumn(column);
+            }
         }
 
         internal void EnsureHeaderContextMenuHook()
         {
-            _orchestrator.ColumnInteractionHandler?.EnsureHeaderContextMenuHook();
-            _orchestrator.SecondColumnInteractionHandler?.EnsureHeaderContextMenuHook();
+            if (_orchestrator?.ColumnHandlers == null) return;
+            foreach (var handler in _orchestrator.ColumnHandlers)
+            {
+                handler?.EnsureHeaderContextMenuHook();
+            }
         }
 
         internal string GetCurrentModeKey()
         {
-            return ConfigurationService.Instance.Config.LastNavigationMode ?? "Path";
+            var activePane = _viewModel?.ActivePane;
+            if (activePane != null)
+            {
+                if (activePane.CurrentLibrary != null) return "Library";
+                if (activePane.CurrentPath?.StartsWith("tag://", StringComparison.OrdinalIgnoreCase) == true) return "Tag";
+            }
+            return "Path";
         }
 
         internal void ApplyVisibleColumnsForCurrentMode()
         {
-            _orchestrator.ColumnInteractionHandler?.ApplyVisibleColumnsForCurrentMode();
-            _orchestrator.SecondColumnInteractionHandler?.ApplyVisibleColumnsForCurrentMode();
+            if (_orchestrator?.ColumnHandlers == null) return;
+            foreach (var handler in _orchestrator.ColumnHandlers)
+            {
+                handler?.ApplyVisibleColumnsForCurrentMode();
+            }
         }
 
         #endregion
@@ -547,16 +564,9 @@ namespace YiboFile
             {
                 this.Dispatcher.Invoke(() =>
                 {
-                    if (msg.IsSecondPaneFocused)
-                    {
-                        SecondFileBrowser?.Focus();
-                        SecondFileBrowser?.FilesList?.Focus();
-                    }
-                    else
-                    {
-                        PrimaryContentHost?.InternalFileBrowser?.Focus();
-                        PrimaryContentHost?.InternalFileBrowser?.FilesList?.Focus();
-                    }
+                    var browser = msg.IsSecondPaneFocused ? SecondFileBrowser : FileBrowser;
+                    browser?.Focus();
+                    browser?.FilesList?.Focus();
                 });
             });
         }

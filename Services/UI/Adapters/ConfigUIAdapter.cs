@@ -22,7 +22,6 @@ namespace YiboFile.Services.UI.Adapters
         public ColumnDefinition ColCenter => _window.ColCenter;
         public ColumnDefinition ColRight => _window.ColRight;
         public TitleActionBar TitleActionBar => _window.FileBrowser?.ActionBar;
-        public RightPanelControl RightPanelControl => _window.RightPanel;
         public FileBrowserControl FileBrowser => _window.FileBrowser;
 
         public string CurrentPath

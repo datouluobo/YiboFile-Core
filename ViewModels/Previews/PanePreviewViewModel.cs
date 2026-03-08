@@ -4,26 +4,23 @@ using System.Windows.Input;
 using System.Threading;
 using YiboFile.Models;
 using YiboFile.Services.Config;
-using YiboFile.Services.FileList;
+using YiboFile.Services.Navigation;
 using YiboFile.ViewModels.Messaging;
 using YiboFile.ViewModels.Messaging.Messages;
 using YiboFile.ViewModels.Previews;
 
-namespace YiboFile.ViewModels
+namespace YiboFile.ViewModels.Previews
 {
-    public class RightPanelViewModel : BaseViewModel
+    public class PanePreviewViewModel : BaseViewModel
     {
         private readonly IMessageBus _messageBus;
         private readonly ConfigurationService _configService;
-
-        private readonly FileListService _fileListService;
+        private readonly PaneId _paneId;
+        
         private Timer _debounceTimer;
         private string _pendingPreviewPath;
 
-        private bool _isVisible = true;
-        private bool _isLayoutVisible = true; // 用户可见性设置
-        private bool _isMainLayoutVisible = true; // 布局全局设置（特殊面板）
-        private bool _isDualListActive = false; // 是否处于双列表模式
+        private bool _isVisible = false;
         public bool IsVisible
         {
             get => _isVisible;
@@ -31,69 +28,35 @@ namespace YiboFile.ViewModels
             {
                 if (SetProperty(ref _isVisible, value))
                 {
-                    NotifyVisibilityChanged();
-                    _configService.Set(x => x.IsRightPanelVisible, value);
+                    OnPropertyChanged(nameof(EffectiveVisibility));
+                    OnPropertyChanged(nameof(IsCollapsed));
+                    _messageBus.Publish(new PreviewPaneVisibilityChangedMessage(_paneId, value));
                 }
-
             }
         }
 
-        public bool IsLayoutVisible
+        public bool EffectiveVisibility => IsVisible;
+
+        public bool IsCollapsed
         {
-            get => _isLayoutVisible;
+            get => !IsVisible;
             set
             {
-                if (SetProperty(ref _isLayoutVisible, value))
+                if (IsVisible != !value)
                 {
-                    NotifyVisibilityChanged();
+                    IsVisible = !value;
+                    // persist to config so the user's choice is saved and loaded next time
+                    YiboFile.Services.Config.ConfigurationService.Instance.Set(c => c.IsPreviewCollapsed, value);
+                    YiboFile.Services.Config.ConfigurationService.Instance.SaveNow();
                 }
             }
         }
 
-        public bool IsMainLayoutVisible
-        {
-            get => _isMainLayoutVisible;
-            set
-            {
-                if (SetProperty(ref _isMainLayoutVisible, value))
-                {
-                    NotifyVisibilityChanged();
-                }
-            }
-        }
-
-        public bool IsDualListActive
-        {
-            get => _isDualListActive;
-            set
-            {
-                if (SetProperty(ref _isDualListActive, value))
-                {
-                    NotifyVisibilityChanged();
-                }
-            }
-        }
-
-        public bool EffectiveVisibility => IsVisible && IsLayoutVisible && IsMainLayoutVisible && !IsDualListActive;
-
-        private void NotifyVisibilityChanged()
-        {
-            OnPropertyChanged(nameof(EffectiveVisibility));
-
-        }
-
-        private double _notesHeight;
+        private double _notesHeight = 200;
         public double NotesHeight
         {
             get => _notesHeight;
-            set
-            {
-                if (SetProperty(ref _notesHeight, value))
-                {
-                    _configService.Set(x => x.RightPanelNotesHeight, value);
-                }
-
-            }
+            set => SetProperty(ref _notesHeight, value);
         }
 
         private string _currentNotes;
@@ -121,51 +84,43 @@ namespace YiboFile.ViewModels
         public FileSystemItem SelectedItem
         {
             get => _selectedItem;
-            set
-            {
-                if (SetProperty(ref _selectedItem, value))
-                {
-                    // UpdatePreview logic is now handled in message subscription or explicitly called
-                }
-            }
+            set => SetProperty(ref _selectedItem, value);
         }
 
-        public RightPanelViewModel(IMessageBus messageBus, ConfigurationService configService, FileListService fileListService)
-
+        public PanePreviewViewModel(IMessageBus messageBus, ConfigurationService configService, PaneId paneId)
         {
             _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
             _configService = configService ?? throw new ArgumentNullException(nameof(configService));
-            _fileListService = fileListService ?? throw new ArgumentNullException(nameof(fileListService));
+            _paneId = paneId;
 
-            var cfg = _configService.Config;
-            _isVisible = cfg.IsRightPanelVisible;
-            _notesHeight = cfg.RightPanelNotesHeight;
+            // default to true only if the user specifically expanded it last time (or previously RightPanel was used)
+            _isVisible = !(_configService.Config?.IsPreviewCollapsed ?? true);
+            
+            if (_configService.Config != null && _configService.Config.RightPanelNotesHeight > 0)
+            {
+                _notesHeight = _configService.Config.RightPanelNotesHeight;
+            }
 
             _messageBus.Subscribe<FileSelectionChangedMessage>(m =>
             {
+                if (m.Pane != _paneId) return;
 
-
-                // 确保 UI 状态更新在调度器线程执行
                 System.Windows.Application.Current.Dispatcher.BeginInvoke(new Action(() =>
                 {
                     if (m.SelectedItems?.Count > 0)
                     {
                         SelectedItem = m.SelectedItems[0] as FileSystemItem;
-
-
                         if (m.RequestPreview)
                         {
                             UpdatePreview(SelectedItem?.Path);
                         }
                         else
                         {
-
                             ActivePreview = null;
                         }
                     }
                     else
                     {
-
                         SelectedItem = null;
                         ActivePreview = null;
                     }
@@ -174,7 +129,8 @@ namespace YiboFile.ViewModels
 
             _messageBus.Subscribe<ShowFileInfoMessage>(m =>
             {
-                // 如果当前没有选中的文件，则显示背景容器（如当前文件夹）的信息
+                if (m.Pane != _paneId) return;
+
                 System.Windows.Application.Current.Dispatcher.BeginInvoke(new Action(() =>
                 {
                     if (SelectedItem == null || m.Item?.Path == SelectedItem?.Path)
@@ -186,31 +142,35 @@ namespace YiboFile.ViewModels
 
             _messageBus.Subscribe<PreviewChangedMessage>(m =>
             {
-                // Ensure UI update happens on UI thread
+                if (m.TargetPane != _paneId) return;
+
                 System.Windows.Application.Current.Dispatcher.BeginInvoke(new Action(() =>
                 {
                     ActivePreview = m.Preview;
                 }));
             });
 
-            _messageBus.Subscribe<DualListModeChangedMessage>(m =>
+            /* 移除全局 IsRightPanelVisible 联动，让各个面板的预览状态彼此独立。在双列表模式下可以分别开关。
+            _messageBus.Subscribe<ConfigurationSettingChangedMessage>(m =>
             {
-                IsDualListActive = m.IsEnabled;
+                if (m.SettingName == nameof(AppConfig.IsRightPanelVisible))
+                {
+                    System.Windows.Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        if (IsVisible != _configService.Config.IsRightPanelVisible)
+                        {
+                            IsCollapsed = !_configService.Config.IsRightPanelVisible;
+                        }
+                    }));
+                }
             });
-
-            _messageBus.Subscribe<MainLayoutVisibilityChangedMessage>(m =>
-            {
-                IsMainLayoutVisible = m.IsVisible;
-            });
+            */
 
             _debounceTimer = new Timer(OnDebounceTick, null, Timeout.Infinite, Timeout.Infinite);
         }
 
         private void UpdatePreview(string path)
         {
-
-
-            // Immediate clear if path is null
             if (string.IsNullOrEmpty(path))
             {
                 _pendingPreviewPath = null;
@@ -219,9 +179,6 @@ namespace YiboFile.ViewModels
                 return;
             }
 
-
-
-            // Debounce request
             _pendingPreviewPath = path;
             _debounceTimer.Change(250, Timeout.Infinite);
         }
@@ -231,8 +188,7 @@ namespace YiboFile.ViewModels
             var path = _pendingPreviewPath;
             if (!string.IsNullOrEmpty(path))
             {
-
-                _messageBus.Publish(new PreviewRequestMessage(path));
+                _messageBus.Publish(new PreviewRequestMessage(path, _paneId));
             }
         }
     }

@@ -17,7 +17,7 @@ namespace YiboFile.Services.Tabs
     public partial class TabService
     {
         private static readonly List<TabService> _allInstances = new List<TabService>();
-        private readonly ObservableCollection<PathTab> _tabs = new ObservableCollection<PathTab>();
+        private ObservableCollection<PathTab> _tabs = new ObservableCollection<PathTab>();
         private readonly IMessageBus _messageBus;
         private PathTab _activeTab;
         private AppConfig _config;
@@ -57,6 +57,28 @@ namespace YiboFile.Services.Tabs
             "HideCloseButtonOnInactive", "ShowOverflowArrows", "ShowOverflowGradient",
             "All"
         };
+
+        public void SwapStateWith(TabService other)
+        {
+            if (other == null || other == this) return;
+
+            // 1. Swap the collections visually maintaining correct instances
+            var tempTabs = this._tabs;
+            this._tabs = other._tabs;
+            other._tabs = tempTabs;
+
+            // 2. Swap Active tab tracking
+            var tempActive = this._activeTab;
+            this._activeTab = other._activeTab;
+            other._activeTab = tempActive;
+
+            // Notice we do NOT swap 'PaneId' or 'TabUiContext'.
+            // Because THIS service instance is permanently tied to its physical side of the window (Left/Right).
+
+            // 3. Trigger visual updates
+            this._ui?.Dispatcher?.InvokeAsync(() => this.UpdateTabWidths(), System.Windows.Threading.DispatcherPriority.Loaded);
+            other._ui?.Dispatcher?.InvokeAsync(() => other.UpdateTabWidths(), System.Windows.Threading.DispatcherPriority.Loaded);
+        }
 
         private void SubscribeToConfigChanges()
         {

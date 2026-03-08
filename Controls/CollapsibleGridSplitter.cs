@@ -344,12 +344,23 @@ namespace YiboFile.Controls
                     var targetPixelSize = direction == PanelDirection.Previous ? _previousActualLength : _nextActualLength;
                     var originalSize = direction == PanelDirection.Previous ? _previousSize : _nextSize;
 
-                    // 如果没有保存过大小（初次展开且不是通过折叠进入），设为一个合理的默认值
+                    // 修订：如果 originalSize 是 Star，它的 Value 会是 1，不能用于目标像素大小
                     if (targetPixelSize <= 0)
                     {
-                        targetPixelSize = originalSize.Value > 0 ? originalSize.Value : (direction == PanelDirection.Previous ? 220 : 360);
+                        if (originalSize.IsAbsolute && originalSize.Value > 0)
+                        {
+                            targetPixelSize = originalSize.Value;
+                        }
+                        else
+                        {
+                            targetPixelSize = (direction == PanelDirection.Previous ? 220 : 360);
+                            // 针对双栏模式特别优化：如果是右侧主分割器且要求 Star 展开，默认给一个比较宽的动画过渡值（比如 500），
+                            // 动画结束后会恢复为 Star 完全填充。
+                            if (originalSize.IsStar) targetPixelSize = 500;
+                        }
                     }
-                    if (originalSize.Value <= 0) originalSize = new GridLength(targetPixelSize);
+                    if (!originalSize.IsStar && !originalSize.IsAuto && originalSize.Value <= 0) 
+                        originalSize = new GridLength(targetPixelSize);
 
                     if (direction == PanelDirection.Previous)
                         IsPreviousCollapsed = false;

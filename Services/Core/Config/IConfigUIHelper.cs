@@ -41,10 +41,6 @@ namespace YiboFile.Services.Config
         /// </summary>
         TitleActionBar TitleActionBar { get; }
 
-        /// <summary>
-        /// 获取右侧面板控件
-        /// </summary>
-        RightPanelControl RightPanelControl { get; }
 
         /// <summary>
         /// 获取文件浏览器控件

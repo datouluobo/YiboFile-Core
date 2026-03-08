@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
+using System.Windows.Input;
 using YiboFile.ViewModels.Messaging;
 using YiboFile.Services;
 using YiboFile.Services.FileList;
@@ -117,31 +118,95 @@ namespace YiboFile.ViewModels
             set => SetProperty(ref _search, value);
         }
 
-        private RightPanelViewModel _rightPanel;
-        public RightPanelViewModel RightPanel
-        {
-            get => _rightPanel;
-            set => SetProperty(ref _rightPanel, value);
-        }
-        private PaneViewModel _primaryPane;
+
+        /// <summary>面板数组 — Panes[0] 和 Panes[1] 各自对等独立</summary>
+        private PaneViewModel[] _panes = new PaneViewModel[2];
+
+        /// <summary>Pane A（默认在左侧位置）</summary>
         public PaneViewModel PrimaryPane
         {
-            get => _primaryPane;
-            set => SetProperty(ref _primaryPane, value);
+            get => _panes[0];
+            set { _panes[0] = value; OnPropertyChanged(nameof(PrimaryPane)); }
         }
 
-        private PaneViewModel _secondaryPane;
+        /// <summary>Pane B（默认在右侧位置）</summary>
         public PaneViewModel SecondaryPane
         {
-            get => _secondaryPane;
-            set => SetProperty(ref _secondaryPane, value);
+            get => _panes[1];
+            set { _panes[1] = value; OnPropertyChanged(nameof(SecondaryPane)); }
         }
 
         private PaneViewModel _activePane;
         public PaneViewModel ActivePane
         {
             get => _activePane;
-            set => SetProperty(ref _activePane, value);
+            set
+            {
+                if (_activePane != value)
+                {
+                    if (_activePane != null) _activePane.IsActive = false;
+                    _activePane = value;
+                    if (_activePane != null) _activePane.IsActive = true;
+                    OnPropertyChanged(nameof(ActivePane));
+                    OnPropertyChanged(nameof(SelectionHandler));
+                }
+                else if (_activePane != null && !_activePane.IsActive)
+                {
+                    // 强制恢复焦点状态
+                    _activePane.IsActive = true;
+                }
+                
+                // 确保另一个面板关闭焦点外框
+                var inactivePane = _activePane == _panes[0] ? _panes[1] : _panes[0];
+                if (inactivePane != null)
+                {
+                    inactivePane.IsActive = false;
+                }
+            }
+        }
+
+        /// <summary>交换 Pane A / Pane B 的位置</summary>
+        public ICommand SwapPanesCommand { get; }
+
+        /// <summary>
+        /// 交换左右面板位置。通过交换 ViewModel 引用实现，
+        /// MVVM 数据绑定会自动更新 UI，无需搬运视觉元素。
+        /// </summary>
+        public void SwapPanes()
+        {
+            var temp = _panes[0];
+            _panes[0] = _panes[1];
+            _panes[1] = temp;
+
+            _panes[0].IsSecondary = false;
+            _panes[0].Selection.IsSecondary = false;
+            _panes[1].IsSecondary = true;
+            _panes[1].Selection.IsSecondary = true;
+
+            // 重要：通知布局模块现在的焦点位置已经跑到另一边了，让它保存最新的状态
+            if (_activePane != null)
+            {
+                _messageBus.Publish(new Messaging.Messages.SetFocusedPaneMessage(_activePane.IsSecondary));
+            }
+
+            OnPropertyChanged(nameof(PrimaryPane));
+            OnPropertyChanged(nameof(SecondaryPane));
+
+            // 同时调换 Tabs 的数据源
+            Tabs?.SwapTabs();
+
+            // 持久化面板顺序
+            var state = Services.Config.ConfigurationService.Instance.State;
+            state.PaneOrder = new List<int> 
+            { 
+                _panes[0].PaneLabel == "A" ? 0 : 1,
+                _panes[1].PaneLabel == "A" ? 0 : 1
+            };
+            Services.Config.ConfigurationService.Instance.MarkDirty();
+
+            // Notify UI that ActivePane position has potentially moved
+            OnPropertyChanged(nameof(ActivePane));
+            OnPropertyChanged(nameof(SelectionHandler));
         }
 
         /// <summary>
@@ -160,21 +225,19 @@ namespace YiboFile.ViewModels
 
         public MainWindowViewModel(
             IMessageBus messageBus,
-            RightPanelViewModel rightPanel,
             Services.Preview.PreviewService previewService,
             FileListService fileListService,
             FolderSizeCalculationService folderSizeService)
         {
             _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
-            RightPanel = rightPanel ?? throw new ArgumentNullException(nameof(rightPanel));
+            SwapPanesCommand = new RelayCommand(SwapPanes);
 
-            // Initialize Specific Selection Handlers for each pane
+            // Initialize Specific Selection Handlers for each pane position (0=Left/Primary, 1=Right/Secondary)
             _mainSelectionHandler = new Handlers.SelectionEventHandler(
                 previewService,
                 _messageBus,
                 fileListService,
                 () => PrimaryPane?.FileList?.Files?.ToList() ?? new List<Models.FileSystemItem>(),
-                // Revert BUG-018 fallback: Direct property access is correct and refreshed properly by PaneViewModel logic
                 () => PrimaryPane?.CurrentPath,
                 () => PrimaryPane?.CurrentLibrary,
                 () => true, // unused
@@ -188,7 +251,6 @@ namespace YiboFile.ViewModels
                 _messageBus,
                 fileListService,
                 () => SecondaryPane?.FileList?.Files?.ToList() ?? new List<Models.FileSystemItem>(),
-                // Revert BUG-018 fallback
                 () => SecondaryPane?.CurrentPath,
                 () => SecondaryPane?.CurrentLibrary,
                 () => true, // unused

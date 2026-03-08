@@ -24,7 +24,7 @@ namespace YiboFile.ViewModels.Modules
         private readonly SearchCacheService _searchCacheService;
         private readonly TabService _tabService;
         private readonly TabService _secondTabService;
-        private readonly Func<bool> _isDualListMode;
+        private readonly Func<bool> _isDualPaneMode;
         private readonly Func<bool> _isSecondPaneFocused;
         private readonly IFullTextSearchService _ftsService;
         private bool _isProcessingSearch = false;
@@ -38,7 +38,7 @@ namespace YiboFile.ViewModels.Modules
             TabService tabService,
             IFullTextSearchService ftsService,
             TabService secondTabService = null,
-            Func<bool> isDualListMode = null,
+            Func<bool> isDualPaneMode = null,
             Func<bool> isSecondPaneFocused = null)
             : base(messageBus)
         {
@@ -47,7 +47,7 @@ namespace YiboFile.ViewModels.Modules
             _tabService = tabService ?? throw new ArgumentNullException(nameof(tabService));
             _ftsService = ftsService;
             _secondTabService = secondTabService;
-            _isDualListMode = isDualListMode ?? (() => false);
+            _isDualPaneMode = isDualPaneMode ?? (() => false);
             _isSecondPaneFocused = isSecondPaneFocused ?? (() => false);
         }
 
@@ -63,7 +63,16 @@ namespace YiboFile.ViewModels.Modules
             _isProcessingSearch = true;
 
             // 立即清除预览区，防止在搜索过程中显示过时或不相关的预览
-            Publish(new PreviewRequestMessage(null));
+            var targetPaneId = default(YiboFile.Services.Navigation.PaneId);
+            if (!string.IsNullOrEmpty(message.TargetPaneId) && message.TargetPaneId.Equals("Secondary", StringComparison.OrdinalIgnoreCase))
+            {
+                targetPaneId = YiboFile.Services.Navigation.PaneId.Second;
+            }
+            else
+            {
+                targetPaneId = YiboFile.Services.Navigation.PaneId.Main;
+            }
+            Publish(new PreviewRequestMessage(null, targetPaneId));
 
             try
             {

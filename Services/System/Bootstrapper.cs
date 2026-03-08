@@ -210,7 +210,6 @@ namespace YiboFile.Services.Startup
             services.AddSingleton<Services.Features.FileNotes.INotesService, Services.Features.FileNotes.NotesService>();
 
             // ViewModels
-            services.AddSingleton<ViewModels.RightPanelViewModel>();
             services.AddSingleton<NavigationCoordinator>();
             services.AddSingleton<ViewModels.NavigationRailViewModel>();
             services.AddSingleton<Controllers.NavigationRailCoordinator>();

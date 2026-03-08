@@ -300,21 +300,7 @@ namespace YiboFile.Services
             // 1. 保存右侧面板可见性
             targetConfig.IsRightPanelVisible = _uiHelper.ColRight.ActualWidth > 10;
 
-            // 2. 保存右侧面板内部高度 (备注区)
-            if (_uiHelper.RightPanelControl != null)
-            {
-                if (_uiHelper.RightPanelControl.Content is System.Windows.Controls.Grid rightRootGrid)
-                {
-                    if (rightRootGrid.RowDefinitions.Count > 3)
-                    {
-                        var notesRow = rightRootGrid.RowDefinitions[3]; // Row 3 is Notes
-                        if (notesRow.Height.IsAbsolute)
-                        {
-                            targetConfig.RightPanelNotesHeight = notesRow.Height.Value;
-                        }
-                    }
-                }
-            }
+
 
             // 3. 保存中间面板底部高度 (文件详情区)
             if (_uiHelper.FileBrowser?.Content is System.Windows.Controls.Grid fileBrowserGrid)
@@ -330,7 +316,7 @@ namespace YiboFile.Services
             }
 
             // 保存双列表模式
-            targetConfig.IsDualListMode = _config.IsDualListMode;
+            targetConfig.IsDualPaneMode = _config.IsDualPaneMode;
         }
 
         private void SaveSplitterPositions()
@@ -575,15 +561,19 @@ namespace YiboFile.Services
                 // 列宽度的恢复已经移动到 ModuleInitializer 的 DataContext 赋值之前，
                 // 以支持 CollapsibleGridSplitter 的首帧捕获，不需要在此处重复赋值，避免覆盖折叠状态。
 
-                // 恢复详细高度
-                if (_config.RightPanelNotesHeight > 0 && _uiHelper.RightPanelControl?.Content is Grid rightGrid && rightGrid.RowDefinitions.Count > 3)
-                {
-                    rightGrid.RowDefinitions[3].Height = new GridLength(_config.RightPanelNotesHeight);
-                }
 
-                if (_config.CenterPanelInfoHeight > 0 && _uiHelper.FileBrowser?.Content is Grid browserGrid && browserGrid.RowDefinitions.Count >= 4)
+
+                if (_config.CenterPanelInfoHeight > 0 && _uiHelper.Window != null)
                 {
-                    browserGrid.RowDefinitions[browserGrid.RowDefinitions.Count - 1].Height = new GridLength(_config.CenterPanelInfoHeight);
+                    var browsers = FindVisualChildren<FileBrowserControl>(_uiHelper.Window);
+                    foreach (var browser in browsers)
+                    {
+                        if (browser.Content is Grid browserGrid && browserGrid.RowDefinitions.Count >= 4)
+                        {
+                            var lastRow = browserGrid.RowDefinitions[browserGrid.RowDefinitions.Count - 1];
+                            lastRow.Height = new GridLength(_config.CenterPanelInfoHeight);
+                        }
+                    }
                 }
 
                 _uiHelper.RootGrid.UpdateLayout();
@@ -794,5 +784,27 @@ namespace YiboFile.Services
         }
 
         #endregion
+        /// <summary>
+        /// 查找可视化树中的特定类型子元素
+        /// </summary>
+        private static IEnumerable<T> FindVisualChildren<T>(DependencyObject depObj) where T : DependencyObject
+        {
+            if (depObj != null)
+            {
+                for (int i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(depObj); i++)
+                {
+                    DependencyObject child = System.Windows.Media.VisualTreeHelper.GetChild(depObj, i);
+                    if (child != null && child is T)
+                    {
+                        yield return (T)child;
+                    }
+
+                    foreach (T childOfChild in FindVisualChildren<T>(child))
+                    {
+                        yield return childOfChild;
+                    }
+                }
+            }
+        }
     }
 }

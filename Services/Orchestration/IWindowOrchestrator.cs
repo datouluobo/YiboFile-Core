@@ -52,6 +52,12 @@ namespace YiboFile.Services.Orchestration
 
         WindowLifecycleHandler LifecycleHandler { get; }
 
+        /// <summary>每个面板的列交互处理器 [0]=左, [1]=右</summary>
+        ColumnInteractionHandler[] ColumnHandlers { get; }
+        /// <summary>每个面板的文件列表事件处理器</summary>
+        FileListEventHandler[] FileListHandlers { get; }
+
+        // 兼容属性
         ColumnInteractionHandler ColumnInteractionHandler { get; }
         ColumnInteractionHandler SecondColumnInteractionHandler { get; }
         FileListEventHandler MainFileListHandler { get; }

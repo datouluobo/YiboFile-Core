@@ -315,7 +315,7 @@
             </DrawingGroup>
         </DrawingImage.Drawing>
     </DrawingImage>
-    <DrawingImage x:Key="Icon_DualList">
+    <DrawingImage x:Key="Icon_DualPane">
         <DrawingImage.Drawing>
             <DrawingGroup>
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>

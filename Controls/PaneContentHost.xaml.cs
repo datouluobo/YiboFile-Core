@@ -37,6 +37,11 @@ namespace YiboFile.Controls
         private TabContentRegistry _registry;
         private IMessageBus _messageBus;
 
+        // ═══ 跨面板预览 ═══
+        private bool _isDualPaneMode;
+        private bool _isCrossPreviewActive;
+        private object _savedPreviewDataContext;
+
         /// <summary>
         /// 内容类型到显示名称的映射（用于面包屑文本）。
         /// </summary>
@@ -72,6 +77,54 @@ namespace YiboFile.Controls
 
             // 挂载地址栏事件
             ContentAddressBar.PathChanged += ContentAddressBar_PathChanged;
+
+            DataContextChanged += PaneContentHost_DataContextChanged;
+        }
+
+        /// <summary>
+        /// 设置跨面板预览：另一个面板的预览内容在本面板显示。
+        /// </summary>
+        /// <param name="previewVM">对方面板的 PanePreviewViewModel，null 表示清除。</param>
+        public void SetCrossPreview(object previewVM)
+        {
+            if (previewVM != null)
+            {
+                _isCrossPreviewActive = true;
+
+                // 保存原始预览 DataContext
+                _savedPreviewDataContext = PreviewAttachment.DataContext;
+
+                // 隐藏文件浏览器
+                FileBrowserContainer.Visibility = Visibility.Collapsed;
+
+                // 预览面板占满整个区域
+                PreviewAttachment.DataContext = previewVM;
+                PreviewAttachment.Visibility = Visibility.Visible;
+
+                FileLogger.Log($"PaneContentHost: 跨面板预览已启用");
+            }
+            else
+            {
+                _isCrossPreviewActive = false;
+
+                // 恢复文件浏览器
+                FileBrowserContainer.Visibility = Visibility.Visible;
+                PreviewAttachment.Visibility = Visibility.Collapsed;
+
+                // 恢复原始 DataContext
+                if (_savedPreviewDataContext != null)
+                {
+                    PreviewAttachment.DataContext = _savedPreviewDataContext;
+                    _savedPreviewDataContext = null;
+                }
+
+                FileLogger.Log($"PaneContentHost: 跨面板预览已清除");
+            }
+        }
+
+        private void PaneContentHost_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            // 不再需要调整内部网格，因为内部根本没有多列结构
         }
 
         #region ActiveContentTypeId DependencyProperty

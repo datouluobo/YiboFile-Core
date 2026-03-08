@@ -74,11 +74,7 @@ namespace YiboFile.Services.UI
                 _window.SecondFileBrowser.GridViewColumnHeaderClick += OnSecondaryColumnHeaderClick;
             }
 
-            // 右侧面板事件
-            if (_window.RightPanel != null)
-            {
-                _window.RightPanel.NotesHeightChanged += OnRightPanelNotesHeightChanged;
-            }
+
 
             // 键盘事件
             _window.PreviewKeyDown += OnWindowPreviewKeyDown;
@@ -125,10 +121,7 @@ namespace YiboFile.Services.UI
                 _window.SecondFileBrowser.GridViewColumnHeaderClick -= OnSecondaryColumnHeaderClick;
             }
 
-            if (_window.RightPanel != null)
-            {
-                _window.RightPanel.NotesHeightChanged -= OnRightPanelNotesHeightChanged;
-            }
+
 
             _window.PreviewKeyDown -= OnWindowPreviewKeyDown;
             _window.KeyDown -= OnWindowKeyDown;
@@ -231,10 +224,7 @@ namespace YiboFile.Services.UI
             _messageBus.Publish(new InfoHeightChangedMessage { NewHeight = height, TargetPane = YiboFile.Services.Navigation.PaneId.Second });
         }
 
-        private void OnRightPanelNotesHeightChanged(object sender, double height)
-        {
-            _messageBus.Publish(new NotesHeightChangedMessage { NewHeight = height });
-        }
+
 
         private void OnWindowPreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
         {

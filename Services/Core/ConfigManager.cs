@@ -60,7 +60,8 @@ namespace YiboFile
         public string ThemeMode { get; set; } = "FollowSystem"; // Light, Dark, FollowSystem
         public string UIStyle { get; set; } = "Original"; // Original, Fluent, MacOS, Geek
         public string LayoutMode { get; set; } = "Full"; // Focus, Work, Full
-        public bool IsDualListMode { get; set; } = false; // 双列表模式
+        public bool IsDualPaneMode { get; set; } = false; // 双列表模式
+        public string PaneModeStr { get; set; } = "Single"; // 三态面板模式: Single, DualPane, Preview
         public double WindowOpacity { get; set; } = 1.0; // 窗口透明度 (0.5-1.0)
         public bool AnimationsEnabled { get; set; } = true; // 动画效果启用
         public string IconStyle { get; set; } = "Emoji"; // 图标风格 (Emoji, Remix, Fluent)

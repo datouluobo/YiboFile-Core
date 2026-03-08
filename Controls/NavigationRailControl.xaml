@@ -45,6 +45,9 @@
                                 <Setter Property="Background" Value="{DynamicResource ButtonHoverBackgroundBrush}"/>
                                 <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
                             </DataTrigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="Opacity" Value="0.3"/>
+                            </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
@@ -67,6 +70,7 @@
                     <Button Command="{Binding Command}"
                             Style="{StaticResource RailButtonStyle}"
                             ToolTip="{Binding ToolTip}"
+                            IsEnabled="{Binding IsEnabled}"
                             Visibility="{Binding IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
                             AllowDrop="True"
                             PreviewMouseLeftButtonDown="RailItem_PreviewMouseLeftButtonDown"
@@ -89,6 +93,7 @@
                     <Button Command="{Binding Command}"
                             Style="{StaticResource RailButtonStyle}"
                             ToolTip="{Binding ToolTip}"
+                            IsEnabled="{Binding IsEnabled}"
                             Visibility="{Binding IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
                             AllowDrop="True"
                             PreviewMouseLeftButtonDown="RailItem_PreviewMouseLeftButtonDown"

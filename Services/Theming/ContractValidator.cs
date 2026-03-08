@@ -98,7 +98,7 @@ namespace YiboFile.Services.Theming
             "Icon_Backup", "Icon_Clipboard",
 
             // 布局模式
-            "Icon_Layout_Focus", "Icon_Layout_Work", "Icon_Layout_Full", "Icon_DualList",
+            "Icon_Layout_Focus", "Icon_Layout_Work", "Icon_Layout_Full", "Icon_DualPane",
 
             // 状态/Toast
             "Icon_Success", "Icon_Error", "Icon_Warning", "Icon_Info", "Icon_Close",

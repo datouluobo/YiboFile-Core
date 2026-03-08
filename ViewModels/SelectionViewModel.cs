@@ -14,7 +14,7 @@ namespace YiboFile.ViewModels
     public class SelectionViewModel : BaseViewModel
     {
         private readonly IMessageBus _messageBus;
-        private readonly bool _isSecondary;
+        public bool IsSecondary { get; set; }
         private readonly FolderSizeCalculationService _folderSizeService;
 
         private ObservableCollection<FileSystemItem> _selectedItems = new ObservableCollection<FileSystemItem>();
@@ -27,7 +27,7 @@ namespace YiboFile.ViewModels
         public SelectionViewModel(IMessageBus messageBus, bool isSecondary)
         {
             _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
-            _isSecondary = isSecondary;
+            IsSecondary = isSecondary;
             _folderSizeService = App.ServiceProvider.GetService<FolderSizeCalculationService>();
         }
 
@@ -73,7 +73,7 @@ namespace YiboFile.ViewModels
             SelectionChanged?.Invoke(this, EventArgs.Empty);
 
             // 发送消息以便其他模块（如预览面板）同步
-            var paneId = _isSecondary ? PaneId.Second : PaneId.Main;
+            var paneId = IsSecondary ? PaneId.Second : PaneId.Main;
             if (SelectedItem != null)
             {
                 // 如果只选择了一个项，请求预览
@@ -102,7 +102,7 @@ namespace YiboFile.ViewModels
             SelectedItem = null;
             SelectionChanged?.Invoke(this, EventArgs.Empty);
 
-            var paneId = _isSecondary ? PaneId.Second : PaneId.Main;
+            var paneId = IsSecondary ? PaneId.Second : PaneId.Main;
             _messageBus.Publish(new FileSelectionChangedMessage(null, true, paneId));
         }
 
@@ -118,7 +118,7 @@ namespace YiboFile.ViewModels
             SelectedItem = _selectedItems.FirstOrDefault();
 
             SelectionChanged?.Invoke(this, EventArgs.Empty);
-            var paneId = _isSecondary ? PaneId.Second : PaneId.Main;
+            var paneId = IsSecondary ? PaneId.Second : PaneId.Main;
             _messageBus.Publish(new FileSelectionChangedMessage(SelectedItems.ToList(), true, paneId));
         }
     }

@@ -280,9 +280,27 @@
         </DrawingImage.Drawing>
     </DrawingImage>
 
-    <DrawingImage x:Key="Icon_DualList">
+    <DrawingImage x:Key="Icon_SinglePane">
+        <DrawingImage.Drawing>
+            <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M3,3h18v18H3V3z M5,5v14h14V5H5z"/>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_DualPane">
         <DrawingImage.Drawing>
             <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M3,3h8v18H3V3z M13,3h8v18h-8V3z M5,5v14h4V5H5z M15,5v14h4V5H15z"/>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_Preview">
+        <DrawingImage.Drawing>
+            <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M3,3h18v18H3V3z M5,5v14h7V5H5z M14,5v4h5V5H14z M14,11v3h5v-3H14z M14,16v3h5v-3H14z"/>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Icon_SwapHorizontal">
+        <DrawingImage.Drawing>
+            <GeometryDrawing Brush="{DynamicResource ForegroundPrimaryBrush}" Geometry="M6.99,11L3,15l3.99,4v-3H14v-2H6.99V11z M21,9l-3.99-4v3H10v2h7.01v3L21,9z"/>
         </DrawingImage.Drawing>
     </DrawingImage>
 

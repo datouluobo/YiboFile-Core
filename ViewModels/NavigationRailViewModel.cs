@@ -19,7 +19,9 @@ namespace YiboFile.ViewModels
         private readonly IMessageBus _messageBus;
         private string _activeNavigationMode = "Path";
         private string _activeLayoutMode = "Work";
-        private bool _isDualListMode = false;
+        private bool _isDualPaneMode = false;
+        private bool _isLeftPanelCollapsed = false;
+        private PaneMode _currentPaneMode = PaneMode.Single;
 
         public ObservableCollection<NavigationRailItem> TopItems { get; } = new();
         public ObservableCollection<NavigationRailItem> BottomItems { get; } = new();
@@ -51,10 +53,10 @@ namespace YiboFile.ViewModels
             NavigateToBackupCommand = new RelayCommand(() => _messageBus.Publish(new OpenContentTabMessage(TabContentTypes.Backup)));
             NavigateToClipboardCommand = new RelayCommand(() => _messageBus.Publish(new OpenContentTabMessage(TabContentTypes.Clipboard)));
 
-            SetLayoutFocusCommand = new RelayCommand(() => _messageBus.Publish(new RequestLayoutModeMessage("Focus")));
-            SetLayoutWorkCommand = new RelayCommand(() => _messageBus.Publish(new RequestLayoutModeMessage("Work")));
-            SetLayoutFullCommand = new RelayCommand(() => _messageBus.Publish(new RequestLayoutModeMessage("Full")));
-            ToggleDualListCommand = new RelayCommand(() => _messageBus.Publish(new RequestDualListToggleMessage()));
+            ToggleSidebarCommand = new RelayCommand(() => _messageBus.Publish(new RequestSidebarToggleMessage()));
+            ToggleDualPaneCommand = new RelayCommand(() => _messageBus.Publish(new RequestDualPaneToggleMessage()));
+            CyclePaneModeCommand = new RelayCommand(() => _messageBus.Publish(new RequestPaneModeToggleMessage()));
+            SwapPanesCommand = new RelayCommand(() => _messageBus.Publish(new RequestSwapPanesMessage()));
 
             OpenSettingsCommand = new RelayCommand(() => _messageBus.Publish(new OpenContentTabMessage(TabContentTypes.Settings)));
             OpenAboutCommand = new RelayCommand(() => _messageBus.Publish(new OpenContentTabMessage(TabContentTypes.About)));
@@ -73,16 +75,15 @@ namespace YiboFile.ViewModels
                 { "Tasks", new NavigationRailItem { Id = "Tasks", IconKey = "Icon_Window_Tasks", ToolTip = "任务队列", Command = NavigateToTasksCommand } },
                 { "Backup", new NavigationRailItem { Id = "Backup", IconKey = "Icon_Backup", ToolTip = "备份管理器", Command = NavigateToBackupCommand } },
                 { "Clipboard", new NavigationRailItem { Id = "Clipboard", IconKey = "Icon_Clipboard", ToolTip = "剪贴板历史", Command = NavigateToClipboardCommand } },
-                { "Focus", new NavigationRailItem { Id = "Focus", IconKey = "Icon_Layout_Focus", ToolTip = "专注模式 (Ctrl+Shift+F)", Command = SetLayoutFocusCommand } },
-                { "Work", new NavigationRailItem { Id = "Work", IconKey = "Icon_Layout_Work", ToolTip = "工作模式 (Ctrl+Shift+W)", Command = SetLayoutWorkCommand } },
-                { "Full", new NavigationRailItem { Id = "Full", IconKey = "Icon_Layout_Full", ToolTip = "完整模式 (Ctrl+Shift+A)", Command = SetLayoutFullCommand } },
-                { "DualList", new NavigationRailItem { Id = "DualList", IconKey = "Icon_DualList", ToolTip = "双列表模式", Command = ToggleDualListCommand } },
+                { "ToggleSidebar", new NavigationRailItem { Id = "ToggleSidebar", IconKey = "Icon_Layout_Work", ToolTip = "切换左侧栏显示/隐藏", Command = ToggleSidebarCommand } },
+                { "PaneMode", new NavigationRailItem { Id = "PaneMode", IconKey = "Icon_DualPane", ToolTip = "单栏 → 双栏 → 预览", Command = CyclePaneModeCommand } },
+                { "SwapPanes", new NavigationRailItem { Id = "SwapPanes", IconKey = "Icon_SwapHorizontal", ToolTip = "交换左右栏", Command = SwapPanesCommand } },
                 { "Settings", new NavigationRailItem { Id = "Settings", IconKey = "Icon_Window_Settings", ToolTip = "设置", Command = OpenSettingsCommand } },
                 { "About", new NavigationRailItem { Id = "About", IconKey = "Icon_Window_About", ToolTip = "关于", Command = OpenAboutCommand } }
             };
 
             var topKeys = _configService?.Config?.RailTopItems ?? new List<string> { "Path", "Library", "Tag", "Tasks", "Backup", "Clipboard" };
-            var bottomKeys = _configService?.Config?.RailBottomItems ?? new List<string> { "Focus", "Work", "Full", "DualList", "Settings", "About" };
+            var bottomKeys = _configService?.Config?.RailBottomItems ?? new List<string> { "ToggleSidebar", "PaneMode", "SwapPanes", "Settings", "About" };
 
             // 防止有丢失的数据被漏在字典里没显示
             var usedKeys = new HashSet<string>();
@@ -136,11 +137,38 @@ namespace YiboFile.ViewModels
                 else if (item.Id == "Backup") item.IsActive = ActiveNavigationMode == "Backup";
                 else if (item.Id == "Clipboard") item.IsActive = ActiveNavigationMode == "Clipboard";
                 
-                else if (item.Id == "Focus") item.IsActive = ActiveLayoutMode == "Focus";
-                else if (item.Id == "Work") item.IsActive = ActiveLayoutMode == "Work";
-                else if (item.Id == "Full") item.IsActive = ActiveLayoutMode == "Full";
+                else if (item.Id == "ToggleSidebar") 
+                {
+                    item.IsActive = false;
+                    item.IconKey = _isLeftPanelCollapsed ? "Icon_Layout_Focus" : "Icon_Layout_Work";
+                }
                 
-                else if (item.Id == "DualList") item.IsActive = IsDualListMode;
+                else if (item.Id == "PaneMode")
+                {
+                    item.IsActive = _currentPaneMode != PaneMode.Single;
+                    // 根据当前模式显示对应的图标
+                    switch (_currentPaneMode)
+                    {
+                        case PaneMode.Single:
+                            item.IconKey = "Icon_SinglePane";
+                            item.ToolTip = "当前: 单栏 (点击切换到双栏)";
+                            break;
+                        case PaneMode.DualPane:
+                            item.IconKey = "Icon_DualPane";
+                            item.ToolTip = "当前: 双栏 (点击切换到预览)";
+                            break;
+                        case PaneMode.Preview:
+                            item.IconKey = "Icon_Preview";
+                            item.ToolTip = "当前: 预览 (点击切换到单栏)";
+                            break;
+                    }
+                }
+                else if (item.Id == "SwapPanes")
+                {
+                    item.IsActive = false;
+                    // 单栏时禁用，双栏或预览模式允许
+                    item.IsEnabled = _currentPaneMode != PaneMode.Single;
+                }
                 else item.IsActive = false;
             }
         }
@@ -163,7 +191,7 @@ namespace YiboFile.ViewModels
         }
 
         /// <summary>
-        /// 当前激活的布局模式
+        /// 当前激活的布局模式（兼容旧逻辑保留）
         /// </summary>
         public string ActiveLayoutMode
         {
@@ -178,14 +206,44 @@ namespace YiboFile.ViewModels
         }
 
         /// <summary>
-        /// 是否为双列表模式
+        /// 是否为双列表模式（兼容旧逻辑保留）
         /// </summary>
-        public bool IsDualListMode
+        public bool IsDualPaneMode
         {
-            get => _isDualListMode;
+            get => _isDualPaneMode;
             set
             {
-                if (SetProperty(ref _isDualListMode, value))
+                if (SetProperty(ref _isDualPaneMode, value))
+                {
+                    UpdateActiveStates();
+                }
+            }
+        }
+
+        /// <summary>
+        /// 是否折叠左侧面板
+        /// </summary>
+        public bool IsLeftPanelCollapsed
+        {
+            get => _isLeftPanelCollapsed;
+            set
+            {
+                if (SetProperty(ref _isLeftPanelCollapsed, value))
+                {
+                    UpdateActiveStates();
+                }
+            }
+        }
+
+        /// <summary>
+        /// 当前面板模式（三态）
+        /// </summary>
+        public PaneMode CurrentPaneMode
+        {
+            get => _currentPaneMode;
+            set
+            {
+                if (SetProperty(ref _currentPaneMode, value))
                 {
                     UpdateActiveStates();
                 }
@@ -208,10 +266,10 @@ namespace YiboFile.ViewModels
         public ICommand NavigateToBackupCommand { get; }
         public ICommand NavigateToClipboardCommand { get; }
 
-        public ICommand SetLayoutFocusCommand { get; }
-        public ICommand SetLayoutWorkCommand { get; }
-        public ICommand SetLayoutFullCommand { get; }
-        public ICommand ToggleDualListCommand { get; }
+        public ICommand ToggleSidebarCommand { get; }
+        public ICommand ToggleDualPaneCommand { get; }
+        public ICommand CyclePaneModeCommand { get; }
+        public ICommand SwapPanesCommand { get; }
 
         public ICommand OpenSettingsCommand { get; }
         public ICommand OpenAboutCommand { get; }

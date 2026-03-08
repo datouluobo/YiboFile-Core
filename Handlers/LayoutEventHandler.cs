@@ -80,9 +80,9 @@ namespace YiboFile.Handlers
                 _window.Dispatcher.Invoke(() => ApplyLayoutModeUI(m.Mode));
             });
 
-            _messageBus?.Subscribe<DualListModeChangedMessage>(m =>
+            _messageBus?.Subscribe<DualPaneModeChangedMessage>(m =>
             {
-                _window.Dispatcher.Invoke(() => SetDualListMode(m.IsEnabled));
+                _window.Dispatcher.Invoke(() => SetDualPaneMode(m.IsEnabled));
             });
 
             _messageBus?.Subscribe<FocusedPaneChangedMessage>(m =>
@@ -104,6 +104,24 @@ namespace YiboFile.Handlers
                 });
             });
 
+            // ═══ 跨面板预览协调 ═══
+            _messageBus?.Subscribe<PreviewPaneVisibilityChangedMessage>(m =>
+            {
+                _window.Dispatcher.Invoke(() => OnPreviewPaneVisibilityChanged(m));
+            });
+
+            // ═══ 三态面板模式切换 ═══
+            _messageBus?.Subscribe<PaneModeChangedMessage>(m =>
+            {
+                _window.Dispatcher.Invoke(() => OnPaneModeChanged(m.Mode));
+            });
+
+            // 焦点变更：在预览模式下需要同步切换 Preview 宿主
+            _messageBus?.Subscribe<FocusedPaneChangedMessage>(m =>
+            {
+                _window.Dispatcher.Invoke(() => UpdateCrossPreviewForPreviewState());
+            });
+
             // TabActiveChangedMessage subscription removed - handled by TabsModule -> RestoreNavigationStateMessage
 
 
@@ -119,7 +137,10 @@ namespace YiboFile.Handlers
                 ApplyLayoutModeUI(_layoutModule.CurrentLayoutMode);
 
                 // 应用初始双列表状态（触发事件绑定和内容加载）
-                SetDualListMode(_layoutModule.IsDualListMode);
+                SetDualPaneMode(_layoutModule.IsDualPaneMode);
+
+                // 应用初始的三态面板模式 (例如恢复 Preview 模式的视图UI)
+                OnPaneModeChanged(_layoutModule.CurrentPaneMode);
 
                 // 核心焦点桥接：确保点击主面板任何区域都能同步焦点状态
                 if (_window.FileBrowser != null)
@@ -151,7 +172,7 @@ namespace YiboFile.Handlers
 
         internal void SwitchFocusedPane()
         {
-            if (!_layoutModule.IsDualListMode) return;
+            if (!_layoutModule.IsDualPaneMode) return;
             _layoutModule?.SwitchFocusedPane();
         }
 
@@ -183,8 +204,42 @@ namespace YiboFile.Handlers
             // Doing it in code-behind with hardcoded brushes caused visual bugs and conflicting borders with the grid splitters.
         }
 
-        internal void SetDualListMode(bool enable)
+        internal void SetDualPaneMode(bool enable)
         {
+            // ═══ 直接操控 ColRight 的列宽 ═══
+            var colRight = _window.ColRight;
+            if (colRight != null)
+            {
+                if (enable)
+                {
+                    // 仅当宽度未分配时（如刚从单栏切换过来）才重置，保留用户配置和持久化宽度
+                    colRight.MinWidth = 250;
+                    if (colRight.Width.Value <= 0)
+                    {
+                        var cfg = YiboFile.Services.Config.ConfigurationService.Instance.Config;
+                        if (cfg != null && cfg.ColRightWidth >= 250)
+                        {
+                            colRight.Width = new System.Windows.GridLength(cfg.ColRightWidth);
+                        }
+                        else
+                        {
+                            colRight.Width = new System.Windows.GridLength(1, System.Windows.GridUnitType.Star);
+                        }
+                    }
+
+                    if (_window.ColCenter != null && _window.ColCenter.Width.Value <= 0)
+                    {
+                        _window.ColCenter.Width = new System.Windows.GridLength(1, System.Windows.GridUnitType.Star);
+                    }
+                }
+                else
+                {
+                    // 折叠：设为 0 隐藏
+                    colRight.MinWidth = 0;
+                    colRight.Width = new System.Windows.GridLength(0);
+                }
+            }
+
             // 调整标签页布局
             UpdateTabManagerLayout();
 
@@ -231,6 +286,236 @@ namespace YiboFile.Handlers
 
                 // 为副列表创建初始标签页
                 EnsureSecondTabExists();
+            }
+
+            if (!enable)
+            {
+                // 关闭双栏时，清除所有跨面板预览状态
+                ClearAllCrossPreview();
+            }
+        }
+
+        // ═══ 跨面板预览协调 ═══
+
+        /// <summary>
+        /// 处理预览面板可见性变更：实现跨面板预览逻辑。
+        /// 确保整个窗口始终只有两个主要面板区域，不产生额外的内部列分割。
+        /// </summary>
+        private void OnPreviewPaneVisibilityChanged(PreviewPaneVisibilityChangedMessage msg)
+        {
+            var primaryHost = _window.PrimaryContentHost;
+            var secondHost = _window.SecondContentHost;
+            var vm = _window.ViewModel;
+
+            if (primaryHost == null || secondHost == null || vm == null) return;
+
+            if (!_layoutModule.IsDualPaneMode)
+            {
+                // ═ 单栏模式 ═
+                // A栏（主面板）的文件列表显示在左侧，A栏的预览显示在右侧（利用ColRight）
+                if (msg.Pane == PaneId.Main)
+                {
+                    if (msg.IsVisible)
+                    {
+                        // 展开 ColRight 并让 SecondContentHost 显示 A 的预览
+                        if (_window.SplitterRight != null) _window.SplitterRight.Visibility = Visibility.Visible;
+                        
+                        var colRight = _window.ColRight;
+                        if (colRight != null)
+                        {
+                            // 使用配置中的最后右侧面板宽度，或者默认 360
+                            double configWidth = YiboFile.Services.Config.ConfigurationService.Instance.Config.RightPanelWidth;
+                            colRight.MinWidth = 250;
+                            colRight.Width = new System.Windows.GridLength(configWidth > 0 ? configWidth : 360);
+                        }
+                        
+                        secondHost.SetCrossPreview(vm.PrimaryPane?.Preview);
+                        if (vm.PrimaryPane != null) vm.PrimaryPane.IsInnerPreviewVisible = false;
+                        FileLogger.Log("[LayoutEventHandler] 单栏模式: A 的预览在右侧打开");
+                    }
+                    else
+                    {
+                        // 关闭 ColRight
+                        if (_window.SplitterRight != null) _window.SplitterRight.Visibility = Visibility.Collapsed;
+                        
+                        var colRight = _window.ColRight;
+                        if (colRight != null)
+                        {
+                            colRight.MinWidth = 0;
+                            colRight.Width = new System.Windows.GridLength(0);
+                        }
+                        
+                        secondHost.SetCrossPreview(null);
+                        if (vm.PrimaryPane != null) vm.PrimaryPane.IsInnerPreviewVisible = (_layoutModule.CurrentPaneMode != PaneMode.Preview);
+                        FileLogger.Log("[LayoutEventHandler] 单栏模式: A 的预览关闭");
+                    }
+                    UpdateTabManagerLayout();
+                }
+                return;
+            }
+
+            // ═ 双栏模式 ═
+            // A栏的预览在B栏位置打开，B栏的预览在A栏位置打开。
+            if (msg.Pane == PaneId.Main)
+            {
+                // A栏（主面板）预览开关被切换
+                if (msg.IsVisible)
+                {
+                    // A的预览在B的位置打开 → SecondContentHost 显示 A 的预览
+                    secondHost.SetCrossPreview(vm.PrimaryPane?.Preview);
+                    if (vm.PrimaryPane != null) vm.PrimaryPane.IsInnerPreviewVisible = false;
+                    FileLogger.Log("[LayoutEventHandler] 跨面板预览: A→B 启用");
+                }
+                else
+                {
+                    // 关闭 → 恢复 B 的正常显示
+                    secondHost.SetCrossPreview(null);
+                    if (vm.PrimaryPane != null) vm.PrimaryPane.IsInnerPreviewVisible = (_layoutModule.CurrentPaneMode != PaneMode.Preview);
+                    FileLogger.Log("[LayoutEventHandler] 跨面板预览: A→B 关闭");
+                }
+            }
+            else if (msg.Pane == PaneId.Second)
+            {
+                // B栏（副面板）预览开关被切换
+                if (msg.IsVisible)
+                {
+                    // B的预览在A的位置打开 → PrimaryContentHost 显示 B 的预览
+                    primaryHost.SetCrossPreview(vm.SecondaryPane?.Preview);
+                    if (vm.SecondaryPane != null) vm.SecondaryPane.IsInnerPreviewVisible = false;
+                    FileLogger.Log("[LayoutEventHandler] 跨面板预览: B→A 启用");
+                }
+                else
+                {
+                    // 关闭 → 恢复 A 的正常显示
+                    primaryHost.SetCrossPreview(null);
+                    if (vm.SecondaryPane != null) vm.SecondaryPane.IsInnerPreviewVisible = (_layoutModule.CurrentPaneMode != PaneMode.Preview);
+                    FileLogger.Log("[LayoutEventHandler] 跨面板预览: B→A 关闭");
+                }
+            }
+        }
+
+        /// <summary>
+        /// 清除所有跨面板预览状态（切换到单栏模式时调用）。
+        /// </summary>
+        private void ClearAllCrossPreview()
+        {
+            var vm = _window.ViewModel;
+
+            _window.PrimaryContentHost?.SetCrossPreview(null);
+            _window.SecondContentHost?.SetCrossPreview(null);
+
+            // 同时关闭两个面板的预览状态标志
+            if (vm?.PrimaryPane?.Preview != null) vm.PrimaryPane.Preview.IsVisible = false;
+            if (vm?.SecondaryPane?.Preview != null) vm.SecondaryPane.Preview.IsVisible = false;
+        }
+
+        /// <summary>
+        /// 处理三态面板模式变更
+        /// </summary>
+        private void OnPaneModeChanged(PaneMode mode)
+        {
+            var primaryHost = _window.PrimaryContentHost;
+            var secondHost = _window.SecondContentHost;
+            var vm = _window.ViewModel;
+            var colRight = _window.ColRight;
+
+            switch (mode)
+            {
+                case PaneMode.Single:
+                    // 回到单栏：关闭跨面板预览，折叠右侧列
+                    ClearAllCrossPreview();
+                    if (_window.SplitterRight != null) _window.SplitterRight.Visibility = Visibility.Collapsed;
+                    if (_window.SecondFileBrowserContainer != null) _window.SecondFileBrowserContainer.Visibility = Visibility.Collapsed;
+                    if (colRight != null)
+                    {
+                        colRight.MinWidth = 0;
+                        colRight.Width = new System.Windows.GridLength(0);
+                    }
+                    UpdateTabManagerLayout();
+                    FileLogger.Log("[LayoutEventHandler] 面板模式 → 单栏 (物理容器关闭)");
+                    break;
+
+                case PaneMode.DualPane:
+                    // 双栏模式由 SetDualPaneMode 处理（LayoutModule 已发 DualPaneModeChangedMessage）
+                    if (_window.SplitterRight != null) _window.SplitterRight.Visibility = Visibility.Visible;
+                    if (_window.SecondFileBrowserContainer != null) _window.SecondFileBrowserContainer.Visibility = Visibility.Visible;
+                    // 这里只需确保预览状态已清除
+                    primaryHost?.SetCrossPreview(null);
+                    secondHost?.SetCrossPreview(null);
+                    FileLogger.Log("[LayoutEventHandler] 面板模式 → 双栏");
+                    break;
+
+                case PaneMode.Preview:
+                    // 预览模式：展开右侧列，在非焦点栏显示焦点栏的预览
+                    if (_window.SplitterRight != null) _window.SplitterRight.Visibility = Visibility.Visible;
+                    if (_window.SecondFileBrowserContainer != null) _window.SecondFileBrowserContainer.Visibility = Visibility.Visible;
+                    if (colRight != null)
+                    {
+                        colRight.MinWidth = 250;
+                        // 仅当宽度未分配时才覆盖，保护持久化的像素宽度
+                        if (colRight.Width.Value <= 0)
+                        {
+                            var cfg = YiboFile.Services.Config.ConfigurationService.Instance.Config;
+                            if (cfg != null && cfg.ColRightWidth >= 250)
+                            {
+                                colRight.Width = new System.Windows.GridLength(cfg.ColRightWidth);
+                            }
+                            else
+                            {
+                                colRight.Width = new System.Windows.GridLength(1, System.Windows.GridUnitType.Star);
+                            }
+                        }
+                        
+                        // 更新中间列
+                        if (_window.ColCenter != null && _window.ColCenter.Width.Value <= 0)
+                        {
+                            _window.ColCenter.Width = new System.Windows.GridLength(1, System.Windows.GridUnitType.Star);
+                        }
+                    }
+
+                    UpdateCrossPreviewForPreviewState();
+
+                    UpdateTabManagerLayout();
+                    FileLogger.Log("[LayoutEventHandler] 面板模式 → 预览");
+                    break;
+            }
+
+            // 更新底层各个面板的底侧内部预览窗口显示状态（处于主预览模式时，这些应该收起）
+            if (vm != null)
+            {
+                if (vm.PrimaryPane != null) vm.PrimaryPane.IsInnerPreviewVisible = (mode != PaneMode.Preview) && !vm.PrimaryPane.Preview.IsVisible;
+                if (vm.SecondaryPane != null) vm.SecondaryPane.IsInnerPreviewVisible = (mode != PaneMode.Preview) && !vm.SecondaryPane.Preview.IsVisible;
+            }
+        }
+
+        /// <summary>
+        /// 在预览模式下，根据焦点侧动态切换预览宿主。
+        /// 若焦点在左，右侧显示预览；若焦点在右，左侧显示预览。
+        /// </summary>
+        private void UpdateCrossPreviewForPreviewState()
+        {
+            if (_layoutModule == null || _layoutModule.CurrentPaneMode != PaneMode.Preview) return;
+
+            var primaryHost = _window.PrimaryContentHost;
+            var secondHost = _window.SecondContentHost;
+            var vm = _window.ViewModel;
+
+            if (vm != null && primaryHost != null && secondHost != null)
+            {
+                if (_layoutModule.IsSecondPaneFocused)
+                {
+                    // 焦点在副面板（右列表）：这时左侧（主面板）显示副面板的预览，右侧显示正常列表内容
+                    secondHost.SetCrossPreview(null);
+                    primaryHost.SetCrossPreview(vm.SecondaryPane?.Preview);
+                    FileLogger.Log("[LayoutEventHandler] 预览方向：左预览 + 右列表");
+                }
+                else
+                {
+                    // 焦点在主面板（左列表）：这时右侧（副面板）显示主面板的预览，左侧显示正常列表内容
+                    primaryHost.SetCrossPreview(null);
+                    secondHost.SetCrossPreview(vm.PrimaryPane?.Preview);
+                    FileLogger.Log("[LayoutEventHandler] 预览方向：左列表 + 右预览");
+                }
             }
         }
 
@@ -305,7 +590,7 @@ namespace YiboFile.Handlers
 
         internal void NavigateSecondaryPaneToLibrary(Library library)
         {
-            if (!_layoutModule.IsDualListMode || _window.SecondFileBrowser == null) return;
+            if (!_layoutModule.IsDualPaneMode || _window.SecondFileBrowser == null) return;
 
             if (library == null)
             {
@@ -333,7 +618,7 @@ namespace YiboFile.Handlers
 
         internal void NavigateSecondaryPaneToTag(TagViewModel tag)
         {
-            if (!_layoutModule.IsDualListMode || _window.SecondFileBrowser == null) return;
+            if (!_layoutModule.IsDualPaneMode || _window.SecondFileBrowser == null) return;
             if (tag != null)
             {
                 LoadSecondFileBrowserTag(tag);
@@ -475,7 +760,7 @@ namespace YiboFile.Handlers
 
         public (Controls.FileBrowserControl browser, string path, Library library) GetActiveContext()
         {
-            if (_layoutModule.IsDualListMode && _layoutModule.IsSecondPaneFocused && _window.SecondFileBrowser != null)
+            if (_layoutModule.IsDualPaneMode && _layoutModule.IsSecondPaneFocused && _window.SecondFileBrowser != null)
             {
                 var secLib = _window.ViewModel?.SecondaryPane?.CurrentLibrary;
                 return (_window.SecondFileBrowser, _window.ViewModel?.SecondaryPane?.CurrentPath, secLib);
@@ -485,7 +770,7 @@ namespace YiboFile.Handlers
 
         public void RefreshActiveFileList()
         {
-            if (_layoutModule.IsDualListMode && _layoutModule.IsSecondPaneFocused && _window.SecondFileBrowser != null)
+            if (_layoutModule.IsDualPaneMode && _layoutModule.IsSecondPaneFocused && _window.SecondFileBrowser != null)
             {
                 if (_window.ViewModel?.SecondaryPane?.NavigationMode == "Library" && _window.ViewModel.SecondaryPane.CurrentLibrary != null)
                 {

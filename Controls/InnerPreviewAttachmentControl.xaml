@@ -1,0 +1,144 @@
+<UserControl x:Class="YiboFile.Controls.InnerPreviewAttachmentControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:YiboFile.Controls"
+             xmlns:viewModels="clr-namespace:YiboFile.ViewModels"
+             xmlns:local="clr-namespace:YiboFile"
+             xmlns:converters="clr-namespace:YiboFile.Converters"
+             HorizontalAlignment="Stretch"
+             VerticalAlignment="Stretch"
+             MinWidth="100">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <converters:DoubleToGridLengthConverter x:Key="DoubleToGridLengthConverter"/>
+            <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+            <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
+            
+            <Style x:Key="VerticalTabRadioButtonStyle" TargetType="RadioButton">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="Foreground" Value="{DynamicResource ForegroundSecondaryBrush}"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="RadioButton">
+                            <Border Background="{TemplateBinding Background}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="{DynamicResource FocusSecondaryBrush}"/>
+                                </Trigger>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter Property="Background" Value="{DynamicResource AccentDefaultBrush}"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource ForegroundInvertBrush}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    
+    <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="0">
+        <Grid.ColumnDefinitions>
+            <!-- 内容列 -->
+            <ColumnDefinition Width="*"/>
+            <!-- 窄按钮列 -->
+            <ColumnDefinition Width="28"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- 左侧的内容区域 -->
+        <Border Grid.Column="0" Background="{DynamicResource BackgroundPrimaryBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="4" Margin="0,4,4,4">
+            <Grid>
+                <!-- 预览内容 (当BtnPreview选中时显示) -->
+                <Grid x:Name="PreviewArea" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ClipToBounds="True">
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsChecked, ElementName=BtnPreview}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    <Grid.Resources>
+                        <ResourceDictionary>
+                            <ResourceDictionary.MergedDictionaries>
+                                <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/Controls/PreviewTemplates.xaml"/>
+                            </ResourceDictionary.MergedDictionaries>
+                        </ResourceDictionary>
+                    </Grid.Resources>
+
+                    <ContentPresenter Content="{Binding ActivePreview}"/>
+
+                    <Grid Visibility="{Binding ActivePreview.IsLoading, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}" Background="{DynamicResource OverlayLightBrush}">
+                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                            <ProgressBar IsIndeterminate="True" Width="100" Height="4" Margin="0,0,0,10"/>
+                            <TextBlock Text="加载中..." HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </Grid>
+                    
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ActivePreview}" Value="{x:Null}">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+                        <TextBlock Text="无可用预览" Foreground="{DynamicResource ForegroundTertiaryBrush}" FontSize="13"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- 备注内容 (当BtnNotes选中时显示) -->
+                <Grid x:Name="NotesArea">
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsChecked, ElementName=BtnNotes}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    <TextBox Name="NotesTextBox" Padding="8" 
+                             AcceptsReturn="True" 
+                             TextWrapping="Wrap"
+                             VerticalScrollBarVisibility="Auto"
+                             HorizontalAlignment="Stretch"
+                             VerticalAlignment="Stretch"
+                             Text="{Binding CurrentNotes, UpdateSourceTrigger=PropertyChanged}"
+                             Background="Transparent" BorderBrush="Transparent" BorderThickness="0"/>
+                </Grid>
+            </Grid>
+        </Border>
+
+        <!-- 右侧的竖排选项卡按钮（占据全部高度） -->
+        <Grid Grid.Column="1" Margin="0,4,0,4">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            
+            <RadioButton x:Name="BtnPreview" Grid.Row="0" Margin="0,0,0,2" IsChecked="True" Style="{DynamicResource VerticalTabRadioButtonStyle}" ToolTip="预览文件">
+                <StackPanel Orientation="Vertical" VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <TextBlock Text="预" FontSize="13" Margin="0,0,0,2" HorizontalAlignment="Center"/>
+                    <TextBlock Text="览" FontSize="13" HorizontalAlignment="Center"/>
+                </StackPanel>
+            </RadioButton>
+            <RadioButton x:Name="BtnNotes" Grid.Row="1" Margin="0,2,0,0" Style="{DynamicResource VerticalTabRadioButtonStyle}" ToolTip="文件备注">
+                <StackPanel Orientation="Vertical" VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <TextBlock Text="备" FontSize="13" Margin="0,0,0,2" HorizontalAlignment="Center"/>
+                    <TextBlock Text="注" FontSize="13" HorizontalAlignment="Center"/>
+                </StackPanel>
+            </RadioButton>
+        </Grid>
+    </Grid>
+
+</UserControl>

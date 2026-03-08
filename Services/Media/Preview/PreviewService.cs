@@ -7,9 +7,11 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Threading;
-using YiboFile.ViewModels.Messaging;
 using YiboFile.ViewModels.Messaging.Messages;
 using YiboFile.ViewModels.Previews;
+using System.Collections.Concurrent;
+using YiboFile.Services.Navigation;
+using YiboFile.ViewModels.Messaging;
 
 namespace YiboFile.Services.Preview
 {
@@ -29,26 +31,30 @@ namespace YiboFile.Services.Preview
             _dispatcher = dispatcher ?? throw new ArgumentNullException(nameof(dispatcher));
 
             // Subscribe to preview requests
-            _messageBus.Subscribe<PreviewRequestMessage>(m => _ = LoadFilePreviewAsync(m.FilePath));
+            _messageBus.Subscribe<PreviewRequestMessage>(m => _ = LoadFilePreviewAsync(m.FilePath, m.TargetPane));
         }
 
-        private long _currentGeneration = 0;
-        private System.Threading.CancellationTokenSource _currentCts;
+        private readonly ConcurrentDictionary<PaneId, long> _generations = new ConcurrentDictionary<PaneId, long>();
+        private readonly ConcurrentDictionary<PaneId, System.Threading.CancellationTokenSource> _ctsDict = new ConcurrentDictionary<PaneId, System.Threading.CancellationTokenSource>();
 
         /// <summary>
         /// 加载文件预览 (异步)
         /// </summary>
-        public async System.Threading.Tasks.Task LoadFilePreviewAsync(string filePath)
+        public async System.Threading.Tasks.Task LoadFilePreviewAsync(string filePath, PaneId pane)
         {
-            // Cancel previous work
-            // Manual cancellation management to avoid using ClearPreview() which increments generation prematurely for our new logic
-            _currentCts?.Cancel();
-            _currentCts?.Dispose();
-            _currentCts = new System.Threading.CancellationTokenSource();
-            var token = _currentCts.Token;
+            // Cancel previous work for this pane
+            if (_ctsDict.TryGetValue(pane, out var oldCts))
+            {
+                oldCts?.Cancel();
+                oldCts?.Dispose();
+            }
+            
+            var newCts = new System.Threading.CancellationTokenSource();
+            _ctsDict[pane] = newCts;
+            var token = newCts.Token;
 
             // Increment generation to invalidate previous requests
-            long generation = ++_currentGeneration;
+            long generation = _generations.AddOrUpdate(pane, 1, (_, current) => current + 1);
 
             try
             {
@@ -61,20 +67,19 @@ namespace YiboFile.Services.Preview
 
                 var completedTask = await System.Threading.Tasks.Task.WhenAny(loadingTask, delayTask);
 
-                // If generation changed or cancelled, abort
-                if (generation != _currentGeneration || token.IsCancellationRequested) return;
+                if (_generations.TryGetValue(pane, out var currentGen) && generation != currentGen || token.IsCancellationRequested) return;
 
                 if (completedTask == delayTask)
                 {
                     // Loading is taking longer than 50ms.
                     // Show "Loading..." / Empty state now.
-                    _messageBus.Publish(new PreviewChangedMessage(null));
+                    _messageBus.Publish(new PreviewChangedMessage(null, pane));
 
                     // Await the actual load
                     var viewModel = await loadingTask;
 
-                    if (generation != _currentGeneration || token.IsCancellationRequested) return;
-                    _messageBus.Publish(new PreviewChangedMessage(viewModel));
+                    if (_generations.TryGetValue(pane, out currentGen) && generation != currentGen || token.IsCancellationRequested) return;
+                    _messageBus.Publish(new PreviewChangedMessage(viewModel, pane));
                 }
                 else
                 {
@@ -82,8 +87,8 @@ namespace YiboFile.Services.Preview
                     // Update UI directly without clearing first (prevents flicker).
                     var viewModel = await loadingTask;
 
-                    if (generation != _currentGeneration || token.IsCancellationRequested) return;
-                    _messageBus.Publish(new PreviewChangedMessage(viewModel));
+                    if (_generations.TryGetValue(pane, out currentGen) && generation != currentGen || token.IsCancellationRequested) return;
+                    _messageBus.Publish(new PreviewChangedMessage(viewModel, pane));
                 }
             }
             catch (OperationCanceledException)
@@ -92,44 +97,38 @@ namespace YiboFile.Services.Preview
             }
             catch (Exception ex)
             {
-                if (generation != _currentGeneration || token.IsCancellationRequested) return;
+                if (_generations.TryGetValue(pane, out var currentGen) && generation != currentGen || token.IsCancellationRequested) return;
 
                 _messageBus.Publish(new PreviewChangedMessage(new ErrorPreviewViewModel
                 {
                     ErrorMessage = $"预览加载异常: {ex.Message}"
-                }));
+                }, pane));
             }
-        }
-
-        /// <summary>
-        /// 加载文件预览 (Legacy support)
-        /// </summary>
-        public void LoadFilePreview(FileSystemItem item)
-        {
-            _ = LoadFilePreviewAsync(item.Path);
         }
 
         /// <summary>
         /// 清除预览内容
         /// </summary>
-        public void ClearPreview()
+        public void ClearPreview(PaneId pane)
         {
-            // Cancel pending loads
-            _currentCts?.Cancel();
-            _currentCts?.Dispose();
-            _currentCts = null;
+            if (_ctsDict.TryGetValue(pane, out var oldCts))
+            {
+                oldCts?.Cancel();
+                oldCts?.Dispose();
+                _ctsDict.TryRemove(pane, out _);
+            }
 
             // Increment generation to invalidate pending loads
-            _currentGeneration++;
-            _messageBus.Publish(new PreviewChangedMessage(null));
+            _generations.AddOrUpdate(pane, 1, (_, current) => current + 1);
+            _messageBus.Publish(new PreviewChangedMessage(null, pane));
         }
 
         /// <summary>
         /// 处理预览区打开文件请求
         /// </summary>
-        public void HandlePreviewOpenFileRequest(string filePath)
+        public void HandlePreviewOpenFileRequest(string filePath, PaneId pane)
         {
-            _ = LoadFilePreviewAsync(filePath);
+            _ = LoadFilePreviewAsync(filePath, pane);
         }
     }
 }

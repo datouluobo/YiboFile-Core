@@ -1,0 +1,161 @@
+<UserControl x:Class="YiboFile.Controls.PreviewAttachmentControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:YiboFile.Controls"
+             xmlns:viewModels="clr-namespace:YiboFile.ViewModels"
+             xmlns:local="clr-namespace:YiboFile"
+             xmlns:converters="clr-namespace:YiboFile.Converters"
+             xmlns:previews="clr-namespace:YiboFile.ViewModels.Previews"
+             HorizontalAlignment="Stretch"
+             VerticalAlignment="Stretch"
+             MinWidth="100">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <converters:DoubleToGridLengthConverter x:Key="DoubleToGridLengthConverter"/>
+            <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+            <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
+            <converters:BooleanToTextWrappingConverter x:Key="BooleanToTextWrappingConverter"/>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="0">
+        <Grid.RowDefinitions>
+            <!-- 行0：标题栏区域（与列2工具栏对齐） -->
+            <RowDefinition Height="Auto"/>
+            <!-- 行1：预览区 -->
+            <RowDefinition Height="*"/>
+            <!-- 行2：分割器 -->
+            <RowDefinition Height="12"/>
+            <!-- 行3：备注区 -->
+            <RowDefinition>
+                <RowDefinition.Style>
+                    <Style TargetType="RowDefinition">
+                        <Setter Property="Height" Value="{Binding NotesHeight, Mode=TwoWay, Converter={StaticResource DoubleToGridLengthConverter}, FallbackValue=150}"/>
+                        <Setter Property="MinHeight" Value="60"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding SelectedItem}" Value="{x:Null}">
+                                <Setter Property="Height" Value="0"/>
+                                <Setter Property="MinHeight" Value="0"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </RowDefinition.Style>
+            </RowDefinition>
+        </Grid.RowDefinitions>
+        
+        <!-- 行0：标题栏（与列2工具栏对齐） -->
+        <Border Grid.Row="0" Height="50" Background="Transparent" IsHitTestVisible="False">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
+                <TextBlock Text="预览" 
+                           FontSize="13" 
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                           VerticalAlignment="Center"/>
+                <TextBlock Text="·" 
+                           FontSize="13" 
+                           Foreground="{DynamicResource ForegroundTertiaryBrush}" 
+                           Margin="6,0"
+                           VerticalAlignment="Center">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Visible"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding SelectedItem}" Value="{x:Null}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <TextBlock FontSize="13" 
+                           Foreground="{DynamicResource ForegroundTertiaryBrush}"
+                           VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis"
+                           MaxWidth="250"
+                           Text="{Binding SelectedItem.Name, FallbackValue=''}"/>
+            </StackPanel>
+        </Border>
+        
+        <!-- 行1：预览区 -->
+        <Border Grid.Row="1" Background="{DynamicResource BackgroundPrimaryBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="1,1,1,0" Margin="4,0,4,0">
+            <Grid Name="PreviewGrid" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ClipToBounds="True">
+                <Grid.Resources>
+                    <ResourceDictionary>
+                        <ResourceDictionary.MergedDictionaries>
+                            <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/Controls/PreviewTemplates.xaml"/>
+                        </ResourceDictionary.MergedDictionaries>
+                    </ResourceDictionary>
+                </Grid.Resources>
+
+                <!-- MVVM Preview Content -->
+                <ContentPresenter Content="{Binding ActivePreview}"/>
+
+                <!-- Loading Overlay -->
+                <Grid Visibility="{Binding ActivePreview.IsLoading, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}" Background="{DynamicResource OverlayLightBrush}">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <ProgressBar IsIndeterminate="True" Width="200" Height="4" Margin="0,0,0,10"/>
+                        <TextBlock Text="正在加载..." HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Grid>
+                
+                <!-- 无可用预览提示 (可选) -->
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ActivePreview}" Value="{x:Null}">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+                    <TextBlock Text="无法预览此文件" Foreground="{DynamicResource ForegroundTertiaryBrush}" FontSize="13"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- 行2：分割器 -->
+        <controls:CollapsibleGridSplitter Grid.Row="2" x:Name="NotesSplitter" 
+                                          HorizontalAlignment="Stretch"
+                                          CollapseMode="Both"
+                                          AutoFillNeighbor="True"
+                                          Panel.ZIndex="999"
+                                          ShowsPreview="False"
+                                          DragStarted="GridSplitter_DragStarted"
+                                          DragDelta="GridSplitter_DragDelta"
+                                          DragCompleted="GridSplitter_DragCompleted">
+            <controls:CollapsibleGridSplitter.Style>
+                <Style TargetType="controls:CollapsibleGridSplitter" BasedOn="{StaticResource HorizontalCollapsibleGridSplitterStyle}">
+                    <Setter Property="Visibility" Value="Visible"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding SelectedItem}" Value="{x:Null}">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                        </DataTrigger>
+                        <!-- 当无预览时，隐藏 Splitter 使得备注区与上方连贯（如果需要） 
+                        <DataTrigger Binding="{Binding ActivePreview}" Value="{x:Null}">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                        </DataTrigger> -->
+                    </Style.Triggers>
+                </Style>
+            </controls:CollapsibleGridSplitter.Style>
+        </controls:CollapsibleGridSplitter>
+
+        <!-- 行3：备注区 -->
+        <Border Grid.Row="3" Background="{DynamicResource BackgroundPrimaryBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="1" Margin="4,0,4,4">
+            <Grid>
+                <!-- 为了界面美观，加一个小的标签区分备注区 -->
+                <TextBlock Text="备注" FontSize="11" Foreground="{DynamicResource ForegroundTertiaryBrush}" Margin="8,4,8,0" VerticalAlignment="Top" HorizontalAlignment="Left" Panel.ZIndex="1" IsHitTestVisible="False"/>
+                <TextBox Name="NotesTextBox" Padding="8,22,8,4" 
+                         AcceptsReturn="True" 
+                         TextWrapping="Wrap"
+                         VerticalScrollBarVisibility="Auto"
+                         HorizontalAlignment="Stretch"
+                         VerticalAlignment="Stretch"
+                         Text="{Binding CurrentNotes, UpdateSourceTrigger=PropertyChanged}"
+                         Background="Transparent" BorderBrush="Transparent" BorderThickness="0"/>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>
+
+

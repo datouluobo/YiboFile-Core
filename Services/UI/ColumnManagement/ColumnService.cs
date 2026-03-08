@@ -1,5 +1,6 @@
 using System;
 using YiboFile.Models;
+using YiboFile.Models.Config;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
@@ -244,52 +245,50 @@ namespace YiboFile.Services.ColumnManagement
 
         #region 列宽度管理
 
-        private bool IsSecondary(FileBrowserControl fileBrowser)
+        /// <summary>
+        /// 获取面板对应的 ColumnState（通过 PaneViewModel 的 PaneId 索引）
+        /// </summary>
+        private ColumnState GetPaneColumns(FileBrowserControl fileBrowser)
         {
+            var state = ConfigurationService.Instance.State;
             if (fileBrowser?.DataContext is YiboFile.ViewModels.PaneViewModel vm)
             {
-                return vm.IsSecondary;
+                int idx = vm.IsSecondary ? 1 : 0;
+                if (idx < state.Panes.Count) return state.Panes[idx].Columns;
             }
-            return false;
+            return state.Panes.Count > 0 ? state.Panes[0].Columns : new ColumnState();
         }
 
-        private void RememberColumnWidth(string tag, GridViewColumn column, FileBrowserControl fileBrowser = null)
+        private int GetPaneIndex(FileBrowserControl fileBrowser)
+        {
+            if (fileBrowser?.DataContext is YiboFile.ViewModels.PaneViewModel vm)
+                return vm.IsSecondary ? 1 : 0;
+            return 0;
+        }
+
+        public void RememberColumnWidth(string tag, GridViewColumn column, FileBrowserControl fileBrowser = null)
         {
             if (string.IsNullOrEmpty(tag) || column == null) return;
             var width = column.ActualWidth > 0 ? column.ActualWidth : column.Width;
             if (width <= 0) return;
 
-            bool isSec = IsSecondary(fileBrowser);
+            var cs = GetPaneColumns(fileBrowser);
+            SetColumnWidthOnState(cs, tag, width);
+            ConfigurationService.Instance.MarkDirty();
+        }
 
-            ConfigurationService.Instance.Update(cfg =>
+        private static void SetColumnWidthOnState(ColumnState cs, string tag, double width)
+        {
+            switch (tag)
             {
-                if (isSec)
-                {
-                    switch (tag)
-                    {
-                        case "Name": cfg.ColNameWidth_Secondary = width; break;
-                        case "Size": cfg.ColSizeWidth_Secondary = width; break;
-                        case "Type": cfg.ColTypeWidth_Secondary = width; break;
-                        case "ModifiedDate": cfg.ColModifiedDateWidth_Secondary = width; break;
-                        case "CreatedTime": cfg.ColCreatedTimeWidth_Secondary = width; break;
-                        case "Tags": cfg.ColTagsWidth_Secondary = width; break;
-                        case "Notes": cfg.ColNotesWidth_Secondary = width; break;
-                    }
-                }
-                else
-                {
-                    switch (tag)
-                    {
-                        case "Name": cfg.ColNameWidth = width; break;
-                        case "Size": cfg.ColSizeWidth = width; break;
-                        case "Type": cfg.ColTypeWidth = width; break;
-                        case "ModifiedDate": cfg.ColModifiedDateWidth = width; break;
-                        case "CreatedTime": cfg.ColCreatedTimeWidth = width; break;
-                        case "Tags": cfg.ColTagsWidth = width; break;
-                        case "Notes": cfg.ColNotesWidth = width; break;
-                    }
-                }
-            });
+                case "Name": cs.ColNameWidth = width; break;
+                case "Size": cs.ColSizeWidth = width; break;
+                case "Type": cs.ColTypeWidth = width; break;
+                case "ModifiedDate": cs.ColModifiedDateWidth = width; break;
+                case "CreatedTime": cs.ColCreatedTimeWidth = width; break;
+                case "Tags": cs.ColTagsWidth = width; break;
+                case "Notes": cs.ColNotesWidth = width; break;
+            }
         }
 
         private string GetColumnTag(GridViewColumn column)
@@ -300,41 +299,22 @@ namespace YiboFile.Services.ColumnManagement
         }
 
         /// <summary>
-        /// 从配置解析列宽度
+        /// 从 PaneState.Columns 解析列宽度
         /// </summary>
-        private double ResolveColumnWidth(string tag, GridViewColumn column, FileBrowserControl fileBrowser = null)
+        public double ResolveColumnWidth(string tag, GridViewColumn column, FileBrowserControl fileBrowser = null)
         {
-            bool isSec = IsSecondary(fileBrowser);
-            double width = 0;
-
-            if (isSec)
+            var cs = GetPaneColumns(fileBrowser);
+            double width = tag switch
             {
-                width = tag switch
-                {
-                    "Name" => Config.ColNameWidth_Secondary,
-                    "Size" => Config.ColSizeWidth_Secondary,
-                    "Type" => Config.ColTypeWidth_Secondary,
-                    "ModifiedDate" => Config.ColModifiedDateWidth_Secondary,
-                    "CreatedTime" => Config.ColCreatedTimeWidth_Secondary,
-                    "Tags" => Config.ColTagsWidth_Secondary,
-                    "Notes" => Config.ColNotesWidth_Secondary,
-                    _ => 0
-                };
-            }
-            else
-            {
-                width = tag switch
-                {
-                    "Name" => Config.ColNameWidth,
-                    "Size" => Config.ColSizeWidth,
-                    "Type" => Config.ColTypeWidth,
-                    "ModifiedDate" => Config.ColModifiedDateWidth,
-                    "CreatedTime" => Config.ColCreatedTimeWidth,
-                    "Tags" => Config.ColTagsWidth,
-                    "Notes" => Config.ColNotesWidth,
-                    _ => 0
-                };
-            }
+                "Name" => cs.ColNameWidth,
+                "Size" => cs.ColSizeWidth,
+                "Type" => cs.ColTypeWidth,
+                "ModifiedDate" => cs.ColModifiedDateWidth,
+                "CreatedTime" => cs.ColCreatedTimeWidth,
+                "Tags" => cs.ColTagsWidth,
+                "Notes" => cs.ColNotesWidth,
+                _ => 0
+            };
 
             if (width <= 0 && column != null)
             {
@@ -370,7 +350,7 @@ namespace YiboFile.Services.ColumnManagement
                         { "Notes", columns[6] }
                     };
 
-                        var orderString = IsSecondary(fileBrowser) ? Config.ColumnOrder_Secondary : Config.ColumnOrder;
+                        var orderString = GetPaneColumns(fileBrowser).ColumnOrder;
                     if (!string.IsNullOrEmpty(orderString))
                     {
                         var savedOrder = orderString.Split(',');
@@ -441,26 +421,19 @@ namespace YiboFile.Services.ColumnManagement
                 var columns = gridView.Columns;
                 if (columns.Count >= 7)
                 {
+                    var cs = GetPaneColumns(fileBrowser);
+
+                    // 保存列顺序
                     var columnOrder = new List<string>();
                     foreach (var column in columns)
                     {
                         var tag = GetColumnTag(column);
                         if (!string.IsNullOrEmpty(tag))
-                        {
                             columnOrder.Add(tag);
-                        }
                     }
+                    cs.ColumnOrder = string.Join(",", columnOrder);
 
-                    bool isSec = IsSecondary(fileBrowser);
-                    if (isSec)
-                    {
-                        ConfigurationService.Instance.Update(c => c.ColumnOrder_Secondary = string.Join(",", columnOrder));
-                    }
-                    else
-                    {
-                        ConfigurationService.Instance.Update(c => c.ColumnOrder = string.Join(",", columnOrder));
-                    }
-
+                    // 保存列宽度
                     foreach (var column in columns)
                     {
                         var tag = GetColumnTag(column);
@@ -468,38 +441,12 @@ namespace YiboFile.Services.ColumnManagement
                         {
                             var width = column.ActualWidth > 0 ? column.ActualWidth : column.Width;
                             if (width <= 0) continue;
-
-                            ConfigurationService.Instance.Update(cfg =>
-                            {
-                                if (isSec)
-                                {
-                                    switch (tag)
-                                    {
-                                        case "Name": cfg.ColNameWidth_Secondary = width; break;
-                                        case "Size": cfg.ColSizeWidth_Secondary = width; break;
-                                        case "Type": cfg.ColTypeWidth_Secondary = width; break;
-                                        case "ModifiedDate": cfg.ColModifiedDateWidth_Secondary = width; break;
-                                        case "CreatedTime": cfg.ColCreatedTimeWidth_Secondary = width; break;
-                                        case "Tags": cfg.ColTagsWidth_Secondary = width; break;
-                                        case "Notes": cfg.ColNotesWidth_Secondary = width; break;
-                                    }
-                                }
-                                else
-                                {
-                                    switch (tag)
-                                    {
-                                        case "Name": cfg.ColNameWidth = width; break;
-                                        case "Size": cfg.ColSizeWidth = width; break;
-                                        case "Type": cfg.ColTypeWidth = width; break;
-                                        case "ModifiedDate": cfg.ColModifiedDateWidth = width; break;
-                                        case "CreatedTime": cfg.ColCreatedTimeWidth = width; break;
-                                        case "Tags": cfg.ColTagsWidth = width; break;
-                                        case "Notes": cfg.ColNotesWidth = width; break;
-                                    }
-                                }
-                            });
+                            SetColumnWidthOnState(cs, tag, width);
                         }
-                    }ConfigurationService.Instance.SaveNow();
+                    }
+
+                    ConfigurationService.Instance.MarkDirty();
+                    ConfigurationService.Instance.SaveNow();
                 }
             }
             catch { }
@@ -589,43 +536,17 @@ namespace YiboFile.Services.ColumnManagement
 
         public string GetVisibleColumnsForCurrentMode(FileBrowserControl fileBrowser = null)
         {
-            var key = _getCurrentModeKey?.Invoke();
-            bool isSec = IsSecondary(fileBrowser);
-
-            return key switch
-            {
-                "Library" => isSec ? Config.VisibleColumns_Library_Secondary : Config.VisibleColumns_Library,
-                "Tag" => isSec ? Config.VisibleColumns_Tag_Secondary : Config.VisibleColumns_Tag,
-                _ => isSec ? Config.VisibleColumns_Path_Secondary : Config.VisibleColumns_Path
-            };
+            var key = _getCurrentModeKey?.Invoke() ?? "Path";
+            var cs = GetPaneColumns(fileBrowser);
+            return cs.VisibleColumns.TryGetValue(key, out var csv) ? csv : cs.VisibleColumns.TryGetValue("Path", out var fallback) ? fallback : "";
         }
 
         public void SetVisibleColumnsForCurrentMode(string csv, FileBrowserControl fileBrowser = null)
         {
-            var key = _getCurrentModeKey?.Invoke();
-            bool isSec = IsSecondary(fileBrowser);
-
-            ConfigurationService.Instance.Update(cfg =>
-            {
-                if (isSec)
-                {
-                    switch (key)
-                    {
-                        case "Library": cfg.VisibleColumns_Library_Secondary = csv; break;
-                        case "Tag": cfg.VisibleColumns_Tag_Secondary = csv; break;
-                        default: cfg.VisibleColumns_Path_Secondary = csv; break;
-                    }
-                }
-                else
-                {
-                    switch (key)
-                    {
-                        case "Library": cfg.VisibleColumns_Library = csv; break;
-                        case "Tag": cfg.VisibleColumns_Tag = csv; break;
-                        default: cfg.VisibleColumns_Path = csv; break;
-                    }
-                }
-            });
+            var key = _getCurrentModeKey?.Invoke() ?? "Path";
+            var cs = GetPaneColumns(fileBrowser);
+            cs.VisibleColumns[key] = csv;
+            ConfigurationService.Instance.MarkDirty();
         }
 
         public void ApplyVisibleColumnsForCurrentMode(FileBrowserControl fileBrowser)

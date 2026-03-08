@@ -1,6 +1,7 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:converters="clr-namespace:YiboFile.Controls.Converters">
+                    xmlns:converters="clr-namespace:YiboFile.Controls.Converters"
+                    xmlns:yiboConverters="clr-namespace:YiboFile.Converters">
 
     <!-- ================================================================
          Global Defaults (全局常量与转换器)
@@ -11,6 +12,9 @@
          ================================================================ -->
 
     <!-- ======== Converters ======== -->
+    <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+    <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+    <yiboConverters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
     <converters:UsagePercentageToColorConverter x:Key="UsagePercentageToColorConverter"/>
     <converters:StringStartsWithConverter x:Key="StringStartsWithConverter"/>
 

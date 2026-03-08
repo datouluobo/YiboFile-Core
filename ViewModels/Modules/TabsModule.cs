@@ -18,10 +18,11 @@ namespace YiboFile.ViewModels.Modules
     /// </summary>
     public class TabsModule : ModuleBase
     {
-        private readonly TabService _tabService;
-        private readonly TabService _secondTabService;
+        private TabService _tabService;
+        private TabService _secondTabService;
+        private readonly Services.Navigation.NavigationService _navigationService;
         private readonly TabContentRegistry _registry;
-        private readonly Func<bool> _isDualListMode;
+        private readonly Func<bool> _isDualPaneMode;
         private readonly Func<bool> _isSecondPaneFocused;
         private bool _isSuppressingNavigation = false;
 
@@ -47,18 +48,41 @@ namespace YiboFile.ViewModels.Modules
             IMessageBus messageBus,
             TabService tabService,
             TabService secondTabService = null,
+            Services.Navigation.NavigationService navigationService = null,
             TabContentRegistry registry = null,
-            Func<bool> isDualListMode = null,
+            Func<bool> isDualPaneMode = null,
             Func<bool> isSecondPaneFocused = null)
             : base(messageBus)
         {
             _tabService = tabService ?? throw new ArgumentNullException(nameof(tabService));
             _secondTabService = secondTabService;
+            _navigationService = navigationService;
             _registry = registry;
-            _isDualListMode = isDualListMode ?? (() => false);
+            _isDualPaneMode = isDualPaneMode ?? (() => false);
             _isSecondPaneFocused = isSecondPaneFocused ?? (() => false);
 
             InitializeCommands();
+        }
+
+        public void SwapTabs()
+        {
+            if (_secondTabService != null)
+            {
+                // 1. Swap tabs
+                _tabService.SwapStateWith(_secondTabService);
+
+                // 2. Swap navigation history/states
+                _navigationService?.SwapStates(PaneId.Main, PaneId.Second);
+
+                OnPropertyChanged(nameof(PrimaryTabs));
+                OnPropertyChanged(nameof(SecondaryTabs));
+                OnPropertyChanged(nameof(PrimaryActiveTab));
+                OnPropertyChanged(nameof(SecondaryActiveTab));
+                
+                // 通知订阅方标签发生了大量重组
+                Publish(new TabActiveChangedMessage(_tabService.ActiveTab, _tabService.Pane));
+                Publish(new TabActiveChangedMessage(_secondTabService.ActiveTab, _secondTabService.Pane));
+            }
         }
 
         protected override void OnInitialize()
@@ -79,6 +103,9 @@ namespace YiboFile.ViewModels.Modules
 
             // 订阅特殊标签页打开请求
             Subscribe<OpenContentTabMessage>(OnOpenContentTab);
+
+            // 订阅交换面板请求
+            Subscribe<RequestSwapPanesMessage>(m => SwapTabs());
         }
 
         private void OnActiveTabChanged(PathTab tab, PaneId pane)
@@ -242,7 +269,7 @@ namespace YiboFile.ViewModels.Modules
         {
             bool useSecond = targetPane.HasValue
                 ? targetPane.Value == PaneId.Second
-                : (_isDualListMode() && _isSecondPaneFocused());
+                : (_isDualPaneMode() && _isSecondPaneFocused());
 
             var tabService = useSecond && _secondTabService != null ? _secondTabService : _tabService;
 
@@ -263,7 +290,7 @@ namespace YiboFile.ViewModels.Modules
         {
             bool useSecond = targetPane.HasValue
                 ? targetPane.Value == PaneId.Second
-                : (_isDualListMode() && _isSecondPaneFocused());
+                : (_isDualPaneMode() && _isSecondPaneFocused());
 
             if (useSecond && _secondTabService != null)
             {
@@ -301,7 +328,7 @@ namespace YiboFile.ViewModels.Modules
         {
             if (string.IsNullOrEmpty(path)) return;
 
-            if (_isDualListMode() && _isSecondPaneFocused() && _secondTabService != null)
+            if (_isDualPaneMode() && _isSecondPaneFocused() && _secondTabService != null)
             {
                 var secondActiveTab = _secondTabService.ActiveTab;
                 if (secondActiveTab != null && secondActiveTab.ContentTypeId == TabContentTypes.Path)
@@ -398,7 +425,7 @@ namespace YiboFile.ViewModels.Modules
             // 3. 确定目标 TabService
             bool useSecond = message.TargetPane.HasValue
                 ? message.TargetPane.Value == PaneId.Second
-                : (_isDualListMode() && _isSecondPaneFocused());
+                : (_isDualPaneMode() && _isSecondPaneFocused());
 
             // 4. 检查 SupportsSecondaryPane 回退逻辑
             if (useSecond && !content.SupportsSecondaryPane)

@@ -100,7 +100,7 @@ namespace YiboFile.Services.Orchestration
             if (_viewModel != null)
             {
                 _viewModel.MainSelectionHandler?.HandleNoSelection(YiboFile.Services.Navigation.PaneId.Main);
-                if (config?.IsDualListMode == true)
+                if (config?.IsDualPaneMode == true)
                 {
                     _viewModel.SecondSelectionHandler?.HandleNoSelection(YiboFile.Services.Navigation.PaneId.Second);
                 }

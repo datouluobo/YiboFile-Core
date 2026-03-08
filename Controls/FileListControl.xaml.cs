@@ -160,6 +160,15 @@ namespace YiboFile.Controls
         {
             InitializeComponent();
 
+            this.DataContextChanged += (s, e) =>
+            {
+                if (IsLoaded)
+                {
+                    LoadColumnWidths();
+                    _autoColumnWidthBehavior?.AdjustTargetColumnWidth();
+                }
+            };
+
             // 订阅文件列表的事件
             if (FilesListView != null)
             {
@@ -172,19 +181,10 @@ namespace YiboFile.Controls
                 FilesListView.PreviewMouseDown += (s, e) => PreviewMouseDown?.Invoke(s, e);
                 FilesListView.PreviewMouseMove += (s, e) => PreviewMouseMove?.Invoke(s, e);
 
-                // 订阅 SizeChanged 事件，手动调整名称列宽度
+                // 转发 SizeChanged 事件
                 FilesListView.SizeChanged += (s, e) =>
                 {
                     SizeChanged?.Invoke(s, e);
-
-                    if (e.WidthChanged)
-                    {
-                        if (_autoColumnWidthBehavior == null)
-                        {
-                            _autoColumnWidthBehavior = new AutoColumnWidthBehavior(FilesListView, "Name");
-                        }
-                        _autoColumnWidthBehavior?.AdjustTargetColumnWidth();
-                    }
                 };
 
                 // 旧的列标题订阅代码已移除，现在使用 Style 中的 EventSetter 处理
@@ -210,17 +210,19 @@ namespace YiboFile.Controls
             // 初始化详细信息视图
             ApplyViewMode();
 
-            // Load column widths from config
-            LoadColumnWidths();
-
-            // 加载并缓存配置
-            var config = GetConfig();
-            _cachedNotesWidth = config.ColNotesWidth;
+            // 列宽加载延迟到 Loaded 事件（确保 DataContext 已就绪）
+            // → 见下方 this.Loaded 回调
 
             // 延迟调整名称列宽度并禁用横向滚动条
             this.Loaded += (s, e) =>
             {
                 // 禁用横向滚动条
+                // 1. 在 DataContext 就绪后，首先加载持久化的列宽配置
+                LoadColumnWidths();
+                var config = GetConfig();
+                _cachedNotesWidth = config.ColNotesWidth;
+
+                // 2. 然后禁用横向滚动条，并初始化/执行 Name 列的自动填充计算
                 if (FilesListView != null)
                 {
                     ScrollViewer.SetHorizontalScrollBarVisibility(FilesListView, ScrollBarVisibility.Disabled);

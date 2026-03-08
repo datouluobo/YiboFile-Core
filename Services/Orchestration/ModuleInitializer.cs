@@ -78,13 +78,9 @@ namespace YiboFile.Services.Orchestration
                     tabService,
                     ConfigurationService.Instance);
 
-            // 创建 RightPanelViewModel
-            var rightPanelVM = new RightPanelViewModel(_messageBus, ConfigurationService.Instance, fileListService);
-
             // 创建主 ViewModel
             ViewModel = new MainWindowViewModel(
                 _messageBus,
-                rightPanelVM,
                 previewService,
                 fileListService,
                 folderSizeCalculationService);
@@ -105,8 +101,9 @@ namespace YiboFile.Services.Orchestration
                 _messageBus,
                 tabService,
                 secondTabService,
+                navigationService,
                 tabContentRegistry,
-                () => window.IsDualListMode,
+                () => window.IsDualPaneMode,
                 () => window.GetActivePaneId() == PaneId.Second);
             ViewModel.RegisterModule(TabsModule);
 
@@ -135,10 +132,26 @@ namespace YiboFile.Services.Orchestration
             var cfg = ConfigurationService.Instance.Config;
             LayoutModule.InitializeState(
                 cfg.LayoutMode ?? "Work",
-                cfg.IsDualListMode,
+                cfg.IsDualPaneMode,
                 false,
                 cfg.IsSidebarCollapsed,
                 cfg.IsPreviewCollapsed);
+
+            // 恢复持久化的三态面板模式
+            if (System.Enum.TryParse<ViewModels.Messaging.Messages.PaneMode>(cfg.PaneModeStr, out var savedPaneMode)
+                && savedPaneMode != ViewModels.Messaging.Messages.PaneMode.Single)
+            {
+                // 根据保存的模式设置底层状态
+                if (savedPaneMode == ViewModels.Messaging.Messages.PaneMode.DualPane)
+                {
+                    LayoutModule.IsDualPaneMode = true;
+                }
+                else if (savedPaneMode == ViewModels.Messaging.Messages.PaneMode.Preview)
+                {
+                    LayoutModule.IsDualPaneMode = false;
+                }
+                LayoutModule.CurrentPaneMode = savedPaneMode;
+            }
 
             // 文件操作模块
             var undoService = _serviceProvider.GetService<UndoService>();
@@ -178,7 +191,7 @@ namespace YiboFile.Services.Orchestration
                 tabService,
                 _serviceProvider.GetService<IFullTextSearchService>(),
                 secondTabService,
-                () => window.IsDualListMode,
+                () => window.IsDualPaneMode,
                 () => window.GetActivePaneId() == PaneId.Second);
             ViewModel.Search = SearchModule;
             ViewModel.RegisterModule(SearchModule);
@@ -221,7 +234,7 @@ namespace YiboFile.Services.Orchestration
             // 同步当前状态到 Rail
             railCoordinator.SetNavigationMode(cfg.LastNavigationMode ?? "Path");
             railCoordinator.SetLayoutMode(cfg.LayoutMode ?? "Work");
-            railVm.IsDualListMode = cfg.IsDualListMode;
+            railVm.IsDualPaneMode = cfg.IsDualPaneMode;
         }
 
         /// <summary>

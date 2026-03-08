@@ -63,7 +63,7 @@
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Text="版本号" Grid.Column="0" Foreground="{DynamicResource ForegroundSecondaryBrush}"/>
-                                    <TextBlock Text="1.7.8.10" Grid.Column="1" FontWeight="Medium"/>
+                                    <TextBlock x:Name="VersionText" Text="1.0.0.0" Grid.Column="1" FontWeight="Medium"/>
                                 </Grid>
                                 <Grid Margin="0,5">
                                     <Grid.ColumnDefinitions>
@@ -71,7 +71,7 @@
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Text="构建日期" Grid.Column="0" Foreground="{DynamicResource ForegroundSecondaryBrush}"/>
-                                    <TextBlock Text="2026-01-04" Grid.Column="1"/>
+                                    <TextBlock x:Name="BuildDateText" Text="2026-01-04" Grid.Column="1"/>
                                 </Grid>
                                 <Grid Margin="0,5">
                                     <Grid.ColumnDefinitions>

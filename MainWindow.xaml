@@ -68,7 +68,7 @@
                 <ColumnDefinition x:Name="ColCenter" Width="*" MinWidth="250"/>
                 <ColumnDefinition Width="12"/>
                 <!-- 对齐水平分割器的宽度 -->
-                <ColumnDefinition x:Name="ColRight" Width="360" MinWidth="360"/>
+                <ColumnDefinition x:Name="ColRight" Width="0" MinWidth="0"/>
             </Grid.ColumnDefinitions>
 
             <!-- 布局：标题栏行 + 标签页行 + 内容行 -->
@@ -140,7 +140,6 @@
                       ShowsPreview="False"
                       Panel.ZIndex="2000"
                       AutoFillNeighbor="True"
-                      IsNextCollapsed="{Binding Layout.IsRightPanelCollapsed, Mode=TwoWay}"
                       MouseDoubleClick="SplitterRight_MouseDoubleClick"/>
 
             <!-- ========== 列1：左侧导航内容区域（从顶端 Row 0 开始） ========== -->
@@ -177,20 +176,12 @@
 
 
 
-            <!-- ========== 列5：可切换区域（预览/副文件列表） ========== -->
+            <!-- ========== 列5：副文件列表（仅双列模式可见） ========== -->
             <Grid Grid.Row="0" Grid.Column="5" Grid.RowSpan="4" 
               WindowChrome.IsHitTestVisibleInChrome="True"
               Panel.ZIndex="1001">
-                <!-- 预览区面板 -->
-                <local:RightPanelControl x:Name="RightPanel"
-                                     DataContext="{Binding RightPanel}"
-                                     HorizontalAlignment="Stretch"
-                                     VerticalAlignment="Stretch"
-                                     Visibility="{Binding EffectiveVisibility, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-
                 <!-- 副文件列表区域（默认隐藏） -->
                 <Grid x:Name="SecondFileBrowserContainer" 
-                  Visibility="{Binding Layout.IsDualListEffectivelyVisible, Converter={StaticResource BooleanToVisibilityConverter}}" 
                   WindowChrome.IsHitTestVisibleInChrome="True">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="51"/>
@@ -200,14 +191,15 @@
                     </Grid.RowDefinitions>
 
                     <!-- 副标签页管理器 -->
-                    <controls:TabManagerControl x:Name="SecondTabManager" 
-                                            Grid.Row="0"
-                                            DataContext="{Binding Tabs}"
-                                            ItemsSource="{Binding SecondaryTabs}"
-                                            NewTabCommand="{Binding SecondaryNewTabCommand}"
-                                            VerticalAlignment="Center"
-                                            IsHitTestVisible="True"
-                                            WindowChrome.IsHitTestVisibleInChrome="True"/>
+                    <DockPanel Grid.Row="0" Visibility="{Binding Layout.IsDualPaneEffectivelyVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <controls:TabManagerControl x:Name="SecondTabManager" 
+                                                DataContext="{Binding Tabs}"
+                                                ItemsSource="{Binding SecondaryTabs}"
+                                                NewTabCommand="{Binding SecondaryNewTabCommand}"
+                                                VerticalAlignment="Center"
+                                                IsHitTestVisible="True"
+                                                WindowChrome.IsHitTestVisibleInChrome="True"/>
+                    </DockPanel>
 
                     <!-- 副内容宿主 -->
                     <controls:PaneContentHost x:Name="SecondContentHost"

@@ -34,10 +34,16 @@ namespace YiboFile.Services.Orchestration
         // 初始化结果（供 WindowOrchestrator 读取）
         public Handlers.WindowLifecycleHandler LifecycleHandler { get; private set; }
 
-        public Handlers.ColumnInteractionHandler ColumnInteractionHandler { get; private set; }
-        public Handlers.ColumnInteractionHandler SecondColumnInteractionHandler { get; private set; }
-        public Handlers.FileListEventHandler MainFileListHandler { get; private set; }
-        public Handlers.FileListEventHandler SecondFileListHandler { get; private set; }
+        /// <summary>每个面板的 ColumnInteractionHandler（索引 0=左, 1=右）</summary>
+        public Handlers.ColumnInteractionHandler[] ColumnHandlers { get; } = new Handlers.ColumnInteractionHandler[2];
+        /// <summary>每个面板的 FileListEventHandler</summary>
+        public Handlers.FileListEventHandler[] FileListHandlers { get; } = new Handlers.FileListEventHandler[2];
+
+        // 兼容属性（向后兼容，指向数组元素）
+        public Handlers.ColumnInteractionHandler ColumnInteractionHandler => ColumnHandlers[0];
+        public Handlers.ColumnInteractionHandler SecondColumnInteractionHandler => ColumnHandlers[1];
+        public Handlers.FileListEventHandler MainFileListHandler => FileListHandlers[0];
+        public Handlers.FileListEventHandler SecondFileListHandler => FileListHandlers[1];
 
         public Handlers.KeyboardEventHandler KeyboardEventHandler { get; private set; }
         public WindowStateManager WindowStateManager { get; private set; }
@@ -225,44 +231,30 @@ namespace YiboFile.Services.Orchestration
             ColumnService columnService,
             MainWindowViewModel viewModel)
         {
-            // 2. ColumnInteractionHandler (主面板)
-            var mainColumnHandler = new Handlers.ColumnInteractionHandler(window.FileBrowser, columnService);
-            mainColumnHandler.Initialize();
-            mainColumnHandler.HookHeaderThumbs();
+            // 面板 FileBrowser 数组：[0]=主, [1]=副
+            var browsers = new[] { window.FileBrowser, window.SecondFileBrowser };
+            var paneIds = new[] { PaneId.Main, PaneId.Second };
 
-            // 3. ColumnInteractionHandler (副面板)
-            Handlers.ColumnInteractionHandler secondColumnHandler = null;
-            if (window.SecondFileBrowser != null)
+            for (int i = 0; i < browsers.Length; i++)
             {
-                secondColumnHandler = new Handlers.ColumnInteractionHandler(window.SecondFileBrowser, columnService);
-                secondColumnHandler.Initialize();
-                secondColumnHandler.HookHeaderThumbs();
-            }
+                if (browsers[i] == null) continue;
 
-            ColumnInteractionHandler = mainColumnHandler;
-            SecondColumnInteractionHandler = secondColumnHandler;
+                // ColumnInteractionHandler
+                var colHandler = new Handlers.ColumnInteractionHandler(browsers[i], columnService);
+                colHandler.Initialize();
+                colHandler.HookHeaderThumbs();
+                ColumnHandlers[i] = colHandler;
 
-            // 7. FileListEventHandler (主面板)
-            MainFileListHandler = new Handlers.FileListEventHandler(
-                window.FileBrowser,
-                navigationCoordinator,
-                navigationModeService,
-                window,
-                PaneId.Main
-            );
-            MainFileListHandler.Initialize(window.FileBrowser.FilesList);
-
-            // 8. FileListEventHandler (副面板)
-            if (window.SecondFileBrowser != null)
-            {
-                SecondFileListHandler = new Handlers.FileListEventHandler(
-                    window.SecondFileBrowser,
+                // FileListEventHandler
+                var flHandler = new Handlers.FileListEventHandler(
+                    browsers[i],
                     navigationCoordinator,
                     navigationModeService,
                     window,
-                    PaneId.Second
+                    paneIds[i]
                 );
-                SecondFileListHandler.Initialize(window.SecondFileBrowser.FilesList);
+                flHandler.Initialize(browsers[i].FilesList);
+                FileListHandlers[i] = flHandler;
             }
         }
 
@@ -383,7 +375,7 @@ namespace YiboFile.Services.Orchestration
                     catch (Exception) { }
 
                     // 修复：切换主题时，如果有副列表，强制刷新布局以防止地址栏错位
-                    if (window.IsDualListMode && window.SecondFileBrowserContainer != null)
+                    if (window.IsDualPaneMode && window.SecondFileBrowserContainer != null)
                     {
                         window.SecondFileBrowserContainer.InvalidateVisual();
                         window.SecondFileBrowserContainer.UpdateLayout();

@@ -7,12 +7,83 @@ namespace YiboFile.Models.Config
     {
         public WindowState Window { get; set; } = new WindowState();
         public LayoutState Layout { get; set; } = new LayoutState();
-        public ColumnState Columns { get; set; } = new ColumnState();
-        public ColumnState ColumnsSecondary { get; set; } = new ColumnState();
-        public SessionState Session { get; set; } = new SessionState();
+
+        /// <summary>
+        /// 面板状态数组 — Pane A 和 Pane B 各拥有一份完全独立的状态。
+        /// Panes[0] = Pane A（默认左侧），Panes[1] = Pane B（默认右侧）。
+        /// </summary>
+        public List<PaneState> Panes { get; set; } = new List<PaneState>
+        {
+            new PaneState { Id = "A" },
+            new PaneState { Id = "B" }
+        };
+
+        /// <summary>面板位置顺序 [0]=左侧面板索引, [1]=右侧面板索引</summary>
+        public List<int> PaneOrder { get; set; } = new List<int> { 0, 1 };
+
+        /// <summary>当前活动面板索引</summary>
+        public int ActivePaneIndex { get; set; } = 0;
+
+        // ---- 以下为全局共享状态（不随面板切换） ----
+
         public ViewState View { get; set; } = new ViewState();
         public SidebarState Sidebar { get; set; } = new SidebarState();
         public MiscState Misc { get; set; } = new MiscState();
+
+        // ---- 兼容性辅助属性（便于渐进式迁移期间代码访问） ----
+
+        /// <summary>[兼容] 主面板列头状态</summary>
+        [Obsolete("使用 Panes[0].Columns 替代")]
+        public ColumnState Columns
+        {
+            get => Panes.Count > 0 ? Panes[0].Columns : new ColumnState();
+            set { if (Panes.Count > 0) Panes[0].Columns = value; }
+        }
+
+        /// <summary>[兼容] 副面板列头状态</summary>
+        [Obsolete("使用 Panes[1].Columns 替代")]
+        public ColumnState ColumnsSecondary
+        {
+            get => Panes.Count > 1 ? Panes[1].Columns : new ColumnState();
+            set { if (Panes.Count > 1) Panes[1].Columns = value; }
+        }
+
+        /// <summary>[兼容] 会话状态 — 映射到 Pane A 的 Session</summary>
+        [Obsolete("使用 Panes[0].Session 替代")]
+        public SessionState Session
+        {
+            get
+            {
+                var ps = Panes.Count > 0 ? Panes[0].Session : new PaneSessionState();
+                return new SessionState
+                {
+                    LastPath = ps.LastPath,
+                    LastNavigationMode = ps.LastNavigationMode,
+                    LastLibraryId = ps.LastLibraryId,
+                    OpenTabs = ps.OpenTabs,
+                    ActiveTabKey = ps.ActiveTabKey,
+                    OpenTabsSecondary = Panes.Count > 1 ? Panes[1].Session.OpenTabs : new List<string>(),
+                    ActiveTabKeySecondary = Panes.Count > 1 ? Panes[1].Session.ActiveTabKey : string.Empty
+                };
+            }
+            set
+            {
+                if (value == null) return;
+                if (Panes.Count > 0)
+                {
+                    Panes[0].Session.LastPath = value.LastPath;
+                    Panes[0].Session.LastNavigationMode = value.LastNavigationMode;
+                    Panes[0].Session.LastLibraryId = value.LastLibraryId;
+                    Panes[0].Session.OpenTabs = value.OpenTabs;
+                    Panes[0].Session.ActiveTabKey = value.ActiveTabKey;
+                }
+                if (Panes.Count > 1)
+                {
+                    Panes[1].Session.OpenTabs = value.OpenTabsSecondary;
+                    Panes[1].Session.ActiveTabKey = value.ActiveTabKeySecondary;
+                }
+            }
+        }
     }
 
     public class WindowState
@@ -33,7 +104,8 @@ namespace YiboFile.Models.Config
         public bool IsSidebarCollapsed { get; set; } = false;
         public bool IsPreviewCollapsed { get; set; } = true;
         public bool IsRightPanelVisible { get; set; } = true;
-        public bool IsDualListMode { get; set; } = false;
+        public bool IsDualPaneMode { get; set; } = false;
+        public string PaneModeStr { get; set; } = "Single"; // 新增：三态模式
         public double RightPanelNotesHeight { get; set; } = 200;
         public double CenterPanelInfoHeight { get; set; } = 180;
     }
@@ -48,28 +120,31 @@ namespace YiboFile.Models.Config
         public double ColTagsWidth { get; set; } = 150;
         public double ColNotesWidth { get; set; } = 200;
 
-        public string Order { get; set; } = "Name,Size,Type,ModifiedDate,CreatedTime,Tags,Notes";
+        public string ColumnOrder { get; set; } = "Name,Size,Type,ModifiedDate,CreatedTime,Tags,Notes";
 
         // Maps mode (Path, Library, etc) to visible columns string
         public Dictionary<string, string> VisibleColumns { get; set; } = new Dictionary<string, string>();
     }
 
+    /// <summary>[兼容] 旧版会话状态，方便渐进迁移</summary>
     public class SessionState
     {
         public string LastPath { get; set; } = string.Empty;
-        public string LastNavigationMode { get; set; } = "Path"; // Path, Library, Tag, Search
+        public string LastNavigationMode { get; set; } = "Path";
         public int LastLibraryId { get; set; } = 0;
 
         public List<string> OpenTabs { get; set; } = new List<string>();
         public string ActiveTabKey { get; set; } = string.Empty;
 
+        [Obsolete("使用 Panes[1].Session 替代")]
         public List<string> OpenTabsSecondary { get; set; } = new List<string>();
+        [Obsolete("使用 Panes[1].Session 替代")]
         public string ActiveTabKeySecondary { get; set; } = string.Empty;
     }
 
     public class ViewState
     {
-        public YiboFile.Models.Enums.FileListViewMode FileViewMode { get; set; } = YiboFile.Models.Enums.FileListViewMode.List; // List, Thumbnail
+        public YiboFile.Models.Enums.FileListViewMode FileViewMode { get; set; } = YiboFile.Models.Enums.FileListViewMode.List;
         public string SortColumn { get; set; } = "Name";
         public string SortDirection { get; set; } = "Ascending";
     }

@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:controls="clr-namespace:YiboFile.Controls"
              xmlns:helpers="clr-namespace:YiboFile.Helpers"
+             xmlns:converters="clr-namespace:YiboFile.Converters"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              mc:Ignorable="d" 
@@ -21,6 +22,7 @@
     <UserControl.Resources>
         <ResourceDictionary>
             <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+            <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
             <helpers:BindingProxy x:Key="ControlProxy" Data="{Binding RelativeSource={RelativeSource AncestorType=controls:FileBrowserControl}}"/>
             <!-- 统一使用 AppStyles 中的 ModernToolbarButtonStyle -->
             <Style x:Key="ToolbarButtonStyle" TargetType="Button" BasedOn="{StaticResource ModernToolbarButtonStyle}"/>
@@ -347,12 +349,12 @@
                     </Button>
                 </StackPanel>
                 
-                <!-- 搜索/筛选按钮 -->
+                <!-- 预览和筛选按钮 -->
                 <StackPanel Grid.Column="6" Orientation="Horizontal">
                     <Button Name="FilterBtn"
                             Command="{Binding Filter.ToggleFilterPanelCommand}"
                             Style="{StaticResource ModernToolbarButtonStyle}" ToolTip="筛选">
-                        <Image Source="{DynamicResource Icon_Filter}" Width="12" Height="12" RenderOptions.BitmapScalingMode="HighQuality"/>
+                        <Image Source="{DynamicResource Icon_Filter}" Width="14" Height="14" RenderOptions.BitmapScalingMode="HighQuality"/>
                     </Button>
                 </StackPanel>
             </Grid>
@@ -388,13 +390,40 @@
                       DragDelta="GridSplitter_DragDelta"
                       DragCompleted="GridSplitter_DragCompleted"/>
         
-        <!-- Row 5: 右侧信息面板（现在移动到底部作为信息栏） -->
-        <Border Grid.Row="5" Background="Transparent" BorderThickness="0">
-            <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="8,4">
-                <!-- 文件信息面板 -->
+        <!-- Row 5: 底部信息与内嵌预览区（在非独立预览模式下显示） -->
+        <Grid Grid.Row="5" Background="Transparent">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition x:Name="BottomPreviewCol">
+                    <ColumnDefinition.Style>
+                        <Style TargetType="ColumnDefinition">
+                            <Setter Property="Width" Value="300"/>
+                            <Setter Property="MinWidth" Value="200"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsInnerPreviewVisible}" Value="False">
+                                    <Setter Property="Width" Value="0"/>
+                                    <Setter Property="MinWidth" Value="0"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ColumnDefinition.Style>
+                </ColumnDefinition>
+            </Grid.ColumnDefinitions>
+
+            <!-- 左侧：原有文件信息面板 -->
+            <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" Margin="8,4">
                 <StackPanel x:Name="FileInfoPanel" Margin="4"/>
             </ScrollViewer>
-        </Border>
+
+            <!-- 中间：分割器（可用来调整内嵌预览宽度） -->
+            <controls:CollapsibleGridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Center" VerticalAlignment="Stretch" Style="{StaticResource VerticalCollapsibleGridSplitterStyle}"
+                                              Visibility="{Binding IsInnerPreviewVisible, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+            <!-- 右侧：内嵌竖向Tab的预览/备注面板 -->
+            <controls:InnerPreviewAttachmentControl x:Name="BottomPreviewControl" Grid.Column="2" DataContext="{Binding Preview}" 
+                                               Visibility="{Binding DataContext.IsInnerPreviewVisible, RelativeSource={RelativeSource AncestorType=controls:FileBrowserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+        </Grid>
 
         <!-- 筛选弹出面板 -->
         <Popup x:Name="FilterPopup" PlacementTarget="{Binding ElementName=FilterBtn}" 

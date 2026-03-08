@@ -94,7 +94,7 @@ namespace YiboFile.Services.Orchestration
             {
                 window.Dispatcher.Invoke(() =>
                 {
-                    var isSecond = window.IsDualListMode && window.IsSecondPaneFocused;
+                    var isSecond = window.IsDualPaneMode && window.IsSecondPaneFocused;
                     var activeBrowser = isSecond ? window.SecondFileBrowser : window.FileBrowser;
                     if (activeBrowser != null && activeBrowser.FilesList != null)
                     {

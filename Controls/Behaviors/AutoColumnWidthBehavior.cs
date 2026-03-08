@@ -48,7 +48,10 @@ namespace YiboFile.Controls.Behaviors
 
         private void ListView_SizeChanged(object sender, SizeChangedEventArgs e)
         {
-            AdjustTargetColumnWidth();
+            if (e.WidthChanged)
+            {
+                AdjustTargetColumnWidth();
+            }
         }
 
         public void AdjustTargetColumnWidth()
@@ -86,8 +89,8 @@ namespace YiboFile.Controls.Behaviors
             double scrollBarWidth = SystemParameters.VerticalScrollBarWidth;
             double availableWidth = _listView.ActualWidth;
             
-            // Subtract scrollbar and margins
-            double totalFillWidth = availableWidth - otherColumnsWidth - scrollBarWidth - 20;
+            // Subtract scrollbar and margins (reduce margin from 20 to 2 to eliminate gap)
+            double totalFillWidth = availableWidth - otherColumnsWidth - scrollBarWidth - 2;
             
             double minWidthPerColumn = 120;
             if (totalFillWidth < (minWidthPerColumn * fillColumns.Count)) 

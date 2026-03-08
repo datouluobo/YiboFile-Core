@@ -8,6 +8,7 @@ namespace YiboFile.Services.Config
 {
     /// <summary>
     /// Helper class to map between monolithic AppConfig and split UserSettings/AppState.
+    /// 重构后直接使用 Panes[] 数组映射，消除 _Secondary 概念。
     /// </summary>
     public static class ConfigMapper
     {
@@ -22,7 +23,6 @@ namespace YiboFile.Services.Config
             settings.Appearance.AnimationsEnabled = source.AnimationsEnabled;
             settings.Appearance.IconStyle = source.IconStyle;
             settings.Appearance.UIStyle = source.UIStyle;
-            // CustomThemeId not explicitly in AppConfig, handle if needed or assume null
 
             // Behavior
             settings.Behavior.ReuseTabTimeWindow = source.ReuseTabTimeWindow;
@@ -71,7 +71,6 @@ namespace YiboFile.Services.Config
             settings.Tabs.PinnedTabs = new List<string>(source.PinnedTabs ?? new List<string>());
             settings.Tabs.TitleOverrides = new Dictionary<string, string>(source.TabTitleOverrides ?? new Dictionary<string, string>());
 
-
             // --- AppState ---
             // Window
             state.Window.Width = source.WindowWidth;
@@ -88,44 +87,36 @@ namespace YiboFile.Services.Config
             state.Layout.IsSidebarCollapsed = source.IsSidebarCollapsed;
             state.Layout.IsPreviewCollapsed = source.IsPreviewCollapsed;
             state.Layout.IsRightPanelVisible = source.IsRightPanelVisible;
-            state.Layout.IsDualListMode = source.IsDualListMode;
+            state.Layout.IsDualPaneMode = source.IsDualPaneMode;
+            state.Layout.PaneModeStr = source.PaneModeStr;
             state.Layout.RightPanelNotesHeight = source.RightPanelNotesHeight;
             state.Layout.CenterPanelInfoHeight = source.CenterPanelInfoHeight;
 
-            // Columns
-            state.Columns.ColNameWidth = source.ColNameWidth;
-            state.Columns.ColSizeWidth = source.ColSizeWidth;
-            state.Columns.ColModifiedDateWidth = source.ColModifiedDateWidth;
-            state.Columns.ColCreatedTimeWidth = source.ColCreatedTimeWidth;
-            state.Columns.ColTypeWidth = source.ColTypeWidth;
-            state.Columns.ColTagsWidth = source.ColTagsWidth;
-            state.Columns.ColNotesWidth = source.ColNotesWidth;
-            state.Columns.Order = source.ColumnOrder;
-            state.Columns.VisibleColumns["Path"] = source.VisibleColumns_Path;
-            state.Columns.VisibleColumns["Library"] = source.VisibleColumns_Library;
-            state.Columns.VisibleColumns["Tag"] = source.VisibleColumns_Tag;
+            // ── Pane A (Panes[0]) — 主面板列头 + 会话 ──
+            EnsurePaneCount(state, 2);
+            var paneA = state.Panes[0];
+            paneA.Id = "A";
+            MapColumnStateFromConfig(paneA.Columns, source.ColNameWidth, source.ColSizeWidth,
+                source.ColModifiedDateWidth, source.ColCreatedTimeWidth, source.ColTypeWidth,
+                source.ColTagsWidth, source.ColNotesWidth, source.ColumnOrder,
+                source.VisibleColumns_Path, source.VisibleColumns_Library, source.VisibleColumns_Tag);
 
-            // ColumnsSecondary
-            state.ColumnsSecondary.ColNameWidth = source.ColNameWidth_Secondary;
-            state.ColumnsSecondary.ColSizeWidth = source.ColSizeWidth_Secondary;
-            state.ColumnsSecondary.ColModifiedDateWidth = source.ColModifiedDateWidth_Secondary;
-            state.ColumnsSecondary.ColCreatedTimeWidth = source.ColCreatedTimeWidth_Secondary;
-            state.ColumnsSecondary.ColTypeWidth = source.ColTypeWidth_Secondary;
-            state.ColumnsSecondary.ColTagsWidth = source.ColTagsWidth_Secondary;
-            state.ColumnsSecondary.ColNotesWidth = source.ColNotesWidth_Secondary;
-            state.ColumnsSecondary.Order = source.ColumnOrder_Secondary;
-            state.ColumnsSecondary.VisibleColumns["Path"] = source.VisibleColumns_Path_Secondary;
-            state.ColumnsSecondary.VisibleColumns["Library"] = source.VisibleColumns_Library_Secondary;
-            state.ColumnsSecondary.VisibleColumns["Tag"] = source.VisibleColumns_Tag_Secondary;
+            paneA.Session.LastPath = source.LastPath;
+            paneA.Session.LastNavigationMode = source.LastNavigationMode;
+            paneA.Session.LastLibraryId = source.LastLibraryId;
+            paneA.Session.OpenTabs = new List<string>(source.OpenTabs ?? new List<string>());
+            paneA.Session.ActiveTabKey = source.ActiveTabKey;
 
-            // Session
-            state.Session.LastPath = source.LastPath;
-            state.Session.LastNavigationMode = source.LastNavigationMode;
-            state.Session.LastLibraryId = source.LastLibraryId;
-            state.Session.OpenTabs = new List<string>(source.OpenTabs ?? new List<string>());
-            state.Session.ActiveTabKey = source.ActiveTabKey;
-            state.Session.OpenTabsSecondary = new List<string>(source.OpenTabsSecondary ?? new List<string>());
-            state.Session.ActiveTabKeySecondary = source.ActiveTabKeySecondary;
+            // ── Pane B (Panes[1]) — 副面板列头 + 会话 ──
+            var paneB = state.Panes[1];
+            paneB.Id = "B";
+            MapColumnStateFromConfig(paneB.Columns, source.ColNameWidth_Secondary, source.ColSizeWidth_Secondary,
+                source.ColModifiedDateWidth_Secondary, source.ColCreatedTimeWidth_Secondary, source.ColTypeWidth_Secondary,
+                source.ColTagsWidth_Secondary, source.ColNotesWidth_Secondary, source.ColumnOrder_Secondary,
+                source.VisibleColumns_Path_Secondary, source.VisibleColumns_Library_Secondary, source.VisibleColumns_Tag_Secondary);
+
+            paneB.Session.OpenTabs = new List<string>(source.OpenTabsSecondary ?? new List<string>());
+            paneB.Session.ActiveTabKey = source.ActiveTabKeySecondary;
 
             // View
             state.View.FileViewMode = source.FileViewMode;
@@ -204,54 +195,98 @@ namespace YiboFile.Services.Config
             config.IsSidebarCollapsed = state.Layout.IsSidebarCollapsed;
             config.IsPreviewCollapsed = state.Layout.IsPreviewCollapsed;
             config.IsRightPanelVisible = state.Layout.IsRightPanelVisible;
-            config.IsDualListMode = state.Layout.IsDualListMode;
+            config.IsDualPaneMode = state.Layout.IsDualPaneMode;
+            config.PaneModeStr = state.Layout.PaneModeStr;
             config.RightPanelNotesHeight = state.Layout.RightPanelNotesHeight;
             config.CenterPanelInfoHeight = state.Layout.CenterPanelInfoHeight;
 
-            config.ColNameWidth = state.Columns.ColNameWidth;
-            config.ColSizeWidth = state.Columns.ColSizeWidth;
-            config.ColModifiedDateWidth = state.Columns.ColModifiedDateWidth;
-            config.ColCreatedTimeWidth = state.Columns.ColCreatedTimeWidth;
-            config.ColTypeWidth = state.Columns.ColTypeWidth;
-            config.ColTagsWidth = state.Columns.ColTagsWidth;
-            config.ColNotesWidth = state.Columns.ColNotesWidth;
-            config.ColumnOrder = state.Columns.Order;
+            // ── Pane A → AppConfig 主面板字段 ──
+            EnsurePaneCount(state, 2);
+            var paneA = state.Panes[0];
+            MapColumnStateToConfig(paneA.Columns,
+                v => config.ColNameWidth = v, v => config.ColSizeWidth = v,
+                v => config.ColModifiedDateWidth = v, v => config.ColCreatedTimeWidth = v,
+                v => config.ColTypeWidth = v, v => config.ColTagsWidth = v, v => config.ColNotesWidth = v);
+            config.ColumnOrder = paneA.Columns.ColumnOrder;
+            if (paneA.Columns.VisibleColumns.ContainsKey("Path")) config.VisibleColumns_Path = paneA.Columns.VisibleColumns["Path"];
+            if (paneA.Columns.VisibleColumns.ContainsKey("Library")) config.VisibleColumns_Library = paneA.Columns.VisibleColumns["Library"];
+            if (paneA.Columns.VisibleColumns.ContainsKey("Tag")) config.VisibleColumns_Tag = paneA.Columns.VisibleColumns["Tag"];
 
-            if (state.Columns.VisibleColumns.ContainsKey("Path")) config.VisibleColumns_Path = state.Columns.VisibleColumns["Path"];
-            if (state.Columns.VisibleColumns.ContainsKey("Library")) config.VisibleColumns_Library = state.Columns.VisibleColumns["Library"];
-            if (state.Columns.VisibleColumns.ContainsKey("Tag")) config.VisibleColumns_Tag = state.Columns.VisibleColumns["Tag"];
+            config.LastPath = paneA.Session.LastPath;
+            config.LastNavigationMode = paneA.Session.LastNavigationMode;
+            config.LastLibraryId = paneA.Session.LastLibraryId;
+            config.OpenTabs = new List<string>(paneA.Session.OpenTabs);
+            config.ActiveTabKey = paneA.Session.ActiveTabKey;
 
-            config.ColNameWidth_Secondary = state.ColumnsSecondary.ColNameWidth;
-            config.ColSizeWidth_Secondary = state.ColumnsSecondary.ColSizeWidth;
-            config.ColModifiedDateWidth_Secondary = state.ColumnsSecondary.ColModifiedDateWidth;
-            config.ColCreatedTimeWidth_Secondary = state.ColumnsSecondary.ColCreatedTimeWidth;
-            config.ColTypeWidth_Secondary = state.ColumnsSecondary.ColTypeWidth;
-            config.ColTagsWidth_Secondary = state.ColumnsSecondary.ColTagsWidth;
-            config.ColNotesWidth_Secondary = state.ColumnsSecondary.ColNotesWidth;
-            config.ColumnOrder_Secondary = state.ColumnsSecondary.Order;
+            // ── Pane B → AppConfig 副面板字段 ──
+            var paneB = state.Panes[1];
+            MapColumnStateToConfig(paneB.Columns,
+                v => config.ColNameWidth_Secondary = v, v => config.ColSizeWidth_Secondary = v,
+                v => config.ColModifiedDateWidth_Secondary = v, v => config.ColCreatedTimeWidth_Secondary = v,
+                v => config.ColTypeWidth_Secondary = v, v => config.ColTagsWidth_Secondary = v, v => config.ColNotesWidth_Secondary = v);
+            config.ColumnOrder_Secondary = paneB.Columns.ColumnOrder;
+            if (paneB.Columns.VisibleColumns.ContainsKey("Path")) config.VisibleColumns_Path_Secondary = paneB.Columns.VisibleColumns["Path"];
+            if (paneB.Columns.VisibleColumns.ContainsKey("Library")) config.VisibleColumns_Library_Secondary = paneB.Columns.VisibleColumns["Library"];
+            if (paneB.Columns.VisibleColumns.ContainsKey("Tag")) config.VisibleColumns_Tag_Secondary = paneB.Columns.VisibleColumns["Tag"];
 
-            if (state.ColumnsSecondary.VisibleColumns.ContainsKey("Path")) config.VisibleColumns_Path_Secondary = state.ColumnsSecondary.VisibleColumns["Path"];
-            if (state.ColumnsSecondary.VisibleColumns.ContainsKey("Library")) config.VisibleColumns_Library_Secondary = state.ColumnsSecondary.VisibleColumns["Library"];
-            if (state.ColumnsSecondary.VisibleColumns.ContainsKey("Tag")) config.VisibleColumns_Tag_Secondary = state.ColumnsSecondary.VisibleColumns["Tag"];
+            config.OpenTabsSecondary = new List<string>(paneB.Session.OpenTabs);
+            config.ActiveTabKeySecondary = paneB.Session.ActiveTabKey;
 
-            config.LastPath = state.Session.LastPath;
-            config.LastNavigationMode = state.Session.LastNavigationMode;
-            config.LastLibraryId = state.Session.LastLibraryId;
-            config.OpenTabs = new List<string>(state.Session.OpenTabs);
-            config.ActiveTabKey = state.Session.ActiveTabKey;
-            config.OpenTabsSecondary = new List<string>(state.Session.OpenTabsSecondary);
-            config.ActiveTabKeySecondary = state.Session.ActiveTabKeySecondary;
-
+            // View
             config.FileViewMode = state.View.FileViewMode;
             config.SortColumn = state.View.SortColumn;
             config.SortDirection = state.View.SortDirection;
 
+            // Sidebar
             config.SidebarExpanderStates = new Dictionary<string, bool>(state.Sidebar.ExpanderStates);
 
+            // Misc
             config.BackupBrowserWidth = state.Misc.BackupBrowserWidth;
             config.BackupBrowserHeight = state.Misc.BackupBrowserHeight;
 
             return config;
+        }
+
+        // ── 辅助方法 ──
+
+        private static void EnsurePaneCount(AppState state, int count)
+        {
+            while (state.Panes.Count < count)
+            {
+                state.Panes.Add(new PaneState { Id = state.Panes.Count == 0 ? "A" : "B" });
+            }
+        }
+
+        private static void MapColumnStateFromConfig(ColumnState cs,
+            double nameW, double sizeW, double modifiedW, double createdW,
+            double typeW, double tagsW, double notesW, string order,
+            string visPath, string visLib, string visTag)
+        {
+            cs.ColNameWidth = nameW;
+            cs.ColSizeWidth = sizeW;
+            cs.ColModifiedDateWidth = modifiedW;
+            cs.ColCreatedTimeWidth = createdW;
+            cs.ColTypeWidth = typeW;
+            cs.ColTagsWidth = tagsW;
+            cs.ColNotesWidth = notesW;
+            cs.ColumnOrder = order;
+            cs.VisibleColumns["Path"] = visPath;
+            cs.VisibleColumns["Library"] = visLib;
+            cs.VisibleColumns["Tag"] = visTag;
+        }
+
+        private static void MapColumnStateToConfig(ColumnState cs,
+            Action<double> setName, Action<double> setSize,
+            Action<double> setModified, Action<double> setCreated,
+            Action<double> setType, Action<double> setTags, Action<double> setNotes)
+        {
+            setName(cs.ColNameWidth);
+            setSize(cs.ColSizeWidth);
+            setModified(cs.ColModifiedDateWidth);
+            setCreated(cs.ColCreatedTimeWidth);
+            setType(cs.ColTypeWidth);
+            setTags(cs.ColTagsWidth);
+            setNotes(cs.ColNotesWidth);
         }
     }
 }

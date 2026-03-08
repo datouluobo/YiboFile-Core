@@ -151,6 +151,22 @@ namespace YiboFile.Services.Navigation
             return state.History.Count > 0 && state.CurrentIndex < state.History.Count - 1;
         }
 
+        /// <summary>
+        /// 交换两个面板的导航状态（路径、历史记录等）
+        /// </summary>
+        public void SwapStates(PaneId p1, PaneId p2)
+        {
+            if (p1 == p2) return;
+            
+            var state1 = GetState(p1);
+            var state2 = GetState(p2);
+
+            _paneStates[p1] = state2;
+            _paneStates[p2] = state1;
+            
+            FileLogger.Log($"[NavigationService] Swapped states between {p1} and {p2}");
+        }
+
         public IEnumerable<string> GetBackStack(PaneId pane) => GetState(pane).BackStack;
         public IEnumerable<string> GetForwardStack(PaneId pane) => GetState(pane).ForwardStack;
 

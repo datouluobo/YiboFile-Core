@@ -46,5 +46,12 @@ namespace YiboFile.ViewModels
             get => _isVisible;
             set => SetProperty(ref _isVisible, value);
         }
+
+        private bool _isEnabled = true;
+        public bool IsEnabled
+        {
+            get => _isEnabled;
+            set => SetProperty(ref _isEnabled, value);
+        }
     }
 }

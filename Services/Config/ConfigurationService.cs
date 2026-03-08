@@ -190,6 +190,26 @@ namespace YiboFile.Services.Config
         }
 
         /// <summary>
+        /// 获取 AppState 引用 — 供 ColumnService 等直接读写 PaneState
+        /// 注意：写入后应调用 MarkDirty() 触发延迟保存
+        /// </summary>
+        public AppState State => _appState;
+
+        /// <summary>
+        /// 标记状态已变更，触发延迟保存（去抖）
+        /// </summary>
+        public void MarkDirty()
+        {
+            lock (_configLock)
+            {
+                _isDirty = true;
+                // 同步 AppConfig facade
+                _config = ConfigMapper.MapToAppConfig(_userSettings, _appState);
+            }
+            TriggerDebouncedSave();
+        }
+
+        /// <summary>
         /// 获取单个配置值
         /// </summary>
         public T Get<T>(Expression<Func<AppConfig, T>> propertyExpression)

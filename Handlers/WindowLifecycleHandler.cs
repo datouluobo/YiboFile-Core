@@ -108,7 +108,10 @@ namespace YiboFile.Handlers
 
         public void AdjustColumnWidths()
         {
-            if (_mainWindow.RootGrid == null) return;
+            if (_mainWindow.RootGrid == null || _mainWindow.RootGrid.ActualWidth <= 0) return;
+            
+            // 如果窗口尚未完全呈现且宽度过小，跳过此次调整以保护持久化的配置
+            if (!_mainWindow.IsLoaded && _mainWindow.RootGrid.ActualWidth < 100) return;
 
             double total = _mainWindow.RootGrid.ActualWidth - _mainWindow.ColRail.ActualWidth - 10; // 减去Rail (60) 和 两个分割器 (5+5)
             double left = _mainWindow.ColLeft.ActualWidth;
@@ -165,7 +168,18 @@ namespace YiboFile.Handlers
                     newRight = Math.Max(minRight, newRight);
 
                     _mainWindow.ColLeft.Width = new GridLength(newLeft);
-                    _mainWindow.ColRight.Width = new GridLength(newRight);
+                    
+                    // 如果原本是星号（比例）列，尽量保持比例性质以防止布局破坏（双栏响应式）
+                    if (_mainWindow.ColRight.Width.IsStar && currentSidesSum > 0)
+                    {
+                        double ratio = newRight / currentSidesSum; 
+                        _mainWindow.ColRight.Width = new GridLength(ratio, GridUnitType.Star);
+                        _mainWindow.ColCenter.Width = new GridLength(1 - ratio, GridUnitType.Star);
+                    }
+                    else
+                    {
+                        _mainWindow.ColRight.Width = new GridLength(newRight);
+                    }
                 }
             }
             else

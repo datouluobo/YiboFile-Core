@@ -87,7 +87,7 @@ namespace YiboFile.Handlers
         public void HandleNoSelection(YiboFile.Services.Navigation.PaneId paneId = YiboFile.Services.Navigation.PaneId.Main)
         {
             // 清除旧的预览状态
-            _filePreviewService?.ClearPreview();
+            _filePreviewService?.ClearPreview(paneId);
 
             // 检查当前是否在库模式
             Library currentLib = _getCurrentLibrary?.Invoke();

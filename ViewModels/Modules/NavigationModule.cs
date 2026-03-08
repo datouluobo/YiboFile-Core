@@ -101,10 +101,6 @@ namespace YiboFile.ViewModels.Modules
 
         private void OnModeChanged(string mode)
         {
-            // 发布状态变更消息，以便外部 UI 响应 (如侧边栏高亮)
-            var pane = ActivePane;
-            Publish(new NavigationCompleteMessage(null, pane, NavigationSource.External, mode));
-
             // 同步到全局配置
             YiboFile.Services.Config.ConfigurationService.Instance.Set(cfg => cfg.LastNavigationMode, mode);
         }

@@ -22,6 +22,7 @@ namespace YiboFile.Interfaces
         ColumnDefinition ColCenter { get; }
         ColumnDefinition ColRight { get; }
         ColumnDefinition ColRail { get; }
+        CollapsibleGridSplitter SplitterRight { get; }
         Button TitleBarMaxRestoreButton { get; }
         System.Windows.Controls.Image TitleBarMaxRestoreImage { get; }
 
@@ -31,18 +32,29 @@ namespace YiboFile.Interfaces
         // Core UI Elements线程调度器
         Dispatcher Dispatcher { get; }
 
-        // 核心控件
+        // 核心控件 — 数组化（面板无关访问）
+        /// <summary>所有面板的 FileBrowser [0]=左, [1]=右</summary>
+        FileBrowserControl[] FileBrowsers { get; }
+        /// <summary>所有面板的 TabManager [0]=左, [1]=右</summary>
+        TabManagerControl[] TabManagers { get; }
+
+        // 兼容属性（指向数组元素）
         FileBrowserControl FileBrowser { get; }
         FileBrowserControl SecondFileBrowser { get; }
         TabManagerControl TabManager { get; }
         TabManagerControl SecondTabManager { get; }
+        Grid SecondFileBrowserContainer { get; }
 
         // Navigation & Panels
         NavigationPanelControl NavigationPanelControl { get; }
         ListBox LibrariesListBox { get; }
         ListBox QuickAccessListBox { get; }
 
-        bool IsDualListMode { get; }
+        // Pane Content Hosts (for cross-pane preview coordination)
+        PaneContentHost PrimaryContentHost { get; }
+        PaneContentHost SecondContentHost { get; }
+
+        bool IsDualPaneMode { get; }
 
         // ViewModel 与上下文
         MainWindowViewModel ViewModel { get; }

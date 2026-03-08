@@ -12,8 +12,33 @@ namespace YiboFile.Controls
         public AboutPanelControl()
         {
             InitializeComponent();
+            LoadVersionInfo();
             LoadShortcuts();
             LoadLicenses();
+        }
+
+        private void LoadVersionInfo()
+        {
+            try
+            {
+                var assembly = System.Reflection.Assembly.GetEntryAssembly() ?? System.Reflection.Assembly.GetExecutingAssembly();
+                var version = assembly.GetName().Version;
+                if (version != null)
+                {
+                    VersionText.Text = version.ToString();
+                }
+
+                var processPath = System.Environment.ProcessPath;
+                if (!string.IsNullOrEmpty(processPath) && System.IO.File.Exists(processPath))
+                {
+                    var buildDate = System.IO.File.GetLastWriteTime(processPath);
+                    BuildDateText.Text = buildDate.ToString("yyyy-MM-dd");
+                }
+            }
+            catch
+            {
+                // Ignore exceptions
+            }
         }
 
         private void Tab_Click(object sender, RoutedEventArgs e)
@@ -72,24 +97,30 @@ namespace YiboFile.Controls
             var licenses = new List<LicenseItem>
             {
                 // 核心组件
-                new LicenseItem { Name = "FFMpegCore", Description = "FFmpeg的.NET封装库", License = "MIT License" },
-                new LicenseItem { Name = "Magick.NET", Description = "强大的图像处理库 (ImageMagick封装)", License = "Apache-2.0" },
                 new LicenseItem { Name = "AvalonEdit", Description = "基于WPF的代码编辑器组件", License = "MIT License" },
-                new LicenseItem { Name = "Markdig", Description = "快速且强大的Markdown处理器", License = "BSD-2-Clause" },
-                new LicenseItem { Name = "SkiaSharp", Description = "跨平台2D图形API", License = "MIT License" },
-                new LicenseItem { Name = "WpfAnimatedGif", Description = "WPF GIF动画支持", License = "Apache-2.0" },
-                new LicenseItem { Name = "Microsoft.Web.WebView2", Description = "Edge WebView2 控件", License = "Microsoft License" },
+                new LicenseItem { Name = "DocumentFormat.OpenXml", Description = "OpenXML SDK用于Office文档处理", License = "MIT License" },
                 new LicenseItem { Name = "IxMilia.Dxf", Description = "DXF文件读写库", License = "MIT License" },
-                
+                new LicenseItem { Name = "LibVLCSharp", Description = "VLC播放引擎的.NET封装库", License = "LGPL/MIT" },
+                new LicenseItem { Name = "Magick.NET", Description = "强大的图像处理库 (ImageMagick封装)", License = "Apache-2.0" },
+                new LicenseItem { Name = "Markdig", Description = "快速且强大的Markdown处理器", License = "BSD-2-Clause" },
+                new LicenseItem { Name = "Microsoft.Data.Sqlite", Description = "轻量级本地数据库引擎", License = "MIT License" },
+                new LicenseItem { Name = "Microsoft.Web.WebView2", Description = "Edge WebView2 控件", License = "Microsoft License" },
+                new LicenseItem { Name = "NPOI", Description = "读写 Office 文件的 .NET 库", License = "Apache-2.0" },
+                new LicenseItem { Name = "PdfPig", Description = "纯 C# 的 PDF 提取工具", License = "Apache-2.0" },
+                new LicenseItem { Name = "SkiaSharp", Description = "跨平台2D图形API", License = "MIT License" },
+                new LicenseItem { Name = "VirtualizingWrapPanel", Description = "高度优化的虚拟化布局面板", License = "MIT License" },
+                new LicenseItem { Name = "WpfAnimatedGif", Description = "WPF GIF动画支持", License = "Apache-2.0" },
+
+                // 第三方依赖工具
+                new LicenseItem { Name = "Everything", Description = "Voidtools 文件系统搜索引擎", License = "Freeware" },
+                new LicenseItem { Name = "7-Zip", Description = "高压缩比的压缩管理工具", License = "LGPL/BSD License" },
 
                 // 字体与图标资源
-                new LicenseItem { Name = "Remix Icon", Description = "开源中性风格图标系统", License = "Apache-2.0" },
                 new LicenseItem { Name = "Fluent System Icons", Description = "微软流利设计系统图标", License = "MIT License" },
                 new LicenseItem { Name = "Material Icons", Description = "Google Material Design图标", License = "Apache-2.0" },
+                new LicenseItem { Name = "Remix Icon", Description = "开源中性风格图标系统", License = "Apache-2.0" },
 
                 // 其他组件
-                new LicenseItem { Name = "Ookii.Dialogs.Wpf", Description = "现代化的文件选择对话框", License = "BSD-3-Clause" },
-                new LicenseItem { Name = "Newtonsoft.Json", Description = "高性能JSON处理库", License = "MIT License" },
                 new LicenseItem { Name = "PDF.js", Description = "基于Web标准的PDF渲染引擎", License = "Apache-2.0" }
             };
             LicensesList.ItemsSource = licenses;

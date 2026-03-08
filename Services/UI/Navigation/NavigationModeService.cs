@@ -69,13 +69,7 @@ namespace YiboFile.Services.Navigation
             // 更新导航按钮样式（橙色标记当前模式）
             UpdateNavigationButtonStyles(mode);
 
-            // 切换到非库模式时清空当前库
-            if (mode != "Library")
-            {
-                _uiHelper.CurrentLibrary = null;
-            }
-
-            // 根据模式显示对应内容和按钮
+            // 移除：切换到非库模式时清空当前库，这样左侧模式切换就不再干扰右面板活动标签页中的库查询状态。
             switch (mode)
             {
                 case "Path":
@@ -97,16 +91,15 @@ namespace YiboFile.Services.Navigation
             }
 
 
-            // 应用可见列设置并确保右键菜单绑定
-            _uiHelper.ApplyVisibleColumnsForCurrentMode();
-            _uiHelper.EnsureHeaderContextMenuHook();
-
-            // 更新文件列表（导航操作本身也会加载文件，这里作为备用刷新）
+            // 移除 ApplyVisibleColumnsForCurrentMode()，列的变动应当仅由右侧实际展示的内容（例如标签页类型或当前路径）决定，而不是左侧导航模式。
             // 启动时恢复状态时跳过此步骤，避免与标签页恢复冲突
+            // [SSOT 关键修正] 导航操作已经有本身的加载流程，移除这里的强制备用刷新，避免引发两次加载和闪烁
+            /*
             if (!skipRefresh)
             {
                 _uiHelper.RefreshFileList();
             }
+            */
         }
 
         /// <summary>
@@ -163,7 +156,7 @@ namespace YiboFile.Services.Navigation
             {
                 _uiHelper.Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    if (_uiHelper is MainWindow mw && mw.IsDualListMode)
+                    if (_uiHelper is MainWindow mw && mw.IsDualPaneMode)
                     {
                         // 副面板模式逻辑 (保持现状)
                     }

@@ -97,7 +97,7 @@ namespace YiboFile.Handlers
                     }
 
                     // Also refresh the other panel if in dual mode and it's showing the affected directory
-                    if (_window.IsDualListMode)
+                    if (_window.IsDualPaneMode)
                     {
                         if (isPrimary && _window.SecondFileBrowser != null)
                         {
