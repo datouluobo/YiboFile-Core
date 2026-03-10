@@ -519,10 +519,6 @@ namespace YiboFile.Services.Startup
                     () => new ManagementTabContent(),
                     new TabContentMetadata { Title = loc["TabContent.Management"], IconKey = "Icon_Nav_Library", AllowMultiple = false, SupportsSecondaryPane = true });
 
-                registry.Register(TabContentTypes.Tasks,
-                    () => new TaskQueueTabContent(),
-                    new TabContentMetadata { Title = loc["TabContent.TaskQueue"], IconKey = "Icon_Window_Tasks", AllowMultiple = false, SupportsSecondaryPane = true });
-
                 registry.Register(TabContentTypes.Backup,
                     () => new BackupTabContent(),
                     new TabContentMetadata { Title = loc["TabContent.Backup"], IconKey = "Icon_Folder", AllowMultiple = false, SupportsSecondaryPane = true });

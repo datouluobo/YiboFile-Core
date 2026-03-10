@@ -76,6 +76,8 @@
                           SizeChanged="TabsBorder_SizeChanged"
                           shell:WindowChrome.IsHitTestVisibleInChrome="True">
                 <ItemsControl x:Name="TabsItemsControl" 
+                              xmlns:handlers="clr-namespace:YiboFile.Handlers"
+                              handlers:TabDragDropBehavior.IsEnabled="True"
                               ItemsSource="{Binding ItemsSource, RelativeSource={RelativeSource AncestorType=UserControl}}"
                               ItemTemplate="{StaticResource PathTabDataTemplate}"
                               shell:WindowChrome.IsHitTestVisibleInChrome="True">

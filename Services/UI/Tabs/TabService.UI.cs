@@ -38,8 +38,7 @@ namespace YiboFile.Services.Tabs
             _ui = context;
             if (_ui?.GetConfig != null) _config = _ui.GetConfig();
             _widthCalculator = new TabWidthCalculator(() => _config, GetEffectiveTitle);
-            InitializeTabsDragDrop();
-
+            
             if (_ui?.TabManager != null)
             {
                 _ui.TabManager.NewTabCommand = this.NewTabCommand;
@@ -109,7 +108,6 @@ namespace YiboFile.Services.Tabs
             var newTab = new PathTab
             {
                 ContentTypeId = TabContentTypes.Path,
-                Type = TabType.Path,
                 Path = path,
                 Title = CalculateTabDisplayTitle(path)
             };
@@ -138,7 +136,6 @@ namespace YiboFile.Services.Tabs
             var newTab = new PathTab
             {
                 ContentTypeId = TabContentTypes.Tag,
-                Type = TabType.Tag,
                 Path = path,
                 Title = tagName
             };
@@ -168,7 +165,6 @@ namespace YiboFile.Services.Tabs
             var newTab = new PathTab
             {
                 ContentTypeId = TabContentTypes.Search,
-                Type = TabType.Search,
                 Path = searchPath,
                 Title = title
             };
@@ -220,7 +216,6 @@ namespace YiboFile.Services.Tabs
                 var tab = new PathTab
                 {
                     ContentTypeId = TabContentTypes.Library,
-                    Type = TabType.Library,
                     Path = $"lib://{library.Name}",
                     Title = library.Name,
                     Library = library
@@ -258,7 +253,7 @@ namespace YiboFile.Services.Tabs
             if (TabCount <= 1)
             {
                 var homePath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-                var homeType = TabType.Path;
+                var homeType = TabContentTypes.Path;
                 var homeTitle = CalculateTabDisplayTitle(homePath);
 
 
@@ -266,9 +261,9 @@ namespace YiboFile.Services.Tabs
                 if (tab.Path != homePath)
                 {
                     tab.Path = homePath;
-                    tab.Type = homeType;
+                    tab.ContentTypeId = homeType;
                     tab.Title = homeTitle;
-                    if (homeType == TabType.Library) tab.Library = null;
+                    if (homeType == TabContentTypes.Library) tab.Library = null;
 
                     _messageBus.Publish(new YiboFile.ViewModels.Messaging.Messages.NavigateToPathMessage(
                         homePath, AddToHistory: false, Pane: this.Pane));
@@ -366,7 +361,7 @@ namespace YiboFile.Services.Tabs
             EnsureUi();
             if (_ui?.TabManager != null)
             {
-                var border = _ui.TabManager.TabsBorderControl;
+                var border = _ui.TabManager; // 直接使用 TabManager 控件自身的宽度
                 if (border != null && border.ActualWidth > 0)
                 {
                     _widthCalculator?.UpdateTabWidths(border.ActualWidth, _tabs);

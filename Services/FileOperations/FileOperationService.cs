@@ -132,7 +132,7 @@ namespace YiboFile.Services.FileOperations
                 TotalItems = sourcePaths.Count,
                 Status = TaskStatus.Running,
                 CurrentFile = "准备中...",
-                IsSilent = totalCount <= 5,
+                IsSilent = true, // 默认先静默，超过阈值自动暴露
                 StartTime = DateTime.Now
             };
             _taskQueueService?.EnqueueTask(task);
@@ -154,6 +154,11 @@ namespace YiboFile.Services.FileOperations
                 {
                     task.WaitIfPaused();
                     task.CurrentFile = Path.GetFileName(sourcePath);
+                    
+                    if (task.IsSilent && (DateTime.Now - task.StartTime).TotalMilliseconds > 300)
+                    {
+                        task.IsSilent = false;
+                    }
                 }
 
                 if (string.IsNullOrEmpty(sourcePath) || (!File.Exists(sourcePath) && !Directory.Exists(sourcePath)))
@@ -270,8 +275,8 @@ namespace YiboFile.Services.FileOperations
                                     // 无备份服务回退
                                     if (isDir)
                                     {
-                                        FileSystemCoreUtils.CopyDirectory(sourcePath, destPath);
-                                        await FileSystemCoreUtils.SafeDeleteDirectoryAsync(sourcePath);
+                                        CopyDirectory(sourcePath, destPath, task, failedItems);
+                                        if (failedItems.Count == 0) await FileSystemCoreUtils.SafeDeleteDirectoryAsync(sourcePath);
                                     }
                                     else
                                     {
@@ -284,7 +289,7 @@ namespace YiboFile.Services.FileOperations
                         else
                         {
                             // 复制
-                            if (isDir) CopyDirectory(sourcePath, destPath, task);
+                            if (isDir) CopyDirectory(sourcePath, destPath, task, failedItems);
                             else File.Copy(sourcePath, destPath, true);
                         }
                     }, task?.CancellationTokenSource.Token ?? ct);
@@ -378,7 +383,7 @@ namespace YiboFile.Services.FileOperations
                 Description = "删除文件",
                 TotalItems = itemList.Count,
                 Status = TaskStatus.Running,
-                IsSilent = itemList.Count <= 5,
+                IsSilent = true, // 动态评估
                 StartTime = DateTime.Now
             };
             _taskQueueService?.EnqueueTask(task);
@@ -392,7 +397,16 @@ namespace YiboFile.Services.FileOperations
                 foreach (var item in itemList)
                 {
                     if (ct.IsCancellationRequested || (task != null && task.Status == TaskStatus.Canceling)) break;
-                    if (task != null) { task.WaitIfPaused(); task.CurrentFile = item.Name; }
+                    if (task != null) 
+                    { 
+                        task.WaitIfPaused(); 
+                        task.CurrentFile = item.Name; 
+                        
+                        if (task.IsSilent && (DateTime.Now - task.StartTime).TotalMilliseconds > 300)
+                        {
+                            task.IsSilent = false;
+                        }
+                    }
 
                     try
                     {
@@ -503,22 +517,63 @@ namespace YiboFile.Services.FileOperations
             catch (IOException) { CopyDirectory(src, dest, task); Directory.Delete(src, true); }
         }
 
-        private void CopyDirectory(string src, string dest, FileOperationTask task = null)
+        private void CopyDirectory(string src, string dest, FileOperationTask task = null, List<string> failedItems = null)
         {
-            Directory.CreateDirectory(dest);
+            try
+            {
+                Directory.CreateDirectory(dest);
+            }
+            catch (Exception ex)
+            {
+                failedItems?.Add($"{dest}: {ex.Message}");
+                return;
+            }
+
             if (task != null) task.WaitIfPaused();
             var ct = task?.CancellationTokenSource.Token ?? CancellationToken.None;
 
-            foreach (var file in Directory.GetFiles(src))
+            string[] files = Array.Empty<string>();
+            try
             {
-                ct.ThrowIfCancellationRequested();
-                if (task != null) task.WaitIfPaused();
-                File.Copy(file, Path.Combine(dest, Path.GetFileName(file)), true);
+                files = Directory.GetFiles(src);
             }
-            foreach (var dir in Directory.GetDirectories(src))
+            catch (Exception ex)
+            {
+                failedItems?.Add($"{src}: 无法读取目录 - {ex.Message}");
+            }
+
+            foreach (var file in files)
             {
                 ct.ThrowIfCancellationRequested();
-                CopyDirectory(dir, Path.Combine(dest, Path.GetFileName(dir)), task);
+                if (task != null)
+                {
+                    task.WaitIfPaused();
+                    task.CurrentFile = Path.GetFileName(file);
+                }
+                try
+                {
+                    File.Copy(file, Path.Combine(dest, Path.GetFileName(file)), true);
+                }
+                catch (Exception ex)
+                {
+                    failedItems?.Add($"{Path.GetFileName(file)}: {ex.Message}");
+                }
+            }
+
+            string[] dirs = Array.Empty<string>();
+            try
+            {
+                dirs = Directory.GetDirectories(src);
+            }
+            catch (Exception ex)
+            {
+                failedItems?.Add($"{src}: 无法读取子目录 - {ex.Message}");
+            }
+
+            foreach (var dir in dirs)
+            {
+                ct.ThrowIfCancellationRequested();
+                CopyDirectory(dir, Path.Combine(dest, Path.GetFileName(dir)), task, failedItems);
             }
         }
 

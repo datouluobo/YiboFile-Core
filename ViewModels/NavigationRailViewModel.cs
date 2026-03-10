@@ -64,7 +64,7 @@ namespace YiboFile.ViewModels
 
                 _messageBus.Publish(new RequestNavigationModeMessage("Tag"));
             });
-            NavigateToTasksCommand = new RelayCommand(() => _messageBus.Publish(new OpenContentTabMessage(TabContentTypes.Tasks)));
+
             NavigateToBackupCommand = new RelayCommand(() => _messageBus.Publish(new OpenContentTabMessage(TabContentTypes.Backup)));
             NavigateToClipboardCommand = new RelayCommand(() => _messageBus.Publish(new OpenContentTabMessage(TabContentTypes.Clipboard)));
 
@@ -88,7 +88,7 @@ namespace YiboFile.ViewModels
                 { "Path", new NavigationRailItem { Id = "Path", IconKey = "Icon_Nav_Path", Command = NavigateToPathCommand } },
                 { "Library", new NavigationRailItem { Id = "Library", IconKey = "Icon_Nav_Library", Command = NavigateToLibraryCommand } },
                 { "Tag", new NavigationRailItem { Id = "Tag", IconKey = "Icon_Nav_Tag", Command = NavigateToTagCommand, IsVisible = App.IsTagTrainAvailable } },
-                { "Tasks", new NavigationRailItem { Id = "Tasks", IconKey = "Icon_Window_Tasks", Command = NavigateToTasksCommand } },
+
                 { "Backup", new NavigationRailItem { Id = "Backup", IconKey = "Icon_Backup", Command = NavigateToBackupCommand } },
                 { "Clipboard", new NavigationRailItem { Id = "Clipboard", IconKey = "Icon_Clipboard", Command = NavigateToClipboardCommand } },
                 { "ToggleSidebar", new NavigationRailItem { Id = "ToggleSidebar", IconKey = "Icon_Layout_Work", Command = ToggleSidebarCommand } },
@@ -98,7 +98,7 @@ namespace YiboFile.ViewModels
                 { "About", new NavigationRailItem { Id = "About", IconKey = "Icon_Window_About", Command = OpenAboutCommand } }
             };
 
-            var topKeys = _configService?.Config?.RailTopItems ?? new List<string> { "Path", "Library", "Tag", "Tasks", "Backup", "Clipboard" };
+            var topKeys = _configService?.Config?.RailTopItems ?? new List<string> { "Path", "Library", "Tag", "Backup", "Clipboard" };
             var bottomKeys = _configService?.Config?.RailBottomItems ?? new List<string> { "ToggleSidebar", "PaneMode", "SwapPanes", "Settings", "About" };
 
             // 防止有丢失的数据被漏在字典里没显示
@@ -149,7 +149,7 @@ namespace YiboFile.ViewModels
                 if (item.Id == "Path") item.IsActive = ActiveNavigationMode == "Path";
                 else if (item.Id == "Library") item.IsActive = ActiveNavigationMode == "Library";
                 else if (item.Id == "Tag") item.IsActive = ActiveNavigationMode == "Tag";
-                else if (item.Id == "Tasks") item.IsActive = ActiveNavigationMode == "Tasks";
+
                 else if (item.Id == "Backup") item.IsActive = ActiveNavigationMode == "Backup";
                 else if (item.Id == "Clipboard") item.IsActive = ActiveNavigationMode == "Clipboard";
                 
@@ -198,7 +198,7 @@ namespace YiboFile.ViewModels
                 if (item.Id == "Path") item.ToolTip = _locService["TabContent.FileBrowser"];
                 else if (item.Id == "Library") item.ToolTip = _locService["TabContent.Library"];
                 else if (item.Id == "Tag") item.ToolTip = _locService["TabContent.Tag"];
-                else if (item.Id == "Tasks") item.ToolTip = _locService["TabContent.TaskQueue"];
+
                 else if (item.Id == "Backup") item.ToolTip = _locService["TabContent.Backup"];
                 else if (item.Id == "Clipboard") item.ToolTip = _locService["TabContent.Clipboard"];
                 else if (item.Id == "ToggleSidebar") item.ToolTip = _locService["TabContent.NavigationRail.ToggleSidebar"];
@@ -298,7 +298,7 @@ namespace YiboFile.ViewModels
         public ICommand NavigateToPathCommand { get; }
         public ICommand NavigateToLibraryCommand { get; }
         public ICommand NavigateToTagCommand { get; }
-        public ICommand NavigateToTasksCommand { get; }
+
         public ICommand NavigateToBackupCommand { get; }
         public ICommand NavigateToClipboardCommand { get; }
 

@@ -16,6 +16,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto" MaxHeight="300"/>
         </Grid.RowDefinitions>
         
         <Grid Name="NavContentGrid" Grid.Row="0">
@@ -465,12 +466,15 @@
             
         </Grid>
         
-        <!-- 底部按钮区 (已移除库管理按钮) -->
-        <Border Grid.Row="1" Background="{DynamicResource BackgroundSecondaryBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0">
-             <Grid>
-                 <!-- 保留 Grid 结构以防未来扩展，但内容为空 -->
-             </Grid>
-        </Border>
+        <!-- 分割器 (在没有任务时会随 Visibility 折叠) -->
+        <local:CollapsibleGridSplitter Grid.Row="1" 
+                                          Height="4"
+                                          HorizontalAlignment="Stretch"
+                                          Style="{StaticResource HorizontalCollapsibleGridSplitterStyle}"
+                                          Visibility="{Binding Visibility, ElementName=NavTaskQueue}"/>
+        
+        <!-- 底部任务队列区 -->
+        <local:NavTaskQueueView x:Name="NavTaskQueue" Grid.Row="2"/>
     </Grid>
 </UserControl>
 

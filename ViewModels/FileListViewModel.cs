@@ -225,12 +225,17 @@ namespace YiboFile.ViewModels
             // 如果正在加载其它目录，则取消旧的并排队
             if (_isLoadingFiles)
             {
+                bool isSamePath = string.Equals(_currentPath, path, StringComparison.OrdinalIgnoreCase);
 
+                _currentPath = path; // 立即更新为预期路径，避免在其排队期间发生刷新请求时重新加载旧路径
                 _pendingPath = path;
                 _loadFilesPending = true;
 
-                // 仅在不同路径时取消，防止微小变动导致的频繁重载
-                _loadCancellationTokenSource?.Cancel();
+                // 仅在不同路径时取消当前进行中的任务
+                if (!isSamePath)
+                {
+                    _loadCancellationTokenSource?.Cancel();
+                }
                 return;
             }
 

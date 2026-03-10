@@ -927,7 +927,7 @@ namespace YiboFile.Services.FileList
                                 directories.Add(new FileSystemItem
                                 {
                                     Name = displayName,
-                                    Path = actualPath,
+                                    Path = dirPath, // Use the original path to maintain contextual navigation, like Windows Explorer
                                     Type = "文件夹",
                                     Size = sizeDisplay,
                                     ModifiedDate = dirInfo.LastWriteTime.ToString("yyyy-MM-dd"),
@@ -1086,7 +1086,7 @@ namespace YiboFile.Services.FileList
                         directories.Add(new FileSystemItem
                         {
                             Name = displayName,
-                            Path = actualPath,
+                            Path = dirPath, // Use the original path to maintain contextual navigation, like Windows Explorer
                             Type = "文件夹",
                             Size = sizeDisplay,
                             ModifiedDate = dirInfo.LastWriteTime.ToString("yyyy-MM-dd"),

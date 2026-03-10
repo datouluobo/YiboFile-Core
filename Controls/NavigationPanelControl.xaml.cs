@@ -93,6 +93,12 @@ namespace YiboFile.Controls
 
             var messageBus = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService<ViewModels.Messaging.IMessageBus>(App.ServiceProvider);
             messageBus?.Subscribe<ConfigurationSettingChangedMessage>(msg => OnSettingChanged(msg.SettingName));
+
+            var taskQueueService = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService<YiboFile.Services.FileOperations.TaskQueue.TaskQueueService>(App.ServiceProvider);
+            if (taskQueueService != null)
+            {
+                NavTaskQueue.SetService(taskQueueService);
+            }
         }
 
         private void OnSettingChanged(string propertyName)

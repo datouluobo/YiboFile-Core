@@ -184,11 +184,6 @@ namespace YiboFile.Controls
 
         #endregion
 
-        #region Obsolete/Compatibility (To be removed if possible)
 
-        public StackPanel TabsPanelControl => null;
-        public Border TabsBorderControl => TabsBorder;
-
-        #endregion
     }
 }

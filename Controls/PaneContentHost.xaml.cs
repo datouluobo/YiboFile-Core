@@ -49,7 +49,7 @@ namespace YiboFile.Controls
         {
             { TabContentTypes.Settings, "⚙ 设置" },
             { TabContentTypes.About, "ℹ 关于" },
-            { TabContentTypes.Tasks, "📋 任务队列" },
+
             { TabContentTypes.Backup, "💾 备份管理" },
             { TabContentTypes.Clipboard, "📋 剪切板历史" },
             { TabContentTypes.Management, "🔧 管理" },

@@ -144,14 +144,23 @@ namespace YiboFile.ViewModels.Modules
 
         private async void OnCopyItems(CopyItemsRequestMessage message)
         {
+            if (message.Items == null || !message.Items.Any()) return;
             bool success = await _fileOperationService.CopyAsync(message.Items?.Select(i => i.Path));
-            Publish(new FileOperationCompleteMessage(Guid.NewGuid().ToString(), success, success ? null : "复制到剪贴板失败"));
+            if (!success)
+            {
+                // 可以不显示报错框，或仅发送低严重性信息
+                Publish(new FileOperationCompleteMessage(Guid.NewGuid().ToString(), success, "复制到剪贴板未生效"));
+            }
         }
 
         private async void OnCutItems(CutItemsRequestMessage message)
         {
+            if (message.Items == null || !message.Items.Any()) return;
             bool success = await _fileOperationService.CutAsync(message.Items?.Select(i => i.Path));
-            Publish(new FileOperationCompleteMessage(Guid.NewGuid().ToString(), success, success ? null : "剪切到剪贴板失败"));
+            if (!success)
+            {
+                Publish(new FileOperationCompleteMessage(Guid.NewGuid().ToString(), success, "剪切到剪贴板未生效"));
+            }
         }
 
         private async void OnPasteItems(PasteItemsRequestMessage message)

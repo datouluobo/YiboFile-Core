@@ -35,8 +35,6 @@ namespace YiboFile.Services.Tabs
         /// <summary>路径/库/标签管理</summary>
         public const string Management = "management";
 
-        /// <summary>任务队列</summary>
-        public const string Tasks = "tasks";
 
         /// <summary>备份管理</summary>
         public const string Backup = "backup";
