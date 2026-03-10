@@ -35,10 +35,17 @@ namespace YiboFile.ViewModels
         }
     }
 
-    public class ThemeItemViewModel
+    public class ThemeItemViewModel : BaseViewModel
     {
         public string Id { get; }
-        public string Name { get; }
+        
+        private string _name;
+        public string Name
+        {
+            get => _name;
+            set { SetProperty(ref _name, value); OnPropertyChanged(nameof(DisplayName)); }
+        }
+        
         public string Emoji { get; }
         public string DisplayName => $"{Emoji} {Name}";
 
@@ -61,10 +68,16 @@ namespace YiboFile.ViewModels
         public override int GetHashCode() => Id?.GetHashCode() ?? 0;
     }
 
-    public class IconStyleItemViewModel
+    public class IconStyleItemViewModel : BaseViewModel
     {
         public string Id { get; }
-        public string Name { get; }
+        
+        private string _name;
+        public string Name
+        {
+            get => _name;
+            set => SetProperty(ref _name, value);
+        }
 
         public IconStyleItemViewModel(string id, string name)
         {

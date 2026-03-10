@@ -35,6 +35,18 @@ namespace YiboFile.ViewModels.Modules
             Subscribe<AddFavoriteRequestMessage>(OnAddFavoriteRequest);
             Subscribe<CreateFavoriteGroupRequestMessage>(OnCreateFavoriteGroupRequest);
 
+            var locService = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService<YiboFile.Services.Localization.ILocalizationService>(App.ServiceProvider);
+            if (locService != null)
+            {
+                locService.PropertyChanged += (s, e) =>
+                {
+                    if (e.PropertyName == "CurrentLanguage")
+                    {
+                        LoadFavorites();
+                    }
+                };
+            }
+
             // 初始加载
             LoadFavorites();
         }

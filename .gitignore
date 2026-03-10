@@ -98,4 +98,5 @@ XL/**/*
 # Build output directory
 build_out/
 Publish/
+build_log.txt
 

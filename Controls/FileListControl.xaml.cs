@@ -330,6 +330,13 @@ namespace YiboFile.Controls
                     control.CurrentViewMode,
                     control.ThumbnailSize,
                     control._thumbnailService);
+
+                // 根据当前内容上下文（如标签模式或路径模式），刷新列宽和可见性
+                if (control.IsLoaded)
+                {
+                    control.LoadColumnWidths();
+                    control._autoColumnWidthBehavior?.AdjustTargetColumnWidth();
+                }
             }
         }
 

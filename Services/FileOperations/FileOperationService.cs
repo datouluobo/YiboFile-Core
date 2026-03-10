@@ -548,10 +548,11 @@ namespace YiboFile.Services.FileOperations
 
         public async Task<string> CreateFolderAsync(string parentPath, string name = null)
         {
+            var locService = App.ServiceProvider?.GetService<YiboFile.Services.Localization.ILocalizationService>();
             if (string.IsNullOrEmpty(parentPath)) return null;
             try
             {
-                string folderName = string.IsNullOrEmpty(name) ? "新建文件夹" : name;
+                string folderName = string.IsNullOrEmpty(name) ? (locService?["FileOp.NewFolder"] ?? "新建文件夹") : name;
                 string finalPath = FileSystemCoreUtils.GetUniquePath(Path.Combine(parentPath, folderName));
                 await Task.Run(() => Directory.CreateDirectory(finalPath));
                 if (_undoService != null && _backupService != null)
@@ -562,17 +563,19 @@ namespace YiboFile.Services.FileOperations
             }
             catch (Exception ex)
             {
-                _errorService?.ReportError($"创建文件夹失败: {ex.Message}", Core.Error.ErrorSeverity.Error);
+                string errMsg = string.Format(locService?["FileOp.CreateFailedFormat"] ?? "创建文件夹失败: {0}", ex.Message);
+                _errorService?.ReportError(errMsg, Core.Error.ErrorSeverity.Error);
                 return null;
             }
         }
 
         public async Task<string> CreateFileAsync(string parentPath, string name = null, string extension = ".txt")
         {
+            var locService = App.ServiceProvider?.GetService<YiboFile.Services.Localization.ILocalizationService>();
             if (string.IsNullOrEmpty(parentPath)) return null;
             try
             {
-                string fileName = string.IsNullOrEmpty(name) ? "新建文本文档" : name;
+                string fileName = string.IsNullOrEmpty(name) ? (locService?["FileOp.NewTextDocument"] ?? "新建文本文档") : name;
                 if (!fileName.EndsWith(extension, StringComparison.OrdinalIgnoreCase))
                 {
                     fileName += extension;

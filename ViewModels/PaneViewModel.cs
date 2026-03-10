@@ -325,8 +325,7 @@ namespace YiboFile.ViewModels
             _messageBus.Subscribe<SearchOptionsChangedMessage>(OnSearchOptionsChanged);
             _messageBus.Subscribe<SearchResultUpdatedMessage>(OnSearchResultUpdated);
             // _messageBus.Subscribe<Messaging.Messages.FocusedPaneChangedMessage>(OnFocusedPaneChanged);
-            _messageBus.Subscribe<NotesUpdatedMessage>(OnNotesUpdated);
-            _messageBus.Subscribe<FileTagsChangedMessage>(OnFileTagsChanged);
+
             _messageBus.Subscribe<RefreshFileListMessage>(OnRefreshFileList);
             _messageBus.Subscribe<LibrarySelectedMessage>(OnLibrarySelected);
             _messageBus.Subscribe<FileSelectionChangedMessage>(OnFileSelectionChanged);
@@ -501,8 +500,6 @@ namespace YiboFile.ViewModels
 
         // 已废弃：焦点状态由 MainWindowViewModel.ActivePane 属性统一调度，防止交换面板时焦点错位
         // private void OnFocusedPaneChanged(Messaging.Messages.FocusedPaneChangedMessage message) { IsActive = (message.IsSecondPaneFocused == _isSecondary); OnPropertyChanged(nameof(IsActive)); }
-        private void OnNotesUpdated(NotesUpdatedMessage msg) => RequestRefresh();
-        private void OnFileTagsChanged(FileTagsChangedMessage msg) => RequestRefresh();
 
         private void OnRefreshFileList(RefreshFileListMessage msg)
         {

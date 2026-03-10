@@ -124,6 +124,7 @@ namespace YiboFile.ViewModels
             _fileListService = new FileListService(_dispatcher, errorService, _tagService, _messageBus, _paneId);
 
             _messageBus.Subscribe<FileTagsChangedMessage>(OnFileTagsChanged);
+            _messageBus.Subscribe<NotesUpdatedMessage>(OnNotesUpdated);
 
             _columnService = columnService;
             _metadataEnricher = metadataEnricher ?? new FileMetadataEnricher();
@@ -602,9 +603,24 @@ namespace YiboFile.ViewModels
             }
         }
 
+        private void OnNotesUpdated(NotesUpdatedMessage msg)
+        {
+            if (string.IsNullOrEmpty(msg.FilePath)) return;
+
+            _dispatcher.BeginInvoke(new Action(() =>
+            {
+                var item = Files.FirstOrDefault(f => string.Equals(f.Path, msg.FilePath, StringComparison.OrdinalIgnoreCase));
+                if (item != null)
+                {
+                    item.Notes = msg.Notes;
+                }
+            }), DispatcherPriority.Background);
+        }
+
         public void Dispose()
         {
             _messageBus?.Unsubscribe<FileTagsChangedMessage>(OnFileTagsChanged);
+            _messageBus?.Unsubscribe<NotesUpdatedMessage>(OnNotesUpdated);
             _fileWatcherService?.Dispose();
 
             _refreshDebounceTimer?.Stop();

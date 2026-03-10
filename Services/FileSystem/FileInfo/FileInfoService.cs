@@ -11,6 +11,7 @@ using YiboFile.Controls;
 using YiboFile.Services.FileList;
 using YiboFile.Services.Navigation;
 using YiboFile.Models.Navigation;
+using YiboFile.Services.Localization;
 
 namespace YiboFile.Services.FileInfo
 {
@@ -26,6 +27,11 @@ namespace YiboFile.Services.FileInfo
         private readonly FileListService _fileListService;
         private readonly YiboFile.Services.Navigation.NavigationCoordinator _navigationCoordinator;
         private readonly YiboFile.Services.Features.ITagService _tagService;
+        private readonly ILocalizationService _locService;
+
+        private FileSystemItem _lastFileItem;
+        private FileSystemItem _lastDirItem;
+        private Library _lastLibraryItem;
 
         #endregion
 
@@ -44,6 +50,24 @@ namespace YiboFile.Services.FileInfo
             _fileListService = fileListService ?? throw new ArgumentNullException(nameof(fileListService));
             _navigationCoordinator = navigationCoordinator ?? throw new ArgumentNullException(nameof(navigationCoordinator));
             _tagService = tagService ?? App.ServiceProvider?.GetService(typeof(YiboFile.Services.Features.ITagService)) as YiboFile.Services.Features.ITagService;
+            _locService = App.ServiceProvider?.GetService(typeof(ILocalizationService)) as ILocalizationService;
+
+            if (_locService != null)
+            {
+                _locService.PropertyChanged += (s, e) =>
+                {
+                    if (e.PropertyName == "CurrentLanguage")
+                    {
+                        var dispatcher = Application.Current?.Dispatcher;
+                        dispatcher?.InvokeAsync(() =>
+                        {
+                            if (_lastFileItem != null) ShowFileInfo(_lastFileItem);
+                            else if (_lastDirItem != null) ShowDirectoryInfo(_lastDirItem);
+                            else if (_lastLibraryItem != null) ShowLibraryInfo(_lastLibraryItem);
+                        });
+                    }
+                };
+            }
         }
 
         #endregion
@@ -56,10 +80,13 @@ namespace YiboFile.Services.FileInfo
         /// <param name="item">文件系统项</param>
         public void ShowFileInfo(FileSystemItem item)
         {
-            if (_fileBrowser?.FileInfoPanelControl == null) return;
-            _fileBrowser.FileInfoPanelControl.Children.Clear();
+            if (item == null || _fileBrowser?.FileInfoPanelControl == null) return;
+            
+            _lastFileItem = item;
+            _lastDirItem = null;
+            _lastLibraryItem = null;
 
-            if (item == null) return;
+            _fileBrowser.FileInfoPanelControl.Children.Clear();
 
             if (item.IsDirectory)
             {
@@ -77,16 +104,21 @@ namespace YiboFile.Services.FileInfo
         /// <param name="library">库对象</param>
         public void ShowLibraryInfo(Library library)
         {
-            if (_fileBrowser?.FileInfoPanelControl == null || library == null) return;
+            if (library == null || _fileBrowser?.FileInfoPanelControl == null) return;
+
+            _lastLibraryItem = library;
+            _lastDirItem = null;
+            _lastFileItem = null;
+
             _fileBrowser.FileInfoPanelControl.Children.Clear();
 
             var infoItems = new System.Collections.Generic.List<(string label, string value)>
             {
-                ("名称", library.Name),
-                ("类型", "库"),
-                ("包含位置", library.Paths != null && library.Paths.Count > 0
+                (_locService?["FileInfo.Name"] ?? "名称", library.Name),
+                (_locService?["FileInfo.Type"] ?? "类型", _locService?["FileInfo.Library"] ?? "库"),
+                (_locService?["FileInfo.IncludedLocations"] ?? "包含位置", library.Paths != null && library.Paths.Count > 0
                     ? string.Join(Environment.NewLine, library.Paths)
-                    : "未添加位置")
+                    : _locService?["FileInfo.NoLocation"] ?? "未添加位置")
             };
 
             foreach (var (label, value) in infoItems)
@@ -161,10 +193,10 @@ namespace YiboFile.Services.FileInfo
                 {
                     var infoItems = new System.Collections.Generic.List<(string label, string value)>
                     {
-                        ("名称", item.Name),
-                        ("路径", item.Path),
-                        ("类型", "文件夹"),
-                        ("修改日期", item.ModifiedDate)
+                        (_locService?["FileInfo.Name"] ?? "名称", item.Name),
+                        (_locService?["FileInfo.Path"] ?? "路径", item.Path),
+                        (_locService?["FileInfo.Type"] ?? "类型", _locService?["FileInfo.Folder"] ?? "文件夹"),
+                        (_locService?["FileInfo.ModifiedDate"] ?? "修改日期", item.ModifiedDate)
                         // ("标签", item.Tags)
                     };
 
@@ -175,13 +207,14 @@ namespace YiboFile.Services.FileInfo
                     }
 
                     // Tags Panel
-                    var dirTagsPanel = CreateTagsPanel("标签", item.Tags);
+                    var dirTagsPanel = CreateTagsPanel(_locService?["FileInfo.Tags"] ?? "标签", item.Tags);
                     _fileBrowser.FileInfoPanelControl.Children.Add(dirTagsPanel);
 
                     // 创建占位符面板用于后续更新
-                    var filesCountPanel = CreateInfoPanel("文件数", "计算中...");
-                    var dirsCountPanel = CreateInfoPanel("文件夹数", "计算中...");
-                    var totalSizePanel = CreateInfoPanel("总大小", "计算中...");
+                    var calculatingStr = _locService?["FileInfo.Calculating"] ?? "计算中...";
+                    var filesCountPanel = CreateInfoPanel(_locService?["FileInfo.FilesCount"] ?? "文件数", calculatingStr);
+                    var dirsCountPanel = CreateInfoPanel(_locService?["FileInfo.DirsCount"] ?? "文件夹数", calculatingStr);
+                    var totalSizePanel = CreateInfoPanel(_locService?["FileInfo.TotalSize"] ?? "总大小", calculatingStr);
 
                     _fileBrowser.FileInfoPanelControl.Children.Insert(3, filesCountPanel);
                     _fileBrowser.FileInfoPanelControl.Children.Insert(4, dirsCountPanel);
@@ -265,11 +298,11 @@ namespace YiboFile.Services.FileInfo
         {
             var infoItems = new System.Collections.Generic.List<(string label, string value)>
             {
-                ("名称", item.Name),
-                ("路径", item.Path),
-                ("类型", item.Type),
-                ("大小", item.Size),
-                ("修改日期", item.ModifiedDate)
+                (_locService?["FileInfo.Name"] ?? "名称", item.Name),
+                (_locService?["FileInfo.Path"] ?? "路径", item.Path),
+                (_locService?["FileInfo.Type"] ?? "类型", item.Type),
+                (_locService?["FileInfo.Size"] ?? "大小", item.Size),
+                (_locService?["FileInfo.ModifiedDate"] ?? "修改日期", item.ModifiedDate)
                 // ("标签", item.Tags) // Handled by CreateTagsPanel
             };
 
@@ -285,7 +318,7 @@ namespace YiboFile.Services.FileInfo
                     TimeSpan t = TimeSpan.FromMilliseconds(item.DurationMs);
                     // Format as HH:mm:ss or mm:ss
                     string durationStr = (t.TotalHours >= 1) ? t.ToString(@"hh\:mm\:ss") : t.ToString(@"mm\:ss");
-                    infoItems.Insert(4, ("时长", durationStr)); // 在"大小"(index 3)之后插入? No, "修改日期" is index 4. Insert at 4 puts it before "修改日期". 
+                    infoItems.Insert(4, (_locService?["FileInfo.Duration"] ?? "时长", durationStr)); // 在"大小"(index 3)之后插入? No, "修改日期" is index 4. Insert at 4 puts it before "修改日期". 
                                                               // Let's insert after Size (index 3). So index 4.
                 }
             }
@@ -307,7 +340,7 @@ namespace YiboFile.Services.FileInfo
                         // Size is index 3. Insert at 4 for Dimensions/Duration.
                         // If both exist (rare for image/video overlap?), one pushes other.
 
-                        infoItems.Insert(4, ("尺寸", imageSize));
+                        infoItems.Insert(4, (_locService?["FileInfo.Dimensions"] ?? "尺寸", imageSize));
                     }
                 }
                 catch
@@ -326,7 +359,7 @@ namespace YiboFile.Services.FileInfo
             // Display Tags
             if (_fileBrowser?.FileInfoPanelControl != null)
             {
-                var tagsPanel = CreateTagsPanel("标签", item.Tags);
+                var tagsPanel = CreateTagsPanel(_locService?["FileInfo.Tags"] ?? "标签", item.Tags);
                 _fileBrowser.FileInfoPanelControl.Children.Add(tagsPanel);
             }
         }
@@ -445,7 +478,8 @@ namespace YiboFile.Services.FileInfo
         {
             var errorPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 2) };
 
-            var errorLabel = new TextBlock { Text = "错误: ", FontWeight = FontWeights.Bold, Width = 80 };
+            var errorLabelStr = _locService?["FileInfo.Error"] ?? "错误";
+            var errorLabel = new TextBlock { Text = $"{errorLabelStr}: ", FontWeight = FontWeights.Bold, Width = 80 };
             errorLabel.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundPrimaryBrush");
             errorPanel.Children.Add(errorLabel);
 

@@ -2,6 +2,7 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:i18n="clr-namespace:YiboFile.Services.Localization"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              mc:Ignorable="d" 
              Focusable="True" FocusVisualStyle="{x:Null}"
@@ -15,31 +16,31 @@
             </Style>
         </StackPanel.Resources>
         
-        <TextBlock Text="外观设置" FontSize="18" FontWeight="Bold" Margin="0,0,0,16" />
-        <TextBlock Text="提示：主题、颜色、透明度等外观设置已移至&#34;外观&#34;设置面板。" FontSize="12" Margin="0,0,0,24" TextWrapping="Wrap" Foreground="{DynamicResource ForegroundSecondaryBrush}"  />
+        <TextBlock Text="{i18n:Loc Key=Settings.General.AppearanceNoticeTitle}" FontSize="18" FontWeight="Bold" Margin="0,0,0,16" />
+        <TextBlock Text="{i18n:Loc Key=Settings.General.AppearanceNoticeDesc}" FontSize="12" Margin="0,0,0,24" TextWrapping="Wrap" Foreground="{DynamicResource ForegroundSecondaryBrush}"  />
 
-        <TextBlock Text="窗口设置" FontSize="18" FontWeight="Bold" Margin="0,0,0,16" />
-        <CheckBox Content="记住窗口位置和大小" FontSize="14" MinHeight="32" Margin="0,0,0,10" IsChecked="True" />
-        <CheckBox Content="启动时最大化窗口" FontSize="14" MinHeight="32" Margin="0,0,0,24" IsChecked="{Binding IsMaximized, Mode=TwoWay}" />
-        <CheckBox Content="启用多窗口支持 (Ctrl+Shift+N)" FontSize="14" MinHeight="32" Margin="0,0,0,10" IsChecked="{Binding EnableMultiWindow, Mode=TwoWay}" />
-        <CheckBox Content="中键打开新标签页时立即激活 (否则在后台打开)" FontSize="14" MinHeight="32" Margin="0,0,0,24" IsChecked="{Binding ActivateNewTabOnMiddleClick, Mode=TwoWay}" />
-        <CheckBox Content="始终显示侧边预览信息栏 (开启后在完整模式下保持常驻)" FontSize="14" MinHeight="32" Margin="0,0,0,24" IsChecked="{Binding IsRightPanelVisible, Mode=TwoWay}" />
+        <TextBlock Text="{i18n:Loc Key=Settings.General.WindowSettings}" FontSize="18" FontWeight="Bold" Margin="0,0,0,16" />
+        <CheckBox Content="{i18n:Loc Key=Settings.General.RememberWindowPos}" FontSize="14" MinHeight="32" Margin="0,0,0,10" IsChecked="True" />
+        <CheckBox Content="{i18n:Loc Key=Settings.General.MaximizeStartup}" FontSize="14" MinHeight="32" Margin="0,0,0,24" IsChecked="{Binding IsMaximized, Mode=TwoWay}" />
+        <CheckBox Content="{i18n:Loc Key=Settings.General.MultiWindow}" FontSize="14" MinHeight="32" Margin="0,0,0,10" IsChecked="{Binding EnableMultiWindow, Mode=TwoWay}" />
+        <CheckBox Content="{i18n:Loc Key=Settings.General.MiddleClickActivate}" FontSize="14" MinHeight="32" Margin="0,0,0,24" IsChecked="{Binding ActivateNewTabOnMiddleClick, Mode=TwoWay}" />
+        <CheckBox Content="{i18n:Loc Key=Settings.General.AlwaysShowPreview}" FontSize="14" MinHeight="32" Margin="0,0,0,24" IsChecked="{Binding IsRightPanelVisible, Mode=TwoWay}" />
 
         <!-- ═══════════════════════════════════════════ -->
         <!--  标签页设置（正交维度组合） -->
         <!-- ═══════════════════════════════════════════ -->
-        <TextBlock Text="标签页设置" FontSize="18" FontWeight="Bold" Margin="0,0,0,16" />
+        <TextBlock Text="{i18n:Loc Key=Settings.General.TabSettings}" FontSize="18" FontWeight="Bold" Margin="0,0,0,16" />
 
         <!-- 宽度策略 -->
-        <TextBlock Text="宽度策略：" FontSize="14" Margin="0,8,0,8" />
+        <TextBlock Text="{i18n:Loc Key=Settings.General.WidthStrategy}" FontSize="14" Margin="0,8,0,8" />
         
         <!-- Fixed -->
         <StackPanel Orientation="Horizontal" Margin="20,0,0,4">
-            <RadioButton Content="固定宽度 — 所有标签使用相同宽度" GroupName="TabWidthStrategy" FontSize="14" MinHeight="32" VerticalAlignment="Center"
+            <RadioButton Content="{i18n:Loc Key=Settings.General.StrategyFixed}" GroupName="TabWidthStrategy" FontSize="14" MinHeight="32" VerticalAlignment="Center"
                          x:Name="WidthStrategyFixed" Checked="WidthStrategy_Checked" />
         </StackPanel>
         <StackPanel Orientation="Horizontal" Margin="44,0,0,8" x:Name="FixedWidthPanel">
-            <TextBlock Text="标签宽度(80-250):" FontSize="13" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{DynamicResource ForegroundSecondaryBrush}" />
+            <TextBlock Text="{i18n:Loc Key=Settings.General.FixedTabWidth}" FontSize="13" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{DynamicResource ForegroundSecondaryBrush}" />
             <TextBox MaxLength="4" Text="{Binding TabFixedWidthInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="14" Width="60" Height="32" VerticalContentAlignment="Center" TextAlignment="Center" Padding="5,0,5,0" Margin="0,0,8,0" x:Name="TabFixedWidthTextBox" />
             <StackPanel Orientation="Vertical" VerticalAlignment="Center">
                 <Button Content="▲" Width="24" Height="16" FontSize="10" Padding="0" Margin="0,0,0,2" Click="TabFixedWidthUp_Click" Style="{DynamicResource ModernButtonStyle}" />
@@ -49,11 +50,11 @@
 
         <!-- Adaptive -->
         <StackPanel Orientation="Horizontal" Margin="20,0,0,4">
-            <RadioButton Content="自适应宽度 — 根据标题文本长度调整" GroupName="TabWidthStrategy" FontSize="14" MinHeight="32" VerticalAlignment="Center"
+            <RadioButton Content="{i18n:Loc Key=Settings.General.StrategyAdaptive}" GroupName="TabWidthStrategy" FontSize="14" MinHeight="32" VerticalAlignment="Center"
                          x:Name="WidthStrategyAdaptive" Checked="WidthStrategy_Checked" />
         </StackPanel>
         <StackPanel Orientation="Horizontal" Margin="44,0,0,8" x:Name="AdaptiveWidthPanel">
-            <TextBlock Text="最大宽度(100-300):" FontSize="13" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{DynamicResource ForegroundSecondaryBrush}" />
+            <TextBlock Text="{i18n:Loc Key=Settings.General.AdaptiveMaxWidth}" FontSize="13" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{DynamicResource ForegroundSecondaryBrush}" />
             <TextBox MaxLength="4" Text="{Binding TabMaxWidthInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="14" Width="60" Height="32" VerticalContentAlignment="Center" TextAlignment="Center" Padding="5,0,5,0" Margin="0,0,8,0" x:Name="TabMaxWidthTextBox" />
             <StackPanel Orientation="Vertical" VerticalAlignment="Center">
                 <Button Content="▲" Width="24" Height="16" FontSize="10" Padding="0" Margin="0,0,0,2" Click="TabMaxWidthUp_Click" Style="{DynamicResource ModernButtonStyle}" />
@@ -63,11 +64,11 @@
 
         <!-- Elastic -->
         <StackPanel Orientation="Horizontal" Margin="20,0,0,4">
-            <RadioButton Content="弹性宽度 — 标签平分可用空间，始终填满一行" GroupName="TabWidthStrategy" FontSize="14" MinHeight="32" VerticalAlignment="Center"
+            <RadioButton Content="{i18n:Loc Key=Settings.General.StrategyElastic}" GroupName="TabWidthStrategy" FontSize="14" MinHeight="32" VerticalAlignment="Center"
                          x:Name="WidthStrategyElastic" Checked="WidthStrategy_Checked" />
         </StackPanel>
         <StackPanel Orientation="Horizontal" Margin="44,0,0,8" x:Name="ElasticWidthPanel">
-            <TextBlock Text="最大宽度(100-300):" FontSize="13" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{DynamicResource ForegroundSecondaryBrush}" />
+            <TextBlock Text="{i18n:Loc Key=Settings.General.ElasticMaxWidth}" FontSize="13" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{DynamicResource ForegroundSecondaryBrush}" />
             <TextBox MaxLength="4" Text="{Binding TabMaxWidthInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="14" Width="60" Height="32" VerticalContentAlignment="Center" TextAlignment="Center" Padding="5,0,5,0" Margin="0,0,8,0" />
             <StackPanel Orientation="Vertical" VerticalAlignment="Center">
                 <Button Content="▲" Width="24" Height="16" FontSize="10" Padding="0" Margin="0,0,0,2" Click="TabMaxWidthUp_Click" Style="{DynamicResource ModernButtonStyle}" />
@@ -76,20 +77,20 @@
         </StackPanel>
 
         <!-- 溢出策略 -->
-        <TextBlock Text="溢出策略：" FontSize="14" Margin="0,12,0,8" />
+        <TextBlock Text="{i18n:Loc Key=Settings.General.OverflowStrategy}" FontSize="14" Margin="0,12,0,8" />
         <StackPanel Orientation="Horizontal" Margin="20,0,0,4">
-            <RadioButton Content="压缩模式 — 空间不足时等比缩小标签" GroupName="TabOverflowStrategy" FontSize="14" MinHeight="32"
+            <RadioButton Content="{i18n:Loc Key=Settings.General.OverflowCompress}" GroupName="TabOverflowStrategy" FontSize="14" MinHeight="32"
                          x:Name="OverflowStrategyCompress" Checked="OverflowStrategy_Checked" />
         </StackPanel>
         <StackPanel Orientation="Horizontal" Margin="20,0,0,4">
-            <RadioButton Content="滚动模式 — 空间不足时水平滚动" GroupName="TabOverflowStrategy" FontSize="14" MinHeight="32"
+            <RadioButton Content="{i18n:Loc Key=Settings.General.OverflowScroll}" GroupName="TabOverflowStrategy" FontSize="14" MinHeight="32"
                          x:Name="OverflowStrategyScroll" Checked="OverflowStrategy_Checked" />
         </StackPanel>
         <TextBlock x:Name="OverflowHintText" Text="" FontSize="12" Margin="44,0,0,8" Foreground="{DynamicResource ForegroundSecondaryBrush}" />
 
         <!-- 最小宽度 -->
         <StackPanel Orientation="Horizontal" Margin="0,8,0,12">
-            <TextBlock Text="最小宽度(30-100):" FontSize="14" VerticalAlignment="Center" Margin="0,0,8,0" />
+            <TextBlock Text="{i18n:Loc Key=Settings.General.MinWidth}" FontSize="14" VerticalAlignment="Center" Margin="0,0,8,0" />
             <TextBox MaxLength="4" Text="{Binding TabMinWidthInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="14" Width="60" Height="32" VerticalContentAlignment="Center" TextAlignment="Center" Padding="5,0,5,0" Margin="0,0,8,0" />
             <StackPanel Orientation="Vertical" VerticalAlignment="Center">
                 <Button Content="▲" Width="24" Height="16" FontSize="10" Padding="0" Margin="0,0,0,2" Click="TabMinWidthUp_Click" Style="{DynamicResource ModernButtonStyle}" />
@@ -100,18 +101,18 @@
         <Separator Margin="0,4,0,12" />
 
         <!-- 显示优化 -->
-        <TextBlock Text="显示优化：" FontSize="14" Margin="0,0,0,8" />
-        <CheckBox Content="非活动标签隐藏关闭按钮（悬停时显示）" FontSize="14" MinHeight="32" Margin="20,0,0,4" IsChecked="{Binding HideCloseButtonOnInactive, Mode=TwoWay}" />
-        <CheckBox Content="溢出时显示导航箭头" FontSize="14" MinHeight="32" Margin="20,0,0,4" IsChecked="{Binding ShowOverflowArrows, Mode=TwoWay}" />
-        <CheckBox Content="溢出时显示渐变遮罩" FontSize="14" MinHeight="32" Margin="20,0,0,24" IsChecked="{Binding ShowOverflowGradient, Mode=TwoWay}" />
+        <TextBlock Text="{i18n:Loc Key=Settings.General.DisplayOpt}" FontSize="14" Margin="0,0,0,8" />
+        <CheckBox Content="{i18n:Loc Key=Settings.General.HideInactiveClose}" FontSize="14" MinHeight="32" Margin="20,0,0,4" IsChecked="{Binding HideCloseButtonOnInactive, Mode=TwoWay}" />
+        <CheckBox Content="{i18n:Loc Key=Settings.General.ShowOverflowArrows}" FontSize="14" MinHeight="32" Margin="20,0,0,4" IsChecked="{Binding ShowOverflowArrows, Mode=TwoWay}" />
+        <CheckBox Content="{i18n:Loc Key=Settings.General.ShowOverflowGradient}" FontSize="14" MinHeight="32" Margin="20,0,0,24" IsChecked="{Binding ShowOverflowGradient, Mode=TwoWay}" />
 
 
 
         <!-- ═══════════════════════════════════════════ -->
         <!--  路径设置 -->
         <!-- ═══════════════════════════════════════════ -->
-        <TextBlock Text="路径设置" FontSize="18" FontWeight="Bold" Margin="0,24,0,8" />
-        <TextBlock Text="默认目录：程序根目录下的 .\AppData\ （配置、数据文件集中存储）" FontSize="12" Margin="0,0,0,12" TextWrapping="Wrap" Foreground="{DynamicResource ForegroundSecondaryBrush}" />
+        <TextBlock Text="{i18n:Loc Key=Settings.General.PathSettings}" FontSize="18" FontWeight="Bold" Margin="0,24,0,8" />
+        <TextBlock Text="{i18n:Loc Key=Settings.General.DefaultDirDesc}" FontSize="12" Margin="0,0,0,12" TextWrapping="Wrap" Foreground="{DynamicResource ForegroundSecondaryBrush}" />
         
         <Grid Margin="0,0,0,12">
             <Grid.ColumnDefinitions>
@@ -119,9 +120,9 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <TextBlock Text="当前目录:" FontSize="14" VerticalAlignment="Center" Margin="0,0,12,0" MinWidth="140" MinHeight="36" Grid.Column="0" />
+            <TextBlock Text="{i18n:Loc Key=Settings.General.CurrentDir}" FontSize="14" VerticalAlignment="Center" Margin="0,0,12,0" MinWidth="140" MinHeight="36" Grid.Column="0" />
             <TextBox Text="{Binding BaseDirectory, Mode=OneWay}" FontSize="14" MinHeight="36" VerticalContentAlignment="Center" Padding="10,6,10,6" IsReadOnly="True" Grid.Column="1" />
-            <Button Content="选择文件夹" FontSize="13" Padding="12,6,12,6" MinHeight="32" Margin="8,0,0,0" Click="BrowseBaseDirectory_Click" Grid.Column="2" Style="{DynamicResource ModernButtonStyle}" />
+            <Button Content="{i18n:Loc Key=Settings.General.SelectFolder}" FontSize="13" Padding="12,6,12,6" MinHeight="32" Margin="8,0,0,0" Click="BrowseBaseDirectory_Click" Grid.Column="2" Style="{DynamicResource ModernButtonStyle}" />
         </Grid>
 
         <Separator Margin="0,20,0,12" />
@@ -129,29 +130,29 @@
         <!-- ═══════════════════════════════════════════ -->
         <!--  导入/导出 -->
         <!-- ═══════════════════════════════════════════ -->
-        <TextBlock Text="导入 / 导出" FontSize="18" FontWeight="Bold" Margin="0,0,0,16" />
+        <TextBlock Text="{i18n:Loc Key=Settings.General.ImportExport}" FontSize="18" FontWeight="Bold" Margin="0,0,0,16" />
 
         <StackPanel Orientation="Vertical" Margin="0,0,0,12">
-            <TextBlock Text="应用配置 (Settings)" FontSize="14" Margin="0,0,0,6" />
+            <TextBlock Text="{i18n:Loc Key=Settings.General.AppConfig}" FontSize="14" Margin="0,0,0,6" />
             <StackPanel Orientation="Horizontal">
-                <Button Content="导出" FontSize="13" Padding="14,6,14,6" MinHeight="32" Margin="0,0,8,0" Click="ExportSettings_Click" Style="{DynamicResource ModernButtonStyle}" />
-                <Button Content="导入" FontSize="13" Padding="14,6,14,6" MinHeight="32" Click="ImportSettings_Click" Style="{DynamicResource ModernButtonStyle}" />
+                <Button Content="{i18n:Loc Key=Settings.General.Export}" FontSize="13" Padding="14,6,14,6" MinHeight="32" Margin="0,0,8,0" Click="ExportSettings_Click" Style="{DynamicResource ModernButtonStyle}" />
+                <Button Content="{i18n:Loc Key=Settings.General.Import}" FontSize="13" Padding="14,6,14,6" MinHeight="32" Click="ImportSettings_Click" Style="{DynamicResource ModernButtonStyle}" />
             </StackPanel>
         </StackPanel>
 
         <StackPanel Orientation="Vertical" Margin="0,0,0,12">
-            <TextBlock Text="业务数据 (Data &amp; Structure)" FontSize="14" Margin="0,0,0,6" />
+            <TextBlock Text="{i18n:Loc Key=Settings.General.BusinessData}" FontSize="14" Margin="0,0,0,6" />
             <StackPanel Orientation="Horizontal">
-                <Button Content="导出" FontSize="13" Padding="14,6,14,6" MinHeight="32" Margin="0,0,8,0" Click="ExportData_Click" Style="{DynamicResource ModernButtonStyle}" />
-                <Button Content="导入" FontSize="13" Padding="14,6,14,6" MinHeight="32" Click="ImportData_Click" Style="{DynamicResource ModernButtonStyle}" />
+                <Button Content="{i18n:Loc Key=Settings.General.Export}" FontSize="13" Padding="14,6,14,6" MinHeight="32" Margin="0,0,8,0" Click="ExportData_Click" Style="{DynamicResource ModernButtonStyle}" />
+                <Button Content="{i18n:Loc Key=Settings.General.Import}" FontSize="13" Padding="14,6,14,6" MinHeight="32" Click="ImportData_Click" Style="{DynamicResource ModernButtonStyle}" />
             </StackPanel>
         </StackPanel>
 
         <StackPanel Orientation="Vertical" Margin="0,0,0,12">
-            <TextBlock Text="完整备份 (Full Backup)" FontSize="14" Margin="0,0,0,6" />
+            <TextBlock Text="{i18n:Loc Key=Settings.General.FullBackup}" FontSize="14" Margin="0,0,0,6" />
             <StackPanel Orientation="Horizontal">
-                <Button Content="导出" FontSize="13" Padding="14,6,14,6" MinHeight="32" Margin="0,0,8,0" Click="ExportAll_Click" Style="{DynamicResource ModernButtonStyle}" />
-                <Button Content="导入" FontSize="13" Padding="14,6,14,6" MinHeight="32" Click="ImportAll_Click" Style="{DynamicResource ModernButtonStyle}" />
+                <Button Content="{i18n:Loc Key=Settings.General.Export}" FontSize="13" Padding="14,6,14,6" MinHeight="32" Margin="0,0,8,0" Click="ExportAll_Click" Style="{DynamicResource ModernButtonStyle}" />
+                <Button Content="{i18n:Loc Key=Settings.General.Import}" FontSize="13" Padding="14,6,14,6" MinHeight="32" Click="ImportAll_Click" Style="{DynamicResource ModernButtonStyle}" />
             </StackPanel>
         </StackPanel>
 

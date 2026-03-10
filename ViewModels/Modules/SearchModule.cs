@@ -115,7 +115,8 @@ namespace YiboFile.ViewModels.Modules
 
         private async Task PerformContentSearch(string contentKeyword, string normalizedKeyword, string targetPaneId)
         {
-            string statusMsg = "正在搜索文件内容...";
+            var locService = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService<YiboFile.Services.Localization.ILocalizationService>(App.ServiceProvider);
+            string statusMsg = locService?["Search.SearchingContent"] ?? "正在搜索文件内容...";
             Publish(new SearchResultUpdatedMessage(null, statusMsg, true, targetPaneId));
 
             try
@@ -132,33 +133,36 @@ namespace YiboFile.ViewModels.Modules
                 if (results == null) results = new List<FileSystemItem>();
 
                 statusMsg = results.Count == 0
-                    ? "未找到包含该内容的文件"
-                    : $"找到 {results.Count} 个匹配文件";
+                    ? (locService?["Search.NoContentFound"] ?? "未找到包含该内容的文件")
+                    : string.Format(locService?["Search.FoundContentMatchesFormat"] ?? "找到 {0} 个匹配文件", results.Count);
 
+                string contentPrefix = locService?["Search.ContentPrefix"] ?? "内容: ";
                 Publish(new SearchResultUpdatedMessage(
                     results,
                     statusMsg,
                     false,
                     targetPaneId,
                     SearchTabPath: searchTabPath,
-                    NormalizedKeyword: $"内容: {contentKeyword}"));
+                    NormalizedKeyword: $"{contentPrefix}{contentKeyword}"));
             }
             catch (Exception ex)
             {
-                Publish(new SearchResultUpdatedMessage(new List<FileSystemItem>(), $"全文搜索出错: {ex.Message}", false, targetPaneId));
+                string errorPrefix = locService?["Search.ContentError"] ?? "全文搜索出错: ";
+                Publish(new SearchResultUpdatedMessage(new List<FileSystemItem>(), $"{errorPrefix}{ex.Message}", false, targetPaneId));
             }
         }
 
         private async Task PerformFileSearch(string normalizedKeyword, bool searchNames, bool searchNotes, string targetPaneId, SearchOptions searchOptions)
         {
-            Publish(new SearchResultUpdatedMessage(null, "搜索中...", true, targetPaneId));
+            var locService = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService<YiboFile.Services.Localization.ILocalizationService>(App.ServiceProvider);
+            Publish(new SearchResultUpdatedMessage(null, locService?["Search.Searching"] ?? "搜索中...", true, targetPaneId));
 
             // 防御性检查
             if (normalizedKeyword.Trim().StartsWith("content:", StringComparison.OrdinalIgnoreCase) ||
                 normalizedKeyword.IndexOf("search://", StringComparison.OrdinalIgnoreCase) >= 0 ||
                 normalizedKeyword.IndexOf("content://", StringComparison.OrdinalIgnoreCase) >= 0)
             {
-                Publish(new SearchResultUpdatedMessage(new List<FileSystemItem>(), "搜索被拦截：无效的搜索格式", false, targetPaneId));
+                Publish(new SearchResultUpdatedMessage(new List<FileSystemItem>(), locService?["Search.InvalidFormat"] ?? "搜索被拦截：无效的搜索格式", false, targetPaneId));
                 return;
             }
 
@@ -191,7 +195,7 @@ namespace YiboFile.ViewModels.Modules
                     finalResults = FlattenGroupedItems(groupedItems);
                 }
 
-                string statusMsg = $"找到 {finalResults.Count} 个结果";
+                string statusMsg = string.Format(locService?["Search.FoundResultsFormat"] ?? "找到 {0} 个结果", finalResults.Count);
 
                 Publish(new SearchResultUpdatedMessage(
                     finalResults,
@@ -205,7 +209,8 @@ namespace YiboFile.ViewModels.Modules
             }
             catch (Exception ex)
             {
-                Publish(new SearchResultUpdatedMessage(new List<FileSystemItem>(), $"搜索出错: {ex.Message}", false, targetPaneId));
+                string errorPrefix = locService?["Search.Error"] ?? "搜索出错: ";
+                Publish(new SearchResultUpdatedMessage(new List<FileSystemItem>(), $"{errorPrefix}{ex.Message}", false, targetPaneId));
             }
         }
 
@@ -255,14 +260,15 @@ namespace YiboFile.ViewModels.Modules
 
         private string GetGroupName(SearchResultType type)
         {
+            var locService = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService<YiboFile.Services.Localization.ILocalizationService>(App.ServiceProvider);
             return type switch
             {
-                SearchResultType.Notes => "备注匹配",
-                SearchResultType.Folder => "文件夹匹配",
-                SearchResultType.File => "文件匹配",
-                SearchResultType.Tag => "标签匹配",
-                SearchResultType.Date => "日期匹配",
-                _ => "其他"
+                SearchResultType.Notes => locService?["Search.NotesMatch"] ?? "备注匹配",
+                SearchResultType.Folder => locService?["Search.FolderMatch"] ?? "文件夹匹配",
+                SearchResultType.File => locService?["Search.FileMatch"] ?? "文件匹配",
+                SearchResultType.Tag => locService?["Search.TagMatch"] ?? "标签匹配",
+                SearchResultType.Date => locService?["Search.DateMatch"] ?? "日期匹配",
+                _ => locService?["Search.OtherMatch"] ?? "其他"
             };
         }
     }

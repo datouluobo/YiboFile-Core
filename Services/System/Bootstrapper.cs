@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using System.Runtime.InteropServices;
 using YiboFile.Services.Core;
 using YiboFile.Services.Config;
+using YiboFile.Services.Localization;
 using YiboFile.Services.Favorite;
 using YiboFile.Services.QuickAccess;
 using YiboFile.Services.FileList;
@@ -189,6 +190,9 @@ namespace YiboFile.Services.Startup
             services.AddSingleton<YiboFile.Services.Theming.CustomThemeManager>();
             services.AddSingleton<YiboFile.Services.Theming.IThemeService, YiboFile.Services.Theming.ThemeManager>();
 
+            // 注册国际化服务
+            services.AddSingleton<ILocalizationService, LocalizationService>();
+
             // 注册标签服务 (Core Implementation)
             services.AddSingleton<Services.Data.Repositories.ITagsRepository, Services.Data.Repositories.SqliteTagsRepository>();
             services.AddSingleton<ITagService, TagService>();
@@ -330,7 +334,7 @@ namespace YiboFile.Services.Startup
                     FileLogger.Log($"Theme applied: {themeMode}");
                 }
 
-                // 应用 UI 风格
+                // 应用UI风格
                 var uiStyle = config?.UIStyle ?? "Original";
                 ServiceProvider.GetRequiredService<YiboFile.Services.Theming.IThemeService>().SetUIStyle(uiStyle);
                 FileLogger.Log($"UI Style applied: {uiStyle}");
@@ -339,6 +343,11 @@ namespace YiboFile.Services.Startup
                 var iconStyle = config?.IconStyle ?? "Emoji";
                 ServiceProvider.GetRequiredService<YiboFile.Services.Theming.IThemeService>().SetIconStyle(iconStyle);
                 FileLogger.Log($"Icon Style applied: {iconStyle}");
+
+                // 应用界面语言
+                var language = config?.Language ?? "zh-CN";
+                ServiceProvider.GetRequiredService<ILocalizationService>().SetLanguage(language);
+                FileLogger.Log($"Language applied: {language}");
             }
             catch (Exception ex)
             {
@@ -393,15 +402,23 @@ namespace YiboFile.Services.Startup
 
         private void HandleStartupException(Exception ex)
         {
+            ILocalizationService loc = null;
+            try { loc = ServiceProvider?.GetService<ILocalizationService>(); } catch { }
+
+            string defaultErrorTitle = "启动错误";
+            string title = loc?["Dialog.Error"] ?? defaultErrorTitle;
+
             // 记录异常并显示错误消息
-            string errorMsg = $"程序启动失败: {ex.Message}";
+            string errorMsg = loc != null ? loc.Get("Bootstrapper.StartupFailed", ex.Message) : $"程序启动失败: {ex.Message}";
             if (ex.InnerException != null)
             {
-                errorMsg += $"\n\n内部异常: {ex.InnerException.Message}";
+                string inner = loc != null ? loc.Get("Bootstrapper.InnerException", ex.InnerException.Message) : $"\n\n内部异常: {ex.InnerException.Message}";
+                errorMsg += inner;
             }
-            errorMsg += $"\n\n堆栈跟踪:\n{ex.StackTrace}";
+            string stack = loc != null ? loc["Bootstrapper.StackTrace"] : "\n\n堆栈跟踪:\n";
+            errorMsg += $"\n{stack}{ex.StackTrace}";
 
-            MessageBox.Show(errorMsg, "启动错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(errorMsg, title, MessageBoxButton.OK, MessageBoxImage.Error);
 
             // 写入日志文件
             try
@@ -470,48 +487,49 @@ namespace YiboFile.Services.Startup
             try
             {
                 var registry = ServiceProvider.GetRequiredService<TabContentRegistry>();
+                var loc = ServiceProvider.GetRequiredService<ILocalizationService>();
 
                 // ── 文件浏览类 ──
                 registry.Register(TabContentTypes.Path,
                     () => new FileBrowserTabContent(TabContentTypes.Path),
-                    new TabContentMetadata { Title = "文件浏览", AllowMultiple = true, SupportsSecondaryPane = true });
+                    new TabContentMetadata { Title = loc["TabContent.FileBrowser"], AllowMultiple = true, SupportsSecondaryPane = true });
 
                 registry.Register(TabContentTypes.Library,
                     () => new FileBrowserTabContent(TabContentTypes.Library),
-                    new TabContentMetadata { Title = "库", IconKey = "Icon_Nav_Library", AllowMultiple = true, SupportsSecondaryPane = true });
+                    new TabContentMetadata { Title = loc["TabContent.Library"], IconKey = "Icon_Nav_Library", AllowMultiple = true, SupportsSecondaryPane = true });
 
                 registry.Register(TabContentTypes.Tag,
                     () => new FileBrowserTabContent(TabContentTypes.Tag),
-                    new TabContentMetadata { Title = "标签", IconKey = "Icon_Nav_Tag", AllowMultiple = true, SupportsSecondaryPane = true });
+                    new TabContentMetadata { Title = loc["TabContent.Tag"], IconKey = "Icon_Nav_Tag", AllowMultiple = true, SupportsSecondaryPane = true });
 
                 registry.Register(TabContentTypes.Search,
                     () => new FileBrowserTabContent(TabContentTypes.Search),
-                    new TabContentMetadata { Title = "搜索", IconKey = "Icon_Nav_Search", AllowMultiple = true, SupportsSecondaryPane = true });
+                    new TabContentMetadata { Title = loc["TabContent.Search"], IconKey = "Icon_Nav_Search", AllowMultiple = true, SupportsSecondaryPane = true });
 
                 // ── 功能面板类 ──
                 registry.Register(TabContentTypes.Settings,
                     () => new SettingsTabContent(),
-                    new TabContentMetadata { Title = "设置", IconKey = "Icon_Window_Settings", AllowMultiple = false, SupportsSecondaryPane = false });
+                    new TabContentMetadata { Title = loc["TabContent.Settings"], IconKey = "Icon_Window_Settings", AllowMultiple = false, SupportsSecondaryPane = false });
 
                 registry.Register(TabContentTypes.About,
                     () => new AboutTabContent(),
-                    new TabContentMetadata { Title = "关于", IconKey = "Icon_Window_About", AllowMultiple = false, SupportsSecondaryPane = true });
+                    new TabContentMetadata { Title = loc["TabContent.About"], IconKey = "Icon_Window_About", AllowMultiple = false, SupportsSecondaryPane = true });
 
                 registry.Register(TabContentTypes.Management,
                     () => new ManagementTabContent(),
-                    new TabContentMetadata { Title = "路径与库管理", IconKey = "Icon_Nav_Library", AllowMultiple = false, SupportsSecondaryPane = true });
+                    new TabContentMetadata { Title = loc["TabContent.Management"], IconKey = "Icon_Nav_Library", AllowMultiple = false, SupportsSecondaryPane = true });
 
                 registry.Register(TabContentTypes.Tasks,
                     () => new TaskQueueTabContent(),
-                    new TabContentMetadata { Title = "任务队列", IconKey = "Icon_Window_Tasks", AllowMultiple = false, SupportsSecondaryPane = true });
+                    new TabContentMetadata { Title = loc["TabContent.TaskQueue"], IconKey = "Icon_Window_Tasks", AllowMultiple = false, SupportsSecondaryPane = true });
 
                 registry.Register(TabContentTypes.Backup,
                     () => new BackupTabContent(),
-                    new TabContentMetadata { Title = "备份管理", IconKey = "Icon_Folder", AllowMultiple = false, SupportsSecondaryPane = true });
+                    new TabContentMetadata { Title = loc["TabContent.Backup"], IconKey = "Icon_Folder", AllowMultiple = false, SupportsSecondaryPane = true });
 
                 registry.Register(TabContentTypes.Clipboard,
                     () => new ClipboardTabContent(),
-                    new TabContentMetadata { Title = "剪切板历史", IconKey = "Icon_Copy", AllowMultiple = false, SupportsSecondaryPane = true });
+                    new TabContentMetadata { Title = loc["TabContent.Clipboard"], IconKey = "Icon_Copy", AllowMultiple = false, SupportsSecondaryPane = true });
 
                 FileLogger.Log($"TabContentRegistry: Registered {registry.GetRegisteredIds().Count} content types");
             }

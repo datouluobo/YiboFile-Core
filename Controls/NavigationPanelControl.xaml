@@ -4,6 +4,7 @@
              xmlns:helpers="clr-namespace:YiboFile.Helpers"
              xmlns:local="clr-namespace:YiboFile.Controls"
              xmlns:converters="clr-namespace:YiboFile.Controls.Converters"
+             xmlns:i18n="clr-namespace:YiboFile.Services.Localization"
              Background="{DynamicResource NavigationRegionBrush}">
     <UserControl.Resources>
         <ResourceDictionary>
@@ -291,7 +292,7 @@
                         <Expander Name="DrivesExpander" Margin="0,-8,0,4" IsExpanded="True" FocusVisualStyle="{x:Null}">
                              <Expander.Header>
                                  <Grid Height="32">
-                                     <TextBlock Text="驱动器" FontWeight="Bold" FontSize="15" VerticalAlignment="Center"/>
+                                     <TextBlock Text="{i18n:Loc Key=TabContent.NavigationPanel.Drives}" FontWeight="Bold" FontSize="15" VerticalAlignment="Center"/>
                                  </Grid>
                              </Expander.Header>
                             <TreeView Name="DrivesTreeView" 
@@ -310,7 +311,7 @@
                         <Expander Name="QuickAccessExpander" Margin="0,-8,0,4" IsExpanded="True" FocusVisualStyle="{x:Null}">
                              <Expander.Header>
                                  <Grid Height="32">
-                                     <TextBlock Text="快速访问" FontWeight="Bold" FontSize="15" VerticalAlignment="Center"/>
+                                     <TextBlock Text="{i18n:Loc Key=TabContent.NavigationPanel.QuickAccess}" FontWeight="Bold" FontSize="15" VerticalAlignment="Center"/>
                                  </Grid>
                              </Expander.Header>
                             <ListBox Name="QuickAccessListBox" 
@@ -389,7 +390,7 @@
                         HorizontalAlignment="Right"
                         VerticalAlignment="Top"
                         Margin="0,4,-5,0"
-                        ToolTip="导航设置"
+                        ToolTip="{i18n:Loc Key=TabContent.NavigationPanel.NavSettings}"
                         Background="Transparent"
                         VerticalContentAlignment="Center"
                         HorizontalContentAlignment="Center"
@@ -412,13 +413,13 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     
-                    <TextBlock Grid.Column="0" Text="库" FontWeight="Bold" FontSize="15" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="0" Text="{i18n:Loc Key=TabContent.NavigationPanel.Libraries}" FontWeight="Bold" FontSize="15" VerticalAlignment="Center"/>
                     
                     <Button Grid.Column="1" Name="LibraryManageBtn"
                             Width="24" Height="24"
                             Style="{DynamicResource ModernButtonStyle}"
                             Background="Transparent"
-                            ToolTip="管理库"
+                            ToolTip="{i18n:Loc Key=TabContent.NavigationPanel.ManageLibraries}"
                             Margin="0,0,-5,0"
                             Padding="0"
                             VerticalContentAlignment="Center"

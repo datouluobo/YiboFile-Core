@@ -18,6 +18,7 @@ namespace YiboFile.Services.Config
 
             // --- UserSettings ---
             // Appearance
+            settings.Appearance.Language = source.Language;
             settings.Appearance.ThemeMode = source.ThemeMode;
             settings.Appearance.WindowOpacity = source.WindowOpacity;
             settings.Appearance.AnimationsEnabled = source.AnimationsEnabled;
@@ -91,6 +92,7 @@ namespace YiboFile.Services.Config
             state.Layout.PaneModeStr = source.PaneModeStr;
             state.Layout.RightPanelNotesHeight = source.RightPanelNotesHeight;
             state.Layout.CenterPanelInfoHeight = source.CenterPanelInfoHeight;
+            state.Layout.SecondPanelInfoHeight = source.SecondPanelInfoHeight;
 
             // ── Pane A (Panes[0]) — 主面板列头 + 会话 ──
             EnsurePaneCount(state, 2);
@@ -136,6 +138,7 @@ namespace YiboFile.Services.Config
             var config = new AppConfig();
 
             // Settings -> AppConfig
+            config.Language = settings.Appearance.Language;
             config.ThemeMode = settings.Appearance.ThemeMode;
             config.WindowOpacity = settings.Appearance.WindowOpacity;
             config.AnimationsEnabled = settings.Appearance.AnimationsEnabled;
@@ -199,6 +202,7 @@ namespace YiboFile.Services.Config
             config.PaneModeStr = state.Layout.PaneModeStr;
             config.RightPanelNotesHeight = state.Layout.RightPanelNotesHeight;
             config.CenterPanelInfoHeight = state.Layout.CenterPanelInfoHeight;
+            config.SecondPanelInfoHeight = state.Layout.SecondPanelInfoHeight;
 
             // ── Pane A → AppConfig 主面板字段 ──
             EnsurePaneCount(state, 2);

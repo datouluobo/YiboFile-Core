@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:i18n="clr-namespace:YiboFile.Services.Localization"
              mc:Ignorable="d" 
              d:DesignHeight="600" d:DesignWidth="800">
     <Border Padding="20" Background="{DynamicResource BackgroundSecondaryBrush}">
@@ -12,9 +13,8 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
-
-            <TextBlock Text="导航栏显示顺序" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,8" Foreground="{DynamicResource ForegroundPrimaryBrush}" Grid.Row="0" />
-            <TextBlock Text="您可以调整侧边栏导航项的显示顺序，将常用的项排在前面。" FontSize="13" TextWrapping="Wrap" Margin="0,0,0,15" Foreground="{DynamicResource ForegroundSecondaryBrush}" Grid.Row="1" />
+            <TextBlock Text="{i18n:Loc Key=Settings.Path.NavOrderTitle}" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,8" Foreground="{DynamicResource ForegroundPrimaryBrush}" Grid.Row="0" />
+            <TextBlock Text="{i18n:Loc Key=Settings.Path.NavOrderDesc}" FontSize="13" TextWrapping="Wrap" Margin="0,0,0,15" Foreground="{DynamicResource ForegroundSecondaryBrush}" Grid.Row="1" />
 
             <ItemsControl ItemsSource="{Binding NavigationSections}" Grid.Row="2">
                 <ItemsControl.ItemTemplate>
@@ -35,7 +35,7 @@
                                         Command="{Binding DataContext.MoveSectionUpCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                         CommandParameter="{Binding}"
                                         Width="28" Height="28" Margin="0,0,4,0"
-                                        Background="Transparent" BorderThickness="0" Foreground="{DynamicResource ForegroundSecondaryBrush}" Cursor="Hand" ToolTip="上移"
+                                        Background="Transparent" BorderThickness="0" Foreground="{DynamicResource ForegroundSecondaryBrush}" Cursor="Hand" ToolTip="{i18n:Loc Key=Settings.Path.MoveUp}"
                                         Style="{DynamicResource ModernButtonStyle}">
                                 </Button>
 
@@ -43,7 +43,7 @@
                                         Command="{Binding DataContext.MoveSectionDownCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                         CommandParameter="{Binding}"
                                         Width="28" Height="28"
-                                        Background="Transparent" BorderThickness="0" Foreground="{DynamicResource ForegroundSecondaryBrush}" Cursor="Hand" ToolTip="下移"
+                                        Background="Transparent" BorderThickness="0" Foreground="{DynamicResource ForegroundSecondaryBrush}" Cursor="Hand" ToolTip="{i18n:Loc Key=Settings.Path.MoveDown}"
                                         Style="{DynamicResource ModernButtonStyle}">
                                 </Button>
                             </Grid>

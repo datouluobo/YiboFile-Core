@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using Microsoft.Extensions.DependencyInjection;
 using YiboFile.Dialogs;
 using YiboFile;
 
@@ -30,14 +31,20 @@ namespace YiboFile.Services.FileOperations
             }
 
             string targetPath = _context.GetTargetPath();
+            var locService = App.ServiceProvider?.GetService<YiboFile.Services.Localization.ILocalizationService>();
+
             if (string.IsNullOrEmpty(targetPath) || !Directory.Exists(targetPath))
             {
-                _context.ShowMessage("当前没有可用的路径", "错误", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                _context.ShowMessage(locService?["FileOp.NoValidPath"] ?? "当前没有可用的路径", locService?["FileInfo.Error"] ?? "错误", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
                 return;
             }
 
             // 使用简单的输入对话框
-            string inputName = DialogService.ShowInput("请输入文件夹名称：", "新建文件夹", "新建文件夹", owner: _ownerWindow);
+            string inputPrompt = locService?["FileOp.EnterFolderName"] ?? "请输入文件夹名称：";
+            string title = locService?["FileOp.NewFolder"] ?? "新建文件夹";
+            string defaultValue = locService?["FileOp.NewFolder"] ?? "新建文件夹";
+
+            string inputName = DialogService.ShowInput(inputPrompt, title, defaultValue, owner: _ownerWindow);
 
             if (inputName != null)
             {
@@ -48,7 +55,7 @@ namespace YiboFile.Services.FileOperations
                     // 验证文件夹名称
                     if (string.IsNullOrEmpty(folderName))
                     {
-                        _context.ShowMessage("文件夹名称不能为空", "错误", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                        _context.ShowMessage(locService?["FileOp.NameEmpty"] ?? "文件夹名称不能为空", locService?["FileInfo.Error"] ?? "错误", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
                         return;
                     }
 
@@ -56,7 +63,7 @@ namespace YiboFile.Services.FileOperations
                     char[] invalidChars = Path.GetInvalidFileNameChars();
                     if (folderName.IndexOfAny(invalidChars) >= 0)
                     {
-                        _context.ShowMessage("文件夹名称包含非法字符", "错误", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                        _context.ShowMessage(locService?["FileOp.NameInvalidChars"] ?? "文件夹名称包含非法字符", locService?["FileInfo.Error"] ?? "错误", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
                         return;
                     }
 
@@ -81,11 +88,13 @@ namespace YiboFile.Services.FileOperations
 
                     // 刷新显示
                     _context.RefreshAfterOperation();
-                    YiboFile.Services.Core.NotificationService.ShowSuccess($"已创建文件夹: {folderName}");
+                    string successMsg = string.Format(locService?["FileOp.CreateSuccessFormat"] ?? "已创建文件夹: {0}", folderName);
+                    YiboFile.Services.Core.NotificationService.ShowSuccess(successMsg);
                 }
                 catch (Exception ex)
                 {
-                    _context.ShowMessage($"创建文件夹失败: {ex.Message}", "错误", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                    string errorMsg = string.Format(locService?["FileOp.CreateFailedFormat"] ?? "创建文件夹失败: {0}", ex.Message);
+                    _context.ShowMessage(errorMsg, locService?["FileInfo.Error"] ?? "错误", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
                 }
             }
         }

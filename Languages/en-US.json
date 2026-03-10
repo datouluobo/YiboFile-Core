@@ -1,0 +1,337 @@
+{
+    "_meta": {
+        "code": "en-US",
+        "displayName": "English (US)",
+        "nativeName": "English (United States)"
+    },
+    "App": {
+        "Title": "YiboFile - File Explorer"
+    },
+    "Dialog": {
+        "Hint": "Hint",
+        "Error": "Error",
+        "Success": "Success",
+        "Confirm": "Confirm",
+        "Cancel": "Cancel",
+        "Yes": "Yes",
+        "No": "No"
+    },
+    "TabContent": {
+        "FileBrowser": "File Browser",
+        "Library": "Library",
+        "Tag": "Tag",
+        "Search": "Search",
+        "Settings": "Settings",
+        "About": "About",
+        "Management": "Management",
+        "TaskQueue": "Task Queue",
+        "Backup": "Backup",
+        "NavigationRail": {
+            "ToggleSidebar": "Toggle Sidebar",
+            "PaneModeSingle": "Current: Single Pane (Click to Dual Pane)",
+            "PaneModeDual": "Current: Dual Pane (Click to Preview)",
+            "PaneModePreview": "Current: Preview (Click to Single Pane)",
+            "SwapPanes": "Swap Left/Right Panes"
+        },
+        "NavigationPanel": {
+            "Drives": "Drives",
+            "QuickAccess": "Quick Access",
+            "Libraries": "Libraries",
+            "NavSettings": "Navigation Settings",
+            "ManageLibraries": "Manage Libraries"
+        },
+        "Clipboard": "Clipboard History"
+    },
+    "FileList": {
+        "Columns": {
+            "Name": "Name",
+            "Type": "Type",
+            "Size": "Size",
+            "ModifiedDate": "Date Modified",
+            "CreatedTime": "Date Created",
+            "Tags": "Tags",
+            "Notes": "Notes"
+        },
+        "EmptyState": "No files here",
+        "LoadMore": "Load More"
+    },
+    "FileInfo": {
+        "Name": "Name",
+        "Path": "Path",
+        "Type": "Type",
+        "Size": "Size",
+        "ModifiedDate": "Date Modified",
+        "Tags": "Tags",
+        "FilesCount": "Files",
+        "DirsCount": "Folders",
+        "TotalSize": "Total Size",
+        "Duration": "Duration",
+        "Dimensions": "Dimensions",
+        "Calculating": "Calculating...",
+        "NoLocation": "No locations added",
+        "Error": "Error",
+        "Folder": "Folder",
+        "Library": "Library",
+        "IncludedLocations": "Included Locations"
+    },
+    "QuickAccess": {
+        "Desktop": "Desktop",
+        "Documents": "Documents",
+        "Pictures": "Pictures",
+        "Music": "Music",
+        "Videos": "Videos",
+        "User": "User",
+        "RecycleBin": "Recycle Bin"
+    },
+    "Favorites": {
+        "Folder": "Folders",
+        "File": "Files",
+        "DefaultGroupCannotDelete": "Default group cannot be deleted",
+        "SelectItemsFirst": "Please select files or folders to favorite first",
+        "AddFailed": "Failed to add favorite",
+        "AddSuccessFormat": "Successfully added {0} items to favorites",
+        "PathNotExist": "Path does not exist",
+        "AskRemove": "Remove from favorites?",
+        "RemovedInvalid": "Removed invalid favorite",
+        "RemoveFavorite": "Remove Favorite",
+        "CancelFavorite": "Unfavorited"
+    },
+    "Search": {
+        "SearchingContent": "Searching file contents...",
+        "NoContentFound": "No files found containing this content",
+        "FoundContentMatchesFormat": "Found {0} matching files",
+        "ContentPrefix": "Content: ",
+        "ContentError": "Full text search error: ",
+        "Searching": "Searching...",
+        "InvalidFormat": "Search blocked: Invalid search format",
+        "FoundResultsFormat": "Found {0} results",
+        "Error": "Search error: ",
+        "NotesMatch": "Notes Match",
+        "FolderMatch": "Folder Match",
+        "FileMatch": "File Match",
+        "TagMatch": "Tag Match",
+        "DateMatch": "Date Match",
+        "OtherMatch": "Other"
+    },
+    "FileOp": {
+        "NoValidPath": "No valid path currently available",
+        "EnterFolderName": "Please enter a folder name:",
+        "NewFolder": "New Folder",
+        "NameEmpty": "Folder name cannot be empty",
+        "NameInvalidChars": "Folder name contains invalid characters",
+        "CreateSuccessFormat": "Folder created: {0}",
+        "CreateFailedFormat": "Failed to create folder: {0}",
+        "NewTextDocument": "New Text Document"
+    },
+    "Settings": {
+        "Menu": {
+            "Title": "Settings",
+            "General": "General",
+            "Appearance": "Appearance",
+            "Search": "Search",
+            "FileList": "File List",
+            "Path": "Path",
+            "Library": "Library",
+            "Tag": "Tag",
+            "Backup": "Backup",
+            "Hotkeys": "Hotkeys"
+        },
+        "Appearance": {
+            "Language": "Language",
+            "Theme": "Theme Settings",
+            "ThemeDesc": "Select the application's color theme. Following the system will automatically match your Windows theme.",
+            "SelectTheme": "Select Theme:",
+            "IconStyle": "Icon Style:",
+            "UIStyle": "UI Design Scheme:",
+            "GlobalFontSize": "Global UI Font Size:",
+            "GlobalFontSizeDesc": "Controls the general font size of sidebars, file lists, navigation, and other non-tag elements.",
+            "FollowSystem": "Follow System",
+            "MyCustomTheme": "My Custom Theme"
+        },
+        "General": {
+            "AppearanceNoticeTitle": "Appearance Settings",
+            "AppearanceNoticeDesc": "Tip: Theme, color, opacity and other appearance settings have been moved to the \"Appearance\" settings panel.",
+            "WindowSettings": "Window Settings",
+            "RememberWindowPos": "Remember window position and size",
+            "MaximizeStartup": "Maximize window on startup",
+            "MultiWindow": "Enable multi-window support (Ctrl+Shift+N)",
+            "MiddleClickActivate": "Activate immediately when opening new tab middle-click (otherwise open in background)",
+            "AlwaysShowPreview": "Always show side preview info bar (keeps it persistent when enabled in full mode)",
+            "TabSettings": "Tab Settings",
+            "WidthStrategy": "Width Strategy:",
+            "StrategyFixed": "Fixed Width — All tabs use the same width",
+            "FixedTabWidth": "Tab Width (80-250):",
+            "StrategyAdaptive": "Adaptive Width — Adjust based on title text length",
+            "AdaptiveMaxWidth": "Max Width (100-300):",
+            "StrategyElastic": "Elastic Width — Tabs share available space equally, always filling a row",
+            "ElasticMaxWidth": "Max Width (100-300):",
+            "OverflowStrategy": "Overflow Strategy:",
+            "OverflowCompress": "Compress Mode — Shrink tabs proportionally when space is insufficient",
+            "OverflowScroll": "Scroll Mode — Scroll horizontally when space is insufficient",
+            "MinWidth": "Min Width (30-100):",
+            "DisplayOpt": "Display Optimization:",
+            "HideInactiveClose": "Hide close button on inactive tabs (show on hover)",
+            "ShowOverflowArrows": "Show navigation arrows on overflow",
+            "ShowOverflowGradient": "Show gradient mask on overflow",
+            "PathSettings": "Path Settings",
+            "DefaultDirDesc": "Default Directory: .\\AppData\\ under program root (Centralized config and data storage)",
+            "CurrentDir": "Current Directory:",
+            "SelectFolder": "Select Folder",
+            "ImportExport": "Import / Export",
+            "AppConfig": "App Configuration (Settings)",
+            "BusinessData": "Business Data (Data & Structure)",
+            "FullBackup": "Full Backup",
+            "Export": "Export",
+            "Import": "Import"
+        },
+        "Backup": {
+            "Title": "Backup Settings",
+            "Storage": "Backup Storage",
+            "FolderLocation": "Backup Folder Location",
+            "Browse": "Browse...",
+            "DefaultLocationHint": "Leave blank to use default location: %LocalAppData%\\YiboFile\\Backup",
+            "OpenFolder": "Open Backup Folder",
+            "ManagementPolicy": "Management & Policy",
+            "RetentionTime": "Backup Retention Time (Days):",
+            "Permanent": "Permanent",
+            "ManageBackups": "Manage Backups...",
+            "CleanOldBackups": "Clean Old Backups",
+            "ManageHint": "Note: 'Manage Backups' will open a separate backup browser window.",
+            "FeatureDescTitle": "Backup Feature Description",
+            "FeatureDesc": "YiboFile automatically creates backups when you delete or overwrite files. If undo is enabled, these backups allow you to quickly restore accidentally deleted files.\nBackup files are stored locally, please clean up periodically to free up disk space.",
+            "Days7": "7 Days",
+            "Days30": "30 Days",
+            "Days90": "90 Days",
+            "Days180": "180 Days",
+            "Year1": "1 Year"
+        },
+        "FileList": {
+            "ColumnWidths": "Column Width Settings",
+            "TagColumnWidth": "Tag Column Width:",
+            "Range50_500": "(Range: 50-500)",
+            "NotesColumnWidth": "Notes Column Width:",
+            "Range100_800": "(Range: 100-800)"
+        },
+        "Search": {
+            "FullTextSearchTitle": "Full Text Search",
+            "FullTextDesc": "When Full Text Search is enabled, you can use 'content:keyword' or switch to full-text mode to search document contents.",
+            "EverythingTitle": "Everything Search Engine (File Names)",
+            "CurrentVersion": "Current Version:",
+            "RebuildEverything": "Force Rebuild Everything Index",
+            "EverythingDesc": "Everything usually maintains its index automatically. Only use this if search results are inaccurate or missing files.",
+            "EnableFullText": "Enable Full Text Indexing and Search",
+            "IndexStatusTitle": "Full Text Index Status",
+            "IndexLocation": "Index Database Location:",
+            "Change": "Change",
+            "IndexedDocCount": "Indexed Documents:",
+            "HistoryTitle": "Search History & Address Bar",
+            "AutoExpandHistory": "Auto expand history when address bar is focused",
+            "HistoryCount": "History Records Count:",
+            "ClearHistory": "Clear All History",
+            "Maintenance": "Maintenance Tasks",
+            "IndexScope": "Index Scope (Leave empty to scan all libraries by default)",
+            "AddDirectory": "Add Directory",
+            "RemoveSelected": "Remove Selected",
+            "RebuildIndex": "Rebuild Index",
+            "RebuildIndexDesc": "Rebuilding the index clears all current index data and rescans. This may take longer for large document libraries. The background task will run at a low priority.",
+            "SupportedExtensions": "Supported File Formats"
+        },
+        "Hotkeys": {
+            "ManagementTitle": "Hotkey Management",
+            "ManagementDesc": "View and customize application hotkeys",
+            "RestoreDefault": "Restore Defaults",
+            "Edit": "Edit",
+            "Restore": "Restore",
+            "EditHint": "Click the edit button to customize hotkeys. Changes are saved immediately."
+        },
+        "Path": {
+            "NavOrderTitle": "Navigation Bar Display Order",
+            "NavOrderDesc": "You can adjust the display order of the sidebar navigation items, placing frequently used items at the top.",
+            "MoveUp": "Move Up",
+            "MoveDown": "Move Down"
+        },
+        "Library": {
+            "Title": "Library Management",
+            "Desc": "Manage your file libraries. You can add folders as libraries for quick access and indexing.",
+            "AddLibrary": "➕ Add Library",
+            "RemoveLibrary": "Remove Library",
+            "ManagementTitle": "Library Management",
+            "RenameLibrary": "Rename Library",
+            "DeleteLibrary": "Delete Library",
+            "EditDisplayName": "Edit Display Name",
+            "RemoveLocation": "Remove Location",
+            "AddLocation": "+ Add Location",
+            "NewLibraryPlaceholder": "New Library...",
+            "NewLibraryBtn": "New Library"
+        },
+        "Tag": {
+            "FontVisualSettings": "Font and Visual Settings",
+            "SpecificFontSize": "Tag Specific Font Size:",
+            "SpecificFontSizeDesc": "Independent of system settings, specifically controls the text size within each [Tag] in libraries, sidebars, and cards.",
+            "FixedWidth": "Tag Fixed Width:",
+            "FixedWidthDesc": "Sets the base width of tag blocks. 0 means adaptive based on text length, greater than 0 (up to 500) sets an absolute width.",
+            "ManagementTitle": "Tag Management",
+            "NewGroupPlaceholder": "New Group Name...",
+            "NewGroupBtn": "New Group",
+            "GroupPrefix": "Group: ",
+            "DeleteGroup": "Delete Group",
+            "NewTagPlaceholder": "Enter Tag Name...",
+            "AddTagBtn": "Add Tag",
+            "ChangeColor": "Change Color",
+            "Rename": "Rename",
+            "DeleteTag": "Delete Tag",
+            "SelectGroupPrompt": "← Please select a group from the left to manage tags"
+        }
+    },
+    "Theme": {
+        "Light": "Light Theme",
+        "Dark": "Dark Theme",
+        "Ocean": "Ocean Blue",
+        "Forest": "Forest Green",
+        "Sunset": "Sunset Gold",
+        "Purple": "Violet",
+        "Nordic": "Nordic Minimalist"
+    },
+    "IconStyle": {
+        "Emoji": "Emoji Default",
+        "Fluent": "Fluent Style",
+        "Material": "Material Design",
+        "Remix": "Remix Smooth",
+        "Lucide": "Lucide Fresh",
+        "Pixel": "Pixel Art",
+        "Prism": "Crystal UI",
+        "Tabler": "Tabler Icons",
+        "Phosphor": "Phosphor Rounded"
+    },
+    "UIStyle": {
+        "Original": {
+            "Name": "Original Classic",
+            "Desc": "The most primitive unpolished style"
+        },
+        "Fluent": {
+            "Name": "Fluent Rounded",
+            "Desc": "Win11 style, large rounded corners + soft shadows"
+        },
+        "MacOS": {
+            "Name": "MacOS Texture",
+            "Desc": "Compact Mac-like shadow design with frosted glass"
+        },
+        "Geek": {
+            "Name": "Geek Sharp",
+            "Desc": "Sharp rectangular design, suitable for pro users"
+        },
+        "OneCommander": {
+            "Name": "Dual-pane Minimalist",
+            "Desc": "Imitating OneCommander: square tabs, dense info"
+        },
+        "Antigravity": {
+            "Name": "Antigravity Neumorphism",
+            "Desc": "Relief texture and floating shadow, strong 3D feel"
+        }
+    },
+    "Bootstrapper": {
+        "StartupFailed": "Failed to start program: {0}",
+        "InnerException": "\n\nInner exception: {0}",
+        "StackTrace": "\n\nStack trace:\n"
+    }
+}

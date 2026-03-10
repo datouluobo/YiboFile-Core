@@ -317,6 +317,11 @@ namespace YiboFile.ViewModels.Modules
                     YiboFile.Services.Config.ConfigurationService.Instance.Set(cfg => cfg.CenterPanelInfoHeight, m.NewHeight);
                     YiboFile.Services.Config.ConfigurationService.Instance.SaveNow();
                 }
+                else if (m.TargetPane == YiboFile.Services.Navigation.PaneId.Second)
+                {
+                    YiboFile.Services.Config.ConfigurationService.Instance.Set(cfg => cfg.SecondPanelInfoHeight, m.NewHeight);
+                    YiboFile.Services.Config.ConfigurationService.Instance.SaveNow();
+                }
             });
 
             Subscribe<SplitterDragCompletedMessage>(OnSplitterDragCompleted);

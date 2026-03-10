@@ -259,6 +259,20 @@ namespace YiboFile.Services.ColumnManagement
             return state.Panes.Count > 0 ? state.Panes[0].Columns : new ColumnState();
         }
 
+        private string GetModeKeyForPane(FileBrowserControl fileBrowser)
+        {
+            if (fileBrowser == null) return _getCurrentModeKey?.Invoke() ?? "Path";
+
+            if (fileBrowser.DataContext is YiboFile.ViewModels.PaneViewModel vm)
+            {
+                if (vm.CurrentLibrary != null) return "Library";
+                if (vm.CurrentPath?.StartsWith("tag://", StringComparison.OrdinalIgnoreCase) == true) return "Tag";
+                return "Path";
+            }
+
+            return _getCurrentModeKey?.Invoke() ?? "Path";
+        }
+
         private int GetPaneIndex(FileBrowserControl fileBrowser)
         {
             if (fileBrowser?.DataContext is YiboFile.ViewModels.PaneViewModel vm)
@@ -536,14 +550,14 @@ namespace YiboFile.Services.ColumnManagement
 
         public string GetVisibleColumnsForCurrentMode(FileBrowserControl fileBrowser = null)
         {
-            var key = _getCurrentModeKey?.Invoke() ?? "Path";
+            var key = GetModeKeyForPane(fileBrowser);
             var cs = GetPaneColumns(fileBrowser);
             return cs.VisibleColumns.TryGetValue(key, out var csv) ? csv : cs.VisibleColumns.TryGetValue("Path", out var fallback) ? fallback : "";
         }
 
         public void SetVisibleColumnsForCurrentMode(string csv, FileBrowserControl fileBrowser = null)
         {
-            var key = _getCurrentModeKey?.Invoke() ?? "Path";
+            var key = GetModeKeyForPane(fileBrowser);
             var cs = GetPaneColumns(fileBrowser);
             cs.VisibleColumns[key] = csv;
             ConfigurationService.Instance.MarkDirty();

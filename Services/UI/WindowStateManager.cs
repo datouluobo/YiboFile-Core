@@ -303,11 +303,36 @@ namespace YiboFile.Services
 
 
             // 3. 保存中间面板底部高度 (文件详情区)
-            if (_uiHelper.FileBrowser?.Content is System.Windows.Controls.Grid fileBrowserGrid)
+            if (_uiHelper.Window is YiboFile.Interfaces.IShellWindow shellWindow)
             {
-                if (fileBrowserGrid.RowDefinitions.Count >= 4)
+                if (shellWindow.FileBrowser?.Content is System.Windows.Controls.Border focusBorder1 &&
+                    focusBorder1.Child is System.Windows.Controls.Grid browserGrid1 &&
+                    browserGrid1.RowDefinitions.Count >= 6)
                 {
-                    var lastRow = fileBrowserGrid.RowDefinitions[fileBrowserGrid.RowDefinitions.Count - 1];
+                    var lastRow = browserGrid1.RowDefinitions[5];
+                    if (lastRow.Height.IsAbsolute)
+                    {
+                        targetConfig.CenterPanelInfoHeight = lastRow.Height.Value;
+                    }
+                }
+
+                if (shellWindow.SecondFileBrowser?.Content is System.Windows.Controls.Border focusBorder2 &&
+                    focusBorder2.Child is System.Windows.Controls.Grid browserGrid2 &&
+                    browserGrid2.RowDefinitions.Count >= 6)
+                {
+                    var lastRow = browserGrid2.RowDefinitions[5];
+                    if (lastRow.Height.IsAbsolute)
+                    {
+                        targetConfig.SecondPanelInfoHeight = lastRow.Height.Value;
+                    }
+                }
+            }
+            else if (_uiHelper.FileBrowser?.Content is System.Windows.Controls.Border focusBorder &&
+                focusBorder.Child is System.Windows.Controls.Grid fileBrowserGrid)
+            {
+                if (fileBrowserGrid.RowDefinitions.Count >= 6)
+                {
+                    var lastRow = fileBrowserGrid.RowDefinitions[5];
                     if (lastRow.Height.IsAbsolute)
                     {
                         targetConfig.CenterPanelInfoHeight = lastRow.Height.Value;
@@ -563,14 +588,33 @@ namespace YiboFile.Services
 
 
 
-                if (_config.CenterPanelInfoHeight > 0 && _uiHelper.Window != null)
+                if ((_config.CenterPanelInfoHeight > 0 || _config.SecondPanelInfoHeight > 0) && _uiHelper.Window != null)
                 {
-                    var browsers = FindVisualChildren<FileBrowserControl>(_uiHelper.Window);
-                    foreach (var browser in browsers)
+                    if (_uiHelper.Window is YiboFile.Interfaces.IShellWindow shellWindow)
                     {
-                        if (browser.Content is Grid browserGrid && browserGrid.RowDefinitions.Count >= 4)
+                        if (_config.CenterPanelInfoHeight > 0 && shellWindow.FileBrowser?.Content is System.Windows.Controls.Border focusBorder1 && 
+                            focusBorder1.Child is System.Windows.Controls.Grid browserGrid1 && 
+                            browserGrid1.RowDefinitions.Count >= 6)
                         {
-                            var lastRow = browserGrid.RowDefinitions[browserGrid.RowDefinitions.Count - 1];
+                            var lastRow = browserGrid1.RowDefinitions[5];
+                            lastRow.Height = new GridLength(_config.CenterPanelInfoHeight);
+                        }
+                        
+                        if (_config.SecondPanelInfoHeight > 0 && shellWindow.SecondFileBrowser?.Content is System.Windows.Controls.Border focusBorder2 && 
+                            focusBorder2.Child is System.Windows.Controls.Grid browserGrid2 && 
+                            browserGrid2.RowDefinitions.Count >= 6)
+                        {
+                            var lastRow = browserGrid2.RowDefinitions[5];
+                            lastRow.Height = new GridLength(_config.SecondPanelInfoHeight);
+                        }
+                    }
+                    else if (_config.CenterPanelInfoHeight > 0 && _uiHelper.FileBrowser != null)
+                    {
+                        if (_uiHelper.FileBrowser.Content is System.Windows.Controls.Border focusBorder && 
+                            focusBorder.Child is System.Windows.Controls.Grid browserGrid && 
+                            browserGrid.RowDefinitions.Count >= 6)
+                        {
+                            var lastRow = browserGrid.RowDefinitions[5];
                             lastRow.Height = new GridLength(_config.CenterPanelInfoHeight);
                         }
                     }

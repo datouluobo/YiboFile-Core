@@ -86,7 +86,9 @@ namespace YiboFile.Controls
                 var browsers = FindVisualChildren<FileBrowserControl>(window).ToList();
                 foreach (var browser in browsers)
                 {
-                    if (browser.Content is Grid browserGrid && browserGrid.RowDefinitions.Count > 5)
+                    if (browser.Content is System.Windows.Controls.Border focusBorder && 
+                        focusBorder.Child is System.Windows.Controls.Grid browserGrid && 
+                        browserGrid.RowDefinitions.Count > 5)
                     {
                         double browserBottomHeight = browserGrid.RowDefinitions[5].ActualHeight;
                         if (Math.Abs(newHeight - browserBottomHeight) < 15) // Snap threshold

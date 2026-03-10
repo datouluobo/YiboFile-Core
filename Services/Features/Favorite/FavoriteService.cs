@@ -81,6 +81,8 @@ namespace YiboFile.Services.Favorite
         {
             try
             {
+                var locService = App.ServiceProvider?.GetService<YiboFile.Services.Localization.ILocalizationService>();
+
                 var allFavorites = _favoriteRepository.GetAllFavorites();
                 var groups = _favoriteRepository.GetAllGroups();
 
@@ -125,10 +127,16 @@ namespace YiboFile.Services.Favorite
                         };
                     }).ToList();
 
+                    var translatedGroupName = group.Name;
+                    if (group.Id == 1 && translatedGroupName == "文件夹")
+                        translatedGroupName = locService?["Favorites.Folder"] ?? "文件夹";
+                    else if (group.Id == 2 && translatedGroupName == "文件")
+                        translatedGroupName = locService?["Favorites.File"] ?? "文件";
+
                     return new FavoriteGroupItem
                     {
                         Id = group.Id,
-                        Name = group.Name,
+                        Name = translatedGroupName,
                         Items = items
                     };
                 }).ToList();
@@ -269,9 +277,10 @@ namespace YiboFile.Services.Favorite
         /// </summary>
         public void AddFavorite(List<FileSystemItem> selectedItems, int groupId = 1)
         {
+            var locService = App.ServiceProvider?.GetService<YiboFile.Services.Localization.ILocalizationService>();
             if (selectedItems == null || selectedItems.Count == 0)
             {
-                YiboFile.DialogService.Info("请先选择要收藏的文件或文件夹");
+                YiboFile.DialogService.Info(locService?["Favorites.SelectItemsFirst"] ?? "请先选择要收藏的文件或文件夹");
                 return;
             }
 
@@ -288,7 +297,7 @@ namespace YiboFile.Services.Favorite
                 }
                 catch (Exception ex)
                 {
-                    YiboFile.DialogService.Error($"收藏失败: {item.Name} - {ex.Message}");
+                    YiboFile.DialogService.Error($"{locService?["Favorites.AddFailed"] ?? "收藏失败"}: {item.Name} - {ex.Message}");
                 }
             }
 
@@ -296,7 +305,10 @@ namespace YiboFile.Services.Favorite
             _messageBus?.Publish(new FavoritesUpdatedMessage());
 
             if (successCount > 0)
-                NotificationService.Show($"成功添加 {successCount} 个项目到收藏", NotificationType.Success);
+            {
+                string format = locService?["Favorites.AddSuccessFormat"] ?? "成功添加 {0} 个项目到收藏";
+                NotificationService.Show(string.Format(format, successCount), NotificationType.Success);
+            }
         }
 
         /// <summary>
@@ -330,9 +342,10 @@ namespace YiboFile.Services.Favorite
 
         public void DeleteGroup(int id)
         {
+            var locService = App.ServiceProvider?.GetService<YiboFile.Services.Localization.ILocalizationService>();
             if (id == 1)
             {
-                YiboFile.DialogService.Info("默认分组不能删除");
+                YiboFile.DialogService.Info(locService?["Favorites.DefaultGroupCannotDelete"] ?? "默认分组不能删除");
                 return;
             }
             _favoriteRepository.DeleteGroup(id);
@@ -381,11 +394,14 @@ namespace YiboFile.Services.Favorite
             }
             else
             {
-                if (YiboFile.DialogService.Ask($"路径不存在: {favorite.Path}\n\n是否从收藏中移除？", "提示"))
+                var locService = App.ServiceProvider?.GetService<YiboFile.Services.Localization.ILocalizationService>();
+                string notExistStr = locService?["Favorites.PathNotExist"] ?? "路径不存在";
+                string askRemoveStr = locService?["Favorites.AskRemove"] ?? "是否从收藏中移除？";
+                if (YiboFile.DialogService.Ask($"{notExistStr}: {favorite.Path}\n\n{askRemoveStr}", "提示"))
                 {
                     _favoriteRepository.RemoveFavorite(favorite.Path);
                     _messageBus?.Publish(new FavoritesUpdatedMessage());
-                    NotificationService.Show("已移除无效收藏", NotificationType.Success);
+                    NotificationService.Show(locService?["Favorites.RemovedInvalid"] ?? "已移除无效收藏", NotificationType.Success);
                 }
             }
 
@@ -413,7 +429,8 @@ namespace YiboFile.Services.Favorite
                     listBox.SelectedItem = null;
             };
 
-            var removeItem = new MenuItem { Header = "删除收藏" };
+            var locService = App.ServiceProvider?.GetService<YiboFile.Services.Localization.ILocalizationService>();
+            var removeItem = new MenuItem { Header = locService?["Favorites.RemoveFavorite"] ?? "删除收藏" };
             removeItem.Click += (s, e) =>
             {
                 if (listBox.SelectedItem != null)
@@ -435,7 +452,7 @@ namespace YiboFile.Services.Favorite
 
                             // 触发重新加载
                             _messageBus?.Publish(new FavoritesUpdatedMessage());
-                            NotificationService.Show("已取消收藏", NotificationType.Success);
+                            NotificationService.Show(locService?["Favorites.CancelFavorite"] ?? "已取消收藏", NotificationType.Success);
                         }
                     }
                 }

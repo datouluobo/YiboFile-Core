@@ -59,6 +59,7 @@ namespace YiboFile
         // 外观设置
         public string ThemeMode { get; set; } = "FollowSystem"; // Light, Dark, FollowSystem
         public string UIStyle { get; set; } = "Original"; // Original, Fluent, MacOS, Geek
+        public string Language { get; set; } = "zh-CN"; // 界面语言
         public string LayoutMode { get; set; } = "Full"; // Focus, Work, Full
         public bool IsDualPaneMode { get; set; } = false; // 双列表模式
         public string PaneModeStr { get; set; } = "Single"; // 三态面板模式: Single, DualPane, Preview
@@ -143,6 +144,7 @@ namespace YiboFile
         public bool IsRightPanelVisible { get; set; } = true; // 右侧面板可见性
         public double RightPanelNotesHeight { get; set; } = 200; // 右侧备注区高度
         public double CenterPanelInfoHeight { get; set; } = 180; // 中间底部详情区高度
+        public double SecondPanelInfoHeight { get; set; } = 180; // 副列表底部详情区高度
         public YiboFile.Models.Enums.FileListViewMode FileViewMode { get; set; } = YiboFile.Models.Enums.FileListViewMode.List; // 视图模式：List 或 Thumbnail
         public string SortColumn { get; set; } = "Name"; // 排序字段
         public string SortDirection { get; set; } = "Ascending"; // 排序方向

@@ -103,6 +103,43 @@ namespace YiboFile.Controls.Settings
             this.Focus();
         }
 
+        /// <summary>
+        /// 聚焦时自动全选文本，便于直接输入替换
+        /// </summary>
+        private void NumericTextBox_GotFocus(object sender, RoutedEventArgs e)
+        {
+            if (sender is TextBox tb)
+            {
+                tb.Dispatcher.BeginInvoke(new Action(() => tb.SelectAll()),
+                    System.Windows.Threading.DispatcherPriority.Input);
+            }
+        }
+
+        /// <summary>
+        /// 滚轮智能调节数值（步进 ±5）
+        /// </summary>
+        private void NumericTextBox_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            if (sender is TextBox tb && tb.IsFocused)
+            {
+                e.Handled = true;
+                var binding = tb.GetBindingExpression(TextBox.TextProperty);
+                string propName = binding?.ParentBinding?.Path?.Path;
+                if (propName == null) return;
+
+                double delta = e.Delta > 0 ? 5 : -5;
+                switch (propName)
+                {
+                    case "ColTagsWidthInput":
+                        AdjustValue(_viewModel.ColTagsWidth, delta, 50, 500, v => _viewModel.ColTagsWidth = v);
+                        break;
+                    case "ColNotesWidthInput":
+                        AdjustValue(_viewModel.ColNotesWidth, delta, 100, 800, v => _viewModel.ColNotesWidth = v);
+                        break;
+                }
+            }
+        }
+
         private static System.Collections.Generic.IEnumerable<T> FindVisualChildren<T>(DependencyObject parent) where T : DependencyObject
         {
             if (parent != null)

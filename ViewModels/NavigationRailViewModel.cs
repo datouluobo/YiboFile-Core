@@ -7,6 +7,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Collections.Generic;
 using YiboFile.Services.Config;
+using YiboFile.Services.Localization;
 
 namespace YiboFile.ViewModels
 {
@@ -27,11 +28,25 @@ namespace YiboFile.ViewModels
         public ObservableCollection<NavigationRailItem> BottomItems { get; } = new();
 
         private readonly IConfigurationService _configService;
+        private readonly ILocalizationService _locService;
 
-        public NavigationRailViewModel(IMessageBus messageBus, IConfigurationService configService)
+        public NavigationRailViewModel(IMessageBus messageBus, IConfigurationService configService, ILocalizationService locService)
         {
             _messageBus = messageBus;
             _configService = configService;
+            _locService = locService;
+
+            if (_locService != null)
+            {
+                _locService.PropertyChanged += (s, e) =>
+                {
+                    if (e.PropertyName == "CurrentLanguage" || e.PropertyName == "Item[]")
+                    {
+                        UpdateToolTips();
+                        UpdateActiveStates();
+                    }
+                };
+            }
 
             // ✅ 命令仅发布请求消息，不处理业务逻辑
             NavigateToPathCommand = new RelayCommand(() =>
@@ -62,6 +77,7 @@ namespace YiboFile.ViewModels
             OpenAboutCommand = new RelayCommand(() => _messageBus.Publish(new OpenContentTabMessage(TabContentTypes.About)));
 
             InitializeItems();
+            UpdateToolTips();
             UpdateActiveStates();
         }
 
@@ -69,17 +85,17 @@ namespace YiboFile.ViewModels
         {
             var dict = new Dictionary<string, NavigationRailItem>
             {
-                { "Path", new NavigationRailItem { Id = "Path", IconKey = "Icon_Nav_Path", ToolTip = "文件路径", Command = NavigateToPathCommand } },
-                { "Library", new NavigationRailItem { Id = "Library", IconKey = "Icon_Nav_Library", ToolTip = "库", Command = NavigateToLibraryCommand } },
-                { "Tag", new NavigationRailItem { Id = "Tag", IconKey = "Icon_Nav_Tag", ToolTip = "标签", Command = NavigateToTagCommand, IsVisible = App.IsTagTrainAvailable } },
-                { "Tasks", new NavigationRailItem { Id = "Tasks", IconKey = "Icon_Window_Tasks", ToolTip = "任务队列", Command = NavigateToTasksCommand } },
-                { "Backup", new NavigationRailItem { Id = "Backup", IconKey = "Icon_Backup", ToolTip = "备份管理器", Command = NavigateToBackupCommand } },
-                { "Clipboard", new NavigationRailItem { Id = "Clipboard", IconKey = "Icon_Clipboard", ToolTip = "剪贴板历史", Command = NavigateToClipboardCommand } },
-                { "ToggleSidebar", new NavigationRailItem { Id = "ToggleSidebar", IconKey = "Icon_Layout_Work", ToolTip = "切换左侧栏显示/隐藏", Command = ToggleSidebarCommand } },
-                { "PaneMode", new NavigationRailItem { Id = "PaneMode", IconKey = "Icon_DualPane", ToolTip = "单栏 → 双栏 → 预览", Command = CyclePaneModeCommand } },
-                { "SwapPanes", new NavigationRailItem { Id = "SwapPanes", IconKey = "Icon_SwapHorizontal", ToolTip = "交换左右栏", Command = SwapPanesCommand } },
-                { "Settings", new NavigationRailItem { Id = "Settings", IconKey = "Icon_Window_Settings", ToolTip = "设置", Command = OpenSettingsCommand } },
-                { "About", new NavigationRailItem { Id = "About", IconKey = "Icon_Window_About", ToolTip = "关于", Command = OpenAboutCommand } }
+                { "Path", new NavigationRailItem { Id = "Path", IconKey = "Icon_Nav_Path", Command = NavigateToPathCommand } },
+                { "Library", new NavigationRailItem { Id = "Library", IconKey = "Icon_Nav_Library", Command = NavigateToLibraryCommand } },
+                { "Tag", new NavigationRailItem { Id = "Tag", IconKey = "Icon_Nav_Tag", Command = NavigateToTagCommand, IsVisible = App.IsTagTrainAvailable } },
+                { "Tasks", new NavigationRailItem { Id = "Tasks", IconKey = "Icon_Window_Tasks", Command = NavigateToTasksCommand } },
+                { "Backup", new NavigationRailItem { Id = "Backup", IconKey = "Icon_Backup", Command = NavigateToBackupCommand } },
+                { "Clipboard", new NavigationRailItem { Id = "Clipboard", IconKey = "Icon_Clipboard", Command = NavigateToClipboardCommand } },
+                { "ToggleSidebar", new NavigationRailItem { Id = "ToggleSidebar", IconKey = "Icon_Layout_Work", Command = ToggleSidebarCommand } },
+                { "PaneMode", new NavigationRailItem { Id = "PaneMode", IconKey = "Icon_DualPane", Command = CyclePaneModeCommand } },
+                { "SwapPanes", new NavigationRailItem { Id = "SwapPanes", IconKey = "Icon_SwapHorizontal", Command = SwapPanesCommand } },
+                { "Settings", new NavigationRailItem { Id = "Settings", IconKey = "Icon_Window_Settings", Command = OpenSettingsCommand } },
+                { "About", new NavigationRailItem { Id = "About", IconKey = "Icon_Window_About", Command = OpenAboutCommand } }
             };
 
             var topKeys = _configService?.Config?.RailTopItems ?? new List<string> { "Path", "Library", "Tag", "Tasks", "Backup", "Clipboard" };
@@ -151,15 +167,15 @@ namespace YiboFile.ViewModels
                     {
                         case PaneMode.Single:
                             item.IconKey = "Icon_SinglePane";
-                            item.ToolTip = "当前: 单栏 (点击切换到双栏)";
+                            item.ToolTip = _locService?["TabContent.NavigationRail.PaneModeSingle"] ?? "当前: 单栏 (点击切换到双栏)";
                             break;
                         case PaneMode.DualPane:
                             item.IconKey = "Icon_DualPane";
-                            item.ToolTip = "当前: 双栏 (点击切换到预览)";
+                            item.ToolTip = _locService?["TabContent.NavigationRail.PaneModeDual"] ?? "当前: 双栏 (点击切换到预览)";
                             break;
                         case PaneMode.Preview:
                             item.IconKey = "Icon_Preview";
-                            item.ToolTip = "当前: 预览 (点击切换到单栏)";
+                            item.ToolTip = _locService?["TabContent.NavigationRail.PaneModePreview"] ?? "当前: 预览 (点击切换到单栏)";
                             break;
                     }
                 }
@@ -170,6 +186,26 @@ namespace YiboFile.ViewModels
                     item.IsEnabled = _currentPaneMode != PaneMode.Single;
                 }
                 else item.IsActive = false;
+            }
+        }
+
+        private void UpdateToolTips()
+        {
+            if (_locService == null) return;
+            
+            foreach (var item in TopItems.Concat(BottomItems))
+            {
+                if (item.Id == "Path") item.ToolTip = _locService["TabContent.FileBrowser"];
+                else if (item.Id == "Library") item.ToolTip = _locService["TabContent.Library"];
+                else if (item.Id == "Tag") item.ToolTip = _locService["TabContent.Tag"];
+                else if (item.Id == "Tasks") item.ToolTip = _locService["TabContent.TaskQueue"];
+                else if (item.Id == "Backup") item.ToolTip = _locService["TabContent.Backup"];
+                else if (item.Id == "Clipboard") item.ToolTip = _locService["TabContent.Clipboard"];
+                else if (item.Id == "ToggleSidebar") item.ToolTip = _locService["TabContent.NavigationRail.ToggleSidebar"];
+                else if (item.Id == "SwapPanes") item.ToolTip = _locService["TabContent.NavigationRail.SwapPanes"];
+                else if (item.Id == "Settings") item.ToolTip = _locService["TabContent.Settings"];
+                else if (item.Id == "About") item.ToolTip = _locService["TabContent.About"];
+                // PaneMode tooltip is set inside UpdateActiveStates
             }
         }
 

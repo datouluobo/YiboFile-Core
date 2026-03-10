@@ -43,6 +43,7 @@ namespace YiboFile.Services.QuickAccess
 
         private readonly System.Windows.Threading.Dispatcher _dispatcher;
         private readonly IMessageBus _messageBus;
+        private bool _isQuickAccessLanguageEventHooked = false;
 
         #endregion
 
@@ -81,15 +82,29 @@ namespace YiboFile.Services.QuickAccess
             // [FIX] 将路径存在性检查移出 UI 线程
             System.Threading.Tasks.Task.Run(() =>
             {
+                var locService = App.ServiceProvider?.GetService<YiboFile.Services.Localization.ILocalizationService>();
+
+                if (locService != null && !_isQuickAccessLanguageEventHooked)
+                {
+                    _isQuickAccessLanguageEventHooked = true;
+                    locService.PropertyChanged += (s, e) =>
+                    {
+                        if (e.PropertyName == "CurrentLanguage")
+                        {
+                            LoadQuickAccess(quickAccessListBox);
+                        }
+                    };
+                }
+
                 var quickAccessPaths = new List<(string Path, string Name, string IconKey)>
                 {
-                    (Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "桌面", "Icon_Desktop"),
-                    (Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "文档", "Icon_Document"),
-                    (Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "图片", "Icon_Image"),
-                    (Environment.GetFolderPath(Environment.SpecialFolder.MyMusic), "音乐", "Icon_Music"),
-                    (Environment.GetFolderPath(Environment.SpecialFolder.MyVideos), "视频", "Icon_Video"),
-                    (Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "用户", "Icon_User"),
-                    ("shell:RecycleBinFolder", "回收站", "Icon_Trash")
+                    (Environment.GetFolderPath(Environment.SpecialFolder.Desktop), locService?["QuickAccess.Desktop"] ?? "桌面", "Icon_Desktop"),
+                    (Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), locService?["QuickAccess.Documents"] ?? "文档", "Icon_Document"),
+                    (Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), locService?["QuickAccess.Pictures"] ?? "图片", "Icon_Image"),
+                    (Environment.GetFolderPath(Environment.SpecialFolder.MyMusic), locService?["QuickAccess.Music"] ?? "音乐", "Icon_Music"),
+                    (Environment.GetFolderPath(Environment.SpecialFolder.MyVideos), locService?["QuickAccess.Videos"] ?? "视频", "Icon_Video"),
+                    (Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), locService?["QuickAccess.User"] ?? "用户", "Icon_User"),
+                    ("shell:RecycleBinFolder", locService?["QuickAccess.RecycleBin"] ?? "回收站", "Icon_Trash")
                 };
 
                 var accessItems = quickAccessPaths

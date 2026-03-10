@@ -19,11 +19,13 @@ namespace YiboFile.ViewModels.Settings
 
         private readonly YiboFile.Services.Theming.IThemeService _themeService;
         private readonly IConfigurationService _configService;
+        private readonly YiboFile.Services.Localization.ILocalizationService _locService;
 
-        public AppearanceSettingsViewModel(YiboFile.Services.Theming.IThemeService themeService, IConfigurationService configService)
+        public AppearanceSettingsViewModel(YiboFile.Services.Theming.IThemeService themeService, IConfigurationService configService, YiboFile.Services.Localization.ILocalizationService locService = null)
         {
             _themeService = themeService;
             _configService = configService;
+            _locService = locService;
             ResetThemeCommand = new RelayCommand(ResetTheme);
             ApplyAccentColorCommand = new RelayCommand<string>(ApplyAccentColor);
 
@@ -154,11 +156,29 @@ namespace YiboFile.ViewModels.Settings
             }
         }
 
+        public System.Collections.Generic.IReadOnlyList<YiboFile.Services.Localization.LanguageInfo> AvailableLanguages => _locService?.AvailableLanguages;
+
+        public string SelectedLanguage
+        {
+            get => _locService?.CurrentLanguage ?? "zh-CN";
+            set
+            {
+                if (value != null && _locService != null && _locService.CurrentLanguage != value)
+                {
+                    _locService.SetLanguage(value);
+                    _configService.Update(c => c.Language = value);
+                    RefreshDynamicLists(); // 刷新所有需要动态翻译的列表项
+                    OnPropertyChanged(nameof(SelectedLanguage));
+                }
+            }
+        }
+
         private void InitializeThemes(AppConfig config)
         {
+            string followSystemText = _locService?["Settings.Appearance.FollowSystem"] ?? "跟随系统";
             Themes = new ObservableCollection<ThemeItemViewModel>
             {
-                new ThemeItemViewModel("FollowSystem", "跟随系统", "💻")
+                new ThemeItemViewModel("FollowSystem", followSystemText, "💻")
             };
 
             foreach (var theme in _themeService.AvailableThemes)
@@ -174,7 +194,8 @@ namespace YiboFile.ViewModels.Settings
                     "Nordic" => "🏔️",
                     _ => "🎨"
                 };
-                Themes.Add(new ThemeItemViewModel(theme.Id, theme.DisplayName, emoji));
+                string displayName = _locService?[$"Theme.{theme.Id}"] ?? theme.DisplayName;
+                Themes.Add(new ThemeItemViewModel(theme.Id, displayName, emoji));
             }
 
             foreach (var ct in _themeService.CustomThemes)
@@ -204,7 +225,8 @@ namespace YiboFile.ViewModels.Settings
                     "Phosphor" => "💡 ",
                     _ => "📦 "
                 };
-                IconStyles.Add(new IconStyleItemViewModel(icon.Id, prefix + icon.DisplayName));
+                string displayName = _locService?[$"IconStyle.{icon.Id}"] ?? icon.DisplayName;
+                IconStyles.Add(new IconStyleItemViewModel(icon.Id, prefix + displayName));
             }
             
             var currentIconStyle = config.IconStyle ?? "Emoji";
@@ -218,7 +240,10 @@ namespace YiboFile.ViewModels.Settings
             UIStyles = new ObservableCollection<ItemViewModel>();
             foreach (var ui in _themeService.AvailableUIStyles)
             {
-                UIStyles.Add(new ItemViewModel { Id = ui.Id, Name = $"{ui.DisplayName} ({ui.Description})" });
+                string displayName = _locService?[$"UIStyle.{ui.Id}.Name"] ?? ui.DisplayName;
+                string desc = _locService?[$"UIStyle.{ui.Id}.Desc"] ?? ui.Description;
+                string fullName = string.IsNullOrEmpty(desc) ? displayName : $"{displayName} ({desc})";
+                UIStyles.Add(new ItemViewModel { Id = ui.Id, Name = fullName });
             }
             
             var currentUIStyle = config.UIStyle ?? "Original";
@@ -239,14 +264,53 @@ namespace YiboFile.ViewModels.Settings
             OnPropertyChanged(nameof(SelectedIconStyle));
             OnPropertyChanged(nameof(UIStyles));
             OnPropertyChanged(nameof(SelectedUIStyle));
+            OnPropertyChanged(nameof(SelectedLanguage));
             OnPropertyChanged(nameof(WindowOpacity));
             OnPropertyChanged(nameof(EnableAnimations));
         }
 
-        public void RefreshThemes()
+        public void RefreshDynamicLists()
         {
-            var config = _configService.GetSnapshot();
-            InitializeThemes(config);
+            if (Themes != null)
+            {
+                foreach (var t in Themes)
+                {
+                    if (t.Id == "FollowSystem")
+                        t.Name = _locService?["Settings.Appearance.FollowSystem"] ?? "跟随系统";
+                    else if (t.Id == "QuickCustomTheme")
+                        t.Name = _locService?["Settings.Appearance.MyCustomTheme"] ?? "我的自定义主题";
+                    else if (_themeService.AvailableThemes.Any(x => x.Id == t.Id))
+                        t.Name = _locService?[$"Theme.{t.Id}"] ?? t.Name;
+                }
+            }
+
+            if (IconStyles != null)
+            {
+                foreach (var i in IconStyles)
+                {
+                    var source = _themeService.AvailableIconStyles.FirstOrDefault(x => x.Id == i.Id);
+                    if (source != null)
+                    {
+                        string prefix = i.Id switch { "Emoji" => "🌈 ", "Remix" => "✒️ ", "Fluent" => "💠 ", "Material" => "✨ ", "Lucide" => "🚀 ", "Pixel" => "👾 ", "Prism" => "💎 ", "Tabler" => "📋 ", "Phosphor" => "💡 ", _ => "📦 " };
+                        string displayName = _locService?[$"IconStyle.{i.Id}"] ?? source.DisplayName;
+                        i.Name = prefix + displayName;
+                    }
+                }
+            }
+
+            if (UIStyles != null)
+            {
+                foreach (var u in UIStyles)
+                {
+                    var source = _themeService.AvailableUIStyles.FirstOrDefault(x => x.Id == u.Id);
+                    if (source != null)
+                    {
+                        string displayName = _locService?[$"UIStyle.{u.Id}.Name"] ?? source.DisplayName;
+                        string desc = _locService?[$"UIStyle.{u.Id}.Desc"] ?? source.Description;
+                        u.Name = string.IsNullOrEmpty(desc) ? displayName : $"{displayName} ({desc})";
+                    }
+                }
+            }
         }
 
         private void ResetTheme()
@@ -263,7 +327,8 @@ namespace YiboFile.ViewModels.Settings
                 var currentId = _configService.GetSnapshot().ThemeMode;
                 string baseTheme = currentId == "Dark" || currentId == "Sunset" || currentId == "Ocean" || currentId == "Purple" ? "Dark" : "Light";
 
-                var theme = CustomThemeManager.CreateFromCurrent("我的自定义主题", baseTheme);
+                string myCustomThemeText = _locService?["Settings.Appearance.MyCustomTheme"] ?? "我的自定义主题";
+                var theme = CustomThemeManager.CreateFromCurrent(myCustomThemeText, baseTheme);
                 theme.Id = "QuickCustomTheme";
 
                 var baseColor = (Color)ColorConverter.ConvertFromString(hexColor);
@@ -280,7 +345,8 @@ namespace YiboFile.ViewModels.Settings
 
                 var config = _configService.GetSnapshot();
                 InitializeThemes(config);
-                RefreshThemes(); // Force refresh UI list
+                // Also update the UI with new custom theme name if needed
+                RefreshDynamicLists();
                 SelectedTheme = Themes.FirstOrDefault(t => t.Id == theme.Id);
 
                 _configService.Update(c => c.ThemeMode = theme.Id);
@@ -306,10 +372,16 @@ namespace YiboFile.ViewModels.Settings
         }
     }
 
-    public class ItemViewModel
+    public class ItemViewModel : BaseViewModel
     {
         public string Id { get; set; }
-        public string Name { get; set; }
+        
+        private string _name;
+        public string Name
+        {
+            get => _name;
+            set => SetProperty(ref _name, value);
+        }
 
         public override bool Equals(object obj)
         {

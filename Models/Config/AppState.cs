@@ -108,6 +108,7 @@ namespace YiboFile.Models.Config
         public string PaneModeStr { get; set; } = "Single"; // 新增：三态模式
         public double RightPanelNotesHeight { get; set; } = 200;
         public double CenterPanelInfoHeight { get; set; } = 180;
+        public double SecondPanelInfoHeight { get; set; } = 180;
     }
 
     public class ColumnState

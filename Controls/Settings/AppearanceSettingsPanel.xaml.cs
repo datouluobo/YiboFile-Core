@@ -15,7 +15,8 @@ namespace YiboFile.Controls.Settings
             InitializeComponent();
             var themeService = YiboFile.App.ServiceProvider?.GetService(typeof(IThemeService)) as IThemeService;
             var configService = YiboFile.App.ServiceProvider?.GetService(typeof(YiboFile.Services.Config.IConfigurationService)) as YiboFile.Services.Config.IConfigurationService;
-            _appearanceViewModel = new AppearanceSettingsViewModel(themeService, configService);
+            var locService = YiboFile.App.ServiceProvider?.GetService(typeof(YiboFile.Services.Localization.ILocalizationService)) as YiboFile.Services.Localization.ILocalizationService;
+            _appearanceViewModel = new AppearanceSettingsViewModel(themeService, configService, locService);
             _appearanceViewModel.PropertyChanged += (s, e) => SettingsChanged?.Invoke(this, EventArgs.Empty);
             DataContext = _appearanceViewModel;
             

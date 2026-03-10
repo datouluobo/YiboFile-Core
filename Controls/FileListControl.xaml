@@ -9,6 +9,7 @@
              xmlns:converters="clr-namespace:YiboFile.Controls.Converters"
              xmlns:helpers="clr-namespace:YiboFile.Helpers"
              xmlns:wpftk="clr-namespace:WpfToolkit.Controls;assembly=VirtualizingWrapPanel"
+             xmlns:i18n="clr-namespace:YiboFile.Services.Localization"
              mc:Ignorable="d" 
              d:DesignHeight="600" d:DesignWidth="800">
     <UserControl.Resources>
@@ -331,7 +332,7 @@
                         <GridView x:Name="FilesGridView" ColumnHeaderContainerStyle="{StaticResource FileListColumnHeaderStyle}">
                             <GridViewColumn x:Name="ColName">
                                 <GridViewColumn.Header>
-                                    <TextBlock Text="名称" Tag="Name"/>
+                                    <TextBlock Text="{i18n:Loc Key=FileList.Columns.Name}" Tag="Name"/>
                                 </GridViewColumn.Header>
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>
@@ -395,13 +396,13 @@
                             
                             <GridViewColumn x:Name="ColType" Width="60" HeaderContainerStyle="{StaticResource NonResizableFileColumnHeaderStyle}" DisplayMemberBinding="{Binding Type}">
                                 <GridViewColumn.Header>
-                                    <TextBlock Text="类型" Tag="Type"/>
+                                    <TextBlock Text="{i18n:Loc Key=FileList.Columns.Type}" Tag="Type"/>
                                 </GridViewColumn.Header>
                             </GridViewColumn>
 
                             <GridViewColumn x:Name="ColSize" Width="90" HeaderContainerStyle="{StaticResource NonResizableFileColumnHeaderStyle}">
                                 <GridViewColumn.Header>
-                                    <TextBlock Text="大小" Tag="Size"/>
+                                    <TextBlock Text="{i18n:Loc Key=FileList.Columns.Size}" Tag="Size"/>
                                 </GridViewColumn.Header>
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>
@@ -412,13 +413,13 @@
 
                             <GridViewColumn x:Name="ColModifiedDate" Width="100" HeaderContainerStyle="{StaticResource NonResizableFileColumnHeaderStyle}" DisplayMemberBinding="{Binding ModifiedDate}">
                                 <GridViewColumn.Header>
-                                    <TextBlock Text="修改日期" Tag="ModifiedDate"/>
+                                    <TextBlock Text="{i18n:Loc Key=FileList.Columns.ModifiedDate}" Tag="ModifiedDate"/>
                                 </GridViewColumn.Header>
                             </GridViewColumn>
 
                             <GridViewColumn Width="60" HeaderContainerStyle="{StaticResource NonResizableFileColumnHeaderStyle}">
                                 <GridViewColumn.Header>
-                                    <TextBlock Text="创建" Tag="CreatedTime"/>
+                                    <TextBlock Text="{i18n:Loc Key=FileList.Columns.CreatedTime}" Tag="CreatedTime"/>
                                 </GridViewColumn.Header>
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>
@@ -433,7 +434,7 @@
                             
                             <GridViewColumn x:Name="ColTags" Width="150" HeaderContainerStyle="{StaticResource NonResizableFileColumnHeaderStyle}">
                                 <GridViewColumn.Header>
-                                    <TextBlock Text="标签" Tag="Tags"/>
+                                    <TextBlock Text="{i18n:Loc Key=FileList.Columns.Tags}" Tag="Tags"/>
                                 </GridViewColumn.Header>
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>
@@ -483,7 +484,7 @@
 
                             <GridViewColumn x:Name="ColNotes" Width="200" HeaderContainerStyle="{StaticResource NonResizableFileColumnHeaderStyle}" DisplayMemberBinding="{Binding Notes}">
                                 <GridViewColumn.Header>
-                                    <TextBlock Text="备注" Tag="Notes"/>
+                                    <TextBlock Text="{i18n:Loc Key=FileList.Columns.Notes}" Tag="Notes"/>
                                 </GridViewColumn.Header>
                             </GridViewColumn>
                         </GridView>
@@ -493,14 +494,14 @@
 
                 
                 <!-- 加载更多按钮 -->
-                <Button x:Name="LoadMoreBtn" Content="加载更多" Width="88" Height="28"
+                <Button x:Name="LoadMoreBtn" Content="{i18n:Loc Key=FileList.LoadMore}" Width="88" Height="28"
                         HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="8"
                         Visibility="Collapsed" 
                         Command="{Binding LoadMoreCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                 
                 <!-- 空状态提示 -->
                 <TextBlock x:Name="EmptyStateText" 
-                           Text="暂无文件"
+                           Text="{i18n:Loc Key=FileList.EmptyState}"
                            FontSize="16"
                            Foreground="{DynamicResource ForegroundSecondaryBrush}"
                            HorizontalAlignment="Center"

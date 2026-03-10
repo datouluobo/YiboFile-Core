@@ -270,50 +270,79 @@ namespace YiboFile.Handlers
             var gridView = _fileBrowser.FilesGrid;
             var columns = gridView.Columns;
             GridViewColumn nameCol = null;
+            var otherCols = new System.Collections.Generic.List<GridViewColumn>();
             double otherColsWidth = 0;
 
             foreach (var col in columns)
             {
-                var header = col.Header as GridViewColumnHeader;
-                // Try to find Name column by Tag or Content
                 string tag = null;
                 if (col.Header is FrameworkElement fe) tag = fe.Tag?.ToString();
                 else if (col.Header != null) tag = col.Header.ToString();
 
-                // Name column is the target for auto-size
                 if (tag == "Name")
                 {
                     nameCol = col;
                 }
                 else
                 {
-                    otherColsWidth += col.ActualWidth;
+                    double w = col.ActualWidth > 0 ? col.ActualWidth : (double.IsNaN(col.Width) ? 0 : col.Width);
+                    if (w > 0)
+                    {
+                        otherColsWidth += w;
+                        otherCols.Add(col);
+                    }
                 }
             }
 
-            if (nameCol != null)
+            if (nameCol == null) return;
+
+            // 如果 Name 列被用户显式隐藏，则不调整
+            if (nameCol.Width == 0 && !IsColumnVisible("Name")) return;
+
+            double listWidth = _fileBrowser.FilesList.ActualWidth;
+
+            // 动态计算内边距（考虑滚动条可见性）
+            double padding = 2;
+            var scrollViewer = FindDescendant<ScrollViewer>(_fileBrowser.FilesList);
+            if (scrollViewer != null && scrollViewer.ComputedVerticalScrollBarVisibility == Visibility.Visible)
             {
-                // Safety check: if Name column is explicitly hidden by user, do not resizing it (which would unhide it)
-                if (nameCol.Width == 0 && !IsColumnVisible("Name")) return;
+                padding += SystemParameters.VerticalScrollBarWidth;
+            }
 
-                double listWidth = _fileBrowser.FilesList.ActualWidth;
+            double usableWidth = listWidth - padding;
 
-                // Dynamic padding calculation based on scrollbar visibility
-                double padding = 2; // Minimal safe padding
-                var scrollViewer = FindDescendant<ScrollViewer>(_fileBrowser.FilesList);
-                if (scrollViewer != null && scrollViewer.ComputedVerticalScrollBarVisibility == Visibility.Visible)
+            // ── 第一阶段：压缩 Name 列 ──
+            double minNameWidth = 40;
+            double nameWidth = usableWidth - otherColsWidth;
+
+            if (nameWidth < minNameWidth)
+            {
+                nameWidth = minNameWidth;
+            }
+
+            // 仅在宽度显著变化时更新，防止 PropertyChanged 循环
+            if (Math.Abs(nameCol.Width - nameWidth) > 1)
+            {
+                nameCol.Width = nameWidth;
+            }
+
+            // ── 第二阶段：Name 已到底线后仍溢出，等比压缩其他所有可见列 ──
+            double totalUsed = nameWidth + otherColsWidth;
+            if (totalUsed > usableWidth && otherColsWidth > 0)
+            {
+                double targetOtherWidth = usableWidth - nameWidth;
+                if (targetOtherWidth < 0) targetOtherWidth = 0;
+
+                double scale = targetOtherWidth / otherColsWidth;
+                double minOtherCol = 30;
+
+                foreach (var col in otherCols)
                 {
-                    padding += SystemParameters.VerticalScrollBarWidth;
-                }
-
-                double availableWidth = listWidth - otherColsWidth - padding;
-
-                if (availableWidth > 100)
-                {
-                    // Update width only if it changes significantly to avoid infinite loops if we are being called by PropertyChanged
-                    if (Math.Abs(nameCol.Width - availableWidth) > 1)
+                    double w = col.ActualWidth > 0 ? col.ActualWidth : (double.IsNaN(col.Width) ? 0 : col.Width);
+                    double newW = Math.Max(minOtherCol, w * scale);
+                    if (Math.Abs(col.Width - newW) > 1)
                     {
-                        nameCol.Width = availableWidth;
+                        col.Width = newW;
                     }
                 }
             }

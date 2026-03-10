@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:i18n="clr-namespace:YiboFile.Services.Localization"
              mc:Ignorable="d" 
              d:DesignHeight="600" d:DesignWidth="800">
     <Border Padding="20" Background="{DynamicResource BackgroundSecondaryBrush}">
@@ -14,11 +15,11 @@
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
-            <TextBlock Text="库管理" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,8" Foreground="{DynamicResource ForegroundPrimaryBrush}" Grid.Row="0" />
-            <TextBlock Text="管理您的文件库。您可以添加文件夹作为库，以便快速访问和索引。" FontSize="13" TextWrapping="Wrap" Margin="0,0,0,15" Foreground="{DynamicResource ForegroundSecondaryBrush}" Grid.Row="1" />
+            <TextBlock Text="{i18n:Loc Key=Settings.Library.Title}" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,8" Foreground="{DynamicResource ForegroundPrimaryBrush}" Grid.Row="0" />
+            <TextBlock Text="{i18n:Loc Key=Settings.Library.Desc}" FontSize="13" TextWrapping="Wrap" Margin="0,0,0,15" Foreground="{DynamicResource ForegroundSecondaryBrush}" Grid.Row="1" />
 
             <StackPanel Orientation="Horizontal" Margin="0,0,0,15" Grid.Row="2">
-                <Button Content="➕ 添加库" Command="{Binding AddLibraryCommand}" Padding="15,8,15,8" Background="{DynamicResource AccentDefaultBrush}" Foreground="{DynamicResource ForegroundOnAccentBrush}" BorderThickness="0" Cursor="Hand" FontSize="13" Style="{DynamicResource ModernAccentButtonStyle}" />
+                <Button Content="{i18n:Loc Key=Settings.Library.AddLibrary}" Command="{Binding AddLibraryCommand}" Padding="15,8,15,8" Background="{DynamicResource AccentDefaultBrush}" Foreground="{DynamicResource ForegroundOnAccentBrush}" BorderThickness="0" Cursor="Hand" FontSize="13" Style="{DynamicResource ModernAccentButtonStyle}" />
             </StackPanel>
 
             <ItemsControl ItemsSource="{Binding Libraries}" Grid.Row="3">
@@ -45,7 +46,7 @@
                                         Command="{Binding DataContext.RemoveLibraryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                         CommandParameter="{Binding}"
                                         Width="32" Height="32" 
-                                        Background="Transparent" BorderThickness="0" Foreground="#EF5350" Cursor="Hand" ToolTip="移除库"
+                                        Background="Transparent" BorderThickness="0" Foreground="#EF5350" Cursor="Hand" ToolTip="{i18n:Loc Key=Settings.Library.RemoveLibrary}"
                                         Style="{DynamicResource ModernButtonStyle}" />
                             </Grid>
                         </Border>

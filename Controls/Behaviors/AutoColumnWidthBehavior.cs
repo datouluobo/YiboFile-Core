@@ -63,6 +63,7 @@ namespace YiboFile.Controls.Behaviors
             if (columns == null || columns.Count == 0) return;
 
             var fillColumns = new System.Collections.Generic.List<GridViewColumn>();
+            var otherColumns = new System.Collections.Generic.List<GridViewColumn>();
             double otherColumnsWidth = 0;
 
             foreach (var col in columns)
@@ -75,11 +76,11 @@ namespace YiboFile.Controls.Behaviors
                 }
                 else
                 {
-                    // Compute actual width or specified width
                     double w = col.ActualWidth > 0 ? col.ActualWidth : (double.IsNaN(col.Width) ? 0 : col.Width);
                     if (w > 0)
                     {
                         otherColumnsWidth += w;
+                        otherColumns.Add(col);
                     }
                 }
             }
@@ -88,21 +89,40 @@ namespace YiboFile.Controls.Behaviors
 
             double scrollBarWidth = SystemParameters.VerticalScrollBarWidth;
             double availableWidth = _listView.ActualWidth;
-            
-            // Subtract scrollbar and margins (reduce margin from 20 to 2 to eliminate gap)
-            double totalFillWidth = availableWidth - otherColumnsWidth - scrollBarWidth - 2;
-            
-            double minWidthPerColumn = 120;
-            if (totalFillWidth < (minWidthPerColumn * fillColumns.Count)) 
+            double usableWidth = availableWidth - scrollBarWidth - 2;
+
+            // ── 第一阶段：压缩弹性列（Name）──
+            double minFillWidth = 40;
+            double fillWidth = usableWidth - otherColumnsWidth;
+
+            if (fillWidth < minFillWidth * fillColumns.Count)
             {
-                totalFillWidth = minWidthPerColumn * fillColumns.Count;
+                fillWidth = minFillWidth * fillColumns.Count;
             }
 
-            double widthPerFillCol = totalFillWidth / fillColumns.Count;
-
+            double widthPerFillCol = fillWidth / fillColumns.Count;
             foreach (var fillCol in fillColumns)
             {
                 fillCol.Width = widthPerFillCol;
+            }
+
+            // ── 第二阶段：如果弹性列已到下限、总宽度仍然溢出，等比压缩其他列 ──
+            double totalUsed = fillWidth + otherColumnsWidth;
+            if (totalUsed > usableWidth && otherColumnsWidth > 0)
+            {
+                // 需要从其他列中整体再砍掉的宽度
+                double targetOtherWidth = usableWidth - fillWidth;
+                if (targetOtherWidth < 0) targetOtherWidth = 0;
+
+                double scale = targetOtherWidth / otherColumnsWidth;
+                double minOtherCol = 30; // 每列的绝对最小宽度
+
+                foreach (var col in otherColumns)
+                {
+                    double w = col.ActualWidth > 0 ? col.ActualWidth : (double.IsNaN(col.Width) ? 0 : col.Width);
+                    double newW = Math.Max(minOtherCol, w * scale);
+                    col.Width = newW;
+                }
             }
         }
 

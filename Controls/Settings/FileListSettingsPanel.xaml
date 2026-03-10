@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:i18n="clr-namespace:YiboFile.Services.Localization"
              mc:Ignorable="d" 
              Focusable="True" FocusVisualStyle="{x:Null}"
              d:DesignHeight="600" d:DesignWidth="800">
@@ -12,9 +13,11 @@
                 <EventSetter Event="KeyDown" Handler="NumericTextBox_KeyDown" />
                 <EventSetter Event="LostFocus" Handler="NumericTextBox_LostFocus" />
                 <EventSetter Event="PreviewTextInput" Handler="NumericTextBox_PreviewTextInput" />
+                <EventSetter Event="GotFocus" Handler="NumericTextBox_GotFocus" />
+                <EventSetter Event="PreviewMouseWheel" Handler="NumericTextBox_PreviewMouseWheel" />
             </Style>
         </StackPanel.Resources>
-        <TextBlock Text="列宽设置" FontSize="18" FontWeight="Bold" Margin="0,0,0,16" />
+        <TextBlock Text="{i18n:Loc Key=Settings.FileList.ColumnWidths}" FontSize="18" FontWeight="Bold" Margin="0,0,0,16" />
 
         <Grid Margin="0,12,0,12">
             <Grid.ColumnDefinitions>
@@ -22,14 +25,14 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <TextBlock Text="标签列宽度:" FontSize="14" VerticalAlignment="Center" Margin="0,0,12,0" MinWidth="140" MinHeight="32" Grid.Column="0" />
+            <TextBlock Text="{i18n:Loc Key=Settings.FileList.TagColumnWidth}" FontSize="14" VerticalAlignment="Center" Margin="0,0,12,0" MinWidth="140" MinHeight="32" Grid.Column="0" />
             <TextBox MaxLength="4" Text="{Binding ColTagsWidthInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="14" Width="60" Height="32" VerticalContentAlignment="Center" TextAlignment="Center" Padding="5,0,5,0" Margin="0,0,8,0" Grid.Column="1" />
             <StackPanel Orientation="Vertical" Grid.Column="2">
                 <Button Content="▲" Width="24" Height="16" FontSize="10" Padding="0" Margin="0,0,0,2" VerticalAlignment="Center" Click="TagsWidthUp_Click" Style="{DynamicResource ModernButtonStyle}" />
                 <Button Content="▼" Width="24" Height="16" FontSize="10" Padding="0" VerticalAlignment="Center" Click="TagsWidthDown_Click" Style="{DynamicResource ModernButtonStyle}" />
             </StackPanel>
         </Grid>
-        <TextBlock Text="（范围：50-500）" FontSize="12" Foreground="Gray" Margin="152,-8,0,0" />
+        <TextBlock Text="{i18n:Loc Key=Settings.FileList.Range50_500}" FontSize="12" Foreground="Gray" Margin="152,-8,0,0" />
 
         <Grid Margin="0,12,0,12">
             <Grid.ColumnDefinitions>
@@ -37,14 +40,14 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <TextBlock Text="备注列宽度:" FontSize="14" VerticalAlignment="Center" Margin="0,0,12,0" MinWidth="140" MinHeight="32" Grid.Column="0" />
+            <TextBlock Text="{i18n:Loc Key=Settings.FileList.NotesColumnWidth}" FontSize="14" VerticalAlignment="Center" Margin="0,0,12,0" MinWidth="140" MinHeight="32" Grid.Column="0" />
             <TextBox MaxLength="4" Text="{Binding ColNotesWidthInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="14" Width="60" Height="32" VerticalContentAlignment="Center" TextAlignment="Center" Padding="5,0,5,0" Margin="0,0,8,0" Grid.Column="1" />
             <StackPanel Orientation="Vertical" Grid.Column="2">
                 <Button Content="▲" Width="24" Height="16" FontSize="10" Padding="0" Margin="0,0,0,2" VerticalAlignment="Center" Click="NotesWidthUp_Click" Style="{DynamicResource ModernButtonStyle}" />
                 <Button Content="▼" Width="24" Height="16" FontSize="10" Padding="0" VerticalAlignment="Center" Click="NotesWidthDown_Click" Style="{DynamicResource ModernButtonStyle}" />
             </StackPanel>
         </Grid>
-        <TextBlock Text="（范围：100-800）" FontSize="12" Foreground="Gray" Margin="152,-8,0,0" />
+        <TextBlock Text="{i18n:Loc Key=Settings.FileList.Range100_800}" FontSize="12" Foreground="Gray" Margin="152,-8,0,0" />
 
     </StackPanel>
 </UserControl>
