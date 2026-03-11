@@ -96,25 +96,26 @@
                     <Border x:Name="PART_RootBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" ClipToBounds="False">
                         <Grid ClipToBounds="False">
                             <!-- Divider line - always centered, color changes on hover -->
-                            <Border x:Name="PART_DividerLine" Background="{DynamicResource DividerBrush}" Visibility="{DynamicResource UI.Splitter.VisibleLine}" Panel.ZIndex="-1" />
+                            <Border x:Name="PART_DividerLine" Background="{DynamicResource DividerBrush}" Width="1" Height="1" Visibility="Visible" Panel.ZIndex="-1" />
                             
                             <!-- Button container - naturally centered, no negative margins -->
                             <StackPanel x:Name="PART_ButtonContainer" HorizontalAlignment="Center" VerticalAlignment="Center" Panel.ZIndex="4000" Opacity="{DynamicResource UI.Splitter.CollapseButtonOpacity}">
                                        
                                 <StackPanel.Resources>
                                     <Style TargetType="Button">
-                                        <Setter Property="Width" Value="10" />
-                                        <Setter Property="Height" Value="14" />
+                                        <Setter Property="Width" Value="12" />
+                                        <Setter Property="Height" Value="16" />
                                         <Setter Property="Margin" Value="1" />
-                                        <Setter Property="Background" Value="Transparent" />
-                                        <Setter Property="BorderThickness" Value="0" />
+                                        <Setter Property="Background" Value="{DynamicResource BackgroundPrimaryBrush}" />
+                                        <Setter Property="BorderThickness" Value="1" />
+                                        <Setter Property="BorderBrush" Value="{DynamicResource DividerBrush}" />
                                         <Setter Property="Cursor" Value="Hand" />
                                         <Setter Property="Template">
                                             <Setter.Value>
                                                 <ControlTemplate TargetType="Button">
                                                     <Grid>
                                                         <!-- 实体背景 -->
-                                                        <Border x:Name="PART_Bg" Background="{TemplateBinding Background}" CornerRadius="2" />
+                                                        <Border x:Name="PART_Bg" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="3" />
                                                         <!-- Chevron线条箭头 -->
                                                         <Path x:Name="PART_Arrow" Stroke="{DynamicResource ForegroundSecondaryBrush}" StrokeThickness="1.5" HorizontalAlignment="Center" VerticalAlignment="Center" Stretch="None" />
                                                     </Grid>
@@ -122,11 +123,13 @@
                                                         <!-- 鼠标悬停 -->
                                                         <Trigger Property="IsMouseOver" Value="True">
                                                             <Setter TargetName="PART_Bg" Property="Background" Value="{DynamicResource ControlHoverBrush}" />
-                                                            <Setter TargetName="PART_Arrow" Property="Stroke" Value="{DynamicResource ForegroundPrimaryBrush}" />
+                                                            <Setter TargetName="PART_Arrow" Property="Stroke" Value="{DynamicResource AccentPrimaryBrush}" />
+                                                            <Setter TargetName="PART_Bg" Property="BorderBrush" Value="{DynamicResource AccentPrimaryBrush}" />
                                                         </Trigger>
                                                         <Trigger Property="IsPressed" Value="True">
                                                             <Setter TargetName="PART_Bg" Property="Background" Value="{DynamicResource ControlPressedBrush}" />
-                                                            <Setter TargetName="PART_Arrow" Property="Stroke" Value="{DynamicResource ForegroundPrimaryBrush}" />
+                                                            <Setter TargetName="PART_Arrow" Property="Stroke" Value="{DynamicResource AccentPressedBrush}" />
+                                                            <Setter TargetName="PART_Bg" Property="BorderBrush" Value="{DynamicResource AccentPressedBrush}" />
                                                         </Trigger>
                                                         
                                                         <!-- 方向Chevron定义 -->
@@ -167,7 +170,7 @@
                             <!-- Divider Setup -->
                             <Setter TargetName="PART_DividerLine" Property="HorizontalAlignment" Value="Center" />
                             <Setter TargetName="PART_DividerLine" Property="VerticalAlignment" Value="Stretch" />
-                            <Setter TargetName="PART_DividerLine" Property="Width" Value="{DynamicResource UI.Splitter.LineThickness}" />
+                            <Setter TargetName="PART_DividerLine" Property="Width" Value="1" />
                             <Setter TargetName="PART_DividerLine" Property="Height" Value="NaN" />
                             
                             <!-- Container Setup -->
@@ -175,12 +178,12 @@
                             <Setter TargetName="PART_ButtonContainer" Property="Margin" Value="0" />
                             
                             <!-- Vertical Buttons Spacing & Size -->
-                            <Setter TargetName="PART_CollapsePreviousButton" Property="Width" Value="10" />
-                            <Setter TargetName="PART_CollapsePreviousButton" Property="Height" Value="14" />
+                            <Setter TargetName="PART_CollapsePreviousButton" Property="Width" Value="12" />
+                            <Setter TargetName="PART_CollapsePreviousButton" Property="Height" Value="18" />
                             <Setter TargetName="PART_CollapsePreviousButton" Property="Margin" Value="1,6,1,6" />
                             
-                            <Setter TargetName="PART_CollapseNextButton" Property="Width" Value="10" />
-                            <Setter TargetName="PART_CollapseNextButton" Property="Height" Value="14" />
+                            <Setter TargetName="PART_CollapseNextButton" Property="Width" Value="12" />
+                            <Setter TargetName="PART_CollapseNextButton" Property="Height" Value="18" />
                             <Setter TargetName="PART_CollapseNextButton" Property="Margin" Value="1,6,1,6" />
                             
                             <!-- Default Arrows -->
@@ -194,19 +197,19 @@
                             <Setter TargetName="PART_DividerLine" Property="HorizontalAlignment" Value="Stretch" />
                             <Setter TargetName="PART_DividerLine" Property="VerticalAlignment" Value="Center" />
                             <Setter TargetName="PART_DividerLine" Property="Width" Value="NaN" />
-                            <Setter TargetName="PART_DividerLine" Property="Height" Value="{DynamicResource UI.Splitter.LineThickness}" />
+                            <Setter TargetName="PART_DividerLine" Property="Height" Value="1" />
                             
                             <!-- Container Setup -->
                             <Setter TargetName="PART_ButtonContainer" Property="Orientation" Value="Horizontal" />
                             <Setter TargetName="PART_ButtonContainer" Property="Margin" Value="0" />
                             
                             <!-- Horizontal Buttons Spacing & Size -->
-                            <Setter TargetName="PART_CollapsePreviousButton" Property="Width" Value="14" />
-                            <Setter TargetName="PART_CollapsePreviousButton" Property="Height" Value="10" />
+                            <Setter TargetName="PART_CollapsePreviousButton" Property="Width" Value="18" />
+                            <Setter TargetName="PART_CollapsePreviousButton" Property="Height" Value="12" />
                             <Setter TargetName="PART_CollapsePreviousButton" Property="Margin" Value="6,1,6,1" />
                             
-                            <Setter TargetName="PART_CollapseNextButton" Property="Width" Value="14" />
-                            <Setter TargetName="PART_CollapseNextButton" Property="Height" Value="10" />
+                            <Setter TargetName="PART_CollapseNextButton" Property="Width" Value="18" />
+                            <Setter TargetName="PART_CollapseNextButton" Property="Height" Value="12" />
                             <Setter TargetName="PART_CollapseNextButton" Property="Margin" Value="6,1,6,1" />
                             
                             <!-- Default Arrows -->
@@ -218,32 +221,27 @@
                              Mouse Hover State
                              ========================= -->
                         <Trigger Property="IsMouseOver" Value="True">
-                            <!-- Hide center divider line -->
-                            <Setter TargetName="PART_DividerLine" Property="Visibility" Value="Collapsed" />
                             <!-- Show buttons fully -->
                             <Setter TargetName="PART_ButtonContainer" Property="Opacity" Value="1.0" />
-                            <!-- Show background and borders on the entire splitter area -->
-                            <Setter Property="Background" Value="{DynamicResource ControlHoverBrush}" />
+                            <Setter TargetName="PART_DividerLine" Property="Background" Value="{DynamicResource AccentPrimaryBrush}" />
                         </Trigger>
                         
-                        <!-- Vertical splitter hover: show left and right borders -->
+                        <!-- Vertical splitter hover: make center line thicker -->
                         <MultiTrigger>
                             <MultiTrigger.Conditions>
                                 <Condition Property="IsMouseOver" Value="True" />
                                 <Condition Property="Orientation" Value="Vertical" />
                             </MultiTrigger.Conditions>
-                            <Setter Property="BorderBrush" Value="{DynamicResource AccentSelectedBrush}" />
-                            <Setter Property="BorderThickness" Value="1,0,1,0" />
+                            <Setter TargetName="PART_DividerLine" Property="Width" Value="12" />
                         </MultiTrigger>
                         
-                        <!-- Horizontal splitter hover: show top and bottom borders -->
+                        <!-- Horizontal splitter hover: make center line thicker -->
                         <MultiTrigger>
                             <MultiTrigger.Conditions>
                                 <Condition Property="IsMouseOver" Value="True" />
                                 <Condition Property="Orientation" Value="Horizontal" />
                             </MultiTrigger.Conditions>
-                            <Setter Property="BorderBrush" Value="{DynamicResource AccentSelectedBrush}" />
-                            <Setter Property="BorderThickness" Value="0,1,0,1" />
+                            <Setter TargetName="PART_DividerLine" Property="Height" Value="12" />
                         </MultiTrigger>
                         
                         <!-- =========================

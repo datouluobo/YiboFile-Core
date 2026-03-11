@@ -9,6 +9,7 @@ namespace YiboFile.Controls
 {
     public partial class BackupBrowserControl : UserControl
     {
+
         public BackupBrowserControl()
         {
             InitializeComponent();
@@ -17,9 +18,10 @@ namespace YiboFile.Controls
             if (App.ServiceProvider != null)
             {
                 var backupService = App.ServiceProvider.GetService<IBackupService>();
+                var messageBus = App.ServiceProvider.GetService<YiboFile.ViewModels.Messaging.IMessageBus>();
                 if (backupService != null)
                 {
-                    var vm = new BackupViewModel(backupService);
+                    var vm = new BackupViewModel(backupService, messageBus);
                     this.DataContext = vm;
 
                     // Auto load on Visible changed (e.g. when switched to)

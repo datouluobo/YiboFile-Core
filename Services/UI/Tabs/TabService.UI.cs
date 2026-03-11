@@ -11,7 +11,7 @@ using YiboFile.Dialogs;
 using YiboFile.Models;
 using YiboFile.Services.Config;
 using YiboFile.Services.Search;
-
+using System.Diagnostics;
 namespace YiboFile.Services.Tabs
 {
     public class TabUiContext
@@ -53,6 +53,7 @@ namespace YiboFile.Services.Tabs
 
         public void CreatePathTab(string path, bool forceNewTab = false, bool skipValidation = false, bool activate = true)
         {
+            Debug.WriteLine($"[DEBUG-TABS] CreatePathTab for Pane {Pane}: {path}, Activate: {activate}");
             EnsureUi();
             if (string.IsNullOrEmpty(path)) return;
 
@@ -112,6 +113,7 @@ namespace YiboFile.Services.Tabs
                 Title = CalculateTabDisplayTitle(path)
             };
 
+            Debug.WriteLine($"[DEBUG-TABS] Creating new PathTab: {path} for Pane {Pane}");
             CreateTabInternal(newTab, activate);
         }
 

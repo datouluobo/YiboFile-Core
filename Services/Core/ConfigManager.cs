@@ -204,6 +204,16 @@ namespace YiboFile
 
         // 中键打开标签页行为
         public bool ActivateNewTabOnMiddleClick { get; set; } = true;
+
+        // ── 剪切板设置 ──
+        public int ClipboardMaxHistory { get; set; } = 50;
+        public bool ClipboardAutoClean { get; set; } = true;
+        public int ClipboardRetentionDays { get; set; } = 7;
+        public bool ClipboardPersistHistory { get; set; } = true;
+        public bool ClipboardCaptureFiles { get; set; } = true;
+        public bool ClipboardCaptureImages { get; set; } = true;
+        public bool ClipboardCaptureText { get; set; } = true;
+        public bool ClipboardCaptureScreenshots { get; set; } = true;
     }
 
     public class AllSettingsConfig

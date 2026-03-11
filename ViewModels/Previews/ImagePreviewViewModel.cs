@@ -110,14 +110,12 @@ namespace YiboFile.ViewModels.Previews
 
         private ImageSource CreateBitmapSource(string filePath)
         {
-            BitmapImage bitmap = new BitmapImage();
-            using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
-            {
-                bitmap.BeginInit();
-                bitmap.StreamSource = fs;
-                bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                bitmap.EndInit();
-            }
+            var bytes = File.ReadAllBytes(filePath);
+            var bitmap = new BitmapImage();
+            bitmap.BeginInit();
+            bitmap.StreamSource = new MemoryStream(bytes);
+            bitmap.CacheOption = BitmapCacheOption.OnLoad;
+            bitmap.EndInit();
             bitmap.Freeze();
             return bitmap;
         }

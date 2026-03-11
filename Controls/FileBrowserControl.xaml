@@ -417,7 +417,7 @@
             </ScrollViewer>
 
             <!-- 中间：分割器（可用来调整内嵌预览宽度） -->
-            <controls:CollapsibleGridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Center" VerticalAlignment="Stretch" Style="{StaticResource VerticalCollapsibleGridSplitterStyle}"
+            <controls:CollapsibleGridSplitter Grid.Column="1" Width="12" HorizontalAlignment="Center" VerticalAlignment="Stretch" Style="{StaticResource VerticalCollapsibleGridSplitterStyle}"
                                               Visibility="{Binding IsInnerPreviewVisible, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
             <!-- 右侧：内嵌竖向Tab的预览/备注面板 -->

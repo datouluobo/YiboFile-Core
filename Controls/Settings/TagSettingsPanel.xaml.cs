@@ -61,26 +61,27 @@ namespace YiboFile.Controls.Settings
         private void CommitNumericInput(TextBox textBox)
         {
             if (textBox == null) return;
-            var binding = textBox.GetBindingExpression(TextBox.TextProperty);
-            if (binding != null)
-            {
-                binding.UpdateSource();
-                string propertyName = binding.ParentBinding.Path.Path;
-                if (!string.IsNullOrEmpty(propertyName) && _viewModel != null)
-                {
-                    Action resetAction = propertyName switch
-                    {
-                        "TagFontSizeInput" => () => _viewModel.TagFontSize = _viewModel.TagFontSize,
-                        "TagBoxWidthInput" => () => _viewModel.TagBoxWidth = _viewModel.TagBoxWidth,
-                        _ => null
-                    };
 
-                    if (resetAction != null)
-                    {
-                        _viewModel.InvalidateInputProxy(propertyName, resetAction);
-                    }
+            var binding = textBox.GetBindingExpression(TextBox.TextProperty);
+            string propertyName = binding?.ParentBinding?.Path?.Path;
+            if (string.IsNullOrEmpty(propertyName) || _viewModel == null) { this.Focus(); return; }
+
+            binding.UpdateSource();
+
+            if (double.TryParse(textBox.Text, out double value))
+            {
+                switch (propertyName)
+                {
+                    case "TagFontSizeInput":
+                        _viewModel.TagFontSize = value;
+                        break;
+                    case "TagBoxWidthInput":
+                        _viewModel.TagBoxWidth = value;
+                        break;
                 }
             }
+            _viewModel.InvalidateInputProxy(propertyName);
+
             this.Focus();
         }
     }

@@ -5,6 +5,7 @@
              xmlns:viewModels="clr-namespace:YiboFile.ViewModels"
              xmlns:local="clr-namespace:YiboFile"
              xmlns:converters="clr-namespace:YiboFile.Converters"
+             xmlns:previews="clr-namespace:YiboFile.ViewModels.Previews"
              HorizontalAlignment="Stretch"
              VerticalAlignment="Stretch"
              MinWidth="100">
@@ -49,7 +50,7 @@
         </Grid.ColumnDefinitions>
 
         <!-- 左侧的内容区域 -->
-        <Border Grid.Column="0" Background="{DynamicResource BackgroundPrimaryBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="4" Margin="0,4,4,4">
+        <Border Grid.Column="0" Background="Transparent" BorderThickness="0" Margin="0,4,4,4">
             <Grid>
                 <!-- 预览内容 (当BtnPreview选中时显示) -->
                 <Grid x:Name="PreviewArea" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ClipToBounds="True">
@@ -68,11 +69,73 @@
                             <ResourceDictionary.MergedDictionaries>
                                 <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/Controls/PreviewTemplates.xaml"/>
                             </ResourceDictionary.MergedDictionaries>
+
+                            <!-- 为小预览自定义极简 DataTemplate，优先级高于全局模板 -->
+                            
+                            <!-- 图片极简预览 -->
+                            <DataTemplate DataType="{x:Type previews:ImagePreviewViewModel}">
+                                <Image Source="{Binding ImageSource}" Stretch="Uniform" RenderOptions.BitmapScalingMode="Fant"/>
+                            </DataTemplate>
+
+                            <!-- PDF 极简预览 (隐藏工具栏) -->
+                            <DataTemplate DataType="{x:Type previews:PdfPreviewViewModel}">
+                                <controls:PdfView FilePath="{Binding FilePath}" HideToolbar="True"/>
+                            </DataTemplate>
+
+                            <!-- Markdown 极简预览 -->
+                            <DataTemplate DataType="{x:Type previews:MarkdownPreviewViewModel}">
+                                <controls:MarkdownPreviewControl/>
+                            </DataTemplate>
+
+                            <!-- 文本极简预览 (只读，自动换行) -->
+                            <DataTemplate DataType="{x:Type previews:TextPreviewViewModel}">
+                                <TextBox Text="{Binding Content, Mode=OneWay}" 
+                                         AcceptsReturn="True" 
+                                         IsReadOnly="True" 
+                                         TextWrapping="Wrap"
+                                         FontFamily="Consolas" 
+                                         VerticalScrollBarVisibility="Auto"
+                                         HorizontalScrollBarVisibility="Auto"
+                                         BorderThickness="0"
+                                         Padding="5"/>
+                            </DataTemplate>
+
+                            <!-- 媒体极简预览 (视频/音频) -->
+                            <DataTemplate DataType="{x:Type previews:MediaPreviewViewModel}">
+                                <Grid>
+                                    <controls:VideoPreviewControl FilePath="{Binding FilePath}" Visibility="{Binding IsVideo, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                    <controls:AudioPreviewControl FilePath="{Binding FilePath}" Visibility="{Binding IsAudio, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                </Grid>
+                            </DataTemplate>
+
+                            <!-- 文档极简预览 (Word) -->
+                            <DataTemplate DataType="{x:Type previews:WordPreviewViewModel}">
+                                <Grid>
+                                    <controls:WordPreviewControl/>
+                                    <Border Background="{DynamicResource OverlayDarkBrush}" Visibility="{Binding NeedsConversion, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                            <TextBlock Text="{Binding ConversionMessage}" Foreground="{DynamicResource ForegroundInvertBrush}" TextWrapping="Wrap" Margin="10" TextAlignment="Center"/>
+                                            <Button Content="立即转换" Command="{Binding ConvertCommand}" Style="{DynamicResource PrimaryButtonStyle}" Margin="0,10,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+                            </DataTemplate>
+
+                            <!-- 表格极简预览 (Excel) -->
+                            <DataTemplate DataType="{x:Type previews:ExcelPreviewViewModel}">
+                                <controls:ExcelPreviewControl/>
+                            </DataTemplate>
+
+                            <!-- 演示稿极简预览 (PPT) -->
+                            <DataTemplate DataType="{x:Type previews:PowerPointPreviewViewModel}">
+                                <controls:PowerPointPreviewControl/>
+                            </DataTemplate>
                         </ResourceDictionary>
                     </Grid.Resources>
 
                     <ContentPresenter Content="{Binding ActivePreview}"/>
 
+                    <!-- 加载中遮罩 -->
                     <Grid Visibility="{Binding ActivePreview.IsLoading, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}" Background="{DynamicResource OverlayLightBrush}">
                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                             <ProgressBar IsIndeterminate="True" Width="100" Height="4" Margin="0,0,0,10"/>
@@ -80,6 +143,7 @@
                         </StackPanel>
                     </Grid>
                     
+                    <!-- 没有任何项被选中时 -->
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                         <StackPanel.Style>
                             <Style TargetType="StackPanel">
@@ -119,22 +183,22 @@
             </Grid>
         </Border>
 
-        <!-- 右侧的竖排选项卡按钮（占据全部高度） -->
+        <!-- 右侧的竖排选项卡按钮（等分高度） -->
         <Grid Grid.Column="1" Margin="0,4,0,4">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
             
-            <RadioButton x:Name="BtnPreview" Grid.Row="0" Margin="0,0,0,2" IsChecked="True" Style="{DynamicResource VerticalTabRadioButtonStyle}" ToolTip="预览文件">
+            <RadioButton x:Name="BtnPreview" Grid.Row="0" Margin="0,0,0,2" IsChecked="True" Style="{DynamicResource VerticalTabRadioButtonStyle}" MinHeight="70" ToolTip="预览文件" FocusVisualStyle="{x:Null}">
                 <StackPanel Orientation="Vertical" VerticalAlignment="Center" HorizontalAlignment="Center">
-                    <TextBlock Text="预" FontSize="13" Margin="0,0,0,2" HorizontalAlignment="Center"/>
+                    <TextBlock Text="预" FontSize="13" Margin="0,0,0,4" HorizontalAlignment="Center"/>
                     <TextBlock Text="览" FontSize="13" HorizontalAlignment="Center"/>
                 </StackPanel>
             </RadioButton>
-            <RadioButton x:Name="BtnNotes" Grid.Row="1" Margin="0,2,0,0" Style="{DynamicResource VerticalTabRadioButtonStyle}" ToolTip="文件备注">
+            <RadioButton x:Name="BtnNotes" Grid.Row="1" Margin="0,2,0,0" Style="{DynamicResource VerticalTabRadioButtonStyle}" MinHeight="70" ToolTip="文件备注" FocusVisualStyle="{x:Null}">
                 <StackPanel Orientation="Vertical" VerticalAlignment="Center" HorizontalAlignment="Center">
-                    <TextBlock Text="备" FontSize="13" Margin="0,0,0,2" HorizontalAlignment="Center"/>
+                    <TextBlock Text="备" FontSize="13" Margin="0,0,0,4" HorizontalAlignment="Center"/>
                     <TextBlock Text="注" FontSize="13" HorizontalAlignment="Center"/>
                 </StackPanel>
             </RadioButton>

@@ -77,10 +77,15 @@ namespace YiboFile.ViewModels.Settings
             set
             {
                 value = Math.Clamp(value, 10, 48);
-                bool changed = SetProperty(ref _tagFontSize, value);
+                if (SetProperty(ref _tagFontSize, value))
                 {
                     _tagFontSizeInput = null;
-                    if (changed) _configService?.Update(c => c.TagFontSize = value);
+                    OnPropertyChanged(nameof(TagFontSizeInput));
+                    _configService?.Update(c => c.TagFontSize = value);
+                }
+                else
+                {
+                    _tagFontSizeInput = null;
                     OnPropertyChanged(nameof(TagFontSizeInput));
                 }
             }
@@ -100,10 +105,15 @@ namespace YiboFile.ViewModels.Settings
             set
             {
                 value = Math.Clamp(value, 0, 500);
-                bool changed = SetProperty(ref _tagBoxWidth, value);
+                if (SetProperty(ref _tagBoxWidth, value))
                 {
                     _tagBoxWidthInput = null;
-                    if (changed) _configService?.Update(c => c.TagBoxWidth = value);
+                    OnPropertyChanged(nameof(TagBoxWidthInput));
+                    _configService?.Update(c => c.TagBoxWidth = value);
+                }
+                else
+                {
+                    _tagBoxWidthInput = null;
                     OnPropertyChanged(nameof(TagBoxWidthInput));
                 }
             }

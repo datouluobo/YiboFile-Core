@@ -483,8 +483,10 @@ namespace YiboFile.Handlers
             // 更新底层各个面板的底侧内部预览窗口显示状态（处于主预览模式时，这些应该收起）
             if (vm != null)
             {
-                if (vm.PrimaryPane != null) vm.PrimaryPane.IsInnerPreviewVisible = (mode != PaneMode.Preview) && !vm.PrimaryPane.Preview.IsVisible;
-                if (vm.SecondaryPane != null) vm.SecondaryPane.IsInnerPreviewVisible = (mode != PaneMode.Preview) && !vm.SecondaryPane.Preview.IsVisible;
+                if (vm.PrimaryPane != null) 
+                    vm.PrimaryPane.IsInnerPreviewVisible = (mode != PaneMode.Preview) && (mode == PaneMode.DualPane || !vm.PrimaryPane.Preview.IsVisible);
+                if (vm.SecondaryPane != null) 
+                    vm.SecondaryPane.IsInnerPreviewVisible = (mode != PaneMode.Preview) && (mode == PaneMode.DualPane || !vm.SecondaryPane.Preview.IsVisible);
             }
         }
 

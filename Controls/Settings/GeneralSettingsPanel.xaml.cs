@@ -58,34 +58,30 @@ namespace YiboFile.Controls.Settings
         private void CommitNumericInput(TextBox textBox)
         {
             if (textBox == null) return;
-            
-            // 触发绑定更新（如果当前还在输入中）
-            var binding = textBox.GetBindingExpression(TextBox.TextProperty);
-            if (binding != null)
-            {
-                binding.UpdateSource();
-                
-                // 获取绑定的属性名
-                string propertyName = binding.ParentBinding.Path.Path;
-                if (!string.IsNullOrEmpty(propertyName) && _generalViewModel != null)
-                {
-                    // 根据 Input 属性名找到对应的底层属性 Reset Action
-                    Action resetAction = propertyName switch
-                    {
-                        "TabFixedWidthInput" => () => _generalViewModel.TabFixedWidth = _generalViewModel.TabFixedWidth,
-                        "TabMaxWidthInput" => () => _generalViewModel.TabMaxWidth = _generalViewModel.TabMaxWidth,
-                        "TabMinWidthInput" => () => _generalViewModel.TabMinWidth = _generalViewModel.TabMinWidth,
-                        _ => null
-                    };
 
-                    if (resetAction != null)
-                    {
-                        _generalViewModel.InvalidateInputProxy(propertyName, resetAction);
-                    }
+            var binding = textBox.GetBindingExpression(TextBox.TextProperty);
+            string propertyName = binding?.ParentBinding?.Path?.Path;
+            if (string.IsNullOrEmpty(propertyName) || _generalViewModel == null) { this.Focus(); return; }
+
+            binding.UpdateSource();
+
+            if (double.TryParse(textBox.Text, out double value))
+            {
+                switch (propertyName)
+                {
+                    case "TabFixedWidthInput":
+                        _generalViewModel.TabFixedWidth = value;
+                        break;
+                    case "TabMaxWidthInput":
+                        _generalViewModel.TabMaxWidth = value;
+                        break;
+                    case "TabMinWidthInput":
+                        _generalViewModel.TabMinWidth = value;
+                        break;
                 }
             }
+            _generalViewModel.InvalidateInputProxy(propertyName);
 
-            // 移动焦点以完全“确认”并隐藏光标
             this.Focus();
         }
 

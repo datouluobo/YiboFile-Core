@@ -307,6 +307,16 @@ namespace YiboFile
 
                 // 启动完成，启用配置保存
                 YiboFile.Services.Config.ConfigurationService.Instance.EnableSaving();
+
+                // 初始化剪切板监听和服务
+                YiboFile.Services.ClipboardHistory.ClipboardHistoryService.Instance.StartListening(this);
+                YiboFile.Services.ClipboardHistory.ClipboardHistoryService.Instance.LoadHistory();
+                YiboFile.Services.ClipboardHistory.ClipboardHistoryService.Instance.CleanExpiredItems();
+
+                // 启动剪切板定时清理（每小时）
+                var clipboardCleanTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromHours(1) };
+                clipboardCleanTimer.Tick += (s2, e2) => YiboFile.Services.ClipboardHistory.ClipboardHistoryService.Instance.CleanExpiredItems();
+                clipboardCleanTimer.Start();
             };
 
             this.SizeChanged += (s, e) => UpdateTabManagerMargin();

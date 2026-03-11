@@ -1,9 +1,10 @@
-﻿<UserControl x:Class="YiboFile.Controls.BackupBrowserControl"
+<UserControl x:Class="YiboFile.Controls.BackupBrowserControl"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:YiboFile.Controls"
+             xmlns:conv="clr-namespace:YiboFile.Converters"
              xmlns:vm="clr-namespace:YiboFile.ViewModels"
              xmlns:previews="clr-namespace:YiboFile.ViewModels.Previews"
              mc:Ignorable="d" 
@@ -13,6 +14,7 @@
 
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <conv:MathConverter x:Key="MathConverter"/>
         <Style TargetType="ListViewItem">
              <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
              <Setter Property="Foreground" Value="{DynamicResource ForegroundPrimaryBrush}"/>
@@ -40,11 +42,9 @@
         <!-- Main Content -->
         <Grid Grid.Row="1" Background="{DynamicResource BackgroundPrimaryBrush}">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="200"/>
+                <ColumnDefinition Width="200" MinWidth="150"/>
                 <ColumnDefinition Width="1"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="1"/>
-                <ColumnDefinition Width="350"/>
+                <ColumnDefinition Width="*" MinWidth="250"/>
             </Grid.ColumnDefinitions>
 
             <!-- Left: Backup Dates -->
@@ -69,10 +69,16 @@
             <DockPanel Grid.Column="2">
                 <TextBlock Text="文件列表" DockPanel.Dock="Top" Margin="10" FontWeight="SemiBold" Foreground="{DynamicResource ForegroundPrimaryBrush}"/>
                 
-                <ListView ItemsSource="{Binding SelectedBackup.Records}" SelectedItem="{Binding CurrentPreviewRecord}" BorderThickness="0" Background="Transparent" SelectionMode="Single">
+                <ListView x:Name="BackupFilesListView" ItemsSource="{Binding SelectedBackup.Records}" SelectedItem="{Binding CurrentPreviewRecord}" BorderThickness="0" Background="Transparent" SelectionMode="Single" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                     <ListView.View>
                         <GridView>
-                            <GridViewColumn Header="原始路径" Width="300" DisplayMemberBinding="{Binding OriginalPath}"/>
+                            <GridViewColumn Header="原始路径" Width="{Binding ActualWidth, ElementName=BackupFilesListView, Converter={StaticResource MathConverter}, ConverterParameter=-350}">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding OriginalPath}" TextTrimming="CharacterEllipsis" ToolTip="{Binding OriginalPath}"/>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
                             <GridViewColumn Header="大小" Width="80" DisplayMemberBinding="{Binding Size}"/>
                             <GridViewColumn Header="删除时间" Width="130" DisplayMemberBinding="{Binding DeletionTime}"/>
                             <GridViewColumn Header="操作" Width="110">
@@ -94,57 +100,6 @@
                 </ListView>
             </DockPanel>
 
-            <!-- Splitter 2 -->
-            <GridSplitter Grid.Column="3" Style="{StaticResource VerticalGridSplitterStyle}"/>
-
-            <!-- Right: Preview -->
-            <DockPanel Grid.Column="4" Background="{DynamicResource BackgroundSecondaryBrush}">
-                <TextBlock Text="预览" DockPanel.Dock="Top" Margin="10" FontWeight="SemiBold" Foreground="{DynamicResource ForegroundPrimaryBrush}"/>
-                <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1,0,0,0">
-                    <Grid>
-                        <!-- Preview Content -->
-                        <ContentControl Content="{Binding PreviewViewModel}">
-                            <ContentControl.Resources>
-                                <DataTemplate DataType="{x:Type previews:ImagePreviewViewModel}">
-                                    <Image Source="{Binding ImageSource}" Stretch="Uniform"/>
-                                </DataTemplate>
-                                <DataTemplate DataType="{x:Type previews:TextPreviewViewModel}">
-                                    <TextBox Text="{Binding Content}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" FontFamily="Consolas"/>
-                                </DataTemplate>
-                                <DataTemplate DataType="{x:Type previews:FolderPreviewViewModel}">
-                                    <ListView ItemsSource="{Binding Items}">
-                                        <ListView.View>
-                                            <GridView>
-                                                <GridViewColumn Header="名称" DisplayMemberBinding="{Binding Name}" Width="150"/>
-                                                <GridViewColumn Header="大小" DisplayMemberBinding="{Binding Size}" Width="70"/>
-                                            </GridView>
-                                        </ListView.View>
-                                    </ListView>
-                                </DataTemplate>
-                                <DataTemplate DataType="{x:Type previews:ErrorPreviewViewModel}">
-                                    <TextBlock Text="{Binding ErrorMessage}" Foreground="{DynamicResource StatusErrorBrush}" TextWrapping="Wrap" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                </DataTemplate>
-                            </ContentControl.Resources>
-                        </ContentControl>
-                        
-                        <!-- Empty State -->
-                        <TextBlock Text="选择一个文件进行预览" 
-                                   HorizontalAlignment="Center" VerticalAlignment="Center"
-                                   Foreground="{DynamicResource ForegroundSecondaryBrush}">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding PreviewViewModel}" Value="{x:Null}">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
-                    </Grid>
-                </Border>
-            </DockPanel>
         </Grid>
 
         <!-- Footer -->

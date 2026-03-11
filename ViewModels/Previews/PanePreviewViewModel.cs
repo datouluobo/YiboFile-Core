@@ -66,6 +66,13 @@ namespace YiboFile.ViewModels.Previews
             set => SetProperty(ref _currentNotes, value);
         }
 
+        private bool _isNotesVisible = true;
+        public bool IsNotesVisible
+        {
+            get => _isNotesVisible;
+            set => SetProperty(ref _isNotesVisible, value);
+        }
+
         private IPreviewViewModel _activePreview;
         public IPreviewViewModel ActivePreview
         {
@@ -107,6 +114,7 @@ namespace YiboFile.ViewModels.Previews
 
                 System.Windows.Application.Current.Dispatcher.BeginInvoke(new Action(() =>
                 {
+                    IsNotesVisible = m.ShowNotes;
                     if (m.SelectedItems?.Count > 0)
                     {
                         SelectedItem = m.SelectedItems[0] as FileSystemItem;

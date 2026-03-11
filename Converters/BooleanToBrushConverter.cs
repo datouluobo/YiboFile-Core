@@ -1,18 +1,20 @@
 using System;
 using System.Globalization;
 using System.Windows.Data;
+using System.Windows.Media;
 
 namespace YiboFile.Converters
 {
-    public class MathConverter : IValueConverter
+    public class BooleanToBrushConverter : IValueConverter
     {
+        public Brush TrueBrush { get; set; }
+        public Brush FalseBrush { get; set; }
+
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            if (value is double dValue && double.TryParse(parameter?.ToString(), out double dParam))
-            {
-                return Math.Max(0, dValue + dParam);
-            }
-            return value;
+            if (value is bool b && b)
+                return TrueBrush;
+            return FalseBrush;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

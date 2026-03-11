@@ -51,20 +51,16 @@ namespace YiboFile.ViewModels
             proxyField = inputString;
             OnPropertyChanged(propertyName);
 
-            // 2. 只有当能解析成数字时，且范围受控，才向底层派发真正的数据变更
+            // 2. 解析为数字后，只在值已落入合法范围时才更新底层值（不 Clamp）
+            //    超范围的中间输入（如 min=50 时输入 "1"）保留在代理中，等待 Enter/LostFocus 确认时 Clamp
             if (double.TryParse(inputString, out double parsedValue))
             {
-                double safeValue = Math.Clamp(parsedValue, min, Math.Max(min, max));
-
-                if (!Equals(targetField, safeValue))
+                double effectiveMax = Math.Max(min, max);
+                if (parsedValue >= min && parsedValue <= effectiveMax)
                 {
-                    targetField = safeValue;
-                    onSuccessPropertyUpdate?.Invoke(safeValue);
+                    onSuccessPropertyUpdate?.Invoke(parsedValue);
                 }
-                else if (parsedValue > Math.Max(min, max))
-                {
-                    onSuccessPropertyUpdate?.Invoke(safeValue);
-                }
+                // 超范围值：不更新底层，保留代理，等确认时处理
             }
             return true;
         }
@@ -84,17 +80,12 @@ namespace YiboFile.ViewModels
 
             if (int.TryParse(inputString, out int parsedValue))
             {
-                int safeValue = Math.Clamp(parsedValue, min, Math.Max(min, max));
-
-                if (!Equals(targetField, safeValue))
+                int effectiveMax = Math.Max(min, max);
+                if (parsedValue >= min && parsedValue <= effectiveMax)
                 {
-                    targetField = safeValue;
-                    onSuccessPropertyUpdate?.Invoke(safeValue);
+                    onSuccessPropertyUpdate?.Invoke(parsedValue);
                 }
-                else if (parsedValue > Math.Max(min, max))
-                {
-                    onSuccessPropertyUpdate?.Invoke(safeValue);
-                }
+                // 超范围值：不更新底层，保留代理，等确认时处理
             }
             return true;
         }

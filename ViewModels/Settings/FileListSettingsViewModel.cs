@@ -28,17 +28,27 @@ namespace YiboFile.ViewModels.Settings
             set
             {
                 value = Math.Clamp(value, 50, 500);
-                bool changed = SetProperty(ref _colTagsWidth, value);
+                if (Math.Abs(_colTagsWidth - value) < 0.001)
                 {
                     _colTagsWidthInput = null;
                     OnPropertyChanged(nameof(ColTagsWidthInput));
-                    if (changed)
-                    {
-                        _configService.Update(c => c.ColTagsWidth = value);
-                        // 同步写入 AppState，确保 ColumnService 立即可读
-                        SyncTagsWidthToState(value);
-                    }
+                    return;
                 }
+
+                // 1. 先更新底层数据模型，确保后续 UI 刷新能读到新值
+                _colTagsWidth = value;
+                SyncTagsWidthToState(value);
+
+                // 2. 更新配置门面并发射全局变更消息（同时维护副面板属性一致性）
+                _configService.Update(c => {
+                    c.ColTagsWidth = value;
+                    c.ColTagsWidth_Secondary = value;
+                });
+
+                // 3. 最后发出通知，触发面板 UI 逻辑执行 RefreshFileListColumns
+                OnPropertyChanged();
+                _colTagsWidthInput = null;
+                OnPropertyChanged(nameof(ColTagsWidthInput));
             }
         }
 
@@ -56,17 +66,27 @@ namespace YiboFile.ViewModels.Settings
             set
             {
                 value = Math.Clamp(value, 100, 800);
-                bool changed = SetProperty(ref _colNotesWidth, value);
+                if (Math.Abs(_colNotesWidth - value) < 0.001)
                 {
                     _colNotesWidthInput = null;
                     OnPropertyChanged(nameof(ColNotesWidthInput));
-                    if (changed)
-                    {
-                        _configService.Update(c => c.ColNotesWidth = value);
-                        // 同步写入 AppState，确保 ColumnService 立即可读
-                        SyncNotesWidthToState(value);
-                    }
+                    return;
                 }
+
+                // 1. 同步底层模型
+                _colNotesWidth = value;
+                SyncNotesWidthToState(value);
+
+                // 2. 同步配置门面
+                _configService.Update(c => {
+                    c.ColNotesWidth = value;
+                    c.ColNotesWidth_Secondary = value;
+                });
+
+                // 3. 通知 UI
+                OnPropertyChanged();
+                _colNotesWidthInput = null;
+                OnPropertyChanged(nameof(ColNotesWidthInput));
             }
         }
 

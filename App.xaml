@@ -42,6 +42,7 @@
                 <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/Controls/ComboBoxStyles.xaml"/>
                 <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/Controls/ContextMenuStyles.xaml"/>
                 <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/Controls/ContainerStyles.xaml"/>
+                <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/Controls/ClipboardStyles.xaml"/>
                 <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Dialogs/Styles/BaseDialogStyle.xaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>

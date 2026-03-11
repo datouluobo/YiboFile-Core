@@ -35,6 +35,7 @@ namespace YiboFile.ViewModels
         private readonly Dispatcher _dispatcher;
         private bool _isSecondary;
         private readonly NavigationService _navigationService;
+        private bool _isInitializing = true; // 防止构造期间触发文件加载
 
         private string _currentPath;
         private string _navigationMode = "Path"; // Path, Library, Tag, Search
@@ -111,7 +112,11 @@ namespace YiboFile.ViewModels
 
                     // No history management here (Moved to NavigationService)
 
-                    RequestRefresh();
+                    // 初始化阶段不触发文件加载，由标签页恢复流程统一驱动
+                    if (!_isInitializing)
+                    {
+                        RequestRefresh();
+                    }
                     // No PathChangedMessage publishing here (Service handles it)
                 }
             }
@@ -335,6 +340,10 @@ namespace YiboFile.ViewModels
             _messageBus.Subscribe<NavigationCompleteMessage>(OnNavigationComplete);
             _messageBus.Subscribe<Messaging.Messages.RestoreNavigationStateMessage>(OnRestoreNavigationState);
 
+            // 订阅库和标签变更
+            _messageBus.Subscribe<LibraryListChangedMessage>(OnLibraryListChanged);
+            _messageBus.Subscribe<Messaging.Messages.FocusedPaneChangedMessage>(msg => IsActive = (msg.IsSecondPaneFocused == _isSecondary));
+
             _searchFilterService = App.ServiceProvider?.GetService<SearchFilterService>();
             var errorService = App.ServiceProvider?.GetService<ErrorService>();
             _tagService = App.ServiceProvider?.GetService<ITagService>();
@@ -356,17 +365,21 @@ namespace YiboFile.ViewModels
 
             _fileViewMode = ConfigurationService.Instance.Get(cfg => cfg.FileViewMode);
 
-            // Init Path from Service if available
+            // 仅预设路径值，不触发文件加载
+            // 标签页恢复 (RestoreTabsState → SwitchToTab → RestoreNavigationStateMessage) 会在稍后设置正确路径并触发加载
             if (_navigationService != null)
             {
                 var initial = _navigationService.GetCurrentPath(MyPaneId);
-                if (!string.IsNullOrEmpty(initial)) CurrentPath = initial;
-                else CurrentPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+                if (!string.IsNullOrEmpty(initial)) _currentPath = initial;
+                else _currentPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
             }
             else
             {
-                CurrentPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+                _currentPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
             }
+
+            // 构造完成，允许后续路径变更触发文件加载
+            _isInitializing = false;
         }
 
         #endregion
@@ -479,7 +492,11 @@ namespace YiboFile.ViewModels
         {
             if (message.TargetPaneId == "Any" || (_isSecondary && message.TargetPaneId == "Secondary") || (!_isSecondary && message.TargetPaneId == "Primary"))
             {
-                FileList?.UpdateFiles(message.Results);
+                // Only update if we are still in Search mode
+                if (NavigationMode == "Search")
+                {
+                    FileList?.SetFiles(message.Results);
+                }
             }
         }
 
@@ -503,12 +520,16 @@ namespace YiboFile.ViewModels
 
         private void OnRefreshFileList(RefreshFileListMessage msg)
         {
+            // 路径为空（全局刷新请求）时，必须匹配面板ID才执行
             if (string.IsNullOrEmpty(msg.Path))
             {
-                RequestRefresh();
+                if (msg.Pane == MyPaneId)
+                    RequestRefresh();
                 return;
             }
 
+            // 有具体路径时：基于路径匹配决定刷新（不限制面板ID）
+            // 因为文件操作（复制/删除）可能影响任意面板
             if (string.Equals(CurrentPath, msg.Path, StringComparison.OrdinalIgnoreCase))
             {
                 RequestRefresh();
@@ -580,10 +601,18 @@ namespace YiboFile.ViewModels
         {
             if (msg.Pane == MyPaneId)
             {
-                // 仅在路径变化时才刷新，避免切换回当前 Tab 时重复加载
-                if (!string.Equals(CurrentPath, msg.Path, System.StringComparison.OrdinalIgnoreCase))
+                bool pathChanged = !string.Equals(CurrentPath, msg.Path, System.StringComparison.OrdinalIgnoreCase);
+                bool listEmpty = FileList?.Files == null || FileList.Files.Count == 0;
+
+                if (pathChanged)
                 {
+                    // 路径变化 → 设 CurrentPath 触发 RequestRefresh
                     CurrentPath = msg.Path;
+                }
+                else if (listEmpty)
+                {
+                    // 路径相同但列表为空（启动首次加载被跳过） → 强制刷新
+                    RequestRefresh();
                 }
 
                 OnPropertyChanged(nameof(CanNavigateBack));
@@ -595,16 +624,34 @@ namespace YiboFile.ViewModels
             }
         }
 
-        private void OnLibraryFilesLoaded(LibraryFilesLoadedMessage msg)
+        private void OnLibraryListChanged(LibraryListChangedMessage message)
         {
-            if (msg.TargetPane == (_isSecondary ? PaneId.Second : PaneId.Main))
+            // 如果当前在库模式但库对象丢失（通常发生在启动初期或库被重命名），尝试重新解析
+            if (NavigationMode == "Library" && CurrentLibrary == null && !string.IsNullOrEmpty(CurrentPath))
             {
-                FileList?.UpdateFiles(msg.Files);
-                _dispatcher.Invoke(() =>
+                string libPrefix = "lib://";
+                if (CurrentPath.StartsWith(libPrefix, StringComparison.OrdinalIgnoreCase))
                 {
-                    StatusText = $"库: {msg.Library.Name} ({msg.Files?.Count ?? 0} 项)";
-                    IsLoading = false;
-                });
+                    string libName = CurrentPath.Substring(libPrefix.Length).Split('/')[0];
+                    var lib = _libraryService?.GetAllLibraries()?.FirstOrDefault(l => string.Equals(l.Name, libName, StringComparison.OrdinalIgnoreCase));
+                    if (lib != null)
+                    {
+                        CurrentLibrary = lib;
+                        RequestRefresh();
+                    }
+                }
+            }
+        }
+
+        private void OnLibraryFilesLoaded(LibraryFilesLoadedMessage message)
+        {
+            // 严格检查：仅当模式匹配且库ID匹配且面板ID匹配时才更新
+            if (NavigationMode == "Library" && CurrentLibrary != null && message.Library != null && 
+                message.Library.Id == CurrentLibrary.Id && message.TargetPane == MyPaneId)
+            {
+                FileList?.SetFiles(message.Files);
+                IsLoading = false;
+                StatusText = $"已加载 {message.Files.Count} 个项";
                 Menu?.UpdateDynamicMenuItems();
             }
         }

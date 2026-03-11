@@ -153,25 +153,24 @@ namespace YiboFile.Controls.Settings
         private void CommitNumericInput(TextBox textBox)
         {
             if (textBox == null) return;
-            var binding = textBox.GetBindingExpression(TextBox.TextProperty);
-            if (binding != null)
-            {
-                binding.UpdateSource();
-                string propertyName = binding.ParentBinding.Path.Path;
-                if (!string.IsNullOrEmpty(propertyName) && _viewModel != null)
-                {
-                    Action resetAction = propertyName switch
-                    {
-                        "HistoryMaxCountInput" => () => _viewModel.HistoryMaxCount = _viewModel.HistoryMaxCount,
-                        _ => null
-                    };
 
-                    if (resetAction != null)
-                    {
-                        _viewModel.InvalidateInputProxy(propertyName, resetAction);
-                    }
+            var binding = textBox.GetBindingExpression(TextBox.TextProperty);
+            string propertyName = binding?.ParentBinding?.Path?.Path;
+            if (string.IsNullOrEmpty(propertyName) || _viewModel == null) { this.Focus(); return; }
+
+            binding.UpdateSource();
+
+            if (int.TryParse(textBox.Text, out int value))
+            {
+                switch (propertyName)
+                {
+                    case "HistoryMaxCountInput":
+                        _viewModel.HistoryMaxCount = value;
+                        break;
                 }
             }
+            _viewModel.InvalidateInputProxy(propertyName);
+
             this.Focus();
         }
 

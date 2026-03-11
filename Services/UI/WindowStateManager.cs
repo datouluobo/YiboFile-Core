@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Windows;
 using YiboFile;
-using YiboFile.Controls;
 using YiboFile.Services.Config;
 using YiboFile.Services.Tabs;
 using YiboFile.Services.Navigation;
@@ -694,22 +693,21 @@ namespace YiboFile.Services
             // 恢复保存的标签页状态
             if (openTabs != null && openTabs.Count > 0)
             {
-                // 恢复所有标签页
+                // 1. 先静默创建所有标签页（activate: false）
                 foreach (var tabKey in openTabs)
                 {
                     if (string.IsNullOrEmpty(tabKey)) continue;
 
                     try
                     {
-                        RestoreTabFromKey(service, tabKey);
+                        RestoreTabFromKey(service, tabKey, activate: false);
                     }
                     catch (Exception)
                     {
-                        // 单个标签页恢复失败不影响其他标签页
                     }
                 }
 
-                // 恢复活动标签页
+                // 2. 全部创建完成后，再激活指定的活动标签页
                 if (!string.IsNullOrEmpty(activeTabKey))
                 {
                     var activeTab = FindTabByKey(service, activeTabKey);
@@ -719,20 +717,17 @@ namespace YiboFile.Services
                     }
                     else if (service.Tabs != null && service.Tabs.Count > 0)
                     {
-                        // 如果找不到活动标签页，但有其他标签页，切换到第一个
                         var firstTab = service.Tabs.First();
                         service.SwitchToTab(firstTab);
                     }
                 }
                 else if (service.Tabs != null && service.Tabs.Count > 0)
                 {
-                    // 如果没有保存活动标签页，但恢复了标签页，切换到第一个
                     var firstTab = service.Tabs.First();
                     service.SwitchToTab(firstTab);
                 }
             }
 
-            // 如果上述恢复过程未能创建任何标签页（可能是 openTabs 为空，或者是所有标签页都恢复失败），
             // 则创建一个默认的桌面标签页，确保且不为空。
             if (service.Tabs == null || service.Tabs.Count == 0)
             {
@@ -747,7 +742,7 @@ namespace YiboFile.Services
         /// <summary>
         /// 从键值恢复标签页
         /// </summary>
-        private void RestoreTabFromKey(TabService service, string tabKey)
+        private void RestoreTabFromKey(TabService service, string tabKey, bool activate = true)
         {
             if (string.IsNullOrEmpty(tabKey)) return;
 
@@ -756,37 +751,27 @@ namespace YiboFile.Services
                 var path = tabKey.Substring("path:".Length);
                 if (!string.IsNullOrEmpty(path))
                 {
-                    // 恢复模式：先检查是否已存在相同路径的标签页，避免重复创建
+                    // 修正逻辑：优先检查是否已存在（避免重复创建相同标签）
                     var existingTab = service.FindTabByPath(path);
                     if (existingTab != null)
                     {
-                        // 如果已存在，切换到该标签页即可
-                        service.SwitchToTab(existingTab);
+                        if (activate) service.SwitchToTab(existingTab);
                         return;
                     }
 
-                    // 搜索标签页的路径格式是 "search://keyword"，特殊页面是 "yibofile://id"
-                    // 对于恢复模式，即使路径暂时不存在也尝试创建标签页（跳过验证）
-                    // 这样可以恢复网络路径、USB设备等可能暂时不可用的路径
-                    if (path.StartsWith("search://") || path.StartsWith("content://") || path.StartsWith("yibofile://"))
+                    // 协议支持
+                    if (path.StartsWith("search://") || path.StartsWith("content://") || path.StartsWith("yibofile://") || 
+                        path.StartsWith("tag://") || path.StartsWith("lib://"))
                     {
-                        service.CreatePathTab(path, true, skipValidation: true, activate: false);
-                    }
-                    else if (path.StartsWith("tag://") || path.StartsWith("lib://"))
-                    {
-                        // 增加对 tag:// 和 lib:// 协议的支持
-                        service.CreatePathTab(path, true, skipValidation: true, activate: false);
+                        service.CreatePathTab(path, true, skipValidation: true, activate: activate);
                     }
                     else if (System.IO.Path.IsPathRooted(path) || (path.Length >= 2 && path[1] == ':'))
                     {
-                        // 对于有效路径格式（绝对路径或驱动器路径），即使暂时不存在也尝试恢复（跳过验证）
-                        // 这样可以恢复网络路径、USB设备等可能暂时不可用的路径
-                        service.CreatePathTab(path, true, skipValidation: true, activate: false);
+                        service.CreatePathTab(path, true, skipValidation: true, activate: activate);
                     }
                     else if (Directory.Exists(path))
                     {
-                        // 对于相对路径，只有在存在时才恢复
-                        service.CreatePathTab(path, true, skipValidation: false, activate: false);
+                        service.CreatePathTab(path, true, skipValidation: false, activate: activate);
                     }
                 }
             }
@@ -798,7 +783,7 @@ namespace YiboFile.Services
                     var library = _libraryRepository?.GetLibrary(libraryId);
                     if (library != null)
                     {
-                        service.OpenLibraryTab(library, false, activate: false); // 允许复用已存在的标签页
+                        service.OpenLibraryTab(library, false, activate: activate); 
                     }
                 }
             }

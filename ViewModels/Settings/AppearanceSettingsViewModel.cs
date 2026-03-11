@@ -52,18 +52,20 @@ namespace YiboFile.ViewModels.Settings
             set
             {
                 value = Math.Clamp(value, 10, 48);
-                bool changed = SetProperty(ref _uiFontSize, value);
+                if (SetProperty(ref _uiFontSize, value))
                 {
                     _uiFontSizeInput = null;
                     OnPropertyChanged(nameof(UIFontSizeInput));
-                    if (changed)
+                    _configService?.Update(c => c.UIFontSize = value);
+                    if (System.Windows.Application.Current?.MainWindow != null)
                     {
-                        _configService?.Update(c => c.UIFontSize = value);
-                        if (System.Windows.Application.Current?.MainWindow != null)
-                        {
-                            System.Windows.Application.Current.MainWindow.FontSize = value;
-                        }
+                        System.Windows.Application.Current.MainWindow.FontSize = value;
                     }
+                }
+                else
+                {
+                    _uiFontSizeInput = null;
+                    OnPropertyChanged(nameof(UIFontSizeInput));
                 }
             }
         }

@@ -49,11 +49,16 @@ namespace YiboFile.ViewModels.Settings
             set
             {
                 value = Math.Clamp(value, 0, 10000);
-                bool changed = SetProperty(ref _historyMaxCount, value);
+                if (SetProperty(ref _historyMaxCount, value))
                 {
                     _historyMaxCountInput = null;
                     OnPropertyChanged(nameof(HistoryMaxCountInput));
-                    if (changed) _configService.Update(c => c.HistoryMaxCount = value);
+                    _configService.Update(c => c.HistoryMaxCount = value);
+                }
+                else
+                {
+                    _historyMaxCountInput = null;
+                    OnPropertyChanged(nameof(HistoryMaxCountInput));
                 }
             }
         }

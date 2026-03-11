@@ -124,11 +124,16 @@ namespace YiboFile.ViewModels.Settings
             set
             {
                 value = Math.Clamp(value, 80, 250);
-                bool changed = SetProperty(ref _tabFixedWidth, value);
+                if (SetProperty(ref _tabFixedWidth, value))
                 {
                     _tabFixedWidthInput = null;
                     OnPropertyChanged(nameof(TabFixedWidthInput));
-                    if (changed) _configService.Update(c => c.TabFixedWidth = value);
+                    _configService.Update(c => c.TabFixedWidth = value);
+                }
+                else
+                {
+                    _tabFixedWidthInput = null;
+                    OnPropertyChanged(nameof(TabFixedWidthInput));
                 }
             }
         }
@@ -147,11 +152,16 @@ namespace YiboFile.ViewModels.Settings
             set
             {
                 value = Math.Clamp(value, 100, 300);
-                bool changed = SetProperty(ref _tabMaxWidth, value);
+                if (SetProperty(ref _tabMaxWidth, value))
                 {
                     _tabMaxWidthInput = null;
                     OnPropertyChanged(nameof(TabMaxWidthInput));
-                    if (changed) _configService.Update(c => c.TabMaxWidth = value);
+                    _configService.Update(c => c.TabMaxWidth = value);
+                }
+                else
+                {
+                    _tabMaxWidthInput = null;
+                    OnPropertyChanged(nameof(TabMaxWidthInput));
                 }
             }
         }
@@ -170,11 +180,16 @@ namespace YiboFile.ViewModels.Settings
             set
             {
                 value = Math.Clamp(value, 30, 100);
-                bool changed = SetProperty(ref _tabMinWidth, value);
+                if (SetProperty(ref _tabMinWidth, value))
                 {
                     _tabMinWidthInput = null;
                     OnPropertyChanged(nameof(TabMinWidthInput));
-                    if (changed) _configService.Update(c => c.TabMinWidth = value);
+                    _configService.Update(c => c.TabMinWidth = value);
+                }
+                else
+                {
+                    _tabMinWidthInput = null;
+                    OnPropertyChanged(nameof(TabMinWidthInput));
                 }
             }
         }

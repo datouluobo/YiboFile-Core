@@ -80,26 +80,30 @@ namespace YiboFile.Controls.Settings
         private void CommitNumericInput(TextBox textBox)
         {
             if (textBox == null) return;
-            var binding = textBox.GetBindingExpression(TextBox.TextProperty);
-            if (binding != null)
-            {
-                binding.UpdateSource();
-                string propertyName = binding.ParentBinding.Path.Path;
-                if (!string.IsNullOrEmpty(propertyName) && _viewModel != null)
-                {
-                    Action resetAction = propertyName switch
-                    {
-                        "ColTagsWidthInput" => () => _viewModel.ColTagsWidth = _viewModel.ColTagsWidth,
-                        "ColNotesWidthInput" => () => _viewModel.ColNotesWidth = _viewModel.ColNotesWidth,
-                        _ => null
-                    };
 
-                    if (resetAction != null)
-                    {
-                        _viewModel.InvalidateInputProxy(propertyName, resetAction);
-                    }
+            var binding = textBox.GetBindingExpression(TextBox.TextProperty);
+            string propertyName = binding?.ParentBinding?.Path?.Path;
+            if (string.IsNullOrEmpty(propertyName) || _viewModel == null) { this.Focus(); return; }
+
+            // 先把最新的文本推送到代理
+            binding.UpdateSource();
+
+            // 从 TextBox 文本中解析值，通过底层属性 setter 的 Math.Clamp 完成最终校验
+            if (double.TryParse(textBox.Text, out double value))
+            {
+                switch (propertyName)
+                {
+                    case "ColTagsWidthInput":
+                        _viewModel.ColTagsWidth = value;   // setter 会 Math.Clamp
+                        break;
+                    case "ColNotesWidthInput":
+                        _viewModel.ColNotesWidth = value;   // setter 会 Math.Clamp
+                        break;
                 }
             }
+            // 无论如何都刷新代理，确保显示最终合法值
+            _viewModel.InvalidateInputProxy(propertyName);
+
             this.Focus();
         }
 

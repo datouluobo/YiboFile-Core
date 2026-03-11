@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Windows.Controls;
 using YiboFile.Services.Theming;
 using YiboFile.ViewModels.Settings;
@@ -65,25 +65,22 @@ namespace YiboFile.Controls.Settings
             if (textBox == null) return;
 
             var binding = textBox.GetBindingExpression(TextBox.TextProperty);
-            if (binding != null)
-            {
-                binding.UpdateSource();
-                
-                string propertyName = binding.ParentBinding.Path.Path;
-                if (!string.IsNullOrEmpty(propertyName) && _appearanceViewModel != null)
-                {
-                    Action resetAction = propertyName switch
-                    {
-                        "UIFontSizeInput" => () => _appearanceViewModel.UIFontSize = _appearanceViewModel.UIFontSize,
-                        _ => null
-                    };
+            string propertyName = binding?.ParentBinding?.Path?.Path;
+            if (string.IsNullOrEmpty(propertyName) || _appearanceViewModel == null) { this.Focus(); return; }
 
-                    if (resetAction != null)
-                    {
-                        _appearanceViewModel.InvalidateInputProxy(propertyName, resetAction);
-                    }
+            binding.UpdateSource();
+
+            if (double.TryParse(textBox.Text, out double value))
+            {
+                switch (propertyName)
+                {
+                    case "UIFontSizeInput":
+                        _appearanceViewModel.UIFontSize = value;
+                        break;
                 }
             }
+            _appearanceViewModel.InvalidateInputProxy(propertyName);
+
             this.Focus();
         }
 

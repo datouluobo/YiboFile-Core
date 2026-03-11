@@ -37,15 +37,12 @@ namespace YiboFile.ViewModels
         private const int MaxMetadataEnrichCount = 500;
 
         private string _currentPath = null;
-        private string _pendingPath = null;
         private ObservableCollection<FileSystemItem> _files = new ObservableCollection<FileSystemItem>();
         private bool _isLoading = false;
         private string _lastSortColumn = "Name";
         private bool _sortAscending = true;
         private DispatcherTimer _refreshDebounceTimer;
         private bool _isLoadingFiles = false;
-        private bool _loadFilesPending = false;
-        private readonly SemaphoreSlim _loadFilesSemaphore = new SemaphoreSlim(1, 1);
         private CancellationTokenSource _loadCancellationTokenSource = null;
         private readonly YiboFile.Services.Navigation.PaneId _paneId;
         private bool _showFullFileName = false;
@@ -118,6 +115,7 @@ namespace YiboFile.ViewModels
         {
             _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
             _dispatcher = System.Windows.Application.Current.Dispatcher;
+            _paneId = paneId;
 
             var errorService = App.ServiceProvider?.GetService<YiboFile.Services.Core.Error.ErrorService>();
             _tagService = App.ServiceProvider?.GetService<Services.Features.ITagService>();
@@ -155,7 +153,6 @@ namespace YiboFile.ViewModels
 
             BindingOperations.EnableCollectionSynchronization(_files, _collectionLock);
 
-            _paneId = paneId;
             _messageBus.Subscribe<ViewModeChangedMessage>(m =>
             {
                 if (m.TargetPane == _paneId)
@@ -214,68 +211,37 @@ namespace YiboFile.ViewModels
             return string.IsNullOrEmpty(nameWithoutExt) ? fileName : nameWithoutExt;
         }
 
+        private long _loadRequestId = 0;
+
         /// <summary>
         /// 加载文件列表（替代旧 LoadFiles / LoadCurrentDirectory）
         /// </summary>
         public async Task LoadPathAsync(string path)
         {
+            var requestId = System.Threading.Interlocked.Increment(ref _loadRequestId);
 
+            _loadCancellationTokenSource?.Cancel();
+            _loadCancellationTokenSource = new CancellationTokenSource();
+            var cancellationToken = _loadCancellationTokenSource.Token;
 
-
-            // 如果正在加载其它目录，则取消旧的并排队
-            if (_isLoadingFiles)
-            {
-                bool isSamePath = string.Equals(_currentPath, path, StringComparison.OrdinalIgnoreCase);
-
-                _currentPath = path; // 立即更新为预期路径，避免在其排队期间发生刷新请求时重新加载旧路径
-                _pendingPath = path;
-                _loadFilesPending = true;
-
-                // 仅在不同路径时取消当前进行中的任务
-                if (!isSamePath)
-                {
-                    _loadCancellationTokenSource?.Cancel();
-                }
-                return;
-            }
+            _currentPath = path;
 
             try
             {
-                // 获取信号量锁，防止并发重入 (加上合理的等待时间)
-                if (!await _loadFilesSemaphore.WaitAsync(5000))
-                {
-
-                    return;
-                }
-            }
-            catch (Exception)
-            {
-
-                return;
-            }
-
-            try
-            {
-                // 再次检查重入
-                if (_isLoadingFiles) return;
-
-                _loadCancellationTokenSource?.Cancel();
-                _loadCancellationTokenSource = new CancellationTokenSource();
-                var cancellationToken = _loadCancellationTokenSource.Token;
-
-                _currentPath = path;
-
-
                 // Check for virtual protocols to bypass Directory.Exists check
                 var protocol = ProtocolManager.Parse(path);
                 bool isVirtual = protocol.Type != ProtocolType.Local;
 
                 if (string.IsNullOrEmpty(path) || (!isVirtual && !Directory.Exists(path)))
                 {
+                    if (cancellationToken.IsCancellationRequested) return;
 
                     await _dispatcher.InvokeAsync(() =>
                     {
-                        Files.Clear();
+                        if (!cancellationToken.IsCancellationRequested)
+                        {
+                            Files.Clear();
+                        }
                     }, DispatcherPriority.Normal);
                     SetupFileWatcher(null);
                     return;
@@ -285,16 +251,15 @@ namespace YiboFile.ViewModels
                 IsLoading = true;
 
                 // 异步加载文件列表
-                cancellationToken.ThrowIfCancellationRequested();
                 var files = await _fileListService.LoadFileSystemItemsAsync(
                     path,
                     null,
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
 
+                if (cancellationToken.IsCancellationRequested) return;
 
                 var sortedFiles = ApplySorting(files);
 
-                // 设置集合，确保在 UI 线程执行
                 if (cancellationToken.IsCancellationRequested) return;
 
                 await _dispatcher.InvokeAsync(() =>
@@ -321,22 +286,20 @@ namespace YiboFile.ViewModels
             }
             catch (Exception ex)
             {
-                await _dispatcher.BeginInvoke(new Action(() =>
+                if (!cancellationToken.IsCancellationRequested)
                 {
-                    YiboFile.DialogService.Error($"加载文件列表失败: {ex.Message}");
-                }), DispatcherPriority.Normal);
+                    await _dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        YiboFile.DialogService.Error($"加载文件列表失败: {ex.Message}");
+                    }), DispatcherPriority.Normal);
+                }
             }
             finally
             {
-                _isLoadingFiles = false;
-                IsLoading = false;
-                _loadFilesSemaphore.Release();
-
-                // 确保信号量已释放后再检查 pending 任务
-                if (_loadFilesPending)
+                if (_loadRequestId == requestId)
                 {
-                    // 使用非阻塞的 BeginInvoke 避免在 UI 线程同步等待时产生逻辑死锁
-                    _ = _dispatcher.BeginInvoke(new Action(CheckPendingLoad), DispatcherPriority.Normal);
+                    _isLoadingFiles = false;
+                    IsLoading = false;
                 }
             }
         }
@@ -354,8 +317,6 @@ namespace YiboFile.ViewModels
             int count = files?.Count() ?? 0;
 
             CancelOngoingOperations();
-            _loadFilesPending = false;
-            _pendingPath = null;
             _currentPath = null;
 
             var items = files?.ToList() ?? new List<FileSystemItem>();
@@ -630,7 +591,6 @@ namespace YiboFile.ViewModels
 
             _refreshDebounceTimer?.Stop();
             CancelOngoingOperations();
-            _loadFilesSemaphore?.Dispose();
         }
 
         private void CancelOngoingOperations()
@@ -648,20 +608,6 @@ namespace YiboFile.ViewModels
                 {
                     _loadCancellationTokenSource.Dispose();
                     _loadCancellationTokenSource = null;
-                }
-            }
-        }
-
-        private void CheckPendingLoad()
-        {
-            if (_loadFilesPending)
-            {
-                _loadFilesPending = false;
-                var nextPath = _pendingPath;
-                _pendingPath = null;
-                if (!string.IsNullOrWhiteSpace(nextPath))
-                {
-                    _ = LoadPathAsync(nextPath);
                 }
             }
         }

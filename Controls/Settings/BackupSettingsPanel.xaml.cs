@@ -118,12 +118,5 @@ namespace YiboFile.Controls.Settings
         {
             MessageBox.Show("清理功能将在下一阶段实现。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
         }
-
-        private void ManageButton_Click(object sender, RoutedEventArgs e)
-        {
-            var dialog = new YiboFile.Dialogs.BackupBrowserDialog();
-            dialog.Owner = Window.GetWindow(this);
-            dialog.ShowDialog();
-        }
     }
 }

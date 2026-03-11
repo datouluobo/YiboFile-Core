@@ -7,7 +7,8 @@ using System.Windows.Input;
 using YiboFile.Services.Backup;
 using Microsoft.Extensions.DependencyInjection;
 using YiboFile.ViewModels.Previews;
-
+using YiboFile.ViewModels.Messaging;
+using System.Collections.Generic;
 namespace YiboFile.ViewModels
 {
     public class BackupViewModel : BaseViewModel
@@ -18,12 +19,13 @@ namespace YiboFile.ViewModels
         private ObservableCollection<BackupRecord> _selectedFiles;
         private bool _isLoading;
         private BackupRecord _currentPreviewRecord;
-        private IPreviewViewModel _previewViewModel;
         private AppConfig _config;
+        private readonly IMessageBus _messageBus;
 
-        public BackupViewModel(IBackupService backupService)
+        public BackupViewModel(IBackupService backupService, IMessageBus messageBus = null)
         {
             _backupService = backupService ?? throw new ArgumentNullException(nameof(backupService));
+            _messageBus = messageBus;
 
             LoadCommand = new RelayCommand(async () => await LoadBackupsAsync());
             RestoreCommand = new RelayCommand<BackupRecord>(async (record) => await RestoreFileAsync(record));
@@ -75,12 +77,6 @@ namespace YiboFile.ViewModels
                     UpdatePreview();
                 }
             }
-        }
-
-        public IPreviewViewModel PreviewViewModel
-        {
-            get => _previewViewModel;
-            set => SetProperty(ref _previewViewModel, value);
         }
 
         // Commands
@@ -219,15 +215,45 @@ namespace YiboFile.ViewModels
             }
         }
 
-        private async void UpdatePreview()
+        private void UpdatePreview()
         {
-            if (CurrentPreviewRecord != null && !CurrentPreviewRecord.IsDirectory && System.IO.File.Exists(CurrentPreviewRecord.BackupPath))
+            if (_messageBus == null) return;
+
+            bool exists = false;
+            if (CurrentPreviewRecord != null && !string.IsNullOrEmpty(CurrentPreviewRecord.BackupPath))
             {
-                PreviewViewModel = await YiboFile.Previews.PreviewFactory.CreateViewModelAsync(CurrentPreviewRecord.BackupPath);
+                if (CurrentPreviewRecord.IsDirectory)
+                {
+                    exists = System.IO.Directory.Exists(CurrentPreviewRecord.BackupPath);
+                }
+                else
+                {
+                    exists = System.IO.File.Exists(CurrentPreviewRecord.BackupPath);
+                }
+            }
+
+            if (CurrentPreviewRecord != null && exists)
+            {
+                var dummyItem = new YiboFile.Models.FileSystemItem 
+                { 
+                    Path = CurrentPreviewRecord.BackupPath,
+                    Name = System.IO.Path.GetFileName(CurrentPreviewRecord.OriginalPath),
+                    IsDirectory = CurrentPreviewRecord.IsDirectory
+                };
+                
+                _messageBus.Publish(new YiboFile.ViewModels.Messaging.Messages.FileSelectionChangedMessage(
+                    new List<YiboFile.Models.FileSystemItem> { dummyItem }, 
+                    RequestPreview: true, 
+                    Pane: YiboFile.Services.Navigation.PaneId.Main,
+                    ShowNotes: false));
             }
             else
             {
-                PreviewViewModel = null;
+                _messageBus.Publish(new YiboFile.ViewModels.Messaging.Messages.FileSelectionChangedMessage(
+                    new List<YiboFile.Models.FileSystemItem>(), 
+                    RequestPreview: true, 
+                    Pane: YiboFile.Services.Navigation.PaneId.Main,
+                    ShowNotes: false));
             }
         }
     }

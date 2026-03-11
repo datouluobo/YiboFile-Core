@@ -36,6 +36,10 @@
                                 <Setter Property="Height" Value="0"/>
                                 <Setter Property="MinHeight" Value="0"/>
                             </DataTrigger>
+                            <DataTrigger Binding="{Binding IsNotesVisible}" Value="False">
+                                <Setter Property="Height" Value="0"/>
+                                <Setter Property="MinHeight" Value="0"/>
+                            </DataTrigger>
                         </Style.Triggers>
                     </Style>
                 </RowDefinition.Style>
@@ -131,6 +135,9 @@
                         <DataTrigger Binding="{Binding SelectedItem}" Value="{x:Null}">
                             <Setter Property="Visibility" Value="Collapsed"/>
                         </DataTrigger>
+                        <DataTrigger Binding="{Binding IsNotesVisible}" Value="False">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                        </DataTrigger>
                         <!-- 当无预览时，隐藏 Splitter 使得备注区与上方连贯（如果需要） 
                         <DataTrigger Binding="{Binding ActivePreview}" Value="{x:Null}">
                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -142,6 +149,19 @@
 
         <!-- 行3：备注区 -->
         <Border Grid.Row="3" Background="{DynamicResource BackgroundPrimaryBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="1" Margin="4,0,4,4">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Visibility" Value="Visible"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding SelectedItem}" Value="{x:Null}">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding IsNotesVisible}" Value="False">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
             <Grid>
                 <!-- 为了界面美观，加一个小的标签区分备注区 -->
                 <TextBlock Text="备注" FontSize="11" Foreground="{DynamicResource ForegroundTertiaryBrush}" Margin="8,4,8,0" VerticalAlignment="Top" HorizontalAlignment="Left" Panel.ZIndex="1" IsHitTestVisible="False"/>

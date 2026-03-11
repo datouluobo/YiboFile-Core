@@ -209,7 +209,7 @@ namespace YiboFile.ViewModels.Previews
             {
                 var sb = new StringBuilder();
                 sb.Append("<!DOCTYPE html><html><head><meta charset='utf-8'>");
-                sb.Append("<style>body { font-family: 'Segoe UI', sans-serif; padding: 40px; line-height: 1.6; max-width: 800px; margin: 0 auto; } p { margin: 1em 0; } img { max-width: 100%; height: auto; display: block; margin: 1em auto; } table { border-collapse: collapse; width: 100%; margin: 1em 0; } td, th { border: 1px solid #ddd; padding: 8px; }</style></head><body>");
+                sb.Append("<style>html { background: #e9eaed; padding: 20px 0; height: 100%; } body { font-family: 'Segoe UI', -apple-system, sans-serif; padding: 40px; line-height: 1.6; max-width: 210mm; min-height: 297mm; margin: 0 auto; background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.1); box-sizing: border-box; } @media(max-width: 210mm) { html { padding: 0; background: white; } body { width: 100%; padding: 20px; box-shadow: none; min-height: auto; } }  p { margin: 1em 0; } img { max-width: 100%; height: auto; display: block; margin: 1em auto; } table { border-collapse: collapse; width: 100%; margin: 1em 0; } td, th { border: 1px solid #ddd; padding: 8px; }</style></head><body>");
 
                 // Use FileStream with Share ReadWrite to avoid locking issues
                 using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))

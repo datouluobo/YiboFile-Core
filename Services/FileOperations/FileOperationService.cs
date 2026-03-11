@@ -359,7 +359,9 @@ namespace YiboFile.Services.FileOperations
 
             if (failedItems.Count > 0)
             {
-                _errorService?.ReportError($"以下项目操作失败:\n{string.Join("\n", failedItems.Take(5))}", ErrorSeverity.Error);
+                string errorSummary = $"操作完成，但有 {failedItems.Count} 个项失败。";
+                if (failedItems.Count > 5) errorSummary += "\n详情请查看日志或任务清单。";
+                _errorService?.ReportError($"{errorSummary}\n以下项目操作失败:\n{string.Join("\n", failedItems.Take(5))}", ErrorSeverity.Error);
             }
 
             return result;
@@ -549,6 +551,12 @@ namespace YiboFile.Services.FileOperations
                 {
                     task.WaitIfPaused();
                     task.CurrentFile = Path.GetFileName(file);
+
+                    // 动态暴露长时间运行的任务 (防止单文件夹复制一直处于静默状态)
+                    if (task.IsSilent && (DateTime.Now - task.StartTime).TotalMilliseconds > 300)
+                    {
+                        task.IsSilent = false;
+                    }
                 }
                 try
                 {

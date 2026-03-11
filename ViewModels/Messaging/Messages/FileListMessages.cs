@@ -25,7 +25,7 @@ namespace YiboFile.ViewModels.Messaging.Messages
     /// <summary>
     /// 文件选择变更通知
     /// </summary>
-    public record FileSelectionChangedMessage(IList SelectedItems, bool RequestPreview = true, YiboFile.Services.Navigation.PaneId Pane = YiboFile.Services.Navigation.PaneId.Main);
+    public record FileSelectionChangedMessage(IList SelectedItems, bool RequestPreview = true, YiboFile.Services.Navigation.PaneId Pane = YiboFile.Services.Navigation.PaneId.Main, bool ShowNotes = true);
 
     /// <summary>
     /// 请求清除过滤器

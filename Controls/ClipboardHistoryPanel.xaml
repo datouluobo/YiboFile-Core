@@ -3,249 +3,257 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:local="clr-namespace:YiboFile.Controls"
              xmlns:vm="clr-namespace:YiboFile.ViewModels"
              xmlns:services="clr-namespace:YiboFile.Services.ClipboardHistory"
+             xmlns:local="clr-namespace:YiboFile.Controls"
+             xmlns:converters="clr-namespace:YiboFile.Converters"
              mc:Ignorable="d" 
              d:DataContext="{d:DesignInstance vm:ClipboardViewModel}"
-             d:DesignHeight="400" d:DesignWidth="320">
+             Background="{DynamicResource BackgroundPrimaryBrush}">
+    
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
-    </UserControl.Resources>
-    
-    <Border Background="{DynamicResource BackgroundSecondaryBrush}" 
-            BorderBrush="{DynamicResource BorderDefaultBrush}" 
-            BorderThickness="1" CornerRadius="8">
-        <Border.Effect>
-            <DropShadowEffect BlurRadius="12" ShadowDepth="4" Opacity="0.15" Direction="270"/>
-        </Border.Effect>
-        <Grid>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
-            
-            <!-- Header -->
-            <Grid Grid.Row="0" Margin="12,12,12,8">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <TextBlock Text="📋 剪切板历史" FontWeight="SemiBold" FontSize="14"
-                           Foreground="{DynamicResource ForegroundPrimaryBrush}" VerticalAlignment="Center"/>
-                <Button Command="{Binding ClearCommand}" 
-                        Content="清空" 
-                        Padding="8,4"
-                        Background="Transparent" 
-                        BorderThickness="0"
-                        Foreground="{DynamicResource ForegroundSecondaryBrush}"
-                        Cursor="Hand" FontSize="12">
-                     <Button.Template>
-                        <ControlTemplate TargetType="Button">
-                            <Border Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
-                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Border>
-                            <ControlTemplate.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="{DynamicResource ControlHoverBrush}"/>
-                                    <Setter Property="TextElement.Foreground" Value="{DynamicResource AccentDefaultBrush}"/>
-                                </Trigger>
-                                <Trigger Property="IsPressed" Value="True">
-                                    <Setter Property="Background" Value="{DynamicResource ControlPressedBrush}"/>
-                                </Trigger>
-                            </ControlTemplate.Triggers>
-                        </ControlTemplate>
-                    </Button.Template>
-                </Button>
-            </Grid>
-            
-            <!-- Search Bar -->
-            <Border Grid.Row="1" Margin="12,0,12,8" CornerRadius="6" 
-                    Background="{DynamicResource BackgroundPrimaryBrush}" 
-                    BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="1"
-                    Padding="8,6">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Text="🔍" Margin="0,0,6,0" Foreground="{DynamicResource ForegroundSecondaryBrush}" VerticalAlignment="Center" FontSize="12"/>
-                    <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                             Background="Transparent" BorderThickness="0"
-                             Foreground="{DynamicResource ForegroundPrimaryBrush}"
-                             CaretBrush="{DynamicResource AccentDefaultBrush}"
-                             VerticalAlignment="Center">
-                        <TextBox.Resources>
-                            <Style TargetType="{x:Type TextBox}">
-                                <Setter Property="Template">
-                                    <Setter.Value>
-                                        <ControlTemplate TargetType="{x:Type TextBox}">
-                                            <Grid>
-                                                <TextBlock Text="搜索历史记录..." Foreground="{DynamicResource ForegroundDisabledBrush}"
-                                                           IsHitTestVisible="False" VerticalAlignment="Center">
-                                                    <TextBlock.Style>
-                                                        <Style TargetType="TextBlock">
-                                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                                            <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding Text, RelativeSource={RelativeSource TemplatedParent}}" Value="">
-                                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                                </DataTrigger>
-                                                            </Style.Triggers>
-                                                        </Style>
-                                                    </TextBlock.Style>
-                                                </TextBlock>
-                                                <ScrollViewer x:Name="PART_ContentHost" Background="Transparent"/>
-                                            </Grid>
-                                        </ControlTemplate>
-                                    </Setter.Value>
-                                </Setter>
-                            </Style>
-                        </TextBox.Resources>
-                    </TextBox>
-                </Grid>
-            </Border>
-            
-            <!-- History List -->
-            <ListBox Grid.Row="2" x:Name="HistoryList" 
-                     ItemsSource="{Binding HistoryView}"
-                     Background="Transparent" BorderThickness="0"
-                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                     Padding="8,0" Margin="0,0,0,8">
-                <ListBox.ItemContainerStyle>
-                    <Style TargetType="ListBoxItem">
-                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                        <Setter Property="Padding" Value="0"/>
-                        <Setter Property="Margin" Value="0,0,0,4"/>
-                        <Setter Property="Background" Value="Transparent"/>
-                        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
-                        <Setter Property="Template">
-                            <Setter.Value>
-                                <ControlTemplate TargetType="ListBoxItem">
-                                    <Border x:Name="ItemBorder" 
-                                            Background="{TemplateBinding Background}" 
-                                            CornerRadius="6"
-                                            Padding="4"
-                                            BorderThickness="1"
-                                            BorderBrush="Transparent">
-                                        <Grid>
-                                            <ContentPresenter/>
-                                            <!-- Delete Button Overlay -->
-                                            <Button Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                    CommandParameter="{Binding}"
-                                                    Content="✕" FontSize="10" Width="20" Height="20"
-                                                    HorizontalAlignment="Right" VerticalAlignment="Top"
-                                                    Margin="0,4,4,0"
-                                                    Background="{DynamicResource BackgroundTertiaryBrush}"
-                                                    Foreground="{DynamicResource ForegroundSecondaryBrush}"
-                                                    Visibility="Collapsed"
-                                                    x:Name="DeleteBtn"
-                                                    BorderThickness="0" Padding="0" Cursor="Hand">
-                                                <Button.Template>
-                                                    <ControlTemplate TargetType="Button">
-                                                        <Border Background="{TemplateBinding Background}" CornerRadius="10">
-                                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                        </Border>
-                                                    </ControlTemplate>
-                                                </Button.Template>
-                                            </Button>
-                                        </Grid>
-                                        <Border.InputBindings>
-                                            <MouseBinding MouseAction="LeftDoubleClick" 
-                                                          Command="{Binding DataContext.PasteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                          CommandParameter="{Binding}"/>
-                                        </Border.InputBindings>
-                                    </Border>
-                                    <ControlTemplate.Triggers>
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource ControlHoverBrush}"/>
-                                            <Setter TargetName="DeleteBtn" Property="Visibility" Value="Visible"/>
-                                        </Trigger>
-                                        <Trigger Property="IsSelected" Value="True">
-                                            <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource AccentLightBrush}"/>
-                                            <Setter TargetName="ItemBorder" Property="BorderBrush" Value="{DynamicResource AccentDefaultBrush}"/>
-                                        </Trigger>
-                                    </ControlTemplate.Triggers>
-                                </ControlTemplate>
-                            </Setter.Value>
-                        </Setter>
-                    </Style>
-                </ListBox.ItemContainerStyle>
-                <ListBox.ItemTemplate>
-                    <DataTemplate DataType="{x:Type services:ClipboardHistoryItem}">
-                        <Grid Margin="4,4,4,4">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            
-                            <!-- Icon -->
-                            <Border Grid.Column="0" Width="32" Height="32" CornerRadius="8" 
-                                    Background="{DynamicResource BackgroundTertiaryBrush}" Margin="0,0,12,0">
-                                <TextBlock FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding Type}" Value="Files">
-                                                    <Setter Property="Text" Value="📁"/>
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding Type}" Value="Text">
-                                                    <Setter Property="Text" Value="📝"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-                            </Border>
-                            
-                            <!-- Content -->
-                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding Preview}" 
-                                           TextTrimming="CharacterEllipsis" 
-                                           MaxHeight="36" TextWrapping="NoWrap"
-                                           Foreground="{DynamicResource ForegroundPrimaryBrush}"
-                                           FontWeight="Normal" FontSize="13"/>
-                                
-                                <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                                    <TextBlock Text="{Binding TimeAgo}" FontSize="11" 
-                                               Foreground="{DynamicResource ForegroundSecondaryBrush}"/>
-                                    
-                                    <Border Background="{DynamicResource WarningBrush}" CornerRadius="2" Margin="6,0,0,0" Padding="4,0"
-                                            Visibility="{Binding IsCut, Converter={StaticResource BoolToVis}}">
-                                        <TextBlock Text="剪切" FontSize="10" Foreground="White" Padding="0,1"/>
-                                    </Border>
-                                </StackPanel>
-                            </StackPanel>
-                        </Grid>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
-            
-            <!-- Empty State (Overlay) -->
-            <StackPanel Grid.Row="2" VerticalAlignment="Center" HorizontalAlignment="Center" IsHitTestVisible="False">
-                <StackPanel.Style>
-                    <Style TargetType="StackPanel">
-                        <Setter Property="Visibility" Value="Collapsed"/>
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding HistoryView.IsEmpty}" Value="True">
-                                <Setter Property="Visibility" Value="Visible"/>
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </StackPanel.Style>
-                <TextBlock Text="📭" FontSize="32" HorizontalAlignment="Center" Opacity="0.5" Margin="0,0,0,8"/>
-                <TextBlock Text="暂无历史记录" Foreground="{DynamicResource ForegroundSecondaryBrush}" HorizontalAlignment="Center"/>
-            </StackPanel>
-            
-            <!-- Footer Hint -->
-            <Border Grid.Row="3" Padding="12,8" 
-                    BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,1,0,0">
-                <TextBlock Text="双击粘贴 · Delete 删除" FontSize="11" 
-                           Foreground="{DynamicResource ForegroundDisabledBrush}"
-                           HorizontalAlignment="Center"/>
-            </Border>
-        </Grid>
-    </Border>
-</UserControl>
 
+        <!-- 数据模板: 单个时间线项目 -->
+        <DataTemplate x:Key="ClipboardItemTemplate" DataType="{x:Type services:ClipboardHistoryItem}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="40" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                
+                <!-- 图标 -->
+                <Border Width="32" Height="32" CornerRadius="8" Background="{DynamicResource BackgroundTertiaryBrush}" VerticalAlignment="Top" HorizontalAlignment="Right" Margin="0,0,8,0">
+                    <TextBlock FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Type}" Value="Files"><Setter Property="Text" Value="📁"/></DataTrigger>
+                                    <DataTrigger Binding="{Binding Type}" Value="Text"><Setter Property="Text" Value="📝"/></DataTrigger>
+                                    <DataTrigger Binding="{Binding Type}" Value="Image"><Setter Property="Text" Value="🖼️"/></DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Border>
+                
+                <!-- 详情内容 -->
+                <Grid Grid.Column="1">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    
+                    <TextBlock Grid.Row="0" Text="{Binding Preview}" Foreground="{DynamicResource ForegroundPrimaryBrush}" MaxHeight="40" TextTrimming="CharacterEllipsis" TextWrapping="Wrap" FontSize="13"/>
+                    
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,4,0,0">
+                        <TextBlock Text="{Binding TimeAgo}" Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11" Margin="0,0,8,0"/>
+                        <TextBlock Text="{Binding TypeDisplayName}" Foreground="{DynamicResource ForegroundTertiaryBrush}" FontSize="11" Margin="0,0,8,0"/>
+                        <TextBlock Text="{Binding FileSizeText}" Foreground="{DynamicResource ForegroundTertiaryBrush}" FontSize="11"/>
+                        
+                        <!-- 固定标记 -->
+                        <TextBlock Text="📌" FontSize="11" Margin="8,0,0,0">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsPinned}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+
+                        <!-- 剪切标记 -->
+                        <Border Background="{DynamicResource WarningBrush}" CornerRadius="2" Margin="4,0,0,0" Padding="4,0"
+                                Visibility="{Binding IsCut, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="剪切" FontSize="10" Foreground="White" Padding="0,1"/>
+                        </Border>
+                        
+                        <!-- 悬浮微操作按钮 -->
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="12,0,0,0">
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Opacity" Value="0" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsMouseOver}" Value="True">
+                                            <Setter Property="Opacity" Value="1"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                            <Button Content="📌" ToolTip="固定/取消固定" 
+                                    Command="{Binding DataContext.TogglePinCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource MicroActionButtonStyle}">
+                                        <Setter Property="Foreground" Value="{DynamicResource ForegroundSecondaryBrush}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsPinned}" Value="True">
+                                                <Setter Property="Foreground" Value="{DynamicResource AccentDefaultBrush}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                            <Button Content="🗑️" Style="{StaticResource MicroActionButtonStyle}" ToolTip="删除" 
+                                    Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+                
+                <Grid.InputBindings>
+                    <MouseBinding MouseAction="LeftDoubleClick" 
+                                  Command="{Binding DataContext.PasteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                  CommandParameter="{Binding}"/>
+                </Grid.InputBindings>
+            </Grid>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- 工具栏：分类标签页 -->
+        <Grid Grid.Row="0" Margin="12,12,12,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            
+            <StackPanel Orientation="Horizontal" Grid.Column="0">
+                <RadioButton Content="全部" Style="{StaticResource FilterPillStyle}" IsChecked="{Binding IsFilterAll, Mode=OneWay}" Command="{Binding SetFilterCommand}" CommandParameter="All" GroupName="Filters"/>
+                <RadioButton Content="文件" Style="{StaticResource FilterPillStyle}" IsChecked="{Binding IsFilterFiles, Mode=OneWay}" Command="{Binding SetFilterCommand}" CommandParameter="Files" GroupName="Filters"/>
+                <RadioButton Content="图片" Style="{StaticResource FilterPillStyle}" IsChecked="{Binding IsFilterImages, Mode=OneWay}" Command="{Binding SetFilterCommand}" CommandParameter="Images" GroupName="Filters"/>
+                <RadioButton Content="文本" Style="{StaticResource FilterPillStyle}" IsChecked="{Binding IsFilterText, Mode=OneWay}" Command="{Binding SetFilterCommand}" CommandParameter="Text" GroupName="Filters"/>
+                <RadioButton Content="📌 固定" Style="{StaticResource FilterPillStyle}" IsChecked="{Binding IsFilterPinned, Mode=OneWay}" Command="{Binding SetFilterCommand}" CommandParameter="Pinned" GroupName="Filters"/>
+            </StackPanel>
+
+            <StackPanel Grid.Column="2" Orientation="Horizontal">
+                <Button Content="清空" Style="{StaticResource MicroActionButtonStyle}" Command="{Binding ClearCommand}" Margin="0,0,4,0"/>
+                <Button Content="⚙️" Style="{StaticResource MicroActionButtonStyle}" Command="{Binding OpenSettingsCommand}" FontSize="14"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- 搜索栏 -->
+        <Border Grid.Row="1" Margin="12,0,12,8" CornerRadius="16" 
+                Background="{DynamicResource BackgroundSecondaryBrush}" Padding="8,4">
+            <Grid>
+                <TextBlock Text="🔍" Foreground="{DynamicResource ForegroundSecondaryBrush}" VerticalAlignment="Center" Margin="4,0,0,0" FontSize="12"/>
+                <TextBox x:Name="SearchBox"
+                         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" 
+                         Margin="24,0,0,0" Background="Transparent" BorderThickness="0" 
+                         Foreground="{DynamicResource ForegroundPrimaryBrush}" VerticalAlignment="Center"/>
+                <TextBlock Text="搜索历史记录..." Foreground="{DynamicResource ForegroundDisabledBrush}" Margin="28,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Text, ElementName=SearchBox}" Value="">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Text, ElementName=SearchBox}" Value="{x:Null}">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </Grid>
+        </Border>
+
+        <!-- 历史列表 -->
+        <ListBox Grid.Row="2" x:Name="HistoryList" 
+                 ItemsSource="{Binding HistoryView}"
+                 SelectedItem="{Binding SelectedItem}"
+                 BorderThickness="0" Background="Transparent"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                 ItemContainerStyle="{StaticResource TimelineItemStyle}"
+                 ItemTemplate="{StaticResource ClipboardItemTemplate}"
+                 Padding="8,0">
+            <ListBox.GroupStyle>
+                <GroupStyle HeaderTemplate="{StaticResource TimelineGroupHeaderStyle}" />
+            </ListBox.GroupStyle>
+        </ListBox>
+
+        <!-- 空状态 -->
+        <StackPanel Grid.Row="2" VerticalAlignment="Center" HorizontalAlignment="Center" IsHitTestVisible="False">
+            <StackPanel.Style>
+                <Style TargetType="StackPanel">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding HistoryView.IsEmpty}" Value="True">
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </StackPanel.Style>
+            <TextBlock Text="📭" FontSize="32" HorizontalAlignment="Center" Opacity="0.5" Margin="0,0,0,8"/>
+            <TextBlock Text="暂无历史记录" Foreground="{DynamicResource ForegroundSecondaryBrush}" HorizontalAlignment="Center"/>
+        </StackPanel>
+
+        <!-- 底部状态栏 -->
+        <Border Grid.Row="3" Background="{DynamicResource BackgroundTertiaryBrush}" Padding="12,6" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource BorderSubtleBrush}">
+            <TextBlock Text="{Binding StatusText}" Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="12"/>
+        </Border>
+
+        <!-- 设置面板弹窗 (Popup) -->
+        <Popup IsOpen="{Binding IsSettingsOpen}" StaysOpen="False" PlacementTarget="{Binding RelativeSource={RelativeSource AncestorType=UserControl}}" 
+               Placement="Center" AllowsTransparency="True" PopupAnimation="Fade">
+            <Border Background="{DynamicResource BackgroundPrimaryBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="1" 
+                    CornerRadius="8" Padding="20" Width="360">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="16" ShadowDepth="4" Opacity="0.2" Direction="270"/>
+                </Border.Effect>
+                <StackPanel>
+                    <Grid Margin="0,0,0,16">
+                        <TextBlock Text="⚙️ 剪切板设置" FontWeight="Bold" FontSize="16" Foreground="{DynamicResource ForegroundPrimaryBrush}"/>
+                        <Button Content="✕" Command="{Binding OpenSettingsCommand}" HorizontalAlignment="Right" Style="{StaticResource MicroActionButtonStyle}"/>
+                    </Grid>
+                    
+                    <TextBlock Text="通用" FontWeight="SemiBold" Foreground="{DynamicResource ForegroundSecondaryBrush}" Margin="0,0,0,8"/>
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="最大记录数量" VerticalAlignment="Center"/>
+                        <TextBox Grid.Column="1" Text="{Binding MaxHistory, UpdateSourceTrigger=PropertyChanged}" Width="60" TextAlignment="Right"/>
+                    </Grid>
+                    <CheckBox Content="关闭软件时保留历史记录" IsChecked="{Binding PersistHistory}" Margin="0,0,0,12"/>
+                    
+                    <Rectangle Height="1" Fill="{DynamicResource BorderSubtleBrush}" Margin="0,8"/>
+                    
+                    <TextBlock Text="自动清理" FontWeight="SemiBold" Foreground="{DynamicResource ForegroundSecondaryBrush}" Margin="0,8,0,8"/>
+                    <CheckBox Content="开启自动清理未固定内容" IsChecked="{Binding AutoClean}" Margin="0,0,0,12"/>
+                    <Grid Margin="0,0,0,12" IsEnabled="{Binding AutoClean}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="保留时长" VerticalAlignment="Center"/>
+                        <TextBox Grid.Column="1" Text="{Binding RetentionDays, UpdateSourceTrigger=PropertyChanged}" Width="60" TextAlignment="Right" Margin="0,0,8,0"/>
+                        <TextBlock Grid.Column="2" Text="天" VerticalAlignment="Center"/>
+                    </Grid>
+                    
+                    <Rectangle Height="1" Fill="{DynamicResource BorderSubtleBrush}" Margin="0,8"/>
+                    
+                    <TextBlock Text="监听类型" FontWeight="SemiBold" Foreground="{DynamicResource ForegroundSecondaryBrush}" Margin="0,8,0,8"/>
+                    <WrapPanel Orientation="Horizontal">
+                        <CheckBox Content="文本" IsChecked="{Binding CaptureText}" Margin="0,0,16,8"/>
+                        <CheckBox Content="文件" IsChecked="{Binding CaptureFiles}" Margin="0,0,16,8"/>
+                        <CheckBox Content="外部图片" IsChecked="{Binding CaptureImages}" Margin="0,0,16,8"/>
+                        <CheckBox Content="截屏" IsChecked="{Binding CaptureScreenshots}" Margin="0,0,16,8"/>
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+        </Popup>
+    </Grid>
+</UserControl>

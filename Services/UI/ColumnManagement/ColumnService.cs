@@ -353,16 +353,28 @@ namespace YiboFile.Services.ColumnManagement
                 var columns = gridView.Columns;
                 if (columns.Count >= 7)
                 {
-                    var columnMap = new Dictionary<string, GridViewColumn>
+                    // 修复 Bug: 不能使用硬编码索引 columns[0], columns[1]... 
+                    // 因为列顺序可能已经被用户打乱。必须通过 Tag 动态构建字典。
+                    var columnMap = new Dictionary<string, GridViewColumn>();
+                    foreach (var col in columns)
                     {
-                        { "Name", columns[0] },
-                        { "Size", columns[1] },
-                        { "Type", columns[2] },
-                        { "ModifiedDate", columns[3] },
-                        { "CreatedTime", columns[4] },
-                        { "Tags", columns[5] },
-                        { "Notes", columns[6] }
-                    };
+                        var tag = GetColumnTag(col);
+                        if (!string.IsNullOrEmpty(tag))
+                        {
+                            columnMap[tag] = col;
+                        }
+                    }
+
+                    // 确保关键列都已找到，否则回退到基于索引的初始化（仅当 Tag 未定义时）
+                    string[] essentialTags = { "Name", "Size", "Type", "ModifiedDate", "CreatedTime", "Tags", "Notes" };
+                    if (columnMap.Count < 7)
+                    {
+                        for (int i = 0; i < Math.Min(columns.Count, 7); i++)
+                        {
+                            var tag = essentialTags[i];
+                            if (!columnMap.ContainsKey(tag)) columnMap[tag] = columns[i];
+                        }
+                    }
 
                         var orderString = GetPaneColumns(fileBrowser).ColumnOrder;
                     if (!string.IsNullOrEmpty(orderString))

@@ -24,6 +24,37 @@ namespace YiboFile.Controls
             set { SetValue(FilePathProperty, value); }
         }
 
+        public static readonly DependencyProperty HideToolbarProperty =
+            DependencyProperty.Register("HideToolbar", typeof(bool), typeof(PdfView), new PropertyMetadata(false, OnHideToolbarChanged));
+
+        public bool HideToolbar
+        {
+            get { return (bool)GetValue(HideToolbarProperty); }
+            set { SetValue(HideToolbarProperty, value); }
+        }
+
+        private static void OnHideToolbarChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            ((PdfView)d).UpdateToolbarVisibility();
+        }
+
+        private void UpdateToolbarVisibility()
+        {
+            if (_webView != null && _webView.CoreWebView2 != null)
+            {
+                string display = HideToolbar ? "none" : "flex";
+                _webView.CoreWebView2.ExecuteScriptAsync($"if(document.getElementById('toolbar')) document.getElementById('toolbar').style.display = '{display}';");
+                if (HideToolbar)
+                {
+                    _webView.CoreWebView2.ExecuteScriptAsync("if(document.getElementById('viewer-container')) document.getElementById('viewer-container').style.padding = '0';");
+                    _webView.CoreWebView2.ExecuteScriptAsync(
+                        "if(document.getElementById('zoom-select')) { document.getElementById('zoom-select').value = 'page-width'; }" + 
+                        "if(typeof renderPage === 'function' && typeof currentPage !== 'undefined') { renderPage(currentPage); }"
+                    );
+                }
+            }
+        }
+
         public PdfView()
         {
             _webView = new WebView2();
@@ -78,11 +109,15 @@ namespace YiboFile.Controls
 
         private async void OnNavigationCompleted(object sender, CoreWebView2NavigationCompletedEventArgs e)
         {
-            if (e.IsSuccess && !string.IsNullOrEmpty(_pendingFilePath))
+            if (e.IsSuccess)
             {
-                // Wait a bit for JS to be ready
-                await Task.Delay(200);
-                await LoadPdf(_pendingFilePath);
+                UpdateToolbarVisibility();
+                if (!string.IsNullOrEmpty(_pendingFilePath))
+                {
+                    // Wait a bit for JS to be ready
+                    await Task.Delay(200);
+                    await LoadPdf(_pendingFilePath);
+                }
             }
         }
 
@@ -113,10 +148,10 @@ namespace YiboFile.Controls
                 byte[] bytes = await Task.Run(() =>
                 {
                     using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                    using (var ms = new MemoryStream())
                     {
-                        byte[] buffer = new byte[fs.Length];
-                        fs.Read(buffer, 0, buffer.Length);
-                        return buffer;
+                        fs.CopyTo(ms);
+                        return ms.ToArray();
                     }
                 });
 
