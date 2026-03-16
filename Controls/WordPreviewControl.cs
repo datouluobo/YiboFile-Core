@@ -46,7 +46,7 @@ namespace YiboFile.Controls
             if (string.IsNullOrEmpty(html)) return;
             try
             {
-                await _webView.EnsureCoreWebView2Async();
+                await YiboFile.Helpers.WebView2Helper.EnsureInitializedAsync(_webView);
                 _webView.NavigateToString(html);
             }
             catch (Exception ex)

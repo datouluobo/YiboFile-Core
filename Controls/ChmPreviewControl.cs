@@ -138,7 +138,7 @@ namespace YiboFile.Controls
             if (string.IsNullOrEmpty(path)) return;
             try
             {
-                await _webView.EnsureCoreWebView2Async();
+                await YiboFile.Helpers.WebView2Helper.EnsureInitializedAsync(_webView);
                 _webView.CoreWebView2.Navigate(new Uri(path).AbsoluteUri);
             }
             catch { }

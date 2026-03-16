@@ -46,7 +46,7 @@ namespace YiboFile.Services.Theming
 
         private void DiscoverResources()
         {
-            var themes = new[] { "Light", "Dark", "Ocean", "Forest", "Sunset", "Purple", "Nordic" };
+            var themes = new[] { "Light", "Dark", "Ocean", "Forest", "Sunset", "Purple", "Nordic", "FluentMica" };
             foreach (var t in themes)
             {
                 var uri = new Uri($"pack://application:,,,/YiboFile-Core;component/Styles/Themes/{t}.xaml", UriKind.Absolute);

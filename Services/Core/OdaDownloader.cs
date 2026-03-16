@@ -10,8 +10,18 @@ namespace YiboFile.Services
 {
     public static class OdaDownloader
     {
-        private static readonly string OdaDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Dependencies", "ODAFileConverter");
-        private static readonly string OdaExePath = Path.Combine(OdaDirectory, "ODAFileConverter.exe");
+        private static string GetOdaDirectory()
+        {
+            string portableDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Dependencies", "ODAFileConverter");
+            if (Directory.Exists(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "AppData")) || Directory.Exists(portableDir))
+            {
+                return portableDir;
+            }
+            return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "YiboFile", "Dependencies", "ODAFileConverter");
+        }
+
+        private static string OdaDirectory => GetOdaDirectory();
+        private static string OdaExePath => Path.Combine(OdaDirectory, "ODAFileConverter.exe");
         
         // ODA File Converter 下载链接（这是一个示例，实际需要从 ODA 官网获取最新版本）
         // 注意：ODA 要求用户注册后才能下载，所以这里提供的是引导用户到官网的方案

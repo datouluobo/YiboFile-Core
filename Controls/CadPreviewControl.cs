@@ -164,7 +164,7 @@ namespace YiboFile.Controls
             {
                 try
                 {
-                    await _webView.EnsureCoreWebView2Async();
+                    await YiboFile.Helpers.WebView2Helper.EnsureInitializedAsync(_webView);
 
                     // WebView2 NavigateToString has a size limit (around 2MB).
                     // If content is large, save to temp file and navigate.
@@ -233,7 +233,7 @@ namespace YiboFile.Controls
     </script>
 </body>
 </html>";
-            await odaWebView.EnsureCoreWebView2Async();
+            await YiboFile.Helpers.WebView2Helper.EnsureInitializedAsync(odaWebView);
             odaWebView.NavigateToString(html);
         }
     }

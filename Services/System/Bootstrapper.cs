@@ -423,7 +423,15 @@ namespace YiboFile.Services.Startup
             // 写入日志文件
             try
             {
-                string logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "error.log");
+                string portableDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "AppData");
+                string logDir = Directory.Exists(portableDir) ? portableDir : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "YiboFile");
+                
+                if (!Directory.Exists(logDir))
+                {
+                    Directory.CreateDirectory(logDir);
+                }
+
+                string logPath = Path.Combine(logDir, "error.log");
                 File.AppendAllText(logPath, $"[{DateTime.Now}] 启动错误:\n{errorMsg}\n\n");
             }
             catch { }

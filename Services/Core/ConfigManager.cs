@@ -227,7 +227,19 @@ namespace YiboFile
         private const string DataFileName = "yibofile_data.db";
         private const string BasePathMarkerFileName = "basepath.txt";
 
-        private static readonly string DefaultBaseDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "AppData");
+        private static string GetDefaultBaseDirectory()
+        {
+            try
+            {
+                string portableDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "AppData");
+                if (Directory.Exists(portableDir))
+                {
+                    return portableDir;
+                }
+            }
+            catch { }
+            return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "YiboFile");
+        }
 
         private static string _baseDirectory;
 
@@ -248,8 +260,9 @@ namespace YiboFile
                 return _baseDirectory;
             }
 
-            var marker = Path.Combine(DefaultBaseDirectory, BasePathMarkerFileName);
-            string selected = DefaultBaseDirectory;
+            string defaultDir = GetDefaultBaseDirectory();
+            var marker = Path.Combine(defaultDir, BasePathMarkerFileName);
+            string selected = defaultDir;
 
             if (File.Exists(marker))
             {
@@ -298,8 +311,11 @@ namespace YiboFile
         {
             try
             {
-                Directory.CreateDirectory(DefaultBaseDirectory);
-                File.WriteAllText(Path.Combine(DefaultBaseDirectory, BasePathMarkerFileName), baseDirectory);
+                string portableDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "AppData");
+                if (Directory.Exists(portableDir))
+                {
+                    File.WriteAllText(Path.Combine(portableDir, BasePathMarkerFileName), baseDirectory);
+                }
             }
             catch { }
         }

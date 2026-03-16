@@ -110,7 +110,7 @@ namespace YiboFile.Controls
             {
                 try
                 {
-                    await _webView.EnsureCoreWebView2Async();
+                    await YiboFile.Helpers.WebView2Helper.EnsureInitializedAsync(_webView);
 
                     // Inject viewport script
                     _webView.CoreWebView2.DOMContentLoaded += async (s, e) =>

@@ -71,6 +71,7 @@ namespace YiboFile.Services
             var odaPaths = new[]
             {
                 Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Dependencies", "ODAFileConverter", "ODAFileConverter.exe"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "YiboFile", "Dependencies", "ODAFileConverter", "ODAFileConverter.exe"),
                 @"C:\Program Files\ODA\ODAFileConverter\ODAFileConverter.exe",
                 @"C:\Program Files (x86)\ODA\ODAFileConverter\ODAFileConverter.exe"
             };
@@ -176,6 +177,7 @@ namespace YiboFile.Services
             var qcadPaths = new[]
             {
                 Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Dependencies", "QCAD", "qcad-cli.exe"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "YiboFile", "Dependencies", "QCAD", "qcad-cli.exe"),
                 @"C:\Program Files\QCAD\qcad-cli.exe",
                 @"C:\Program Files (x86)\QCAD\qcad-cli.exe"
             };

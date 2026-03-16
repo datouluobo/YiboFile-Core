@@ -186,7 +186,7 @@ namespace YiboFile.Controls
             {
                 try
                 {
-                    await _webView.EnsureCoreWebView2Async();
+                    await YiboFile.Helpers.WebView2Helper.EnsureInitializedAsync(_webView);
                     _webView.NavigateToString(html);
                 }
                 catch { }

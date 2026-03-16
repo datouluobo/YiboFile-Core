@@ -264,11 +264,19 @@ namespace YiboFile.Services
                     return false;
                 }
 
-                // 启动 Everything（后台运行，根据命令行选项文档：-startup = "Run 'Everything' in the background"）
+                // 获取数据目录，确保 Everything 不会尝试在只读程序目录创建数据库
+                string dataDir = ConfigManager.GetBaseDirectory();
+                string everythingDataDir = Path.Combine(dataDir, "Everything");
+                Directory.CreateDirectory(everythingDataDir);
+
+                // 启动 Everything
+                // -startup: 后台运行
+                // -appdata: 指定配置文件夹
+                // -db: 指定数据库路径
                 var startInfo = new ProcessStartInfo
                 {
                     FileName = everythingPath,
-                    Arguments = "-startup", // 后台启动参数（官方文档确认）
+                    Arguments = $"-startup -appdata \"{everythingDataDir}\" -db \"{Path.Combine(everythingDataDir, "Everything.db")}\"",
                     UseShellExecute = false,
                     CreateNoWindow = true,
                     WindowStyle = ProcessWindowStyle.Hidden
@@ -520,11 +528,15 @@ namespace YiboFile.Services
                     return;
                 }
 
+                // 获取数据目录
+                string dataDir = ConfigManager.GetBaseDirectory();
+                string everythingDataDir = Path.Combine(dataDir, "Everything");
+
                 // 发送 -rebuild 命令
                 var startInfo = new ProcessStartInfo
                 {
                     FileName = everythingPath,
-                    Arguments = "-rebuild",
+                    Arguments = $"-rebuild -appdata \"{everythingDataDir}\"",
                     UseShellExecute = false
                 };
                 Process.Start(startInfo);
