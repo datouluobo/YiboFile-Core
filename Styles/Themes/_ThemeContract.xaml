@@ -126,6 +126,9 @@
     <Color x:Key="OverlayLightBrush.Color">#33000000</Color>
     <SolidColorBrush x:Key="OverlayLightBrush" Color="#33000000"/>
     
+    <Color x:Key="OverlayDarkBrush.Color">#66000000</Color>
+    <SolidColorBrush x:Key="OverlayDarkBrush" Color="#66000000"/>
+    
     <Color x:Key="DividerBrush.Color">#E0E0E0</Color>
     <SolidColorBrush x:Key="DividerBrush" Color="#E0E0E0"/>
     

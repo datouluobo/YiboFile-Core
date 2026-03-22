@@ -24,45 +24,45 @@
          ======================================== -->
     
     <!-- 1. 背景类 (9个) -->
-    <Color x:Key="BackgroundPrimaryBrush.Color">#FFFFFF</Color>
-    <SolidColorBrush x:Key="BackgroundPrimaryBrush" Color="#FFFFFF"/>       <!-- 主背景 -->
-    <Color x:Key="BackgroundSecondaryBrush.Color">#F8F9FA</Color>
-    <SolidColorBrush x:Key="BackgroundSecondaryBrush" Color="#F8F9FA"/>     <!-- 次背景/面板 -->
-    <Color x:Key="BackgroundTertiaryBrush.Color">#F5F5F5</Color>
-    <SolidColorBrush x:Key="BackgroundTertiaryBrush" Color="#F5F5F5"/>      <!-- 三级背景/卡片 -->
-    <Color x:Key="BackgroundElevatedBrush.Color">#FFFFFF</Color>
-    <SolidColorBrush x:Key="BackgroundElevatedBrush" Color="#FFFFFF"/>      <!-- 对话框/浮动 -->
-    <Color x:Key="TitleBarBackgroundBrush.Color">#F8F9FA</Color>
-    <SolidColorBrush x:Key="TitleBarBackgroundBrush" Color="#F8F9FA"/>      <!-- 标题栏背景 -->
-    <Color x:Key="NavigationRegionBrush.Color">#F2F2F2</Color>
-    <SolidColorBrush x:Key="NavigationRegionBrush" Color="#F2F2F2"/>        <!-- 导航区背景 -->
-    <Color x:Key="SidebarBackgroundBrush.Color">#F0F0F0</Color>
-    <SolidColorBrush x:Key="SidebarBackgroundBrush" Color="#F0F0F0"/>       <!-- 侧边栏专用背景 -->
-    <Color x:Key="PaneFocusedBackgroundBrush.Color">#FFFFFF</Color>
-    <SolidColorBrush x:Key="PaneFocusedBackgroundBrush" Color="#FFFFFF"/>   <!-- 焦点栏背景 -->
-    <Color x:Key="PaneUnfocusedBackgroundBrush.Color">#FAFAFA</Color>
-    <SolidColorBrush x:Key="PaneUnfocusedBackgroundBrush" Color="#FAFAFA"/> <!-- 非焦点栏背景 -->
+    <Color x:Key="BackgroundPrimaryBrush.Color">#141E14</Color>
+    <SolidColorBrush x:Key="BackgroundPrimaryBrush" Color="#141E14"/>       <!-- 主背景: 森林深绿 -->
+    <Color x:Key="BackgroundSecondaryBrush.Color">#1E2B1E</Color>
+    <SolidColorBrush x:Key="BackgroundSecondaryBrush" Color="#1E2B1E"/>     <!-- 次背景 -->
+    <Color x:Key="BackgroundTertiaryBrush.Color">#293829</Color>
+    <SolidColorBrush x:Key="BackgroundTertiaryBrush" Color="#293829"/>      <!-- 三级背景 -->
+    <Color x:Key="BackgroundElevatedBrush.Color">#344534</Color>
+    <SolidColorBrush x:Key="BackgroundElevatedBrush" Color="#344534"/>      <!-- 对话框 -->
+    <Color x:Key="TitleBarBackgroundBrush.Color">#101810</Color>
+    <SolidColorBrush x:Key="TitleBarBackgroundBrush" Color="#101810"/>      <!-- 标题栏 -->
+    <Color x:Key="NavigationRegionBrush.Color">#182418</Color>
+    <SolidColorBrush x:Key="NavigationRegionBrush" Color="#182418"/>        <!-- 导航区 -->
+    <Color x:Key="SidebarBackgroundBrush.Color">#0D140D</Color>
+    <SolidColorBrush x:Key="SidebarBackgroundBrush" Color="#0D140D"/>       <!-- 侧边栏 -->
+    <Color x:Key="PaneFocusedBackgroundBrush.Color">#141E14</Color>
+    <SolidColorBrush x:Key="PaneFocusedBackgroundBrush" Color="#141E14"/>   <!-- 焦点栏 -->
+    <Color x:Key="PaneUnfocusedBackgroundBrush.Color">#182218</Color>
+    <SolidColorBrush x:Key="PaneUnfocusedBackgroundBrush" Color="#182218"/> <!-- 非焦点栏 -->
     
     <!-- 2. 文本类 (6个) -->
-    <Color x:Key="ForegroundPrimaryColor">#212529</Color>                   <!-- 主要文本 (Color) -->
-    <Color x:Key="ForegroundPrimaryBrush.Color">#212529</Color>
-    <SolidColorBrush x:Key="ForegroundPrimaryBrush" Color="#212529"/>       <!-- 主要文本 (Brush) -->
-    <Color x:Key="ForegroundSecondaryBrush.Color">#666666</Color>
-    <SolidColorBrush x:Key="ForegroundSecondaryBrush" Color="#666666"/>     <!-- 次要文本 -->
-    <Color x:Key="ForegroundTertiaryBrush.Color">#999999</Color>
-    <SolidColorBrush x:Key="ForegroundTertiaryBrush" Color="#999999"/>      <!-- 三级文本 -->
-    <Color x:Key="ForegroundDisabledBrush.Color">#ADB5BD</Color>
-    <SolidColorBrush x:Key="ForegroundDisabledBrush" Color="#ADB5BD"/>      <!-- 禁用文本 -->
+    <Color x:Key="ForegroundPrimaryColor">#E0E6E0</Color>
+    <Color x:Key="ForegroundPrimaryBrush.Color">#E0E6E0</Color>
+    <SolidColorBrush x:Key="ForegroundPrimaryBrush" Color="#E0E6E0"/>       <!-- 主要文本: 淡绿白 -->
+    <Color x:Key="ForegroundSecondaryBrush.Color">#A8B2A8</Color>
+    <SolidColorBrush x:Key="ForegroundSecondaryBrush" Color="#A8B2A8"/>     <!-- 次要文本 -->
+    <Color x:Key="ForegroundTertiaryBrush.Color">#7D857D</Color>
+    <SolidColorBrush x:Key="ForegroundTertiaryBrush" Color="#7D857D"/>      <!-- 三级文本 -->
+    <Color x:Key="ForegroundDisabledBrush.Color">#4D544D</Color>
+    <SolidColorBrush x:Key="ForegroundDisabledBrush" Color="#4D544D"/>      <!-- 禁用文本 -->
     <Color x:Key="ForegroundOnAccentBrush.Color">#FFFFFF</Color>
     <SolidColorBrush x:Key="ForegroundOnAccentBrush" Color="#FFFFFF"/>      <!-- 强调色上的文本 -->
     
     <!-- 3. 边框类 (3个) -->
-    <Color x:Key="BorderDefaultBrush.Color">#E0E0E0</Color>
-    <SolidColorBrush x:Key="BorderDefaultBrush" Color="#E0E0E0"/>           <!-- 默认边框 -->
-    <Color x:Key="BorderSubtleBrush.Color">#F0F0F0</Color>
-    <SolidColorBrush x:Key="BorderSubtleBrush" Color="#F0F0F0"/>            <!-- 淡边框 -->
-    <Color x:Key="BorderFocusBrush.Color">#007BFF</Color>
-    <SolidColorBrush x:Key="BorderFocusBrush" Color="#007BFF"/>             <!-- 聚焦边框 -->
+    <Color x:Key="BorderDefaultBrush.Color">#344534</Color>
+    <SolidColorBrush x:Key="BorderDefaultBrush" Color="#344534"/>           <!-- 默认边框 -->
+    <Color x:Key="BorderSubtleBrush.Color">#253425</Color>
+    <SolidColorBrush x:Key="BorderSubtleBrush" Color="#253425"/>            <!-- 淡边框 -->
+    <Color x:Key="BorderFocusBrush.Color">#43A047</Color>
+    <SolidColorBrush x:Key="BorderFocusBrush" Color="#43A047"/>             <!-- 聚焦边框 -->
     
     <!-- 4. 强调色/交互 (7个) -->
     <Color x:Key="AccentColor">#43A047</Color>                              <!-- 强调 Color -->
@@ -101,14 +101,16 @@
     <!-- 7. 特殊用途 (4个) -->
     <Color x:Key="TransparentBrush.Color">Transparent</Color>
     <SolidColorBrush x:Key="TransparentBrush" Color="Transparent"/>         <!-- 透明 -->
-    <Color x:Key="OverlayBrush.Color">#66000000</Color>
-    <SolidColorBrush x:Key="OverlayBrush" Color="#66000000"/>               <!-- 遮罩 -->
-    <Color x:Key="OverlayLightBrush.Color">#33000000</Color>
-    <SolidColorBrush x:Key="OverlayLightBrush" Color="#33000000"/>          <!-- 浅遮罩 -->
-    <Color x:Key="DividerBrush.Color">#E0E0E0</Color>
-    <SolidColorBrush x:Key="DividerBrush" Color="#E0E0E0"/>                 <!-- 分隔线 -->
-    <Color x:Key="ShadowBrush.Color">#1A000000</Color>
-    <SolidColorBrush x:Key="ShadowBrush" Color="#1A000000"/>                <!-- 阴影 -->
+    <Color x:Key="OverlayBrush.Color">#80000000</Color>
+    <SolidColorBrush x:Key="OverlayBrush" Color="#80000000"/>               <!-- 遮罩 -->
+    <Color x:Key="OverlayLightBrush.Color">#30FFFFFF</Color>
+    <SolidColorBrush x:Key="OverlayLightBrush" Color="#30FFFFFF"/>          <!-- 浅遮罩 -->
+    <Color x:Key="OverlayDarkBrush.Color">#80000000</Color>
+    <SolidColorBrush x:Key="OverlayDarkBrush" Color="#80000000"/>           <!-- 深遮罩 -->
+    <Color x:Key="DividerBrush.Color">#1E2B1E</Color>
+    <SolidColorBrush x:Key="DividerBrush" Color="#1E2B1E"/>                 <!-- 分隔线 -->
+    <Color x:Key="ShadowBrush.Color">#60000000</Color>
+    <SolidColorBrush x:Key="ShadowBrush" Color="#60000000"/>                <!-- 阴影 -->
     
 
 </ResourceDictionary>

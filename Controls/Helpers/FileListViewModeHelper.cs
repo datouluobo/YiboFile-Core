@@ -108,7 +108,12 @@ namespace YiboFile.Controls.Helpers
             ThumbnailService thumbnailService,
             Func<string, object> findResource)
         {
+            // 先应用面板和滚动模式，确保 View = null 后的第一次布局就使用正确参数
+            filesListView.ItemsPanel = (ItemsPanelTemplate)findResource("WrapPanelTemplate");
+            ScrollViewer.SetHorizontalScrollBarVisibility(filesListView, ScrollBarVisibility.Disabled);
+
             filesListView.View = null;
+
             var selector = (FileListTemplateSelector)findResource("FileListItemSelector");
             selector.DefaultTemplate = (DataTemplate)findResource(templateKey);
 
@@ -116,9 +121,6 @@ namespace YiboFile.Controls.Helpers
             // Force refresh if selector instance is reused
             filesListView.ItemTemplateSelector = null;
             filesListView.ItemTemplateSelector = selector;
-
-            filesListView.ItemsPanel = (ItemsPanelTemplate)findResource("WrapPanelTemplate");
-            ScrollViewer.SetHorizontalScrollBarVisibility(filesListView, ScrollBarVisibility.Disabled);
 
             if (loadThumbnails && filesListView.ItemsSource != null)
             {
@@ -139,7 +141,12 @@ namespace YiboFile.Controls.Helpers
             ThumbnailService thumbnailService,
             Func<string, object> findResource)
         {
+            // 先应用面板和滚动模式
+            filesListView.ItemsPanel = (ItemsPanelTemplate)findResource("StackPanelTemplate");
+            ScrollViewer.SetHorizontalScrollBarVisibility(filesListView, ScrollBarVisibility.Disabled);
+
             filesListView.View = null;
+
             var selector = (FileListTemplateSelector)findResource("FileListItemSelector");
             selector.DefaultTemplate = (DataTemplate)findResource(templateKey);
 
@@ -147,9 +154,6 @@ namespace YiboFile.Controls.Helpers
             // Force refresh if selector instance is reused
             filesListView.ItemTemplateSelector = null;
             filesListView.ItemTemplateSelector = selector;
-
-            filesListView.ItemsPanel = (ItemsPanelTemplate)findResource("StackPanelTemplate");
-            ScrollViewer.SetHorizontalScrollBarVisibility(filesListView, ScrollBarVisibility.Disabled);
 
             if (loadThumbnails && filesListView.ItemsSource != null)
             {

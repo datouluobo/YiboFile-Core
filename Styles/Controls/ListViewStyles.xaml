@@ -266,6 +266,13 @@
             </Setter.Value>
         </Setter>
         <Style.Triggers>
+            <!-- Special handling for non-grid views (thumbnails, tiles, etc.) to ensure spacing is controlled by templates -->
+            <Trigger Property="GridView.ColumnCollection" Value="{x:Null}">
+                <Setter Property="Margin" Value="0" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="MinHeight" Value="0" />
+            </Trigger>
+
             <!-- Highlight Logic -->
             <DataTrigger Binding="{Binding Notes}" Value="文件名日期匹配">
                 <Setter Property="Background" Value="{DynamicResource AccentLightBrush}" />
@@ -306,15 +313,28 @@
                 <Setter Property="BorderBrush" Value="{DynamicResource AccentDefaultBrush}" />
                 <Setter Property="BorderThickness" Value="{DynamicResource UI.FileList.SelectedBorderThickness}" />
             </MultiTrigger>
+
+            <!-- Reset border for non-grid views (thumbnails, tiles, etc.) to remove side line indicator -->
+            <MultiTrigger>
+                <MultiTrigger.Conditions>
+                    <Condition Property="GridView.ColumnCollection" Value="{x:Null}" />
+                    <Condition Property="IsSelected" Value="True" />
+                </MultiTrigger.Conditions>
+                <Setter Property="BorderThickness" Value="0" />
+            </MultiTrigger>
         </Style.Triggers>
     </Style>
 
     <!-- Implicit Styles -->
     <Style TargetType="ListView">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
         <Setter Property="Foreground" Value="{DynamicResource ForegroundPrimaryBrush}" />
     </Style>
 
     <Style TargetType="ListBox">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
         <Setter Property="Foreground" Value="{DynamicResource ForegroundPrimaryBrush}" />
     </Style>
 

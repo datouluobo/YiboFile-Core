@@ -160,14 +160,16 @@ namespace YiboFile.ViewModels.Previews
 
         private string WrapSvgInHtml(string svgContent)
         {
+            string themeCss = GetThemeCss();
             return $@"
 <!DOCTYPE html>
 <html>
 <head>
     <style>
-        body {{ margin: 0; padding: 0; overflow: hidden; background-color: white; display: flex; justify-content: center; align-items: center; height: 100vh; }}
-        #svg-container {{ width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }}
+        html, body {{ margin: 0; padding: 0; overflow: hidden; background: transparent; display: flex; justify-content: center; align-items: center; height: 100vh; }}
+        #svg-container {{ width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; pointer-events: none; }}
         svg {{ max-width: 100%; max-height: 100%; }}
+        {themeCss}
     </style>
     <script>
         let scale = 1;

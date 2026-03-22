@@ -47,6 +47,10 @@ namespace YiboFile.Controls
             try
             {
                 await YiboFile.Helpers.WebView2Helper.EnsureInitializedAsync(_webView);
+                _webView.CoreWebView2.DOMContentLoaded += async (s, ev) =>
+                {
+                    await YiboFile.Helpers.WebView2Helper.InjectThemeScriptAsync(_webView);
+                };
                 _webView.NavigateToString(html);
             }
             catch (Exception ex)

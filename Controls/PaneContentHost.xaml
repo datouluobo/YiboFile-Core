@@ -25,13 +25,12 @@
         <Grid x:Name="RootGrid" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
             <Grid.Style>
                 <Style TargetType="Grid">
-                    <Setter Property="Background" Value="{DynamicResource BackgroundPrimaryBrush}"/>
-                    <Setter Property="Opacity" Value="1.0"/>
+                    <Setter Property="Background" Value="{DynamicResource BackgroundTertiaryBrush}"/>
+                    <Setter Property="Opacity" Value="0.90"/>
                     <Style.Triggers>
-                        <DataTrigger Binding="{Binding IsActive}" Value="False">
-                            <!-- 失去焦点时整体稍暗 -->
-                            <Setter Property="Background" Value="{DynamicResource BackgroundTertiaryBrush}"/>
-                            <Setter Property="Opacity" Value="0.90"/>
+                        <DataTrigger Binding="{Binding IsActive}" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource BackgroundPrimaryBrush}"/>
+                            <Setter Property="Opacity" Value="1.0"/>
                         </DataTrigger>
                     </Style.Triggers>
                 </Style>

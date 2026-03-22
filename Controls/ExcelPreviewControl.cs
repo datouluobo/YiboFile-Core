@@ -66,11 +66,11 @@ namespace YiboFile.Controls
             // Tabs
             var tabBorder = new Border
             {
-                Background = new SolidColorBrush(Color.FromRgb(245, 245, 245)),
-                BorderBrush = new SolidColorBrush(Color.FromRgb(230, 230, 230)),
                 BorderThickness = new Thickness(0, 0, 0, 1),
                 Padding = new Thickness(10, 5, 10, 5)
             };
+            tabBorder.SetResourceReference(Border.BackgroundProperty, "BackgroundSecondaryBrush");
+            tabBorder.SetResourceReference(Border.BorderBrushProperty, "BorderBrush");
             var tabScroll = new ScrollViewer
             {
                 HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
@@ -94,11 +94,11 @@ namespace YiboFile.Controls
             _legacyPanel = new StackPanel
             {
                 Orientation = Orientation.Vertical,
-                Background = Brushes.White,
                 Visibility = Visibility.Collapsed,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center
             };
+            _legacyPanel.SetResourceReference(StackPanel.BackgroundProperty, "BackgroundPrimaryBrush");
 
             var legacyIcon = new TextBlock { Text = "📊", FontSize = 48, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 0, 0, 20) };
             var legacyTitle = new TextBlock { Text = "需要转换格式", FontSize = 18, FontWeight = FontWeights.Bold, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 0, 0, 10) };
@@ -106,21 +106,22 @@ namespace YiboFile.Controls
             {
                 Text = "该文件为旧版 Excel 格式 (XLS)，无法直接预览。\n请将其转换为 XLSX 格式以查看。",
                 FontSize = 14,
-                Foreground = Brushes.Gray,
                 TextAlignment = TextAlignment.Center,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 Margin = new Thickness(0, 0, 0, 20)
             };
+            legacyDesc.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundSecondaryBrush");
+            legacyTitle.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundPrimaryBrush");
 
             var convertButton = new Button
             {
                 Padding = new Thickness(20, 10, 20, 10),
-                Background = new SolidColorBrush(Color.FromRgb(33, 150, 243)),
-                Foreground = Brushes.White,
                 FontSize = 14,
                 Cursor = Cursors.Hand,
                 BorderThickness = new Thickness(0)
             };
+            convertButton.SetResourceReference(Button.BackgroundProperty, "AccentDefaultBrush");
+            convertButton.SetResourceReference(Button.ForegroundProperty, "ForegroundOnAccentBrush");
             convertButton.SetBinding(Button.CommandProperty, new Binding("ConvertCommand"));
             convertButton.SetBinding(Button.ContentProperty, new Binding("ConvertStatusText"));
             convertButton.SetBinding(Button.IsEnabledProperty, new Binding("IsConverting") { Converter = new InverseBooleanConverter() });
@@ -159,10 +160,19 @@ namespace YiboFile.Controls
                     Margin = new Thickness(0, 0, 5, 0),
                     FontSize = 13,
                     Cursor = Cursors.Hand,
-                    BorderThickness = new Thickness(0),
-                    Background = sheet == vm.SelectedSheet ? new SolidColorBrush(Color.FromRgb(33, 150, 243)) : Brushes.Transparent,
-                    Foreground = sheet == vm.SelectedSheet ? Brushes.White : Brushes.Black
+                    BorderThickness = new Thickness(0)
                 };
+
+                if (sheet == vm.SelectedSheet)
+                {
+                    btn.SetResourceReference(Button.BackgroundProperty, "AccentDefaultBrush");
+                    btn.SetResourceReference(Button.ForegroundProperty, "ForegroundOnAccentBrush");
+                }
+                else
+                {
+                    btn.Background = Brushes.Transparent;
+                    btn.SetResourceReference(Button.ForegroundProperty, "ForegroundPrimaryBrush");
+                }
 
                 btn.Click += (s, e) =>
                 {
@@ -170,10 +180,10 @@ namespace YiboFile.Controls
                     foreach (Button b in _tabPanel.Children)
                     {
                         b.Background = Brushes.Transparent;
-                        b.Foreground = Brushes.Black;
+                        b.SetResourceReference(Button.ForegroundProperty, "ForegroundPrimaryBrush");
                     }
-                    btn.Background = new SolidColorBrush(Color.FromRgb(33, 150, 243));
-                    btn.Foreground = Brushes.White;
+                    btn.SetResourceReference(Button.BackgroundProperty, "AccentDefaultBrush");
+                    btn.SetResourceReference(Button.ForegroundProperty, "ForegroundOnAccentBrush");
                 };
 
                 _tabPanel.Children.Add(btn);

@@ -30,8 +30,10 @@ namespace YiboFile.Controls
                 VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
                 HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
                 BorderThickness = new Thickness(0),
-                Padding = new Thickness(10)
+                Padding = new Thickness(10),
+                Background = System.Windows.Media.Brushes.Transparent
             };
+            _textBox.SetResourceReference(TextBox.ForegroundProperty, "ForegroundPrimaryBrush");
 
             grid.Children.Add(_webView);
             grid.Children.Add(_textBox);

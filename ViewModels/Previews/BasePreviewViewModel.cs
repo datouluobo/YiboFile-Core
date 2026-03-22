@@ -48,5 +48,10 @@ namespace YiboFile.ViewModels.Previews
         {
             // Derived classes can override to clean up unmanaged resources.
         }
+
+        protected string GetThemeCss()
+        {
+            return YiboFile.Helpers.WebView2Helper.GetThemeCss();
+        }
     }
 }

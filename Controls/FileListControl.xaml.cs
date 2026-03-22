@@ -222,10 +222,12 @@ namespace YiboFile.Controls
                 var config = GetConfig();
                 _cachedNotesWidth = config.ColNotesWidth;
 
-                // 2. 然后禁用横向滚动条，并初始化/执行 Name 列的自动填充计算
-                if (FilesListView != null)
+                // 2. 重新应用当前的视图模式（确保恢复后的状态正确初始化面板策略和模板）
+                ApplyViewMode();
+
+                // 3. 针对列表模式初始化名称列的自动填充计算
+                if (FilesListView != null && CurrentViewMode == YiboFile.Models.Enums.FileListViewMode.List)
                 {
-                    ScrollViewer.SetHorizontalScrollBarVisibility(FilesListView, ScrollBarVisibility.Disabled);
                     if (_autoColumnWidthBehavior == null)
                     {
                         _autoColumnWidthBehavior = new AutoColumnWidthBehavior(FilesListView, "Name");

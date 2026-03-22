@@ -41,7 +41,7 @@
         </ResourceDictionary>
     </UserControl.Resources>
     
-    <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="0">
+    <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="0" Background="Transparent">
         <Grid.ColumnDefinitions>
             <!-- 内容列 -->
             <ColumnDefinition Width="*"/>
@@ -53,7 +53,7 @@
         <Border Grid.Column="0" Background="Transparent" BorderThickness="0" Margin="0,4,4,4">
             <Grid>
                 <!-- 预览内容 (当BtnPreview选中时显示) -->
-                <Grid x:Name="PreviewArea" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ClipToBounds="True">
+                <Grid x:Name="PreviewArea" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ClipToBounds="True" Background="Transparent">
                     <Grid.Style>
                         <Style TargetType="Grid">
                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -93,11 +93,13 @@
                                          AcceptsReturn="True" 
                                          IsReadOnly="True" 
                                          TextWrapping="Wrap"
-                                         FontFamily="Consolas" 
-                                         VerticalScrollBarVisibility="Auto"
-                                         HorizontalScrollBarVisibility="Auto"
-                                         BorderThickness="0"
-                                         Padding="5"/>
+                                          FontFamily="Consolas" 
+                                          VerticalScrollBarVisibility="Auto"
+                                          HorizontalScrollBarVisibility="Auto"
+                                          Background="Transparent"
+                                          Foreground="{DynamicResource ForegroundPrimaryBrush}"
+                                          BorderThickness="0"
+                                          Padding="5"/>
                             </DataTemplate>
 
                             <!-- 媒体极简预览 (视频/音频) -->
@@ -126,9 +128,33 @@
                                 <controls:ExcelPreviewControl/>
                             </DataTemplate>
 
-                            <!-- 演示稿极简预览 (PPT) -->
+                            <!-- 文档极简预览 (PPT) -->
                             <DataTemplate DataType="{x:Type previews:PowerPointPreviewViewModel}">
                                 <controls:PowerPointPreviewControl/>
+                            </DataTemplate>
+
+                            <!-- 压缩包极简预览 -->
+                            <DataTemplate DataType="{x:Type previews:ArchivePreviewViewModel}">
+                                <ListView ItemsSource="{Binding Entries}" Background="Transparent" Foreground="{DynamicResource ForegroundPrimaryBrush}" BorderThickness="0">
+                                    <ListView.View>
+                                        <GridView>
+                                            <GridViewColumn Header="名称" DisplayMemberBinding="{Binding Name}" Width="150"/>
+                                            <GridViewColumn Header="大小" DisplayMemberBinding="{Binding Size}" Width="80"/>
+                                        </GridView>
+                                    </ListView.View>
+                                </ListView>
+                            </DataTemplate>
+
+                            <!-- 文件夹内容极简预览 -->
+                            <DataTemplate DataType="{x:Type previews:FolderPreviewViewModel}">
+                                <ListView ItemsSource="{Binding Items}" Background="Transparent" Foreground="{DynamicResource ForegroundPrimaryBrush}" BorderThickness="0">
+                                    <ListView.View>
+                                        <GridView>
+                                            <GridViewColumn Header="名称" DisplayMemberBinding="{Binding Name}" Width="150"/>
+                                            <GridViewColumn Header="大小" DisplayMemberBinding="{Binding Size}" Width="80"/>
+                                        </GridView>
+                                    </ListView.View>
+                                </ListView>
                             </DataTemplate>
                         </ResourceDictionary>
                     </Grid.Resources>
@@ -139,7 +165,7 @@
                     <Grid Visibility="{Binding ActivePreview.IsLoading, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}" Background="{DynamicResource OverlayLightBrush}">
                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                             <ProgressBar IsIndeterminate="True" Width="100" Height="4" Margin="0,0,0,10"/>
-                            <TextBlock Text="加载中..." HorizontalAlignment="Center"/>
+                            <TextBlock Text="加载中..." Foreground="{DynamicResource ForegroundPrimaryBrush}" HorizontalAlignment="Center"/>
                         </StackPanel>
                     </Grid>
                     
@@ -160,7 +186,7 @@
                 </Grid>
 
                 <!-- 备注内容 (当BtnNotes选中时显示) -->
-                <Grid x:Name="NotesArea">
+                <Grid x:Name="NotesArea" Background="Transparent">
                     <Grid.Style>
                         <Style TargetType="Grid">
                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -178,7 +204,9 @@
                              HorizontalAlignment="Stretch"
                              VerticalAlignment="Stretch"
                              Text="{Binding CurrentNotes, UpdateSourceTrigger=PropertyChanged}"
-                             Background="Transparent" BorderBrush="Transparent" BorderThickness="0"/>
+                             Background="Transparent" 
+                             Foreground="{DynamicResource ForegroundPrimaryBrush}"
+                             BorderBrush="Transparent" BorderThickness="0"/>
                 </Grid>
             </Grid>
         </Border>

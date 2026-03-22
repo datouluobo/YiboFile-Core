@@ -95,6 +95,11 @@ namespace YiboFile.Controls
                             resourcesDir,
                             CoreWebView2HostResourceAccessKind.Allow);
 
+                        _webView.CoreWebView2.DOMContentLoaded += async (s, ev) =>
+                        {
+                            await YiboFile.Helpers.WebView2Helper.InjectThemeScriptAsync(_webView);
+                        };
+
                         _webView.CoreWebView2.Navigate($"http://pdfviewer.local/{Path.GetFileName(htmlViewerPath)}");
 
                         _webView.CoreWebView2.NavigationCompleted += OnNavigationCompleted;

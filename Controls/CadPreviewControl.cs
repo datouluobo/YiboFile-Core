@@ -28,7 +28,6 @@ namespace YiboFile.Controls
             // WebView for SVG
             _webView = new WebView2
             {
-                DefaultBackgroundColor = System.Drawing.Color.White,
                 Visibility = Visibility.Collapsed
             };
             _mainGrid.Children.Add(_webView);
@@ -56,10 +55,12 @@ namespace YiboFile.Controls
                 Content = "加载高清矢量图 (可能需要转换)",
                 Padding = new Thickness(15, 8, 15, 8),
                 FontSize = 14,
-                Background = System.Windows.Media.Brushes.White,
-                BorderBrush = System.Windows.Media.Brushes.LightGray,
                 BorderThickness = new Thickness(1)
             };
+            loadVectorBtn.SetResourceReference(Button.BackgroundProperty, "BackgroundPrimaryBrush");
+            loadVectorBtn.SetResourceReference(Button.ForegroundProperty, "ForegroundPrimaryBrush");
+            loadVectorBtn.SetResourceReference(Button.BorderBrushProperty, "BorderBrush");
+
             // Bind button command later or finding ancestor? Better in code behind setup
             loadVectorBtn.Click += (s, e) =>
             {
@@ -73,9 +74,9 @@ namespace YiboFile.Controls
             // ODA Download UI
             _odaGrid = new Grid
             {
-                Visibility = Visibility.Collapsed,
-                Background = System.Windows.Media.Brushes.White
+                Visibility = Visibility.Collapsed
             };
+            _odaGrid.SetResourceReference(Grid.BackgroundProperty, "BackgroundPrimaryBrush");
 
             var odaView = new WebView2();
             _odaGrid.Children.Add(odaView);
@@ -166,6 +167,11 @@ namespace YiboFile.Controls
                 {
                     await YiboFile.Helpers.WebView2Helper.EnsureInitializedAsync(_webView);
 
+                    _webView.CoreWebView2.DOMContentLoaded += async (s, ev) =>
+                    {
+                        await YiboFile.Helpers.WebView2Helper.InjectThemeScriptAsync(_webView);
+                    };
+
                     // WebView2 NavigateToString has a size limit (around 2MB).
                     // If content is large, save to temp file and navigate.
                     if (html.Length > 1024 * 1024)
@@ -200,17 +206,6 @@ namespace YiboFile.Controls
 <html>
 <head>
     <meta charset='utf-8'>
-    <style>
-        body {{ font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }}
-        .container {{ background: white; border-radius: 12px; padding: 30px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); max-width: 550px; width: 100%; }}
-        h2 {{ color: #333; margin-top: 0; }}
-        .file-info {{ background: #f8f9fa; border-radius: 8px; padding: 12px; margin: 15px 0; font-size: 13px; }}
-        .message {{ background: #fff3cd; border-left: 3px solid #ffc107; padding: 12px; margin: 15px 0; border-radius: 6px; font-size: 13px; color: #856404; }}
-        .steps {{ background: #e3f2fd; border-radius: 8px; padding: 15px; margin: 15px 0; font-size: 13px; }}
-        .btn {{ display: inline-block; padding: 10px 20px; border-radius: 6px; font-weight: 600; text-decoration: none; cursor: pointer; border: none; }}
-        .btn-primary {{ background: #667eea; color: white; }}
-        .btn-secondary {{ background: #f5576c; color: white; margin-left: 10px; }}
-    </style>
 </head>
 <body>
     <div class='container'>
@@ -224,16 +219,17 @@ namespace YiboFile.Controls
             3. 刷新此页面即可预览
         </div>
         <div style='text-align: right; margin-top: 20px;'>
-            <a href='https://www.opendesign.com/guestfiles/oda_file_converter' class='btn btn-primary' target='_blank'>🌐 前往下载</a>
-            <button class='btn btn-secondary' onclick='window.chrome.webview.postMessage(""refresh"")'>🔄 刷新预览</button>
+            <a href='https://www.opendesign.com/guestfiles/oda_file_converter' class='btn btn-primary' target='_blank' style='padding: 10px 20px; text-decoration: none; display: inline-block; border-radius: 6px;'>🌐 前往下载</a>
+            <button class='btn btn-secondary' onclick='window.chrome.webview.postMessage(""refresh"")' style='padding: 10px 20px; border-radius: 6px; cursor: pointer; border: none; margin-left:10px;'>🔄 刷新预览</button>
         </div>
     </div>
-    <script>
-        // Handle refresh message if needed, though simpler via VM RefreshCommand
-    </script>
 </body>
 </html>";
             await YiboFile.Helpers.WebView2Helper.EnsureInitializedAsync(odaWebView);
+            odaWebView.CoreWebView2.DOMContentLoaded += async (s, ev) =>
+            {
+                await YiboFile.Helpers.WebView2Helper.InjectThemeScriptAsync(odaWebView);
+            };
             odaWebView.NavigateToString(html);
         }
     }

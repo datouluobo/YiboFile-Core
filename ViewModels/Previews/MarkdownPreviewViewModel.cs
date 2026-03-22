@@ -50,6 +50,7 @@ namespace YiboFile.ViewModels.Previews
 
         public async Task LoadAsync(string filePath, System.Threading.CancellationToken token = default)
         {
+            if (token.IsCancellationRequested) return;
             FilePath = filePath;
             Title = Path.GetFileName(filePath);
             Icon = "📝";
@@ -67,7 +68,9 @@ namespace YiboFile.ViewModels.Previews
 
                 string renderedBody = await Task.Run(() => Markdown.ToHtml(text, pipeline));
 
-                // Wrap in local CSS
+                // Wrap in local CSS with Theme Support
+                string themeCss = GetThemeCss();
+
                 HtmlContent = $@"
 <!DOCTYPE html>
 <html>
@@ -80,12 +83,13 @@ namespace YiboFile.ViewModels.Previews
             font-size: 16px;
             line-height: 1.5;
             word-wrap: break-word;
-            padding: 2.5rem;
+            padding: 2rem;
             max-width: 900px;
             margin: 0 auto;
             color: #24292e;
             background-color: #fff;
         }}
+        {themeCss}
         pre {{
             background-color: #f6f8fa;
             border-radius: 6px;
@@ -114,8 +118,13 @@ namespace YiboFile.ViewModels.Previews
             padding: 6px 13px;
             border: 1px solid #dfe2e5;
         }}
-        table tr:nth-child(2n) {{ background-color: #f6f8fa; }}
-        h1, h2 {{ border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; }}
+        table tr:nth-child(2n) {{ background-color: rgba(128,128,128,0.05); }}
+        h1, h2 {{ border-bottom: 2px solid rgba(128,128,128,0.1); padding-bottom: 0.3em; }}
+
+        /* Specific Dark Mode Overrides for MD components */
+        [data-theme='dark'] pre {{ background-color: #1e1e1e; border: 1px solid #333; }}
+        [data-theme='dark'] blockquote {{ border-left: 0.25em solid #444; color: #888; }}
+        [data-theme='dark'] table th, [data-theme='dark'] table td {{ border: 1px solid #444; }}
     </style>
 </head>
 <body>
@@ -135,4 +144,3 @@ namespace YiboFile.ViewModels.Previews
         }
     }
 }
-

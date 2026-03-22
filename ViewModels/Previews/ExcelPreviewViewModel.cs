@@ -145,7 +145,7 @@ namespace YiboFile.ViewModels.Previews
             {
                 try
                 {
-                    var html = ExcelParser.GenerateHtmlFromXlsx(FilePath, SelectedSheet.Id);
+                    var html = ExcelParser.GenerateHtmlFromXlsx(FilePath, SelectedSheet.Id, GetThemeCss());
                     Application.Current.Dispatcher.Invoke(() =>
                     {
                         GeneratedHtml = html;
@@ -283,7 +283,7 @@ namespace YiboFile.ViewModels.Previews
             }
         }
 
-        public static string GenerateHtmlFromXlsx(string path, string sheetId)
+        public static string GenerateHtmlFromXlsx(string path, string sheetId, string themeCss = "")
         {
             using var fs = File.OpenRead(path);
             using var zip = new ZipArchive(fs, ZipArchiveMode.Read, true);
@@ -301,6 +301,7 @@ namespace YiboFile.ViewModels.Previews
             sb.Append("th,td{border:1px solid #ddd;padding:6px;font-size:13px}");
             sb.Append("th{background:#fafafa}");
             sb.Append(".meta{padding:8px 15px;color:#666;font-size:12px}");
+            sb.Append(themeCss);
             sb.Append("</style></head><body>");
             sb.Append($"<div class='hdr'>工作表: {WebUtility.HtmlEncode(sheetName)}</div>");
             sb.Append($"<div class='meta'>行数预览: {rows.Count}</div>");

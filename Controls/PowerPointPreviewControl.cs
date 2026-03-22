@@ -30,31 +30,33 @@ namespace YiboFile.Controls
             _legacyPanel = new StackPanel
             {
                 Orientation = Orientation.Vertical,
-                Background = System.Windows.Media.Brushes.White,
                 Visibility = Visibility.Collapsed,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center
             };
+            _legacyPanel.SetResourceReference(StackPanel.BackgroundProperty, "BackgroundPrimaryBrush");
 
             var icon = new TextBlock { Text = "📊", FontSize = 48, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 0, 0, 20) };
             var title = new TextBlock { Text = "旧版 PowerPoint 格式", FontSize = 18, FontWeight = FontWeights.Bold, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 0, 0, 10) };
+            title.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundPrimaryBrush");
+
             var desc = new TextBlock
             {
                 Text = "该文件为旧版 PPT 格式，由于二进制限制无法直接预览。\n您可以尝试将其转换为 PPTX 格式。",
                 FontSize = 14,
-                Foreground = System.Windows.Media.Brushes.Gray,
                 TextAlignment = TextAlignment.Center,
                 Margin = new Thickness(0, 0, 0, 20)
             };
+            desc.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundSecondaryBrush");
 
             var convertButton = new Button
             {
                 Padding = new Thickness(20, 10, 20, 10),
-                Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(210, 71, 38)),
-                Foreground = System.Windows.Media.Brushes.White,
                 FontSize = 14,
                 BorderThickness = new Thickness(0)
             };
+            convertButton.SetResourceReference(Button.BackgroundProperty, "AccentDefaultBrush");
+            convertButton.SetResourceReference(Button.ForegroundProperty, "ForegroundOnAccentBrush");
             convertButton.SetBinding(Button.CommandProperty, new System.Windows.Data.Binding("ConvertCommand"));
             convertButton.SetBinding(Button.ContentProperty, new System.Windows.Data.Binding("ConvertStatusText"));
             convertButton.SetBinding(Button.IsEnabledProperty, new System.Windows.Data.Binding("IsConverting") { Converter = new InverseBooleanConverter() });
@@ -118,6 +120,10 @@ namespace YiboFile.Controls
                 try
                 {
                     await YiboFile.Helpers.WebView2Helper.EnsureInitializedAsync(_webView);
+                    _webView.CoreWebView2.DOMContentLoaded += async (s, ev) =>
+                    {
+                        await YiboFile.Helpers.WebView2Helper.InjectThemeScriptAsync(_webView);
+                    };
                     _webView.NavigateToString(html);
                 }
                 catch { }

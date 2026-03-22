@@ -75,17 +75,15 @@ namespace YiboFile.Controls
                 AcceptsReturn = true,
                 AcceptsTab = true,
                 Padding = new Thickness(5),
-                BorderThickness = new Thickness(0)
+                BorderThickness = new Thickness(0),
+                Background = Brushes.Transparent
             };
+            _textBox.SetResourceReference(TextBox.ForegroundProperty, "ForegroundPrimaryBrush");
 
             // Bindings
             var visibilityConverter = new BooleanToVisibilityConverter();
 
             _textBox.SetBinding(UIElement.VisibilityProperty, new Binding("IsSourceView") { Converter = visibilityConverter });
-            
-            // For inverse visibility, we can use a custom logic or simply create one inline
-            var inverseVisibilityConverter = new YiboFile.Converters.InverseBooleanConverter(); // This converts false to true, we can chain or just implement a simple local one, let's just make a simple IValueConverter
-            
             _webView.SetBinding(UIElement.VisibilityProperty, new Binding("IsSourceView") { 
                 Converter = new InlineInverseVisibilityConverter() 
             });
@@ -112,26 +110,27 @@ namespace YiboFile.Controls
                 {
                     await YiboFile.Helpers.WebView2Helper.EnsureInitializedAsync(_webView);
 
-                    // Inject viewport script
-                    _webView.CoreWebView2.DOMContentLoaded += async (s, e) =>
-                   {
-                       try
-                       {
-                           string script = @"
-                                (function() {
-                                    var viewport = document.querySelector('meta[name=""viewport""]');
-                                    if (!viewport) {
-                                        viewport = document.createElement('meta');
-                                        viewport.name = 'viewport';
-                                        viewport.content = 'width=device-width, initial-scale=1.0';
-                                        document.head.appendChild(viewport);
-                                    }
-                                })();
-                            ";
-                           await _webView.CoreWebView2.ExecuteScriptAsync(script);
-                       }
-                       catch { }
-                   };
+                    // Inject theme and viewport script
+                    _webView.CoreWebView2.DOMContentLoaded += async (s, ev) =>
+                    {
+                        await YiboFile.Helpers.WebView2Helper.InjectThemeScriptAsync(_webView);
+                        try
+                        {
+                            string viewportScript = @"
+                                 (function() {
+                                     var viewport = document.querySelector('meta[name=""viewport""]');
+                                     if (!viewport) {
+                                         viewport = document.createElement('meta');
+                                         viewport.name = 'viewport';
+                                         viewport.content = 'width=device-width, initial-scale=1.0';
+                                         document.head.appendChild(viewport);
+                                     }
+                                 })();
+                             ";
+                            await _webView.CoreWebView2.ExecuteScriptAsync(viewportScript);
+                        }
+                        catch { }
+                    };
 
                     _webView.Source = new Uri(path);
                 }
