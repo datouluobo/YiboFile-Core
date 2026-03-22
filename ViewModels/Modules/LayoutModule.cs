@@ -62,22 +62,12 @@ namespace YiboFile.ViewModels.Modules
             get => _isDualPaneMode;
             internal set
             {
-                if (_isDualPaneMode != value)
+                if (SetProperty(ref _isDualPaneMode, value))
                 {
-                    _isDualPaneMode = value;
                     Publish(new DualPaneModeChangedMessage(_isDualPaneMode));
                     OnPropertyChanged(nameof(IsDualPaneEffectivelyVisible));
-
-                    // 如果开启双列表，确保右侧面板是不折叠的（让出空间给副列表）
-                    if (_isDualPaneMode)
-                    {
-                        IsRightPanelCollapsed = false;
-                    }
-                    else
-                    {
-                        // 关闭双列表时，根据当前布局模式和预览可见性恢复右侧面板折叠状态
-                        IsRightPanelCollapsed = ShouldRightPanelCollapse();
-                    }
+                    OnPropertyChanged(nameof(IsPrimaryTabVisible));
+                    UpdateRightPanelCollapseState();
 
                     // 持久化状态
                     if (!_isTemporaryLayoutSwitch)
@@ -131,10 +121,11 @@ namespace YiboFile.ViewModels.Modules
             }
         }
 
-        /// <summary>
-        /// 副列表实际可见性（考虑双列表开关）
-        /// </summary>
-        public bool IsDualPaneEffectivelyVisible => IsDualPaneMode;
+        /// <summary>副面板是否在 UI 上有效显示（用于决定是否显示副标签页等）</summary>
+        public bool IsDualPaneEffectivelyVisible => IsDualPaneMode || (CurrentPaneMode == PaneMode.Preview && IsSecondPaneFocused);
+
+        /// <summary>主面板标签页是否应该显示</summary>
+        public bool IsPrimaryTabVisible => CurrentPaneMode != PaneMode.Preview || !IsSecondPaneFocused;
 
         /// <summary>
         /// 当前面板布局模式（三态：Single / DualPane / Preview）
@@ -144,11 +135,12 @@ namespace YiboFile.ViewModels.Modules
             get => _currentPaneMode;
             set
             {
-                if (_currentPaneMode != value)
+                if (SetProperty(ref _currentPaneMode, value))
                 {
-                    _currentPaneMode = value;
-                    OnPropertyChanged(nameof(CurrentPaneMode));
                     Publish(new PaneModeChangedMessage(value));
+                    OnPropertyChanged(nameof(IsDualPaneEffectivelyVisible));
+                    OnPropertyChanged(nameof(IsPrimaryTabVisible));
+                    UpdateRightPanelCollapseState();
 
                     // 持久化
                     if (!_isTemporaryLayoutSwitch)
@@ -168,9 +160,11 @@ namespace YiboFile.ViewModels.Modules
             get => _isSecondPaneFocused;
             internal set
             {
-                if (_isSecondPaneFocused != value)
+                if (SetProperty(ref _isSecondPaneFocused, value))
                 {
-                    _isSecondPaneFocused = value;
+                    OnPropertyChanged(nameof(IsDualPaneEffectivelyVisible));
+                    OnPropertyChanged(nameof(IsPrimaryTabVisible));
+                    UpdateRightPanelCollapseState();
                     // 发布状态变更通知（不是请求）
                     Publish(new FocusedPaneChangedMessage(_isSecondPaneFocused));
                 }
@@ -212,7 +206,8 @@ namespace YiboFile.ViewModels.Modules
             // 订阅焦点切换请求（外部请求切换焦点时触发）
             Subscribe<SwitchFocusedPaneMessage>(m =>
             {
-                if (IsDualPaneMode)
+                // 允许在双栏模式或预览模式下切换焦点
+                if (IsDualPaneMode || CurrentPaneMode == PaneMode.Preview)
                 {
                     // 直接修改内部字段并发布通知，避免递归
                     _isSecondPaneFocused = !_isSecondPaneFocused;
@@ -222,10 +217,9 @@ namespace YiboFile.ViewModels.Modules
 
             Subscribe<SetFocusedPaneMessage>(m =>
             {
-                // Only allow setting focus if dual list mode is active, OR if we want to allow setting primary (0) always?
-                // Actually even in Single mode, Primary is focused.
-                // If Single mode and request Secondary, ignore.
-                if (!IsDualPaneMode && m.IsSecondPane) return;
+                // 如果当前既不是双栏模式，通过预览模式也不是“有效显示”两侧的话，则忽略将焦点设置到副面板的请求
+                // 但要允许在预览模式下将焦点设为副面板（右侧），因为此时右侧是浏览器
+                if (!IsDualPaneMode && CurrentPaneMode != PaneMode.Preview && m.IsSecondPane) return;
 
                 if (_isSecondPaneFocused != m.IsSecondPane)
                 {
@@ -488,6 +482,20 @@ namespace YiboFile.ViewModels.Modules
         public void SetFocusedPane(bool isSecondPane)
         {
             IsSecondPaneFocused = isSecondPane;
+        }
+
+        private void UpdateRightPanelCollapseState()
+        {
+            // 如果开启双列表或预览模式且焦点在右侧，确保右侧面板是不折叠的
+            if (IsDualPaneMode || (CurrentPaneMode == PaneMode.Preview && IsSecondPaneFocused))
+            {
+                IsRightPanelCollapsed = false;
+            }
+            else
+            {
+                // 其他情况，根据当前布局模式和预览可见性恢复右侧面板折叠状态
+                IsRightPanelCollapsed = ShouldRightPanelCollapse();
+            }
         }
     }
 }

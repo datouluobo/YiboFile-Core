@@ -7,30 +7,60 @@
              mc:Ignorable="d"
              d:DesignHeight="400" d:DesignWidth="600">
 
-    <Grid x:Name="RootGrid" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-        <!-- 文件浏览器 (默认显示, 始终保持实例化) -->
-        <Grid x:Name="FileBrowserContainer">
-            <controls:FileBrowserControl x:Name="FileBrowserView"/>
+    <Border x:Name="FocusBorder"
+            BorderThickness="3"
+            Margin="1"
+            CornerRadius="6">
+        <Border.Style>
+            <Style TargetType="Border">
+                <Setter Property="BorderBrush" Value="Transparent"/>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsActive}" Value="True">
+                        <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </Border.Style>
 
-            <!-- 自定义面板容器 (特殊标签页时显示) -->
-            <Grid x:Name="CustomContentContainer" Visibility="Collapsed">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>  <!-- 地址栏 -->
-                    <RowDefinition Height="*"/>     <!-- 内容区 -->
-                </Grid.RowDefinitions>
+        <Grid x:Name="RootGrid" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+            <Grid.Style>
+                <Style TargetType="Grid">
+                    <Setter Property="Background" Value="{DynamicResource BackgroundPrimaryBrush}"/>
+                    <Setter Property="Opacity" Value="1.0"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsActive}" Value="False">
+                            <!-- 失去焦点时整体稍暗 -->
+                            <Setter Property="Background" Value="{DynamicResource BackgroundTertiaryBrush}"/>
+                            <Setter Property="Opacity" Value="0.90"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Grid.Style>
 
-                <!-- Row 0: 面板地址栏 (复用 AddressBarControl, 视觉完全一致) -->
-                <Border Grid.Row="0" Background="Transparent" Margin="0,4,0,4">
-                    <controls:AddressBarControl x:Name="ContentAddressBar" Margin="8,0"
-                                               IsReadOnly="False"/>
-                </Border>
+            <!-- 文件浏览器 (默认显示, 始终保持实例化) -->
+            <Grid x:Name="FileBrowserContainer">
+                <controls:FileBrowserControl x:Name="FileBrowserView"/>
 
-                <!-- Row 1: 面板内容 -->
-                <ContentPresenter x:Name="CustomContentPresenter" Grid.Row="1"/>
+                <!-- 自定义面板容器 (特殊标签页时显示) -->
+                <Grid x:Name="CustomContentContainer" Visibility="Collapsed">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>  <!-- 地址栏 -->
+                        <RowDefinition Height="*"/>     <!-- 内容区 -->
+                    </Grid.RowDefinitions>
+
+                    <!-- Row 0: 面板地址栏 (复用 AddressBarControl, 视觉完全一致) -->
+                    <Border Grid.Row="0" Background="Transparent" Margin="0,4,0,4">
+                        <controls:AddressBarControl x:Name="ContentAddressBar" Margin="8,0"
+                                                   IsReadOnly="False"/>
+                    </Border>
+
+                    <!-- Row 1: 面板内容 -->
+                    <ContentPresenter x:Name="CustomContentPresenter" Grid.Row="1"/>
+                </Grid>
             </Grid>
-        </Grid>
 
-        <!-- 跨面板预览面板（叠加在文件层之上，通过 SetCrossPreview 开启） -->
-        <controls:PreviewAttachmentControl x:Name="PreviewAttachment" Visibility="Collapsed" DataContext="{Binding Preview}" />
-    </Grid>
+            <!-- 跨面板预览面板（叠加在文件层之上，通过 SetCrossPreview 开启） -->
+            <controls:PreviewAttachmentControl x:Name="PreviewAttachment" Visibility="Collapsed" DataContext="{Binding Preview}" />
+        </Grid>
+    </Border>
 </UserControl>

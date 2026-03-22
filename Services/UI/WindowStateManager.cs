@@ -304,8 +304,7 @@ namespace YiboFile.Services
             // 3. 保存中间面板底部高度 (文件详情区)
             if (_uiHelper.Window is YiboFile.Interfaces.IShellWindow shellWindow)
             {
-                if (shellWindow.FileBrowser?.Content is System.Windows.Controls.Border focusBorder1 &&
-                    focusBorder1.Child is System.Windows.Controls.Grid browserGrid1 &&
+                if (shellWindow.FileBrowser?.Content is System.Windows.Controls.Grid browserGrid1 &&
                     browserGrid1.RowDefinitions.Count >= 6)
                 {
                     var lastRow = browserGrid1.RowDefinitions[5];
@@ -315,8 +314,7 @@ namespace YiboFile.Services
                     }
                 }
 
-                if (shellWindow.SecondFileBrowser?.Content is System.Windows.Controls.Border focusBorder2 &&
-                    focusBorder2.Child is System.Windows.Controls.Grid browserGrid2 &&
+                if (shellWindow.SecondFileBrowser?.Content is System.Windows.Controls.Grid browserGrid2 &&
                     browserGrid2.RowDefinitions.Count >= 6)
                 {
                     var lastRow = browserGrid2.RowDefinitions[5];
@@ -326,8 +324,7 @@ namespace YiboFile.Services
                     }
                 }
             }
-            else if (_uiHelper.FileBrowser?.Content is System.Windows.Controls.Border focusBorder &&
-                focusBorder.Child is System.Windows.Controls.Grid fileBrowserGrid)
+            else if (_uiHelper.FileBrowser?.Content is System.Windows.Controls.Grid fileBrowserGrid)
             {
                 if (fileBrowserGrid.RowDefinitions.Count >= 6)
                 {
@@ -591,16 +588,14 @@ namespace YiboFile.Services
                 {
                     if (_uiHelper.Window is YiboFile.Interfaces.IShellWindow shellWindow)
                     {
-                        if (_config.CenterPanelInfoHeight > 0 && shellWindow.FileBrowser?.Content is System.Windows.Controls.Border focusBorder1 && 
-                            focusBorder1.Child is System.Windows.Controls.Grid browserGrid1 && 
+                        if (_config.CenterPanelInfoHeight > 0 && shellWindow.FileBrowser?.Content is System.Windows.Controls.Grid browserGrid1 && 
                             browserGrid1.RowDefinitions.Count >= 6)
                         {
                             var lastRow = browserGrid1.RowDefinitions[5];
                             lastRow.Height = new GridLength(_config.CenterPanelInfoHeight);
                         }
                         
-                        if (_config.SecondPanelInfoHeight > 0 && shellWindow.SecondFileBrowser?.Content is System.Windows.Controls.Border focusBorder2 && 
-                            focusBorder2.Child is System.Windows.Controls.Grid browserGrid2 && 
+                        if (_config.SecondPanelInfoHeight > 0 && shellWindow.SecondFileBrowser?.Content is System.Windows.Controls.Grid browserGrid2 && 
                             browserGrid2.RowDefinitions.Count >= 6)
                         {
                             var lastRow = browserGrid2.RowDefinitions[5];
@@ -609,8 +604,7 @@ namespace YiboFile.Services
                     }
                     else if (_config.CenterPanelInfoHeight > 0 && _uiHelper.FileBrowser != null)
                     {
-                        if (_uiHelper.FileBrowser.Content is System.Windows.Controls.Border focusBorder && 
-                            focusBorder.Child is System.Windows.Controls.Grid browserGrid && 
+                        if (_uiHelper.FileBrowser.Content is System.Windows.Controls.Grid browserGrid && 
                             browserGrid.RowDefinitions.Count >= 6)
                         {
                             var lastRow = browserGrid.RowDefinitions[5];

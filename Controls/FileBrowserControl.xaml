@@ -248,36 +248,7 @@
     </ResourceDictionary>
 </UserControl.Resources>
     
-    <Border x:Name="FocusBorder"
-            BorderThickness="2"
-            Margin="1"
-            CornerRadius="6">
-        <Border.Style>
-            <Style TargetType="Border">
-                <Setter Property="BorderBrush" Value="Transparent"/>
-                <Style.Triggers>
-                    <DataTrigger Binding="{Binding IsActive}" Value="True">
-                        <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
-                    </DataTrigger>
-                </Style.Triggers>
-            </Style>
-        </Border.Style>
-
-        <Grid>
-            <Grid.Style>
-                <Style TargetType="Grid">
-                <!-- 纯净透明底层，靠前方的大背景 -->
-                <Setter Property="Background" Value="{DynamicResource BackgroundPrimaryBrush}"/>
-                <Setter Property="Opacity" Value="1.0"/>
-                <Style.Triggers>
-                    <DataTrigger Binding="{Binding IsActive}" Value="False">
-                        <!-- 失去焦点时整体稍微暗化且退居幕后，从暗色和模糊感上与活动面板明显拉开层次 -->
-                        <Setter Property="Background" Value="{DynamicResource BackgroundTertiaryBrush}"/>
-                        <Setter Property="Opacity" Value="0.75"/>
-                    </DataTrigger>
-                </Style.Triggers>
-            </Style>
-        </Grid.Style>
+    <Grid x:Name="RootGrid" Margin="1">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>  <!-- Row 0: 地址栏 -->
             <RowDefinition Height="Auto"/>  <!-- Row 1: 工具栏行 -->
@@ -434,8 +405,7 @@
                 <controls:FilterPanel x:Name="FilterPanelControl" DataContext="{Binding Search}" Options="{Binding DataContext.Filter.SearchOptions, RelativeSource={RelativeSource AncestorType=controls:FileBrowserControl}}"/>
             </Border>
         </Popup>
-        </Grid>
-    </Border>
+    </Grid>
 </UserControl>
 
 

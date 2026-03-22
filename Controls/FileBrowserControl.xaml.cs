@@ -192,7 +192,6 @@ namespace YiboFile.Controls
         public AddressBarControl AddressBar => AddressBarControl;
         public ListView FilesList => FileList?.FilesList;
         public GridView FilesGrid => FileList?.FilesGrid;
-        public Border FocusBorderControl => FocusBorder;
         public StackPanel FileInfoPanelControl => FileInfoPanel;
         public TextBlock EmptyStateTextControl => FileList?.EmptyStateTextControl;
         public TitleActionBar ActionBar => TitleActionBar;
@@ -281,9 +280,10 @@ namespace YiboFile.Controls
             var window = Window.GetWindow(this);
             if (window == null) return;
 
-            if (FocusBorder != null && FocusBorder.Child is Grid rootGrid && rootGrid.RowDefinitions.Count > 5)
+            var activeRootGrid = this.FindName("RootGrid") as Grid;
+            if (activeRootGrid != null && activeRootGrid.RowDefinitions.Count > 5)
             {
-                var row5 = rootGrid.RowDefinitions[5];
+                var row5 = activeRootGrid.RowDefinitions[5];
                 
                 // Read the height being natively resized by the GridSplitter (ShowsPreview=False)
                 double currentHeight = row5.ActualHeight;
@@ -293,9 +293,10 @@ namespace YiboFile.Controls
                 var otherBrowsers = FindVisualChildren<FileBrowserControl>(window).Where(b => b != this).ToList();
                 foreach (var other in otherBrowsers)
                 {
-                    if (other.FocusBorder != null && other.FocusBorder.Child is Grid otherGrid && otherGrid.RowDefinitions.Count > 5)
+                    var otherRootGrid = other.FindName("RootGrid") as Grid;
+                    if (otherRootGrid != null && otherRootGrid.RowDefinitions.Count > 5)
                     {
-                        double otherHeight = otherGrid.RowDefinitions[5].ActualHeight;
+                        double otherHeight = otherRootGrid.RowDefinitions[5].ActualHeight;
                         if (Math.Abs(currentHeight - otherHeight) < 15) // Snap threshold
                         {
                             snapped = true;
@@ -339,9 +340,10 @@ namespace YiboFile.Controls
                 _globalIndicator.Visibility = Visibility.Collapsed;
             }
 
-            if (FocusBorder != null && FocusBorder.Child is Grid rootGrid && rootGrid.RowDefinitions.Count > 5)
+            var activeRootGrid = this.FindName("RootGrid") as Grid;
+            if (activeRootGrid != null && activeRootGrid.RowDefinitions.Count > 5)
             {
-                var row5 = rootGrid.RowDefinitions[5];
+                var row5 = activeRootGrid.RowDefinitions[5];
                 
                 if (_snapTargetHeight >= 0)
                 {

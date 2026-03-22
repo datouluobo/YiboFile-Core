@@ -98,6 +98,7 @@
             <!-- 标签页管理器：从列1(Splitter)开始，跨越剩余列 -->
             <!-- 主标签页管理器：主文件列表正上方 -->
             <controls:TabManagerControl Grid.Row="0" Grid.Column="3"
+                                    Visibility="{Binding DataContext.Layout.IsPrimaryTabVisible, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BooleanToVisibilityConverter}}"
                                     x:Name="TabManager" 
                                     DataContext="{Binding Tabs}"
                                     ItemsSource="{Binding PrimaryTabs}"
@@ -190,7 +191,7 @@
                     </Grid.RowDefinitions>
 
                     <!-- 副标签页管理器 -->
-                    <DockPanel Grid.Row="0" Visibility="{Binding Layout.IsDualPaneEffectivelyVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <DockPanel Grid.Row="0" Visibility="{Binding DataContext.Layout.IsDualPaneEffectivelyVisible, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <controls:TabManagerControl x:Name="SecondTabManager" 
                                                 DataContext="{Binding Tabs}"
                                                 ItemsSource="{Binding SecondaryTabs}"

@@ -96,6 +96,32 @@ namespace YiboFile.Services.Orchestration
             ViewModel.RegisterModule(NavigationModule);
 
             // 标签页模块
+            LayoutModule = new LayoutModule(_messageBus);
+            ViewModel.Layout = LayoutModule;
+            ViewModel.RegisterModule(LayoutModule);
+
+            // 初始化布局模块状态 (预读配置)
+            var cfg = ConfigurationService.Instance.Config;
+            LayoutModule.InitializeState(
+                cfg.LayoutMode ?? "Work",
+                cfg.IsDualPaneMode,
+                false,
+                cfg.IsSidebarCollapsed,
+                cfg.IsPreviewCollapsed);
+
+            // 恢复持久化的三态面板模式 (提前恢复以供 TabsModule Func 使用)
+            if (System.Enum.TryParse<ViewModels.Messaging.Messages.PaneMode>(cfg.PaneModeStr, out var savedPaneMode)
+                && savedPaneMode != ViewModels.Messaging.Messages.PaneMode.Single)
+            {
+                if (savedPaneMode == ViewModels.Messaging.Messages.PaneMode.DualPane)
+                    LayoutModule.IsDualPaneMode = true;
+                else if (savedPaneMode == ViewModels.Messaging.Messages.PaneMode.Preview)
+                    LayoutModule.IsDualPaneMode = false;
+                
+                LayoutModule.CurrentPaneMode = savedPaneMode;
+            }
+
+            // ========== 标签页模块 ==========
             var tabContentRegistry = _serviceProvider.GetService<TabContentRegistry>();
             TabsModule = new TabsModule(
                 _messageBus,
@@ -103,8 +129,9 @@ namespace YiboFile.Services.Orchestration
                 secondTabService,
                 navigationService,
                 tabContentRegistry,
-                () => window.IsDualPaneMode,
-                () => window.GetActivePaneId() == PaneId.Second);
+                () => LayoutModule.IsDualPaneMode || LayoutModule.CurrentPaneMode == ViewModels.Messaging.Messages.PaneMode.Preview,
+                () => window.GetActivePaneId() == PaneId.Second,
+                () => LayoutModule.CurrentPaneMode);
             ViewModel.RegisterModule(TabsModule);
 
             // 文件列表模块
@@ -122,36 +149,6 @@ namespace YiboFile.Services.Orchestration
             // 关联模块到 ViewModel
             ViewModel.Navigation = NavigationModule;
             ViewModel.Tabs = TabsModule;
-
-            // 布局模块
-            LayoutModule = new LayoutModule(_messageBus);
-            ViewModel.Layout = LayoutModule;
-            ViewModel.RegisterModule(LayoutModule);
-
-            // 初始化布局模块状态
-            var cfg = ConfigurationService.Instance.Config;
-            LayoutModule.InitializeState(
-                cfg.LayoutMode ?? "Work",
-                cfg.IsDualPaneMode,
-                false,
-                cfg.IsSidebarCollapsed,
-                cfg.IsPreviewCollapsed);
-
-            // 恢复持久化的三态面板模式
-            if (System.Enum.TryParse<ViewModels.Messaging.Messages.PaneMode>(cfg.PaneModeStr, out var savedPaneMode)
-                && savedPaneMode != ViewModels.Messaging.Messages.PaneMode.Single)
-            {
-                // 根据保存的模式设置底层状态
-                if (savedPaneMode == ViewModels.Messaging.Messages.PaneMode.DualPane)
-                {
-                    LayoutModule.IsDualPaneMode = true;
-                }
-                else if (savedPaneMode == ViewModels.Messaging.Messages.PaneMode.Preview)
-                {
-                    LayoutModule.IsDualPaneMode = false;
-                }
-                LayoutModule.CurrentPaneMode = savedPaneMode;
-            }
 
             // 文件操作模块
             var undoService = _serviceProvider.GetService<UndoService>();

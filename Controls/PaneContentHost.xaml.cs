@@ -410,5 +410,20 @@ namespace YiboFile.Controls
 
             return null;
         }
+
+        /// <summary>
+        /// 点击面板内任何区域（即使是自定义面板内部）时，向总线申请焦点切换。
+        /// 这解决了特殊页面在三态预览模式下点击时蓝框焦点没动的问题。
+        /// </summary>
+        protected override void OnPreviewMouseDown(System.Windows.Input.MouseButtonEventArgs e)
+        {
+            base.OnPreviewMouseDown(e);
+            
+            if (DataContext is PaneViewModel vm && !vm.IsActive)
+            {
+                // 仅当 DataContext 可用且当前为非活跃时请求切换
+                _messageBus?.Publish(new SetFocusedPaneMessage(vm.IsSecondary));
+            }
+        }
     }
 }

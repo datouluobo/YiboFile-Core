@@ -320,8 +320,8 @@ namespace YiboFile
             {
                 return _viewModel.ActivePane.IsSecondary ? Services.Navigation.PaneId.Second : Services.Navigation.PaneId.Main;
             }
-            // 降级使用 LayoutModule/UI 状态
-            return (IsDualPaneMode && IsSecondPaneFocused) ? Services.Navigation.PaneId.Second : Services.Navigation.PaneId.Main;
+            // 在预览模式下，即便不是标准的双列表模式，也应当根据焦点判定活跃侧 (在此模式下副面板显示列表)
+            return IsSecondPaneFocused ? Services.Navigation.PaneId.Second : Services.Navigation.PaneId.Main;
         }
 
         #endregion
@@ -539,31 +539,38 @@ namespace YiboFile
         {
             if (WindowButtonsStackPanel == null) return;
 
-            // 使用固定的预留宽度（控制按钮 138px + 边距 = 160）
-            double rightMargin = 160;
-            bool isDualMode = this.IsDualPaneMode;
+            // 动态获取控制按钮区域的实际宽度或使用安全兜底值 180 (3 * 46 + 42)
+            double buttonsWidth = WindowButtonsStackPanel.ActualWidth;
+            double rightMargin = (buttonsWidth > 100) ? buttonsWidth + 20 : 180;
+
+            // 获取当前布局状态：是否在逻辑上表现为双列（即副标签页是否当前可见）
+            bool isSecondaryTabEffectivelyVisible = this.IsDualPaneMode || 
+                (_layoutModule?.CurrentPaneMode == YiboFile.ViewModels.Messaging.Messages.PaneMode.Preview && this.IsSecondPaneFocused);
+
             bool isRightPanelCollapsed = ColRight == null || ColRight.ActualWidth <= 0;
 
+            // 1. 处理主标签页边距
             if (TabManager != null)
             {
-                if (isDualMode)
+                if (isSecondaryTabEffectivelyVisible)
                 {
-                    // 双列模式，在主标签右侧仅预留小型拖拽区域 30
+                    // 双列或右侧预览模式下，主标签（左）只需预留小型拖拽区 30
                     TabManager.Margin = new Thickness(0, 0, 30, 0);
                 }
                 else
                 {
-                    // 单列模式，若右侧折叠则自己避开系统按钮
+                    // 单列模式或左侧预览模式下，主标签在最右侧，必须避让系统按钮
                     TabManager.Margin = isRightPanelCollapsed
                         ? new Thickness(0, 0, rightMargin, 0)
                         : new Thickness(0, 0, 30, 0);
                 }
             }
 
+            // 2. 处理副标签页边距
             if (SecondTabManager != null)
             {
-                // 双列模式时，副标签必须避让右上角窗口按钮
-                SecondTabManager.Margin = isDualMode
+                // 当副标签页有效显示时，它必然位于窗口最右侧，必须避让按钮
+                SecondTabManager.Margin = isSecondaryTabEffectivelyVisible
                     ? new Thickness(0, 0, rightMargin, 0)
                     : new Thickness(0);
             }
@@ -631,9 +638,15 @@ namespace YiboFile
                 this.Dispatcher.Invoke(() =>
                 {
                     var browser = msg.IsSecondPaneFocused ? SecondFileBrowser : FileBrowser;
-                    browser?.Focus();
                     browser?.FilesList?.Focus();
+                    UpdateTabManagerMargin();
                 });
+            });
+
+            // 3. 布局模式变更 (更新标签页边距等)
+            _messageBus.Subscribe<ViewModels.Messaging.Messages.PaneModeChangedMessage>(msg =>
+            {
+                this.Dispatcher.Invoke(() => UpdateTabManagerMargin());
             });
         }
 

@@ -24,6 +24,7 @@ namespace YiboFile.ViewModels.Modules
         private readonly TabContentRegistry _registry;
         private readonly Func<bool> _isDualPaneMode;
         private readonly Func<bool> _isSecondPaneFocused;
+        private readonly Func<PaneMode> _currentPaneMode;
         private bool _isSuppressingNavigation = false;
 
         public override string Name => "Tabs";
@@ -51,7 +52,8 @@ namespace YiboFile.ViewModels.Modules
             Services.Navigation.NavigationService navigationService = null,
             TabContentRegistry registry = null,
             Func<bool> isDualPaneMode = null,
-            Func<bool> isSecondPaneFocused = null)
+            Func<bool> isSecondPaneFocused = null,
+            Func<PaneMode> currentPaneMode = null)
             : base(messageBus)
         {
             _tabService = tabService ?? throw new ArgumentNullException(nameof(tabService));
@@ -60,6 +62,7 @@ namespace YiboFile.ViewModels.Modules
             _registry = registry;
             _isDualPaneMode = isDualPaneMode ?? (() => false);
             _isSecondPaneFocused = isSecondPaneFocused ?? (() => false);
+            _currentPaneMode = currentPaneMode ?? (() => PaneMode.Single);
 
             InitializeCommands();
         }
@@ -391,10 +394,8 @@ namespace YiboFile.ViewModels.Modules
         /// </summary>
         private void OnOpenContentTab(OpenContentTabMessage message)
         {
-            if (string.IsNullOrEmpty(message.ContentTypeId) || _registry == null)
-                return;
+            if (string.IsNullOrEmpty(message.ContentTypeId)) return;
 
-            // 1. 从 Registry 解析内容元数据，以判断是否支持副栏
             var content = _registry.Resolve(message.ContentTypeId);
             if (content == null)
             {
@@ -402,43 +403,43 @@ namespace YiboFile.ViewModels.Modules
                 return;
             }
 
-            // 2. AllowMultiple=false 时，全局检查是否已存在
-            if (!content.AllowMultiple)
+            // 1. 确定本应开启的目标面板 (优先跟随焦点侧)
+            bool useSecond;
+            PaneMode currentMode = _currentPaneMode();
+            if (currentMode == PaneMode.Preview)
             {
-                var existingPrimary = _tabService?.FindTabByContentTypeId(message.ContentTypeId);
-                if (existingPrimary != null)
-                {
-                    Publish(new SetFocusedPaneMessage(false)); // Focus primary
-                    _tabService.SwitchToTab(existingPrimary);
-                    return;
-                }
-
-                var existingSecondary = _secondTabService?.FindTabByContentTypeId(message.ContentTypeId);
-                if (existingSecondary != null)
-                {
-                    Publish(new SetFocusedPaneMessage(true)); // Focus secondary
-                    _secondTabService.SwitchToTab(existingSecondary);
-                    return;
-                }
+                useSecond = _isSecondPaneFocused();
+            }
+            else
+            {
+                useSecond = message.TargetPane.HasValue
+                    ? message.TargetPane.Value == PaneId.Second
+                    : (_isDualPaneMode() && _isSecondPaneFocused());
             }
 
-            // 3. 确定目标 TabService
-            bool useSecond = message.TargetPane.HasValue
-                ? message.TargetPane.Value == PaneId.Second
-                : (_isDualPaneMode() && _isSecondPaneFocused());
-
-            // 4. 检查 SupportsSecondaryPane 回退逻辑
-            if (useSecond && !content.SupportsSecondaryPane)
+            // 2. 检查 SupportsSecondaryPane 回退逻辑
+            // 注意：在预览模式下不再强制回退，因为此时该栏（即便 ID 是 Second）实际上是宽大的主显示区
+            if (useSecond && !content.SupportsSecondaryPane && currentMode != PaneMode.Preview)
             {
-                FileLogger.Log($"TabsModule.OnOpenContentTab: '{message.ContentTypeId}' does not support secondary pane. Falling back to primary pane.");
                 useSecond = false;
             }
 
-            var tabService = useSecond && _secondTabService != null ? _secondTabService : _tabService;
+            var finalTabService = useSecond && _secondTabService != null ? _secondTabService : _tabService;
+            var otherService = finalTabService == _tabService ? _secondTabService : _tabService;
 
-            // 这里由于已经 resolve 过，其实可以直接传 content 给服务，
-            // 但为了保持接口兼容，让服务通过 contentTypeId 去创建
-            tabService?.CreateSpecialTab(message.ContentTypeId);
+            // 3. AllowMultiple=false 时的冲突解决：强制迁移
+            if (!content.AllowMultiple)
+            {
+                // 如果在对侧已开启，先移除，从而在本侧重新开启
+                var existingInOther = otherService?.FindTabByContentTypeId(message.ContentTypeId);
+                if (existingInOther != null)
+                {
+                    otherService.RemoveTab(existingInOther);
+                }
+            }
+
+            // 4. 执行创建/激活
+            finalTabService?.CreateSpecialTab(message.ContentTypeId);
         }
 
         #endregion
