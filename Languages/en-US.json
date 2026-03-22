@@ -284,13 +284,15 @@
         }
     },
     "Theme": {
-        "Light": "Light Theme",
-        "Dark": "Dark Theme",
-        "Ocean": "Ocean Blue",
+        "Light": "Light Scheme",
+        "Dark": "Dark Scheme",
+        "Ocean": "Ocean Deep",
         "Forest": "Forest Green",
         "Sunset": "Sunset Gold",
         "Purple": "Violet",
-        "Nordic": "Nordic Minimalist"
+        "Nordic": "Nordic Minimalist",
+        "FluentMica": "Mica Glass",
+        "Win11Pro": "Immersive Blue"
     },
     "IconStyle": {
         "Emoji": "Emoji Default",
@@ -305,29 +307,29 @@
     },
     "UIStyle": {
         "Original": {
-            "Name": "Original Classic",
-            "Desc": "The most primitive unpolished style"
-        },
-        "Fluent": {
-            "Name": "Fluent Rounded",
-            "Desc": "Win11 style, large rounded corners + soft shadows"
-        },
-        "MacOS": {
-            "Name": "MacOS Texture",
-            "Desc": "Compact Mac-like shadow design with frosted glass"
-        },
-        "Geek": {
-            "Name": "Geek Sharp",
-            "Desc": "Sharp rectangular design, suitable for pro users"
-        },
-        "OneCommander": {
-            "Name": "Dual-pane Minimalist",
-            "Desc": "Imitating OneCommander: square tabs, dense info"
-        },
-        "Antigravity": {
-            "Name": "Antigravity Neumorphism",
-            "Desc": "Relief texture and floating shadow, strong 3D feel"
-        }
+      "Name": "Classic",
+      "Desc": "Basic compact layout"
+    },
+    "Fluent": {
+      "Name": "Fluent Immersive",
+      "Desc": "Full-height immersive card experience"
+    },
+    "MacOS": {
+      "Name": "Rounded Aesthetic",
+      "Desc": "Large rounded corners and refined hierarchy"
+    },
+    "Geek": {
+      "Name": "Geek Sharp",
+      "Desc": "Solid borderless sharp corner design"
+    },
+    "OneCommander": {
+      "Name": "Dual-Pane Minimalist",
+      "Desc": "Ultrafine dual-pane information management"
+    },
+    "Antigravity": {
+      "Name": "Neumorphic",
+      "Desc": "Sleek 3D interaction experience"
+    }
     },
     "Bootstrapper": {
         "StartupFailed": "Failed to start program: {0}",

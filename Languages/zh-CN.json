@@ -284,13 +284,15 @@
     }
   },
   "Theme": {
-    "Light": "明亮主题",
-    "Dark": "暗黑主题",
+    "Light": "明亮方案",
+    "Dark": "暗黑方案",
     "Ocean": "深海蓝",
     "Forest": "森林绿",
     "Sunset": "日落黄",
     "Purple": "紫罗兰",
-    "Nordic": "北欧极简"
+    "Nordic": "北欧极简",
+    "FluentMica": "沉浸玻璃",
+    "Win11Pro": "沉浸蓝调"
   },
   "IconStyle": {
     "Emoji": "Emoji 默认",
@@ -305,28 +307,28 @@
   },
   "UIStyle": {
     "Original": {
-      "Name": "经典原版",
-      "Desc": "最原始的粗犷风格，不带任何修饰"
+      "Name": "经典",
+      "Desc": "基础紧凑布局"
     },
     "Fluent": {
-      "Name": "Fluent 圆角",
-      "Desc": "Win11圆润风格，大圆角+柔和阴影"
+      "Name": "流畅沉浸",
+      "Desc": "全高度沉浸卡片式体验"
     },
     "MacOS": {
-      "Name": "MacOS 质感",
-      "Desc": "类 Mac 的紧凑与阴影设计，带毛玻璃背景"
+      "Name": "圆润质感",
+      "Desc": "大圆角与精致层次感"
     },
     "Geek": {
       "Name": "极客直角",
-      "Desc": "硬朗的直角设计，适合专业用户"
+      "Desc": "硬朗的无边框直角设计"
     },
     "OneCommander": {
       "Name": "双栏极简",
-      "Desc": "模仿 OneCommander 的极致紧凑双栏风格：方形 Tab、底部指示条、高信息密度"
+      "Desc": "极致紧凑的双栏信息管理"
     },
     "Antigravity": {
-      "Name": "反重力拟物",
-      "Desc": "浮雕质感与悬浮阴影，强烈的立体操作感"
+      "Name": "重力拟物",
+      "Desc": "具有立体感的操作体验"
     }
   },
   "Bootstrapper": {

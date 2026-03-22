@@ -7,7 +7,9 @@
          ======================================== -->
     <sys:String x:Key="ThemeId">Forest</sys:String>
     <sys:String x:Key="ThemeDisplayName">森林绿</sys:String>
-    <sys:String x:Key="ThemeDescription">自然舒适的森林绿主题，护眼且放松</sys:String>
+    <sys:String x:Key="ThemeDisplayNameEn">Forest Green</sys:String>
+    <sys:String x:Key="ThemeDescription">舒缓视觉疲劳的柔和自然色调，平衡专业感与舒适度</sys:String>
+    <sys:String x:Key="ThemeDescriptionEn">Soft natural tones to soothe visual fatigue, balancing professionalism and comfort</sys:String>
     <sys:String x:Key="ThemeAuthor">YiboSoft</sys:String>
     <sys:String x:Key="ThemeVersion">3.0.0</sys:String>
     

@@ -29,141 +29,137 @@ namespace YiboFile
         {
             var dbPath = ConfigManager.GetDataFilePath();
             var dir = Path.GetDirectoryName(dbPath);
-            if (!string.IsNullOrEmpty(dir))
+            try
             {
-                Directory.CreateDirectory(dir);
+                if (!string.IsNullOrEmpty(dir))
+                {
+                    Directory.CreateDirectory(dir);
+                }
+                _connectionString = $"Data Source={dbPath}";
+
+                // 确保之前的连接被释放
+                SqliteConnection.ClearAllPools();
+
+                using var connection = new SqliteConnection(_connectionString);
+                connection.Open();
+
+                // Enable WAL mode for better concurrency
+                using (var pragmaCommand = connection.CreateCommand())
+                {
+                    pragmaCommand.CommandText = "PRAGMA journal_mode=WAL;";
+                    pragmaCommand.ExecuteNonQuery();
+                }
+
+                using var command = connection.CreateCommand();
+
+                // 创建文件备注表
+                command.CommandText = @"
+                    CREATE TABLE IF NOT EXISTS FileNotes (
+                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        FilePath TEXT NOT NULL UNIQUE,
+                        Notes TEXT NOT NULL DEFAULT '',
+                        CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        UpdatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )";
+                command.ExecuteNonQuery();
+
+                // 创建库表（只存储库信息）
+                command.CommandText = @"
+                    CREATE TABLE IF NOT EXISTS Libraries (
+                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        Name TEXT NOT NULL UNIQUE,
+                        CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )";
+                command.ExecuteNonQuery();
+
+                // 创建库位置表（一个库可以有多个位置）
+                command.CommandText = @"
+                    CREATE TABLE IF NOT EXISTS LibraryPaths (
+                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        LibraryId INTEGER NOT NULL,
+                        Path TEXT NOT NULL,
+                        DisplayName TEXT,
+                        FOREIGN KEY (LibraryId) REFERENCES Libraries (Id) ON DELETE CASCADE,
+                        UNIQUE(LibraryId, Path)
+                    )";
+                command.ExecuteNonQuery();
+
+                command.CommandText = @"
+                    CREATE VIRTUAL TABLE IF NOT EXISTS FileNotesFts USING fts5(
+                        FilePath,
+                        Notes,
+                        tokenize='unicode61 remove_diacritics 0',
+                        prefix='1 2 3'
+                    )";
+                command.ExecuteNonQuery();
+
+                // 标签系统表
+                command.CommandText = @"
+                    CREATE TABLE IF NOT EXISTS TagGroups (
+                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        Name TEXT NOT NULL UNIQUE,
+                        Color TEXT
+                    )";
+                command.ExecuteNonQuery();
+
+                command.CommandText = @"
+                    CREATE TABLE IF NOT EXISTS Tags (
+                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        GroupId INTEGER NOT NULL,
+                        Name TEXT NOT NULL,
+                        Color TEXT,
+                        FOREIGN KEY (GroupId) REFERENCES TagGroups (Id) ON DELETE CASCADE,
+                        UNIQUE(GroupId, Name)
+                    )";
+                command.ExecuteNonQuery();
+
+                command.CommandText = @"
+                    CREATE TABLE IF NOT EXISTS FileTags (
+                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        FilePath TEXT NOT NULL,
+                        TagId INTEGER NOT NULL,
+                        CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (TagId) REFERENCES Tags (Id) ON DELETE CASCADE,
+                        UNIQUE(FilePath, TagId)
+                    )";
+                command.ExecuteNonQuery();
+
+                // 创建收藏表
+                command.CommandText = @"
+                    CREATE TABLE IF NOT EXISTS Favorites (
+                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        Path TEXT NOT NULL UNIQUE,
+                        DisplayName TEXT,
+                        IsDirectory INTEGER NOT NULL DEFAULT 0,
+                        CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        SortOrder INTEGER DEFAULT 0
+                    )";
+                command.ExecuteNonQuery();
+
+                // 创建文件夹大小缓存表
+                command.CommandText = @"
+                    CREATE TABLE IF NOT EXISTS FolderSizes (
+                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        FolderPath TEXT NOT NULL UNIQUE,
+                        SizeBytes INTEGER NOT NULL,
+                        LastModified DATETIME NOT NULL,
+                        CalculatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )";
+                command.ExecuteNonQuery();
+
+                // 数据库迁移逻辑
+                PerformMigrations(command);
+
+                // 初始化默认标签
+                InitializeDefaultTags(command);
             }
-            _connectionString = $"Data Source={dbPath}";
-
-            // 确保之前的连接被释放
-            SqliteConnection.ClearAllPools();
-
-            using var connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            // Enable WAL mode for better concurrency
-            using (var pragmaCommand = connection.CreateCommand())
+            catch (Exception ex)
             {
-                pragmaCommand.CommandText = "PRAGMA journal_mode=WAL;";
-                pragmaCommand.ExecuteNonQuery();
+                // 增加诊断信息
+                string errorMsg = $"数据库初始化失败。\n目标路径: {dbPath}\n错误类型: {ex.GetType().Name}\n详情: {ex.Message}";
+                YiboFile.Services.Core.FileLogger.Log(errorMsg);
+                throw new Exception(errorMsg, ex);
             }
-
-            // 创建文件备注表
-            var createFileNotesTable = @"
-                CREATE TABLE IF NOT EXISTS FileNotes (
-                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    FilePath TEXT NOT NULL UNIQUE,
-                    Notes TEXT NOT NULL DEFAULT '',
-                    CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    UpdatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
-                )";
-
-            // 创建库表（只存储库信息）
-            var createLibrariesTable = @"
-                CREATE TABLE IF NOT EXISTS Libraries (
-                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    Name TEXT NOT NULL UNIQUE,
-                    CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
-                )";
-
-            // 创建库位置表（一个库可以有多个位置）
-            var createLibraryPathsTable = @"
-                CREATE TABLE IF NOT EXISTS LibraryPaths (
-                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    LibraryId INTEGER NOT NULL,
-                    Path TEXT NOT NULL,
-                    DisplayName TEXT,
-                    FOREIGN KEY (LibraryId) REFERENCES Libraries (Id) ON DELETE CASCADE,
-                    UNIQUE(LibraryId, Path)
-                )";
-
-            using var command = connection.CreateCommand();
-
-            command.CommandText = createFileNotesTable;
-            command.ExecuteNonQuery();
-
-            command.CommandText = createLibrariesTable;
-            command.ExecuteNonQuery();
-
-            command.CommandText = createLibraryPathsTable;
-            command.ExecuteNonQuery();
-
-            var createFileNotesFts = @"
-                CREATE VIRTUAL TABLE IF NOT EXISTS FileNotesFts USING fts5(
-                    FilePath,
-                    Notes,
-                    tokenize='unicode61 remove_diacritics 0',
-                    prefix='1 2 3'
-                )";
-            command.CommandText = createFileNotesFts;
-            command.ExecuteNonQuery();
-
-            // 标签系统表
-            var createTagGroupsTable = @"
-                CREATE TABLE IF NOT EXISTS TagGroups (
-                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    Name TEXT NOT NULL UNIQUE,
-                    Color TEXT
-                )";
-            command.CommandText = createTagGroupsTable;
-            command.ExecuteNonQuery();
-
-            var createTagsTable = @"
-                CREATE TABLE IF NOT EXISTS Tags (
-                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    GroupId INTEGER NOT NULL,
-                    Name TEXT NOT NULL,
-                    Color TEXT,
-                    FOREIGN KEY (GroupId) REFERENCES TagGroups (Id) ON DELETE CASCADE,
-                    UNIQUE(GroupId, Name)
-                )";
-            command.CommandText = createTagsTable;
-            command.ExecuteNonQuery();
-
-            var createFileTagsTable = @"
-                CREATE TABLE IF NOT EXISTS FileTags (
-                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    FilePath TEXT NOT NULL,
-                    TagId INTEGER NOT NULL,
-                    CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (TagId) REFERENCES Tags (Id) ON DELETE CASCADE,
-                    UNIQUE(FilePath, TagId)
-                )";
-            command.CommandText = createFileTagsTable;
-            command.ExecuteNonQuery();
-
-            // 创建收藏表
-            var createFavoritesTable = @"
-                CREATE TABLE IF NOT EXISTS Favorites (
-                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    Path TEXT NOT NULL UNIQUE,
-                    DisplayName TEXT,
-                    IsDirectory INTEGER NOT NULL DEFAULT 0,
-                    CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    SortOrder INTEGER DEFAULT 0
-                )";
-
-            command.CommandText = createFavoritesTable;
-            command.ExecuteNonQuery();
-
-            // 创建文件夹大小缓存表
-            var createFolderSizesTable = @"
-                CREATE TABLE IF NOT EXISTS FolderSizes (
-                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    FolderPath TEXT NOT NULL UNIQUE,
-                    SizeBytes INTEGER NOT NULL,
-                    LastModified DATETIME NOT NULL,
-                    CalculatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
-                )";
-
-            command.CommandText = createFolderSizesTable;
-            command.ExecuteNonQuery();
-
-            // 数据库迁移逻辑
-            PerformMigrations(command);
-
-            // 初始化默认标签
-            InitializeDefaultTags(command);
         }
 
         private static void PerformMigrations(SqliteCommand command)

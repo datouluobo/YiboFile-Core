@@ -6,8 +6,10 @@
          主题元数据 (Theme Metadata) - Fluent Mica
          ======================================== -->
     <sys:String x:Key="ThemeId">FluentMica</sys:String>
-    <sys:String x:Key="ThemeDisplayName">云母沉浸 (Fluent Mica)</sys:String>
-    <sys:String x:Key="ThemeDescription">基于 Windows 11 Fluent Design 的沉浸式主题，支持 Mica/Acrylic 视觉感官</sys:String>
+    <sys:String x:Key="ThemeDisplayName">沉浸玻璃</sys:String>
+    <sys:String x:Key="ThemeDisplayNameEn">Mica Aesthetic</sys:String>
+    <sys:String x:Key="ThemeDescription">多层次色彩采样与磨砂质感，营造通透且专业的界面</sys:String>
+    <sys:String x:Key="ThemeDescriptionEn">Multi-layer color sampling with frosted texture for a clean and professional interface</sys:String>
     <sys:String x:Key="ThemeAuthor">Antigravity</sys:String>
     <sys:String x:Key="ThemeVersion">1.0.0</sys:String>
     

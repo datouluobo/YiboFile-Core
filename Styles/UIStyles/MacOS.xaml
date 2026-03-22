@@ -9,8 +9,10 @@
 
     <!-- ======== 元数据 (3键) ======== -->
     <sys:String x:Key="UIStyleId">MacOS</sys:String>
-    <sys:String x:Key="UIStyleDisplayName">圆润</sys:String>
-    <sys:String x:Key="UIStyleDescription">类 macOS 圆润风格：大胶囊 Tab、舒适留白、选中行左侧强调线</sys:String>
+    <sys:String x:Key="UIStyleDisplayName">圆润质感</sys:String>
+    <sys:String x:Key="UIStyleDisplayNameEn">Rounded Aesthetic</sys:String>
+    <sys:String x:Key="UIStyleDescription">采用大圆角、胶囊按钮与分层阴影，营造精致灵活的现代感</sys:String>
+    <sys:String x:Key="UIStyleDescriptionEn">Refined rounded corners, capsule buttons, and layered shadows for a modern aesthetic</sys:String>
 
     <!-- ================================================================
          A. Tab 标签页 (14键) — 大胶囊 + 填充背景 + 无指示条

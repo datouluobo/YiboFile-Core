@@ -358,7 +358,7 @@ namespace YiboFile.Services.Orchestration
             FileListService fileListService,
             MainWindowViewModel viewModel)
         {
-            // 订阅主题切换事件,刷新导航面板图标
+            // 订阅主题切换事件,刷新导航面板图标 + 动态切换 Mica
             _themeService.ThemeChanged += (s, e) =>
             {
                 window.Dispatcher.BeginInvoke(new Action(() =>
@@ -379,6 +379,23 @@ namespace YiboFile.Services.Orchestration
                     {
                         window.SecondFileBrowserContainer.InvalidateVisual();
                         window.SecondFileBrowserContainer.UpdateLayout();
+                    }
+
+                    // 📌 Mica 动态控制核心：根据当前主题 ID 切换 DWM 玻璃特效
+                    try
+                    {
+                        if (e.NewTheme?.Id == "Win11Pro")
+                        {
+                            window.EnableMicaBackdrop();
+                        }
+                        else
+                        {
+                            window.DisableMicaBackdrop();
+                        }
+                    }
+                    catch (Exception micaEx)
+                    {
+                        Services.Core.FileLogger.Log($"[Mica] Theme switch error: {micaEx.Message}");
                     }
                 }), System.Windows.Threading.DispatcherPriority.Loaded);
             };

@@ -21,7 +21,9 @@
     <!-- ======== 元数据 (3键) ======== -->
     <sys:String x:Key="UIStyleId">Original</sys:String>
     <sys:String x:Key="UIStyleDisplayName">经典</sys:String>
-    <sys:String x:Key="UIStyleDescription">经典紧凑布局，扁平全宽选中、分割线、顶部小指示条</sys:String>
+    <sys:String x:Key="UIStyleDisplayNameEn">Classic</sys:String>
+    <sys:String x:Key="UIStyleDescription">经典紧凑布局，扁平全宽选中、分割线、顶部指示条</sys:String>
+    <sys:String x:Key="UIStyleDescriptionEn">Classic compact layout with flat wide selection, dividers, and top indicators</sys:String>
 
     <!-- ================================================================
          A. Tab 标签页 (14键)

@@ -9,8 +9,10 @@
 
     <!-- ======== 元数据 (3键) ======== -->
     <sys:String x:Key="UIStyleId">Fluent</sys:String>
-    <sys:String x:Key="UIStyleDisplayName">流畅设计</sys:String>
-    <sys:String x:Key="UIStyleDescription">Windows 11 风格，卡片式内缩行、大圆角、无分割线</sys:String>
+    <sys:String x:Key="UIStyleDisplayName">流畅沉浸</sys:String>
+    <sys:String x:Key="UIStyleDisplayNameEn">Immersive Aesthetic</sys:String>
+    <sys:String x:Key="UIStyleDescription">基于柔和层次感设计的全高度沉浸体验</sys:String>
+    <sys:String x:Key="UIStyleDescriptionEn">Full-height immersive experience based on soft layered design</sys:String>
 
     <!-- ================================================================
          A. Tab 标签页 (14键) — 内缩卡片 + 填充背景
@@ -31,7 +33,7 @@
     <sys:Double x:Key="UI.TabItem.ActiveIndicatorRadius">1.5</sys:Double>
     <SolidColorBrush x:Key="UI.TabItem.ActiveIndicatorColor" Color="{DynamicResource AccentColor}"/>
     <!-- 🆕 悬浮卡片阴影 + 无边框 + SemiBold -->
-    <DropShadowEffect x:Key="UI.TabItem.ActiveShadowEffect" BlurRadius="12" ShadowDepth="2" Opacity="0.18" Color="Black" Direction="270"/>
+    <DropShadowEffect x:Key="UI.TabItem.ActiveShadowEffect" BlurRadius="16" ShadowDepth="4" Opacity="0.15" Color="Black" Direction="270"/>
     <SolidColorBrush x:Key="UI.TabItem.ActiveBorderBrush" Color="Transparent"/>
     <FontWeight x:Key="UI.TabItem.ActiveFontWeight">SemiBold</FontWeight>
 
@@ -48,11 +50,12 @@
     <!-- ================================================================
          C. 侧边栏/导航列表 (6键) — 内缩 + 左侧指示条
          ================================================================ -->
-    <CornerRadius x:Key="UI.Sidebar.ItemCornerRadius">8</CornerRadius>
-    <Thickness x:Key="UI.Sidebar.ItemMargin">6,2</Thickness>
+    <!-- Win11 Pro V2: 更大的包裹感内距与高度，保留左侧胶囊（在组件树中实现） -->
+    <CornerRadius x:Key="UI.Sidebar.ItemCornerRadius">10</CornerRadius>
+    <Thickness x:Key="UI.Sidebar.ItemMargin">8,4</Thickness>
     <Visibility x:Key="UI.Sidebar.ActiveIndicatorVisibility">Visible</Visibility>
-    <Thickness x:Key="UI.Sidebar.ItemPadding">12,8</Thickness>
-    <sys:Double x:Key="UI.Sidebar.ItemHeight">36</sys:Double>
+    <Thickness x:Key="UI.Sidebar.ItemPadding">14,10</Thickness>
+    <sys:Double x:Key="UI.Sidebar.ItemHeight">42</sys:Double>
     <SolidColorBrush x:Key="UI.Sidebar.ActiveBackground" Color="{DynamicResource AccentLightBrush.Color}"/>
 
     <!-- ================================================================
@@ -65,10 +68,10 @@
          E. 文件列表行 (6键) — 内缩卡片式
          ================================================================ -->
     <CornerRadius x:Key="UI.FileList.RowCornerRadius">8</CornerRadius>
-    <Thickness x:Key="UI.FileList.RowMargin">6,2</Thickness>
+    <Thickness x:Key="UI.FileList.RowMargin">8,2</Thickness>
     <Thickness x:Key="UI.FileList.RowBorderThickness">0</Thickness>
-    <sys:Double x:Key="UI.FileList.RowMinHeight">40</sys:Double>
-    <Thickness x:Key="UI.FileList.RowPadding">8,4</Thickness>
+    <sys:Double x:Key="UI.FileList.RowMinHeight">44</sys:Double>
+    <Thickness x:Key="UI.FileList.RowPadding">12,6</Thickness>
     <Thickness x:Key="UI.FileList.SelectedBorderThickness">0</Thickness>
 
     <!-- ================================================================

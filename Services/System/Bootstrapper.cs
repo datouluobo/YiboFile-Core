@@ -345,9 +345,16 @@ namespace YiboFile.Services.Startup
                 FileLogger.Log($"Icon Style applied: {iconStyle}");
 
                 // 应用界面语言
-                var language = config?.Language ?? "zh-CN";
-                ServiceProvider.GetRequiredService<ILocalizationService>().SetLanguage(language);
-                FileLogger.Log($"Language applied: {language}");
+                var language = config?.Language ?? "Auto";
+                if (language != "Auto")
+                {
+                    ServiceProvider.GetRequiredService<ILocalizationService>().SetLanguage(language);
+                    FileLogger.Log($"Language applied: {language}");
+                }
+                else
+                {
+                    FileLogger.Log("Language set to Auto, using system detection.");
+                }
             }
             catch (Exception ex)
             {
@@ -423,8 +430,7 @@ namespace YiboFile.Services.Startup
             // 写入日志文件
             try
             {
-                string portableDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "AppData");
-                string logDir = Directory.Exists(portableDir) ? portableDir : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "YiboFile");
+                string logDir = ConfigManager.GetBaseDirectory();
                 
                 if (!Directory.Exists(logDir))
                 {

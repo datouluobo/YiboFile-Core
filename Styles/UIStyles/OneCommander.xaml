@@ -5,7 +5,9 @@
     <!-- ======== 元数据 (3键) ======== -->
     <sys:String x:Key="UIStyleId">OneCommander</sys:String>
     <sys:String x:Key="UIStyleDisplayName">双栏极简</sys:String>
-    <sys:String x:Key="UIStyleDescription">模仿 OneCommander 的极致紧凑双栏风格：方形 Tab、底部指示条、高信息密度</sys:String>
+    <sys:String x:Key="UIStyleDisplayNameEn">Dual Pane Minimalist</sys:String>
+    <sys:String x:Key="UIStyleDescription">极致紧凑的双栏布局，配备方形标签页与全宽高亮，适合高效管理</sys:String>
+    <sys:String x:Key="UIStyleDescriptionEn">Compact dual-pane layout with square tabs and wide selection, designed for high efficiency</sys:String>
 
     <!-- ================================================================
          A. Tab 标签页 (14键) — 方形平坦 + 底部彩色指示条

@@ -6,8 +6,10 @@
          主题元数据 (Theme Metadata)
          ======================================== -->
     <sys:String x:Key="ThemeId">Dark</sys:String>
-    <sys:String x:Key="ThemeDisplayName">深色模式</sys:String>
-    <sys:String x:Key="ThemeDescription">低亮度深色主题，适合夜间使用，护眼舒适</sys:String>
+    <sys:String x:Key="ThemeDisplayName">暗黑模式</sys:String>
+    <sys:String x:Key="ThemeDisplayNameEn">Dark Mode</sys:String>
+    <sys:String x:Key="ThemeDescription">低亮度深色方案，适合夜间使用，减轻视觉疲劳</sys:String>
+    <sys:String x:Key="ThemeDescriptionEn">Low-brightness dark scheme for nighttime use to reduce eye strain</sys:String>
     <sys:String x:Key="ThemeAuthor">YiboSoft</sys:String>
     <sys:String x:Key="ThemeVersion">3.0.0</sys:String>
     

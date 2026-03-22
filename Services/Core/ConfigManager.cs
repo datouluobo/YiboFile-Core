@@ -59,7 +59,7 @@ namespace YiboFile
         // 外观设置
         public string ThemeMode { get; set; } = "FollowSystem"; // Light, Dark, FollowSystem
         public string UIStyle { get; set; } = "Original"; // Original, Fluent, MacOS, Geek
-        public string Language { get; set; } = "zh-CN"; // 界面语言
+        public string Language { get; set; } = "Auto"; // 界面语言
         public string LayoutMode { get; set; } = "Full"; // Focus, Work, Full
         public bool IsDualPaneMode { get; set; } = false; // 双列表模式
         public string PaneModeStr { get; set; } = "Single"; // 三态面板模式: Single, DualPane, Preview
@@ -234,10 +234,23 @@ namespace YiboFile
                 string portableDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "AppData");
                 if (Directory.Exists(portableDir))
                 {
-                    return portableDir;
+                    // 核心逻辑：检查该目录是否真的可写（防止 MSIX 封包把 AppData 也打进去导致只读）
+                    try 
+                    {
+                        string testFile = Path.Combine(portableDir, ".write_test");
+                        File.WriteAllText(testFile, DateTime.Now.ToString());
+                        File.Delete(testFile);
+                        return portableDir;
+                    }
+                    catch 
+                    {
+                        // 目录存在但不可写，说明处于只读封包环境，退回到用户的 AppData
+                    }
                 }
             }
             catch { }
+
+            // 检查 Windows 商店/MSIX 环境（通过引用的 Package.Current 等方式更精准，但此处用通用逻辑即可）
             return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "YiboFile");
         }
 

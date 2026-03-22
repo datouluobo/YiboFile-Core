@@ -31,8 +31,30 @@ namespace YiboFile.Services.Localization
             // 加载 Fallback 语言（默认 zh-CN）
             _fallbackStrings = LoadLanguageFile(DefaultLanguage);
             
-            CurrentLanguage = DefaultLanguage;
-            _currentStrings = _fallbackStrings;
+            // 自动检测系统语言作为初始语言
+            string systemLang = GetSystemLanguage();
+            CurrentLanguage = systemLang;
+            _currentStrings = LoadLanguageFile(systemLang);
+
+            if (_currentStrings.Count == 0)
+            {
+                CurrentLanguage = DefaultLanguage;
+                _currentStrings = _fallbackStrings;
+            }
+        }
+
+        private string GetSystemLanguage()
+        {
+            try
+            {
+                var culture = System.Globalization.CultureInfo.CurrentUICulture.Name;
+                if (culture.StartsWith("zh", StringComparison.OrdinalIgnoreCase))
+                {
+                    return "zh-CN";
+                }
+            }
+            catch { }
+            return "en-US";
         }
 
         public string this[string key] => Get(key);

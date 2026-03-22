@@ -6,8 +6,10 @@
          主题元数据 (Theme Metadata)
          ======================================== -->
     <sys:String x:Key="ThemeId">Ocean</sys:String>
-    <sys:String x:Key="ThemeDisplayName">海洋蓝</sys:String>
-    <sys:String x:Key="ThemeDescription">清新专业的海洋蓝主题，适合长时间工作</sys:String>
+    <sys:String x:Key="ThemeDisplayName">深海蓝</sys:String>
+    <sys:String x:Key="ThemeDisplayNameEn">Ocean Deep</sys:String>
+    <sys:String x:Key="ThemeDescription">清新且平衡的深蓝色调，适合长时间的专业工作</sys:String>
+    <sys:String x:Key="ThemeDescriptionEn">Fresh and balanced deep blue tones designed for long professional working hours</sys:String>
     <sys:String x:Key="ThemeAuthor">YiboSoft</sys:String>
     <sys:String x:Key="ThemeVersion">3.0.0</sys:String>
     

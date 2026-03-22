@@ -6,8 +6,10 @@
          主题元数据 (Theme Metadata)
          ======================================== -->
     <sys:String x:Key="ThemeId">Nordic</sys:String>
-    <sys:String x:Key="ThemeDisplayName">北欧灰</sys:String>
-    <sys:String x:Key="ThemeDescription">简约现代的北欧灰主题，专业高效</sys:String>
+    <sys:String x:Key="ThemeDisplayName">北欧极简</sys:String>
+    <sys:String x:Key="ThemeDisplayNameEn">Nordic Minimal</sys:String>
+    <sys:String x:Key="ThemeDescription">简约现代的灰色调方案，提供极高辨识度的专业工作界面</sys:String>
+    <sys:String x:Key="ThemeDescriptionEn">Simple and modern gray scheme, providing a highly recognizable professional interface</sys:String>
     <sys:String x:Key="ThemeAuthor">YiboSoft</sys:String>
     <sys:String x:Key="ThemeVersion">3.0.0</sys:String>
     

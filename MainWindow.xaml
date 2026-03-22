@@ -16,7 +16,6 @@
         UseLayoutRounding="True"
         Background="{DynamicResource BackgroundPrimaryBrush}">
 
-
     <Window.InputBindings>
         <KeyBinding Key="C" Modifiers="Ctrl" Command="{Binding FileOperation.CopyCommand}" CommandParameter="{Binding ActivePane.Selection.SelectedItems}"/>
         <KeyBinding Key="X" Modifiers="Ctrl" Command="{Binding FileOperation.CutCommand}" CommandParameter="{Binding ActivePane.Selection.SelectedItems}"/>
@@ -34,7 +33,7 @@
     <WindowChrome.WindowChrome>
         <WindowChrome CaptionHeight="50" 
                       ResizeBorderThickness="4" 
-                      GlassFrameThickness="1" 
+                      GlassFrameThickness="-1" 
                       CornerRadius="0" 
                       UseAeroCaptionButtons="False"/>
     </WindowChrome.WindowChrome>

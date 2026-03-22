@@ -10,8 +10,7 @@ namespace YiboFile.Services.Core
 
         static FileLogger()
         {
-            string portableDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "AppData");
-            string logDir = Directory.Exists(portableDir) ? portableDir : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "YiboFile");
+            string logDir = ConfigManager.GetBaseDirectory();
             
             try
             {
