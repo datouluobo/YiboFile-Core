@@ -107,6 +107,12 @@ namespace YiboFile.Controls.Settings
             else
                 OverflowStrategyScroll.IsChecked = true;
 
+            // 新建标签页动作
+            if (_generalViewModel.NewTabAction == NewTabAction.DuplicateCurrent)
+                NewTabActionDuplicate.IsChecked = true;
+            else
+                NewTabActionDesktop.IsChecked = true;
+
             UpdateUI();
         }
 
@@ -130,6 +136,14 @@ namespace YiboFile.Controls.Settings
                 _generalViewModel.TabOverflowStrategy = TabOverflowStrategy.Scroll;
 
             UpdateUI();
+        }
+
+        private void NewTabAction_Checked(object sender, RoutedEventArgs e)
+        {
+            if (NewTabActionDesktop?.IsChecked == true)
+                _generalViewModel.NewTabAction = NewTabAction.Desktop;
+            else if (NewTabActionDuplicate?.IsChecked == true)
+                _generalViewModel.NewTabAction = NewTabAction.DuplicateCurrent;
         }
 
         /// <summary>

@@ -41,6 +41,7 @@ namespace YiboFile.Services.Tabs
             
             if (_ui?.TabManager != null)
             {
+                _ui.TabManager.Service = this;
                 _ui.TabManager.NewTabCommand = this.NewTabCommand;
                 _ui.TabManager.UpdateTabWidthsCommand = this.UpdateTabWidthsCommand;
             }
@@ -204,6 +205,12 @@ namespace YiboFile.Services.Tabs
 
         public PathTab CreateBlankTab()
         {
+            if (_config?.NewTabAction == NewTabAction.DuplicateCurrent)
+            {
+                CreateDuplicateTab();
+                return ActiveTab as PathTab;
+            }
+
             var desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
             CreatePathTab(desktopPath, forceNewTab: true);
             return ActiveTab as PathTab;

@@ -40,7 +40,19 @@
       "NavSettings": "导航设置",
       "ManageLibraries": "管理库"
     },
-    "Clipboard": "剪切板历史"
+    "Clipboard": "剪切板历史",
+    "Context": {
+      "Duplicate": "🔄 复制标签页",
+      "Pin": "📌 固定标签页",
+      "Unpin": "🔓 取消固定",
+      "Rename": "✏️ 重命名标签页",
+      "CopyPath": "📋 复制文件路径",
+      "OpenExplorer": "📂 在资源管理器中打开",
+      "Close": "❌ 关闭标签页",
+      "CloseOthers": "❌ 关闭其他标签页",
+      "CloseLeft": "❌ 关闭左侧标签页",
+      "CloseRight": "❌ 关闭右侧标签页"
+    }
   },
   "FileList": {
     "Columns": {
@@ -173,6 +185,9 @@
       "HideInactiveClose": "非活动标签隐藏关闭按钮（悬停时显示）",
       "ShowOverflowArrows": "溢出时显示导航箭头",
       "ShowOverflowGradient": "溢出时显示渐变遮罩",
+      "NewTabAction": "新建标签页动作：",
+      "NewTabActionDesktop": "桌面",
+      "NewTabActionDuplicate": "复制当前标签页",
       "PathSettings": "路径设置",
       "DefaultDirDesc": "默认目录：程序根目录下的 .\\AppData\\ （配置、数据文件集中存储）",
       "CurrentDir": "当前目录:",

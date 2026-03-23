@@ -75,6 +75,11 @@ namespace YiboFile.Controls
             set => SetValue(UpdateTabWidthsCommandProperty, value);
         }
 
+        /// <summary>
+        /// 绑定的标签服务实例
+        /// </summary>
+        public Services.Tabs.TabService Service { get; set; }
+
         public static readonly DependencyProperty ItemsSourceProperty =
             DependencyProperty.Register(nameof(ItemsSource), typeof(System.Collections.IEnumerable), typeof(TabManagerControl));
 
@@ -140,6 +145,85 @@ namespace YiboFile.Controls
             double step = 120;
             TabScrollViewer.ScrollToHorizontalOffset(
                 Math.Min(TabScrollViewer.ScrollableWidth, TabScrollViewer.HorizontalOffset + step));
+        }
+
+        #endregion
+
+        #region Context Menu Handlers
+
+        private void TabContextMenu_Opening(object sender, ContextMenuEventArgs e)
+        {
+            if (sender is FrameworkElement fe && fe.ContextMenu != null && fe.DataContext is Services.Tabs.PathTab tab)
+            {
+                var loc = App.ServiceProvider.GetService(typeof(Services.Localization.ILocalizationService)) as Services.Localization.ILocalizationService;
+                foreach (var item in fe.ContextMenu.Items)
+                {
+                    if (item is MenuItem menuItem && menuItem.Name == "PinMenuItem")
+                    {
+                        menuItem.Header = tab.IsPinned 
+                            ? loc?.Get("TabContent.Context.Unpin") 
+                            : loc?.Get("TabContent.Context.Pin");
+                        break;
+                    }
+                }
+            }
+        }
+
+        private void DuplicateTab_Click(object sender, RoutedEventArgs e)
+        {
+            if (GetTab(sender) is var tab && tab != null) Service?.CreateDuplicateTab(tab);
+        }
+
+        private void TogglePinTab_Click(object sender, RoutedEventArgs e)
+        {
+            if (GetTab(sender) is var tab && tab != null) Service?.TogglePinTab(tab);
+        }
+
+        private void RenameTab_Click(object sender, RoutedEventArgs e)
+        {
+            if (GetTab(sender) is var tab && tab != null) Service?.RenameDisplayTitle(tab);
+        }
+
+        private void CopyPath_Click(object sender, RoutedEventArgs e)
+        {
+            if (GetTab(sender) is var tab && !string.IsNullOrEmpty(tab.Path))
+            {
+                try { Clipboard.SetText(tab.Path); } catch { }
+            }
+        }
+
+        private void OpenInExplorer_Click(object sender, RoutedEventArgs e)
+        {
+            if (GetTab(sender) is var tab && tab != null) Service?.OpenTabInExplorer(tab);
+        }
+
+        private void CloseTab_Click(object sender, RoutedEventArgs e)
+        {
+            if (GetTab(sender) is var tab && tab != null) Service?.CloseTab(tab);
+        }
+
+        private void CloseOtherTabs_Click(object sender, RoutedEventArgs e)
+        {
+            if (GetTab(sender) is var tab && tab != null) Service?.CloseOtherTabs(tab);
+        }
+
+        private void CloseLeftTabs_Click(object sender, RoutedEventArgs e)
+        {
+            if (GetTab(sender) is var tab && tab != null) Service?.CloseTabsToLeft(tab);
+        }
+
+        private void CloseRightTabs_Click(object sender, RoutedEventArgs e)
+        {
+            if (GetTab(sender) is var tab && tab != null) Service?.CloseTabsToRight(tab);
+        }
+
+        private Services.Tabs.PathTab GetTab(object sender)
+        {
+            if (sender is MenuItem mi && mi.Parent is ContextMenu cm)
+            {
+                return (cm.PlacementTarget as FrameworkElement)?.DataContext as Services.Tabs.PathTab;
+            }
+            return (sender as FrameworkElement)?.DataContext as Services.Tabs.PathTab;
         }
 
         #endregion

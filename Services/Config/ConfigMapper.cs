@@ -39,6 +39,7 @@ namespace YiboFile.Services.Config
             settings.Behavior.HideCloseButtonOnInactive = source.HideCloseButtonOnInactive;
             settings.Behavior.ShowOverflowArrows = source.ShowOverflowArrows;
             settings.Behavior.ShowOverflowGradient = source.ShowOverflowGradient;
+            settings.Behavior.NewTabAction = source.NewTabAction;
             #pragma warning disable CS0612
             settings.Behavior.TabWidthMode = source.TabWidthMode;
             settings.Behavior.PinnedTabWidth = source.PinnedTabWidth;
@@ -158,6 +159,7 @@ namespace YiboFile.Services.Config
             config.HideCloseButtonOnInactive = settings.Behavior.HideCloseButtonOnInactive;
             config.ShowOverflowArrows = settings.Behavior.ShowOverflowArrows;
             config.ShowOverflowGradient = settings.Behavior.ShowOverflowGradient;
+            config.NewTabAction = settings.Behavior.NewTabAction;
             #pragma warning disable CS0612
             config.TabWidthMode = settings.Behavior.TabWidthMode;
             config.PinnedTabWidth = settings.Behavior.PinnedTabWidth;

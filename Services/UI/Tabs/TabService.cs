@@ -55,6 +55,7 @@ namespace YiboFile.Services.Tabs
             "TabWidthStrategy", "TabOverflowStrategy",
             "TabFixedWidth", "TabMaxWidth", "TabMinWidth",
             "HideCloseButtonOnInactive", "ShowOverflowArrows", "ShowOverflowGradient",
+            "NewTabAction",
             "All"
         };
 
@@ -314,20 +315,11 @@ namespace YiboFile.Services.Tabs
                 }
             }
         }
-
         public void UpdateTabTitle(PathTab tab, string newPath)
         {
             if (tab == null) return;
-            var newTitle = CalculateTabDisplayTitle(newPath);
+            string newTitle = !string.IsNullOrEmpty(tab.OverrideTitle) ? tab.OverrideTitle : CalculateTabDisplayTitle(newPath);
             tab.Title = newTitle;
-            tab.Title = newTitle;
-            var path = tab.Title; // Actually NewTitle is derived from path, but logic is circular here. 
-                                  // Correct logic: CalculateTabDisplayTitle uses newPath.
-                                  // But we need old title for message? 
-                                  // In typical event usage, we just invoke with the tab which HAS the new title.
-                                  // Message definition: (PathTab Tab, string OldTitle, string NewTitle, PaneId Pane)
-                                  // We don't easily have OldTitle here unless we capture it, but simple invocation is enough.
-                                  // Let's pass null for OldTitle for now or improve later if strict diff needed.
 
             _messageBus.Publish(new YiboFile.ViewModels.Messaging.Messages.TabTitleChangedMessage(tab, null, newTitle, Pane));
         }
@@ -336,6 +328,17 @@ namespace YiboFile.Services.Tabs
         {
             if (tab == null) return;
             tab.IsPinned = !tab.IsPinned;
+
+            // 如果固定，移动到第一位
+            if (tab.IsPinned)
+            {
+                int oldIndex = _tabs.IndexOf(tab);
+                if (oldIndex > 0)
+                {
+                    _tabs.Move(oldIndex, 0);
+                }
+            }
+
             var key = GetTabKey(tab);
             if (_config.PinnedTabs == null) _config.PinnedTabs = new List<string>();
             if (tab.IsPinned)
@@ -346,7 +349,6 @@ namespace YiboFile.Services.Tabs
             {
                 _config.PinnedTabs.Remove(key);
             }
-            ConfigurationService.Instance.Set(cfg => cfg.PinnedTabs, _config.PinnedTabs);
             ConfigurationService.Instance.Set(cfg => cfg.PinnedTabs, _config.PinnedTabs);
             _messageBus.Publish(new YiboFile.ViewModels.Messaging.Messages.TabPinStateChangedMessage(tab, Pane));
         }
@@ -362,13 +364,16 @@ namespace YiboFile.Services.Tabs
             }
             else
             {
-                tab.OverrideTitle = overrideTitle;
+                tab.OverrideTitle = overrideTitle.Trim();
                 if (_config.TabTitleOverrides == null) _config.TabTitleOverrides = new Dictionary<string, string>();
-                _config.TabTitleOverrides[key] = overrideTitle;
+                _config.TabTitleOverrides[key] = tab.OverrideTitle;
             }
+            
+            // 同步物理标题到显示属性
+            UpdateTabTitle(tab, tab.Path);
+            
             ConfigurationService.Instance.Set(cfg => cfg.TabTitleOverrides, _config.TabTitleOverrides);
-            ConfigurationService.Instance.Set(cfg => cfg.TabTitleOverrides, _config.TabTitleOverrides);
-            _messageBus.Publish(new YiboFile.ViewModels.Messaging.Messages.TabTitleChangedMessage(tab, null, overrideTitle, Pane));
+            _messageBus.Publish(new YiboFile.ViewModels.Messaging.Messages.TabTitleChangedMessage(tab, null, tab.Title, Pane));
         }
 
         public bool CanCloseTab(PathTab tab, bool isLibraryMode) => true;
@@ -380,6 +385,7 @@ namespace YiboFile.Services.Tabs
             if (_config.TabTitleOverrides != null && _config.TabTitleOverrides.TryGetValue(key, out var ot) && !string.IsNullOrWhiteSpace(ot))
             {
                 tab.OverrideTitle = ot;
+                UpdateTabTitle(tab, tab.Path); // 同步标题
             }
             if (_config.PinnedTabs != null && _config.PinnedTabs.Contains(key)) tab.IsPinned = true;
         }

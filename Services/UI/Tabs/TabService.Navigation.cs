@@ -95,8 +95,8 @@ namespace YiboFile.Services.Tabs
             string path = GetTabOpenPath(tab);
             if (!string.IsNullOrEmpty(path))
             {
-                try { System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{path}\""); }
-                catch { try { System.Diagnostics.Process.Start("explorer.exe", $"\"{path}\""); } catch { } }
+                try { System.Diagnostics.Process.Start("explorer.exe", $"\"{path}\""); }
+                catch { }
             }
         }
 
@@ -104,6 +104,26 @@ namespace YiboFile.Services.Tabs
         {
             EnsureUi();
             var toRemove = _tabs.Where(t => t != tab && !t.IsPinned).ToList();
+            foreach (var t in toRemove) CloseTab(t);
+        }
+
+        public void CloseTabsToLeft(PathTab tab)
+        {
+            EnsureUi();
+            int index = _tabs.IndexOf(tab);
+            if (index <= 0) return;
+
+            var toRemove = _tabs.Take(index).Where(t => !t.IsPinned).ToList();
+            foreach (var t in toRemove) CloseTab(t);
+        }
+
+        public void CloseTabsToRight(PathTab tab)
+        {
+            EnsureUi();
+            int index = _tabs.IndexOf(tab);
+            if (index < 0 || index >= _tabs.Count - 1) return;
+
+            var toRemove = _tabs.Skip(index + 1).Where(t => !t.IsPinned).ToList();
             foreach (var t in toRemove) CloseTab(t);
         }
 

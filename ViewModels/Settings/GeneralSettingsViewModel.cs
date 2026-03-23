@@ -38,6 +38,7 @@ namespace YiboFile.ViewModels.Settings
             _hideCloseButtonOnInactive = config.HideCloseButtonOnInactive;
             _showOverflowArrows = config.ShowOverflowArrows;
             _showOverflowGradient = config.ShowOverflowGradient;
+            _newTabAction = config.NewTabAction;
 
             _baseDirectory = _pathProvider?.BaseDirectory ?? ConfigManager.GetBaseDirectory();
         }
@@ -230,6 +231,17 @@ namespace YiboFile.ViewModels.Settings
             {
                 if (SetProperty(ref _showOverflowGradient, value))
                     _configService.Update(c => c.ShowOverflowGradient = value);
+            }
+        }
+
+        private NewTabAction _newTabAction;
+        public NewTabAction NewTabAction
+        {
+            get => _newTabAction;
+            set
+            {
+                if (SetProperty(ref _newTabAction, value))
+                    _configService.Update(c => c.NewTabAction = value);
             }
         }
 

@@ -43,6 +43,17 @@ namespace YiboFile
         Compress
     }
 
+    /// <summary>
+    /// 新建标签页的行为
+    /// </summary>
+    public enum NewTabAction
+    {
+        /// <summary>打开桌面目录</summary>
+        Desktop,
+        /// <summary>复制当前活动的标签页</summary>
+        DuplicateCurrent
+    }
+
     public class AppConfig
     {
         public string LastPath { get; set; } = string.Empty;
@@ -214,6 +225,9 @@ namespace YiboFile
         public bool ClipboardCaptureImages { get; set; } = true;
         public bool ClipboardCaptureText { get; set; } = true;
         public bool ClipboardCaptureScreenshots { get; set; } = true;
+
+        // 新建标签页的行为
+        public NewTabAction NewTabAction { get; set; } = NewTabAction.Desktop;
     }
 
     public class AllSettingsConfig

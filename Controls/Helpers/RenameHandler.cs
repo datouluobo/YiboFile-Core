@@ -2,7 +2,9 @@ using System;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using System.Windows.Media;
 using YiboFile.Models;
 using YiboFile.ViewModels;
 using YiboFile.ViewModels.Messaging;
@@ -28,11 +30,13 @@ namespace YiboFile.Controls.Helpers
                     // Force sync the TextBox text to RenameText in case binding hasn't updated
                     item.RenameText = textBox.Text;
                     CommitRename(item, controlDataContext);
+                    RestoreFocusToList(textBox);
                     e.Handled = true;
                 }
                 else if (e.Key == Key.Escape)
                 {
                     CancelRename(item);
+                    RestoreFocusToList(textBox);
                     e.Handled = true;
                 }
             }
@@ -67,34 +71,37 @@ namespace YiboFile.Controls.Helpers
                 if (!isVisible || !item.IsRenaming)
                     return;
 
-                // 使用 Render 优先级以确保在布局完成后执行
+                // 使用较高级别的优先级确保在布局就绪后尽快捕获焦点
                 dispatcher.BeginInvoke(new Action(() =>
                 {
-                    // 再次检查 - 可能在调度期间状态已改变
+                    // 再次检查状态
                     if (!item.IsRenaming || !textBox.IsVisible)
                         return;
 
-                    // 使用 Keyboard.Focus() 确保键盘焦点设置正确
-                    Keyboard.Focus(textBox);
+                    // 1. 强制设置键盘焦点
                     textBox.Focus();
+                    Keyboard.Focus(textBox);
 
-                    // 从 Path 获取完整文件名（因为 RenameText 可能还没同步）
+                    // 2. 确保它在焦点范围中是选中的
+                    FocusManager.SetFocusedElement(FocusManager.GetFocusScope(textBox), textBox);
+
+                    // 确保文本已正确同步（处理绑定延迟）
                     string name = !string.IsNullOrEmpty(item.RenameText)
                         ? item.RenameText
-                        : System.IO.Path.GetFileName(item.Path);
+                        : (string.IsNullOrEmpty(textBox.Text) ? System.IO.Path.GetFileName(item.Path) : textBox.Text);
 
-                    if (!string.IsNullOrEmpty(name))
+                    if (string.IsNullOrEmpty(textBox.Text) && !string.IsNullOrEmpty(name))
                     {
-                        // 确保 TextBox 有正确的文本
-                        if (string.IsNullOrEmpty(textBox.Text))
-                        {
-                            textBox.Text = name;
-                        }
+                        textBox.Text = name;
+                    }
 
-                        int lastDotIndex = name.LastIndexOf('.');
+                    // 选中逻辑
+                    if (!string.IsNullOrEmpty(textBox.Text))
+                    {
+                        var text = textBox.Text;
+                        int lastDotIndex = text.LastIndexOf('.');
                         if (lastDotIndex > 0 && !item.IsDirectory)
                         {
-                            // 选中文件名部分（不包含扩展名）
                             textBox.Select(0, lastDotIndex);
                         }
                         else
@@ -102,7 +109,7 @@ namespace YiboFile.Controls.Helpers
                             textBox.SelectAll();
                         }
                     }
-                }), System.Windows.Threading.DispatcherPriority.Render);
+                }), System.Windows.Threading.DispatcherPriority.Input);
             }
         }
 
@@ -111,7 +118,7 @@ namespace YiboFile.Controls.Helpers
         /// </summary>
         public static void CommitRename(FileSystemItem item, object controlDataContext)
         {
-            if (!item.IsRenaming) return;
+            if (item == null || !item.IsRenaming) return;
 
             // Check if name actually changed
             if (string.IsNullOrWhiteSpace(item.RenameText) || item.RenameText == item.Name)
@@ -128,7 +135,7 @@ namespace YiboFile.Controls.Helpers
             }
             else
             {
-                // Fallback: 如果 DataContext 设置不正确，使用 ServiceProvider (不推荐，但在重构过渡期保留作为最后手段)
+                // Fallback: 如果 DataContext 设置不正确，使用 ServiceProvider
                 var messageBus = App.ServiceProvider.GetService<IMessageBus>();
                 messageBus?.Publish(new YiboFile.ViewModels.Messaging.Messages.RenameItemRequestMessage(item, item.RenameText));
             }
@@ -146,6 +153,49 @@ namespace YiboFile.Controls.Helpers
             item.IsRenaming = false;
             // Revert text
             item.RenameText = item.Name;
+        }
+
+        /// <summary>
+        /// 恢复列表视图的焦点
+        /// </summary>
+        private static void RestoreFocusToList(TextBox textBox)
+        {
+            if (textBox == null) return;
+
+            // 寻找父级 ListView
+            DependencyObject current = textBox;
+            
+            // 如果在 Popup 中，先寻找 Popup 及其 PlacementTarget
+            while (current != null && !(current is ListView))
+            {
+                var parent = VisualTreeHelper.GetParent(current);
+                if (parent == null)
+                {
+                    // 尝试寻找 Popup 的逻辑父级（跳出独立视觉树）
+                    if (current is FrameworkElement fe && fe.Parent is Popup popup)
+                    {
+                        current = popup.PlacementTarget;
+                        continue;
+                    }
+                    else if (current is Popup p)
+                    {
+                        current = p.PlacementTarget;
+                        continue;
+                    }
+                }
+                current = parent;
+            }
+
+            if (current is ListView listView)
+            {
+                listView.Focus();
+                // 确保容器也有焦点，这样键盘上下键才能工作
+                if (listView.SelectedItem != null)
+                {
+                    var container = listView.ItemContainerGenerator.ContainerFromItem(listView.SelectedItem) as FrameworkElement;
+                    container?.Focus();
+                }
+            }
         }
     }
 }

@@ -4,6 +4,10 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+             xmlns:tabs="clr-namespace:YiboFile.Services.Tabs"
+             xmlns:i18n="clr-namespace:YiboFile.Services.Localization"
+             xmlns:converters="clr-namespace:YiboFile.Controls.Converters"
+             xmlns:controls="clr-namespace:YiboFile.Controls"
              mc:Ignorable="d" 
              d:DesignHeight="40" d:DesignWidth="800"
              shell:WindowChrome.IsHitTestVisibleInChrome="True">
@@ -43,6 +47,116 @@
                     </Setter.Value>
                 </Setter>
             </Style>
+            
+            <converters:WidthToVisibilityConverter x:Key="WidthToVisibilityConverter" />
+
+            <DataTemplate x:Key="PathTabDataTemplate" DataType="{x:Type tabs:PathTab}">
+                <Button x:Name="TabButton" Style="{StaticResource TabButtonStyle}" Width="{Binding TargetWidth}" 
+                        Command="{Binding SelectCommand}" ToolTip="{Binding Title}" 
+                        controls:TabManagerControl.IsActiveNotifier="{Binding IsActive}" 
+                        shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                        ContextMenuOpening="TabContextMenu_Opening">
+                    <Button.InputBindings>
+                        <MouseBinding MouseAction="MiddleClick" Command="{Binding CloseCommand}" />
+                    </Button.InputBindings>
+                    <Button.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="{i18n:Loc Key=TabContent.Context.Duplicate}" Click="DuplicateTab_Click" />
+                            <MenuItem x:Name="PinMenuItem" Header="{i18n:Loc Key=TabContent.Context.Pin}" Click="TogglePinTab_Click" />
+                            <MenuItem Header="{i18n:Loc Key=TabContent.Context.Rename}" Click="RenameTab_Click" />
+                            <MenuItem Header="{i18n:Loc Key=TabContent.Context.CopyPath}" Click="CopyPath_Click" />
+                            <MenuItem Header="{i18n:Loc Key=TabContent.Context.OpenExplorer}" Click="OpenInExplorer_Click" />
+                            <Separator />
+                            <MenuItem Header="{i18n:Loc Key=TabContent.Context.Close}" Click="CloseTab_Click" FontWeight="Bold" />
+                            <MenuItem Header="{i18n:Loc Key=TabContent.Context.CloseOthers}" Click="CloseOtherTabs_Click" />
+                            <MenuItem Header="{i18n:Loc Key=TabContent.Context.CloseLeft}" Click="CloseLeftTabs_Click" />
+                            <MenuItem Header="{i18n:Loc Key=TabContent.Context.CloseRight}" Click="CloseRightTabs_Click" />
+                        </ContextMenu>
+                    </Button.ContextMenu>
+                    <Grid Margin="12,0" HorizontalAlignment="Stretch">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Icon -->
+                        <TextBlock Grid.Column="0" x:Name="IconText" Text="📁" FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0.7" IsHitTestVisible="False" 
+                                   Visibility="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Button}, Converter={StaticResource WidthToVisibilityConverter}, ConverterParameter=80}" />
+
+                        <!-- Title -->
+                        <TextBlock Grid.Column="1" Text="{Binding Title}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" IsHitTestVisible="False" />
+
+                        <!-- Close Button -->
+                        <Button Grid.Column="2" x:Name="PART_CloseButton" Width="18" Height="18" Margin="6,0,0,0" Padding="0" 
+                                VerticalAlignment="Center" HorizontalAlignment="Right" 
+                                Foreground="{DynamicResource ForegroundPrimaryBrush}" 
+                                Command="{Binding CloseCommand}" 
+                                shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                                Cursor="Hand">
+                            <Button.Style>
+                                <Style TargetType="Button">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Setter Property="Opacity" Value="0.6" />
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border x:Name="border" Background="Transparent" CornerRadius="4">
+                                                    <Path x:Name="iconPath" Data="M 0,0 L 8,8 M 8,0 L 0,8" 
+                                                          Stroke="{TemplateBinding Foreground}" 
+                                                          StrokeThickness="1.2"
+                                                          HorizontalAlignment="Center" 
+                                                          VerticalAlignment="Center"
+                                                          Stretch="None" 
+                                                          Opacity="0.7"/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="border" Property="Background" Value="#FFE2E2"/>
+                                                        <Setter TargetName="iconPath" Property="Stroke" Value="#E81123"/>
+                                                        <Setter TargetName="iconPath" Property="Opacity" Value="1.0"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsPressed" Value="True">
+                                                        <Setter TargetName="border" Property="Background" Value="#FFC6C6"/>
+                                                        <Setter TargetName="iconPath" Property="Stroke" Value="#E81123"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Opacity" Value="1.0" />
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                    </Grid>
+                </Button>
+                <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding IsActive}" Value="True">
+                        <Setter TargetName="TabButton" Property="Style" Value="{StaticResource ActiveTabButtonStyle}" />
+                        <Setter TargetName="IconText" Property="Opacity" Value="1.0" />
+                    </DataTrigger>
+                    <Trigger SourceName="TabButton" Property="IsMouseOver" Value="True">
+                        <Setter TargetName="PART_CloseButton" Property="Visibility" Value="Visible" />
+                    </Trigger>
+                    <DataTrigger Binding="{Binding Path, Converter={StaticResource StringStartsWithConverter}, ConverterParameter='search://'}" Value="True">
+                        <Setter TargetName="IconText" Property="Text" Value="🔍" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Path, Converter={StaticResource StringStartsWithConverter}, ConverterParameter='tag://'}" Value="True">
+                        <Setter TargetName="IconText" Property="Text" Value="🏷️" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Path, Converter={StaticResource StringStartsWithConverter}, ConverterParameter='lib://'}" Value="True">
+                        <Setter TargetName="IconText" Property="Text" Value="📚" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding IsPinned}" Value="True">
+                        <Setter TargetName="PART_CloseButton" Property="Visibility" Value="Collapsed" />
+                        <Setter TargetName="IconText" Property="Text" Value="📌" />
+                    </DataTrigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
         </ResourceDictionary>
     </UserControl.Resources>
     

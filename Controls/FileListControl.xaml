@@ -174,7 +174,7 @@
         <DataTemplate x:Key="TilesTemplate">
             <Border Width="250" Height="72" Margin="4" Background="Transparent" 
                     ToolTip="{Binding Path}">
-                <Grid>
+                <Grid x:Name="TilesGrid">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="72"/>
                         <ColumnDefinition Width="*"/>
@@ -184,11 +184,38 @@
                            Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     <!-- 详细信息 -->
                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="8,0">
-                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" 
-                                   Foreground="{DynamicResource ForegroundPrimaryBrush}"/>
+                        <TextBlock x:Name="TilesFileName" Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" 
+                                   Foreground="{DynamicResource ForegroundPrimaryBrush}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsRenaming}" Value="True">
+                                            <Setter Property="Visibility" Value="Hidden"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
                         <TextBlock Text="{Binding Type}" Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11"/>
                         <TextBlock Text="{Binding Size}" Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11"/>
                     </StackPanel>
+
+                    <!-- 重命名 Popup - 采用 Relative 模式实现左上角对齐，确保不遮挡图标 -->
+                    <Popup PlacementTarget="{Binding ElementName=TilesFileName}"
+                           Placement="Relative" HorizontalOffset="0" VerticalOffset="-2"
+                           StaysOpen="True" AllowsTransparency="False"
+                           IsOpen="{Binding IsRenaming}">
+                        <Border Background="{DynamicResource BackgroundElevatedBrush}"
+                                BorderBrush="{DynamicResource BorderFocusBrush}"
+                                BorderThickness="2" CornerRadius="2">
+                            <TextBox Text="{Binding RenameText, UpdateSourceTrigger=PropertyChanged}" 
+                                     MinWidth="200" Padding="4,2" BorderThickness="0" Background="Transparent"
+                                     Foreground="{DynamicResource ForegroundPrimaryBrush}"
+                                     KeyDown="RenameTextBox_KeyDown"
+                                     IsVisibleChanged="RenameTextBox_IsVisibleChanged"
+                                     LostFocus="RenameTextBox_LostFocus"/>
+                        </Border>
+                    </Popup>
                 </Grid>
             </Border>
         </DataTemplate>
@@ -209,8 +236,18 @@
                            Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     <!-- 名称 + 类型 -->
                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="8,0">
-                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
-                                   Foreground="{DynamicResource ForegroundPrimaryBrush}"/>
+                        <TextBlock x:Name="ContentFileName" Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
+                                   Foreground="{DynamicResource ForegroundPrimaryBrush}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsRenaming}" Value="True">
+                                            <Setter Property="Visibility" Value="Hidden"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="{Binding Type}" Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11"/>
                             <TextBlock Text=" · " Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11"/>
@@ -222,6 +259,23 @@
                     <!-- 标签/备注 -->
                     <TextBlock Grid.Column="2" Text="{Binding Notes}" MaxWidth="200" TextTrimming="CharacterEllipsis" 
                                Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11" VerticalAlignment="Center" Margin="8,0"/>
+
+                    <!-- 重命名 Popup - 覆盖模式 (左上角对齐) -->
+                    <Popup PlacementTarget="{Binding ElementName=ContentFileName}"
+                           Placement="Relative" HorizontalOffset="0" VerticalOffset="-2"
+                           StaysOpen="True" AllowsTransparency="False"
+                           IsOpen="{Binding IsRenaming}">
+                        <Border Background="{DynamicResource BackgroundElevatedBrush}"
+                                BorderBrush="{DynamicResource BorderFocusBrush}"
+                                BorderThickness="2" CornerRadius="2">
+                            <TextBox Text="{Binding RenameText, UpdateSourceTrigger=PropertyChanged}" 
+                                     MinWidth="250" Padding="4,2" BorderThickness="0" Background="Transparent"
+                                     Foreground="{DynamicResource ForegroundPrimaryBrush}"
+                                     KeyDown="RenameTextBox_KeyDown"
+                                     IsVisibleChanged="RenameTextBox_IsVisibleChanged"
+                                     LostFocus="RenameTextBox_LostFocus"/>
+                        </Border>
+                    </Popup>
                 </Grid>
             </Border>
         </DataTemplate>
@@ -230,11 +284,39 @@
         <DataTemplate x:Key="SmallIconsTemplate">
             <Border Width="180" Height="28" Margin="2" Background="Transparent"
                     ToolTip="{Binding Path}">
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="4,0">
-                    <Image Source="{Binding Thumbnail}" Width="16" Height="16" Stretch="Uniform" Margin="0,0,6,0"/>
-                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
-                               Foreground="{DynamicResource ForegroundPrimaryBrush}"/>
-                </StackPanel>
+                <Grid>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="4,0">
+                        <Image Source="{Binding Thumbnail}" Width="16" Height="16" Stretch="Uniform" Margin="0,0,6,0"/>
+                        <TextBlock x:Name="SmallIconFileName" Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                                   Foreground="{DynamicResource ForegroundPrimaryBrush}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsRenaming}" Value="True">
+                                            <Setter Property="Visibility" Value="Hidden"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </StackPanel>
+                    <!-- 重命名 Popup - 居中覆盖 (改为左侧对齐) -->
+                    <Popup PlacementTarget="{Binding ElementName=SmallIconFileName}"
+                           Placement="Relative" HorizontalOffset="0" VerticalOffset="-2"
+                           StaysOpen="True" AllowsTransparency="False"
+                           IsOpen="{Binding IsRenaming}">
+                        <Border Background="{DynamicResource BackgroundElevatedBrush}"
+                                BorderBrush="{DynamicResource BorderFocusBrush}"
+                                BorderThickness="2" CornerRadius="2">
+                            <TextBox Text="{Binding RenameText, UpdateSourceTrigger=PropertyChanged}" 
+                                     MinWidth="120" Padding="4,2" BorderThickness="0" Background="Transparent"
+                                     Foreground="{DynamicResource ForegroundPrimaryBrush}"
+                                     KeyDown="RenameTextBox_KeyDown"
+                                     IsVisibleChanged="RenameTextBox_IsVisibleChanged"
+                                     LostFocus="RenameTextBox_LostFocus"/>
+                        </Border>
+                    </Popup>
+                </Grid>
             </Border>
         </DataTemplate>
 
@@ -251,12 +333,39 @@
                         <ColumnDefinition Width="80"/>
                     </Grid.ColumnDefinitions>
                     <Image Grid.Column="0" Source="{Binding Thumbnail}" Width="16" Height="16" Stretch="Uniform"/>
-                    <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" Margin="4,0" 
-                               TextTrimming="CharacterEllipsis" Foreground="{DynamicResource ForegroundPrimaryBrush}"/>
+                    <TextBlock Grid.Column="1" x:Name="CompactFileName" Text="{Binding Name}" VerticalAlignment="Center" Margin="4,0" 
+                               TextTrimming="CharacterEllipsis" Foreground="{DynamicResource ForegroundPrimaryBrush}">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsRenaming}" Value="True">
+                                        <Setter Property="Visibility" Value="Hidden"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
                     <TextBlock Grid.Column="2" Text="{Binding Size}" HorizontalAlignment="Right" VerticalAlignment="Center" 
                                Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11"/>
                     <TextBlock Grid.Column="3" Text="{Binding ModifiedDate}" HorizontalAlignment="Right" VerticalAlignment="Center" 
                                Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11"/>
+
+                    <!-- 重命名 Popup - 居中覆盖 (左侧对齐) -->
+                    <Popup PlacementTarget="{Binding ElementName=CompactFileName}"
+                           Placement="Relative" HorizontalOffset="0" VerticalOffset="-2"
+                           StaysOpen="True" AllowsTransparency="False"
+                           IsOpen="{Binding IsRenaming}">
+                        <Border Background="{DynamicResource BackgroundElevatedBrush}"
+                                BorderBrush="{DynamicResource BorderFocusBrush}"
+                                BorderThickness="2" CornerRadius="2">
+                            <TextBox Text="{Binding RenameText, UpdateSourceTrigger=PropertyChanged}" 
+                                     MinWidth="180" Padding="4,2" BorderThickness="0" Background="Transparent"
+                                     Foreground="{DynamicResource ForegroundPrimaryBrush}"
+                                     KeyDown="RenameTextBox_KeyDown"
+                                     IsVisibleChanged="RenameTextBox_IsVisibleChanged"
+                                     LostFocus="RenameTextBox_LostFocus"/>
+                        </Border>
+                    </Popup>
                 </Grid>
             </Border>
         </DataTemplate>
@@ -358,12 +467,12 @@
                                                     </Style>
                                                 </TextBlock.Style>
                                             </TextBlock>
-                                            <!-- 重命名 Popup - 真正的悬浮层，可以遮挡任何内容 -->
+                                            <!-- 重命名 Popup - 左对齐模式 -->
                                             <Popup x:Name="RenamePopup" 
                                                    PlacementTarget="{Binding ElementName=FileNameText}"
-                                                   Placement="Top"
-                                                   HorizontalOffset="-6"
-                                                   VerticalOffset="20"
+                                                   Placement="Relative"
+                                                   HorizontalOffset="0"
+                                                   VerticalOffset="-2"
                                                    StaysOpen="True"
                                                    AllowsTransparency="False"
                                                    IsOpen="{Binding IsRenaming}">

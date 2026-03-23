@@ -45,6 +45,9 @@ namespace YiboFile.Models.Config
         public bool ShowOverflowArrows { get; set; } = true;
         public bool ShowOverflowGradient { get; set; } = true;
 
+        /// <summary>新建标签页的行为</summary>
+        public NewTabAction NewTabAction { get; set; } = NewTabAction.Desktop;
+
         // ── 旧字段（向后兼容） ──
         [System.Obsolete("使用新的正交维度字段替代")]
         public TabWidthMode TabWidthMode { get; set; } = TabWidthMode.FixedWidth;

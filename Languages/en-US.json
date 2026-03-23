@@ -40,7 +40,19 @@
             "NavSettings": "Navigation Settings",
             "ManageLibraries": "Manage Libraries"
         },
-        "Clipboard": "Clipboard History"
+        "Clipboard": "Clipboard History",
+        "Context": {
+            "Duplicate": "🔄 Duplicate Tab",
+            "Pin": "📌 Pin Tab",
+            "Unpin": "🔓 Unpin Tab",
+            "Rename": "✏️ Rename Tab",
+            "CopyPath": "📋 Copy Path",
+            "OpenExplorer": "📂 Open in Explorer",
+            "Close": "❌ Close Tab",
+            "CloseOthers": "❌ Close Others",
+            "CloseLeft": "❌ Close Tabs to Left",
+            "CloseRight": "❌ Close Tabs to Right"
+        }
     },
     "FileList": {
         "Columns": {
@@ -173,6 +185,9 @@
             "HideInactiveClose": "Hide close button on inactive tabs (show on hover)",
             "ShowOverflowArrows": "Show navigation arrows on overflow",
             "ShowOverflowGradient": "Show gradient mask on overflow",
+            "NewTabAction": "New Tab Action:",
+            "NewTabActionDesktop": "Desktop",
+            "NewTabActionDuplicate": "Duplicate current tab",
             "PathSettings": "Path Settings",
             "DefaultDirDesc": "Default Directory: .\\AppData\\ under program root (Centralized config and data storage)",
             "CurrentDir": "Current Directory:",

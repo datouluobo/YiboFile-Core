@@ -23,6 +23,7 @@
         <ResourceDictionary>
             <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
             <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
+            <converters:EqualityToBoolConverter x:Key="EqualityToBoolConverter"/>
             <helpers:BindingProxy x:Key="ControlProxy" Data="{Binding RelativeSource={RelativeSource AncestorType=controls:FileBrowserControl}}"/>
             <!-- 统一使用 AppStyles 中的 ModernToolbarButtonStyle -->
             <Style x:Key="ToolbarButtonStyle" TargetType="Button" BasedOn="{StaticResource ModernToolbarButtonStyle}"/>
@@ -307,14 +308,51 @@
                         <Image Source="{DynamicResource Icon_ViewList}" Width="14" Height="14" RenderOptions.BitmapScalingMode="HighQuality"/>
                         <Button.ContextMenu>
                             <ContextMenu Name="ViewModeMenu">
-                                <MenuItem Header="📋 列表" Command="{Binding Commands.SwitchViewModeCommand}" CommandParameter="List"/>
-                                <MenuItem Header="📝 紧凑列表" Command="{Binding Commands.SwitchViewModeCommand}" CommandParameter="Compact"/>
+                                <ContextMenu.Resources>
+                                    <Style x:Key="ViewModeItemStyle" TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                                        <Setter Property="Margin" Value="2,1"/>
+                                        <Setter Property="Padding" Value="8,4"/>
+                                        <!-- 默认背景透明 -->
+                                        <Setter Property="Background" Value="Transparent"/>
+                                        <Style.Triggers>
+                                            <!-- 当当前模式与此项匹配时 -->
+                                            <DataTrigger Value="True">
+                                                <DataTrigger.Binding>
+                                                    <MultiBinding Converter="{StaticResource EqualityToBoolConverter}">
+                                                        <Binding Path="DataContext.FileViewMode" RelativeSource="{RelativeSource AncestorType=ContextMenu}"/>
+                                                        <Binding Path="CommandParameter" RelativeSource="{RelativeSource Self}"/>
+                                                    </MultiBinding>
+                                                </DataTrigger.Binding>
+                                                <!-- 使用主题资源设置选中态 -->
+                                                <Setter Property="Background" Value="{DynamicResource AccentSubtleBrush}"/>
+                                                <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                                                <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                                <Setter Property="BorderThickness" Value="3,0,0,0"/>
+                                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ContextMenu.Resources>
+                                <MenuItem Header="📋 列表" 
+                                          Command="{Binding Commands.SwitchViewModeCommand}" CommandParameter="List"
+                                          Style="{StaticResource ViewModeItemStyle}"/>
+                                <MenuItem Header="📝 紧凑列表" 
+                                          Command="{Binding Commands.SwitchViewModeCommand}" CommandParameter="Compact"
+                                          Style="{StaticResource ViewModeItemStyle}"/>
                                 <Separator/>
-                                <MenuItem Header="🖼️ 缩略图" Command="{Binding Commands.SwitchViewModeCommand}" CommandParameter="Thumbnail"/>
-                                <MenuItem Header="🔲 平铺" Command="{Binding Commands.SwitchViewModeCommand}" CommandParameter="Tiles"/>
-                                <MenuItem Header="📎 小图标" Command="{Binding Commands.SwitchViewModeCommand}" CommandParameter="SmallIcons"/>
+                                <MenuItem Header="🖼️ 缩略图" 
+                                          Command="{Binding Commands.SwitchViewModeCommand}" CommandParameter="Thumbnail"
+                                          Style="{StaticResource ViewModeItemStyle}"/>
+                                <MenuItem Header="🔲 平铺" 
+                                          Command="{Binding Commands.SwitchViewModeCommand}" CommandParameter="Tiles"
+                                          Style="{StaticResource ViewModeItemStyle}"/>
+                                <MenuItem Header="📎 小图标" 
+                                          Command="{Binding Commands.SwitchViewModeCommand}" CommandParameter="SmallIcons"
+                                          Style="{StaticResource ViewModeItemStyle}"/>
                                 <Separator/>
-                                <MenuItem Header="📄 内容" Command="{Binding Commands.SwitchViewModeCommand}" CommandParameter="Content"/>
+                                <MenuItem Header="📄 内容" 
+                                          Command="{Binding Commands.SwitchViewModeCommand}" CommandParameter="Content"
+                                          Style="{StaticResource ViewModeItemStyle}"/>
                             </ContextMenu>
                         </Button.ContextMenu>
                     </Button>
