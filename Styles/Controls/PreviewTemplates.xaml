@@ -225,7 +225,7 @@
 
     <DataTemplate DataType="{x:Type previews:MediaPreviewViewModel}">
         <Grid>
-            <controls:VideoPreviewControl FilePath="{Binding FilePath}">
+            <controls:VideoPreviewControl FilePath="{Binding FilePath}" IsPlaying="{Binding IsPlaying, Mode=TwoWay}">
                 <controls:VideoPreviewControl.Style>
                     <Style TargetType="{x:Type controls:VideoPreviewControl}">
                         <Setter Property="Visibility" Value="Collapsed"/>

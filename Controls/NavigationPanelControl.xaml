@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="YiboFile.Controls.NavigationPanelControl"
+<UserControl x:Class="YiboFile.Controls.NavigationPanelControl"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:helpers="clr-namespace:YiboFile.Helpers"
@@ -344,7 +344,7 @@
                                 <DataTemplate>
                                     <Expander IsExpanded="True" Margin="0,-2,0,4" FocusVisualStyle="{x:Null}">
                                         <Expander.Header>
-                                            <Grid Height="32" Margin="0,-6,0,0">
+                                            <Grid Height="32" Margin="0,-6,0,0" Background="Transparent" AllowDrop="True" Loaded="FavoriteGroupHeader_Loaded">
                                                 <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="15" VerticalAlignment="Center"/>
                                             </Grid>
                                         </Expander.Header>

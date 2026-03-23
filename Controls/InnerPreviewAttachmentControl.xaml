@@ -105,8 +105,42 @@
                             <!-- 媒体极简预览 (视频/音频) -->
                             <DataTemplate DataType="{x:Type previews:MediaPreviewViewModel}">
                                 <Grid>
-                                    <controls:VideoPreviewControl FilePath="{Binding FilePath}" Visibility="{Binding IsVideo, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                    <controls:VideoPreviewControl FilePath="{Binding FilePath}" IsPlaying="{Binding IsPlaying, Mode=TwoWay}" Visibility="{Binding IsVideo, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                     <controls:AudioPreviewControl FilePath="{Binding FilePath}" Visibility="{Binding IsAudio, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+                                    <!-- 视频播放按钮覆盖层 (仅在视频且未播放时显示) -->
+                                    <Button HorizontalAlignment="Center" VerticalAlignment="Center" 
+                                            Width="50" Height="50"
+                                            Command="{Binding PlayPauseCommand}"
+                                            Background="#80000000"
+                                            BorderThickness="0"
+                                            Content="▶"
+                                            Foreground="White"
+                                            FontSize="24"
+                                            Padding="5,0,0,0">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <Grid Background="Transparent">
+                                                    <Ellipse Fill="{TemplateBinding Background}" Width="50" Height="50"/>
+                                                    <TextBlock Text="▶" Foreground="White" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="3,0,0,0"/>
+                                                </Grid>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                        <Button.Style>
+                                            <Style TargetType="Button">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <MultiDataTrigger>
+                                                        <MultiDataTrigger.Conditions>
+                                                            <Condition Binding="{Binding IsVideo}" Value="True"/>
+                                                            <Condition Binding="{Binding IsPlaying}" Value="False"/>
+                                                        </MultiDataTrigger.Conditions>
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </MultiDataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
                                 </Grid>
                             </DataTemplate>
 

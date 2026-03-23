@@ -38,6 +38,43 @@ namespace YiboFile.Controls
             set { SetValue(FilePathProperty, value); }
         }
 
+        public static readonly DependencyProperty AutoPlayProperty =
+            DependencyProperty.Register("AutoPlay", typeof(bool), typeof(VideoPreviewControl), new PropertyMetadata(false));
+
+        public bool AutoPlay
+        {
+            get { return (bool)GetValue(AutoPlayProperty); }
+            set { SetValue(AutoPlayProperty, value); }
+        }
+
+        public static readonly DependencyProperty IsPlayingProperty =
+            DependencyProperty.Register("IsPlaying", typeof(bool), typeof(VideoPreviewControl), 
+                new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnIsPlayingChanged));
+
+        public bool IsPlaying
+        {
+            get { return (bool)GetValue(IsPlayingProperty); }
+            set { SetValue(IsPlayingProperty, value); }
+        }
+
+        private static void OnIsPlayingChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            var control = (VideoPreviewControl)d;
+            bool shouldPlay = (bool)e.NewValue;
+            if (control._mediaPlayer != null)
+            {
+                Task.Run(() =>
+                {
+                    try
+                    {
+                        if (shouldPlay && !control._mediaPlayer.IsPlaying) control._mediaPlayer.Play();
+                        else if (!shouldPlay && control._mediaPlayer.IsPlaying) control._mediaPlayer.Pause();
+                    }
+                    catch { }
+                });
+            }
+        }
+
         private static void OnFilePathChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             var control = (VideoPreviewControl)d;
@@ -130,6 +167,7 @@ namespace YiboFile.Controls
             DisposePlayer();
 
             var token = _cts.Token;
+            bool autoPlay = AutoPlay; // Capture here
 
             // Action to update status text
             var reportStatus = new Action<string>((msg) =>
@@ -176,7 +214,7 @@ namespace YiboFile.Controls
                     Application.Current.Dispatcher.Invoke(() =>
                     {
                         if (token.IsCancellationRequested) return;
-                        SetupPlayerUI(filePath, mediaPlayer);
+                        SetupPlayerUI(filePath, mediaPlayer, autoPlay);
                     });
                 }
                 catch (Exception ex)
@@ -193,7 +231,7 @@ namespace YiboFile.Controls
             }, token);
         }
 
-        private void SetupPlayerUI(string filePath, MediaPlayer mediaPlayer)
+        private void SetupPlayerUI(string filePath, MediaPlayer mediaPlayer, bool autoPlay)
         {
             // === WriteableBitmap-based video rendering ===
             WriteableBitmap videoBitmap = null;
@@ -280,15 +318,17 @@ namespace YiboFile.Controls
                 CornerRadius = new CornerRadius(6),
                 Padding = new Thickness(12, 6, 12, 6),
                 Effect = new System.Windows.Media.Effects.DropShadowEffect { BlurRadius = 10, ShadowDepth = 2, Opacity = 0.3 },
-                HorizontalAlignment = HorizontalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
                 VerticalAlignment = VerticalAlignment.Bottom,
-                Margin = new Thickness(0, 0, 0, 40),
-                IsHitTestVisible = true
+                Margin = new Thickness(15, 0, 15, 12),
+                IsHitTestVisible = true,
+                Visibility = Visibility.Collapsed // Default to hidden, show on hover/move
             };
             controlsBorder.Child = controls.RootElement;
             uiOverlay.Children.Add(controlsBorder);
 
-            SetupInteraction(_mainGrid, controlsBorder, clickOverlay, mediaPlayer, _loadingGrid, controls);
+            _loadingGrid.Visibility = Visibility.Collapsed;
+            SetupInteraction(_mainGrid, controlsBorder, clickOverlay, mediaPlayer, _loadingGrid, controls, filePath);
 
             mediaPlayer.Buffering += (s, e) =>
             {
@@ -301,7 +341,11 @@ namespace YiboFile.Controls
 
             Task.Run(() =>
             {
-                mediaPlayer.Play();
+                if (autoPlay)
+                {
+                    mediaPlayer.Play();
+                }
+                
                 if (_playbackHistory.TryGetValue(filePath, out long savedTime))
                 {
                     Task.Delay(200).Wait();
@@ -382,16 +426,16 @@ namespace YiboFile.Controls
 
         private ControlsData CreateControlsContent(MediaPlayer player)
         {
-            var grid = new Grid { Width = 560, Height = 44 };
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(40) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(35) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(35) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(35) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(35) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(40) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(80) });
+            var grid = new Grid { Height = 34 }; // Slimmer height
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(32) }); // Play/Pause
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(30) }); // -15
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(30) }); // -3
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });    // TimeText
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // SeekSlider
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(30) }); // +3
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(30) }); // +15
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(32) }); // Volume Icon
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(60) }); // Volume Slider
 
             Button CreateBtn(string text, Action onClick)
             {
@@ -400,8 +444,8 @@ namespace YiboFile.Controls
                 return b;
             }
 
-            var playBtn = new Button { Style = CreateTransparentButtonStyle(), Width = 34, Height = 34, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
-            var playIcon = new TextBlock { Text = "\uE769", FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 16, Foreground = Brushes.White, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+            var playBtn = new Button { Style = CreateTransparentButtonStyle(), Width = 30, Height = 30, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+            var playIcon = new TextBlock { Text = "\uE768", FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 14, Foreground = Brushes.White, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
             playBtn.Content = playIcon;
             playBtn.Click += (s, e) => { Task.Run(() => { try { if (player.IsPlaying) player.Pause(); else player.Play(); } catch { } }); };
             Grid.SetColumn(playBtn, 0); grid.Children.Add(playBtn);
@@ -424,12 +468,12 @@ namespace YiboFile.Controls
             var btnP15 = CreateBtn("+15", () => Task.Run(() => { try { player.Time = Math.Min(player.Length, player.Time + 15000); } catch { } }));
             Grid.SetColumn(btnP15, 6); grid.Children.Add(btnP15);
 
-            var volBtn = new Button { Style = CreateTransparentButtonStyle(), Width = 34, Height = 34, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
-            var volIcon = new TextBlock { Text = "\uE767", FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 16, Foreground = Brushes.White, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+            var volBtn = new Button { Style = CreateTransparentButtonStyle(), Width = 30, Height = 30, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+            var volIcon = new TextBlock { Text = "\uE767", FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 14, Foreground = Brushes.White, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
             volBtn.Content = volIcon;
             Grid.SetColumn(volBtn, 7); grid.Children.Add(volBtn);
 
-            var volSlider = new Slider { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Width = 70, Minimum = 0, Maximum = 100, Value = player.Volume, IsMoveToPointEnabled = true, Margin = new Thickness(5, 0, 5, 0) };
+            var volSlider = new Slider { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Width = 50, Minimum = 0, Maximum = 100, Value = player.Volume, IsMoveToPointEnabled = true, Margin = new Thickness(5, 0, 5, 0) };
             Grid.SetColumn(volSlider, 8); grid.Children.Add(volSlider);
 
             bool isUpdatingVolume = false;
@@ -503,16 +547,11 @@ namespace YiboFile.Controls
             return new ControlsData { RootElement = grid, TimeSlider = slider, TimeText = timeText, PlayIcon = playIcon, VolIcon = volIcon, VolBtn = volBtn, VolSlider = volSlider };
         }
 
-        private void SetupInteraction(Grid mainGrid, Border controlsBorder, Grid clickOverlay, MediaPlayer player, Grid loadingGrid, ControlsData controls)
+        private void SetupInteraction(Grid mainGrid, Border controlsBorder, Grid clickOverlay, MediaPlayer player, Grid loadingGrid, ControlsData controls, string filePath)
         {
-            EventHandler<EventArgs> updateState = (s, e) => Application.Current?.Dispatcher?.Invoke(() =>
-            {
-                loadingGrid.Visibility = Visibility.Collapsed;
-                controls.PlayIcon.Text = player.IsPlaying ? "\uE768" : "\uE769";
-            });
-            player.Playing += updateState;
-            player.Paused += updateState;
-            player.Stopped += updateState;
+            player.Playing += (s, e) => Application.Current?.Dispatcher?.Invoke(() => { IsPlaying = true; loadingGrid.Visibility = Visibility.Collapsed; controls.PlayIcon.Text = "\uE769"; });
+            player.Paused += (s, e) => Application.Current?.Dispatcher?.Invoke(() => { IsPlaying = false; controls.PlayIcon.Text = "\uE768"; });
+            player.Stopped += (s, e) => Application.Current?.Dispatcher?.Invoke(() => { IsPlaying = false; controls.PlayIcon.Text = "\uE768"; });
 
             var hideTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2.5) };
             hideTimer.Tick += (s, e) =>
@@ -563,7 +602,7 @@ namespace YiboFile.Controls
                         var t = TimeSpan.FromMilliseconds(e.Time);
                         controls.TimeText.Text = $"{t:mm\\:ss} / {TimeSpan.FromMilliseconds(totalTime):mm\\:ss}";
                         controls.TimeSlider.Value = e.Time;
-                        _playbackHistory[FilePath] = e.Time;
+                        _playbackHistory[filePath] = e.Time; // Use captured local variable
                     });
                 }
             };

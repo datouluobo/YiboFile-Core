@@ -34,6 +34,10 @@ namespace YiboFile.Services.Favorite
         private System.Windows.Point _dragStartPoint;
         private bool _isDraggingFavorite = false;
         private bool _suppressFavoriteSelectionNavigation = false;
+        private ListBoxItem _lastDragOverItem;
+        private bool _lastInsertBefore;
+        private Thickness? _originalPadding;
+        private Thickness? _originalBorderThickness;
 
         #endregion
 
@@ -272,6 +276,15 @@ namespace YiboFile.Services.Favorite
             InitializeFavoritesDragDrop(listBox);
         }
 
+        public void ConfigureGroupHeaderEvents(Grid grid)
+        {
+            if (grid == null) return;
+            grid.AllowDrop = true;
+            grid.DragOver += FavoritesGroupHeader_DragOver;
+            grid.DragLeave += FavoritesGroupHeader_DragLeave;
+            grid.Drop += FavoritesGroupHeader_Drop;
+        }
+
         /// <summary>
         /// 添加收藏
         /// </summary>
@@ -480,6 +493,75 @@ namespace YiboFile.Services.Favorite
             listBox.PreviewMouseMove += FavoritesListBox_PreviewMouseMove;
         }
 
+        private void FavoritesGroupHeader_DragOver(object sender, DragEventArgs e)
+        {
+            bool isInternal = e.Data.GetDataPresent("Favorite");
+            bool isFileDrop = e.Data.GetDataPresent(DataFormats.FileDrop);
+
+            if (!isInternal && !isFileDrop)
+            {
+                e.Effects = DragDropEffects.None;
+                return;
+            }
+
+            if (isInternal) e.Effects = DragDropEffects.Move;
+            else e.Effects = DragDropEffects.Link;
+
+            e.Handled = true;
+
+            if (sender is Grid grid)
+            {
+                grid.Background = new SolidColorBrush(Color.FromArgb(50, 0, 120, 215));
+            }
+        }
+
+        private void FavoritesGroupHeader_DragLeave(object sender, DragEventArgs e)
+        {
+            if (sender is Grid grid)
+            {
+                grid.Background = Brushes.Transparent;
+            }
+        }
+
+        private void FavoritesGroupHeader_Drop(object sender, DragEventArgs e)
+        {
+            if (sender is Grid grid)
+            {
+                grid.Background = Brushes.Transparent;
+            }
+
+            var targetGroup = (sender as FrameworkElement)?.DataContext as FavoriteGroupItem;
+            if (targetGroup == null) return;
+
+            // 处理内部移动或外部拖入
+            if (e.Data.GetDataPresent("Favorite"))
+            {
+                var dragged = e.Data.GetData("Favorite") as YiboFile.Favorite;
+                if (dragged != null && dragged.GroupId != targetGroup.Id)
+                {
+                    _favoriteRepository.AddFavorite(dragged.Path, dragged.IsDirectory, dragged.DisplayName, targetGroup.Id);
+                    _messageBus?.Publish(new FavoritesUpdatedMessage());
+                }
+                e.Handled = true;
+            }
+            else if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                var paths = e.Data.GetData(DataFormats.FileDrop) as string[];
+                if (paths != null && paths.Length > 0)
+                {
+                    var itemsToAdd = paths.Select(p => new FileSystemItem
+                    {
+                        Path = p,
+                        IsDirectory = Directory.Exists(p),
+                        Name = Path.GetFileName(p)
+                    }).ToList();
+
+                    AddFavorite(itemsToAdd, targetGroup.Id);
+                    e.Handled = true;
+                }
+            }
+        }
+
         private void FavoritesListBox_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             _dragStartPoint = e.GetPosition(null);
@@ -534,67 +616,105 @@ namespace YiboFile.Services.Favorite
         private void FavoritesListBox_DragOver(object sender, DragEventArgs e)
         {
             // 检查数据格式
-            if (!e.Data.GetDataPresent("Favorite"))
+            bool isInternal = e.Data.GetDataPresent("Favorite");
+            bool isFileDrop = e.Data.GetDataPresent(DataFormats.FileDrop);
+
+            if (!isInternal && !isFileDrop)
             {
                 e.Effects = DragDropEffects.None;
                 return;
             }
 
-            var draggedItem = e.Data.GetData("Favorite") as YiboFile.Favorite;
-            if (draggedItem == null)
+            if (isInternal)
             {
-                e.Effects = DragDropEffects.None;
-                return;
+                e.Effects = DragDropEffects.Move;
+            }
+            else
+            {
+                e.Effects = DragDropEffects.Link;
             }
 
-            e.Effects = DragDropEffects.Move;
             e.Handled = true;
 
-            // 提供拖拽视觉效果
             var listBox = sender as ListBox;
-            if (listBox != null)
+            if (listBox == null) return;
+
+            var targetItem = FindAncestor<ListBoxItem>((DependencyObject)e.OriginalSource);
+            bool insertBefore = true;
+            if (targetItem != null)
             {
-                var targetItem = FindAncestor<ListBoxItem>((DependencyObject)e.OriginalSource);
-                if (targetItem != null)
+                Point p = e.GetPosition(targetItem);
+                insertBefore = p.Y < targetItem.ActualHeight / 2;
+            }
+
+            // 仅在目标项或位置变化时更新，避免频繁触发布局更新
+            if (targetItem == _lastDragOverItem && insertBefore == _lastInsertBefore) return;
+
+            // 清除旧的视觉状态
+            ClearLastDragIndicator();
+
+            _lastDragOverItem = targetItem;
+            _lastInsertBefore = insertBefore;
+
+            // 设置新的视觉状态（带动态补偿，防止高度抖动）
+            if (targetItem != null)
+            {
+                // 保存原始属性
+                _originalPadding = targetItem.Padding;
+                _originalBorderThickness = targetItem.BorderThickness;
+
+                var highlightBrush = Application.Current.TryFindResource("AccentDefaultBrush") as Brush ?? Brushes.RoyalBlue;
+                targetItem.BorderBrush = highlightBrush;
+
+                var oldP = _originalPadding.Value;
+                var oldT = _originalBorderThickness.Value;
+
+                // 计算原始边框对总高度的贡献
+                double originalVerticalBorderHeight = oldT.Top + oldT.Bottom;
+                // 我们想要一个 2px 的指示线
+                double targetLineThickness = 2.0;
+                
+                // 计算指示线出现后相对于原高度的垂直增量
+                double heightDelta = targetLineThickness - originalVerticalBorderHeight;
+
+                if (insertBefore)
                 {
-                    // 高亮目标项
-                    foreach (ListBoxItem item in FindVisualChildren<ListBoxItem>(listBox))
-                    {
-                        if (item == targetItem)
-                        {
-                            item.Background = new SolidColorBrush(Color.FromArgb(100, 33, 150, 243));
-                        }
-                        else if (item.Background is SolidColorBrush brush && brush.Color.A == 100)
-                        {
-                            item.Background = Brushes.Transparent;
-                        }
-                    }
+                    // 仅设置顶部边框，其余设为 0 以显示为“线形”
+                    targetItem.BorderThickness = new Thickness(0, targetLineThickness, 0, 0);
+                    // 补偿 Padding 以抵消高度增量
+                    targetItem.Padding = new Thickness(oldP.Left, Math.Max(0, oldP.Top - heightDelta), oldP.Right, oldP.Bottom);
+                }
+                else
+                {
+                    // 仅设置底部边框
+                    targetItem.BorderThickness = new Thickness(0, 0, 0, targetLineThickness);
+                    // 补偿 Padding 以抵消高度增量
+                    targetItem.Padding = new Thickness(oldP.Left, oldP.Top, oldP.Right, Math.Max(0, oldP.Bottom - heightDelta));
                 }
             }
         }
 
+        private void ClearLastDragIndicator()
+        {
+            if (_lastDragOverItem != null && _originalPadding.HasValue && _originalBorderThickness.HasValue)
+            {
+                _lastDragOverItem.BorderThickness = _originalBorderThickness.Value;
+                _lastDragOverItem.Padding = _originalPadding.Value;
+                _lastDragOverItem.BorderBrush = Brushes.Transparent;
+            }
+            _lastDragOverItem = null;
+            _originalPadding = null;
+            _originalBorderThickness = null;
+        }
+
         private void FavoritesListBox_DragLeave(object sender, DragEventArgs e)
         {
-            // 清除所有高亮
-            var listBox = sender as ListBox;
-            if (listBox != null)
-            {
-                foreach (ListBoxItem item in FindVisualChildren<ListBoxItem>(listBox))
-                {
-                    item.Background = Brushes.Transparent;
-                }
-            }
+            ClearLastDragIndicator();
             _isDraggingFavorite = false;
         }
 
         private void FavoritesListBox_Drop(object sender, DragEventArgs e)
         {
-            // 检查数据格式
-            if (!e.Data.GetDataPresent("Favorite")) return;
-
-            var draggedFavorite = e.Data.GetData("Favorite") as YiboFile.Favorite;
-            if (draggedFavorite == null) return;
-
             var listBox = sender as ListBox;
             if (listBox == null) return;
 
@@ -602,60 +722,155 @@ namespace YiboFile.Services.Favorite
             var targetGroup = listBox.DataContext as FavoriteGroupItem;
             if (targetGroup == null) return;
 
-            // 清除所有高亮
-            foreach (ListBoxItem item in FindVisualChildren<ListBoxItem>(listBox))
-            {
-                item.Background = Brushes.Transparent;
-            }
+            ClearLastDragIndicator();
 
-            // 情况1：跨分组拖拽
-            if (draggedFavorite.GroupId != targetGroup.Id)
+            // 情况1：内部排序/移动 (数据格式为 "Favorite")
+            if (e.Data.GetDataPresent("Favorite"))
             {
-                // 更新数据库中的分组 ID
-                _favoriteRepository.AddFavorite(draggedFavorite.Path, draggedFavorite.IsDirectory, draggedFavorite.DisplayName, targetGroup.Id);
-                _messageBus?.Publish(new FavoritesUpdatedMessage());
+                var draggedFavorite = e.Data.GetData("Favorite") as YiboFile.Favorite;
+                if (draggedFavorite == null) return;
+
+                // 目标项和插入位置计算
+                var targetItemInside = FindAncestor<ListBoxItem>((DependencyObject)e.OriginalSource);
+                bool insertBefore = true;
+                if (targetItemInside != null)
+                {
+                    Point p = e.GetPosition(targetItemInside);
+                    insertBefore = p.Y < targetItemInside.ActualHeight / 2;
+                }
+
+                // 情况1.1：跨分组拖拽
+                if (draggedFavorite.GroupId != targetGroup.Id)
+                {
+                    _favoriteRepository.AddFavorite(draggedFavorite.Path, draggedFavorite.IsDirectory, draggedFavorite.DisplayName, targetGroup.Id);
+                    
+                    // 如果拖到了具体某一项上，需要重新排序以到达正确位置
+                    if (targetItemInside != null)
+                    {
+                        var allFavs = _favoriteRepository.GetAllFavorites();
+                        var targetData = targetItemInside.DataContext;
+                        var targetFavorite = targetData?.GetType().GetProperty("Favorite")?.GetValue(targetData) as YiboFile.Favorite;
+                        if (targetFavorite != null)
+                        {
+                            var groupFavs = allFavs.Where(f => f.GroupId == targetGroup.Id).OrderBy(f => f.SortOrder).ToList();
+                            var newlyAdded = groupFavs.FirstOrDefault(f => f.Path == draggedFavorite.Path && f.Id != draggedFavorite.Id);
+                            if (newlyAdded != null)
+                            {
+                                int dragIdx = groupFavs.IndexOf(newlyAdded);
+                                int targetIdx = groupFavs.IndexOf(targetFavorite);
+                                groupFavs.RemoveAt(dragIdx);
+                                if (!insertBefore) targetIdx++;
+                                if (targetIdx > groupFavs.Count) targetIdx = groupFavs.Count;
+                                groupFavs.Insert(targetIdx, newlyAdded);
+                                for (int i = 0; i < groupFavs.Count; i++) _favoriteRepository.UpdateSortOrder(groupFavs[i].Id, i);
+                            }
+                        }
+                    }
+                    
+                    _messageBus?.Publish(new FavoritesUpdatedMessage());
+                    _draggedFavorite = null;
+                    _isDraggingFavorite = false;
+                    e.Handled = true;
+                    return;
+                }
+
+                // 情况1.2：组内排序
+                if (targetItemInside == null || targetItemInside.DataContext == null) return;
+
+                var currentTargetData = targetItemInside.DataContext;
+                var favoriteProp = currentTargetData.GetType().GetProperty("Favorite");
+                if (favoriteProp == null) return;
+
+                var targetFavoriteObj = favoriteProp.GetValue(currentTargetData) as YiboFile.Favorite;
+                if (targetFavoriteObj == null || targetFavoriteObj.Id == draggedFavorite.Id) return;
+
+                // 更新排序顺序
+                var allFavorites = _favoriteRepository.GetAllFavorites();
+                var groupFavorites = allFavorites.Where(f => f.GroupId == targetGroup.Id).OrderBy(f => f.SortOrder).ToList();
+
+                var draggedIndex = groupFavorites.FindIndex(f => f.Id == draggedFavorite.Id);
+                var targetIndex = groupFavorites.FindIndex(f => f.Id == targetFavoriteObj.Id);
+
+                if (draggedIndex >= 0 && targetIndex >= 0 && draggedIndex != targetIndex)
+                {
+                    groupFavorites.RemoveAt(draggedIndex);
+                    // 重新计算 targetIndex
+                    targetIndex = groupFavorites.FindIndex(f => f.Id == targetFavoriteObj.Id);
+                    if (!insertBefore) targetIndex++;
+                    if (targetIndex > groupFavorites.Count) targetIndex = groupFavorites.Count;
+                    
+                    groupFavorites.Insert(targetIndex, draggedFavorite);
+
+                    for (int i = 0; i < groupFavorites.Count; i++)
+                    {
+                        _favoriteRepository.UpdateSortOrder(groupFavorites[i].Id, i);
+                    }
+                    _messageBus?.Publish(new FavoritesUpdatedMessage());
+                }
+
                 _draggedFavorite = null;
                 _isDraggingFavorite = false;
                 e.Handled = true;
-                return;
             }
-
-            // 情况2：组内排序
-            var targetItem = FindAncestor<ListBoxItem>((DependencyObject)e.OriginalSource);
-            if (targetItem == null || targetItem.DataContext == null) return;
-
-            var targetData = targetItem.DataContext;
-            var favoriteProperty = targetData.GetType().GetProperty("Favorite");
-            if (favoriteProperty == null) return;
-
-            var targetFavorite = favoriteProperty.GetValue(targetData) as YiboFile.Favorite;
-            if (targetFavorite == null || targetFavorite.Id == draggedFavorite.Id) return;
-
-            // 更新排序顺序
-            var allFavorites = _favoriteRepository.GetAllFavorites();
-            var groupFavorites = allFavorites.Where(f => f.GroupId == targetGroup.Id).OrderBy(f => f.SortOrder).ToList();
-
-            var draggedIndex = groupFavorites.FindIndex(f => f.Id == draggedFavorite.Id);
-            var targetIndex = groupFavorites.FindIndex(f => f.Id == targetFavorite.Id);
-
-            if (draggedIndex >= 0 && targetIndex >= 0 && draggedIndex != targetIndex)
+            // 情况2：外部文件拖入 (数据格式为 FileDrop)
+            else if (e.Data.GetDataPresent(DataFormats.FileDrop))
             {
-                groupFavorites.RemoveAt(draggedIndex);
-                groupFavorites.Insert(targetIndex, draggedFavorite);
-
-                // 更新数据库中的 SortOrder
-                for (int i = 0; i < groupFavorites.Count; i++)
+                var paths = e.Data.GetData(DataFormats.FileDrop) as string[];
+                if (paths != null && paths.Length > 0)
                 {
-                    _favoriteRepository.UpdateSortOrder(groupFavorites[i].Id, i);
+                    var itemsToAdd = paths.Select(p => new FileSystemItem
+                    {
+                        Path = p,
+                        IsDirectory = Directory.Exists(p),
+                        Name = Path.GetFileName(p)
+                    }).ToList();
+
+                    // 先添加收藏
+                    AddFavorite(itemsToAdd, targetGroup.Id);
+
+                    // 如果拖到了具体某一项上，则执行插入排序
+                    var targetItemInside = FindAncestor<ListBoxItem>((DependencyObject)e.OriginalSource);
+                    if (targetItemInside != null)
+                    {
+                        Point p = e.GetPosition(targetItemInside);
+                        bool insertBefore = p.Y < targetItemInside.ActualHeight / 2;
+
+                        var targetData = targetItemInside.DataContext;
+                        var targetFavorite = targetData?.GetType().GetProperty("Favorite")?.GetValue(targetData) as YiboFile.Favorite;
+
+                        if (targetFavorite != null)
+                        {
+                            var allFavs = _favoriteRepository.GetAllFavorites();
+                            var groupFavs = allFavs.Where(f => f.GroupId == targetGroup.Id).OrderBy(f => f.SortOrder).ToList();
+                            
+                            // 获取刚刚添加的几项（按路径匹配）
+                            var addedPaths = itemsToAdd.Select(i => i.Path).ToHashSet();
+                            var addedFavs = groupFavs.Where(f => addedPaths.Contains(f.Path)).ToList();
+
+                            if (addedFavs.Any())
+                            {
+                                int targetIndex = groupFavs.IndexOf(targetFavorite);
+                                if (!insertBefore) targetIndex++;
+
+                                // 从原位置移除
+                                foreach (var fav in addedFavs) groupFavs.Remove(fav);
+
+                                // 插入到目标位置
+                                if (targetIndex > groupFavs.Count) targetIndex = groupFavs.Count;
+                                groupFavs.InsertRange(targetIndex, addedFavs);
+
+                                // 更新所有项的排序
+                                for (int i = 0; i < groupFavs.Count; i++)
+                                {
+                                    _favoriteRepository.UpdateSortOrder(groupFavs[i].Id, i);
+                                }
+                                _messageBus?.Publish(new FavoritesUpdatedMessage());
+                            }
+                        }
+                    }
+                    e.Handled = true;
                 }
-
-                // 触发重新加载通知
-                _messageBus?.Publish(new FavoritesUpdatedMessage());
             }
-
-            _draggedFavorite = null;
-            _isDraggingFavorite = false;
-            e.Handled = true;
         }
 
         #endregion

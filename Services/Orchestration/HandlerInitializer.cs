@@ -309,6 +309,19 @@ namespace YiboFile.Services.Orchestration
                 _messageBus.Publish(new OpenContentTabMessage(YiboFile.Services.Tabs.TabContentTypes.Management));
             };
 
+            // 订阅收藏列表加载事件，挂载拖拽排序和外部拖入逻辑
+            window.NavigationPanelControl.FavoriteListBoxLoaded += (s, listBox) =>
+            {
+                var favService = _serviceProvider.GetService<Favorite.FavoriteService>();
+                favService?.ConfigureListBoxEvents(listBox);
+            };
+
+            window.NavigationPanelControl.FavoriteGroupHeaderLoaded += (s, grid) =>
+            {
+                var favService = _serviceProvider.GetService<Favorite.FavoriteService>();
+                favService?.ConfigureGroupHeaderEvents(grid);
+            };
+
             if (window.NavigationPanelControl.TagBrowsePanelControl != null)
             {
                 window.NavigationPanelControl.TagBrowsePanelControl.TagClicked += (tagId, tagName) =>

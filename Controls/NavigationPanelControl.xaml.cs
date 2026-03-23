@@ -42,6 +42,7 @@ namespace YiboFile.Controls
         public event RoutedEventHandler PathManageClick;
 
         public event Action<NavigationPanelControl, ListBox> FavoriteListBoxLoaded;
+        public event Action<NavigationPanelControl, Grid> FavoriteGroupHeaderLoaded;
         public event Action<NavigationPanelControl, ListBox, MouseButtonEventArgs> FavoriteListBoxPreviewMouseDown;
         public event Action<NavigationPanelControl, ListBox, SelectionChangedEventArgs> FavoriteListBoxSelectionChanged;
         public event Action<object> RenameFavoriteGroupRequested;
@@ -525,6 +526,14 @@ namespace YiboFile.Controls
             }
         }
 
+        private void FavoriteGroupHeader_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (sender is Grid grid)
+            {
+                FavoriteGroupHeaderLoaded?.Invoke(this, grid);
+            }
+        }
+
         private string GetPathFromDataContext(object dataContext)
         {
             if (dataContext == null) return null;
@@ -566,12 +575,39 @@ namespace YiboFile.Controls
 
             if (!string.IsNullOrEmpty(path))
             {
-                if (e.ChangedButton == MouseButton.Left && NavigateCommand != null)
+                // Check if it's a file (not directory)
+                bool isDirectory = true;
+                if (dataContext != null)
                 {
-                    NavigateCommand.Execute(path);
+                    var favProp = dataContext.GetType().GetProperty("Favorite");
+                    if (favProp != null)
+                    {
+                        var fav = favProp.GetValue(dataContext);
+                        var isDirProp = fav?.GetType().GetProperty("IsDirectory");
+                        if (isDirProp != null)
+                        {
+                            isDirectory = (bool)isDirProp.GetValue(fav);
+                        }
+                    }
+                }
+
+                if (e.ChangedButton == MouseButton.Left)
+                {
+                    if (isDirectory && NavigateCommand != null)
+                    {
+                        NavigateCommand.Execute(path);
+                    }
+                    else if (!isDirectory)
+                    {
+                        try
+                        {
+                            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(path) { UseShellExecute = true });
+                        }
+                        catch { }
+                    }
                     e.Handled = true; // Prevent bubbling and double handling
                 }
-                else if (e.ChangedButton == MouseButton.Middle && OpenInNewTabCommand != null)
+                else if (e.ChangedButton == MouseButton.Middle && OpenInNewTabCommand != null && isDirectory)
                 {
                     OpenInNewTabCommand.Execute(path);
                     e.Handled = true;

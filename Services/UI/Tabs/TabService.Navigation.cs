@@ -28,7 +28,7 @@ namespace YiboFile.Services.Tabs
             SetActiveTab(tab);
 
             // 如果路径无效，则在后台检测并关闭标签页
-            if (tab.Type == TabType.Path)
+            if (tab.ContentTypeId == TabContentTypes.Path)
             {
                 try
                 {
@@ -66,7 +66,7 @@ namespace YiboFile.Services.Tabs
             if (library == null || _ui == null) return;
 
             // 移除现有的库标签（非固定）
-            var toRemove = _tabs.Where(t => t.Type == TabType.Library && !t.IsPinned).ToList();
+            var toRemove = _tabs.Where(t => t.ContentTypeId == TabContentTypes.Library && !t.IsPinned).ToList();
             foreach (var t in toRemove) CloseTab(t);
 
             // 创建新的库标签
@@ -77,15 +77,15 @@ namespace YiboFile.Services.Tabs
         {
             EnsureUi();
             if (_ui == null) return;
-            var toRemove = _tabs.Where(t => t.Type == TabType.Library && !t.IsPinned).ToList();
+            var toRemove = _tabs.Where(t => t.ContentTypeId == TabContentTypes.Library && !t.IsPinned).ToList();
             foreach (var t in toRemove) CloseTab(t);
         }
 
         private string GetTabOpenPath(PathTab tab)
         {
             if (tab == null) return null;
-            if (tab.Type == TabType.Path) return tab.Path;
-            if (tab.Type == TabType.Library && tab.Library != null) return tab.Library.Path;
+            if (tab.ContentTypeId == TabContentTypes.Path) return tab.Path;
+            if (tab.ContentTypeId == TabContentTypes.Library && tab.Library != null) return tab.Library.Path;
             return null;
         }
 

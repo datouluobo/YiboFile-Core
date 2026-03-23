@@ -291,20 +291,32 @@ namespace YiboFile.Services.Tabs
                     // [关键修复] 根据新路径自动同步标签页类型，防止类型滞后导致的错误复用
                     if (newPath.StartsWith("tag://", StringComparison.OrdinalIgnoreCase))
                     {
+                        _activeTab.ContentTypeId = TabContentTypes.Tag;
+#pragma warning disable CS0618
                         _activeTab.Type = TabType.Tag;
+#pragma warning restore CS0618
                     }
                     else if (newPath.StartsWith("search://", StringComparison.OrdinalIgnoreCase) || newPath.StartsWith("content://", StringComparison.OrdinalIgnoreCase))
                     {
+                        _activeTab.ContentTypeId = TabContentTypes.Search;
+#pragma warning disable CS0618
                         _activeTab.Type = TabType.Search;
+#pragma warning restore CS0618
                     }
                     else if (newPath.StartsWith("lib://", StringComparison.OrdinalIgnoreCase))
                     {
+                        _activeTab.ContentTypeId = TabContentTypes.Library;
+#pragma warning disable CS0618
                         _activeTab.Type = TabType.Library;
+#pragma warning restore CS0618
                     }
                     else
                     {
                         // 普通物理路径
+                        _activeTab.ContentTypeId = TabContentTypes.Path;
+#pragma warning disable CS0618
                         _activeTab.Type = TabType.Path;
+#pragma warning restore CS0618
                     }
 
                     UpdateTabTitle(_activeTab, newPath);
