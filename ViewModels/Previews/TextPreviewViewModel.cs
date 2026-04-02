@@ -87,7 +87,7 @@ namespace YiboFile.ViewModels.Previews
                         
                         if (!token.IsCancellationRequested)
                         {
-                            System.Windows.Application.Current.Dispatcher.Invoke(() => Content = contentStr);
+                            System.Windows.Application.Current.Dispatcher.BeginInvoke(new Action(() => Content = contentStr));
                         }
                     }
                 }, token);

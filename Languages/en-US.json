@@ -14,7 +14,8 @@
         "Confirm": "Confirm",
         "Cancel": "Cancel",
         "Yes": "Yes",
-        "No": "No"
+        "No": "No",
+        "Open": "Open"
     },
     "TabContent": {
         "FileBrowser": "File Browser",
@@ -51,7 +52,10 @@
             "Close": "❌ Close Tab",
             "CloseOthers": "❌ Close Others",
             "CloseLeft": "❌ Close Tabs to Left",
-            "CloseRight": "❌ Close Tabs to Right"
+            "CloseRight": "❌ Close Tabs to Right",
+            "Refresh": "Refresh",
+            "Manage": "Manage",
+            "AddToLibrary": "Add to Library"
         }
     },
     "FileList": {
@@ -105,8 +109,16 @@
         "PathNotExist": "Path does not exist",
         "AskRemove": "Remove from favorites?",
         "RemovedInvalid": "Removed invalid favorite",
-        "RemoveFavorite": "Remove Favorite",
-        "CancelFavorite": "Unfavorited"
+        "RemoveFavorite": "Remove favorite",
+        "CancelFavorite": "Unfavorited",
+        "OpenLocation": "Locate file",
+        "OpenInNewTab": "Open in new tab",
+        "Rename": "Rename alias",
+        "CopyPath": "Copy path",
+        "OpenExplorer": "View in Explorer",
+        "RenameGroup": "Rename Group",
+        "DeleteGroup": "Delete Group",
+        "Properties": "Properties"
     },
     "Search": {
         "SearchingContent": "Searching file contents...",
@@ -197,7 +209,10 @@
             "BusinessData": "Business Data (Data & Structure)",
             "FullBackup": "Full Backup",
             "Export": "Export",
-            "Import": "Import"
+            "Import": "Import",
+            "ShortcutSettings": "Shortcuts",
+            "CreateDesktopShortcut": "Create Desktop Shortcut",
+            "ShortcutCreated": "Shortcut created on desktop"
         },
         "Backup": {
             "Title": "Backup Settings",

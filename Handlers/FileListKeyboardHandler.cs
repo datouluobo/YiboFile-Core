@@ -18,14 +18,14 @@ namespace YiboFile.Handlers
     public class FileListKeyboardHandler
     {
         private readonly FileBrowserControl _fileBrowser;
-        private readonly NavigationCoordinator _navigationCoordinator;
+        private readonly INavigationCoordinator _navigationCoordinator;
         private readonly IShellWindow _shellWindow;
         private readonly Action<FileSystemItem> _handleFileOpen;
         private readonly PaneId _paneId;
 
         public FileListKeyboardHandler(
             FileBrowserControl fileBrowser,
-            NavigationCoordinator navigationCoordinator,
+            INavigationCoordinator navigationCoordinator,
             IShellWindow shellWindow,
             PaneId paneId,
             Action<FileSystemItem> handleFileOpen)

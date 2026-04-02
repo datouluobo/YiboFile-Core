@@ -101,7 +101,7 @@ namespace YiboFile.ViewModels.Previews
 
                     if (token.IsCancellationRequested) return;
 
-                    System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                    System.Windows.Application.Current.Dispatcher.BeginInvoke(new Action(() =>
                     {
                         if (token.IsCancellationRequested) return;
 
@@ -109,7 +109,8 @@ namespace YiboFile.ViewModels.Previews
                         foreach (var evm in entryVms) Entries.Add(evm);
 
                         string limitMsg = entriesCount > 1000 ? " (仅显示前1000个项目)" : "";
-                    });
+                        Stats = $"加载完成{limitMsg}";
+                    }));
                 }
                 catch
                 {
@@ -125,12 +126,13 @@ namespace YiboFile.ViewModels.Previews
                             .Select(e => new ArchiveEntryViewModel { Name = e.FullName, Size = FormatFileSize(e.Length), IsDirectory = e.FullName.EndsWith("/") })
                             .ToList();
 
-                        System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                        System.Windows.Application.Current.Dispatcher.BeginInvoke(new Action(() =>
                         {
+                            if (token.IsCancellationRequested) return;
                             Entries.Clear();
                             foreach (var evm in entryVms) Entries.Add(evm);
                             Stats = "加载完成 (UTF8 编码)";
-                        });
+                        }));
                     }
                     catch { }
                 }

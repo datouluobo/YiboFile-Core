@@ -530,7 +530,10 @@ namespace YiboFile.ViewModels
 
             // 有具体路径时：基于路径匹配决定刷新（不限制面板ID）
             // 因为文件操作（复制/删除）可能影响任意面板
-            if (string.Equals(CurrentPath, msg.Path, StringComparison.OrdinalIgnoreCase))
+            var normalizedCurrent = YiboFile.Services.FileSystem.FileSystemCoreUtils.NormalizePath(CurrentPath);
+            var normalizedRequest = YiboFile.Services.FileSystem.FileSystemCoreUtils.NormalizePath(msg.Path);
+
+            if (string.Equals(normalizedCurrent, normalizedRequest, StringComparison.OrdinalIgnoreCase))
             {
                 RequestRefresh();
                 return;
@@ -583,6 +586,26 @@ namespace YiboFile.ViewModels
             if (msg.Pane == MyPaneId)
             {
                 CurrentPath = msg.Path;
+
+                // 异步处理选择逻辑，等待路径加载完成
+                if (!string.IsNullOrEmpty(msg.PathToSelect))
+                {
+                    _dispatcher.InvokeAsync(async () =>
+                    {
+                        // 等待加载状态稳定
+                        int retry = 0;
+                        while (IsLoading && retry < 20) { await Task.Delay(100); retry++; }
+                        
+                        // 额外给列表渲染一点时间
+                        await Task.Delay(50);
+
+                        var target = Files?.FirstOrDefault(f => string.Equals(f.Path, msg.PathToSelect, StringComparison.OrdinalIgnoreCase));
+                        if (target != null)
+                        {
+                            Selection?.UpdateSelection(new List<FileSystemItem> { target }, CurrentPath);
+                        }
+                    }, DispatcherPriority.Background);
+                }
 
                 OnPropertyChanged(nameof(CanNavigateBack));
                 OnPropertyChanged(nameof(CanNavigateForward));

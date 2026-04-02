@@ -244,11 +244,11 @@ namespace YiboFile.ViewModels.Previews
 
                     File.Copy(cachedDxfPath, targetPath, false);
 
-                    Application.Current.Dispatcher.Invoke(() =>
+                    Application.Current.Dispatcher.BeginInvoke(new Action(() =>
                     {
                         ConvertStatusText = "✅ 转换成功";
                         Services.Core.NotificationService.ShowSuccess($"转换成功！已保存到: {targetPath}");
-                    });
+                    }));
                 });
             }
             catch (Exception ex)

@@ -237,12 +237,6 @@ namespace YiboFile.ViewModels.Modules
         public void NavigateForward() => Publish(new NavigateForwardMessage(ActivePane));
         public void NavigateUp() => Publish(new NavigateUpMessage(ActivePane));
 
-        #endregion
-    }
-
-    public class RefreshFileListMessage
-    {
-        public string Path { get; }
-        public RefreshFileListMessage(string path = null) => Path = path;
+    #endregion
     }
 }

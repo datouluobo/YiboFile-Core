@@ -45,7 +45,7 @@ namespace YiboFile.Services.Orchestration
         private readonly MessageBridgeSetup _messageBridgeSetup;
 
         // 缓存的服务引用
-        private NavigationCoordinator _navigationCoordinator;
+        private INavigationCoordinator _navigationCoordinator;
         private NavigationService _navigationService;
         private TabService _tabService;
         private TabService _secondTabService;
@@ -105,7 +105,7 @@ namespace YiboFile.Services.Orchestration
         // 服务属性
         public FileOperationService FileOperationService => _fileOperationService;
         public NavigationModeService NavigationModeService => _navigationModeService;
-        public NavigationCoordinator NavigationCoordinator => _navigationCoordinator;
+        public INavigationCoordinator NavigationCoordinator => _navigationCoordinator;
         public NavigationService NavigationService => _navigationService;
         public TabService TabService => _tabService;
         public TabService SecondTabService => _secondTabService;
@@ -167,7 +167,7 @@ namespace YiboFile.Services.Orchestration
         public void InitializeServices(MainWindow window)
         {
             // 从 DI 容器获取单例/瞬时服务
-            _navigationCoordinator = _serviceProvider.GetRequiredService<NavigationCoordinator>();
+            _navigationCoordinator = _serviceProvider.GetRequiredService<INavigationCoordinator>();
             _navigationService = _serviceProvider.GetRequiredService<NavigationService>();
             _libraryService = _serviceProvider.GetRequiredService<LibraryService>();
             _favoriteService = _serviceProvider.GetRequiredService<Favorite.FavoriteService>();
@@ -207,7 +207,6 @@ namespace YiboFile.Services.Orchestration
                 SaveConfig = (config) => ConfigurationService.Instance.SaveNow()
             });
 
-            // 初始化协调器关系
             _navigationCoordinator.Initialize(
                 _tabService,
                 _secondTabService,

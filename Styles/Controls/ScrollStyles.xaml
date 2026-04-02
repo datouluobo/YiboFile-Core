@@ -19,7 +19,7 @@
         </Setter>
     </Style>
 
-<Style x:Key="OverlayScrollThumbStyle" TargetType="{x:Type Thumb}" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+    <Style x:Key="OverlayScrollThumbStyle" TargetType="{x:Type Thumb}">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type Thumb}">
@@ -78,7 +78,7 @@
         </Setter>
     </Style>
 
-<Style x:Key="OverlayScrollBarStyle" TargetType="{x:Type ScrollBar}" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+    <Style x:Key="OverlayScrollBarStyle" TargetType="{x:Type ScrollBar}">
         <Setter Property="Stylus.IsPressAndHoldEnabled" Value="false" />
         <Setter Property="Stylus.IsFlicksEnabled" Value="false" />
         <Setter Property="Background" Value="Transparent" />
@@ -143,7 +143,7 @@
         </Style.Triggers>
     </Style>
 
-<Style x:Key="OverlayScrollViewerStyle" TargetType="{x:Type ScrollViewer}" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+    <Style x:Key="OverlayScrollViewerStyle" TargetType="{x:Type ScrollViewer}">
         <Setter Property="OverridesDefaultStyle" Value="True" />
         <Setter Property="Template">
             <Setter.Value>
@@ -166,7 +166,7 @@
         </Setter>
     </Style>
 
-<Style x:Key="ScrollBarThumb" TargetType="{x:Type Thumb}" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+    <Style x:Key="ScrollBarThumb" TargetType="{x:Type Thumb}">
         <Setter Property="OverridesDefaultStyle" Value="true" />
         <Setter Property="IsTabStop" Value="false" />
         <Setter Property="Template">
@@ -243,7 +243,7 @@
         </Style.Triggers>
     </Style>
 
-<Style x:Key="VerticalScrollBarThumb" TargetType="{x:Type Thumb}" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+    <Style x:Key="VerticalScrollBarThumb" TargetType="{x:Type Thumb}">
         <Setter Property="SnapsToDevicePixels" Value="True" />
         <Setter Property="OverridesDefaultStyle" Value="true" />
         <Setter Property="IsTabStop" Value="false" />
@@ -293,7 +293,7 @@
         </Setter>
     </Style>
 
-<Style x:Key="HorizontalScrollBarThumb" TargetType="{x:Type Thumb}" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+    <Style x:Key="HorizontalScrollBarThumb" TargetType="{x:Type Thumb}">
         <Setter Property="SnapsToDevicePixels" Value="True" />
         <Setter Property="OverridesDefaultStyle" Value="true" />
         <Setter Property="IsTabStop" Value="false" />
@@ -343,7 +343,7 @@
         </Setter>
     </Style>
 
-<Style x:Key="ModernVerticalScrollBar" TargetType="{x:Type ScrollBar}" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+    <Style x:Key="ModernVerticalScrollBar" TargetType="{x:Type ScrollBar}">
         <Setter Property="SnapsToDevicePixels" Value="True" />
         <Setter Property="OverridesDefaultStyle" Value="true" />
         <Setter Property="Width" Value="8" />
@@ -386,7 +386,7 @@
         </Setter>
     </Style>
 
-<Style x:Key="ModernHorizontalScrollBar" TargetType="{x:Type ScrollBar}" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+    <Style x:Key="ModernHorizontalScrollBar" TargetType="{x:Type ScrollBar}">
         <Setter Property="SnapsToDevicePixels" Value="True" />
         <Setter Property="OverridesDefaultStyle" Value="true" />
         <Setter Property="Height" Value="8" />
@@ -429,7 +429,7 @@
         </Setter>
     </Style>
 
-<Style TargetType="{x:Type ScrollBar}" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+    <Style TargetType="{x:Type ScrollBar}">
         <Setter Property="SnapsToDevicePixels" Value="True" />
         <Setter Property="OverridesDefaultStyle" Value="true" />
         <Style.Triggers>
@@ -514,7 +514,7 @@
         </Style.Triggers>
     </Style>
 
-<Style x:Key="FloatingScrollViewer" TargetType="{x:Type ScrollViewer}" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+    <Style x:Key="FloatingScrollViewer" TargetType="{x:Type ScrollViewer}">
         <Setter Property="OverridesDefaultStyle" Value="True" />
         <Setter Property="Template">
             <Setter.Value>

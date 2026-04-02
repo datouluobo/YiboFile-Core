@@ -31,7 +31,11 @@ namespace YiboFile.Services.Preview
             _dispatcher = dispatcher ?? throw new ArgumentNullException(nameof(dispatcher));
 
             // Subscribe to preview requests
-            _messageBus.Subscribe<PreviewRequestMessage>(m => _ = LoadFilePreviewAsync(m.FilePath, m.TargetPane));
+            _messageBus.Subscribe<PreviewRequestMessage>(m => 
+            {
+                // Ensure the background loading doesn't block the UI thread during creation or initial I/O checks
+                System.Threading.Tasks.Task.Run(async () => await LoadFilePreviewAsync(m.FilePath, m.TargetPane));
+            });
         }
 
         private readonly ConcurrentDictionary<PaneId, long> _generations = new ConcurrentDictionary<PaneId, long>();

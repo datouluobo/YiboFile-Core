@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -8,19 +8,19 @@
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <RootNamespace>YiboFile</RootNamespace>
     <AssemblyName>YiboFile-Core</AssemblyName>
-    <AssemblyTitle>YiboFile - 文件资源管理器</AssemblyTitle>
-    <AssemblyDescription>Windows文件资源管理器程序，用于管理、归档、浏览各种格式的文档、图片、视频</AssemblyDescription>
-    <AssemblyVersion>1.0.1800.0</AssemblyVersion>
-    <FileVersion>1.0.1800.0</FileVersion>
-    <Version>1.0.1800.0</Version>
+    <AssemblyTitle>YiboFile - 鏂囦欢璧勬簮绠＄悊鍣?/AssemblyTitle>
+    <AssemblyDescription>Windows鏂囦欢璧勬簮绠＄悊鍣ㄧ▼搴忥紝鐢ㄤ簬绠＄悊銆佸綊妗ｃ€佹祻瑙堝悇绉嶆牸寮忕殑鏂囨。銆佸浘鐗囥€佽棰?/AssemblyDescription>
+    <AssemblyVersion>1.0.1820.0</AssemblyVersion>
+    <FileVersion>1.0.1820.0</FileVersion>
+    <Version>1.0.1820.0</Version>
     <NoWarn>$(NoWarn);NU1701</NoWarn>
-    <!-- 构建优化 -->
+    <!-- 鏋勫缓浼樺寲 -->
     <UseSharedCompilation>true</UseSharedCompilation>
     <BuildInParallel>true</BuildInParallel>
     <UseRidGraph>true</UseRidGraph>
     <Authors>YiboSoft</Authors>
     <Company>YiboSoft</Company>
-    <Copyright>Copyright © 2024-2026 YiboSoft</Copyright>
+    <Copyright>Copyright 漏 2024-2026 YiboSoft</Copyright>
     <ApplicationIcon>..\Icon\Logo.ico</ApplicationIcon>
   </PropertyGroup>
 
@@ -53,22 +53,22 @@
     <Compile Remove="Tests\**\*.cs" />
   </ItemGroup>
 
-  <!-- 自动复制 Dependencies\Everything 文件夹到输出目录 -->
+  <!-- 鑷姩澶嶅埗 Dependencies\Everything 鏂囦欢澶瑰埌杈撳嚭鐩綍 -->
   <ItemGroup>
     <None Include="Dependencies\Everything\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
-  <!-- 自动复制 Dependencies\7-Zip 文件夹到输出目录 -->
+  <!-- 鑷姩澶嶅埗 Dependencies\7-Zip 鏂囦欢澶瑰埌杈撳嚭鐩綍 -->
   <ItemGroup>
     <None Include="Dependencies\7-Zip\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
-  <!-- 自动复制 Resources 文件夹到输出目录 (排除 Icons 下的 XAML，因为它们作为 Page 编译) -->
+  <!-- 鑷姩澶嶅埗 Resources 鏂囦欢澶瑰埌杈撳嚭鐩綍 (鎺掗櫎 Icons 涓嬬殑 XAML锛屽洜涓哄畠浠綔涓?Page 缂栬瘧) -->
   <ItemGroup>
     <None Include="Resources\**\*" CopyToOutputDirectory="PreserveNewest" Exclude="Resources\Icons\**\*.xaml;Resources\UIStyles\**\*.xaml" />
   </ItemGroup>
 
-  <!-- 自动复制语言文件到输出目录 -->
+  <!-- 鑷姩澶嶅埗璇█鏂囦欢鍒拌緭鍑虹洰褰?-->
   <ItemGroup>
     <None Include="Languages\**\*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
@@ -90,6 +90,7 @@
   
 
 </Project>
+
 
 
 

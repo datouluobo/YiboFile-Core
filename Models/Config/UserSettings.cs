@@ -53,6 +53,27 @@ namespace YiboFile.Models.Config
         public TabWidthMode TabWidthMode { get; set; } = TabWidthMode.FixedWidth;
         [System.Obsolete("使用 TabFixedWidth 替代")]
         public double PinnedTabWidth { get; set; } = 120;
+
+        // ── 系统右键菜单集成设置（方案 C+） ──
+
+        /// <summary>
+        /// 系统右键菜单集成模式
+        /// "None": 不显示系统菜单
+        /// "Submenu": 仅显示折叠子菜单（方案A）
+        /// "Native": 仅显示原生弹出入口（方案B）
+        /// "Hybrid": 折叠子菜单 + 原生弹出入口（方案C+，默认）
+        /// </summary>
+        public string ShellMenuMode { get; set; } = "Hybrid";
+
+        /// <summary>
+        /// 用户固定到主菜单的 Shell 命令标识列表 (UniqueKey)
+        /// </summary>
+        public List<string> PinnedShellCommands { get; set; } = new List<string>();
+
+        /// <summary>
+        /// 用户隐藏的 Shell 命令标识列表
+        /// </summary>
+        public List<string> HiddenShellCommands { get; set; } = new List<string>();
     }
 
     public class FontSettings

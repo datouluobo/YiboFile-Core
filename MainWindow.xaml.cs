@@ -171,7 +171,7 @@ namespace YiboFile
         }
 
         // 统一导航协调器
-        internal NavigationCoordinator _navigationCoordinator;
+        internal INavigationCoordinator _navigationCoordinator;
 
         // 窗口编排器
         internal IWindowOrchestrator _orchestrator;

@@ -89,30 +89,30 @@ namespace YiboFile.ViewModels
                 else if (!string.IsNullOrEmpty(_pane.CurrentPath)) _messageBus.Publish(new ShowPropertiesRequestMessage(null, _pane.CurrentPath));
             }, () => true);
 
-            NewFolderCommand = new RelayCommand(() => _messageBus.Publish(new CreateFolderRequestMessage(_pane.CurrentPath)),
+            NewFolderCommand = new RelayCommand(() => _messageBus.Publish(new CreateFolderRequestMessage(_pane.CurrentPath, null, _pane.MyPaneId)),
                 () => !string.IsNullOrEmpty(_pane.CurrentPath));
 
-            NewFileCommand = new RelayCommand(() => _messageBus.Publish(new CreateFileRequestMessage(_pane.CurrentPath)),
+            NewFileCommand = new RelayCommand(() => _messageBus.Publish(new CreateFileRequestMessage(_pane.CurrentPath, null, ".txt", _pane.MyPaneId)),
                 () => !string.IsNullOrEmpty(_pane.CurrentPath));
 
             DeleteCommand = new RelayCommand(() =>
-                _messageBus.Publish(new DeleteItemsRequestMessage(_pane.Selection?.SelectedItems?.ToList())),
+                _messageBus.Publish(new DeleteItemsRequestMessage(_pane.Selection?.SelectedItems?.ToList(), false, _pane.MyPaneId)),
                 () => (_pane.Selection?.SelectedItems?.Count ?? 0) > 0);
 
             CopyCommand = new RelayCommand(() =>
-                _messageBus.Publish(new CopyItemsRequestMessage(_pane.Selection?.SelectedItems?.ToList())),
+                _messageBus.Publish(new CopyItemsRequestMessage(_pane.Selection?.SelectedItems?.ToList(), _pane.MyPaneId)),
                 () => (_pane.Selection?.SelectedItems?.Count ?? 0) > 0);
 
             CutCommand = new RelayCommand(() =>
-                _messageBus.Publish(new CutItemsRequestMessage(_pane.Selection?.SelectedItems?.ToList())),
+                _messageBus.Publish(new CutItemsRequestMessage(_pane.Selection?.SelectedItems?.ToList(), _pane.MyPaneId)),
                 () => (_pane.Selection?.SelectedItems?.Count ?? 0) > 0);
 
             PasteCommand = new RelayCommand(() =>
-                _messageBus.Publish(new PasteItemsRequestMessage(_pane.CurrentPath)),
+                _messageBus.Publish(new PasteItemsRequestMessage(_pane.CurrentPath, _pane.MyPaneId)),
                 () => !string.IsNullOrEmpty(_pane.CurrentPath) && Clipboard.ContainsFileDropList());
 
             RenameCommand = new RelayCommand(() =>
-                _messageBus.Publish(new RenameItemRequestMessage(_pane.Selection?.SelectedItem)),
+                _messageBus.Publish(new RenameItemRequestMessage(_pane.Selection?.SelectedItem, null, _pane.MyPaneId)),
                 () => (_pane.Selection?.SelectedItems?.Count ?? 0) == 1);
 
             UndoCommand = new RelayCommand(() => _messageBus.Publish(new UndoRequestMessage()));

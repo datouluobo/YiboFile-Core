@@ -61,7 +61,7 @@ namespace YiboFile.Services.Orchestration
         /// </summary>
         public void Initialize(
             MainWindow window,
-            NavigationCoordinator navigationCoordinator,
+            INavigationCoordinator navigationCoordinator,
             NavigationService navigationService,
             NavigationModeService navigationModeService,
             TabService tabService,
@@ -110,7 +110,7 @@ namespace YiboFile.Services.Orchestration
 
         private void InitializeInfrastructure(
             MainWindow window,
-            NavigationCoordinator navigationCoordinator,
+            INavigationCoordinator navigationCoordinator,
             NavigationService navigationService,
             NavigationModeService navigationModeService,
             TabService tabService,
@@ -171,7 +171,7 @@ namespace YiboFile.Services.Orchestration
 
         private void InitializeInputHandlers(
             MainWindow window,
-            NavigationCoordinator navigationCoordinator,
+            INavigationCoordinator navigationCoordinator,
             NavigationService navigationService,
             NavigationModeService navigationModeService,
             TabService tabService,
@@ -226,7 +226,7 @@ namespace YiboFile.Services.Orchestration
 
         private void InitializeFileListHandlers(
             MainWindow window,
-            NavigationCoordinator navigationCoordinator,
+            INavigationCoordinator navigationCoordinator,
             NavigationModeService navigationModeService,
             ColumnService columnService,
             MainWindowViewModel viewModel)
@@ -263,7 +263,7 @@ namespace YiboFile.Services.Orchestration
             FileOperationService fileOperationService,
             ColumnService columnService,
             TabService secondTabService,
-            NavigationCoordinator navigationCoordinator,
+            INavigationCoordinator navigationCoordinator,
             LibraryService libraryService,
             NavigationService navigationService,
             FileListService fileListService)
@@ -295,7 +295,7 @@ namespace YiboFile.Services.Orchestration
             window._dragDropEventHandler.Initialize();
         }
 
-        private void InitializeNavigationPanelHandlers(MainWindow window, NavigationCoordinator navigationCoordinator, MainWindowViewModel viewModel)
+        private void InitializeNavigationPanelHandlers(MainWindow window, INavigationCoordinator navigationCoordinator, MainWindowViewModel viewModel)
         {
             if (window.NavigationPanelControl == null) return;
 
@@ -350,7 +350,7 @@ namespace YiboFile.Services.Orchestration
             }
         }
 
-        private void InitializeFileBrowserEvents(MainWindow window, NavigationCoordinator navigationCoordinator)
+        private void InitializeFileBrowserEvents(MainWindow window, INavigationCoordinator navigationCoordinator)
         {
             if (window.FileBrowser != null)
             {

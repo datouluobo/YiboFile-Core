@@ -60,7 +60,7 @@ namespace YiboFile.Services.Orchestration
         /// </summary>
         public Preview.PreviewService SetupMessageSubscriptions(
             MainWindow window,
-            NavigationCoordinator navigationCoordinator,
+            INavigationCoordinator navigationCoordinator,
             FileOperationService fileOperationService,
             Services.FileInfo.FileInfoService fileInfoService,
             Services.FileInfo.FileInfoService secondFileInfoService,

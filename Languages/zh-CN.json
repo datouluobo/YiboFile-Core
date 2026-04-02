@@ -14,7 +14,8 @@
     "Confirm": "确认",
     "Cancel": "取消",
     "Yes": "是",
-    "No": "否"
+    "No": "否",
+    "Open": "打开"
   },
   "TabContent": {
     "FileBrowser": "文件浏览",
@@ -51,7 +52,10 @@
       "Close": "❌ 关闭标签页",
       "CloseOthers": "❌ 关闭其他标签页",
       "CloseLeft": "❌ 关闭左侧标签页",
-      "CloseRight": "❌ 关闭右侧标签页"
+      "CloseRight": "❌ 关闭右侧标签页",
+      "Refresh": "刷新",
+      "Manage": "管理",
+      "AddToLibrary": "添加到库"
     }
   },
   "FileList": {
@@ -105,8 +109,16 @@
     "PathNotExist": "路径不存在",
     "AskRemove": "是否从收藏中移除？",
     "RemovedInvalid": "已移除无效收藏",
-    "RemoveFavorite": "删除收藏",
-    "CancelFavorite": "已取消收藏"
+    "RemoveFavorite": "移除此收藏",
+    "CancelFavorite": "已取消收藏",
+    "OpenLocation": "定位文件位置",
+    "OpenInNewTab": "新标签页打开",
+    "Rename": "重命名此别名",
+    "CopyPath": "复制完整路径",
+    "OpenExplorer": "资源管理器打开",
+    "RenameGroup": "重命名分组",
+    "DeleteGroup": "删除分组",
+    "Properties": "属性"
   },
   "Search": {
     "SearchingContent": "正在搜索文件内容...",
@@ -197,7 +209,10 @@
       "BusinessData": "业务数据 (Data & Structure)",
       "FullBackup": "完整备份 (Full Backup)",
       "Export": "导出",
-      "Import": "导入"
+      "Import": "导入",
+      "ShortcutSettings": "快捷方式",
+      "CreateDesktopShortcut": "生成桌面快捷方式",
+      "ShortcutCreated": "快捷方式已创建到桌面"
     },
     "Backup": {
       "Title": "备份设置",

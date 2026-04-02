@@ -13,7 +13,8 @@ namespace YiboFile.ViewModels.Messaging.Messages
         NavigationSource Source,
         string NavigationMode = "Path",
         System.Collections.Generic.IEnumerable<string> BackStack = null,
-        System.Collections.Generic.IEnumerable<string> ForwardStack = null);
+        System.Collections.Generic.IEnumerable<string> ForwardStack = null,
+        string PathToSelect = null);
 
     /// <summary>
     /// 导航状态变更消息 (可选，用于同步全局按钮状态)

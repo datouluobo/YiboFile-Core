@@ -313,11 +313,8 @@ namespace YiboFile.Controls
 
         private static void FastSetClipboardText(string text)
         {
-            try
-            {
-                Clipboard.SetText(text);
-            }
-            catch { }
+            if (string.IsNullOrEmpty(text)) return;
+            YiboFile.Helpers.ClipboardHelper.SetTextAsync(text);
         }
 
         private void AddressTextBox_PreviewKeyDown(object sender, KeyEventArgs e)

@@ -53,7 +53,7 @@ namespace YiboFile.Services.Orchestration
         /// </summary>
         public void Initialize(
             MainWindow window,
-            NavigationCoordinator navigationCoordinator,
+            INavigationCoordinator navigationCoordinator,
             NavigationService navigationService,
             TabService tabService,
             TabService secondTabService,
@@ -247,7 +247,7 @@ namespace YiboFile.Services.Orchestration
             window.InitializeMessageSubscriptions(); // 初始化 MainWindow 的消息订阅
 
             // 同步服务引用 (核心且必要的)
-            window._navigationCoordinator = _serviceProvider.GetRequiredService<NavigationCoordinator>();
+            window._navigationCoordinator = _serviceProvider.GetRequiredService<INavigationCoordinator>();
         }
     }
 }

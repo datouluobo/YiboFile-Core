@@ -15,6 +15,7 @@
     <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
     <BooleanToVisibilityConverter x:Key="BoolToVis"/>
     <yiboConverters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
+    <yiboConverters:BooleanToTextWrappingConverter x:Key="BooleanToTextWrappingConverter"/>
     <converters:UsagePercentageToColorConverter x:Key="UsagePercentageToColorConverter"/>
     <converters:StringStartsWithConverter x:Key="StringStartsWithConverter"/>
 

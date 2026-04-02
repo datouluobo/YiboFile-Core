@@ -23,7 +23,7 @@ namespace YiboFile.Handlers
     public class FileListMouseHandler
     {
         private readonly FileBrowserControl _fileBrowser;
-        private readonly NavigationCoordinator _navigationCoordinator;
+        private readonly INavigationCoordinator _navigationCoordinator;
         private readonly NavigationModeService _navigationModeService;
         private readonly IShellWindow _shellWindow;
         private readonly PaneId _paneId;
@@ -35,7 +35,7 @@ namespace YiboFile.Handlers
 
         public FileListMouseHandler(
             FileBrowserControl fileBrowser,
-            NavigationCoordinator navigationCoordinator,
+            INavigationCoordinator navigationCoordinator,
             NavigationModeService navigationModeService,
             IShellWindow shellWindow,
             PaneId paneId,

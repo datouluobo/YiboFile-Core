@@ -21,7 +21,7 @@ namespace YiboFile.Handlers
     public class DragDropEventHandler
     {
         private readonly IShellWindow _window;
-        private readonly NavigationCoordinator _navigationCoordinator;
+        private readonly INavigationCoordinator _navigationCoordinator;
         private readonly LibraryEventHandler _libraryEventHandler;
         private readonly TabService _secondTabService;
 
@@ -30,7 +30,7 @@ namespace YiboFile.Handlers
 
         public DragDropEventHandler(
             IShellWindow window,
-            NavigationCoordinator navigationCoordinator,
+            INavigationCoordinator navigationCoordinator,
             LibraryEventHandler libraryEventHandler,
             TabService secondTabService)
         {

@@ -1,5 +1,8 @@
 using System;
 using System.Windows.Input;
+using System.IO;
+using System.Diagnostics;
+using System.Reflection;
 using YiboFile.Services;
 using YiboFile.Services.Config;
 
@@ -8,6 +11,7 @@ namespace YiboFile.ViewModels.Settings
     public class GeneralSettingsViewModel : BaseViewModel
     {
         public ICommand ChangeBaseDirectoryCommand { get; }
+        public ICommand CreateDesktopShortcutCommand { get; }
 
         private readonly IConfigPathProvider _pathProvider;
         private readonly IConfigurationService _configService;
@@ -17,6 +21,7 @@ namespace YiboFile.ViewModels.Settings
             _configService = configService;
             _pathProvider = App.ServiceProvider?.GetService(typeof(YiboFile.Services.Config.IConfigPathProvider)) as YiboFile.Services.Config.IConfigPathProvider;
             ChangeBaseDirectoryCommand = new RelayCommand<string>(ChangeBaseDirectory);
+            CreateDesktopShortcutCommand = new RelayCommand(CreateDesktopShortcut);
             LoadFromConfig();
         }
 
@@ -282,6 +287,35 @@ namespace YiboFile.ViewModels.Settings
 
             LoadFromConfig();
             OnPropertyChanged(nameof(BaseDirectory));
+        }
+        
+        private void CreateDesktopShortcut()
+        {
+            try
+            {
+                string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+                string exePath = Process.GetCurrentProcess().MainModule.FileName;
+                string shortcutPath = Path.Combine(desktopPath, "YiboFile.lnk");
+
+                Type shellType = Type.GetTypeFromProgID("WScript.Shell");
+                if (shellType != null)
+                {
+                    dynamic shell = Activator.CreateInstance(shellType);
+                    var shortcut = shell.CreateShortcut(shortcutPath);
+                    shortcut.TargetPath = exePath;
+                    shortcut.WorkingDirectory = Path.GetDirectoryName(exePath);
+                    shortcut.Description = "YiboFile - 文件资源管理器";
+                    shortcut.Save();
+
+                    var loc = App.ServiceProvider?.GetService(typeof(YiboFile.Services.Localization.ILocalizationService)) as YiboFile.Services.Localization.ILocalizationService;
+                    string msg = loc?.Get("Settings.General.ShortcutCreated") ?? "快捷方式已创建到桌面";
+                    YiboFile.DialogService.Info(msg);
+                }
+            }
+            catch (Exception ex)
+            {
+                YiboFile.DialogService.Error($"创建快捷方式失败: {ex.Message}");
+            }
         }
     }
 }

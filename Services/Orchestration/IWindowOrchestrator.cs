@@ -65,7 +65,7 @@ namespace YiboFile.Services.Orchestration
 
         FileOperationService FileOperationService { get; }
         NavigationModeService NavigationModeService { get; }
-        NavigationCoordinator NavigationCoordinator { get; }
+        INavigationCoordinator NavigationCoordinator { get; }
         NavigationService NavigationService { get; }
         TabService TabService { get; }
         TabService SecondTabService { get; }

@@ -26,6 +26,9 @@ namespace YiboFile.Services.Data.Repositories
         void UpdateSortOrder(int favoriteId, int newSortOrder);
         Task UpdateSortOrderAsync(int favoriteId, int newSortOrder);
 
+        void UpdateFavoriteDisplayName(string path, string displayName);
+        Task UpdateFavoriteDisplayNameAsync(string path, string displayName);
+
         // 分组管理
         List<YiboFile.FavoriteGroup> GetAllGroups();
         Task<List<YiboFile.FavoriteGroup>> GetAllGroupsAsync();

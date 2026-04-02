@@ -19,7 +19,7 @@ namespace YiboFile.Handlers
         private readonly Action _windowDragMove;
 
         private readonly Func<ListBox> _getQuickAccessListBox;
-        private readonly NavigationCoordinator _navigationCoordinator;
+        private readonly INavigationCoordinator _navigationCoordinator;
         private readonly Action<Favorite> _handleFavoriteNavigation;
         private readonly Action<string> _handleQuickAccessNavigation;
         private readonly Func<YiboFile.Services.Navigation.PaneId> _getActivePaneId;
@@ -28,7 +28,7 @@ namespace YiboFile.Handlers
             Action windowMaximizeClick,
             Action windowDragMove,
             Func<ListBox> getQuickAccessListBox,
-            NavigationCoordinator navigationCoordinator,
+            INavigationCoordinator navigationCoordinator,
             Action<Favorite> handleFavoriteNavigation,
             Action<string> handleQuickAccessNavigation,
             Func<YiboFile.Services.Navigation.PaneId> getActivePaneId)

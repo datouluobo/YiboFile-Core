@@ -188,7 +188,7 @@ namespace YiboFile.Controls
         {
             if (GetTab(sender) is var tab && !string.IsNullOrEmpty(tab.Path))
             {
-                try { Clipboard.SetText(tab.Path); } catch { }
+                YiboFile.Helpers.ClipboardHelper.SetTextAsync(tab.Path);
             }
         }
 

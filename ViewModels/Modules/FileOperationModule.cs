@@ -93,8 +93,8 @@ namespace YiboFile.ViewModels.Modules
 
             if (success)
             {
-
-                Publish(new RefreshFileListMessage(message.ParentPath));
+                await Task.Delay(100);
+                Publish(new YiboFile.ViewModels.Messaging.Messages.RefreshFileListMessage(message.ParentPath, message.Pane));
             }
         }
 
@@ -108,8 +108,8 @@ namespace YiboFile.ViewModels.Modules
 
             if (success)
             {
-
-                Publish(new RefreshFileListMessage(message.ParentPath));
+                await Task.Delay(100);
+                Publish(new YiboFile.ViewModels.Messaging.Messages.RefreshFileListMessage(message.ParentPath, message.Pane));
             }
         }
 
@@ -128,17 +128,19 @@ namespace YiboFile.ViewModels.Modules
                     .Distinct()
                     .ToList();
 
+                await Task.Delay(100);
                 foreach (var parent in parents)
                 {
-                    Publish(new RefreshFileListMessage(parent));
+                    Publish(new YiboFile.ViewModels.Messaging.Messages.RefreshFileListMessage(parent, message.Pane));
                 }
 
                 // Fallback if no parents found
-                if (parents.Count == 0) Publish(new RefreshFileListMessage());
+                if (parents.Count == 0) Publish(new YiboFile.ViewModels.Messaging.Messages.RefreshFileListMessage(Pane: message.Pane));
             }
             else
             {
-                Publish(new RefreshFileListMessage());
+                await Task.Delay(100);
+                Publish(new YiboFile.ViewModels.Messaging.Messages.RefreshFileListMessage(Pane: message.Pane));
             }
         }
 
@@ -182,8 +184,8 @@ namespace YiboFile.ViewModels.Modules
             var result = await _fileOperationService.PasteAsync(targetPath);
             Publish(new FileOperationCompleteMessage(Guid.NewGuid().ToString(), result.Success, result.Message ?? (result.FailedItems?.Count > 0 ? "部分项目粘贴失败" : null), result.FailedItems));
 
-            // 延迟一点刷新，或者由 FileOperationService 触发刷新回调
-            Publish(new RefreshFileListMessage(targetPath));
+            await Task.Delay(100);
+            Publish(new YiboFile.ViewModels.Messaging.Messages.RefreshFileListMessage(targetPath, message.Pane));
         }
 
         private void OnShowProperties(ShowPropertiesRequestMessage message)
@@ -346,7 +348,7 @@ namespace YiboFile.ViewModels.Modules
             if (pane != null)
             {
                 string targetPath = pane.CurrentPath;
-                Publish(new PasteItemsRequestMessage(targetPath));
+                Publish(new PasteItemsRequestMessage(targetPath, pane.MyPaneId));
             }
         }
 
@@ -365,6 +367,10 @@ namespace YiboFile.ViewModels.Modules
                 // CommandParameter usually doesn't capture modifier keys.
                 // We might need a separate DeletePermanentCommand or check Keyboard.Modifiers (UI dependency in VM, but acceptable for commands)
                 bool permanent = (Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift;
+                // Note: ExecuteDelete usually gets a list from the view, but here it's IList items.
+                // We don't easily have the PaneId here unless we pass it or infer it.
+                // Since this is a module-level command, we'll try to find the active pane or use Main as fallback.
+                // Actually, the callers usually pass a PaneViewModel or the list.
                 Publish(new DeleteItemsRequestMessage(fileItems, permanent));
             }
         }
@@ -378,7 +384,7 @@ namespace YiboFile.ViewModels.Modules
         {
             if (item != null)
             {
-                Publish(new RenameItemRequestMessage(item, null)); // null triggers edit mode
+                Publish(new RenameItemRequestMessage(item, null)); // null triggers edit mode - PaneId is less critical here as it's item-based, but adding for consistency if we find it.
             }
         }
 
@@ -410,7 +416,7 @@ namespace YiboFile.ViewModels.Modules
 
                 if (!string.IsNullOrEmpty(targetPath))
                 {
-                    Publish(new CreateFolderRequestMessage(targetPath));
+                    Publish(new CreateFolderRequestMessage(targetPath, null, pane.MyPaneId));
                 }
                 else
                 {
@@ -440,7 +446,7 @@ namespace YiboFile.ViewModels.Modules
 
                 if (!string.IsNullOrEmpty(targetPath))
                 {
-                    Publish(new CreateFileRequestMessage(targetPath));
+                    Publish(new CreateFileRequestMessage(targetPath, null, ".txt", pane.MyPaneId));
                 }
             }
         }

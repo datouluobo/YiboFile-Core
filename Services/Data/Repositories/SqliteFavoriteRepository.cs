@@ -179,6 +179,28 @@ namespace YiboFile.Services.Data.Repositories
             await command.ExecuteNonQueryAsync();
         }
 
+        public void UpdateFavoriteDisplayName(string path, string displayName)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "UPDATE Favorites SET DisplayName = @displayName WHERE Path = @path";
+            command.Parameters.AddWithValue("@displayName", displayName ?? (object)DBNull.Value);
+            command.Parameters.AddWithValue("@path", path);
+            command.ExecuteNonQuery();
+        }
+
+        public async Task UpdateFavoriteDisplayNameAsync(string path, string displayName)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync();
+            using var command = connection.CreateCommand();
+            command.CommandText = "UPDATE Favorites SET DisplayName = @displayName WHERE Path = @path";
+            command.Parameters.AddWithValue("@displayName", displayName ?? (object)DBNull.Value);
+            command.Parameters.AddWithValue("@path", path);
+            await command.ExecuteNonQueryAsync();
+        }
+
         #endregion
 
         #region 分组管理

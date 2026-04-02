@@ -25,7 +25,7 @@ namespace YiboFile.Services.FileInfo
 
         private readonly FileBrowserControl _fileBrowser;
         private readonly FileListService _fileListService;
-        private readonly YiboFile.Services.Navigation.NavigationCoordinator _navigationCoordinator;
+        private readonly YiboFile.Services.Navigation.INavigationCoordinator _navigationCoordinator;
         private readonly YiboFile.Services.Features.ITagService _tagService;
         private readonly ILocalizationService _locService;
 
@@ -44,7 +44,7 @@ namespace YiboFile.Services.FileInfo
         /// <param name="fileListService">文件列表服务</param>
         /// <param name="navigationCoordinator">导航协调器</param>
         /// <param name="tagService">标签服务</param>
-        public FileInfoService(FileBrowserControl fileBrowser, FileListService fileListService, YiboFile.Services.Navigation.NavigationCoordinator navigationCoordinator, YiboFile.Services.Features.ITagService tagService = null)
+        public FileInfoService(FileBrowserControl fileBrowser, FileListService fileListService, YiboFile.Services.Navigation.INavigationCoordinator navigationCoordinator, YiboFile.Services.Features.ITagService tagService = null)
         {
             _fileBrowser = fileBrowser ?? throw new ArgumentNullException(nameof(fileBrowser));
             _fileListService = fileListService ?? throw new ArgumentNullException(nameof(fileListService));

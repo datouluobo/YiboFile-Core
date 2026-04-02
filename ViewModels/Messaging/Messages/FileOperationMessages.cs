@@ -10,11 +10,13 @@ namespace YiboFile.ViewModels.Messaging.Messages
     {
         public string ParentPath { get; }
         public string FolderName { get; }
+        public YiboFile.Services.Navigation.PaneId Pane { get; }
 
-        public CreateFolderRequestMessage(string parentPath, string folderName = null)
+        public CreateFolderRequestMessage(string parentPath, string folderName = null, YiboFile.Services.Navigation.PaneId pane = YiboFile.Services.Navigation.PaneId.Main)
         {
             ParentPath = parentPath;
             FolderName = folderName;
+            Pane = pane;
         }
     }
 
@@ -25,11 +27,13 @@ namespace YiboFile.ViewModels.Messaging.Messages
     {
         public List<FileSystemItem> Items { get; }
         public bool Permanent { get; }
+        public YiboFile.Services.Navigation.PaneId Pane { get; }
 
-        public DeleteItemsRequestMessage(List<FileSystemItem> items, bool permanent = false)
+        public DeleteItemsRequestMessage(List<FileSystemItem> items, bool permanent = false, YiboFile.Services.Navigation.PaneId pane = YiboFile.Services.Navigation.PaneId.Main)
         {
             Items = items;
             Permanent = permanent;
+            Pane = pane;
         }
     }
 
@@ -39,10 +43,12 @@ namespace YiboFile.ViewModels.Messaging.Messages
     public class CopyItemsRequestMessage
     {
         public List<FileSystemItem> Items { get; }
+        public YiboFile.Services.Navigation.PaneId Pane { get; }
 
-        public CopyItemsRequestMessage(List<FileSystemItem> items)
+        public CopyItemsRequestMessage(List<FileSystemItem> items, YiboFile.Services.Navigation.PaneId pane = YiboFile.Services.Navigation.PaneId.Main)
         {
             Items = items;
+            Pane = pane;
         }
     }
 
@@ -52,10 +58,12 @@ namespace YiboFile.ViewModels.Messaging.Messages
     public class CutItemsRequestMessage
     {
         public List<FileSystemItem> Items { get; }
+        public YiboFile.Services.Navigation.PaneId Pane { get; }
 
-        public CutItemsRequestMessage(List<FileSystemItem> items)
+        public CutItemsRequestMessage(List<FileSystemItem> items, YiboFile.Services.Navigation.PaneId pane = YiboFile.Services.Navigation.PaneId.Main)
         {
             Items = items;
+            Pane = pane;
         }
     }
 
@@ -65,10 +73,12 @@ namespace YiboFile.ViewModels.Messaging.Messages
     public class PasteItemsRequestMessage
     {
         public string TargetPath { get; }
+        public YiboFile.Services.Navigation.PaneId Pane { get; }
 
-        public PasteItemsRequestMessage(string targetPath)
+        public PasteItemsRequestMessage(string targetPath, YiboFile.Services.Navigation.PaneId pane = YiboFile.Services.Navigation.PaneId.Main)
         {
             TargetPath = targetPath;
+            Pane = pane;
         }
     }
 
@@ -79,11 +89,13 @@ namespace YiboFile.ViewModels.Messaging.Messages
     {
         public FileSystemItem Item { get; }
         public string NewName { get; }
+        public YiboFile.Services.Navigation.PaneId Pane { get; }
 
-        public RenameItemRequestMessage(FileSystemItem item, string newName = null)
+        public RenameItemRequestMessage(FileSystemItem item, string newName = null, YiboFile.Services.Navigation.PaneId pane = YiboFile.Services.Navigation.PaneId.Main)
         {
             Item = item;
             NewName = newName;
+            Pane = pane;
         }
     }
 
@@ -119,12 +131,14 @@ namespace YiboFile.ViewModels.Messaging.Messages
         public string ParentPath { get; }
         public string FileName { get; }
         public string Extension { get; }
+        public YiboFile.Services.Navigation.PaneId Pane { get; }
 
-        public CreateFileRequestMessage(string parentPath, string fileName = null, string extension = ".txt")
+        public CreateFileRequestMessage(string parentPath, string fileName = null, string extension = ".txt", YiboFile.Services.Navigation.PaneId pane = YiboFile.Services.Navigation.PaneId.Main)
         {
             ParentPath = parentPath;
             FileName = fileName;
             Extension = extension;
+            Pane = pane;
         }
     }
 

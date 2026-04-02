@@ -18,7 +18,7 @@ namespace YiboFile.Handlers
     {
         private readonly IShellWindow _shellWindow;
         private readonly LibraryService _libraryService;
-        private readonly NavigationCoordinator _navigationCoordinator;
+        private readonly INavigationCoordinator _navigationCoordinator;
         private readonly NavigationService _navigationService;
         private readonly Services.FileList.FileListService _fileListService;
         private readonly Services.ColumnManagement.ColumnService _columnService;
@@ -26,7 +26,7 @@ namespace YiboFile.Handlers
         public LibraryEventHandler(
             IShellWindow shellWindow,
             LibraryService libraryService,
-            NavigationCoordinator navigationCoordinator,
+            INavigationCoordinator navigationCoordinator,
             NavigationService navigationService,
             Services.FileList.FileListService fileListService,
             Services.ColumnManagement.ColumnService columnService)

@@ -12,6 +12,7 @@ using YiboFile.Services.Core;
 using YiboFile.Controls;
 using YiboFile;
 using YiboFile.Services.Data.Repositories;
+using YiboFile.Helpers;
 using Microsoft.Extensions.DependencyInjection;
 using YiboFile.ViewModels.Messaging;
 using YiboFile.ViewModels.Messaging.Messages;
@@ -30,6 +31,7 @@ namespace YiboFile.Services.Favorite
         private readonly IFavoriteRepository _favoriteRepository;
         private readonly System.Windows.Threading.Dispatcher _dispatcher;
         private readonly IMessageBus _messageBus;
+        private readonly Services.Navigation.INavigationCoordinator _navigationCoordinator;
         private YiboFile.Favorite _draggedFavorite = null;
         private System.Windows.Point _dragStartPoint;
         private bool _isDraggingFavorite = false;
@@ -43,11 +45,16 @@ namespace YiboFile.Services.Favorite
 
         #region 构造函数
 
-        public FavoriteService(IFavoriteRepository favoriteRepository, IMessageBus messageBus = null, System.Windows.Threading.Dispatcher dispatcher = null)
+        public FavoriteService(
+            IFavoriteRepository favoriteRepository, 
+            IMessageBus messageBus = null, 
+            System.Windows.Threading.Dispatcher dispatcher = null,
+            Services.Navigation.INavigationCoordinator navigationCoordinator = null)
         {
             _favoriteRepository = favoriteRepository ?? throw new ArgumentNullException(nameof(favoriteRepository));
             _messageBus = messageBus ?? App.ServiceProvider?.GetService<IMessageBus>();
             _dispatcher = dispatcher ?? Application.Current?.Dispatcher ?? System.Windows.Threading.Dispatcher.CurrentDispatcher;
+            _navigationCoordinator = navigationCoordinator ?? App.ServiceProvider?.GetService<Services.Navigation.INavigationCoordinator>();
         }
 
         #endregion
@@ -443,31 +450,165 @@ namespace YiboFile.Services.Favorite
             };
 
             var locService = App.ServiceProvider?.GetService<YiboFile.Services.Localization.ILocalizationService>();
-            var removeItem = new MenuItem { Header = locService?["Favorites.RemoveFavorite"] ?? "删除收藏" };
+            var navigationCoordinator = _navigationCoordinator;
+            
+            // 辅助方法：获取当前选中的 Favorite
+            YiboFile.Favorite GetSelectedFavorite()
+            {
+                if (listBox.SelectedItem == null) return null;
+                var selectedItem = listBox.SelectedItem;
+                var favoriteProperty = selectedItem.GetType().GetProperty("Favorite");
+                return favoriteProperty?.GetValue(selectedItem) as YiboFile.Favorite;
+            }
+
+            // 辅助方法：创建带图标的菜单项
+            MenuItem CreateIconicMenuItem(string headerKey, string defaultHeader, string icon, bool isBold = false)
+            {
+                var headerText = (headerKey != null ? locService?[headerKey] : null) ?? defaultHeader;
+                var item = new MenuItem 
+                { 
+                    Header = headerText,
+                    FontWeight = isBold ? FontWeights.Bold : FontWeights.Normal,
+                    Icon = new TextBlock { Text = icon, VerticalAlignment = VerticalAlignment.Center, FontSize = 14 }
+                };
+                return item;
+            }
+
+            // --- 组1: 打开与定位 ---
+            
+            // 1. 打开
+            var openItem = CreateIconicMenuItem("Dialog.Open", "打开", "📂", true);
+            openItem.Click += (s, e) =>
+            {
+                var favorite = GetSelectedFavorite();
+                if (favorite != null)
+                    navigationCoordinator?.HandleFavoriteNavigation(favorite, YiboFile.Models.Navigation.ClickType.LeftClick);
+            };
+            menu.Items.Add(openItem);
+
+            // 2. 在新标签页打开
+            var openNewTabItem = CreateIconicMenuItem("Favorites.OpenInNewTab", "在新标签页打开", "📑");
+            openNewTabItem.Click += (s, e) =>
+            {
+                var favorite = GetSelectedFavorite();
+                if (favorite != null)
+                    navigationCoordinator?.HandleFavoriteNavigation(favorite, YiboFile.Models.Navigation.ClickType.MiddleClick);
+            };
+            menu.Items.Add(openNewTabItem);
+
+            // 3. 打开文件位置
+            var openLocationItem = CreateIconicMenuItem("Favorites.OpenLocation", "打开文件位置", "📍");
+            openLocationItem.Click += (s, e) =>
+            {
+                var favorite = GetSelectedFavorite();
+                if (favorite != null)
+                {
+                    string parentPath = Path.GetDirectoryName(favorite.Path);
+                    if (!string.IsNullOrEmpty(parentPath) && Directory.Exists(parentPath))
+                    {
+                        navigationCoordinator?.HandlePathNavigation(parentPath, YiboFile.Models.Navigation.NavigationSource.Favorite, YiboFile.Models.Navigation.ClickType.LeftClick, pathToSelect: favorite.Path);
+                    }
+                    else
+                    {
+                        navigationCoordinator?.HandleFavoriteNavigation(favorite, YiboFile.Models.Navigation.ClickType.LeftClick);
+                    }
+                }
+            };
+            menu.Items.Add(openLocationItem);
+
+            menu.Items.Add(new Separator());
+
+            // --- 组2: 实用工具 ---
+
+            // 4. 重命名别名
+            var renameItem = CreateIconicMenuItem("Favorites.Rename", "重命名别名", "✏️");
+            renameItem.Click += (s, e) =>
+            {
+                var favorite = GetSelectedFavorite();
+                if (favorite != null)
+                {
+                    var currentName = !string.IsNullOrEmpty(favorite.DisplayName) ? favorite.DisplayName : Path.GetFileName(favorite.Path);
+                    var newName = DialogService.ShowInput(locService?["Favorites.Rename"] ?? "输入新的收藏别名", currentName);
+                    if (newName != null)
+                    {
+                        _favoriteRepository.UpdateFavoriteDisplayName(favorite.Path, newName);
+                        _messageBus?.Publish(new FavoritesUpdatedMessage());
+                    }
+                }
+            };
+            menu.Items.Add(renameItem);
+
+            // 5. 复制路径
+            var copyPathItem = CreateIconicMenuItem("Favorites.CopyPath", "复制完整路径", "📋");
+            copyPathItem.Click += (s, e) =>
+            {
+                var favorite = GetSelectedFavorite();
+                if (favorite != null)
+                {
+                    // 使用异步复制，防止剪贴板操作阻塞 UI (修复卡顿问题)
+                    ClipboardHelper.SetTextAsync(favorite.Path, (success) => 
+                    {
+                        if (success)
+                        {
+                            NotificationService.Show(locService?["TabContent.Context.CopyPath"] ?? "路径已复制", NotificationType.Success);
+                        }
+                        else
+                        {
+                            NotificationService.Show("无法访问剪贴板，请重试", NotificationType.Error);
+                        }
+                    });
+                }
+            };
+            menu.Items.Add(copyPathItem);
+
+            // 6. 在外部资源管理器打开
+            var externalItem = CreateIconicMenuItem("Favorites.OpenExplorer", "在资源管理器中打开", "🖥️");
+            externalItem.Click += (s, e) =>
+            {
+                var favorite = GetSelectedFavorite();
+                if (favorite != null && (Directory.Exists(favorite.Path) || File.Exists(favorite.Path)))
+                {
+                    try
+                    {
+                        System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{favorite.Path}\"");
+                    }
+                    catch { /* 处理异常 */ }
+                }
+            };
+            menu.Items.Add(externalItem);
+
+            menu.Items.Add(new Separator());
+
+            // --- 组3: 管理 ---
+            
+            // 7. 属性
+            var propertiesItem = CreateIconicMenuItem("Favorites.Properties", "属性", "ℹ️");
+            propertiesItem.Click += (s, e) =>
+            {
+                var favorite = GetSelectedFavorite();
+                if (favorite != null)
+                {
+                    var fileItem = new FileSystemItem 
+                    { 
+                        Path = favorite.Path, 
+                        IsDirectory = favorite.IsDirectory, 
+                        Name = favorite.DisplayName ?? Path.GetFileName(favorite.Path) 
+                    };
+                    _messageBus?.Publish(new ShowPropertiesRequestMessage(fileItem, favorite.Path));
+                }
+            };
+            menu.Items.Add(propertiesItem);
+
+            // 8. 删除收藏
+            var removeItem = CreateIconicMenuItem("Favorites.RemoveFavorite", "删除收藏", "🗑️");
             removeItem.Click += (s, e) =>
             {
-                if (listBox.SelectedItem != null)
+                var favorite = GetSelectedFavorite();
+                if (favorite != null)
                 {
-                    var selectedItem = listBox.SelectedItem;
-                    var favoriteProperty = selectedItem.GetType().GetProperty("Favorite");
-                    if (favoriteProperty != null)
-                    {
-                        var favorite = favoriteProperty.GetValue(selectedItem) as YiboFile.Favorite;
-                        if (favorite != null)
-                        {
-                            // Capture references needed for reload
-                            // 由于 LoadFavorites 现在需要两个 ListBox，我们需要知道上下文
-                            // 或者通过事件通知上层重新加载
-                            // 暂时简单地调用 LoadFavorites 需要保存 listbox 引用吗？
-                            // 更好的方式是触发事件通知 MainWindow 更新
-
-                            _favoriteRepository.RemoveFavorite(favorite.Path);
-
-                            // 触发重新加载
-                            _messageBus?.Publish(new FavoritesUpdatedMessage());
-                            NotificationService.Show(locService?["Favorites.CancelFavorite"] ?? "已取消收藏", NotificationType.Success);
-                        }
-                    }
+                    _favoriteRepository.RemoveFavorite(favorite.Path);
+                    _messageBus?.Publish(new FavoritesUpdatedMessage());
+                    NotificationService.Show(locService?["Favorites.CancelFavorite"] ?? "已取消收藏", NotificationType.Success);
                 }
             };
             menu.Items.Add(removeItem);

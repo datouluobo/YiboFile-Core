@@ -419,6 +419,12 @@ namespace YiboFile.Controls
         {
             base.OnPreviewMouseDown(e);
             
+            // ═══ 关键修复 ═══
+            // 如果当前处于“跨面板预览”激活状态（即本区域正在替另一个面板显示预览），
+            // 则点击此区域不应触发面板焦点切换。
+            // 否则在“预览”布局模式下，点击右侧预览区会导致焦点移到右侧，从而触发布局翻转（右侧变列表，左侧变预览）。
+            if (_isCrossPreviewActive) return;
+
             if (DataContext is PaneViewModel vm && !vm.IsActive)
             {
                 // 仅当 DataContext 可用且当前为非活跃时请求切换

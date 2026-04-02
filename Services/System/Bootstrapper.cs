@@ -137,7 +137,8 @@ namespace YiboFile.Services.Startup
                 new FavoriteService(
                     provider.GetRequiredService<Services.Data.Repositories.IFavoriteRepository>(),
                     provider.GetService<ViewModels.Messaging.IMessageBus>(),
-                    _application.Dispatcher));
+                    _application.Dispatcher,
+                    provider.GetService<INavigationCoordinator>()));
 
             services.AddSingleton<QuickAccessService>(provider =>
                 new QuickAccessService(
@@ -214,7 +215,7 @@ namespace YiboFile.Services.Startup
             services.AddSingleton<Services.Features.FileNotes.INotesService, Services.Features.FileNotes.NotesService>();
 
             // ViewModels
-            services.AddSingleton<NavigationCoordinator>();
+            services.AddSingleton<INavigationCoordinator, NavigationCoordinator>();
             services.AddSingleton<ViewModels.NavigationRailViewModel>();
             services.AddSingleton<Controllers.NavigationRailCoordinator>();
             services.AddSingleton<NavigationService>(provider =>

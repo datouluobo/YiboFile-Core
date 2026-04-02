@@ -146,19 +146,19 @@ namespace YiboFile.ViewModels.Previews
                 try
                 {
                     var html = ExcelParser.GenerateHtmlFromXlsx(FilePath, SelectedSheet.Id, GetThemeCss());
-                    Application.Current.Dispatcher.Invoke(() =>
+                    Application.Current.Dispatcher.BeginInvoke(new Action(() =>
                     {
                         GeneratedHtml = html;
                         ReloadRequested?.Invoke(this, EventArgs.Empty);
-                    });
+                    }));
                 }
                 catch (Exception ex)
                 {
-                    Application.Current.Dispatcher.Invoke(() =>
+                    Application.Current.Dispatcher.BeginInvoke(new Action(() =>
                     {
                         GeneratedHtml = $"<html><body>Error generating preview: {ex.Message}</body></html>";
                         ReloadRequested?.Invoke(this, EventArgs.Empty);
-                    });
+                    }));
                 }
             });
         }
@@ -189,11 +189,11 @@ namespace YiboFile.ViewModels.Previews
                     }
                     else
                     {
-                        Application.Current.Dispatcher.Invoke(() =>
+                        Application.Current.Dispatcher.BeginInvoke(new Action(() =>
                         {
                             ConvertStatusText = "🔄 转换为XLSX格式";
                             Services.Core.NotificationService.ShowError(errorMsg ?? "转换失败");
-                        });
+                        }));
                     }
                 }
                 catch (Exception ex)

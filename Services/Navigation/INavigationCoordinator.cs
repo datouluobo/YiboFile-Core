@@ -1,5 +1,8 @@
 using System.Threading.Tasks;
 using YiboFile.Models.Navigation;
+using YiboFile.Services.Tabs;
+using YiboFile.Services.FileList;
+using YiboFile.Services;
 using YiboFile;
 
 namespace YiboFile.Services.Navigation
@@ -14,6 +17,11 @@ namespace YiboFile.Services.Navigation
         /// 执行统一导航请求
         /// </summary>
         Task NavigateAsync(NavigationRequest request);
+        
+        /// <summary>
+        /// 初始化导航协调器（设置面板关联关系）
+        /// </summary>
+        void Initialize(TabService mainTab, TabService secondTab, NavigationService navService, LibraryService libService, System.Func<PaneId, ViewModels.PaneViewModel> paneViewModelResolver);
 
         /// <summary>
         /// 获取当前指定面板的活动路径
@@ -23,7 +31,7 @@ namespace YiboFile.Services.Navigation
         /// <summary>
         /// 统一路径导航处理
         /// </summary>
-        void HandlePathNavigation(string path, YiboFile.Models.Navigation.NavigationSource source, YiboFile.Models.Navigation.ClickType clickType, bool forceNewTab = false, PaneId pane = PaneId.Main);
+        void HandlePathNavigation(string path, YiboFile.Models.Navigation.NavigationSource source, YiboFile.Models.Navigation.ClickType clickType, bool forceNewTab = false, PaneId pane = PaneId.Main, string pathToSelect = null);
 
         /// <summary>
         /// 统一库导航处理

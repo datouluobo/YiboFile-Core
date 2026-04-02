@@ -20,6 +20,9 @@ namespace YiboFile.Previews
         {
             try
             {
+                // Ensure we don't start the synchronous portion on the UI thread 
+                await Task.Yield();
+
                 if (string.IsNullOrEmpty(filePath))
                 {
                     return null;

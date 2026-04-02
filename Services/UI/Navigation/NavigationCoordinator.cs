@@ -91,13 +91,14 @@ namespace YiboFile.Services.Navigation
 
             if (isDrillDown && !request.ForceNewTab)
             {
-                await ExecuteNavigationInViewModel(vm, path, request.Pane, request.Source, tabService);
+                await ExecuteNavigationInViewModel(vm, path, request.Pane, request.Source, tabService, request.PathToSelect);
                 return;
             }
 
             // Rule 2: Deduplication (排重检测)
             // 检查当前面板的其他标签页是否已经打开了该路径
-            if (!request.ForceNewTab)
+            // 注意：如果指定了 PathToSelect，则不能直接返回，因为需要触发选择逻辑
+            if (!request.ForceNewTab && string.IsNullOrEmpty(request.PathToSelect))
             {
                 var existingTab = tabService.FindTabByPath(path);
                 if (existingTab != null)
@@ -131,13 +132,13 @@ namespace YiboFile.Services.Navigation
 
             if (!request.ForceNewTab && tabService.ActiveTab != null && tabService.ActiveTab.ContentTypeId == targetContentTypeId)
             {
-                // Prevent infinite loop if path is already active
-                if (string.Equals(tabService.ActiveTab.Path, path, StringComparison.OrdinalIgnoreCase))
+                // Prevent infinite loop if path is already active AND no PathToSelect is requested
+                if (string.Equals(tabService.ActiveTab.Path, path, StringComparison.OrdinalIgnoreCase) && string.IsNullOrEmpty(request.PathToSelect))
                 {
                     return;
                 }
 
-                await ExecuteNavigationInViewModel(vm, path, request.Pane, request.Source, tabService);
+                await ExecuteNavigationInViewModel(vm, path, request.Pane, request.Source, tabService, request.PathToSelect);
                 return;
             }
 
@@ -169,11 +170,12 @@ namespace YiboFile.Services.Navigation
                 vmForNewTab.CurrentPath = path;
                 _messageBus.Publish(new NavigationCompleteMessage(
                     path, request.Pane, request.Source, vmForNewTab.NavigationMode,
-                    BackStack: vmForNewTab.BackStack, ForwardStack: vmForNewTab.ForwardStack));
+                    BackStack: vmForNewTab.BackStack, ForwardStack: vmForNewTab.ForwardStack,
+                    PathToSelect: request.PathToSelect));
             }
         }
 
-        private async Task ExecuteNavigationInViewModel(ViewModels.PaneViewModel vm, string path, PaneId pane, YiboFile.Models.Navigation.NavigationSource source, TabService tabService)
+        private async Task ExecuteNavigationInViewModel(ViewModels.PaneViewModel vm, string path, PaneId pane, YiboFile.Models.Navigation.NavigationSource source, TabService tabService, string pathToSelect = null)
         {
             if (vm != null)
             {
@@ -207,7 +209,8 @@ namespace YiboFile.Services.Navigation
                     source,
                     vm.NavigationMode,
                     BackStack: vm.BackStack,
-                    ForwardStack: vm.ForwardStack));
+                    ForwardStack: vm.ForwardStack,
+                    PathToSelect: pathToSelect));
             }
             else
             {
@@ -339,19 +342,20 @@ namespace YiboFile.Services.Navigation
             return ClickType.LeftClick;
         }
 
-        public void HandlePathNavigation(string path, YiboFile.Models.Navigation.NavigationSource source, YiboFile.Models.Navigation.ClickType clickType, bool forceNewTab = false, PaneId pane = PaneId.Main)
+        public void HandlePathNavigation(string path, NavigationSource source, ClickType clickType, bool forceNewTab = false, PaneId pane = PaneId.Main, string pathToSelect = null)
         {
             var request = new NavigationRequest
             {
                 Target = NavigationTarget.FromPath(path),
                 ForceNewTab = forceNewTab || clickType == ClickType.MiddleClick || clickType == ClickType.CtrlLeftClick,
                 Source = source,
-                Pane = pane
+                Pane = pane,
+                PathToSelect = pathToSelect
             };
             _ = NavigateAsync(request);
         }
 
-        public void HandleLibraryNavigation(Library library, YiboFile.Models.Navigation.ClickType clickType, PaneId pane = PaneId.Main)
+        public void HandleLibraryNavigation(Library library, ClickType clickType, PaneId pane = PaneId.Main)
         {
             var request = new NavigationRequest
             {
@@ -362,7 +366,7 @@ namespace YiboFile.Services.Navigation
             _ = NavigateAsync(request);
         }
 
-        public void HandleFavoriteNavigation(YiboFile.Favorite favorite, YiboFile.Models.Navigation.ClickType clickType, PaneId pane = PaneId.Main)
+        public void HandleFavoriteNavigation(YiboFile.Favorite favorite, ClickType clickType, PaneId pane = PaneId.Main)
         {
             if (favorite == null) return;
 

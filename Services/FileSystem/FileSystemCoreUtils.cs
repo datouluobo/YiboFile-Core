@@ -124,5 +124,18 @@ namespace YiboFile.Services.FileSystem
             var dirInfo = new DirectoryInfo(path);
             return dirInfo.EnumerateFiles("*", SearchOption.AllDirectories).Sum(fi => (long)fi.Length);
         }
+
+        /// <summary>
+        /// 路径规范化：移除末尾分隔符，转为绝对路径
+        /// </summary>
+        public static string NormalizePath(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return path;
+            try
+            {
+                return Path.GetFullPath(path).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            }
+            catch { return path; }
+        }
     }
 }

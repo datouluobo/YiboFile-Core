@@ -350,8 +350,16 @@
                                         </Expander.Header>
                                         <Expander.ContextMenu>
                                             <ContextMenu>
-                                                <MenuItem Header="重命名分组" Tag="{Binding}" Click="RenameFavoriteGroup_Click"/>
-                                                <MenuItem Header="删除分组" Tag="{Binding}" Click="DeleteFavoriteGroup_Click"/>
+                                                <MenuItem Header="{i18n:Loc Key=Favorites.RenameGroup}" Tag="{Binding}" Click="RenameFavoriteGroup_Click">
+                                                    <MenuItem.Icon>
+                                                        <TextBlock Text="✏️" VerticalAlignment="Center" FontSize="14"/>
+                                                    </MenuItem.Icon>
+                                                </MenuItem>
+                                                <MenuItem Header="{i18n:Loc Key=Favorites.DeleteGroup}" Tag="{Binding}" Click="DeleteFavoriteGroup_Click">
+                                                    <MenuItem.Icon>
+                                                        <TextBlock Text="🗑️" VerticalAlignment="Center" FontSize="14"/>
+                                                    </MenuItem.Icon>
+                                                </MenuItem>
                                             </ContextMenu>
                                         </Expander.ContextMenu>
                                         <ListBox ItemsSource="{Binding Items}" 
@@ -444,14 +452,38 @@
                              ItemContainerStyle="{StaticResource NavListBoxItemStyle}">
                         <ListBox.ContextMenu>
                             <ContextMenu Name="LibraryContextMenu">
-                                <MenuItem x:Name="AddFileToLibraryMenuItem" Header="📂 添加到库"/>
-                                <MenuItem x:Name="LibraryRefreshItem" Header="刷新" Icon="🔄"/>
-                                <MenuItem x:Name="LibraryOpenInExplorerItem" Header="在资源管理器中打开" Icon="📂"/>
+                                <MenuItem x:Name="AddFileToLibraryMenuItem" Header="{i18n:Loc Key=TabContent.Context.AddToLibrary}">
+                                    <MenuItem.Icon>
+                                        <TextBlock Text="📂" VerticalAlignment="Center" FontSize="14"/>
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem x:Name="LibraryRefreshItem" Header="{i18n:Loc Key=TabContent.Context.Refresh}">
+                                    <MenuItem.Icon>
+                                        <TextBlock Text="🔄" VerticalAlignment="Center" FontSize="14"/>
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem x:Name="LibraryOpenInExplorerItem" Header="{i18n:Loc Key=TabContent.Context.OpenExplorer}">
+                                    <MenuItem.Icon>
+                                        <TextBlock Text="📂" VerticalAlignment="Center" FontSize="14"/>
+                                    </MenuItem.Icon>
+                                </MenuItem>
                                 <Separator/>
-                                <MenuItem x:Name="LibraryRenameItem" Header="重命名"/>
-                                <MenuItem x:Name="LibraryDeleteItem" Header="删除"/>
+                                <MenuItem x:Name="LibraryRenameItem" Header="{i18n:Loc Key=Favorites.Rename}">
+                                    <MenuItem.Icon>
+                                        <TextBlock Text="✏️" VerticalAlignment="Center" FontSize="14"/>
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem x:Name="LibraryDeleteItem" Header="{i18n:Loc Key=Favorites.DeleteGroup}">
+                                    <MenuItem.Icon>
+                                        <TextBlock Text="🗑️" VerticalAlignment="Center" FontSize="14"/>
+                                    </MenuItem.Icon>
+                                </MenuItem>
                                 <Separator/>
-                                <MenuItem x:Name="LibraryManageItem" Header="库管理"/>
+                                <MenuItem x:Name="LibraryManageItem" Header="{i18n:Loc Key=Library.ManagementTitle}">
+                                    <MenuItem.Icon>
+                                        <TextBlock Text="⚙️" VerticalAlignment="Center" FontSize="14"/>
+                                    </MenuItem.Icon>
+                                </MenuItem>
                             </ContextMenu>
                         </ListBox.ContextMenu>
                     </ListBox>

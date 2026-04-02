@@ -19,7 +19,7 @@ namespace YiboFile.Handlers
     public class FileListEventHandler
     {
         private readonly FileBrowserControl _fileBrowser;
-        private readonly NavigationCoordinator _navigationCoordinator;
+        private readonly INavigationCoordinator _navigationCoordinator;
         private readonly PaneId _paneId;
 
         // 子处理器
@@ -36,7 +36,7 @@ namespace YiboFile.Handlers
         /// <param name="paneId">面板标识</param>
         public FileListEventHandler(
             FileBrowserControl fileBrowser,
-            NavigationCoordinator navigationCoordinator,
+            INavigationCoordinator navigationCoordinator,
             NavigationModeService navigationModeService,
             IShellWindow shellWindow,
             PaneId paneId = PaneId.Main)

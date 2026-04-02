@@ -39,7 +39,7 @@ namespace YiboFile.Handlers
         private readonly NavigationModeService _navigationModeService;
         private readonly TabService _secondTabService;
         private readonly WindowStateManager _windowStateManager;
-        private readonly NavigationCoordinator _navigationCoordinator;
+        private readonly INavigationCoordinator _navigationCoordinator;
         private readonly SearchCacheService _searchCacheService;
         private readonly FileInfoService _secondFileInfoService;
         private readonly LibraryService _libraryService;
@@ -55,7 +55,7 @@ namespace YiboFile.Handlers
             NavigationModeService navigationModeService,
             TabService secondTabService,
             WindowStateManager windowStateManager,
-            NavigationCoordinator navigationCoordinator,
+            INavigationCoordinator navigationCoordinator,
             SearchCacheService searchCacheService,
             FileInfoService secondFileInfoService,
             LibraryService libraryService)

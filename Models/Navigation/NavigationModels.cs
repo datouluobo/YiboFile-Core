@@ -90,6 +90,11 @@ namespace YiboFile.Models.Navigation
         public bool Activate { get; set; } = true;
 
         /// <summary>
+        /// 导航完成后需要选中的路径
+        /// </summary>
+        public string PathToSelect { get; set; }
+
+        /// <summary>
         /// 导航来源标识
         /// </summary>
         public NavigationSource Source { get; set; } = NavigationSource.External;
