@@ -146,6 +146,8 @@ namespace YiboFile.Services.Startup
                     _application.Dispatcher));
 
             services.AddSingleton<FolderSizeCalculationService>();
+            services.AddSingleton<YiboFile.Services.Shell.IShellContextMenuService, YiboFile.Services.Shell.ShellContextMenuService>();
+            services.AddSingleton<YiboFile.Services.Shell.IPinnedShellCommandService, YiboFile.Services.Shell.PinnedShellCommandService>();
 
             // FileListService 需要 Dispatcher
             services.AddTransient<FileListService>(provider =>

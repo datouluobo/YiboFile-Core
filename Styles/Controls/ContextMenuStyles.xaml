@@ -39,35 +39,101 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type MenuItem}">
-                    <Border x:Name="Border" 
-                            Background="{TemplateBinding Background}" 
-                            BorderBrush="{TemplateBinding BorderBrush}" 
-                            BorderThickness="{TemplateBinding BorderThickness}" 
-                            CornerRadius="4" Margin="2,0" SnapsToDevicePixels="False">
-                        <Grid>
+                    <Grid SnapsToDevicePixels="True" UseLayoutRounding="True">
+                        <!-- 后台背景层 (Highlight Layer) - 物理隔离 -->
+                        <Border x:Name="SelectionBorder" 
+                                Background="Transparent" 
+                                BorderBrush="Transparent" 
+                                BorderThickness="1" 
+                                CornerRadius="6" 
+                                Margin="2,1"/>
+
+                        <!-- 前台内容层 (Content Layer) -->
+                        <Grid Margin="2,0" Background="Transparent" Panel.ZIndex="10">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="32" SharedSizeGroup="MenuItemIconColumnGroup" />
+                                <ColumnDefinition Width="32" />
                                 <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" SharedSizeGroup="MenuItemIGTColumnGroup" />
-                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="28" />
                             </Grid.ColumnDefinitions>
 
-                            <!-- Icon (Checked/Icon) -->
-                            <ContentPresenter x:Name="Icon" ContentSource="Icon" Margin="8,0,0,0" HorizontalAlignment="Center" VerticalAlignment="Center" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" Width="16" Height="16" />
+                            <!-- 图标层 (Icon Layer) - 拥有更高的 Z-Index -->
+                            <Grid x:Name="IconContainer" Grid.Column="0" Panel.ZIndex="100" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <!-- 用于渲染 ImageSource 的独立渲染控件 -->
+                                <Image x:Name="BitmapIcon" 
+                                       Source="{Binding Icon, RelativeSource={RelativeSource TemplatedParent}}"
+                                       Width="16" Height="16"
+                                       Stretch="Uniform"
+                                       RenderOptions.BitmapScalingMode="HighQuality">
+                                    <Image.Style>
+                                        <Style TargetType="Image">
+                                            <Style.Triggers>
+                                                <Trigger Property="Source" Value="{x:Null}">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Image.Style>
+                                </Image>
+                                
+                                <!-- 用于处理非图片 Icon (如 Emoji 字符串) 的渲染 -->
+                                <ContentPresenter x:Name="GenericIcon" 
+                                                  ContentSource="Icon" 
+                                                  HorizontalAlignment="Center" 
+                                                  VerticalAlignment="Center"
+                                                  Margin="2,0,0,0">
+                                    <ContentPresenter.Style>
+                                        <Style TargetType="ContentPresenter">
+                                            <Style.Triggers>
+                                                <!-- 这里简单判断，如果是 ImageSource 类型的 Icon 会在 BitmapIcon 显示，GenericIcon 透明度降为0 -->
+                                                <DataTrigger Binding="{Binding Icon, RelativeSource={RelativeSource TemplatedParent}, Converter={x:Null}}" Value="{x:Null}">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ContentPresenter.Style>
+                                </ContentPresenter>
+
+                                <!-- 选中钩号 (CheckMark) -->
+                                <Path x:Name="CheckMark" 
+                                      Visibility="Collapsed" 
+                                      VerticalAlignment="Center" 
+                                      HorizontalAlignment="Center" 
+                                      Fill="{TemplateBinding Foreground}" 
+                                      Data="M 0,5.1 L 1.7,5.2 L 3.4,7.1 L 8,0.4 L 9.2,0 L 3.3,10.8 Z" 
+                                      Width="10" Height="10" 
+                                      Stretch="Uniform" />
+                            </Grid>
+
+                            <!-- 文字层 (Header Layer) -->
+                            <ContentPresenter Grid.Column="1" 
+                                              ContentSource="Header" 
+                                              Margin="4,0,8,0" 
+                                              VerticalAlignment="Center" 
+                                              Panel.ZIndex="100"
+                                              RecognizesAccessKey="True" />
+
+                            <!-- 快捷键文本 -->
+                            <TextBlock Grid.Column="2" 
+                                       Text="{TemplateBinding InputGestureText}" 
+                                       Foreground="{DynamicResource ForegroundSecondaryBrush}" 
+                                       VerticalAlignment="Center" 
+                                       Margin="8,0,4,0" 
+                                       FontSize="11" 
+                                       Panel.ZIndex="100"/>
+
+                            <!-- 子菜单箭头 (Submenu Arrow) -->
+                            <Path x:Name="RightArrow" 
+                                  Grid.Column="3" 
+                                  HorizontalAlignment="Center" 
+                                  VerticalAlignment="Center" 
+                                  Data="M 0,0 L 4,3.5 L 0,7 Z" 
+                                  Fill="{TemplateBinding Foreground}" 
+                                  Margin="0,0,4,0" 
+                                  Visibility="Collapsed" 
+                                  Panel.ZIndex="100"/>
                             
-                            <!-- Checkmark for Checkable MenuItems -->
-                            <Path x:Name="CheckMark" Grid.Column="0" Visibility="Collapsed" VerticalAlignment="Center" HorizontalAlignment="Center" Fill="{TemplateBinding Foreground}" Data="M 0,5.1 L 1.7,5.2 L 3.4,7.1 L 8,0.4 L 9.2,0 L 3.3,10.8 Z" Width="10" Height="10" Stretch="Uniform" />
-
-                            <!-- Header Text -->
-                            <ContentPresenter Grid.Column="1" ContentSource="Header" Margin="8,0,8,0" VerticalAlignment="Center" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
-
-                            <!-- Input Gesture Text (Shortcut) -->
-                            <TextBlock Grid.Column="2" Text="{TemplateBinding InputGestureText}" Foreground="{DynamicResource ForegroundSecondaryBrush}" VerticalAlignment="Center" Margin="8,0,4,0" FontSize="11" />
-
-                            <!-- Submenu Arrow -->
-                            <Path x:Name="RightArrow" Grid.Column="3" HorizontalAlignment="Center" VerticalAlignment="Center" Data="M 0,0 L 4,3.5 L 0,7 Z" Fill="{TemplateBinding Foreground}" Margin="0,0,8,0" Visibility="Collapsed" />
-                            
-                            <!-- Popup for Submenu -->
+                            <!-- 弹出子菜单 (Popup) -->
                             <Popup x:Name="Popup" Placement="Right" IsOpen="{TemplateBinding IsSubmenuOpen}" AllowsTransparency="True" Focusable="False" PopupAnimation="Fade">
                                 <Border x:Name="SubmenuBorder" SnapsToDevicePixels="True" Background="{DynamicResource BackgroundElevatedBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="2,4">
                                     <Border.Effect>
@@ -77,29 +143,29 @@
                                 </Border>
                             </Popup>
                         </Grid>
-                    </Border>
+                    </Grid>
                     
                     <ControlTemplate.Triggers>
-                        <!-- Highlight -->
+                        <!-- 悬停触发高亮 (Highlight) -->
                         <Trigger Property="IsHighlighted" Value="True">
-                            <Setter Property="Background" TargetName="Border" Value="{DynamicResource ControlHoverBrush}" />
+                            <Setter TargetName="SelectionBorder" Property="Background" Value="{DynamicResource ControlHoverBrush}" />
                         </Trigger>
-                        <!-- Disabled -->
+                        
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter Property="Opacity" Value="0.5" />
                         </Trigger>
-                        <!-- Checked -->
+
+                        <!-- 选中状态处理 -->
                         <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="Icon" Property="Visibility" Value="Collapsed" />
                             <Setter TargetName="CheckMark" Property="Visibility" Value="Visible" /> 
+                            <Setter TargetName="BitmapIcon" Property="Opacity" Value="0.2"/>
                         </Trigger>
-                        <!-- Has Items (Right Arrow) -->
+
                         <Trigger Property="HasItems" Value="True">
                             <Setter TargetName="RightArrow" Property="Visibility" Value="Visible" />
                         </Trigger>
                     </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Setter.Value>
+                </ControlTemplate>            </Setter.Value>
         </Setter>
     </Style>
 

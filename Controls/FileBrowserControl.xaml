@@ -245,6 +245,55 @@
             <MenuItem x:Name="PropertiesItem" Header="属性" 
                       Command="{Binding Commands.PropertiesCommand}" 
                       Icon="ℹ️"/>
+
+            <!-- ═══ 已固定的 Shell 项 (Phase 3) ═══ -->
+            <MenuItem Header="快捷操作" 
+                      ItemsSource="{Binding PinnedShellMenuItems}"
+                      Visibility="{Binding HasPinnedShellItems, Converter={StaticResource BooleanToVisibilityConverter}}"
+                      FontWeight="Bold"
+                      Icon="📌">
+                <MenuItem.ItemContainerStyle>
+                    <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                        <Setter Property="Header" Value="{Binding Text}"/>
+                        <Setter Property="Icon" Value="{Binding Icon}"/>
+                        <Setter Property="Command" Value="{Binding ExecuteCommand}"/>
+                        <Setter Property="ItemsSource" Value="{Binding Children}"/>
+                    </Style>
+                </MenuItem.ItemContainerStyle>
+            </MenuItem>
+
+            <Separator Visibility="{Binding IsShellMenuVisible, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+            <!-- 解析的 Shell 子菜单 (Phase 2) -->
+            <MenuItem x:Name="SystemShellMenu" Header="系统菜单" 
+                      ItemsSource="{Binding ShellSubMenuItems}"
+                      Visibility="{Binding IsShellMenuVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
+                      Icon="🖥️">
+                <MenuItem.ItemContainerStyle>
+                    <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                        <Setter Property="Header" Value="{Binding Text}"/>
+                        <Setter Property="Icon" Value="{Binding Icon}"/>
+                        <Setter Property="Command" Value="{Binding ExecuteCommand}"/>
+                        <Setter Property="ItemsSource" Value="{Binding Children}"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsSeparator}" Value="True">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="MenuItem">
+                                            <Separator Margin="0,2" Background="{DynamicResource BorderBrush}"/>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </MenuItem.ItemContainerStyle>
+            </MenuItem>
+
+            <MenuItem x:Name="FullShellMenuItem" 
+                      Header="完整系统菜单..." 
+                      Command="{Binding Commands.ShowNativeShellMenuCommand}"
+                      Visibility="{Binding IsShellMenuVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
+                      Icon="📋"/>
         </ContextMenu>
     </ResourceDictionary>
 </UserControl.Resources>

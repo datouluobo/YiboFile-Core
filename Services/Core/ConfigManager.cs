@@ -226,6 +226,10 @@ namespace YiboFile
         public bool ClipboardCaptureText { get; set; } = true;
         public bool ClipboardCaptureScreenshots { get; set; } = true;
 
+        // Shell Context Menu Integration (Phase 3)
+        public System.Collections.Generic.List<string> PinnedShellVerbs { get; set; } = new System.Collections.Generic.List<string>();
+        public System.Collections.Generic.List<string> HiddenShellVerbs { get; set; } = new System.Collections.Generic.List<string>();
+
         // 新建标签页的行为
         public NewTabAction NewTabAction { get; set; } = NewTabAction.Desktop;
     }

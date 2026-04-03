@@ -68,6 +68,7 @@ namespace YiboFile.ViewModels
         public ICommand TagStatisticsCommand { get; private set; }
 
         public ICommand LoadMoreCommand { get; private set; }
+        public ICommand ShowNativeShellMenuCommand { get; private set; }
 
         #endregion
 
@@ -185,6 +186,28 @@ namespace YiboFile.ViewModels
 
             LoadMoreCommand = new RelayCommand(() => _pane.Filter?.LoadMoreCommand?.Execute(_pane.CurrentPath));
             SelectAllCommand = new RelayCommand(() => _messageBus.Publish(new SelectAllRequestMessage(_pane.IsSecondary ? PaneId.Second : PaneId.Main)));
+
+            ShowNativeShellMenuCommand = new RelayCommand(() =>
+            {
+                var selectedItems = _pane.Selection?.SelectedItems?.Cast<YiboFile.Models.FileSystemItem>().ToList();
+                if (selectedItems == null || selectedItems.Count == 0) return;
+
+                // 规约 Phase 4: 支持物理路径转换
+                var paths = selectedItems
+                    .Select(i => !string.IsNullOrEmpty(i.SourcePath) ? i.SourcePath : i.Path)
+                    .Where(p => !string.IsNullOrEmpty(p) && !p.Contains("://"))
+                    .ToList();
+                
+                if (paths.Count == 0) return;
+
+                var shellService = App.ServiceProvider?.GetService<YiboFile.Services.Shell.IShellContextMenuService>();
+                if (shellService == null) return;
+
+                YiboFile.Interop.Shell.POINT mousePos;
+                YiboFile.Interop.Shell.NativeMethods.GetCursorPos(out mousePos);
+                
+                shellService.ShowNativeMenu(paths, new Point(mousePos.x, mousePos.y), Application.Current.MainWindow);
+            }, () => (_pane.Selection?.SelectedItems?.Count ?? 0) > 0);
         }
 
         public void NotifyCommandStatesChanged()

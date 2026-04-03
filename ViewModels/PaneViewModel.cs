@@ -24,6 +24,8 @@ using YiboFile.ViewModels.Messaging;
 using YiboFile.ViewModels.Messaging.Messages;
 using YiboFile.Models.Navigation;
 using Microsoft.Extensions.DependencyInjection;
+using YiboFile.Services.Shell;
+using YiboFile.Models.Shell;
 
 namespace YiboFile.ViewModels
 {
@@ -55,6 +57,12 @@ namespace YiboFile.ViewModels
         private readonly ObservableCollection<ContextMenuItemViewModel> _libraryMenuItems = new ObservableCollection<ContextMenuItemViewModel>();
         private readonly ObservableCollection<ContextMenuItemViewModel> _tagMenuItems = new ObservableCollection<ContextMenuItemViewModel>();
         private readonly ObservableCollection<ContextMenuItemViewModel> _favoriteMenuItems = new ObservableCollection<ContextMenuItemViewModel>();
+        
+        // Shell Menu Integration
+        private readonly ObservableCollection<ShellMenuItemViewModel> _shellSubMenuItems = new ObservableCollection<ShellMenuItemViewModel>();
+        private readonly ObservableCollection<ShellMenuItemViewModel> _pinnedShellMenuItems = new ObservableCollection<ShellMenuItemViewModel>();
+        private readonly IShellContextMenuService _shellService;
+        private readonly IPinnedShellCommandService _pinnedService;
 
         #endregion
 
@@ -221,6 +229,12 @@ namespace YiboFile.ViewModels
             }
         }
 
+        public bool IsShellMenuVisible => _shellSubMenuItems.Count > 0 || _pinnedShellMenuItems.Count > 0;
+        public bool HasPinnedShellItems => _pinnedShellMenuItems.Count > 0;
+
+        public ObservableCollection<ShellMenuItemViewModel> ShellSubMenuItems => _shellSubMenuItems;
+        public ObservableCollection<ShellMenuItemViewModel> PinnedShellMenuItems => _pinnedShellMenuItems;
+
         public SelectionViewModel Selection { get; private set; }
 
         internal ObservableCollection<FileSystemItem> SelectedItems => Selection?.SelectedItems;
@@ -363,6 +377,9 @@ namespace YiboFile.ViewModels
             _searchCoordinator = new SearchCoordinator(_messageBus, Search);
             _searchCoordinator.SetTargetPane(isSecondary ? "Secondary" : "Primary");
 
+            _shellService = App.ServiceProvider?.GetService<IShellContextMenuService>();
+            _pinnedService = App.ServiceProvider?.GetService<IPinnedShellCommandService>();
+
             _fileViewMode = ConfigurationService.Instance.Get(cfg => cfg.FileViewMode);
 
             // 仅预设路径值，不触发文件加载
@@ -440,6 +457,205 @@ namespace YiboFile.ViewModels
             IsLoading = true;
             StatusText = "加载库数据...";
             _libraryService.LoadLibraryFiles(lib, targetPane: _isSecondary ? PaneId.Second : PaneId.Main);
+        }
+
+        /// <summary>
+        /// 同步准备 Shell 菜单项 (规约 Phase 2: 解决 ContextMenuOpening 时序死锁)
+        /// </summary>
+        public void PrepareShellMenuSync()
+        {
+            if (_shellService == null || Selection == null || !Selection.HasSelection) return;
+
+            var localPaths = Selection.SelectedItems
+                .Select(i => !string.IsNullOrEmpty(i.SourcePath) ? i.SourcePath : i.Path)
+                .Where(p => !string.IsNullOrEmpty(p) && !p.Contains("://") && !p.StartsWith("\\\\"))
+                .ToList();
+
+            if (localPaths.Count == 0)
+            {
+                _shellSubMenuItems.Clear();
+                _pinnedShellMenuItems.Clear();
+                OnPropertyChanged(nameof(IsShellMenuVisible));
+                return;
+            }
+
+            try
+            {
+                // 同步查询，直连 Win32 API
+                var items = _shellService.QueryShellSubMenuItems(localPaths);
+                
+                _shellSubMenuItems.Clear();
+                _pinnedShellMenuItems.Clear();
+
+                ProcessShellMenuItems(items, localPaths);
+                
+                OnPropertyChanged(nameof(IsShellMenuVisible));
+                OnPropertyChanged(nameof(HasPinnedShellItems));
+            }
+            catch (Exception ex)
+            {
+                FileLogger.LogException("同步加载 Shell 菜单失败", ex);
+            }
+        }
+
+        /// <summary>
+        /// 更新系统 Shell 菜单项（Phase 2）
+        /// </summary>
+        public async Task UpdateShellMenuItemsAsync()
+        {
+            if (_shellService == null || Selection == null || !Selection.HasSelection)
+            {
+                _shellSubMenuItems.Clear();
+                OnPropertyChanged(nameof(IsShellMenuVisible));
+                return;
+            }
+
+            // 规约 Phase 4: 支持库模式下的物理路径解析
+            var localPaths = Selection.SelectedItems
+                .Select(i => !string.IsNullOrEmpty(i.SourcePath) ? i.SourcePath : i.Path)
+                .Where(p => !string.IsNullOrEmpty(p) && !p.Contains("://") && !p.StartsWith("\\\\"))
+                .ToList();
+
+            if (localPaths.Count == 0)
+            {
+                _shellSubMenuItems.Clear();
+                _pinnedShellMenuItems.Clear();
+                OnPropertyChanged(nameof(IsShellMenuVisible));
+                OnPropertyChanged(nameof(HasPinnedShellItems));
+                return;
+            }
+
+            try
+            {
+                // 获取 Shell 菜单子项 (STA 要求: Windows Shell 必须在 UI/STA 线程中操作)
+                var items = _shellService.QueryShellSubMenuItems(localPaths);
+                
+                _shellSubMenuItems.Clear();
+                _pinnedShellMenuItems.Clear();
+
+                ProcessShellMenuItems(items, localPaths);
+                
+                OnPropertyChanged(nameof(IsShellMenuVisible));
+                OnPropertyChanged(nameof(HasPinnedShellItems));
+                OnPropertyChanged(nameof(PinnedShellMenuItems));
+                OnPropertyChanged(nameof(ShellSubMenuItems));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error updating shell menu: {ex.Message}");
+            }
+        }
+
+        private void ProcessShellMenuItems(List<ShellMenuItem> items, List<string> originalPaths)
+        {
+            if (items == null) return;
+
+            foreach (var item in items)
+            {
+                if (item.IsSeparator)
+                {
+                    _shellSubMenuItems.Add(new ShellMenuItemViewModel(item));
+                    continue;
+                }
+
+                // Check if hidden (Phase 3)
+                if (_pinnedService != null && _pinnedService.IsHidden(item.Verb, item.Text))
+                {
+                    continue;
+                }
+
+                var vm = CreateShellMenuItemViewModel(item, originalPaths);
+
+                // Check if pinned (Phase 3)
+                if (_pinnedService != null && _pinnedService.IsPinned(item.Verb, item.Text))
+                {
+                    vm.IsPinned = true;
+                    _pinnedShellMenuItems.Add(vm);
+                    // Pinned items stay in the main menu, and we ALSO keep them in the sub-menu? 
+                    // Usually we move them or just copy them. The user choice may vary.
+                    // Let's hide from sub-menu if pinned for a cleaner Look.
+                    continue; 
+                }
+
+                _shellSubMenuItems.Add(vm);
+            }
+
+            // Cleanup trailing separators
+            while (_shellSubMenuItems.Count > 0 && _shellSubMenuItems.Last().IsSeparator)
+                _shellSubMenuItems.RemoveAt(_shellSubMenuItems.Count - 1);
+                
+            if (_shellSubMenuItems.Count == 0 && items.Count > 0)
+            {
+                System.Diagnostics.Debug.WriteLine("[ShellMenu] Shell菜单项被全部过滤。");
+            }
+        }
+
+        private void AddManagementSubMenu(ShellMenuItemViewModel vm, ShellMenuItem item)
+        {
+            if (vm == null || item == null) return;
+            // Only add manage menu to items with verbs (actual commands)
+            if (string.IsNullOrEmpty(item.Verb) && string.IsNullOrEmpty(item.Text)) return;
+
+            // Use localized strings if available, else hardcode
+            string pinText = (vm.IsPinned || _pinnedService?.IsPinned(item.Verb, item.Text) == true) ? "取消固定" : "固定到主菜单";
+            string hideText = "隐藏此项";
+
+            var pinItem = new ShellMenuItemViewModel(new ShellMenuItem { Text = pinText, Icon = null });
+            pinItem.ExecuteCommand = vm.PinCommand;
+            
+            var hideItem = new ShellMenuItemViewModel(new ShellMenuItem { Text = hideText, Icon = null });
+            hideItem.ExecuteCommand = vm.HideCommand;
+
+            // Insert a separator if there were existing children
+            if (vm.Children.Count > 0)
+            {
+                vm.Children.Add(new ShellMenuItemViewModel(new ShellMenuItem { IsSeparator = true }));
+            }
+
+            vm.Children.Add(pinItem);
+            vm.Children.Add(hideItem);
+        }
+
+        private ShellMenuItemViewModel CreateShellMenuItemViewModel(ShellMenuItem item, List<string> originalPaths)
+        {
+            var vm = new ShellMenuItemViewModel(item);
+            vm.ExecuteCommand = new RelayCommand(() => 
+            {
+                _shellService.InvokeShellCommand(item.CommandId, originalPaths, System.Windows.Application.Current.MainWindow);
+            });
+            
+            // Phase 3: Pin/Hide Commands
+            vm.PinCommand = new RelayCommand(() => 
+            {
+                if (vm.IsPinned) _pinnedService?.Unpin(item.Verb, item.Text);
+                else _pinnedService?.Pin(item.Verb, item.Text);
+                RequestUpdateShellMenu();
+            });
+
+            vm.HideCommand = new RelayCommand(() => 
+            {
+                _pinnedService?.Hide(item.Verb, item.Text);
+                RequestUpdateShellMenu();
+            });
+
+            if (item.Children?.Count > 0)
+            {
+                foreach (var child in item.Children)
+                {
+                    vm.Children.Add(CreateShellMenuItemViewModel(child, originalPaths));
+                }
+            }
+
+            // Phase 3: Add Management Options to each item
+            AddManagementSubMenu(vm, item);
+            
+            return vm;
+        }
+
+        private void RequestUpdateShellMenu()
+        {
+            // Trigger a re-query after a setting change (Pin/Hide)
+            _ = UpdateShellMenuItemsAsync();
         }
 
         private async void LoadTagAsync(string pathOrInfo)

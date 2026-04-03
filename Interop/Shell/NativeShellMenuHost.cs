@@ -54,7 +54,54 @@ namespace YiboFile.Interop.Shell
 
             // 7. 清理
             Cleanup();
+            if (parentFolder != null) Marshal.ReleaseComObject(parentFolder);
         }
+
+        public List<Models.Shell.ShellMenuItem> GetMenuItems(IEnumerable<string> paths)
+        {
+            if (_disposed) throw new ObjectDisposedException(nameof(NativeShellMenuHost));
+
+            Cleanup();
+            _contextMenu = GetContextMenu(paths, out var parentFolder);
+            try
+            {
+                if (_contextMenu == null) return new List<Models.Shell.ShellMenuItem>();
+
+                _contextMenu2 = _contextMenu as IContextMenu2;
+                _contextMenu3 = _contextMenu as IContextMenu3;
+
+                _hMenu = NativeMethods.CreatePopupMenu();
+                _contextMenu.QueryContextMenu(_hMenu, 0, 1, 0x7FFF, ShellConstants.CMF_NORMAL | ShellConstants.CMF_EXPLORE);
+
+                var items = HMenuParser.ParseMenu(_hMenu, _contextMenu);
+                return items;
+            }
+            finally
+            {
+                if (parentFolder != null) Marshal.ReleaseComObject(parentFolder);
+            }
+        }
+
+        public void InvokeDirect(int commandId, IEnumerable<string> paths, Window owner)
+        {
+            if (_disposed) throw new ObjectDisposedException(nameof(NativeShellMenuHost));
+
+            Cleanup();
+            _contextMenu = GetContextMenu(paths, out var parentFolder);
+            try
+            {
+                if (_contextMenu == null) return;
+
+                var hwnd = owner != null ? new WindowInteropHelper(owner).Handle : IntPtr.Zero;
+                InvokeCommand(commandId, hwnd, paths);
+            }
+            finally
+            {
+                if (parentFolder != null) Marshal.ReleaseComObject(parentFolder);
+                Cleanup();
+            }
+        }
+
 
         private IContextMenu GetContextMenu(IEnumerable<string> paths, out IShellFolder parentFolder)
         {

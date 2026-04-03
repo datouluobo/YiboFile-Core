@@ -26,14 +26,29 @@ namespace YiboFile.Services.Shell
 
         public List<ShellMenuItem> QueryShellSubMenuItems(IEnumerable<string> paths)
         {
-            // 在 Phase 2 中实现 HMENU 解析
-            return new List<ShellMenuItem>();
+            if (paths == null || !paths.Any()) return new List<ShellMenuItem>();
+            try
+            {
+                return _nativeHost.GetMenuItems(paths);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to query shell menu items: {ex.Message}");
+                return new List<ShellMenuItem>();
+            }
         }
 
         public void InvokeShellCommand(int commandId, IEnumerable<string> paths, Window owner)
         {
-            // 在 Phase 2 中通过直接调用 IContextMenu.InvokeCommand 实现
-            // 目前通过 NativeShellMenuHost 的内部方法集成
+            if (paths == null || !paths.Any()) return;
+            try
+            {
+                _nativeHost.InvokeDirect(commandId, paths, owner);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to invoke shell command {commandId}: {ex.Message}");
+            }
         }
     }
 }

@@ -59,12 +59,19 @@ namespace YiboFile.Interop.Shell
         public const uint MIIM_TYPE = 0x00000010;
         public const uint MIIM_DATA = 0x00000020;
         public const uint MIIM_STRING = 0x00000040;
-        public const uint MIIM_BITMAP = 0x00000080;
         public const uint MIIM_FTYPE = 0x00000100;
+        public const uint MIIM_BITMAP = 0x00000080;
 
-        // ── MFT (MenuItem File Type) ──
+        // ── MFT (MenuItem Types) ──
         public const uint MFT_STRING = 0x00000000;
+        public const uint MFT_BITMAP = 0x00000004;
+        public const uint MFT_MENUBARBREAK = 0x00000020;
+        public const uint MFT_MENUBREAK = 0x00000040;
+        public const uint MFT_OWNERDRAW = 0x00000100;
+        public const uint MFT_RADIOCHECK = 0x00000200;
         public const uint MFT_SEPARATOR = 0x00000800;
+        public const uint MFT_RIGHTORDER = 0x00002000;
+        public const uint MFT_RIGHTJUSTIFY = 0x00004000;
 
         // ── MFS (MenuItem State) ──
         public const uint MFS_ENABLED = 0x00000000;
@@ -90,7 +97,7 @@ namespace YiboFile.Interop.Shell
         public IntPtr hbmpChecked;
         public IntPtr hbmpUnchecked;
         public IntPtr dwItemData;
-        public string dwTypeData;
+        public IntPtr dwTypeData;
         public uint cch;
         public IntPtr hbmpItem;
 

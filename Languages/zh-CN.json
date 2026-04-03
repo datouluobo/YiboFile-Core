@@ -365,5 +365,13 @@
     "StartupFailed": "程序启动失败: {0}",
     "InnerException": "\n\n内部异常: {0}",
     "StackTrace": "\n\n堆栈跟踪:\n"
+  },
+  "ContextMenu": {
+    "SystemMenu": "系统菜单",
+    "FullSystemMenu": "完整系统菜单...",
+    "PinToMainMenu": "固定到主菜单",
+    "UnpinFromMainMenu": "取消固定",
+    "HideItem": "隐藏此项",
+    "ShellMenuFailed": "系统菜单加载失败"
   }
 }

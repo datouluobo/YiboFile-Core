@@ -4,6 +4,7 @@ using System.Linq;
 using System.Windows;
 using YiboFile.Dialogs;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
@@ -175,17 +176,92 @@ namespace YiboFile.Controls
 
         private void FileBrowserControl_Loaded(object sender, RoutedEventArgs e)
         {
-            if (FileList?.FilesList != null && FileList.FilesList.ContextMenu == null)
+            if (FileList?.FilesList != null)
             {
-                try
+                if (FileList.FilesList.ContextMenu == null)
                 {
-                    FileList.FilesList.ContextMenu = (ContextMenu)FindResource("FileListContextMenu");
+                    try
+                    {
+                        FileList.FilesList.ContextMenu = (ContextMenu)FindResource("FileListContextMenu");
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Failed to load ContextMenu: {ex.Message}");
+                    }
                 }
-                catch (Exception ex)
+
+                // Phase 2: Hook ContextMenuOpening to update shell menu items
+                FileList.FilesList.ContextMenuOpening += FileList_ContextMenuOpening;
+            }
+        }
+
+        private void FileList_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+        {
+            if (DataContext is ViewModels.PaneViewModel vm)
+            {
+                // 规约 Phase 2: 调用同步准备函数，彻底消除死锁风险
+                vm.PrepareShellMenuSync();
+                
+                // 规约 Phase 3: 为新生成的 Shell 子菜单项挂载管理事件
+                var menu = FileList.FilesList.ContextMenu;
+                if (menu != null)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Failed to load ContextMenu: {ex.Message}");
+                    var systemMenu = menu.Items.OfType<MenuItem>().FirstOrDefault(m => m.Name == "SystemShellMenu");
+                    if (systemMenu != null)
+                    {
+                        systemMenu.SubmenuOpened += (s, ev) => AttachShellItemManagement(systemMenu);
+                    }
                 }
             }
+        }
+
+        private void AttachShellItemManagement(MenuItem parent)
+        {
+            foreach (var item in parent.Items)
+            {
+                if (item is MenuItem mi && mi.DataContext is ViewModels.ShellMenuItemViewModel vm)
+                {
+                    // 移除旧事件防止重复挂载
+                    mi.PreviewMouseRightButtonUp -= ShellItem_PreviewMouseRightButtonUp;
+                    mi.PreviewMouseRightButtonUp += ShellItem_PreviewMouseRightButtonUp;
+                }
+            }
+        }
+
+        private void ShellItem_PreviewMouseRightButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is MenuItem mi && mi.DataContext is ViewModels.ShellMenuItemViewModel vm)
+            {
+                e.Handled = true; // 阻止冒泡到主菜单
+                ShowPinManagementMenu(mi, vm);
+            }
+        }
+
+        private void ShowPinManagementMenu(MenuItem target, ViewModels.ShellMenuItemViewModel vm)
+        {
+            var menu = new ContextMenu();
+            
+            var pinItem = new MenuItem 
+            { 
+                Header = vm.IsPinned ? "📌 取消固定" : "📌 固定到主菜单",
+                Icon = "📌" 
+            };
+            pinItem.Click += (s, e) => vm.PinCommand?.Execute(null);
+            
+            var hideItem = new MenuItem 
+            { 
+                Header = "🚫 隐藏此项",
+                Icon = "🚫" 
+            };
+            hideItem.Click += (s, e) => vm.HideCommand?.Execute(null);
+
+            menu.Items.Add(pinItem);
+            menu.Items.Add(new Separator());
+            menu.Items.Add(hideItem);
+
+            menu.PlacementTarget = target;
+            menu.Placement = PlacementMode.Mouse;
+            menu.IsOpen = true;
         }
 
         // 公共属性

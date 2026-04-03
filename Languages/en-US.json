@@ -365,5 +365,13 @@
         "StartupFailed": "Failed to start program: {0}",
         "InnerException": "\n\nInner exception: {0}",
         "StackTrace": "\n\nStack trace:\n"
+    },
+    "ContextMenu": {
+        "SystemMenu": "System Menu",
+        "FullSystemMenu": "Full System Menu...",
+        "PinToMainMenu": "Pin to Main Menu",
+        "UnpinFromMainMenu": "Unpin",
+        "HideItem": "Hide Item",
+        "ShellMenuFailed": "Failed to load system menu"
     }
 }
