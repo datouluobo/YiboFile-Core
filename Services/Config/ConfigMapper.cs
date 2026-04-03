@@ -40,6 +40,7 @@ namespace YiboFile.Services.Config
             settings.Behavior.ShowOverflowArrows = source.ShowOverflowArrows;
             settings.Behavior.ShowOverflowGradient = source.ShowOverflowGradient;
             settings.Behavior.NewTabAction = source.NewTabAction;
+            settings.Behavior.ShellMenuMode = source.ShellMenuMode;
             #pragma warning disable CS0612
             settings.Behavior.TabWidthMode = source.TabWidthMode;
             settings.Behavior.PinnedTabWidth = source.PinnedTabWidth;
@@ -160,6 +161,7 @@ namespace YiboFile.Services.Config
             config.ShowOverflowArrows = settings.Behavior.ShowOverflowArrows;
             config.ShowOverflowGradient = settings.Behavior.ShowOverflowGradient;
             config.NewTabAction = settings.Behavior.NewTabAction;
+            config.ShellMenuMode = settings.Behavior.ShellMenuMode;
             #pragma warning disable CS0612
             config.TabWidthMode = settings.Behavior.TabWidthMode;
             config.PinnedTabWidth = settings.Behavior.PinnedTabWidth;

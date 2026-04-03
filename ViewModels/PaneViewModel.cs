@@ -229,8 +229,11 @@ namespace YiboFile.ViewModels
             }
         }
 
-        public bool IsShellMenuVisible => _shellSubMenuItems.Count > 0 || _pinnedShellMenuItems.Count > 0;
-        public bool HasPinnedShellItems => _pinnedShellMenuItems.Count > 0;
+        public string ShellMenuMode => ConfigurationService.Instance.Get(cfg => cfg.ShellMenuMode);
+        public bool IsShellIntegrationEnabled => ShellMenuMode == "System";
+        public bool IsShellMenuVisible => IsShellIntegrationEnabled && (_shellSubMenuItems.Count > 0 || _pinnedShellMenuItems.Count > 0);
+        public bool IsFullShellMenuVisible => ShellMenuMode == "Native" && Selection != null && Selection.HasSelection;
+        public bool HasPinnedShellItems => IsShellIntegrationEnabled && _pinnedShellMenuItems.Count > 0;
 
         public ObservableCollection<ShellMenuItemViewModel> ShellSubMenuItems => _shellSubMenuItems;
         public ObservableCollection<ShellMenuItemViewModel> PinnedShellMenuItems => _pinnedShellMenuItems;
@@ -464,7 +467,13 @@ namespace YiboFile.ViewModels
         /// </summary>
         public void PrepareShellMenuSync()
         {
-            if (_shellService == null || Selection == null || !Selection.HasSelection) return;
+            if (_shellService == null || Selection == null || !Selection.HasSelection || !IsShellIntegrationEnabled) 
+            {
+                _shellSubMenuItems.Clear();
+                _pinnedShellMenuItems.Clear();
+                NotifyShellMenuProperties();
+                return;
+            }
 
             var localPaths = Selection.SelectedItems
                 .Select(i => !string.IsNullOrEmpty(i.SourcePath) ? i.SourcePath : i.Path)
@@ -475,7 +484,7 @@ namespace YiboFile.ViewModels
             {
                 _shellSubMenuItems.Clear();
                 _pinnedShellMenuItems.Clear();
-                OnPropertyChanged(nameof(IsShellMenuVisible));
+                NotifyShellMenuProperties();
                 return;
             }
 
@@ -503,10 +512,11 @@ namespace YiboFile.ViewModels
         /// </summary>
         public async Task UpdateShellMenuItemsAsync()
         {
-            if (_shellService == null || Selection == null || !Selection.HasSelection)
+            if (_shellService == null || Selection == null || !Selection.HasSelection || !IsShellIntegrationEnabled)
             {
                 _shellSubMenuItems.Clear();
-                OnPropertyChanged(nameof(IsShellMenuVisible));
+                _pinnedShellMenuItems.Clear();
+                NotifyShellMenuProperties();
                 return;
             }
 
@@ -535,15 +545,21 @@ namespace YiboFile.ViewModels
 
                 ProcessShellMenuItems(items, localPaths);
                 
-                OnPropertyChanged(nameof(IsShellMenuVisible));
-                OnPropertyChanged(nameof(HasPinnedShellItems));
-                OnPropertyChanged(nameof(PinnedShellMenuItems));
-                OnPropertyChanged(nameof(ShellSubMenuItems));
+                NotifyShellMenuProperties();
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error updating shell menu: {ex.Message}");
             }
+        }
+
+        private void NotifyShellMenuProperties()
+        {
+            OnPropertyChanged(nameof(IsShellMenuVisible));
+            OnPropertyChanged(nameof(IsFullShellMenuVisible));
+            OnPropertyChanged(nameof(HasPinnedShellItems));
+            OnPropertyChanged(nameof(PinnedShellMenuItems));
+            OnPropertyChanged(nameof(ShellSubMenuItems));
         }
 
         private void ProcessShellMenuItems(List<ShellMenuItem> items, List<string> originalPaths)

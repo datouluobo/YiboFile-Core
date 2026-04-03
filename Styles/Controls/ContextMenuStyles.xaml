@@ -81,12 +81,17 @@
                                                   ContentSource="Icon" 
                                                   HorizontalAlignment="Center" 
                                                   VerticalAlignment="Center"
+                                                  Visibility="Collapsed"
                                                   Margin="2,0,0,0">
                                     <ContentPresenter.Style>
                                         <Style TargetType="ContentPresenter">
                                             <Style.Triggers>
-                                                <!-- 这里简单判断，如果是 ImageSource 类型的 Icon 会在 BitmapIcon 显示，GenericIcon 透明度降为0 -->
-                                                <DataTrigger Binding="{Binding Icon, RelativeSource={RelativeSource TemplatedParent}, Converter={x:Null}}" Value="{x:Null}">
+                                                <!-- 只在 BitmapIcon 无法渲染（未获取到 Source）时显示，解决渲染 HMENU 位图时显示类名文本的问题 -->
+                                                <DataTrigger Binding="{Binding Visibility, ElementName=BitmapIcon}" Value="Collapsed">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                                <!-- 确保 Icon 本身为 null 时不显示任何内容 -->
+                                                <DataTrigger Binding="{Binding Icon, RelativeSource={RelativeSource TemplatedParent}}" Value="{x:Null}">
                                                     <Setter Property="Visibility" Value="Collapsed"/>
                                                 </DataTrigger>
                                             </Style.Triggers>

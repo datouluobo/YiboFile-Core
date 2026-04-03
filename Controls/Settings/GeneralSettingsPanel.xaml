@@ -25,6 +25,15 @@
         <CheckBox Content="{i18n:Loc Key=Settings.General.MultiWindow}" FontSize="14" MinHeight="32" Margin="0,0,0,10" IsChecked="{Binding EnableMultiWindow, Mode=TwoWay}" />
         <CheckBox Content="{i18n:Loc Key=Settings.General.MiddleClickActivate}" FontSize="14" MinHeight="32" Margin="0,0,0,24" IsChecked="{Binding ActivateNewTabOnMiddleClick, Mode=TwoWay}" />
         <CheckBox Content="{i18n:Loc Key=Settings.General.AlwaysShowPreview}" FontSize="14" MinHeight="32" Margin="0,0,0,24" IsChecked="{Binding IsRightPanelVisible, Mode=TwoWay}" />
+        
+        <TextBlock Text="{i18n:Loc Key=Settings.General.ShellMenuSettings}" FontSize="18" FontWeight="Bold" Margin="0,0,0,16" />
+        <StackPanel Orientation="Horizontal" Margin="20,0,0,8">
+            <RadioButton Content="{i18n:Loc Key=Settings.General.ShellMenuNative}" GroupName="ShellMenuMode" FontSize="14" MinHeight="32" VerticalAlignment="Center"
+                         x:Name="ShellMenuNative" Checked="ShellMenuMode_Checked" Margin="0,0,24,0" />
+            <RadioButton Content="{i18n:Loc Key=Settings.General.ShellMenuSystem}" GroupName="ShellMenuMode" FontSize="14" MinHeight="32" VerticalAlignment="Center"
+                         x:Name="ShellMenuSystem" Checked="ShellMenuMode_Checked" />
+        </StackPanel>
+        <TextBlock Text="{i18n:Loc Key=Settings.General.ShellMenuDesc}" FontSize="12" Margin="44,0,0,24" TextWrapping="Wrap" Foreground="{DynamicResource ForegroundSecondaryBrush}"  />
 
         <!-- ═══════════════════════════════════════════ -->
         <!--  标签页设置（正交维度组合） -->

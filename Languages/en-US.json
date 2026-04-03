@@ -212,7 +212,12 @@
             "Import": "Import",
             "ShortcutSettings": "Shortcuts",
             "CreateDesktopShortcut": "Create Desktop Shortcut",
-            "ShortcutCreated": "Shortcut created on desktop"
+            "ShortcutCreated": "Shortcut created on desktop",
+            "ShellMenuSettings": "Context Menu Settings",
+            "ShellMenuNative": "Native Menu",
+            "ShellMenuNativeDesc": "Use YiboFile's native WPF context menu only",
+            "ShellMenuSystem": "System Menu",
+            "ShellMenuDesc": "Show Windows Shell context menu entry at the bottom of the native menu"
         },
         "Backup": {
             "Title": "Backup Settings",

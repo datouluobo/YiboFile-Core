@@ -212,7 +212,12 @@
       "Import": "导入",
       "ShortcutSettings": "快捷方式",
       "CreateDesktopShortcut": "生成桌面快捷方式",
-      "ShortcutCreated": "快捷方式已创建到桌面"
+      "ShortcutCreated": "快捷方式已创建到桌面",
+      "ShellMenuSettings": "右键菜单设置",
+      "ShellMenuNative": "原生菜单",
+      "ShellMenuNativeDesc": "仅使用 YiboFile 原生右键菜单",
+      "ShellMenuSystem": "系统菜单",
+      "ShellMenuDesc": "在原生菜单末尾显示 Windows 系统右键菜单入口"
     },
     "Backup": {
       "Title": "备份设置",

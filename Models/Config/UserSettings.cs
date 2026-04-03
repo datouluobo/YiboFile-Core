@@ -57,13 +57,11 @@ namespace YiboFile.Models.Config
         // ── 系统右键菜单集成设置（方案 C+） ──
 
         /// <summary>
-        /// 系统右键菜单集成模式
-        /// "None": 不显示系统菜单
-        /// "Submenu": 仅显示折叠子菜单（方案A）
-        /// "Native": 仅显示原生弹出入口（方案B）
-        /// "Hybrid": 折叠子菜单 + 原生弹出入口（方案C+，默认）
+        /// 系统右键菜单集成方案
+        /// "Native": 原生菜单（仅显示 YiboFile 自定义菜单项）
+        /// "System": 系统菜单（集成 Windows Shell 菜单项）
         /// </summary>
-        public string ShellMenuMode { get; set; } = "Hybrid";
+        public string ShellMenuMode { get; set; } = "System";
 
         /// <summary>
         /// 用户固定到主菜单的 Shell 命令标识列表 (UniqueKey)

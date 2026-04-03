@@ -113,6 +113,12 @@ namespace YiboFile.Controls.Settings
             else
                 NewTabActionDesktop.IsChecked = true;
 
+            // 系统菜单集成模式
+            if (_generalViewModel.ShellMenuMode == "Native")
+                ShellMenuNative.IsChecked = true;
+            else
+                ShellMenuSystem.IsChecked = true;
+
             UpdateUI();
         }
 
@@ -144,6 +150,14 @@ namespace YiboFile.Controls.Settings
                 _generalViewModel.NewTabAction = NewTabAction.Desktop;
             else if (NewTabActionDuplicate?.IsChecked == true)
                 _generalViewModel.NewTabAction = NewTabAction.DuplicateCurrent;
+        }
+
+        private void ShellMenuMode_Checked(object sender, RoutedEventArgs e)
+        {
+            if (ShellMenuNative?.IsChecked == true)
+                _generalViewModel.ShellMenuMode = "Native";
+            else if (ShellMenuSystem?.IsChecked == true)
+                _generalViewModel.ShellMenuMode = "System";
         }
 
         /// <summary>

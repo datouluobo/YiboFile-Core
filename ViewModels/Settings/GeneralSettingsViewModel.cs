@@ -44,6 +44,7 @@ namespace YiboFile.ViewModels.Settings
             _showOverflowArrows = config.ShowOverflowArrows;
             _showOverflowGradient = config.ShowOverflowGradient;
             _newTabAction = config.NewTabAction;
+            _shellMenuMode = config.ShellMenuMode ?? "System";
 
             _baseDirectory = _pathProvider?.BaseDirectory ?? ConfigManager.GetBaseDirectory();
         }
@@ -250,8 +251,20 @@ namespace YiboFile.ViewModels.Settings
             }
         }
 
+        private string _shellMenuMode;
+        public string ShellMenuMode
+        {
+            get => _shellMenuMode;
+            set
+            {
+                if (SetProperty(ref _shellMenuMode, value))
+                    _configService.Update(c => c.ShellMenuMode = value);
+            }
+        }
+
         // ═══════════════════════════════════════════
         //  路径设置
+        // ═══════════════════════════════════════════
         // ═══════════════════════════════════════════
 
         private string _baseDirectory;

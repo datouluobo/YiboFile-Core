@@ -290,9 +290,9 @@
             </MenuItem>
 
             <MenuItem x:Name="FullShellMenuItem" 
-                      Header="完整系统菜单..." 
+                      Header="系统菜单" 
                       Command="{Binding Commands.ShowNativeShellMenuCommand}"
-                      Visibility="{Binding IsShellMenuVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
+                      Visibility="{Binding IsFullShellMenuVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
                       Icon="📋"/>
         </ContextMenu>
     </ResourceDictionary>

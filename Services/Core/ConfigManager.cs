@@ -232,6 +232,9 @@ namespace YiboFile
 
         // 新建标签页的行为
         public NewTabAction NewTabAction { get; set; } = NewTabAction.Desktop;
+
+        // Shell 菜单集成模式
+        public string ShellMenuMode { get; set; } = "System";
     }
 
     public class AllSettingsConfig
